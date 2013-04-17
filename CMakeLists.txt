@@ -33,9 +33,9 @@ include( ecbuild_system )
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
 
+ecbuild_use_package( PROJECT grib_api NAME GRIB_API REQUIRED )
 ecbuild_use_package( PROJECT eckit    NAME EcKit    REQUIRED )
 ecbuild_use_package( PROJECT odb_api  NAME ODB_API )
-ecbuild_use_package( PROJECT grib_api NAME GRIB_API REQUIRED )
 
 ecbuild_declare_project()
 
