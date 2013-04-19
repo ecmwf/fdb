@@ -28,14 +28,18 @@ set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} 
 
 include( ecbuild_system )
 
+if( ECBUILD_MACRO_VERSION VERSION_LESS 1.1 )
+	message( FATAL_ERROR "${PROJECT_NAME} needs ecbuild >= 1.1" )
+endif()
+
 ###############################################################################
 # projects
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
 
-ecbuild_use_package( PROJECT grib_api NAME GRIB_API REQUIRED )
-ecbuild_use_package( PROJECT eckit    NAME EcKit    REQUIRED )
-ecbuild_use_package( PROJECT odb_api  NAME ODB_API )
+ecbuild_use_package( PROJECT grib_api VERSION 1.10 	 REQUIRED )
+ecbuild_use_package( PROJECT eckit    VERSION 0.1    REQUIRED )
+ecbuild_use_package( PROJECT odb_api  VERSION 0.9.28 REQUIRED )
 
 ecbuild_declare_project()
 
