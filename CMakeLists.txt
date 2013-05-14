@@ -82,7 +82,7 @@ find_package( Scin )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 include_directories( ${ECKIT_INCLUDE_DIRS} )
 
-set_directory_properties( PROPERTIES COMPILE_DEFINITIONS ${ECKIT_DEFINITIONS} )
+set_directory_properties( PROPERTIES COMPILE_DEFINITIONS ${ECKIT_DEFINITIONS} ${GRIB_API_DEFINITIONS} ${ODB_API_DEFINITIONS} )
 
 # scripts for administration
 if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/admin/CMakeLists.txt )
