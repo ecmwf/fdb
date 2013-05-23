@@ -52,11 +52,19 @@ set( MARS_TAPE_MANAGERS  "" CACHE INTERNAL "" )
 option( WITH_DUMMY_TAPES "use dummy tape management libraries for testing" OFF )
 option( WITH_READLINE    "try to find and use the GNU Readline library"    ON  )
 
+# eventually should be moved out ...
 option( BUILD_POINTDB    "either to build pointdb or not"                  ON  )
+
+set( DHSHOME "$ENV{DHSHOME}" )
+if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
+    set( EC_LINK_DIR ${DHSHOME} )
+endif()
 
 ###############################################################################
 # find extra packages
 
+find_package( Curses  REQUIRED )
+find_package( Scin )
 find_package( HPSS QUIET )
 find_package( ADSM QUIET )
 
@@ -66,15 +74,6 @@ set( READLINE_WRAPPER_OK FALSE )
 if( WITH_READLINE OR DEFINED READLINE_PATH )
     find_package( READLINE )
 endif()
-
-set( DHSHOME "$ENV{DHSHOME}" )
-if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
-    set( EC_LINK_DIR ${DHSHOME} )
-endif()
-
-find_package( Curses  REQUIRED ) 
-
-find_package( Scin )
 
 ###############################################################################
 # contents
