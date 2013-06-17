@@ -52,9 +52,6 @@ set( MARS_TAPE_MANAGERS  "" CACHE INTERNAL "" )
 option( WITH_DUMMY_TAPES "use dummy tape management libraries for testing" OFF )
 option( WITH_READLINE    "try to find and use the GNU Readline library"    ON  )
 
-# eventually should be moved out ...
-option( BUILD_POINTDB    "either to build pointdb or not"                  ON  )
-
 set( DHSHOME "$ENV{DHSHOME}" )
 if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
     set( EC_LINK_DIR ${DHSHOME} )
