@@ -104,7 +104,7 @@ endif()
 ############################################################################################
 # finalize
 
-ecbuild_install_project( NAME MarsServer )
+ecbuild_install_project( NAME mars-server )
 
 ecbuild_print_summary()
 
