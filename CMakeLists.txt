@@ -31,9 +31,9 @@ include( ecbuild_system )
 ###############################################################################
 # projects
 
-ecbuild_use_package( PROJECT eclib    NAME EcLib    REQUIRED )
-ecbuild_use_package( PROJECT odb_api  NAME ODB_API )
-ecbuild_use_package( PROJECT grib_api NAME GRIB_API REQUIRED )
+ecbuild_use_package( PROJECT eclib    VERSION 7.3    REQUIRED )
+ecbuild_use_package( PROJECT odb_api  VERSION 0.9.28 REQUIRED )
+ecbuild_use_package( PROJECT grib_api VERSION 1.9.16 REQUIRED )
 
 ecbuild_declare_project()
 
