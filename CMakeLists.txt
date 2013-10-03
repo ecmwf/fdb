@@ -53,6 +53,8 @@ option( BUILD_POINTDB    "either to build pointdb or not"                  ON  )
 find_package( HPSS QUIET )
 find_package( ADSM QUIET )
 
+find_package( Curses  REQUIRED )
+
 # find readline if user requests readline support
 # but don't accept the EditLine wrapper
 set( READLINE_WRAPPER_OK FALSE )
@@ -64,8 +66,6 @@ set( DHSHOME "$ENV{DHSHOME}" )
 if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
     set( EC_LINK_DIR ${DHSHOME} )
 endif()
-
-find_package( Curses  REQUIRED ) 
 
 find_package( Scin )
 
