@@ -86,6 +86,7 @@ if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/admin/CMakeLists.txt )
 endif()
 
 ecbuild_add_resources( TARGET          server_resources
+					   SOURCES_PACK    INSTALL LICENSE
 					   DONT_PACK_REGEX odb_api/src/cmake_config/configure.*
                        DONT_PACK_DIRS  http etc perl src/client src/pointdb
 					   src/sandbox src/fdbsvr )
