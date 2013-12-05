@@ -36,7 +36,7 @@ ecbuild_requires_macro_version( 1.2 )
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
 
 ecbuild_use_package( PROJECT grib_api VERSION 1.10.4 REQUIRED )
-ecbuild_use_package( PROJECT eckit    VERSION 0.5    REQUIRED )
+ecbuild_use_package( PROJECT eckit    VERSION 0.6    REQUIRED )
 ecbuild_use_package( PROJECT odb_api  VERSION 0.10.0 REQUIRED )
 ecbuild_use_package( PROJECT fdb      VERSION 5.0 )
 
