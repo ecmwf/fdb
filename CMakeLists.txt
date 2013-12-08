@@ -47,8 +47,8 @@ ecbuild_declare_project()
 
 set( MARS_TAPE_MANAGERS  "" CACHE INTERNAL "" )
 
-option( WITH_DUMMY_TAPES "use dummy tape management libraries for testing" OFF )
-option( WITH_READLINE    "try to find and use the GNU Readline library"    ON  )
+option( ENABLE_DUMMY_TAPES "use dummy tape management libraries for testing" OFF )
+option( ENABLE_READLINE    "try to find and use the GNU Readline library"    ON  )
 
 set( DHSHOME "$ENV{DHSHOME}" )
 if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
@@ -59,14 +59,13 @@ endif()
 # find extra packages
 
 find_package( Curses  REQUIRED )
-find_package( Scin )
 find_package( HPSS QUIET )
 find_package( ADSM QUIET )
 
 # find readline if user requests readline support
 # but don't accept the EditLine wrapper
 set( READLINE_WRAPPER_OK FALSE )
-if( WITH_READLINE OR DEFINED READLINE_PATH )
+if( ENABLE_READLINE OR DEFINED READLINE_PATH )
     find_package( READLINE )
 endif()
 
