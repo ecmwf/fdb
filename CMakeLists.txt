@@ -35,10 +35,17 @@ ecbuild_requires_macro_version( 1.2 )
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
 
-ecbuild_use_package( PROJECT grib_api VERSION 1.10.4 REQUIRED )
-ecbuild_use_package( PROJECT eckit    VERSION 0.6    REQUIRED )
-ecbuild_use_package( PROJECT odb_api  VERSION 0.10.0 REQUIRED )
-ecbuild_use_package( PROJECT fdb      VERSION 5.1 )
+ecbuild_use_package( PROJECT grib_api VERSION 1.10  REQUIRED )
+ecbuild_use_package( PROJECT eckit    VERSION 0.6   REQUIRED )
+ecbuild_use_package( PROJECT odb_api  VERSION 0.10  REQUIRED )
+
+option( ENABLE_FDBSVR "build the fdb server" ON  )
+if( ENABLE_FDBSVR )
+	ecbuild_use_package( PROJECT fdb VERSION 5.1 )
+	if( NOT FDB_FOUND )
+		set( ENABLE_FDBSVR OFF )
+	endif()
+endif()
 
 ecbuild_declare_project()
 
@@ -47,8 +54,12 @@ ecbuild_declare_project()
 
 set( MARS_TAPE_MANAGERS  "" CACHE INTERNAL "" )
 
-option( ENABLE_DUMMY_TAPES "use dummy tape management libraries for testing" OFF )
-option( ENABLE_READLINE    "try to find and use the GNU Readline library"    ON  )
+option( ENABLE_READLINE     "try to find and use the GNU Readline library"    ON  )
+
+option( ENABLE_CLIENT       "build the client prototype"                      ON  )
+
+option( ENABLE_DUMMY_TAPES  "use dummy tape management libraries for testing" OFF )
+option( ENABLE_SANDBOX      "build the sandbox stuff"                         OFF )
 
 set( DHSHOME "$ENV{DHSHOME}" )
 if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
