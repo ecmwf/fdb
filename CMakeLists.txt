@@ -80,6 +80,20 @@ if( ENABLE_READLINE OR DEFINED READLINE_PATH )
     find_package( READLINE )
 endif()
 
+# find thread library ( preferably pthreads )
+
+set( CMAKE_THREAD_PREFER_PTHREAD 1 )
+find_package(Threads REQUIRED)
+
+###############################################################################
+# checks
+
+# check thread library is pthreads
+
+if( NOT ${CMAKE_USE_PTHREADS_INIT} )
+	message( FATAL_ERROR "Only pthreads supported - thread library found is [${CMAKE_THREAD_LIBS_INIT}]" )
+endif()
+
 ###############################################################################
 # contents
 
