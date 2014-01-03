@@ -28,7 +28,7 @@ set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} 
 
 include( ecbuild_system )
 
-ecbuild_requires_macro_version( 1.2 )
+ecbuild_requires_macro_version( 1.3 )
 
 ###############################################################################
 # projects
