@@ -59,7 +59,10 @@ option( ENABLE_READLINE     "try to find and use the GNU Readline library"    ON
 option( ENABLE_CLIENT       "build the client prototype"                      ON  )
 
 option( ENABLE_DUMMY_TAPES  "use dummy tape management libraries for testing" OFF )
-option( ENABLE_SANDBOX      "build the sandbox stuff"                         OFF )
+
+ecbuild_add_option( FEATURE SANDBOX
+					DEFAULT OFF
+					DESCRIPTION "build the sandbox stuff" )
 
 set( DHSHOME "$ENV{DHSHOME}" )
 if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
