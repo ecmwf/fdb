@@ -30,6 +30,13 @@ include( ecbuild_system )
 
 ecbuild_requires_macro_version( 1.3 )
 
+### off_t must be 64 bits exactly
+
+ecbuild_check_c_source_return( "#include <stdio.h>\n#include <sys/types.h>\nint main(){printf(\"%ld\",sizeof(off_t));return 0;}" VAR  check_off_t_final OUTPUT __sizeof_off_t_final )
+if( NOT check_off_t_final OR NOT __sizeof_off_t_final EQUAL "8" )
+		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${__sizeof_off_t_final}] -- off_t must be 64 bits exactly" )
+endif()
+
 ###############################################################################
 # projects
 
@@ -75,6 +82,8 @@ endif()
 find_package( Curses  REQUIRED )
 find_package( HPSS QUIET )
 find_package( ADSM QUIET )
+
+find_package( Curses  REQUIRED )
 
 # find readline if user requests readline support
 # but don't accept the EditLine wrapper
