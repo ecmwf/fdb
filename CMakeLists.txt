@@ -24,16 +24,35 @@ cmake_minimum_required( VERSION 2.8.4 FATAL_ERROR )
 
 project( mars_server C CXX )
 
-set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} )
+set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild/cmake")
 
 include( ecbuild_system )
+
+ecbuild_requires_macro_version( 1.3 )
+
+### off_t must be 64 bits exactly
+
+ecbuild_check_c_source_return( "#include <stdio.h>\n#include <sys/types.h>\nint main(){printf(\"%ld\",sizeof(off_t));return 0;}" VAR  check_off_t_final OUTPUT __sizeof_off_t_final )
+if( NOT check_off_t_final OR NOT __sizeof_off_t_final EQUAL "8" )
+		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${__sizeof_off_t_final}] -- off_t must be 64 bits exactly" )
+endif()
 
 ###############################################################################
 # projects
 
-ecbuild_use_package( PROJECT eclib    VERSION 7.3    REQUIRED )
-ecbuild_use_package( PROJECT odb_api  VERSION 0.9.28 REQUIRED )
-ecbuild_use_package( PROJECT grib_api VERSION 1.9.16 REQUIRED )
+set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
+
+ecbuild_use_package( PROJECT grib_api VERSION 1.10  REQUIRED )
+ecbuild_use_package( PROJECT eckit    VERSION 0.6   REQUIRED )
+ecbuild_use_package( PROJECT odb_api  VERSION 0.10  REQUIRED )
+
+option( ENABLE_FDBSVR "build the fdb server" ON  )
+if( ENABLE_FDBSVR )
+	ecbuild_use_package( PROJECT fdb VERSION 5.1 )
+	if( NOT FDB_FOUND )
+		set( ENABLE_FDBSVR OFF )
+	endif()
+endif()
 
 ecbuild_declare_project()
 
@@ -42,14 +61,31 @@ ecbuild_declare_project()
 
 set( MARS_TAPE_MANAGERS  "" CACHE INTERNAL "" )
 
-option( WITH_DUMMY_TAPES "use dummy tape management libraries for testing" OFF )
-option( WITH_READLINE    "try to find and use the GNU Readline library"    ON  )
+option( ENABLE_READLINE     "try to find and use the GNU Readline library"    ON  )
 
-option( BUILD_POINTDB    "either to build pointdb or not"                  ON  )
+option( ENABLE_CLIENT       "build the client prototype"                      ON  )
+
+option( ENABLE_DUMMY_TAPES  "use dummy tape management libraries for testing" OFF )
+
+#set( NETCDF_CXX TRUE )
+#ecbuild_add_option( FEATURE NETCDF
+#	DEFAULT ON
+#	DESCRIPTION "support for NetCDF"
+#	REQUIRED_PACKAGES NetCDF )
+#
+ecbuild_add_option( FEATURE SANDBOX
+					DEFAULT OFF
+					DESCRIPTION "build the sandbox stuff" )
+
+set( DHSHOME "$ENV{DHSHOME}" )
+if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
+    set( EC_LINK_DIR ${DHSHOME} )
+endif()
 
 ###############################################################################
 # find extra packages
 
+find_package( Curses  REQUIRED )
 find_package( HPSS QUIET )
 find_package( ADSM QUIET )
 
@@ -58,19 +94,31 @@ find_package( Curses  REQUIRED )
 # find readline if user requests readline support
 # but don't accept the EditLine wrapper
 set( READLINE_WRAPPER_OK FALSE )
-if( WITH_READLINE OR DEFINED READLINE_PATH )
+if( ENABLE_READLINE OR DEFINED READLINE_PATH )
     find_package( READLINE )
 endif()
 
-set( DHSHOME "$ENV{DHSHOME}" )
-if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
-    set( EC_LINK_DIR ${DHSHOME} )
-endif()
+# find thread library ( preferably pthreads )
 
-find_package( Scin )
+set( CMAKE_THREAD_PREFER_PTHREAD 1 )
+find_package(Threads REQUIRED)
+
+###############################################################################
+# checks
+
+# check thread library is pthreads
+
+if( NOT ${CMAKE_USE_PTHREADS_INIT} )
+	message( FATAL_ERROR "Only pthreads supported - thread library found is [${CMAKE_THREAD_LIBS_INIT}]" )
+endif()
 
 ###############################################################################
 # contents
+
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
+include_directories( ${ECKIT_INCLUDE_DIRS} )
+
+set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${GRIB_API_DEFINITIONS};${ODB_API_DEFINITIONS}" )
 
 # scripts for administration
 if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/admin/CMakeLists.txt )
@@ -78,6 +126,7 @@ if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/admin/CMakeLists.txt )
 endif()
 
 ecbuild_add_resources( TARGET          server_resources
+					   SOURCES_PACK    INSTALL LICENSE
 					   DONT_PACK_REGEX odb_api/src/cmake_config/configure.*
                        DONT_PACK_DIRS  http etc perl src/client src/pointdb
 					   src/sandbox src/fdbsvr )
@@ -96,7 +145,7 @@ endif()
 ############################################################################################
 # finalize
 
-ecbuild_install_project( NAME MarsServer )
+ecbuild_install_project( NAME mars-server )
 
 ecbuild_print_summary()
 
