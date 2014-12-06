@@ -2,9 +2,7 @@
 MARS - Metereological Archive and Retrieval System
 ===================================================
 
-For detailed installation and usage instructions see the Manual.pdf document packaged with these sources.
-
-An updated version of those instructions can also be found at
+An updated version of the install instructions can also be found at
 http://software.ecmwf.int/wiki/display/MARSAD/Building+MARS+with+CMake
 
 =============
