@@ -67,6 +67,12 @@ option( ENABLE_CLIENT       "build the client prototype"                      ON
 
 option( ENABLE_DUMMY_TAPES  "use dummy tape management libraries for testing" OFF )
 
+#set( NETCDF_CXX TRUE )
+#ecbuild_add_option( FEATURE NETCDF
+#	DEFAULT ON
+#	DESCRIPTION "support for NetCDF"
+#	REQUIRED_PACKAGES NetCDF )
+#
 ecbuild_add_option( FEATURE SANDBOX
 					DEFAULT OFF
 					DESCRIPTION "build the sandbox stuff" )
