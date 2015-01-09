@@ -10,4 +10,4 @@
 # 	set( XX "-${${PNAME}_GIT_SHA1_SHORT}" )
 # endif()
 
-set( ${PROJECT_NAME}_VERSION_STR  "7.4.6" )
+set( ${PROJECT_NAME}_VERSION_STR  "7.4.7" )
