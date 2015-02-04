@@ -25,10 +25,7 @@ set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} 
 
 include( ecbuild_system )
 
-ecbuild_requires_macro_version( 1.5 )
-
-###############################################################################
-# tests
+ecbuild_requires_macro_version( 1.6 )
 
 ### off_t must be 64 bits exactly
 
@@ -103,9 +100,15 @@ if( ENABLE_FDB_TRACE )
 endif()
 
 
-ecbuild_add_option( FEATURE READLINE DESCRIPTION "try to find and use the GNU Readline library" )
-
 ecbuild_add_option( FEATURE CLIENT   DESCRIPTION "build the C++ client" )
+
+# find readline if user requests readline support but don't accept the EditLine wrapper
+set( READLINE_WRAPPER_OK FALSE )
+
+ecbuild_add_option( FEATURE READLINE 
+					DESCRIPTION "try to find and use the GNU Readline library" 
+					DEFAULT ON  
+					REQUIRED_PACKAGES "READLINE" )
 
 ecbuild_add_option( FEATURE DUMMY_TAPES DESCRIPTION "use dummy tape management libraries for testing" DEFAULT OFF )
 
@@ -128,14 +131,6 @@ find_package( HPSS QUIET )
 find_package( ADSM QUIET )
 
 find_package( Curses  REQUIRED )
-
-# find readline if user requests readline support
-# but don't accept the EditLine wrapper
-
-set( READLINE_WRAPPER_OK FALSE )
-if( ENABLE_READLINE OR DEFINED READLINE_PATH )
-    find_package( READLINE )
-endif()
 
 # find thread library ( preferably pthreads )
 
