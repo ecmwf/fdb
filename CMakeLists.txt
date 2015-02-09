@@ -16,9 +16,6 @@
 #       -DHPSS_PATH=/path/to/hpss
 #       -DADSM_PATH=/path/to/adsm
 #       -DREADLINE_PATH=/path/to/readline
-#
-#       -DWITH_READLINE=ON          [default: OFF]
-#       -DWITH_DUMMY_TAPES=ON       [default: OFF]
 
 cmake_minimum_required( VERSION 2.8.4 FATAL_ERROR )
 
@@ -28,7 +25,7 @@ set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} 
 
 include( ecbuild_system )
 
-ecbuild_requires_macro_version( 1.3 )
+ecbuild_requires_macro_version( 1.6 )
 
 ### off_t must be 64 bits exactly
 
@@ -50,7 +47,7 @@ if( NOT EC_SIZEOF_OFF_T EQUAL "8" )
 endif()
 
 ###############################################################################
-# projects
+# project dependencies
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
 
@@ -58,26 +55,62 @@ ecbuild_use_package( PROJECT grib_api VERSION 1.10  REQUIRED )
 ecbuild_use_package( PROJECT eckit    VERSION 0.6   REQUIRED )
 ecbuild_use_package( PROJECT odb_api  VERSION 0.10  REQUIRED )
 
-option( ENABLE_FDBSVR "build the fdb server" ON  )
-if( ENABLE_FDBSVR )
-	ecbuild_use_package( PROJECT fdb VERSION 5.1 )
-	if( NOT FDB_FOUND )
-		set( ENABLE_FDBSVR OFF )
-	endif()
-endif()
+###############################################################################
+# project vars & options
 
 ecbuild_declare_project()
 
-###############################################################################
-# some variables of this project
+# some variables
 
 set( MARS_TAPE_MANAGERS  "" CACHE INTERNAL "" )
 
-option( ENABLE_READLINE     "try to find and use the GNU Readline library"    ON  )
+set( DHSHOME "$ENV{DHSHOME}" )
+if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
+	set( EC_LINK_DIR ${DHSHOME} )
+endif()
 
-option( ENABLE_CLIENT       "build the client prototype"                      ON  )
+# pointdb
 
-option( ENABLE_DUMMY_TAPES  "use dummy tape management libraries for testing" OFF )
+ecbuild_add_option( FEATURE POINTDB
+					DEFAULT OFF
+					DESCRIPTION "whether or not to build the FDB PointDB -- [EXPERIMENTAL]" )
+
+# Fortran
+
+ecbuild_add_option( FEATURE FORTRAN
+					DEFAULT OFF
+					DESCRIPTION "provide Fortran bindings" )
+
+if( ENABLE_FORTRAN )
+	ecbuild_enable_fortran( REQUIRED )
+endif()
+
+# FDB
+
+ecbuild_add_option( FEATURE FDB_LEGACY_IFSIO DESCRIPTION "Provide Legacy IFSIO" )
+
+ecbuild_add_option( FEATURE FDB_DUMMY_IFSIO DESCRIPTION "Build a dummy IFSIO" DEFAULT OFF )
+
+ecbuild_add_option( FEATURE FDB_TRACE
+					DEFAULT OFF
+					DESCRIPTION "trace calls to FDB API")
+
+if( ENABLE_FDB_TRACE )
+	set( FDB_TRACE YES ) # triggers define in mars_config.h.in
+endif()
+
+
+ecbuild_add_option( FEATURE CLIENT   DESCRIPTION "build the C++ client" )
+
+# find readline if user requests readline support but don't accept the EditLine wrapper
+set( READLINE_WRAPPER_OK FALSE )
+
+ecbuild_add_option( FEATURE READLINE 
+					DESCRIPTION "try to find and use the GNU Readline library" 
+					DEFAULT ON  
+					REQUIRED_PACKAGES "READLINE" )
+
+ecbuild_add_option( FEATURE DUMMY_TAPES DESCRIPTION "use dummy tape management libraries for testing" DEFAULT OFF )
 
 #set( NETCDF_CXX TRUE )
 #ecbuild_add_option( FEATURE NETCDF
@@ -85,30 +118,19 @@ option( ENABLE_DUMMY_TAPES  "use dummy tape management libraries for testing" OF
 #	DESCRIPTION "support for NetCDF"
 #	REQUIRED_PACKAGES NetCDF )
 #
-ecbuild_add_option( FEATURE SANDBOX
-					DEFAULT OFF
-					DESCRIPTION "build the sandbox stuff" )
 
-set( DHSHOME "$ENV{DHSHOME}" )
-if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
-    set( EC_LINK_DIR ${DHSHOME} )
-endif()
+ecbuild_add_option( FEATURE SANDBOX DEFAULT OFF	DESCRIPTION "build the sandbox stuff" )
 
 ###############################################################################
 # find extra packages
 
 find_package( Curses  REQUIRED )
+
 find_package( HPSS QUIET )
+
 find_package( ADSM QUIET )
 
 find_package( Curses  REQUIRED )
-
-# find readline if user requests readline support
-# but don't accept the EditLine wrapper
-set( READLINE_WRAPPER_OK FALSE )
-if( ENABLE_READLINE OR DEFINED READLINE_PATH )
-    find_package( READLINE )
-endif()
 
 # find thread library ( preferably pthreads )
 
@@ -133,26 +155,30 @@ include_directories( ${ECKIT_INCLUDE_DIRS} )
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${GRIB_API_DEFINITIONS};${ODB_API_DEFINITIONS}" )
 
 # scripts for administration
+
 if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/admin/CMakeLists.txt )
 	add_subdirectory( admin  )
 endif()
 
 ecbuild_add_resources( TARGET          server_resources
 					   SOURCES_PACK    INSTALL LICENSE
-					   DONT_PACK_REGEX odb_api/src/cmake_config/configure.*
-                       DONT_PACK_DIRS  http etc perl src/client src/pointdb
-					   src/sandbox src/fdbsvr )
+					   DONT_PACK_DIRS  http etc perl src/client src/pointdb src/sandbox )
 
 # scripts for deployment / installation / setup
+
 add_subdirectory( scripts )
 
 # source files
+
 add_subdirectory( src )
 
-# build directory and scripts for developers
-if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/build/CMakeLists.txt )
-	add_subdirectory( build )
-endif()
+# config files
+
+add_subdirectory( etc )
+
+# (non-unit) tests
+
+add_subdirectory( tests )
 
 ############################################################################################
 # finalize
