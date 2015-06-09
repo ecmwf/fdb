@@ -52,7 +52,7 @@ endif()
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
 
 ecbuild_use_package( PROJECT grib_api VERSION 1.10  REQUIRED )
-ecbuild_use_package( PROJECT eckit    VERSION 0.6   REQUIRED )
+ecbuild_use_package( PROJECT eckit    VERSION 0.10  REQUIRED )
 ecbuild_use_package( PROJECT odb_api  VERSION 0.10  REQUIRED )
 
 ###############################################################################
@@ -124,13 +124,9 @@ ecbuild_add_option( FEATURE SANDBOX DEFAULT OFF	DESCRIPTION "build the sandbox s
 ###############################################################################
 # find extra packages
 
-find_package( Curses  REQUIRED )
-
 find_package( HPSS QUIET )
 
 find_package( ADSM QUIET )
-
-find_package( Curses  REQUIRED )
 
 # find thread library ( preferably pthreads )
 
