@@ -124,13 +124,9 @@ ecbuild_add_option( FEATURE SANDBOX DEFAULT OFF	DESCRIPTION "build the sandbox s
 ###############################################################################
 # find extra packages
 
-find_package( Curses  REQUIRED )
-
 find_package( HPSS QUIET )
 
 find_package( ADSM QUIET )
-
-find_package( Curses  REQUIRED )
 
 # find thread library ( preferably pthreads )
 
