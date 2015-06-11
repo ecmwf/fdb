@@ -15,7 +15,6 @@
 #       -DGRIB_API_PATH=/path/to/grib
 #       -DHPSS_PATH=/path/to/hpss
 #       -DADSM_PATH=/path/to/adsm
-#       -DREADLINE_PATH=/path/to/readline
 
 cmake_minimum_required( VERSION 2.8.4 FATAL_ERROR )
 
@@ -101,14 +100,6 @@ endif()
 
 
 ecbuild_add_option( FEATURE CLIENT   DESCRIPTION "build the C++ client" )
-
-# find readline if user requests readline support but don't accept the EditLine wrapper
-set( READLINE_WRAPPER_OK FALSE )
-
-ecbuild_add_option( FEATURE READLINE 
-					DESCRIPTION "try to find and use the GNU Readline library" 
-					DEFAULT ON  
-					REQUIRED_PACKAGES "READLINE" )
 
 ecbuild_add_option( FEATURE DUMMY_TAPES DESCRIPTION "use dummy tape management libraries for testing" DEFAULT OFF )
 
