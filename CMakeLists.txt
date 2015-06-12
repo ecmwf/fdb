@@ -50,9 +50,9 @@ endif()
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
 
-ecbuild_use_package( PROJECT grib_api VERSION 1.10    REQUIRED )
-ecbuild_use_package( PROJECT eckit    VERSION 0.10.1  REQUIRED )
-ecbuild_use_package( PROJECT odb_api  VERSION 0.10    REQUIRED )
+ecbuild_use_package( PROJECT grib_api VERSION 1.10  REQUIRED )
+ecbuild_use_package( PROJECT eckit    VERSION 0.10  REQUIRED )
+ecbuild_use_package( PROJECT odb_api  VERSION 0.10  REQUIRED )
 
 ###############################################################################
 # project vars & options
