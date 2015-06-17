@@ -38,7 +38,7 @@ if( NOT check_off_t_final OR NOT __sizeof_off_t_final EQUAL "8" )
 		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${__sizeof_off_t_final}] -- off_t must be 64 bits exactly" )
 endif()
 
-# test by c compilation
+# test by cxx compilation
 ecbuild_check_cxx_source_return( "#include <iostream>\n#include <sys/types.h>\nint main(){ std::cout << sizeof(off_t) << std::endl; return 0; }" VAR  cxx_check_off_t_final OUTPUT __cxx_sizeof_off_t_final )
 if( NOT cxx_check_off_t_final OR NOT __cxx_sizeof_off_t_final EQUAL "8" )
 		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${__sizeof_off_t_final}] -- off_t must be 64 bits exactly" )
