@@ -22,7 +22,7 @@ project( mars_server C CXX )
 
 set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild/cmake")
 
-include( ecbuild_system )
+include( ecbuild_system NO_POLICY_SCOPE )
 
 ecbuild_requires_macro_version( 1.6 )
 
@@ -149,7 +149,7 @@ endif()
 
 ecbuild_add_resources( TARGET          server_resources
 					   SOURCES_PACK    INSTALL LICENSE
-					   DONT_PACK_DIRS  http etc perl src/client src/pointdb src/sandbox )
+					   DONT_PACK_DIRS  http perl src/client src/pointdb src/sandbox )
 
 # scripts for deployment / installation / setup
 
@@ -158,10 +158,6 @@ add_subdirectory( scripts )
 # source files
 
 add_subdirectory( src )
-
-# config files
-
-add_subdirectory( etc )
 
 # (non-unit) tests
 
