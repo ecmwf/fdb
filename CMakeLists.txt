@@ -75,31 +75,6 @@ ecbuild_add_option( FEATURE POINTDB
                     DESCRIPTION "whether or not to build the FDB PointDB -- [EXPERIMENTAL]"
                     REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.1" )
 
-# Fortran
-
-ecbuild_add_option( FEATURE FORTRAN
-					DEFAULT OFF
-					DESCRIPTION "provide Fortran bindings" )
-
-if( ENABLE_FORTRAN )
-	ecbuild_enable_fortran( REQUIRED )
-endif()
-
-# FDB
-
-ecbuild_add_option( FEATURE FDB_LEGACY_IFSIO DESCRIPTION "Provide Legacy IFSIO" )
-
-ecbuild_add_option( FEATURE FDB_DUMMY_IFSIO DESCRIPTION "Build a dummy IFSIO" DEFAULT OFF )
-
-ecbuild_add_option( FEATURE FDB_TRACE
-					DEFAULT OFF
-					DESCRIPTION "trace calls to FDB API")
-
-if( ENABLE_FDB_TRACE )
-	set( FDB_TRACE YES ) # triggers define in mars_config.h.in
-endif()
-
-
 ecbuild_add_option( FEATURE CLIENT   DESCRIPTION "build the C++ client" )
 
 ecbuild_add_option( FEATURE DUMMY_TAPES DESCRIPTION "use dummy tape management libraries for testing" DEFAULT OFF )
