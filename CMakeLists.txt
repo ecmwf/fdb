@@ -72,7 +72,8 @@ endif()
 
 ecbuild_add_option( FEATURE POINTDB
 					DEFAULT OFF
-					DESCRIPTION "whether or not to build the FDB PointDB -- [EXPERIMENTAL]" )
+                    DESCRIPTION "whether or not to build the FDB PointDB -- [EXPERIMENTAL]"
+                    REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.1" )
 
 # Fortran
 
