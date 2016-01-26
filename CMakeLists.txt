@@ -119,10 +119,14 @@ endif()
 ###############################################################################
 # contents
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
+set( MARS_SERVER_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
+
+include_directories( ${MARS_SERVER_INCLUDE_DIRS} )
 include_directories( ${ECKIT_INCLUDE_DIRS} )
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${GRIB_API_DEFINITIONS};${ODB_API_DEFINITIONS}" )
+
+get_directory_property( MARS_SERVER_DEFINITIONS COMPILE_DEFINITIONS )
 
 # scripts for administration
 
