@@ -72,8 +72,15 @@ endif()
 
 ecbuild_add_option( FEATURE POINTDB
 					DEFAULT OFF
-                    DESCRIPTION "whether or not to build the FDB PointDB -- [EXPERIMENTAL]"
+                    DESCRIPTION "Whether or not to build the PointDB -- [EXPERIMENTAL]"
                     REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.1" )
+
+# fdb
+
+ecbuild_add_option( FEATURE     FDB
+                    DEFAULT     ON
+                    DESCRIPTION "Whether or not to build the FDB -- [EXPERIMENTAL]"
+                    REQUIRED_PACKAGES "PROJECT marskit VERSION 0.1" )
 
 ecbuild_add_option( FEATURE CLIENT   DESCRIPTION "build the C++ client" )
 
