@@ -22,7 +22,7 @@ project( mars_server C CXX )
 
 set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild/cmake")
 
-include( ecbuild_system )
+include( ecbuild_system NO_POLICY_SCOPE )
 
 ecbuild_requires_macro_version( 1.6 )
 
@@ -72,32 +72,8 @@ endif()
 
 ecbuild_add_option( FEATURE POINTDB
 					DEFAULT OFF
-					DESCRIPTION "whether or not to build the FDB PointDB -- [EXPERIMENTAL]" )
-
-# Fortran
-
-ecbuild_add_option( FEATURE FORTRAN
-					DEFAULT OFF
-					DESCRIPTION "provide Fortran bindings" )
-
-if( ENABLE_FORTRAN )
-	ecbuild_enable_fortran( REQUIRED )
-endif()
-
-# FDB
-
-ecbuild_add_option( FEATURE FDB_LEGACY_IFSIO DESCRIPTION "Provide Legacy IFSIO" )
-
-ecbuild_add_option( FEATURE FDB_DUMMY_IFSIO DESCRIPTION "Build a dummy IFSIO" DEFAULT OFF )
-
-ecbuild_add_option( FEATURE FDB_TRACE
-					DEFAULT OFF
-					DESCRIPTION "trace calls to FDB API")
-
-if( ENABLE_FDB_TRACE )
-	set( FDB_TRACE YES ) # triggers define in mars_config.h.in
-endif()
-
+                    DESCRIPTION "whether or not to build the FDB PointDB -- [EXPERIMENTAL]"
+                    REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.1" )
 
 ecbuild_add_option( FEATURE CLIENT   DESCRIPTION "build the C++ client" )
 
@@ -149,7 +125,7 @@ endif()
 
 ecbuild_add_resources( TARGET          server_resources
 					   SOURCES_PACK    INSTALL LICENSE
-					   DONT_PACK_DIRS  http etc perl src/client src/pointdb src/sandbox )
+					   DONT_PACK_DIRS  http perl src/client src/pointdb src/sandbox )
 
 # scripts for deployment / installation / setup
 
@@ -158,10 +134,6 @@ add_subdirectory( scripts )
 # source files
 
 add_subdirectory( src )
-
-# config files
-
-add_subdirectory( etc )
 
 # (non-unit) tests
 
