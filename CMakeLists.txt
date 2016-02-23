@@ -84,7 +84,6 @@ ecbuild_add_option( FEATURE POINTDB
                     DESCRIPTION "whether or not to build the FDB PointDB -- [EXPERIMENTAL]"
                     REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.1" )
 
-ecbuild_add_option( FEATURE CLIENT   DESCRIPTION "build the C++ client" )
 
 ecbuild_add_option( FEATURE DUMMY_TAPES DESCRIPTION "use dummy tape management libraries for testing" DEFAULT OFF )
 
@@ -134,7 +133,7 @@ endif()
 
 ecbuild_add_resources( TARGET          server_resources
 					   SOURCES_PACK    INSTALL LICENSE
-					   DONT_PACK_DIRS  http perl src/client src/pointdb src/sandbox )
+					   DONT_PACK_DIRS  http perl src/pointdb src/sandbox )
 
 # scripts for deployment / installation / setup
 
