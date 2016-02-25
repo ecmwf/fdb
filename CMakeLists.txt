@@ -80,10 +80,16 @@ endif()
 # pointdb
 
 ecbuild_add_option( FEATURE POINTDB
-					DEFAULT OFF
-                    DESCRIPTION "whether or not to build the FDB PointDB -- [EXPERIMENTAL]"
+					DEFAULT ON
+                    DESCRIPTION "Whether or not to build the PointDB -- [EXPERIMENTAL]"
                     REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.1" )
 
+# fdb
+
+ecbuild_add_option( FEATURE     FDB
+                    DEFAULT     ON
+                    DESCRIPTION "Whether or not to build the FDB -- [EXPERIMENTAL]"
+                    REQUIRED_PACKAGES "PROJECT marskit VERSION 0.1" )
 
 ecbuild_add_option( FEATURE DUMMY_TAPES DESCRIPTION "use dummy tape management libraries for testing" DEFAULT OFF )
 
@@ -120,10 +126,14 @@ endif()
 ###############################################################################
 # contents
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
+set( MARS_SERVER_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
+
+include_directories( ${MARS_SERVER_INCLUDE_DIRS} )
 include_directories( ${ECKIT_INCLUDE_DIRS} )
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${GRIB_API_DEFINITIONS};${ODB_API_DEFINITIONS}" )
+
+get_directory_property( MARS_SERVER_DEFINITIONS COMPILE_DEFINITIONS )
 
 # scripts for administration
 
