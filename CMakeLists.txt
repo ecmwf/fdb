@@ -24,7 +24,7 @@ set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} 
 
 include( ecbuild_system NO_POLICY_SCOPE )
 
-ecbuild_requires_macro_version( 1.6 )
+ecbuild_requires_macro_version( 1.9 )
 
 ### off_t must be 64 bits exactly
 
@@ -41,7 +41,7 @@ if( NOT cxx_check_off_t_final OR NOT __cxx_sizeof_off_t_final EQUAL "8" )
 endif()
 
 # test by header define (done by ecbuild system)
-if( NOT EC_SIZEOF_OFF_T EQUAL "8" ) 
+if( NOT EC_SIZEOF_OFF_T EQUAL "8" )
 		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${EC_SIZEOF_OFF_T}] -- off_t must be 64 bits exactly" )
 endif()
 
@@ -52,6 +52,8 @@ set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
 
 ecbuild_use_package( PROJECT grib_api VERSION 1.10  REQUIRED )
 ecbuild_use_package( PROJECT eckit    VERSION 0.10  REQUIRED )
+
+### ODB support
 
 ecbuild_add_option( FEATURE ODB
                     DEFAULT ON
@@ -77,14 +79,14 @@ if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
 	set( EC_LINK_DIR ${DHSHOME} )
 endif()
 
-# pointdb
+### pointdb
 
 ecbuild_add_option( FEATURE POINTDB
 					DEFAULT ON
                     DESCRIPTION "Whether or not to build the PointDB -- [EXPERIMENTAL]"
                     REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.1" )
 
-# fdb
+### fdb
 
 ecbuild_add_option( FEATURE     FDB
                     DEFAULT     ON

@@ -6,8 +6,4 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-# if( ${PNAME}_GIT_SHA1_SHORT )
-# 	set( XX "-${${PNAME}_GIT_SHA1_SHORT}" )
-# endif()
-
-set( ${PROJECT_NAME}_VERSION_STR  "7.4.7" )
+set( ${PROJECT_NAME}_VERSION_STR  "7.5.1" )
