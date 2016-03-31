@@ -8,43 +8,39 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Archiver.h
+/// @file   TOC.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Archiver_H
-#define fdb_Archiver_H
+#ifndef fdb_TOC_H
+#define fdb_TOC_H
 
-#include "eckit/memory/NonCopyable.h"
+#include <vector>
+#include <string>
 
-namespace eckit   { class DataHandle; }
-/* namespace marskit { class MarsRequest; } */ class MarsRequest;
+namespace eckit { class DataHandle; }
+namespace marskit { class MarsRequest; }
 
 namespace fdb {
 
+class FdbTask;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class Archiver : public eckit::NonCopyable {
+class TOC {
 
 public: // methods
 
-	Archiver();
+	TOC();
 
     /// Destructor
     
-    ~Archiver();
+    ~TOC();
 
-    /// Archives the data selected by the MarsRequest from the provided DataHandle
-    /// @param request identifying the data to archive
-    /// @param source  data handle to read from
+    std::vector<std::string> paramsList() const;
 
-    void archive(const MarsRequest& r, eckit::DataHandle& src);
-
-    /// Archives the data provided by the DataHandle
-    /// @param source  data handle to read from
-
-    void archive(eckit::DataHandle& src);
+    eckit::DataHandle* retrieve(const FdbTask& task, const marskit::MarsRequest& field) const;
 
 };
 
