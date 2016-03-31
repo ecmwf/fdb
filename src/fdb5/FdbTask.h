@@ -32,7 +32,7 @@ public: // methods
 
     ~FdbTask();
 
-    const marskit::MarsRequest& request() const;
+    const marskit::MarsRequest& request() const { return request_; }
 
     void notifyWinds() const;
 

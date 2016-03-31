@@ -60,7 +60,7 @@ eckit::DataHandle* Retriever::retrieve()
     return result.release();
 }
 
-void Retriever::retrieve(MarsRequest& field,
+void Retriever::retrieve(marskit::MarsRequest& field,
                          const std::vector<std::string>& paramsList,
                          size_t pos,
                          Op& op)

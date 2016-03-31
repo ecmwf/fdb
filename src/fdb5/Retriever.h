@@ -17,6 +17,7 @@
 #define fdb_Retriever_H
 
 #include <cstdlib>
+#include <vector>
 
 #include "eckit/memory/NonCopyable.h"
 
