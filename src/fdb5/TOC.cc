@@ -30,9 +30,20 @@ std::vector<std::string> TOC::paramsList() const
     NOTIMP;
 }
 
-eckit::DataHandle*TOC::retrieve(const FdbTask& task, const marskit::MarsRequest& field) const
+eckit::DataHandle* TOC::retrieve(const FdbTask& task, const marskit::MarsRequest& field) const
 {
     NOTIMP;
+}
+
+void TOC::print(std::ostream &out) const
+{
+    out << "TOC()";
+}
+
+std::ostream& operator<<(std::ostream& s, const TOC& x)
+{
+    x.print(s);
+    return s;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

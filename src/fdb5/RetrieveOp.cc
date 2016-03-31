@@ -53,6 +53,11 @@ void RetrieveOp::fail(const FdbTask& task, marskit::MarsRequest& field)
     throw NotFound(field);
 }
 
+void RetrieveOp::print(std::ostream &out) const
+{
+    out << "RetrieveOp(TOC=" << toc_ << ",result=" << result_ << ")";
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb

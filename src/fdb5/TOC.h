@@ -18,6 +18,7 @@
 
 #include <vector>
 #include <string>
+#include <iosfwd>
 
 namespace eckit { class DataHandle; }
 namespace marskit { class MarsRequest; }
@@ -34,13 +35,17 @@ public: // methods
 
 	TOC();
 
-    /// Destructor
-    
     ~TOC();
 
     std::vector<std::string> paramsList() const;
 
     eckit::DataHandle* retrieve(const FdbTask& task, const marskit::MarsRequest& field) const;
+
+    friend std::ostream& operator<<(std::ostream& s,const TOC& x);
+
+protected: // methods
+
+    void print( std::ostream& out ) const;
 
 };
 

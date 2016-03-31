@@ -16,6 +16,8 @@
 #ifndef fdb_Op_H
 #define fdb_Op_H
 
+#include <iosfwd>
+
 #include "eckit/memory/NonCopyable.h"
 
 namespace marskit { class MarsRequest; }
@@ -39,6 +41,10 @@ public: // methods
     virtual void execute(const FdbTask& task, marskit::MarsRequest& field) = 0;
 
     virtual void fail(const FdbTask& task, marskit::MarsRequest& field) = 0;
+
+    friend std::ostream& operator<<(std::ostream& s,const Op& x);
+
+    virtual void print( std::ostream& out ) const = 0;
 
 };
 

@@ -103,6 +103,13 @@ void UVOp::fail(const FdbTask& task, marskit::MarsRequest& field)
 
 }
 
+void UVOp::print(std::ostream &out) const
+{
+    out << "UVOp(";
+    parent_.print(out);
+    out << ")";
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb

@@ -43,6 +43,13 @@ void ForwardOp::fail(const FdbTask& task, marskit::MarsRequest& field)
     parent_.fail(task, field);
 }
 
+void ForwardOp::print(std::ostream &out) const
+{
+    out << "ForwardOp(";
+    parent_.print(out);
+    out << ")";
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb
