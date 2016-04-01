@@ -20,7 +20,7 @@
 #include "fdb5/ForwardOp.h"
 #include "fdb5/UVOp.h"
 #include "fdb5/MasterConfig.h"
-#include "fdb5/TOC.h"
+#include "fdb5/DB.h"
 
 using namespace eckit;
 using namespace marskit;
@@ -43,16 +43,18 @@ eckit::DataHandle* Retriever::retrieve()
 {
     eckit::ScopedPtr<MultiHandle> result( new MultiHandle() );
 
-    std::vector<TOC> tocs = MasterConfig::instance().findTOCs(task_);
+    VecDB dbs = MasterConfig::instance().visitDBs(task_);
 
-    for( std::vector<TOC>::const_iterator jtoc = tocs.begin(); jtoc != tocs.end(); ++jtoc) {
+    for( VecDB::const_iterator jdb = dbs.begin(); jdb != dbs.end(); ++jdb) {
+
+        const DB& db = **jdb;
 
         eckit::ScopedPtr<MultiHandle> partial( new MultiHandle() );
 
         MarsRequest field;
 
-        RetrieveOp op(*jtoc, *partial);
-        retrieve(field, (*jtoc).paramsList(), 0, op);
+        RetrieveOp op(db, *partial);
+        retrieve(field, db.schema(), 0, op);
 
         *result += partial.release();
     }
@@ -61,18 +63,18 @@ eckit::DataHandle* Retriever::retrieve()
 }
 
 void Retriever::retrieve(marskit::MarsRequest& field,
-                         const std::vector<std::string>& paramsList,
+                         const std::vector<std::string>& schema,
                          size_t pos,
                          Op& op)
 {
-    if(pos != paramsList.size()) {
+    if(pos != schema.size()) {
 
         std::vector<std::string> values;
 
-        const std::string& param = paramsList[pos];
+        const std::string& param = schema[pos];
         task_.request().getValues(param, values);
 
-        /// @TODO once ParamList is typed, we cam call:
+        /// @TODO once ParamList is typed, we can call:
         ///         values = param->getValues(userReq);
         ///         param->makeOp(op);
 
@@ -83,7 +85,7 @@ void Retriever::retrieve(marskit::MarsRequest& field,
         for(std::vector<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
             field.setValue(param, *j);
             op.descend();
-            retrieve(field, paramsList, pos+1, *newOp);
+            retrieve(field, schema, pos+1, *newOp);
         }
     }
     else {

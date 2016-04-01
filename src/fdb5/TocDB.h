@@ -8,44 +8,39 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TOC.h
+/// @file   TocDB.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_TOC_H
-#define fdb_TOC_H
+#ifndef fdb_TocDB_H
+#define fdb_TocDB_H
 
 #include <vector>
 #include <string>
 #include <iosfwd>
 
-namespace eckit { class DataHandle; }
-namespace marskit { class MarsRequest; }
+#include "fdb5/DB.h"
 
 namespace fdb {
 
-class FdbTask;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class TOC {
+class TocDB : public DB {
 
 public: // methods
 
-	TOC();
+	TocDB();
 
-    ~TOC();
+    virtual ~TocDB();
 
-    std::vector<std::string> paramsList() const;
+    virtual std::vector<std::string> schema() const;
 
-    eckit::DataHandle* retrieve(const FdbTask& task, const marskit::MarsRequest& field) const;
-
-    friend std::ostream& operator<<(std::ostream& s,const TOC& x);
+    virtual eckit::DataHandle* retrieve(const FdbTask& task, const marskit::MarsRequest& field) const;
 
 protected: // methods
 
-    void print( std::ostream& out ) const;
+    virtual void print( std::ostream& out ) const;
 
 };
 

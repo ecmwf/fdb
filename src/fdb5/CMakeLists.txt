@@ -19,8 +19,10 @@ list( APPEND fdb5_srcs
     ForwardOp.cc
     UVOp.h
     UVOp.cc
-    TOC.h
-    TOC.cc
+    TocDB.h
+    TocDB.cc
+    DB.h
+    DB.cc
     MasterConfig.h
     MasterConfig.cc
 )

@@ -12,7 +12,7 @@
 
 #include "marskit/MarsRequest.h"
 
-#include "fdb5/TOC.h"
+#include "fdb5/DB.h"
 #include "fdb5/RetrieveOp.h"
 #include "fdb5/NotFound.h"
 
@@ -23,8 +23,8 @@ namespace fdb {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RetrieveOp::RetrieveOp(const TOC& toc, MultiHandle& result) :
-    toc_(toc),
+RetrieveOp::RetrieveOp(const DB& db, MultiHandle& result) :
+    db_(db),
     result_(result)
 {
 }
@@ -39,7 +39,7 @@ void RetrieveOp::descend()
 
 void RetrieveOp::execute(const FdbTask& task, marskit::MarsRequest& field)
 {
-    DataHandle* dh = toc_.retrieve(task, field);
+    DataHandle* dh = db_.retrieve(task, field);
     if(dh) {
         result_ += dh;
     }
@@ -55,7 +55,7 @@ void RetrieveOp::fail(const FdbTask& task, marskit::MarsRequest& field)
 
 void RetrieveOp::print(std::ostream &out) const
 {
-    out << "RetrieveOp(TOC=" << toc_ << ",result=" << result_ << ")";
+    out << "RetrieveOp(db=" << db_ << ",result=" << result_ << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

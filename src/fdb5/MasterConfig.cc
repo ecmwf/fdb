@@ -33,10 +33,10 @@ MasterConfig& MasterConfig::instance()
     return master;
 }
 
-std::vector<TOC> MasterConfig::findTOCs(const FdbTask& task)
+VecDB MasterConfig::visitDBs(const FdbTask& task)
 {
     NOTIMP;
-    return std::vector<TOC>();
+    return VecDB();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

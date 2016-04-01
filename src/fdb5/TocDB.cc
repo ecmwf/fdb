@@ -9,41 +9,38 @@
  */
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/thread/AutoLock.h"
 
-#include "fdb5/TOC.h"
+#include "fdb5/TocDB.h"
+
+using namespace eckit;
 
 namespace fdb {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TOC::TOC()
+TocDB::TocDB()
 {
 }
 
-TOC::~TOC()
+TocDB::~TocDB()
 {
 }
 
-std::vector<std::string> TOC::paramsList() const
+std::vector<std::string> TocDB::schema() const
 {
     /// @TODO get the schema
     NOTIMP;
 }
 
-eckit::DataHandle* TOC::retrieve(const FdbTask& task, const marskit::MarsRequest& field) const
+eckit::DataHandle* TocDB::retrieve(const FdbTask& task, const marskit::MarsRequest& field) const
 {
     NOTIMP;
 }
 
-void TOC::print(std::ostream &out) const
+void TocDB::print(std::ostream &out) const
 {
-    out << "TOC()";
-}
-
-std::ostream& operator<<(std::ostream& s, const TOC& x)
-{
-    x.print(s);
-    return s;
+    out << "TocDB()";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

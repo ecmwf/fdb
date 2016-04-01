@@ -22,7 +22,7 @@
 
 namespace fdb {
 
-class TOC;
+class DB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -30,7 +30,7 @@ class RetrieveOp : public fdb::Op {
 
 public: // methods
 
-    RetrieveOp(const TOC& toc, eckit::MultiHandle& result);
+    RetrieveOp(const DB& db, eckit::MultiHandle& result);
 
     /// Destructor
     
@@ -50,7 +50,7 @@ private:
 
 private: // members
 
-    const TOC& toc_;
+    const DB& db_;
 
     eckit::MultiHandle& result_;
 };

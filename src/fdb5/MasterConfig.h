@@ -16,10 +16,8 @@
 #ifndef fdb_MasterConfig_H
 #define fdb_MasterConfig_H
 
-#include <vector>
-
 #include "eckit/memory/NonCopyable.h"
-#include "fdb5/TOC.h"
+#include "fdb5/DB.h"
 
 namespace fdb {
 
@@ -33,7 +31,7 @@ public: // methods
 
     static MasterConfig& instance();
 
-    std::vector<TOC> findTOCs(const FdbTask& task);
+    VecDB visitDBs(const FdbTask& task);
 
 private: // methods
 
