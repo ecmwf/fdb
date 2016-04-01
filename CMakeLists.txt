@@ -15,10 +15,6 @@
 #       -DGRIB_API_PATH=/path/to/grib
 #       -DHPSS_PATH=/path/to/hpss
 #       -DADSM_PATH=/path/to/adsm
-#       -DREADLINE_PATH=/path/to/readline
-#
-#       -DWITH_READLINE=ON          [default: OFF]
-#       -DWITH_DUMMY_TAPES=ON       [default: OFF]
 
 cmake_minimum_required( VERSION 2.8.4 FATAL_ERROR )
 
@@ -26,9 +22,9 @@ project( mars_server C CXX )
 
 set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild/cmake")
 
-include( ecbuild_system )
+include( ecbuild_system NO_POLICY_SCOPE )
 
-ecbuild_requires_macro_version( 1.3 )
+ecbuild_requires_macro_version( 1.9 )
 
 ### off_t must be 64 bits exactly
 
@@ -45,70 +41,68 @@ if( NOT cxx_check_off_t_final OR NOT __cxx_sizeof_off_t_final EQUAL "8" )
 endif()
 
 # test by header define (done by ecbuild system)
-if( NOT EC_SIZEOF_OFF_T EQUAL "8" ) 
+if( NOT EC_SIZEOF_OFF_T EQUAL "8" )
 		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${EC_SIZEOF_OFF_T}] -- off_t must be 64 bits exactly" )
 endif()
 
 ###############################################################################
-# projects
+# project dependencies
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
 
 ecbuild_use_package( PROJECT grib_api VERSION 1.10  REQUIRED )
-ecbuild_use_package( PROJECT eckit    VERSION 0.6   REQUIRED )
-ecbuild_use_package( PROJECT odb_api  VERSION 0.10  REQUIRED )
+ecbuild_use_package( PROJECT eckit    VERSION 0.10  REQUIRED )
 
-option( ENABLE_FDBSVR "build the fdb server" ON  )
-if( ENABLE_FDBSVR )
-	ecbuild_use_package( PROJECT fdb VERSION 5.1 )
-	if( NOT FDB_FOUND )
-		set( ENABLE_FDBSVR OFF )
-	endif()
+### ODB support
+
+ecbuild_add_option( FEATURE ODB
+                    DEFAULT ON
+                    DESCRIPTION "Support for ODB handlers"
+                    REQUIRED_PACKAGES "PROJECT odb_api  VERSION 0.10" )
+
+if( HAVE_ODB )
+    set( odblib Odb )
+    set( odbtoolslib odbtools )
 endif()
+
+###############################################################################
+# project vars & options
 
 ecbuild_declare_project()
 
-###############################################################################
-# some variables of this project
+# some variables
 
 set( MARS_TAPE_MANAGERS  "" CACHE INTERNAL "" )
 
-option( ENABLE_READLINE     "try to find and use the GNU Readline library"    ON  )
-
-option( ENABLE_CLIENT       "build the client prototype"                      ON  )
-
-option( ENABLE_DUMMY_TAPES  "use dummy tape management libraries for testing" OFF )
-
-set( NETCDF_CXX TRUE )
-ecbuild_add_option( FEATURE NETCDF
-	DEFAULT ON
-	DESCRIPTION "support for NetCDF"
-	REQUIRED_PACKAGES NetCDF )
-
-ecbuild_add_option( FEATURE SANDBOX
-					DEFAULT OFF
-					DESCRIPTION "build the sandbox stuff" )
-
 set( DHSHOME "$ENV{DHSHOME}" )
 if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
-    set( EC_LINK_DIR ${DHSHOME} )
+	set( EC_LINK_DIR ${DHSHOME} )
 endif()
+
+### pointdb
+
+ecbuild_add_option( FEATURE POINTDB
+					DEFAULT ON
+                    DESCRIPTION "Whether or not to build the PointDB -- [EXPERIMENTAL]"
+                    REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.1" )
+
+### fdb
+
+ecbuild_add_option( FEATURE     FDB
+                    DEFAULT     ON
+                    DESCRIPTION "Whether or not to build the FDB -- [EXPERIMENTAL]"
+                    REQUIRED_PACKAGES "PROJECT marskit VERSION 0.1" )
+
+ecbuild_add_option( FEATURE DUMMY_TAPES DESCRIPTION "use dummy tape management libraries for testing" DEFAULT OFF )
+
+ecbuild_add_option( FEATURE SANDBOX DEFAULT OFF	DESCRIPTION "build the sandbox stuff" )
 
 ###############################################################################
 # find extra packages
 
-find_package( Curses  REQUIRED )
 find_package( HPSS QUIET )
+
 find_package( ADSM QUIET )
-
-find_package( Curses  REQUIRED )
-
-# find readline if user requests readline support
-# but don't accept the EditLine wrapper
-set( READLINE_WRAPPER_OK FALSE )
-if( ENABLE_READLINE OR DEFINED READLINE_PATH )
-    find_package( READLINE )
-endif()
 
 # find thread library ( preferably pthreads )
 
@@ -127,32 +121,36 @@ endif()
 ###############################################################################
 # contents
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
+set( MARS_SERVER_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
+
+include_directories( ${MARS_SERVER_INCLUDE_DIRS} )
 include_directories( ${ECKIT_INCLUDE_DIRS} )
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${GRIB_API_DEFINITIONS};${ODB_API_DEFINITIONS}" )
 
+get_directory_property( MARS_SERVER_DEFINITIONS COMPILE_DEFINITIONS )
+
 # scripts for administration
+
 if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/admin/CMakeLists.txt )
 	add_subdirectory( admin  )
 endif()
 
 ecbuild_add_resources( TARGET          server_resources
 					   SOURCES_PACK    INSTALL LICENSE
-					   DONT_PACK_REGEX odb_api/src/cmake_config/configure.*
-                       DONT_PACK_DIRS  http etc perl src/client src/pointdb
-					   src/sandbox src/fdbsvr )
+					   DONT_PACK_DIRS  http perl src/pointdb src/sandbox )
 
 # scripts for deployment / installation / setup
+
 add_subdirectory( scripts )
 
 # source files
+
 add_subdirectory( src )
 
-# build directory and scripts for developers
-if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/build/CMakeLists.txt )
-	add_subdirectory( build )
-endif()
+# (non-unit) tests
+
+add_subdirectory( tests )
 
 ############################################################################################
 # finalize
