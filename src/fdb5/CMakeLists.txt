@@ -3,6 +3,26 @@
 list( APPEND fdb5_srcs
     Archiver.h
     Archiver.cc
+    FdbTask.h
+    FdbTask.cc
+    Winds.h
+    Winds.cc
+    Retriever.h
+    Retriever.cc
+    NotFound.h
+    NotFound.cc
+    Op.h
+    Op.cc
+    RetrieveOp.h
+    RetrieveOp.cc
+    ForwardOp.h
+    ForwardOp.cc
+    UVOp.h
+    UVOp.cc
+    TOC.h
+    TOC.cc
+    MasterConfig.h
+    MasterConfig.cc
 )
 
 ecbuild_add_library(

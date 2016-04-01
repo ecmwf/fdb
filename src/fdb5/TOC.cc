@@ -8,46 +8,44 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Archiver.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Mar 2016
+#include "eckit/exception/Exceptions.h"
 
-#ifndef fdb_Archiver_H
-#define fdb_Archiver_H
-
-#include "eckit/memory/NonCopyable.h"
-
-namespace eckit   { class DataHandle; }
-namespace marskit { class MarsRequest; }
+#include "fdb5/TOC.h"
 
 namespace fdb {
 
-class FdbTask;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class Archiver : public eckit::NonCopyable {
+TOC::TOC()
+{
+}
 
-public: // methods
+TOC::~TOC()
+{
+}
 
-    Archiver(const FdbTask& task);
-    
-    ~Archiver();
+std::vector<std::string> TOC::paramsList() const
+{
+    /// @TODO get the schema
+    NOTIMP;
+}
 
-    /// Archives the data selected by the MarsRequest from the provided DataHandle
-    /// @param source  data handle to read from
+eckit::DataHandle* TOC::retrieve(const FdbTask& task, const marskit::MarsRequest& field) const
+{
+    NOTIMP;
+}
 
-    void archive(eckit::DataHandle& source);
+void TOC::print(std::ostream &out) const
+{
+    out << "TOC()";
+}
 
-private: // members
-
-    const FdbTask& task_;
-
-};
+std::ostream& operator<<(std::ostream& s, const TOC& x)
+{
+    x.print(s);
+    return s;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb
-
-#endif

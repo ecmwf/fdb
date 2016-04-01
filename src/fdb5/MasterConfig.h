@@ -8,18 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Archiver.h
+/// @file   MasterConfig.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Archiver_H
-#define fdb_Archiver_H
+#ifndef fdb_MasterConfig_H
+#define fdb_MasterConfig_H
+
+#include <vector>
 
 #include "eckit/memory/NonCopyable.h"
-
-namespace eckit   { class DataHandle; }
-namespace marskit { class MarsRequest; }
+#include "fdb5/TOC.h"
 
 namespace fdb {
 
@@ -27,22 +27,21 @@ class FdbTask;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Archiver : public eckit::NonCopyable {
+class MasterConfig : public eckit::NonCopyable {
 
 public: // methods
 
-    Archiver(const FdbTask& task);
+    static MasterConfig& instance();
+
+    std::vector<TOC> findTOCs(const FdbTask& task);
+
+private: // methods
+
+	MasterConfig();
+
+    /// Destructor
     
-    ~Archiver();
-
-    /// Archives the data selected by the MarsRequest from the provided DataHandle
-    /// @param source  data handle to read from
-
-    void archive(eckit::DataHandle& source);
-
-private: // members
-
-    const FdbTask& task_;
+    ~MasterConfig();
 
 };
 

@@ -8,41 +8,56 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Archiver.h
+/// @file   Winds.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Archiver_H
-#define fdb_Archiver_H
+#ifndef fdb_Winds_H
+#define fdb_Winds_H
 
-#include "eckit/memory/NonCopyable.h"
+#include <string>
 
-namespace eckit   { class DataHandle; }
 namespace marskit { class MarsRequest; }
 
 namespace fdb {
 
-class FdbTask;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class Archiver : public eckit::NonCopyable {
+class Winds {
 
 public: // methods
 
-    Archiver(const FdbTask& task);
-    
-    ~Archiver();
+    Winds();
+    Winds(const marskit::MarsRequest& field);
 
-    /// Archives the data selected by the MarsRequest from the provided DataHandle
-    /// @param source  data handle to read from
+    void reset();
 
-    void archive(eckit::DataHandle& source);
+    static bool isU(const std::string& param);
+    static bool isV(const std::string& param);
 
-private: // members
+    static bool isVO(const std::string& param);
+    static bool isD(const std::string& param);
 
-    const FdbTask& task_;
+    static std::string getVO(const std::string& param);
+    static std::string getD(const std::string& param);
+
+    void print( std::ostream& out ) const;
+
+    friend std::ostream& operator<<(std::ostream& s,const Winds& x);
+
+public: // members
+
+    bool wantU_;
+    bool wantV_;
+    bool wantVO_;
+    bool wantD_;
+
+    bool UfromVOD_;
+    bool VfromVOD_;
+
+    bool gotVO_;
+    bool gotD_;
 
 };
 

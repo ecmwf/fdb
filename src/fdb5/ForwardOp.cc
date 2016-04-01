@@ -8,46 +8,48 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Archiver.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Mar 2016
+#include "marskit/MarsRequest.h"
 
-#ifndef fdb_Archiver_H
-#define fdb_Archiver_H
+#include "fdb5/ForwardOp.h"
 
-#include "eckit/memory/NonCopyable.h"
-
-namespace eckit   { class DataHandle; }
-namespace marskit { class MarsRequest; }
+using namespace eckit;
+using namespace marskit;
 
 namespace fdb {
 
-class FdbTask;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class Archiver : public eckit::NonCopyable {
+ForwardOp::ForwardOp(Op& parent) :
+    parent_(parent)
+{
+}
 
-public: // methods
+ForwardOp::~ForwardOp()
+{
+}
 
-    Archiver(const FdbTask& task);
-    
-    ~Archiver();
+void ForwardOp::descend()
+{
+    parent_.descend();
+}
 
-    /// Archives the data selected by the MarsRequest from the provided DataHandle
-    /// @param source  data handle to read from
+void ForwardOp::execute(const FdbTask& task, marskit::MarsRequest& field)
+{
+    parent_.execute(task, field);
+}
 
-    void archive(eckit::DataHandle& source);
+void ForwardOp::fail(const FdbTask& task, marskit::MarsRequest& field)
+{
+    parent_.fail(task, field);
+}
 
-private: // members
-
-    const FdbTask& task_;
-
-};
+void ForwardOp::print(std::ostream &out) const
+{
+    out << "ForwardOp(";
+    parent_.print(out);
+    out << ")";
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb
-
-#endif

@@ -9,12 +9,12 @@
  */
 
 #include "eckit/io/DataHandle.h"
-#include "eckit/log/Timer.h"
 
 #include "marskit/MarsRequest.h"
 
-#include "fdb5/Archiver.h"
-#include "fdb/FdbApp.h"
+#include "fdb5/TOC.h"
+#include "fdb5/RetrieveOp.h"
+#include "fdb5/NotFound.h"
 
 using namespace eckit;
 using namespace marskit;
@@ -23,18 +23,39 @@ namespace fdb {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Archiver::Archiver(const FdbTask& task) :
-    task_(task)
+RetrieveOp::RetrieveOp(const TOC& toc, MultiHandle& result) :
+    toc_(toc),
+    result_(result)
 {
 }
 
-Archiver::~Archiver()
+RetrieveOp::~RetrieveOp()
 {
 }
 
-void Archiver::archive(DataHandle& source)
+void RetrieveOp::descend()
 {
-    NOTIMP;
+}
+
+void RetrieveOp::execute(const FdbTask& task, marskit::MarsRequest& field)
+{
+    DataHandle* dh = toc_.retrieve(task, field);
+    if(dh) {
+        result_ += dh;
+    }
+    else {
+        fail(task, field);
+    }
+}
+
+void RetrieveOp::fail(const FdbTask& task, marskit::MarsRequest& field)
+{
+    throw NotFound(field);
+}
+
+void RetrieveOp::print(std::ostream &out) const
+{
+    out << "RetrieveOp(TOC=" << toc_ << ",result=" << result_ << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

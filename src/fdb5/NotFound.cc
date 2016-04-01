@@ -8,46 +8,29 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Archiver.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Mar 2016
+#include <strstream>
 
-#ifndef fdb_Archiver_H
-#define fdb_Archiver_H
+#include "fdb5/NotFound.h"
 
-#include "eckit/memory/NonCopyable.h"
-
-namespace eckit   { class DataHandle; }
-namespace marskit { class MarsRequest; }
+#include "marskit/MarsRequest.h"
 
 namespace fdb {
 
-class FdbTask;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class Archiver : public eckit::NonCopyable {
+NotFound::NotFound(const marskit::MarsRequest& r)
+{
+    std::ostringstream oss;
 
-public: // methods
+    oss << "FDB5 not found: " << r;
 
-    Archiver(const FdbTask& task);
-    
-    ~Archiver();
+    reason( oss.str() );
+}
 
-    /// Archives the data selected by the MarsRequest from the provided DataHandle
-    /// @param source  data handle to read from
-
-    void archive(eckit::DataHandle& source);
-
-private: // members
-
-    const FdbTask& task_;
-
-};
+NotFound::~NotFound() throw ()
+{
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb
-
-#endif

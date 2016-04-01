@@ -8,42 +8,45 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Archiver.h
+/// @file   UVOp.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Archiver_H
-#define fdb_Archiver_H
+#ifndef fdb_UVOp_H
+#define fdb_UVOp_H
 
-#include "eckit/memory/NonCopyable.h"
-
-namespace eckit   { class DataHandle; }
-namespace marskit { class MarsRequest; }
+#include "fdb5/Op.h"
+#include "fdb5/Winds.h"
 
 namespace fdb {
 
-class FdbTask;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class Archiver : public eckit::NonCopyable {
+class UVOp : public fdb::Op {
 
 public: // methods
 
-    Archiver(const FdbTask& task);
+    UVOp(Op& parent, const Winds& winds);
+
+    /// Destructor
     
-    ~Archiver();
+    virtual ~UVOp();
 
-    /// Archives the data selected by the MarsRequest from the provided DataHandle
-    /// @param source  data handle to read from
+private: // methods
 
-    void archive(eckit::DataHandle& source);
+    virtual void descend();
 
-private: // members
+    virtual void execute(const FdbTask& task, marskit::MarsRequest& field);
 
-    const FdbTask& task_;
+    virtual void fail(const FdbTask& task, marskit::MarsRequest& field);
 
+    virtual void print( std::ostream& out ) const;
+
+private:
+
+    Op& parent_;
+    Winds winds_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

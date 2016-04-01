@@ -8,41 +8,39 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Archiver.h
+/// @file   FdbTask.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Archiver_H
-#define fdb_Archiver_H
+#ifndef fdb_FdbTask_H
+#define fdb_FdbTask_H
 
 #include "eckit/memory/NonCopyable.h"
 
-namespace eckit   { class DataHandle; }
-namespace marskit { class MarsRequest; }
+#include "marskit/MarsRequest.h"
 
 namespace fdb {
 
-class FdbTask;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class Archiver : public eckit::NonCopyable {
+class FdbTask : public eckit::NonCopyable {
 
 public: // methods
 
-    Archiver(const FdbTask& task);
-    
-    ~Archiver();
+    FdbTask(const marskit::MarsRequest& request);
 
-    /// Archives the data selected by the MarsRequest from the provided DataHandle
-    /// @param source  data handle to read from
+    ~FdbTask();
 
-    void archive(eckit::DataHandle& source);
+    const marskit::MarsRequest& request() const { return request_; }
+
+    void notifyWinds() const;
 
 private: // members
 
-    const FdbTask& task_;
+    marskit::MarsRequest request_;
+
+    mutable bool windNotified_;
 
 };
 
