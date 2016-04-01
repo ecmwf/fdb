@@ -102,6 +102,26 @@ bool Winds::isD(const std::string& param)
     return param == "155";
 }
 
+void Winds::print(std::ostream &out) const
+{
+    out << "Winds("
+        << "wantU=" << wantU_ << ","
+        << "wantV=" << wantV_ << ","
+        << "wantVO=" << wantVO_ << ","
+        << "wantD=" << wantD_ << ","
+        << "UfromVOD=" << UfromVOD_ << ","
+        << "VfromVOD=" << VfromVOD_ << ","
+        << "gotVO=" << gotVO_ << ","
+        << "gotD=" << gotD_ << ","
+        << ")";
+}
+
+std::ostream& operator<<(std::ostream& s, const Winds& x)
+{
+    x.print(s);
+    return s;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb

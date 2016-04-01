@@ -11,33 +11,28 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/log/Timer.h"
 
-#include "marslib/MarsRequest.h"
+#include "marskit/MarsRequest.h"
 
 #include "fdb5/Archiver.h"
 #include "fdb/FdbApp.h"
 
 using namespace eckit;
-//using namespace marskit;
+using namespace marskit;
 
 namespace fdb {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Archiver::Archiver()
+Archiver::Archiver(const FdbTask& task) :
+    task_(task)
 {
-//    fdb::Location::setup(); // location must be set here for library behavior
 }
 
 Archiver::~Archiver()
 {
 }
 
-void Archiver::archive(const MarsRequest& r, DataHandle& src)
-{
-    NOTIMP;
-}
-
-void Archiver::archive(DataHandle& src)
+void Archiver::archive(DataHandle& source)
 {
     NOTIMP;
 }

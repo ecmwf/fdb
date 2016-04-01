@@ -42,6 +42,12 @@ public: // methods
     static std::string getVO(const std::string& param);
     static std::string getD(const std::string& param);
 
+    void print( std::ostream& out ) const;
+
+    friend std::ostream& operator<<(std::ostream& s,const Winds& x);
+
+public: // members
+
     bool wantU_;
     bool wantV_;
     bool wantVO_;
@@ -52,6 +58,7 @@ public: // methods
 
     bool gotVO_;
     bool gotD_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

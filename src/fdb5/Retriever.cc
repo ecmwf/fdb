@@ -43,7 +43,7 @@ eckit::DataHandle* Retriever::retrieve()
 {
     eckit::ScopedPtr<MultiHandle> result( new MultiHandle() );
 
-    std::vector<TOC> tocs = MasterConfig::findTOCs(task_);
+    std::vector<TOC> tocs = MasterConfig::instance().findTOCs(task_);
 
     for( std::vector<TOC>::const_iterator jtoc = tocs.begin(); jtoc != tocs.end(); ++jtoc) {
 

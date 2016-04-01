@@ -27,6 +27,12 @@ MasterConfig::~MasterConfig()
 {
 }
 
+MasterConfig& MasterConfig::instance()
+{
+    static MasterConfig master;
+    return master;
+}
+
 std::vector<TOC> MasterConfig::findTOCs(const FdbTask& task)
 {
     NOTIMP;

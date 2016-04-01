@@ -31,13 +31,18 @@ class MasterConfig : public eckit::NonCopyable {
 
 public: // methods
 
+    static MasterConfig& instance();
+
+    std::vector<TOC> findTOCs(const FdbTask& task);
+
+private: // methods
+
 	MasterConfig();
 
     /// Destructor
     
     ~MasterConfig();
 
-    static std::vector<TOC> findTOCs(const FdbTask& task);
 };
 
 //----------------------------------------------------------------------------------------------------------------------

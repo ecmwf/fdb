@@ -38,10 +38,11 @@ class Retriever : public eckit::NonCopyable {
 public: // methods
 
     Retriever(const FdbTask& task);
-
-    /// Destructor
     
     ~Retriever();
+
+    /// Retrieves the data selected by the MarsRequest to the provided DataHandle
+    /// @returns  data handle to read from
 
     eckit::DataHandle* retrieve();
 

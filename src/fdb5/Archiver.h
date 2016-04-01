@@ -19,9 +19,11 @@
 #include "eckit/memory/NonCopyable.h"
 
 namespace eckit   { class DataHandle; }
-/* namespace marskit { class MarsRequest; } */ class MarsRequest;
+namespace marskit { class MarsRequest; }
 
 namespace fdb {
+
+class FdbTask;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -29,22 +31,18 @@ class Archiver : public eckit::NonCopyable {
 
 public: // methods
 
-	Archiver();
-
-    /// Destructor
+    Archiver(const FdbTask& task);
     
     ~Archiver();
 
     /// Archives the data selected by the MarsRequest from the provided DataHandle
-    /// @param request identifying the data to archive
     /// @param source  data handle to read from
 
-    void archive(const MarsRequest& r, eckit::DataHandle& src);
+    void archive(eckit::DataHandle& source);
 
-    /// Archives the data provided by the DataHandle
-    /// @param source  data handle to read from
+private: // members
 
-    void archive(eckit::DataHandle& src);
+    const FdbTask& task_;
 
 };
 
