@@ -8,54 +8,50 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/io/DataHandle.h"
+#include "eckit/types/Types.h"
 
-#include "marskit/MarsRequest.h"
-
-#include "fdb5/DB.h"
-#include "fdb5/RetrieveOp.h"
-#include "fdb5/NotFound.h"
+#include "fdb5/Key.h"
 
 using namespace eckit;
-using namespace marskit;
 
 namespace fdb {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RetrieveOp::RetrieveOp(const DB& db, MultiHandle& result) :
-    db_(db),
-    result_(result)
+Key::Key() :
+    keys_()
 {
 }
 
-RetrieveOp::~RetrieveOp()
+void Key::clear()
 {
+    keys_.clear();
 }
 
-void RetrieveOp::descend()
+Key Key::subkey(const std::vector<std::string>& pattern) const
 {
-}
-
-void RetrieveOp::execute(const FdbTask& task, Key& key)
-{
-    DataHandle* dh = db_.retrieve(task, key);
-    if(dh) {
-        result_ += dh;
+    Key r;
+    for(std::vector<std::string>::const_iterator i = pattern.begin(); i != pattern.end(); ++i) {
+        r.set( *i, get(*i));
     }
-    else {
-        fail(task, key);
+    return r;
+}
+
+bool Key::match(const Key& partial) const
+{
+    const StringDict& p = partial.keys_;
+    for(StringDict::const_iterator i = p.begin(); i != p.end(); ++i) {
+        StringDict::const_iterator j = keys_.find(i->first);
+        if( !( j != keys_.end() && j->second == i->second) ) {
+            return false;
+        }
     }
+    return true;
 }
 
-void RetrieveOp::fail(const FdbTask& task, Key& key)
+void Key::print(std::ostream &out) const
 {
-    throw NotFound(key);
-}
-
-void RetrieveOp::print(std::ostream &out) const
-{
-    out << "RetrieveOp(db=" << db_ << ",result=" << result_ << ")";
+    out << keys_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

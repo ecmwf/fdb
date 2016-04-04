@@ -19,7 +19,8 @@ namespace fdb {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDB::TocDB()
+TocDB::TocDB(const Key& key) : DB(key),
+    schema_(key)
 {
 }
 
@@ -27,13 +28,27 @@ TocDB::~TocDB()
 {
 }
 
-std::vector<std::string> TocDB::schema() const
+bool TocDB::match(const Key& key) const
 {
-    /// @TODO get the schema
+    return schema_.matchTOC(key);
+}
+
+const Schema& TocDB::schema() const
+{
+    return schema_;
+}
+
+void TocDB::archive(const Key &key, const void *data, Length length)
+{
     NOTIMP;
 }
 
-eckit::DataHandle* TocDB::retrieve(const FdbTask& task, const marskit::MarsRequest& field) const
+void TocDB::flush()
+{
+    NOTIMP;
+}
+
+eckit::DataHandle* TocDB::retrieve(const FdbTask& task, const Key& key) const
 {
     NOTIMP;
 }
@@ -42,6 +57,8 @@ void TocDB::print(std::ostream &out) const
 {
     out << "TocDB()";
 }
+
+DBBuilder<TocDB> tocDBBuilder("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 

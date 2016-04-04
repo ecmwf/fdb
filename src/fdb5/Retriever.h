@@ -21,14 +21,15 @@
 
 #include "eckit/memory/NonCopyable.h"
 
+#include "fdb5/Schema.h"
 #include "fdb5/Winds.h"
 
 namespace eckit { class DataHandle; }
-namespace marskit { class MarsRequest; }
 
 namespace fdb {
 
 class FdbTask;
+class Key;
 class Op;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -48,9 +49,9 @@ public: // methods
 
 private: // methods
 
-    void retrieve(marskit::MarsRequest& field,
-                  const std::vector<std::string>& paramsList,
-                  size_t pos,
+    void retrieve(Key& key,
+                  const Schema& schema,
+                  Schema::const_iterator pos,
                   Op& op);
 
 private: // members

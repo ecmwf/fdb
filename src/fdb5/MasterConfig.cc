@@ -9,9 +9,12 @@
  */
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/config/Resource.h"
+#include "eckit/parser/StringTools.h"
 
 #include "fdb5/MasterConfig.h"
-
+#include "fdb5/DB.h"
+#include "fdb5/Key.h"
 
 using namespace eckit;
 
@@ -21,10 +24,25 @@ namespace fdb {
 
 MasterConfig::MasterConfig()
 {
+
+    fdbIgnoreOnOverwrite_ = eckit::Resource<bool>("fdbIgnoreOnOverwrite", true);
+    fdbWarnOnOverwrite_   = eckit::Resource<bool>("fdbWarnOnOverwrite",   true);
+    fdbFailOnOverwrite_   = eckit::Resource<bool>("fdbFailOnOverwrite",   false);
+    fdbAllKeyChecks_      = eckit::Resource<bool>("fdbAllKeyChecks",      true);
+    fdbCheckAcceptable_   = eckit::Resource<bool>("fdbCheckAcceptable",   true);
+    fdbCheckRequired_     = eckit::Resource<bool>("fdbCheckRequired",     true);
+
+    std::string masterDBKeysStr = eckit::Resource<std::string>("masterDBKeys","{class}:{stream}:{expver}:{date}");
+    masterDBKeys_ = StringTools::substituteVariables( masterDBKeysStr );
 }
 
 MasterConfig::~MasterConfig()
 {
+}
+
+Key MasterConfig::makeDBKey(const Key& key) const
+{
+    return key.subkey(masterDBKeys_);
 }
 
 MasterConfig& MasterConfig::instance()
@@ -33,10 +51,30 @@ MasterConfig& MasterConfig::instance()
     return master;
 }
 
-VecDB MasterConfig::visitDBs(const FdbTask& task)
+eckit::SharedPtr<DB> MasterConfig::openSessionDB(const Key& user)
 {
+    Key dbKey = makeDBKey(user);
+
+    return SharedPtr<DB>( DBFactory::build("toc", dbKey) );
+}
+
+VecDB MasterConfig::openSessionDBs(const FdbTask& task)
+{
+    VecDB result;
+
+    std::vector<Key> dbKeys;
+
+    /// @todo EXPANDS task into masterDBKeys_
+
     NOTIMP;
-    return VecDB();
+
+    /// @todo substitute "toc" with a configuration driven DB type
+
+    for( std::vector<Key>::const_iterator it = dbKeys.begin(); it != dbKeys.end(); ++it ) {
+        result.push_back( SharedPtr<DB>( DBFactory::build("toc", *it) ) );
+    }
+
+    return result;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

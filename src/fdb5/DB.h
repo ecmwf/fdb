@@ -16,12 +16,13 @@
 #ifndef fdb_DB_H
 #define fdb_DB_H
 
-#include <vector>
-#include <string>
 #include <iosfwd>
 
 #include "eckit/memory/Owned.h"
 #include "eckit/memory/SharedPtr.h"
+#include "eckit/io/Length.h"
+
+#include "fdb5/Schema.h"
 
 namespace eckit { class DataHandle; }
 namespace marskit { class MarsRequest; }
@@ -29,6 +30,7 @@ namespace marskit { class MarsRequest; }
 namespace fdb {
 
 class FdbTask;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -36,13 +38,19 @@ class DB : public eckit::OwnedLock {
 
 public: // methods
 
-	DB();
+    DB(const Key& key);
 
     virtual ~DB();
 
-    virtual std::vector<std::string> schema() const = 0;
+    virtual bool match(const Key& key) const = 0;
 
-    virtual eckit::DataHandle* retrieve(const FdbTask& task, const marskit::MarsRequest& field) const = 0;
+    virtual const Schema& schema() const = 0;
+
+    virtual void archive(const Key& key, const void* data, eckit::Length length) = 0;
+
+    virtual void flush() = 0;
+
+    virtual eckit::DataHandle* retrieve(const FdbTask& task, const Key& key) const = 0;
 
     friend std::ostream& operator<<(std::ostream& s,const DB& x);
 
@@ -62,7 +70,7 @@ class DBFactory {
 
     std::string name_;
 
-    virtual DB* make() const = 0 ;
+    virtual DB* make(const Key& key) const = 0 ;
 
 protected:
 
@@ -72,7 +80,7 @@ protected:
 public:
 
     static void list(std::ostream &);
-    static DB* build(const std::string&);
+    static DB* build(const std::string&, const Key &key);
 
 private: // methods
 
@@ -85,8 +93,8 @@ private: // methods
 template< class T>
 class DBBuilder : public DBFactory {
 
-    virtual DB* make() const {
-        return new T();
+    virtual DB* make(const Key& key) const {
+        return new T(key);
     }
 
 public:

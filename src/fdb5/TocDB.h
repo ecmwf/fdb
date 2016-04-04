@@ -16,31 +16,40 @@
 #ifndef fdb_TocDB_H
 #define fdb_TocDB_H
 
-#include <vector>
-#include <string>
-#include <iosfwd>
-
 #include "fdb5/DB.h"
+#include "fdb5/TocSchema.h"
 
 namespace fdb {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// DB that implements the FDB on POSIX filesystems
+
 class TocDB : public DB {
 
 public: // methods
 
-	TocDB();
+    TocDB(const Key& key);
 
     virtual ~TocDB();
 
-    virtual std::vector<std::string> schema() const;
+    virtual bool match(const Key& key) const;
 
-    virtual eckit::DataHandle* retrieve(const FdbTask& task, const marskit::MarsRequest& field) const;
+    virtual const Schema& schema() const;
+
+    virtual void archive(const Key& key, const void* data, eckit::Length length);
+
+    virtual void flush();
+
+    virtual eckit::DataHandle* retrieve(const FdbTask& task, const Key& key) const;
 
 protected: // methods
 
     virtual void print( std::ostream& out ) const;
+
+private: // members
+
+    TocSchema schema_;
 
 };
 

@@ -8,29 +8,54 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   NotFound.h
+/// @file   Key.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_NotFound_H
-#define fdb_NotFound_H
+#ifndef fdb_Key_H
+#define fdb_Key_H
+
+#include <map>
+#include <string>
+#include <vector>
 
 #include "eckit/exception/Exceptions.h"
 
 namespace fdb {
 
-class Key;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class NotFound : public eckit::Exception {
+class Key {
 
 public: // methods
 
-    NotFound(const Key& r);
-    
-    ~NotFound() throw();
+    Key();
+
+    void set( const std::string& k, const std::string& v ) { keys_[k] = v; }
+
+    const std::string& get( const std::string& k ) const {
+        std::map< std::string, std::string >::const_iterator i = keys_.find(k);
+        ASSERT( i != keys_.end() );
+        return i->second;
+    }
+
+    void clear();
+
+    Key subkey(const std::vector<std::string>& pattern) const;
+
+    bool match(const Key& partial) const;
+
+    friend std::ostream& operator<<(std::ostream& s,const Key& x) {
+        x.print(s);
+        return s;
+    }
+
+private: // members
+
+    void print( std::ostream& out ) const;
+
+    std::map< std::string, std::string > keys_;
 
 };
 

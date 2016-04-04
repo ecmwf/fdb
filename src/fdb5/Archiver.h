@@ -17,6 +17,10 @@
 #define fdb_Archiver_H
 
 #include "eckit/memory/NonCopyable.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/DataBlob.h"
+
+#include "fdb5/DB.h"
 
 namespace eckit   { class DataHandle; }
 namespace marskit { class MarsRequest; }
@@ -24,6 +28,7 @@ namespace marskit { class MarsRequest; }
 namespace fdb {
 
 class FdbTask;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -31,18 +36,40 @@ class Archiver : public eckit::NonCopyable {
 
 public: // methods
 
-    Archiver(const FdbTask& task);
+    Archiver();
     
     ~Archiver();
 
+    /// Archives the data provided in the DataBlob, which contains an associated MetaData that is used for indexing
+    /// @param source  data blob to read from
+    ///
+    void archive(eckit::DataBlobPtr source);
+
     /// Archives the data selected by the MarsRequest from the provided DataHandle
     /// @param source  data handle to read from
+    ///
+    void archive(const FdbTask& task, eckit::DataHandle& source);
 
-    void archive(eckit::DataHandle& source);
+    /// Archives the data in the buffer and described by the fdb::Key
+    /// @param key metadata identifying the data
+    /// @param data buffer
+    /// @param length buffer length
+    ///
+    void archive(const Key& key, const void* data, eckit::Length length);
+
+    /// Flushes all buffers and closes all data handles into a consistent DB state
+    /// @note always safe to call
+    void flush();
+
+private: // methods
+
+    DB& session(const Key& key);
 
 private: // members
 
-    const FdbTask& task_;
+    typedef std::vector< eckit::SharedPtr<DB> > store_t;
+
+    store_t sessions_;
 
 };
 

@@ -21,8 +21,14 @@ list( APPEND fdb5_srcs
     UVOp.cc
     TocDB.h
     TocDB.cc
+    Key.h
+    Key.cc
     DB.h
     DB.cc
+    Schema.h
+    Schema.cc
+    TocSchema.h
+    TocSchema.cc
     MasterConfig.h
     MasterConfig.cc
 )

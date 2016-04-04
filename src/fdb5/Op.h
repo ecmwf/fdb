@@ -20,11 +20,10 @@
 
 #include "eckit/memory/NonCopyable.h"
 
-namespace marskit { class MarsRequest; }
-
 namespace fdb {
 
 class FdbTask;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -38,13 +37,13 @@ public: // methods
 
     virtual void descend() = 0;
 
-    virtual void execute(const FdbTask& task, marskit::MarsRequest& field) = 0;
+    virtual void execute(const FdbTask& task, Key& key) = 0;
 
-    virtual void fail(const FdbTask& task, marskit::MarsRequest& field) = 0;
-
-    friend std::ostream& operator<<(std::ostream& s,const Op& x);
+    virtual void fail(const FdbTask& task, Key& key) = 0;
 
     virtual void print( std::ostream& out ) const = 0;
+
+    friend std::ostream& operator<<(std::ostream& s,const Op& x);
 
 };
 

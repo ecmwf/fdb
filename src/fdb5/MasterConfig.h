@@ -17,6 +17,7 @@
 #define fdb_MasterConfig_H
 
 #include "eckit/memory/NonCopyable.h"
+
 #include "fdb5/DB.h"
 
 namespace fdb {
@@ -31,7 +32,13 @@ public: // methods
 
     static MasterConfig& instance();
 
-    VecDB visitDBs(const FdbTask& task);
+    eckit::SharedPtr<DB> openSessionDB(const Key& userkey);
+
+    VecDB openSessionDBs(const FdbTask& task);
+
+    bool FailOnOverwrite()   const { return fdbFailOnOverwrite_; }
+    bool WarnOnOverwrite()   const { return fdbWarnOnOverwrite_; }
+    bool IgnoreOnOverwrite() const { return fdbIgnoreOnOverwrite_; }
 
 private: // methods
 
@@ -40,6 +47,20 @@ private: // methods
     /// Destructor
     
     ~MasterConfig();
+
+    Key makeDBKey(const Key& key) const;
+
+
+private: // members
+
+    std::vector<std::string> masterDBKeys_;
+
+    bool            fdbFailOnOverwrite_;
+    bool            fdbWarnOnOverwrite_;
+    bool            fdbIgnoreOnOverwrite_;
+    bool            fdbAllKeyChecks_;
+    bool            fdbCheckRequired_;
+    bool            fdbCheckAcceptable_;
 
 };
 

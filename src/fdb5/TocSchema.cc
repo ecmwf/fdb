@@ -8,34 +8,29 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   NotFound.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Mar 2016
-
-#ifndef fdb_NotFound_H
-#define fdb_NotFound_H
-
 #include "eckit/exception/Exceptions.h"
+#include "eckit/config/Resource.h"
+
+#include "fdb5/TocSchema.h"
 
 namespace fdb {
 
-class Key;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class NotFound : public eckit::Exception {
+TocSchema::TocSchema(const Key& dbKey) :
+    dbKey_(dbKey)
+{
+}
 
-public: // methods
+TocSchema::~TocSchema()
+{
+}
 
-    NotFound(const Key& r);
-    
-    ~NotFound() throw();
-
-};
+bool TocSchema::matchTOC(const Key& key) const
+{
+    return key.match(dbKey_);
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb
-
-#endif

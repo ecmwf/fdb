@@ -33,14 +33,14 @@ void ForwardOp::descend()
     parent_.descend();
 }
 
-void ForwardOp::execute(const FdbTask& task, marskit::MarsRequest& field)
+void ForwardOp::execute(const FdbTask& task, Key& key)
 {
-    parent_.execute(task, field);
+    parent_.execute(task, key);
 }
 
-void ForwardOp::fail(const FdbTask& task, marskit::MarsRequest& field)
+void ForwardOp::fail(const FdbTask& task, Key& key)
 {
-    parent_.fail(task, field);
+    parent_.fail(task, key);
 }
 
 void ForwardOp::print(std::ostream &out) const

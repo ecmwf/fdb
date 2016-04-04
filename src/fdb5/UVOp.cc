@@ -11,6 +11,7 @@
 #include "marskit/MarsRequest.h"
 
 #include "fdb5/FdbTask.h"
+#include "fdb5/Key.h"
 #include "fdb5/UVOp.h"
 
 using namespace eckit;
@@ -36,18 +37,14 @@ void UVOp::descend()
     parent_.descend();
 }
 
-void UVOp::execute(const FdbTask& task, marskit::MarsRequest& field)
+void UVOp::execute(const FdbTask& task, Key& key)
 {
-    parent_.execute(task, field);
+    parent_.execute(task, key);
 }
 
-void UVOp::fail(const FdbTask& task, marskit::MarsRequest& field)
+void UVOp::fail(const FdbTask& task, Key& key)
 {
-    std::vector<std::string> params;
-    field.getValues("param", params);
-    ASSERT(params.size() == 1);
-
-    const std::string& param = params[0];
+    const std::string& param = key.get("param");
 
     bool ok = false;
 
@@ -57,14 +54,14 @@ void UVOp::fail(const FdbTask& task, marskit::MarsRequest& field)
         ASSERT(!winds_.UfromVOD_);
 
         if(!winds_.wantVO_ && !winds_.gotVO_) {
-            field.setValue("param", winds_.getVO(param));
-            execute(task, field);
+            key.set("param", winds_.getVO(param));
+            execute(task, key);
             winds_.gotVO_ = true;
         }
 
         if(!winds_.wantD_ && !winds_.gotD_) {
-            field.setValue("param", winds_.getD(param));
-            execute(task, field);
+            key.set("param", winds_.getD(param));
+            execute(task, key);
             winds_.gotD_ = true;
         }
 
@@ -78,14 +75,14 @@ void UVOp::fail(const FdbTask& task, marskit::MarsRequest& field)
         ASSERT(!winds_.VfromVOD_);
 
         if(!winds_.wantVO_ && !winds_.gotVO_) {
-            field.setValue("param", winds_.getVO(param));
-            execute(task, field);
+            key.set("param", winds_.getVO(param));
+            execute(task, key);
             winds_.gotVO_ = true;
         }
 
         if(!winds_.wantD_ && !winds_.gotD_) {
-            field.setValue("param", winds_.getD(param));
-            execute(task, field);
+            key.set("param", winds_.getD(param));
+            execute(task, key);
             winds_.gotD_ = true;
         }
 
@@ -98,7 +95,7 @@ void UVOp::fail(const FdbTask& task, marskit::MarsRequest& field)
     }
     else
     {
-        parent_.fail(task, field);
+        parent_.fail(task, key);
     }
 
 }

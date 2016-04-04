@@ -40,9 +40,9 @@ private: // methods
 
     virtual void descend();
 
-    virtual void execute(const FdbTask& task, marskit::MarsRequest& field);
+    virtual void execute(const FdbTask& task, Key& key);
 
-    virtual void fail(const FdbTask& task, marskit::MarsRequest& field);
+    virtual void fail(const FdbTask& task, Key& key);
 
 private:
 

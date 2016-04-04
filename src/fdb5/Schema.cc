@@ -8,34 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   NotFound.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Mar 2016
-
-#ifndef fdb_NotFound_H
-#define fdb_NotFound_H
-
-#include "eckit/exception/Exceptions.h"
+#include "fdb5/Schema.h"
 
 namespace fdb {
 
-class Key;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class NotFound : public eckit::Exception {
+Schema::Schema()
+{
+}
 
-public: // methods
-
-    NotFound(const Key& r);
-    
-    ~NotFound() throw();
-
-};
+Schema::~Schema()
+{
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb
-
-#endif

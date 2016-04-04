@@ -8,29 +8,31 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   NotFound.h
+/// @file   Schema.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_NotFound_H
-#define fdb_NotFound_H
+#ifndef fdb_Schema_H
+#define fdb_Schema_H
 
-#include "eckit/exception/Exceptions.h"
+#include <vector>
+#include <string>
+
+#include "eckit/memory/NonCopyable.h"
 
 namespace fdb {
 
-class Key;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class NotFound : public eckit::Exception {
+class Schema : public std::vector<std::string>,
+               private eckit::NonCopyable {
 
 public: // methods
 
-    NotFound(const Key& r);
+    Schema();
     
-    ~NotFound() throw();
+    virtual ~Schema();
 
 };
 

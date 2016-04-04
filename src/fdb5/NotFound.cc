@@ -11,14 +11,13 @@
 #include <strstream>
 
 #include "fdb5/NotFound.h"
-
-#include "marskit/MarsRequest.h"
+#include "fdb5/Key.h"
 
 namespace fdb {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-NotFound::NotFound(const marskit::MarsRequest& r)
+NotFound::NotFound(const Key& r)
 {
     std::ostringstream oss;
 

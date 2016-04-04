@@ -83,16 +83,16 @@ const DBFactory& DBFactory::findFactory(const std::string& name) {
 }
 
 
-DB* DBFactory::build(const std::string& name) {
+DB* DBFactory::build(const std::string& name, const Key& key) {
 
     const DBFactory& factory( findFactory(name) );
 
-    return factory.make();
+    return factory.make(key);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DB::DB()
+DB::DB(const Key& key)
 {
 }
 
