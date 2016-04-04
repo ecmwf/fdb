@@ -16,10 +16,13 @@
 #ifndef fdb_TocSchema_H
 #define fdb_TocSchema_H
 
+#include "eckit/filesystem/PathName.h"
+
+#include "fdb5/Index.h"
 #include "fdb5/Schema.h"
 #include "fdb5/Key.h"
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -31,16 +34,30 @@ public: // methods
     
     virtual ~TocSchema();
 
-    bool matchTOC(const Key& tocKey_) const;
+    bool matchTOC(const Key& tocKey) const;
+
+    eckit::PathName tocPath() const;
+
+    std::string dataFilePrefix(const Key& userKey) const;
+
+    eckit::PathName generateIndexPath(const Key& userKey) const;
+
+    eckit::PathName generateDataPath(const Key& userKey) const;
+
+    std::string tocEntry(const Key& userKey) const;
+
+    Index::Key dataIdx(const Key& userKey) const;
 
 private: // members
 
     Key dbKey_;
 
+    std::string     indexType_;  ///< type of the indexes in the managed Toc
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

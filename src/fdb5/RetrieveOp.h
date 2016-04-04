@@ -20,13 +20,13 @@
 
 #include "fdb5/Op.h"
 
-namespace fdb {
+namespace fdb5 {
 
 class DB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class RetrieveOp : public fdb::Op {
+class RetrieveOp : public fdb5::Op {
 
 public: // methods
 
@@ -40,9 +40,9 @@ private: // methods
 
     virtual void descend();
 
-    virtual void execute(const FdbTask& task, Key& key);
+    virtual void execute(const MarsTask& task, Key& key);
 
-    virtual void fail(const FdbTask& task, Key& key);
+    virtual void fail(const MarsTask& task, Key& key);
 
 private:
 
@@ -57,6 +57,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

@@ -19,7 +19,7 @@
 #include "fdb5/DB.h"
 #include "fdb5/TocSchema.h"
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -33,6 +33,8 @@ public: // methods
 
     virtual ~TocDB();
 
+protected: // methods
+
     virtual bool match(const Key& key) const;
 
     virtual const Schema& schema() const;
@@ -41,13 +43,9 @@ public: // methods
 
     virtual void flush();
 
-    virtual eckit::DataHandle* retrieve(const FdbTask& task, const Key& key) const;
+    virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const;
 
-protected: // methods
-
-    virtual void print( std::ostream& out ) const;
-
-private: // members
+protected: // members
 
     TocSchema schema_;
 
@@ -55,6 +53,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

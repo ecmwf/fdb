@@ -13,24 +13,55 @@
 
 #include "fdb5/TocSchema.h"
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 TocSchema::TocSchema(const Key& dbKey) :
     dbKey_(dbKey)
 {
+    indexType_ = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex" );
 }
 
 TocSchema::~TocSchema()
 {
 }
 
-bool TocSchema::matchTOC(const Key& key) const
+bool TocSchema::matchTOC(const Key& tocKey) const
 {
-    return key.match(dbKey_);
+    return tocKey.match(dbKey_);
+}
+
+eckit::PathName TocSchema::tocPath() const
+{
+    NOTIMP;
+}
+
+std::string TocSchema::dataFilePrefix(const Key& userKey) const
+{
+    NOTIMP;
+}
+
+eckit::PathName TocSchema::generateIndexPath(const Key& userKey) const
+{
+    NOTIMP;
+}
+
+eckit::PathName TocSchema::generateDataPath(const Key& userKey) const
+{
+    NOTIMP;
+}
+
+std::string TocSchema::tocEntry(const Key& userKey) const
+{
+    NOTIMP;
+}
+
+Index::Key TocSchema::dataIdx(const Key& userKey) const
+{
+    NOTIMP;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

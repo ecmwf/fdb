@@ -19,7 +19,7 @@
 using namespace eckit;
 using namespace marskit;
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -37,7 +37,7 @@ void RetrieveOp::descend()
 {
 }
 
-void RetrieveOp::execute(const FdbTask& task, Key& key)
+void RetrieveOp::execute(const MarsTask& task, Key& key)
 {
     DataHandle* dh = db_.retrieve(task, key);
     if(dh) {
@@ -48,7 +48,7 @@ void RetrieveOp::execute(const FdbTask& task, Key& key)
     }
 }
 
-void RetrieveOp::fail(const FdbTask& task, Key& key)
+void RetrieveOp::fail(const MarsTask& task, Key& key)
 {
     throw NotFound(key);
 }
@@ -60,4 +60,4 @@ void RetrieveOp::print(std::ostream &out) const
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

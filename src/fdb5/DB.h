@@ -25,11 +25,11 @@
 #include "fdb5/Schema.h"
 
 namespace eckit { class DataHandle; }
-namespace marskit { class MarsRequest; }
 
-namespace fdb {
+class MarsTask;
 
-class FdbTask;
+namespace fdb5 {
+
 class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ public: // methods
 
     virtual void flush() = 0;
 
-    virtual eckit::DataHandle* retrieve(const FdbTask& task, const Key& key) const = 0;
+    virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const = 0;
 
     friend std::ostream& operator<<(std::ostream& s,const DB& x);
 
@@ -103,6 +103,6 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

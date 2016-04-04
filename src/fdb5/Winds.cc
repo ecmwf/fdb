@@ -8,14 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-#include "marskit/MarsRequest.h"
+#include "marslib/MarsRequest.h"
 
 #include "fdb5/Winds.h"
 
 using namespace eckit;
-using namespace marskit;
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -31,7 +30,7 @@ Winds::Winds() :
 {
 }
 
-Winds::Winds(const marskit::MarsRequest& field) :
+Winds::Winds(const MarsRequest& field) :
     wantU_(false),
     wantV_(false),
     wantVO_(false),
@@ -124,4 +123,4 @@ std::ostream& operator<<(std::ostream& s, const Winds& x)
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

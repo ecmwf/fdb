@@ -13,15 +13,14 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/log/Timer.h"
 
-#include "marskit/MarsRequest.h"
+#include "marslib/MarsTask.h"
 
 #include "fdb5/Archiver.h"
 #include "fdb5/MasterConfig.h"
 
 using namespace eckit;
-using namespace marskit;
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -43,7 +42,7 @@ void Archiver::archive(DataBlobPtr blob)
 }
 
 
-void Archiver::archive(const FdbTask& task, eckit::DataHandle& source)
+void Archiver::archive(const MarsTask& task, eckit::DataHandle& source)
 {
     NOTIMP;
 }
@@ -91,4 +90,4 @@ DB& Archiver::session(const Key& key)
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

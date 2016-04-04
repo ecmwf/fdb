@@ -10,14 +10,15 @@
 
 #include "marskit/MarsRequest.h"
 
-#include "fdb5/FdbTask.h"
+#include "marslib/MarsTask.h"
+
 #include "fdb5/Key.h"
 #include "fdb5/UVOp.h"
 
 using namespace eckit;
 using namespace marskit;
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -37,12 +38,12 @@ void UVOp::descend()
     parent_.descend();
 }
 
-void UVOp::execute(const FdbTask& task, Key& key)
+void UVOp::execute(const MarsTask& task, Key& key)
 {
     parent_.execute(task, key);
 }
 
-void UVOp::fail(const FdbTask& task, Key& key)
+void UVOp::fail(const MarsTask& task, Key& key)
 {
     const std::string& param = key.get("param");
 
@@ -109,4 +110,4 @@ void UVOp::print(std::ostream &out) const
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

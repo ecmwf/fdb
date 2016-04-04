@@ -12,9 +12,8 @@
 #include "eckit/io/MultiHandle.h"
 #include "eckit/log/Timer.h"
 
-#include "marskit/MarsRequest.h"
+#include "marslib/MarsTask.h"
 
-#include "fdb5/FdbTask.h"
 #include "fdb5/Retriever.h"
 #include "fdb5/RetrieveOp.h"
 #include "fdb5/ForwardOp.h"
@@ -24,13 +23,12 @@
 #include "fdb5/Key.h"
 
 using namespace eckit;
-using namespace marskit;
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Retriever::Retriever(const FdbTask& task) :
+Retriever::Retriever(const MarsTask& task) :
     task_(task),
     winds_(task.request())
 {
@@ -102,4 +100,4 @@ void Retriever::retrieve(Key& key,
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

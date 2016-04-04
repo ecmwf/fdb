@@ -18,11 +18,11 @@
 
 #include "fdb5/Op.h"
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ForwardOp : public fdb::Op {
+class ForwardOp : public fdb5::Op {
 
 public: // methods
 
@@ -36,9 +36,9 @@ private: // methods
 
     virtual void descend();
 
-    virtual void execute(const FdbTask& task, Key& key);
+    virtual void execute(const MarsTask& task, Key& key);
 
-    virtual void fail(const FdbTask& task, Key& key);
+    virtual void fail(const MarsTask& task, Key& key);
 
     virtual void print( std::ostream& out ) const;
 
@@ -50,6 +50,6 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

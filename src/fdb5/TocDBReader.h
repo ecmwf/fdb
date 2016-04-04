@@ -8,44 +8,40 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   FdbTask.h
+/// @file   TocDBReader.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_FdbTask_H
-#define fdb_FdbTask_H
+#ifndef fdb_TocDBReader_H
+#define fdb_TocDBReader_H
 
-#include "eckit/memory/NonCopyable.h"
+#include "fdb5/TocDB.h"
 
-#include "marskit/MarsRequest.h"
-
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FdbTask : public eckit::NonCopyable {
+/// DB that implements the FDB on POSIX filesystems
+
+class TocDBReader : public TocDB {
 
 public: // methods
 
-    FdbTask(const marskit::MarsRequest& request);
+    TocDBReader(const Key& key);
 
-    ~FdbTask();
+    virtual ~TocDBReader();
 
-    const marskit::MarsRequest& request() const { return request_; }
+private: // methods
 
-    void notifyWinds() const;
+    virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const;
 
-private: // members
-
-    marskit::MarsRequest request_;
-
-    mutable bool windNotified_;
+    virtual void print( std::ostream& out ) const;
 
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

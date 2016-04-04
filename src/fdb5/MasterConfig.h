@@ -20,9 +20,9 @@
 
 #include "fdb5/DB.h"
 
-namespace fdb {
+class MarsTask;
 
-class FdbTask;
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -34,7 +34,7 @@ public: // methods
 
     eckit::SharedPtr<DB> openSessionDB(const Key& userkey);
 
-    VecDB openSessionDBs(const FdbTask& task);
+    VecDB openSessionDBs(const MarsTask& task);
 
     bool FailOnOverwrite()   const { return fdbFailOnOverwrite_; }
     bool WarnOnOverwrite()   const { return fdbWarnOnOverwrite_; }
@@ -66,6 +66,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

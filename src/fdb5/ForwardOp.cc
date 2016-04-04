@@ -15,7 +15,7 @@
 using namespace eckit;
 using namespace marskit;
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -33,12 +33,12 @@ void ForwardOp::descend()
     parent_.descend();
 }
 
-void ForwardOp::execute(const FdbTask& task, Key& key)
+void ForwardOp::execute(const MarsTask& task, Key& key)
 {
     parent_.execute(task, key);
 }
 
-void ForwardOp::fail(const FdbTask& task, Key& key)
+void ForwardOp::fail(const MarsTask& task, Key& key)
 {
     parent_.fail(task, key);
 }
@@ -52,4 +52,4 @@ void ForwardOp::print(std::ostream &out) const
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

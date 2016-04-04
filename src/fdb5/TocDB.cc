@@ -9,13 +9,12 @@
  */
 
 #include "eckit/exception/Exceptions.h"
-#include "eckit/thread/AutoLock.h"
 
 #include "fdb5/TocDB.h"
 
 using namespace eckit;
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -38,28 +37,24 @@ const Schema& TocDB::schema() const
     return schema_;
 }
 
-void TocDB::archive(const Key &key, const void *data, Length length)
+void TocDB::archive(const Key& key, const void *data, Length length)
 {
+    Log::error() << "Archive not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
 void TocDB::flush()
 {
+    Log::error() << "Flush not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
-eckit::DataHandle* TocDB::retrieve(const FdbTask& task, const Key& key) const
+eckit::DataHandle* TocDB::retrieve(const MarsTask& task, const Key& key) const
 {
+    Log::error() << "Retrieve not implemented for " << *this << std::endl;
     NOTIMP;
 }
-
-void TocDB::print(std::ostream &out) const
-{
-    out << "TocDB()";
-}
-
-DBBuilder<TocDB> tocDBBuilder("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

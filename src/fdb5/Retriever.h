@@ -26,9 +26,10 @@
 
 namespace eckit { class DataHandle; }
 
-namespace fdb {
+class MarsTask;
 
-class FdbTask;
+namespace fdb5 {
+
 class Key;
 class Op;
 
@@ -38,7 +39,7 @@ class Retriever : public eckit::NonCopyable {
 
 public: // methods
 
-    Retriever(const FdbTask& task);
+    Retriever(const MarsTask& task);
     
     ~Retriever();
 
@@ -56,7 +57,7 @@ private: // methods
 
 private: // members
 
-    const FdbTask& task_;
+    const MarsTask& task_;
 
     Winds winds_;
 
@@ -64,6 +65,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

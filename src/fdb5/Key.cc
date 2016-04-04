@@ -8,13 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/types/Types.h"
-
 #include "fdb5/Key.h"
 
 using namespace eckit;
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -56,4 +54,4 @@ void Key::print(std::ostream &out) const
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

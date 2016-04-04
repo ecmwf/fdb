@@ -21,8 +21,9 @@
 #include <vector>
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/types/Types.h"
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -35,10 +36,12 @@ public: // methods
     void set( const std::string& k, const std::string& v ) { keys_[k] = v; }
 
     const std::string& get( const std::string& k ) const {
-        std::map< std::string, std::string >::const_iterator i = keys_.find(k);
+        eckit::StringDict::const_iterator i = keys_.find(k);
         ASSERT( i != keys_.end() );
         return i->second;
     }
+
+    const eckit::StringDict& dict() const { return keys_; }
 
     void clear();
 
@@ -55,12 +58,12 @@ private: // members
 
     void print( std::ostream& out ) const;
 
-    std::map< std::string, std::string > keys_;
+    eckit::StringDict keys_;
 
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

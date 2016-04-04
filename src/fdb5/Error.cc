@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2013 ECMWF.
  * 
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
@@ -8,20 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/Schema.h"
+#include "fdb5/Error.h"
+
+using namespace eckit;
 
 namespace fdb5 {
 
-//----------------------------------------------------------------------------------------------------------------------
-
-Schema::Schema()
+Error::Error(const CodeLocation& loc, const std::string&s) : Exception( std::string("FDB::Error - ") + s, loc)
 {
 }
-
-Schema::~Schema()
-{
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

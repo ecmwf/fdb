@@ -18,9 +18,9 @@
 
 #include <string>
 
-namespace marskit { class MarsRequest; }
+class MarsRequest;
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -29,7 +29,7 @@ class Winds {
 public: // methods
 
     Winds();
-    Winds(const marskit::MarsRequest& field);
+    Winds(const MarsRequest& field);
 
     void reset();
 
@@ -63,6 +63,6 @@ public: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

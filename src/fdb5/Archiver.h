@@ -23,11 +23,11 @@
 #include "fdb5/DB.h"
 
 namespace eckit   { class DataHandle; }
-namespace marskit { class MarsRequest; }
 
-namespace fdb {
+class MarsTask;
 
-class FdbTask;
+namespace fdb5 {
+
 class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -48,9 +48,9 @@ public: // methods
     /// Archives the data selected by the MarsRequest from the provided DataHandle
     /// @param source  data handle to read from
     ///
-    void archive(const FdbTask& task, eckit::DataHandle& source);
+    void archive(const MarsTask& task, eckit::DataHandle& source);
 
-    /// Archives the data in the buffer and described by the fdb::Key
+    /// Archives the data in the buffer and described by the fdb5::Key
     /// @param key metadata identifying the data
     /// @param data buffer
     /// @param length buffer length
@@ -75,6 +75,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

@@ -18,7 +18,7 @@
 
 #include "eckit/exception/Exceptions.h"
 
-namespace fdb {
+namespace fdb5 {
 
 class Key;
 
@@ -36,6 +36,6 @@ public: // methods
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

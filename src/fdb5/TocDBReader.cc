@@ -8,35 +8,40 @@
  * does it submit to any jurisdiction.
  */
 
-#include "marslib/MarsRequest.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/config/Resource.h"
 
-#include "fdb5/FdbTask.h"
+#include "fdb5/TocActions.h"
+
+#include "fdb5/TocDBReader.h"
 
 using namespace eckit;
-using namespace marskit;
 
-namespace fdb {
-
-//----------------------------------------------------------------------------------------------------------------------
-
-FdbTask::FdbTask(const marskit::MarsRequest& request) :
-    request_(request),
-    windNotified_(false)
-{
-}
-
-FdbTask::~FdbTask()
-{
-}
-
-void FdbTask::notifyWinds() const
-{
-    if(!windNotified_) {
-        Log::notifyClient("wind conversion requested");
-        windNotified_ = true;
-    }
-}
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+TocDBReader::TocDBReader(const Key& key) : TocDB(key)
+{
+}
+
+TocDBReader::~TocDBReader()
+{
+}
+
+eckit::DataHandle* TocDBReader::retrieve(const MarsTask& task, const Key& key) const
+{
+    NOTIMP;
+}
+
+void TocDBReader::print(std::ostream &out) const
+{
+    out << "TocDBReader()";
+}
+
+DBBuilder<TocDBReader> TocDBReader_builder("toc.reader");
+
+//----------------------------------------------------------------------------------------------------------------------
+
+} // namespace fdb5

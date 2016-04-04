@@ -1,16 +1,16 @@
 # fdb5 library
 
 list( APPEND fdb5_srcs
+
     Archiver.h
     Archiver.cc
-    FdbTask.h
-    FdbTask.cc
-    Winds.h
-    Winds.cc
+
     Retriever.h
     Retriever.cc
-    NotFound.h
-    NotFound.cc
+
+    Winds.h
+    Winds.cc
+
     Op.h
     Op.cc
     RetrieveOp.h
@@ -19,18 +19,46 @@ list( APPEND fdb5_srcs
     ForwardOp.cc
     UVOp.h
     UVOp.cc
-    TocDB.h
-    TocDB.cc
-    Key.h
-    Key.cc
-    DB.h
-    DB.cc
-    Schema.h
-    Schema.cc
-    TocSchema.h
-    TocSchema.cc
+
     MasterConfig.h
     MasterConfig.cc
+    Key.h
+    Key.cc
+    Schema.h
+    Schema.cc
+
+    DB.h
+    DB.cc
+    TocDB.h
+    TocDB.cc
+    TocDBReader.h
+	TocDBReader.cc
+	TocDBWriter.h
+	TocDBWriter.cc
+    TocSchema.h
+    TocSchema.cc
+
+    Index.h
+    Index.cc
+    BTreeIndex.h
+    BTreeIndex.cc
+    TextIndex.h
+    TextIndex.cc
+
+    FileStore.h
+    FileStore.cc
+
+    TocActions.h
+    TocActions.cc
+    TocRecord.h
+    TocRecord.cc
+    TocHandler.h
+    TocHandler.cc
+
+    Error.h
+    Error.cc
+    NotFound.h
+    NotFound.cc
 )
 
 ecbuild_add_library(

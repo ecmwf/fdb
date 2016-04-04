@@ -18,7 +18,7 @@
 
 using namespace eckit;
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -55,10 +55,10 @@ eckit::SharedPtr<DB> MasterConfig::openSessionDB(const Key& user)
 {
     Key dbKey = makeDBKey(user);
 
-    return SharedPtr<DB>( DBFactory::build("toc", dbKey) );
+    return SharedPtr<DB>( DBFactory::build("toc.write", dbKey) );
 }
 
-VecDB MasterConfig::openSessionDBs(const FdbTask& task)
+VecDB MasterConfig::openSessionDBs(const MarsTask& task)
 {
     VecDB result;
 
@@ -71,7 +71,7 @@ VecDB MasterConfig::openSessionDBs(const FdbTask& task)
     /// @todo substitute "toc" with a configuration driven DB type
 
     for( std::vector<Key>::const_iterator it = dbKeys.begin(); it != dbKeys.end(); ++it ) {
-        result.push_back( SharedPtr<DB>( DBFactory::build("toc", *it) ) );
+        result.push_back( SharedPtr<DB>( DBFactory::build("toc.read", *it) ) );
     }
 
     return result;
@@ -79,4 +79,4 @@ VecDB MasterConfig::openSessionDBs(const FdbTask& task)
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

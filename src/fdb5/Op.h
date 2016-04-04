@@ -20,9 +20,10 @@
 
 #include "eckit/memory/NonCopyable.h"
 
-namespace fdb {
+class MarsTask;
 
-class FdbTask;
+namespace fdb5 {
+
 class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -37,9 +38,9 @@ public: // methods
 
     virtual void descend() = 0;
 
-    virtual void execute(const FdbTask& task, Key& key) = 0;
+    virtual void execute(const MarsTask& task, Key& key) = 0;
 
-    virtual void fail(const FdbTask& task, Key& key) = 0;
+    virtual void fail(const MarsTask& task, Key& key) = 0;
 
     virtual void print( std::ostream& out ) const = 0;
 
@@ -49,6 +50,6 @@ public: // methods
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif
