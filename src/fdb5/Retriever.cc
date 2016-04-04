@@ -75,6 +75,8 @@ void Retriever::retrieve(Key& key,
         const std::string& param = *pos;
         task_.request().getValues(param, values);
 
+        ASSERT(values.size());
+
         /// @TODO once Schema / Param are typed, we can call:
         ///         Param p = pos->param();
         ///         values = p->getValues(userReq);
@@ -94,6 +96,7 @@ void Retriever::retrieve(Key& key,
         }
     }
     else {
+        Log::info() << "KEY " << key << std::endl;
         op.execute(task_, key);
     }
 }

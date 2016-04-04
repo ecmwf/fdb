@@ -18,13 +18,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDB::TocDB(const Key& key) : DB(key),
-    schema_(key)
+TocDB::TocDB(const Key& dbKey) : DB(dbKey),
+    schema_(dbKey)
 {
 }
 
 TocDB::~TocDB()
 {
+    closeIndexes();
 }
 
 bool TocDB::match(const Key& key) const
@@ -53,6 +54,40 @@ eckit::DataHandle* TocDB::retrieve(const MarsTask& task, const Key& key) const
 {
     Log::error() << "Retrieve not implemented for " << *this << std::endl;
     NOTIMP;
+}
+
+Index* TocDB::getCachedIndex( const PathName& path ) const
+{
+    IndexStore::const_iterator itr = indexes_.find( path );
+    if( itr != indexes_.end() )
+        return itr->second;
+    else
+        return 0;
+}
+
+Index& TocDB::getIndex(const PathName& path) const
+{
+    Index* idx = getCachedIndex(path);
+    if( !idx )
+    {
+        idx = openIndex( path );
+        ASSERT(idx);
+        indexes_[ path ] = idx;
+    }
+    return *idx;
+}
+
+void TocDB::closeIndexes()
+{
+    for( IndexStore::iterator itr = indexes_.begin(); itr != indexes_.end(); ++itr )
+    {
+        Index* idx = itr->second;
+        if( idx )
+        {
+            delete idx;
+            itr->second = 0;
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

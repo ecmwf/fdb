@@ -4,6 +4,8 @@ list( APPEND fdb5_srcs
 
     Archiver.h
     Archiver.cc
+    GribArchiver.h
+    GribArchiver.cc
 
     Retriever.h
     Retriever.cc
@@ -84,3 +86,13 @@ ecbuild_add_library(
         eckit
         grib_api
 )
+
+ecbuild_add_executable( TARGET    fdb5_insert
+                        INCLUDES  ${GRIB_API_INCLUDE_DIRS}
+                        SOURCES   fdb5_insert.cc
+                        LIBS      mars-fdb5 )
+
+ecbuild_add_executable( TARGET    fdb5_extract
+                        INCLUDES  ${GRIB_API_INCLUDE_DIRS}
+                        SOURCES   fdb5_extract.cc
+                        LIBS      mars-fdb5 )

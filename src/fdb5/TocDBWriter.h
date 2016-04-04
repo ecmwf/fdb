@@ -47,7 +47,6 @@ protected: // methods
 
 private: // types
 
-    typedef std::map< std::string, Index* > IndexStore;
     typedef std::map< std::string, eckit::DataHandle* >  HandleStore;
 
     typedef std::map< std::string, TocIndex* > TocIndexStore;
@@ -55,19 +54,8 @@ private: // types
 
 private: // methods
 
-    /// Get the Index on the given path
-    /// If necessary it creates it and inserts in the cache
-    Index& getIndex( const eckit::PathName& path );
-
     /// Opens an Index with the associated path
-    Index* openIndex( const eckit::PathName& path ) const;
-
-    /// @param path PathName to the Index
-    /// @returns the cached eckit::DataHandle or NULL if not found
-    Index* getCachedIndex( const eckit::PathName& path ) const;
-
-    /// Closes all indexes in the cache
-    void closeIndexes();
+    virtual Index* openIndex( const eckit::PathName& path ) const;
 
     /// @param path PathName to the handle
     /// @returns the cached eckit::DataHandle or NULL if not found
@@ -92,13 +80,10 @@ private: // methods
 
 private: // members
 
-    IndexStore      indexes_;    ///< stores the indexes being used by the Session
     HandleStore     handles_;    ///< stores the DataHandles being used by the Session
 
     TocIndexStore tocEntries_;
     PathStore     dataPaths;
-
-    std::string indexType_; ///< type of index to build
 
     long				blockSize_;
     std::vector<char>   padding_;

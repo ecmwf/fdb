@@ -34,6 +34,12 @@ public: // methods
     
     virtual ~Schema();
 
+    friend std::ostream& operator<<(std::ostream& s, const Schema& x);
+
+protected: // methods
+
+    virtual void print( std::ostream& out ) const = 0;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

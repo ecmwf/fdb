@@ -21,6 +21,7 @@
 #include "fdb5/DB.h"
 
 class MarsTask;
+class MarsRequest;
 
 namespace fdb5 {
 
@@ -36,9 +37,7 @@ public: // methods
 
     VecDB openSessionDBs(const MarsTask& task);
 
-    bool FailOnOverwrite()   const { return fdbFailOnOverwrite_; }
-    bool WarnOnOverwrite()   const { return fdbWarnOnOverwrite_; }
-    bool IgnoreOnOverwrite() const { return fdbIgnoreOnOverwrite_; }
+    std::string makeDBPath(const Key& key) const;
 
 private: // methods
 
@@ -50,17 +49,17 @@ private: // methods
 
     Key makeDBKey(const Key& key) const;
 
+    void expand(const MarsRequest& request,
+                const std::vector<std::string>& masterKeys,
+                size_t pos,
+                Key& dbKey,
+                VecDB& result );
 
 private: // members
 
     std::vector<std::string> masterDBKeys_;
 
-    bool            fdbFailOnOverwrite_;
-    bool            fdbWarnOnOverwrite_;
-    bool            fdbIgnoreOnOverwrite_;
-    bool            fdbAllKeyChecks_;
-    bool            fdbCheckRequired_;
-    bool            fdbCheckAcceptable_;
+    std::string masterDBKeysStr_;
 
 };
 

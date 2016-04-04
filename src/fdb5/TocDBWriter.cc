@@ -46,12 +46,10 @@ namespace fdb5 {
 
 TocDBWriter::TocDBWriter(const Key& key) : TocDB(key)
 {
-    indexType_ = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex" );
-
-    const PathName& tocPath = schema_.tocPath();
-    if( !tocPath.exists() )
+    const PathName& tocDirPath = schema_.tocDirPath();
+    if( !tocDirPath.exists() )
     {
-        TocInitialiser init(tocPath);
+        TocInitialiser init(tocDirPath);
     }
 
     blockSize_ = eckit::Resource<long>( "blockSize", -1 );
@@ -59,7 +57,7 @@ TocDBWriter::TocDBWriter(const Key& key) : TocDB(key)
     if( blockSize_ < 0 ) // take blockSize_ from statfs
     {
         struct statfs s;
-        SYSCALL2( statfs(const_cast<char*>( tocPath.localPath() ), &s ), tocPath );
+        SYSCALL2( statfs(const_cast<char*>( tocDirPath.localPath() ), &s ), tocDirPath );
         if( s.f_bsize > 0 )
             blockSize_ = s.f_bsize;
         /// @note should we use s.f_iosize, optimal transfer block size, on macosx ?
@@ -71,7 +69,7 @@ TocDBWriter::TocDBWriter(const Key& key) : TocDB(key)
 
     aio_ = eckit::Resource<bool>("fdbAsyncWrite",false);
 
-    Log::info() << "TocDBWriter for TOC [" << tocPath << "] with block size of " << Bytes(blockSize_) << std::endl;
+    Log::info() << "TocDBWriter for TOC [" << tocDirPath << "] with block size of " << Bytes(blockSize_) << std::endl;
 }
 
 TocDBWriter::~TocDBWriter()
@@ -83,7 +81,6 @@ TocDBWriter::~TocDBWriter()
     // close all data handles followed by all indexes, before writing Toc entry
 
     closeDataHandles();
-    closeIndexes();
 
     // finally write all Toc entries
 
@@ -97,8 +94,6 @@ void TocDBWriter::archive(const Key& userkey, const void *data, Length length)
     TocIndex& toc = getTocIndex(userkey);
 
     Index& index = getIndex( toc.index() );
-
-    /// @todo CHANGE THIS : CREATES A NEW FILE PER FIELD
 
     PathName dataPath = getDataPath(userkey);
 
@@ -117,31 +112,13 @@ void TocDBWriter::archive(const Key& userkey, const void *data, Length length)
     }
 
     Index::Key key = schema_.dataIdx(userkey); // reduced key with only index entries
-
-    if( MasterConfig::instance().IgnoreOnOverwrite() ||
-        MasterConfig::instance().WarnOnOverwrite()   ||
-        MasterConfig::instance().FailOnOverwrite() )
-    {
-        bool duplicated = index.exists(key);
-        if( duplicated )
-        {
-            if( MasterConfig::instance().IgnoreOnOverwrite() ) return;
-
-            std::ostringstream msg;
-            msg << "Overwrite to FDB with key: " << key << std::endl;
-
-            Log::error() << msg.str() << std::endl;
-
-            if( MasterConfig::instance().FailOnOverwrite() )
-                throw fdb5::Error( Here(), msg.str() );
-        }
-    }
+    key.rebuild();
 
     Index::Field field (dataPath, position, length);
 
     Log::debug(2) << " pushing {" << key << "," << field << "}" << std::endl;
 
-    index.put(key,field);
+    index.put(key, field);
 }
 
 void TocDBWriter::flush()
@@ -150,30 +127,9 @@ void TocDBWriter::flush()
     flushDataHandles();
 }
 
-Index& TocDBWriter::getIndex(const PathName& path)
-{
-    Index* idx = getCachedIndex(path);
-    if( !idx )
-    {
-        idx = openIndex( path );
-        ASSERT(idx);
-        indexes_[ path ] = idx;
-    }
-    return *idx;
-}
-
 Index* TocDBWriter::openIndex(const PathName& path) const
 {
-    return Index::create( indexType_, path, Index::WRITE );
-}
-
-Index* TocDBWriter::getCachedIndex( const PathName& path ) const
-{
-    IndexStore::const_iterator itr = indexes_.find( path );
-    if( itr != indexes_.end() )
-        return itr->second;
-    else
-        return 0;
+    return Index::create( schema_.indexType(), path, Index::WRITE );
 }
 
 eckit::DataHandle* TocDBWriter::getCachedHandle( const PathName& path ) const
@@ -194,19 +150,6 @@ void TocDBWriter::closeDataHandles()
         {
             dh->close();
             delete dh;
-            itr->second = 0;
-        }
-    }
-}
-
-void TocDBWriter::closeIndexes()
-{
-    for( IndexStore::iterator itr = indexes_.begin(); itr != indexes_.end(); ++itr )
-    {
-        Index* idx = itr->second;
-        if( idx )
-        {
-            delete idx;
             itr->second = 0;
         }
     }

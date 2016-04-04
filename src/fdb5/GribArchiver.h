@@ -8,26 +8,32 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/Schema.h"
+/// @file   GribArchiver.h
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
+/// @date   Mar 2016
+
+#ifndef fdb_GribArchiver_H
+#define fdb_GribArchiver_H
+
+#include "fdb5/Archiver.h"
+
+namespace eckit   { class DataHandle; }
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Schema::Schema()
-{
-}
+class GribArchiver : public Archiver {
 
-Schema::~Schema()
-{
-}
+public: // methods
 
-std::ostream& operator<<(std::ostream& s, const Schema& x)
-{
-    x.print(s);
-    return s;
-}
+    void archive(eckit::DataHandle& source);
+
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
+
+#endif

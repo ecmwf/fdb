@@ -68,7 +68,7 @@ TocInitialiser::TocInitialiser(const PathName& dir) : TocHandler()
 //-----------------------------------------------------------------------------
 
 TocIndex::TocIndex(const TocSchema& schema, const Key& key) :
-    TocHandler( schema.tocPath() ),
+    TocHandler( schema.tocDirPath() ),
     index_( schema.generateIndexPath(key) ),
     tocMD_( schema.tocEntry(key) )
 {
@@ -88,7 +88,7 @@ eckit::PathName TocIndex::index() const
 
 //-----------------------------------------------------------------------------
 
-TocIndexes::TocIndexes(const PathName& dir) : TocHandler(dir)
+TocReverseIndexes::TocReverseIndexes(const PathName& dir) : TocHandler(dir)
 {
 	openForRead();
 
@@ -101,7 +101,7 @@ TocIndexes::TocIndexes(const PathName& dir) : TocHandler(dir)
 	close();
 }
 
-std::vector<PathName> TocIndexes::indexes(const TocRecord::MetaData& md)
+std::vector<PathName> TocReverseIndexes::indexes(const TocRecord::MetaData& md) const
 {
 	TocMap::const_iterator f = cacheIndexes_.find(md);
 

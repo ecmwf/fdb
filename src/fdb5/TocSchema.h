@@ -36,7 +36,7 @@ public: // methods
 
     bool matchTOC(const Key& tocKey) const;
 
-    eckit::PathName tocPath() const;
+    eckit::PathName tocDirPath() const;
 
     std::string dataFilePrefix(const Key& userKey) const;
 
@@ -48,9 +48,18 @@ public: // methods
 
     Index::Key dataIdx(const Key& userKey) const;
 
+    const std::string& indexType() const;
+
+private: // methods
+
+    virtual void print( std::ostream& out ) const;
+
 private: // members
 
     Key dbKey_;
+
+    eckit::PathName        root_;
+    eckit::PathName        dirPath_;
 
     std::string     indexType_;  ///< type of the indexes in the managed Toc
 

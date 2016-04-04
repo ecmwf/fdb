@@ -28,10 +28,10 @@ TocHandler::TocHandler() : dir_(), fd_(-1), read_(false)
 
 TocHandler::TocHandler(const PathName& dir) : dir_(dir), fd_(-1), read_(false)
 {
-	if( !dir.isDir() )
+    if( !dir.exists() )
 	{
 		std::ostringstream msg;
-		msg << "Error accessing FDB dir path " << dir << ": it doesn't exist or is not a directory";
+        msg << "Error accessing FDB dir path " << dir << ": it doesn't exist";
 		throw UserError( msg.str(), Here() );
 	}
 

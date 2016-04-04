@@ -14,6 +14,7 @@
 
 #include "fdb5/TocActions.h"
 
+#include "fdb5/Error.h"
 #include "fdb5/TocDBReader.h"
 
 using namespace eckit;
@@ -22,8 +23,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDBReader::TocDBReader(const Key& key) : TocDB(key)
+TocDBReader::TocDBReader(const Key& key) :
+    TocDB(key),
+    toc_(schema_.tocDirPath())
 {
+    Log::info() << "TocDBReader for TOC [" << schema_.tocDirPath() << "]" << std::endl;
 }
 
 TocDBReader::~TocDBReader()
@@ -32,7 +36,34 @@ TocDBReader::~TocDBReader()
 
 eckit::DataHandle* TocDBReader::retrieve(const MarsTask& task, const Key& key) const
 {
-    NOTIMP;
+    const std::vector<PathName>& indexesPaths = toc_.indexes( schema_.tocEntry(key) );
+
+    const Index* index = 0;
+
+    Index::Key indexKey(schema_.dataIdx(key));
+    indexKey.rebuild();
+
+    Index::Field field;
+    for( std::vector<PathName>::const_iterator itr = indexesPaths.begin(); itr != indexesPaths.end(); ++itr )
+    {
+        const Index& idx = getIndex(*itr);
+
+        if( idx.get(indexKey, field) )
+        {
+            index = &idx;
+            break;
+        }
+    }
+
+    if( ! index ) // not found
+        return 0;
+    else
+        return field.path_.partHandle(field.offset_, field.length_);
+}
+
+Index* TocDBReader::openIndex(const PathName& path) const
+{
+    return Index::create( schema_.indexType(), path, Index::READ );
 }
 
 void TocDBReader::print(std::ostream &out) const

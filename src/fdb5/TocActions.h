@@ -71,13 +71,13 @@ private: // members
 
 /// Caches a list of the contents of the Toc
 
-class TocIndexes : public TocHandler {
+class TocReverseIndexes : public TocHandler {
 
 public: // methods
 
-	TocIndexes( const eckit::PathName& dir );
+    TocReverseIndexes( const eckit::PathName& dir );
 
-	std::vector< eckit::PathName > indexes( const TocRecord::MetaData& );
+    std::vector< eckit::PathName > indexes( const TocRecord::MetaData& ) const;
 
 private:
 
@@ -85,7 +85,7 @@ private:
 
 	TocVec toc_;
 
-	TocMap cacheIndexes_;
+    mutable TocMap cacheIndexes_;
 
 };
 

@@ -36,19 +36,7 @@ Archiver::~Archiver()
 }
 
 
-void Archiver::archive(DataBlobPtr blob)
-{
-    NOTIMP;
-}
-
-
-void Archiver::archive(const MarsTask& task, eckit::DataHandle& source)
-{
-    NOTIMP;
-}
-
-
-void Archiver::archive(const Key& key, const void* data, eckit::Length length)
+void Archiver::write(const Key& key, const void* data, eckit::Length length)
 {
     DB& db = session(key);
 

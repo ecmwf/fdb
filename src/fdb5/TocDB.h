@@ -18,6 +18,7 @@
 
 #include "fdb5/DB.h"
 #include "fdb5/TocSchema.h"
+#include "fdb5/Index.h"
 
 namespace fdb5 {
 
@@ -29,9 +30,13 @@ class TocDB : public DB {
 
 public: // methods
 
-    TocDB(const Key& key);
+    TocDB(const Key& dbKey);
 
     virtual ~TocDB();
+
+protected: // types
+
+    typedef std::map< std::string, Index* > IndexStore;
 
 protected: // methods
 
@@ -45,9 +50,24 @@ protected: // methods
 
     virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const;
 
+    virtual Index* openIndex( const eckit::PathName& path ) const = 0;
+
+    /// Get the Index on the given path
+    /// If necessary it creates it and inserts in the cache
+    Index& getIndex( const eckit::PathName& path ) const;
+
+    /// @param path PathName to the Index
+    /// @returns the cached eckit::DataHandle or NULL if not found
+    Index* getCachedIndex( const eckit::PathName& path ) const;
+
+    /// Closes all indexes in the cache
+    void closeIndexes();
+
 protected: // members
 
     TocSchema schema_;
+
+    mutable IndexStore indexes_;    ///< stores the indexes being used by the Session
 
 };
 

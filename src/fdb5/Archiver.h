@@ -40,22 +40,12 @@ public: // methods
     
     ~Archiver();
 
-    /// Archives the data provided in the DataBlob, which contains an associated MetaData that is used for indexing
-    /// @param source  data blob to read from
-    ///
-    void archive(eckit::DataBlobPtr source);
-
-    /// Archives the data selected by the MarsRequest from the provided DataHandle
-    /// @param source  data handle to read from
-    ///
-    void archive(const MarsTask& task, eckit::DataHandle& source);
-
     /// Archives the data in the buffer and described by the fdb5::Key
     /// @param key metadata identifying the data
     /// @param data buffer
     /// @param length buffer length
     ///
-    void archive(const Key& key, const void* data, eckit::Length length);
+    void write(const Key& key, const void* data, eckit::Length length);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
