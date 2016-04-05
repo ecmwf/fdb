@@ -25,12 +25,15 @@ namespace fdb5 {
 TocSchema::TocSchema(const Key& dbKey) :
     dbKey_(dbKey)
 {
-    root_ = eckit::Resource<std::string>("fdbRoot;$FDB_ROOT","/tmp/fdb");
+    root_ = eckit::Resource<std::string>("fdbRoot;$FDB_ROOT", "/tmp/fdb", dbKey.dict());
+
     root_.mkdir(); /// @note what about permissions on creation?
 
     dirPath_ = root_ / MasterConfig::instance().makeDBPath(dbKey);
 
-    indexType_ = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex" );
+    indexType_ = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex", dbKey.dict());
+
+    /// @todo the schema should be generated as we walk the expansion (not a predifned one as below)
 
     push_back("class");
     push_back("stream");
@@ -42,7 +45,6 @@ TocSchema::TocSchema(const Key& dbKey) :
     push_back("param");
     push_back("step");
     push_back("levelist");
-
 }
 
 
@@ -84,7 +86,6 @@ eckit::PathName TocSchema::generateDataPath(const Key& userKey) const
 
 std::string TocSchema::tocEntry(const Key& userKey) const
 {
-    Log::info() << userKey << std::endl;
     std::string tocKeys = eckit::Resource<std::string>("tocKeys","{type}:{levtype}", userKey.dict());
     return StringTools::substitute(tocKeys, userKey.dict());
 }
@@ -99,11 +100,10 @@ Index::Key TocSchema::dataIdx(const Key& userKey) const
     std::string s = eckit::Resource<std::string>("idxKeys","levelist,step,param", userKey.dict());
     parse(s,idxKeys);
 
-    const StringDict& params = userKey.dict();
     for( eckit::StringList::const_iterator i = idxKeys.begin(); i != idxKeys.end(); ++i )
     {
-        StringDict::const_iterator itr = params.find(*i);
-        ASSERT( itr != params.end() );
+        StringDict::const_iterator itr = userKey.dict().find(*i);
+        ASSERT( itr != userKey.dict().end() );
         subdict.set( *i, itr->second );
     }
 
