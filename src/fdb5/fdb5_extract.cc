@@ -41,9 +41,9 @@ void FdbExtract::run()
     r.setValue("expver","0001");
     r.setValue("type","an");
     r.setValue("levtype","pl");
-    r.setValue("date","20160403");
+    r.setValue("date","20160404");
     r.setValue("time","1200");
-    r.setValue("param","129.128");
+    r.setValue("param","131.128");
     r.setValue("step","0");
     r.setValue("levelist","1000");
 

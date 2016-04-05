@@ -17,7 +17,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-NotFound::NotFound(const Key& r)
+NotFound::NotFound(const Key& r, const eckit::CodeLocation& loc)
 {
     std::ostringstream oss;
 

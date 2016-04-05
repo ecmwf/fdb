@@ -30,24 +30,28 @@ RetrieveOp::~RetrieveOp()
 {
 }
 
-void RetrieveOp::descend()
-{
+void RetrieveOp::enter() {
+    Log::info() << " > RetrieveOp" << std::endl;
 }
 
-void RetrieveOp::execute(const MarsTask& task, Key& key)
+void RetrieveOp::leave() {
+    Log::info() << " < RetrieveOp" << std::endl;
+}
+
+void RetrieveOp::execute(const MarsTask& task, Key& key, Op& tail)
 {
     DataHandle* dh = db_.retrieve(task, key);
     if(dh) {
         result_ += dh;
     }
     else {
-        fail(task, key);
+        tail.fail(task, key, tail);
     }
 }
 
-void RetrieveOp::fail(const MarsTask& task, Key& key)
+void RetrieveOp::fail(const MarsTask& task, Key& key, Op& tail)
 {
-    throw NotFound(key);
+    throw NotFound(key, Here());
 }
 
 void RetrieveOp::print(std::ostream &out) const

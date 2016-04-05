@@ -28,7 +28,7 @@ class NotFound : public eckit::Exception {
 
 public: // methods
 
-    NotFound(const Key& r);
+    NotFound(const Key& r, const eckit::CodeLocation& loc);
     
     ~NotFound() throw();
 

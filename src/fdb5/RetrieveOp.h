@@ -38,11 +38,12 @@ public: // methods
 
 private: // methods
 
-    virtual void descend();
+    virtual void enter();
+    virtual void leave();
 
-    virtual void execute(const MarsTask& task, Key& key);
+    virtual void execute(const MarsTask& task, Key& key, Op& tail);
 
-    virtual void fail(const MarsTask& task, Key& key);
+    virtual void fail(const MarsTask& task, Key& key, Op &tail);
 
 private:
 

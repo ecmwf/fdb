@@ -29,18 +29,22 @@ UVOp::~UVOp()
 {
 }
 
-void UVOp::descend()
-{
+void UVOp::enter() {
+    Log::info() << " > UVOp";
     winds_.reset();
-    parent_.descend();
+    parent_.enter();
 }
 
-void UVOp::execute(const MarsTask& task, Key& key)
+void UVOp::leave() {
+    Log::info() << " < UVOp";
+}
+
+void UVOp::execute(const MarsTask& task, Key& key, Op& tail)
 {
-    parent_.execute(task, key);
+    parent_.execute(task, key, tail);
 }
 
-void UVOp::fail(const MarsTask& task, Key& key)
+void UVOp::fail(const MarsTask& task, Key& key, Op& tail)
 {
     const std::string& param = key.get("param");
 
@@ -53,13 +57,13 @@ void UVOp::fail(const MarsTask& task, Key& key)
 
         if(!winds_.wantVO_ && !winds_.gotVO_) {
             key.set("param", winds_.getVO(param));
-            execute(task, key);
+            execute(task, key, tail);
             winds_.gotVO_ = true;
         }
 
         if(!winds_.wantD_ && !winds_.gotD_) {
             key.set("param", winds_.getD(param));
-            execute(task, key);
+            execute(task, key, tail);
             winds_.gotD_ = true;
         }
 
@@ -74,13 +78,13 @@ void UVOp::fail(const MarsTask& task, Key& key)
 
         if(!winds_.wantVO_ && !winds_.gotVO_) {
             key.set("param", winds_.getVO(param));
-            execute(task, key);
+            execute(task, key, tail);
             winds_.gotVO_ = true;
         }
 
         if(!winds_.wantD_ && !winds_.gotD_) {
             key.set("param", winds_.getD(param));
-            execute(task, key);
+            execute(task, key, tail);
             winds_.gotD_ = true;
         }
 
@@ -93,7 +97,7 @@ void UVOp::fail(const MarsTask& task, Key& key)
     }
     else
     {
-        parent_.fail(task, key);
+        parent_.fail(task, key, tail);
     }
 
 }

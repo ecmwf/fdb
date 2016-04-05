@@ -36,11 +36,12 @@ public: // methods
     
     virtual ~Op();
 
-    virtual void descend() = 0;
+    virtual void enter() = 0;
+    virtual void leave() = 0;
 
-    virtual void execute(const MarsTask& task, Key& key) = 0;
+    virtual void execute(const MarsTask& task, Key& key, Op& tail) = 0;
 
-    virtual void fail(const MarsTask& task, Key& key) = 0;
+    virtual void fail(const MarsTask& task, Key& key, Op& tail) = 0;
 
     virtual void print( std::ostream& out ) const = 0;
 

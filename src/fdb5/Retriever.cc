@@ -10,6 +10,7 @@
 
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/io/MultiHandle.h"
+#include "eckit/types/Types.h"
 #include "eckit/log/Timer.h"
 
 #include "marslib/MarsTask.h"
@@ -76,6 +77,8 @@ void Retriever::retrieve(Key& key,
         const std::string& param = *pos;
         task_.request().getValues(param, values);
 
+        Log::info() << "Expanding parameter (" << param << ") with " << values << std::endl;
+
         ASSERT(values.size());
 
         /// @TODO once Schema / Param are typed, we can call:
@@ -92,12 +95,13 @@ void Retriever::retrieve(Key& key,
 
         for(std::vector<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
             key.set(param, *j);
-            op.descend();
+            op.enter();
             retrieve(key, schema, next, *newOp);
+            op.leave();
         }
     }
     else {
-        op.execute(task_, key);
+        op.execute(task_, key, op);
     }
 }
 

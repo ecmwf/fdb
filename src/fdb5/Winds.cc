@@ -73,32 +73,32 @@ void Winds::reset()
 
 std::string Winds::getVO(const std::string& param)
 {
-    return "138";
+    return "138.128";
 }
 
 std::string Winds::getD(const std::string& param)
 {
-    return "155";
+    return "155.128";
 }
 
 bool Winds::isU(const std::string& param)
 {
-    return param == "131";
+    return param == "131.128";
 }
 
 bool Winds::isV(const std::string& param)
 {
-    return param == "132";
+    return param == "132.128";
 }
 
 bool Winds::isVO(const std::string& param)
 {
-    return param == "138";
+    return param == "138.128";
 }
 
 bool Winds::isD(const std::string& param)
 {
-    return param == "155";
+    return param == "155.128";
 }
 
 void Winds::print(std::ostream &out) const

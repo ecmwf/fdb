@@ -27,19 +27,24 @@ ForwardOp::~ForwardOp()
 {
 }
 
-void ForwardOp::descend()
-{
-    parent_.descend();
+void ForwardOp::enter() {
+    Log::info() << " > ForwardOp";
+    parent_.enter();
 }
 
-void ForwardOp::execute(const MarsTask& task, Key& key)
-{
-    parent_.execute(task, key);
+void ForwardOp::leave() {
+    Log::info() << " < ForwardOp";
+    parent_.leave();
 }
 
-void ForwardOp::fail(const MarsTask& task, Key& key)
+void ForwardOp::execute(const MarsTask& task, Key& key, Op& tail)
 {
-    parent_.fail(task, key);
+    parent_.execute(task, key, tail);
+}
+
+void ForwardOp::fail(const MarsTask& task, Key& key, Op& tail)
+{
+    parent_.fail(task, key, tail);
 }
 
 void ForwardOp::print(std::ostream &out) const
