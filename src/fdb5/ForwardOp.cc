@@ -8,12 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-#include "marskit/MarsRequest.h"
+#include "eckit/log/Log.h"
 
 #include "fdb5/ForwardOp.h"
 
 using namespace eckit;
-using namespace marskit;
 
 namespace fdb5 {
 

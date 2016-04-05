@@ -67,6 +67,13 @@ TocInitialiser::TocInitialiser(const PathName& dir) : TocHandler()
 
 //-----------------------------------------------------------------------------
 
+TocIndex::TocIndex(const PathName& dir, const PathName& idx, const TocRecord::MetaData& md) :
+    TocHandler( dir ),
+    index_(idx),
+    tocMD_(md)
+{
+}
+
 TocIndex::TocIndex(const TocSchema& schema, const Key& key) :
     TocHandler( schema.tocDirPath() ),
     index_( schema.generateIndexPath(key) ),

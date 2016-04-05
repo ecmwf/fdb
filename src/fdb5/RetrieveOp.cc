@@ -10,14 +10,11 @@
 
 #include "eckit/io/DataHandle.h"
 
-#include "marskit/MarsRequest.h"
-
 #include "fdb5/DB.h"
 #include "fdb5/RetrieveOp.h"
 #include "fdb5/NotFound.h"
 
 using namespace eckit;
-using namespace marskit;
 
 namespace fdb5 {
 

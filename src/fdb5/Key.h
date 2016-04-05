@@ -33,6 +33,8 @@ public: // methods
 
     Key();
 
+    Key(const eckit::StringDict& keys);
+
     void set( const std::string& k, const std::string& v ) { keys_[k] = v; }
 
     const std::string& get( const std::string& k ) const {

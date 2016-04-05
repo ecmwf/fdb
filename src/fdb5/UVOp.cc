@@ -8,15 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "marskit/MarsRequest.h"
-
 #include "marslib/MarsTask.h"
 
 #include "fdb5/Key.h"
 #include "fdb5/UVOp.h"
 
 using namespace eckit;
-using namespace marskit;
 
 namespace fdb5 {
 

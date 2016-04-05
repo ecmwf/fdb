@@ -57,6 +57,9 @@ list( APPEND fdb5_srcs
     TocHandler.h
     TocHandler.cc
 
+	LegacyTranslator.h
+	LegacyTranslator.cc
+
     Error.h
     Error.cc
     NotFound.h
@@ -76,13 +79,11 @@ ecbuild_add_library(
         ${INSTALL_INCLUDE_DIR}/fdb5
 
     PRIVATE_INCLUDES
-        ${MARSKIT_INCLUDE_DIRS}
         ${GRIB_API_INCLUDE_DIRS}
 
     LIBS
         Mars
         Common
-        ${MARSKIT_LIBRARIES}
         eckit
         grib_api
 )

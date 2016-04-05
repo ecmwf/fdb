@@ -59,6 +59,7 @@ eckit::DataHandle* Retriever::retrieve()
     }
 
     /// @TODO eventually we want to sort the multihandle
+    ///       compress() is called in saveInto() however MultiHandle isn't calling sort() on children
 
     return result.release();
 }
@@ -96,7 +97,6 @@ void Retriever::retrieve(Key& key,
         }
     }
     else {
-        Log::info() << "KEY " << key << std::endl;
         op.execute(task_, key);
     }
 }
