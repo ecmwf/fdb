@@ -15,10 +15,6 @@
 #       -DGRIB_API_PATH=/path/to/grib
 #       -DHPSS_PATH=/path/to/hpss
 #       -DADSM_PATH=/path/to/adsm
-#       -DREADLINE_PATH=/path/to/readline
-#
-#       -DWITH_READLINE=ON          [default: OFF]
-#       -DWITH_DUMMY_TAPES=ON       [default: OFF]
 
 cmake_minimum_required( VERSION 2.8.4 FATAL_ERROR )
 
@@ -74,8 +70,6 @@ ecbuild_declare_project()
 
 set( MARS_TAPE_MANAGERS  "" CACHE INTERNAL "" )
 
-option( ENABLE_READLINE     "try to find and use the GNU Readline library"    ON  )
-
 option( ENABLE_CLIENT       "build the client prototype"                      OFF )
 
 option( ENABLE_DUMMY_TAPES  "use dummy tape management libraries for testing" OFF )
@@ -103,13 +97,6 @@ find_package( HPSS QUIET )
 find_package( ADSM QUIET )
 
 find_package( Curses  REQUIRED )
-
-# find readline if user requests readline support
-# but don't accept the EditLine wrapper
-set( READLINE_WRAPPER_OK FALSE )
-if( ENABLE_READLINE OR DEFINED READLINE_PATH )
-    find_package( READLINE )
-endif()
 
 # find thread library ( preferably pthreads )
 
