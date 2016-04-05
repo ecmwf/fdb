@@ -21,6 +21,7 @@
 
 #include "fdb5/Retriever.h"
 
+using namespace std;
 using namespace eckit;
 
 class FdbExtract : public eckit::Tool {
@@ -43,9 +44,19 @@ void FdbExtract::run()
     r.setValue("levtype","pl");
     r.setValue("date","20160404");
     r.setValue("time","1200");
-    r.setValue("param","131.128");
+
+    vector<string> params;
+    params.push_back( "131.128" );
+    params.push_back( "138.128" );
+    r.setValues("param",params);
+
     r.setValue("step","0");
-    r.setValue("levelist","1000");
+
+    vector<string> levels;
+    levels.push_back( "850" );
+    levels.push_back( "400" );
+    levels.push_back( "300" );
+    r.setValues("levelist",levels);
 
     MarsRequest e("environ");
 
