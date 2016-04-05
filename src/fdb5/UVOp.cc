@@ -30,13 +30,13 @@ UVOp::~UVOp()
 }
 
 void UVOp::enter() {
-    Log::info() << " > UVOp";
+    Log::debug() << " > UVOp";
     winds_.reset();
     parent_.enter();
 }
 
 void UVOp::leave() {
-    Log::info() << " < UVOp";
+    Log::debug() << " < UVOp";
 }
 
 void UVOp::execute(const MarsTask& task, Key& key, Op& tail)

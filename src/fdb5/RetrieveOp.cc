@@ -31,11 +31,11 @@ RetrieveOp::~RetrieveOp()
 }
 
 void RetrieveOp::enter() {
-    Log::info() << " > RetrieveOp" << std::endl;
+    Log::debug() << " > RetrieveOp" << std::endl;
 }
 
 void RetrieveOp::leave() {
-    Log::info() << " < RetrieveOp" << std::endl;
+    Log::debug() << " < RetrieveOp" << std::endl;
 }
 
 void RetrieveOp::execute(const MarsTask& task, Key& key, Op& tail)

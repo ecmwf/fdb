@@ -28,12 +28,12 @@ ForwardOp::~ForwardOp()
 }
 
 void ForwardOp::enter() {
-    Log::info() << " > ForwardOp";
+    Log::debug() << " > ForwardOp";
     parent_.enter();
 }
 
 void ForwardOp::leave() {
-    Log::info() << " < ForwardOp";
+    Log::debug() << " < ForwardOp";
     parent_.leave();
 }
 
