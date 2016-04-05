@@ -36,7 +36,7 @@ void FdbInsert::run()
     {
         eckit::PathName path(ctx.argv(i));
 
-        std::cout << path << std::endl;
+        std::cout << "Processing " << path << std::endl;
         
         try 
         {
@@ -54,7 +54,6 @@ void FdbInsert::run()
 int main(int argc, char **argv)
 {
     FdbInsert app(argc,argv);
-    app.start();
-    return 0;
+    return app.start();
 }
 

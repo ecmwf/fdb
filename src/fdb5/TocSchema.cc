@@ -13,6 +13,7 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/parser/StringTools.h"
 
+#include "fdb5/Error.h"
 #include "fdb5/MasterConfig.h"
 #include "fdb5/TocSchema.h"
 
@@ -103,7 +104,11 @@ Index::Key TocSchema::dataIdx(const Key& userKey) const
     for( eckit::StringList::const_iterator i = idxKeys.begin(); i != idxKeys.end(); ++i )
     {
         StringDict::const_iterator itr = userKey.dict().find(*i);
-        ASSERT( itr != userKey.dict().end() );
+        if( itr == userKey.dict().end() ) {
+            std::ostringstream msg;
+            msg << "User request misses required key " << *i << ", request is " << userKey;
+            throw fdb5::Error(Here(), msg.str());
+        }
         subdict.set( *i, itr->second );
     }
 

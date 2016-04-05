@@ -10,7 +10,9 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/config/Resource.h"
+#include "eckit/config/ResourceMgr.h"
 #include "eckit/parser/StringTools.h"
+#include "eckit/runtime/Context.h"
 
 #include "marslib/MarsTask.h"
 
@@ -26,6 +28,14 @@ namespace fdb5 {
 
 MasterConfig::MasterConfig()
 {
+    char* home = ::getenv("DHSHOME");
+    if(home) {
+        eckit::Context::instance().home(home);
+    }
+
+    ResourceMgr::instance().appendConfig("~/etc/config/fdb");
+    ResourceMgr::instance().appendConfig("~/etc/config/fdbRules");
+
     masterDBKeysStr_ = eckit::Resource<std::string>("masterDBKeys","{class}:{stream}:{expver}:{date}:{time}");
     masterDBKeys_ = StringTools::substituteVariables( masterDBKeysStr_ );
 }

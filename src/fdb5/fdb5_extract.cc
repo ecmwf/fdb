@@ -64,7 +64,6 @@ void FdbExtract::run()
 int main(int argc, char **argv)
 {
     FdbExtract app(argc,argv);
-    app.start();
-    return 0;
+    return app.start();
 }
 
