@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_TocSchema_H
-#define fdb_TocSchema_H
+#ifndef fdb5_TocSchema_H
+#define fdb5_TocSchema_H
 
 #include "eckit/filesystem/PathName.h"
 

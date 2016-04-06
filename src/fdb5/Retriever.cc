@@ -17,11 +17,10 @@
 
 #include "fdb5/Retriever.h"
 #include "fdb5/RetrieveOp.h"
-#include "fdb5/ForwardOp.h"
-#include "fdb5/UVOp.h"
 #include "fdb5/MasterConfig.h"
 #include "fdb5/DB.h"
 #include "fdb5/Key.h"
+#include "fdb5/KeywordHandler.h"
 
 using namespace eckit;
 
@@ -30,8 +29,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 Retriever::Retriever(const MarsTask& task) :
-    task_(task),
-    winds_(task.request())
+    task_(task)
 {
 }
 
@@ -74,32 +72,27 @@ void Retriever::retrieve(Key& key,
 
         std::vector<std::string> values;
 
-        const std::string& param = *pos;
-        task_.request().getValues(param, values);
+        const std::string& keyword = *pos;
+        task_.request().getValues(keyword, values);
 
-        Log::info() << "Expanding parameter (" << param << ") with " << values << std::endl;
+        Log::info() << "Expanding keyword (" << keyword << ") with " << values << std::endl;
 
         ASSERT(values.size());
 
-        /// @TODO once Schema / Param are typed, we can call:
-        ///         Param p = pos->param();
-        ///         values = p->getValues(userReq);
-        ///         p->makeOp(op);
+        const KeywordHandler& handler = KeywordHandler::lookup(keyword);
 
-        eckit::ScopedPtr<Op> newOp( (param == "param") ?
-                                        static_cast<Op*>(new UVOp(op, winds_)) :
-                                        static_cast<Op*>(new ForwardOp(op)) );
+        eckit::ScopedPtr<Op> newOp( handler.makeOp(task_, op) );
 
         Schema::const_iterator next = pos;
         ++next;
 
         for(std::vector<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
 
-            op.enter(param, *j);
+            op.enter(keyword, *j);
 
-            key.set(param, *j);
+            key.set(keyword, *j);
             retrieve(key, schema, next, *newOp);
-            key.unset(param);
+            key.unset(keyword);
 
             op.leave();
         }

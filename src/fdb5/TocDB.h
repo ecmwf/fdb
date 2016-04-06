@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_TocDB_H
-#define fdb_TocDB_H
+#ifndef fdb5_TocDB_H
+#define fdb5_TocDB_H
 
 #include "fdb5/DB.h"
 #include "fdb5/TocSchema.h"

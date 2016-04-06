@@ -11,8 +11,8 @@
 /// @author Tiago Quintino
 /// @date Dec 2014
 
-#ifndef fdb_TocRecord_H
-#define fdb_TocRecord_H
+#ifndef fdb5_TocRecord_H
+#define fdb5_TocRecord_H
 
 #include <unistd.h>
 #include <time.h>

@@ -12,8 +12,8 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb_Index_H
-#define fdb_Index_H
+#ifndef fdb5_Index_H
+#define fdb5_Index_H
 
 #include "eckit/eckit.h"
 

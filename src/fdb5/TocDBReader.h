@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_TocDBReader_H
-#define fdb_TocDBReader_H
+#ifndef fdb5_TocDBReader_H
+#define fdb5_TocDBReader_H
 
 #include "fdb5/TocDB.h"
 #include "fdb5/TocActions.h"

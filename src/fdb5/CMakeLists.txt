@@ -29,6 +29,13 @@ list( APPEND fdb5_srcs
     Schema.h
     Schema.cc
 
+    KeywordHandler.h
+    KeywordHandler.cc
+    DefaultKeywordHandler.h
+    DefaultKeywordHandler.cc
+    ParamKeywordHandler.h
+    ParamKeywordHandler.cc
+
     DB.h
     DB.cc
     TocDB.h

@@ -49,9 +49,7 @@ void ForwardOp::fail(const MarsTask& task, Key& key, Op& tail)
 
 void ForwardOp::print(std::ostream &out) const
 {
-    out << "ForwardOp(";
-    parent_.print(out);
-    out << ")";
+    out << "ForwardOp(" << parent_ << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_NotFound_H
-#define fdb_NotFound_H
+#ifndef fdb5_NotFound_H
+#define fdb5_NotFound_H
 
 #include "eckit/exception/Exceptions.h"
 

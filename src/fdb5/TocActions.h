@@ -11,8 +11,8 @@
 /// @author Tiago Quintino
 /// @date Dec 2014
 
-#ifndef fdb_TocActions_H
-#define fdb_TocActions_H
+#ifndef fdb5_TocActions_H
+#define fdb5_TocActions_H
 
 #include <unistd.h>
 #include <limits.h>

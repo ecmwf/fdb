@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Op_H
-#define fdb_Op_H
+#ifndef fdb5_Op_H
+#define fdb5_Op_H
 
 #include <iosfwd>
 
@@ -43,9 +43,11 @@ public: // methods
 
     virtual void fail(const MarsTask& task, Key& key, Op& tail) = 0;
 
-    virtual void print( std::ostream& out ) const = 0;
-
     friend std::ostream& operator<<(std::ostream& s,const Op& x);
+
+private: // methods
+
+    virtual void print( std::ostream& out ) const = 0;
 
 };
 

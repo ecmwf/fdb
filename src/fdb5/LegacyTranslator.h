@@ -11,8 +11,8 @@
 /// @author Tiago Quintino
 /// @date June 2013
 
-#ifndef fdb_LegacyTranslator_H
-#define fdb_LegacyTranslator_H
+#ifndef fdb5_LegacyTranslator_H
+#define fdb5_LegacyTranslator_H
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"

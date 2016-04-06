@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_UVOp_H
-#define fdb_UVOp_H
+#ifndef fdb5_UVOp_H
+#define fdb5_UVOp_H
 
 #include <map>
 
@@ -30,7 +30,7 @@ class UVOp : public fdb5::Op {
 
 public: // methods
 
-    UVOp(Op& parent, const Winds& userWinds);
+    UVOp(const MarsTask& task, Op& parent);
 
     /// Destructor
     

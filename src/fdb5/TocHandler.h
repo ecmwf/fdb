@@ -11,8 +11,8 @@
 /// @author Tiago Quintino
 /// @date Dec 2014
 
-#ifndef fdb_TocHandler_H
-#define fdb_TocHandler_H
+#ifndef fdb5_TocHandler_H
+#define fdb5_TocHandler_H
 
 #include "eckit/io/Length.h"
 #include "eckit/filesystem/PathName.h"

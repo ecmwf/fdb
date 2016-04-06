@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_DB_H
-#define fdb_DB_H
+#ifndef fdb5_DB_H
+#define fdb5_DB_H
 
 #include <iosfwd>
 

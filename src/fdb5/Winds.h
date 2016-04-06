@@ -13,12 +13,12 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Winds_H
-#define fdb_Winds_H
+#ifndef fdb5_Winds_H
+#define fdb5_Winds_H
 
 #include <string>
 
-class MarsRequest;
+class MarsTask;
 
 namespace fdb5 {
 
@@ -29,7 +29,7 @@ class Winds {
 public: // methods
 
     Winds();
-    Winds(const MarsRequest& field);
+    Winds(const MarsTask& task);
 
     void reset();
 

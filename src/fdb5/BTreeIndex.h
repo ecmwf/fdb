@@ -12,8 +12,8 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb_BTreeIndex_H
-#define fdb_BTreeIndex_H
+#ifndef fdb5_BTreeIndex_H
+#define fdb5_BTreeIndex_H
 
 #include "eckit/eckit.h"
 

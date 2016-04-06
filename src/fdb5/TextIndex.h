@@ -10,8 +10,8 @@
 
 /// @author Tiago Quintino
 
-#ifndef fdb_TextIndex_H
-#define fdb_TextIndex_H
+#ifndef fdb5_TextIndex_H
+#define fdb5_TextIndex_H
 
 #include "eckit/eckit.h"
 

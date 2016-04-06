@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_TocDBWriter_H
-#define fdb_TocDBWriter_H
+#ifndef fdb5_TocDBWriter_H
+#define fdb5_TocDBWriter_H
 
 #include "fdb5/Index.h"
 #include "fdb5/TocRecord.h"

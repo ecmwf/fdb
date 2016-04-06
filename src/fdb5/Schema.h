@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Schema_H
-#define fdb_Schema_H
+#ifndef fdb5_Schema_H
+#define fdb5_Schema_H
 
 #include <vector>
 #include <string>

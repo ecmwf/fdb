@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "marslib/MarsRequest.h"
+#include "marslib/MarsTask.h"
 
 #include "fdb5/Winds.h"
 
@@ -30,7 +30,7 @@ Winds::Winds() :
 {
 }
 
-Winds::Winds(const MarsRequest& field) :
+Winds::Winds(const MarsTask& task) :
     wantU_(false),
     wantV_(false),
     wantVO_(false),
@@ -41,7 +41,7 @@ Winds::Winds(const MarsRequest& field) :
     gotD_(false)
 {
     std::vector<std::string> params;
-    field.getValues("param", params);
+    task.request().getValues("param", params);
 
     for(std::vector<std::string>::const_iterator itr = params.begin(); itr != params.end(); ++itr) {
 

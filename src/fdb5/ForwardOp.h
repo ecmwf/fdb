@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_ForwardOp_H
-#define fdb_ForwardOp_H
+#ifndef fdb5_ForwardOp_H
+#define fdb5_ForwardOp_H
 
 #include "fdb5/Op.h"
 

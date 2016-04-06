@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Key_H
-#define fdb_Key_H
+#ifndef fdb5_Key_H
+#define fdb5_Key_H
 
 #include <map>
 #include <string>

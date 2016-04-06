@@ -12,8 +12,8 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb_FileStore_H
-#define fdb_FileStore_H
+#ifndef fdb5_FileStore_H
+#define fdb5_FileStore_H
 
 #include "eckit/eckit.h"
 

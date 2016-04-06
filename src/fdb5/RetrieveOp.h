@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_RetrieveOp_H
-#define fdb_RetrieveOp_H
+#ifndef fdb5_RetrieveOp_H
+#define fdb5_RetrieveOp_H
 
 #include "eckit/io/MultiHandle.h"
 

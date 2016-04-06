@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Archiver_H
-#define fdb_Archiver_H
+#ifndef fdb5_Archiver_H
+#define fdb5_Archiver_H
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/io/Length.h"

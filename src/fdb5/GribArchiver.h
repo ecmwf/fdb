@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_GribArchiver_H
-#define fdb_GribArchiver_H
+#ifndef fdb5_GribArchiver_H
+#define fdb5_GribArchiver_H
 
 #include "fdb5/Archiver.h"
 

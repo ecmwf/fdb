@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Retriever_H
-#define fdb_Retriever_H
+#ifndef fdb5_Retriever_H
+#define fdb5_Retriever_H
 
 #include <cstdlib>
 #include <vector>
@@ -22,7 +22,6 @@
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/Schema.h"
-#include "fdb5/Winds.h"
 
 namespace eckit { class DataHandle; }
 
@@ -58,8 +57,6 @@ private: // methods
 private: // members
 
     const MarsTask& task_;
-
-    Winds winds_;
 
 };
 

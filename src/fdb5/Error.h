@@ -8,8 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#ifndef fdb_Error_H
-#define fdb_Error_H
+#ifndef fdb5_Error_H
+#define fdb5_Error_H
 
 #include "eckit/log/CodeLocation.h"
 #include "eckit/exception/Exceptions.h"

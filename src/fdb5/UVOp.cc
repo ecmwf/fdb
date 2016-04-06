@@ -19,9 +19,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-UVOp::UVOp(Op& parent, const Winds& userWinds) :
+UVOp::UVOp(const MarsTask& task, Op& parent) :
     parent_(parent),
-    userWinds_(userWinds)
+    userWinds_(task)
 {
 }
 
@@ -112,9 +112,7 @@ void UVOp::fail(const MarsTask& task, Key& key, Op& tail)
 
 void UVOp::print(std::ostream &out) const
 {
-    out << "UVOp(";
-    parent_.print(out);
-    out << ")";
+    out << "UVOp(" << parent_ << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
