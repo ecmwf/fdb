@@ -35,6 +35,11 @@ Archiver::~Archiver()
     flush(); // certify that all sessions are flushed before closing them
 }
 
+void Archiver::write(DataBlobPtr blob)
+{
+    NOTIMP;
+}
+
 
 void Archiver::write(const Key& key, const void* data, eckit::Length length)
 {

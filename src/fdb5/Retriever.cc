@@ -94,9 +94,13 @@ void Retriever::retrieve(Key& key,
         ++next;
 
         for(std::vector<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
-            key.set(param, *j);
+
             op.enter();
+
+            key.set(param, *j);
             retrieve(key, schema, next, *newOp);
+            key.unset(param);
+
             op.leave();
         }
     }

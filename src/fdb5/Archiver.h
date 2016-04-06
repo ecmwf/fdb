@@ -40,6 +40,8 @@ public: // methods
     
     ~Archiver();
 
+    void write(eckit::DataBlobPtr blob);
+
     /// Archives the data in the buffer and described by the fdb5::Key
     /// @param key metadata identifying the data
     /// @param data buffer

@@ -35,7 +35,8 @@ public: // methods
 
     Key(const eckit::StringDict& keys);
 
-    void set( const std::string& k, const std::string& v ) { keys_[k] = v; }
+    void set(const std::string& k, const std::string& v) { keys_[k] = v; }
+    void unset(const std::string& k) { keys_.erase(k); }
 
     const std::string& get( const std::string& k ) const {
         eckit::StringDict::const_iterator i = keys_.find(k);
