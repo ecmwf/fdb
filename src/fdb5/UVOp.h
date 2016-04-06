@@ -16,6 +16,9 @@
 #ifndef fdb_UVOp_H
 #define fdb_UVOp_H
 
+#include <map>
+
+#include "fdb5/Key.h"
 #include "fdb5/Op.h"
 #include "fdb5/Winds.h"
 
@@ -27,7 +30,7 @@ class UVOp : public fdb5::Op {
 
 public: // methods
 
-    UVOp(Op& parent, const Winds& winds);
+    UVOp(Op& parent, const Winds& userWinds);
 
     /// Destructor
     
@@ -35,7 +38,7 @@ public: // methods
 
 private: // methods
 
-    virtual void enter();
+    virtual void enter(const std::string& param, const std::string& value);
     virtual void leave();
 
     virtual void execute(const MarsTask& task, Key& key, Op &tail);
@@ -46,8 +49,13 @@ private: // methods
 
 private:
 
+    typedef std::map<Key, Winds> WindsMap;
+
     Op& parent_;
-    Winds winds_;
+    Winds userWinds_;
+    Key windsKey_;
+
+    WindsMap winds_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

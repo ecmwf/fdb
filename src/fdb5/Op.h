@@ -36,7 +36,7 @@ public: // methods
     
     virtual ~Op();
 
-    virtual void enter() = 0;
+    virtual void enter(const std::string& param, const std::string& value) = 0;
     virtual void leave() = 0;
 
     virtual void execute(const MarsTask& task, Key& key, Op& tail) = 0;

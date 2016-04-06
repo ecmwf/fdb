@@ -30,7 +30,7 @@ RetrieveOp::~RetrieveOp()
 {
 }
 
-void RetrieveOp::enter() {
+void RetrieveOp::enter(const std::string& param, const std::string& value) {
     Log::debug() << " > RetrieveOp" << std::endl;
 }
 

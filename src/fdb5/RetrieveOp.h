@@ -38,7 +38,7 @@ public: // methods
 
 private: // methods
 
-    virtual void enter();
+    virtual void enter(const std::string& param, const std::string& value);
     virtual void leave();
 
     virtual void execute(const MarsTask& task, Key& key, Op& tail);

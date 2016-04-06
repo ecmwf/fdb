@@ -27,9 +27,9 @@ ForwardOp::~ForwardOp()
 {
 }
 
-void ForwardOp::enter() {
+void ForwardOp::enter(const std::string& param, const std::string& value) {
     Log::debug() << " > ForwardOp";
-    parent_.enter();
+    parent_.enter(param, value);
 }
 
 void ForwardOp::leave() {

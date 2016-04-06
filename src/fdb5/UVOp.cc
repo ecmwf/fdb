@@ -19,9 +19,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-UVOp::UVOp(Op& parent, const Winds& winds) :
+UVOp::UVOp(Op& parent, const Winds& userWinds) :
     parent_(parent),
-    winds_(winds)
+    userWinds_(userWinds)
 {
 }
 
@@ -29,10 +29,10 @@ UVOp::~UVOp()
 {
 }
 
-void UVOp::enter() {
+void UVOp::enter(const std::string& param, const std::string& value) {
     Log::debug() << " > UVOp";
-    winds_.reset();
-    parent_.enter();
+    windsKey_.set(param, value);
+    parent_.enter(param, value);
 }
 
 void UVOp::leave() {
@@ -48,47 +48,55 @@ void UVOp::fail(const MarsTask& task, Key& key, Op& tail)
 {
     const std::string& param = key.get("param");
 
+    WindsMap::iterator j = winds_.find(windsKey_);
+
+    if(j == winds_.end()) {
+        j = winds_.insert( std::make_pair(windsKey_, userWinds_) ).first;
+    }
+
+    Winds& winds = j->second;
+
     bool ok = false;
 
-    if(winds_.isU(param)) {
+    if(winds.isU(param)) {
 
-        ASSERT(winds_.wantU_);
-        ASSERT(!winds_.UfromVOD_);
+        ASSERT(winds.wantU_);
+        ASSERT(!winds.UfromVOD_);
 
-        if(!winds_.wantVO_ && !winds_.gotVO_) {
-            key.set("param", winds_.getVO(param));
+        if(!winds.wantVO_ && !winds.gotVO_) {
+            key.set("param", winds.getVO(param));
             execute(task, key, tail);
-            winds_.gotVO_ = true;
+            winds.gotVO_ = true;
         }
 
-        if(!winds_.wantD_ && !winds_.gotD_) {
-            key.set("param", winds_.getD(param));
+        if(!winds.wantD_ && !winds.gotD_) {
+            key.set("param", winds.getD(param));
             execute(task, key, tail);
-            winds_.gotD_ = true;
+            winds.gotD_ = true;
         }
 
-        winds_.UfromVOD_ = true;
+        winds.UfromVOD_ = true;
         ok = true;
     }
 
-    if(winds_.isV(param)) {
+    if(winds.isV(param)) {
 
-        ASSERT(winds_.wantV_);
-        ASSERT(!winds_.VfromVOD_);
+        ASSERT(winds.wantV_);
+        ASSERT(!winds.VfromVOD_);
 
-        if(!winds_.wantVO_ && !winds_.gotVO_) {
-            key.set("param", winds_.getVO(param));
+        if(!winds.wantVO_ && !winds.gotVO_) {
+            key.set("param", winds.getVO(param));
             execute(task, key, tail);
-            winds_.gotVO_ = true;
+            winds.gotVO_ = true;
         }
 
-        if(!winds_.wantD_ && !winds_.gotD_) {
-            key.set("param", winds_.getD(param));
+        if(!winds.wantD_ && !winds.gotD_) {
+            key.set("param", winds.getD(param));
             execute(task, key, tail);
-            winds_.gotD_ = true;
+            winds.gotD_ = true;
         }
 
-        winds_.VfromVOD_ = true;
+        winds.VfromVOD_ = true;
         ok = true;
     }
 
