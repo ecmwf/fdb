@@ -6,8 +6,14 @@
 #
 #  * fdb5_ls -class od -expver 0001
 #
-#  *
-
+#  * multihandle
+#    - derive from MultiHandle
+#    - override compress() to compress & sort children
+#
+#  * check overwrite
+#
+#  * on archive consume all keys (from GRIB mars keys)
+#
 # fdb5 library
 
 list( APPEND fdb5_srcs

@@ -75,6 +75,9 @@ void GribArchiver::archive(eckit::DataHandle& source)
 
             ASSERT( grib_keys_iterator_get_string(ks, val, &len) == 0);
 
+            /// @todo cannocicalisation of values
+            /// const KeywordHandler& handler = KeywordHandler::lookup(name);
+            //  request.set( name, handler.cannocalise(val) );
             request.set( name, val );
         }
 

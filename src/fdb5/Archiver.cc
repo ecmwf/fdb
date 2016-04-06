@@ -35,7 +35,7 @@ Archiver::~Archiver()
     flush(); // certify that all sessions are flushed before closing them
 }
 
-void Archiver::write(DataBlobPtr blob)
+void Archiver::write(const DataBlobPtr blob)
 {
     NOTIMP; /// @todo this will substitute the GribArchiver
 }

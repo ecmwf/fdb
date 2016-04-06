@@ -79,7 +79,12 @@ void Retriever::retrieve(Key& key,
 
         ASSERT(values.size());
 
+////    if(!values.size()) { retrieve(key, shema, ++pos, op); return; }
+
         const KeywordHandler& handler = KeywordHandler::lookup(keyword);
+
+        /// @todo cannocicalisation of values
+        //  handler.getValues( task, keyword, values );
 
         eckit::ScopedPtr<Op> newOp( handler.makeOp(task_, op) );
 
