@@ -150,9 +150,9 @@ void TocDBWriter::closeDataHandles()
         {
             dh->close();
             delete dh;
-            itr->second = 0;
         }
     }
+    handles_.clear();
 }
 
 eckit::DataHandle* TocDBWriter::createFileHandle(const PathName& path)
@@ -236,9 +236,7 @@ void TocDBWriter::flushIndexes()
 
 void TocDBWriter::flushDataHandles()
 {
-    HandleStore::iterator itr = handles_.begin();
-    size_t i = 0;
-    for( ; itr != handles_.end(); ++itr, ++i )
+    for(HandleStore::iterator itr = handles_.begin(); itr != handles_.end(); ++itr)
     {
         eckit::DataHandle* dh = itr->second;
         if( dh )
@@ -250,9 +248,7 @@ void TocDBWriter::closeTocEntries()
 {
     for( TocIndexStore::iterator itr = tocEntries_.begin(); itr != tocEntries_.end(); ++itr )
     {
-        TocIndex* toc = itr->second;
-        ASSERT( toc );
-        delete toc;
+        delete itr->second;
     }
     tocEntries_.clear();
 }
