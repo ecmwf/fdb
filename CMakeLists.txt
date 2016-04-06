@@ -55,6 +55,13 @@ ecbuild_use_package( PROJECT eckit    VERSION 0.10  REQUIRED )
 
 ### ODB support
 
+ecbuild_add_option( FEATURE MARS2MARS
+                    DEFAULT OFF
+                    DESCRIPTION "Support direct archiving from another mars instance"
+                    REQUIRED_PACKAGES "PROJECT marskit  VERSION 0.1" )
+
+### ODB support
+
 ecbuild_add_option( FEATURE ODB
                     DEFAULT ON
                     DESCRIPTION "Support for ODB handlers"

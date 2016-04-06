@@ -51,7 +51,9 @@ void RetrieveOp::execute(const MarsTask& task, Key& key, Op& tail)
 
 void RetrieveOp::fail(const MarsTask& task, Key& key, Op& tail)
 {
-    throw NotFound(key, Here());
+//    throw NotFound(key, Here());
+//
+/// @todo Failure is an option :)
 }
 
 void RetrieveOp::print(std::ostream &out) const

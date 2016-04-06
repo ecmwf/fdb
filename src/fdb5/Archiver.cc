@@ -37,7 +37,7 @@ Archiver::~Archiver()
 
 void Archiver::write(DataBlobPtr blob)
 {
-    NOTIMP;
+    NOTIMP; /// @todo this will substitute the GribArchiver
 }
 
 

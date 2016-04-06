@@ -1,3 +1,13 @@
+### TODO
+#
+#  * fail gracefully if data not present including missing TOC
+#
+#  * copy the schema (fdbRules) into toc dir and read it fromt here on retrieves
+#
+#  * fdb5_ls -class od -expver 0001
+#
+#  *
+
 # fdb5 library
 
 list( APPEND fdb5_srcs

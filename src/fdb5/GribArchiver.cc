@@ -80,6 +80,16 @@ void GribArchiver::archive(eckit::DataHandle& source)
 
         grib_keys_iterator_delete(ks);
 
+        // prefer paramId
+        {
+            char val[1024];
+            size_t len = sizeof(val);
+
+            if(grib_get_string(h, "paramId", val, &len) == 0) {
+                request.set("param", val);
+            }
+        }
+
         // check for duplicated entries (within same request)
 
 //        if( fdbCheckDoubleGrib_ )
