@@ -54,7 +54,12 @@ eckit::DataHandle* Retriever::retrieve()
         RetrieveOp op(db, *partial);
         retrieve(key, db.schema(), db.schema().begin(), op);
 
-        *result += partial.release();
+        if(partial->count()) {
+            *result += partial.release();
+        }
+        else {
+            Log::info() << "MultiHandle is empty for DB " << db << std::endl;
+        }
     }
 
     std::vector<std::string> sort;

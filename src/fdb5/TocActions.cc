@@ -27,10 +27,8 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-TocInitialiser::TocInitialiser(const PathName& dir) : TocHandler()
+TocInitialiser::TocInitialiser(const PathName& dir) : TocHandler(dir)
 {    
-    dir_ = dir; // not initialized by TocHandler else it will check it exists
-
 	if( !dir_.exists() )
 	{
 		dirPath().mkdir();
@@ -95,21 +93,37 @@ eckit::PathName TocIndex::index() const
 
 //-----------------------------------------------------------------------------
 
-TocReverseIndexes::TocReverseIndexes(const PathName& dir) : TocHandler(dir)
-{
-	openForRead();
+TocReverseIndexes::TocReverseIndexes(const PathName& dir) :
+    TocHandler(dir),
+    inited_(false) {
+}
 
-	TocRecord r;
+void TocReverseIndexes::init() {
 
-    while( readNext(r) ) {
-		toc_.push_back(r);
+    if(inited_) {
+        return;
     }
 
-	close();
+    Log::info() << "Initing TocReverseIndexes @ " << filePath_ << std::endl;
+
+    openForRead();
+
+    TocRecord r;
+
+    while( readNext(r) ) {
+        Log::info() << "TOC Record: " << r << std::endl;
+        toc_.push_back(r);
+    }
+
+    close();
+
+    inited_ = true;
 }
 
 std::vector<PathName> TocReverseIndexes::indexes(const TocRecord::MetaData& md) const
 {
+    const_cast<TocReverseIndexes*>(this)->init();
+
 	TocMap::const_iterator f = cacheIndexes_.find(md);
 
 	if( f != cacheIndexes_.end() )
