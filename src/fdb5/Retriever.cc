@@ -57,8 +57,14 @@ eckit::DataHandle* Retriever::retrieve()
         *result += partial.release();
     }
 
-    /// @TODO eventually we want to sort the multihandle
-    ///       compress() is called in saveInto() however MultiHandle isn't calling sort() on children
+    std::vector<std::string> sort;
+    task_.request().getValues("_sort", sort);
+
+    /// @TODO MultiHandle isn't calling sort() on children
+    ///       This code should not being called yet because client does ask for _sort yet
+    if(sort.size() == 1 && sort[0] == "1") {
+        result->compress(true);
+    }
 
     return result.release();
 }

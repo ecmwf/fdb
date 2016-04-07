@@ -1,6 +1,18 @@
 ### TODO
 #
 #  * fail gracefully if data not present including missing TOC
+#  * fdbRoot is a list of paths to visit ---> speak to Hodge
+#  * check overwrite
+#  * on archive consume all keys (from GRIB mars keys)
+#
+#  * fdb_ingest --path fdbroot
+#      - check for duplicates
+#      - check that keysIdx are fully defined
+#      - build a suite
+#
+#  * check fdbRoot ste depending on request
+#
+#  * client "database" for direct fdb5 read
 #
 #  * copy the schema (fdbRules) into toc dir and read it fromt here on retrieves
 #
@@ -10,9 +22,8 @@
 #    - derive from MultiHandle
 #    - override compress() to compress & sort children
 #
-#  * check overwrite
+#  * consider using more than a service node on the HPC
 #
-#  * on archive consume all keys (from GRIB mars keys)
 #
 # fdb5 library
 
