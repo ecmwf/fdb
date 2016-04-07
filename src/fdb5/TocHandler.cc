@@ -20,41 +20,31 @@ using namespace eckit;
 
 namespace fdb5 {
 
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
-TocHandler::TocHandler() : dir_(), fd_(-1), read_(false)
+TocHandler::TocHandler(const PathName& dir) :
+    dir_(dir),
+    filePath_(dir_ / "toc"),
+    fd_(-1),
+    read_(false)
 {
-}
-
-TocHandler::TocHandler(const PathName& dir) : dir_(dir), fd_(-1), read_(false)
-{
-    if( !dir.exists() )
-	{
-		std::ostringstream msg;
-        msg << "Error accessing FDB dir path " << dir << ": it doesn't exist";
-		throw UserError( msg.str(), Here() );
-	}
-
-	eckit::PathName ftoc = filePath();
-
-	ASSERT( ftoc.exists() );
-
-	if( !ftoc.exists() )
-	{
-		std::ostringstream msg;
-		msg << "Error accessing FDB Toc file " << ftoc << ": doesn't exist or is not a regular file";
-		throw UserError( msg.str(), Here() );
-	}
 }
 
 TocHandler::~TocHandler()
 {
-	close();
+    close();
+}
+
+bool TocHandler::exists() const {
+    return filePath_.exists();
 }
 
 void TocHandler::openForAppend()
 {
 	ASSERT( !isOpen() );
+
+    Log::info() << "Opening for append TOC " << filePath() << std::endl;
+
     int iomode = O_WRONLY | O_APPEND;
 //#ifdef __linux__
 //	iomode |= O_NOATIME;
@@ -66,6 +56,9 @@ void TocHandler::openForAppend()
 void TocHandler::openForRead()
 {
 	ASSERT( !isOpen() );
+
+    Log::info() << "Opening for read TOC " << filePath() << std::endl;
+
     int iomode = O_RDONLY;
 //#ifdef __linux__
 //	iomode |= O_NOATIME;
@@ -80,7 +73,9 @@ void TocHandler::append( const TocRecord& r )
 
 	try
 	{
-		ASSERT( ::write(fd_, &r, sizeof(TocRecord)) == sizeof(TocRecord) );
+        size_t len;
+        SYSCALL2( len = ::write(fd_, &r, sizeof(TocRecord)), filePath() );
+        ASSERT( len == sizeof(TocRecord) );
 	}
 	catch(...)
 	{
@@ -93,11 +88,13 @@ Length TocHandler::readNext( TocRecord& r )
 {
 	ASSERT( isOpen() && read_ );
 
-	Length l = ::read(fd_, &r, sizeof(TocRecord) );
+    Length len;
+
+    SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord)), filePath() );
 
     ASSERT( r.isComplete() );
 
-	if( l != 0 && l != sizeof(TocRecord) )
+    if( len != 0 && len != sizeof(TocRecord) )
 	{
 		close();
 		std::ostringstream msg;
@@ -105,13 +102,15 @@ Length TocHandler::readNext( TocRecord& r )
 		throw ReadError( msg.str() );
 	}
 
-	return l;
+    return len;
 }
 
 void TocHandler::close()
 {
 	if( isOpen() )
 	{
+        Log::info() << "Closing TOC " << filePath() << std::endl;
+
 		SYSCALL2( ::close(fd_), filePath() );
 		fd_ = -1;
 	}
@@ -167,9 +166,13 @@ TocRecord TocHandler::makeRecordIdxRemove() const
 TocRecord TocHandler::makeRecordTocWipe() const
 {
 	TocRecord r( TOC_WIPE, (unsigned char)(1) );
-	return r;
+    return r;
 }
 
-//-----------------------------------------------------------------------------
+void TocHandler::print(std::ostream& out) const {
+    out << "TocHandler(" << filePath() << ")";
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

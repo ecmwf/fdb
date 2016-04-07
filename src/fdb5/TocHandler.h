@@ -32,25 +32,23 @@ public: // typedefs
 
 public: // methods
 
-	static eckit::PathName tocPath( const eckit::PathName& dir ) { return dir / "toc"; }
-
-	/// contructor for Toc's that are yet to be created
-	TocHandler();
-
 	/// contructor for Toc's that already exist
 	TocHandler( const eckit::PathName& dir );
 
 	~TocHandler();
 
-	eckit::PathName filePath() const { return tocPath(dir_); }
+    eckit::PathName filePath() const { return filePath_; }
 	eckit::PathName dirPath() const { return dir_; }
 
-	bool isOpen() const { return fd_ >= 0; }
+    bool isOpen() const { return fd_ >= 0; }
+    bool exists() const;
+
+    friend std::ostream& operator<<(std::ostream& s,const TocHandler& x) { x.print(s); return s; }
 
 protected: // methods
 
 	void openForAppend();
-	void openForRead();
+    void openForRead();
 
 	void append( const TocRecord& r );
 
@@ -66,9 +64,12 @@ protected: // methods
 	TocRecord makeRecordIdxRemove() const;
 	TocRecord makeRecordTocWipe() const;
 
+    void print( std::ostream& out ) const;
+
 protected: // members
 
-	eckit::PathName dir_;
+    eckit::PathName dir_;
+    eckit::PathName filePath_;
 
 	int fd_;      ///< file descriptor, if zero file is not yet open.
 

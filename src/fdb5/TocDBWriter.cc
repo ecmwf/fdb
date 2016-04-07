@@ -255,7 +255,9 @@ void TocDBWriter::closeTocEntries()
 
 void TocDBWriter::print(std::ostream &out) const
 {
-    out << "TocDBWriter()";
+    out << "TocDBWriter(" 
+        /// @todo should print more here
+        << ")";
 }
 
 DBBuilder<TocDBWriter> TocDBWriter_Builder("toc.writer");

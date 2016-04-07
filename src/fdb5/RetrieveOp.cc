@@ -13,6 +13,7 @@
 #include "fdb5/DB.h"
 #include "fdb5/RetrieveOp.h"
 #include "fdb5/NotFound.h"
+#include "fdb5/Key.h"
 
 using namespace eckit;
 
@@ -42,9 +43,11 @@ void RetrieveOp::execute(const MarsTask& task, Key& key, Op& tail)
 {
     DataHandle* dh = db_.retrieve(task, key);
     if(dh) {
+        Log::info() << "Got data for key " << key << std::endl;
         result_ += dh;
     }
     else {
+        Log::info() << "Failed to retrieve key " << key << std::endl;
         tail.fail(task, key, tail);
     }
 }

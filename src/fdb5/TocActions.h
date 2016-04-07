@@ -84,12 +84,15 @@ public: // methods
 
 private:
 
-	typedef std::map< TocRecord::MetaData, TocPaths > TocMap;
+    void init(); ///< May be called multiple times
+
+    typedef std::map< TocRecord::MetaData, TocPaths > TocMap;
 
 	TocVec toc_;
 
     mutable TocMap cacheIndexes_;
 
+    bool inited_;
 };
 
 //-----------------------------------------------------------------------------

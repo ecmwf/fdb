@@ -47,6 +47,7 @@ private: // methods
 private: // members
 
     TocReverseIndexes toc_;
+    bool tocExists_;
 
 };
 
