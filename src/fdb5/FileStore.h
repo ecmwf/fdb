@@ -82,11 +82,12 @@ public: // methods
 
     void flush();
 
-    void print( std::ostream& out ) const;
-	void json( std::ostream& out ) const;
-
     friend std::ostream& operator<<(std::ostream& s,const FileStore& x) { x.print(s); return s; }
     
+private: // members
+
+    void print( std::ostream& out ) const;
+
 private: // members
 
     FileStore::PathID   next_;

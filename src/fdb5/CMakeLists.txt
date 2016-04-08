@@ -1,6 +1,7 @@
 ### TODO
 #
-#  * fail gracefully if data not present including missing TOC
+#  * make IndexKey same as Key
+#
 #  * fdbRoot is a list of paths to visit ---> speak to Hodge
 #  * check overwrite
 #  * on archive consume all keys (from GRIB mars keys)
@@ -24,7 +25,12 @@
 #
 #  * consider using more than a service node on the HPC
 #
+###  NOTE
 #
+#   * KeywordHanlder's are currently global and not Schema dependent.
+#     They should be local to the DB
+
+
 # fdb5 library
 
 list( APPEND fdb5_srcs
@@ -56,12 +62,16 @@ list( APPEND fdb5_srcs
     Schema.h
     Schema.cc
 
+    KeywordType.h
+    KeywordType.cc
     KeywordHandler.h
     KeywordHandler.cc
     DefaultKeywordHandler.h
     DefaultKeywordHandler.cc
-    ParamKeywordHandler.h
-    ParamKeywordHandler.cc
+    ParamHandler.h
+    ParamHandler.cc
+    IntegerHandler.h
+    IntegerHandler.cc
 
     DB.h
     DB.cc
@@ -80,6 +90,8 @@ list( APPEND fdb5_srcs
     BTreeIndex.cc
     TextIndex.h
     TextIndex.cc
+    IndexAxis.h
+    IndexAxis.cc
 
     FileStore.h
     FileStore.cc

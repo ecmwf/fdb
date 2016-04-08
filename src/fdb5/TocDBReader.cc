@@ -25,8 +25,7 @@ namespace fdb5 {
 
 TocDBReader::TocDBReader(const Key& key) :
     TocDB(key),
-    toc_(schema_.tocDirPath()),
-    tocExists_(toc_.exists())
+    toc_(schema_.tocDirPath())
 {
     Log::info() << "TocDBReader for TOC [" << schema_.tocDirPath() << "]" << std::endl;
 }
@@ -35,14 +34,22 @@ TocDBReader::~TocDBReader()
 {
 }
 
+bool TocDBReader::open() {
+
+    if(!toc_.exists()) {
+        Log::info() << "TOC doesn't exist " << toc_.filePath() << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+void TocDBReader::close() {
+}
+
 eckit::DataHandle* TocDBReader::retrieve(const MarsTask& task, const Key& key) const
 {
     Log::info() << "Trying to retrieve key " << key << std::endl;
-
-    if(!tocExists_) {
-        Log::info() << "TOC doesn't exist " << toc_.filePath() << std::endl;
-        return 0;
-    }
 
     const std::vector<PathName>& indexesPaths = toc_.indexes( schema_.tocEntry(key) );
 
@@ -50,7 +57,7 @@ eckit::DataHandle* TocDBReader::retrieve(const MarsTask& task, const Key& key) c
 
     const Index* index = 0;
 
-    Index::Key indexKey(schema_.dataIdx(key));
+    IndexKey indexKey(schema_.dataIdx(key));
     indexKey.rebuild();
 
     Index::Field field;

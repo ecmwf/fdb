@@ -91,12 +91,12 @@ std::string TocSchema::tocEntry(const Key& userKey) const
     return StringTools::substitute(tocKeys, userKey.dict());
 }
 
-Index::Key TocSchema::dataIdx(const Key& userKey) const
+IndexKey TocSchema::dataIdx(const Key& userKey) const
 {
     Tokenizer parse(",");
     eckit::StringList idxKeys;
 
-    Index::Key subdict;
+    IndexKey subdict;
 
     std::string s = eckit::Resource<std::string>("idxKeys","levelist,step,param", userKey.dict());
     parse(s,idxKeys);

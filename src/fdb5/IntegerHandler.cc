@@ -9,10 +9,12 @@
  */
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/utils/Translator.h"
 
-#include "fdb5/ParamKeywordHandler.h"
+#include "marslib/MarsTask.h"
 
-#include "fdb5/UVOp.h"
+#include "fdb5/KeywordType.h"
+#include "fdb5/IntegerHandler.h"
 
 using namespace eckit;
 
@@ -20,25 +22,36 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ParamKeywordHandler::ParamKeywordHandler(const std::string& name) :
+IntegerHandler::IntegerHandler(const std::string& name) :
     KeywordHandler(name)
 {
 }
 
-ParamKeywordHandler::~ParamKeywordHandler()
+IntegerHandler::~IntegerHandler()
 {
 }
 
-Op* ParamKeywordHandler::makeOp(const MarsTask& task, Op& parent) const {
-    return new UVOp(task, parent);
-}
-
-void ParamKeywordHandler::print(std::ostream &out) const
+void IntegerHandler::getValues(const MarsTask& task, const std::string& keyword, StringList& values) const
 {
-    out << "ParamKeywordHandler(" << name_ << ")";
+    std::vector<long> intValues;
+
+    task.request().getValues(keyword, intValues);
+
+    Translator<long, std::string> t;
+
+    values.reserve(intValues.size());
+
+    for(std::vector<long>::const_iterator i = intValues.begin(); i != intValues.end(); ++i) {
+        values.push_back(t(*i));
+    }
 }
 
-static ParamKeywordHandler handler("param");
+void IntegerHandler::print(std::ostream &out) const
+{
+    out << "IntegerHandler(" << name_ << ")";
+}
+
+static KeywordHandlerBuilder<IntegerHandler> handler("Integer");
 
 //----------------------------------------------------------------------------------------------------------------------
 

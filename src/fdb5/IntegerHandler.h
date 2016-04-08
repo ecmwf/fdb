@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   ParamKeywordHandler.h
+/// @file   IntegerHandler.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_ParamKeywordHandler_H
-#define fdb5_ParamKeywordHandler_H
+#ifndef fdb5_IntegerHandler_H
+#define fdb5_IntegerHandler_H
 
 #include "fdb5/KeywordHandler.h"
 
@@ -22,15 +22,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ParamKeywordHandler : public KeywordHandler {
+class IntegerHandler : public KeywordHandler {
 
 public: // methods
 
-    ParamKeywordHandler(const std::string& name);
+    IntegerHandler(const std::string& name);
     
-    virtual ~ParamKeywordHandler();
+    virtual ~IntegerHandler();
 
-    virtual Op* makeOp(const MarsTask& task, Op& parent) const;
+    virtual void getValues(const MarsTask& task, const std::string& keyword, eckit::StringList& values) const;
 
 private: // methods
 

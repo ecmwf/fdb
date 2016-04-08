@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -19,6 +19,7 @@
 #include <string>
 
 #include "eckit/memory/NonCopyable.h"
+#include "eckit/types/Types.h"
 
 class MarsTask;
 
@@ -33,10 +34,12 @@ class KeywordHandler : private eckit::NonCopyable {
 public: // methods
 
     KeywordHandler(const std::string& name);
-    
+
     virtual ~KeywordHandler();
 
-    virtual Op* makeOp(const MarsTask& task, Op& parent) const = 0;
+    virtual void getValues(const MarsTask& task, const std::string& keyword, eckit::StringList& values) const;
+
+    virtual Op* makeOp(const MarsTask& task, Op& parent) const;
 
     friend std::ostream& operator<<(std::ostream& s,const KeywordHandler& x);
 

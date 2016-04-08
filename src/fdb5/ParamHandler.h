@@ -8,47 +8,33 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Schema.h
+/// @file   ParamHandler.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   Mar 2016
+/// @date   April 2016
 
-#ifndef fdb5_Schema_H
-#define fdb5_Schema_H
+#ifndef fdb5_ParamHandler_H
+#define fdb5_ParamHandler_H
 
-#include <string>
-#include <map>
-
-#include "eckit/memory/NonCopyable.h"
+#include "fdb5/KeywordHandler.h"
 
 namespace fdb5 {
 
-class KeywordHandler;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class Schema : public std::vector<std::string>,
-               private eckit::NonCopyable {
+class ParamHandler : public KeywordHandler {
 
 public: // methods
 
-    Schema();
+    ParamHandler(const std::string& name);
     
-    virtual ~Schema();
+    virtual ~ParamHandler();
 
-    virtual const KeywordHandler& lookupHandler(const std::string& keyword) const;
+    virtual Op* makeOp(const MarsTask& task, Op& parent) const;
 
-    friend std::ostream& operator<<(std::ostream& s, const Schema& x);
+private: // methods
 
-protected: // methods
-
-    virtual void print( std::ostream& out ) const = 0;
-
-private: // members
-
-    typedef std::map<std::string, KeywordHandler*> HandlerMap;
-
-    mutable HandlerMap handlers_;
+    virtual void print( std::ostream& out ) const;
 
 };
 

@@ -74,6 +74,15 @@ TocDBWriter::TocDBWriter(const Key& key) : TocDB(key)
 
 TocDBWriter::~TocDBWriter()
 {
+    close();
+}
+
+bool TocDBWriter::open() {
+    return true;
+}
+
+void TocDBWriter::close() {
+
     // ensure consistent state before writing Toc entry
 
     flush();
@@ -86,6 +95,7 @@ TocDBWriter::~TocDBWriter()
 
     closeTocEntries();
 }
+
 
 void TocDBWriter::archive(const Key& userkey, const void *data, Length length)
 {
@@ -111,7 +121,7 @@ void TocDBWriter::archive(const Key& userkey, const void *data, Length length)
             dh.write( &padding_[0], paddingSize );
     }
 
-    Index::Key key = schema_.dataIdx(userkey); // reduced key with only index entries
+    IndexKey key = schema_.dataIdx(userkey); // reduced key with only index entries
     key.rebuild();
 
     Index::Field field (dataPath, position, length);

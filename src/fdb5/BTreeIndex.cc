@@ -28,14 +28,14 @@ BTreeIndex::~BTreeIndex()
 {
 }
 
-bool BTreeIndex::exists(const Index::Key &key) const
+bool BTreeIndex::exists(const IndexKey &key) const
 {
     BTreeKey k (key.str());
     FieldRef ignore;
     return const_cast<BTreeIndex*>(this)->btree_.get(k,ignore);
 }
 
-bool BTreeIndex::get(const Index::Key &key, Index::Field& field) const
+bool BTreeIndex::get(const IndexKey &key, Index::Field& field) const
 {
     FieldRef ref;
     BTreeKey k (key.str());
@@ -49,7 +49,7 @@ bool BTreeIndex::get(const Index::Key &key, Index::Field& field) const
     return found;
 }
 
-BTreeIndex::Field BTreeIndex::get(const BTreeIndex::Key& key) const
+BTreeIndex::Field BTreeIndex::get(const IndexKey& key) const
 {
     Field result;
     FieldRef ref;
@@ -65,7 +65,7 @@ BTreeIndex::Field BTreeIndex::get(const BTreeIndex::Key& key) const
     return result;
 }
 
-void BTreeIndex::put(const BTreeIndex::Key& key, const BTreeIndex::Field& field)
+void BTreeIndex::put_(const IndexKey& key, const BTreeIndex::Field& field)
 {
     ASSERT( mode() == Index::WRITE );
 
@@ -79,7 +79,7 @@ void BTreeIndex::put(const BTreeIndex::Key& key, const BTreeIndex::Field& field)
     btree_.set(k,ref);  // returns true if replace, false if new insert
 }
 
-bool BTreeIndex::remove(const Index::Key& key)
+bool BTreeIndex::remove(const IndexKey& key)
 {
     ASSERT( mode() == Index::WRITE );
 
@@ -99,7 +99,7 @@ void BTreeIndex::apply( Index::Op& op )
 {
     ASSERT( mode() == Index::WRITE );
 
-    Index::Key key;
+    IndexKey key;
     Field field;
     
     BTreeKey first("");
@@ -119,7 +119,7 @@ void BTreeIndex::apply( Index::Op& op )
 
 void BTreeIndex::apply( Index::ConstOp& op ) const
 {    
-    Index::Key key;
+    IndexKey key;
     Field field;
     
     BTreeKey first("");

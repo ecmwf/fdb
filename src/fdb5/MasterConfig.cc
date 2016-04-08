@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <algorithm>
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/config/Resource.h"
 #include "eckit/config/ResourceMgr.h"
@@ -64,7 +66,8 @@ eckit::SharedPtr<DB> MasterConfig::openSessionDB(const Key& user)
 {
     Key dbKey = makeDBKey(user);
 
-    return SharedPtr<DB>( DBFactory::build("toc.writer", dbKey) );
+    std::string fdbWriterDB = eckit::Resource<std::string>("fdbWriterDB","toc.writer");
+    return SharedPtr<DB>( DBFactory::build(fdbWriterDB, dbKey) );
 }
 
 VecDB MasterConfig::openSessionDBs(const MarsTask& task)
@@ -100,8 +103,11 @@ void MasterConfig::expand(const MarsRequest& request,
     }
     else
     {
-        /// @todo substitute "toc" with a configuration driven DB type
-        result.push_back( SharedPtr<DB>( DBFactory::build("toc.reader", dbKey) ) );
+        std::string fdbReaderDB = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
+        SharedPtr<DB> newDB ( DBFactory::build(fdbReaderDB, dbKey) );
+        if(newDB->open()) {
+            result.push_back( newDB );
+        }
     }
 }
 

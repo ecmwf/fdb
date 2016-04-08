@@ -8,47 +8,59 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Schema.h
+/// @file   IndexAxis.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Schema_H
-#define fdb5_Schema_H
+#ifndef fdb5_IndexAxis_H
+#define fdb5_IndexAxis_H
 
-#include <string>
+#include <iosfwd>
+#include <set>
 #include <map>
 
 #include "eckit/memory/NonCopyable.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/types/Types.h"
+
+namespace eckit { class JSON; }
 
 namespace fdb5 {
 
-class KeywordHandler;
+class IndexKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Schema : public std::vector<std::string>,
-               private eckit::NonCopyable {
+class IndexAxis : private eckit::NonCopyable {
 
 public: // methods
 
-    Schema();
-    
-    virtual ~Schema();
+    IndexAxis( const eckit::PathName& path );
 
-    virtual const KeywordHandler& lookupHandler(const std::string& keyword) const;
+    ~IndexAxis();
 
-    friend std::ostream& operator<<(std::ostream& s, const Schema& x);
+    void insert(const IndexKey& key);
 
-protected: // methods
+    const eckit::StringSet& axis(const std::string& keyword) const;
 
-    virtual void print( std::ostream& out ) const = 0;
+    friend std::ostream& operator<<(std::ostream& s,const IndexAxis& x) { x.print(s); return s; }
+
+private: // methods
+
+    void print(std::ostream& out) const;
+
+    void json(eckit::JSON&) const;
 
 private: // members
 
-    typedef std::map<std::string, KeywordHandler*> HandlerMap;
+    typedef std::map<std::string, eckit::StringSet> AxisMap;
 
-    mutable HandlerMap handlers_;
+    AxisMap axis_;
+
+    eckit::PathName path_;
+
+    bool readOnly_;
 
 };
 

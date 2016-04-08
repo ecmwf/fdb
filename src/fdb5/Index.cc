@@ -32,21 +32,21 @@ static const std::string sep("/");
 
 //-----------------------------------------------------------------------------
 
-Index::Key::Key() : built_(false)
+IndexKey::IndexKey() : built_(false)
 {
 }
 
-Index::Key::Key(const fdb5::Key& k)
+IndexKey::IndexKey(const fdb5::Key& k)
 {
     this->operator=( k.dict() );
 }
 
-Index::Key::Key( const std::string& s )
+IndexKey::IndexKey( const std::string& s )
 {
     this->operator=(s);
 }
 
-Index::Key& Index::Key::operator=(const eckit::StringDict &p)
+IndexKey& IndexKey::operator=(const eckit::StringDict &p)
 {
     built_ = false;
     params_.clear();
@@ -55,20 +55,20 @@ Index::Key& Index::Key::operator=(const eckit::StringDict &p)
     return *this;
 }
 
-Index::Key& Index::Key::operator=(const std::string &s)
+IndexKey& IndexKey::operator=(const std::string &s)
 {
     std::istringstream is(s);
     load(is);
     return *this;
 }
 
-void Index::Key::set(const std::string& key, const std::string& value)
+void IndexKey::set(const std::string& key, const std::string& value)
 {
     params_[key] = value;
     built_ = false;
 }
 
-void Index::Key::rebuild()
+void IndexKey::rebuild()
 {
     if(!built_)
     {
@@ -80,7 +80,7 @@ void Index::Key::rebuild()
     }
 }
 
-void Index::Key::load(std::istream& s)
+void IndexKey::load(std::istream& s)
 {
     std::string params;
     s >> params;
@@ -99,7 +99,7 @@ void Index::Key::load(std::istream& s)
     rebuild();
 }
 
-void Index::Key::dump(std::ostream& s) const
+void IndexKey::dump(std::ostream& s) const
 {
     s << sep;
     for(StringDict::const_iterator ktr = params_.begin(); ktr != params_.end(); ++ktr)
@@ -122,18 +122,27 @@ Index* Index::create( const std::string& type, const PathName& path, Index::Mode
     throw BadParameter( "Unrecognized fdb5::Index type " + type + " @ " + Here().asString() );
 }
 
+//-----------------------------------------------------------------------------
+
 Index::Index(const PathName& path, Index::Mode m ) :
 	mode_(m),
 	path_(path),
-	files_( path + ".files" )
-{    
+    files_( path + ".files" ),
+    axis_( path + ".axis" )
+{
 }
 
 Index::~Index()
 {
 }
 
-void Index::print( std::ostream& out ) const 
+void Index::put(const IndexKey& key, const Index::Field& field)
+{
+    axis_.insert(key);
+    put_(key, field);
+}
+
+void Index::print(std::ostream& out) const
 {
     fdb5::PrintIndex print(out);
     apply( print ); 
@@ -164,7 +173,7 @@ void Index::Field::dump(std::ostream& s) const
 
 //-----------------------------------------------------------------------------
 
-void PrintIndex::operator ()(const Index &, const Index::Key &key, const Index::Field &field)
+void PrintIndex::operator ()(const Index &, const IndexKey &key, const Index::Field &field)
 {
     out_ << "{" << key << ":" << field << "}\n";
 }

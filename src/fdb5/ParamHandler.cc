@@ -8,36 +8,39 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   DefaultKeywordHandler.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   April 2016
+#include "eckit/exception/Exceptions.h"
 
-#ifndef fdb5_DefaultKeywordHandler_H
-#define fdb5_DefaultKeywordHandler_H
+#include "fdb5/KeywordType.h"
+#include "fdb5/ParamHandler.h"
 
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/UVOp.h"
+
+using namespace eckit;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DefaultKeywordHandler : public KeywordHandler {
+ParamHandler::ParamHandler(const std::string& name) :
+    KeywordHandler(name)
+{
+}
 
-public: // methods
+ParamHandler::~ParamHandler()
+{
+}
 
-    DefaultKeywordHandler(const std::string& name);
-    
-    virtual ~DefaultKeywordHandler();
+Op* ParamHandler::makeOp(const MarsTask& task, Op& parent) const {
+    return new UVOp(task, parent);
+}
 
-private: // methods
+void ParamHandler::print(std::ostream &out) const
+{
+    out << "ParamHandler(" << name_ << ")";
+}
 
-    virtual void print( std::ostream& out ) const;
-
-};
+static KeywordHandlerBuilder<ParamHandler> handler("Param");
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

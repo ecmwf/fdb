@@ -35,19 +35,22 @@ public: // methods
 
 private: // methods
 
-    Index::Field findField(const Key& key);
+    virtual bool open();
 
     virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const;
+
+    virtual void close();
 
     /// Opens an Index with the associated path
     virtual Index* openIndex( const eckit::PathName& path ) const;
 
     virtual void print( std::ostream& out ) const;
 
+    Index::Field findField(const Key& key);
+
 private: // members
 
     TocReverseIndexes toc_;
-    bool tocExists_;
 
 };
 

@@ -44,9 +44,13 @@ protected: // methods
 
     virtual const Schema& schema() const;
 
+    virtual bool open();
+
     virtual void archive(const Key& key, const void* data, eckit::Length length);
 
     virtual void flush();
+
+    virtual void close();
 
     virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const;
 

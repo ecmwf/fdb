@@ -38,6 +38,12 @@ const Schema& TocDB::schema() const
     return schema_;
 }
 
+bool TocDB::open()
+{
+    Log::error() << "Open not implemented for " << *this << std::endl;
+    NOTIMP;
+}
+
 void TocDB::archive(const Key& key, const void *data, Length length)
 {
     Log::error() << "Archive not implemented for " << *this << std::endl;
@@ -53,6 +59,12 @@ void TocDB::flush()
 eckit::DataHandle* TocDB::retrieve(const MarsTask& task, const Key& key) const
 {
     Log::error() << "Retrieve not implemented for " << *this << std::endl;
+    NOTIMP;
+}
+
+void TocDB::close()
+{
+    Log::error() << "Close not implemented for " << *this << std::endl;
     NOTIMP;
 }
 

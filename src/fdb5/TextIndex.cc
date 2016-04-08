@@ -20,7 +20,7 @@ using namespace eckit;
 
 namespace fdb5 {
 
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 TextIndex::TextIndex( const PathName& path, Index::Mode m ) :
 	Index(path,m),
@@ -34,13 +34,13 @@ TextIndex::~TextIndex()
     flush();
 }
 
-bool TextIndex::exists(const Index::Key& key) const
+bool TextIndex::exists(const IndexKey& key) const
 {
     FieldStore::const_iterator itr = store_.find(key);
     return( itr != store_.end() );
 }
 
-bool TextIndex::get(const Index::Key &key, Index::Field& field) const
+bool TextIndex::get(const IndexKey &key, Index::Field& field) const
 {
     FieldStore::const_iterator itr = store_.find(key);
     if( itr == store_.end() ) 
@@ -55,7 +55,7 @@ bool TextIndex::get(const Index::Key &key, Index::Field& field) const
     return true;
 }
 
-TextIndex::Field TextIndex::get(const TextIndex::Key& key) const
+TextIndex::Field TextIndex::get(const IndexKey& key) const
 {
     Field field;
     
@@ -72,7 +72,7 @@ TextIndex::Field TextIndex::get(const TextIndex::Key& key) const
     return field;
 }
 
-void TextIndex::put(const TextIndex::Key& key, const TextIndex::Field& field)
+void TextIndex::put_(const IndexKey& key, const TextIndex::Field& field)
 {
 	ASSERT( mode() == Index::WRITE );
 
@@ -86,7 +86,7 @@ void TextIndex::put(const TextIndex::Key& key, const TextIndex::Field& field)
     flushed_ = false;
 }
 
-bool TextIndex::remove(const Index::Key& key)
+bool TextIndex::remove(const IndexKey& key)
 {
 	ASSERT( mode() == Index::WRITE );
 
@@ -148,8 +148,13 @@ void TextIndex::load(const PathName& path)
         if( line.size() )
         {
             std::istringstream is(line);
-            Key k;      k.load(is); 
-            FieldRef fref; fref.load(is);
+
+            IndexKey k;
+            k.load(is);
+
+            FieldRef fref;
+            fref.load(is);
+
             store_[k] = fref;
             // Log::info() << k << " ----> " << f << std::endl;
         }
@@ -177,6 +182,6 @@ void TextIndex::save(const PathName& path) const
     storage.close();
 }
 
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
