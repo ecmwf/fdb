@@ -31,6 +31,7 @@ namespace fdb5 {
 
 class Key;
 class Op;
+class DB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -50,7 +51,7 @@ public: // methods
 private: // methods
 
     void retrieve(Key& key,
-                  const Schema& schema,
+                  const DB& db,
                   Schema::const_iterator pos,
                   Op& op);
 

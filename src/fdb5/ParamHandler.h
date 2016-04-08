@@ -30,6 +30,12 @@ public: // methods
     
     virtual ~ParamHandler();
 
+    virtual void getValues(const MarsTask& task,
+                           const std::string& keyword,
+                           eckit::StringList& values,
+                           const DB& db,
+                           const Key& key) const;
+
     virtual Op* makeOp(const MarsTask& task, Op& parent) const;
 
 private: // methods

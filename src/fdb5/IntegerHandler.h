@@ -30,7 +30,11 @@ public: // methods
     
     virtual ~IntegerHandler();
 
-    virtual void getValues(const MarsTask& task, const std::string& keyword, eckit::StringList& values) const;
+    virtual void getValues(const MarsTask& task,
+                           const std::string& keyword,
+                           eckit::StringList& values,
+                           const DB& db,
+                           const Key& key) const;
 
 private: // methods
 

@@ -49,7 +49,7 @@ IndexAxis::~IndexAxis()
 
         FileHandle f(path_);
 
-        f.openForWrite(0);
+        f.openForWrite(0); AutoClose closer(f);
 
         std::ostringstream os;
 
@@ -59,8 +59,6 @@ IndexAxis::~IndexAxis()
         Log::info() << "Axis JSON " << os.str() << std::endl;
 
         f.write(os.str().c_str(), os.str().size());
-
-        f.close();
     }
 }
 
@@ -79,7 +77,7 @@ void IndexAxis::insert(const IndexKey& key)
     }
 }
 
-const StringSet& IndexAxis::axis(const std::string& keyword) const
+const StringSet& IndexAxis::values(const std::string& keyword) const
 {
     AxisMap::const_iterator i = axis_.find(keyword);
     ASSERT(i != axis_.end());

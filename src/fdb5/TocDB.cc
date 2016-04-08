@@ -38,6 +38,12 @@ const Schema& TocDB::schema() const
     return schema_;
 }
 
+void TocDB::axis(const Key& key, const std::string& keyword, eckit::StringSet& s) const
+{
+    Log::error() << "axis() not implemented for " << *this << std::endl;
+    NOTIMP;
+}
+
 bool TocDB::open()
 {
     Log::error() << "Open not implemented for " << *this << std::endl;

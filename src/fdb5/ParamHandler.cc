@@ -9,9 +9,13 @@
  */
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/types/Types.h"
+#include "eckit/log/Log.h"
+#include "eckit/utils/Translator.h"
 
 #include "fdb5/KeywordType.h"
 #include "fdb5/ParamHandler.h"
+#include "fdb5/DB.h"
 
 #include "fdb5/UVOp.h"
 
@@ -28,6 +32,50 @@ ParamHandler::ParamHandler(const std::string& name) :
 
 ParamHandler::~ParamHandler()
 {
+}
+
+void ParamHandler::getValues(const MarsTask& task,
+                             const std::string& keyword,
+                             StringList& values,
+                             const DB& db,
+                             const Key& key) const {
+
+    StringSet axis;
+
+    db.axis(key, keyword, axis);
+
+    Log::info() << "Axis set ";
+    eckit::__print_container(Log::info(),axis);
+    Log::info() << std::endl;
+
+    StringList tmp;
+
+    KeywordHandler::getValues(task, keyword, tmp, db, key);
+    Translator<std::string, int> t;
+    for(StringList::const_iterator i = tmp.begin(); i != tmp.end(); ++i) {
+        if(axis.find(*i) != axis.end()) {
+            values.push_back(*i);
+        }
+        else {
+            bool found = false;
+            for(StringSet::const_iterator j = axis.begin(); j != axis.end(); ++j) {
+
+                // This assumes that the user only provided the 3 last digits of paramId
+                // e.g. backward compatibility with wave paramId = 140229 but user gives 229 only
+
+                if( t(*j) % 1000 == t(*i) ) {
+                    found = true;
+                    values.push_back(*j);
+                    break;
+                }
+            }
+            if(!found) {
+                values.push_back(*i); /// @note we know this will fail, but server will print meaningful message
+            }
+        }
+    }
+
+    Log::info() << ">>> VALUES " << values << std::endl;
 }
 
 Op* ParamHandler::makeOp(const MarsTask& task, Op& parent) const {

@@ -11,8 +11,8 @@
 /// @author Tiago Quintino
 /// @date June 2013
 
-#ifndef fdb5_LegacyTranslator_H
-#define fdb5_LegacyTranslator_H
+#ifndef fdb5_LegacyKey_H
+#define fdb5_LegacyKey_H
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
@@ -23,15 +23,17 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-class LegacyTranslator :{
+class LegacyKey {
 
 public: // methods
 
-    LegacyTranslator();
+    LegacyKey();
 
-    eckit::StringDict::value_type translate( const std::string& key, const std::string& value );
+    void set(const std::string& keyword, const std::string& value);
 
 private: // members
+
+    eckit::StringDict::value_type translate( const std::string& key, const std::string& value );
 
     typedef eckit::StringDict::value_type (*translator_t) ( const std::string&, const std::string& );
     typedef std::map< std::string, translator_t > store_t;

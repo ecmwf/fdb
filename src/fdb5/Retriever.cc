@@ -55,7 +55,7 @@ eckit::DataHandle* Retriever::retrieve()
         Key key;
 
         RetrieveOp op(db, *partial);
-        retrieve(key, db.schema(), db.schema().begin(), op);
+        retrieve(key, db, db.schema().begin(), op);
 
         *result += partial.release();
     }
@@ -73,24 +73,24 @@ eckit::DataHandle* Retriever::retrieve()
 }
 
 void Retriever::retrieve(Key& key,
-                         const Schema& schema,
+                         const DB& db,
                          Schema::const_iterator pos,
                          Op& op)
 {
-    if(pos != schema.end()) {
+    if(pos != db.schema().end()) {
 
         std::vector<std::string> values;
 
         const std::string& keyword = *pos;
 
-        const KeywordHandler& handler = schema.lookupHandler(keyword);
+        const KeywordHandler& handler = db.schema().lookupHandler(keyword);
 
-        handler.getValues(task_, keyword, values);
+        handler.getValues(task_, keyword, values, db, key);
 
         Log::info() << "Expanding keyword (" << keyword << ") with " << values << std::endl;
 
         if(!values.size()) {
-            retrieve(key, schema, ++pos, op);
+            retrieve(key, db, ++pos, op);
             return;
         }
 
@@ -104,7 +104,7 @@ void Retriever::retrieve(Key& key,
             op.enter(keyword, *j);
 
             key.set(keyword, *j);
-            retrieve(key, schema, next, *newOp);
+            retrieve(key, db, next, *newOp);
             key.unset(keyword);
 
             op.leave();

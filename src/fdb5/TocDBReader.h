@@ -37,6 +37,8 @@ private: // methods
 
     virtual bool open();
 
+    virtual void axis(const Key& key, const std::string& keyword, eckit::StringSet& s) const;
+
     virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const;
 
     virtual void close();

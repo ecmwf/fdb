@@ -31,7 +31,11 @@ IntegerHandler::~IntegerHandler()
 {
 }
 
-void IntegerHandler::getValues(const MarsTask& task, const std::string& keyword, StringList& values) const
+void IntegerHandler::getValues(const MarsTask& task,
+                               const std::string& keyword,
+                               StringList& values,
+                               const DB& db,
+                               const Key& key) const
 {
     std::vector<long> intValues;
 

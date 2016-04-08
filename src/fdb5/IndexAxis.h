@@ -42,7 +42,7 @@ public: // methods
 
     void insert(const IndexKey& key);
 
-    const eckit::StringSet& axis(const std::string& keyword) const;
+    const eckit::StringSet& values(const std::string& keyword) const;
 
     friend std::ostream& operator<<(std::ostream& s,const IndexAxis& x) { x.print(s); return s; }
 

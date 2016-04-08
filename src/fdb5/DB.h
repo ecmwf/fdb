@@ -21,6 +21,7 @@
 #include "eckit/memory/Owned.h"
 #include "eckit/memory/SharedPtr.h"
 #include "eckit/io/Length.h"
+#include "eckit/types/Types.h"
 
 #include "fdb5/Schema.h"
 
@@ -47,6 +48,8 @@ public: // methods
     virtual bool match(const Key& key) const = 0;
 
     virtual const Schema& schema() const = 0;
+
+    virtual void axis(const Key& key, const std::string& keyword, eckit::StringSet& s) const = 0;
 
     virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const = 0;
 

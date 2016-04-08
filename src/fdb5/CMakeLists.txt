@@ -103,8 +103,8 @@ list( APPEND fdb5_srcs
     TocHandler.h
     TocHandler.cc
 
-	LegacyTranslator.h
-	LegacyTranslator.cc
+    LegacyKey.h
+    LegacyKey.cc
 
     Error.h
     Error.cc

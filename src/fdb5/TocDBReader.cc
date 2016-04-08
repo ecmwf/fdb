@@ -44,6 +44,18 @@ bool TocDBReader::open() {
     return true;
 }
 
+void TocDBReader::axis(const Key& key, const std::string& keyword, StringSet& s) const
+{
+    const std::vector<PathName>& indexesPaths = toc_.indexes( schema_.tocEntry(key) );
+
+    for( std::vector<PathName>::const_iterator itr = indexesPaths.begin(); itr != indexesPaths.end(); ++itr )
+    {
+        const Index& idx = getIndex(*itr);
+        const eckit::StringSet& a = idx.axis().values(keyword);
+        s.insert(a.begin(), a.end());
+    }
+}
+
 void TocDBReader::close() {
 }
 

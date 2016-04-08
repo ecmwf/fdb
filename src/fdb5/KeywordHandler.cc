@@ -29,7 +29,11 @@ KeywordHandler::KeywordHandler(const std::string& name) :
 KeywordHandler::~KeywordHandler() {
 }
 
-void KeywordHandler::getValues(const MarsTask& task, const std::string& keyword, StringList& values) const
+void KeywordHandler::getValues(const MarsTask& task,
+                               const std::string& keyword,
+                               StringList& values,
+                               const DB& db,
+                               const Key& key) const
 {
     task.request().getValues(keyword, values);
 }

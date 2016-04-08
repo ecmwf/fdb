@@ -44,6 +44,8 @@ protected: // methods
 
     virtual const Schema& schema() const;
 
+    virtual void axis(const Key& key, const std::string& keyword, eckit::StringSet& s) const;
+
     virtual bool open();
 
     virtual void archive(const Key& key, const void* data, eckit::Length length);
