@@ -74,6 +74,15 @@ TocDBWriter::TocDBWriter(const Key& key) : TocDB(key)
 
 TocDBWriter::~TocDBWriter()
 {
+    close();
+}
+
+bool TocDBWriter::open() {
+    return true;
+}
+
+void TocDBWriter::close() {
+
     // ensure consistent state before writing Toc entry
 
     flush();
@@ -86,6 +95,7 @@ TocDBWriter::~TocDBWriter()
 
     closeTocEntries();
 }
+
 
 void TocDBWriter::archive(const Key& userkey, const void *data, Length length)
 {

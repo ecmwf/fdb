@@ -42,15 +42,19 @@ public: // methods
 
     virtual ~DB();
 
+    virtual bool open() = 0;
+
     virtual bool match(const Key& key) const = 0;
 
     virtual const Schema& schema() const = 0;
+
+    virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const = 0;
 
     virtual void archive(const Key& key, const void* data, eckit::Length length) = 0;
 
     virtual void flush() = 0;
 
-    virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const = 0;
+    virtual void close() = 0;
 
     friend std::ostream& operator<<(std::ostream& s,const DB& x);
 

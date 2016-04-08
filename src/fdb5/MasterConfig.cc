@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <algorithm>
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/config/Resource.h"
 #include "eckit/config/ResourceMgr.h"
@@ -64,7 +66,8 @@ eckit::SharedPtr<DB> MasterConfig::openSessionDB(const Key& user)
 {
     Key dbKey = makeDBKey(user);
 
-    return SharedPtr<DB>( DBFactory::build("toc.writer", dbKey) );
+    std::string fdbWriterDB = eckit::Resource<std::string>("fdbWriterDB","toc.writer");
+    return SharedPtr<DB>( DBFactory::build(fdbWriterDB, dbKey) );
 }
 
 VecDB MasterConfig::openSessionDBs(const MarsTask& task)
@@ -74,6 +77,16 @@ VecDB MasterConfig::openSessionDBs(const MarsTask& task)
     Key dbKey;
 
     expand(task.request(), masterDBKeys_, 0, dbKey, result); /// @todo EXPANDS task into masterDBKeys_
+
+    // remove DB's that fail to open
+    for(VecDB::iterator i = result.begin(); i != result.end(); ++i) {
+        DB& db = **i;
+        if(!db.open()) {
+            Log::info() << "DB failed to open: " << db << std::endl;
+            std::swap(*i, result.back());
+            result.pop_back();
+        }
+    }
 
     return result;
 }
@@ -100,8 +113,8 @@ void MasterConfig::expand(const MarsRequest& request,
     }
     else
     {
-        /// @todo substitute "toc" with a configuration driven DB type
-        result.push_back( SharedPtr<DB>( DBFactory::build("toc.reader", dbKey) ) );
+        std::string fdbReaderDB = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
+        result.push_back( SharedPtr<DB>( DBFactory::build(fdbReaderDB, dbKey) ) );
     }
 }
 

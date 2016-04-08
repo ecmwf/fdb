@@ -37,11 +37,15 @@ public: // methods
 
     virtual ~TocDBWriter();
 
+protected: // methods
+
+    virtual bool open();
+
     virtual void archive(const Key& userkey, const void* data, eckit::Length length);
 
     virtual void flush();
 
-protected: // methods
+    virtual void close();
 
     virtual void print( std::ostream& out ) const;
 
