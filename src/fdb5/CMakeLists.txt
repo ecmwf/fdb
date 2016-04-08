@@ -24,11 +24,6 @@
 #    - override compress() to compress & sort children
 #
 #  * consider using more than a service node on the HPC
-#
-###  NOTE
-#
-#   * KeywordHanlder's are currently global and not Schema dependent.
-#     They should be local to the DB
 
 
 # fdb5 library
