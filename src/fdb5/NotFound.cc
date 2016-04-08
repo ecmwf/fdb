@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include <strstream>
+#include <sstream>
 
 #include "fdb5/NotFound.h"
 #include "fdb5/Key.h"
