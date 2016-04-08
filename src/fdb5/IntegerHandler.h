@@ -8,39 +8,38 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
+/// @file   IntegerHandler.h
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
+/// @date   April 2016
 
-#include "fdb5/KeywordType.h"
-#include "fdb5/ParamKeywordHandler.h"
+#ifndef fdb5_IntegerHandler_H
+#define fdb5_IntegerHandler_H
 
-#include "fdb5/UVOp.h"
-
-using namespace eckit;
+#include "fdb5/KeywordHandler.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ParamKeywordHandler::ParamKeywordHandler(const std::string& name) :
-    KeywordHandler(name)
-{
-}
+class IntegerHandler : public KeywordHandler {
 
-ParamKeywordHandler::~ParamKeywordHandler()
-{
-}
+public: // methods
 
-Op* ParamKeywordHandler::makeOp(const MarsTask& task, Op& parent) const {
-    return new UVOp(task, parent);
-}
+    IntegerHandler(const std::string& name);
+    
+    virtual ~IntegerHandler();
 
-void ParamKeywordHandler::print(std::ostream &out) const
-{
-    out << "ParamKeywordHandler(" << name_ << ")";
-}
+    virtual void getValues(const MarsTask& task, const std::string& keyword, eckit::StringList& values) const;
 
-static KeywordHandlerBuilder<ParamKeywordHandler> handler("Param");
+private: // methods
+
+    virtual void print( std::ostream& out ) const;
+
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
+
+#endif

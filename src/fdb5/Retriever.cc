@@ -31,6 +31,9 @@ namespace fdb5 {
 Retriever::Retriever(const MarsTask& task) :
     task_(task)
 {
+
+    /// @note We may want to canonicalise the request immedietly HERE
+
 }
 
 Retriever::~Retriever()
@@ -54,12 +57,7 @@ eckit::DataHandle* Retriever::retrieve()
         RetrieveOp op(db, *partial);
         retrieve(key, db.schema(), db.schema().begin(), op);
 
-        if(partial->count()) {
-            *result += partial.release();
-        }
-        else {
-            Log::info() << "MultiHandle is empty for DB " << db << std::endl;
-        }
+        *result += partial.release();
     }
 
     std::vector<std::string> sort;
@@ -84,18 +82,17 @@ void Retriever::retrieve(Key& key,
         std::vector<std::string> values;
 
         const std::string& keyword = *pos;
-        task_.request().getValues(keyword, values);
+
+        const KeywordHandler& handler = schema.lookupHandler(keyword);
+
+        handler.getValues(task_, keyword, values);
 
         Log::info() << "Expanding keyword (" << keyword << ") with " << values << std::endl;
 
-        ASSERT(values.size());
-
-////    if(!values.size()) { retrieve(key, shema, ++pos, op); return; }
-
-        const KeywordHandler& handler = KeywordHandler::lookup(keyword);
-
-        /// @todo cannocicalisation of values
-        //  handler.getValues( task, keyword, values );
+        if(!values.size()) {
+            retrieve(key, schema, ++pos, op);
+            return;
+        }
 
         eckit::ScopedPtr<Op> newOp( handler.makeOp(task_, op) );
 

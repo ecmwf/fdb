@@ -10,9 +10,8 @@
 
 #include "eckit/exception/Exceptions.h"
 
+#include "fdb5/KeywordType.h"
 #include "fdb5/DefaultKeywordHandler.h"
-
-#include "fdb5/ForwardOp.h"
 
 using namespace eckit;
 
@@ -20,7 +19,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DefaultKeywordHandler::DefaultKeywordHandler() : KeywordHandler(name())
+DefaultKeywordHandler::DefaultKeywordHandler(const std::string& name) :
+    KeywordHandler(name)
 {
 }
 
@@ -28,21 +28,12 @@ DefaultKeywordHandler::~DefaultKeywordHandler()
 {
 }
 
-Op* DefaultKeywordHandler::makeOp(const MarsTask& task, Op& parent) const {
-    return new ForwardOp(parent);
-}
-
-const char* DefaultKeywordHandler::name()
-{
-    return "<default>";
-}
-
 void DefaultKeywordHandler::print(std::ostream &out) const
 {
     out << "DefaultKeywordHandler()";
 }
 
-static DefaultKeywordHandler handler;
+static KeywordHandlerBuilder<DefaultKeywordHandler> handler("Default");
 
 //----------------------------------------------------------------------------------------------------------------------
 

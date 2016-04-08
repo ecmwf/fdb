@@ -78,16 +78,6 @@ VecDB MasterConfig::openSessionDBs(const MarsTask& task)
 
     expand(task.request(), masterDBKeys_, 0, dbKey, result); /// @todo EXPANDS task into masterDBKeys_
 
-    // remove DB's that fail to open
-    for(VecDB::iterator i = result.begin(); i != result.end(); ++i) {
-        DB& db = **i;
-        if(!db.open()) {
-            Log::info() << "DB failed to open: " << db << std::endl;
-            std::swap(*i, result.back());
-            result.pop_back();
-        }
-    }
-
     return result;
 }
 
@@ -114,7 +104,10 @@ void MasterConfig::expand(const MarsRequest& request,
     else
     {
         std::string fdbReaderDB = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
-        result.push_back( SharedPtr<DB>( DBFactory::build(fdbReaderDB, dbKey) ) );
+        SharedPtr<DB> newDB ( DBFactory::build(fdbReaderDB, dbKey) );
+        if(newDB->open()) {
+            result.push_back( newDB );
+        }
     }
 }
 

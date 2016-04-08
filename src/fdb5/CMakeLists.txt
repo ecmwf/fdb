@@ -24,7 +24,12 @@
 #
 #  * consider using more than a service node on the HPC
 #
+###  NOTE
 #
+#   * KeywordHanlder's are currently global and not Schema dependent.
+#     They should be local to the DB
+
+
 # fdb5 library
 
 list( APPEND fdb5_srcs
@@ -58,10 +63,14 @@ list( APPEND fdb5_srcs
 
     KeywordHandler.h
     KeywordHandler.cc
+    KeywordType.h
+    KeywordType.cc
     DefaultKeywordHandler.h
     DefaultKeywordHandler.cc
     ParamKeywordHandler.h
     ParamKeywordHandler.cc
+    IntegerHandler.h
+    IntegerHandler.cc
 
     DB.h
     DB.cc

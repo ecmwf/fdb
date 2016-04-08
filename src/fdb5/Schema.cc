@@ -8,7 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/config/Resource.h"
+
 #include "fdb5/Schema.h"
+#include "fdb5/KeywordType.h"
+#include "fdb5/KeywordHandler.h"
+
+using namespace eckit;
 
 namespace fdb5 {
 
@@ -20,6 +26,24 @@ Schema::Schema()
 
 Schema::~Schema()
 {
+    for(HandlerMap::iterator i = handlers_.begin(); i != handlers_.end(); ++i) {
+        delete (*i).second;
+    }
+}
+
+const KeywordHandler& Schema::lookupHandler(const std::string& keyword) const
+{
+    std::map<std::string, KeywordHandler*>::const_iterator j = handlers_.find(keyword);
+
+    if (j != handlers_.end()) {
+        return *(*j).second;
+    }
+    else {
+        std::string type = Resource<std::string>(keyword+"Type","Default");
+        KeywordHandler* newKH = KeywordType::build(type, keyword);
+        handlers_[keyword] = newKH;
+        return *newKH;
+    }
 }
 
 std::ostream& operator<<(std::ostream& s, const Schema& x)

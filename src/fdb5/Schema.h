@@ -16,12 +16,14 @@
 #ifndef fdb5_Schema_H
 #define fdb5_Schema_H
 
-#include <vector>
 #include <string>
+#include <map>
 
 #include "eckit/memory/NonCopyable.h"
 
 namespace fdb5 {
+
+class KeywordHandler;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -34,11 +36,19 @@ public: // methods
     
     virtual ~Schema();
 
+    virtual const KeywordHandler& lookupHandler(const std::string& keyword) const;
+
     friend std::ostream& operator<<(std::ostream& s, const Schema& x);
 
 protected: // methods
 
     virtual void print( std::ostream& out ) const = 0;
+
+private: // members
+
+    typedef std::map<std::string, KeywordHandler*> HandlerMap;
+
+    mutable HandlerMap handlers_;
 
 };
 

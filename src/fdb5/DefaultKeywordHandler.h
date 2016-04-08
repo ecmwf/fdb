@@ -26,15 +26,9 @@ class DefaultKeywordHandler : public KeywordHandler {
 
 public: // methods
 
-    DefaultKeywordHandler();
+    DefaultKeywordHandler(const std::string& name);
     
     virtual ~DefaultKeywordHandler();
-
-    virtual Op* makeOp(const MarsTask& task, Op& parent) const;
-
-public: // class methods
-
-    static const char* name();
 
 private: // methods
 
