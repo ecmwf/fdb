@@ -39,15 +39,17 @@ public: // methods
     
     virtual ~BTreeIndex();
     
-    virtual bool    exists( const Key& key ) const;
+private: // methods
 
-    virtual bool    get( const Key& key, Field& field ) const;
-    
-    virtual Field   get( const Key& key ) const;
-    
-    virtual void    put( const Key& key, const Field& field );
+    virtual bool    exists( const IndexKey& key ) const;
 
-    virtual bool    remove( const Key& key );
+    virtual bool    get( const IndexKey& key, Field& field ) const;
+    
+    virtual Field   get( const IndexKey& key ) const;
+    
+    virtual void    put_( const IndexKey& key, const Field& field );
+
+    virtual bool    remove( const IndexKey& key );
 
 	virtual void	flush();
 
@@ -55,8 +57,6 @@ public: // methods
     virtual void apply( Index::Op& op );
     /// apply a const operation to all entries of the Index
     virtual void apply( Index::ConstOp& op ) const;
-
-    friend std::ostream& operator<<(std::ostream& s,const BTreeIndex& x) { x.print(s); return s; }
     
 private: // types
     

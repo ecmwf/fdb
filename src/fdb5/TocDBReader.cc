@@ -57,7 +57,7 @@ eckit::DataHandle* TocDBReader::retrieve(const MarsTask& task, const Key& key) c
 
     const Index* index = 0;
 
-    Index::Key indexKey(schema_.dataIdx(key));
+    IndexKey indexKey(schema_.dataIdx(key));
     indexKey.rebuild();
 
     Index::Field field;

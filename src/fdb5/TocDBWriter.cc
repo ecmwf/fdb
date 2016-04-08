@@ -121,7 +121,7 @@ void TocDBWriter::archive(const Key& userkey, const void *data, Length length)
             dh.write( &padding_[0], paddingSize );
     }
 
-    Index::Key key = schema_.dataIdx(userkey); // reduced key with only index entries
+    IndexKey key = schema_.dataIdx(userkey); // reduced key with only index entries
     key.rebuild();
 
     Index::Field field (dataPath, position, length);

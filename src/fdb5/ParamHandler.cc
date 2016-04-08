@@ -11,7 +11,7 @@
 #include "eckit/exception/Exceptions.h"
 
 #include "fdb5/KeywordType.h"
-#include "fdb5/ParamKeywordHandler.h"
+#include "fdb5/ParamHandler.h"
 
 #include "fdb5/UVOp.h"
 
@@ -21,25 +21,25 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ParamKeywordHandler::ParamKeywordHandler(const std::string& name) :
+ParamHandler::ParamHandler(const std::string& name) :
     KeywordHandler(name)
 {
 }
 
-ParamKeywordHandler::~ParamKeywordHandler()
+ParamHandler::~ParamHandler()
 {
 }
 
-Op* ParamKeywordHandler::makeOp(const MarsTask& task, Op& parent) const {
+Op* ParamHandler::makeOp(const MarsTask& task, Op& parent) const {
     return new UVOp(task, parent);
 }
 
-void ParamKeywordHandler::print(std::ostream &out) const
+void ParamHandler::print(std::ostream &out) const
 {
-    out << "ParamKeywordHandler(" << name_ << ")";
+    out << "ParamHandler(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<ParamKeywordHandler> handler("Param");
+static KeywordHandlerBuilder<ParamHandler> handler("Param");
 
 //----------------------------------------------------------------------------------------------------------------------
 

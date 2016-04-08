@@ -8,60 +8,59 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TocSchema.h
+/// @file   IndexAxis.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_TocSchema_H
-#define fdb5_TocSchema_H
+#ifndef fdb5_IndexAxis_H
+#define fdb5_IndexAxis_H
 
+#include <iosfwd>
+#include <set>
+#include <map>
+
+#include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/types/Types.h"
 
-#include "fdb5/Index.h"
-#include "fdb5/Schema.h"
-#include "fdb5/Key.h"
+namespace eckit { class JSON; }
 
 namespace fdb5 {
 
+class IndexKey;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class TocSchema : public Schema {
+class IndexAxis : private eckit::NonCopyable {
 
 public: // methods
 
-    TocSchema(const Key& dbKey);
-    
-    virtual ~TocSchema();
+    IndexAxis( const eckit::PathName& path );
 
-    bool matchTOC(const Key& tocKey) const;
+    ~IndexAxis();
 
-    eckit::PathName tocDirPath() const;
+    void insert(const IndexKey& key);
 
-    std::string dataFilePrefix(const Key& userKey) const;
+    const eckit::StringSet& axis(const std::string& keyword) const;
 
-    eckit::PathName generateIndexPath(const Key& userKey) const;
-
-    eckit::PathName generateDataPath(const Key& userKey) const;
-
-    std::string tocEntry(const Key& userKey) const;
-
-    IndexKey dataIdx(const Key& userKey) const;
-
-    const std::string& indexType() const;
+    friend std::ostream& operator<<(std::ostream& s,const IndexAxis& x) { x.print(s); return s; }
 
 private: // methods
 
-    virtual void print( std::ostream& out ) const;
+    void print(std::ostream& out) const;
+
+    void json(eckit::JSON&) const;
 
 private: // members
 
-    Key dbKey_;
+    typedef std::map<std::string, eckit::StringSet> AxisMap;
 
-    eckit::PathName        root_;
-    eckit::PathName        dirPath_;
+    AxisMap axis_;
 
-    std::string     indexType_;  ///< type of the indexes in the managed Toc
+    eckit::PathName path_;
+
+    bool readOnly_;
 
 };
 

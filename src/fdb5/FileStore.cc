@@ -16,7 +16,7 @@ using namespace eckit;
 
 namespace fdb5 {
 
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 void FileStore::FieldRef::load(std::istream &s)
 {
@@ -32,7 +32,7 @@ void FileStore::FieldRef::dump(std::ostream &s) const
     s << pathId_ << " " << offset_ << " " << length_;
 }
 
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 FileStore::FileStore( const PathName& path ) : 
     next_(0),
@@ -133,11 +133,6 @@ void FileStore::print( std::ostream& out ) const
 {
     for( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr )
 		out << itr->first << " " << itr->second << "\n";
-}
-
-void FileStore::json(std::ostream& out) const
-{
-	NOTIMP;
 }
 
 //-----------------------------------------------------------------------------

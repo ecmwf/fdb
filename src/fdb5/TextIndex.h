@@ -24,6 +24,8 @@
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 class TextIndex : public Index {
 
 public: // methods
@@ -32,15 +34,17 @@ public: // methods
     
     virtual ~TextIndex();
 
-    virtual bool    exists( const Key& key ) const;
+protected: // methods
 
-    virtual bool    get( const Key& key, Field& field ) const;
-    
-    virtual Field   get( const Key& key ) const;
-    
-    virtual void    put( const Key& key, const Field& field );
+    virtual bool    exists( const IndexKey& key ) const;
 
-    virtual bool    remove( const Key& key );
+    virtual bool    get( const IndexKey& key, Field& field ) const;
+    
+    virtual Field   get( const IndexKey& key ) const;
+    
+    virtual void    put_( const IndexKey& key, const Field& field );
+
+    virtual bool    remove( const IndexKey& key );
     
     virtual void flush();    
 
@@ -48,11 +52,7 @@ public: // methods
     virtual void apply( Index::Op& op );
     /// apply a const operation to all entries of the Index
     virtual void apply( Index::ConstOp& op ) const;
-
-    friend std::ostream& operator<<(std::ostream& s,const TextIndex& x) { x.print(s); return s; }
     
-protected: // methods
-
     void save(const eckit::PathName& path) const;
     void load(const eckit::PathName& path);    
     
@@ -61,10 +61,10 @@ private: // types
     typedef FileStore::FieldRef FieldRef;
     
     struct IdxCompare {
-        bool operator()(const Key& x, const Key& y) const { return (x.str() > y.str()); }
+        bool operator()(const IndexKey& x, const IndexKey& y) const { return (x.str() > y.str()); }
     };
     
-    typedef std::map< Key, FieldRef, IdxCompare > FieldStore;
+    typedef std::map< IndexKey, FieldRef, IdxCompare > FieldStore;
         
 private: // members
     
@@ -73,6 +73,8 @@ private: // members
     FieldStore  store_;
 
 };
+
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 

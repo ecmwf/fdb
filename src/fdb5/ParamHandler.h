@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   ParamKeywordHandler.h
+/// @file   ParamHandler.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_ParamKeywordHandler_H
-#define fdb5_ParamKeywordHandler_H
+#ifndef fdb5_ParamHandler_H
+#define fdb5_ParamHandler_H
 
 #include "fdb5/KeywordHandler.h"
 
@@ -22,13 +22,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ParamKeywordHandler : public KeywordHandler {
+class ParamHandler : public KeywordHandler {
 
 public: // methods
 
-    ParamKeywordHandler(const std::string& name);
+    ParamHandler(const std::string& name);
     
-    virtual ~ParamKeywordHandler();
+    virtual ~ParamHandler();
 
     virtual Op* makeOp(const MarsTask& task, Op& parent) const;
 
