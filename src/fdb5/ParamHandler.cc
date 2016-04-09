@@ -75,7 +75,7 @@ void ParamHandler::getValues(const MarsTask& task,
         }
     }
 
-    Log::info() << ">>> VALUES " << values << std::endl;
+    Log::info() << "ParamHandler returns values: " << values << std::endl;
 }
 
 Op* ParamHandler::makeOp(const MarsTask& task, Op& parent) const {

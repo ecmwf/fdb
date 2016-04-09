@@ -53,7 +53,11 @@ public: // methods
     /// @note always safe to call
     void flush();
 
+    friend std::ostream& operator<<(std::ostream& s, const Archiver& x) { x.print(s); return s; }
+
 private: // methods
+
+    void print(std::ostream& out) const;
 
     DB& session(const Key& key);
 

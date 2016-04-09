@@ -42,6 +42,12 @@ Retriever::~Retriever()
 
 eckit::DataHandle* Retriever::retrieve()
 {
+    Log::info() << std::endl
+                << std::endl
+                << std::endl
+                << *this
+                << std::endl;
+
     bool sorted = false;
     std::vector<std::string> sort;
     task_.request().getValues("_sort", sort);
@@ -62,11 +68,17 @@ eckit::DataHandle* Retriever::retrieve()
 
         RetrieveOp op(db, result);
         retrieve(key, db, db.schema().begin(), op);
-
     }
 
-
     return result.dataHandle();
+}
+
+void Retriever::print(std::ostream& out) const
+{
+    out << "Retriever("
+        << "task=" << task_
+        << ")"
+        << std::endl;
 }
 
 void Retriever::retrieve(Key& key,

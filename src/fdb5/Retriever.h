@@ -48,7 +48,11 @@ public: // methods
 
     eckit::DataHandle* retrieve();
 
+    friend std::ostream& operator<<(std::ostream& s,const Retriever& x) { x.print(s); return s; }
+
 private: // methods
+
+    void print(std::ostream& out) const;
 
     void retrieve(Key& key,
                   const DB& db,

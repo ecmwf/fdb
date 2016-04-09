@@ -81,6 +81,13 @@ DB& Archiver::session(const Key& key)
     return *newSession;
 }
 
+void Archiver::print(std::ostream& out) const
+{
+    out << "Archiver("
+        << ")"
+        << std::endl;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
