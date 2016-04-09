@@ -105,6 +105,9 @@ list( APPEND fdb5_srcs
     Error.cc
     NotFound.h
     NotFound.cc
+
+    HandleGatherer.h
+    HandleGatherer.cc
 )
 
 ecbuild_add_library(

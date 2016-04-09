@@ -8,52 +8,54 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   RetrieveOp.h
+/// @file   HandleGatherer.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_RetrieveOp_H
-#define fdb5_RetrieveOp_H
+#ifndef fdb5_HandleGatherer_H
+#define fdb5_HandleGatherer_H
 
+#include <cstdlib>
+#include <vector>
 
-#include "fdb5/Op.h"
-#include "fdb5/HandleGatherer.h"
+#include "eckit/memory/NonCopyable.h"
+
+#include "fdb5/Schema.h"
+
+namespace eckit { class DataHandle; }
+
 
 namespace fdb5 {
 
-class DB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class RetrieveOp : public fdb5::Op {
+class HandleGatherer : public eckit::NonCopyable {
 
 public: // methods
 
-    RetrieveOp(const DB& db, HandleGatherer& result);
+    HandleGatherer(bool sorted);
 
-    /// Destructor
+    ~HandleGatherer();
 
-    virtual ~RetrieveOp();
+    void add(eckit::DataHandle*);
 
-private: // methods
+    eckit::DataHandle* dataHandle();
 
-    virtual void enter(const std::string& param, const std::string& value);
-    virtual void leave();
-
-    virtual void execute(const MarsTask& task, Key& key, Op& tail);
-
-    virtual void fail(const MarsTask& task, Key& key, Op &tail);
-
-private:
-
-    virtual void print( std::ostream& out ) const;
 
 private: // members
 
-    const DB& db_;
+    bool sorted_;
+    std::vector<eckit::DataHandle*> handles_;
 
-    HandleGatherer& result_;
+    void print( std::ostream& out ) const;
+    friend std::ostream& operator<<(std::ostream& s,const HandleGatherer& x) {
+        x.print(s);
+        return s;
+    }
+
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

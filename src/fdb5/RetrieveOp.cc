@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -21,7 +21,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RetrieveOp::RetrieveOp(const DB& db, MultiHandle& result) :
+RetrieveOp::RetrieveOp(const DB& db, HandleGatherer& result) :
     db_(db),
     result_(result)
 {
@@ -44,7 +44,7 @@ void RetrieveOp::execute(const MarsTask& task, Key& key, Op& tail)
     DataHandle* dh = db_.retrieve(task, key);
     if(dh) {
         Log::info() << "Got data for key " << key << std::endl;
-        result_ += dh;
+        result_.add(dh);
     }
     else {
         Log::info() << "Failed to retrieve key " << key << std::endl;
