@@ -77,6 +77,7 @@ void Retriever::print(std::ostream& out) const
 {
     out << "Retriever("
         << "task=" << task_
+        << "task.request=" << task_.request()
         << ")"
         << std::endl;
 }
