@@ -11,7 +11,7 @@
 #      - check that keysIdx are fully defined
 #      - build a suite
 #
-#  * check fdbRoot ste depending on request
+#  * check fdbRoot depending on request
 #
 #  * client "database" for direct fdb5 read
 #
