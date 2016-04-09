@@ -68,10 +68,10 @@ private: // types
         
 private: // members
     
-    bool        flushed_;
-    
     FieldStore  store_;
 
+    bool flushed_;
+    bool fdbCheckDoubleInsert_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -83,10 +83,6 @@ private: // methods
 
     eckit::PathName getDataPath(const Key& key);
 
-private: // methods
-
-    void checkOverwrite(const Key&);
-
 private: // members
 
     HandleStore     handles_;    ///< stores the DataHandles being used by the Session
@@ -100,7 +96,6 @@ private: // members
     std::set<Key> seen_;
 
     bool aio_;
-    bool fdbSameRequestCheckOverwrite_; ///< check for keys overwriting each other within same archive request (useful to check fdbRules are sane)
 
 };
 

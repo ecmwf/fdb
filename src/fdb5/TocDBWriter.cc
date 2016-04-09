@@ -69,8 +69,6 @@ TocDBWriter::TocDBWriter(const Key& key) : TocDB(key)
 
     aio_ = eckit::Resource<bool>("fdbAsyncWrite",false);
 
-    fdbSameRequestCheckOverwrite_ = eckit::Resource<bool>("fdbSameRequestCheckOverwrite",false);
-
     Log::info() << "TocDBWriter for TOC [" << tocDirPath << "] with block size of " << Bytes(blockSize_) << std::endl;
 }
 
@@ -102,8 +100,6 @@ void TocDBWriter::close() {
 void TocDBWriter::archive(const Key& userkey, const void *data, Length length)
 {
     ASSERT( match(userkey) ); // paranoic check
-
-    checkOverwrite(userkey);
 
     TocIndex& toc = getTocIndex(userkey);
 
@@ -235,20 +231,6 @@ PathName TocDBWriter::getDataPath(const Key& key)
     dataPaths[ prefix ] = dataPath;
 
     return dataPath;
-}
-
-void TocDBWriter::checkOverwrite(const Key& userKey)
-{
-    if(fdbSameRequestCheckOverwrite_) {
-        if(seen_.find(userKey) != seen_.end()) {
-            std::ostringstream oss;
-            oss << "Duplicate FDB entry in request: " << userKey << " -- This may be a schema bug in the fdbRules";
-            throw fdb5::Error(Here(), oss.str());
-        }
-        else {
-            seen_.insert(userKey);
-        }
-    }
 }
 
 void TocDBWriter::flushIndexes()

@@ -67,6 +67,8 @@ private: // members
     
     BTreeStore  btree_;
 
+    bool fdbCheckDoubleInsert_; ///< check for keys overwriting each other within same archive request (useful to check fdbRules are sane)
+
 };
 
 } // namespace fdb5

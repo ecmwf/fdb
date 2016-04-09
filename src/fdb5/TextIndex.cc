@@ -15,6 +15,7 @@
 #include "eckit/parser/Tokenizer.h"
 
 #include "fdb5/TextIndex.h"
+#include "fdb5/Error.h"
 
 using namespace eckit;
 
@@ -24,7 +25,8 @@ namespace fdb5 {
 
 TextIndex::TextIndex( const PathName& path, Index::Mode m ) :
 	Index(path,m),
-	flushed_(true)
+    flushed_(true),
+    fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert",false) )
 {
     load( path );
 }
@@ -75,6 +77,12 @@ TextIndex::Field TextIndex::get(const IndexKey& key) const
 void TextIndex::put_(const IndexKey& key, const TextIndex::Field& field)
 {
 	ASSERT( mode() == Index::WRITE );
+
+    if(fdbCheckDoubleInsert_ && store_.find(key) != store_.end()) {
+        std::ostringstream oss;
+        oss << "Duplicate FDB entry with key: " << key << " -- This may be a schema bug in the fdbRules";
+        throw fdb5::Error(Here(), oss.str());
+    }
 
     FieldRef ref;
 	ref.pathId_ = files_.insert( field.path_ );

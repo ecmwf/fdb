@@ -9,8 +9,10 @@
  */
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/config/Resource.h"
 
 #include "fdb5/BTreeIndex.h"
+#include "fdb5/Error.h"
 
 using namespace eckit;
 
@@ -20,7 +22,8 @@ namespace fdb5 {
 
 BTreeIndex::BTreeIndex( const PathName& path, Index::Mode m ) :
 	Index(path,m),
-	btree_( path, bool( m == Index::READ ) )
+    btree_( path, bool( m == Index::READ ) ),
+    fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert",false) )
 {
 }
 
@@ -76,7 +79,13 @@ void BTreeIndex::put_(const IndexKey& key, const BTreeIndex::Field& field)
     ref.offset_ = field.offset_; 
     ref.length_ = field.length_;
 
-    btree_.set(k,ref);  // returns true if replace, false if new insert
+    bool replace = btree_.set(k,ref);  // returns true if replace, false if new insert
+
+    if(fdbCheckDoubleInsert_ && replace) {
+        std::ostringstream oss;
+        oss << "Duplicate FDB entry with key: " << key << " -- This may be a schema bug in the fdbRules";
+        throw fdb5::Error(Here(), oss.str());
+    }
 }
 
 bool BTreeIndex::remove(const IndexKey& key)
