@@ -61,6 +61,8 @@ void TocDBReader::close() {
 
 eckit::DataHandle* TocDBReader::retrieve(const MarsTask& task, const Key& key) const
 {
+    if(!match(key)) return 0;
+
     Log::info() << "Trying to retrieve key " << key << std::endl;
 
     const std::vector<PathName>& indexesPaths = toc_.indexes( schema_.tocEntry(key) );

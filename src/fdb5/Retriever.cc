@@ -43,6 +43,7 @@ Retriever::~Retriever()
 eckit::DataHandle* Retriever::retrieve()
 {
     Log::info() << std::endl
+                << "---------------------------------------------------------------------------------------------------"
                 << std::endl
                 << std::endl
                 << *this
