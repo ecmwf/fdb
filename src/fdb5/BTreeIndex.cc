@@ -23,7 +23,7 @@ namespace fdb5 {
 BTreeIndex::BTreeIndex( const PathName& path, Index::Mode m ) :
 	Index(path,m),
     btree_( path, bool( m == Index::READ ) ),
-    fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert",false) )
+    fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert", true) )
 {
 }
 
@@ -71,6 +71,8 @@ BTreeIndex::Field BTreeIndex::get(const IndexKey& key) const
 void BTreeIndex::put_(const IndexKey& key, const BTreeIndex::Field& field)
 {
     ASSERT( mode() == Index::WRITE );
+
+    Log::info() << "BTreeIndex insert " << key << " = " << field << std::endl;
 
 	BTreeKey k( key.str() );
     FieldRef ref;
