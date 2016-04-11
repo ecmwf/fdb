@@ -10,44 +10,34 @@
 
 #include "eckit/log/Log.h"
 
-#include "fdb5/Predicate.h"
-#include "fdb5/Matcher.h"
+#include "fdb5/MatchAlways.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Predicate::Predicate(const std::string& keyword, Matcher* matcher) :
-    matcher_(matcher),
-    keyword_(keyword)
-{
-//    dump(std::cout);
-//    std::cout << std::endl;
-}
-
-Predicate::~Predicate()
+MatchAlways::MatchAlways() :
+    Matcher()
 {
 }
 
-bool Predicate::match(const Key& key) const
+MatchAlways::~MatchAlways()
 {
-    return matcher_->match(keyword_, key);
 }
 
-void Predicate::dump(std::ostream& s) const
+bool MatchAlways::match(const std::string& keyword, const Key& key) const
 {
-    matcher_->dump(s, keyword_);
+    return true;
 }
 
-void Predicate::print(std::ostream& out) const
+void MatchAlways::dump(std::ostream& s, const std::string& keyword) const
 {
-    out << "Predicate()";
+    s << keyword;
 }
 
-std::ostream& operator<<(std::ostream& s, const Predicate& x)
+void MatchAlways::print(std::ostream& out) const
 {
-    x.print(s);
-    return s;
+    out << "MatchAlways()";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

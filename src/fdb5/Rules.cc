@@ -8,20 +8,40 @@
  * does it submit to any jurisdiction.
  */
 
+#include <fstream>
+
 #include "eckit/log/Log.h"
 
 #include "fdb5/Rules.h"
+#include "fdb5/Rule.h"
+#include "fdb5/RulesParser.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Rules::Rules()
+Rules::Rules(const std::string& path)
 {
+    std::ifstream in(path.c_str());
+
+    RulesParser parser(in);
+
+    parser.parse(rules_);
 }
 
 Rules::~Rules()
 {
+    for(std::vector<Rule*>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+        delete *i;
+    }
+}
+
+void Rules::dump(std::ostream& s) const
+{
+    for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+        (*i)->dump(s);
+        s << std::endl;
+    }
 }
 
 void Rules::print(std::ostream& out) const

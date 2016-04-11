@@ -8,46 +8,44 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
+#include "fdb5/Key.h"
+#include "fdb5/MatchValue.h"
 
-#include "fdb5/Predicate.h"
-#include "fdb5/Matcher.h"
+using namespace eckit;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Predicate::Predicate(const std::string& keyword, Matcher* matcher) :
-    matcher_(matcher),
-    keyword_(keyword)
-{
-//    dump(std::cout);
-//    std::cout << std::endl;
-}
-
-Predicate::~Predicate()
+MatchValue::MatchValue(const std::string& value) :
+    Matcher(),
+    value_(value)
 {
 }
 
-bool Predicate::match(const Key& key) const
+MatchValue::~MatchValue()
 {
-    return matcher_->match(keyword_, key);
 }
 
-void Predicate::dump(std::ostream& s) const
+bool MatchValue::match(const std::string& keyword, const Key& key) const
 {
-    matcher_->dump(s, keyword_);
+    StringDict::const_iterator i = key.dict().find(keyword);
+
+    if(i == key.dict().end()) {
+        return false;
+    }
+
+    return ( i->second == value_ );
 }
 
-void Predicate::print(std::ostream& out) const
+void MatchValue::dump(std::ostream& s, const std::string& keyword) const
 {
-    out << "Predicate()";
+    s << keyword << "=" << value_;
 }
 
-std::ostream& operator<<(std::ostream& s, const Predicate& x)
+void MatchValue::print(std::ostream& out) const
 {
-    x.print(s);
-    return s;
+    out << "MatchValue()";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -17,10 +17,13 @@
 #define fdb5_Rule_H
 
 #include <iosfwd>
+#include <vector>
 
 #include "eckit/memory/NonCopyable.h"
 
 namespace fdb5 {
+
+class Predicate;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -28,15 +31,23 @@ class Rule : public eckit::NonCopyable {
 
 public: // methods
 
-	Rule();
+    /// Takes ownership of vectors
+    Rule(std::vector<Predicate*>& predicates, std::vector<Rule*>& rules);
     
     ~Rule();
 
-    friend std::ostream& operator<<(std::ostream& s,const Rule& x);
+    void dump(std::ostream& s, size_t depth = 0) const;
 
 private: // methods
 
+    friend std::ostream& operator<<(std::ostream& s,const Rule& x);
+
     void print( std::ostream& out ) const;
+
+private: // members
+
+    std::vector<Predicate*> predicates_;
+    std::vector<Rule*>      rules_;
 
 };
 

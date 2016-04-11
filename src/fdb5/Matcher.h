@@ -36,7 +36,9 @@ public: // methods
     
     virtual ~Matcher();
 
-    virtual bool eval(const std::string& keyword, const Key& key) const = 0;
+    virtual bool match(const std::string& keyword, const Key& key) const = 0;
+
+    virtual void dump(std::ostream& s, const std::string& keyword) const = 0;
 
     friend std::ostream& operator<<(std::ostream& s,const Matcher& x);
 

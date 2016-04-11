@@ -19,8 +19,12 @@
 #include <iosfwd>
 
 #include "eckit/memory/NonCopyable.h"
+#include "eckit/memory/ScopedPtr.h"
 
 namespace fdb5 {
+
+class Key;
+class Matcher;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -28,16 +32,25 @@ class Predicate : public eckit::NonCopyable {
 
 public: // methods
 
-	Predicate();
+    Predicate(const std::string& keyword, Matcher* matcher);
     
     ~Predicate();
 
-    friend std::ostream& operator<<(std::ostream& s,const Predicate& x);
+    bool match(const Key& key) const;
+
+    void dump( std::ostream& s ) const;
 
 private: // methods
 
+    friend std::ostream& operator<<(std::ostream& s,const Predicate& x);
+
     void print( std::ostream& out ) const;
 
+private: // members
+
+    eckit::ScopedPtr<Matcher> matcher_;
+
+    std::string keyword_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

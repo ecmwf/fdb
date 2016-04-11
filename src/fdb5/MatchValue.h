@@ -8,48 +8,46 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
+/// @file   MatchValue.h
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
+/// @date   Mar 2016
 
-#include "fdb5/Predicate.h"
+#ifndef fdb5_MatchValue_H
+#define fdb5_MatchValue_H
+
+#include <iosfwd>
+
 #include "fdb5/Matcher.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Predicate::Predicate(const std::string& keyword, Matcher* matcher) :
-    matcher_(matcher),
-    keyword_(keyword)
-{
-//    dump(std::cout);
-//    std::cout << std::endl;
-}
+class MatchValue : public Matcher {
 
-Predicate::~Predicate()
-{
-}
+public: // methods
 
-bool Predicate::match(const Key& key) const
-{
-    return matcher_->match(keyword_, key);
-}
+    MatchValue(const std::string& value);
+    
+    virtual ~MatchValue();
 
-void Predicate::dump(std::ostream& s) const
-{
-    matcher_->dump(s, keyword_);
-}
+    virtual bool match(const std::string& keyword, const Key& key) const;
 
-void Predicate::print(std::ostream& out) const
-{
-    out << "Predicate()";
-}
+    virtual void dump(std::ostream& s, const std::string& keyword) const;
 
-std::ostream& operator<<(std::ostream& s, const Predicate& x)
-{
-    x.print(s);
-    return s;
-}
+private: // methods
+
+    virtual void print( std::ostream& out ) const;
+
+private: // members
+
+    std::string value_;
+
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
+
+#endif

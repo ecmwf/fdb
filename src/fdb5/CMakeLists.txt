@@ -1,7 +1,5 @@
 ### TODO
 #
-#  * make IndexKey same as Key
-#
 #  * fdbRoot is a list of paths to visit ---> speak to Hodge
 #  * check overwrite
 #  * on archive consume all keys (from GRIB mars keys)
@@ -58,12 +56,20 @@ list( APPEND fdb5_srcs
     Schema.cc
     Matcher.h
     Matcher.cc
+    MatchAny.h
+    MatchAny.cc
+    MatchValue.h
+    MatchValue.cc
+    MatchAlways.h
+    MatchAlways.cc
     Predicate.h
     Predicate.cc
     Rule.h
     Rule.cc
     Rules.h
     Rules.cc
+    RulesParser.h
+    RulesParser.cc
 
     KeywordType.h
     KeywordType.cc
@@ -141,11 +147,13 @@ ecbuild_add_library(
 )
 
 ecbuild_add_executable( TARGET    fdb5_insert
-                        INCLUDES  ${GRIB_API_INCLUDE_DIRS}
                         SOURCES   fdb5_insert.cc
                         LIBS      mars-fdb5 )
 
 ecbuild_add_executable( TARGET    fdb5_extract
-                        INCLUDES  ${GRIB_API_INCLUDE_DIRS}
                         SOURCES   fdb5_extract.cc
+                        LIBS      mars-fdb5 )
+
+ecbuild_add_executable( TARGET    fdb5_rules
+                        SOURCES   fdb5_rules.cc
                         LIBS      mars-fdb5 )
