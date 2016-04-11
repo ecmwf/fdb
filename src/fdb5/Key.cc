@@ -8,6 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/types/Types.h"
+
 #include "fdb5/Key.h"
 
 using namespace eckit;
@@ -27,6 +30,18 @@ Key::Key(const StringDict& keys) : keys_(keys)
 void Key::clear()
 {
     keys_.clear();
+}
+
+void Key::set(const std::string& k, const std::string& v) { 
+    keys_[k] = v; 
+}
+
+const std::string& Key::get( const std::string& k ) const {
+    eckit::StringDict::const_iterator i = keys_.find(k);
+    if( i == keys_.end() ) {
+        throw SeriousBug("Key::get() failed for [" + k + "]");
+    }
+    return i->second;
 }
 
 Key Key::subkey(const std::vector<std::string>& pattern) const

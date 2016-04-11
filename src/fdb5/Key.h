@@ -20,7 +20,6 @@
 #include <string>
 #include <vector>
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/types/Types.h"
 
 namespace fdb5 {
@@ -35,14 +34,10 @@ public: // methods
 
     Key(const eckit::StringDict& keys);
 
-    void set(const std::string& k, const std::string& v) { keys_[k] = v; }
+    void set(const std::string& k, const std::string& v);
     void unset(const std::string& k) { keys_.erase(k); }
 
-    const std::string& get( const std::string& k ) const {
-        eckit::StringDict::const_iterator i = keys_.find(k);
-        ASSERT( i != keys_.end() );
-        return i->second;
-    }
+    const std::string& get( const std::string& k ) const;
 
     const eckit::StringDict& dict() const { return keys_; }
 
