@@ -56,6 +56,14 @@ list( APPEND fdb5_srcs
     Key.cc
     Schema.h
     Schema.cc
+    Matcher.h
+    Matcher.cc
+    Predicate.h
+    Predicate.cc
+    Rule.h
+    Rule.cc
+    Rules.h
+    Rules.cc
 
     KeywordType.h
     KeywordType.cc
