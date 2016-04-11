@@ -16,6 +16,7 @@
 
 #include "fdb5/TextIndex.h"
 #include "fdb5/Error.h"
+#include "fdb5/Key.h"
 
 using namespace eckit;
 
@@ -36,13 +37,13 @@ TextIndex::~TextIndex()
     flush();
 }
 
-bool TextIndex::exists(const IndexKey& key) const
+bool TextIndex::exists(const Key& key) const
 {
     FieldStore::const_iterator itr = store_.find(key);
     return( itr != store_.end() );
 }
 
-bool TextIndex::get(const IndexKey &key, Index::Field& field) const
+bool TextIndex::get(const Key &key, Index::Field& field) const
 {
     FieldStore::const_iterator itr = store_.find(key);
     if( itr == store_.end() ) 
@@ -57,13 +58,16 @@ bool TextIndex::get(const IndexKey &key, Index::Field& field) const
     return true;
 }
 
-TextIndex::Field TextIndex::get(const IndexKey& key) const
+TextIndex::Field TextIndex::get(const Key& key) const
 {
     Field field;
     
     FieldStore::const_iterator itr = store_.find(key);
-    if( itr == store_.end() ) 
-        throw BadParameter( std::string(" key with ") + key.str() + std::string(" not found @ ") + Here().asString() );
+    if( itr == store_.end() ) {
+        std::ostringstream oss;
+        oss << "FDB key not found " << key;
+        throw BadParameter( oss.str(), Here() );
+    }
 
     const FieldRef& ref = itr->second;
     
@@ -74,7 +78,7 @@ TextIndex::Field TextIndex::get(const IndexKey& key) const
     return field;
 }
 
-void TextIndex::put_(const IndexKey& key, const TextIndex::Field& field)
+void TextIndex::put_(const Key& key, const TextIndex::Field& field)
 {
 	ASSERT( mode() == Index::WRITE );
 
@@ -94,7 +98,7 @@ void TextIndex::put_(const IndexKey& key, const TextIndex::Field& field)
     flushed_ = false;
 }
 
-bool TextIndex::remove(const IndexKey& key)
+bool TextIndex::remove(const Key& key)
 {
 	ASSERT( mode() == Index::WRITE );
 
@@ -157,7 +161,7 @@ void TextIndex::load(const PathName& path)
         {
             std::istringstream is(line);
 
-            IndexKey k;
+            Key k;
             k.load(is);
 
             FieldRef fref;

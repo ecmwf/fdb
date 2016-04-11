@@ -32,10 +32,14 @@ public: // methods
 
     Key();
 
+    Key(const std::string& keys);
     Key(const eckit::StringDict& keys);
 
+//    Key& operator=( const eckit::StringDict& p );
+//    Key& operator=( const std::string& s );
+
     void set(const std::string& k, const std::string& v);
-    void unset(const std::string& k) { keys_.erase(k); }
+    void unset(const std::string& k);
 
     const std::string& get( const std::string& k ) const;
 
@@ -56,11 +60,22 @@ public: // methods
         return s;
     }
 
+    std::string toIndexForm() const;
+
+    void checkUsedKeys() const;
+
+    void load(std::istream& s);
+    void dump(std::ostream& s) const;
+
+    void setUsedKeys(std::map<std::string, bool>* usedKeys) const;
+
 private: // members
 
     void print( std::ostream& out ) const;
 
     eckit::StringDict keys_;
+
+    mutable std::map<std::string, bool>* usedKeys_;
 
 };
 

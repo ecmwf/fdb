@@ -71,15 +71,14 @@ eckit::DataHandle* TocDBReader::retrieve(const MarsTask& task, const Key& key) c
 
     const Index* index = 0;
 
-    IndexKey indexKey(schema_.dataIdx(key));
-    indexKey.rebuild();
+    Key k( schema_.dataIdx(key) );
 
     Index::Field field;
     for( std::vector<PathName>::const_iterator itr = indexesPaths.begin(); itr != indexesPaths.end(); ++itr )
     {
         const Index& idx = getIndex(*itr);
 
-        if( idx.get(indexKey, field) )
+        if( idx.get(k, field) )
         {
             index = &idx;
             break;

@@ -11,6 +11,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/config/Resource.h"
 
+#include "fdb5/Key.h"
 #include "fdb5/BTreeIndex.h"
 #include "fdb5/Error.h"
 
@@ -31,17 +32,17 @@ BTreeIndex::~BTreeIndex()
 {
 }
 
-bool BTreeIndex::exists(const IndexKey &key) const
+bool BTreeIndex::exists(const Key &key) const
 {
-    BTreeKey k (key.str());
+    BTreeKey k (key.toIndexForm());
     FieldRef ignore;
     return const_cast<BTreeIndex*>(this)->btree_.get(k,ignore);
 }
 
-bool BTreeIndex::get(const IndexKey &key, Index::Field& field) const
+bool BTreeIndex::get(const Key &key, Index::Field& field) const
 {
     FieldRef ref;
-    BTreeKey k (key.str());
+    BTreeKey k (key.toIndexForm());
     bool found = const_cast<BTreeIndex*>(this)->btree_.get(k,ref);
     if( found )
     {
@@ -52,14 +53,17 @@ bool BTreeIndex::get(const IndexKey &key, Index::Field& field) const
     return found;
 }
 
-BTreeIndex::Field BTreeIndex::get(const IndexKey& key) const
+BTreeIndex::Field BTreeIndex::get(const Key& key) const
 {
     Field result;
     FieldRef ref;
-    BTreeKey k (key.str());
+    BTreeKey k (key.toIndexForm());
     bool found = const_cast<BTreeIndex*>(this)->btree_.get(k,ref);
-    if( !found )
-        throw BadParameter( std::string(" key with ") + key.str() + std::string(" not found @ ") + Here().asString() );
+    if( !found ) {
+           std::ostringstream oss;
+           oss << "FDB key not found " << key;
+           throw BadParameter(oss.str(), Here());
+    }
     
 	result.path_     = files_.get( ref.pathId_ );
     result.offset_   = ref.offset_; 
@@ -68,13 +72,13 @@ BTreeIndex::Field BTreeIndex::get(const IndexKey& key) const
     return result;
 }
 
-void BTreeIndex::put_(const IndexKey& key, const BTreeIndex::Field& field)
+void BTreeIndex::put_(const Key& key, const BTreeIndex::Field& field)
 {
     ASSERT( mode() == Index::WRITE );
 
     Log::info() << "BTreeIndex insert " << key << " = " << field << std::endl;
 
-	BTreeKey k( key.str() );
+    BTreeKey k( key.toIndexForm() );
     FieldRef ref;
 
 	ref.pathId_ = files_.insert( field.path_ ); // inserts not yet in filestore
@@ -90,11 +94,11 @@ void BTreeIndex::put_(const IndexKey& key, const BTreeIndex::Field& field)
     }
 }
 
-bool BTreeIndex::remove(const IndexKey& key)
+bool BTreeIndex::remove(const Key& key)
 {
     ASSERT( mode() == Index::WRITE );
 
-	BTreeKey k( key.str() );
+    BTreeKey k( key.toIndexForm() );
 	return btree_.remove(k);
 }
 
@@ -110,7 +114,6 @@ void BTreeIndex::apply( Index::Op& op )
 {
     ASSERT( mode() == Index::WRITE );
 
-    IndexKey key;
     Field field;
     
     BTreeKey first("");
@@ -119,7 +122,7 @@ void BTreeIndex::apply( Index::Op& op )
     btree_.range(first,last,all);
     for( size_t i = 0; i < all.size(); ++i )
     {
-        key = all[i].first.asString();
+        Key key ( all[i].first.asString() );
         FieldRef& ref = all[i].second;
 		field.path_     = files_.get( ref.pathId_ );
         field.offset_   = ref.offset_;
@@ -130,7 +133,7 @@ void BTreeIndex::apply( Index::Op& op )
 
 void BTreeIndex::apply( Index::ConstOp& op ) const
 {    
-    IndexKey key;
+    Key key;
     Field field;
     
     BTreeKey first("");

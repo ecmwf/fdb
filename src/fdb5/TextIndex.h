@@ -36,15 +36,15 @@ public: // methods
 
 protected: // methods
 
-    virtual bool    exists( const IndexKey& key ) const;
+    virtual bool    exists( const Key& key ) const;
 
-    virtual bool    get( const IndexKey& key, Field& field ) const;
+    virtual bool    get( const Key& key, Field& field ) const;
     
-    virtual Field   get( const IndexKey& key ) const;
+    virtual Field   get( const Key& key ) const;
     
-    virtual void    put_( const IndexKey& key, const Field& field );
+    virtual void    put_( const Key& key, const Field& field );
 
-    virtual bool    remove( const IndexKey& key );
+    virtual bool    remove( const Key& key );
     
     virtual void flush();    
 
@@ -59,12 +59,8 @@ protected: // methods
 private: // types
     
     typedef FileStore::FieldRef FieldRef;
-    
-    struct IdxCompare {
-        bool operator()(const IndexKey& x, const IndexKey& y) const { return (x.str() > y.str()); }
-    };
-    
-    typedef std::map< IndexKey, FieldRef, IdxCompare > FieldStore;
+        
+    typedef std::map< Key, FieldRef > FieldStore;
         
 private: // members
     

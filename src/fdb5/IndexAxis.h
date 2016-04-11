@@ -28,7 +28,7 @@ namespace eckit { class JSON; }
 
 namespace fdb5 {
 
-class IndexKey;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -40,7 +40,7 @@ public: // methods
 
     ~IndexAxis();
 
-    void insert(const IndexKey& key);
+    void insert(const Key& key);
 
     const eckit::StringSet& values(const std::string& keyword) const;
 

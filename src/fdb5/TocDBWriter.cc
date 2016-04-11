@@ -121,14 +121,13 @@ void TocDBWriter::archive(const Key& userkey, const void *data, Length length)
             dh.write( &padding_[0], paddingSize );
     }
 
-    IndexKey key = schema_.dataIdx(userkey); // reduced key with only index entries
-    key.rebuild();
+    Key k ( schema_.dataIdx(userkey) ); // reduced key with only index entries
 
     Index::Field field (dataPath, position, length);
 
-    Log::debug(2) << " pushing {" << key << "," << field << "}" << std::endl;
+    Log::debug(2) << " pushing {" << k << "," << field << "}" << std::endl;
 
-    index.put(key, field);
+    index.put(k, field);
 }
 
 void TocDBWriter::flush()

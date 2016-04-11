@@ -10,6 +10,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/types/Types.h"
+#include "eckit/parser/Tokenizer.h"
 
 #include "fdb5/Key.h"
 
@@ -17,38 +18,71 @@ using namespace eckit;
 
 namespace fdb5 {
 
+static const std::string sep("/");
+
 //----------------------------------------------------------------------------------------------------------------------
 
-Key::Key() : keys_()
+Key::Key() :
+    keys_(),
+    usedKeys_(0)
 {
 }
 
-Key::Key(const StringDict& keys) : keys_(keys)
+Key::Key(const std::string& s) :
+    keys_(),
+    usedKeys_(0)
+{
+    NOTIMP;
+}
+
+Key::Key(const StringDict& keys) :
+    keys_(keys),
+    usedKeys_(0)
 {
 }
 
 void Key::clear()
 {
     keys_.clear();
+    if(usedKeys_) {
+        (*usedKeys_).clear();
+    }
 }
 
 void Key::set(const std::string& k, const std::string& v) { 
-    keys_[k] = v; 
+    keys_[k] = v;
+    if(usedKeys_) {
+        (*usedKeys_)[k] = false;
+    }
+}
+
+void Key::unset(const std::string& k) {
+    keys_.erase(k);
+    if(usedKeys_) {
+        (*usedKeys_).erase(k);
+    }
 }
 
 const std::string& Key::get( const std::string& k ) const {
     eckit::StringDict::const_iterator i = keys_.find(k);
     if( i == keys_.end() ) {
-        throw SeriousBug("Key::get() failed for [" + k + "]");
+        std::ostringstream oss;
+        oss << "Key::get() failed for [" + k + "] in " << *this;
+        throw SeriousBug(oss.str(), Here());
     }
+
+    if(usedKeys_) {
+        (*usedKeys_)[k] = true;
+    }
+
     return i->second;
 }
 
 Key Key::subkey(const std::vector<std::string>& pattern) const
 {
-    Key r;
+    eckit::StringDict r;
     for(std::vector<std::string>::const_iterator i = pattern.begin(); i != pattern.end(); ++i) {
-        r.set( *i, get(*i));
+        r[*i] = get(*i);
     }
     return r;
 }
@@ -63,6 +97,67 @@ bool Key::match(const Key& partial) const
         }
     }
     return true;
+}
+
+std::string Key::toIndexForm() const
+{
+    std::string result = sep;
+    StringDict::const_iterator ktr = keys_.begin();
+    for(; ktr != keys_.end(); ++ktr)
+        result += ktr->first + sep + ktr->second + sep;
+    return result;
+}
+
+void Key::checkUsedKeys() const
+{
+    if(usedKeys_) {
+        std::ostringstream oss;
+        bool ok = true;
+        const char* sep = "Unused keys: ";
+        for(std::map<std::string, bool>::const_iterator i = (*usedKeys_).begin(); i != (*usedKeys_).end(); ++i) {
+            if(!i->second) {
+                oss << sep << i->first; sep = ",";
+                ok = false;
+            }
+        }
+        if(!ok) {
+            throw SeriousBug(oss.str(), Here());
+        }
+    }
+}
+
+void Key::load(std::istream& s)
+{
+    std::string params;
+    s >> params;
+
+    Tokenizer parse(sep);
+    std::vector<std::string> result;
+    parse(params,result);
+
+    ASSERT( result.size() % 2 == 0 ); // even number of entries
+
+    clear();
+    for( size_t i = 0; i < result.size(); ++i,++i ) {
+        set(result[i], result[i+1]);
+    }
+}
+
+void Key::dump(std::ostream& s) const
+{
+    s << sep;
+    for(StringDict::const_iterator ktr = keys_.begin(); ktr != keys_.end(); ++ktr) {
+        s << ktr->first << sep << ktr->second << sep;
+    }
+}
+
+void Key::setUsedKeys(std::map<std::string, bool>* usedKeys) const
+{
+    ASSERT(usedKeys);
+    usedKeys_ = usedKeys;
+    for(StringDict::const_iterator ktr = keys_.begin(); ktr != keys_.end(); ++ktr) {
+        (*usedKeys_)[ktr->first] = false;
+    }
 }
 
 void Key::print(std::ostream &out) const

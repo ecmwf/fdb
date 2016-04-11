@@ -15,6 +15,7 @@
 
 #include "marslib/MarsTask.h"
 
+#include "fdb5/Key.h"
 #include "fdb5/Archiver.h"
 #include "fdb5/MasterConfig.h"
 
@@ -43,9 +44,14 @@ void Archiver::write(const DataBlobPtr blob)
 
 void Archiver::write(const Key& key, const void* data, eckit::Length length)
 {
+    std::map<std::string, bool> usedKeys;
+    key.setUsedKeys(&usedKeys);
+
     DB& db = session(key);
 
     db.archive(key, data, length);
+
+    key.checkUsedKeys();
 }
 
 

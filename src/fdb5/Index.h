@@ -32,45 +32,6 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Key type for the Index
-struct IndexKey {
-
-    IndexKey();
-
-    IndexKey( const fdb5::Key& k );
-    IndexKey( const std::string& s );
-
-    IndexKey& operator=( const eckit::StringDict& p );
-    IndexKey& operator=( const std::string& s );
-
-    void set( const std::string&, const std::string& );
-
-    const eckit::StringDict& params() const { return params_; }
-    const std::string& str() const { ASSERT(built_); return key_; }
-
-    void rebuild();
-
-    void load( std::istream& s );
-
-    void dump( std::ostream& s ) const;
-
-    friend std::ostream& operator<<(std::ostream& s,const IndexKey& x) { x.print(s); return s; }
-
-private: // methods
-
-    void print( std::ostream& out ) const { out << str(); }
-
-private: // members
-
-    eckit::StringDict params_;
-
-    std::string key_;
-    bool        built_;
-
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
 class Index : private eckit::NonCopyable {
 
 public: // types
@@ -108,12 +69,12 @@ public: // types
     
     /// Non-const operation on the index entries
     struct Op : private eckit::NonCopyable {
-        virtual void operator() ( Index& idx, const IndexKey& key, const Field& field ) = 0;
+        virtual void operator() ( Index& idx, const Key& key, const Field& field ) = 0;
     };
     
     /// Const operation on the index entries
     struct ConstOp : private eckit::NonCopyable {
-        virtual void operator() ( const Index& idx, const IndexKey& key, const Field& field ) = 0;
+        virtual void operator() ( const Index& idx, const Key& key, const Field& field ) = 0;
     };
     
 public: // methods
@@ -124,15 +85,15 @@ public: // methods
     
     virtual ~Index();
 
-    virtual bool    exists( const IndexKey& key ) const = 0;
+    virtual bool    exists( const Key& key ) const = 0;
 
-    virtual bool    get( const IndexKey& key, Field& field ) const = 0;
+    virtual bool    get( const Key& key, Field& field ) const = 0;
     
-    virtual Field   get( const IndexKey& key ) const = 0;
+    virtual Field   get( const Key& key ) const = 0;
     
-    virtual void    put( const IndexKey& key, const Field& field );
+    virtual void    put( const Key& key, const Field& field );
 
-    virtual bool    remove( const IndexKey& key ) = 0;
+    virtual bool    remove( const Key& key ) = 0;
         
     virtual void flush() = 0;    
 
@@ -154,7 +115,7 @@ public: // methods
 
 protected: // methods
 
-    virtual void put_( const IndexKey& key, const Field& field ) = 0;
+    virtual void put_( const Key& key, const Field& field ) = 0;
 
 protected: // members
 
@@ -172,7 +133,7 @@ protected: // members
 struct PrintIndex : public Index::ConstOp 
 {
     PrintIndex( std::ostream& out ) : out_(out) {}
-    virtual void operator() ( const Index&, const IndexKey& key, const Index::Field& field );
+    virtual void operator() ( const Index&, const Key& key, const Index::Field& field );
     std::ostream& out_;
 };
 

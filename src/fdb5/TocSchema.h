@@ -46,7 +46,7 @@ public: // methods
 
     std::string tocEntry(const Key& userKey) const;
 
-    IndexKey dataIdx(const Key& userKey) const;
+    Key dataIdx(const Key& userKey) const;
 
     const std::string& indexType() const;
 

@@ -23,88 +23,7 @@
 
 using namespace eckit;
 
-
 namespace fdb5 {
-
-//-----------------------------------------------------------------------------
-
-static const std::string sep("/");
-
-//-----------------------------------------------------------------------------
-
-IndexKey::IndexKey() : built_(false)
-{
-}
-
-IndexKey::IndexKey(const fdb5::Key& k)
-{
-    this->operator=( k.dict() );
-}
-
-IndexKey::IndexKey( const std::string& s )
-{
-    this->operator=(s);
-}
-
-IndexKey& IndexKey::operator=(const eckit::StringDict &p)
-{
-    built_ = false;
-    params_.clear();
-    params_ = p;
-    rebuild();
-    return *this;
-}
-
-IndexKey& IndexKey::operator=(const std::string &s)
-{
-    std::istringstream is(s);
-    load(is);
-    return *this;
-}
-
-void IndexKey::set(const std::string& key, const std::string& value)
-{
-    params_[key] = value;
-    built_ = false;
-}
-
-void IndexKey::rebuild()
-{
-    if(!built_)
-    {
-        key_ = sep;
-        StringDict::iterator ktr = params_.begin();
-        for(; ktr != params_.end(); ++ktr)
-            key_ += ktr->first + sep + ktr->second + sep;
-        built_ = true;
-    }
-}
-
-void IndexKey::load(std::istream& s)
-{
-    std::string params;
-    s >> params;
-    
-    Tokenizer parse(sep);
-    std::vector<std::string> result;
-	parse(params,result);
-    
-    ASSERT( result.size() % 2 == 0 ); // even number of entries
-
-    built_ = false;
-    params_.clear();
-    for( size_t i = 0; i < result.size(); ++i,++i )
-        params_[ result[i] ] = result[i+1];
-    
-    rebuild();
-}
-
-void IndexKey::dump(std::ostream& s) const
-{
-    s << sep;
-    for(StringDict::const_iterator ktr = params_.begin(); ktr != params_.end(); ++ktr)
-        s << ktr->first << sep << ktr->second << sep;
-}
 
 //-----------------------------------------------------------------------------
 
@@ -136,7 +55,7 @@ Index::~Index()
 {
 }
 
-void Index::put(const IndexKey& key, const Index::Field& field)
+void Index::put(const Key& key, const Index::Field& field)
 {
     axis_.insert(key);
     put_(key, field);
@@ -173,7 +92,7 @@ void Index::Field::dump(std::ostream& s) const
 
 //-----------------------------------------------------------------------------
 
-void PrintIndex::operator ()(const Index &, const IndexKey &key, const Index::Field &field)
+void PrintIndex::operator ()(const Index &, const Key &key, const Index::Field &field)
 {
     out_ << "{" << key << ":" << field << "}\n";
 }

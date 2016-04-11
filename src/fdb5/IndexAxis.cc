@@ -14,6 +14,7 @@
 
 #include "fdb5/IndexAxis.h"
 #include "fdb5/Index.h"
+#include "fdb5/Key.h"
 
 using namespace eckit;
 
@@ -62,13 +63,13 @@ IndexAxis::~IndexAxis()
     }
 }
 
-void IndexAxis::insert(const IndexKey& key)
+void IndexAxis::insert(const Key& key)
 {
     ASSERT(!readOnly_);
 
     Log::info() << *this << std::endl;
 
-    const StringDict& keymap = key.params();
+    const StringDict& keymap = key.dict();
 
     for(StringDict::const_iterator i = keymap.begin(); i  != keymap.end(); ++i) {
         const std::string& keyword = i->first;
