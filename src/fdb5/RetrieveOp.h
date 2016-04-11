@@ -30,7 +30,7 @@ class RetrieveOp : public fdb5::Op {
 
 public: // methods
 
-    RetrieveOp(const DB& db, HandleGatherer& result);
+    RetrieveOp(HandleGatherer& result);
 
     /// Destructor
 

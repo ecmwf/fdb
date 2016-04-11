@@ -19,6 +19,7 @@
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/DB.h"
+#include "fdb5/Rules.h"
 
 class MarsTask;
 class MarsRequest;
@@ -37,29 +38,26 @@ public: // methods
 
     VecDB openSessionDBs(const MarsTask& task);
 
-    std::string makeDBPath(const Key& key) const;
+    Key makeDBKey(const Key& key) const;
+
+    const Rules& rules() const;
 
 private: // methods
 
-	MasterConfig();
+    MasterConfig();
 
     /// Destructor
     
     ~MasterConfig();
 
-    Key makeDBKey(const Key& key) const;
-
     void expand(const MarsRequest& request,
-                const std::vector<std::string>& masterKeys,
                 size_t pos,
                 Key& dbKey,
                 VecDB& result );
 
 private: // members
 
-    std::vector<std::string> masterDBKeys_;
-
-    std::string masterDBKeysStr_;
+    Rules rules_;
 
 };
 

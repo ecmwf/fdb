@@ -30,7 +30,7 @@ TocSchema::TocSchema(const Key& dbKey) :
 
     root_.mkdir(); /// @note what about permissions on creation?
 
-    dirPath_ = root_ / MasterConfig::instance().makeDBPath(dbKey);
+    dirPath_ = root_ / MasterConfig::instance().makeDBKey(dbKey).toIndexForm(":");
 
     indexType_ = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex", dbKey.dict());
 

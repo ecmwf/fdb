@@ -8,59 +8,50 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Rules.h
+/// @file   KeyCollector.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_Rules_H
-#define fdb5_Rules_H
+#ifndef fdb5_KeyCollector_H
+#define fdb5_KeyCollector_H
 
 #include <iosfwd>
 #include <vector>
 
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/filesystem/PathName.h"
+#include "eckit/types/Types.h"
 
 class MarsRequest;
 
 namespace fdb5 {
 
 class Key;
-class Rule;
-class KeyCollector;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Rules : private eckit::NonCopyable {
-
+class KeyCollector : public eckit::NonCopyable {
 public: // methods
 
-    Rules();
-    
-    ~Rules();
+    virtual ~KeyCollector();
 
-    const Rule* match(const Key& key, size_t depth) const;
+    virtual void collect(const Key& key0,
+                         const Key& key1,
+                         const Key& key2) = 0;
 
-    void expand(const MarsRequest& request, fdb5::KeyCollector& collector) const;
+    virtual void enter(const std::string& keyword, const std::string& value);
+    virtual void leave();
 
-    void load(const eckit::PathName& path, bool replace = false);
+    virtual void enter(std::vector<Key>& keys);
+    virtual void leave(std::vector<Key>& keys);
 
-    void dump(std::ostream& s) const;
+    virtual void values(const MarsRequest& request, const std::string& keyword, eckit::StringList& values);
 
 private: // methods
 
-    void clear();
-    void check();
+    friend std::ostream& operator<<(std::ostream& s,const KeyCollector& x);
 
-    friend std::ostream& operator<<(std::ostream& s,const Rules& x);
-
-    void print( std::ostream& out ) const;
-
-private: // members
-
-    std::vector<Rule*>      rules_;
-
+    virtual void print( std::ostream& out ) const = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

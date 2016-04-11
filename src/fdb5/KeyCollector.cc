@@ -10,46 +10,42 @@
 
 #include "eckit/log/Log.h"
 
-#include "fdb5/Predicate.h"
-#include "fdb5/Matcher.h"
+#include "fdb5/KeyCollector.h"
+
+using namespace eckit;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Predicate::Predicate(const std::string& keyword, Matcher* matcher) :
-    matcher_(matcher),
-    keyword_(keyword)
-{
-//    dump(std::cout);
-//    std::cout << std::endl;
-}
-
-Predicate::~Predicate()
+KeyCollector::~KeyCollector()
 {
 }
 
-bool Predicate::match(const Key& key) const
+void KeyCollector::enter(const std::string& , const std::string& )
 {
-    return matcher_->match(keyword_, key);
 }
 
-void Predicate::dump(std::ostream& s) const
+void KeyCollector::leave()
 {
-    matcher_->dump(s, keyword_);
 }
 
-void Predicate::print(std::ostream& out) const
+void KeyCollector::enter(std::vector<Key>& keys)
 {
-    out << "Predicate()";
+
 }
 
-std::string Predicate::keyword() const
+void KeyCollector::leave(std::vector<Key>& keys)
 {
-    return keyword_;
+
 }
 
-std::ostream& operator<<(std::ostream& s, const Predicate& x)
+void KeyCollector::values(const MarsRequest& request, const std::string& keyword, StringList& values)
+{
+    NOTIMP;
+}
+
+std::ostream& operator<<(std::ostream& s, const KeyCollector& x)
 {
     x.print(s);
     return s;

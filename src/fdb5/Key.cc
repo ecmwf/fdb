@@ -18,8 +18,6 @@ using namespace eckit;
 
 namespace fdb5 {
 
-static const std::string sep("/");
-
 //----------------------------------------------------------------------------------------------------------------------
 
 Key::Key() :
@@ -99,9 +97,9 @@ bool Key::match(const Key& partial) const
     return true;
 }
 
-std::string Key::toIndexForm() const
+std::string Key::toIndexForm(const char* sep) const
 {
-    std::string result = sep;
+    std::string result(sep);
     StringDict::const_iterator ktr = keys_.begin();
     for(; ktr != keys_.end(); ++ktr)
         result += ktr->first + sep + ktr->second + sep;
@@ -128,6 +126,8 @@ void Key::checkUsedKeys() const
 
 void Key::load(std::istream& s)
 {
+    const char* sep = "/";
+
     std::string params;
     s >> params;
 
@@ -145,6 +145,8 @@ void Key::load(std::istream& s)
 
 void Key::dump(std::ostream& s) const
 {
+    const char* sep = "/";
+
     s << sep;
     for(StringDict::const_iterator ktr = keys_.begin(); ktr != keys_.end(); ++ktr) {
         s << ktr->first << sep << ktr->second << sep;

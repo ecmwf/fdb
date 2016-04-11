@@ -12,24 +12,55 @@
 
 #include "eckit/log/Log.h"
 
+#include "marslib/MarsRequest.h"
+
 #include "fdb5/Rules.h"
 #include "fdb5/Rule.h"
+#include "fdb5/Key.h"
 #include "fdb5/RulesParser.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Rules::Rules(const std::string& path)
+Rules::Rules()
 {
-    std::ifstream in(path.c_str());
+}
+
+Rules::~Rules()
+{
+    clear();
+}
+
+const Rule* Rules::match(const Key& key, size_t depth) const
+{
+    return fdb5::matchFirst(rules_, key, depth);
+}
+
+void Rules::expand(const MarsRequest& request, KeyCollector& collector) const
+{
+    for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+        std::vector<Key> keys(1);
+        (*i)->expand(request, collector, keys);
+    }
+}
+
+void Rules::load(const eckit::PathName& path, bool replace)
+{
+    if(replace) {
+        clear();
+    }
+
+    std::ifstream in(path.asString().c_str());
 
     RulesParser parser(in);
 
     parser.parse(rules_);
+
+    check();
 }
 
-Rules::~Rules()
+void Rules::clear()
 {
     for(std::vector<Rule*>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         delete *i;
@@ -41,6 +72,14 @@ void Rules::dump(std::ostream& s) const
     for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->dump(s);
         s << std::endl;
+    }
+}
+
+void Rules::check()
+{
+    for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+        /// @todo print offending rule in meaningful message
+        ASSERT((*i)->depth() == 3);
     }
 }
 

@@ -19,6 +19,7 @@
 #include "fdb5/MasterConfig.h"
 #include "fdb5/DB.h"
 #include "fdb5/Key.h"
+#include "fdb5/Rule.h"
 #include "fdb5/KeywordHandler.h"
 #include "fdb5/HandleGatherer.h"
 
@@ -40,6 +41,41 @@ Retriever::~Retriever()
 {
 }
 
+struct RetrieveCollector : public KeyCollector {
+
+    HandleGatherer& gatherer_;
+
+    std::vector<Op*> opStack_;
+
+    RetrieveCollector(HandleGatherer& gatherer) : gatherer_(gatherer) {
+        opStack_.push_back(new RetrieveOp(gatherer));
+    }
+
+    virtual void collect(const Key& key0,
+                         const Key& key1,
+                         const Key& key2) {
+
+    }
+
+    virtual void enter(const std::string& keyword, const std::string& value) {
+        opStack_.back()->enter(keyword, value);
+    }
+
+    virtual void leave() {
+        opStack_.back()->leave();
+    }
+
+    virtual void values(const MarsRequest& request, const std::string& keyword, eckit::StringList& values) {
+
+        const KeywordHandler& handler = MasterConfig::lookupHandler(keyword);
+
+        handler.getValues(task_, keyword, values, key);
+
+    }
+
+};
+
+
 eckit::DataHandle* Retriever::retrieve()
 {
     Log::info() << std::endl
@@ -59,17 +95,10 @@ eckit::DataHandle* Retriever::retrieve()
 
     HandleGatherer result(sorted);
 
-    VecDB dbs = MasterConfig::instance().openSessionDBs(task_);
+    RetrieveCollector c(result);
 
-    for( VecDB::const_iterator jdb = dbs.begin(); jdb != dbs.end(); ++jdb) {
-
-        const DB& db = **jdb;
-
-        Key key;
-
-        RetrieveOp op(db, result);
-        retrieve(key, db, db.schema().begin(), op);
-    }
+    const Rules& rules = MasterConfig::instance().rules();
+    rules.expand(task_.request(), c);
 
     return result.dataHandle();
 }
@@ -94,7 +123,7 @@ void Retriever::retrieve(Key& key,
 
         const std::string& keyword = *pos;
 
-        const KeywordHandler& handler = db.schema().lookupHandler(keyword);
+        db.schema().
 
         handler.getValues(task_, keyword, values, db, key);
 

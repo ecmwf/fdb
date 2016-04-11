@@ -30,7 +30,9 @@ void FdbRules::run()
 
     ASSERT( ctx.argc() == 2 );
 
-    Rules rules(ctx.argv(1));
+    Rules rules;
+
+    rules.load(ctx.argv(1));
 
     rules.dump(std::cout);
 }

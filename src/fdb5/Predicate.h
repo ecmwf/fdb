@@ -40,6 +40,8 @@ public: // methods
 
     void dump( std::ostream& s ) const;
 
+    std::string keyword() const;
+
 private: // methods
 
     friend std::ostream& operator<<(std::ostream& s,const Predicate& x);

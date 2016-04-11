@@ -21,6 +21,7 @@
 #include "fdb5/MasterConfig.h"
 #include "fdb5/DB.h"
 #include "fdb5/Key.h"
+#include "fdb5/Rule.h"
 
 using namespace eckit;
 
@@ -36,24 +37,32 @@ MasterConfig::MasterConfig()
     }
 
     ResourceMgr::instance().appendConfig("~/etc/config/fdb");
-    ResourceMgr::instance().appendConfig("~/etc/config/fdbRules");
 
-    masterDBKeysStr_ = eckit::Resource<std::string>("masterDBKeys","{class}:{stream}:{expver}:{date}:{time}");
-    masterDBKeys_ = StringTools::substituteVariables( masterDBKeysStr_ );
+    rules_.load( eckit::Resource<PathName>("fdbRules", "~/etc/config/fdbRules") );
+
+    rules_.dump(std::cout);
 }
 
 MasterConfig::~MasterConfig()
 {
 }
 
-std::string MasterConfig::makeDBPath(const Key& key) const
+const Rules& MasterConfig::rules() const
 {
-    return StringTools::substitute( masterDBKeysStr_, key.dict() );
+    return rules_;
 }
 
 Key MasterConfig::makeDBKey(const Key& key) const
 {
-    return key.subkey(masterDBKeys_);
+    const Rule* r = rules_.match(key, 0);
+
+    ASSERT(r); /// @todo add meaningful error handling here
+
+    StringList keys = r->keys(0);
+
+    Log::info() << ">>>>>>>>>>>>> " << keys << std::endl;
+
+    return key.subkey(keys);
 }
 
 MasterConfig& MasterConfig::instance()
@@ -72,45 +81,32 @@ eckit::SharedPtr<DB> MasterConfig::openSessionDB(const Key& user)
 
 VecDB MasterConfig::openSessionDBs(const MarsTask& task)
 {
+    std::string fdbReaderDB = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
+
     VecDB result;
 
-    Key dbKey;
-
-    expand(task.request(), masterDBKeys_, 0, dbKey, result); /// @todo EXPANDS task into masterDBKeys_
-
-    return result;
-}
-
-void MasterConfig::expand(const MarsRequest& request,
-                          const std::vector<std::string>& masterKeys,
-                          size_t pos,
-                          Key& dbKey,
-                          VecDB& result ) {
-
-
-    if( pos != masterKeys.size() ) {
-
-        StringList values;
-
-        const std::string& name = masterKeys[pos];
-
-        request.getValues(name, values);
-
-        for(std::vector<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
-            dbKey.set(name, *j);
-            expand(request, masterKeys, pos+1, dbKey, result);
+    struct Collector : public KeyCollector {
+        std::set<Key> keySet_;
+        virtual void collect(const fdb5::Key& key,
+                             const fdb5::Key&,
+                             const fdb5::Key&) {
+            keySet_.insert(key);
         }
-    }
-    else
-    {
-        std::string fdbReaderDB = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
-        SharedPtr<DB> newDB ( DBFactory::build(fdbReaderDB, dbKey) );
+    };
+
+    Collector c;
+
+    rules_.expand(task.request(), c);
+
+    for(std::set<Key>::const_iterator i = c.keySet_.begin(); i != c.keySet_.end(); ++i) {
+        SharedPtr<DB> newDB ( DBFactory::build(fdbReaderDB, *i) );
         if(newDB->open()) {
             result.push_back( newDB );
         }
     }
-}
 
+    return result;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -69,7 +69,7 @@ Predicate* RulesParser::parsePredicate() {
 
     char c = peek();
 
-    if(c != ',' && c != '[')
+    if(c != ',' && c != '[' && c != ']')
     {
         consume("=");
 

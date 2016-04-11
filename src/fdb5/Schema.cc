@@ -39,7 +39,7 @@ const KeywordHandler& Schema::lookupHandler(const std::string& keyword) const
         return *(*j).second;
     }
     else {
-        std::string type = Resource<std::string>(keyword+"Type","Default");
+        std::string type = Resource<std::string>(keyword+"FdbType","Default");
         KeywordHandler* newKH = KeywordType::build(type, keyword);
         handlers_[keyword] = newKH;
         return *newKH;

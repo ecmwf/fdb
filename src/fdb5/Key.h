@@ -60,7 +60,7 @@ public: // methods
         return s;
     }
 
-    std::string toIndexForm() const;
+    std::string toIndexForm(const char* sep = "/") const;
 
     void checkUsedKeys() const;
 
