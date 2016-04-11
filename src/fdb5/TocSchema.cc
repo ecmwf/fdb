@@ -99,6 +99,9 @@ IndexKey TocSchema::dataIdx(const Key& userKey) const
     IndexKey subdict;
 
     std::string s = eckit::Resource<std::string>("idxKeys","levelist,step,param", userKey.dict());
+
+    Log::info() << "-----> idxKeys: " << idxKeys << std::endl;
+
     parse(s,idxKeys);
 
     for( eckit::StringList::const_iterator i = idxKeys.begin(); i != idxKeys.end(); ++i )
