@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -31,15 +31,13 @@ IntegerHandler::~IntegerHandler()
 {
 }
 
-void IntegerHandler::getValues(const MarsTask& task,
+void IntegerHandler::getValues(const MarsRequest& request,
                                const std::string& keyword,
-                               StringList& values,
-                               const DB& db,
-                               const Key& key) const
+                               StringList& values) const
 {
     std::vector<long> intValues;
 
-    task.request().getValues(keyword, intValues);
+    request.getValues(keyword, intValues);
 
     Translator<long, std::string> t;
 

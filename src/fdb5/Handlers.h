@@ -8,35 +8,41 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   IntegerHandler.h
+/// @file   Handlers.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   April 2016
+/// @date   Mar 2016
 
-#ifndef fdb5_IntegerHandler_H
-#define fdb5_IntegerHandler_H
+#ifndef fdb5_Handlers_H
+#define fdb5_Handlers_H
 
-#include "fdb5/KeywordHandler.h"
+#include <string>
+#include <map>
+
+#include "eckit/memory/NonCopyable.h"
 
 namespace fdb5 {
 
+class KeywordHandler;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class IntegerHandler : public KeywordHandler {
+class Handlers : private eckit::NonCopyable {
 
 public: // methods
 
-    IntegerHandler(const std::string& name);
+    Handlers();
 
-    virtual ~IntegerHandler();
+    ~Handlers();
 
-    virtual void getValues(const MarsRequest& request,
-                           const std::string& keyword,
-                           eckit::StringList& values) const;
+    const KeywordHandler& lookupHandler(const std::string& keyword) const;
 
-private: // methods
 
-    virtual void print( std::ostream& out ) const;
+private: // members
+
+    typedef std::map<std::string, KeywordHandler*> HandlerMap;
+
+    mutable HandlerMap handlers_;
 
 };
 

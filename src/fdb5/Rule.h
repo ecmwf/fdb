@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -27,7 +27,7 @@ class MarsRequest;
 namespace fdb5 {
 
 class Predicate;
-class KeyCollector;
+class Visitor;
 class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -38,7 +38,7 @@ public: // methods
 
     /// Takes ownership of vectors
     Rule(std::vector<Predicate*>& predicates, std::vector<Rule*>& rules);
-    
+
     ~Rule();
 
     bool match(const Key& key) const;
@@ -47,7 +47,7 @@ public: // methods
 
     void dump(std::ostream& s, size_t depth = 0) const;
 
-    void expand(const MarsRequest& request, KeyCollector& collector, std::vector<fdb5::Key>& keys) const;
+    void expand(const MarsRequest& request, Visitor& collector, std::vector<fdb5::Key>& keys) const;
 
     size_t depth() const;
 
@@ -56,7 +56,7 @@ private: // methods
     void expand(const MarsRequest& request,
                  std::vector<Predicate*>::const_iterator cur,
                  std::vector<Key>& keys,
-                 KeyCollector& collector) const;
+                 Visitor& collector) const;
 
     void keys(size_t level, size_t depth, eckit::StringList&result, eckit::StringSet& seen) const;
 

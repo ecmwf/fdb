@@ -22,6 +22,7 @@
 #include "fdb5/Rule.h"
 #include "fdb5/KeywordHandler.h"
 #include "fdb5/HandleGatherer.h"
+#include "fdb5/Visitor.h"
 
 using namespace eckit;
 
@@ -41,7 +42,7 @@ Retriever::~Retriever()
 {
 }
 
-struct RetrieveCollector : public KeyCollector {
+struct RetrieveCollector : public Visitor {
 
     HandleGatherer& gatherer_;
 
@@ -51,11 +52,9 @@ struct RetrieveCollector : public KeyCollector {
         opStack_.push_back(new RetrieveOp(gatherer));
     }
 
-    virtual void collect(const Key& key0,
-                         const Key& key1,
-                         const Key& key2) {
-
-    }
+    virtual void selectDatabase(const Key& key) {}
+    virtual void selectIndex(const Key& key) {}
+    virtual void selectDatum(const Key& key) {}
 
     virtual void enter(const std::string& keyword, const std::string& value) {
         opStack_.back()->enter(keyword, value);
@@ -66,11 +65,8 @@ struct RetrieveCollector : public KeyCollector {
     }
 
     virtual void values(const MarsRequest& request, const std::string& keyword, eckit::StringList& values) {
-
-        const KeywordHandler& handler = MasterConfig::lookupHandler(keyword);
-
-        handler.getValues(task_, keyword, values, key);
-
+        const KeywordHandler& handler = MasterConfig::instance().lookupHandler(keyword);
+        handler.getValues(request, keyword, values);
     }
 
 };
@@ -112,48 +108,48 @@ void Retriever::print(std::ostream& out) const
         << std::endl;
 }
 
-void Retriever::retrieve(Key& key,
-                         const DB& db,
-                         Schema::const_iterator pos,
-                         Op& op)
-{
-    if(pos != db.schema().end()) {
+// void Retriever::retrieve(Key& key,
+//                          const DB& db,
+//                          Schema::const_iterator pos,
+//                          Op& op)
+// {
+//     if(pos != db.schema().end()) {
 
-        std::vector<std::string> values;
+//         std::vector<std::string> values;
 
-        const std::string& keyword = *pos;
+//         const std::string& keyword = *pos;
 
-        db.schema().
+//         db.schema().
 
-        handler.getValues(task_, keyword, values, db, key);
+//         handler.getValues(task_, keyword, values, db, key);
 
-        Log::info() << "Expanding keyword (" << keyword << ") with " << values << std::endl;
+//         Log::info() << "Expanding keyword (" << keyword << ") with " << values << std::endl;
 
-        if(!values.size()) {
-            retrieve(key, db, ++pos, op);
-            return;
-        }
+//         if(!values.size()) {
+//             retrieve(key, db, ++pos, op);
+//             return;
+//         }
 
-        eckit::ScopedPtr<Op> newOp( handler.makeOp(task_, op) );
+//         eckit::ScopedPtr<Op> newOp( handler.makeOp(task_, op) );
 
-        Schema::const_iterator next = pos;
-        ++next;
+//         Schema::const_iterator next = pos;
+//         ++next;
 
-        for(std::vector<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
+//         for(std::vector<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
 
-            op.enter(keyword, *j);
+//             op.enter(keyword, *j);
 
-            key.set(keyword, *j);
-            retrieve(key, db, next, *newOp);
-            key.unset(keyword);
+//             key.set(keyword, *j);
+//             retrieve(key, db, next, *newOp);
+//             key.unset(keyword);
 
-            op.leave();
-        }
-    }
-    else {
-        op.execute(task_, key, op);
-    }
-}
+//             op.leave();
+//         }
+//     }
+//     else {
+//         op.execute(task_, key, op);
+//     }
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

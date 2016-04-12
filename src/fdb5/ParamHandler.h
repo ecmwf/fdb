@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -27,14 +27,12 @@ class ParamHandler : public KeywordHandler {
 public: // methods
 
     ParamHandler(const std::string& name);
-    
+
     virtual ~ParamHandler();
 
-    virtual void getValues(const MarsTask& task,
+    virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,
-                           eckit::StringList& values,
-                           const DB& db,
-                           const Key& key) const;
+                           eckit::StringList& values) const;
 
     virtual Op* makeOp(const MarsTask& task, Op& parent) const;
 

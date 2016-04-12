@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -79,34 +79,38 @@ eckit::SharedPtr<DB> MasterConfig::openSessionDB(const Key& user)
     return SharedPtr<DB>( DBFactory::build(fdbWriterDB, dbKey) );
 }
 
-VecDB MasterConfig::openSessionDBs(const MarsTask& task)
-{
-    std::string fdbReaderDB = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
-
-    VecDB result;
-
-    struct Collector : public KeyCollector {
-        std::set<Key> keySet_;
-        virtual void collect(const fdb5::Key& key,
-                             const fdb5::Key&,
-                             const fdb5::Key&) {
-            keySet_.insert(key);
-        }
-    };
-
-    Collector c;
-
-    rules_.expand(task.request(), c);
-
-    for(std::set<Key>::const_iterator i = c.keySet_.begin(); i != c.keySet_.end(); ++i) {
-        SharedPtr<DB> newDB ( DBFactory::build(fdbReaderDB, *i) );
-        if(newDB->open()) {
-            result.push_back( newDB );
-        }
-    }
-
-    return result;
+const KeywordHandler& MasterConfig::lookupHandler(const std::string& keyword) const {
+    return handlers_.lookupHandler(keyword);
 }
+
+// VecDB MasterConfig::openSessionDBs(const MarsTask& task)
+// {
+//     std::string fdbReaderDB = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
+
+//     VecDB result;
+
+//     struct Collector : public Visitor {
+//         std::set<Key> keySet_;
+//         virtual void collect(const fdb5::Key& key,
+//                              const fdb5::Key&,
+//                              const fdb5::Key&) {
+//             keySet_.insert(key);
+//         }
+//     };
+
+//     Collector c;
+
+//     rules_.expand(task.request(), c);
+
+//     for(std::set<Key>::const_iterator i = c.keySet_.begin(); i != c.keySet_.end(); ++i) {
+//         SharedPtr<DB> newDB ( DBFactory::build(fdbReaderDB, *i) );
+//         if(newDB->open()) {
+//             result.push_back( newDB );
+//         }
+//     }
+
+//     return result;
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

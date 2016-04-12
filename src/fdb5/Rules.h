@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -28,7 +28,7 @@ namespace fdb5 {
 
 class Key;
 class Rule;
-class KeyCollector;
+class Visitor;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -37,12 +37,12 @@ class Rules : private eckit::NonCopyable {
 public: // methods
 
     Rules();
-    
+
     ~Rules();
 
     const Rule* match(const Key& key, size_t depth) const;
 
-    void expand(const MarsRequest& request, fdb5::KeyCollector& collector) const;
+    void expand(const MarsRequest& request, fdb5::Visitor& collector) const;
 
     void load(const eckit::PathName& path, bool replace = false);
 

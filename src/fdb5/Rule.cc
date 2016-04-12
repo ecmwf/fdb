@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -15,6 +15,7 @@
 #include "fdb5/Predicate.h"
 #include "fdb5/Rule.h"
 #include "fdb5/Key.h"
+#include "fdb5/Visitor.h"
 
 using namespace eckit;
 
@@ -55,21 +56,34 @@ Rule::~Rule()
 void Rule::expand( const MarsRequest& request,
                    std::vector<Predicate*>::const_iterator cur,
                    std::vector<Key>& keys,
-                   KeyCollector& collector) const {
+                   Visitor& collector) const {
 
     if(cur == predicates_.end()) {
         if(rules_.empty()) {
             ASSERT(keys.size() == 3); /// we have 3 levels ATM
-            collector.collect(keys[0], keys[1], keys[2]);
+            collector.selectDatum( keys[2]);
         }
         else {
-            collector.enter(keys);
+
+            switch(keys.size()) {
+                case 1:
+                    collector.selectDatabase(keys[0]);
+                    break;
+
+                case 2:
+                    collector.selectIndex(keys[1]);
+                    break;
+
+                default:
+                    ASSERT(keys.size() == 1 || keys.size() == 2);
+                    break;
+            }
+
             for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
                 keys.push_back(Key());
                 (*i)->expand(request, collector, keys);
                 keys.pop_back();
             }
-            collector.leave(keys);
         }
         return;
     }
@@ -80,7 +94,7 @@ void Rule::expand( const MarsRequest& request,
 
     StringList values;
 
-    collector.getValues(request, keyword, values);
+    collector.values(request, keyword, values);
 
     Key& k = keys.back();
 
@@ -99,7 +113,7 @@ void Rule::expand( const MarsRequest& request,
     }
 }
 
-void Rule::expand(const MarsRequest& request, KeyCollector& collector, std::vector<Key>& keys) const
+void Rule::expand(const MarsRequest& request, Visitor& collector, std::vector<Key>& keys) const
 {
     expand(request, predicates_.begin(), keys, collector);
 }

@@ -8,12 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-#include "marslib/MarsTask.h"
+#include "eckit/config/Resource.h"
 
+#include "fdb5/Handlers.h"
+#include "fdb5/KeywordType.h"
 #include "fdb5/KeywordHandler.h"
-
-#include "fdb5/Op.h"
-#include "fdb5/ForwardOp.h"
 
 using namespace eckit;
 
@@ -21,30 +20,32 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-KeywordHandler::KeywordHandler(const std::string& name) :
-    name_(name)
+Handlers::Handlers()
 {
 }
 
-KeywordHandler::~KeywordHandler() {
-}
-
-void KeywordHandler::getValues(const MarsRequest& request,
-                               const std::string& keyword,
-                               StringList& values) const
+Handlers::~Handlers()
 {
-    request.getValues(keyword, values);
+    for(HandlerMap::iterator i = handlers_.begin(); i != handlers_.end(); ++i) {
+        delete (*i).second;
+    }
 }
 
-Op* KeywordHandler::makeOp(const MarsTask& task, Op& parent) const {
-    return new ForwardOp(parent);
-}
-
-std::ostream& operator<<(std::ostream& s, const KeywordHandler& x)
+const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
 {
-    x.print(s);
-    return s;
+    std::map<std::string, KeywordHandler*>::const_iterator j = handlers_.find(keyword);
+
+    if (j != handlers_.end()) {
+        return *(*j).second;
+    }
+    else {
+        std::string type = Resource<std::string>(keyword+"FdbType","Default");
+        KeywordHandler* newKH = KeywordType::build(type, keyword);
+        handlers_[keyword] = newKH;
+        return *newKH;
+    }
 }
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -20,6 +20,7 @@
 
 #include "fdb5/DB.h"
 #include "fdb5/Rules.h"
+#include "fdb5/Handlers.h"
 
 class MarsTask;
 class MarsRequest;
@@ -42,12 +43,14 @@ public: // methods
 
     const Rules& rules() const;
 
+    const KeywordHandler& lookupHandler(const std::string& keyword) const;
+
 private: // methods
 
     MasterConfig();
 
     /// Destructor
-    
+
     ~MasterConfig();
 
     void expand(const MarsRequest& request,
@@ -58,6 +61,7 @@ private: // methods
 private: // members
 
     Rules rules_;
+    Handlers handlers_;
 
 };
 

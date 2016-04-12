@@ -70,9 +70,11 @@ list( APPEND fdb5_srcs
     Rules.cc
     RulesParser.h
     RulesParser.cc
-    KeyCollector.h
-    KeyCollector.cc
+    Visitor.h
+    Visitor.cc
 
+    Handlers.h
+    Handlers.cc
     KeywordType.h
     KeywordType.cc
     KeywordHandler.h

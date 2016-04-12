@@ -8,50 +8,45 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   RetrieveOp.h
+/// @file   Visitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   Mar 2016
+/// @date   April 2016
 
-#ifndef fdb5_RetrieveOp_H
-#define fdb5_RetrieveOp_H
+#ifndef fdb5_Visitor_H
+#define fdb5_Visitor_H
 
+#include <iosfwd>
+#include <vector>
 
-#include "fdb5/Op.h"
-#include "fdb5/HandleGatherer.h"
+#include "eckit/memory/NonCopyable.h"
+#include "eckit/types/Types.h"
+
+class MarsRequest;
 
 namespace fdb5 {
 
-class DB;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class RetrieveOp : public fdb5::Op {
-
+class Visitor : public eckit::NonCopyable {
 public: // methods
 
-    RetrieveOp(HandleGatherer& result);
+    virtual ~Visitor();
 
-    /// Destructor
+    virtual void selectDatabase(const Key& key) = 0;
+    virtual void selectIndex(const Key& key) = 0;
+    virtual void selectDatum(const Key& key) = 0;
 
-    virtual ~RetrieveOp();
 
-private: // methods
+    virtual void values(const MarsRequest& request,
+                        const std::string& keyword,
+                        eckit::StringList& values) = 0;
 
-    virtual void enter(const std::string& param, const std::string& value);
+    virtual void enter(const std::string& keyword, const std::string& value);
     virtual void leave();
 
-    virtual void execute(const MarsTask& task, Key& key, Op& tail);
-
-    virtual void fail(const MarsTask& task, Key& key, Op &tail);
-
-private:
-
-    virtual void print( std::ostream& out ) const;
-
-private: // members
-
-    HandleGatherer& result_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -37,7 +37,7 @@ const Rule* Rules::match(const Key& key, size_t depth) const
     return fdb5::matchFirst(rules_, key, depth);
 }
 
-void Rules::expand(const MarsRequest& request, KeyCollector& collector) const
+void Rules::expand(const MarsRequest& request, Visitor& collector) const
 {
     for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         std::vector<Key> keys(1);

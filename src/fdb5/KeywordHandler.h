@@ -22,12 +22,11 @@
 #include "eckit/types/Types.h"
 
 class MarsTask;
+class MarsRequest;
 
 namespace fdb5 {
 
 class Op;
-class DB;
-class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -39,11 +38,9 @@ public: // methods
 
     virtual ~KeywordHandler();
 
-    virtual void getValues(const MarsTask& task,
+    virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,
-                           eckit::StringList& values,
-                           const DB& db,
-                           const Key& key) const;
+                           eckit::StringList& values) const;
 
     virtual Op* makeOp(const MarsTask& task, Op& parent) const;
 

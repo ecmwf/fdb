@@ -8,40 +8,29 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   IntegerHandler.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   April 2016
+#include "eckit/log/Log.h"
 
-#ifndef fdb5_IntegerHandler_H
-#define fdb5_IntegerHandler_H
+#include "fdb5/Visitor.h"
 
-#include "fdb5/KeywordHandler.h"
+using namespace eckit;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IntegerHandler : public KeywordHandler {
+Visitor::~Visitor()
+{
+}
 
-public: // methods
+void Visitor::enter(const std::string& , const std::string& )
+{
+}
 
-    IntegerHandler(const std::string& name);
+void Visitor::leave()
+{
+}
 
-    virtual ~IntegerHandler();
-
-    virtual void getValues(const MarsRequest& request,
-                           const std::string& keyword,
-                           eckit::StringList& values) const;
-
-private: // methods
-
-    virtual void print( std::ostream& out ) const;
-
-};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif
