@@ -37,8 +37,6 @@ public: // methods
 
     eckit::SharedPtr<DB> openSessionDB(const Key& userkey);
 
-    VecDB openSessionDBs(const MarsTask& task);
-
     Key makeDBKey(const Key& key) const;
 
     const Rules& rules() const;

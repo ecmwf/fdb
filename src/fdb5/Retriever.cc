@@ -23,6 +23,7 @@
 #include "fdb5/KeywordHandler.h"
 #include "fdb5/HandleGatherer.h"
 #include "fdb5/Visitor.h"
+#include "eckit/config/Resource.h"
 
 using namespace eckit;
 
@@ -42,17 +43,24 @@ Retriever::~Retriever()
 {
 }
 
-struct RetrieveCollector : public Visitor {
+struct RetrieveVisitor : public Visitor {
 
+    eckit::ScopedPtr<DB> db_;
     HandleGatherer& gatherer_;
-
     std::vector<Op*> opStack_;
+    std::string fdbReaderDB_;
 
-    RetrieveCollector(HandleGatherer& gatherer) : gatherer_(gatherer) {
+    RetrieveVisitor(HandleGatherer& gatherer) : gatherer_(gatherer) {
         opStack_.push_back(new RetrieveOp(gatherer));
+        fdbReaderDB_ = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
     }
 
-    virtual void selectDatabase(const Key& key) {}
+    virtual void selectDatabase(const Key& key) {
+        Log::info() << "selectDatabase " << key << std::endl;
+        db_.reset(DBFactory::build(fdbReaderDB_, key));
+
+    }
+
     virtual void selectIndex(const Key& key) {}
     virtual void selectDatum(const Key& key) {}
 
@@ -91,7 +99,7 @@ eckit::DataHandle* Retriever::retrieve()
 
     HandleGatherer result(sorted);
 
-    RetrieveCollector c(result);
+    RetrieveVisitor c(result);
 
     const Rules& rules = MasterConfig::instance().rules();
     rules.expand(task_.request(), c);
