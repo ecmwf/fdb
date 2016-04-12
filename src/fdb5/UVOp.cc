@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -39,14 +39,15 @@ void UVOp::leave() {
     Log::debug() << " < UVOp";
 }
 
-void UVOp::execute(const MarsTask& task, Key& key, Op& tail)
+void UVOp::execute(const MarsTask& task, const Key& key, Op& tail)
 {
     parent_.execute(task, key, tail);
 }
 
-void UVOp::fail(const MarsTask& task, Key& key, Op& tail)
+void UVOp::fail(const MarsTask& task, const Key& key, Op& tail)
 {
     const std::string& param = key.get("param");
+    Key newkey(key);
 
     WindsMap::iterator j = winds_.find(windsKey_);
 
@@ -64,14 +65,14 @@ void UVOp::fail(const MarsTask& task, Key& key, Op& tail)
         ASSERT(!winds.UfromVOD_);
 
         if(!winds.wantVO_ && !winds.gotVO_) {
-            key.set("param", winds.getVO(param));
-            execute(task, key, tail);
+            newkey.set("param", winds.getVO(param));
+            execute(task, newkey, tail);
             winds.gotVO_ = true;
         }
 
         if(!winds.wantD_ && !winds.gotD_) {
-            key.set("param", winds.getD(param));
-            execute(task, key, tail);
+            newkey.set("param", winds.getD(param));
+            execute(task, newkey, tail);
             winds.gotD_ = true;
         }
 
@@ -85,14 +86,14 @@ void UVOp::fail(const MarsTask& task, Key& key, Op& tail)
         ASSERT(!winds.VfromVOD_);
 
         if(!winds.wantVO_ && !winds.gotVO_) {
-            key.set("param", winds.getVO(param));
-            execute(task, key, tail);
+            newkey.set("param", winds.getVO(param));
+            execute(task, newkey, tail);
             winds.gotVO_ = true;
         }
 
         if(!winds.wantD_ && !winds.gotD_) {
-            key.set("param", winds.getD(param));
-            execute(task, key, tail);
+            newkey.set("param", winds.getD(param));
+            execute(task, newkey, tail);
             winds.gotD_ = true;
         }
 

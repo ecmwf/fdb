@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -26,13 +26,13 @@ namespace fdb5 {
 TocSchema::TocSchema(const Key& dbKey) :
     dbKey_(dbKey)
 {
-    root_ = eckit::Resource<std::string>("fdbRoot;$FDB_ROOT", "/tmp/fdb", dbKey.dict());
+    root_ = eckit::Resource<std::string>("fdbRoot;$FDB_ROOT", "/tmp/fdb" );
 
     root_.mkdir(); /// @note what about permissions on creation?
 
-    dirPath_ = root_ / MasterConfig::instance().makeDBKey(dbKey).toIndexForm(":");
+    dirPath_ = root_ / dbKey.valuesToString();
 
-    indexType_ = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex", dbKey.dict());
+    indexType_ = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex" );
 
     /// @todo the schema should be generated as we walk the expansion (not a predifned one as below)
 

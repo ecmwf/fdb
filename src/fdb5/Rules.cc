@@ -32,16 +32,12 @@ Rules::~Rules()
     clear();
 }
 
-const Rule* Rules::match(const Key& key, size_t depth) const
+void Rules::expand(const MarsRequest& request, Visitor& visitor) const
 {
-    return fdb5::matchFirst(rules_, key, depth);
-}
-
-void Rules::expand(const MarsRequest& request, Visitor& collector) const
-{
+    Key full;
     for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         std::vector<Key> keys(1);
-        (*i)->expand(request, collector, keys);
+        (*i)->expand(request, visitor, keys, full);
     }
 }
 
@@ -52,6 +48,9 @@ void Rules::load(const eckit::PathName& path, bool replace)
     }
 
     std::ifstream in(path.asString().c_str());
+    if(!in) {
+        throw eckit::CantOpenFile(path);
+    }
 
     RulesParser parser(in);
 

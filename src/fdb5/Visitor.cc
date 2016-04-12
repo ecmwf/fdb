@@ -22,13 +22,6 @@ Visitor::~Visitor()
 {
 }
 
-void Visitor::enter(const std::string& , const std::string& )
-{
-}
-
-void Visitor::leave()
-{
-}
 
 
 //----------------------------------------------------------------------------------------------------------------------

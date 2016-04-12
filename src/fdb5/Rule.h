@@ -47,7 +47,7 @@ public: // methods
 
     void dump(std::ostream& s, size_t depth = 0) const;
 
-    void expand(const MarsRequest& request, Visitor& collector, std::vector<fdb5::Key>& keys) const;
+    void expand(const MarsRequest& request, Visitor& collector, std::vector<fdb5::Key>& keys, Key& full) const;
 
     size_t depth() const;
 
@@ -56,11 +56,11 @@ private: // methods
     void expand(const MarsRequest& request,
                  std::vector<Predicate*>::const_iterator cur,
                  std::vector<Key>& keys,
+                 Key& full,
                  Visitor& collector) const;
 
     void keys(size_t level, size_t depth, eckit::StringList&result, eckit::StringSet& seen) const;
 
-    friend const Rule* matchFirst(const std::vector<Rule*>& rules, const Key& key, size_t depth);
     friend std::ostream& operator<<(std::ostream& s,const Rule& x);
 
     void print( std::ostream& out ) const;
@@ -71,8 +71,6 @@ private: // members
     std::vector<Rule*>      rules_;
 
 };
-
-const Rule* matchFirst(const std::vector<Rule*>& rules, const Key& key, size_t depth);
 
 //----------------------------------------------------------------------------------------------------------------------
 

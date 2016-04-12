@@ -51,10 +51,6 @@ private: // methods
 
     ~MasterConfig();
 
-    void expand(const MarsRequest& request,
-                size_t pos,
-                Key& dbKey,
-                VecDB& result );
 
 private: // members
 

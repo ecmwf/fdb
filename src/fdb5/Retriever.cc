@@ -23,6 +23,7 @@
 #include "fdb5/KeywordHandler.h"
 #include "fdb5/HandleGatherer.h"
 #include "fdb5/Visitor.h"
+
 #include "eckit/config/Resource.h"
 
 using namespace eckit;
@@ -43,38 +44,90 @@ Retriever::~Retriever()
 {
 }
 
-struct RetrieveVisitor : public Visitor {
+struct RetrieveVisitor : public Visitor, public RetrieveOpCallback {
 
     eckit::ScopedPtr<DB> db_;
-    HandleGatherer& gatherer_;
-    std::vector<Op*> opStack_;
-    std::string fdbReaderDB_;
 
-    RetrieveVisitor(HandleGatherer& gatherer) : gatherer_(gatherer) {
-        opStack_.push_back(new RetrieveOp(gatherer));
+    std::vector<Op*> op_;
+    const MarsTask& task_;
+
+    std::string fdbReaderDB_;
+    HandleGatherer& gatherer_;
+
+
+    RetrieveVisitor(const MarsTask& task, HandleGatherer& gatherer):
+        task_(task),
+        gatherer_(gatherer) {
+
+        op_.push_back(new RetrieveOp(*this));
         fdbReaderDB_ = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
     }
 
-    virtual void selectDatabase(const Key& key) {
+    ~RetrieveVisitor() {
+        for(std::vector<Op*>::const_iterator j = op_.begin(); j != op_.end(); ++j) {
+            delete (*j);
+        }
+    }
+
+    // From Visitor
+
+    virtual bool selectDatabase(const Key& key, const Key& full) {
         Log::info() << "selectDatabase " << key << std::endl;
         db_.reset(DBFactory::build(fdbReaderDB_, key));
-
+        if(!db_->open()) {
+            Log::info() << "Database does not exists " << key << std::endl;
+            return false;
+        }
+        else {
+            return true;
+        }
     }
 
-    virtual void selectIndex(const Key& key) {}
-    virtual void selectDatum(const Key& key) {}
-
-    virtual void enter(const std::string& keyword, const std::string& value) {
-        opStack_.back()->enter(keyword, value);
+    virtual bool selectIndex(const Key& key, const Key& full) {
+        Log::info() << "selectIndex " << key << std::endl;
+        return true;
     }
 
-    virtual void leave() {
-        opStack_.back()->leave();
+    virtual bool selectDatum(const Key& key, const Key& full) {
+        Log::info() << "selectDatum " << key << ", " << full << std::endl;
+        ASSERT(op_.size());
+        op_.back()->execute(task_, full, *op_.back());
+        return true;
     }
 
-    virtual void values(const MarsRequest& request, const std::string& keyword, eckit::StringList& values) {
+    virtual void enterValue(const std::string& keyword, const std::string& value) {
+        ASSERT(op_.size() > 1);
+        op_[op_.size()-1]->enter(keyword, value);
+    }
+
+    virtual void leaveValue() {
+        ASSERT(op_.size() > 1);
+        op_[op_.size()-1]->leave();
+    }
+
+    virtual void enterKeyword(const MarsRequest& request, const std::string& keyword, eckit::StringList& values) {
         const KeywordHandler& handler = MasterConfig::instance().lookupHandler(keyword);
         handler.getValues(request, keyword, values);
+        op_.push_back(handler.makeOp(task_, *op_.back()));
+    }
+
+    virtual void leaveKeyword() {
+        ASSERT(op_.size());
+        Op* op = op_.back();
+        op_.pop_back();
+        delete op;
+    }
+
+    // From RetrieveOpCallback
+
+    virtual bool retrieve(const MarsTask& task, const Key& key) {
+        DataHandle* dh = db_->retrieve(task, key);
+        if(dh) {
+            Log::info() << "Got data for key " << key << std::endl;
+            gatherer_.add(dh);
+            return true;
+        }
+        return false;
     }
 
 };
@@ -99,7 +152,7 @@ eckit::DataHandle* Retriever::retrieve()
 
     HandleGatherer result(sorted);
 
-    RetrieveVisitor c(result);
+    RetrieveVisitor c(task_, result);
 
     const Rules& rules = MasterConfig::instance().rules();
     rules.expand(task_.request(), c);
@@ -109,11 +162,8 @@ eckit::DataHandle* Retriever::retrieve()
 
 void Retriever::print(std::ostream& out) const
 {
-    out << "Retriever("
-        << "task=" << task_
-        << "task.request=" << task_.request()
-        << ")"
-        << std::endl;
+    out << "Retriever(" << task_.request()
+        << ")";
 }
 
 // void Retriever::retrieve(Key& key,

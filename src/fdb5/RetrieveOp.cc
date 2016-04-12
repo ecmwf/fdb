@@ -20,9 +20,8 @@ using namespace eckit;
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-RetrieveOp::RetrieveOp(HandleGatherer& result) :
-
-    result_(result)
+RetrieveOp::RetrieveOp(RetrieveOpCallback& callback):
+    callback_(callback)
 {
 }
 
@@ -38,20 +37,16 @@ void RetrieveOp::leave() {
     Log::debug() << " < RetrieveOp" << std::endl;
 }
 
-void RetrieveOp::execute(const MarsTask& task, Key& key, Op& tail)
+void RetrieveOp::execute(const MarsTask& task, const Key& key, Op& tail)
 {
-    // DataHandle* dh = db_.retrieve(task, key);
-    // if(dh) {
-    //     Log::info() << "Got data for key " << key << std::endl;
-    //     result_.add(dh);
-    // }
-    // else {
-    //     Log::info() << "Failed to retrieve key " << key << std::endl;
-    //     tail.fail(task, key, tail);
-    // }
+    if(!callback_.retrieve(task, key))
+    {
+        Log::info() << "Failed to retrieve key " << key << std::endl;
+        tail.fail(task, key, tail);
+    }
 }
 
-void RetrieveOp::fail(const MarsTask& task, Key& key, Op& tail)
+void RetrieveOp::fail(const MarsTask& task, const Key& key, Op& tail)
 {
 //    throw NotFound(key, Here());
 //
@@ -60,7 +55,7 @@ void RetrieveOp::fail(const MarsTask& task, Key& key, Op& tail)
 
 void RetrieveOp::print(std::ostream &out) const
 {
-    out << "RetrieveOp(result=" << result_ << ")";
+    out << "RetrieveOp()";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

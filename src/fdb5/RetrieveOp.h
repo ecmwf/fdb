@@ -26,11 +26,16 @@ class DB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class RetrieveOpCallback {
+public:
+    virtual bool retrieve(const MarsTask& task, const Key&) = 0;
+};
+
 class RetrieveOp : public fdb5::Op {
 
 public: // methods
 
-    RetrieveOp(HandleGatherer& result);
+    RetrieveOp(RetrieveOpCallback& callback);
 
     /// Destructor
 
@@ -41,9 +46,9 @@ private: // methods
     virtual void enter(const std::string& param, const std::string& value);
     virtual void leave();
 
-    virtual void execute(const MarsTask& task, Key& key, Op& tail);
+    virtual void execute(const MarsTask& task, const Key& key, Op& tail);
 
-    virtual void fail(const MarsTask& task, Key& key, Op &tail);
+    virtual void fail(const MarsTask& task, const Key& key,  Op &tail);
 
 private:
 
@@ -51,7 +56,7 @@ private:
 
 private: // members
 
-    HandleGatherer& result_;
+    RetrieveOpCallback& callback_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

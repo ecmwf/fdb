@@ -35,17 +35,18 @@ public: // methods
 
     virtual ~Visitor();
 
-    virtual void selectDatabase(const Key& key) = 0;
-    virtual void selectIndex(const Key& key) = 0;
-    virtual void selectDatum(const Key& key) = 0;
+    virtual bool selectDatabase(const Key& key, const Key& full) = 0;
+    virtual bool selectIndex(const Key& key, const Key& full) = 0;
+    virtual bool selectDatum(const Key& key, const Key& full) = 0;
 
 
-    virtual void values(const MarsRequest& request,
+    virtual void enterKeyword(const MarsRequest& request,
                         const std::string& keyword,
                         eckit::StringList& values) = 0;
+    virtual void leaveKeyword() = 0;
 
-    virtual void enter(const std::string& keyword, const std::string& value);
-    virtual void leave();
+    virtual void enterValue(const std::string& keyword, const std::string& value) = 0;
+    virtual void leaveValue() = 0;
 
 };
 

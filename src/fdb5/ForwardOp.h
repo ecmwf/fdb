@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -29,7 +29,7 @@ public: // methods
     ForwardOp(Op& parent);
 
     /// Destructor
-    
+
     virtual ~ForwardOp();
 
 private: // methods
@@ -37,9 +37,9 @@ private: // methods
     virtual void enter(const std::string& param, const std::string& value);
     virtual void leave();
 
-    virtual void execute(const MarsTask& task, Key& key, Op &tail);
+    virtual void execute(const MarsTask& task, const Key& key, Op &tail);
 
-    virtual void fail(const MarsTask& task, Key& key, Op &tail);
+    virtual void fail(const MarsTask& task, const Key& key, Op &tail);
 
     virtual void print( std::ostream& out ) const;
 

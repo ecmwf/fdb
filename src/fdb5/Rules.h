@@ -40,7 +40,6 @@ public: // methods
 
     ~Rules();
 
-    const Rule* match(const Key& key, size_t depth) const;
 
     void expand(const MarsRequest& request, fdb5::Visitor& collector) const;
 

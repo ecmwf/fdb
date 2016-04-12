@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -19,6 +19,8 @@ using namespace eckit;
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+
+const char *sep = "/";
 
 Key::Key() :
     keys_(),
@@ -47,7 +49,7 @@ void Key::clear()
     }
 }
 
-void Key::set(const std::string& k, const std::string& v) { 
+void Key::set(const std::string& k, const std::string& v) {
     keys_[k] = v;
     if(usedKeys_) {
         (*usedKeys_)[k] = false;
@@ -97,12 +99,22 @@ bool Key::match(const Key& partial) const
     return true;
 }
 
-std::string Key::toIndexForm(const char* sep) const
+std::string Key::toIndexForm() const
 {
     std::string result(sep);
     StringDict::const_iterator ktr = keys_.begin();
     for(; ktr != keys_.end(); ++ktr)
         result += ktr->first + sep + ktr->second + sep;
+    return result;
+}
+
+std::string Key::valuesToString() const
+{
+    const char *sep = ":";
+    std::string result(sep);
+    StringDict::const_iterator ktr = keys_.begin();
+    for(; ktr != keys_.end(); ++ktr)
+        result += ktr->second + sep;
     return result;
 }
 
@@ -126,8 +138,6 @@ void Key::checkUsedKeys() const
 
 void Key::load(std::istream& s)
 {
-    const char* sep = "/";
-
     std::string params;
     s >> params;
 
@@ -145,8 +155,6 @@ void Key::load(std::istream& s)
 
 void Key::dump(std::ostream& s) const
 {
-    const char* sep = "/";
-
     s << sep;
     for(StringDict::const_iterator ktr = keys_.begin(); ktr != keys_.end(); ++ktr) {
         s << ktr->first << sep << ktr->second << sep;

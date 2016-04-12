@@ -42,7 +42,7 @@ void FdbExtract::run()
     r.setValue("expver","0001");
     r.setValue("type","an");
     r.setValue("levtype","pl");
-    r.setValue("date","20160404");
+    r.setValue("date","20160411");
     r.setValue("time","1200");
 
     vector<string> params;

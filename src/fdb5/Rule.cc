@@ -56,22 +56,29 @@ Rule::~Rule()
 void Rule::expand( const MarsRequest& request,
                    std::vector<Predicate*>::const_iterator cur,
                    std::vector<Key>& keys,
-                   Visitor& collector) const {
+                   Key& full,
+                   Visitor& visitor) const {
 
     if(cur == predicates_.end()) {
         if(rules_.empty()) {
             ASSERT(keys.size() == 3); /// we have 3 levels ATM
-            collector.selectDatum( keys[2]);
+            if(!visitor.selectDatum( keys[2], full)) {
+                return; // This it not useful
+            }
         }
         else {
 
             switch(keys.size()) {
                 case 1:
-                    collector.selectDatabase(keys[0]);
+                    if(!visitor.selectDatabase(keys[0], full)) {
+                        return;
+                    };
                     break;
 
                 case 2:
-                    collector.selectIndex(keys[1]);
+                    if(!visitor.selectIndex(keys[1], full)) {
+                        return;
+                    }
                     break;
 
                 default:
@@ -81,41 +88,46 @@ void Rule::expand( const MarsRequest& request,
 
             for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
                 keys.push_back(Key());
-                (*i)->expand(request, collector, keys);
+                (*i)->expand(request, visitor, keys, full);
                 keys.pop_back();
             }
         }
         return;
     }
 
-    ++cur;
+    std::vector<Predicate*>::const_iterator next = cur;
+    ++next;
 
     const std::string& keyword = (*cur)->keyword();
 
     StringList values;
 
-    collector.values(request, keyword, values);
+    visitor.enterKeyword(request, keyword, values);
 
     Key& k = keys.back();
 
     for(StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
 
-        if((*cur)->match(*i)) {
+        k.set(keyword, *i);
+        full.set(keyword, *i);
 
-            collector.enter(keyword, *i);
-
-            k.set(keyword, *i);
-            expand(request, cur, keys, collector);
-            k.unset(keyword);
-
-            collector.leave();
+        if((*cur)->match(k)) {
+            visitor.enterValue(keyword, *i);
+            expand(request, next, keys, full, visitor);
+            visitor.leaveValue();
         }
+
+        full.unset(keyword);
+        k.unset(keyword);
+
     }
+
+    visitor.leaveKeyword();
 }
 
-void Rule::expand(const MarsRequest& request, Visitor& collector, std::vector<Key>& keys) const
+void Rule::expand(const MarsRequest& request, Visitor& visitor, std::vector<Key>& keys, Key& full) const
 {
-    expand(request, predicates_.begin(), keys, collector);
+    expand(request, predicates_.begin(), keys, full, visitor);
 }
 
 bool Rule::match(const Key& key) const

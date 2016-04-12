@@ -54,15 +54,7 @@ const Rules& MasterConfig::rules() const
 
 Key MasterConfig::makeDBKey(const Key& key) const
 {
-    const Rule* r = rules_.match(key, 0);
-
-    ASSERT(r); /// @todo add meaningful error handling here
-
-    StringList keys = r->keys(0);
-
-    Log::info() << ">>>>>>>>>>>>> " << keys << std::endl;
-
-    return key.subkey(keys);
+   return key;
 }
 
 MasterConfig& MasterConfig::instance()
