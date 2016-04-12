@@ -55,41 +55,42 @@ Rule::~Rule()
 
 void Rule::expand( const MarsRequest& request,
                    std::vector<Predicate*>::const_iterator cur,
+                   size_t depth,
                    std::vector<Key>& keys,
                    Key& full,
                    Visitor& visitor) const {
 
+    ASSERT(depth < 3);
+
     if(cur == predicates_.end()) {
         if(rules_.empty()) {
-            ASSERT(keys.size() == 3); /// we have 3 levels ATM
+            ASSERT(depth == 2); /// we have 3 levels ATM
             if(!visitor.selectDatum( keys[2], full)) {
                 return; // This it not useful
             }
         }
         else {
 
-            switch(keys.size()) {
-                case 1:
+            switch(depth) {
+                case 0:
                     if(!visitor.selectDatabase(keys[0], full)) {
                         return;
                     };
                     break;
 
-                case 2:
+                case 1:
                     if(!visitor.selectIndex(keys[1], full)) {
                         return;
                     }
                     break;
 
                 default:
-                    ASSERT(keys.size() == 1 || keys.size() == 2);
+                    ASSERT(depth == 0 || depth == 1);
                     break;
             }
 
             for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-                keys.push_back(Key());
-                (*i)->expand(request, visitor, keys, full);
-                keys.pop_back();
+                (*i)->expand(request, visitor, depth+1, keys, full);
             }
         }
         return;
@@ -104,7 +105,7 @@ void Rule::expand( const MarsRequest& request,
 
     visitor.enterKeyword(request, keyword, values);
 
-    Key& k = keys.back();
+    Key& k = keys[depth];
 
     for(StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
 
@@ -113,7 +114,7 @@ void Rule::expand( const MarsRequest& request,
 
         if((*cur)->match(k)) {
             visitor.enterValue(keyword, *i);
-            expand(request, next, keys, full, visitor);
+            expand(request, next, depth, keys, full, visitor);
             visitor.leaveValue();
         }
 
@@ -125,9 +126,10 @@ void Rule::expand( const MarsRequest& request,
     visitor.leaveKeyword();
 }
 
-void Rule::expand(const MarsRequest& request, Visitor& visitor, std::vector<Key>& keys, Key& full) const
+void Rule::expand(const MarsRequest& request, Visitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const
 {
-    expand(request, predicates_.begin(), keys, full, visitor);
+    ASSERT(keys.size() == 3);
+    expand(request, predicates_.begin(), depth, keys, full, visitor);
 }
 
 bool Rule::match(const Key& key) const
@@ -140,13 +142,13 @@ bool Rule::match(const Key& key) const
     return true;
 }
 
-eckit::StringList Rule::keys(size_t level) const
-{
-    StringList result;
-    StringSet seen;
-    keys(level, 0, result, seen);
-    return result;
-}
+// eckit::StringList Rule::keys(size_t level) const
+// {
+//     StringList result;
+//     StringSet seen;
+//     keys(level, 0, result, seen);
+//     return result;
+// }
 
 void Rule::dump(std::ostream& s, size_t depth) const
 {
@@ -173,19 +175,19 @@ size_t Rule::depth() const
     return result+1;
 }
 
-void Rule::keys(size_t level, size_t depth, eckit::StringList& result, eckit::StringSet& seen) const
-{
-    if(level>=depth) {
-        for(std::vector<Predicate*>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
-            const std::string& keyword = (*i)->keyword();
-            if(seen.find(keyword) == seen.end()) {
-                result.push_back(keyword);
-                seen.insert(keyword);
-            }
-        }
-        keys(level, depth+1, result, seen);
-    }
-}
+// void Rule::keys(size_t level, size_t depth, eckit::StringList& result, eckit::StringSet& seen) const
+// {
+//     if(level>=depth) {
+//         for(std::vector<Predicate*>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
+//             const std::string& keyword = (*i)->keyword();
+//             if(seen.find(keyword) == seen.end()) {
+//                 result.push_back(keyword);
+//                 seen.insert(keyword);
+//             }
+//         }
+//         keys(level, depth+1, result, seen);
+//     }
+// }
 
 void Rule::print(std::ostream& out) const
 {

@@ -46,8 +46,9 @@ void FdbExtract::run()
     r.setValue("time","1200");
 
     vector<string> params;
-    params.push_back( "131.128" );
-    params.push_back( "138.128" );
+    // params.push_back( "131.128" );
+    // params.push_back( "138.128" );
+    params.push_back( "129" );
     r.setValues("param",params);
 
     r.setValue("step","0");

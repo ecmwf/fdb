@@ -35,9 +35,10 @@ Rules::~Rules()
 void Rules::expand(const MarsRequest& request, Visitor& visitor) const
 {
     Key full;
+    std::vector<Key> keys(3);
+
     for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        std::vector<Key> keys(1);
-        (*i)->expand(request, visitor, keys, full);
+        (*i)->expand(request, visitor, 0, keys, full);
     }
 }
 

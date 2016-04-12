@@ -47,7 +47,7 @@ public: // methods
 
     void dump(std::ostream& s, size_t depth = 0) const;
 
-    void expand(const MarsRequest& request, Visitor& collector, std::vector<fdb5::Key>& keys, Key& full) const;
+    void expand(const MarsRequest& request, Visitor& collector, size_t depth, std::vector<fdb5::Key>& keys, Key& full) const;
 
     size_t depth() const;
 
@@ -55,6 +55,7 @@ private: // methods
 
     void expand(const MarsRequest& request,
                  std::vector<Predicate*>::const_iterator cur,
+                 size_t depth,
                  std::vector<Key>& keys,
                  Key& full,
                  Visitor& collector) const;
