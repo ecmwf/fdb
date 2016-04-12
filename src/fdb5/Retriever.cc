@@ -85,11 +85,13 @@ struct RetrieveVisitor : public Visitor, public RetrieveOpCallback {
 
     virtual bool selectIndex(const Key& key, const Key& full) {
         Log::info() << "selectIndex " << key << std::endl;
+        // db_->selectIndex(key);
         return true;
     }
 
     virtual bool selectDatum(const Key& key, const Key& full) {
         Log::info() << "selectDatum " << key << ", " << full << std::endl;
+        // db_->selectDatum(key);
         ASSERT(op_.size());
         op_.back()->execute(task_, full, *op_.back());
         return true;
