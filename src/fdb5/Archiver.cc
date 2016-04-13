@@ -71,6 +71,7 @@ struct ArchiveVisitor : public WriteVisitor {
 
     virtual bool selectIndex(const Key& key, const Key& full) {
         Log::info() << "selectIndex " << key << std::endl;
+        ASSERT(db_);
         return db_->selectIndex(key);
     }
 
