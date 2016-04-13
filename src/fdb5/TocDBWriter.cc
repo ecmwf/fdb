@@ -36,7 +36,6 @@
 #include "fdb5/MasterConfig.h"
 #include "fdb5/TocActions.h"
 #include "fdb5/TocDBWriter.h"
-#include "fdb5/TocSchema.h"
 
 using namespace eckit;
 

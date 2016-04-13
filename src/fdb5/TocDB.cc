@@ -20,7 +20,6 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocDB::TocDB(const Key& dbKey) : DB(dbKey),
-    schema_(dbKey),
     current_(0)
 {
     PathName root( eckit::Resource<std::string>("fdbRoot;$FDB_ROOT", "/tmp/fdb" ) );
@@ -33,16 +32,6 @@ TocDB::TocDB(const Key& dbKey) : DB(dbKey),
 TocDB::~TocDB()
 {
     closeIndexes();
-}
-
-bool TocDB::match(const Key& key) const
-{
-    return schema_.matchTOC(key);
-}
-
-const Schema& TocDB::schema() const
-{
-    return schema_;
 }
 
 void TocDB::axis(const Key& key, const std::string& keyword, eckit::StringSet& s) const

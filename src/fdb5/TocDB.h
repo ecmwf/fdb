@@ -17,7 +17,6 @@
 #define fdb5_TocDB_H
 
 #include "fdb5/DB.h"
-#include "fdb5/TocSchema.h"
 #include "fdb5/Index.h"
 
 namespace fdb5 {
@@ -39,10 +38,6 @@ protected: // types
     typedef std::map< std::string, Index* > IndexStore;
 
 protected: // methods
-
-    virtual bool match(const Key& key) const;
-
-    virtual const Schema& schema() const;
 
     virtual void axis(const Key& key, const std::string& keyword, eckit::StringSet& s) const;
 
@@ -74,8 +69,6 @@ protected: // members
     eckit::PathName path_;
 
     std::string indexType_;
-
-    TocSchema schema_;
 
     Index* current_;
 

@@ -52,7 +52,7 @@ bool TocDBReader::open() {
 
 void TocDBReader::axis(const Key& key, const std::string& keyword, StringSet& s) const
 {
-    const std::vector<PathName>& indexesPaths = toc_.indexes( schema_.tocEntry(key) );
+    const std::vector<PathName>& indexesPaths = toc_.indexes( key.valuesToString() );
 
     for( std::vector<PathName>::const_iterator itr = indexesPaths.begin(); itr != indexesPaths.end(); ++itr )
     {

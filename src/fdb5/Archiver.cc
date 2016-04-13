@@ -68,7 +68,7 @@ void Archiver::flush()
 struct SessionMatcher {
     SessionMatcher(const Key& key) : key_(key) {}
     bool operator()(const eckit::SharedPtr<DB>& session) {
-        return session->match(key_);
+        return true; // session->match(key_);
     }
     const Key& key_;
 };

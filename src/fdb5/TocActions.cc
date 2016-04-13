@@ -19,7 +19,7 @@
 
 #include "fdb5/Error.h"
 #include "fdb5/TocActions.h"
-#include "fdb5/TocSchema.h"
+#include "fdb5/Key.h"
 
 using namespace eckit;
 

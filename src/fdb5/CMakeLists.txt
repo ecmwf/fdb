@@ -96,8 +96,6 @@ list( APPEND fdb5_srcs
 	TocDBReader.cc
 	TocDBWriter.h
 	TocDBWriter.cc
-    TocSchema.h
-    TocSchema.cc
 
     Index.h
     Index.cc
