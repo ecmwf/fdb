@@ -32,7 +32,7 @@ Rules::~Rules()
     clear();
 }
 
-void Rules::expand(const MarsRequest& request, Visitor& visitor) const
+void Rules::expand(const MarsRequest& request, ReadVisitor& visitor) const
 {
     Key full;
     std::vector<Key> keys(3);

@@ -22,7 +22,7 @@
 #include "fdb5/Rule.h"
 #include "fdb5/KeywordHandler.h"
 #include "fdb5/HandleGatherer.h"
-#include "fdb5/Visitor.h"
+#include "fdb5/ReadVisitor.h"
 
 #include "eckit/config/Resource.h"
 
@@ -44,7 +44,7 @@ Retriever::~Retriever()
 {
 }
 
-struct RetrieveVisitor : public Visitor, public RetrieveOpCallback {
+struct RetrieveVisitor : public ReadVisitor, public RetrieveOpCallback {
 
     eckit::ScopedPtr<DB> db_;
 

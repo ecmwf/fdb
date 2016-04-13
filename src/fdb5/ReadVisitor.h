@@ -8,58 +8,45 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Rules.h
+/// @file   ReadVisitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_Rules_H
-#define fdb5_Rules_H
+#ifndef fdb5_ReadVisitor_H
+#define fdb5_ReadVisitor_H
 
 #include <iosfwd>
 #include <vector>
 
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/filesystem/PathName.h"
+#include "eckit/types/Types.h"
 
 class MarsRequest;
 
 namespace fdb5 {
 
 class Key;
-class Rule;
-class ReadVisitor;
-class WriteVisitor;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Rules : private eckit::NonCopyable {
-
+class ReadVisitor : public eckit::NonCopyable {
 public: // methods
 
-    Rules();
+    virtual ~ReadVisitor();
 
-    ~Rules();
+    virtual bool selectDatabase(const Key& key, const Key& full) = 0;
+    virtual bool selectIndex(const Key& key, const Key& full) = 0;
+    virtual bool selectDatum(const Key& key, const Key& full) = 0;
 
-    void expand(const Key& field, WriteVisitor& visitor) const;
-    void expand(const MarsRequest& request, ReadVisitor& visitor) const;
 
-    void load(const eckit::PathName& path, bool replace = false);
+    virtual void enterKeyword(const MarsRequest& request,
+                        const std::string& keyword,
+                        eckit::StringList& values) = 0;
+    virtual void leaveKeyword() = 0;
 
-    void dump(std::ostream& s) const;
-
-private: // methods
-
-    void clear();
-    void check();
-
-    friend std::ostream& operator<<(std::ostream& s,const Rules& x);
-
-    void print( std::ostream& out ) const;
-
-private: // members
-
-    std::vector<Rule*>      rules_;
+    virtual void enterValue(const std::string& keyword, const std::string& value) = 0;
+    virtual void leaveValue() = 0;
 
 };
 

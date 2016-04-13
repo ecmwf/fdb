@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Visitor.h
+/// @file   WriteVisitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_Visitor_H
-#define fdb5_Visitor_H
+#ifndef fdb5_WriteVisitor_H
+#define fdb5_WriteVisitor_H
 
 #include <iosfwd>
 #include <vector>
@@ -30,10 +30,10 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Visitor : public eckit::NonCopyable {
+class WriteVisitor : public eckit::NonCopyable {
 public: // methods
 
-    virtual ~Visitor();
+    virtual ~WriteVisitor();
 
     virtual bool selectDatabase(const Key& key, const Key& full) = 0;
     virtual bool selectIndex(const Key& key, const Key& full) = 0;

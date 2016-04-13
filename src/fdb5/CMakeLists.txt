@@ -70,8 +70,10 @@ list( APPEND fdb5_srcs
     Rules.cc
     RulesParser.h
     RulesParser.cc
-    Visitor.h
-    Visitor.cc
+    ReadVisitor.h
+    ReadVisitor.cc
+    WriteVisitor.h
+    WriteVisitor.cc
 
     Handlers.h
     Handlers.cc

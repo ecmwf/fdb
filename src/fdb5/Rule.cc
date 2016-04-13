@@ -15,7 +15,8 @@
 #include "fdb5/Predicate.h"
 #include "fdb5/Rule.h"
 #include "fdb5/Key.h"
-#include "fdb5/Visitor.h"
+#include "fdb5/ReadVisitor.h"
+#include "fdb5/WriteVisitor.h"
 
 using namespace eckit;
 
@@ -58,7 +59,7 @@ void Rule::expand( const MarsRequest& request,
                    size_t depth,
                    std::vector<Key>& keys,
                    Key& full,
-                   Visitor& visitor) const {
+                   ReadVisitor& visitor) const {
 
     ASSERT(depth < 3);
 
@@ -126,10 +127,16 @@ void Rule::expand( const MarsRequest& request,
     visitor.leaveKeyword();
 }
 
-void Rule::expand(const MarsRequest& request, Visitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const
+void Rule::expand(const MarsRequest& request, ReadVisitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const
 {
     ASSERT(keys.size() == 3);
     expand(request, predicates_.begin(), depth, keys, full, visitor);
+}
+
+void Rule::expand(const Key& field, WriteVisitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const
+{
+    ASSERT(keys.size() == 3);
+    // expand(field, predicates_.begin(), depth, keys, full, visitor);
 }
 
 bool Rule::match(const Key& key) const

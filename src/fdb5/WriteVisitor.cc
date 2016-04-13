@@ -10,7 +10,7 @@
 
 #include "eckit/log/Log.h"
 
-#include "fdb5/Visitor.h"
+#include "fdb5/WriteVisitor.h"
 
 using namespace eckit;
 
@@ -18,7 +18,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Visitor::~Visitor()
+WriteVisitor::~WriteVisitor()
 {
 }
 
