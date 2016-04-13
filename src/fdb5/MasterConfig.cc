@@ -75,35 +75,6 @@ const KeywordHandler& MasterConfig::lookupHandler(const std::string& keyword) co
     return handlers_.lookupHandler(keyword);
 }
 
-// VecDB MasterConfig::openSessionDBs(const MarsTask& task)
-// {
-//     std::string fdbReaderDB = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
-
-//     VecDB result;
-
-//     struct Collector : public Visitor {
-//         std::set<Key> keySet_;
-//         virtual void collect(const fdb5::Key& key,
-//                              const fdb5::Key&,
-//                              const fdb5::Key&) {
-//             keySet_.insert(key);
-//         }
-//     };
-
-//     Collector c;
-
-//     rules_.expand(task.request(), c);
-
-//     for(std::set<Key>::const_iterator i = c.keySet_.begin(); i != c.keySet_.end(); ++i) {
-//         SharedPtr<DB> newDB ( DBFactory::build(fdbReaderDB, *i) );
-//         if(newDB->open()) {
-//             result.push_back( newDB );
-//         }
-//     }
-
-//     return result;
-// }
-
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
