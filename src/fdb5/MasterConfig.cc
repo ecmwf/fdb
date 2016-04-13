@@ -52,11 +52,6 @@ const Rules& MasterConfig::rules() const
     return rules_;
 }
 
-Key MasterConfig::makeDBKey(const Key& key) const
-{
-   return key;
-}
-
 MasterConfig& MasterConfig::instance()
 {
     static MasterConfig master;

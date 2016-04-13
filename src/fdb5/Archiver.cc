@@ -1,14 +1,15 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
 
 #include <algorithm>
+#include <sstream>
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/DataHandle.h"
@@ -47,17 +48,15 @@ struct ArchiveVisitor : public WriteVisitor {
 
     Archiver& owner_;
 
-    Key fullKey_;
-    Key lastDBKey_;
-
+    const Key& field_;
     const void* data_;
     eckit::Length length_;
 
     DB* db_;
 
-    ArchiveVisitor(Archiver& owner, const Key& fullKey, const void* data, eckit::Length length) :
+    ArchiveVisitor(Archiver& owner, const Key& field, const void* data, eckit::Length length) :
         owner_(owner),
-        fullKey_(fullKey),
+        field_(field),
         data_(data),
         length_(length),
         db_(0)
@@ -79,7 +78,26 @@ struct ArchiveVisitor : public WriteVisitor {
         Log::info() << "selectDatum " << key << ", " << full << std::endl;
         ASSERT(db_);
         db_->archive(key,data_,length_);
-        /// @todo assert full == userKey
+
+        if(1)
+        {
+            StringSet missing;
+            const StringDict& f = field_.dict();
+            const StringDict& k = full.dict();
+
+            for(StringDict::const_iterator j = f.begin(); j != f.end(); ++j) {
+                if(k.find((*j).first) == k.end()) {
+                    missing.insert((*j).first);
+                }
+
+                if(missing.size()) {
+                    std::ostringstream oss;
+                    oss << "Keys not used in archiving: " << missing;
+                    throw SeriousBug(oss.str());
+                }
+            }
+        }
+
         return true;
     }
 

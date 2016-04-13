@@ -17,6 +17,8 @@
 #include "fdb5/ParamHandler.h"
 #include "fdb5/DB.h"
 
+#include "marslib/MarsParam.h"
+#include "marslib/MarsTask.h"
 
 using namespace eckit;
 
@@ -40,42 +42,34 @@ void ParamHandler::getValues(const MarsRequest& request,
                              const DB* db) const {
     ASSERT(db);
 
-    StringSet axis;
+    StringSet ax;
 
-    db->axis(keyword, axis);
+    db->axis(keyword, ax);
 
-    Log::info() << "Axis set ";
-    eckit::__print_container(Log::info(),axis);
-    Log::info() << std::endl;
+    StringList us;
 
-    StringList tmp;
+    KeywordHandler::getValues(request, keyword, us, task, db);
 
-    KeywordHandler::getValues(request, keyword, tmp, task, db);
-    Translator<std::string, int> t;
-    for(StringList::const_iterator i = tmp.begin(); i != tmp.end(); ++i) {
-        if(axis.find(*i) != axis.end()) {
-            values.push_back(*i);
-        }
-        else {
-            bool found = false;
-            for(StringSet::const_iterator j = axis.begin(); j != axis.end(); ++j) {
+    std::vector<Param> user;
+    std::copy(us.begin(), us.end(), std::back_inserter(user));
 
-                // This assumes that the user only provided the 3 last digits of paramId
-                // e.g. backward compatibility with wave paramId = 140229 but user gives 229 only
+    std::vector<Param> axis;
+    std::copy(ax.begin(), ax.end(), std::back_inserter(axis));
 
-                if( t(*j) % 1000 == t(*i) ) {
-                    found = true;
-                    values.push_back(*j);
-                    break;
-                }
-            }
-            if(!found) {
-                values.push_back(*i); /// @note we know this will fail, but server will print meaningful message
-            }
-        }
+    bool windConvertion = false;
+    MarsParam::substitute(request, user, axis, windConvertion);
+
+    std::copy(user.begin(), user.end(), std::back_inserter(values));
+
+    Log::info() << "ParamHandler before: " << us << std::endl;
+    Log::info() << "              after: " << values << std::endl;
+    Log::info() << "               wind: " << (windConvertion ? "true" : "false") << std::endl;
+    // Log::info() << "               user: " << user << std::endl;
+    Log::info() << "               axis: " << ax << std::endl;
+
+    if(windConvertion) {
+        task.notifyWinds();
     }
-
-    Log::info() << "ParamHandler returns values: " << values << std::endl;
 }
 
 void ParamHandler::print(std::ostream &out) const

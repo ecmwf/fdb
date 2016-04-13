@@ -42,13 +42,14 @@ void FdbExtract::run()
     r.setValue("expver","0001");
     r.setValue("type","an");
     r.setValue("levtype","pl");
-    r.setValue("date","20160411");
+    r.setValue("date","20160412");
     r.setValue("time","1200");
+    r.setValue("domain","g");
 
     vector<string> params;
-    // params.push_back( "131.128" );
-    // params.push_back( "138.128" );
-    params.push_back( "129" );
+    params.push_back( "131" );
+    params.push_back( "138" );
+    // params.push_back( "129" );
     r.setValues("param",params);
 
     r.setValue("step","0");

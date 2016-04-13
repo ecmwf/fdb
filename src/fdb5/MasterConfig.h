@@ -35,8 +35,6 @@ public: // methods
 
     static MasterConfig& instance();
 
-    Key makeDBKey(const Key& key) const;
-
     const Rules& rules() const;
 
     const KeywordHandler& lookupHandler(const std::string& keyword) const;

@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -82,16 +82,6 @@ void GribArchiver::archive(eckit::DataHandle& source)
         }
 
         grib_keys_iterator_delete(ks);
-
-        // prefer paramId
-        {
-            char val[1024];
-            size_t len = sizeof(val);
-
-            if(grib_get_string(h, "paramId", val, &len) == 0) {
-                request.set("param", val);
-            }
-        }
 
         // check for duplicated entries (within same request)
 
