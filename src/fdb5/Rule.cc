@@ -110,8 +110,8 @@ void Rule::expand( const MarsRequest& request,
 
     for(StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
 
-        k.set(keyword, *i);
-        full.set(keyword, *i);
+        k.push(keyword, *i);
+        full.push(keyword, *i);
 
         if((*cur)->match(k)) {
             visitor.enterValue(keyword, *i);
@@ -119,8 +119,8 @@ void Rule::expand( const MarsRequest& request,
             visitor.leaveValue();
         }
 
-        full.unset(keyword);
-        k.unset(keyword);
+        full.pop(keyword);
+        k.pop(keyword);
 
     }
 
@@ -189,8 +189,8 @@ void Rule::expand( const Key& field,
 
     for(StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
 
-        k.set(keyword, *i);
-        full.set(keyword, *i);
+        k.push(keyword, *i);
+        full.push(keyword, *i);
 
         if((*cur)->match(k)) {
             // visitor.enterValue(keyword, *i);
@@ -198,8 +198,8 @@ void Rule::expand( const Key& field,
             // visitor.leaveValue();
         }
 
-        full.unset(keyword);
-        k.unset(keyword);
+        full.pop(keyword);
+        k.pop(keyword);
 
     }
 

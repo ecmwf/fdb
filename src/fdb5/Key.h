@@ -35,11 +35,11 @@ public: // methods
     explicit Key(const std::string& keys);
     explicit Key(const eckit::StringDict& keys);
 
-//    Key& operator=( const eckit::StringDict& p );
-//    Key& operator=( const std::string& s );
-
     void set(const std::string& k, const std::string& v);
     void unset(const std::string& k);
+
+    void push(const std::string& k, const std::string& v);
+    void pop(const std::string& k);
 
     const std::string& get( const std::string& k ) const;
 
@@ -47,9 +47,6 @@ public: // methods
 
     void clear();
 
-    Key subkey(const std::vector<std::string>& pattern) const;
-
-    bool match(const Key& partial) const;
 
     bool operator< (const Key& other) const {
         return keys_ < other.keys_;
@@ -63,20 +60,16 @@ public: // methods
     std::string toIndexForm() const;
     std::string valuesToString() const;
 
-    void checkUsedKeys() const;
-
     void load(std::istream& s);
     void dump(std::ostream& s) const;
 
-    void setUsedKeys(std::map<std::string, bool>* usedKeys) const;
 
 private: // members
 
     void print( std::ostream& out ) const;
 
     eckit::StringDict keys_;
-
-    mutable std::map<std::string, bool>* usedKeys_;
+    eckit::StringList names_;
 
 };
 

@@ -23,44 +23,45 @@ namespace fdb5 {
 const char *sep = "/";
 
 Key::Key() :
-    keys_(),
-    usedKeys_(0)
+    keys_()
 {
 }
 
 Key::Key(const std::string& s) :
-    keys_(),
-    usedKeys_(0)
+    keys_()
 {
     NOTIMP;
 }
 
 Key::Key(const StringDict& keys) :
-    keys_(keys),
-    usedKeys_(0)
+    keys_(keys)
 {
 }
 
 void Key::clear()
 {
     keys_.clear();
-    if(usedKeys_) {
-        (*usedKeys_).clear();
-    }
+    names_.clear();
 }
 
 void Key::set(const std::string& k, const std::string& v) {
     keys_[k] = v;
-    if(usedKeys_) {
-        (*usedKeys_)[k] = false;
-    }
 }
 
 void Key::unset(const std::string& k) {
     keys_.erase(k);
-    if(usedKeys_) {
-        (*usedKeys_).erase(k);
-    }
+    ASSERT(names_.back() == k);
+}
+
+void Key::push(const std::string& k, const std::string& v) {
+    keys_[k] = v;
+    names_.push_back(k);
+}
+
+void Key::pop(const std::string& k) {
+    keys_.erase(k);
+    ASSERT(names_.back() == k);
+    names_.pop_back();
 }
 
 const std::string& Key::get( const std::string& k ) const {
@@ -71,32 +72,7 @@ const std::string& Key::get( const std::string& k ) const {
         throw SeriousBug(oss.str(), Here());
     }
 
-    if(usedKeys_) {
-        (*usedKeys_)[k] = true;
-    }
-
     return i->second;
-}
-
-Key Key::subkey(const std::vector<std::string>& pattern) const
-{
-    eckit::StringDict r;
-    for(std::vector<std::string>::const_iterator i = pattern.begin(); i != pattern.end(); ++i) {
-        r[*i] = get(*i);
-    }
-    return Key(r);
-}
-
-bool Key::match(const Key& partial) const
-{
-    const StringDict& p = partial.keys_;
-    for(StringDict::const_iterator i = p.begin(); i != p.end(); ++i) {
-        StringDict::const_iterator j = keys_.find(i->first);
-        if( !( j != keys_.end() && j->second == i->second) ) {
-            return false;
-        }
-    }
-    return true;
 }
 
 std::string Key::toIndexForm() const
@@ -110,30 +86,15 @@ std::string Key::toIndexForm() const
 
 std::string Key::valuesToString() const
 {
+    ASSERT(names_.size() == keys_.size());
     const char *sep = ":";
     std::string result(sep);
-    StringDict::const_iterator ktr = keys_.begin();
-    for(; ktr != keys_.end(); ++ktr)
-        result += ktr->second + sep;
-    return result;
-}
-
-void Key::checkUsedKeys() const
-{
-    if(usedKeys_) {
-        std::ostringstream oss;
-        bool ok = true;
-        const char* sep = "Unused keys: ";
-        for(std::map<std::string, bool>::const_iterator i = (*usedKeys_).begin(); i != (*usedKeys_).end(); ++i) {
-            if(!i->second) {
-                oss << sep << i->first; sep = ",";
-                ok = false;
-            }
-        }
-        if(!ok) {
-            throw SeriousBug(oss.str(), Here());
-        }
+    for(StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
+        StringDict::const_iterator i = keys_.find(*j);
+        ASSERT(i != keys_.end());
+        result += (*i).second + sep;
     }
+    return result;
 }
 
 void Key::load(std::istream& s)
@@ -158,15 +119,6 @@ void Key::dump(std::ostream& s) const
     s << sep;
     for(StringDict::const_iterator ktr = keys_.begin(); ktr != keys_.end(); ++ktr) {
         s << ktr->first << sep << ktr->second << sep;
-    }
-}
-
-void Key::setUsedKeys(std::map<std::string, bool>* usedKeys) const
-{
-    ASSERT(usedKeys);
-    usedKeys_ = usedKeys;
-    for(StringDict::const_iterator ktr = keys_.begin(); ktr != keys_.end(); ++ktr) {
-        (*usedKeys_)[ktr->first] = false;
     }
 }
 
