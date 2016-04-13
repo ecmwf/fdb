@@ -58,6 +58,8 @@ void Rules::load(const eckit::PathName& path, bool replace)
         clear();
     }
 
+    eckit::Log::info() << "Loading FDB rules from " << path << std::endl;
+
     std::ifstream in(path.asString().c_str());
     if(!in) {
         throw eckit::CantOpenFile(path);

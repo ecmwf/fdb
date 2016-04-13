@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2013 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -47,7 +47,7 @@ bool BTreeIndex::get(const Key &key, Index::Field& field) const
     if( found )
     {
 		field.path_     = files_.get( ref.pathId_ );
-        field.offset_   = ref.offset_; 
+        field.offset_   = ref.offset_;
         field.length_   = ref.length_;
     }
     return found;
@@ -64,11 +64,11 @@ BTreeIndex::Field BTreeIndex::get(const Key& key) const
            oss << "FDB key not found " << key;
            throw BadParameter(oss.str(), Here());
     }
-    
+
 	result.path_     = files_.get( ref.pathId_ );
-    result.offset_   = ref.offset_; 
+    result.offset_   = ref.offset_;
     result.length_   = ref.length_;
-    
+
     return result;
 }
 
@@ -82,7 +82,7 @@ void BTreeIndex::put_(const Key& key, const BTreeIndex::Field& field)
     FieldRef ref;
 
 	ref.pathId_ = files_.insert( field.path_ ); // inserts not yet in filestore
-    ref.offset_ = field.offset_; 
+    ref.offset_ = field.offset_;
     ref.length_ = field.length_;
 
     bool replace = btree_.set(k,ref);  // returns true if replace, false if new insert
@@ -115,7 +115,7 @@ void BTreeIndex::apply( Index::Op& op )
     ASSERT( mode() == Index::WRITE );
 
     Field field;
-    
+
     BTreeKey first("");
     BTreeKey last("~");
     std::vector< std::pair<BTreeKey,FieldRef> > all;
@@ -132,17 +132,17 @@ void BTreeIndex::apply( Index::Op& op )
 }
 
 void BTreeIndex::apply( Index::ConstOp& op ) const
-{    
+{
     Key key;
     Field field;
-    
+
     BTreeKey first("");
     BTreeKey last("~");
     std::vector< std::pair<BTreeKey,FieldRef> > all;
     const_cast<BTreeIndex*>(this)->btree_.range(first,last,all);
     for( size_t i = 0; i < all.size(); ++i )
     {
-        key = all[i].first.asString();
+        key = Key(all[i].first.asString());
         FieldRef& ref = all[i].second;
 		field.path_     = files_.get( ref.pathId_ );
         field.offset_   = ref.offset_;

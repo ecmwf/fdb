@@ -84,7 +84,7 @@ Key Key::subkey(const std::vector<std::string>& pattern) const
     for(std::vector<std::string>::const_iterator i = pattern.begin(); i != pattern.end(); ++i) {
         r[*i] = get(*i);
     }
-    return r;
+    return Key(r);
 }
 
 bool Key::match(const Key& partial) const

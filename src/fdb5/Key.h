@@ -32,8 +32,8 @@ public: // methods
 
     Key();
 
-    Key(const std::string& keys);
-    Key(const eckit::StringDict& keys);
+    explicit Key(const std::string& keys);
+    explicit Key(const eckit::StringDict& keys);
 
 //    Key& operator=( const eckit::StringDict& p );
 //    Key& operator=( const std::string& s );

@@ -200,9 +200,7 @@ TocIndex& TocDBWriter::getTocIndex(const Key& key)
 {
     TocIndex* toc = 0;
 
-    std::string tocEntry = key.valuesToString();
-
-    TocIndexStore::const_iterator itr = tocEntries_.find( tocEntry );
+    TocIndexStore::const_iterator itr = tocEntries_.find( key );
     if( itr != tocEntries_.end() )
     {
         toc = itr->second;
@@ -210,7 +208,7 @@ TocIndex& TocDBWriter::getTocIndex(const Key& key)
     else
     {
         toc = new TocIndex(path_, generateIndexPath(key), key);
-        tocEntries_[ tocEntry ] = toc;
+        tocEntries_[ key ] = toc;
     }
 
     ASSERT( toc );
