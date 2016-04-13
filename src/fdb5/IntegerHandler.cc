@@ -34,6 +34,7 @@ IntegerHandler::~IntegerHandler()
 void IntegerHandler::getValues(const MarsRequest& request,
                                const std::string& keyword,
                                StringList& values,
+                               const MarsTask& task,
                                const DB* db) const
 {
     std::vector<long> intValues;

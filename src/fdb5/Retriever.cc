@@ -97,7 +97,7 @@ struct RetrieveVisitor : public ReadVisitor {
 
     virtual void values(const MarsRequest& request, const std::string& keyword, eckit::StringList& values) {
         const KeywordHandler& handler = MasterConfig::instance().lookupHandler(keyword);
-        handler.getValues(request, keyword, values, db_.get());
+        handler.getValues(request, keyword, values, owner_.task_, db_.get());
     }
 
 };

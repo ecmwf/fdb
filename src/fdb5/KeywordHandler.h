@@ -41,6 +41,7 @@ public: // methods
     virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,
                            eckit::StringList& values,
+                           const MarsTask& task,
                            const DB* db) const;
 
     friend std::ostream& operator<<(std::ostream& s,const KeywordHandler& x);

@@ -30,6 +30,7 @@ KeywordHandler::~KeywordHandler() {
 void KeywordHandler::getValues(const MarsRequest& request,
                                const std::string& keyword,
                                StringList& values,
+                               const MarsTask& task,
                                const DB* db) const
 {
     request.getValues(keyword, values);

@@ -36,6 +36,7 @@ ParamHandler::~ParamHandler()
 void ParamHandler::getValues(const MarsRequest& request,
                              const std::string& keyword,
                              StringList& values,
+                             const MarsTask& task,
                              const DB* db) const {
     ASSERT(db);
 
@@ -49,7 +50,7 @@ void ParamHandler::getValues(const MarsRequest& request,
 
     StringList tmp;
 
-    KeywordHandler::getValues(request, keyword, tmp, db);
+    KeywordHandler::getValues(request, keyword, tmp, task, db);
     Translator<std::string, int> t;
     for(StringList::const_iterator i = tmp.begin(); i != tmp.end(); ++i) {
         if(axis.find(*i) != axis.end()) {
