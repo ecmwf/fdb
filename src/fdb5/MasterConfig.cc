@@ -63,14 +63,6 @@ MasterConfig& MasterConfig::instance()
     return master;
 }
 
-eckit::SharedPtr<DB> MasterConfig::openSessionDB(const Key& user)
-{
-    Key dbKey = makeDBKey(user);
-
-    std::string fdbWriterDB = eckit::Resource<std::string>("fdbWriterDB","toc.writer");
-    return SharedPtr<DB>( DBFactory::build(fdbWriterDB, dbKey) );
-}
-
 const KeywordHandler& MasterConfig::lookupHandler(const std::string& keyword) const {
     return handlers_.lookupHandler(keyword);
 }

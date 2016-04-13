@@ -35,8 +35,6 @@ public: // methods
 
     static MasterConfig& instance();
 
-    eckit::SharedPtr<DB> openSessionDB(const Key& userkey);
-
     Key makeDBKey(const Key& key) const;
 
     const Rules& rules() const;

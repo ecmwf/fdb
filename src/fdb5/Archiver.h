@@ -63,9 +63,13 @@ private: // methods
 
 private: // members
 
-    typedef std::vector< eckit::SharedPtr<DB> > store_t;
+    friend class ArchiveVisitor;
 
-    store_t sessions_;
+    typedef std::map< Key, eckit::SharedPtr<DB> > store_t;
+
+    store_t databases_;
+
+    std::string fdbWriterDB_;
 
 };
 

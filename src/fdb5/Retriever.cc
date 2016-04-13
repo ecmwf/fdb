@@ -160,10 +160,10 @@ eckit::DataHandle* Retriever::retrieve()
 
     HandleGatherer result(sorted);
 
-    RetrieveVisitor c(task_, result);
+    RetrieveVisitor visitor(task_, result);
 
     const Rules& rules = MasterConfig::instance().rules();
-    rules.expand(task_.request(), c);
+    rules.expand(task_.request(), visitor);
 
     return result.dataHandle();
 }

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 
+#include "eckit/config/Resource.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/log/Timer.h"
 
@@ -18,6 +19,7 @@
 #include "fdb5/Key.h"
 #include "fdb5/Archiver.h"
 #include "fdb5/MasterConfig.h"
+#include "fdb5/WriteVisitor.h"
 
 using namespace eckit;
 
@@ -28,8 +30,8 @@ namespace fdb5 {
 
 Archiver::Archiver()
 {
+    fdbWriterDB_ = eckit::Resource<std::string>("fdbWriterDB","toc.writer");
 }
-
 
 Archiver::~Archiver()
 {
@@ -41,49 +43,75 @@ void Archiver::write(const DataBlobPtr blob)
     NOTIMP; /// @todo this will substitute the GribArchiver
 }
 
+struct ArchiveVisitor : public WriteVisitor {
+
+    Archiver& owner_;
+
+    Key fullKey_;
+    Key lastDBKey_;
+
+    const void* data_;
+    eckit::Length length_;
+
+    DB* db_;
+
+    ArchiveVisitor(Archiver& owner, const Key& fullKey, const void* data, eckit::Length length) :
+        owner_(owner),
+        fullKey_(fullKey),
+        data_(data),
+        length_(length),
+        db_(0)
+    {
+    }
+
+    virtual bool selectDatabase(const Key& key, const Key& full) {
+        Log::info() << "selectDatabase " << key << std::endl;
+        db_ = &owner_.session(key);
+        return true;
+    }
+
+    virtual bool selectIndex(const Key& key, const Key& full) {
+        Log::info() << "selectIndex " << key << std::endl;
+        return db_->selectIndex(key);
+    }
+
+    virtual bool selectDatum(const Key& key, const Key& full) {
+        Log::info() << "selectDatum " << key << ", " << full << std::endl;
+        ASSERT(db_);
+        db_->archive(key,data_,length_);
+        /// @todo assert full == userKey
+        return true;
+    }
+
+};
 
 void Archiver::write(const Key& key, const void* data, eckit::Length length)
 {
-    std::map<std::string, bool> usedKeys;
-    key.setUsedKeys(&usedKeys);
+    const Rules& rules = MasterConfig::instance().rules();
 
-    DB& db = session(key);
+    ArchiveVisitor visitor(*this, key, data, length);
 
-    db.archive(key, data, length);
-
-    key.checkUsedKeys();
+    rules.expand(key, visitor);
 }
-
-
-struct SessionFlusher {
-    void operator()(const eckit::SharedPtr<DB>& session) { return session->flush(); }
-};
 
 void Archiver::flush()
 {
-    std::for_each(sessions_.begin(), sessions_.end(), SessionFlusher() );
-}
-
-
-struct SessionMatcher {
-    SessionMatcher(const Key& key) : key_(key) {}
-    bool operator()(const eckit::SharedPtr<DB>& session) {
-        return true; // session->match(key_);
+    for(store_t::iterator i = databases_.begin(); i != databases_.end(); ++i) {
+        i->second->flush();
     }
-    const Key& key_;
-};
+}
 
 
 DB& Archiver::session(const Key& key)
 {
-    store_t::iterator i = std::find_if(sessions_.begin(), sessions_.end(), SessionMatcher(key) );
+    store_t::iterator i = databases_.find(key);
 
-    if(i != sessions_.end() )
-        return **i;
+    if(i != databases_.end() )
+        return *(i->second.get());
 
-    eckit::SharedPtr<DB> newSession = MasterConfig::instance().openSessionDB(key);
+    eckit::SharedPtr<DB> newSession ( DBFactory::build(fdbWriterDB_, key) );
     ASSERT(newSession);
-    sessions_.push_back(newSession);
+    databases_[key] = newSession;
     return *newSession;
 }
 
