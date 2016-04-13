@@ -77,10 +77,14 @@ const std::string& Key::get( const std::string& k ) const {
 
 std::string Key::toIndexForm() const
 {
+    ASSERT(names_.size() == keys_.size());
+
     std::string result(sep);
-    StringDict::const_iterator ktr = keys_.begin();
-    for(; ktr != keys_.end(); ++ktr)
-        result += ktr->first + sep + ktr->second + sep;
+    for(StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
+        StringDict::const_iterator i = keys_.find(*j);
+        ASSERT(i != keys_.end());
+        result += (*i).first + sep + (*i).second + sep;
+    }
     return result;
 }
 
