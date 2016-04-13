@@ -82,6 +82,7 @@ bool TocDBWriter::selectIndex(const Key& key)
 {
     TocIndex& toc = getTocIndex(key);
     current_ = &getIndex( toc.index() );
+    return true;
 }
 
 bool TocDBWriter::open() {
@@ -209,7 +210,7 @@ TocIndex& TocDBWriter::getTocIndex(const Key& key)
     }
     else
     {
-        toc = new TocIndex(path_, generateIndexPath(key), key.valuesToString());
+        toc = new TocIndex(path_, generateIndexPath(key), key);
         tocEntries_[ tocEntry ] = toc;
     }
 

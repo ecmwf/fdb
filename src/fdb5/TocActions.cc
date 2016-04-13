@@ -65,10 +65,10 @@ TocInitialiser::TocInitialiser(const PathName& dir) : TocHandler(dir)
 
 //-----------------------------------------------------------------------------
 
-TocIndex::TocIndex(const PathName& dir, const PathName& idx, const TocRecord::MetaData& md) :
+TocIndex::TocIndex(const PathName& dir, const PathName& idx, const Key& key) :
     TocHandler( dir ),
     index_(idx),
-    tocMD_(md)
+    tocMD_(key.valuesToString())
 {
 }
 

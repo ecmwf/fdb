@@ -54,7 +54,7 @@ class TocIndex : public TocHandler {
 
 public: // methods
 
-    TocIndex(const eckit::PathName& dir, const eckit::PathName& idx, const TocRecord::MetaData& md);
+    TocIndex(const eckit::PathName& dir, const eckit::PathName& idx, const fdb5::Key& key);
 
 	~TocIndex();
 
