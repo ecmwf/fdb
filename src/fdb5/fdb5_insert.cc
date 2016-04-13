@@ -38,15 +38,8 @@ void FdbInsert::run()
 
         std::cout << "Processing " << path << std::endl;
         
-        try 
-        {
-            std::auto_ptr<DataHandle> dh ( path.fileHandle() );
-            archiver.archive( *dh );
-        }
-        catch(Exception& e)
-        {
-            std::cout << e.what() << std::endl;
-        }        
+        std::auto_ptr<DataHandle> dh ( path.fileHandle() );
+        archiver.archive( *dh );
     }
 }
 

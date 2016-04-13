@@ -2,7 +2,6 @@
 #
 #  * fdbRoot is a list of paths to visit ---> speak to Hodge
 #  * check overwrite
-#  * on archive consume all keys (from GRIB mars keys)
 #
 #  * fdb_ingest --path fdbroot
 #      - check for duplicates
