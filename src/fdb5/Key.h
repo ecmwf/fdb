@@ -52,6 +52,14 @@ public: // methods
         return keys_ < other.keys_;
     }
 
+    bool operator!= (const Key& other) const {
+        return keys_ != other.keys_;
+    }
+
+    bool operator== (const Key& other) const {
+        return keys_ == other.keys_;
+    }
+
     friend std::ostream& operator<<(std::ostream& s,const Key& x) {
         x.print(s);
         return s;

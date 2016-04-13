@@ -132,6 +132,7 @@ void Rule::expand( const Key& field,
                    std::vector<Predicate*>::const_iterator cur,
                    size_t depth,
                    std::vector<Key>& keys,
+                   std::vector<Key>& prev,
                    Key& full,
                    WriteVisitor& visitor) const {
 
@@ -148,14 +149,20 @@ void Rule::expand( const Key& field,
 
             switch(depth) {
                 case 0:
-                    if(!visitor.selectDatabase(keys[0], full)) {
-                        return;
-                    };
+                    if(keys[0] != prev[0]) {
+                        if(!visitor.selectDatabase(keys[0], full)) {
+                            return;
+                        };
+                        prev[0] = keys[0];
+                    }
                     break;
 
                 case 1:
-                    if(!visitor.selectIndex(keys[1], full)) {
-                        return;
+                    if(keys[1] != prev[1]) {
+                        if(!visitor.selectIndex(keys[1], full)) {
+                            return;
+                        }
+                        prev[1] = keys[1];
                     }
                     break;
 
@@ -165,7 +172,7 @@ void Rule::expand( const Key& field,
             }
 
             for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-                (*i)->expand(field, visitor, depth+1, keys, full);
+                (*i)->expand(field, visitor, depth+1, keys, prev, full);
             }
         }
         return;
@@ -189,7 +196,7 @@ void Rule::expand( const Key& field,
 
         if((*cur)->match(k)) {
             // visitor.enterValue(keyword, *i);
-            expand(field, next, depth, keys, full, visitor);
+            expand(field, next, depth, keys, prev, full, visitor);
             // visitor.leaveValue();
         }
 
@@ -200,10 +207,11 @@ void Rule::expand( const Key& field,
 
     // visitor.leaveKeyword();
 }
-void Rule::expand(const Key& field, WriteVisitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const
+void Rule::expand(const Key& field, WriteVisitor& visitor, size_t depth, std::vector<Key>& keys, std::vector<Key>& prev, Key& full) const
 {
     ASSERT(keys.size() == 3);
-    expand(field, predicates_.begin(), depth, keys, full, visitor);
+    ASSERT(prev.size() == 3);
+    expand(field, predicates_.begin(), depth, keys, prev, full, visitor);
 }
 
 bool Rule::match(const Key& key) const
