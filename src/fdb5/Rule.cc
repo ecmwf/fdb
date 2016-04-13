@@ -39,8 +39,6 @@ Rule::Rule(std::vector<Predicate*>& predicates, std::vector<Rule*>& rules)
 {
     std::swap(predicates, predicates_);
     std::swap(rules, rules_);
-
-//    dump(std::cout);
 }
 
 Rule::~Rule()
@@ -218,14 +216,6 @@ bool Rule::match(const Key& key) const
     return true;
 }
 
-// eckit::StringList Rule::keys(size_t level) const
-// {
-//     StringList result;
-//     StringSet seen;
-//     keys(level, 0, result, seen);
-//     return result;
-// }
-
 void Rule::dump(std::ostream& s, size_t depth) const
 {
     s << "[";
@@ -250,20 +240,6 @@ size_t Rule::depth() const
     }
     return result+1;
 }
-
-// void Rule::keys(size_t level, size_t depth, eckit::StringList& result, eckit::StringSet& seen) const
-// {
-//     if(level>=depth) {
-//         for(std::vector<Predicate*>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
-//             const std::string& keyword = (*i)->keyword();
-//             if(seen.find(keyword) == seen.end()) {
-//                 result.push_back(keyword);
-//                 seen.insert(keyword);
-//             }
-//         }
-//         keys(level, depth+1, result, seen);
-//     }
-// }
 
 void Rule::print(std::ostream& out) const
 {
