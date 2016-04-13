@@ -133,10 +133,82 @@ void Rule::expand(const MarsRequest& request, ReadVisitor& visitor, size_t depth
     expand(request, predicates_.begin(), depth, keys, full, visitor);
 }
 
+void Rule::expand( const Key& field,
+                   std::vector<Predicate*>::const_iterator cur,
+                   size_t depth,
+                   std::vector<Key>& keys,
+                   Key& full,
+                   WriteVisitor& visitor) const {
+
+    ASSERT(depth < 3);
+
+    if(cur == predicates_.end()) {
+        if(rules_.empty()) {
+            ASSERT(depth == 2); /// we have 3 levels ATM
+            if(!visitor.selectDatum( keys[2], full)) {
+                return; // This it not useful
+            }
+        }
+        else {
+
+            switch(depth) {
+                case 0:
+                    if(!visitor.selectDatabase(keys[0], full)) {
+                        return;
+                    };
+                    break;
+
+                case 1:
+                    if(!visitor.selectIndex(keys[1], full)) {
+                        return;
+                    }
+                    break;
+
+                default:
+                    ASSERT(depth == 0 || depth == 1);
+                    break;
+            }
+
+            for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+                (*i)->expand(field, visitor, depth+1, keys, full);
+            }
+        }
+        return;
+    }
+
+    std::vector<Predicate*>::const_iterator next = cur;
+    ++next;
+
+    const std::string& keyword = (*cur)->keyword();
+
+    StringList values(1, field.get(keyword));
+
+    // visitor.enterKeyword(request, keyword, values);
+
+    Key& k = keys[depth];
+
+    for(StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
+
+        k.set(keyword, *i);
+        full.set(keyword, *i);
+
+        if((*cur)->match(k)) {
+            // visitor.enterValue(keyword, *i);
+            expand(field, next, depth, keys, full, visitor);
+            // visitor.leaveValue();
+        }
+
+        full.unset(keyword);
+        k.unset(keyword);
+
+    }
+
+    // visitor.leaveKeyword();
+}
 void Rule::expand(const Key& field, WriteVisitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const
 {
     ASSERT(keys.size() == 3);
-    // expand(field, predicates_.begin(), depth, keys, full, visitor);
+    expand(field, predicates_.begin(), depth, keys, full, visitor);
 }
 
 bool Rule::match(const Key& key) const

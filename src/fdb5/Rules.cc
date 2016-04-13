@@ -42,6 +42,16 @@ void Rules::expand(const MarsRequest& request, ReadVisitor& visitor) const
     }
 }
 
+void Rules::expand(const Key& field, WriteVisitor& visitor) const
+{
+    Key full;
+    std::vector<Key> keys(3);
+
+    for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+        (*i)->expand(field, visitor, 0, keys, full);
+    }
+}
+
 void Rules::load(const eckit::PathName& path, bool replace)
 {
     if(replace) {
