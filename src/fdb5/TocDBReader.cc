@@ -50,11 +50,9 @@ bool TocDBReader::open() {
     return true;
 }
 
-void TocDBReader::axis(const Key& key, const std::string& keyword, StringSet& s) const
+void TocDBReader::axis(const std::string& keyword, StringSet& s) const
 {
-    const std::vector<PathName>& indexesPaths = toc_.indexes( key );
-
-    for( std::vector<PathName>::const_iterator itr = indexesPaths.begin(); itr != indexesPaths.end(); ++itr )
+    for( std::vector<PathName>::const_iterator itr = current_.begin(); itr != current_.end(); ++itr )
     {
         const Index& idx = getIndex(*itr);
         const eckit::StringSet& a = idx.axis().values(keyword);

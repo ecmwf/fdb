@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -39,7 +39,7 @@ private: // methods
 
     virtual bool open();
 
-    virtual void axis(const Key& key, const std::string& keyword, eckit::StringSet& s) const;
+    virtual void axis(const std::string& keyword, eckit::StringSet& s) const;
 
     virtual eckit::DataHandle* retrieve(const Key& key) const;
 

@@ -39,7 +39,7 @@ protected: // types
 
 protected: // methods
 
-    virtual void axis(const Key& key, const std::string& keyword, eckit::StringSet& s) const;
+    virtual void axis(const std::string& keyword, eckit::StringSet& s) const;
 
     virtual bool open();
 

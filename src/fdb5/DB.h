@@ -49,7 +49,7 @@ public: // methods
 
     virtual bool open() = 0;
 
-    virtual void axis(const Key& key, const std::string& keyword, eckit::StringSet& s) const = 0;
+    virtual void axis(const std::string& keyword, eckit::StringSet& s) const = 0;
 
     virtual eckit::DataHandle* retrieve(const Key& key) const = 0;
 

@@ -12,8 +12,6 @@
 
 #include "fdb5/KeywordHandler.h"
 
-#include "fdb5/Op.h"
-#include "fdb5/ForwardOp.h"
 
 using namespace eckit;
 
@@ -31,13 +29,10 @@ KeywordHandler::~KeywordHandler() {
 
 void KeywordHandler::getValues(const MarsRequest& request,
                                const std::string& keyword,
-                               StringList& values) const
+                               StringList& values,
+                               const DB* db) const
 {
     request.getValues(keyword, values);
-}
-
-Op* KeywordHandler::makeOp(const MarsTask& task, Op& parent) const {
-    return new ForwardOp(parent);
 }
 
 std::ostream& operator<<(std::ostream& s, const KeywordHandler& x)

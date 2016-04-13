@@ -17,7 +17,6 @@
 #include "fdb5/ParamHandler.h"
 #include "fdb5/DB.h"
 
-#include "fdb5/UVOp.h"
 
 using namespace eckit;
 
@@ -36,49 +35,46 @@ ParamHandler::~ParamHandler()
 
 void ParamHandler::getValues(const MarsRequest& request,
                              const std::string& keyword,
-                             StringList& values) const {
+                             StringList& values,
+                             const DB* db) const {
+    ASSERT(db);
 
-    return KeywordHandler::getValues(request, keyword, values);
-    // StringSet axis;
+    StringSet axis;
 
-    // db.axis(key, keyword, axis);
+    db->axis(keyword, axis);
 
-    // Log::info() << "Axis set ";
-    // eckit::__print_container(Log::info(),axis);
-    // Log::info() << std::endl;
+    Log::info() << "Axis set ";
+    eckit::__print_container(Log::info(),axis);
+    Log::info() << std::endl;
 
-    // StringList tmp;
+    StringList tmp;
 
-    // KeywordHandler::getValues(task, keyword, tmp, db, key);
-    // Translator<std::string, int> t;
-    // for(StringList::const_iterator i = tmp.begin(); i != tmp.end(); ++i) {
-    //     if(axis.find(*i) != axis.end()) {
-    //         values.push_back(*i);
-    //     }
-    //     else {
-    //         bool found = false;
-    //         for(StringSet::const_iterator j = axis.begin(); j != axis.end(); ++j) {
+    KeywordHandler::getValues(request, keyword, tmp, db);
+    Translator<std::string, int> t;
+    for(StringList::const_iterator i = tmp.begin(); i != tmp.end(); ++i) {
+        if(axis.find(*i) != axis.end()) {
+            values.push_back(*i);
+        }
+        else {
+            bool found = false;
+            for(StringSet::const_iterator j = axis.begin(); j != axis.end(); ++j) {
 
-    //             // This assumes that the user only provided the 3 last digits of paramId
-    //             // e.g. backward compatibility with wave paramId = 140229 but user gives 229 only
+                // This assumes that the user only provided the 3 last digits of paramId
+                // e.g. backward compatibility with wave paramId = 140229 but user gives 229 only
 
-    //             if( t(*j) % 1000 == t(*i) ) {
-    //                 found = true;
-    //                 values.push_back(*j);
-    //                 break;
-    //             }
-    //         }
-    //         if(!found) {
-    //             values.push_back(*i); /// @note we know this will fail, but server will print meaningful message
-    //         }
-    //     }
-    // }
+                if( t(*j) % 1000 == t(*i) ) {
+                    found = true;
+                    values.push_back(*j);
+                    break;
+                }
+            }
+            if(!found) {
+                values.push_back(*i); /// @note we know this will fail, but server will print meaningful message
+            }
+        }
+    }
 
-    // Log::info() << "ParamHandler returns values: " << values << std::endl;
-}
-
-Op* ParamHandler::makeOp(const MarsTask& task, Op& parent) const {
-    return new UVOp(task, parent);
+    Log::info() << "ParamHandler returns values: " << values << std::endl;
 }
 
 void ParamHandler::print(std::ostream &out) const

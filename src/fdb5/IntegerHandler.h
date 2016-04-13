@@ -32,7 +32,8 @@ public: // methods
 
     virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,
-                           eckit::StringList& values) const;
+                           eckit::StringList& values,
+                           const DB* db) const;
 
 private: // methods
 

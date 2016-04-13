@@ -15,7 +15,6 @@
 #include "marslib/MarsTask.h"
 
 #include "fdb5/Retriever.h"
-#include "fdb5/RetrieveOp.h"
 #include "fdb5/MasterConfig.h"
 #include "fdb5/DB.h"
 #include "fdb5/Key.h"
@@ -44,29 +43,23 @@ Retriever::~Retriever()
 {
 }
 
-struct RetrieveVisitor : public ReadVisitor, public RetrieveOpCallback {
+struct RetrieveVisitor : public ReadVisitor {
+
+    Retriever& owner_;
 
     eckit::ScopedPtr<DB> db_;
-
-    std::vector<Op*> op_;
-    const MarsTask& task_;
 
     std::string fdbReaderDB_;
     HandleGatherer& gatherer_;
 
 
-    RetrieveVisitor(const MarsTask& task, HandleGatherer& gatherer):
-        task_(task),
+    RetrieveVisitor(Retriever& owner, const MarsTask& task, HandleGatherer& gatherer):
+        owner_(owner),
         gatherer_(gatherer) {
-
-        op_.push_back(new RetrieveOp(*this));
         fdbReaderDB_ = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
     }
 
     ~RetrieveVisitor() {
-        for(std::vector<Op*>::const_iterator j = op_.begin(); j != op_.end(); ++j) {
-            delete (*j);
-        }
     }
 
     // From Visitor
@@ -84,11 +77,13 @@ struct RetrieveVisitor : public ReadVisitor, public RetrieveOpCallback {
     }
 
     virtual bool selectIndex(const Key& key, const Key& full) {
+        ASSERT(db_);
         Log::info() << "selectIndex " << key << std::endl;
         return db_->selectIndex(key);
     }
 
     virtual bool selectDatum(const Key& key, const Key& full) {
+        ASSERT(db_);
         Log::info() << "selectDatum " << key << ", " << full << std::endl;
 
         DataHandle* dh = db_->retrieve(key);
@@ -97,45 +92,12 @@ struct RetrieveVisitor : public ReadVisitor, public RetrieveOpCallback {
             gatherer_.add(dh);
         }
 
-//        ASSERT(op_.size());
-//        op_.back()->execute(task_, full, *op_.back());
-
         return (dh != 0);
     }
 
-    virtual void enterValue(const std::string& keyword, const std::string& value) {
-        ASSERT(op_.size() > 1);
-        op_[op_.size()-1]->enter(keyword, value);
-    }
-
-    virtual void leaveValue() {
-        ASSERT(op_.size() > 1);
-        op_[op_.size()-1]->leave();
-    }
-
-    virtual void enterKeyword(const MarsRequest& request, const std::string& keyword, eckit::StringList& values) {
+    virtual void values(const MarsRequest& request, const std::string& keyword, eckit::StringList& values) {
         const KeywordHandler& handler = MasterConfig::instance().lookupHandler(keyword);
-        handler.getValues(request, keyword, values);
-        op_.push_back(handler.makeOp(task_, *op_.back()));
-    }
-
-    virtual void leaveKeyword() {
-        ASSERT(op_.size());
-        Op* op = op_.back();
-        op_.pop_back();
-        delete op;
-    }
-
-    // From RetrieveOpCallback
-
-    virtual bool retrieve(const MarsTask& task, const Key& key) {
-        DataHandle* dh = db_->retrieve(key);
-        if(dh) {
-            Log::info() << "Got data for key " << key << std::endl;
-            gatherer_.add(dh);
-            return true;
-        }
-        return false;
+        handler.getValues(request, keyword, values, db_.get());
     }
 
 };
@@ -160,7 +122,7 @@ eckit::DataHandle* Retriever::retrieve()
 
     HandleGatherer result(sorted);
 
-    RetrieveVisitor visitor(task_, result);
+    RetrieveVisitor visitor(*this, task_, result);
 
     const Rules& rules = MasterConfig::instance().rules();
     rules.expand(task_.request(), visitor);

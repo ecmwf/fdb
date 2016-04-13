@@ -104,7 +104,7 @@ void Rule::expand( const MarsRequest& request,
 
     StringList values;
 
-    visitor.enterKeyword(request, keyword, values);
+    visitor.values(request, keyword, values);
 
     Key& k = keys[depth];
 
@@ -114,9 +114,7 @@ void Rule::expand( const MarsRequest& request,
         full.push(keyword, *i);
 
         if((*cur)->match(k)) {
-            visitor.enterValue(keyword, *i);
             expand(request, next, depth, keys, full, visitor);
-            visitor.leaveValue();
         }
 
         full.pop(keyword);
@@ -124,7 +122,6 @@ void Rule::expand( const MarsRequest& request,
 
     }
 
-    visitor.leaveKeyword();
 }
 
 void Rule::expand(const MarsRequest& request, ReadVisitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const
