@@ -83,7 +83,7 @@ private:
 
     void init(); ///< May be called multiple times
 
-    typedef std::map< TocRecord::MetaData, TocPaths > TocMap;
+    typedef std::map< Key, TocPaths > TocMap;
 
 	TocVec toc_;
 

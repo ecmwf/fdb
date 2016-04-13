@@ -51,11 +51,11 @@ protected: // methods
 
     virtual eckit::DataHandle* retrieve(const Key& key) const;
 
-    virtual Index* openIndex(const eckit::PathName& path) const = 0;
+    virtual Index* openIndex(const Key& key, const eckit::PathName& path) const = 0;
 
     /// Get the Index on the given path
     /// If necessary it creates it and inserts in the cache
-    Index& getIndex( const eckit::PathName& path ) const;
+    Index& getIndex(const Key& key, const eckit::PathName& path ) const;
 
     /// @param path PathName to the Index
     /// @returns the cached eckit::DataHandle or NULL if not found

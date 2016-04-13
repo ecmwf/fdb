@@ -24,8 +24,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TextIndex::TextIndex( const PathName& path, Index::Mode m ) :
-	Index(path,m),
+TextIndex::TextIndex(const Key& key, const PathName& path, Index::Mode m ) :
+    Index(key,path,m),
     flushed_(true),
     fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert",false) )
 {

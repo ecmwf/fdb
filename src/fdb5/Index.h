@@ -25,6 +25,7 @@
 
 #include "fdb5/FileStore.h"
 #include "fdb5/IndexAxis.h"
+#include "fdb5/Key.h"
 
 namespace fdb5 {
 
@@ -79,9 +80,9 @@ public: // types
     
 public: // methods
     
-	static Index* create(const std::string& type, const eckit::PathName& path, Index::Mode m);
+    static Index* create(const Key& key, const std::string& type, const eckit::PathName& path, Index::Mode m);
     
-	Index( const eckit::PathName& path, Index::Mode m );
+    Index(const Key& key, const eckit::PathName& path, Index::Mode m );
     
     virtual ~Index();
 
@@ -113,6 +114,8 @@ public: // methods
 
     const IndexAxis& axis() const { return axis_; }
 
+    const Key& key() const;
+
 protected: // methods
 
     virtual void put_( const Key& key, const Field& field ) = 0;
@@ -125,6 +128,8 @@ protected: // members
 
     FileStore   files_;
     IndexAxis   axis_;
+
+    Key key_; ///< key that selected this index
 
 };
 

@@ -35,7 +35,7 @@ public: // types
     
 public: // methods
     
-	BTreeIndex( const eckit::PathName& path, Index::Mode m );
+    BTreeIndex(const Key& key, const eckit::PathName& path, Index::Mode m );
     
     virtual ~BTreeIndex();
     

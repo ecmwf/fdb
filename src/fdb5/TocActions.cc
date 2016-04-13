@@ -115,18 +115,18 @@ void TocReverseIndexes::init() {
 
 std::vector<PathName> TocReverseIndexes::indexes(const Key& key) const
 {
-    TocRecord::MetaData md( key.valuesToString() );
-
     const_cast<TocReverseIndexes*>(this)->init();
 
-	TocMap::const_iterator f = cacheIndexes_.find(md);
+    TocMap::const_iterator f = cacheIndexes_.find(key);
 
 	if( f != cacheIndexes_.end() )
 		return f->second;
 
 	// not in cache
 
-	std::vector< PathName > indexes;
+    TocRecord::MetaData md( key.valuesToString() );
+
+    std::vector< PathName > indexes;
 
 	for( TocVec::const_iterator itr = toc_.begin(); itr != toc_.end(); ++itr )
 	{
@@ -158,7 +158,7 @@ std::vector<PathName> TocReverseIndexes::indexes(const Key& key) const
 
 	std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
 
-	cacheIndexes_[ md ] = indexes; // cache before returning
+    cacheIndexes_[ key ] = indexes; // cache before returning
 
 	return indexes;
 }

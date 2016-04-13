@@ -36,6 +36,7 @@ TocDBReader::~TocDBReader()
 
 bool TocDBReader::selectIndex(const Key& key)
 {
+    currentIndexKey_ = key;
     current_ = toc_.indexes(key);
     return (current_.size() != 0);
 }
@@ -54,7 +55,7 @@ void TocDBReader::axis(const std::string& keyword, StringSet& s) const
 {
     for( std::vector<PathName>::const_iterator itr = current_.begin(); itr != current_.end(); ++itr )
     {
-        const Index& idx = getIndex(*itr);
+        const Index& idx = getIndex(currentIndexKey_, *itr);
         const eckit::StringSet& a = idx.axis().values(keyword);
         s.insert(a.begin(), a.end());
     }
@@ -74,7 +75,7 @@ eckit::DataHandle* TocDBReader::retrieve(const Key& key) const
     Index::Field field;
     for( std::vector<PathName>::const_iterator itr = current_.begin(); itr != current_.end(); ++itr )
     {
-        const Index& idx = getIndex(*itr);
+        const Index& idx = getIndex(currentIndexKey_, *itr);
 
         if( idx.get(key, field) )
         {
@@ -89,9 +90,9 @@ eckit::DataHandle* TocDBReader::retrieve(const Key& key) const
         return field.path_.partHandle(field.offset_, field.length_);
 }
 
-Index* TocDBReader::openIndex(const PathName& path) const
+Index* TocDBReader::openIndex(const Key& key, const PathName& path) const
 {
-    return Index::create( indexType_, path, Index::READ );
+    return Index::create(key, indexType_, path, Index::READ );
 }
 
 void TocDBReader::print(std::ostream &out) const

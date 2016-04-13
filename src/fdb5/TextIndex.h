@@ -30,7 +30,7 @@ class TextIndex : public Index {
 
 public: // methods
     
-	TextIndex(const eckit::PathName& path, Index::Mode m);
+    TextIndex(const Key& key, const eckit::PathName& path, Index::Mode m);
     
     virtual ~TextIndex();
 

@@ -79,12 +79,12 @@ Index* TocDB::getCachedIndex( const PathName& path ) const
         return 0;
 }
 
-Index& TocDB::getIndex(const PathName& path) const
+Index& TocDB::getIndex(const Key& key, const PathName& path) const
 {
     Index* idx = getCachedIndex(path);
     if( !idx )
     {
-        idx = openIndex( path );
+        idx = openIndex(key, path);
         ASSERT(idx);
         indexes_[ path ] = idx;
     }

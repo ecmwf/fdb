@@ -80,7 +80,7 @@ TocDBWriter::~TocDBWriter()
 bool TocDBWriter::selectIndex(const Key& key)
 {
     TocIndex& toc = getTocIndex(key);
-    current_ = &getIndex( toc.index() );
+    current_ = &getIndex(key, toc.index());
     return true;
 }
 
@@ -108,7 +108,7 @@ void TocDBWriter::archive(const Key& key, const void *data, Length length)
 {
     ASSERT(current_);
 
-    PathName dataPath = getDataPath(key);
+    PathName dataPath = getDataPath(current_->key());
 
     eckit::DataHandle& dh = getDataHandle(dataPath);
 
@@ -137,9 +137,9 @@ void TocDBWriter::flush()
     flushDataHandles();
 }
 
-Index* TocDBWriter::openIndex(const PathName& path) const
+Index* TocDBWriter::openIndex(const Key& key, const PathName& path) const
 {
-    return Index::create( indexType_, path, Index::WRITE );
+    return Index::create(key, indexType_, path, Index::WRITE );
 }
 
 eckit::DataHandle* TocDBWriter::getCachedHandle( const PathName& path ) const

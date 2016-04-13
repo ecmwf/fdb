@@ -62,7 +62,7 @@ private: // types
 private: // methods
 
     /// Opens an Index with the associated path
-    virtual Index* openIndex( const eckit::PathName& path ) const;
+    virtual Index* openIndex(const Key& key, const eckit::PathName& path ) const;
 
     /// @param path PathName to the handle
     /// @returns the cached eckit::DataHandle or NULL if not found

@@ -46,10 +46,9 @@ void Rules::expand(const Key& field, WriteVisitor& visitor) const
 {
     Key full;
     std::vector<Key> keys(3);
-    std::vector<Key> prev(3);
 
     for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->expand(field, visitor, 0, keys, prev, full);
+        (*i)->expand(field, visitor, 0, keys, full);
     }
 }
 

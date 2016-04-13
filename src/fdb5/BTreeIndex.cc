@@ -21,8 +21,8 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-BTreeIndex::BTreeIndex( const PathName& path, Index::Mode m ) :
-	Index(path,m),
+BTreeIndex::BTreeIndex(const Key& key, const PathName& path, Index::Mode m ) :
+    Index(key,path,m),
     btree_( path, bool( m == Index::READ ) ),
     fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert", true) )
 {

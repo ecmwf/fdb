@@ -18,6 +18,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+WriteVisitor::WriteVisitor(std::vector<Key>& prev) :
+    prev_(prev)
+{
+    prev.resize(3);
+}
+
 WriteVisitor::~WriteVisitor()
 {
 }

@@ -27,27 +27,28 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-Index* Index::create( const std::string& type, const PathName& path, Index::Mode m )
+Index* Index::create(const Key& key, const std::string& type, const PathName& path, Index::Mode m )
 {
 //    Log::info() << "creating Index @ [" << path << "] of type [" << type << "]" << std::endl;
 //    Log::info() << BackTrace::dump() << std::endl;
     
     if( type == "BTreeIndex" )
-		return new BTreeIndex(path,m);
+        return new BTreeIndex(key, path, m);
     
     if( type == "TextIndex" )
-		return new TextIndex(path,m);
+        return new TextIndex(key, path, m);
     
     throw BadParameter( "Unrecognized fdb5::Index type " + type + " @ " + Here().asString() );
 }
 
 //-----------------------------------------------------------------------------
 
-Index::Index(const PathName& path, Index::Mode m ) :
+Index::Index(const Key& key, const PathName& path, Index::Mode m ) :
 	mode_(m),
 	path_(path),
     files_( path + ".files" ),
-    axis_( path + ".axis" )
+    axis_( path + ".axis" ),
+    key_(key)
 {
 }
 
@@ -95,6 +96,11 @@ void Index::Field::dump(std::ostream& s) const
 void PrintIndex::operator ()(const Index &, const Key &key, const Index::Field &field)
 {
     out_ << "{" << key << ":" << field << "}\n";
+}
+
+const Key& Index::key() const
+{
+    return key_;
 }
 
 //-----------------------------------------------------------------------------

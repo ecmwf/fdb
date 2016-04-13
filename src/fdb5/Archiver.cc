@@ -29,7 +29,8 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-Archiver::Archiver()
+Archiver::Archiver() :
+    current_(0)
 {
     fdbWriterDB_ = eckit::Resource<std::string>("fdbWriterDB","toc.writer");
 }
@@ -52,33 +53,31 @@ struct ArchiveVisitor : public WriteVisitor {
     const void* data_;
     eckit::Length length_;
 
-    DB* db_;
-
     ArchiveVisitor(Archiver& owner, const Key& field, const void* data, eckit::Length length) :
+        WriteVisitor(owner.prev_),
         owner_(owner),
         field_(field),
         data_(data),
-        length_(length),
-        db_(0)
+        length_(length)
     {
     }
 
     virtual bool selectDatabase(const Key& key, const Key& full) {
         Log::info() << "selectDatabase " << key << std::endl;
-        db_ = &owner_.session(key);
+        owner_.current_ = &owner_.session(key);
         return true;
     }
 
     virtual bool selectIndex(const Key& key, const Key& full) {
         Log::info() << "selectIndex " << key << std::endl;
-        ASSERT(db_);
-        return db_->selectIndex(key);
+        ASSERT(owner_.current_);
+        return owner_.current_->selectIndex(key);
     }
 
     virtual bool selectDatum(const Key& key, const Key& full) {
         Log::info() << "selectDatum " << key << ", " << full << std::endl;
-        ASSERT(db_);
-        db_->archive(key,data_,length_);
+        ASSERT(owner_.current_);
+        owner_.current_->archive(key,data_,length_);
 
         if(1)
         {

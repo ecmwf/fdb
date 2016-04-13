@@ -46,7 +46,7 @@ private: // methods
     virtual void close();
 
     /// Opens an Index with the associated path
-    virtual Index* openIndex(const eckit::PathName& path ) const;
+    virtual Index* openIndex(const Key& key, const eckit::PathName& path ) const;
 
     virtual void print( std::ostream& out ) const;
 
@@ -57,6 +57,7 @@ private: // members
     TocReverseIndexes toc_;
 
     std::vector< eckit::PathName > current_;
+    Key currentIndexKey_;
 
 };
 

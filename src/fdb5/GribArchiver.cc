@@ -13,6 +13,7 @@
 #include "eckit/log/BigNum.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Seconds.h"
+#include "eckit/log/Progress.h"
 
 #include "grib_api.h"
 
@@ -42,6 +43,10 @@ void GribArchiver::archive(eckit::DataHandle& source)
 
     size_t count = 0;
     Length total_size = 0;
+
+    Length totalEstimate = source.estimate();
+
+    Progress progress("Scanning", 0, totalEstimate);
 
     while( (len = file.readSome(buffer)) )
     {
@@ -109,6 +114,7 @@ void GribArchiver::archive(eckit::DataHandle& source)
         write(request, static_cast<const void *>(buffer), Length(len) ); // finally archive it
 
         total_size += len;
+        progress(total_size);
     }
 
     double tend = timer.elapsed();

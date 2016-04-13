@@ -22,22 +22,30 @@
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
 
+#include "fdb5/Key.h"
+
 class MarsRequest;
 
 namespace fdb5 {
-
-class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class WriteVisitor : public eckit::NonCopyable {
 public: // methods
 
+    WriteVisitor(std::vector<Key>&);
     virtual ~WriteVisitor();
 
     virtual bool selectDatabase(const Key& key, const Key& full) = 0;
     virtual bool selectIndex(const Key& key, const Key& full) = 0;
     virtual bool selectDatum(const Key& key, const Key& full) = 0;
+
+
+private: // members
+
+    friend class Rule;
+
+    std::vector<Key>& prev_;
 
 };
 

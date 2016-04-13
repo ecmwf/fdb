@@ -58,7 +58,6 @@ public: // methods
                 WriteVisitor& Visitor,
                 size_t depth,
                 std::vector<fdb5::Key>& keys,
-                std::vector<fdb5::Key>& prev,
                 Key& full) const;
 
 
@@ -78,7 +77,6 @@ private: // methods
              std::vector<Predicate*>::const_iterator cur,
              size_t depth,
              std::vector<Key>& keys,
-             std::vector<fdb5::Key>& prev,
              Key& full,
              WriteVisitor& Visitor) const;
 

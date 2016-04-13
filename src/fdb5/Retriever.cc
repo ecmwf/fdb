@@ -105,12 +105,12 @@ struct RetrieveVisitor : public ReadVisitor {
 
 eckit::DataHandle* Retriever::retrieve()
 {
-    Log::info() << std::endl
-                << "---------------------------------------------------------------------------------------------------"
-                << std::endl
-                << std::endl
-                << *this
-                << std::endl;
+//    Log::info() << std::endl
+//                << "---------------------------------------------------------------------------------------------------"
+//                << std::endl
+//                << std::endl
+//                << *this
+//                << std::endl;
 
     bool sorted = false;
     std::vector<std::string> sort;
