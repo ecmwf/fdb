@@ -46,6 +46,8 @@ public: // methods
 
     const Key& key() const { return key_; }
 
+    virtual bool selectIndex(const Key& key) = 0;
+
     virtual bool open() = 0;
 
     virtual bool match(const Key& key) const = 0;
@@ -54,7 +56,7 @@ public: // methods
 
     virtual void axis(const Key& key, const std::string& keyword, eckit::StringSet& s) const = 0;
 
-    virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const = 0;
+    virtual eckit::DataHandle* retrieve(const Key& key) const = 0;
 
     virtual void archive(const Key& key, const void* data, eckit::Length length) = 0;
 

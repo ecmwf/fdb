@@ -9,6 +9,7 @@
  */
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/config/Resource.h"
 
 #include "fdb5/TocDB.h"
 
@@ -19,8 +20,14 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocDB::TocDB(const Key& dbKey) : DB(dbKey),
-    schema_(dbKey)
+    schema_(dbKey),
+    current_(0)
 {
+    PathName root( eckit::Resource<std::string>("fdbRoot;$FDB_ROOT", "/tmp/fdb" ) );
+
+    path_ = root / dbKey.valuesToString();
+
+    indexType_ = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex" );
 }
 
 TocDB::~TocDB()
@@ -62,7 +69,7 @@ void TocDB::flush()
     NOTIMP;
 }
 
-eckit::DataHandle* TocDB::retrieve(const MarsTask& task, const Key& key) const
+eckit::DataHandle* TocDB::retrieve(const Key& key) const
 {
     Log::error() << "Retrieve not implemented for " << *this << std::endl;
     NOTIMP;

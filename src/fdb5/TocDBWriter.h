@@ -40,9 +40,11 @@ public: // methods
 
 protected: // methods
 
+    virtual bool selectIndex(const Key& key);
+
     virtual bool open();
 
-    virtual void archive(const Key& userkey, const void* data, eckit::Length length);
+    virtual void archive(const Key& key, const void* data, eckit::Length length);
 
     virtual void flush();
 
@@ -83,12 +85,16 @@ private: // methods
 
     eckit::PathName getDataPath(const Key& key);
 
+    eckit::PathName generateIndexPath(const Key& key) const;
+
+    eckit::PathName generateDataPath(const Key& key) const;
+
 private: // members
 
     HandleStore     handles_;    ///< stores the DataHandles being used by the Session
 
     TocIndexStore tocEntries_;
-    PathStore     dataPaths;
+    PathStore     dataPaths_;
 
     long				blockSize_;
     std::vector<char>   padding_;
@@ -96,6 +102,8 @@ private: // members
     std::set<Key> seen_;
 
     bool aio_;
+
+    Index* current_;
 
 };
 

@@ -26,7 +26,6 @@ namespace fdb5 {
 TocSchema::TocSchema(const Key& dbKey) :
     dbKey_(dbKey)
 {
-    root_ = eckit::Resource<std::string>("fdbRoot;$FDB_ROOT", "/tmp/fdb" );
 
     root_.mkdir(); /// @note what about permissions on creation?
 

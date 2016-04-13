@@ -72,13 +72,6 @@ TocIndex::TocIndex(const PathName& dir, const PathName& idx, const TocRecord::Me
 {
 }
 
-TocIndex::TocIndex(const TocSchema& schema, const Key& key) :
-    TocHandler( schema.tocDirPath() ),
-    index_( schema.generateIndexPath(key) ),
-    tocMD_( schema.tocEntry(key) )
-{
-}
-
 TocIndex::~TocIndex()
 {
 	openForAppend();
@@ -120,8 +113,10 @@ void TocReverseIndexes::init() {
     inited_ = true;
 }
 
-std::vector<PathName> TocReverseIndexes::indexes(const TocRecord::MetaData& md) const
+std::vector<PathName> TocReverseIndexes::indexes(const Key& key) const
 {
+    TocRecord::MetaData md( key.valuesToString() );
+
     const_cast<TocReverseIndexes*>(this)->init();
 
 	TocMap::const_iterator f = cacheIndexes_.find(md);

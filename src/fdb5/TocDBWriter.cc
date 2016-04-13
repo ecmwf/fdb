@@ -44,12 +44,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDBWriter::TocDBWriter(const Key& key) : TocDB(key)
+TocDBWriter::TocDBWriter(const Key& key) :
+    TocDB(key),
+    current_(0)
 {
-    const PathName& tocDirPath = schema_.tocDirPath();
-    if( !tocDirPath.exists() )
+    if( !path_.exists() )
     {
-        TocInitialiser init(tocDirPath);
+        TocInitialiser init(path_);
     }
 
     blockSize_ = eckit::Resource<long>( "blockSize", -1 );
@@ -57,7 +58,7 @@ TocDBWriter::TocDBWriter(const Key& key) : TocDB(key)
     if( blockSize_ < 0 ) // take blockSize_ from statfs
     {
         struct statfs s;
-        SYSCALL2( statfs(const_cast<char*>( tocDirPath.localPath() ), &s ), tocDirPath );
+        SYSCALL2( statfs(const_cast<char*>( path_.localPath() ), &s ), path_ );
         if( s.f_bsize > 0 )
             blockSize_ = s.f_bsize;
         /// @note should we use s.f_iosize, optimal transfer block size, on macosx ?
@@ -69,12 +70,18 @@ TocDBWriter::TocDBWriter(const Key& key) : TocDB(key)
 
     aio_ = eckit::Resource<bool>("fdbAsyncWrite",false);
 
-    Log::info() << "TocDBWriter for TOC [" << tocDirPath << "] with block size of " << Bytes(blockSize_) << std::endl;
+    Log::info() << "TocDBWriter for TOC [" << path_ << "] with block size of " << Bytes(blockSize_) << std::endl;
 }
 
 TocDBWriter::~TocDBWriter()
 {
     close();
+}
+
+bool TocDBWriter::selectIndex(const Key& key)
+{
+    TocIndex& toc = getTocIndex(key);
+    current_ = &getIndex( toc.index() );
 }
 
 bool TocDBWriter::open() {
@@ -97,15 +104,11 @@ void TocDBWriter::close() {
 }
 
 
-void TocDBWriter::archive(const Key& userkey, const void *data, Length length)
+void TocDBWriter::archive(const Key& key, const void *data, Length length)
 {
-    ASSERT( match(userkey) ); // paranoic check
+    ASSERT(current_);
 
-    TocIndex& toc = getTocIndex(userkey);
-
-    Index& index = getIndex( toc.index() );
-
-    PathName dataPath = getDataPath(userkey);
+    PathName dataPath = getDataPath(key);
 
     eckit::DataHandle& dh = getDataHandle(dataPath);
 
@@ -121,13 +124,11 @@ void TocDBWriter::archive(const Key& userkey, const void *data, Length length)
             dh.write( &padding_[0], paddingSize );
     }
 
-    Key k ( schema_.dataIdx(userkey) ); // reduced key with only index entries
-
     Index::Field field (dataPath, position, length);
 
-    Log::debug(2) << " pushing {" << k << "," << field << "}" << std::endl;
+    Log::debug(2) << " pushing {" << key << "," << field << "}" << std::endl;
 
-    index.put(k, field);
+    index.put(key, field);
 }
 
 void TocDBWriter::flush()
@@ -138,7 +139,7 @@ void TocDBWriter::flush()
 
 Index* TocDBWriter::openIndex(const PathName& path) const
 {
-    return Index::create( schema_.indexType(), path, Index::WRITE );
+    return Index::create( indexType_, path, Index::WRITE );
 }
 
 eckit::DataHandle* TocDBWriter::getCachedHandle( const PathName& path ) const
@@ -199,7 +200,7 @@ TocIndex& TocDBWriter::getTocIndex(const Key& key)
 {
     TocIndex* toc = 0;
 
-    std::string tocEntry = schema_.tocEntry(key);
+    std::string tocEntry = key.valuesToString();
 
     TocIndexStore::const_iterator itr = tocEntries_.find( tocEntry );
     if( itr != tocEntries_.end() )
@@ -217,17 +218,31 @@ TocIndex& TocDBWriter::getTocIndex(const Key& key)
     return *toc;
 }
 
+eckit::PathName TocDBWriter::generateIndexPath(const Key& key) const
+{
+    PathName tocPath ( path_ );
+    tocPath /= key.valuesToString();
+    tocPath = PathName::unique(tocPath) + ".idx";
+    return tocPath;
+}
+
+eckit::PathName TocDBWriter::generateDataPath(const Key& key) const
+{
+    PathName dpath ( path_ );
+    dpath /=  key.valuesToString();
+    dpath = PathName::unique(dpath) + ".dat";
+    return dpath;
+}
+
 PathName TocDBWriter::getDataPath(const Key& key)
 {
-    std::string prefix = schema_.dataFilePrefix(key);
-
-    PathStore::const_iterator itr = dataPaths.find( prefix );
-    if( itr != dataPaths.end() )
+    PathStore::const_iterator itr = dataPaths_.find(key);
+    if( itr != dataPaths_.end() )
         return itr->second;
 
-    PathName dataPath = schema_.generateDataPath(key);
+    PathName dataPath = generateDataPath(key);
 
-    dataPaths[ prefix ] = dataPath;
+    dataPaths_[ key ] = dataPath;
 
     return dataPath;
 }

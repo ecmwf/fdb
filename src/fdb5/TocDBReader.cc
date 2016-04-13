@@ -25,13 +25,19 @@ namespace fdb5 {
 
 TocDBReader::TocDBReader(const Key& key) :
     TocDB(key),
-    toc_(schema_.tocDirPath())
+    toc_(path_)
 {
-    Log::info() << "TocDBReader for TOC [" << schema_.tocDirPath() << "]" << std::endl;
+    Log::info() << "TocDBReader for TOC [" << path_ << "]" << std::endl;
 }
 
 TocDBReader::~TocDBReader()
 {
+}
+
+bool TocDBReader::selectIndex(const Key& key)
+{
+    current_ = toc_.indexes(key);
+    return (current_.size() != 0);
 }
 
 bool TocDBReader::open() {
@@ -59,26 +65,20 @@ void TocDBReader::axis(const Key& key, const std::string& keyword, StringSet& s)
 void TocDBReader::close() {
 }
 
-eckit::DataHandle* TocDBReader::retrieve(const MarsTask& task, const Key& key) const
+eckit::DataHandle* TocDBReader::retrieve(const Key& key) const
 {
-    if(!match(key)) return 0;
-
     Log::info() << "Trying to retrieve key " << key << std::endl;
 
-    const std::vector<PathName>& indexesPaths = toc_.indexes( schema_.tocEntry(key) );
-
-    Log::info() << "Scanning indexes " << indexesPaths << std::endl;
+    Log::info() << "Scanning indexes " << current_ << std::endl;
 
     const Index* index = 0;
 
-    Key k( schema_.dataIdx(key) );
-
     Index::Field field;
-    for( std::vector<PathName>::const_iterator itr = indexesPaths.begin(); itr != indexesPaths.end(); ++itr )
+    for( std::vector<PathName>::const_iterator itr = current_.begin(); itr != current_.end(); ++itr )
     {
         const Index& idx = getIndex(*itr);
 
-        if( idx.get(k, field) )
+        if( idx.get(key, field) )
         {
             index = &idx;
             break;
@@ -93,7 +93,7 @@ eckit::DataHandle* TocDBReader::retrieve(const MarsTask& task, const Key& key) c
 
 Index* TocDBReader::openIndex(const PathName& path) const
 {
-    return Index::create( schema_.indexType(), path, Index::READ );
+    return Index::create( indexType_, path, Index::READ );
 }
 
 void TocDBReader::print(std::ostream &out) const

@@ -85,16 +85,22 @@ struct RetrieveVisitor : public Visitor, public RetrieveOpCallback {
 
     virtual bool selectIndex(const Key& key, const Key& full) {
         Log::info() << "selectIndex " << key << std::endl;
-        // db_->selectIndex(key);
-        return true;
+        return db_->selectIndex(key);
     }
 
     virtual bool selectDatum(const Key& key, const Key& full) {
         Log::info() << "selectDatum " << key << ", " << full << std::endl;
-        // db_->selectDatum(key);
-        ASSERT(op_.size());
-        op_.back()->execute(task_, full, *op_.back());
-        return true;
+
+        DataHandle* dh = db_->retrieve(key);
+
+        if(dh) {
+            gatherer_.add(dh);
+        }
+
+//        ASSERT(op_.size());
+//        op_.back()->execute(task_, full, *op_.back());
+
+        return (dh != 0);
     }
 
     virtual void enterValue(const std::string& keyword, const std::string& value) {
@@ -123,7 +129,7 @@ struct RetrieveVisitor : public Visitor, public RetrieveOpCallback {
     // From RetrieveOpCallback
 
     virtual bool retrieve(const MarsTask& task, const Key& key) {
-        DataHandle* dh = db_->retrieve(task, key);
+        DataHandle* dh = db_->retrieve(key);
         if(dh) {
             Log::info() << "Got data for key " << key << std::endl;
             gatherer_.add(dh);

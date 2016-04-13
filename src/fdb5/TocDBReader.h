@@ -35,16 +35,18 @@ public: // methods
 
 private: // methods
 
+    virtual bool selectIndex(const Key& key);
+
     virtual bool open();
 
     virtual void axis(const Key& key, const std::string& keyword, eckit::StringSet& s) const;
 
-    virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const;
+    virtual eckit::DataHandle* retrieve(const Key& key) const;
 
     virtual void close();
 
     /// Opens an Index with the associated path
-    virtual Index* openIndex( const eckit::PathName& path ) const;
+    virtual Index* openIndex(const eckit::PathName& path ) const;
 
     virtual void print( std::ostream& out ) const;
 
@@ -53,6 +55,8 @@ private: // methods
 private: // members
 
     TocReverseIndexes toc_;
+
+    std::vector< eckit::PathName > current_;
 
 };
 

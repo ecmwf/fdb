@@ -54,13 +54,13 @@ protected: // methods
 
     virtual void close();
 
-    virtual eckit::DataHandle* retrieve(const MarsTask& task, const Key& key) const;
+    virtual eckit::DataHandle* retrieve(const Key& key) const;
 
-    virtual Index* openIndex( const eckit::PathName& path ) const = 0;
+    virtual Index* openIndex(const eckit::PathName& path) const = 0;
 
     /// Get the Index on the given path
     /// If necessary it creates it and inserts in the cache
-    Index& getIndex( const eckit::PathName& path ) const;
+    Index* getIndex( const eckit::PathName& path ) const;
 
     /// @param path PathName to the Index
     /// @returns the cached eckit::DataHandle or NULL if not found
@@ -71,7 +71,13 @@ protected: // methods
 
 protected: // members
 
+    eckit::PathName path_;
+
+    std::string indexType_;
+
     TocSchema schema_;
+
+    Index* current_;
 
     mutable IndexStore indexes_;    ///< stores the indexes being used by the Session
 

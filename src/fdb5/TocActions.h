@@ -80,7 +80,7 @@ public: // methods
 
     TocReverseIndexes( const eckit::PathName& dir );
 
-    std::vector< eckit::PathName > indexes( const TocRecord::MetaData& ) const;
+    std::vector< eckit::PathName > indexes(const Key& key) const;
 
 private:
 
