@@ -54,10 +54,7 @@ class TocIndex : public TocHandler {
 
 public: // methods
 
-    /// for testing
     TocIndex(const eckit::PathName& dir, const eckit::PathName& idx, const TocRecord::MetaData& md);
-
-    TocIndex(const TocSchema& schema, const Key& key);
 
 	~TocIndex();
 

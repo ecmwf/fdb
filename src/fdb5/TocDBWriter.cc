@@ -209,7 +209,7 @@ TocIndex& TocDBWriter::getTocIndex(const Key& key)
     }
     else
     {
-        toc = new TocIndex(schema_, key);
+        toc = new TocIndex(path_, , key);
         tocEntries_[ tocEntry ] = toc;
     }
 
