@@ -174,49 +174,6 @@ void Retriever::print(std::ostream& out) const
         << ")";
 }
 
-// void Retriever::retrieve(Key& key,
-//                          const DB& db,
-//                          Schema::const_iterator pos,
-//                          Op& op)
-// {
-//     if(pos != db.schema().end()) {
-
-//         std::vector<std::string> values;
-
-//         const std::string& keyword = *pos;
-
-//         db.schema().
-
-//         handler.getValues(task_, keyword, values, db, key);
-
-//         Log::info() << "Expanding keyword (" << keyword << ") with " << values << std::endl;
-
-//         if(!values.size()) {
-//             retrieve(key, db, ++pos, op);
-//             return;
-//         }
-
-//         eckit::ScopedPtr<Op> newOp( handler.makeOp(task_, op) );
-
-//         Schema::const_iterator next = pos;
-//         ++next;
-
-//         for(std::vector<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
-
-//             op.enter(keyword, *j);
-
-//             key.set(keyword, *j);
-//             retrieve(key, db, next, *newOp);
-//             key.unset(keyword);
-
-//             op.leave();
-//         }
-//     }
-//     else {
-//         op.execute(task_, key, op);
-//     }
-// }
-
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

@@ -21,8 +21,6 @@
 
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/Schema.h"
-
 namespace eckit { class DataHandle; }
 
 class MarsTask;
@@ -53,11 +51,6 @@ public: // methods
 private: // methods
 
     void print(std::ostream& out) const;
-
-    void retrieve(Key& key,
-                  const DB& db,
-                  Schema::const_iterator pos,
-                  Op& op);
 
 private: // members
 

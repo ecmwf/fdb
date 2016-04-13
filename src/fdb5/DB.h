@@ -23,7 +23,6 @@
 #include "eckit/io/Length.h"
 #include "eckit/types/Types.h"
 
-#include "fdb5/Schema.h"
 #include "fdb5/Key.h"
 
 namespace eckit { class DataHandle; }

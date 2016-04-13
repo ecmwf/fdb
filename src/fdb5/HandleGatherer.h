@@ -21,8 +21,6 @@
 
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/Schema.h"
-
 namespace eckit { class DataHandle; }
 
 
