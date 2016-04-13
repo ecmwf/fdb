@@ -39,15 +39,6 @@ list( APPEND fdb5_srcs
     Winds.h
     Winds.cc
 
-    Op.h
-    Op.cc
-    RetrieveOp.h
-    RetrieveOp.cc
-    ForwardOp.h
-    ForwardOp.cc
-    UVOp.h
-    UVOp.cc
-
     MasterConfig.h
     MasterConfig.cc
     Key.h
