@@ -52,8 +52,6 @@ list( APPEND fdb5_srcs
     MasterConfig.cc
     Key.h
     Key.cc
-    Schema.h
-    Schema.cc
     Matcher.h
     Matcher.cc
     MatchAny.h
