@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -60,7 +60,7 @@ protected: // methods
 
     /// Get the Index on the given path
     /// If necessary it creates it and inserts in the cache
-    Index* getIndex( const eckit::PathName& path ) const;
+    Index& getIndex( const eckit::PathName& path ) const;
 
     /// @param path PathName to the Index
     /// @returns the cached eckit::DataHandle or NULL if not found
