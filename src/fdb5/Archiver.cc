@@ -110,6 +110,12 @@ void Archiver::write(const Key& key, const void* data, eckit::Length length)
     ArchiveVisitor visitor(*this, key, data, length);
 
     rules.expand(key, visitor);
+
+    if(visitor.count() == 1) { // Make sure we did write something
+        std::ostringstream oss;
+        oss << "FDB: Could not find a rule to archive " << key;
+        throw SeriousBug(oss.str());
+    }
 }
 
 void Archiver::flush()
