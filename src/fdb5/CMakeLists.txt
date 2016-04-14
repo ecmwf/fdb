@@ -1,5 +1,7 @@
 ### TODO
 #
+#  * run the suite and slowly build the rules
+#
 #  * fdbRoot is a list of paths to visit ---> speak to Hodge
 #  * check overwrite
 #
@@ -15,10 +17,6 @@
 #  * copy the schema (fdbRules) into toc dir and read it fromt here on retrieves
 #
 #  * fdb5_ls -class od -expver 0001
-#
-#  * multihandle
-#    - derive from MultiHandle
-#    - override compress() to compress & sort children
 #
 #  * consider using more than a service node on the HPC
 
