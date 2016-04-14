@@ -28,6 +28,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+GribArchiver::GribArchiver(bool completeTransfers):
+    completeTransfers_(completeTransfers)
+{
+}
+
 void GribArchiver::archive(eckit::DataHandle& source)
 {
     Timer timer("fdb::service::archive");
@@ -48,73 +53,85 @@ void GribArchiver::archive(eckit::DataHandle& source)
 
     Progress progress("Scanning", 0, totalEstimate);
 
-    while( (len = file.readSome(buffer)) )
-    {
-        ASSERT(len < buffer.size());
+    try{
 
-        const char *p = buffer + len - 4;
-
-        if(p[0] != '7' || p[1] != '7' || p[2] != '7' || p[3] != '7')
-            throw eckit::SeriousBug("No 7777 found");
-
-        //Offset where = file.position();
-
-        //r.length_ = len;
-        //r.offset_ = ((unsigned long long)where - len);
-
-        grib_handle *h = grib_handle_new_from_message(0,buffer,len);
-        ASSERT(h);
-
-        char mars_str [] = "mars";
-        grib_keys_iterator* ks = grib_keys_iterator_new(h,GRIB_KEYS_ITERATOR_ALL_KEYS, mars_str);
-        ASSERT(ks);
-
-        fdb5::Key request;
-
-        while(grib_keys_iterator_next(ks))
+        while( (len = file.readSome(buffer)) )
         {
-            const char* name = grib_keys_iterator_get_name(ks);
+            ASSERT(len < buffer.size());
 
-            char val[1024];
-            size_t len = sizeof(val);
+            const char *p = buffer + len - 4;
 
-            ASSERT( grib_keys_iterator_get_string(ks, val, &len) == 0);
+            if(p[0] != '7' || p[1] != '7' || p[2] != '7' || p[3] != '7')
+                throw eckit::SeriousBug("No 7777 found");
 
-            /// @todo cannocicalisation of values
-            /// const KeywordHandler& handler = KeywordHandler::lookup(name);
-            //  request.set( name, handler.cannocalise(val) );
-            request.set( name, val );
-        }
+            //Offset where = file.position();
 
-        grib_keys_iterator_delete(ks);
+            //r.length_ = len;
+            //r.offset_ = ((unsigned long long)where - len);
 
-        // check for duplicated entries (within same request)
+            grib_handle *h = grib_handle_new_from_message(0,buffer,len);
+            ASSERT(h);
 
-//        if( fdbCheckDoubleGrib_ )
-        {
-            double now = timer.elapsed();
-            if( seen.find(request) != seen.end() )
+            char mars_str [] = "mars";
+            grib_keys_iterator* ks = grib_keys_iterator_new(h,GRIB_KEYS_ITERATOR_ALL_KEYS, mars_str);
+            ASSERT(ks);
+
+            fdb5::Key request;
+
+            while(grib_keys_iterator_next(ks))
             {
-                std::ostringstream msg;
-                msg << "GRIB sent to FDB has duplicated parameters : " << request;
-                Log::error() << msg.str() << std::endl;
+                const char* name = grib_keys_iterator_get_name(ks);
 
-//                if( fdbFailOnOverwrite_ )
-//                    throw fdb::Error( Here(), msg.str() );
+                char val[1024];
+                size_t len = sizeof(val);
+
+                ASSERT( grib_keys_iterator_get_string(ks, val, &len) == 0);
+
+                /// @todo cannocicalisation of values
+                /// const KeywordHandler& handler = KeywordHandler::lookup(name);
+                //  request.set( name, handler.cannocalise(val) );
+                request.set( name, val );
             }
 
-            seen.insert(request);
-            ++count;
+            grib_keys_iterator_delete(ks);
 
-            check += timer.elapsed() - now;
+            // check for duplicated entries (within same request)
+
+    //        if( fdbCheckDoubleGrib_ )
+            {
+                double now = timer.elapsed();
+                if( seen.find(request) != seen.end() )
+                {
+                    std::ostringstream msg;
+                    msg << "GRIB sent to FDB has duplicated parameters : " << request;
+                    Log::error() << msg.str() << std::endl;
+
+    //                if( fdbFailOnOverwrite_ )
+    //                    throw fdb::Error( Here(), msg.str() );
+                }
+
+                seen.insert(request);
+                ++count;
+
+                check += timer.elapsed() - now;
+            }
+
+            Log::info() << request << std::endl;
+
+            write(request, static_cast<const void *>(buffer), Length(len) ); // finally archive it
+
+            total_size += len;
+            progress(total_size);
         }
-
-        Log::info() << request << std::endl;
-
-        write(request, static_cast<const void *>(buffer), Length(len) ); // finally archive it
-
-        total_size += len;
-        progress(total_size);
+    }
+    catch(...) {
+        if(completeTransfers_) {
+         Log::error() << "Exception recieved. Completing transfer." << std::endl;
+            // Consume rest of datahandle otherwise client retries for ever
+            while( (len = file.readSome(buffer)) )
+                /* empty */;
+        }
+        throw;
     }
 
     double tend = timer.elapsed();
