@@ -140,9 +140,16 @@ void Rule::expand( const Key& field,
     if(cur == predicates_.end()) {
         if(rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
-            if(!visitor.selectDatum( keys[2], full)) {
-                return; // This it not useful
+            if(visitor.count() > 0) {
+                std::ostringstream oss;
+                oss << "More than one rule matching "
+                    << keys[0] << ", "
+                    << keys[1] << ", "
+                    << keys[2];
+                throw SeriousBug(oss.str());
             }
+            visitor.selectDatum( keys[2], full);
+            visitor.touch();
         }
         else {
 

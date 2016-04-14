@@ -18,6 +18,7 @@
 #include "fdb5/Rule.h"
 #include "fdb5/Key.h"
 #include "fdb5/RulesParser.h"
+#include "fdb5/WriteVisitor.h"
 
 namespace fdb5 {
 
@@ -46,6 +47,8 @@ void Rules::expand(const Key& field, WriteVisitor& visitor) const
 {
     Key full;
     std::vector<Key> keys(3);
+
+    visitor.reset();
 
     for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->expand(field, visitor, 0, keys, full);

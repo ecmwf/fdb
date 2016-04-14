@@ -40,12 +40,17 @@ public: // methods
     virtual bool selectIndex(const Key& key, const Key& full) = 0;
     virtual bool selectDatum(const Key& key, const Key& full) = 0;
 
+    size_t count() const { return count_; }
+    void reset() { count_ = 0; }
+    void touch() { ++count_; }
 
 private: // members
 
     friend class Rule;
 
     std::vector<Key>& prev_;
+
+    size_t count_;
 
 };
 
