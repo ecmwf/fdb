@@ -26,19 +26,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class RulesTokenizerError : public std::exception {
-    std::string what_;
-    virtual const char* what() const  throw()
-    {
-        return what_.c_str();
-    }
-public:
-    RulesTokenizerError(const std::string& what) : what_(what) {}
-    virtual ~RulesTokenizerError() throw() {}
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
 std::string RulesParser::parseIdent()
 {
     std::string s;
@@ -52,6 +39,9 @@ std::string RulesParser::parseIdent()
             case ',':
             case '[':
             case ']':
+                if(s.empty()) {
+                    throw StreamParser::Error("Syntax error (possible trailing comma)");
+                }
                 return s;
 
             default:
@@ -151,7 +141,7 @@ void RulesParser::parse(std::vector<Rule*>& result)
         result.push_back(parseRule());
     }
     if(c) {
-        throw RulesTokenizerError(std::string("Error parsing rules: remaining char: ") + c);
+        throw StreamParser::Error(std::string("Error parsing rules: remaining char: ") + c);
     }
 }
 
