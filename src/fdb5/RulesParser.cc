@@ -140,7 +140,7 @@ Rule* RulesParser::parseRule()
     }
 }
 
-RulesParser::RulesParser(std::istream &in) : StreamParser(in)
+RulesParser::RulesParser(std::istream &in) : StreamParser(in, true)
 {
 }
 
