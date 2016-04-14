@@ -90,17 +90,9 @@ bool TocDBWriter::open() {
 
 void TocDBWriter::close() {
 
-    // ensure consistent state before writing Toc entry
+    flush(); // closes the TOC entries & indexes
 
-    flush();
-
-    // close all data handles followed by all indexes, before writing Toc entry
-
-    closeDataHandles();
-
-    // finally write all Toc entries
-
-    closeTocEntries();
+    closeDataHandles(); // close data handles
 }
 
 
@@ -133,8 +125,15 @@ void TocDBWriter::archive(const Key& key, const void *data, Length length)
 
 void TocDBWriter::flush()
 {
-    flushIndexes();
+    // ensure consistent state before writing Toc entry
     flushDataHandles();
+    flushIndexes();
+
+    // close the indexes before the Toc's
+    closeIndexes();
+
+    // finally write all Toc entries
+    closeTocEntries();
 }
 
 Index* TocDBWriter::openIndex(const Key& key, const PathName& path) const
@@ -247,8 +246,7 @@ PathName TocDBWriter::getDataPath(const Key& key)
 
 void TocDBWriter::flushIndexes()
 {
-    IndexStore::iterator itr = indexes_.begin();
-    for( ; itr != indexes_.end(); ++itr )
+    for(IndexStore::iterator itr = indexes_.begin(); itr != indexes_.end(); ++itr )
     {
         Index* idx = itr->second;
         if( idx )
