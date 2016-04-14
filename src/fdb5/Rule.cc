@@ -140,16 +140,18 @@ void Rule::expand( const Key& field,
     if(cur == predicates_.end()) {
         if(rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
-            if(visitor.count() > 0) {
+            if(visitor.rule() != 0) {
                 std::ostringstream oss;
                 oss << "More than one rule matching "
                     << keys[0] << ", "
                     << keys[1] << ", "
-                    << keys[2];
+                    << keys[2] << " "
+                    << topRule() << " and "
+                    << visitor.rule()->topRule();
                 throw SeriousBug(oss.str());
             }
             visitor.selectDatum( keys[2], full);
-            visitor.touch();
+            visitor.rule(this);
         }
         else {
 
@@ -251,9 +253,27 @@ size_t Rule::depth() const
     return result+1;
 }
 
+void Rule::updateParent(const Rule* parent)
+{
+    parent_ = parent;
+    for(std::vector<Rule*>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+        (*i)->updateParent(this);
+    }
+}
+
+
 void Rule::print(std::ostream& out) const
 {
     out << "Rule()";
+}
+
+const Rule& Rule::topRule() const {
+    if(parent_) {
+        return parent_->topRule();
+    }
+    else {
+        return *this;
+    }
 }
 
 std::ostream& operator<<(std::ostream& s, const Rule& x)

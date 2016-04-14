@@ -48,7 +48,7 @@ void Rules::expand(const Key& field, WriteVisitor& visitor) const
     Key full;
     std::vector<Key> keys(3);
 
-    visitor.reset();
+    visitor.rule(0);
 
     for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->expand(field, visitor, 0, keys, full);
@@ -92,9 +92,10 @@ void Rules::dump(std::ostream& s) const
 
 void Rules::check()
 {
-    for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for(std::vector<Rule*>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         /// @todo print offending rule in meaningful message
         ASSERT((*i)->depth() == 3);
+        (*i)->updateParent(0);
     }
 }
 

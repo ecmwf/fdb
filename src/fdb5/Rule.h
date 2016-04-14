@@ -63,6 +63,9 @@ public: // methods
 
 
     size_t depth() const;
+    void updateParent(const Rule* parent);
+
+    const Rule& topRule() const;
 
 private: // methods
 
@@ -87,8 +90,10 @@ private: // methods
 
     void print( std::ostream& out ) const;
 
+
 private: // members
 
+    const Rule* parent_;
     std::vector<Predicate*> predicates_;
     std::vector<Rule*>      rules_;
 

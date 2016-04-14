@@ -28,6 +28,8 @@ class MarsRequest;
 
 namespace fdb5 {
 
+class Rule;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class WriteVisitor : public eckit::NonCopyable {
@@ -40,9 +42,8 @@ public: // methods
     virtual bool selectIndex(const Key& key, const Key& full) = 0;
     virtual bool selectDatum(const Key& key, const Key& full) = 0;
 
-    size_t count() const { return count_; }
-    void reset() { count_ = 0; }
-    void touch() { ++count_; }
+    void rule(const Rule* r) { rule_ = r; }
+    const Rule* rule() const { return rule_; }
 
 private: // members
 
@@ -50,7 +51,7 @@ private: // members
 
     std::vector<Key>& prev_;
 
-    size_t count_;
+    const Rule* rule_; // Last rule used
 
 };
 
