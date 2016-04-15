@@ -9,6 +9,7 @@
  */
 
 #include "eckit/log/Log.h"
+#include "eckit/config/Resource.h"
 
 #include "marslib/MarsRequest.h"
 
@@ -138,6 +139,12 @@ void Rule::expand( const Key& field,
                    std::vector<Key>& keys,
                    Key& full,
                    WriteVisitor& visitor) const {
+
+    static bool matchFirstFdbRule = Resource<bool>("matchFirstFdbRule", true);
+
+    if(matchFirstFdbRule && visitor.rule()) {
+        return;
+    }
 
     ASSERT(depth < 3);
 
