@@ -56,7 +56,7 @@ const std::string& MatchOptional::defaultValue() const {
 
 void MatchOptional::dump(std::ostream& s, const std::string& keyword) const
 {
-    s << keyword << '+' << default_;
+    s << keyword << '?' << default_;
 }
 
 void MatchOptional::print(std::ostream& out) const

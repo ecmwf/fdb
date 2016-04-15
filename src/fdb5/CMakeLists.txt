@@ -65,6 +65,8 @@ list( APPEND fdb5_srcs
 
     Handlers.h
     Handlers.cc
+    DateHandler.h
+    DateHandler.cc
     KeywordType.h
     KeywordType.cc
     KeywordHandler.h
