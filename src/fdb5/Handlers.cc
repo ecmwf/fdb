@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
+#include "eckit/config/EtcTable.h"
 
 #include "fdb5/Handlers.h"
 #include "fdb5/KeywordType.h"
@@ -39,7 +39,10 @@ const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
         return *(*j).second;
     }
     else {
-        std::string type = Resource<std::string>(keyword+"FdbType","Default");
+        static eckit::EtcKeyTable table("fdbTypes", 2);
+        std::vector<std::string> v = table.lookUp(keyword);
+        ASSERT(v.size() < 2);
+        std::string type = v.size() ? v[0] : "Default";
         KeywordHandler* newKH = KeywordType::build(type, keyword);
         handlers_[keyword] = newKH;
         return *newKH;
