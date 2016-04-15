@@ -10,6 +10,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/config/Resource.h"
+#include "eckit/log/Timer.h"
 
 #include "fdb5/TocDB.h"
 
@@ -93,6 +94,8 @@ Index& TocDB::getIndex(const Key& key, const PathName& path) const
 
 void TocDB::closeIndexes()
 {
+    Timer timer("TocDB::closeIndexes()");
+
     for( IndexStore::iterator itr = indexes_.begin(); itr != indexes_.end(); ++itr )
     {
         Index* idx = itr->second;

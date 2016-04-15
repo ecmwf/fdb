@@ -82,6 +82,8 @@ void GribArchiver::archive(eckit::DataHandle& source)
             {
                 const char* name = grib_keys_iterator_get_name(ks);
 
+                if(name[0] == '_') continue; // skip silly underscores in GRIB
+
                 char val[1024];
                 size_t len = sizeof(val);
 
