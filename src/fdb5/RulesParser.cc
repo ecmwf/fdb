@@ -40,7 +40,7 @@ std::string RulesParser::parseIdent(bool emptyOK)
             case ',':
             case '[':
             case ']':
-            case '+':
+            case '?':
                 if(s.empty() && !emptyOK) {
                     throw StreamParser::Error("Syntax error (possible trailing comma)");
                 }
@@ -61,7 +61,7 @@ Predicate* RulesParser::parsePredicate() {
 
     char c = peek();
 
-    if(c == '+') {
+    if(c == '?') {
         consume(c);
         return new Predicate(k, new MatchOptional(parseIdent(true)));
     }
