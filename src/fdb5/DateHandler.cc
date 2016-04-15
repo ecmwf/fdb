@@ -42,12 +42,12 @@ void DateHandler::getValues(const MarsRequest& request,
 
     request.getValues(keyword, dates);
 
-    Translator<Date, std::string> t;
+    Translator<long, std::string> t;
 
     values.reserve(dates.size());
 
     for(std::vector<Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
-        values.push_back(t(*i));
+        values.push_back(t(i->yyyymmdd()));
     }
 }
 
