@@ -34,7 +34,7 @@ public: // methods
 
 private: // methods
 
-    std::string parseIdent();
+    std::string parseIdent(bool emptyOK = false);
 
     Rule* parseRule();
 

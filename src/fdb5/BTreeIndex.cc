@@ -34,7 +34,7 @@ BTreeIndex::~BTreeIndex()
 
 bool BTreeIndex::exists(const Key &key) const
 {
-    BTreeKey k (key.toIndexForm());
+    BTreeKey k (key.valuesToString());
     FieldRef ignore;
     return const_cast<BTreeIndex*>(this)->btree_.get(k,ignore);
 }
@@ -42,7 +42,7 @@ bool BTreeIndex::exists(const Key &key) const
 bool BTreeIndex::get(const Key &key, Index::Field& field) const
 {
     FieldRef ref;
-    BTreeKey k (key.toIndexForm());
+    BTreeKey k (key.valuesToString());
     bool found = const_cast<BTreeIndex*>(this)->btree_.get(k,ref);
     if( found )
     {
@@ -57,7 +57,7 @@ BTreeIndex::Field BTreeIndex::get(const Key& key) const
 {
     Field result;
     FieldRef ref;
-    BTreeKey k (key.toIndexForm());
+    BTreeKey k (key.valuesToString());
     bool found = const_cast<BTreeIndex*>(this)->btree_.get(k,ref);
     if( !found ) {
            std::ostringstream oss;
@@ -78,7 +78,7 @@ void BTreeIndex::put_(const Key& key, const BTreeIndex::Field& field)
 
     Log::info() << "BTreeIndex insert " << key << " = " << field << std::endl;
 
-    BTreeKey k( key.toIndexForm() );
+    BTreeKey k( key.valuesToString() );
     FieldRef ref;
 
 	ref.pathId_ = files_.insert( field.path_ ); // inserts not yet in filestore
@@ -98,7 +98,7 @@ bool BTreeIndex::remove(const Key& key)
 {
     ASSERT( mode() == Index::WRITE );
 
-    BTreeKey k( key.toIndexForm() );
+    BTreeKey k( key.valuesToString() );
 	return btree_.remove(k);
 }
 

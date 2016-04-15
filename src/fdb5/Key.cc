@@ -20,7 +20,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-const char *sep = "/";
 
 Key::Key() :
     keys_()
@@ -75,19 +74,6 @@ const std::string& Key::get( const std::string& k ) const {
     return i->second;
 }
 
-std::string Key::toIndexForm() const
-{
-    ASSERT(names_.size() == keys_.size());
-
-    std::string result(sep);
-    for(StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
-        StringDict::const_iterator i = keys_.find(*j);
-        ASSERT(i != keys_.end());
-        result += (*i).first + sep + (*i).second + sep;
-    }
-    return result;
-}
-
 std::string Key::valuesToString() const
 {
     ASSERT(names_.size() == keys_.size());
@@ -103,27 +89,29 @@ std::string Key::valuesToString() const
 
 void Key::load(std::istream& s)
 {
-    std::string params;
-    s >> params;
+    NOTIMP;
+    // std::string params;
+    // s >> params;
 
-    Tokenizer parse(sep);
-    std::vector<std::string> result;
-    parse(params,result);
+    // Tokenizer parse(sep);
+    // std::vector<std::string> result;
+    // parse(params,result);
 
-    ASSERT( result.size() % 2 == 0 ); // even number of entries
+    // ASSERT( result.size() % 2 == 0 ); // even number of entries
 
-    clear();
-    for( size_t i = 0; i < result.size(); ++i,++i ) {
-        set(result[i], result[i+1]);
-    }
+    // clear();
+    // for( size_t i = 0; i < result.size(); ++i,++i ) {
+    //     set(result[i], result[i+1]);
+    // }
 }
 
 void Key::dump(std::ostream& s) const
 {
-    s << sep;
-    for(StringDict::const_iterator ktr = keys_.begin(); ktr != keys_.end(); ++ktr) {
-        s << ktr->first << sep << ktr->second << sep;
-    }
+    NOTIMP;
+    // s << sep;
+    // for(StringDict::const_iterator ktr = keys_.begin(); ktr != keys_.end(); ++ktr) {
+    //     s << ktr->first << sep << ktr->second << sep;
+    // }
 }
 
 void Key::print(std::ostream &out) const

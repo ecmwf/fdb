@@ -48,6 +48,8 @@ list( APPEND fdb5_srcs
     MatchValue.cc
     MatchAlways.h
     MatchAlways.cc
+    MatchOptional.h
+    MatchOptional.cc
     Predicate.h
     Predicate.cc
     Rule.h

@@ -21,12 +21,13 @@
 #include "fdb5/MatchAlways.h"
 #include "fdb5/MatchAny.h"
 #include "fdb5/MatchValue.h"
+#include "fdb5/MatchOptional.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::string RulesParser::parseIdent()
+std::string RulesParser::parseIdent(bool emptyOK)
 {
     std::string s;
     for(;;)
@@ -39,7 +40,8 @@ std::string RulesParser::parseIdent()
             case ',':
             case '[':
             case ']':
-                if(s.empty()) {
+            case '+':
+                if(s.empty() && !emptyOK) {
                     throw StreamParser::Error("Syntax error (possible trailing comma)");
                 }
                 return s;
@@ -58,6 +60,11 @@ Predicate* RulesParser::parsePredicate() {
     std::string k = parseIdent();
 
     char c = peek();
+
+    if(c == '+') {
+        consume(c);
+        return new Predicate(k, new MatchOptional(parseIdent(true)));
+    }
 
     if(c != ',' && c != '[' && c != ']')
     {

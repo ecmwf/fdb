@@ -65,7 +65,6 @@ public: // methods
         return s;
     }
 
-    std::string toIndexForm() const;
     std::string valuesToString() const;
 
     void load(std::istream& s);

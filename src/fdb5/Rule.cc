@@ -106,6 +106,10 @@ void Rule::expand( const MarsRequest& request,
 
     Key& k = keys[depth];
 
+    if(values.empty() && (*cur)->optional()) {
+        values.push_back((*cur)->defaultValue());
+    }
+
     for(StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
 
         k.push(keyword, *i);
@@ -187,30 +191,20 @@ void Rule::expand( const Key& field,
     ++next;
 
     const std::string& keyword = (*cur)->keyword();
-
-    StringList values(1, field.get(keyword));
-
-    // visitor.enterKeyword(request, keyword, values);
+    const std::string& value = (*cur)->value(field);
 
     Key& k = keys[depth];
 
-    for(StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
+    k.push(keyword, value);
+    full.push(keyword, value);
 
-        k.push(keyword, *i);
-        full.push(keyword, *i);
-
-        if((*cur)->match(k)) {
-            // visitor.enterValue(keyword, *i);
-            expand(field, next, depth, keys, full, visitor);
-            // visitor.leaveValue();
-        }
-
-        full.pop(keyword);
-        k.pop(keyword);
-
+    if((*cur)->match(k)) {
+        expand(field, next, depth, keys, full, visitor);
     }
 
-    // visitor.leaveKeyword();
+    full.pop(keyword);
+    k.pop(keyword);
+
 }
 void Rule::expand(const Key& field, WriteVisitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const
 {

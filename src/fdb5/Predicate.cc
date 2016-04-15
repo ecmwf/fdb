@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -49,11 +49,24 @@ std::string Predicate::keyword() const
     return keyword_;
 }
 
+bool Predicate::optional() const {
+    return matcher_->optional();
+}
+
+const std::string& Predicate::value(const Key& key) const {
+    return matcher_->value(key, keyword_);
+}
+
+const std::string& Predicate::defaultValue() const {
+    return matcher_->defaultValue();
+}
+
 std::ostream& operator<<(std::ostream& s, const Predicate& x)
 {
     x.print(s);
     return s;
 }
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

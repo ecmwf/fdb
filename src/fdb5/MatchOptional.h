@@ -8,56 +8,44 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Predicate.h
+/// @file   MatchOptional.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   April 2016
+/// @date   Mar 2016
 
-#ifndef fdb5_Predicate_H
-#define fdb5_Predicate_H
+#ifndef fdb5_MatchOptional_H
+#define fdb5_MatchOptional_H
 
 #include <iosfwd>
 
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/memory/ScopedPtr.h"
+#include "fdb5/Matcher.h"
 
 namespace fdb5 {
 
-class Key;
-class Matcher;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class Predicate : public eckit::NonCopyable {
+class MatchOptional : public Matcher {
 
 public: // methods
 
-    Predicate(const std::string& keyword, Matcher* matcher);
+	MatchOptional(const std::string& def);
 
-    ~Predicate();
+    virtual ~MatchOptional();
 
-    bool match(const Key& key) const;
+    virtual bool match(const std::string& keyword, const Key& key) const;
 
-    void dump( std::ostream& s ) const;
-
-    const std::string& value(const Key& key) const;
-    const std::string& defaultValue() const;
-
-    bool optional() const;
-
-    std::string keyword() const;
+    virtual void dump(std::ostream& s, const std::string& keyword) const;
 
 private: // methods
 
-    friend std::ostream& operator<<(std::ostream& s,const Predicate& x);
+    virtual bool optional() const;
+    virtual const std::string& value(const Key&, const std::string& keyword) const;
+    virtual void print( std::ostream& out ) const;
+    virtual const std::string& defaultValue() const;
 
-    void print( std::ostream& out ) const;
 
-private: // members
+    std::string default_;
 
-    eckit::ScopedPtr<Matcher> matcher_;
-
-    std::string keyword_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
