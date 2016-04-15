@@ -56,7 +56,7 @@ void DateHandler::print(std::ostream &out) const
     out << "DateHandler(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<DateHandler> handler("Integer");
+static KeywordHandlerBuilder<DateHandler> handler("Date");
 
 //----------------------------------------------------------------------------------------------------------------------
 
