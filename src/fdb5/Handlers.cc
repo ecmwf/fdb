@@ -41,8 +41,8 @@ const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
     else {
         static eckit::EtcKeyTable table("fdbTypes", 2);
         std::vector<std::string> v = table.lookUp(keyword);
-        ASSERT(v.size() < 2);
-        std::string type = v.size() ? v[0] : "Default";
+        std::string type = v.size() ? v[1] : "Default";
+        Log::info() << "Handler for " << keyword << " is " << type << std::endl;
         KeywordHandler* newKH = KeywordType::build(type, keyword);
         handlers_[keyword] = newKH;
         return *newKH;
