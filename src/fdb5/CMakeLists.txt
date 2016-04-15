@@ -19,6 +19,8 @@
 #  * fdb5_ls -class od -expver 0001
 #
 #  * consider using more than a service node on the HPC
+#
+#  * Rules for data files (eg {type,levtype} )
 
 
 # fdb5 library

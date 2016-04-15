@@ -67,7 +67,7 @@ void IndexAxis::insert(const Key& key)
 {
     ASSERT(!readOnly_);
 
-    Log::info() << *this << std::endl;
+//    Log::info() << *this << std::endl;
 
     const StringDict& keymap = key.dict();
 
