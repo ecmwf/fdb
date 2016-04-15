@@ -30,6 +30,8 @@
 #include "eckit/thread/AutoLock.h"
 #include "eckit/config/Resource.h"
 #include "eckit/log/Bytes.h"
+#include "eckit/log/Plural.h"
+#include "eckit/log/Timer.h"
 #include "eckit/io/AIOHandle.h"
 
 #include "fdb5/Error.h"
@@ -90,6 +92,8 @@ bool TocDBWriter::open() {
 
 void TocDBWriter::close() {
 
+    Log::info() << "Closing path " << path_ << std::endl;
+
     flush(); // closes the TOC entries & indexes
 
     closeDataHandles(); // close data handles
@@ -126,6 +130,7 @@ void TocDBWriter::archive(const Key& key, const void *data, Length length)
 void TocDBWriter::flush()
 {
     // ensure consistent state before writing Toc entry
+
     flushDataHandles();
     flushIndexes();
 
@@ -246,6 +251,7 @@ PathName TocDBWriter::getDataPath(const Key& key)
 
 void TocDBWriter::flushIndexes()
 {
+    Timer timer("TocDBWriter::flushIndexes()");
     for(IndexStore::iterator itr = indexes_.begin(); itr != indexes_.end(); ++itr )
     {
         Index* idx = itr->second;
@@ -256,16 +262,25 @@ void TocDBWriter::flushIndexes()
 
 void TocDBWriter::flushDataHandles()
 {
+    Timer timer("TocDBWriter::flushDataHandles()");
+
+    Log::info() << "Flushing " << Plural(handles_.size(),"data handle") << std::endl;
+
     for(HandleStore::iterator itr = handles_.begin(); itr != handles_.end(); ++itr)
-    {
+    {        
         eckit::DataHandle* dh = itr->second;
-        if( dh )
+        if( dh ) {
+            std::ostringstream oss;
+            oss << *dh;
+            Timer timer2(oss.str());
             dh->flush();
+        }
     }
 }
 
 void TocDBWriter::closeTocEntries()
 {
+    Timer timer("TocDBWriter::closeTocEntries()");
     for( TocIndexStore::iterator itr = tocEntries_.begin(); itr != tocEntries_.end(); ++itr )
     {
         delete itr->second;
