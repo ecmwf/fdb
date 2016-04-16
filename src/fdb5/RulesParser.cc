@@ -42,7 +42,7 @@ std::string RulesParser::parseIdent(bool emptyOK)
             case ']':
             case '?':
                 if(s.empty() && !emptyOK) {
-                    throw StreamParser::Error("Syntax error (possible trailing comma)");
+                    throw StreamParser::Error("Syntax error (possible trailing comma)", line_+1);
                 }
                 return s;
 
