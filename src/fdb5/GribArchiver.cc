@@ -35,7 +35,7 @@ GribArchiver::GribArchiver(bool completeTransfers):
 {
 }
 
-void GribArchiver::archive(eckit::DataHandle& source)
+Length GribArchiver::archive(eckit::DataHandle& source)
 {
     Timer timer("fdb::service::archive");
     double check = 0;
@@ -53,7 +53,8 @@ void GribArchiver::archive(eckit::DataHandle& source)
 
     Length totalEstimate = source.estimate();
 
-    Progress progress("Scanning", 0, totalEstimate);
+    // This progress competes with the transfer progress
+    //Progress progress("Scanning", 0, totalEstimate);
 
     try{
 
@@ -108,6 +109,8 @@ void GribArchiver::archive(eckit::DataHandle& source)
                     unsigned char buffer[len];
                     ASSERT(grib_get_bytes(h, "freeFormData", buffer, &len) == 0);
                     eckit::MemoryHandle handle(buffer, len);
+                    handle.openForRead();
+                    AutoClose close(handle);
                     eckit::HandleStream s(handle);
                     int count;
                     s >> count; // Number of requests
@@ -153,7 +156,7 @@ void GribArchiver::archive(eckit::DataHandle& source)
             write(request, static_cast<const void *>(buffer), Length(len) ); // finally archive it
 
             total_size += len;
-            progress(total_size);
+            //progress(total_size);
         }
     }
     catch(...) {
@@ -176,6 +179,8 @@ void GribArchiver::archive(eckit::DataHandle& source)
 
     Log::info() << "Time spent in checking for duplicates on " << BigNum(count)
                 << " took " << Seconds(check) << std::endl;
+
+    return total_size;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

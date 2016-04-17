@@ -17,6 +17,7 @@
 #define fdb5_GribArchiver_H
 
 #include "fdb5/Archiver.h"
+#include "eckit/io/Length.h"
 
 namespace eckit   { class DataHandle; }
 
@@ -31,7 +32,7 @@ class GribArchiver : public Archiver {
 public: // methods
 
     GribArchiver(bool completeTransfers = false);
-    void archive(eckit::DataHandle& source);
+    eckit::Length archive(eckit::DataHandle& source);
 
 };
 
