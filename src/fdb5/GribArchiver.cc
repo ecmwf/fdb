@@ -14,10 +14,12 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
-
+#include "eckit/serialisation/HandleStream.h"
+#include "eckit/io/MemoryHandle.h"
 #include "grib_api.h"
 
 #include "marslib/EmosFile.h"
+#include "marslib/MarsRequest.h"
 
 #include "fdb5/Key.h"
 #include "fdb5/GribArchiver.h"
@@ -96,6 +98,34 @@ void GribArchiver::archive(eckit::DataHandle& source)
             }
 
             grib_keys_iterator_delete(ks);
+
+            // Look for request embbeded in GRIB message
+            long local;
+            size_t len;
+            if(grib_get_long(h, "localDefinitionNumber", &local) ==  0 && local == 191) {
+            /* TODO: Not grib2 compatible, but speed-up process */
+                if(grib_get_size(h, "freeFormData", &len) ==  0 && len != 0) {
+                    unsigned char buffer[len];
+                    ASSERT(grib_get_bytes(h, "freeFormData", buffer, &len) == 0);
+                    eckit::MemoryHandle handle(buffer, len);
+                    eckit::HandleStream s(handle);
+                    int count;
+                    s >> count; // Number of requests
+                    ASSERT(count == 1);
+                    std::string tmp;
+                    s >> tmp; // verb
+                    s >> count;
+                    for(int i = 0; i < count; i++) {
+                        std::string keyword, value;
+                        int n;
+                        s >> keyword;
+                        s >> n; // Number of values
+                        ASSERT(n == 1);
+                        s >> value;
+                        request.set(keyword, value);
+                    }
+                }
+            }
 
             // check for duplicated entries (within same request)
 
