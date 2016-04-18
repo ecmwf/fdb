@@ -60,6 +60,7 @@ struct ArchiveVisitor : public WriteVisitor {
         data_(data),
         length_(length)
     {
+        Log::info() << "ArchiveVisitor " << length << std::endl;
     }
 
     virtual bool selectDatabase(const Key& key, const Key& full) {
@@ -75,7 +76,7 @@ struct ArchiveVisitor : public WriteVisitor {
     }
 
     virtual bool selectDatum(const Key& key, const Key& full) {
-        Log::info() << "selectDatum " << key << ", " << full << std::endl;
+        Log::info() << "selectDatum " << key << ", " << full << " " << length_ << std::endl;
         ASSERT(owner_.current_);
         owner_.current_->archive(key,data_,length_);
 
@@ -105,6 +106,8 @@ struct ArchiveVisitor : public WriteVisitor {
 
 void Archiver::write(const Key& key, const void* data, eckit::Length length)
 {
+    Log::info() << "Archiver write " << length << std::endl;
+
     const Rules& rules = MasterConfig::instance().rules();
 
     ArchiveVisitor visitor(*this, key, data, length);

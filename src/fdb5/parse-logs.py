@@ -50,6 +50,9 @@ for o in order:
 
 E = {}
 
+TYPES={}
+STREAMS={}
+
 for line in fileinput.input():
     n = line.find("Could not find a rule to archive")
     line = line.rstrip()
@@ -64,6 +67,16 @@ for line in fileinput.input():
         E.setdefault(k, set())
         E[k].add(v)
 
+        for n in r.keys():
+            TYPES.setdefault(n, set())
+            STREAMS.setdefault(n, set())
+            TYPES[n].add(r['type'])
+            STREAMS[n].add(r['stream'])
+
 for k, v in sorted(E.items()):
     print k 
     print "    ", v
+
+
+print TYPES
+print STREAMS

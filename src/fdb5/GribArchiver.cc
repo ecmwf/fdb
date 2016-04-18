@@ -62,6 +62,8 @@ Length GribArchiver::archive(eckit::DataHandle& source)
         {
             ASSERT(len < buffer.size());
 
+            Log::info() << "Size is " << len << std::endl;
+
             const char *p = buffer + len - 4;
 
             if(p[0] != '7' || p[1] != '7' || p[2] != '7' || p[3] != '7')
@@ -102,13 +104,13 @@ Length GribArchiver::archive(eckit::DataHandle& source)
 
             // Look for request embbeded in GRIB message
             long local;
-            size_t len;
+            size_t size;
             if(grib_get_long(h, "localDefinitionNumber", &local) ==  0 && local == 191) {
             /* TODO: Not grib2 compatible, but speed-up process */
-                if(grib_get_size(h, "freeFormData", &len) ==  0 && len != 0) {
-                    unsigned char buffer[len];
-                    ASSERT(grib_get_bytes(h, "freeFormData", buffer, &len) == 0);
-                    eckit::MemoryHandle handle(buffer, len);
+                if(grib_get_size(h, "freeFormData", &size) ==  0 && size != 0) {
+                    unsigned char buffer[size];
+                    ASSERT(grib_get_bytes(h, "freeFormData", buffer, &size) == 0);
+                    eckit::MemoryHandle handle(buffer, size);
                     handle.openForRead();
                     AutoClose close(handle);
                     eckit::HandleStream s(handle);
