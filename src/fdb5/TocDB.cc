@@ -82,7 +82,7 @@ static void readTable()
 TocDB::TocDB(const Key& dbKey) : DB(dbKey),
     current_(0)
 {
-    static StringList fdbRootPattern( eckit::Resource<StringList>("fdbRootPattern", "class:stream:expver", true ) );
+    static StringList fdbRootPattern( eckit::Resource<StringList>("fdbRootPattern", "class,stream,expver", true ) );
     pthread_once(&once,readTable);
 
     std::ostringstream oss;
