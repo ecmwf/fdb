@@ -13,17 +13,23 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_Archiver_H
-#define fdb_Archiver_H
+#ifndef fdb5_Archiver_H
+#define fdb5_Archiver_H
 
 #include "eckit/memory/NonCopyable.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/DataBlob.h"
+
+#include "fdb5/DB.h"
 
 namespace eckit   { class DataHandle; }
-namespace marskit { class MarsRequest; }
 
-namespace fdb {
+class MarsTask;
 
-class FdbTask;
+namespace fdb5 {
+
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -31,23 +37,51 @@ class Archiver : public eckit::NonCopyable {
 
 public: // methods
 
-    Archiver(const FdbTask& task);
+    Archiver();
     
     ~Archiver();
 
-    /// Archives the data selected by the MarsRequest from the provided DataHandle
-    /// @param source  data handle to read from
+    void write(const eckit::DataBlobPtr blob);
 
-    void archive(eckit::DataHandle& source);
+    /// Archives the data in the buffer and described by the fdb5::Key
+    /// @param key metadata identifying the data
+    /// @param data buffer
+    /// @param length buffer length
+    ///
+    void write(const Key& key, const void* data, size_t length);
+
+    void adopt(const Key& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length);
+
+    /// Flushes all buffers and closes all data handles into a consistent DB state
+    /// @note always safe to call
+    void flush();
+
+    friend std::ostream& operator<<(std::ostream& s, const Archiver& x) { x.print(s); return s; }
+
+private: // methods
+
+    void print(std::ostream& out) const;
+
+    DB& session(const Key& key);
 
 private: // members
 
-    const FdbTask& task_;
+    friend class BaseArchiveVisitor;
+
+    typedef std::map< Key, eckit::SharedPtr<DB> > store_t;
+
+    store_t databases_;
+
+    std::string fdbWriterDB_;
+
+    std::vector<Key> prev_;
+
+    DB* current_;
 
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

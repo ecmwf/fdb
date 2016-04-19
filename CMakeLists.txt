@@ -51,7 +51,14 @@ endif()
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
 
 ecbuild_use_package( PROJECT grib_api VERSION 1.10  REQUIRED )
-ecbuild_use_package( PROJECT eckit    VERSION 0.10  REQUIRED )
+ecbuild_use_package( PROJECT eckit    VERSION 0.12  REQUIRED )
+
+### ODB support
+
+ecbuild_add_option( FEATURE MARS2MARS
+                    DEFAULT OFF
+                    DESCRIPTION "Support direct archiving from another mars instance"
+                    REQUIRED_PACKAGES "PROJECT marskit  VERSION 0.1" )
 
 ### ODB support
 
@@ -90,8 +97,7 @@ ecbuild_add_option( FEATURE POINTDB
 
 ecbuild_add_option( FEATURE     FDB
                     DEFAULT     ON
-                    DESCRIPTION "Whether or not to build the FDB -- [EXPERIMENTAL]"
-                    REQUIRED_PACKAGES "PROJECT marskit VERSION 0.1" )
+                    DESCRIPTION "Whether or not to build the FDB -- [EXPERIMENTAL]" )
 
 ecbuild_add_option( FEATURE DUMMY_TAPES DESCRIPTION "use dummy tape management libraries for testing" DEFAULT OFF )
 

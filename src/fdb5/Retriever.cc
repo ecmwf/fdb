@@ -1,96 +1,147 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
 
 #include "eckit/memory/ScopedPtr.h"
-#include "eckit/io/MultiHandle.h"
+#include "eckit/types/Types.h"
 #include "eckit/log/Timer.h"
 
-#include "marskit/MarsRequest.h"
+#include "marslib/MarsTask.h"
 
-#include "fdb5/FdbTask.h"
 #include "fdb5/Retriever.h"
-#include "fdb5/RetrieveOp.h"
-#include "fdb5/ForwardOp.h"
-#include "fdb5/UVOp.h"
 #include "fdb5/MasterConfig.h"
-#include "fdb5/TOC.h"
+#include "fdb5/DB.h"
+#include "fdb5/Key.h"
+#include "fdb5/Rule.h"
+#include "fdb5/KeywordHandler.h"
+#include "fdb5/HandleGatherer.h"
+#include "fdb5/ReadVisitor.h"
+
+#include "eckit/config/Resource.h"
 
 using namespace eckit;
-using namespace marskit;
 
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Retriever::Retriever(const FdbTask& task) :
-    task_(task),
-    winds_(task.request())
+Retriever::Retriever(const MarsTask& task) :
+    task_(task)
 {
+
+    /// @note We may want to canonicalise the request immedietly HERE
+
 }
 
 Retriever::~Retriever()
 {
 }
 
-eckit::DataHandle* Retriever::retrieve()
-{
-    eckit::ScopedPtr<MultiHandle> result( new MultiHandle() );
+struct RetrieveVisitor : public ReadVisitor {
 
-    std::vector<TOC> tocs = MasterConfig::instance().findTOCs(task_);
+    Retriever& owner_;
 
-    for( std::vector<TOC>::const_iterator jtoc = tocs.begin(); jtoc != tocs.end(); ++jtoc) {
+    eckit::ScopedPtr<DB> db_;
 
-        eckit::ScopedPtr<MultiHandle> partial( new MultiHandle() );
+    std::string fdbReaderDB_;
+    HandleGatherer& gatherer_;
 
-        MarsRequest field;
 
-        RetrieveOp op(*jtoc, *partial);
-        retrieve(field, (*jtoc).paramsList(), 0, op);
-
-        *result += partial.release();
+    RetrieveVisitor(Retriever& owner, const MarsTask& task, HandleGatherer& gatherer):
+        owner_(owner),
+        gatherer_(gatherer) {
+        fdbReaderDB_ = eckit::Resource<std::string>("fdbReaderDB","toc.reader");
     }
 
-    return result.release();
-}
+    ~RetrieveVisitor() {
+    }
 
-void Retriever::retrieve(marskit::MarsRequest& field,
-                         const std::vector<std::string>& paramsList,
-                         size_t pos,
-                         Op& op)
-{
-    if(pos != paramsList.size()) {
+    // From Visitor
 
-        std::vector<std::string> values;
-
-        const std::string& param = paramsList[pos];
-        task_.request().getValues(param, values);
-
-        /// @TODO once ParamList is typed, we cam call:
-        ///         values = param->getValues(userReq);
-        ///         param->makeOp(op);
-
-        eckit::ScopedPtr<Op> newOp( (param == "param") ?
-                                        static_cast<Op*>(new UVOp(op, winds_)) :
-                                        static_cast<Op*>(new ForwardOp(op)) );
-
-        for(std::vector<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
-            field.setValue(param, *j);
-            op.descend();
-            retrieve(field, paramsList, pos+1, *newOp);
+    virtual bool selectDatabase(const Key& key, const Key& full) {
+        Log::info() << "selectDatabase " << key << std::endl;
+        db_.reset(DBFactory::build(fdbReaderDB_, key));
+        if(!db_->open()) {
+            Log::info() << "Database does not exists " << key << std::endl;
+            return false;
+        }
+        else {
+            return true;
         }
     }
-    else {
-        op.execute(task_, field);
+
+    virtual bool selectIndex(const Key& key, const Key& full) {
+        ASSERT(db_);
+        Log::info() << "selectIndex " << key << std::endl;
+        return db_->selectIndex(key);
     }
+
+    virtual bool selectDatum(const Key& key, const Key& full) {
+        ASSERT(db_);
+        Log::info() << "selectDatum " << key << ", " << full << std::endl;
+
+        DataHandle* dh = db_->retrieve(key);
+
+        if(dh) {
+            gatherer_.add(dh);
+        }
+
+        return (dh != 0);
+    }
+
+    virtual void values(const MarsRequest& request, const std::string& keyword, eckit::StringList& values) {
+        const KeywordHandler& handler = MasterConfig::instance().lookupHandler(keyword);
+        handler.getValues(request, keyword, values, owner_.task_, db_.get());
+    }
+
+    virtual void print( std::ostream& out ) const {
+        out << "RetrieveVisitor("
+            << ")"
+            << std::endl;
+    }
+
+};
+
+
+eckit::DataHandle* Retriever::retrieve()
+{
+//    Log::info() << std::endl
+//                << "---------------------------------------------------------------------------------------------------"
+//                << std::endl
+//                << std::endl
+//                << *this
+//                << std::endl;
+
+    bool sorted = false;
+    std::vector<std::string> sort;
+    task_.request().getValues("_sort", sort);
+
+    if(sort.size() == 1 && sort[0] == "1") {
+        sorted = true;
+    }
+
+    HandleGatherer result(sorted);
+
+    RetrieveVisitor visitor(*this, task_, result);
+
+    const Rules& rules = MasterConfig::instance().rules();
+    rules.expand(task_.request(), visitor);
+
+    return result.dataHandle();
+}
+
+void Retriever::print(std::ostream& out) const
+{
+    out << "Retriever(" << task_.request()
+        << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

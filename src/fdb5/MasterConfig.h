@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -13,17 +13,19 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_MasterConfig_H
-#define fdb_MasterConfig_H
-
-#include <vector>
+#ifndef fdb5_MasterConfig_H
+#define fdb5_MasterConfig_H
 
 #include "eckit/memory/NonCopyable.h"
-#include "fdb5/TOC.h"
 
-namespace fdb {
+#include "fdb5/DB.h"
+#include "fdb5/Rules.h"
+#include "fdb5/Handlers.h"
 
-class FdbTask;
+class MarsTask;
+class MarsRequest;
+
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -33,20 +35,28 @@ public: // methods
 
     static MasterConfig& instance();
 
-    std::vector<TOC> findTOCs(const FdbTask& task);
+    const Rules& rules() const;
+
+    const KeywordHandler& lookupHandler(const std::string& keyword) const;
 
 private: // methods
 
-	MasterConfig();
+    MasterConfig();
 
     /// Destructor
-    
+
     ~MasterConfig();
+
+
+private: // members
+
+    Rules rules_;
+    Handlers handlers_;
 
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif

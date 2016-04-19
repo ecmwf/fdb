@@ -8,17 +8,16 @@
  * does it submit to any jurisdiction.
  */
 
-#include <strstream>
+#include <sstream>
 
 #include "fdb5/NotFound.h"
+#include "fdb5/Key.h"
 
-#include "marskit/MarsRequest.h"
-
-namespace fdb {
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-NotFound::NotFound(const marskit::MarsRequest& r)
+NotFound::NotFound(const Key& r, const eckit::CodeLocation& loc)
 {
     std::ostringstream oss;
 
@@ -33,4 +32,4 @@ NotFound::~NotFound() throw ()
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5

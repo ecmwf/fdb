@@ -13,14 +13,14 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb_NotFound_H
-#define fdb_NotFound_H
+#ifndef fdb5_NotFound_H
+#define fdb5_NotFound_H
 
 #include "eckit/exception/Exceptions.h"
 
-namespace marskit { class MarsRequest; }
+namespace fdb5 {
 
-namespace fdb {
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -28,7 +28,7 @@ class NotFound : public eckit::Exception {
 
 public: // methods
 
-    NotFound(const marskit::MarsRequest& r);
+    NotFound(const Key& r, const eckit::CodeLocation& loc);
     
     ~NotFound() throw();
 
@@ -36,6 +36,6 @@ public: // methods
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb
+} // namespace fdb5
 
 #endif
