@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import fileinput
+import json
+import pprint
 
 order = [
     "class",
@@ -48,15 +50,8 @@ for o in order:
     O[o] = n
     n += 1
 
-E = {}
+S = {}
 
-TYPES={}
-STREAMS={}
-S={}
-T={}
-
-ALLT = set()
-ALLS = set()
 
 for line in fileinput.input():
     n = line.find("Could not find a rule to archive")
@@ -66,56 +61,109 @@ for line in fileinput.input():
         for x in line[n + 34:-1].split(','):
             k, v = x.split('=')
             r[k] = v
-        
-        k = tuple(sorted(r.keys(), cmp=lambda a,b: O[a]-O[b]))       
-        v = (r['stream'], r['type'], r.get('levtype',''))
-        E.setdefault(k, set())
-        E[k].add(v)
+
+        k = tuple(sorted(r.keys(), cmp=lambda a, b: O[a]-O[b]))
 
         S.setdefault(r['stream'], {})
-        S[r['stream']][k] = r
+        S[r['stream']].setdefault(k, set())
+        S[r['stream']][k].add(r['type'])
 
-        T.setdefault(k, {})
-        T[k][(r['stream'], r['type'])] = r
+# pprint.pprint(S)
+# exit(0)
 
+U = {}
 
-        ALLT.add(r['type'])
-        ALLS.add(r['stream'])
+TTT = {}
+for k, v in sorted(S.items()):
+    # print k
+    z = []
+    diff = set()
+    TT = {}
 
-        for n in r.keys():
-            TYPES.setdefault(n, set())
-            STREAMS.setdefault(n, set())
-            TYPES[n].add(r['type'])
-            STREAMS[n].add(r['stream'])
+    gone = set()
 
-"""
-print
+    p = sorted(v, cmp=lambda a,b: len(b)-len(a))
 
-for k, v in sorted(E.items()):
-    print k 
-    print "    ", sorted(v)
+    for a in p:
 
+        if a in gone:
+            continue
 
-print
+        types = v[a]
 
-for k, v in sorted(TYPES.items()):
-    if v != ALLT:
-        print k 
-        print "    ", sorted(v)
+        for b in p:
+            if b in gone:
+                continue
+            if a is not b:
+                if set(b).issubset(set(a)):
+                    # print a
+                    # print b
+                    # print
+                    diff.update(set(a).difference(set(b)))
+                    types.update(v[a])
+                    types.update(v[b])
+                    gone.add(b)
+                # if set(a).issubset(set(b)):
+                #     diff.update(set(b).difference(set(a)))
+                #     types.update(v[a])
+                #     types.update(v[b])
+                #     gone.add(b)
 
-print
+        z.append(a)
+        TT[tuple(a)] = types
 
-for k, v in sorted(STREAMS.items()):
-    if v != ALLS:
-        print k 
-        print "    ", sorted(v)
+    b = []
+    for r in z:
+        t = []
+        for s in r:
+            if s in diff:
+                t.append(s + '?')
+            else:
+                t.append(s)
+        b.append(tuple(t))
+        TTT[(k, tuple(t))] = TT[tuple(r)]
 
-print "-----------------------------------"
-"""
-for k, v in sorted(T.items()):
-    print k 
-    for r in  sorted(v):
-        print "    ", r
-        #print "    ", v[r]
+    U[k] = tuple(b)
+
+# print json.dumps(U, indent=4)
+# exit(0)
+
+P = {}
+for k1, v1 in sorted(U.items()):
+    same = set([k1])
+    for k2, v2 in sorted(U.items()):
+        if v1 == v2:
+            same.add(k2)
+
+    P[tuple(same)] = v1
+
+for k1, v1 in sorted(P.items()):
+
+    X = {}
+    if len(k1) == 1 and len(v1) != 1:
+        a = set()
+        for r in v1:
+            a.update(TTT[(list(k1)[0], r)])
+        if len(a) != 1:
+            for r in v1:
+                X[tuple(r)] = TTT[(list(k1)[0], r)]
+
+    print "#", "/".join(sorted(k1))
+    for r in v1:
+        x = []
+        for k in r:
+            if k == 'stream':
+                v = "/".join(sorted(k1))
+                x.append("stream=%s" % (v, ))
+            elif k == 'type' and X.get(tuple(r)):
+                v = "/".join(sorted(X.get(tuple(r), set())))
+                x.append("type=%s" % (v, ))
+            else:
+                x.append(k)
+
+        print x
+    # print sorted(same)
+    # for r in v1:
+    #     print "    ", r, "[", "/".join(X.get(tuple(r), set())), "]"
     print
 
