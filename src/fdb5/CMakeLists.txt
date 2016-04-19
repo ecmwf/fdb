@@ -14,8 +14,6 @@
 #      - check that keysIdx are fully defined
 #      - build a suite
 #
-#  * check fdbRoot depending on request
-#
 #  * client "database" for direct fdb5 read
 #
 #  * copy the schema (fdbRules) into toc dir and read it fromt here on retrieves
