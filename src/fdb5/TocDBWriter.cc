@@ -55,7 +55,7 @@ TocDBWriter::TocDBWriter(const Key& key) :
         TocInitialiser init(path_);
     }
 
-    blockSize_ = eckit::Resource<long>( "blockSize", -1 );
+    blockSize_ = eckit::Resource<long>( "blockSize", 0 );
 
     if( blockSize_ < 0 ) // take blockSize_ from statfs
     {
