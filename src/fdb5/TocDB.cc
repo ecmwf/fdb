@@ -11,21 +11,106 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/config/Resource.h"
 #include "eckit/log/Timer.h"
-
+#include "eckit/utils/Regex.h"
+#include "eckit/parser/Tokenizer.h"
+#include "eckit/types/Types.h"
 #include "fdb5/TocDB.h"
 
 using namespace eckit;
 
 namespace fdb5 {
 
+
+
+using namespace eckit;
+
+static pthread_once_t once = PTHREAD_ONCE_INIT;
+static std::vector< std::pair<Regex,std::string> > rootsTable;
+
+static void readTable()
+{
+    eckit::PathName path("~/etc/fdb/roots");
+    std::ifstream in(path.localPath());
+
+    Log::info() << "FDB table " << path << std::endl;
+
+    if(in.bad())
+    {
+        Log::error() << path << Log::syserr << std::endl;
+        return;
+    }
+
+    char line[1024];
+    while(in.getline(line,sizeof(line)))
+    {
+        Tokenizer parse(" ");
+        std::vector<std::string> s;
+        parse(line,s);
+
+        Log::info() << "FDB table " << line << std::endl;
+
+        Ordinal i = 0;
+        while(i < s.size())
+        {
+            if(s[i].length() == 0)
+                s.erase(s.begin()+i);
+            else
+                i++;
+        }
+
+        if(s.size() == 0 || s[0][0] == '#')
+            continue;
+
+        switch(s.size())
+        {
+            case 2:
+                rootsTable.push_back(std::make_pair(Regex(s[0]),s[1]));
+                break;
+
+            default:
+                Log::warning() << "FDB Root: Invalid line ignored: " << line << std::endl;
+                break;
+
+        }
+    }
+
+}
+
+
 //----------------------------------------------------------------------------------------------------------------------
 
 TocDB::TocDB(const Key& dbKey) : DB(dbKey),
     current_(0)
 {
-    PathName root( eckit::Resource<std::string>("fdbRoot;$FDB_ROOT", "/tmp/fdb" ) );
+    static StringList fdbRootPattern( eckit::Resource<StringList>("fdbRootPattern", "class:stream:expver", true ) );
+    pthread_once(&once,readTable);
 
-    path_ = root / dbKey.valuesToString();
+    std::ostringstream oss;
+
+    const char* sep = "";
+    for(StringList::const_iterator j = fdbRootPattern.begin(); j != fdbRootPattern.end(); ++j) {
+        oss << sep << dbKey.get(*j);
+        sep = ":";
+    }
+
+    std::string name(oss.str());
+    std::string root;
+
+    for(Ordinal i = 0; i < rootsTable.size() ; i++)
+        if(rootsTable[i].first.match(name))
+        {
+            root = rootsTable[i].second;
+            break;
+        }
+
+    if(root.length() == 0)
+    {
+        std::ostringstream oss;
+        oss << "No FDB root for " << dbKey;
+        throw SeriousBug(oss.str());
+    }
+
+    path_ = PathName(root) / dbKey.valuesToString();
 
     indexType_ = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex" );
 }
