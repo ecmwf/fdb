@@ -6,13 +6,13 @@ import pprint
 
 order = [
     "class",
-    "type",
     "stream",
     "expver",
     "date",
     "time",
     "domain",
 
+    "type",
     "levtype",
     "origin",
     "product",
@@ -24,12 +24,12 @@ order = [
     "hdate",
     "anoffset",
     "reference",
+
     "step",
     "fcmonth",
     "fcperiod",
     "leadtime",
     "opttime",
-
     "diagnostic",
     "iteration",
     "quantile",
@@ -152,7 +152,7 @@ for k1, v1 in sorted(P.items()):
 
     print "#", "/".join(sorted(k1))
     lev0 = O['domain']
-    lev1 = O['opttime']
+    lev1 = O['reference']
 
     for r in v1:
         x = []
