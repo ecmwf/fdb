@@ -51,7 +51,7 @@ Length GribArchiver::archive(eckit::DataHandle& source)
     size_t count = 0;
     size_t total_size = 0;
 
-    Length totalEstimate = source.estimate();
+    // Length totalEstimate = source.estimate();
 
     try{
 
