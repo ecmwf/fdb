@@ -1,5 +1,9 @@
 ### TODO
 #
+#  * make new FileHandle
+#    -  not fsync()
+#    -  fail on ENOSPC
+#
 #  * run the suite and slowly build the rules
 #
 #  * fdbRoot is a list of paths to visit ---> speak to Hodge
@@ -31,6 +35,8 @@ list( APPEND fdb5_srcs
     Archiver.cc
     GribArchiver.h
     GribArchiver.cc
+    GribIndexer.h
+    GribIndexer.cc
 
     Retriever.h
     Retriever.cc
@@ -60,10 +66,17 @@ list( APPEND fdb5_srcs
     Rules.cc
     RulesParser.h
     RulesParser.cc
+
     ReadVisitor.h
     ReadVisitor.cc
     WriteVisitor.h
     WriteVisitor.cc
+    BaseArchiveVisitor.h
+    BaseArchiveVisitor.cc
+    ArchiveVisitor.h
+    ArchiveVisitor.cc
+    AdoptVisitor.h
+    AdoptVisitor.cc
 
     Handlers.h
     Handlers.cc
@@ -143,6 +156,10 @@ ecbuild_add_library(
         eckit
         grib_api
 )
+
+ecbuild_add_executable( TARGET    fdb5_index
+                        SOURCES   fdb5_index.cc
+                        LIBS      mars-fdb5 )
 
 ecbuild_add_executable( TARGET    fdb5_insert
                         SOURCES   fdb5_insert.cc

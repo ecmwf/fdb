@@ -8,50 +8,48 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   ReadVisitor.h
+/// @file   BaseArchiveVisitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_ReadVisitor_H
-#define fdb5_ReadVisitor_H
+#ifndef fdb5_BaseArchiveVisitor_H
+#define fdb5_BaseArchiveVisitor_H
 
-#include <iosfwd>
-
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/types/Types.h"
+#include "fdb5/WriteVisitor.h"
 
 class MarsRequest;
 
 namespace fdb5 {
 
-class Key;
+class Archiver;
+class DB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ReadVisitor : public eckit::NonCopyable {
+class BaseArchiveVisitor : public WriteVisitor {
 
 public: // methods
 
-    virtual ~ReadVisitor();
-
-    virtual bool selectDatabase(const Key& key, const Key& full) = 0;
-    virtual bool selectIndex(const Key& key, const Key& full) = 0;
-    virtual bool selectDatum(const Key& key, const Key& full) = 0;
-
-
-    virtual void values(const MarsRequest& request,
-                        const std::string& keyword,
-                        eckit::StringList& values) = 0;
+    BaseArchiveVisitor(Archiver& owner, const Key& field);
 
 protected: // methods
 
-    virtual void print( std::ostream& out ) const = 0;
+    virtual bool selectDatabase(const Key& key, const Key& full);
+
+    virtual bool selectIndex(const Key& key, const Key& full);
+
+    void checkMissingKeys(const Key& full);
+
+    fdb5::DB* current() const;
 
 private: // members
 
-    friend std::ostream& operator<<(std::ostream& s,const ReadVisitor& x) { x.print(s); return s; }
+    Archiver& owner_;
 
+    const Key& field_;
+
+    bool checkMissingKeysOnWrite_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

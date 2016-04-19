@@ -24,13 +24,13 @@
 using namespace std;
 using namespace eckit;
 
-class FdbExtract : public eckit::Tool {
+class FDBExtract : public eckit::Tool {
     virtual void run();
 public:
-    FdbExtract(int argc,char **argv): Tool(argc,argv) {}
+    FDBExtract(int argc,char **argv): Tool(argc,argv) {}
 };
 
-void FdbExtract::run()
+void FDBExtract::run()
 {
     Context& ctx = Context::instance();
 
@@ -76,7 +76,7 @@ void FdbExtract::run()
 
 int main(int argc, char **argv)
 {
-    FdbExtract app(argc,argv);
+    FDBExtract app(argc,argv);
     return app.start();
 }
 

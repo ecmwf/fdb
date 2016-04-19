@@ -101,6 +101,18 @@ void TocDBWriter::close() {
 }
 
 
+
+void TocDBWriter::index(const Key& key, const PathName& path, Offset offset, Length length)
+{
+    ASSERT(current_);
+
+    Index::Field field(path, offset, length);
+
+    Log::debug(2) << " indexing {" << key << "," << field << "}" << std::endl;
+
+    current_->put(key, field);
+}
+
 void TocDBWriter::archive(const Key& key, const void *data, Length length)
 {
     ASSERT(current_);
