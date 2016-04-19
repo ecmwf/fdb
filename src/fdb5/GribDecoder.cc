@@ -30,8 +30,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GribDecoder::GribDecoder():
-    buffer_(80 * 1024 * 1024) {
+GribDecoder::GribDecoder(bool checkDuplicates):
+    buffer_(80 * 1024 * 1024),
+    checkDuplicates_(checkDuplicates) {
 }
 
 size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
@@ -101,12 +102,24 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
                 }
             }
         }
+
+        // check for duplicated entries (within same request)
+
+        if ( checkDuplicates_ ) {
+            if ( seen_.find(key) != seen_.end() ) {
+                std::ostringstream oss;
+                oss << "GRIB sent to FDB has duplicated parameters : " << key;
+                throw SeriousBug( oss.str() );
+            }
+
+            seen_.insert(key);
+        }
     }
 
     return len;
 }
 
-MarsRequest GribDecoder::gribToRequest(const eckit::PathName& path, const char* verb) {
+MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *verb) {
     MarsRequest r(verb);
 
     EmosFile file(path);
@@ -116,14 +129,14 @@ MarsRequest GribDecoder::gribToRequest(const eckit::PathName& path, const char* 
 
     std::map<std::string, std::set<std::string> > s;
 
-    while( (len = gribToKey(file, key))  ) {
-        const eckit::StringDict& d = key.dict();
-        for(eckit::StringDict::const_iterator j = d.begin(); j != d.end(); ++j) {
+    while ( (len = gribToKey(file, key))  ) {
+        const eckit::StringDict &d = key.dict();
+        for (eckit::StringDict::const_iterator j = d.begin(); j != d.end(); ++j) {
             s[j->first].insert(j->second);
         }
     }
 
-    for(std::map<std::string, std::set<std::string> >::const_iterator j = s.begin(); j != s.end(); ++j) {
+    for (std::map<std::string, std::set<std::string> >::const_iterator j = s.begin(); j != s.end(); ++j) {
         eckit::StringList v(j->second.begin(), j->second.end());
         r.setValues(j->first, v);
     }

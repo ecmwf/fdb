@@ -37,7 +37,6 @@ public: // methods
 
 private: // members
 
-    bool checkDuplicates_;
 
 };
 

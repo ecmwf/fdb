@@ -29,21 +29,18 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 GribIndexer::GribIndexer(bool checkDuplicates) :
-    checkDuplicates_(checkDuplicates)
+    GribDecoder(checkDuplicates)
 {
 }
 
 void GribIndexer::index(const eckit::PathName& path)
 {
     Timer timer("fdb::service::archive");
-    double check = 0;
 
     EmosFile file(path);
     size_t len = 0;
 
     std::set<Key> seen;
-
-    double tbegin = timer.elapsed();
 
     size_t count = 0;
     Length total_size = 0;
@@ -58,23 +55,6 @@ void GribIndexer::index(const eckit::PathName& path)
     while( (len = gribToKey(file, key))  )
     {
 
-        // check for duplicated entries (within same request)
-        if(checkDuplicates_)
-        {
-            double now = timer.elapsed();
-            if( seen.find(key) != seen.end() )
-            {
-                std::ostringstream msg;
-                msg << "GRIB sent to FDB has duplicated parameters : " << key;
-                Log::error() << msg.str() << std::endl;
-            }
-
-            seen.insert(key);
-            ++count;
-
-            check += timer.elapsed() - now;
-        }
-
         Log::info() << key << std::endl;
 
         Length length = len;
@@ -84,21 +64,14 @@ void GribIndexer::index(const eckit::PathName& path)
 
         total_size += len;
         progress(total_size);
+        count++;
     }
-
-
-    double tend = timer.elapsed();
-    double ttotal = tend-tbegin;
 
     Log::info() << "FDB indexer " << BigNum(count) << " fields,"
                 << " size " << Bytes(total_size) << ","
-                << " in " << Seconds(ttotal)
-                << " (" << Bytes(total_size,ttotal) << ")" <<  std::endl;
+                << " in " << Seconds(timer.elapsed())
+                << " (" << Bytes(total_size, timer) << ")" <<  std::endl;
 
-    if(checkDuplicates_) {
-        Log::info() << "Time spent in checking for duplicates on " << BigNum(count)
-                    << " took " << Seconds(check) << std::endl;
-    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
