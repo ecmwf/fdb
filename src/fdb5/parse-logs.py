@@ -8,6 +8,11 @@ order = [
     "class",
     "type",
     "stream",
+    "expver",
+    "date",
+    "time",
+    "domain",
+
     "levtype",
     "origin",
     "product",
@@ -15,10 +20,8 @@ order = [
     "method",
     "system",
     "grid", # Not sure about this one
-    "date",
     "refdate",
     "hdate",
-    "time",
     "anoffset",
     "reference",
     "step",
@@ -26,8 +29,7 @@ order = [
     "fcperiod",
     "leadtime",
     "opttime",
-    "expver",
-    "domain",
+
     "diagnostic",
     "iteration",
     "quantile",
@@ -149,8 +151,13 @@ for k1, v1 in sorted(P.items()):
                 X[tuple(r)] = TTT[(list(k1)[0], r)]
 
     print "#", "/".join(sorted(k1))
+    lev0 = O['domain']
+    lev1 = O['opttime']
+
     for r in v1:
         x = []
+        level = 0
+
         for k in r:
             if k == 'stream':
                 v = "/".join(sorted(k1))
@@ -161,7 +168,23 @@ for k1, v1 in sorted(P.items()):
             else:
                 x.append(k)
 
-        print x
+            y = k
+            if y.endswith('?'):
+                y = y[:-1]
+
+            if O[y] > lev0 and level == 0:
+                p = x.pop()
+                print "[", ", ".join(x)
+                x = [p]
+                level += 1
+
+            if O[y] > lev1 and level == 1:
+                p = x.pop()
+                print "       [", ", ".join(x)
+                x = [p]
+                level += 1
+        print "               [", ", ".join(x), "]]]"
+        print
     # print sorted(same)
     # for r in v1:
     #     print "    ", r, "[", "/".join(X.get(tuple(r), set())), "]"
