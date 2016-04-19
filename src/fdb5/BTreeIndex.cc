@@ -58,6 +58,7 @@ BTreeIndex::Field BTreeIndex::get(const Key& key) const
     Field result;
     FieldRef ref;
     BTreeKey k (key.valuesToString());
+    Log::info() << "BTreeIndex get " << key << " (" << k << ")" << std::endl;
     bool found = const_cast<BTreeIndex*>(this)->btree_.get(k,ref);
     if( !found ) {
            std::ostringstream oss;
@@ -76,10 +77,11 @@ void BTreeIndex::put_(const Key& key, const BTreeIndex::Field& field)
 {
     ASSERT( mode() == Index::WRITE );
 
-    Log::info() << "BTreeIndex insert " << key << " = " << field << std::endl;
 
     BTreeKey k( key.valuesToString() );
     FieldRef ref;
+
+    Log::info() << "BTreeIndex insert " << key << " (" << k << ") = " << field << std::endl;
 
 	ref.pathId_ = files_.insert( field.path_ ); // inserts not yet in filestore
     ref.offset_ = field.offset_;

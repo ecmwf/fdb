@@ -39,7 +39,7 @@ const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
         return *(*j).second;
     }
     else {
-        static eckit::EtcKeyTable table("~/etc/fdb/types", 2);
+        static eckit::EtcKeyTable table("types", 2, "etc/fdb");
         std::vector<std::string> v = table.lookUp(keyword);
         std::string type = v.size() ? v[1] : "Default";
         Log::info() << "Handler for " << keyword << " is " << type << std::endl;

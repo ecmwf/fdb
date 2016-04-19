@@ -116,7 +116,21 @@ void Key::dump(std::ostream& s) const
 
 void Key::print(std::ostream &out) const
 {
-    out << keys_;
+    if(names_.size() == keys_.size()) {
+        const char *sep = "";
+        out << "{";
+        for(StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
+            StringDict::const_iterator i = keys_.find(*j);
+            ASSERT(i != keys_.end());
+            out << sep << *j << '=' << i->second;
+            sep = ",";
+
+        }
+        out << "}";
+    }
+    else {
+        out << keys_;
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

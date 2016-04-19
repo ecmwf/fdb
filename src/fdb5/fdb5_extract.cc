@@ -40,6 +40,7 @@ void FDBExtract::run()
     fdb5::GribDecoder decoder;
 
     MarsRequest r = decoder.gribToRequest(ctx.argv(1));
+    std::cout << r << std::endl;
 
     // MarsRequest r("retrieve");
     // r.setValue("class","od");
