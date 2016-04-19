@@ -8,27 +8,40 @@
  * does it submit to any jurisdiction.
  */
 
-// #include "eckit/log/Log.h"
+/// @file   GribIndexer.h
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
+/// @date   Mar 2016
 
-#include "fdb5/WriteVisitor.h"
+#ifndef fdb5_GribIndexer_H
+#define fdb5_GribIndexer_H
 
-using namespace eckit;
+#include "eckit/filesystem/PathName.h"
+
+#include "fdb5/Archiver.h"
+
+namespace eckit   { class DataHandle; }
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WriteVisitor::WriteVisitor(std::vector<Key>& prev) :
-    prev_(prev),
-    rule_(0)
-{
-    prev.resize(3);
-}
+class GribIndexer : public Archiver {
 
-WriteVisitor::~WriteVisitor()
-{
-}
+public: // methods
+
+    GribIndexer(bool checkDuplicates = false);
+
+    void index(const eckit::PathName& path);
+
+private: // members
+
+    bool checkDuplicates_;
+
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
+
+#endif

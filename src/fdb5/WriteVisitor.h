@@ -33,9 +33,11 @@ class Rule;
 //----------------------------------------------------------------------------------------------------------------------
 
 class WriteVisitor : public eckit::NonCopyable {
+
 public: // methods
 
     WriteVisitor(std::vector<Key>&);
+
     virtual ~WriteVisitor();
 
     virtual bool selectDatabase(const Key& key, const Key& full) = 0;
@@ -45,7 +47,13 @@ public: // methods
     void rule(const Rule* r) { rule_ = r; }
     const Rule* rule() const { return rule_; }
 
+protected: // methods
+
+    virtual void print( std::ostream& out ) const = 0;
+
 private: // members
+
+    friend std::ostream& operator<<(std::ostream& s,const WriteVisitor& x) { x.print(s); return s; }
 
     friend class Rule;
 

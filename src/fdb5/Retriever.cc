@@ -100,6 +100,12 @@ struct RetrieveVisitor : public ReadVisitor {
         handler.getValues(request, keyword, values, owner_.task_, db_.get());
     }
 
+    virtual void print( std::ostream& out ) const {
+        out << "RetrieveVisitor("
+            << ")"
+            << std::endl;
+    }
+
 };
 
 

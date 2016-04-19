@@ -8,49 +8,47 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   ReadVisitor.h
+/// @file   AdoptVisitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_ReadVisitor_H
-#define fdb5_ReadVisitor_H
+#ifndef fdb5_AdoptVisitor_H
+#define fdb5_AdoptVisitor_H
 
-#include <iosfwd>
+#include "eckit/filesystem/PathName.h"
 
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/types/Types.h"
+#include "fdb5/BaseArchiveVisitor.h"
 
 class MarsRequest;
 
 namespace fdb5 {
 
-class Key;
+class Archiver;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ReadVisitor : public eckit::NonCopyable {
+class AdoptVisitor : public BaseArchiveVisitor {
 
 public: // methods
 
-    virtual ~ReadVisitor();
-
-    virtual bool selectDatabase(const Key& key, const Key& full) = 0;
-    virtual bool selectIndex(const Key& key, const Key& full) = 0;
-    virtual bool selectDatum(const Key& key, const Key& full) = 0;
-
-
-    virtual void values(const MarsRequest& request,
-                        const std::string& keyword,
-                        eckit::StringList& values) = 0;
+    AdoptVisitor(Archiver& owner,
+                 const Key& field,
+                 const eckit::PathName& path,
+                 eckit::Offset offset,
+                 eckit::Length length);
 
 protected: // methods
 
-    virtual void print( std::ostream& out ) const = 0;
+    virtual bool selectDatum(const Key& key, const Key& full);
+
+    virtual void print( std::ostream& out ) const;
 
 private: // members
 
-    friend std::ostream& operator<<(std::ostream& s,const ReadVisitor& x) { x.print(s); return s; }
+    const eckit::PathName path_;
+    eckit::Offset offset_;
+    eckit::Length length_;
 
 };
 

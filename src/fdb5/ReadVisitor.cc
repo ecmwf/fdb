@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
+// #include "eckit/log/Log.h"
 
 #include "fdb5/ReadVisitor.h"
 
@@ -21,8 +21,6 @@ namespace fdb5 {
 ReadVisitor::~ReadVisitor()
 {
 }
-
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

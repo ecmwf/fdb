@@ -38,6 +38,9 @@ public: // methods
 
     virtual ~TocDBWriter();
 
+    /// Used for adopting & indexing external data to the TOC dir
+    void index(const Key& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length);
+
 protected: // methods
 
     virtual bool selectIndex(const Key& key);

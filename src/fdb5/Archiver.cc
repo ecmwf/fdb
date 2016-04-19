@@ -20,7 +20,9 @@
 #include "fdb5/Key.h"
 #include "fdb5/Archiver.h"
 #include "fdb5/MasterConfig.h"
-#include "fdb5/WriteVisitor.h"
+
+#include "fdb5/ArchiveVisitor.h"
+#include "fdb5/AdoptVisitor.h"
 
 using namespace eckit;
 
@@ -45,68 +47,11 @@ void Archiver::write(const DataBlobPtr blob)
     NOTIMP; /// @todo this will substitute the GribArchiver
 }
 
-struct ArchiveVisitor : public WriteVisitor {
-
-    Archiver& owner_;
-
-    const Key& field_;
-    const void* data_;
-    eckit::Length length_;
-
-    ArchiveVisitor(Archiver& owner, const Key& field, const void* data, eckit::Length length) :
-        WriteVisitor(owner.prev_),
-        owner_(owner),
-        field_(field),
-        data_(data),
-        length_(length)
-    {
-        Log::info() << "ArchiveVisitor " << length << std::endl;
-    }
-
-    virtual bool selectDatabase(const Key& key, const Key& full) {
-        Log::info() << "selectDatabase " << key << std::endl;
-        owner_.current_ = &owner_.session(key);
-        return true;
-    }
-
-    virtual bool selectIndex(const Key& key, const Key& full) {
-        Log::info() << "selectIndex " << key << std::endl;
-        ASSERT(owner_.current_);
-        return owner_.current_->selectIndex(key);
-    }
-
-    virtual bool selectDatum(const Key& key, const Key& full) {
-        Log::info() << "selectDatum " << key << ", " << full << " " << length_ << std::endl;
-        ASSERT(owner_.current_);
-        owner_.current_->archive(key,data_,length_);
-
-        if(1)
-        {
-            StringSet missing;
-            const StringDict& f = field_.dict();
-            const StringDict& k = full.dict();
-
-            for(StringDict::const_iterator j = f.begin(); j != f.end(); ++j) {
-                if(k.find((*j).first) == k.end()) {
-                    missing.insert((*j).first);
-                }
-
-                if(missing.size()) {
-                    std::ostringstream oss;
-                    oss << "Keys not used in archiving: " << missing;
-                    throw SeriousBug(oss.str());
-                }
-            }
-        }
-
-        return true;
-    }
-
-};
-
-void Archiver::write(const Key& key, const void* data, eckit::Length length)
+void Archiver::write(const Key& key, const void* data, size_t length)
 {
     Log::info() << "Archiver write " << length << std::endl;
+
+    ASSERT(data);
 
     const Rules& rules = MasterConfig::instance().rules();
 
@@ -114,7 +59,22 @@ void Archiver::write(const Key& key, const void* data, eckit::Length length)
 
     rules.expand(key, visitor);
 
-    if(visitor.rule() == 0) { // Make sure we did write something
+    if(visitor.rule() == 0) { // Make sure we did find a rule that matched
+        std::ostringstream oss;
+        oss << "FDB: Could not find a rule to archive " << key;
+        throw SeriousBug(oss.str());
+    }
+}
+
+void Archiver::adopt(const Key& key, const PathName& path, Offset offset, Length length)
+{
+    const Rules& rules = MasterConfig::instance().rules();
+
+    AdoptVisitor visitor(*this, key, path, offset, length);
+
+    rules.expand(key, visitor);
+
+    if(visitor.rule() == 0) { // Make sure we did find a rule that matched
         std::ostringstream oss;
         oss << "FDB: Could not find a rule to archive " << key;
         throw SeriousBug(oss.str());

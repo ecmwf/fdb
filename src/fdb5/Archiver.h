@@ -17,6 +17,7 @@
 #define fdb5_Archiver_H
 
 #include "eckit/memory/NonCopyable.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/DataBlob.h"
 
@@ -47,7 +48,9 @@ public: // methods
     /// @param data buffer
     /// @param length buffer length
     ///
-    void write(const Key& key, const void* data, eckit::Length length);
+    void write(const Key& key, const void* data, size_t length);
+
+    void adopt(const Key& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
@@ -63,7 +66,7 @@ private: // methods
 
 private: // members
 
-    friend class ArchiveVisitor;
+    friend class BaseArchiveVisitor;
 
     typedef std::map< Key, eckit::SharedPtr<DB> > store_t;
 

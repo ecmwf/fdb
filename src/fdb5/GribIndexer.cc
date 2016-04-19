@@ -14,15 +14,13 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
-#include "eckit/serialisation/HandleStream.h"
-#include "eckit/io/MemoryHandle.h"
+
 #include "grib_api.h"
 
 #include "marslib/EmosFile.h"
-#include "marslib/MarsRequest.h"
 
 #include "fdb5/Key.h"
-#include "fdb5/GribArchiver.h"
+#include "fdb5/GribIndexer.h"
 
 using namespace eckit;
 
@@ -30,17 +28,17 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GribArchiver::GribArchiver(bool completeTransfers):
-    completeTransfers_(completeTransfers)
+GribIndexer::GribIndexer(bool checkDuplicates) :
+    checkDuplicates_(checkDuplicates)
 {
 }
 
-Length GribArchiver::archive(eckit::DataHandle& source)
+void GribIndexer::index(const eckit::PathName& path)
 {
     Timer timer("fdb::service::archive");
     double check = 0;
 
-    EmosFile file(source);
+    EmosFile file(path);
     Buffer buffer(80*1024*1024);
     size_t len = 0;
 
@@ -49,9 +47,11 @@ Length GribArchiver::archive(eckit::DataHandle& source)
     double tbegin = timer.elapsed();
 
     size_t count = 0;
-    size_t total_size = 0;
+    Length total_size = 0;
 
-    Length totalEstimate = source.estimate();
+    Length totalFileSize = path.size();
+
+    Progress progress("Scanning", 0, totalFileSize);
 
     try{
 
@@ -59,17 +59,15 @@ Length GribArchiver::archive(eckit::DataHandle& source)
         {
             ASSERT(len < buffer.size());
 
-            Log::info() << "Size is " << len << std::endl;
-
             const char *p = buffer + len - 4;
 
             if(p[0] != '7' || p[1] != '7' || p[2] != '7' || p[3] != '7')
                 throw eckit::SeriousBug("No 7777 found");
 
-            //Offset where = file.position();
+            Offset where = file.position();
 
-            //r.length_ = len;
-            //r.offset_ = ((unsigned long long)where - len);
+            Length length = len;
+            Offset offset = ((unsigned long long)where - len);
 
             grib_handle *h = grib_handle_new_from_message(0,buffer,len);
             ASSERT(h);
@@ -99,39 +97,8 @@ Length GribArchiver::archive(eckit::DataHandle& source)
 
             grib_keys_iterator_delete(ks);
 
-            // Look for request embbeded in GRIB message
-            long local;
-            size_t size;
-            if(grib_get_long(h, "localDefinitionNumber", &local) ==  0 && local == 191) {
-            /* TODO: Not grib2 compatible, but speed-up process */
-                if(grib_get_size(h, "freeFormData", &size) ==  0 && size != 0) {
-                    unsigned char buffer[size];
-                    ASSERT(grib_get_bytes(h, "freeFormData", buffer, &size) == 0);
-                    eckit::MemoryHandle handle(buffer, size);
-                    handle.openForRead();
-                    AutoClose close(handle);
-                    eckit::HandleStream s(handle);
-                    int count;
-                    s >> count; // Number of requests
-                    ASSERT(count == 1);
-                    std::string tmp;
-                    s >> tmp; // verb
-                    s >> count;
-                    for(int i = 0; i < count; i++) {
-                        std::string keyword, value;
-                        int n;
-                        s >> keyword;
-                        s >> n; // Number of values
-                        ASSERT(n == 1);
-                        s >> value;
-                        request.set(keyword, value);
-                    }
-                }
-            }
-
             // check for duplicated entries (within same request)
-
-    //        if( fdbCheckDoubleGrib_ )
+            if(checkDuplicates_)
             {
                 double now = timer.elapsed();
                 if( seen.find(request) != seen.end() )
@@ -139,9 +106,6 @@ Length GribArchiver::archive(eckit::DataHandle& source)
                     std::ostringstream msg;
                     msg << "GRIB sent to FDB has duplicated parameters : " << request;
                     Log::error() << msg.str() << std::endl;
-
-    //                if( fdbFailOnOverwrite_ )
-    //                    throw fdb::Error( Here(), msg.str() );
                 }
 
                 seen.insert(request);
@@ -152,33 +116,28 @@ Length GribArchiver::archive(eckit::DataHandle& source)
 
             Log::info() << request << std::endl;
 
-            write(request, static_cast<const void *>(buffer), len ); // finally archive it
+            adopt(request, path, offset, length); // now index it
 
             total_size += len;
+            progress(total_size);
         }
     }
     catch(...) {
-        if(completeTransfers_) {
-         Log::error() << "Exception recieved. Completing transfer." << std::endl;
-            // Consume rest of datahandle otherwise client retries for ever
-            while( (len = file.readSome(buffer)) )
-                /* empty */;
-        }
         throw;
     }
 
     double tend = timer.elapsed();
     double ttotal = tend-tbegin;
 
-    Log::info() << "FDB archive " << BigNum(count) << " fields,"
+    Log::info() << "FDB indexer " << BigNum(count) << " fields,"
                 << " size " << Bytes(total_size) << ","
                 << " in " << Seconds(ttotal)
                 << " (" << Bytes(total_size,ttotal) << ")" <<  std::endl;
 
-    Log::info() << "Time spent in checking for duplicates on " << BigNum(count)
-                << " took " << Seconds(check) << std::endl;
-
-    return total_size;
+    if(checkDuplicates_) {
+        Log::info() << "Time spent in checking for duplicates on " << BigNum(count)
+                    << " took " << Seconds(check) << std::endl;
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

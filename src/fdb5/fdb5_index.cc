@@ -16,21 +16,21 @@
 #include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
 
-#include "fdb5/GribArchiver.h"
+#include "fdb5/GribIndexer.h"
 
 using namespace eckit;
 
-class FDBInsert : public eckit::Tool {
+class FDBIndex : public eckit::Tool {
     virtual void run();
 public:
-    FDBInsert(int argc,char **argv): Tool(argc,argv) {}
+    FDBIndex(int argc,char **argv): Tool(argc,argv) {}
 };
 
-void FDBInsert::run()
+void FDBIndex::run()
 {
     Context& ctx = Context::instance();
 
-    fdb5::GribArchiver archiver;
+    fdb5::GribIndexer indexer;
 
     for(int i = 1; i < ctx.argc(); i++)
     {
@@ -38,15 +38,14 @@ void FDBInsert::run()
 
         std::cout << "Processing " << path << std::endl;
         
-        std::auto_ptr<DataHandle> dh ( path.fileHandle() );
-        archiver.archive( *dh );
+        indexer.index(path);
     }
 }
 
 
 int main(int argc, char **argv)
 {
-    FDBInsert app(argc,argv);
+    FDBIndex app(argc,argv);
     return app.start();
 }
 
