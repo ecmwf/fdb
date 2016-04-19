@@ -8,20 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/io/DataHandle.h"
-#include "eckit/log/Timer.h"
-#include "eckit/log/BigNum.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/log/Seconds.h"
-#include "eckit/log/Progress.h"
-#include "eckit/serialisation/HandleStream.h"
-#include "eckit/io/MemoryHandle.h"
 #include "grib_api.h"
 
-#include "marslib/EmosFile.h"
-#include "marslib/MarsRequest.h"
+#include "eckit/serialisation/HandleStream.h"
+#include "eckit/io/MemoryHandle.h"
 
-#include "fdb5/Key.h"
+#include "marslib/EmosFile.h"
 #include "fdb5/GribDecoder.h"
 
 using namespace eckit;

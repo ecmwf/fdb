@@ -10,16 +10,11 @@
 
 #include "eckit/io/DataHandle.h"
 #include "eckit/log/Timer.h"
-#include "eckit/log/BigNum.h"
+#include "eckit/log/Plural.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
-
-#include "grib_api.h"
-
 #include "marslib/EmosFile.h"
-
-#include "fdb5/Key.h"
 #include "fdb5/GribIndexer.h"
 
 using namespace eckit;
@@ -67,7 +62,7 @@ void GribIndexer::index(const eckit::PathName& path)
         count++;
     }
 
-    Log::info() << "FDB indexer " << BigNum(count) << " fields,"
+    Log::info() << "FDB indexer " << Plural(count, "field") << ","
                 << " size " << Bytes(total_size) << ","
                 << " in " << Seconds(timer.elapsed())
                 << " (" << Bytes(total_size, timer) << ")" <<  std::endl;
