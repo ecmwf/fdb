@@ -54,9 +54,9 @@ Length GribArchiver::archive(eckit::DataHandle& source)
 
     try{
 
-        Key request;
+        Key key;
 
-        while( (len = gribToKey(file, request)) )
+        while( (len = gribToKey(file, key)) )
         {
 
             // check for duplicated entries (within same request)
@@ -64,25 +64,25 @@ Length GribArchiver::archive(eckit::DataHandle& source)
     //        if( fdbCheckDoubleGrib_ )
             {
                 double now = timer.elapsed();
-                if( seen.find(request) != seen.end() )
+                if( seen.find(key) != seen.end() )
                 {
                     std::ostringstream msg;
-                    msg << "GRIB sent to FDB has duplicated parameters : " << request;
+                    msg << "GRIB sent to FDB has duplicated parameters : " << key;
                     Log::error() << msg.str() << std::endl;
 
     //                if( fdbFailOnOverwrite_ )
     //                    throw fdb::Error( Here(), msg.str() );
                 }
 
-                seen.insert(request);
+                seen.insert(key);
                 ++count;
 
                 check += timer.elapsed() - now;
             }
 
-            Log::info() << request << std::endl;
+            Log::info() << key << std::endl;
 
-            write(request, static_cast<const void *>(buffer()), len ); // finally archive it
+            write(key, static_cast<const void *>(buffer()), len ); // finally archive it
 
             total_size += len;
         }

@@ -52,35 +52,35 @@ void GribIndexer::index(const eckit::PathName& path)
 
     Progress progress("Scanning", 0, totalFileSize);
 
-    Key request;
+    Key key;
 
 
-    while( (len = gribToKey(file, request))  )
+    while( (len = gribToKey(file, key))  )
     {
 
         // check for duplicated entries (within same request)
         if(checkDuplicates_)
         {
             double now = timer.elapsed();
-            if( seen.find(request) != seen.end() )
+            if( seen.find(key) != seen.end() )
             {
                 std::ostringstream msg;
-                msg << "GRIB sent to FDB has duplicated parameters : " << request;
+                msg << "GRIB sent to FDB has duplicated parameters : " << key;
                 Log::error() << msg.str() << std::endl;
             }
 
-            seen.insert(request);
+            seen.insert(key);
             ++count;
 
             check += timer.elapsed() - now;
         }
 
-        Log::info() << request << std::endl;
+        Log::info() << key << std::endl;
 
         Length length = len;
         Offset offset = file.position() - length;
 
-        adopt(request, path, offset, length); // now index it
+        adopt(key, path, offset, length); // now index it
 
         total_size += len;
         progress(total_size);

@@ -18,8 +18,12 @@
 
 
 #include "eckit/io/Buffer.h"
+#include "marslib/MarsRequest.h"
+
+namespace eckit { class PathName; }
 
 class EmosFile;
+
 
 namespace fdb5 {
 
@@ -33,6 +37,7 @@ public:
     GribDecoder();
 
     size_t gribToKey(EmosFile& file, Key& key);
+    MarsRequest gribToRequest(const eckit::PathName& path, const char* verb = "retrieve");
 
     const eckit::Buffer& buffer() const { return buffer_; }
 

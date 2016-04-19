@@ -20,6 +20,7 @@
 #include "marslib/MarsTask.h"
 
 #include "fdb5/Retriever.h"
+#include "fdb5/GribDecoder.h"
 
 using namespace std;
 using namespace eckit;
@@ -34,31 +35,35 @@ void FDBExtract::run()
 {
     Context& ctx = Context::instance();
 
-    ASSERT( ctx.argc() == 2 );
+    ASSERT( ctx.argc() == 3 );
 
-    MarsRequest r("retrieve");
-    r.setValue("class","od");
-    r.setValue("stream","oper");
-    r.setValue("expver","0001");
-    r.setValue("type","an");
-    r.setValue("levtype","pl");
-    r.setValue("date","20160412");
-    r.setValue("time","1200");
-    r.setValue("domain","g");
+    fdb5::GribDecoder decoder;
 
-    vector<string> params;
-    params.push_back( "131" );
-    params.push_back( "138" );
-    // params.push_back( "129" );
-    r.setValues("param",params);
+    MarsRequest r = decoder.gribToRequest(ctx.argv(1));
 
-    r.setValue("step","0");
+    // MarsRequest r("retrieve");
+    // r.setValue("class","od");
+    // r.setValue("stream","oper");
+    // r.setValue("expver","0001");
+    // r.setValue("type","an");
+    // r.setValue("levtype","pl");
+    // r.setValue("date","20160412");
+    // r.setValue("time","1200");
+    // r.setValue("domain","g");
 
-    vector<string> levels;
-    levels.push_back( "850" );
-    levels.push_back( "400" );
-    levels.push_back( "300" );
-    r.setValues("levelist",levels);
+    // vector<string> params;
+    // params.push_back( "131" );
+    // params.push_back( "138" );
+    // // params.push_back( "129" );
+    // r.setValues("param",params);
+
+    // r.setValue("step","0");
+
+    // vector<string> levels;
+    // levels.push_back( "850" );
+    // levels.push_back( "400" );
+    // levels.push_back( "300" );
+    // r.setValues("levelist",levels);
 
     MarsRequest e("environ");
 
@@ -68,7 +73,7 @@ void FDBExtract::run()
 
     eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve() );
 
-    eckit::FileHandle out( ctx.argv(1));
+    eckit::FileHandle out( ctx.argv(2));
 
     dh->saveInto(out);
 }

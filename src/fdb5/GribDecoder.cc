@@ -106,6 +106,32 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
     return len;
 }
 
+MarsRequest GribDecoder::gribToRequest(const eckit::PathName& path, const char* verb) {
+    MarsRequest r(verb);
+
+    EmosFile file(path);
+    size_t len = 0;
+
+    Key key;
+
+    std::map<std::string, std::set<std::string> > s;
+
+    while( (len = gribToKey(file, key))  ) {
+        const eckit::StringDict& d = key.dict();
+        for(eckit::StringDict::const_iterator j = d.begin(); j != d.end(); ++j) {
+            s[j->first].insert(j->second);
+        }
+    }
+
+    for(std::map<std::string, std::set<std::string> >::const_iterator j = s.begin(); j != s.end(); ++j) {
+        eckit::StringList v(j->second.begin(), j->second.end());
+        r.setValues(j->first, v);
+    }
+
+    return r;
+}
+
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
