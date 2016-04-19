@@ -8,37 +8,37 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   GribIndexer.h
+/// @file   GribDecoder.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_GribIndexer_H
-#define fdb5_GribIndexer_H
+#ifndef fdb5_GribDecoder_H
+#define fdb5_GribDecoder_H
 
-#include "eckit/filesystem/PathName.h"
 
-#include "fdb5/Archiver.h"
-#include "fdb5/GribDecoder.h"
+#include "eckit/io/Buffer.h"
 
-namespace eckit   { class DataHandle; }
+class EmosFile;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class GribIndexer : public Archiver, public GribDecoder {
+class Key;
 
-public: // methods
+class GribDecoder {
+public:
 
-    GribIndexer(bool checkDuplicates = false);
+    GribDecoder();
 
-    void index(const eckit::PathName& path);
+    size_t gribToKey(EmosFile& file, Key& key);
 
-private: // members
+    const eckit::Buffer& buffer() const { return buffer_; }
 
-    bool checkDuplicates_;
+private:
 
+    eckit::Buffer buffer_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

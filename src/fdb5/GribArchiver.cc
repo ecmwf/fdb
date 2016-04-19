@@ -41,7 +41,6 @@ Length GribArchiver::archive(eckit::DataHandle& source)
     double check = 0;
 
     EmosFile file(source);
-    Buffer buffer(80*1024*1024);
     size_t len = 0;
 
     std::set<Key> seen;
@@ -55,79 +54,10 @@ Length GribArchiver::archive(eckit::DataHandle& source)
 
     try{
 
-        while( (len = file.readSome(buffer)) )
+        Key request;
+
+        while( (len = gribToKey(file, request)) )
         {
-            ASSERT(len < buffer.size());
-
-            Log::info() << "Size is " << len << std::endl;
-
-            const char *p = buffer + len - 4;
-
-            if(p[0] != '7' || p[1] != '7' || p[2] != '7' || p[3] != '7')
-                throw eckit::SeriousBug("No 7777 found");
-
-            //Offset where = file.position();
-
-            //r.length_ = len;
-            //r.offset_ = ((unsigned long long)where - len);
-
-            grib_handle *h = grib_handle_new_from_message(0,buffer,len);
-            ASSERT(h);
-
-            char mars_str [] = "mars";
-            grib_keys_iterator* ks = grib_keys_iterator_new(h,GRIB_KEYS_ITERATOR_ALL_KEYS, mars_str);
-            ASSERT(ks);
-
-            fdb5::Key request;
-
-            while(grib_keys_iterator_next(ks))
-            {
-                const char* name = grib_keys_iterator_get_name(ks);
-
-                if(name[0] == '_') continue; // skip silly underscores in GRIB
-
-                char val[1024];
-                size_t len = sizeof(val);
-
-                ASSERT( grib_keys_iterator_get_string(ks, val, &len) == 0);
-
-                /// @todo cannocicalisation of values
-                /// const KeywordHandler& handler = KeywordHandler::lookup(name);
-                //  request.set( name, handler.cannocalise(val) );
-                request.set( name, val );
-            }
-
-            grib_keys_iterator_delete(ks);
-
-            // Look for request embbeded in GRIB message
-            long local;
-            size_t size;
-            if(grib_get_long(h, "localDefinitionNumber", &local) ==  0 && local == 191) {
-            /* TODO: Not grib2 compatible, but speed-up process */
-                if(grib_get_size(h, "freeFormData", &size) ==  0 && size != 0) {
-                    unsigned char buffer[size];
-                    ASSERT(grib_get_bytes(h, "freeFormData", buffer, &size) == 0);
-                    eckit::MemoryHandle handle(buffer, size);
-                    handle.openForRead();
-                    AutoClose close(handle);
-                    eckit::HandleStream s(handle);
-                    int count;
-                    s >> count; // Number of requests
-                    ASSERT(count == 1);
-                    std::string tmp;
-                    s >> tmp; // verb
-                    s >> count;
-                    for(int i = 0; i < count; i++) {
-                        std::string keyword, value;
-                        int n;
-                        s >> keyword;
-                        s >> n; // Number of values
-                        ASSERT(n == 1);
-                        s >> value;
-                        request.set(keyword, value);
-                    }
-                }
-            }
 
             // check for duplicated entries (within same request)
 
@@ -152,15 +82,16 @@ Length GribArchiver::archive(eckit::DataHandle& source)
 
             Log::info() << request << std::endl;
 
-            write(request, static_cast<const void *>(buffer), len ); // finally archive it
+            write(request, static_cast<const void *>(buffer()), len ); // finally archive it
 
             total_size += len;
         }
     }
     catch(...) {
         if(completeTransfers_) {
-         Log::error() << "Exception recieved. Completing transfer." << std::endl;
+            Log::error() << "Exception recieved. Completing transfer." << std::endl;
             // Consume rest of datahandle otherwise client retries for ever
+            eckit::Buffer buffer(80*1024*1024);
             while( (len = file.readSome(buffer)) )
                 /* empty */;
         }

@@ -35,6 +35,8 @@ list( APPEND fdb5_srcs
     GribArchiver.cc
     GribIndexer.h
     GribIndexer.cc
+    GribDecoder.h
+    GribDecoder.cc
 
     Retriever.h
     Retriever.cc

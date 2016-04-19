@@ -39,7 +39,6 @@ void GribIndexer::index(const eckit::PathName& path)
     double check = 0;
 
     EmosFile file(path);
-    Buffer buffer(80*1024*1024);
     size_t len = 0;
 
     std::set<Key> seen;
@@ -53,78 +52,40 @@ void GribIndexer::index(const eckit::PathName& path)
 
     Progress progress("Scanning", 0, totalFileSize);
 
-    try{
+    Key request;
 
-        while( (len = file.readSome(buffer)) )
+
+    while( (len = gribToKey(file, request))  )
+    {
+
+        // check for duplicated entries (within same request)
+        if(checkDuplicates_)
         {
-            ASSERT(len < buffer.size());
-
-            const char *p = buffer + len - 4;
-
-            if(p[0] != '7' || p[1] != '7' || p[2] != '7' || p[3] != '7')
-                throw eckit::SeriousBug("No 7777 found");
-
-            Offset where = file.position();
-
-            Length length = len;
-            Offset offset = ((unsigned long long)where - len);
-
-            grib_handle *h = grib_handle_new_from_message(0,buffer,len);
-            ASSERT(h);
-
-            char mars_str [] = "mars";
-            grib_keys_iterator* ks = grib_keys_iterator_new(h,GRIB_KEYS_ITERATOR_ALL_KEYS, mars_str);
-            ASSERT(ks);
-
-            fdb5::Key request;
-
-            while(grib_keys_iterator_next(ks))
+            double now = timer.elapsed();
+            if( seen.find(request) != seen.end() )
             {
-                const char* name = grib_keys_iterator_get_name(ks);
-
-                if(name[0] == '_') continue; // skip silly underscores in GRIB
-
-                char val[1024];
-                size_t len = sizeof(val);
-
-                ASSERT( grib_keys_iterator_get_string(ks, val, &len) == 0);
-
-                /// @todo cannocicalisation of values
-                /// const KeywordHandler& handler = KeywordHandler::lookup(name);
-                //  request.set( name, handler.cannocalise(val) );
-                request.set( name, val );
+                std::ostringstream msg;
+                msg << "GRIB sent to FDB has duplicated parameters : " << request;
+                Log::error() << msg.str() << std::endl;
             }
 
-            grib_keys_iterator_delete(ks);
+            seen.insert(request);
+            ++count;
 
-            // check for duplicated entries (within same request)
-            if(checkDuplicates_)
-            {
-                double now = timer.elapsed();
-                if( seen.find(request) != seen.end() )
-                {
-                    std::ostringstream msg;
-                    msg << "GRIB sent to FDB has duplicated parameters : " << request;
-                    Log::error() << msg.str() << std::endl;
-                }
-
-                seen.insert(request);
-                ++count;
-
-                check += timer.elapsed() - now;
-            }
-
-            Log::info() << request << std::endl;
-
-            adopt(request, path, offset, length); // now index it
-
-            total_size += len;
-            progress(total_size);
+            check += timer.elapsed() - now;
         }
+
+        Log::info() << request << std::endl;
+
+        Length length = len;
+        Offset offset = file.position() - length;
+
+        adopt(request, path, offset, length); // now index it
+
+        total_size += len;
+        progress(total_size);
     }
-    catch(...) {
-        throw;
-    }
+
 
     double tend = timer.elapsed();
     double ttotal = tend-tbegin;
