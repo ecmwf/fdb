@@ -102,6 +102,7 @@ private: // members
     std::set<Key> seen_;
 
     bool aio_;
+    bool dirty_;
 
     Index* current_;
 

@@ -47,7 +47,8 @@ namespace fdb5 {
 
 TocDBWriter::TocDBWriter(const Key& key) :
     TocDB(key),
-    current_(0)
+    current_(0),
+    dirty_(false)
 {
     if( !path_.exists() )
     {
@@ -103,6 +104,7 @@ void TocDBWriter::close() {
 void TocDBWriter::archive(const Key& key, const void *data, Length length)
 {
     ASSERT(current_);
+    dirty_ = true;
 
     PathName dataPath = getDataPath(current_->key());
 
@@ -129,6 +131,11 @@ void TocDBWriter::archive(const Key& key, const void *data, Length length)
 
 void TocDBWriter::flush()
 {
+    if(!dirty_) {
+        return;
+    }
+
+    dirty_ = false;
     // ensure consistent state before writing Toc entry
 
     flushDataHandles();
@@ -267,7 +274,7 @@ void TocDBWriter::flushDataHandles()
     Log::info() << "Flushing " << Plural(handles_.size(),"data handle") << std::endl;
 
     for(HandleStore::iterator itr = handles_.begin(); itr != handles_.end(); ++itr)
-    {        
+    {
         eckit::DataHandle* dh = itr->second;
         if( dh ) {
             std::ostringstream oss;
