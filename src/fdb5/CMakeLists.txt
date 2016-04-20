@@ -99,6 +99,8 @@ list( APPEND fdb5_srcs
     ParamHandler.cc
     IntegerHandler.h
     IntegerHandler.cc
+    DoubleHandler.h
+    DoubleHandler.cc
 
     DB.h
     DB.cc

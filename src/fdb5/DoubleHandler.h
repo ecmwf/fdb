@@ -8,35 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   KeywordHandler.h
+/// @file   DoubleHandler.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_KeywordHandler_H
-#define fdb5_KeywordHandler_H
+#ifndef fdb5_DoubleHandler_H
+#define fdb5_DoubleHandler_H
 
-#include <string>
-
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/types/Types.h"
-
-class MarsTask;
-class MarsRequest;
+#include "fdb5/KeywordHandler.h"
 
 namespace fdb5 {
 
-class DB;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class KeywordHandler : private eckit::NonCopyable {
+class DoubleHandler : public KeywordHandler {
 
 public: // methods
 
-    KeywordHandler(const std::string& name);
+    DoubleHandler(const std::string& name);
 
-    virtual ~KeywordHandler();
+    virtual ~DoubleHandler();
 
     virtual void toKey(std::ostream& out,
                        const std::string& keyword,
@@ -48,19 +40,9 @@ public: // methods
                            const MarsTask& task,
                            const DB* db) const;
 
-    friend std::ostream& operator<<(std::ostream& s,const KeywordHandler& x);
-
-public: // class methods
-
-    static const KeywordHandler& lookup(const std::string& keyword);
-
 private: // methods
 
-    virtual void print( std::ostream& out ) const = 0;
-
-protected: // members
-
-    std::string name_;
+    virtual void print( std::ostream& out ) const;
 
 };
 

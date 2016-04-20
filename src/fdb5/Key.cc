@@ -13,6 +13,8 @@
 #include "eckit/parser/Tokenizer.h"
 
 #include "fdb5/Key.h"
+#include "fdb5/MasterConfig.h"
+#include "fdb5/KeywordHandler.h"
 
 using namespace eckit;
 
@@ -77,14 +79,22 @@ const std::string& Key::get( const std::string& k ) const {
 std::string Key::valuesToString() const
 {
     ASSERT(names_.size() == keys_.size());
+    MasterConfig& conf = MasterConfig::instance();
+
+    std::ostringstream oss;
+
     const char *sep = ":";
-    std::string result(sep);
+
     for(StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
         StringDict::const_iterator i = keys_.find(*j);
         ASSERT(i != keys_.end());
-        result += (*i).second + sep;
+
+        oss << sep;
+        conf.lookupHandler(*j).toKey(oss, *j, (*i).second);
+        oss << sep;
+
     }
-    return result;
+    return oss.str();
 }
 
 void Key::load(std::istream& s)

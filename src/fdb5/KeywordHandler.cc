@@ -36,6 +36,13 @@ void KeywordHandler::getValues(const MarsRequest& request,
     request.getValues(keyword, values);
 }
 
+
+void KeywordHandler::toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const {
+    out << value;
+}
+
 std::ostream& operator<<(std::ostream& s, const KeywordHandler& x)
 {
     x.print(s);
