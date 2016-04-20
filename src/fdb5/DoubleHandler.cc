@@ -34,7 +34,7 @@ DoubleHandler::~DoubleHandler()
 void DoubleHandler::toKey(std::ostream& out,
                        const std::string& keyword,
                        const std::string& value) const {
-    out << std::fixed << eckit::Translator<std::string, double>()(value);
+    out << eckit::Translator<std::string, double>()(value);
 }
 
 void DoubleHandler::getValues(const MarsRequest& request,

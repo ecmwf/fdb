@@ -90,7 +90,9 @@ std::string Key::valuesToString() const
         ASSERT(i != keys_.end());
 
         oss << sep;
-        conf.lookupHandler(*j).toKey(oss, *j, (*i).second);
+        if(!(*i).second.empty()) {
+            conf.lookupHandler(*j).toKey(oss, *j, (*i).second);
+        }
         oss << sep;
 
     }
