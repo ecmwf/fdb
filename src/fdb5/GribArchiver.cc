@@ -10,18 +10,10 @@
 
 #include "eckit/io/DataHandle.h"
 #include "eckit/log/Timer.h"
-#include "eckit/log/BigNum.h"
+#include "eckit/log/Plural.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Seconds.h"
-#include "eckit/log/Progress.h"
-#include "eckit/serialisation/HandleStream.h"
-#include "eckit/io/MemoryHandle.h"
-#include "grib_api.h"
-
 #include "marslib/EmosFile.h"
-#include "marslib/MarsRequest.h"
-
-#include "fdb5/Key.h"
 #include "fdb5/GribArchiver.h"
 
 using namespace eckit;
@@ -38,19 +30,15 @@ GribArchiver::GribArchiver(bool completeTransfers):
 Length GribArchiver::archive(eckit::DataHandle& source)
 {
     Timer timer("fdb::service::archive");
-    double check = 0;
 
     EmosFile file(source);
     size_t len = 0;
 
     std::set<Key> seen;
 
-    double tbegin = timer.elapsed();
-
     size_t count = 0;
     size_t total_size = 0;
 
-    // Length totalEstimate = source.estimate();
 
     try{
 
@@ -58,33 +46,9 @@ Length GribArchiver::archive(eckit::DataHandle& source)
 
         while( (len = gribToKey(file, key)) )
         {
-
-            // check for duplicated entries (within same request)
-
-    //        if( fdbCheckDoubleGrib_ )
-            {
-                double now = timer.elapsed();
-                if( seen.find(key) != seen.end() )
-                {
-                    std::ostringstream msg;
-                    msg << "GRIB sent to FDB has duplicated parameters : " << key;
-                    Log::error() << msg.str() << std::endl;
-
-    //                if( fdbFailOnOverwrite_ )
-    //                    throw fdb::Error( Here(), msg.str() );
-                }
-
-                seen.insert(key);
-                ++count;
-
-                check += timer.elapsed() - now;
-            }
-
-            Log::info() << key << std::endl;
-
             write(key, static_cast<const void *>(buffer()), len ); // finally archive it
-
             total_size += len;
+            count++;
         }
     }
     catch(...) {
@@ -98,16 +62,10 @@ Length GribArchiver::archive(eckit::DataHandle& source)
         throw;
     }
 
-    double tend = timer.elapsed();
-    double ttotal = tend-tbegin;
-
-    Log::info() << "FDB archive " << BigNum(count) << " fields,"
+    Log::info() << "FDB archive " << Plural(count, "field") << ","
                 << " size " << Bytes(total_size) << ","
-                << " in " << Seconds(ttotal)
-                << " (" << Bytes(total_size,ttotal) << ")" <<  std::endl;
-
-    Log::info() << "Time spent in checking for duplicates on " << BigNum(count)
-                << " took " << Seconds(check) << std::endl;
+                << " in " << Seconds(timer.elapsed())
+                << " (" << Bytes(total_size, timer) << ")" <<  std::endl;
 
     return total_size;
 }

@@ -24,17 +24,17 @@ namespace eckit { class PathName; }
 
 class EmosFile;
 
+#include "fdb5/Key.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Key;
 
 class GribDecoder {
 public:
 
-    GribDecoder();
+    GribDecoder(bool checkDuplicates = false);
 
     size_t gribToKey(EmosFile& file, Key& key);
     MarsRequest gribToRequest(const eckit::PathName& path, const char* verb = "retrieve");
@@ -44,6 +44,8 @@ public:
 private:
 
     eckit::Buffer buffer_;
+    std::set<Key> seen_;
+    bool checkDuplicates_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
