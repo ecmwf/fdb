@@ -4,6 +4,8 @@
 #    -  not fsync()
 #    -  fail on ENOSPC
 #
+#  * tool to purge
+#
 #  * run the suite and slowly build the rules
 #
 #  * fdbRoot is a list of paths to visit ---> speak to Hodge
@@ -23,6 +25,9 @@
 #  * consider using more than a service node on the HPC
 #
 #  * Rules for data files (eg {type,levtype} )
+#
+#  * marsadm tools:
+#    --  list roots
 
 
 # fdb5 library
