@@ -36,6 +36,9 @@ public: // methods
                            const MarsTask& task,
                            const DB* db) const;
 
+    virtual void toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const;
 private: // methods
 
     virtual void print( std::ostream& out ) const;

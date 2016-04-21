@@ -23,21 +23,25 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-StepHandler::StepHandler(const std::string& name) :
-    KeywordHandler(name)
-{
+StepHandler::StepHandler(const std::string &name) :
+    KeywordHandler(name) {
 }
 
-StepHandler::~StepHandler()
-{
+StepHandler::~StepHandler() {
 }
 
-void StepHandler::getValues(const MarsRequest& request,
-                               const std::string& keyword,
-                               StringList& values,
-                               const MarsTask& task,
-                               const DB* db) const
-{
+
+void StepHandler::toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const {
+  out << StepRange(value);
+}
+
+void StepHandler::getValues(const MarsRequest &request,
+                            const std::string &keyword,
+                            StringList &values,
+                            const MarsTask &task,
+                            const DB *db) const {
     std::vector<std::string> steps;
 
     request.getValues(keyword, steps);
@@ -46,13 +50,12 @@ void StepHandler::getValues(const MarsRequest& request,
 
     values.reserve(steps.size());
 
-    for(std::vector<std::string>::const_iterator i = steps.begin(); i != steps.end(); ++i) {
+    for (std::vector<std::string>::const_iterator i = steps.begin(); i != steps.end(); ++i) {
         values.push_back(t(StepRange(*i)));
     }
 }
 
-void StepHandler::print(std::ostream &out) const
-{
+void StepHandler::print(std::ostream &out) const {
     out << "StepHandler(" << name_ << ")";
 }
 
