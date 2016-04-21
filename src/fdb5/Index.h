@@ -68,16 +68,6 @@ public: // types
         
     };
     
-    /// Non-const operation on the index entries
-    struct Op : private eckit::NonCopyable {
-        virtual void operator() ( Index& idx, const Key& key, const Field& field ) = 0;
-    };
-    
-    /// Const operation on the index entries
-    struct ConstOp : private eckit::NonCopyable {
-        virtual void operator() ( const Index& idx, const Key& key, const Field& field ) = 0;
-    };
-    
 public: // methods
     
     static Index* create(const Key& key, const std::string& type, const eckit::PathName& path, Index::Mode m);
@@ -98,13 +88,7 @@ public: // methods
         
     virtual void flush() = 0;    
 
-    /// apply a non-const operation to all entries of the Index
-    virtual void apply( Index::Op& op ) = 0;
-    /// apply a const operation to all entries of the Index
-    virtual void apply( Index::ConstOp& op ) const = 0;
-
-    virtual void print( std::ostream& out ) const;
-    virtual void json( std::ostream& out ) const;
+    virtual void print( std::ostream& out ) const = 0;
     
     friend std::ostream& operator<<(std::ostream& s, const Index& x) { x.print(s); return s; }
     
@@ -131,15 +115,6 @@ protected: // members
 
     Key key_; ///< key that selected this index
 
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-struct PrintIndex : public Index::ConstOp 
-{
-    PrintIndex( std::ostream& out ) : out_(out) {}
-    virtual void operator() ( const Index&, const Key& key, const Index::Field& field );
-    std::ostream& out_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

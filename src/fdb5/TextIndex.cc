@@ -100,6 +100,8 @@ void TextIndex::put_(const Key& key, const TextIndex::Field& field)
 
 bool TextIndex::remove(const Key& key)
 {
+    NOTIMP;
+
 	ASSERT( mode() == Index::WRITE );
 
     FieldStore::iterator itr = store_.find(key);
@@ -115,38 +117,6 @@ void TextIndex::flush()
     files_.flush();
     if( !flushed_ )
 		save( path_ );
-}
-
-void TextIndex::apply( Index::Op &op )
-{
-	ASSERT( mode() == Index::WRITE );
-
-    Field field;
-    for( FieldStore::iterator itr = store_.begin(); itr != store_.end(); ++itr )
-    {
-        FieldRef& ref = itr->second;
-        
-		field.path_     = files_.get(ref.pathId_);
-        field.offset_   = ref.offset_; 
-        field.length_   = ref.length_;
-        
-        op(*this,itr->first,field);
-    }
-}
-
-void TextIndex::apply(ConstOp &op ) const
-{
-    Field field;
-    for( FieldStore::const_iterator itr = store_.begin(); itr != store_.end(); ++itr )
-    {
-        const FieldRef& ref = itr->second;
-        
-		field.path_     = files_.get(ref.pathId_);
-        field.offset_   = ref.offset_; 
-        field.length_   = ref.length_;
-        
-        op(*this,itr->first,field);
-    }
 }
 
 void TextIndex::load(const PathName& path)
@@ -192,6 +162,11 @@ void TextIndex::save(const PathName& path) const
     std::string data = os.str();
     storage.write( data.c_str(), data.size() );
     storage.close();
+}
+
+void TextIndex::print(std::ostream& out) const
+{
+    out << "BTreeIndex()";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
