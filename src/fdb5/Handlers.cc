@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/EtcTable.h"
 
 #include "fdb5/Handlers.h"
 #include "fdb5/KeywordType.h"
@@ -31,6 +30,11 @@ Handlers::~Handlers()
     }
 }
 
+void Handlers::addType(const std::string& keyword, const std::string& type) {
+    ASSERT(types_.find(keyword) == types_.end());
+    types_[keyword] = type;
+}
+
 const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
 {
     std::map<std::string, KeywordHandler*>::const_iterator j = handlers_.find(keyword);
@@ -39,9 +43,11 @@ const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
         return *(*j).second;
     }
     else {
-        static eckit::EtcKeyTable table("types", 2, "etc/fdb");
-        std::vector<std::string> v = table.lookUp(keyword);
-        std::string type = v.size() ? v[1] : "Default";
+        std::string type = "Default";
+        std::map<std::string, std::string>::const_iterator i = types_.find(keyword);
+        if(i != types_.end()) {
+            type = (*i).second;
+        }
         Log::info() << "Handler for " << keyword << " is " << type << std::endl;
         KeywordHandler* newKH = KeywordType::build(type, keyword);
         handlers_[keyword] = newKH;

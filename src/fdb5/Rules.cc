@@ -70,7 +70,7 @@ void Rules::load(const eckit::PathName& path, bool replace)
 
     RulesParser parser(in);
 
-    parser.parse(rules_);
+    parser.parse(rules_, handler_);
 
     check();
 }
@@ -103,6 +103,11 @@ void Rules::print(std::ostream& out) const
 {
     out << "Rules()";
 }
+
+const KeywordHandler& Rules::lookupHandler(const std::string& keyword) const {
+    return handler_.lookupHandler(keyword);
+}
+
 
 std::ostream& operator<<(std::ostream& s, const Rules& x)
 {

@@ -37,12 +37,16 @@ public: // methods
 
     const KeywordHandler& lookupHandler(const std::string& keyword) const;
 
+    void addType(const std::string&, const std::string&);
+
 
 private: // members
 
     typedef std::map<std::string, KeywordHandler*> HandlerMap;
 
     mutable HandlerMap handlers_;
+
+    std::map<std::string, std::string> types_;
 
 };
 

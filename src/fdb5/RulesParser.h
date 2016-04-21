@@ -21,6 +21,7 @@ namespace fdb5 {
 
 class Rule;
 class Predicate;
+class Handlers;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -30,7 +31,7 @@ public: // methods
 
     RulesParser(std::istream& in);
 
-    void parse(std::vector<Rule*>&);
+    void parse(std::vector<Rule*>&, Handlers&);
 
 private: // methods
 
@@ -39,6 +40,7 @@ private: // methods
     Rule* parseRule();
 
     Predicate* parsePredicate();
+    void parseTypes(Handlers&);
 
 };
 

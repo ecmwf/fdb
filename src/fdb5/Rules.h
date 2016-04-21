@@ -21,6 +21,7 @@
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/PathName.h"
+#include "fdb5/Handlers.h"
 
 class MarsRequest;
 
@@ -48,6 +49,9 @@ public: // methods
 
     void dump(std::ostream& s) const;
 
+    const KeywordHandler& lookupHandler(const std::string& keyword) const;
+
+
 private: // methods
 
     void clear();
@@ -59,7 +63,8 @@ private: // methods
 
 private: // members
 
-    std::vector<Rule*>      rules_;
+    Handlers handler_;
+    std::vector<Rule*>  rules_;
 
 };
 

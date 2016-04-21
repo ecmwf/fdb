@@ -59,7 +59,7 @@ MasterConfig& MasterConfig::instance()
 }
 
 const KeywordHandler& MasterConfig::lookupHandler(const std::string& keyword) const {
-    return handlers_.lookupHandler(keyword);
+    return rules_.lookupHandler(keyword);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

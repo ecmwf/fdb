@@ -51,7 +51,6 @@ private: // methods
 private: // members
 
     Rules rules_;
-    Handlers handlers_;
 
 };
 
