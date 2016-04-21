@@ -57,12 +57,18 @@ std::string RulesParser::parseIdent(bool emptyOK)
     }
 }
 
-Predicate* RulesParser::parsePredicate() {
+Predicate* RulesParser::parsePredicate(std::map<std::string, std::string>& types) {
 
     std::set<std::string> values;
     std::string k = parseIdent();
 
     char c = peek();
+
+    if(c == ':') {
+        consume(c);
+        ASSERT(types.find(k) == types.end());
+        types[k] = parseIdent();
+    }
 
     if(c == '?') {
         consume(c);
@@ -116,8 +122,6 @@ Rule* RulesParser::parseRule()
     std::vector<Rule*> rules;
     std::map<std::string, std::string> types;
 
-    parseTypes(types);
-
     consume('[');
     char c = peek();
     if(c == ']')
@@ -138,10 +142,10 @@ Rule* RulesParser::parseRule()
             }
         }
         else {
-            predicates.push_back(parsePredicate());
+            predicates.push_back(parsePredicate(types));
             while( (c = peek()) == ',') {
                 consume(c);
-                predicates.push_back(parsePredicate());
+                predicates.push_back(parsePredicate(types));
             }
         }
 

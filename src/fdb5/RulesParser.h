@@ -39,7 +39,7 @@ private: // methods
 
     Rule* parseRule();
 
-    Predicate* parsePredicate();
+    Predicate* parsePredicate(std::map<std::string, std::string>& types);
     void parseTypes(std::map<std::string, std::string>&);
 
 };
