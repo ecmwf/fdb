@@ -16,6 +16,7 @@
 
 #include "fdb5/KeywordType.h"
 #include "fdb5/StepHandler.h"
+#include "fdb5/DB.h"
 
 using namespace eckit;
 
@@ -49,6 +50,26 @@ void StepHandler::getValues(const MarsRequest &request,
     Translator<StepRange, std::string> t;
 
     values.reserve(steps.size());
+
+    if(db) {
+        StringSet axis;
+        db->axis(keyword, axis);
+        for (std::vector<std::string>::const_iterator i = steps.begin(); i != steps.end(); ++i) {
+            std::string s(t(StepRange(*i)));
+            if(axis.find(s) == axis.end()) {
+                std::string z = "0-" + s;
+                if(axis.find(z) != axis.end()) {
+                    values.push_back(z);
+                }
+                else {
+                    values.push_back(s);
+                }
+            }
+            else {
+                values.push_back(s);
+            }
+        }
+    }
 
     for (std::vector<std::string>::const_iterator i = steps.begin(); i != steps.end(); ++i) {
         values.push_back(t(StepRange(*i)));
