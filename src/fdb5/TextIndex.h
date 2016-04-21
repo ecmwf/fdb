@@ -34,7 +34,7 @@ public: // methods
     
     virtual ~TextIndex();
 
-protected: // methods
+private: // methods
 
     virtual bool    exists( const Key& key ) const;
 
@@ -48,14 +48,11 @@ protected: // methods
     
     virtual void flush();    
 
-    /// apply a non-const operation to all entries of the Index
-    virtual void apply( Index::Op& op );
-    /// apply a const operation to all entries of the Index
-    virtual void apply( Index::ConstOp& op ) const;
-    
     void save(const eckit::PathName& path) const;
     void load(const eckit::PathName& path);    
     
+    virtual void print( std::ostream& out ) const;
+
 private: // types
     
     typedef FileStore::FieldRef FieldRef;

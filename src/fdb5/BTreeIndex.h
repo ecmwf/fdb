@@ -53,13 +53,12 @@ private: // methods
 
 	virtual void	flush();
 
-    /// apply a non-const operation to all entries of the Index
-    virtual void apply( Index::Op& op );
-    /// apply a const operation to all entries of the Index
-    virtual void apply( Index::ConstOp& op ) const;
-    
+private: // methods
+        
+    virtual void print( std::ostream& out ) const;
+
 private: // types
-    
+
     typedef FileStore::FieldRef FieldRef;
     typedef eckit::BTree< BTreeKey , FieldRef, 65536 > BTreeStore;
     
@@ -68,6 +67,8 @@ private: // members
     BTreeStore  btree_;
 
     bool fdbCheckDoubleInsert_; ///< check for keys overwriting each other within same archive request (useful to check fdbRules are sane)
+
+    bool dirty_;
 
 };
 

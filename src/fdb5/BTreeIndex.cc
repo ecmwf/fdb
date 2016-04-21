@@ -24,7 +24,8 @@ namespace fdb5 {
 BTreeIndex::BTreeIndex(const Key& key, const PathName& path, Index::Mode m ) :
     Index(key,path,m),
     btree_( path, bool( m == Index::READ ) ),
-    fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert", true) )
+    fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert", true) ),
+    dirty_(false)
 {
 }
 
@@ -89,6 +90,8 @@ void BTreeIndex::put_(const Key& key, const BTreeIndex::Field& field)
 
     bool replace = btree_.set(k,ref);  // returns true if replace, false if new insert
 
+    dirty_ = true;
+
     if(fdbCheckDoubleInsert_ && replace) {
         std::ostringstream oss;
         oss << "Duplicate FDB entry with key: " << key << " -- This may be a schema bug in the fdbRules";
@@ -98,7 +101,11 @@ void BTreeIndex::put_(const Key& key, const BTreeIndex::Field& field)
 
 bool BTreeIndex::remove(const Key& key)
 {
+    NOTIMP;
+
     ASSERT( mode() == Index::WRITE );
+
+    dirty_ = true;
 
     BTreeKey k( key.valuesToString() );
 	return btree_.remove(k);
@@ -108,49 +115,19 @@ void BTreeIndex::flush()
 {
     ASSERT( mode() == Index::WRITE );
 
+    if(!dirty_) {
+        return;
+    }
+
     files_.flush();
     btree_.flush();
+
+    dirty_ = false;
 }
 
-void BTreeIndex::apply( Index::Op& op )
+void BTreeIndex::print(std::ostream& out) const
 {
-    ASSERT( mode() == Index::WRITE );
-
-    Field field;
-
-    BTreeKey first("");
-    BTreeKey last("~");
-    std::vector< std::pair<BTreeKey,FieldRef> > all;
-    btree_.range(first,last,all);
-    for( size_t i = 0; i < all.size(); ++i )
-    {
-        Key key ( all[i].first.asString() );
-        FieldRef& ref = all[i].second;
-		field.path_     = files_.get( ref.pathId_ );
-        field.offset_   = ref.offset_;
-        field.length_   = ref.length_;
-        op(*this,key,field);
-    }
-}
-
-void BTreeIndex::apply( Index::ConstOp& op ) const
-{
-    Key key;
-    Field field;
-
-    BTreeKey first("");
-    BTreeKey last("~");
-    std::vector< std::pair<BTreeKey,FieldRef> > all;
-    const_cast<BTreeIndex*>(this)->btree_.range(first,last,all);
-    for( size_t i = 0; i < all.size(); ++i )
-    {
-        key = Key(all[i].first.asString());
-        FieldRef& ref = all[i].second;
-		field.path_     = files_.get( ref.pathId_ );
-        field.offset_   = ref.offset_;
-        field.length_   = ref.length_;
-        op(*this,key,field);
-    }
+    out << "BTreeIndex()";
 }
 
 //-----------------------------------------------------------------------------

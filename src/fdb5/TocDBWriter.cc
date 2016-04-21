@@ -95,7 +95,7 @@ void TocDBWriter::close() {
 
     Log::info() << "Closing path " << path_ << std::endl;
 
-    flush(); // closes the TOC entries & indexes
+    flush(); // closes the TOC entries & indexes but not data files
 
     closeDataHandles(); // close data handles
 }

@@ -62,16 +62,6 @@ void Index::put(const Key& key, const Index::Field& field)
     put_(key, field);
 }
 
-void Index::print(std::ostream& out) const
-{
-    fdb5::PrintIndex print(out);
-    apply( print ); 
-}
-
-void Index::json(std::ostream &out) const
-{
-    NOTIMP;
-}
 
 //-----------------------------------------------------------------------------
 
@@ -92,11 +82,6 @@ void Index::Field::dump(std::ostream& s) const
 }
 
 //-----------------------------------------------------------------------------
-
-void PrintIndex::operator ()(const Index &, const Key &key, const Index::Field &field)
-{
-    out_ << "{" << key << ":" << field << "}\n";
-}
 
 const Key& Index::key() const
 {
