@@ -101,6 +101,10 @@ list( APPEND fdb5_srcs
     IntegerHandler.cc
     DoubleHandler.h
     DoubleHandler.cc
+    DoubleHandler.h
+    DoubleHandler.cc
+    GridHandler.h
+    GridHandler.cc
 
     DB.h
     DB.cc
