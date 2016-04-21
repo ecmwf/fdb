@@ -21,6 +21,7 @@
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
+#include "fdb5/Handlers.h"
 
 class MarsRequest;
 
@@ -38,7 +39,10 @@ class Rule : public eckit::NonCopyable {
 public: // methods
 
     /// Takes ownership of vectors
-    Rule(std::vector<Predicate*>& predicates, std::vector<Rule*>& rules);
+    Rule(std::vector<Predicate*>& predicates,
+        std::vector<Rule*>& rules,
+        const std::map<std::string, std::string>& types
+        );
 
     ~Rule();
 
@@ -96,6 +100,9 @@ private: // members
     const Rule* parent_;
     std::vector<Predicate*> predicates_;
     std::vector<Rule*>      rules_;
+    Handlers handlers_;
+
+    friend class Rules;
 
 };
 

@@ -24,13 +24,15 @@
 
 namespace fdb5 {
 
+class Handlers;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class Key {
 
 public: // methods
 
-    Key();
+    Key(const Handlers* = 0);
 
     explicit Key(const std::string& keys);
     explicit Key(const eckit::StringDict& keys);
@@ -65,6 +67,9 @@ public: // methods
         return s;
     }
 
+    void handlers(const Handlers* handlers);
+    const Handlers* handlers() const;
+
     std::string valuesToString() const;
 
     void load(std::istream& s);
@@ -77,6 +82,7 @@ private: // members
 
     eckit::StringDict keys_;
     eckit::StringList names_;
+    const Handlers* handlers_;
 
 };
 

@@ -23,20 +23,31 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-Key::Key() :
-    keys_()
+Key::Key(const Handlers* handlers) :
+    keys_(),
+    handlers_(handlers)
 {
 }
 
 Key::Key(const std::string& s) :
-    keys_()
+    keys_(),
+    handlers_(0)
 {
     NOTIMP;
 }
 
 Key::Key(const StringDict& keys) :
-    keys_(keys)
+    keys_(keys),
+    handlers_(0)
 {
+}
+
+void Key::handlers(const Handlers* handlers) {
+    handlers_ = handlers;
+}
+
+const Handlers* Key::handlers() const {
+    return handlers_;
 }
 
 void Key::clear()
@@ -79,7 +90,6 @@ const std::string& Key::get( const std::string& k ) const {
 std::string Key::valuesToString() const
 {
     ASSERT(names_.size() == keys_.size());
-    MasterConfig& conf = MasterConfig::instance();
 
     std::ostringstream oss;
 
@@ -91,7 +101,13 @@ std::string Key::valuesToString() const
 
         oss << sep;
         if(!(*i).second.empty()) {
-            conf.lookupHandler(*j).toKey(oss, *j, (*i).second);
+            if(handlers_)
+            {
+                handlers_->lookupHandler(*j).toKey(oss, *j, (*i).second);
+            }
+            else {
+                oss << (*i).second;
+            }
         }
         oss << sep;
 

@@ -19,7 +19,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Handlers::Handlers()
+Handlers::Handlers():
+    parent_(0)
 {
 }
 
@@ -29,6 +30,11 @@ Handlers::~Handlers()
         delete (*i).second;
     }
 }
+
+void Handlers::updateParent(const Handlers* parent) {
+    parent_ = parent;
+}
+
 
 void Handlers::addType(const std::string& keyword, const std::string& type) {
     ASSERT(types_.find(keyword) == types_.end());
@@ -43,6 +49,11 @@ const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
         return *(*j).second;
     }
     else {
+
+        if(parent_) {
+            return parent_->lookupHandler(keyword);
+        }
+
         std::string type = "Default";
         std::map<std::string, std::string>::const_iterator i = types_.find(keyword);
         if(i != types_.end()) {

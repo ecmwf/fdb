@@ -31,7 +31,7 @@ public: // methods
 
     RulesParser(std::istream& in);
 
-    void parse(std::vector<Rule*>&, Handlers&);
+    void parse(std::vector<Rule*>&, Handlers& handlers);
 
 private: // methods
 
@@ -40,7 +40,7 @@ private: // methods
     Rule* parseRule();
 
     Predicate* parsePredicate();
-    void parseTypes(Handlers&);
+    void parseTypes(std::map<std::string, std::string>&);
 
 };
 

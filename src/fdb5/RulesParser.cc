@@ -96,7 +96,7 @@ Predicate* RulesParser::parsePredicate() {
     }
 }
 
-void RulesParser::parseTypes(Handlers& handlers) {
+void RulesParser::parseTypes(std::map<std::string, std::string>& types) {
     for(;;) {
         std::string name = parseIdent(true);
         if(name.empty()) {
@@ -104,8 +104,9 @@ void RulesParser::parseTypes(Handlers& handlers) {
         }
         consume(':');
         std::string type = parseIdent();
-        handlers.addType(name, type);
         consume(';');
+        ASSERT(types.find(name) == types.end());
+        types[name] = type;
     }
 }
 
@@ -113,13 +114,16 @@ Rule* RulesParser::parseRule()
 {
     std::vector<Predicate*> predicates;
     std::vector<Rule*> rules;
+    std::map<std::string, std::string> types;
+
+    parseTypes(types);
 
     consume('[');
     char c = peek();
     if(c == ']')
     {
         consume(c);
-        return new Rule(predicates, rules);
+        return new Rule(predicates, rules, types);
     }
 
 
@@ -145,7 +149,7 @@ Rule* RulesParser::parseRule()
         if(c == ']')
         {
             consume(c);
-            return new Rule(predicates, rules);
+            return new Rule(predicates, rules, types);
         }
 
 
@@ -159,8 +163,12 @@ RulesParser::RulesParser(std::istream &in) : StreamParser(in, true)
 void RulesParser::parse(std::vector<Rule*>& result, Handlers& handlers)
 {
     char c;
+    std::map<std::string, std::string> types;
 
-    parseTypes(handlers);
+    parseTypes(types);
+    for(std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
+        handlers.addType(i->first, i->second);
+    }
 
     while((c = peek()) == '[') {
         result.push_back(parseRule());

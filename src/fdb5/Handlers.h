@@ -38,6 +38,7 @@ public: // methods
     const KeywordHandler& lookupHandler(const std::string& keyword) const;
 
     void addType(const std::string&, const std::string&);
+    void updateParent(const Handlers*);
 
 
 private: // members
@@ -47,6 +48,7 @@ private: // members
     mutable HandlerMap handlers_;
 
     std::map<std::string, std::string> types_;
+    const Handlers* parent_;
 
 };
 

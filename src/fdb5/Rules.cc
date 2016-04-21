@@ -96,6 +96,7 @@ void Rules::check()
         /// @todo print offending rule in meaningful message
         ASSERT((*i)->depth() == 3);
         (*i)->updateParent(0);
+        (*i)->handlers_.updateParent(&handler_);
     }
 }
 
