@@ -70,9 +70,10 @@ void StepHandler::getValues(const MarsRequest &request,
             }
         }
     }
-
-    for (std::vector<std::string>::const_iterator i = steps.begin(); i != steps.end(); ++i) {
-        values.push_back(t(StepRange(*i)));
+    else {
+        for (std::vector<std::string>::const_iterator i = steps.begin(); i != steps.end(); ++i) {
+            values.push_back(t(StepRange(*i)));
+        }
     }
 }
 

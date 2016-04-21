@@ -109,9 +109,10 @@ std::string Key::valuesToString() const
                 oss << (*i).second;
             }
         }
-        oss << sep;
-
     }
+
+    oss << sep;
+
     return oss.str();
 }
 
