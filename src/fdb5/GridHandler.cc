@@ -38,7 +38,7 @@ void GridHandler::getValues(const MarsRequest& request,
 {
     std::vector<std::string> v;
     request.getValues(keyword, v);
-    values.push_back(StringTools::join("@", v));
+    values.push_back(StringTools::join("/", v));
 }
 
 
