@@ -46,8 +46,8 @@ list( APPEND fdb5_srcs
     Retriever.h
     Retriever.cc
 
-    Winds.h
-    Winds.cc
+    FDBFileHandle.h
+    FDBFileHandle.cc
 
     MasterConfig.h
     MasterConfig.cc

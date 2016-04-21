@@ -38,6 +38,7 @@
 #include "fdb5/MasterConfig.h"
 #include "fdb5/TocActions.h"
 #include "fdb5/TocDBWriter.h"
+#include "fdb5/FDBFileHandle.h"
 
 using namespace eckit;
 
@@ -190,7 +191,7 @@ void TocDBWriter::closeDataHandles()
 
 eckit::DataHandle* TocDBWriter::createFileHandle(const PathName& path)
 {
-    return path.fileHandle();
+    return new FDBFileHandle(path);
 }
 
 DataHandle* TocDBWriter::createAsyncHandle(const PathName& path)
