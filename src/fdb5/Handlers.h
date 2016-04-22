@@ -50,6 +50,10 @@ private: // members
     std::map<std::string, std::string> types_;
     const Handlers* parent_;
 
+    friend std::ostream& operator<<(std::ostream& s,const Handlers& x);
+
+    void print( std::ostream& out ) const;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

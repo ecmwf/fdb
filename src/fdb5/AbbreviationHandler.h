@@ -30,6 +30,10 @@ public: // methods
 
     virtual ~AbbreviationHandler();
 
+    virtual void toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const ;
+
     virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,
                            eckit::StringList& values,

@@ -35,7 +35,6 @@
 #include "eckit/io/AIOHandle.h"
 
 #include "fdb5/Error.h"
-#include "fdb5/MasterConfig.h"
 #include "fdb5/TocActions.h"
 #include "fdb5/TocDBWriter.h"
 #include "fdb5/FDBFileHandle.h"

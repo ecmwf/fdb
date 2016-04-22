@@ -68,6 +68,14 @@ const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
     }
 }
 
+std::ostream& operator<<(std::ostream& s,const Handlers& x) {
+    x.print(s);
+    return s;
+}
+
+void Handlers::print( std::ostream& out ) const {
+    out << this << "(" << types_ << ")";
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

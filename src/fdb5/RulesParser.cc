@@ -134,11 +134,14 @@ Rule* RulesParser::parseRule()
     std::map<std::string, std::string> types;
 
     consume('[');
+
+    size_t line = line_ + 1;
+
     char c = peek();
     if(c == ']')
     {
         consume(c);
-        return new Rule(line_ + 1, predicates, rules, types);
+        return new Rule(line, predicates, rules, types);
     }
 
 
@@ -164,7 +167,7 @@ Rule* RulesParser::parseRule()
         if(c == ']')
         {
             consume(c);
-            return new Rule(line_ + 1, predicates, rules, types);
+            return new Rule(line, predicates, rules, types);
         }
 
 

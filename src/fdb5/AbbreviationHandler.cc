@@ -26,11 +26,17 @@ AbbreviationHandler::AbbreviationHandler(const std::string& name, const std::str
     KeywordHandler(name, type)
 {
     count_ = char(type[type.length()-1]) - '0';
-    std::cout << "AbbreviationHandler " << type << " - " << count_ << std::endl;
 }
 
 AbbreviationHandler::~AbbreviationHandler()
 {
+}
+
+void AbbreviationHandler::toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const {
+
+    out << value.substr(0, count_);
 }
 
 void AbbreviationHandler::getValues(const MarsRequest& request,
@@ -46,7 +52,6 @@ void AbbreviationHandler::getValues(const MarsRequest& request,
     values.reserve(vals.size());
 
     for(std::vector<std::string>::const_iterator i = vals.begin(); i != vals.end(); ++i) {
-        std::cout << "AbbreviationHandler " << (*i) << " -> " << (*i).substr(0, count_) << std::endl;
         values.push_back((*i).substr(0, count_));
     }
 }

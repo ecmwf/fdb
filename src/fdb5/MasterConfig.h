@@ -37,7 +37,6 @@ public: // methods
 
     const Rules& rules() const;
 
-    const KeywordHandler& lookupHandler(const std::string& keyword) const;
 
 private: // methods
 

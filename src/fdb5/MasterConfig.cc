@@ -56,10 +56,6 @@ MasterConfig& MasterConfig::instance()
     return master;
 }
 
-const KeywordHandler& MasterConfig::lookupHandler(const std::string& keyword) const {
-    return rules_.lookupHandler(keyword);
-}
-
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

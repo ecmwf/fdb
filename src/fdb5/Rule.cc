@@ -53,10 +53,13 @@ void Rule::expand( const MarsRequest& request,
                    ReadVisitor& visitor) const {
 
     ASSERT(depth < 3);
-    keys[depth].handlers(&handlers_);
-    keys[depth].rule(this);
 
     if(cur == predicates_.end()) {
+
+        // TODO: join these 2 methods
+        keys[depth].handlers(&handlers_);
+        keys[depth].rule(this);
+
         if(rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
             if(!visitor.selectDatum( keys[2], full)) {
@@ -97,7 +100,7 @@ void Rule::expand( const MarsRequest& request,
 
     eckit::StringList values;
 
-    visitor.values(request, keyword, values);
+    visitor.values(request, keyword, handlers_, values);
 
     Key& k = keys[depth];
 
@@ -118,8 +121,6 @@ void Rule::expand( const MarsRequest& request,
         k.pop(keyword);
 
     }
-
-    k.rule(0);
 
 }
 
@@ -143,10 +144,13 @@ void Rule::expand( const Key& field,
     }
 
     ASSERT(depth < 3);
-    keys[depth].handlers(&handlers_);
-    keys[depth].rule(this);
+
 
     if(cur == predicates_.end()) {
+
+        keys[depth].handlers(&handlers_);
+        keys[depth].rule(this);
+
         if(rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
             if(visitor.rule() != 0) {
@@ -210,7 +214,6 @@ void Rule::expand( const Key& field,
     full.pop(keyword);
     k.pop(keyword);
 
-    k.rule(0);
 
 }
 void Rule::expand(const Key& field, WriteVisitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const
@@ -268,7 +271,9 @@ void Rule::updateParent(const Rule* parent)
 
 void Rule::print(std::ostream& out) const
 {
-    out << "Rule(line=" << line_ << ")";
+    out << "Rule(line=" << line_ ;
+//    out << ", handlers=" << handlers_;
+    out << ")";
 }
 
 const Rule& Rule::topRule() const {

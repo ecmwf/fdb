@@ -14,7 +14,6 @@
 
 #include "fdb5/Key.h"
 #include "fdb5/Rule.h"
-#include "fdb5/MasterConfig.h"
 #include "fdb5/KeywordHandler.h"
 
 using namespace eckit;
