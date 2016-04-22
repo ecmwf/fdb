@@ -39,7 +39,8 @@ class Rule : public eckit::NonCopyable {
 public: // methods
 
     /// Takes ownership of vectors
-    Rule(std::vector<Predicate*>& predicates,
+    Rule(size_t line,
+        std::vector<Predicate*>& predicates,
         std::vector<Rule*>& rules,
         const std::map<std::string, std::string>& types
         );
@@ -103,6 +104,7 @@ private: // members
     Handlers handlers_;
 
     friend class Rules;
+    size_t line_;
 
 };
 

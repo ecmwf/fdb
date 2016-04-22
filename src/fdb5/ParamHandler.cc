@@ -8,10 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/types/Types.h"
-#include "eckit/log/Log.h"
-#include "eckit/utils/Translator.h"
 
 #include "fdb5/KeywordType.h"
 #include "fdb5/ParamHandler.h"
@@ -20,7 +16,6 @@
 #include "marslib/MarsParam.h"
 #include "marslib/MarsTask.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 
@@ -37,16 +32,16 @@ ParamHandler::~ParamHandler()
 
 void ParamHandler::getValues(const MarsRequest& request,
                              const std::string& keyword,
-                             StringList& values,
+                             eckit::StringList& values,
                              const MarsTask& task,
                              const DB* db) const {
     ASSERT(db);
 
-    StringSet ax;
+    eckit::StringSet ax;
 
     db->axis(keyword, ax);
 
-    StringList us;
+    eckit::StringList us;
 
     KeywordHandler::getValues(request, keyword, us, task, db);
 
