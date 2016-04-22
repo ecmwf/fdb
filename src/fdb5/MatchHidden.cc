@@ -36,18 +36,11 @@ bool MatchHidden::match(const std::string& keyword, const Key& key) const
 }
 
 bool MatchHidden::optional() const {
-    return true;
+    return false;
 }
 
-
 const std::string& MatchHidden::value(const Key& key, const std::string& keyword) const {
-    eckit::StringDict::const_iterator i = key.dict().find(keyword);
-
-    if(i == key.dict().end()) {
-        return default_;
-    }
-
-    return key.get(keyword);
+    return default_;
 }
 
 const std::string& MatchHidden::defaultValue() const {
@@ -56,7 +49,7 @@ const std::string& MatchHidden::defaultValue() const {
 
 void MatchHidden::dump(std::ostream& s, const std::string& keyword) const
 {
-    s << keyword << '?' << default_;
+    s << keyword << '-' << default_;
 }
 
 void MatchHidden::print(std::ostream& out) const

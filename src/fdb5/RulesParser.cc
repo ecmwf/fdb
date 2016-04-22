@@ -79,6 +79,10 @@ Predicate* RulesParser::parsePredicate(std::map<std::string, std::string>& types
 
     if(c == '-') {
         consume(c);
+        if(types.find(k) == types.end()) {
+            // Register ignore handler
+            types[k] = "Ignore";
+        }
         return new Predicate(k, new MatchHidden(parseIdent(true)));
     }
 

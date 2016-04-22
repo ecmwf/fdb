@@ -87,8 +87,8 @@ list( APPEND fdb5_srcs
 
     Handlers.h
     Handlers.cc
-    IgnoreHandlers.h
-    IgnoreHandlers.cc
+    IgnoreHandler.h
+    IgnoreHandler.cc
     DateHandler.h
     DateHandler.cc
     StepHandler.h

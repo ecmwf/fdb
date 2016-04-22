@@ -50,6 +50,7 @@ void ParamHandler::getValues(const MarsRequest& request,
 
     std::vector<Param> axis;
     std::copy(ax.begin(), ax.end(), std::back_inserter(axis));
+    std::sort(axis.begin(), axis.end());
 
     bool windConvertion = false;
     MarsParam::substitute(request, user, axis, windConvertion);
