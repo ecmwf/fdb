@@ -157,7 +157,7 @@ void FDBFileHandle::sync()
 void FDBFileHandle::flush()
 {
     if( file_ == 0 ) return;
-    
+
     if (file_ && !read_) {
         if (::fflush(file_))
                 throw WriteError(std::string("FDBFileHandle::~FDBFileHandle(fflush(") + name_ + "))");
@@ -167,10 +167,10 @@ void FDBFileHandle::flush()
 void FDBFileHandle::close()
 {
     if( file_ == 0 ) return;
-    
-    if (file_) 
+
+    if (file_)
     {
-        // Because AIX has large system buffers, 
+        // Because AIX has large system buffers,
         // the close may be successful without the
         // data being physicaly on disk. If there is
         // a power failure, we lose some data. So we

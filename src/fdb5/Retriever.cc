@@ -25,7 +25,6 @@
 
 #include "eckit/config/Resource.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 
@@ -95,7 +94,7 @@ struct RetrieveVisitor : public ReadVisitor {
         return (dh != 0);
     }
 
-    virtual void values(const MarsRequest& request, const std::string& keyword, 
+    virtual void values(const MarsRequest& request, const std::string& keyword,
             const Handlers& handlers,
             eckit::StringList& values) {
         handlers.lookupHandler(keyword).getValues(request, keyword, values, owner_.task_, db_.get());

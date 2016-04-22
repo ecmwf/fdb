@@ -13,8 +13,6 @@
 #include "fdb5/KeywordType.h"
 #include "fdb5/KeywordHandler.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -61,7 +59,7 @@ const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
             }
         }
 
-        Log::info() << "Handler for " << keyword << " is " << type << std::endl;
+        eckit::Log::info() << "Handler for " << keyword << " is " << type << std::endl;
         KeywordHandler* newKH = KeywordType::build(type, keyword);
         handlers_[keyword] = newKH;
         return *newKH;

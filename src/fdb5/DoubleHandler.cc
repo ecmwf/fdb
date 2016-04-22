@@ -16,8 +16,6 @@
 #include "fdb5/KeywordType.h"
 #include "fdb5/DoubleHandler.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------

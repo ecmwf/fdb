@@ -13,8 +13,6 @@
 #include "fdb5/Archiver.h"
 #include "fdb5/ArchiveVisitor.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& field, const void* data, size_t size) :
@@ -22,12 +20,12 @@ ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& field, const void* da
     data_(data),
     size_(size)
 {
-    Log::info() << *this << std::endl;
+    eckit::Log::info() << *this << std::endl;
 }
 
 bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
 
-    Log::info() << "selectDatum " << key << ", " << full << " " << size_ << std::endl;
+    eckit::Log::info() << "selectDatum " << key << ", " << full << " " << size_ << std::endl;
     checkMissingKeys(full);
 
     ASSERT(current());

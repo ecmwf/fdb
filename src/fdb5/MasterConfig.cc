@@ -8,22 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include <algorithm>
-
-#include "eckit/exception/Exceptions.h"
-#include "eckit/config/Resource.h"
-#include "eckit/config/ResourceMgr.h"
-#include "eckit/parser/StringTools.h"
-#include "eckit/runtime/Context.h"
-
-#include "marslib/MarsTask.h"
-
+// #include <algorithm>
 #include "fdb5/MasterConfig.h"
-#include "fdb5/DB.h"
-#include "fdb5/Key.h"
-#include "fdb5/Rule.h"
+#include "eckit/runtime/Context.h"
+#include "eckit/config/ResourceMgr.h"
+#include "eckit/config/Resource.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 
@@ -36,9 +26,9 @@ MasterConfig::MasterConfig()
         eckit::Context::instance().home(home);
     }
 
-    ResourceMgr::instance().appendConfig("~/etc/config/fdb");
+    eckit::ResourceMgr::instance().appendConfig("~/etc/config/fdb");
 
-    rules_.load( eckit::Resource<PathName>("fdbRules", "~/etc/fdb/rules") );
+    rules_.load( eckit::Resource<eckit::PathName>("fdbRules", "~/etc/fdb/rules") );
 }
 
 MasterConfig::~MasterConfig()

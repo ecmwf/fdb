@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2013 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -18,13 +18,12 @@
 #include "fdb5/Error.h"
 #include "fdb5/Key.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TextIndex::TextIndex(const Key& key, const PathName& path, Index::Mode m ) :
+TextIndex::TextIndex(const Key& key, const eckit::PathName& path, Index::Mode m ) :
     Index(key,path,m),
     flushed_(true),
     fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert",false) )
@@ -46,13 +45,13 @@ bool TextIndex::exists(const Key& key) const
 bool TextIndex::get(const Key &key, Index::Field& field) const
 {
     FieldStore::const_iterator itr = store_.find(key);
-    if( itr == store_.end() ) 
+    if( itr == store_.end() )
         return false;
 
     const FieldRef& ref = itr->second;
-    
+
 	field.path_     = files_.get(ref.pathId_);
-    field.offset_   = ref.offset_; 
+    field.offset_   = ref.offset_;
     field.length_   = ref.length_;
 
     return true;
@@ -61,20 +60,20 @@ bool TextIndex::get(const Key &key, Index::Field& field) const
 TextIndex::Field TextIndex::get(const Key& key) const
 {
     Field field;
-    
+
     FieldStore::const_iterator itr = store_.find(key);
     if( itr == store_.end() ) {
         std::ostringstream oss;
         oss << "FDB key not found " << key;
-        throw BadParameter( oss.str(), Here() );
+        throw eckit::BadParameter( oss.str(), Here() );
     }
 
     const FieldRef& ref = itr->second;
-    
+
 	field.path_     = files_.get(ref.pathId_);
-    field.offset_   = ref.offset_; 
+    field.offset_   = ref.offset_;
     field.length_   = ref.length_;
-    
+
     return field;
 }
 
@@ -90,11 +89,11 @@ void TextIndex::put_(const Key& key, const TextIndex::Field& field)
 
     FieldRef ref;
 	ref.pathId_ = files_.insert( field.path_ );
-    ref.offset_ = field.offset_; 
+    ref.offset_ = field.offset_;
     ref.length_ = field.length_;
-    
+
     store_[key] = ref;
-    
+
     flushed_ = false;
 }
 
@@ -119,14 +118,14 @@ void TextIndex::flush()
 		save( path_ );
 }
 
-void TextIndex::load(const PathName& path)
+void TextIndex::load(const eckit::PathName& path)
 {
     std::ifstream in;
     in.open( path.asString().c_str() );
 
     std::string line;
     while( getline(in,line) )
-    {		
+    {
         if( line.size() )
         {
             std::istringstream is(line);
@@ -141,23 +140,23 @@ void TextIndex::load(const PathName& path)
             // Log::info() << k << " ----> " << f << std::endl;
         }
     }
-    
+
     in.close();
 }
 
-void TextIndex::save(const PathName& path) const
+void TextIndex::save(const eckit::PathName& path) const
 {
     std::ostringstream os;
-    
+
     for( FieldStore::const_iterator itr = store_.begin(); itr != store_.end(); ++itr )
     {
         itr->first.dump(os);
-        os << " "; 
+        os << " ";
         itr->second.dump(os);
         os << "\n";
     }
-              
-    FileHandle storage(path);
+
+    eckit::FileHandle storage(path);
     storage.openForWrite(0);
     std::string data = os.str();
     storage.write( data.c_str(), data.size() );

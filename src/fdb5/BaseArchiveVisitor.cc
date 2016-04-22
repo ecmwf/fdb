@@ -15,8 +15,6 @@
 #include "fdb5/BaseArchiveVisitor.h"
 #include "fdb5/Rule.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 BaseArchiveVisitor::BaseArchiveVisitor(Archiver& owner, const Key& field) :
@@ -28,13 +26,13 @@ BaseArchiveVisitor::BaseArchiveVisitor(Archiver& owner, const Key& field) :
 }
 
 bool BaseArchiveVisitor::selectDatabase(const Key& key, const Key& full) {
-    Log::info() << "selectDatabase " << key << std::endl;
+    eckit::Log::info() << "selectDatabase " << key << std::endl;
     owner_.current_ = &owner_.session(key);
     return true;
 }
 
 bool BaseArchiveVisitor::selectIndex(const Key& key, const Key& full) {
-    Log::info() << "selectIndex " << key << std::endl;
+    eckit::Log::info() << "selectIndex " << key << std::endl;
     ASSERT(owner_.current_);
     return owner_.current_->selectIndex(key);
 }
@@ -43,11 +41,11 @@ void BaseArchiveVisitor::checkMissingKeys(const Key &full)
 {
     if(checkMissingKeysOnWrite_)
     {
-        StringSet missing;
-        const StringDict& f = field_.dict();
-        const StringDict& k = full.dict();
+        eckit::StringSet missing;
+        const eckit::StringDict& f = field_.dict();
+        const eckit::StringDict& k = full.dict();
 
-        for(StringDict::const_iterator j = f.begin(); j != f.end(); ++j) {
+        for(eckit::StringDict::const_iterator j = f.begin(); j != f.end(); ++j) {
             if(k.find((*j).first) == k.end()) {
                 missing.insert((*j).first);
             }
@@ -60,7 +58,7 @@ void BaseArchiveVisitor::checkMissingKeys(const Key &full)
                     oss << " " << *rule();
                 }
 
-                throw SeriousBug(oss.str());
+                throw eckit::SeriousBug(oss.str());
             }
         }
     }

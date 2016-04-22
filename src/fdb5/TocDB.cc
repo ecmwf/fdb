@@ -16,7 +16,6 @@
 #include "eckit/types/Types.h"
 #include "fdb5/TocDB.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 

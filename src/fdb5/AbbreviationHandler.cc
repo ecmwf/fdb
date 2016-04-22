@@ -8,15 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/utils/Translator.h"
-
-#include "marslib/MarsTask.h"
-
-#include "fdb5/KeywordType.h"
 #include "fdb5/AbbreviationHandler.h"
 
-using namespace eckit;
+#include "marslib/MarsRequest.h"
+
+#include "fdb5/KeywordType.h"
 
 namespace fdb5 {
 
@@ -41,7 +37,7 @@ void AbbreviationHandler::toKey(std::ostream& out,
 
 void AbbreviationHandler::getValues(const MarsRequest& request,
                                const std::string& keyword,
-                               StringList& values,
+                               eckit::StringList& values,
                                const MarsTask& task,
                                const DB* db) const
 {

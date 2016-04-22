@@ -8,23 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-#include <algorithm>
-#include <sstream>
-
-#include "eckit/config/Resource.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/log/Timer.h"
-
-#include "marslib/MarsTask.h"
-
-#include "fdb5/Key.h"
 #include "fdb5/Archiver.h"
-#include "fdb5/MasterConfig.h"
+#include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 
+#include "fdb5/MasterConfig.h"
 #include "fdb5/ArchiveVisitor.h"
 #include "fdb5/AdoptVisitor.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 
@@ -42,14 +33,14 @@ Archiver::~Archiver()
     flush(); // certify that all sessions are flushed before closing them
 }
 
-void Archiver::write(const DataBlobPtr blob)
+void Archiver::write(const eckit::DataBlobPtr blob)
 {
     NOTIMP; /// @todo this will substitute the GribArchiver
 }
 
 void Archiver::write(const Key& key, const void* data, size_t length)
 {
-    Log::info() << "Archiver write " << length << std::endl;
+    eckit::Log::info() << "Archiver write " << length << std::endl;
 
     ASSERT(data);
 
@@ -62,11 +53,11 @@ void Archiver::write(const Key& key, const void* data, size_t length)
     if(visitor.rule() == 0) { // Make sure we did find a rule that matched
         std::ostringstream oss;
         oss << "FDB: Could not find a rule to archive " << key;
-        throw SeriousBug(oss.str());
+        throw eckit::SeriousBug(oss.str());
     }
 }
 
-void Archiver::adopt(const Key& key, const PathName& path, Offset offset, Length length)
+void Archiver::adopt(const Key& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length)
 {
     const Rules& rules = MasterConfig::instance().rules();
 
@@ -77,7 +68,7 @@ void Archiver::adopt(const Key& key, const PathName& path, Offset offset, Length
     if(visitor.rule() == 0) { // Make sure we did find a rule that matched
         std::ostringstream oss;
         oss << "FDB: Could not find a rule to archive " << key;
-        throw SeriousBug(oss.str());
+        throw eckit::SeriousBug(oss.str());
     }
 }
 

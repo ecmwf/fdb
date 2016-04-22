@@ -15,13 +15,11 @@
 #include "fdb5/BTreeIndex.h"
 #include "fdb5/Error.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-BTreeIndex::BTreeIndex(const Key& key, const PathName& path, Index::Mode m ) :
+BTreeIndex::BTreeIndex(const Key& key, const eckit::PathName& path, Index::Mode m ) :
     Index(key,path,m),
     btree_( path, bool( m == Index::READ ) ),
     fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert", true) ),
@@ -59,12 +57,12 @@ BTreeIndex::Field BTreeIndex::get(const Key& key) const
     Field result;
     FieldRef ref;
     BTreeKey k (key.valuesToString());
-    Log::info() << "BTreeIndex get " << key << " (" << k << ")" << std::endl;
+    eckit::Log::info() << "BTreeIndex get " << key << " (" << k << ")" << std::endl;
     bool found = const_cast<BTreeIndex*>(this)->btree_.get(k,ref);
     if( !found ) {
            std::ostringstream oss;
            oss << "FDB key not found " << key;
-           throw BadParameter(oss.str(), Here());
+           throw eckit::BadParameter(oss.str(), Here());
     }
 
 	result.path_     = files_.get( ref.pathId_ );
@@ -82,7 +80,7 @@ void BTreeIndex::put_(const Key& key, const BTreeIndex::Field& field)
     BTreeKey k( key.valuesToString() );
     FieldRef ref;
 
-    Log::info() << "BTreeIndex insert " << key << " (" << k << ") = " << field << std::endl;
+    eckit::Log::info() << "BTreeIndex insert " << key << " (" << k << ") = " << field << std::endl;
 
 	ref.pathId_ = files_.insert( field.path_ ); // inserts not yet in filestore
     ref.offset_ = field.offset_;

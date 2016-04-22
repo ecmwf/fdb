@@ -12,7 +12,6 @@
 
 #include "fdb5/ReadVisitor.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 

@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2013 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -16,13 +16,12 @@
 
 #include "fdb5/TocHandler.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocHandler::TocHandler(const PathName& dir) :
+TocHandler::TocHandler(const eckit::PathName& dir) :
     dir_(dir),
     filePath_(dir_ / "toc"),
     fd_(-1),
@@ -43,7 +42,7 @@ void TocHandler::openForAppend()
 {
 	ASSERT( !isOpen() );
 
-    Log::info() << "Opening for append TOC " << filePath() << std::endl;
+    eckit::Log::info() << "Opening for append TOC " << filePath() << std::endl;
 
     int iomode = O_WRONLY | O_APPEND;
 //#ifdef __linux__
@@ -57,7 +56,7 @@ void TocHandler::openForRead()
 {
 	ASSERT( !isOpen() );
 
-    Log::info() << "Opening for read TOC " << filePath() << std::endl;
+    eckit::Log::info() << "Opening for read TOC " << filePath() << std::endl;
 
     int iomode = O_RDONLY;
 //#ifdef __linux__
@@ -84,11 +83,11 @@ void TocHandler::append( const TocRecord& r )
 	}
 }
 
-Length TocHandler::readNext( TocRecord& r )
+eckit::Length TocHandler::readNext( TocRecord& r )
 {
 	ASSERT( isOpen() && read_ );
 
-    Length len;
+    eckit::Length len;
 
     SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord)), filePath() );
 
@@ -99,7 +98,7 @@ Length TocHandler::readNext( TocRecord& r )
 		close();
 		std::ostringstream msg;
 		msg << "Failed to read complete TocRecord from " << filePath().asString();
-		throw ReadError( msg.str() );
+		throw eckit::ReadError( msg.str() );
 	}
 
     return len;
@@ -109,7 +108,7 @@ void TocHandler::close()
 {
 	if( isOpen() )
 	{
-        Log::info() << "Closing TOC " << filePath() << std::endl;
+        eckit::Log::info() << "Closing TOC " << filePath() << std::endl;
 
 		SYSCALL2( ::close(fd_), filePath() );
 		fd_ = -1;
@@ -121,23 +120,23 @@ void TocHandler::printRecord(const TocRecord& r, std::ostream& os)
 	switch (r.head_.tag_)
 	{
 		case TOC_INIT:
-			os << "Record TocInit [" << DateTime( r.head_.timestamp_.tv_sec ) << "]";
+			os << "Record TocInit [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
 		break;
 
 		case TOC_INDEX:
-			os << "Record IdxFinal [" << DateTime( r.head_.timestamp_.tv_sec ) << "]";
+			os << "Record IdxFinal [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
 		break;
 
 		case TOC_CLEAR:
-			os << "Record IdxCancel [" << DateTime( r.head_.timestamp_.tv_sec ) << "]";
+			os << "Record IdxCancel [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
 		break;
 
 		case TOC_WIPE:
-			os << "Record TocWipe [" << DateTime( r.head_.timestamp_.tv_sec ) << "]";
+			os << "Record TocWipe [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
 		break;
 
 		default:
-			throw SeriousBug("Unknown tag in TocRecord",Here());
+			throw eckit::SeriousBug("Unknown tag in TocRecord",Here());
 		break;
 	}
 }

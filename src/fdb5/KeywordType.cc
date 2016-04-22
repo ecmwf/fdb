@@ -19,8 +19,6 @@
 #include "fdb5/DefaultKeywordHandler.h"
 
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
