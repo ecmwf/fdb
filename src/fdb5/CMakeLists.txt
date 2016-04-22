@@ -107,8 +107,10 @@ list( APPEND fdb5_srcs
     GridHandler.cc
     MonthHandler.h
     MonthHandler.cc
-    ClimateHandler.h
-    ClimateHandler.cc
+    ClimateDailyHandler.h
+    ClimateDailyHandler.cc
+    ClimateMonthlyHandler.h
+    ClimateMonthlyHandler.cc
 
     DB.h
     DB.cc

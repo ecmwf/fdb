@@ -15,7 +15,7 @@
 #include "marslib/MarsTask.h"
 
 #include "fdb5/KeywordType.h"
-#include "fdb5/ClimateHandler.h"
+#include "fdb5/ClimateDailyHandler.h"
 
 using namespace eckit;
 
@@ -27,12 +27,12 @@ static const char* months[] = {
     "jan", "feb", "mar", "apr", "may", "jun",
     "jul", "aug", "sep", "oct", "nov", "dec",};
 
-ClimateHandler::ClimateHandler(const std::string& name) :
+ClimateDailyHandler::ClimateDailyHandler(const std::string& name) :
     KeywordHandler(name)
 {
 }
 
-ClimateHandler::~ClimateHandler()
+ClimateDailyHandler::~ClimateDailyHandler()
 {
 }
 
@@ -49,18 +49,18 @@ static int month(const std::string& value) {
           }
       }
 
-      throw SeriousBug("ClimateHandler: invalid date: " + value);
+      throw SeriousBug("ClimateDailyHandler: invalid date: " + value);
   }
 }
 
-void ClimateHandler::toKey(std::ostream& out,
+void ClimateDailyHandler::toKey(std::ostream& out,
                        const std::string& keyword,
                        const std::string& value) const {
 
     out << month(value);
 }
 
-void ClimateHandler::getValues(const MarsRequest& request,
+void ClimateDailyHandler::getValues(const MarsRequest& request,
                                const std::string& keyword,
                                StringList& values,
                                const MarsTask& task,
@@ -79,12 +79,12 @@ void ClimateHandler::getValues(const MarsRequest& request,
     }
 }
 
-void ClimateHandler::print(std::ostream &out) const
+void ClimateDailyHandler::print(std::ostream &out) const
 {
-    out << "ClimateHandler(" << name_ << ")";
+    out << "ClimateDailyHandler(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<ClimateHandler> handler("Climate");
+static KeywordHandlerBuilder<ClimateDailyHandler> handler("Climate");
 
 //----------------------------------------------------------------------------------------------------------------------
 

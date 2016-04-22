@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   ClimateHandler.h
+/// @file   ClimateDailyHandler.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
@@ -22,13 +22,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ClimateHandler : public KeywordHandler {
+class ClimateDailyHandler : public KeywordHandler {
 
 public: // methods
 
-    ClimateHandler(const std::string& name);
+    ClimateDailyHandler(const std::string& name);
 
-    virtual ~ClimateHandler();
+    virtual ~ClimateDailyHandler();
 
     virtual void toKey(std::ostream& out,
                        const std::string& keyword,
