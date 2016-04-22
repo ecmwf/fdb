@@ -26,7 +26,7 @@ class ClimateMonthlyHandler : public KeywordHandler {
 
 public: // methods
 
-    ClimateMonthlyHandler(const std::string& name);
+    ClimateMonthlyHandler(const std::string& name, const std::string& type);
 
     virtual ~ClimateMonthlyHandler();
 

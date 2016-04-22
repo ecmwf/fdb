@@ -26,7 +26,7 @@ class IgnoreHandler : public KeywordHandler {
 
 public: // methods
 
-    IgnoreHandler(const std::string& name);
+    IgnoreHandler(const std::string& name, const std::string& type);
 
     virtual ~IgnoreHandler();
 

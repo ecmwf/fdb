@@ -26,7 +26,7 @@ class GridHandler : public KeywordHandler {
 
 public: // methods
 
-    GridHandler(const std::string& name);
+    GridHandler(const std::string& name, const std::string& type);
 
     virtual ~GridHandler();
 

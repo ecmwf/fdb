@@ -26,7 +26,7 @@ class DateHandler : public KeywordHandler {
 
 public: // methods
 
-    DateHandler(const std::string& name);
+    DateHandler(const std::string& name, const std::string& type);
 
     virtual ~DateHandler();
 

@@ -22,11 +22,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AbbreviationHandler::AbbreviationHandler(const std::string& name) :
-    KeywordHandler(name)
+AbbreviationHandler::AbbreviationHandler(const std::string& name, const std::string& type) :
+    KeywordHandler(name, type)
 {
-    count_ = char(name[name.length()-1]) - '0';
-    std::cout << "AbbreviationHandler " << name << " - " << count_ << std::endl;
+    count_ = char(type[type.length()-1]) - '0';
+    std::cout << "AbbreviationHandler " << type << " - " << count_ << std::endl;
 }
 
 AbbreviationHandler::~AbbreviationHandler()

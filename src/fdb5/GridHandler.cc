@@ -21,8 +21,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GridHandler::GridHandler(const std::string& name) :
-    KeywordHandler(name)
+GridHandler::GridHandler(const std::string& name, const std::string& type) :
+    KeywordHandler(name, type)
 {
 }
 

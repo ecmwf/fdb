@@ -21,8 +21,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ParamHandler::ParamHandler(const std::string& name) :
-    KeywordHandler(name)
+ParamHandler::ParamHandler(const std::string& name, const std::string& type) :
+    KeywordHandler(name, type)
 {
 }
 

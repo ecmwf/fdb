@@ -26,7 +26,7 @@ class ParamHandler : public KeywordHandler {
 
 public: // methods
 
-    ParamHandler(const std::string& name);
+    ParamHandler(const std::string& name, const std::string& type);
 
     virtual ~ParamHandler();
 

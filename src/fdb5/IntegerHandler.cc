@@ -22,8 +22,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IntegerHandler::IntegerHandler(const std::string& name) :
-    KeywordHandler(name)
+IntegerHandler::IntegerHandler(const std::string& name, const std::string& type) :
+    KeywordHandler(name, type)
 {
 }
 

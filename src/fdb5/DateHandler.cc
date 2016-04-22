@@ -23,8 +23,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DateHandler::DateHandler(const std::string& name) :
-    KeywordHandler(name)
+DateHandler::DateHandler(const std::string& name, const std::string& type) :
+    KeywordHandler(name, type)
 {
 }
 

@@ -26,7 +26,7 @@ class ClimateDailyHandler : public KeywordHandler {
 
 public: // methods
 
-    ClimateDailyHandler(const std::string& name);
+    ClimateDailyHandler(const std::string& name, const std::string& type);
 
     virtual ~ClimateDailyHandler();
 

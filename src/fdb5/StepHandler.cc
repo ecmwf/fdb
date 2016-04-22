@@ -22,8 +22,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-StepHandler::StepHandler(const std::string &name) :
-    KeywordHandler(name) {
+StepHandler::StepHandler(const std::string &name, const std::string& type) :
+    KeywordHandler(name, type) {
 }
 
 StepHandler::~StepHandler() {

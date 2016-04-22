@@ -23,8 +23,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MonthHandler::MonthHandler(const std::string& name) :
-    KeywordHandler(name)
+MonthHandler::MonthHandler(const std::string& name, const std::string& type) :
+    KeywordHandler(name, type)
 {
 }
 

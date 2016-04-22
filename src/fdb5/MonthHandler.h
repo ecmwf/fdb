@@ -26,7 +26,7 @@ class MonthHandler : public KeywordHandler {
 
 public: // methods
 
-    MonthHandler(const std::string& name);
+    MonthHandler(const std::string& name, const std::string& type);
 
     virtual ~MonthHandler();
 

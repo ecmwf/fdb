@@ -26,7 +26,7 @@ class AbbreviationHandler : public KeywordHandler {
 
 public: // methods
 
-    AbbreviationHandler(const std::string& name);
+    AbbreviationHandler(const std::string& name, const std::string& type);
 
     virtual ~AbbreviationHandler();
 

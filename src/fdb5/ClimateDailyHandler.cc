@@ -28,8 +28,8 @@ static const char* months[] = {
     "jan", "feb", "mar", "apr", "may", "jun",
     "jul", "aug", "sep", "oct", "nov", "dec",};
 
-ClimateDailyHandler::ClimateDailyHandler(const std::string& name) :
-    KeywordHandler(name)
+ClimateDailyHandler::ClimateDailyHandler(const std::string& name, const std::string& type) :
+    KeywordHandler(name, type)
 {
 }
 

@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -31,14 +31,14 @@ class KeywordHandler;
 
 class KeywordType {
 
-    std::string name_;
-
     virtual KeywordHandler* make(const std::string& keyword) const = 0 ;
 
 protected:
 
     KeywordType(const std::string&);
     virtual ~KeywordType();
+
+    std::string name_;
 
 public:
 
@@ -54,7 +54,7 @@ template< class T>
 class KeywordHandlerBuilder : public KeywordType {
 
     virtual KeywordHandler* make(const std::string& keyword) const {
-        return new T(keyword);
+        return new T(keyword, name_);
     }
 
 public:

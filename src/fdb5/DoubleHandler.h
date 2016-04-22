@@ -26,7 +26,7 @@ class DoubleHandler : public KeywordHandler {
 
 public: // methods
 
-    DoubleHandler(const std::string& name);
+    DoubleHandler(const std::string& name, const std::string& type);
 
     virtual ~DoubleHandler();
 

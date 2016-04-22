@@ -34,7 +34,7 @@ class KeywordHandler : private eckit::NonCopyable {
 
 public: // methods
 
-    KeywordHandler(const std::string& name);
+    KeywordHandler(const std::string& name, const std::string& type);
 
     virtual ~KeywordHandler();
 
@@ -61,6 +61,7 @@ private: // methods
 protected: // members
 
     std::string name_;
+    std::string type_;
 
 };
 

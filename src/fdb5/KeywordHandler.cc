@@ -19,8 +19,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-KeywordHandler::KeywordHandler(const std::string& name) :
-    name_(name)
+KeywordHandler::KeywordHandler(const std::string& name, const std::string& type) :
+    name_(name),
+    type_(type)
 {
 }
 

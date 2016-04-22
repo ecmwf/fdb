@@ -19,8 +19,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IgnoreHandler::IgnoreHandler(const std::string &name) :
-    KeywordHandler(name) {
+IgnoreHandler::IgnoreHandler(const std::string &name, const std::string& type) :
+    KeywordHandler(name, type) {
 }
 
 IgnoreHandler::~IgnoreHandler() {

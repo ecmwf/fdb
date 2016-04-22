@@ -26,7 +26,7 @@ class StepHandler : public KeywordHandler {
 
 public: // methods
 
-    StepHandler(const std::string& name);
+    StepHandler(const std::string& name, const std::string& type);
 
     virtual ~StepHandler();
 

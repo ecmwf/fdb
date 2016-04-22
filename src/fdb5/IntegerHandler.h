@@ -26,7 +26,7 @@ class IntegerHandler : public KeywordHandler {
 
 public: // methods
 
-    IntegerHandler(const std::string& name);
+    IntegerHandler(const std::string& name, const std::string& type);
 
     virtual ~IntegerHandler();
 
