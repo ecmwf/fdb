@@ -179,7 +179,7 @@ list( APPEND fdb5_tools
     fdb5_insert
     fdb5_extract
     fdb5_rules
-    fdb5_adopt )
+    )
 
 foreach( _tool ${fdb5_tools} )
 
