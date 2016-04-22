@@ -13,7 +13,6 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#include "eckit/log/Log.h"
 
 #include "fdb5/RulesParser.h"
 #include "fdb5/Rule.h"
@@ -127,7 +126,7 @@ Rule* RulesParser::parseRule()
     if(c == ']')
     {
         consume(c);
-        return new Rule(predicates, rules, types);
+        return new Rule(line_ + 1, predicates, rules, types);
     }
 
 
@@ -153,7 +152,7 @@ Rule* RulesParser::parseRule()
         if(c == ']')
         {
             consume(c);
-            return new Rule(predicates, rules, types);
+            return new Rule(line_ + 1, predicates, rules, types);
         }
 
 

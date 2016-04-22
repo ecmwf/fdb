@@ -8,36 +8,24 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
+#include "fdb5/Rule.h"
+
 #include "eckit/config/Resource.h"
 
-#include "marslib/MarsRequest.h"
-
 #include "fdb5/Predicate.h"
-#include "fdb5/Rule.h"
 #include "fdb5/Key.h"
 #include "fdb5/ReadVisitor.h"
 #include "fdb5/WriteVisitor.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-const Rule* matchFirst(const std::vector<Rule*>& rules, const Key& key, size_t depth)
-{
-    ASSERT(depth == 0);
-    for(std::vector<Rule*>::const_iterator i = rules.begin(); i != rules.end(); ++i ) {
-        if( (*i)->match(key) ) {
-            return *i;
-        }
-    }
-    return 0;
-}
-
-Rule::Rule(std::vector<Predicate*>& predicates, std::vector<Rule*>& rules,
-    const std::map<std::string, std::string>& types)
+Rule::Rule(size_t line,
+    std::vector<Predicate*>& predicates, std::vector<Rule*>& rules,
+    const std::map<std::string, std::string>& types):
+    line_(line)
 {
     std::swap(predicates, predicates_);
     std::swap(rules, rules_);
@@ -108,7 +96,7 @@ void Rule::expand( const MarsRequest& request,
 
     const std::string& keyword = (*cur)->keyword();
 
-    StringList values;
+    eckit::StringList values;
 
     visitor.values(request, keyword, values);
 
@@ -118,7 +106,7 @@ void Rule::expand( const MarsRequest& request,
         values.push_back((*cur)->defaultValue());
     }
 
-    for(StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
+    for(eckit::StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
 
         k.push(keyword, *i);
         full.push(keyword, *i);
@@ -147,7 +135,7 @@ void Rule::expand( const Key& field,
                    Key& full,
                    WriteVisitor& visitor) const {
 
-    static bool matchFirstFdbRule = Resource<bool>("matchFirstFdbRule", true);
+    static bool matchFirstFdbRule = eckit::Resource<bool>("matchFirstFdbRule", true);
 
     if(matchFirstFdbRule && visitor.rule()) {
         return;
@@ -166,7 +154,7 @@ void Rule::expand( const Key& field,
                     << keys[2] << " "
                     << topRule() << " and "
                     << visitor.rule()->topRule();
-                throw SeriousBug(oss.str());
+                throw eckit::SeriousBug(oss.str());
             }
             keys[2].handlers(&handlers_);
             visitor.selectDatum( keys[2], full);
@@ -278,7 +266,7 @@ void Rule::updateParent(const Rule* parent)
 
 void Rule::print(std::ostream& out) const
 {
-    out << "Rule()";
+    out << "Rule(line=" << line_ << ")";
 }
 
 const Rule& Rule::topRule() const {

@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
+// #include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
 
 #include "marslib/MarsTask.h"
@@ -18,7 +18,6 @@
 #include "fdb5/StepHandler.h"
 #include "fdb5/DB.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 
@@ -40,18 +39,18 @@ void StepHandler::toKey(std::ostream& out,
 
 void StepHandler::getValues(const MarsRequest &request,
                             const std::string &keyword,
-                            StringList &values,
+                            eckit::StringList &values,
                             const MarsTask &task,
                             const DB *db) const {
     std::vector<std::string> steps;
 
     request.getValues(keyword, steps);
 
-    Translator<StepRange, std::string> t;
+    eckit::Translator<StepRange, std::string> t;
 
     values.reserve(steps.size());
 
-    if(db) {
+    if(db && !steps.empty()) {
         StringSet axis;
         db->axis(keyword, axis);
         for (std::vector<std::string>::const_iterator i = steps.begin(); i != steps.end(); ++i) {
