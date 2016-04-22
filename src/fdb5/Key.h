@@ -25,6 +25,7 @@
 namespace fdb5 {
 
 class Handlers;
+class Rule;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -70,6 +71,9 @@ public: // methods
     void handlers(const Handlers* handlers);
     const Handlers* handlers() const;
 
+    void rule(const Rule* rule);
+    const Rule* rule() const;
+
     std::string valuesToString() const;
 
     void load(std::istream& s);
@@ -83,6 +87,7 @@ private: // members
     eckit::StringDict keys_;
     eckit::StringList names_;
     const Handlers* handlers_;
+    const Rule* rule_;
 
 };
 

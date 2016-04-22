@@ -111,6 +111,8 @@ list( APPEND fdb5_srcs
     ClimateDailyHandler.cc
     ClimateMonthlyHandler.h
     ClimateMonthlyHandler.cc
+	AbbreviationHandler.h
+	AbbreviationHandler.cc
 
     DB.h
     DB.cc

@@ -13,6 +13,7 @@
 #include "eckit/parser/Tokenizer.h"
 
 #include "fdb5/Key.h"
+#include "fdb5/Rule.h"
 #include "fdb5/MasterConfig.h"
 #include "fdb5/KeywordHandler.h"
 
@@ -25,7 +26,8 @@ namespace fdb5 {
 
 Key::Key(const Handlers* handlers) :
     keys_(),
-    handlers_(handlers)
+    handlers_(handlers),
+    rule_(0)
 {
 }
 
@@ -48,6 +50,14 @@ void Key::handlers(const Handlers* handlers) {
 
 const Handlers* Key::handlers() const {
     return handlers_;
+}
+
+void Key::rule(const Rule* rule) {
+    rule_ = rule;
+}
+
+const Rule* Key::rule() const {
+    return rule_;
 }
 
 void Key::clear()
@@ -155,9 +165,16 @@ void Key::print(std::ostream &out) const
 
         }
         out << "}";
+
+        if(rule_) {
+            out << " (" << *rule_ << ")";
+        }
     }
     else {
         out << keys_;
+        if(rule_) {
+            out << " (" << *rule_ << ")";
+        }
     }
 }
 

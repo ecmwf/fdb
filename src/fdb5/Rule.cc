@@ -53,11 +53,12 @@ void Rule::expand( const MarsRequest& request,
                    ReadVisitor& visitor) const {
 
     ASSERT(depth < 3);
+    keys[depth].handlers(&handlers_);
+    keys[depth].rule(this);
 
     if(cur == predicates_.end()) {
         if(rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
-            keys[2].handlers(&handlers_);
             if(!visitor.selectDatum( keys[2], full)) {
                 return; // This it not useful
             }
@@ -66,14 +67,12 @@ void Rule::expand( const MarsRequest& request,
 
             switch(depth) {
                 case 0:
-                    keys[0].handlers(&handlers_);
                     if(!visitor.selectDatabase(keys[0], full)) {
                         return;
                     };
                     break;
 
                 case 1:
-                    keys[1].handlers(&handlers_);
                     if(!visitor.selectIndex(keys[1], full)) {
                         return;
                     }
@@ -120,6 +119,8 @@ void Rule::expand( const MarsRequest& request,
 
     }
 
+    k.rule(0);
+
 }
 
 void Rule::expand(const MarsRequest& request, ReadVisitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const
@@ -142,6 +143,8 @@ void Rule::expand( const Key& field,
     }
 
     ASSERT(depth < 3);
+    keys[depth].handlers(&handlers_);
+    keys[depth].rule(this);
 
     if(cur == predicates_.end()) {
         if(rules_.empty()) {
@@ -156,7 +159,6 @@ void Rule::expand( const Key& field,
                     << visitor.rule()->topRule();
                 throw eckit::SeriousBug(oss.str());
             }
-            keys[2].handlers(&handlers_);
             visitor.rule(this);
             visitor.selectDatum( keys[2], full);
         }
@@ -165,7 +167,6 @@ void Rule::expand( const Key& field,
             switch(depth) {
                 case 0:
                     if(keys[0] != visitor.prev_[0] || keys[0].handlers() != visitor.prev_[0].handlers()) {
-                        keys[0].handlers(&handlers_);
                         visitor.selectDatabase(keys[0], full);
                         visitor.prev_[0] = keys[0];
                         visitor.prev_[1] = Key();
@@ -174,7 +175,6 @@ void Rule::expand( const Key& field,
 
                 case 1:
                     if(keys[1] != visitor.prev_[1] || keys[1].handlers() != visitor.prev_[1].handlers()) {
-                        keys[1].handlers(&handlers_);
                         visitor.selectIndex(keys[1], full);
                         visitor.prev_[1] = keys[1];
                     }
@@ -209,6 +209,8 @@ void Rule::expand( const Key& field,
 
     full.pop(keyword);
     k.pop(keyword);
+
+    k.rule(0);
 
 }
 void Rule::expand(const Key& field, WriteVisitor& visitor, size_t depth, std::vector<Key>& keys, Key& full) const

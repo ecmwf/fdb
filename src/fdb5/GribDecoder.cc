@@ -8,6 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include <algorithm>
+#include <cctype>
+
 #include "grib_api.h"
 
 #include "eckit/serialisation/HandleStream.h"
@@ -87,9 +90,11 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
                     std::string keyword, value;
                     int n;
                     s >> keyword;
+                    std::transform(keyword.begin(), keyword.end(), keyword.begin(), tolower);
                     s >> n; // Number of values
                     ASSERT(n == 1);
                     s >> value;
+                    std::transform(value.begin(), value.end(), value.begin(), tolower);
                     key.set(keyword, value);
                 }
             }

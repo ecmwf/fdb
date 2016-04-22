@@ -41,7 +41,6 @@ bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
 void ArchiveVisitor::print(std::ostream &out) const
 {
     out << "ArchiveVisitor("
-        << "data=" << data_
         << ",size=" << size_
         << ")"
         << std::endl;

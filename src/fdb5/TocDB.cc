@@ -86,10 +86,18 @@ TocDB::TocDB(const Key& dbKey) : DB(dbKey),
     pthread_once(&once,readTable);
 
     std::ostringstream oss;
+    const eckit::StringDict& d = dbKey.dict();
 
     const char* sep = "";
     for(StringList::const_iterator j = fdbRootPattern.begin(); j != fdbRootPattern.end(); ++j) {
-        oss << sep << dbKey.get(*j);
+        eckit::StringDict::const_iterator i = d.find(*j);
+        if(i == d.end()) {
+            oss << sep << "unknown";
+            eckit::Log::warning() << "FDB root: cannot get " << *j << " from " << dbKey << std::endl;
+        }
+        else {
+            oss << sep << dbKey.get(*j);
+        }
         sep = ":";
     }
 

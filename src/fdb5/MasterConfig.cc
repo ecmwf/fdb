@@ -39,8 +39,6 @@ MasterConfig::MasterConfig()
     ResourceMgr::instance().appendConfig("~/etc/config/fdb");
 
     rules_.load( eckit::Resource<PathName>("fdbRules", "~/etc/fdb/rules") );
-
-    rules_.dump(std::cout);
 }
 
 MasterConfig::~MasterConfig()
