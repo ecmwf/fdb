@@ -1,9 +1,5 @@
 ### TODO
 #
-#  * make new FileHandle
-#    -  not fsync()
-#    -  fail on ENOSPC
-#
 #  * tool to purge
 #
 #  * run the suite and slowly build the rules
@@ -178,18 +174,17 @@ ecbuild_add_library(
         grib_api
 )
 
-ecbuild_add_executable( TARGET    fdb5_index
-                        SOURCES   fdb5_index.cc
-                        LIBS      mars-fdb5 )
+list( APPEND fdb5_tools
+    fdb5_index
+    fdb5_insert
+    fdb5_extract
+    fdb5_rules
+    fdb5_adopt )
 
-ecbuild_add_executable( TARGET    fdb5_insert
-                        SOURCES   fdb5_insert.cc
-                        LIBS      mars-fdb5 )
+foreach( _tool ${fdb5_tools} )
 
-ecbuild_add_executable( TARGET    fdb5_extract
-                        SOURCES   fdb5_extract.cc
-                        LIBS      mars-fdb5 )
+  ecbuild_add_executable( TARGET    ${_tool}
+                          SOURCES   ${_tool}.cc
+                          LIBS      mars-fdb5 )
 
-ecbuild_add_executable( TARGET    fdb5_rules
-                        SOURCES   fdb5_rules.cc
-                        LIBS      mars-fdb5 )
+endforeach()

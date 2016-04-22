@@ -148,7 +148,6 @@ void TocDBWriter::flush()
         return;
     }
 
-    dirty_ = false;
     // ensure consistent state before writing Toc entry
 
     flushDataHandles();
@@ -159,6 +158,8 @@ void TocDBWriter::flush()
 
     // finally write all Toc entries
     closeTocEntries();
+
+    dirty_ = false;
 }
 
 Index* TocDBWriter::openIndex(const Key& key, const PathName& path) const
