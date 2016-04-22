@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_ClimateHandler_H
-#define fdb5_ClimateHandler_H
+#ifndef fdb5_ClimateMonthlyHandler_H
+#define fdb5_ClimateMonthlyHandler_H
 
 #include "fdb5/KeywordHandler.h"
 

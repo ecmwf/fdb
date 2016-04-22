@@ -10,6 +10,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
+#include "eckit/parser/Tokenizer.h"
 #include "eckit/types/Date.h"
 
 #include "marslib/MarsTask.h"
@@ -39,13 +40,22 @@ ClimateDailyHandler::~ClimateDailyHandler()
 static int month(const std::string& value) {
   if(isdigit(value[0])) {
       Date date(value);
-      return date.month();
+      return date.month() * 100 + date.day();
   }
   else {
 
+      eckit::Translator<std::string, long> t;
+      eckit::Tokenizer parse("-");
+      eckit::StringList v;
+
+      parse(value, v);
+      ASSERT(v.size() == 2);
+
+
+
       for(int i = 0; i < 12 ; i++ ) {
-          if(value == months[i]) {
-              return i+1;
+          if(v[0] == months[i]) {
+              return (i+1) * 100 + t(v[1]);
           }
       }
 
@@ -84,7 +94,7 @@ void ClimateDailyHandler::print(std::ostream &out) const
     out << "ClimateDailyHandler(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<ClimateDailyHandler> handler("Climate");
+static KeywordHandlerBuilder<ClimateDailyHandler> handler("ClimateDaily");
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -84,7 +84,7 @@ void ClimateMonthlyHandler::print(std::ostream &out) const
     out << "ClimateMonthlyHandler(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<ClimateMonthlyHandler> handler("Climate");
+static KeywordHandlerBuilder<ClimateMonthlyHandler> handler("ClimateMonthly");
 
 //----------------------------------------------------------------------------------------------------------------------
 
