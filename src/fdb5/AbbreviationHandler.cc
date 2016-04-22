@@ -25,7 +25,8 @@ namespace fdb5 {
 AbbreviationHandler::AbbreviationHandler(const std::string& name) :
     KeywordHandler(name)
 {
-    count_ = name[name.length()-1] - '0';
+    count_ = char(name[name.length()-1]) - '0';
+    std::cout << "AbbreviationHandler " << name << " - " << count_ << std::endl;
 }
 
 AbbreviationHandler::~AbbreviationHandler()
@@ -45,6 +46,7 @@ void AbbreviationHandler::getValues(const MarsRequest& request,
     values.reserve(vals.size());
 
     for(std::vector<std::string>::const_iterator i = vals.begin(); i != vals.end(); ++i) {
+        std::cout << "AbbreviationHandler " << (*i) << " -> " << (*i).substr(0, count_) << std::endl;
         values.push_back((*i).substr(0, count_));
     }
 }
