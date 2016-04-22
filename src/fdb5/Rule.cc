@@ -58,11 +58,6 @@ void Rule::expand( const MarsRequest& request,
         if(rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
             keys[2].handlers(&handlers_);
-            std::cout << "RULE: " << std::endl;
-            topRule().dump(std::cout);
-            std::cout << std::endl;
-            dump(std::cout);
-            std::cout << std::endl;
             if(!visitor.selectDatum( keys[2], full)) {
                 return; // This it not useful
             }
@@ -162,8 +157,8 @@ void Rule::expand( const Key& field,
                 throw eckit::SeriousBug(oss.str());
             }
             keys[2].handlers(&handlers_);
-            visitor.selectDatum( keys[2], full);
             visitor.rule(this);
+            visitor.selectDatum( keys[2], full);
         }
         else {
 

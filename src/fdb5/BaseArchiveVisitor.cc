@@ -13,6 +13,7 @@
 
 #include "fdb5/Archiver.h"
 #include "fdb5/BaseArchiveVisitor.h"
+#include "fdb5/Rule.h"
 
 using namespace eckit;
 
@@ -54,6 +55,11 @@ void BaseArchiveVisitor::checkMissingKeys(const Key &full)
             if(missing.size()) {
                 std::ostringstream oss;
                 oss << "Keys not used in archiving: " << missing;
+
+                if(rule()) {
+                    oss << " " << *rule();
+                }
+
                 throw SeriousBug(oss.str());
             }
         }
