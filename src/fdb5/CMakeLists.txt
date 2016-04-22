@@ -63,6 +63,8 @@ list( APPEND fdb5_srcs
     MatchAlways.cc
     MatchOptional.h
     MatchOptional.cc
+    MatchHidden.h
+    MatchHidden.cc
     Predicate.h
     Predicate.cc
     Rule.h

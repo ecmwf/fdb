@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-// #include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
 
 #include "marslib/MarsTask.h"

@@ -21,6 +21,7 @@
 #include "fdb5/MatchAny.h"
 #include "fdb5/MatchValue.h"
 #include "fdb5/MatchOptional.h"
+#include "fdb5/MatchHidden.h"
 #include "fdb5/Handlers.h"
 
 namespace fdb5 {
@@ -38,6 +39,7 @@ std::string RulesParser::parseIdent(bool emptyOK)
             case '/':
             case '=':
             case ',':
+            case '-':
             case ';':
             case ':':
             case '[':
@@ -73,6 +75,11 @@ Predicate* RulesParser::parsePredicate(std::map<std::string, std::string>& types
     if(c == '?') {
         consume(c);
         return new Predicate(k, new MatchOptional(parseIdent(true)));
+    }
+
+    if(c == '-') {
+        consume(c);
+        return new Predicate(k, new MatchHidden(parseIdent(true)));
     }
 
     if(c != ',' && c != '[' && c != ']')
