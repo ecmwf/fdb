@@ -23,6 +23,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+static const char* months[] = {
+    "jan", "feb", "mar", "apr", "may", "jun",
+    "jul", "aug", "sep", "oct", "nov", "dec",};
+
 ClimateHandler::ClimateHandler(const std::string& name) :
     KeywordHandler(name)
 {
@@ -32,11 +36,28 @@ ClimateHandler::~ClimateHandler()
 {
 }
 
+static int month(const std::string& value) {
+  if(isdigit(value[0])) {
+      Date date(value);
+      return date.month();
+  }
+  else {
+
+      for(int i = 0; i < 12 ; i++ ) {
+          if(value == months[i]) {
+              return i+1;
+          }
+      }
+
+      throw SeriousBug("ClimateHandler: invalid date: " + value);
+  }
+}
+
 void ClimateHandler::toKey(std::ostream& out,
                        const std::string& keyword,
                        const std::string& value) const {
-  Date date(value);
-  out << date.month();
+
+    out << month(value);
 }
 
 void ClimateHandler::getValues(const MarsRequest& request,
@@ -45,7 +66,7 @@ void ClimateHandler::getValues(const MarsRequest& request,
                                const MarsTask& task,
                                const DB* db) const
 {
-    std::vector<Date> dates;
+    std::vector<std::string> dates;
 
     request.getValues(keyword, dates);
 
@@ -53,9 +74,8 @@ void ClimateHandler::getValues(const MarsRequest& request,
 
     eckit::Translator<long, std::string> t;
 
-    for(std::vector<Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
-        const Date& date = *i;
-        values.push_back(t(date.month()));
+    for(std::vector<std::string>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
+        values.push_back(t(month(*i)));
     }
 }
 

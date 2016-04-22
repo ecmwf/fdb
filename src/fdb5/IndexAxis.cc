@@ -81,7 +81,9 @@ void IndexAxis::insert(const Key& key)
 const StringSet& IndexAxis::values(const std::string& keyword) const
 {
     AxisMap::const_iterator i = axis_.find(keyword);
-    ASSERT(i != axis_.end());
+    if(i == axis_.end()) {
+        throw SeriousBug("Cannot find Axis: " + keyword);
+    }
     return i->second;
 }
 

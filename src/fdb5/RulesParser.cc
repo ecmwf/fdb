@@ -68,6 +68,7 @@ Predicate* RulesParser::parsePredicate(std::map<std::string, std::string>& types
         consume(c);
         ASSERT(types.find(k) == types.end());
         types[k] = parseIdent();
+        c = peek();
     }
 
     if(c == '?') {

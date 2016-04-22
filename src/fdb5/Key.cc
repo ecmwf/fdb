@@ -93,25 +93,24 @@ std::string Key::valuesToString() const
 
     std::ostringstream oss;
 
-    const char *sep = ":";
+    const char *sep = "";
 
     for(StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
         StringDict::const_iterator i = keys_.find(*j);
         ASSERT(i != keys_.end());
 
         oss << sep;
-        if(!(*i).second.empty()) {
-            if(handlers_)
-            {
-                handlers_->lookupHandler(*j).toKey(oss, *j, (*i).second);
-            }
-            else {
-                oss << (*i).second;
-            }
+        if(handlers_)
+        {
+             if(!(*i).second.empty()) {
+                 handlers_->lookupHandler(*j).toKey(oss, *j, (*i).second);
+             }
         }
+        else {
+            oss << (*i).second;
+        }
+        sep = ":";
     }
-
-    oss << sep;
 
     return oss.str();
 }

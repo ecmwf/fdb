@@ -50,15 +50,17 @@ const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
     }
     else {
 
-        if(parent_) {
-            return parent_->lookupHandler(keyword);
-        }
-
         std::string type = "Default";
         std::map<std::string, std::string>::const_iterator i = types_.find(keyword);
         if(i != types_.end()) {
             type = (*i).second;
         }
+        else {
+            if(parent_) {
+                return parent_->lookupHandler(keyword);
+            }
+        }
+
         Log::info() << "Handler for " << keyword << " is " << type << std::endl;
         KeywordHandler* newKH = KeywordType::build(type, keyword);
         handlers_[keyword] = newKH;
