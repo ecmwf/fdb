@@ -37,7 +37,7 @@ void FDBExtract::run()
 
     ASSERT( ctx.argc() == 3 );
 
-    ifstream in(ctx.argv(1));
+    ifstream in(ctx.argv(1).c_str());
     fdb5::RequestParser parser(in);
 
     MarsRequest r = parser.parse();

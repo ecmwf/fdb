@@ -14,21 +14,15 @@
 /// @date   April 2016
 
 
+#include <cctype>
+
 #include "fdb5/RequestParser.h"
-#include "fdb5/Rule.h"
-#include "fdb5/Predicate.h"
-#include "fdb5/MatchAlways.h"
-#include "fdb5/MatchAny.h"
-#include "fdb5/MatchValue.h"
-#include "fdb5/MatchOptional.h"
-#include "fdb5/MatchHidden.h"
-#include "fdb5/Handlers.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::string RequestParser::parseIdent() {
+std::string RequestParser::parseIdent(bool lower) {
     std::string s;
     for (;;) {
         char c = peek();
@@ -44,7 +38,12 @@ std::string RequestParser::parseIdent() {
 
         default:
             consume(c);
-            s += c;
+            if(lower) {
+                s += tolower(c);
+            }
+            else {
+                s += c;
+            }
             break;
         }
     }
@@ -53,21 +52,21 @@ std::string RequestParser::parseIdent() {
 RequestParser::RequestParser(std::istream &in) : StreamParser(in, true) {
 }
 
-MarsRequest RequestParser::parse() {
+MarsRequest RequestParser::parse(bool lower) {
     char c;
 
-    MarsRequest r(parseIdent());
+    MarsRequest r(parseIdent(lower));
 
     while ((c = peek()) == ',') {
         consume(c);
-        std::string keyword = parseIdent();
+        std::string keyword = parseIdent(lower);
         consume('=');
 
         eckit::StringList values;
-        values.push_back(parseIdent());
+        values.push_back(parseIdent(lower));
         while ((c = peek()) == '/') {
             consume(c);
-            values.push_back(parseIdent());
+            values.push_back(parseIdent(lower));
         }
         r.setValues(keyword, values);
     }

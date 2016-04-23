@@ -29,11 +29,11 @@ public: // methods
 
     RequestParser(std::istream& in);
 
-    MarsRequest parse();
+    MarsRequest parse(bool lower=true);
 
 private: // methods
 
-    std::string parseIdent();
+    std::string parseIdent(bool);
 
 
 };

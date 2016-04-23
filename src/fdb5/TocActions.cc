@@ -104,7 +104,7 @@ void TocReverseIndexes::init() {
     TocRecord r;
 
     while( readNext(r) ) {
-        eckit::Log::info() << "TOC Record: " << r << std::endl;
+        //eckit::Log::info() << "TOC Record: " << r << std::endl;
         toc_.push_back(r);
     }
 
