@@ -38,6 +38,9 @@ void FDBExtract::run()
     ASSERT( ctx.argc() == 3 );
 
     ifstream in(ctx.argv(1).c_str());
+    if(in.bad()) {
+        throw eckit::ReadError(ctx.argv(1));
+    }
     fdb5::RequestParser parser(in);
 
     MarsRequest r = parser.parse();

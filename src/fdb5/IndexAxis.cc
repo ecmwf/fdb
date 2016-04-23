@@ -26,14 +26,16 @@ IndexAxis::IndexAxis(const eckit::PathName& path) :
 {
     if( path.exists() )
     {
-        std::ifstream f;
-        f.open( path_.asString().c_str() );
+        std::ifstream f(path_.asString().c_str());
+
         eckit::JSONParser parser(f);
 
         eckit::Value v = parser.parse();
         eckit::JSONParser::toDictStrSet(v, axis_);
 
-        f.close();
+        if(f.bad()) {
+            throw eckit::ReadError(path_.asString());
+        }
 
         readOnly_ = true;
     }

@@ -45,7 +45,7 @@ void FDBFileHandle::openForWrite(const Length& length)
 void FDBFileHandle::openForAppend(const Length&)
 {
     file_ = fopen(name_.c_str(), "a");
-    if(!file_) { 
+    if(!file_) {
         throw eckit::CantOpenFile(name_);
     }
 
@@ -80,12 +80,14 @@ void FDBFileHandle::flush()
 
 void FDBFileHandle::close()
 {
-    if(file_) 
+    if(file_)
     {
         if(::fclose(file_))
         {
+            file_ = 0;
             throw WriteError(std::string("fclose ") + name());
         }
+        file_ = 0;
     }
 }
 

@@ -154,6 +154,8 @@ list( APPEND fdb5_srcs
     HandleGatherer.cc
     RequestParser.h
     RequestParser.cc
+    DateOrMonthHandler.h
+    DateOrMonthHandler.cc
 )
 
 ecbuild_add_library(

@@ -120,8 +120,7 @@ void TextIndex::flush()
 
 void TextIndex::load(const eckit::PathName& path)
 {
-    std::ifstream in;
-    in.open( path.asString().c_str() );
+    std::ifstream in( path.asString().c_str() );
 
     std::string line;
     while( getline(in,line) )
@@ -141,7 +140,9 @@ void TextIndex::load(const eckit::PathName& path)
         }
     }
 
-    in.close();
+    if(in.bad()) {
+        throw eckit::ReadError(path_.asString());
+    }
 }
 
 void TextIndex::save(const eckit::PathName& path) const
