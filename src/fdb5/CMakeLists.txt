@@ -152,6 +152,8 @@ list( APPEND fdb5_srcs
 
     HandleGatherer.h
     HandleGatherer.cc
+    RequestParser.h
+    RequestParser.cc
 )
 
 ecbuild_add_library(
@@ -180,6 +182,7 @@ list( APPEND fdb5_tools
     fdb5_index
     fdb5_insert
     fdb5_extract
+    fdb5_retrieve
     fdb5_rules
     )
 
