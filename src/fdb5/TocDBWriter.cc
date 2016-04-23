@@ -191,13 +191,14 @@ void TocDBWriter::closeDataHandles()
 
 eckit::DataHandle* TocDBWriter::createFileHandle(const PathName& path)
 {
-    return new FDBFileHandle(path);
+    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize",64*1024*1024);
+    return new FDBFileHandle(path, sizeBuffer);
 }
 
 DataHandle* TocDBWriter::createAsyncHandle(const PathName& path)
 {
-    size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers",4);
-    size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer",64*1024*1024);
+    static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers",4);
+    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer",64*1024*1024);
 
     return new AIOHandle(path,nbBuffers,sizeBuffer);
 }

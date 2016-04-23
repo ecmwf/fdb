@@ -34,8 +34,7 @@ public:
 
 // -- Contructors
 
-    FDBFileHandle(const std::string&,bool = false);
-    FDBFileHandle(eckit::Stream&);
+    FDBFileHandle(const std::string&, size_t buffer);
 
 // -- Destructor
 
@@ -43,8 +42,6 @@ public:
 
 // --  Methods
 
-    void advance(const eckit::Length&);
-	const std::string& path() const { return name_; }
 
 // -- Overridden methods
 
@@ -58,53 +55,16 @@ public:
 	virtual long   write(const void*,long);
     virtual void   close();
     virtual void   flush();
-	virtual void   rewind();
 	virtual void   print(std::ostream&) const;
-    virtual eckit::Length estimate();
-    virtual eckit::Length saveInto(eckit::DataHandle&,eckit::TransferWatcher& = eckit::TransferWatcher::dummy());
     virtual eckit::Offset position();
-	virtual bool isEmpty() const;
-    virtual void restartReadFrom(const eckit::Offset& from);
-    virtual void restartWriteFrom(const eckit::Offset& from);
-    virtual void toRemote(eckit::Stream&) const;
-    virtual void cost(std::map<std::string,eckit::Length>&, bool) const;
     virtual std::string title() const;
-    virtual bool moveable() const { return true; }
-
-    virtual eckit::Offset seek(const eckit::Offset&);
-    virtual void skip(const eckit::Length&);
-
-    virtual eckit::DataHandle* clone() const;
-
-	// From Streamable
-
-    virtual void encode(eckit::Stream&) const;
-    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
-
-// -- Class methods
-
-    static  const eckit::ClassSpec&  classSpec()        { return classSpec_;}
 
 private: // members
 
-    std::string         name_;
-	FILE*               file_;
+    std::string      name_;
+	FILE*            file_;
+    eckit::Buffer    buffer_;
 
-    eckit::ScopedPtr<eckit::Buffer>    buffer_;
-
-    bool                read_;
-    bool                overwrite_;
-
-private: // methods
-
-	void open(const char*);
-
-// -- Class members
-
-    static  eckit::ClassSpec               classSpec_;
-    static  eckit::Reanimator<FDBFileHandle>  reanimator_;
-
-    void sync();
 };
 
 //----------------------------------------------------------------------------------------------------------------------
