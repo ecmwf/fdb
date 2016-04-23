@@ -76,16 +76,16 @@ void ClimateDailyHandler::getValues(const MarsRequest& request,
                                const MarsTask& task,
                                const DB* db) const
 {
-    std::vector<std::string> dates;
+    std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates);
 
     values.reserve(dates.size());
 
-    eckit::Translator<long, std::string> t;
+    eckit::Translator<eckit::Date, std::string> t;
 
-    for(std::vector<std::string>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
-        values.push_back(t(month(*i)));
+    for(std::vector<eckit::Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
+        values.push_back(t(*i));
     }
 }
 

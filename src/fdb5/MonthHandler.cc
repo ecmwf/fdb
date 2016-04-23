@@ -35,8 +35,9 @@ MonthHandler::~MonthHandler()
 void MonthHandler::toKey(std::ostream& out,
                        const std::string& keyword,
                        const std::string& value) const {
-  Date date(value);
-  out << date.year() * 100 + date.month();
+
+    Date date(value);
+    out << date.year() * 100 + date.month();
 }
 
 void MonthHandler::getValues(const MarsRequest& request,
@@ -51,11 +52,11 @@ void MonthHandler::getValues(const MarsRequest& request,
 
     values.reserve(dates.size());
 
-    eckit::Translator<long, std::string> t;
+    eckit::Translator<Date, std::string> t;
 
     for(std::vector<Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
         const Date& date = *i;
-        values.push_back(t(date.year() * 100 + date.month()));
+        values.push_back(t(date));
     }
 }
 

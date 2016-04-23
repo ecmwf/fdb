@@ -36,7 +36,7 @@ bool MatchHidden::match(const std::string& keyword, const Key& key) const
 }
 
 bool MatchHidden::optional() const {
-    return false;
+    return true;
 }
 
 const std::string& MatchHidden::value(const Key& key, const std::string& keyword) const {

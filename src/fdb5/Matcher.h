@@ -37,6 +37,7 @@ public: // methods
     virtual ~Matcher();
 
     virtual bool optional() const;
+
     virtual const std::string& value(const Key&, const std::string& keyword) const;
     virtual const std::string& defaultValue() const;
 
