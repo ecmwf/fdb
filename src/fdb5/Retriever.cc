@@ -22,6 +22,7 @@
 #include "fdb5/Type.h"
 #include "fdb5/HandleGatherer.h"
 #include "fdb5/ReadVisitor.h"
+#include "fdb5/Error.h"
 
 #include "eckit/config/Resource.h"
 
@@ -66,6 +67,8 @@ public:
     virtual bool selectDatabase(const Key& key, const Key& full) {
         Log::info() << "selectDatabase " << key << std::endl;
         db_.reset(DBFactory::build(fdbReaderDB_, key));
+        db_->checkSchema(key);
+
         if(!db_->open()) {
             Log::info() << "Database does not exists " << key << std::endl;
             return false;
@@ -73,7 +76,6 @@ public:
         else {
             return true;
         }
-        db_->checkSchema(key);
     }
 
     virtual bool selectIndex(const Key& key, const Key& full) {
@@ -110,6 +112,15 @@ public:
 };
 
 
+eckit::DataHandle* Retriever::retrieve(const Schema& schema, bool sorted) {
+    HandleGatherer result(sorted);
+
+    RetrieveVisitor visitor(*this, task_, result);
+    schema.expand(task_.request(), visitor);
+
+    return result.dataHandle();
+}
+
 eckit::DataHandle* Retriever::retrieve()
 {
 //    Log::info() << std::endl
@@ -127,14 +138,22 @@ eckit::DataHandle* Retriever::retrieve()
         sorted = true;
     }
 
-    HandleGatherer result(sorted);
-
-    RetrieveVisitor visitor(*this, task_, result);
-
     const Schema& schema = MasterConfig::instance().schema();
-    schema.expand(task_.request(), visitor);
 
-    return result.dataHandle();
+    // TODO: this logic does not work if a retrieval spans several
+    // databases with different schemas
+    try {
+
+        return retrieve(schema, sorted);
+
+    } catch(SchemaHasChanged& e) {
+
+        eckit::Log::error() << e.what() << std::endl;
+        eckit::Log::error() << "Trying with old schema: " << e.path() << std::endl;
+
+        return retrieve(Schema(e.path()), sorted);
+    }
+
 }
 
 void Retriever::print(std::ostream& out) const

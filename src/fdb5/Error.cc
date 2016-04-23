@@ -9,6 +9,7 @@
  */
 
 #include "fdb5/Error.h"
+#include "fdb5/Schema.h"
 
 namespace fdb5 {
 
@@ -16,4 +17,12 @@ Error::Error(const eckit::CodeLocation& loc, const std::string&s) : Exception( s
 {
 }
 
+SchemaHasChanged::SchemaHasChanged(const Schema& schema):
+    Exception("Schema has changed: " + schema.path()),
+    path_(schema.path()) {
+}
+
+SchemaHasChanged::~SchemaHasChanged() throw() {
+
+}
 } // namespace fdb5

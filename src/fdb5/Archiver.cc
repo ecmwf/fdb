@@ -15,6 +15,7 @@
 #include "fdb5/MasterConfig.h"
 #include "fdb5/ArchiveVisitor.h"
 #include "fdb5/AdoptVisitor.h"
+#include "fdb5/Error.h"
 
 
 namespace fdb5 {
@@ -38,17 +39,22 @@ void Archiver::write(const eckit::DataBlobPtr blob)
     NOTIMP; /// @todo this will substitute the GribArchiver
 }
 
-void Archiver::write(const Key& key, const void* data, size_t length)
-{
-    eckit::Log::info() << "Archiver write " << length << std::endl;
-
-    ASSERT(data);
+void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
     const Schema& schema = MasterConfig::instance().schema();
 
-    ArchiveVisitor visitor(*this, key, data, length);
+    visitor.rule(0);
 
-    schema.expand(key, visitor);
+    try {
+
+        schema.expand(key, visitor);
+
+    } catch(SchemaHasChanged& e) {
+        eckit::Log::error() << e.what() << std::endl;
+        eckit::Log::error() << "Trying with old schema: " << e.path() << std::endl;
+
+        Schema(e.path()).expand(key, visitor);
+    }
 
     if(visitor.rule() == 0) { // Make sure we did find a rule that matched
         std::ostringstream oss;
@@ -57,19 +63,16 @@ void Archiver::write(const Key& key, const void* data, size_t length)
     }
 }
 
+void Archiver::write(const Key& key, const void* data, size_t length)
+{
+    ArchiveVisitor visitor(*this, key, data, length);
+    archive(key, visitor);
+}
+
 void Archiver::adopt(const Key& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length)
 {
-    const Schema& schema = MasterConfig::instance().schema();
-
     AdoptVisitor visitor(*this, key, path, offset, length);
-
-    schema.expand(key, visitor);
-
-    if(visitor.rule() == 0) { // Make sure we did find a rule that matched
-        std::ostringstream oss;
-        oss << "FDB: Could not find a rule to archive " << key;
-        throw eckit::SeriousBug(oss.str());
-    }
+    archive(key, visitor);
 }
 
 void Archiver::flush()

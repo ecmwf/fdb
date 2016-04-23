@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2013 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -16,9 +16,19 @@
 
 namespace fdb5 {
 
+class Schema;
+
 class Error: public eckit::Exception {
 public:
     Error(const eckit::CodeLocation& loc, const std::string& s);
+};
+
+class SchemaHasChanged: public eckit::Exception {
+    std::string path_;
+public:
+    SchemaHasChanged(const Schema& schema);
+    ~SchemaHasChanged() throw();
+    const std::string& path() const { return path_; }
 };
 
 } // namespace fdb5

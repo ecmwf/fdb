@@ -208,10 +208,9 @@ void TocDB::loadSchema() {
 }
 
 void TocDB::checkSchema(const Key& key) const {
-    Timer timer("TocDB::loadSchema()");
+    Timer timer("TocDB::checkSchema()");
     ASSERT(key.rule());
     schema_.compareTo(key.rule()->schema());
-    Log::info() << "TODO TocDB::checkSchema " << key << std::endl;
 }
 //----------------------------------------------------------------------------------------------------------------------
 

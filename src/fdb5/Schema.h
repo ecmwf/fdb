@@ -39,6 +39,7 @@ class Schema : private eckit::NonCopyable {
 public: // methods
 
     Schema();
+    Schema(const eckit::PathName& path);
 
     ~Schema();
 
@@ -52,6 +53,8 @@ public: // methods
     void compareTo(const Schema& other) const;
 
     const Type& lookupType(const std::string& keyword) const;
+
+    const std::string& path() const;
 
 
 private: // methods
@@ -67,6 +70,7 @@ private: // members
 
     TypesRegistry registry_;
     std::vector<Rule*>  rules_;
+    std::string path_;
 
 };
 

@@ -19,6 +19,7 @@
 #include "fdb5/Key.h"
 #include "fdb5/SchemaParser.h"
 #include "fdb5/WriteVisitor.h"
+#include "fdb5/Error.h"
 
 namespace fdb5 {
 
@@ -26,6 +27,11 @@ namespace fdb5 {
 
 Schema::Schema()
 {
+}
+
+Schema::Schema(const eckit::PathName& path)
+{
+    load(path);
 }
 
 Schema::~Schema()
@@ -61,6 +67,7 @@ void Schema::load(const eckit::PathName& path, bool replace)
         clear();
     }
 
+    path_ = path;
     eckit::Log::info() << "Loading FDB rules from " << path << std::endl;
 
     std::ifstream in(path.asString().c_str());
@@ -112,8 +119,21 @@ const Type& Schema::lookupType(const std::string& keyword) const {
 
 
 void Schema::compareTo(const Schema& other) const {
-    // TODO
+    std::ostringstream a;
+    std::ostringstream b;
+
+    dump(a);
+    other.dump(b);
+
+    if(a.str() != b.str()) {
+        throw SchemaHasChanged(*this);
+    }
 }
+
+const std::string& Schema::path() const {
+    return path_;
+}
+
 
 std::ostream& operator<<(std::ostream& s, const Schema& x)
 {

@@ -30,6 +30,7 @@ class MarsTask;
 namespace fdb5 {
 
 class Key;
+class BaseArchiveVisitor;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -59,6 +60,8 @@ public: // methods
     friend std::ostream& operator<<(std::ostream& s, const Archiver& x) { x.print(s); return s; }
 
 private: // methods
+
+    void archive(const Key& key, BaseArchiveVisitor&);
 
     void print(std::ostream& out) const;
 
