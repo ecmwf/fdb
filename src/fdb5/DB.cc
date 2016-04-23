@@ -13,18 +13,16 @@
 
 #include "fdb5/DB.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace {
-    Mutex* local_mutex = 0;
+    eckit::Mutex* local_mutex = 0;
     std::map<std::string, DBFactory*> *m = 0;
     pthread_once_t once = PTHREAD_ONCE_INIT;
     void init() {
-        local_mutex = new Mutex();
+        local_mutex = new eckit::Mutex();
         m = new std::map<std::string, DBFactory*>();
     }
 }
@@ -37,14 +35,14 @@ DBFactory::DBFactory(const std::string& name) :
 
     pthread_once(&once, init);
 
-    AutoLock<Mutex> lock(local_mutex);
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
     ASSERT(m->find(name) == m->end());
     (*m)[name] = this;
 }
 
 DBFactory::~DBFactory() {
-    AutoLock<Mutex> lock(local_mutex);
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
     m->erase(name_);
 }
 
@@ -52,7 +50,7 @@ void DBFactory::list(std::ostream& out) {
 
     pthread_once(&once, init);
 
-    AutoLock<Mutex> lock(local_mutex);
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
     const char* sep = "";
     for (std::map<std::string, DBFactory*>::const_iterator j = m->begin(); j != m->end(); ++j) {
@@ -66,17 +64,17 @@ const DBFactory& DBFactory::findFactory(const std::string& name) {
 
     pthread_once(&once, init);
 
-    AutoLock<Mutex> lock(local_mutex);
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    Log::info() << "Looking for DBFactory [" << name << "]" << std::endl;
+    eckit::Log::info() << "Looking for DBFactory [" << name << "]" << std::endl;
 
     std::map<std::string, DBFactory *>::const_iterator j = m->find(name);
     if (j == m->end()) {
-        Log::error() << "No DBFactory for [" << name << "]" << std::endl;
-        Log::error() << "DBFactories are:" << std::endl;
+        eckit::Log::error() << "No DBFactory for [" << name << "]" << std::endl;
+        eckit::Log::error() << "DBFactories are:" << std::endl;
         for (j = m->begin() ; j != m->end() ; ++j)
-            Log::error() << "   " << (*j).first << std::endl;
-        throw SeriousBug(std::string("No DBFactory called ") + name);
+            eckit::Log::error() << "   " << (*j).first << std::endl;
+        throw eckit::SeriousBug(std::string("No DBFactory called ") + name);
     }
 
     return *(*j).second;

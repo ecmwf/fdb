@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2013 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -12,7 +12,6 @@
 
 #include "fdb5/FileStore.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 
@@ -34,7 +33,7 @@ void FileStore::FieldRef::dump(std::ostream &s) const
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FileStore::FileStore( const PathName& path ) : 
+FileStore::FileStore( const eckit::PathName& path ) :
     next_(0),
     path_(path),
     flushed_(true)
@@ -43,10 +42,10 @@ FileStore::FileStore( const PathName& path ) :
     {
         std::ifstream in;
         in.open( path_.asString().c_str() );
-    
+
         std::string line;
         while( getline(in,line) )
-        {		
+        {
             if( line.size() )
             {
                 std::istringstream is(line);
@@ -69,7 +68,7 @@ FileStore::~FileStore()
     flush();
 }
 
-FileStore::PathID FileStore::insert( const PathName& path )
+FileStore::PathID FileStore::insert( const eckit::PathName& path )
 {
 	IdStore::iterator itr = ids_.find(path);
 	if( itr != ids_.end() )
@@ -84,14 +83,14 @@ FileStore::PathID FileStore::insert( const PathName& path )
 	return current;
 }
 
-FileStore::PathID FileStore::get( const PathName& path ) const
+FileStore::PathID FileStore::get( const eckit::PathName& path ) const
 {
 	IdStore::const_iterator itr = ids_.find(path);
 	ASSERT( itr != ids_.end() );
 	return itr->second;
 }
 
-PathName FileStore::get(const FileStore::PathID id) const
+eckit::PathName FileStore::get(const FileStore::PathID id) const
 {
     PathStore::const_iterator itr = paths_.find(id);
     ASSERT( itr != paths_.end() );
@@ -104,7 +103,7 @@ bool FileStore::exists(const PathID id ) const
     return( itr != paths_.end() );
 }
 
-bool FileStore::exists(const PathName& path) const
+bool FileStore::exists(const eckit::PathName& path) const
 {
     IdStore::const_iterator itr = ids_.find(path);
     return( itr != ids_.end() );
@@ -115,16 +114,16 @@ void FileStore::flush()
     if ( ! flushed_ )
     {
         std::ostringstream os;
-        
+
         for( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr )
             os << itr->first << " " << itr->second << "\n";
-                  
-        FileHandle storage(path_);
+
+        eckit::FileHandle storage(path_);
         storage.openForWrite(0);
         std::string data = os.str();
         storage.write( data.c_str(), data.size() );
         storage.close();
-        
+
         flushed_ = true;
     }
 }

@@ -19,8 +19,6 @@
 #include "marslib/EmosFile.h"
 #include "fdb5/GribDecoder.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -78,7 +76,7 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
                 ASSERT(grib_get_bytes(h, "freeFormData", buffer, &size) == 0);
                 eckit::MemoryHandle handle(buffer, size);
                 handle.openForRead();
-                AutoClose close(handle);
+                eckit::AutoClose close(handle);
                 eckit::HandleStream s(handle);
                 int count;
                 s >> count; // Number of requests
@@ -106,7 +104,7 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
             if ( seen_.find(key) != seen_.end() ) {
                 std::ostringstream oss;
                 oss << "GRIB sent to FDB has duplicated parameters : " << key;
-                throw SeriousBug( oss.str() );
+                throw eckit::SeriousBug( oss.str() );
             }
 
             seen_.insert(key);

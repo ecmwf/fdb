@@ -16,8 +16,6 @@
 #include "marslib/EmosFile.h"
 #include "fdb5/GribArchiver.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -27,9 +25,9 @@ GribArchiver::GribArchiver(bool completeTransfers):
 {
 }
 
-Length GribArchiver::archive(eckit::DataHandle& source)
+eckit::Length GribArchiver::archive(eckit::DataHandle& source)
 {
-    Timer timer("fdb::service::archive");
+    eckit::Timer timer("fdb::service::archive");
 
     EmosFile file(source);
     size_t len = 0;
@@ -53,7 +51,7 @@ Length GribArchiver::archive(eckit::DataHandle& source)
     }
     catch(...) {
         if(completeTransfers_) {
-            Log::error() << "Exception recieved. Completing transfer." << std::endl;
+            eckit::Log::error() << "Exception recieved. Completing transfer." << std::endl;
             // Consume rest of datahandle otherwise client retries for ever
             eckit::Buffer buffer(80*1024*1024);
             while( (len = file.readSome(buffer)) )
@@ -62,10 +60,10 @@ Length GribArchiver::archive(eckit::DataHandle& source)
         throw;
     }
 
-    Log::info() << "FDB archive " << Plural(count, "field") << ","
-                << " size " << Bytes(total_size) << ","
-                << " in " << Seconds(timer.elapsed())
-                << " (" << Bytes(total_size, timer) << ")" <<  std::endl;
+    eckit::Log::info() << "FDB archive " << eckit::Plural(count, "field") << ","
+                       << " size " << eckit::Bytes(total_size) << ","
+                       << " in " << eckit::Seconds(timer.elapsed())
+                       << " (" << eckit::Bytes(total_size, timer) << ")" <<  std::endl;
 
     return total_size;
 }

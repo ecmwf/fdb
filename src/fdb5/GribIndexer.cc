@@ -17,8 +17,6 @@
 #include "marslib/EmosFile.h"
 #include "fdb5/GribIndexer.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -30,7 +28,7 @@ GribIndexer::GribIndexer(bool checkDuplicates) :
 
 void GribIndexer::index(const eckit::PathName& path)
 {
-    Timer timer("fdb::service::archive");
+    eckit::Timer timer("fdb::service::archive");
 
     EmosFile file(path);
     size_t len = 0;
@@ -38,11 +36,11 @@ void GribIndexer::index(const eckit::PathName& path)
     std::set<Key> seen;
 
     size_t count = 0;
-    Length total_size = 0;
+    eckit::Length total_size = 0;
 
-    Length totalFileSize = path.size();
+    eckit::Length totalFileSize = path.size();
 
-    Progress progress("Scanning", 0, totalFileSize);
+    eckit::Progress progress("Scanning", 0, totalFileSize);
 
     Key key;
 
@@ -50,10 +48,10 @@ void GribIndexer::index(const eckit::PathName& path)
     while( (len = gribToKey(file, key))  )
     {
 
-        Log::info() << key << std::endl;
+        eckit::Log::info() << key << std::endl;
 
-        Length length = len;
-        Offset offset = file.position() - length;
+        eckit::Length length = len;
+        eckit::Offset offset = file.position() - length;
 
         adopt(key, path, offset, length); // now index it
 
@@ -62,10 +60,10 @@ void GribIndexer::index(const eckit::PathName& path)
         count++;
     }
 
-    Log::info() << "FDB indexer " << Plural(count, "field") << ","
-                << " size " << Bytes(total_size) << ","
-                << " in " << Seconds(timer.elapsed())
-                << " (" << Bytes(total_size, timer) << ")" <<  std::endl;
+    eckit::Log::info() << "FDB indexer " << eckit::Plural(count, "field") << ","
+                       << " size " << eckit::Bytes(total_size) << ","
+                       << " in " << eckit::Seconds(timer.elapsed())
+                       << " (" << eckit::Bytes(total_size, timer) << ")" <<  std::endl;
 
 }
 

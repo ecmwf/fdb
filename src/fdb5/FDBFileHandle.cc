@@ -10,22 +10,6 @@
 
 #include "fdb5/FDBFileHandle.h"
 
-/*
-#include <sys/stat.h>
-#include <dirent.h>
-
-#include "eckit/eckit.h"
-
-#include "eckit/config/Resource.h"
-#include "eckit/io/MarsFSHandle.h"
-#include "eckit/filesystem/marsfs/MarsFSPath.h"
-#include "eckit/io/cluster/NodeInfo.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/log/Log.h"
-#include "eckit/os/Stat.h"
-*/
-
-
 using namespace eckit;
 
 namespace fdb5 {
@@ -48,10 +32,6 @@ FDBFileHandle::~FDBFileHandle()
 {
 }
 
-/*
-            Log::debug() << "FDBFileHandle using " << Bytes(size) << std::endl;
-			buffer_.reset(new Buffer(size));
-            */
 Length FDBFileHandle::openForRead()
 {
     NOTIMP;
@@ -64,7 +44,6 @@ void FDBFileHandle::openForWrite(const Length& length)
 
 void FDBFileHandle::openForAppend(const Length&)
 {
-    //open("a");
     file_ = fopen(name_.c_str(), "a");
     if(!file_) { 
         throw eckit::CantOpenFile(name_);

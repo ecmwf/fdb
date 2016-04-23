@@ -17,7 +17,6 @@
 #include "fdb5/KeywordType.h"
 #include "fdb5/MonthHandler.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 

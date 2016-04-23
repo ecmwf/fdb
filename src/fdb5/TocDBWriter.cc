@@ -39,7 +39,6 @@
 #include "fdb5/TocDBWriter.h"
 #include "fdb5/FDBFileHandle.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 

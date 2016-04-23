@@ -15,8 +15,6 @@
 
 #include "fdb5/HandleGatherer.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -26,25 +24,25 @@ HandleGatherer::HandleGatherer(bool sorted):
 }
 
 HandleGatherer::~HandleGatherer() {
-    for (std::vector<DataHandle *>::iterator j = handles_.begin(); j != handles_.end(); ++j) {
+    for (std::vector<eckit::DataHandle *>::iterator j = handles_.begin(); j != handles_.end(); ++j) {
         delete (*j);
     }
 }
 
-DataHandle *HandleGatherer::dataHandle() {
-    for (std::vector<DataHandle *>::iterator j = handles_.begin(); j != handles_.end(); ++j) {
+eckit::DataHandle *HandleGatherer::dataHandle() {
+    for (std::vector<eckit::DataHandle *>::iterator j = handles_.begin(); j != handles_.end(); ++j) {
         (*j)->compress(sorted_);
     }
 
-    DataHandle *h = new MultiHandle(handles_);
+    eckit::DataHandle *h = new eckit::MultiHandle(handles_);
     handles_.clear();
     return h;
 }
 
-void HandleGatherer::add(DataHandle *h) {
+void HandleGatherer::add(eckit::DataHandle *h) {
     ASSERT(h);
     if (sorted_) {
-        for (std::vector<DataHandle *>::iterator j = handles_.begin(); j != handles_.end(); ++j) {
+        for (std::vector<eckit::DataHandle *>::iterator j = handles_.begin(); j != handles_.end(); ++j) {
             if ( (*j)->merge(h) ) {
                 delete h;
                 return;
@@ -62,7 +60,7 @@ void HandleGatherer::add(DataHandle *h) {
 }
 
 void HandleGatherer::print( std::ostream &out ) const {
-    out << Plural(handles_.size(), "handle");
+    out << eckit::Plural(handles_.size(), "handle");
 }
 
 //----------------------------------------------------------------------------------------------------------------------

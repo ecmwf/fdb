@@ -13,8 +13,6 @@
 #include "eckit/types/DateTime.h"
 #include "fdb5/TocRecord.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //-----------------------------------------------------------------------------
@@ -34,9 +32,9 @@ void TocRecord::init()
 	marker_[1] = '2';
 }
 
-PathName TocRecord::path() const
+eckit::PathName TocRecord::path() const
 {
-	return PathName( payload_.data() );
+	return eckit::PathName( payload_.data() );
 }
 
 TocRecord::MetaData TocRecord::metadata() const

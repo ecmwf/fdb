@@ -16,8 +16,6 @@
 #include "fdb5/Rule.h"
 #include "fdb5/KeywordHandler.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -37,7 +35,7 @@ Key::Key(const std::string& s) :
     NOTIMP;
 }
 
-Key::Key(const StringDict& keys) :
+Key::Key(const eckit::StringDict& keys) :
     keys_(keys),
     handlers_(0)
 {
@@ -90,7 +88,7 @@ const std::string& Key::get( const std::string& k ) const {
     if( i == keys_.end() ) {
         std::ostringstream oss;
         oss << "Key::get() failed for [" + k + "] in " << *this;
-        throw SeriousBug(oss.str(), Here());
+        throw eckit::SeriousBug(oss.str(), Here());
     }
 
     return i->second;
@@ -104,8 +102,8 @@ std::string Key::valuesToString() const
 
     const char *sep = "";
 
-    for(StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
-        StringDict::const_iterator i = keys_.find(*j);
+    for(eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
+        eckit::StringDict::const_iterator i = keys_.find(*j);
         ASSERT(i != keys_.end());
 
         oss << sep;
@@ -156,8 +154,8 @@ void Key::print(std::ostream &out) const
     if(names_.size() == keys_.size()) {
         const char *sep = "";
         out << "{";
-        for(StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
-            StringDict::const_iterator i = keys_.find(*j);
+        for(eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
+            eckit::StringDict::const_iterator i = keys_.find(*j);
             ASSERT(i != keys_.end());
             out << sep << *j << '=' << i->second;
             sep = ",";

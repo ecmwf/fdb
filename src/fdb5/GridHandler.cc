@@ -15,8 +15,6 @@
 #include "fdb5/KeywordType.h"
 #include "fdb5/GridHandler.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -32,13 +30,13 @@ GridHandler::~GridHandler()
 
 void GridHandler::getValues(const MarsRequest& request,
                                const std::string& keyword,
-                               StringList& values,
+                               eckit::StringList& values,
                                const MarsTask& task,
                                const DB* db) const
 {
     std::vector<std::string> v;
     request.getValues(keyword, v);
-    values.push_back(StringTools::join("/", v));
+    values.push_back(eckit::StringTools::join("/", v));
 }
 
 

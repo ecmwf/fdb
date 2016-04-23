@@ -17,7 +17,6 @@
 #include "fdb5/Error.h"
 #include "fdb5/TocDBReader.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 
@@ -27,7 +26,7 @@ TocDBReader::TocDBReader(const Key& key) :
     TocDB(key),
     toc_(path_)
 {
-    Log::info() << "TocDBReader for TOC [" << path_ << "]" << std::endl;
+    eckit::Log::info() << "TocDBReader for TOC [" << path_ << "]" << std::endl;
 }
 
 TocDBReader::~TocDBReader()
@@ -44,16 +43,16 @@ bool TocDBReader::selectIndex(const Key& key)
 bool TocDBReader::open() {
 
     if(!toc_.exists()) {
-        Log::info() << "TOC doesn't exist " << toc_.filePath() << std::endl;
+        eckit::Log::info() << "TOC doesn't exist " << toc_.filePath() << std::endl;
         return false;
     }
 
     return true;
 }
 
-void TocDBReader::axis(const std::string& keyword, StringSet& s) const
+void TocDBReader::axis(const std::string& keyword, eckit::StringSet& s) const
 {
-    for( std::vector<PathName>::const_iterator itr = current_.begin(); itr != current_.end(); ++itr )
+    for( std::vector<eckit::PathName>::const_iterator itr = current_.begin(); itr != current_.end(); ++itr )
     {
         const Index& idx = getIndex(currentIndexKey_, *itr);
         const eckit::StringSet& a = idx.axis().values(keyword);
@@ -66,14 +65,14 @@ void TocDBReader::close() {
 
 eckit::DataHandle* TocDBReader::retrieve(const Key& key) const
 {
-    Log::info() << "Trying to retrieve key " << key << std::endl;
+    eckit::Log::info() << "Trying to retrieve key " << key << std::endl;
 
-    Log::info() << "Scanning indexes " << current_ << std::endl;
+    eckit::Log::info() << "Scanning indexes " << current_ << std::endl;
 
     const Index* index = 0;
 
     Index::Field field;
-    for( std::vector<PathName>::const_iterator itr = current_.begin(); itr != current_.end(); ++itr )
+    for( std::vector<eckit::PathName>::const_iterator itr = current_.begin(); itr != current_.end(); ++itr )
     {
         const Index& idx = getIndex(currentIndexKey_, *itr);
 
@@ -90,7 +89,7 @@ eckit::DataHandle* TocDBReader::retrieve(const Key& key) const
         return field.path_.partHandle(field.offset_, field.length_);
 }
 
-Index* TocDBReader::openIndex(const Key& key, const PathName& path) const
+Index* TocDBReader::openIndex(const Key& key, const eckit::PathName& path) const
 {
     return Index::create(key, indexType_, path, Index::READ );
 }

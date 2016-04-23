@@ -16,8 +16,6 @@
 #include "fdb5/Index.h"
 #include "fdb5/Key.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -30,34 +28,34 @@ IndexAxis::IndexAxis(const eckit::PathName& path) :
     {
         std::ifstream f;
         f.open( path_.asString().c_str() );
-        JSONParser parser(f);
+        eckit::JSONParser parser(f);
 
         eckit::Value v = parser.parse();
-        JSONParser::toDictStrSet(v, axis_);
+        eckit::JSONParser::toDictStrSet(v, axis_);
 
         f.close();
 
         readOnly_ = true;
     }
 
-    Log::info() << *this << std::endl;
+    eckit::Log::info() << *this << std::endl;
 }
 
 IndexAxis::~IndexAxis()
 {
-    Log::info() << *this << std::endl;
+    eckit::Log::info() << *this << std::endl;
     if(!readOnly_) {
 
-        FileHandle f(path_);
+        eckit::FileHandle f(path_);
 
-        f.openForWrite(0); AutoClose closer(f);
+        f.openForWrite(0); eckit::AutoClose closer(f);
 
         std::ostringstream os;
 
-        JSON j(os);
+        eckit::JSON j(os);
         json(j);
 
-        Log::info() << "Axis JSON " << os.str() << std::endl;
+        eckit::Log::info() << "Axis JSON " << os.str() << std::endl;
 
         f.write(os.str().c_str(), os.str().size());
     }
@@ -69,20 +67,20 @@ void IndexAxis::insert(const Key& key)
 
 //    Log::info() << *this << std::endl;
 
-    const StringDict& keymap = key.dict();
+    const eckit::StringDict& keymap = key.dict();
 
-    for(StringDict::const_iterator i = keymap.begin(); i  != keymap.end(); ++i) {
+    for(eckit::StringDict::const_iterator i = keymap.begin(); i  != keymap.end(); ++i) {
         const std::string& keyword = i->first;
         const std::string& value   = i->second;
         axis_[keyword].insert(value);
     }
 }
 
-const StringSet& IndexAxis::values(const std::string& keyword) const
+const eckit::StringSet& IndexAxis::values(const std::string& keyword) const
 {
     AxisMap::const_iterator i = axis_.find(keyword);
     if(i == axis_.end()) {
-        throw SeriousBug("Cannot find Axis: " + keyword);
+        throw eckit::SeriousBug("Cannot find Axis: " + keyword);
     }
     return i->second;
 }
@@ -92,11 +90,11 @@ void IndexAxis::print(std::ostream& out) const
     out << "IndexAxis("
         << "path=" << path_
         <<  ",axis=";
-    __print_container(out, axis_);
+    eckit::__print_container(out, axis_);
     out  << ")";
 }
 
-void IndexAxis::json(JSON& j) const
+void IndexAxis::json(eckit::JSON& j) const
 {
     j << axis_;
 }

@@ -17,8 +17,6 @@
 #include "fdb5/KeywordType.h"
 #include "fdb5/DateHandler.h"
 
-using namespace eckit;
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -34,19 +32,19 @@ DateHandler::~DateHandler()
 
 void DateHandler::getValues(const MarsRequest& request,
                                const std::string& keyword,
-                               StringList& values,
+                               eckit::StringList& values,
                                const MarsTask& task,
                                const DB* db) const
 {
-    std::vector<Date> dates;
+    std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates);
 
-    Translator<long, std::string> t;
+    eckit::Translator<long, std::string> t;
 
     values.reserve(dates.size());
 
-    for(std::vector<Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
+    for(std::vector<eckit::Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
         values.push_back(t(i->yyyymmdd()));
     }
 }

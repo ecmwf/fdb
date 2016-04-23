@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2013 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -21,14 +21,13 @@
 #include "fdb5/TocActions.h"
 #include "fdb5/Key.h"
 
-using namespace eckit;
 
 namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-TocInitialiser::TocInitialiser(const PathName& dir) : TocHandler(dir)
-{    
+TocInitialiser::TocInitialiser(const eckit::PathName& dir) : TocHandler(dir)
+{
 	if( !dir_.exists() )
 	{
 		dirPath().mkdir();
@@ -53,7 +52,7 @@ TocInitialiser::TocInitialiser(const PathName& dir) : TocHandler(dir)
 		}
         else {
             if( errno == EEXIST ) {
-                Log::warning() << "TocInitialiser: " << filePath() << " already exists" << std::endl;
+                eckit::Log::warning() << "TocInitialiser: " << filePath() << " already exists" << std::endl;
             }
             else {
                 SYSCALL2(fd_, filePath());
@@ -65,7 +64,7 @@ TocInitialiser::TocInitialiser(const PathName& dir) : TocHandler(dir)
 
 //-----------------------------------------------------------------------------
 
-TocIndex::TocIndex(const PathName& dir, const PathName& idx, const Key& key) :
+TocIndex::TocIndex(const eckit::PathName& dir, const eckit::PathName& idx, const Key& key) :
     TocHandler( dir ),
     index_(idx),
     tocMD_(key.valuesToString())
@@ -79,6 +78,7 @@ TocIndex::~TocIndex()
 	append(r);
 	close();
 }
+
 eckit::PathName TocIndex::index() const
 {
     return index_;
@@ -86,7 +86,7 @@ eckit::PathName TocIndex::index() const
 
 //-----------------------------------------------------------------------------
 
-TocReverseIndexes::TocReverseIndexes(const PathName& dir) :
+TocReverseIndexes::TocReverseIndexes(const eckit::PathName& dir) :
     TocHandler(dir),
     inited_(false) {
 }
@@ -97,14 +97,14 @@ void TocReverseIndexes::init() {
         return;
     }
 
-    Log::info() << "Initing TocReverseIndexes @ " << filePath_ << std::endl;
+    eckit::Log::info() << "Initing TocReverseIndexes @ " << filePath_ << std::endl;
 
     openForRead();
 
     TocRecord r;
 
     while( readNext(r) ) {
-        Log::info() << "TOC Record: " << r << std::endl;
+        eckit::Log::info() << "TOC Record: " << r << std::endl;
         toc_.push_back(r);
     }
 
@@ -113,7 +113,7 @@ void TocReverseIndexes::init() {
     inited_ = true;
 }
 
-std::vector<PathName> TocReverseIndexes::indexes(const Key& key) const
+std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key& key) const
 {
     const_cast<TocReverseIndexes*>(this)->init();
 
@@ -126,7 +126,7 @@ std::vector<PathName> TocReverseIndexes::indexes(const Key& key) const
 
     TocRecord::MetaData md( key.valuesToString() );
 
-    std::vector< PathName > indexes;
+    std::vector< eckit::PathName > indexes;
 
 	for( TocVec::const_iterator itr = toc_.begin(); itr != toc_.end(); ++itr )
 	{
@@ -151,7 +151,7 @@ std::vector<PathName> TocReverseIndexes::indexes(const Key& key) const
 			break;
 
 			default:
-				throw SeriousBug("Unknown tag in TocRecord",Here());
+				throw eckit::SeriousBug("Unknown tag in TocRecord",Here());
 			break;
 		}
 	}
@@ -165,7 +165,7 @@ std::vector<PathName> TocReverseIndexes::indexes(const Key& key) const
 
 //-----------------------------------------------------------------------------
 
-TocList::TocList(const PathName& dir) : TocHandler(dir)
+TocList::TocList(const eckit::PathName& dir) : TocHandler(dir)
 {
 	openForRead();
 
@@ -206,7 +206,7 @@ void TocList::list(std::ostream& out) const
 			break;
 
 			default:
-				throw SeriousBug("Unknown tag in TocRecord",Here());
+				throw eckit::SeriousBug("Unknown tag in TocRecord",Here());
 			break;
 		}
 	}
@@ -214,7 +214,7 @@ void TocList::list(std::ostream& out) const
 
 //-----------------------------------------------------------------------------
 
-TocPrint::TocPrint(const PathName& dir) : TocHandler(dir)
+TocPrint::TocPrint(const eckit::PathName& dir) : TocHandler(dir)
 {
 }
 
