@@ -39,6 +39,8 @@ public: // methods
 
     void addType(const std::string&, const std::string&);
     void updateParent(const TypesRegistry*);
+    void dump( std::ostream& out ) const;
+    void dump( std::ostream& out, const std::string& keyword ) const;
 
 
 private: // members

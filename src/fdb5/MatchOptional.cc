@@ -13,6 +13,7 @@
 #include "fdb5/MatchOptional.h"
 #include "fdb5/Key.h"
 #include "eckit/types/Types.h"
+#include "fdb5/TypesRegistry.h"
 
 namespace fdb5 {
 
@@ -54,9 +55,10 @@ const std::string& MatchOptional::defaultValue() const {
     return default_;
 }
 
-void MatchOptional::dump(std::ostream& s, const std::string& keyword) const
+void MatchOptional::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const
 {
-    s << keyword << '?' << default_;
+    registry.dump(s, keyword);
+    s << '?' << default_;
 }
 
 void MatchOptional::print(std::ostream& out) const

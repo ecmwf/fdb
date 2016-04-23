@@ -34,9 +34,9 @@ bool Predicate::match(const Key& key) const
     return matcher_->match(keyword_, key);
 }
 
-void Predicate::dump(std::ostream& s) const
+void Predicate::dump(std::ostream& s, const TypesRegistry& registry) const
 {
-    matcher_->dump(s, keyword_);
+    matcher_->dump(s, keyword_, registry);
 }
 
 void Predicate::print(std::ostream& out) const

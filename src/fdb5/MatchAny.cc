@@ -10,6 +10,7 @@
 
 #include "fdb5/Key.h"
 #include "fdb5/MatchAny.h"
+#include "fdb5/TypesRegistry.h"
 
 namespace fdb5 {
 
@@ -36,10 +37,11 @@ bool MatchAny::match(const std::string& keyword, const Key& key) const
     return (values_.find(i->second) != values_.end());
 }
 
-void MatchAny::dump(std::ostream& s, const std::string& keyword) const
+void MatchAny::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const
 {
     const char* sep = "";
-    s << keyword << "=";
+    registry.dump(s, keyword);
+    s << "=";
     for( std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
         s << sep << *i;
         sep = "/";

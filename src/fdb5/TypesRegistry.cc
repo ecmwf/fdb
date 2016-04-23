@@ -75,6 +75,22 @@ void TypesRegistry::print( std::ostream& out ) const {
     out << this << "(" << types_ << ")";
 }
 
+void TypesRegistry::dump( std::ostream& out ) const {
+    for(std::map<std::string, std::string>::const_iterator i = types_.begin(); i != types_.end(); ++i) {
+        out << i->first << ":" << i->second << ";" << std::endl;
+    }
+}
+
+
+void TypesRegistry::dump( std::ostream& out, const std::string& keyword ) const {
+    std::map<std::string, std::string>::const_iterator i = types_.find(keyword);
+
+    out << keyword;
+    if(i != types_.end()) {
+        out << ":" << i->second;
+    }
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

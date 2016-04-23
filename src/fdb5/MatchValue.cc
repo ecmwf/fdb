@@ -10,6 +10,7 @@
 
 #include "fdb5/Key.h"
 #include "fdb5/MatchValue.h"
+#include "fdb5/TypesRegistry.h"
 
 namespace fdb5 {
 
@@ -36,9 +37,10 @@ bool MatchValue::match(const std::string& keyword, const Key& key) const
     return ( i->second == value_ );
 }
 
-void MatchValue::dump(std::ostream& s, const std::string& keyword) const
+void MatchValue::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const
 {
-    s << keyword << "=" << value_;
+    registry.dump(s, keyword);
+    s << "=" << value_;
 }
 
 void MatchValue::print(std::ostream& out) const

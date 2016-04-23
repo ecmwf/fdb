@@ -13,6 +13,7 @@
 #include "fdb5/MatchHidden.h"
 #include "fdb5/Key.h"
 #include "eckit/types/Types.h"
+#include "fdb5/TypesRegistry.h"
 
 namespace fdb5 {
 
@@ -47,9 +48,10 @@ const std::string& MatchHidden::defaultValue() const {
     return default_;
 }
 
-void MatchHidden::dump(std::ostream& s, const std::string& keyword) const
+void MatchHidden::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const
 {
-    s << keyword << '-' << default_;
+    registry.dump(s, keyword);
+    s << '-' << default_;
 }
 
 void MatchHidden::print(std::ostream& out) const

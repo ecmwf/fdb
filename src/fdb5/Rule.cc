@@ -238,7 +238,7 @@ void Rule::dump(std::ostream& s, size_t depth) const
     const char* sep = "";
     for(std::vector<Predicate*>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
         s << sep;
-        (*i)->dump(s);
+        (*i)->dump(s, registry_);
         sep = ",";
     }
 

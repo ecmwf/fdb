@@ -84,6 +84,7 @@ void Schema::clear()
 
 void Schema::dump(std::ostream& s) const
 {
+    registry_.dump(s);
     for(std::vector<Rule*>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->dump(s);
         s << std::endl;
