@@ -31,133 +31,120 @@
 # fdb5 library
 
 list( APPEND fdb5_srcs
-
-    Archiver.h
-    Archiver.cc
-    GribArchiver.h
-    GribArchiver.cc
-    GribIndexer.h
-    GribIndexer.cc
-    GribDecoder.h
-    GribDecoder.cc
-
-    Retriever.h
-    Retriever.cc
-
-    FDBFileHandle.h
-    FDBFileHandle.cc
-
-    MasterConfig.h
-    MasterConfig.cc
-    Key.h
-    Key.cc
-    Matcher.h
-    Matcher.cc
-    MatchAny.h
-    MatchAny.cc
-    MatchValue.h
-    MatchValue.cc
-    MatchAlways.h
-    MatchAlways.cc
-    MatchOptional.h
-    MatchOptional.cc
-    MatchHidden.h
-    MatchHidden.cc
-    Predicate.h
-    Predicate.cc
-    Rule.h
-    Rule.cc
-    Schema.h
-    Schema.cc
-    SchemaParser.h
-    SchemaParser.cc
-
-    ReadVisitor.h
-    ReadVisitor.cc
-    WriteVisitor.h
-    WriteVisitor.cc
-    BaseArchiveVisitor.h
-    BaseArchiveVisitor.cc
-    ArchiveVisitor.h
-    ArchiveVisitor.cc
-    AdoptVisitor.h
     AdoptVisitor.cc
-
-    TypesRegistry.h
-    TypesRegistry.cc
-    TypeIgnore.h
-    TypeIgnore.cc
-    TypeDate.h
-    TypeDate.cc
-    TypeStep.h
-    TypeStep.cc
-    TypesFactory.h
-    TypesFactory.cc
-    Type.h
-    Type.cc
-    TypeDefault.h
-    TypeDefault.cc
-    TypeParam.h
-    TypeParam.cc
-    TypeInteger.h
-    TypeInteger.cc
-    TypeDouble.h
-    TypeDouble.cc
-    TypeDouble.h
-    TypeDouble.cc
-    GridHandler.h
-    GridHandler.cc
-    TypeMonth.h
-    TypeMonth.cc
-    TypeClimateDaily.h
-    TypeClimateDaily.cc
-    TypeClimateMonthly.h
-    TypeClimateMonthly.cc
-	TypeAbbreviation.h
-	TypeAbbreviation.cc
-
-    DB.h
-    DB.cc
-    TocDB.h
-    TocDB.cc
-    TocDBReader.h
-	TocDBReader.cc
-	TocDBWriter.h
-	TocDBWriter.cc
-
-    Index.h
-    Index.cc
-    BTreeIndex.h
+    AdoptVisitor.h
+    Archiver.cc
+    Archiver.h
+    ArchiveVisitor.cc
+    ArchiveVisitor.h
+    BaseArchiveVisitor.cc
+    BaseArchiveVisitor.h
     BTreeIndex.cc
-    TextIndex.h
-    TextIndex.cc
-    IndexAxis.h
-    IndexAxis.cc
-
-    FileStore.h
-    FileStore.cc
-
-    TocActions.h
-    TocActions.cc
-    TocRecord.h
-    TocRecord.cc
-    TocHandler.h
-    TocHandler.cc
-
-    LegacyKey.h
-    LegacyKey.cc
-
-    Error.h
+    BTreeIndex.h
+    DB.cc
+    DB.h
     Error.cc
-    NotFound.h
-    NotFound.cc
-
-    HandleGatherer.h
+    Error.h
+    FDBFileHandle.cc
+    FDBFileHandle.h
+    FileStore.cc
+    FileStore.h
+    GribArchiver.cc
+    GribArchiver.h
+    GribDecoder.cc
+    GribDecoder.h
+    GribIndexer.cc
+    GribIndexer.h
+    GridHandler.cc
+    GridHandler.h
     HandleGatherer.cc
-    RequestParser.h
+    HandleGatherer.h
+    Index.cc
+    Index.h
+    IndexAxis.cc
+    IndexAxis.h
+    Key.cc
+    Key.h
+    LegacyKey.cc
+    LegacyKey.h
+    MasterConfig.cc
+    MasterConfig.h
+    MatchAlways.cc
+    MatchAlways.h
+    MatchAny.cc
+    MatchAny.h
+    Matcher.cc
+    Matcher.h
+    MatchHidden.cc
+    MatchHidden.h
+    MatchOptional.cc
+    MatchOptional.h
+    MatchValue.cc
+    MatchValue.h
+    NotFound.cc
+    NotFound.h
+    Predicate.cc
+    Predicate.h
+    ReadVisitor.cc
+    ReadVisitor.h
     RequestParser.cc
-    TypeDateOrMonth.h
+    RequestParser.h
+    Retriever.cc
+    Retriever.h
+    Rule.cc
+    Rule.h
+    Schema.cc
+    Schema.h
+    SchemaParser.cc
+    SchemaParser.h
+    TextIndex.cc
+    TextIndex.h
+    TocActions.cc
+    TocActions.h
+    TocDB.cc
+    TocDB.h
+    TocDBReader.cc
+    TocDBReader.h
+    TocDBWriter.cc
+    TocDBWriter.h
+    TocHandler.cc
+    TocHandler.h
+    TocRecord.cc
+    TocRecord.h
+    Type.cc
+    Type.h
+    TypeAbbreviation.cc
+    TypeAbbreviation.h
+    TypeClimateDaily.cc
+    TypeClimateDaily.h
+    TypeClimateMonthly.cc
+    TypeClimateMonthly.h
+    TypeDate.cc
+    TypeDate.h
     TypeDateOrMonth.cc
+    TypeDateOrMonth.h
+    TypeDefault.cc
+    TypeDefault.h
+    TypeDouble.cc
+    TypeDouble.cc
+    TypeDouble.h
+    TypeDouble.h
+    TypeIgnore.cc
+    TypeIgnore.h
+    TypeInteger.cc
+    TypeInteger.h
+    TypeMonth.cc
+    TypeMonth.h
+    TypeParam.cc
+    TypeParam.h
+    TypesFactory.cc
+    TypesFactory.h
+    TypesRegistry.cc
+    TypesRegistry.h
+    TypeStep.cc
+    TypeStep.h
+    WriteVisitor.cc
+    WriteVisitor.h
 )
 
 ecbuild_add_library(
