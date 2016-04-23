@@ -67,10 +67,10 @@ list( APPEND fdb5_srcs
     Predicate.cc
     Rule.h
     Rule.cc
-    Rules.h
-    Rules.cc
-    RulesParser.h
-    RulesParser.cc
+    Schema.h
+    Schema.cc
+    SchemaParser.h
+    SchemaParser.cc
 
     ReadVisitor.h
     ReadVisitor.cc
@@ -187,7 +187,7 @@ list( APPEND fdb5_tools
     fdb5_insert
     fdb5_extract
     fdb5_retrieve
-    fdb5_rules
+    fdb5_schema
     )
 
 foreach( _tool ${fdb5_tools} )

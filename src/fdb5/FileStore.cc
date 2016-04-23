@@ -134,7 +134,7 @@ void FileStore::flush()
 void FileStore::print( std::ostream& out ) const
 {
     for( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr )
-		out << itr->first << " " << itr->second << "\n";
+		out << itr->first << " " << itr->second << std::endl;
 }
 
 //-----------------------------------------------------------------------------

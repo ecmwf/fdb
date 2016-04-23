@@ -71,8 +71,6 @@ void ClimateMonthlyHandler::getValues(const MarsRequest& request,
 
     values.reserve(dates.size());
 
-    eckit::Translator<long, std::string> t;
-
     for(std::vector<std::string>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
         values.push_back(months[month(*i)-1]);
     }

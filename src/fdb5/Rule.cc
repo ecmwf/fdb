@@ -22,9 +22,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Rule::Rule(size_t line,
+Rule::Rule(const Schema& schema,
+    size_t line,
     std::vector<Predicate*>& predicates, std::vector<Rule*>& rules,
     const std::map<std::string, std::string>& types):
+    schema_(schema),
     line_(line)
 {
     std::swap(predicates, predicates_);
@@ -283,6 +285,10 @@ const Rule& Rule::topRule() const {
     else {
         return *this;
     }
+}
+
+const Schema& Rule::schema() const {
+    return schema_;
 }
 
 std::ostream& operator<<(std::ostream& s, const Rule& x)

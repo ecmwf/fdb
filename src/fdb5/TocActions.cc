@@ -45,7 +45,7 @@ TocInitialiser::TocInitialiser(const eckit::PathName& dir) : TocHandler(dir)
 
         /* Copy rules first */
 
-        eckit::FileHandle in(MasterConfig::instance().rulesPath());
+        eckit::FileHandle in(MasterConfig::instance().schemaPath());
         eckit::FileHandle out(dir_ / "schema");
         in.saveInto(out);
 

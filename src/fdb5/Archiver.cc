@@ -44,11 +44,11 @@ void Archiver::write(const Key& key, const void* data, size_t length)
 
     ASSERT(data);
 
-    const Rules& rules = MasterConfig::instance().rules();
+    const Schema& schema = MasterConfig::instance().schema();
 
     ArchiveVisitor visitor(*this, key, data, length);
 
-    rules.expand(key, visitor);
+    schema.expand(key, visitor);
 
     if(visitor.rule() == 0) { // Make sure we did find a rule that matched
         std::ostringstream oss;
@@ -59,11 +59,11 @@ void Archiver::write(const Key& key, const void* data, size_t length)
 
 void Archiver::adopt(const Key& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length)
 {
-    const Rules& rules = MasterConfig::instance().rules();
+    const Schema& schema = MasterConfig::instance().schema();
 
     AdoptVisitor visitor(*this, key, path, offset, length);
 
-    rules.expand(key, visitor);
+    schema.expand(key, visitor);
 
     if(visitor.rule() == 0) { // Make sure we did find a rule that matched
         std::ostringstream oss;

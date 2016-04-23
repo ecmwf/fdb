@@ -12,27 +12,28 @@
 #include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
 
-#include "fdb5/Rules.h"
+#include "fdb5/Schema.h"
+#include "fdb5/MasterConfig.h"
 
 using namespace std;
 using namespace eckit;
 using namespace fdb5;
 
-class FdbRules : public eckit::Tool {
+class FdbSchema : public eckit::Tool {
     virtual void run();
 public:
-    FdbRules(int argc,char **argv): Tool(argc,argv) {}
+    FdbSchema(int argc,char **argv): Tool(argc,argv) {}
 };
 
-void FdbRules::run()
+void FdbSchema::run()
 {
     Context& ctx = Context::instance();
 
     ASSERT( ctx.argc() == 2 );
 
-    Rules rules;
+    fdb5::Schema rules;
 
-    rules.load(ctx.argv(1));
+    rules.load(ctx.argc() > 1 ? ctx.argv(1) : MasterConfig::instance().schemaPath());
 
     rules.dump(std::cout);
 }
@@ -40,7 +41,7 @@ void FdbRules::run()
 
 int main(int argc, char **argv)
 {
-    FdbRules app(argc,argv);
+    FdbSchema app(argc,argv);
     return app.start();
 }
 

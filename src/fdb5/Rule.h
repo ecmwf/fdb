@@ -27,6 +27,7 @@ class MarsRequest;
 
 namespace fdb5 {
 
+class Schema;
 class Predicate;
 class ReadVisitor;
 class WriteVisitor;
@@ -39,7 +40,8 @@ class Rule : public eckit::NonCopyable {
 public: // methods
 
     /// Takes ownership of vectors
-    Rule(size_t line,
+    Rule(const Schema& schema,
+        size_t line,
         std::vector<Predicate*>& predicates,
         std::vector<Rule*>& rules,
         const std::map<std::string, std::string>& types
@@ -72,6 +74,8 @@ public: // methods
 
     const Rule& topRule() const;
 
+    const Schema& schema() const;
+
 private: // methods
 
     void expand(const MarsRequest& request,
@@ -98,12 +102,13 @@ private: // methods
 
 private: // members
 
+    const Schema& schema_;
     const Rule* parent_;
     std::vector<Predicate*> predicates_;
     std::vector<Rule*>      rules_;
     Handlers handlers_;
 
-    friend class Rules;
+    friend class Schema;
     size_t line_;
 
 };

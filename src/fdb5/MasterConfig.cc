@@ -28,22 +28,22 @@ MasterConfig::MasterConfig()
 
     eckit::ResourceMgr::instance().appendConfig("~/etc/config/fdb");
 
-    rules_.load( rulesPath() );
+    schema_.load( schemaPath() );
 }
 
 MasterConfig::~MasterConfig()
 {
 }
 
-std::string MasterConfig::rulesPath() const
+std::string MasterConfig::schemaPath() const
 {
-    static eckit::PathName fdbRules = eckit::Resource<eckit::PathName>("fdbRules", "~/etc/fdb/rules");
+    static eckit::PathName fdbRules = eckit::Resource<eckit::PathName>("fdbRules", "~/etc/fdb/schema");
     return fdbRules;
 }
 
-const Rules& MasterConfig::rules() const
+const Schema& MasterConfig::schema() const
 {
-    return rules_;
+    return schema_;
 }
 
 MasterConfig& MasterConfig::instance()

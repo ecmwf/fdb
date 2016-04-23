@@ -42,7 +42,7 @@ Retriever::~Retriever()
 {
 }
 
-struct RetrieveVisitor : public ReadVisitor {
+class RetrieveVisitor : public ReadVisitor {
 
     Retriever& owner_;
 
@@ -51,7 +51,7 @@ struct RetrieveVisitor : public ReadVisitor {
     std::string fdbReaderDB_;
     HandleGatherer& gatherer_;
 
-
+public:
     RetrieveVisitor(Retriever& owner, const MarsTask& task, HandleGatherer& gatherer):
         owner_(owner),
         gatherer_(gatherer) {
@@ -130,8 +130,8 @@ eckit::DataHandle* Retriever::retrieve()
 
     RetrieveVisitor visitor(*this, task_, result);
 
-    const Rules& rules = MasterConfig::instance().rules();
-    rules.expand(task_.request(), visitor);
+    const Schema& schema = MasterConfig::instance().schema();
+    schema.expand(task_.request(), visitor);
 
     return result.dataHandle();
 }
