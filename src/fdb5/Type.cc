@@ -8,52 +8,45 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/utils/Translator.h"
-
 #include "marslib/MarsTask.h"
 
-#include "fdb5/KeywordType.h"
-#include "fdb5/IntegerHandler.h"
+#include "fdb5/Type.h"
+
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IntegerHandler::IntegerHandler(const std::string& name, const std::string& type) :
-    KeywordHandler(name, type)
+Type::Type(const std::string& name, const std::string& type) :
+    name_(name),
+    type_(type)
 {
 }
 
-IntegerHandler::~IntegerHandler()
-{
+Type::~Type() {
 }
 
-void IntegerHandler::getValues(const MarsRequest& request,
+void Type::getValues(const MarsRequest& request,
                                const std::string& keyword,
                                StringList& values,
                                const MarsTask& task,
                                const DB* db) const
 {
-    std::vector<long> intValues;
-
-    request.getValues(keyword, intValues);
-
-    Translator<long, std::string> t;
-
-    values.reserve(intValues.size());
-
-    for(std::vector<long>::const_iterator i = intValues.begin(); i != intValues.end(); ++i) {
-        values.push_back(t(*i));
-    }
+    request.getValues(keyword, values);
 }
 
-void IntegerHandler::print(std::ostream &out) const
+
+void Type::toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const {
+    out << value;
+}
+
+std::ostream& operator<<(std::ostream& s, const Type& x)
 {
-    out << "IntegerHandler(" << name_ << ")";
+    x.print(s);
+    return s;
 }
-
-static KeywordHandlerBuilder<IntegerHandler> handler("Integer");
 
 //----------------------------------------------------------------------------------------------------------------------
 

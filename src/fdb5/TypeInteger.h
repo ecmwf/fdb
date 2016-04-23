@@ -8,51 +8,37 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Handlers.h
+/// @file   TypeInteger.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   Mar 2016
+/// @date   April 2016
 
-#ifndef fdb5_Handlers_H
-#define fdb5_Handlers_H
+#ifndef fdb5_TypeInteger_H
+#define fdb5_TypeInteger_H
 
-#include <string>
-#include <map>
-
-#include "eckit/memory/NonCopyable.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
-class KeywordHandler;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class Handlers : private eckit::NonCopyable {
+class TypeInteger : public Type {
 
 public: // methods
 
-    Handlers();
+    TypeInteger(const std::string& name, const std::string& type);
 
-    ~Handlers();
+    virtual ~TypeInteger();
 
-    const KeywordHandler& lookupHandler(const std::string& keyword) const;
+    virtual void getValues(const MarsRequest& request,
+                           const std::string& keyword,
+                           eckit::StringList& values,
+                           const MarsTask& task,
+                           const DB* db) const;
 
-    void addType(const std::string&, const std::string&);
-    void updateParent(const Handlers*);
+private: // methods
 
-
-private: // members
-
-    typedef std::map<std::string, KeywordHandler*> HandlerMap;
-
-    mutable HandlerMap handlers_;
-
-    std::map<std::string, std::string> types_;
-    const Handlers* parent_;
-
-    friend std::ostream& operator<<(std::ostream& s,const Handlers& x);
-
-    void print( std::ostream& out ) const;
+    virtual void print( std::ostream& out ) const;
 
 };
 

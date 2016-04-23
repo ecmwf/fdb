@@ -15,6 +15,7 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/types/Types.h"
 #include "fdb5/TocDB.h"
+#include "fdb5/Rule.h"
 
 
 namespace fdb5 {
@@ -201,6 +202,17 @@ void TocDB::closeIndexes()
     indexes_.clear();
 }
 
+void TocDB::loadSchema() {
+    Timer timer("TocDB::loadSchema()");
+    schema_.load( path_ / "schema" );
+}
+
+void TocDB::checkSchema(const Key& key) const {
+    Timer timer("TocDB::loadSchema()");
+    ASSERT(key.rule());
+    schema_.compareTo(key.rule()->schema());
+    Log::info() << "TODO TocDB::checkSchema " << key << std::endl;
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

@@ -8,45 +8,42 @@
  * does it submit to any jurisdiction.
  */
 
-#include "marslib/MarsTask.h"
+#include "eckit/utils/Translator.h"
 
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/TypesFactory.h"
+#include "fdb5/TypeIgnore.h"
+#include "fdb5/DB.h"
 
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-KeywordHandler::KeywordHandler(const std::string& name, const std::string& type) :
-    name_(name),
-    type_(type)
-{
+TypeIgnore::TypeIgnore(const std::string &name, const std::string& type) :
+    Type(name, type) {
 }
 
-KeywordHandler::~KeywordHandler() {
-}
-
-void KeywordHandler::getValues(const MarsRequest& request,
-                               const std::string& keyword,
-                               StringList& values,
-                               const MarsTask& task,
-                               const DB* db) const
-{
-    request.getValues(keyword, values);
+TypeIgnore::~TypeIgnore() {
 }
 
 
-void KeywordHandler::toKey(std::ostream& out,
+void TypeIgnore::toKey(std::ostream& out,
                        const std::string& keyword,
                        const std::string& value) const {
-    out << value;
 }
 
-std::ostream& operator<<(std::ostream& s, const KeywordHandler& x)
-{
-    x.print(s);
-    return s;
+void TypeIgnore::getValues(const MarsRequest &request,
+                            const std::string &keyword,
+                            eckit::StringList &values,
+                            const MarsTask &task,
+                            const DB *db) const {
 }
+
+void TypeIgnore::print(std::ostream &out) const {
+    out << "TypeIgnore(" << name_ << ")";
+}
+
+static TypeBuilder<TypeIgnore> type("Ignore");
 
 //----------------------------------------------------------------------------------------------------------------------
 

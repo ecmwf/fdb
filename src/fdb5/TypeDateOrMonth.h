@@ -8,39 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   KeywordHandler.h
+/// @file   TypeDateOrMonth.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_KeywordHandler_H
-#define fdb5_KeywordHandler_H
+#ifndef fdb5_TypeDateOrMonth_H
+#define fdb5_TypeDateOrMonth_H
 
-#include <string>
-
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/types/Types.h"
-
-class MarsTask;
-class MarsRequest;
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
-class DB;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class KeywordHandler : private eckit::NonCopyable {
+class TypeDateOrMonth : public Type {
 
 public: // methods
 
-    KeywordHandler(const std::string& name, const std::string& type);
+    TypeDateOrMonth(const std::string& name, const std::string& type);
 
-    virtual ~KeywordHandler();
-
-    virtual void toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const ;
+    virtual ~TypeDateOrMonth();
 
     virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,
@@ -48,20 +36,9 @@ public: // methods
                            const MarsTask& task,
                            const DB* db) const;
 
-    friend std::ostream& operator<<(std::ostream& s,const KeywordHandler& x);
-
-public: // class methods
-
-    static const KeywordHandler& lookup(const std::string& keyword);
-
 private: // methods
 
-    virtual void print( std::ostream& out ) const = 0;
-
-protected: // members
-
-    std::string name_;
-    std::string type_;
+    virtual void print( std::ostream& out ) const;
 
 };
 

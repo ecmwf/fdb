@@ -8,27 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   DoubleHandler.h
+/// @file   TypeAbbreviation.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_DoubleHandler_H
-#define fdb5_DoubleHandler_H
+#ifndef fdb5_TypeAbbreviation_H
+#define fdb5_TypeAbbreviation_H
 
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DoubleHandler : public KeywordHandler {
+class TypeAbbreviation : public Type {
 
 public: // methods
 
-    DoubleHandler(const std::string& name, const std::string& type);
+    TypeAbbreviation(const std::string& name, const std::string& type);
 
-    virtual ~DoubleHandler();
+    virtual ~TypeAbbreviation();
 
     virtual void toKey(std::ostream& out,
                        const std::string& keyword,
@@ -43,6 +43,7 @@ public: // methods
 private: // methods
 
     virtual void print( std::ostream& out ) const;
+    size_t count_;
 
 };
 

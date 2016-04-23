@@ -27,6 +27,7 @@ TocDBReader::TocDBReader(const Key& key) :
     toc_(path_)
 {
     eckit::Log::info() << "TocDBReader for TOC [" << path_ << "]" << std::endl;
+    loadSchema();
 }
 
 TocDBReader::~TocDBReader()

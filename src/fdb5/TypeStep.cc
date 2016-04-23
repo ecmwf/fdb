@@ -13,8 +13,8 @@
 #include "marslib/MarsTask.h"
 #include "marslib/StepRange.h"
 
-#include "fdb5/KeywordType.h"
-#include "fdb5/StepHandler.h"
+#include "fdb5/TypesFactory.h"
+#include "fdb5/TypeStep.h"
 #include "fdb5/DB.h"
 
 
@@ -22,21 +22,21 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-StepHandler::StepHandler(const std::string &name, const std::string& type) :
-    KeywordHandler(name, type) {
+TypeStep::TypeStep(const std::string &name, const std::string& type) :
+    Type(name, type) {
 }
 
-StepHandler::~StepHandler() {
+TypeStep::~TypeStep() {
 }
 
 
-void StepHandler::toKey(std::ostream& out,
+void TypeStep::toKey(std::ostream& out,
                        const std::string& keyword,
                        const std::string& value) const {
   out << StepRange(value);
 }
 
-void StepHandler::getValues(const MarsRequest &request,
+void TypeStep::getValues(const MarsRequest &request,
                             const std::string &keyword,
                             eckit::StringList &values,
                             const MarsTask &task,
@@ -75,11 +75,11 @@ void StepHandler::getValues(const MarsRequest &request,
     }
 }
 
-void StepHandler::print(std::ostream &out) const {
-    out << "StepHandler(" << name_ << ")";
+void TypeStep::print(std::ostream &out) const {
+    out << "TypeStep(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<StepHandler> handler("Step");
+static TypeBuilder<TypeStep> type("Step");
 
 //----------------------------------------------------------------------------------------------------------------------
 

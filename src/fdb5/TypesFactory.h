@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   KeywordType.h
+/// @file   TypesFactory.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_KeywordType_H
-#define fdb5_KeywordType_H
+#ifndef fdb5_TypesFactory_H
+#define fdb5_TypesFactory_H
 
 #include <string>
 
@@ -23,27 +23,27 @@
 
 namespace fdb5 {
 
-class KeywordHandler;
+class Type;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// A self-registering factory for producing KeywordType instances
+/// A self-registering factory for producing TypesFactory instances
 
-class KeywordType {
+class TypesFactory {
 
-    virtual KeywordHandler* make(const std::string& keyword) const = 0 ;
+    virtual Type* make(const std::string& keyword) const = 0 ;
 
 protected:
 
-    KeywordType(const std::string&);
-    virtual ~KeywordType();
+    TypesFactory(const std::string&);
+    virtual ~TypesFactory();
 
     std::string name_;
 
 public:
 
     static void list(std::ostream &);
-    static KeywordHandler* build(const std::string& name, const std::string& keyword);
+    static Type* build(const std::string& name, const std::string& keyword);
 
 };
 
@@ -51,14 +51,14 @@ public:
 /// that does the self-registration, and the construction of each object.
 
 template< class T>
-class KeywordHandlerBuilder : public KeywordType {
+class TypeBuilder : public TypesFactory {
 
-    virtual KeywordHandler* make(const std::string& keyword) const {
+    virtual Type* make(const std::string& keyword) const {
         return new T(keyword, name_);
     }
 
 public:
-    KeywordHandlerBuilder(const std::string& name) : KeywordType(name) {}
+    TypeBuilder(const std::string& name) : TypesFactory(name) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------

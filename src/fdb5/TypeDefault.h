@@ -8,37 +8,28 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   IgnoreHandler.h
+/// @file   TypeDefault.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_IgnoreHandler_H
-#define fdb5_IgnoreHandler_H
+#ifndef fdb5_TypeDefault_H
+#define fdb5_TypeDefault_H
 
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IgnoreHandler : public KeywordHandler {
+class TypeDefault : public Type {
 
 public: // methods
 
-    IgnoreHandler(const std::string& name, const std::string& type);
+    TypeDefault(const std::string& name, const std::string& type);
 
-    virtual ~IgnoreHandler();
+    virtual ~TypeDefault();
 
-    virtual void getValues(const MarsRequest& request,
-                           const std::string& keyword,
-                           eckit::StringList& values,
-                           const MarsTask& task,
-                           const DB* db) const;
-
-    virtual void toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const;
 private: // methods
 
     virtual void print( std::ostream& out ) const;

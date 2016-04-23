@@ -20,7 +20,7 @@
 
 #include "fdb5/DB.h"
 #include "fdb5/Schema.h"
-#include "fdb5/Handlers.h"
+#include "fdb5/TypesRegistry.h"
 
 class MarsTask;
 class MarsRequest;

@@ -27,7 +27,8 @@ BaseArchiveVisitor::BaseArchiveVisitor(Archiver& owner, const Key& field) :
 
 bool BaseArchiveVisitor::selectDatabase(const Key& key, const Key& full) {
     eckit::Log::info() << "selectDatabase " << key << std::endl;
-    owner_.current_ = &owner_.session(key);
+    owner_.current_ = &owner_.database(key);
+    owner_.current_->checkSchema(key);
     return true;
 }
 

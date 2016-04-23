@@ -22,7 +22,7 @@ namespace fdb5 {
 class Schema;
 class Rule;
 class Predicate;
-class Handlers;
+class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ public: // methods
 
     SchemaParser(std::istream& in);
 
-    void parse(const Schema& owner, std::vector<Rule*>&, Handlers& handlers);
+    void parse(const Schema& owner, std::vector<Rule*>&, TypesRegistry& registry);
 
 private: // methods
 

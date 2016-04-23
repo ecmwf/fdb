@@ -14,57 +14,74 @@
 
 #include "marslib/MarsTask.h"
 
-#include "fdb5/KeywordType.h"
-#include "fdb5/MonthHandler.h"
+#include "fdb5/TypesFactory.h"
+#include "fdb5/TypeClimateMonthly.h"
 
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MonthHandler::MonthHandler(const std::string& name, const std::string& type) :
-    KeywordHandler(name, type)
+static const char* months[] = {
+    "jan", "feb", "mar", "apr", "may", "jun",
+    "jul", "aug", "sep", "oct", "nov", "dec",};
+
+TypeClimateMonthly::TypeClimateMonthly(const std::string& name, const std::string& type) :
+    Type(name, type)
 {
 }
 
-MonthHandler::~MonthHandler()
+TypeClimateMonthly::~TypeClimateMonthly()
 {
 }
 
-void MonthHandler::toKey(std::ostream& out,
+static int month(const std::string& value) {
+  if(isdigit(value[0])) {
+      Date date(value);
+      return date.month();
+  }
+  else {
+
+      for(int i = 0; i < 12 ; i++ ) {
+          if(value == months[i]) {
+              return i+1;
+          }
+      }
+
+      throw SeriousBug("TypeClimateMonthly: invalid date: " + value);
+  }
+}
+
+void TypeClimateMonthly::toKey(std::ostream& out,
                        const std::string& keyword,
                        const std::string& value) const {
 
-    Date date(value);
-    out << date.year() * 100 + date.month();
+    out << month(value);
 }
 
-void MonthHandler::getValues(const MarsRequest& request,
+void TypeClimateMonthly::getValues(const MarsRequest& request,
                                const std::string& keyword,
                                StringList& values,
                                const MarsTask& task,
                                const DB* db) const
 {
-    std::vector<Date> dates;
+    std::vector<std::string> dates;
 
     request.getValues(keyword, dates);
 
     values.reserve(dates.size());
 
-    eckit::Translator<Date, std::string> t;
-
-    for(std::vector<Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
-        const Date& date = *i;
-        values.push_back(t(date));
+    for(std::vector<std::string>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
+        values.push_back(months[month(*i)-1]);
     }
 }
 
-void MonthHandler::print(std::ostream &out) const
+void TypeClimateMonthly::print(std::ostream &out) const
 {
-    out << "MonthHandler(" << name_ << ")";
+    out << "TypeClimateMonthly(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<MonthHandler> handler("Month");
+static TypeBuilder<TypeClimateMonthly> type("ClimateMonthly");
 
 //----------------------------------------------------------------------------------------------------------------------
 

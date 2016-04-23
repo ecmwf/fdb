@@ -70,7 +70,7 @@ void Schema::load(const eckit::PathName& path, bool replace)
 
     SchemaParser parser(in);
 
-    parser.parse(*this, rules_, handler_);
+    parser.parse(*this, rules_, registry_);
 
     check();
 }
@@ -95,7 +95,7 @@ void Schema::check()
     for(std::vector<Rule*>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         /// @todo print offending rule in meaningful message
         ASSERT((*i)->depth() == 3);
-        (*i)->handlers_.updateParent(&handler_);
+        (*i)->registry_.updateParent(&registry_);
         (*i)->updateParent(0);
     }
 }
@@ -105,10 +105,14 @@ void Schema::print(std::ostream& out) const
     out << "Schema()";
 }
 
-const KeywordHandler& Schema::lookupHandler(const std::string& keyword) const {
-    return handler_.lookupHandler(keyword);
+const Type& Schema::lookupType(const std::string& keyword) const {
+    return registry_.lookupType(keyword);
 }
 
+
+void Schema::compareTo(const Schema& other) const {
+    // TODO
+}
 
 std::ostream& operator<<(std::ostream& s, const Schema& x)
 {

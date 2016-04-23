@@ -19,7 +19,7 @@
 #include "fdb5/DB.h"
 #include "fdb5/Key.h"
 #include "fdb5/Rule.h"
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/Type.h"
 #include "fdb5/HandleGatherer.h"
 #include "fdb5/ReadVisitor.h"
 
@@ -73,6 +73,7 @@ public:
         else {
             return true;
         }
+        db_->checkSchema(key);
     }
 
     virtual bool selectIndex(const Key& key, const Key& full) {
@@ -95,9 +96,9 @@ public:
     }
 
     virtual void values(const MarsRequest& request, const std::string& keyword,
-            const Handlers& handlers,
+            const TypesRegistry& registry,
             eckit::StringList& values) {
-        handlers.lookupHandler(keyword).getValues(request, keyword, values, owner_.task_, db_.get());
+        registry.lookupType(keyword).getValues(request, keyword, values, owner_.task_, db_.get());
     }
 
     virtual void print( std::ostream& out ) const {

@@ -8,27 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   ClimateMonthlyHandler.h
+/// @file   TypeMonth.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_ClimateMonthlyHandler_H
-#define fdb5_ClimateMonthlyHandler_H
+#ifndef fdb5_TypeMonth_H
+#define fdb5_TypeMonth_H
 
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ClimateMonthlyHandler : public KeywordHandler {
+class TypeMonth : public Type {
 
 public: // methods
 
-    ClimateMonthlyHandler(const std::string& name, const std::string& type);
+    TypeMonth(const std::string& name, const std::string& type);
 
-    virtual ~ClimateMonthlyHandler();
+    virtual ~TypeMonth();
 
     virtual void toKey(std::ostream& out,
                        const std::string& keyword,

@@ -9,43 +9,57 @@
  */
 
 #include "eckit/exception/Exceptions.h"
-#include "eckit/parser/StringTools.h"
-#include "marslib/MarsRequest.h"
+#include "eckit/utils/Translator.h"
+
+#include "marslib/MarsTask.h"
 
 #include "fdb5/TypesFactory.h"
-#include "fdb5/GridHandler.h"
+#include "fdb5/TypeDouble.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GridHandler::GridHandler(const std::string& name, const std::string& type) :
+TypeDouble::TypeDouble(const std::string& name, const std::string& type) :
     Type(name, type)
 {
 }
 
-GridHandler::~GridHandler()
+TypeDouble::~TypeDouble()
 {
 }
 
-void GridHandler::getValues(const MarsRequest& request,
+void TypeDouble::toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const {
+    out << eckit::Translator<std::string, double>()(value);
+}
+
+void TypeDouble::getValues(const MarsRequest& request,
                                const std::string& keyword,
-                               eckit::StringList& values,
+                               StringList& values,
                                const MarsTask& task,
                                const DB* db) const
 {
-    std::vector<std::string> v;
-    request.getValues(keyword, v);
-    values.push_back(eckit::StringTools::join("/", v));
+    std::vector<double> dblValues;
+
+    request.getValues(keyword, dblValues);
+
+    Translator<double, std::string> t;
+
+    values.reserve(dblValues.size());
+
+    for(std::vector<double>::const_iterator i = dblValues.begin(); i != dblValues.end(); ++i) {
+        values.push_back(t(*i));
+    }
 }
 
-
-void GridHandler::print(std::ostream &out) const
+void TypeDouble::print(std::ostream &out) const
 {
-    out << "GridHandler()";
+    out << "TypeDouble(" << name_ << ")";
 }
 
-static TypeBuilder<GridHandler> type("Grid");
+static TypeBuilder<TypeDouble> type("Double");
 
 //----------------------------------------------------------------------------------------------------------------------
 

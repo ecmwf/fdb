@@ -8,27 +8,39 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   StepHandler.h
+/// @file   Type.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_StepHandler_H
-#define fdb5_StepHandler_H
+#ifndef fdb5_Type_H
+#define fdb5_Type_H
 
-#include "fdb5/KeywordHandler.h"
+#include <string>
+
+#include "eckit/memory/NonCopyable.h"
+#include "eckit/types/Types.h"
+
+class MarsTask;
+class MarsRequest;
 
 namespace fdb5 {
 
+class DB;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class StepHandler : public KeywordHandler {
+class Type : private eckit::NonCopyable {
 
 public: // methods
 
-    StepHandler(const std::string& name, const std::string& type);
+    Type(const std::string& name, const std::string& type);
 
-    virtual ~StepHandler();
+    virtual ~Type();
+
+    virtual void toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const ;
 
     virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,
@@ -36,12 +48,20 @@ public: // methods
                            const MarsTask& task,
                            const DB* db) const;
 
-    virtual void toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const;
+    friend std::ostream& operator<<(std::ostream& s,const Type& x);
+
+public: // class methods
+
+    static const Type& lookup(const std::string& keyword);
+
 private: // methods
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream& out ) const = 0;
+
+protected: // members
+
+    std::string name_;
+    std::string type_;
 
 };
 

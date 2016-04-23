@@ -22,7 +22,7 @@
 #include "fdb5/MatchValue.h"
 #include "fdb5/MatchOptional.h"
 #include "fdb5/MatchHidden.h"
-#include "fdb5/Handlers.h"
+#include "fdb5/TypesRegistry.h"
 
 namespace fdb5 {
 
@@ -80,7 +80,7 @@ Predicate* SchemaParser::parsePredicate(std::map<std::string, std::string>& type
     if(c == '-') {
         consume(c);
         if(types.find(k) == types.end()) {
-            // Register ignore handler
+            // Register ignore type
             types[k] = "Ignore";
         }
         return new Predicate(k, new MatchHidden(parseIdent(true)));
@@ -179,14 +179,14 @@ SchemaParser::SchemaParser(std::istream &in) : StreamParser(in, true)
 }
 
 void SchemaParser::parse(const Schema& owner,
-    std::vector<Rule*>& result, Handlers& handlers)
+    std::vector<Rule*>& result, TypesRegistry& registry)
 {
     char c;
     std::map<std::string, std::string> types;
 
     parseTypes(types);
     for(std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
-        handlers.addType(i->first, i->second);
+        registry.addType(i->first, i->second);
     }
 
     while((c = peek()) == '[') {

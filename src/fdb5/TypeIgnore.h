@@ -8,27 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   DateHandler.h
+/// @file   TypeIgnore.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_DateHandler_H
-#define fdb5_DateHandler_H
+#ifndef fdb5_TypeIgnore_H
+#define fdb5_TypeIgnore_H
 
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DateHandler : public KeywordHandler {
+class TypeIgnore : public Type {
 
 public: // methods
 
-    DateHandler(const std::string& name, const std::string& type);
+    TypeIgnore(const std::string& name, const std::string& type);
 
-    virtual ~DateHandler();
+    virtual ~TypeIgnore();
 
     virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,
@@ -36,6 +36,9 @@ public: // methods
                            const MarsTask& task,
                            const DB* db) const;
 
+    virtual void toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const;
 private: // methods
 
     virtual void print( std::ostream& out ) const;

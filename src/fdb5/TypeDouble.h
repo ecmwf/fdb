@@ -8,27 +8,31 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   DateOrMonthHandler.h
+/// @file   TypeDouble.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_DateOrMonthHandler_H
-#define fdb5_DateOrMonthHandler_H
+#ifndef fdb5_TypeDouble_H
+#define fdb5_TypeDouble_H
 
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DateOrMonthHandler : public KeywordHandler {
+class TypeDouble : public Type {
 
 public: // methods
 
-    DateOrMonthHandler(const std::string& name, const std::string& type);
+    TypeDouble(const std::string& name, const std::string& type);
 
-    virtual ~DateOrMonthHandler();
+    virtual ~TypeDouble();
+
+    virtual void toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const ;
 
     virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,

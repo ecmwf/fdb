@@ -21,7 +21,7 @@
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
-#include "fdb5/Handlers.h"
+#include "fdb5/TypesRegistry.h"
 
 class MarsRequest;
 
@@ -75,6 +75,7 @@ public: // methods
     const Rule& topRule() const;
 
     const Schema& schema() const;
+    const TypesRegistry& registry() const;
 
 private: // methods
 
@@ -106,7 +107,7 @@ private: // members
     const Rule* parent_;
     std::vector<Predicate*> predicates_;
     std::vector<Rule*>      rules_;
-    Handlers handlers_;
+    TypesRegistry registry_;
 
     friend class Schema;
     size_t line_;

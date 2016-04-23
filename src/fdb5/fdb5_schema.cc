@@ -29,7 +29,7 @@ void FdbSchema::run()
 {
     Context& ctx = Context::instance();
 
-    ASSERT( ctx.argc() == 2 );
+    // ASSERT( ctx.argc() == 2 );
 
     fdb5::Schema rules;
 

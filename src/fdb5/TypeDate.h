@@ -8,31 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   ClimateDailyHandler.h
+/// @file   TypeDate.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_ClimateDailyHandler_H
-#define fdb5_ClimateDailyHandler_H
+#ifndef fdb5_TypeDate_H
+#define fdb5_TypeDate_H
 
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ClimateDailyHandler : public KeywordHandler {
+class TypeDate : public Type {
 
 public: // methods
 
-    ClimateDailyHandler(const std::string& name, const std::string& type);
+    TypeDate(const std::string& name, const std::string& type);
 
-    virtual ~ClimateDailyHandler();
-
-    virtual void toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const ;
+    virtual ~TypeDate();
 
     virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,

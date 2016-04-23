@@ -59,8 +59,8 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
             ASSERT( grib_keys_iterator_get_string(ks, val, &len) == 0);
 
             /// @todo cannocicalisation of values
-            /// const KeywordHandler& handler = KeywordHandler::lookup(name);
-            //  request.set( name, handler.cannocalise(val) );
+            /// const Type& type = Type::lookup(name);
+            //  request.set( name, type.cannocalise(val) );
             key.set( name, val );
         }
 

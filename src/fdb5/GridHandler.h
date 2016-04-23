@@ -16,13 +16,13 @@
 #ifndef fdb5_GridHandler_H
 #define fdb5_GridHandler_H
 
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class GridHandler : public KeywordHandler {
+class GridHandler : public Type {
 
 public: // methods
 

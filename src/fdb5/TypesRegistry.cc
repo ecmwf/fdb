@@ -9,41 +9,41 @@
  */
 
 
-#include "fdb5/Handlers.h"
-#include "fdb5/KeywordType.h"
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/TypesRegistry.h"
+#include "fdb5/TypesFactory.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Handlers::Handlers():
+TypesRegistry::TypesRegistry():
     parent_(0)
 {
 }
 
-Handlers::~Handlers()
+TypesRegistry::~TypesRegistry()
 {
-    for(HandlerMap::iterator i = handlers_.begin(); i != handlers_.end(); ++i) {
+    for(TypeMap::iterator i = cache_.begin(); i != cache_.end(); ++i) {
         delete (*i).second;
     }
 }
 
-void Handlers::updateParent(const Handlers* parent) {
+void TypesRegistry::updateParent(const TypesRegistry* parent) {
     parent_ = parent;
 }
 
 
-void Handlers::addType(const std::string& keyword, const std::string& type) {
+void TypesRegistry::addType(const std::string& keyword, const std::string& type) {
     ASSERT(types_.find(keyword) == types_.end());
     types_[keyword] = type;
 }
 
-const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
+const Type& TypesRegistry::lookupType(const std::string& keyword) const
 {
-    std::map<std::string, KeywordHandler*>::const_iterator j = handlers_.find(keyword);
+    std::map<std::string, Type*>::const_iterator j = cache_.find(keyword);
 
-    if (j != handlers_.end()) {
+    if (j != cache_.end()) {
         return *(*j).second;
     }
     else {
@@ -55,23 +55,23 @@ const KeywordHandler& Handlers::lookupHandler(const std::string& keyword) const
         }
         else {
             if(parent_) {
-                return parent_->lookupHandler(keyword);
+                return parent_->lookupType(keyword);
             }
         }
 
-        eckit::Log::info() << "Handler for " << keyword << " is " << type << std::endl;
-        KeywordHandler* newKH = KeywordType::build(type, keyword);
-        handlers_[keyword] = newKH;
+        eckit::Log::info() << "Type of " << keyword << " is " << type << std::endl;
+        Type* newKH = TypesFactory::build(type, keyword);
+        cache_[keyword] = newKH;
         return *newKH;
     }
 }
 
-std::ostream& operator<<(std::ostream& s,const Handlers& x) {
+std::ostream& operator<<(std::ostream& s,const TypesRegistry& x) {
     x.print(s);
     return s;
 }
 
-void Handlers::print( std::ostream& out ) const {
+void TypesRegistry::print( std::ostream& out ) const {
     out << this << "(" << types_ << ")";
 }
 

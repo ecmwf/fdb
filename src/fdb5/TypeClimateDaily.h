@@ -8,27 +8,31 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   ParamHandler.h
+/// @file   TypeClimateDaily.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_ParamHandler_H
-#define fdb5_ParamHandler_H
+#ifndef fdb5_TypeClimateDaily_H
+#define fdb5_TypeClimateDaily_H
 
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ParamHandler : public KeywordHandler {
+class TypeClimateDaily : public Type {
 
 public: // methods
 
-    ParamHandler(const std::string& name, const std::string& type);
+    TypeClimateDaily(const std::string& name, const std::string& type);
 
-    virtual ~ParamHandler();
+    virtual ~TypeClimateDaily();
+
+    virtual void toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const ;
 
     virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,

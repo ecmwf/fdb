@@ -18,6 +18,7 @@
 
 #include "fdb5/DB.h"
 #include "fdb5/Index.h"
+#include "fdb5/Schema.h"
 
 namespace fdb5 {
 
@@ -49,6 +50,8 @@ protected: // methods
 
     virtual void close();
 
+    virtual void checkSchema(const Key& key) const;
+
     virtual eckit::DataHandle* retrieve(const Key& key) const;
 
     virtual Index* openIndex(const Key& key, const eckit::PathName& path) const = 0;
@@ -64,6 +67,9 @@ protected: // methods
     /// Closes all indexes in the cache
     void closeIndexes();
 
+    ///
+    void loadSchema();
+
 protected: // members
 
     eckit::PathName path_;
@@ -74,6 +80,7 @@ protected: // members
 
     mutable IndexStore indexes_;    ///< stores the indexes being used by the Session
 
+    Schema schema_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

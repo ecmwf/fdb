@@ -8,36 +8,31 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   DefaultKeywordHandler.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   April 2016
+#include "eckit/exception/Exceptions.h"
 
-#ifndef fdb5_DefaultKeywordHandler_H
-#define fdb5_DefaultKeywordHandler_H
-
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/TypesFactory.h"
+#include "fdb5/TypeDefault.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DefaultKeywordHandler : public KeywordHandler {
+TypeDefault::TypeDefault(const std::string& name, const std::string& type) :
+    Type(name, type)
+{
+}
 
-public: // methods
+TypeDefault::~TypeDefault()
+{
+}
 
-    DefaultKeywordHandler(const std::string& name, const std::string& type);
+void TypeDefault::print(std::ostream &out) const
+{
+    out << "TypeDefault()";
+}
 
-    virtual ~DefaultKeywordHandler();
-
-private: // methods
-
-    virtual void print( std::ostream& out ) const;
-
-};
+static TypeBuilder<TypeDefault> type("Default");
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

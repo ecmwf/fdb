@@ -8,34 +8,34 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/AbbreviationHandler.h"
+#include "fdb5/TypeAbbreviation.h"
 
 #include "marslib/MarsRequest.h"
 
-#include "fdb5/KeywordType.h"
+#include "fdb5/TypesFactory.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AbbreviationHandler::AbbreviationHandler(const std::string& name, const std::string& type) :
-    KeywordHandler(name, type)
+TypeAbbreviation::TypeAbbreviation(const std::string& name, const std::string& type) :
+    Type(name, type)
 {
     count_ = char(type[type.length()-1]) - '0';
 }
 
-AbbreviationHandler::~AbbreviationHandler()
+TypeAbbreviation::~TypeAbbreviation()
 {
 }
 
-void AbbreviationHandler::toKey(std::ostream& out,
+void TypeAbbreviation::toKey(std::ostream& out,
                        const std::string& keyword,
                        const std::string& value) const {
 
     out << value.substr(0, count_);
 }
 
-void AbbreviationHandler::getValues(const MarsRequest& request,
+void TypeAbbreviation::getValues(const MarsRequest& request,
                                const std::string& keyword,
                                eckit::StringList& values,
                                const MarsTask& task,
@@ -52,12 +52,12 @@ void AbbreviationHandler::getValues(const MarsRequest& request,
     }
 }
 
-void AbbreviationHandler::print(std::ostream &out) const
+void TypeAbbreviation::print(std::ostream &out) const
 {
-    out << "AbbreviationHandler(" << name_ << ")";
+    out << "TypeAbbreviation(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<AbbreviationHandler> handler("First3");
+static TypeBuilder<TypeAbbreviation> type("First3");
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -7,7 +7,7 @@
 #  * fdbRoot is a list of paths to visit ---> speak to Hodge
 #  * check overwrite
 #
-#  * Axis should consider KeywordHandler
+#  * Axis should consider Type
 #
 #  * fdb_ingest --path fdbroot
 #      - check for duplicates
@@ -83,38 +83,38 @@ list( APPEND fdb5_srcs
     AdoptVisitor.h
     AdoptVisitor.cc
 
-    Handlers.h
-    Handlers.cc
-    IgnoreHandler.h
-    IgnoreHandler.cc
-    DateHandler.h
-    DateHandler.cc
-    StepHandler.h
-    StepHandler.cc
-    KeywordType.h
-    KeywordType.cc
-    KeywordHandler.h
-    KeywordHandler.cc
-    DefaultKeywordHandler.h
-    DefaultKeywordHandler.cc
-    ParamHandler.h
-    ParamHandler.cc
-    IntegerHandler.h
-    IntegerHandler.cc
-    DoubleHandler.h
-    DoubleHandler.cc
-    DoubleHandler.h
-    DoubleHandler.cc
+    TypesRegistry.h
+    TypesRegistry.cc
+    TypeIgnore.h
+    TypeIgnore.cc
+    TypeDate.h
+    TypeDate.cc
+    TypeStep.h
+    TypeStep.cc
+    TypesFactory.h
+    TypesFactory.cc
+    Type.h
+    Type.cc
+    TypeDefault.h
+    TypeDefault.cc
+    TypeParam.h
+    TypeParam.cc
+    TypeInteger.h
+    TypeInteger.cc
+    TypeDouble.h
+    TypeDouble.cc
+    TypeDouble.h
+    TypeDouble.cc
     GridHandler.h
     GridHandler.cc
-    MonthHandler.h
-    MonthHandler.cc
-    ClimateDailyHandler.h
-    ClimateDailyHandler.cc
-    ClimateMonthlyHandler.h
-    ClimateMonthlyHandler.cc
-	AbbreviationHandler.h
-	AbbreviationHandler.cc
+    TypeMonth.h
+    TypeMonth.cc
+    TypeClimateDaily.h
+    TypeClimateDaily.cc
+    TypeClimateMonthly.h
+    TypeClimateMonthly.cc
+	TypeAbbreviation.h
+	TypeAbbreviation.cc
 
     DB.h
     DB.cc
@@ -156,8 +156,8 @@ list( APPEND fdb5_srcs
     HandleGatherer.cc
     RequestParser.h
     RequestParser.cc
-    DateOrMonthHandler.h
-    DateOrMonthHandler.cc
+    TypeDateOrMonth.h
+    TypeDateOrMonth.cc
 )
 
 ecbuild_add_library(

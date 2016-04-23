@@ -8,41 +8,51 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   MonthHandler.h
+/// @file   TypesRegistry.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   April 2016
+/// @date   Mar 2016
 
-#ifndef fdb5_MonthHandler_H
-#define fdb5_MonthHandler_H
+#ifndef fdb5_TypesRegistry_H
+#define fdb5_TypesRegistry_H
 
-#include "fdb5/KeywordHandler.h"
+#include <string>
+#include <map>
+
+#include "eckit/memory/NonCopyable.h"
 
 namespace fdb5 {
 
+class Type;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class MonthHandler : public KeywordHandler {
+class TypesRegistry : private eckit::NonCopyable {
 
 public: // methods
 
-    MonthHandler(const std::string& name, const std::string& type);
+    TypesRegistry();
 
-    virtual ~MonthHandler();
+    ~TypesRegistry();
 
-    virtual void toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const ;
+    const Type& lookupType(const std::string& keyword) const;
 
-    virtual void getValues(const MarsRequest& request,
-                           const std::string& keyword,
-                           eckit::StringList& values,
-                           const MarsTask& task,
-                           const DB* db) const;
+    void addType(const std::string&, const std::string&);
+    void updateParent(const TypesRegistry*);
 
-private: // methods
 
-    virtual void print( std::ostream& out ) const;
+private: // members
+
+    typedef std::map<std::string, Type*> TypeMap;
+
+    mutable TypeMap cache_;
+
+    std::map<std::string, std::string> types_;
+    const TypesRegistry* parent_;
+
+    friend std::ostream& operator<<(std::ostream& s,const TypesRegistry& x);
+
+    void print( std::ostream& out ) const;
 
 };
 

@@ -9,8 +9,8 @@
  */
 
 
-#include "fdb5/KeywordType.h"
-#include "fdb5/ParamHandler.h"
+#include "fdb5/TypesFactory.h"
+#include "fdb5/TypeParam.h"
 #include "fdb5/DB.h"
 
 #include "marslib/MarsParam.h"
@@ -21,16 +21,16 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ParamHandler::ParamHandler(const std::string& name, const std::string& type) :
-    KeywordHandler(name, type)
+TypeParam::TypeParam(const std::string& name, const std::string& type) :
+    Type(name, type)
 {
 }
 
-ParamHandler::~ParamHandler()
+TypeParam::~TypeParam()
 {
 }
 
-void ParamHandler::getValues(const MarsRequest& request,
+void TypeParam::getValues(const MarsRequest& request,
                              const std::string& keyword,
                              eckit::StringList& values,
                              const MarsTask& task,
@@ -43,7 +43,7 @@ void ParamHandler::getValues(const MarsRequest& request,
 
     eckit::StringList us;
 
-    KeywordHandler::getValues(request, keyword, us, task, db);
+    Type::getValues(request, keyword, us, task, db);
 
     std::vector<Param> user;
     std::copy(us.begin(), us.end(), std::back_inserter(user));
@@ -57,7 +57,7 @@ void ParamHandler::getValues(const MarsRequest& request,
 
     std::copy(user.begin(), user.end(), std::back_inserter(values));
 
-    Log::info() << "ParamHandler before: " << us << std::endl;
+    Log::info() << "TypeParam before: " << us << std::endl;
     Log::info() << "              after: " << values << std::endl;
     Log::info() << "               wind: " << (windConvertion ? "true" : "false") << std::endl;
     // Log::info() << "               user: " << user << std::endl;
@@ -68,12 +68,12 @@ void ParamHandler::getValues(const MarsRequest& request,
     }
 }
 
-void ParamHandler::print(std::ostream &out) const
+void TypeParam::print(std::ostream &out) const
 {
-    out << "ParamHandler(" << name_ << ")";
+    out << "TypeParam(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<ParamHandler> handler("Param");
+static TypeBuilder<TypeParam> type("Param");
 
 //----------------------------------------------------------------------------------------------------------------------
 

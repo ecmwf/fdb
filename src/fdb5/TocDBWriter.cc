@@ -54,6 +54,7 @@ TocDBWriter::TocDBWriter(const Key& key) :
         TocInitialiser init(path_);
     }
 
+
     blockSize_ = eckit::Resource<long>( "blockSize", 0 );
 
     if( blockSize_ < 0 ) // take blockSize_ from statfs
@@ -72,6 +73,7 @@ TocDBWriter::TocDBWriter(const Key& key) :
     aio_ = eckit::Resource<bool>("fdbAsyncWrite",false);
 
     Log::info() << "TocDBWriter for TOC [" << path_ << "] with block size of " << Bytes(blockSize_) << std::endl;
+    loadSchema();
 }
 
 TocDBWriter::~TocDBWriter()

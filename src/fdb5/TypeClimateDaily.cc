@@ -10,13 +10,13 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
+#include "eckit/parser/Tokenizer.h"
 #include "eckit/types/Date.h"
 
 #include "marslib/MarsTask.h"
 
-#include "fdb5/KeywordType.h"
-#include "fdb5/ClimateMonthlyHandler.h"
-
+#include "fdb5/TypesFactory.h"
+#include "fdb5/TypeClimateDaily.h"
 
 namespace fdb5 {
 
@@ -26,62 +26,73 @@ static const char* months[] = {
     "jan", "feb", "mar", "apr", "may", "jun",
     "jul", "aug", "sep", "oct", "nov", "dec",};
 
-ClimateMonthlyHandler::ClimateMonthlyHandler(const std::string& name, const std::string& type) :
-    KeywordHandler(name, type)
+TypeClimateDaily::TypeClimateDaily(const std::string& name, const std::string& type) :
+    Type(name, type)
 {
 }
 
-ClimateMonthlyHandler::~ClimateMonthlyHandler()
+TypeClimateDaily::~TypeClimateDaily()
 {
 }
 
 static int month(const std::string& value) {
   if(isdigit(value[0])) {
       Date date(value);
-      return date.month();
+      return date.month() * 100 + date.day();
   }
   else {
 
+      eckit::Translator<std::string, long> t;
+      eckit::Tokenizer parse("-");
+      eckit::StringList v;
+
+      parse(value, v);
+      ASSERT(v.size() == 2);
+
+
+
       for(int i = 0; i < 12 ; i++ ) {
-          if(value == months[i]) {
-              return i+1;
+          if(v[0] == months[i]) {
+              return (i+1) * 100 + t(v[1]);
           }
       }
 
-      throw SeriousBug("ClimateMonthlyHandler: invalid date: " + value);
+      throw SeriousBug("TypeClimateDaily: invalid date: " + value);
   }
 }
 
-void ClimateMonthlyHandler::toKey(std::ostream& out,
+void TypeClimateDaily::toKey(std::ostream& out,
                        const std::string& keyword,
                        const std::string& value) const {
 
     out << month(value);
 }
 
-void ClimateMonthlyHandler::getValues(const MarsRequest& request,
+void TypeClimateDaily::getValues(const MarsRequest& request,
                                const std::string& keyword,
                                StringList& values,
                                const MarsTask& task,
                                const DB* db) const
 {
-    std::vector<std::string> dates;
+    std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates);
 
     values.reserve(dates.size());
 
-    for(std::vector<std::string>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
-        values.push_back(months[month(*i)-1]);
+    eckit::Translator<eckit::Date, std::string> t;
+
+    for(std::vector<eckit::Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
+        values.push_back(t(*i));
     }
 }
 
-void ClimateMonthlyHandler::print(std::ostream &out) const
+void TypeClimateDaily::print(std::ostream &out) const
 {
-    out << "ClimateMonthlyHandler(" << name_ << ")";
+    out << "TypeClimateDaily(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<ClimateMonthlyHandler> handler("ClimateMonthly");
+static TypeBuilder<TypeClimateDaily> type("ClimateDaily");
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -45,6 +45,12 @@ TocInitialiser::TocInitialiser(const eckit::PathName& dir) : TocHandler(dir)
 
         /* Copy rules first */
 
+        eckit::Log::info() << "Copy schema from "
+                           << MasterConfig::instance().schemaPath()
+                           << " to "
+                           << dir_ / "schema"
+                           << std::endl;
+
         eckit::FileHandle in(MasterConfig::instance().schemaPath());
         eckit::FileHandle out(dir_ / "schema");
         in.saveInto(out);

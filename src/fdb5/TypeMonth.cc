@@ -10,56 +10,61 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
+#include "eckit/types/Date.h"
 
 #include "marslib/MarsTask.h"
 
-#include "fdb5/KeywordType.h"
-#include "fdb5/DoubleHandler.h"
+#include "fdb5/TypesFactory.h"
+#include "fdb5/TypeMonth.h"
+
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DoubleHandler::DoubleHandler(const std::string& name, const std::string& type) :
-    KeywordHandler(name, type)
+TypeMonth::TypeMonth(const std::string& name, const std::string& type) :
+    Type(name, type)
 {
 }
 
-DoubleHandler::~DoubleHandler()
+TypeMonth::~TypeMonth()
 {
 }
 
-void DoubleHandler::toKey(std::ostream& out,
+void TypeMonth::toKey(std::ostream& out,
                        const std::string& keyword,
                        const std::string& value) const {
-    out << eckit::Translator<std::string, double>()(value);
+
+    Date date(value);
+    out << date.year() * 100 + date.month();
 }
 
-void DoubleHandler::getValues(const MarsRequest& request,
+void TypeMonth::getValues(const MarsRequest& request,
                                const std::string& keyword,
                                StringList& values,
                                const MarsTask& task,
                                const DB* db) const
 {
-    std::vector<double> dblValues;
+    std::vector<Date> dates;
 
-    request.getValues(keyword, dblValues);
+    request.getValues(keyword, dates);
 
-    Translator<double, std::string> t;
+    values.reserve(dates.size());
 
-    values.reserve(dblValues.size());
+    eckit::Translator<Date, std::string> t;
 
-    for(std::vector<double>::const_iterator i = dblValues.begin(); i != dblValues.end(); ++i) {
-        values.push_back(t(*i));
+    for(std::vector<Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
+        const Date& date = *i;
+        values.push_back(t(date));
     }
 }
 
-void DoubleHandler::print(std::ostream &out) const
+void TypeMonth::print(std::ostream &out) const
 {
-    out << "DoubleHandler(" << name_ << ")";
+    out << "TypeMonth(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<DoubleHandler> handler("Double");
+static TypeBuilder<TypeMonth> type("Month");
 
 //----------------------------------------------------------------------------------------------------------------------
 

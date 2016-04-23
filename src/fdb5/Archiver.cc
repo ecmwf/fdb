@@ -80,17 +80,17 @@ void Archiver::flush()
 }
 
 
-DB& Archiver::session(const Key& key)
+DB& Archiver::database(const Key& key)
 {
     store_t::iterator i = databases_.find(key);
 
     if(i != databases_.end() )
         return *(i->second.get());
 
-    eckit::SharedPtr<DB> newSession ( DBFactory::build(fdbWriterDB_, key) );
-    ASSERT(newSession);
-    databases_[key] = newSession;
-    return *newSession;
+    eckit::SharedPtr<DB> db ( DBFactory::build(fdbWriterDB_, key) );
+    ASSERT(db);
+    databases_[key] = db;
+    return *db;
 }
 
 void Archiver::print(std::ostream& out) const

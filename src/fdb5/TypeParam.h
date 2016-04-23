@@ -8,31 +8,42 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
+/// @file   TypeParam.h
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
+/// @date   April 2016
 
-#include "fdb5/KeywordType.h"
-#include "fdb5/DefaultKeywordHandler.h"
+#ifndef fdb5_TypeParam_H
+#define fdb5_TypeParam_H
+
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DefaultKeywordHandler::DefaultKeywordHandler(const std::string& name, const std::string& type) :
-    KeywordHandler(name, type)
-{
-}
+class TypeParam : public Type {
 
-DefaultKeywordHandler::~DefaultKeywordHandler()
-{
-}
+public: // methods
 
-void DefaultKeywordHandler::print(std::ostream &out) const
-{
-    out << "DefaultKeywordHandler()";
-}
+    TypeParam(const std::string& name, const std::string& type);
 
-static KeywordHandlerBuilder<DefaultKeywordHandler> handler("Default");
+    virtual ~TypeParam();
+
+    virtual void getValues(const MarsRequest& request,
+                           const std::string& keyword,
+                           eckit::StringList& values,
+                           const MarsTask& task,
+                           const DB* db) const;
+
+private: // methods
+
+    virtual void print( std::ostream& out ) const;
+
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
+
+#endif

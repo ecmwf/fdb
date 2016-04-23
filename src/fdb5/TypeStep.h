@@ -8,27 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   IntegerHandler.h
+/// @file   TypeStep.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_IntegerHandler_H
-#define fdb5_IntegerHandler_H
+#ifndef fdb5_TypeStep_H
+#define fdb5_TypeStep_H
 
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IntegerHandler : public KeywordHandler {
+class TypeStep : public Type {
 
 public: // methods
 
-    IntegerHandler(const std::string& name, const std::string& type);
+    TypeStep(const std::string& name, const std::string& type);
 
-    virtual ~IntegerHandler();
+    virtual ~TypeStep();
 
     virtual void getValues(const MarsRequest& request,
                            const std::string& keyword,
@@ -36,6 +36,9 @@ public: // methods
                            const MarsTask& task,
                            const DB* db) const;
 
+    virtual void toKey(std::ostream& out,
+                       const std::string& keyword,
+                       const std::string& value) const;
 private: // methods
 
     virtual void print( std::ostream& out ) const;

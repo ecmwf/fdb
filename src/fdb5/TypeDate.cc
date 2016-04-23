@@ -14,23 +14,23 @@
 #include "eckit/types/Date.h"
 #include "marslib/MarsRequest.h"
 
-#include "fdb5/KeywordType.h"
-#include "fdb5/DateHandler.h"
+#include "fdb5/TypesFactory.h"
+#include "fdb5/TypeDate.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DateHandler::DateHandler(const std::string& name, const std::string& type) :
-    KeywordHandler(name, type)
+TypeDate::TypeDate(const std::string& name, const std::string& type) :
+    Type(name, type)
 {
 }
 
-DateHandler::~DateHandler()
+TypeDate::~TypeDate()
 {
 }
 
-void DateHandler::getValues(const MarsRequest& request,
+void TypeDate::getValues(const MarsRequest& request,
                                const std::string& keyword,
                                eckit::StringList& values,
                                const MarsTask& task,
@@ -49,12 +49,12 @@ void DateHandler::getValues(const MarsRequest& request,
     }
 }
 
-void DateHandler::print(std::ostream &out) const
+void TypeDate::print(std::ostream &out) const
 {
-    out << "DateHandler(" << name_ << ")";
+    out << "TypeDate(" << name_ << ")";
 }
 
-static KeywordHandlerBuilder<DateHandler> handler("Date");
+static TypeBuilder<TypeDate> type("Date");
 
 //----------------------------------------------------------------------------------------------------------------------
 

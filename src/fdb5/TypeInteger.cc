@@ -9,43 +9,51 @@
  */
 
 #include "eckit/exception/Exceptions.h"
-#include "eckit/parser/StringTools.h"
-#include "marslib/MarsRequest.h"
+#include "eckit/utils/Translator.h"
+
+#include "marslib/MarsTask.h"
 
 #include "fdb5/TypesFactory.h"
-#include "fdb5/GridHandler.h"
+#include "fdb5/TypeInteger.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GridHandler::GridHandler(const std::string& name, const std::string& type) :
+TypeInteger::TypeInteger(const std::string& name, const std::string& type) :
     Type(name, type)
 {
 }
 
-GridHandler::~GridHandler()
+TypeInteger::~TypeInteger()
 {
 }
 
-void GridHandler::getValues(const MarsRequest& request,
+void TypeInteger::getValues(const MarsRequest& request,
                                const std::string& keyword,
-                               eckit::StringList& values,
+                               StringList& values,
                                const MarsTask& task,
                                const DB* db) const
 {
-    std::vector<std::string> v;
-    request.getValues(keyword, v);
-    values.push_back(eckit::StringTools::join("/", v));
+    std::vector<long> intValues;
+
+    request.getValues(keyword, intValues);
+
+    Translator<long, std::string> t;
+
+    values.reserve(intValues.size());
+
+    for(std::vector<long>::const_iterator i = intValues.begin(); i != intValues.end(); ++i) {
+        values.push_back(t(*i));
+    }
 }
 
-
-void GridHandler::print(std::ostream &out) const
+void TypeInteger::print(std::ostream &out) const
 {
-    out << "GridHandler()";
+    out << "TypeInteger(" << name_ << ")";
 }
 
-static TypeBuilder<GridHandler> type("Grid");
+static TypeBuilder<TypeInteger> type("Integer");
 
 //----------------------------------------------------------------------------------------------------------------------
 

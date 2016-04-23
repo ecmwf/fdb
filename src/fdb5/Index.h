@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2013 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -36,9 +36,9 @@ class Key;
 class Index : private eckit::NonCopyable {
 
 public: // types
-    
+
     enum Mode { WRITE, READ };
-        
+
     /// A field location on the FDB
     struct Field {
 
@@ -57,41 +57,41 @@ public: // types
         /// @todo
         /// Should return here the information about bit encoding for direct value access
         /// this should also persits in some other class
-        
+
         void load( std::istream& s );
-        
+
         void dump( std::ostream& s ) const;
-        
+
         friend std::ostream& operator<<(std::ostream& s,const Field& x) { x.print(s); return s; }
-        
+
 		void print( std::ostream& out ) const { out << path_ << "," << offset_ << "+" << length_ ; }
-        
+
     };
-    
+
 public: // methods
-    
+
     static Index* create(const Key& key, const std::string& type, const eckit::PathName& path, Index::Mode m);
-    
+
     Index(const Key& key, const eckit::PathName& path, Index::Mode m );
-    
+
     virtual ~Index();
 
     virtual bool    exists( const Key& key ) const = 0;
 
     virtual bool    get( const Key& key, Field& field ) const = 0;
-    
+
     virtual Field   get( const Key& key ) const = 0;
-    
+
     virtual void    put( const Key& key, const Field& field );
 
     virtual bool    remove( const Key& key ) = 0;
-        
-    virtual void flush() = 0;    
+
+    virtual void flush() = 0;
 
     virtual void print( std::ostream& out ) const = 0;
-    
+
     friend std::ostream& operator<<(std::ostream& s, const Index& x) { x.print(s); return s; }
-    
+
 	eckit::PathName path() const { return path_; }
 
 	Mode mode() const { return mode_; }

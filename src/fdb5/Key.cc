@@ -14,39 +14,30 @@
 
 #include "fdb5/Key.h"
 #include "fdb5/Rule.h"
-#include "fdb5/KeywordHandler.h"
+#include "fdb5/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-Key::Key(const Handlers* handlers) :
+Key::Key() :
     keys_(),
-    handlers_(handlers),
     rule_(0)
 {
 }
 
 Key::Key(const std::string& s) :
     keys_(),
-    handlers_(0)
+    rule_(0)
 {
     NOTIMP;
 }
 
 Key::Key(const eckit::StringDict& keys) :
     keys_(keys),
-    handlers_(0)
+    rule_(0)
 {
-}
-
-void Key::handlers(const Handlers* handlers) {
-    handlers_ = handlers;
-}
-
-const Handlers* Key::handlers() const {
-    return handlers_;
 }
 
 void Key::rule(const Rule* rule) {
@@ -94,11 +85,16 @@ const std::string& Key::get( const std::string& k ) const {
     return i->second;
 }
 
+const TypesRegistry* Key::registry() const {
+    return rule_ ? &rule_->registry() : 0;
+}
+
 std::string Key::valuesToString() const
 {
     ASSERT(names_.size() == keys_.size());
 
     std::ostringstream oss;
+    const TypesRegistry* registry = rule_ ? &rule_->registry() : 0;
 
     const char *sep = "";
 
@@ -107,10 +103,10 @@ std::string Key::valuesToString() const
         ASSERT(i != keys_.end());
 
         oss << sep;
-        if(handlers_)
+        if(registry)
         {
              if(!(*i).second.empty()) {
-                 handlers_->lookupHandler(*j).toKey(oss, *j, (*i).second);
+                 registry->lookupType(*j).toKey(oss, *j, (*i).second);
              }
         }
         else {
