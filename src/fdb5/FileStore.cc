@@ -119,7 +119,7 @@ void FileStore::flush()
         std::ostringstream os;
 
         for( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr )
-            os << itr->first << " " << itr->second << "\n";
+            os << itr->first << " " << itr->second << std::endl;
 
         eckit::FileHandle storage(path_);
         storage.openForWrite(0);

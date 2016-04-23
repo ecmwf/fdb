@@ -21,6 +21,8 @@
 #include "fdb5/TocActions.h"
 #include "fdb5/Key.h"
 
+#include "fdb5/MasterConfig.h"
+
 
 namespace fdb5 {
 
@@ -40,6 +42,14 @@ TocInitialiser::TocInitialiser(const eckit::PathName& dir) : TocHandler(dir)
 
 	if( !filePath().exists() )
 	{
+
+        /* Copy rules first */
+
+        eckit::FileHandle in(MasterConfig::instance().rulesPath());
+        eckit::FileHandle out(dir_ / "schema");
+        in.saveInto(out);
+
+        /* Create TOC*/
         int iomode = O_WRONLY | O_CREAT | O_EXCL;
         fd_ = ::open( filePath().asString().c_str(), iomode, (mode_t)0777 );
 		read_   = false;

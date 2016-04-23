@@ -7,6 +7,8 @@
 #  * fdbRoot is a list of paths to visit ---> speak to Hodge
 #  * check overwrite
 #
+#  * Axis should consider KeywordHandler
+#
 #  * fdb_ingest --path fdbroot
 #      - check for duplicates
 #      - check that keysIdx are fully defined

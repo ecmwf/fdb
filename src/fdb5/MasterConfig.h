@@ -37,6 +37,8 @@ public: // methods
 
     const Rules& rules() const;
 
+    std::string rulesPath() const;
+
 
 private: // methods
 
