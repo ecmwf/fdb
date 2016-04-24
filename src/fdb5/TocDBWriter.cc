@@ -315,7 +315,7 @@ void TocDBWriter::print(std::ostream &out) const
         << ")";
 }
 
-DBBuilder<TocDBWriter> TocDBWriter_Builder("toc.writer");
+static DBBuilder<TocDBWriter> builder("toc.writer");
 
 //----------------------------------------------------------------------------------------------------------------------
 

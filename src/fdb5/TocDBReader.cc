@@ -97,7 +97,7 @@ void TocDBReader::print(std::ostream &out) const
     out << "TocDBReader(" << toc_ << ")";
 }
 
-DBBuilder<TocDBReader> TocDBReader_builder("toc.reader");
+static DBBuilder<TocDBReader> builder("toc.reader");
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -70,9 +70,9 @@ public: // types
 
 public: // methods
 
-    static Index* create(const Key& key, const std::string& type, const eckit::PathName& path, Index::Mode m);
+    static Index* create(const Key& key, const std::string& type, const eckit::PathName& path, Index::Mode mode);
 
-    Index(const Key& key, const eckit::PathName& path, Index::Mode m );
+    Index(const Key& key, const eckit::PathName& path, Index::Mode mode );
 
     virtual ~Index();
 
@@ -118,6 +118,40 @@ protected: // members
 };
 
 //----------------------------------------------------------------------------------------------------------------------
+
+
+class IndexFactory {
+
+    std::string name_;
+
+    virtual Index* make(const Key& key, const eckit::PathName& path, Index::Mode mode) const = 0 ;
+
+protected:
+
+    IndexFactory(const std::string&);
+    virtual ~IndexFactory();
+
+public:
+
+    static void list(std::ostream &);
+    static Index* build(const std::string&,
+        const Key& key, const eckit::PathName& path, Index::Mode mode);
+
+private: // methods
+
+    static const IndexFactory& findFactory(const std::string&);
+};
+
+template< class T>
+class IndexBuilder : public IndexFactory {
+
+    virtual Index* make(const Key& key, const eckit::PathName& path, Index::Mode mode) const {
+        return new T(key, path, mode);
+    }
+
+public:
+    IndexBuilder(const std::string &name) : IndexFactory(name) {}
+};
 
 } // namespace fdb5
 

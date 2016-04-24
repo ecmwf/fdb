@@ -8,32 +8,22 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/BTreeIndex.h"
 #include "fdb5/Index.h"
-#include "fdb5/TextIndex.h"
+#include "eckit/thread/AutoLock.h"
 
 namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-Index* Index::create(const Key& key, const std::string& type, const eckit::PathName& path, Index::Mode m )
+Index* Index::create(const Key& key, const std::string& type, const eckit::PathName& path, Index::Mode mode )
 {
-//    Log::info() << "creating Index @ [" << path << "] of type [" << type << "]" << std::endl;
-//    Log::info() << BackTrace::dump() << std::endl;
-
-    if( type == "BTreeIndex" )
-        return new BTreeIndex(key, path, m);
-
-    if( type == "TextIndex" )
-        return new TextIndex(key, path, m);
-
-    throw eckit::BadParameter( "Unrecognized fdb5::Index type " + type + " @ " + Here().asString() );
+    return IndexFactory::build(type, key, path, mode);
 }
 
 //-----------------------------------------------------------------------------
 
-Index::Index(const Key& key, const eckit::PathName& path, Index::Mode m ) :
-	mode_(m),
+Index::Index(const Key& key, const eckit::PathName& path, Index::Mode mode ) :
+	mode_(mode),
 	path_(path),
     files_( path + ".files" ),
     axis_( path + ".axis" ),
@@ -78,5 +68,75 @@ const Key& Index::key() const
 }
 
 //-----------------------------------------------------------------------------
+
+
+namespace {
+    eckit::Mutex* local_mutex = 0;
+    std::map<std::string, IndexFactory*> *m = 0;
+    pthread_once_t once = PTHREAD_ONCE_INIT;
+    void init() {
+        local_mutex = new eckit::Mutex();
+        m = new std::map<std::string, IndexFactory*>();
+    }
+}
+
+IndexFactory::IndexFactory(const std::string& name) :
+    name_(name) {
+
+    pthread_once(&once, init);
+
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+
+    ASSERT(m->find(name) == m->end());
+    (*m)[name] = this;
+}
+
+IndexFactory::~IndexFactory() {
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+    m->erase(name_);
+}
+
+void IndexFactory::list(std::ostream& out) {
+
+    pthread_once(&once, init);
+
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+
+    const char* sep = "";
+    for (std::map<std::string, IndexFactory*>::const_iterator j = m->begin(); j != m->end(); ++j) {
+        out << sep << (*j).first;
+        sep = ", ";
+    }
+}
+
+
+const IndexFactory& IndexFactory::findFactory(const std::string& name) {
+
+    pthread_once(&once, init);
+
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+
+    eckit::Log::info() << "Looking for IndexFactory [" << name << "]" << std::endl;
+
+    std::map<std::string, IndexFactory *>::const_iterator j = m->find(name);
+    if (j == m->end()) {
+        eckit::Log::error() << "No IndexFactory for [" << name << "]" << std::endl;
+        eckit::Log::error() << "IndexFactories are:" << std::endl;
+        for (j = m->begin() ; j != m->end() ; ++j)
+            eckit::Log::error() << "   " << (*j).first << std::endl;
+        throw eckit::SeriousBug(std::string("No IndexFactory called ") + name);
+    }
+
+    return *(*j).second;
+}
+
+
+Index* IndexFactory::build(const std::string& name,
+    const Key& key, const eckit::PathName& path, Index::Mode mode) {
+
+    const IndexFactory& factory( findFactory(name) );
+
+    return factory.make(key, path, mode);
+}
 
 } // namespace fdb5
