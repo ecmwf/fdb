@@ -64,13 +64,13 @@ public:
     virtual bool selectDatabase(const Key& key, const Key& full) {
         eckit::Log::info() << "selectDatabase " << key << std::endl;
         db_.reset(DBFactory::build(fdbReaderDB_, key));
-        db_->checkSchema(key);
 
         if(!db_->open()) {
             eckit::Log::info() << "Database does not exists " << key << std::endl;
             return false;
         }
         else {
+            db_->checkSchema(key);
             return true;
         }
     }
