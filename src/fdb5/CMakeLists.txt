@@ -9,6 +9,8 @@
 #
 #  * Axis should consider Type
 #
+#  * Merge *.axis and *.files in a single file
+#
 #  * fdb_ingest --path fdbroot
 #      - check for duplicates
 #      - check that keysIdx are fully defined
