@@ -12,6 +12,7 @@
 #include "eckit/log/Plural.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Seconds.h"
+#include "eckit/log/Progress.h"
 #include "marslib/EmosFile.h"
 #include "fdb5/GribArchiver.h"
 
@@ -31,11 +32,10 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source)
     EmosFile file(source);
     size_t len = 0;
 
-    std::set<Key> seen;
-
     size_t count = 0;
     size_t total_size = 0;
 
+    eckit::Progress progress("FDB archive", 0, source.estimate());
 
     try{
 
@@ -46,6 +46,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source)
             write(key, static_cast<const void *>(buffer()), len ); // finally archive it
             total_size += len;
             count++;
+            progress(total_size);
         }
     }
     catch(...) {

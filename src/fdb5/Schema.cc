@@ -78,6 +78,7 @@ void Schema::load(const eckit::PathName& path, bool replace)
     SchemaParser parser(in);
 
     parser.parse(*this, rules_, registry_);
+    ASSERT(rules_.size());
 
     check();
 }
