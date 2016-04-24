@@ -97,8 +97,6 @@ list( APPEND fdb5_srcs
     SchemaParser.h
     TextIndex.cc
     TextIndex.h
-    TocActions.cc
-    TocActions.h
     TocDB.cc
     TocDB.h
     TocDBReader.cc
@@ -145,6 +143,16 @@ list( APPEND fdb5_srcs
     TypeStep.h
     WriteVisitor.cc
     WriteVisitor.h
+    TocIndex.cc
+    TocIndex.h
+    TocInitialiser.cc
+    TocInitialiser.h
+    TocList.cc
+    TocList.h
+    TocPrint.cc
+    TocPrint.h
+    TocReverseIndexes.cc
+    TocReverseIndexes.h
 )
 
 ecbuild_add_library(

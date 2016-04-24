@@ -31,8 +31,9 @@
 #include "eckit/log/Plural.h"
 #include "eckit/log/Timer.h"
 #include "eckit/io/AIOHandle.h"
+#include "fdb5/TocInitialiser.h"
+#include "fdb5/TocIndex.h"
 
-#include "fdb5/TocActions.h"
 #include "fdb5/TocDBWriter.h"
 #include "fdb5/FDBFileHandle.h"
 

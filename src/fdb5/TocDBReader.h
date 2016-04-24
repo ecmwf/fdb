@@ -17,7 +17,7 @@
 #define fdb5_TocDBReader_H
 
 #include "fdb5/TocDB.h"
-#include "fdb5/TocActions.h"
+#include "fdb5/TocReverseIndexes.h"
 
 namespace fdb5 {
 

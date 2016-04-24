@@ -17,43 +17,39 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-void TocRecord::init()
-{
-	head_.fdbVersion_ = ::mars_server_version_int();
+void TocRecord::init() {
+    head_.fdbVersion_ = ::mars_server_version_int();
 
-	SYSCALL( ::gettimeofday( &head_.timestamp_, 0 ) );
+    SYSCALL( ::gettimeofday( &head_.timestamp_, 0 ) );
 
-	head_.pid_       = ::getpid();
-	head_.uid_       = ::getuid();
+    head_.pid_       = ::getpid();
+    head_.uid_       = ::getuid();
 
-	SYSCALL( ::gethostname( head_.hostname_.data(), head_.hostname_.static_size() ) );
+    SYSCALL( ::gethostname( head_.hostname_.data(), head_.hostname_.static_size() ) );
 
-	marker_[0] = '4';
-	marker_[1] = '2';
+    marker_[0] = '4';
+    marker_[1] = '2';
 }
 
-eckit::PathName TocRecord::path() const
-{
-	return eckit::PathName( payload_.data() );
+eckit::PathName TocRecord::path() const {
+    return eckit::PathName( payload_.data() );
 }
 
-TocRecord::MetaData TocRecord::metadata() const
-{
+TocRecord::MetaData TocRecord::metadata() const {
     return metadata_;
 }
 
-void TocRecord::print(std::ostream& out) const
-{
-  out << "TocRecord("
-      << "tag:" << head_.tag_ << ","
-      << "tagVersion:" << int(head_.tagVersion_) << ","
-      << "fdbVersion:" << head_.fdbVersion_ << ","
-      << "timestamp:" << head_.timestamp_.tv_sec << "." << head_.timestamp_.tv_usec << ","
-      << "pid:" << head_.pid_ << ","
-      << "uid:" << head_.uid_ << ","
-      << "hostname:" << head_.hostname_ << ","
-      << "metadata:" << metadata_ << ","
-      << "payload:" << payload_ << ")";
+void TocRecord::print(std::ostream &out) const {
+    out << "TocRecord("
+        << "tag:" << head_.tag_ << ","
+        << "tagVersion:" << int(head_.tagVersion_) << ","
+        << "fdbVersion:" << head_.fdbVersion_ << ","
+        << "timestamp:" << head_.timestamp_.tv_sec << "." << head_.timestamp_.tv_usec << ","
+        << "pid:" << head_.pid_ << ","
+        << "uid:" << head_.uid_ << ","
+        << "hostname:" << head_.hostname_ << ","
+        << "metadata:" << metadata_ << ","
+        << "payload:" << payload_ << ")";
 }
 
 //-----------------------------------------------------------------------------
