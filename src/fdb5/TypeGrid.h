@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   GridHandler.h
+/// @file   TypeGrid.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_GridHandler_H
-#define fdb5_GridHandler_H
+#ifndef fdb5_TypeGrid_H
+#define fdb5_TypeGrid_H
 
 #include "fdb5/Type.h"
 
@@ -22,13 +22,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class GridHandler : public Type {
+class TypeGrid : public Type {
 
 public: // methods
 
-    GridHandler(const std::string& name, const std::string& type);
+    TypeGrid(const std::string& name, const std::string& type);
 
-    virtual ~GridHandler();
+    virtual ~TypeGrid();
 
 private: // methods
 

@@ -8,27 +8,26 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/parser/StringTools.h"
 #include "marslib/MarsRequest.h"
 
 #include "fdb5/TypesFactory.h"
-#include "fdb5/GridHandler.h"
+#include "fdb5/TypeGrid.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GridHandler::GridHandler(const std::string& name, const std::string& type) :
+TypeGrid::TypeGrid(const std::string& name, const std::string& type) :
     Type(name, type)
 {
 }
 
-GridHandler::~GridHandler()
+TypeGrid::~TypeGrid()
 {
 }
 
-void GridHandler::getValues(const MarsRequest& request,
+void TypeGrid::getValues(const MarsRequest& request,
                                const std::string& keyword,
                                eckit::StringList& values,
                                const MarsTask& task,
@@ -40,12 +39,12 @@ void GridHandler::getValues(const MarsRequest& request,
 }
 
 
-void GridHandler::print(std::ostream &out) const
+void TypeGrid::print(std::ostream &out) const
 {
-    out << "GridHandler()";
+    out << "TypeGrid()";
 }
 
-static TypeBuilder<GridHandler> type("Grid");
+static TypeBuilder<TypeGrid> type("Grid");
 
 //----------------------------------------------------------------------------------------------------------------------
 

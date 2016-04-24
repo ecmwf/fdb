@@ -26,15 +26,12 @@
 #include <sys/mount.h>
 #endif
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/thread/AutoLock.h"
 #include "eckit/config/Resource.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 #include "eckit/log/Timer.h"
 #include "eckit/io/AIOHandle.h"
 
-#include "fdb5/Error.h"
 #include "fdb5/TocActions.h"
 #include "fdb5/TocDBWriter.h"
 #include "fdb5/FDBFileHandle.h"

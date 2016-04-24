@@ -8,23 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/memory/ScopedPtr.h"
-#include "eckit/types/Types.h"
-#include "eckit/log/Timer.h"
-
-#include "marslib/MarsTask.h"
-
-#include "fdb5/Retriever.h"
-#include "fdb5/MasterConfig.h"
-#include "fdb5/DB.h"
-#include "fdb5/Key.h"
-#include "fdb5/Rule.h"
-#include "fdb5/Type.h"
-#include "fdb5/HandleGatherer.h"
-#include "fdb5/ReadVisitor.h"
-#include "fdb5/Error.h"
-
 #include "eckit/config/Resource.h"
+#include "eckit/log/Log.h"
+#include "eckit/memory/ScopedPtr.h"
+#include "fdb5/DB.h"
+#include "fdb5/Error.h"
+#include "fdb5/HandleGatherer.h"
+#include "fdb5/Key.h"
+#include "fdb5/MasterConfig.h"
+#include "fdb5/ReadVisitor.h"
+#include "fdb5/Retriever.h"
+#include "fdb5/Schema.h"
+#include "fdb5/Type.h"
+#include "fdb5/TypesRegistry.h"
+#include "marslib/MarsTask.h"
 
 
 namespace fdb5 {
@@ -65,12 +62,12 @@ public:
     // From Visitor
 
     virtual bool selectDatabase(const Key& key, const Key& full) {
-        Log::info() << "selectDatabase " << key << std::endl;
+        eckit::Log::info() << "selectDatabase " << key << std::endl;
         db_.reset(DBFactory::build(fdbReaderDB_, key));
         db_->checkSchema(key);
 
         if(!db_->open()) {
-            Log::info() << "Database does not exists " << key << std::endl;
+            eckit::Log::info() << "Database does not exists " << key << std::endl;
             return false;
         }
         else {
@@ -80,15 +77,15 @@ public:
 
     virtual bool selectIndex(const Key& key, const Key& full) {
         ASSERT(db_);
-        Log::info() << "selectIndex " << key << std::endl;
+        eckit::Log::info() << "selectIndex " << key << std::endl;
         return db_->selectIndex(key);
     }
 
     virtual bool selectDatum(const Key& key, const Key& full) {
         ASSERT(db_);
-        Log::info() << "selectDatum " << key << ", " << full << std::endl;
+        eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
 
-        DataHandle* dh = db_->retrieve(key);
+        eckit::DataHandle* dh = db_->retrieve(key);
 
         if(dh) {
             gatherer_.add(dh);

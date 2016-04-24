@@ -13,7 +13,6 @@
 #include "eckit/parser/JSON.h"
 
 #include "fdb5/IndexAxis.h"
-#include "fdb5/Index.h"
 #include "fdb5/Key.h"
 
 namespace fdb5 {

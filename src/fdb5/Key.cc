@@ -8,10 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/types/Types.h"
-#include "eckit/parser/Tokenizer.h"
-
 #include "fdb5/Key.h"
 #include "fdb5/Rule.h"
 #include "fdb5/Type.h"

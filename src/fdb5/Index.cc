@@ -8,18 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/eckit.h"
-
-#include "eckit/os/BackTrace.h"
-#include "eckit/exception/Exceptions.h"
-#include "eckit/io/FileHandle.h"
-#include "eckit/parser/Tokenizer.h"
-#include "eckit/utils/Translator.h"
-
 #include "fdb5/BTreeIndex.h"
 #include "fdb5/Index.h"
 #include "fdb5/TextIndex.h"
-#include "fdb5/Key.h"
 
 namespace fdb5 {
 

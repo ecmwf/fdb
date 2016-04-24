@@ -8,11 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/eckit.h"
-
-#include "eckit/io/Buffer.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/config/Resource.h"
 #include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
 #include "eckit/io/FileHandle.h"

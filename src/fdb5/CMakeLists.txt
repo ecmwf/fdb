@@ -55,8 +55,6 @@ list( APPEND fdb5_srcs
     GribDecoder.h
     GribIndexer.cc
     GribIndexer.h
-    GridHandler.cc
-    GridHandler.h
     HandleGatherer.cc
     HandleGatherer.h
     Index.cc
@@ -129,6 +127,8 @@ list( APPEND fdb5_srcs
     TypeDouble.cc
     TypeDouble.h
     TypeDouble.h
+    TypeGrid.cc
+    TypeGrid.h
     TypeIgnore.cc
     TypeIgnore.h
     TypeInteger.cc

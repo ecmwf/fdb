@@ -84,7 +84,6 @@ private: // members
 
     eckit::StringDict keys_;
     eckit::StringList names_;
-    const TypesRegistry* registry_;
     const Rule* rule_;
 
 };

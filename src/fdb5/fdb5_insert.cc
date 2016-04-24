@@ -8,11 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/eckit.h"
-
-#include "eckit/io/Buffer.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/config/Resource.h"
 #include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
 
@@ -37,7 +32,7 @@ void FDBInsert::run()
         eckit::PathName path(ctx.argv(i));
 
         std::cout << "Processing " << path << std::endl;
-        
+
         std::auto_ptr<DataHandle> dh ( path.fileHandle() );
         archiver.archive( *dh );
     }

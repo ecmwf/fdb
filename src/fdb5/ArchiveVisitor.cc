@@ -10,7 +10,7 @@
 
 #include "eckit/log/Log.h"
 
-#include "fdb5/Archiver.h"
+#include "fdb5/DB.h"
 #include "fdb5/ArchiveVisitor.h"
 
 namespace fdb5 {
