@@ -13,6 +13,7 @@
 #include <fcntl.h>
 
 #include "eckit/types/DateTime.h"
+#include "eckit/config/Resource.h"
 
 #include "fdb5/TocHandler.h"
 
@@ -109,6 +110,21 @@ void TocHandler::close()
 	if( isOpen() )
 	{
         eckit::Log::info() << "Closing TOC " << filePath() << std::endl;
+
+        int ret = fsync(fd_);
+
+        while (ret < 0 && errno == EINTR)
+                ret = fsync(fd_);
+
+        if (ret < 0) {
+            eckit::Log::error() << "Cannot fsync(" << filePath() << ") " << fd_ <<  eckit::Log::syserr << std::endl;
+        }
+
+        // On Linux, you must also flush the directory
+        static bool fileHandleSyncsParentDir = eckit::Resource<bool>("fileHandleSyncsParentDir", true);
+        if( fileHandleSyncsParentDir )
+            filePath().syncParentDirectory();
+
 
 		SYSCALL2( ::close(fd_), filePath() );
 		fd_ = -1;
