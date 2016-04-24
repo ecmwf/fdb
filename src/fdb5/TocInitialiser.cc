@@ -33,27 +33,33 @@ TocInitialiser::TocInitialiser(const eckit::PathName &dir) : TocHandler(dir) {
 
     if ( !filePath().exists() ) {
 
-        /* Copy rules first */
-
-        eckit::Log::info() << "Copy schema from "
-                           << MasterConfig::instance().schemaPath()
-                           << " to "
-                           << dir_ / "schema"
-                           << std::endl;
-
-        eckit::FileHandle in(MasterConfig::instance().schemaPath());
-        eckit::FileHandle out(dir_ / "schema");
-        in.saveInto(out);
-
         /* Create TOC*/
         int iomode = O_WRONLY | O_CREAT | O_EXCL;
         fd_ = ::open( filePath().asString().c_str(), iomode, (mode_t)0777 );
         read_   = false;
 
+        // TODO: what if we are killed here?
+
         if ( fd_ >= 0 ) { // successfully created
+
+            /* Copy rules first */
+
+            eckit::Log::info() << "Copy schema from "
+                               << MasterConfig::instance().schemaPath()
+                               << " to "
+                               << dir_ / "schema"
+                               << std::endl;
+
+            eckit::FileHandle in(MasterConfig::instance().schemaPath());
+            eckit::FileHandle out(dir_ / "schema.tmp");
+            in.saveInto(out);
+
+            eckit::PathName::rename(dir_ / "schema.tmp", dir_ / "schema");
+
             TocRecord r = makeRecordTocInit();
             append(r);
             close();
+
         } else {
             if ( errno == EEXIST ) {
                 eckit::Log::warning() << "TocInitialiser: " << filePath() << " already exists" << std::endl;
