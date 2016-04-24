@@ -17,6 +17,7 @@
 #include "fdb5/TocDB.h"
 #include "fdb5/Rule.h"
 
+#include <unistd.h>
 
 namespace fdb5 {
 
@@ -204,7 +205,18 @@ void TocDB::closeIndexes()
 
 void TocDB::loadSchema() {
     Timer timer("TocDB::loadSchema()");
-    schema_.load( path_ / "schema" );
+    eckit::PathName path(path_ / "schema");
+    const int max = 30;
+    int n = 0;
+    while(path.size() == Length(0) && n++ < max) {
+        Log::warning() << "Schema " << path << " is empty, waiting..." << std::endl;
+        Log::status() << "Schema " << path << " is empty, waiting..." << std::endl;
+        // TODO: find somethin better
+        // There is a race condition when the file is created by another process,
+        // but not yet flushed
+        ::sleep(1);
+    }
+    schema_.load( path );
 }
 
 void TocDB::checkSchema(const Key& key) const {

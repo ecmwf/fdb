@@ -51,10 +51,8 @@ TocInitialiser::TocInitialiser(const eckit::PathName &dir) : TocHandler(dir) {
                                << std::endl;
 
             eckit::FileHandle in(MasterConfig::instance().schemaPath());
-            eckit::FileHandle out(dir_ / "schema.tmp");
+            eckit::FileHandle out(dir_ / "schema");
             in.saveInto(out);
-
-            eckit::PathName::rename(dir_ / "schema.tmp", dir_ / "schema");
 
             TocRecord r = makeRecordTocInit();
             append(r);
