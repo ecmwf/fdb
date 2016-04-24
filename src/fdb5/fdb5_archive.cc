@@ -10,6 +10,7 @@
 
 #include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
+#include "eckit/io/DataHandle.h"
 
 #include "fdb5/GribArchiver.h"
 
