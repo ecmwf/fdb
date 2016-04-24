@@ -15,20 +15,18 @@
 
 using namespace eckit;
 
-class FDBInsert : public eckit::Tool {
+class FDBArchive : public eckit::Tool {
     virtual void run();
-public:
-    FDBInsert(int argc,char **argv): Tool(argc,argv) {}
+  public:
+    FDBArchive(int argc, char **argv): Tool(argc, argv) {}
 };
 
-void FDBInsert::run()
-{
-    Context& ctx = Context::instance();
+void FDBArchive::run() {
+    Context &ctx = Context::instance();
 
     fdb5::GribArchiver archiver;
 
-    for(int i = 1; i < ctx.argc(); i++)
-    {
+    for (int i = 1; i < ctx.argc(); i++) {
         eckit::PathName path(ctx.argv(i));
 
         std::cout << "Processing " << path << std::endl;
@@ -39,9 +37,8 @@ void FDBInsert::run()
 }
 
 
-int main(int argc, char **argv)
-{
-    FDBInsert app(argc,argv);
+int main(int argc, char **argv) {
+    FDBArchive app(argc, argv);
     return app.start();
 }
 

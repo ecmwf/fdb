@@ -33,14 +33,14 @@
 list( APPEND fdb5_srcs
     AdoptVisitor.cc
     AdoptVisitor.h
-    Archiver.cc
-    Archiver.h
     ArchiveVisitor.cc
     ArchiveVisitor.h
-    BaseArchiveVisitor.cc
-    BaseArchiveVisitor.h
+    Archiver.cc
+    Archiver.h
     BTreeIndex.cc
     BTreeIndex.h
+    BaseArchiveVisitor.cc
+    BaseArchiveVisitor.h
     DB.cc
     DB.h
     Error.cc
@@ -71,14 +71,14 @@ list( APPEND fdb5_srcs
     MatchAlways.h
     MatchAny.cc
     MatchAny.h
-    Matcher.cc
-    Matcher.h
     MatchHidden.cc
     MatchHidden.h
     MatchOptional.cc
     MatchOptional.h
     MatchValue.cc
     MatchValue.h
+    Matcher.cc
+    Matcher.h
     NotFound.cc
     NotFound.h
     Predicate.cc
@@ -105,8 +105,18 @@ list( APPEND fdb5_srcs
     TocDBWriter.h
     TocHandler.cc
     TocHandler.h
+    TocIndex.cc
+    TocIndex.h
+    TocInitialiser.cc
+    TocInitialiser.h
+    TocList.cc
+    TocList.h
+    TocPrint.cc
+    TocPrint.h
     TocRecord.cc
     TocRecord.h
+    TocReverseIndexes.cc
+    TocReverseIndexes.h
     Type.cc
     Type.h
     TypeAbbreviation.cc
@@ -135,24 +145,14 @@ list( APPEND fdb5_srcs
     TypeMonth.h
     TypeParam.cc
     TypeParam.h
+    TypeStep.cc
+    TypeStep.h
     TypesFactory.cc
     TypesFactory.h
     TypesRegistry.cc
     TypesRegistry.h
-    TypeStep.cc
-    TypeStep.h
     WriteVisitor.cc
     WriteVisitor.h
-    TocIndex.cc
-    TocIndex.h
-    TocInitialiser.cc
-    TocInitialiser.h
-    TocList.cc
-    TocList.h
-    TocPrint.cc
-    TocPrint.h
-    TocReverseIndexes.cc
-    TocReverseIndexes.h
 )
 
 ecbuild_add_library(
@@ -179,7 +179,7 @@ ecbuild_add_library(
 
 list( APPEND fdb5_tools
     fdb5_index
-    fdb5_insert
+    fdb5_archive
     fdb5_extract
     fdb5_retrieve
     fdb5_schema
