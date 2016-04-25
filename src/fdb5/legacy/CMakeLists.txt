@@ -25,7 +25,7 @@ ecbuild_add_library(
         ${GRIB_API_INCLUDE_DIRS}
 
     LIBS
-        mars-fdb5
+        pointdb mars-fdb5
 )
 
 list( APPEND fdb5_legacy_tools
@@ -36,6 +36,6 @@ foreach( _tool ${fdb5_legacy_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   ${_tool}.cc
-                          LIBS      mars-fdb5-legacy pointdb )
+                          LIBS      mars-fdb5-legacy  )
 
 endforeach()
