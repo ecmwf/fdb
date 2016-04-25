@@ -12,6 +12,8 @@
 #include <fcntl.h>
 
 #include "eckit/io/FileHandle.h"
+#include "eckit/log/Seconds.h"
+
 #include "fdb5/TocInitialiser.h"
 
 #include "fdb5/MasterConfig.h"
@@ -67,6 +69,20 @@ TocInitialiser::TocInitialiser(const eckit::PathName &dir) : TocHandler(dir) {
             }
         }
 
+    }
+
+
+    // We have a race condition, wait for writer to finish
+
+    while(filePath().size() == eckit::Length(0)) {
+        long age = ::time(0) - filePath().created();
+        eckit::Log::warning() << "TocInitialiser: " << filePath() << " is empty, waiting... age of file is " << eckit::Seconds(age) << std::endl;
+        if(age > 5*60) {
+            std::stringstream oss;
+            oss << "TocInitialiser: " << filePath() << " is empty, age of file is " << eckit::Seconds(age) << ", it may need to be removed";
+            throw eckit::SeriousBug(oss.str());
+        }
+        ::sleep(1);
     }
 }
 
