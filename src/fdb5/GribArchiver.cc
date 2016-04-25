@@ -35,7 +35,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source)
     size_t count = 0;
     size_t total_size = 0;
 
-    eckit::Progress progress("FDB archive", 0, source.estimate());
+    eckit::Progress progress("FDB archive", 0, file.length());
 
     try{
 
