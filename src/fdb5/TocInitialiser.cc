@@ -32,6 +32,7 @@ TocInitialiser::TocInitialiser(const eckit::PathName &dir) : TocHandler(dir) {
 
     TocRecord r;
 
+    read_ = true;
     size_t len = readNext(r);
     if(len == 0) {
 

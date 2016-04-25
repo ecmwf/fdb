@@ -112,20 +112,21 @@ void TocHandler::close()
 	{
         eckit::Log::info() << "Closing TOC " << filePath() << std::endl;
 
-        int ret = fsync(fd_);
+        if(!read_) {
+            int ret = fsync(fd_);
 
-        while (ret < 0 && errno == EINTR)
+            while (ret < 0 && errno == EINTR)
                 ret = fsync(fd_);
 
-        if (ret < 0) {
-            eckit::Log::error() << "Cannot fsync(" << filePath() << ") " << fd_ <<  eckit::Log::syserr << std::endl;
+            if (ret < 0) {
+                eckit::Log::error() << "Cannot fsync(" << filePath() << ") " << fd_ <<  eckit::Log::syserr << std::endl;
+            }
+
+            // On Linux, you must also flush the directory
+            static bool fileHandleSyncsParentDir = eckit::Resource<bool>("fileHandleSyncsParentDir", true);
+            if( fileHandleSyncsParentDir )
+                filePath().syncParentDirectory();
         }
-
-        // On Linux, you must also flush the directory
-        static bool fileHandleSyncsParentDir = eckit::Resource<bool>("fileHandleSyncsParentDir", true);
-        if( fileHandleSyncsParentDir )
-            filePath().syncParentDirectory();
-
 
 		SYSCALL2( ::close(fd_), filePath() );
 		fd_ = -1;
