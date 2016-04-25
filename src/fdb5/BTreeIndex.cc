@@ -117,8 +117,7 @@ void BTreeIndex::flush()
         return;
     }
 
-    files_.flush();
-    btree_.flush();
+    Index::flush();
 
     dirty_ = false;
 }

@@ -9,7 +9,11 @@
  */
 
 #include "fdb5/Index.h"
+#include "eckit/io/FileHandle.h"
+#include "eckit/parser/JSON.h"
+#include "eckit/parser/JSONParser.h"
 #include "eckit/thread/AutoLock.h"
+
 
 namespace fdb5 {
 
@@ -25,14 +29,58 @@ Index* Index::create(const Key& key, const std::string& type, const eckit::PathN
 Index::Index(const Key& key, const eckit::PathName& path, Index::Mode mode ) :
 	mode_(mode),
 	path_(path),
-    files_( path + ".files" ),
-    axis_( path + ".axis" ),
+    files_(),
+    axis_(),
     key_(key)
 {
+    eckit::PathName json(path_ + ".json");
+
+    if( json.exists() )
+    {
+        std::ifstream f(json.asString().c_str());
+
+        eckit::JSONParser parser(f);
+
+        eckit::Value v = parser.parse();
+        files_.load(v["files"]);
+        axis_.load(v["axis"]);
+
+        if(f.bad()) {
+            throw eckit::ReadError(json.asString());
+        }
+
+        readOnly_ = true;
+    }
 }
 
 Index::~Index()
 {
+    flush();
+}
+
+void Index::flush() {
+    if(!readOnly_) {
+
+        eckit::PathName json(path_ + ".json");
+
+        eckit::FileHandle f(json);
+
+        f.openForWrite(0);
+        eckit::AutoClose closer(f);
+
+        std::ostringstream os;
+
+        eckit::JSON j(os);
+
+        j.startObject();
+        j << "files";
+        files_.json(j);
+        j << "axis";
+        axis_.json(j);
+        j.endObject();
+
+        f.write(os.str().c_str(), os.str().size());
+    }
 }
 
 void Index::put(const Key& key, const Index::Field& field)

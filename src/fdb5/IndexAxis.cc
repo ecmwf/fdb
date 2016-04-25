@@ -8,8 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/io/FileHandle.h"
-#include "eckit/parser/JSONParser.h"
+// #include "eckit/io/FileHandle.h"
+#include "eckit/value/Value.h"
+#include "eckit/value/Content.h"
+
 #include "eckit/parser/JSON.h"
 
 #include "fdb5/IndexAxis.h"
@@ -19,75 +21,55 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IndexAxis::IndexAxis(const eckit::PathName& path) :
-    path_(path),
-    readOnly_(false)
-{
-    if( path.exists() )
-    {
-        std::ifstream f(path_.asString().c_str());
+IndexAxis::IndexAxis() :
+    readOnly_(false) {
+}
 
-        eckit::JSONParser parser(f);
+IndexAxis::~IndexAxis() {
+}
 
-        eckit::Value v = parser.parse();
-        eckit::JSONParser::toDictStrSet(v, axis_);
+void IndexAxis::load(const eckit::Value &v) {
 
-        if(f.bad()) {
-            throw eckit::ReadError(path_.asString());
+    eckit::ValueMap m = v.as<eckit::ValueMap>();
+
+    for ( eckit::ValueMap::iterator i = m.begin(); i != m.end(); ++i ) {
+        std::string k( i->first );
+
+        std::set<std::string> &s = axis_[i->first];
+
+        eckit::ValueList list = i->second.as<eckit::ValueList>();
+
+        for ( eckit::ValueList::iterator j = list.begin(); j != list.end(); ++j ) {
+            s.insert( std::string(*j) );
         }
-
-        readOnly_ = true;
     }
 
-    eckit::Log::info() << *this << std::endl;
+    readOnly_ = true;
 }
 
-IndexAxis::~IndexAxis()
-{
-    eckit::Log::info() << *this << std::endl;
-    if(!readOnly_) {
-
-        eckit::FileHandle f(path_);
-
-        f.openForWrite(0); eckit::AutoClose closer(f);
-
-        std::ostringstream os;
-
-        eckit::JSON j(os);
-        json(j);
-
-        eckit::Log::info() << "Axis JSON " << os.str() << std::endl;
-
-        f.write(os.str().c_str(), os.str().size());
-    }
-}
-
-void IndexAxis::insert(const Key& key)
-{
+void IndexAxis::insert(const Key &key) {
     ASSERT(!readOnly_);
 
-//    Log::info() << *this << std::endl;
+    //    Log::info() << *this << std::endl;
 
-    const eckit::StringDict& keymap = key.dict();
+    const eckit::StringDict &keymap = key.dict();
 
-    for(eckit::StringDict::const_iterator i = keymap.begin(); i  != keymap.end(); ++i) {
-        const std::string& keyword = i->first;
-        const std::string& value   = i->second;
+    for (eckit::StringDict::const_iterator i = keymap.begin(); i  != keymap.end(); ++i) {
+        const std::string &keyword = i->first;
+        const std::string &value   = i->second;
         axis_[keyword].insert(value);
     }
 }
 
-const eckit::StringSet& IndexAxis::values(const std::string& keyword) const
-{
+const eckit::StringSet &IndexAxis::values(const std::string &keyword) const {
     AxisMap::const_iterator i = axis_.find(keyword);
-    if(i == axis_.end()) {
+    if (i == axis_.end()) {
         throw eckit::SeriousBug("Cannot find Axis: " + keyword);
     }
     return i->second;
 }
 
-void IndexAxis::print(std::ostream& out) const
-{
+void IndexAxis::print(std::ostream &out) const {
     out << "IndexAxis["
         << "path=" << path_
         <<  ",axis=";
@@ -95,8 +77,7 @@ void IndexAxis::print(std::ostream& out) const
     out  << "]";
 }
 
-void IndexAxis::json(eckit::JSON& j) const
-{
+void IndexAxis::json(eckit::JSON &j) const {
     j << axis_;
 }
 

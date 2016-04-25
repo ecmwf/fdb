@@ -86,7 +86,7 @@ public: // methods
 
     virtual bool    remove( const Key& key ) = 0;
 
-    virtual void flush() = 0;
+    virtual void flush();
 
     virtual void print( std::ostream& out ) const = 0;
 
@@ -112,6 +112,7 @@ protected: // members
 
     FileStore   files_;
     IndexAxis   axis_;
+    bool readOnly_;
 
     Key key_; ///< key that selected this index
 

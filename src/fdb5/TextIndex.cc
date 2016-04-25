@@ -108,7 +108,7 @@ void TextIndex::flush()
 {
 	ASSERT( mode() == Index::WRITE );
 
-    files_.flush();
+    Index::flush();
     if( !flushed_ )
 		save( path_ );
 }

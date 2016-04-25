@@ -8,8 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/io/FileHandle.h"
+// #include "eckit/io/FileHandle.h"
+#include "eckit/value/Value.h"
+#include "eckit/value/Content.h"
 
+#include "eckit/parser/JSON.h"
 #include "fdb5/FileStore.h"
 
 
@@ -17,8 +20,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void FileStore::FieldRef::load(std::istream &s)
-{
+void FileStore::FieldRef::load(std::istream &s) {
     long long offset;
     long long length;
     s >> pathId_ >> offset >> length;
@@ -26,115 +28,94 @@ void FileStore::FieldRef::load(std::istream &s)
     length_  = length;
 }
 
-void FileStore::FieldRef::dump(std::ostream &s) const
-{
+void FileStore::FieldRef::dump(std::ostream &s) const {
     s << pathId_ << " " << offset_ << " " << length_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FileStore::FileStore( const eckit::PathName& path ) :
+FileStore::FileStore() :
     next_(0),
-    path_(path),
-    flushed_(true)
-{
-    if( path.exists() )
-    {
-        std::ifstream in(path_.asString().c_str());
+    readOnly_(false) {
+}
 
-        std::string line;
-        while( getline(in,line) )
-        {
-            if( line.size() )
-            {
-                std::istringstream is(line);
-                FileStore::PathID id;
-                std::string p;
-                is >> id >> p;
-                eckit::PathName path(p);
-                paths_[id] = path;
-                ids_[path] = id;
-                next_ = std::max(id+1,next_);
-                // Log::info() << id << " ----> " << p << std::endl;
-            }
-        }
+FileStore::~FileStore() {
+}
 
-        if(in.bad()) {
-            throw eckit::ReadError(path_.asString());
-        }
+void FileStore::load(const eckit::Value &v) {
+    readOnly_ = false;
+
+    eckit::ValueList list = v.as<eckit::ValueList>();
+
+    for ( eckit::ValueList::iterator j = list.begin(); j != list.end(); ++j ) {
+        eckit::ValueList pair = (*j).as<eckit::ValueList>();
+
+        FileStore::PathID id = pair[0];
+        std::string p = pair[1];
+
+        eckit::PathName path(p);
+        paths_[id] = path;
+        ids_[path] = id;
+        next_ = std::max(id + 1, next_);
 
     }
+
 }
 
-FileStore::~FileStore()
-{
-    flush();
+void FileStore::json(eckit::JSON &j) const {
+    j.startList();
+    for ( PathStore::const_iterator i = paths_.begin(); i != paths_.end(); ++i ) {
+        j.startList();
+        j << i->first;
+        j << i->second;
+        j.endList();
+    }
+    j.endList();
 }
 
-FileStore::PathID FileStore::insert( const eckit::PathName& path )
-{
-	IdStore::iterator itr = ids_.find(path);
-	if( itr != ids_.end() )
-		return itr->second;
 
-	FileStore::PathID current = next_;
-	next_++;
-	ids_[path] = current;
-	paths_[current] = path;
-	flushed_ = false;
+FileStore::PathID FileStore::insert( const eckit::PathName &path ) {
+    ASSERT(!readOnly_);
 
-	return current;
+    IdStore::iterator itr = ids_.find(path);
+    if ( itr != ids_.end() )
+        return itr->second;
+
+    FileStore::PathID current = next_;
+    next_++;
+    ids_[path] = current;
+    paths_[current] = path;
+
+    return current;
 }
 
-FileStore::PathID FileStore::get( const eckit::PathName& path ) const
-{
-	IdStore::const_iterator itr = ids_.find(path);
-	ASSERT( itr != ids_.end() );
-	return itr->second;
+FileStore::PathID FileStore::get( const eckit::PathName &path ) const {
+    IdStore::const_iterator itr = ids_.find(path);
+    ASSERT( itr != ids_.end() );
+    return itr->second;
 }
 
-eckit::PathName FileStore::get(const FileStore::PathID id) const
-{
+eckit::PathName FileStore::get(const FileStore::PathID id) const {
     PathStore::const_iterator itr = paths_.find(id);
     ASSERT( itr != paths_.end() );
     return itr->second;
 }
 
-bool FileStore::exists(const PathID id ) const
-{
+bool FileStore::exists(const PathID id ) const {
     PathStore::const_iterator itr = paths_.find(id);
-    return( itr != paths_.end() );
+    return ( itr != paths_.end() );
 }
 
-bool FileStore::exists(const eckit::PathName& path) const
-{
+bool FileStore::exists(const eckit::PathName &path) const {
     IdStore::const_iterator itr = ids_.find(path);
-    return( itr != ids_.end() );
+    return ( itr != ids_.end() );
 }
 
-void FileStore::flush()
-{
-    if ( ! flushed_ )
-    {
-        std::ostringstream os;
 
-        for( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr )
-            os << itr->first << " " << itr->second << std::endl;
-
-        eckit::FileHandle storage(path_);
-        storage.openForWrite(0);
-        std::string data = os.str();
-        storage.write( data.c_str(), data.size() );
-        storage.close();
-
-        flushed_ = true;
+void FileStore::print( std::ostream &out ) const {
+    for ( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr ) {
+        out << itr->first << " " << itr->second << std::endl;
     }
-}
-
-void FileStore::print( std::ostream& out ) const
-{
-    for( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr )
-		out << itr->first << " " << itr->second << std::endl;
 }
 
 //-----------------------------------------------------------------------------
