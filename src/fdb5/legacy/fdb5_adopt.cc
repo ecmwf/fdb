@@ -19,6 +19,17 @@
 #include "fdb5/legacy/FDBScanner.h"
 #include "fdb5/legacy/IndexCache.h"
 
+// Make sure this program has enough memory (ulimit)
+// On AIX, the threads can corrupt the main stack and create unexpected behaviours
+// Also, export AIXTHREAD_GUARDPAGES=1
+// On AIX, set stack size to 1Mb
+
+#ifdef _AIX
+#define STACK_SIZE (1024*1024)
+#else
+#define STACK_SIZE (0)
+#endif
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBIndex : public eckit::Tool {
@@ -29,11 +40,20 @@ private:
 
 public:
 
-    FDBIndex(int argc, char **argv): eckit::Tool(argc,argv) {}
+    FDBIndex(int argc, char **argv) :
+        eckit::Tool(argc,argv),
+        scan_("scan",
+              eckit::Resource<int>("-scans;numberOfScanThreads", 1),
+              eckit::Resource<int>("-stack;scanThreadsStackSize", STACK_SIZE))
+    {
+
+    }
 
 private:
 
     fdb5::legacy::IndexCache cache_;
+
+    eckit::ThreadPool scan_;
 
 };
 
@@ -41,13 +61,11 @@ void FDBIndex::run()
 {
     eckit::Context& ctx = eckit::Context::instance();
 
-    eckit::ThreadPool scanning;
-
     for(int i = 1; i < ctx.argc(); i++)
     {
         eckit::PathName path(ctx.argv(i));
 
-        scanning.push( new fdb5::legacy::FDBScanner(cache_) );
+        scan_.push( new fdb5::legacy::FDBScanner(cache_) );
     }
 }
 

@@ -24,6 +24,8 @@ namespace legacy {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+IndexCache::IndexCache() {}
+
 IndexCache::IndexCache(const PathName& cache):
     cache_(cache),
     files_(0),

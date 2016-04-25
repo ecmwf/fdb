@@ -36,6 +36,6 @@ foreach( _tool ${fdb5_legacy_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   ${_tool}.cc
-                          LIBS      mars-fdb5-legacy )
+                          LIBS      mars-fdb5-legacy pointdb )
 
 endforeach()

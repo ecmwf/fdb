@@ -18,15 +18,17 @@
 
 namespace eckit { class JSON; }
 
+class FieldInfoKey;
+
 namespace fdb5 {
 namespace legacy {
-
-class FieldInfoKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class IndexCache {
 public:
+    IndexCache( );
+
     IndexCache( const eckit::PathName& );
     virtual ~IndexCache();
 
