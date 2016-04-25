@@ -274,9 +274,8 @@ const TypesRegistry& Rule::registry() const {
 
 void Rule::print(std::ostream& out) const
 {
-    out << "Rule(line=" << line_ ;
-//    out << ", registry=" << registry_;
-    out << ")";
+    out << "Rule[line=" << line_ ;
+    out << "]";
 }
 
 const Rule& Rule::topRule() const {

@@ -33,35 +33,36 @@ TocInitialiser::TocInitialiser(const eckit::PathName &dir) : TocHandler(dir) {
 
     if ( !filePath().exists() ) {
 
-        eckit::PathName tmp = eckit::PathName::unique(filePath()) + ".toc";
-
         /* Create TOC*/
         int iomode = O_WRONLY | O_CREAT | O_EXCL;
-        SYSCALL2(fd_ = ::open( tmp.asString().c_str(), iomode, (mode_t)0777 ), tmp);
+        fd_ = ::open( filePath().asString().c_str(), iomode, (mode_t)0777 );
         read_   = false;
 
-        eckit::Log::info() << "Copy schema from "
-                           << MasterConfig::instance().schemaPath()
-                           << " to "
-                           << dir_ / "schema"
-                           << std::endl;
+        // TODO: what if we are killed here?
 
-        eckit::FileHandle in(MasterConfig::instance().schemaPath());
-        eckit::FileHandle out(dir_ / "schema");
-        in.saveInto(out);
+        if ( fd_ >= 0 ) { // successfully created
 
-        TocRecord r = makeRecordTocInit();
-        append(r);
-        close();
+            /* Copy rules first */
 
-        if(::rename(tmp.asString().c_str(), filePath().asString().c_str()) < 0) {
+            eckit::Log::info() << "Copy schema from "
+                               << MasterConfig::instance().schemaPath()
+                               << " to "
+                               << dir_ / "schema"
+                               << std::endl;
+
+            eckit::FileHandle in(MasterConfig::instance().schemaPath());
+            eckit::FileHandle out(dir_ / "schema");
+            in.saveInto(out);
+
+            TocRecord r = makeRecordTocInit();
+            append(r);
+            close();
+
+        } else {
             if ( errno == EEXIST ) {
                 eckit::Log::warning() << "TocInitialiser: " << filePath() << " already exists" << std::endl;
-                tmp.unlink();
             } else {
-                std::ostringstream oss;
-                oss << "TocInitialiser: failed to rename " << tmp << " to " << filePath() << std::endl;
-                throw eckit::FailedSystemCall(oss.str());
+                SYSCALL2(fd_, filePath());
             }
         }
 

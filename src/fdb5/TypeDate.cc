@@ -51,7 +51,7 @@ void TypeDate::getValues(const MarsRequest& request,
 
 void TypeDate::print(std::ostream &out) const
 {
-    out << "TypeDate(" << name_ << ")";
+    out << "TypeDate[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeDate> type("Date");

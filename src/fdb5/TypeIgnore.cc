@@ -40,7 +40,7 @@ void TypeIgnore::getValues(const MarsRequest &request,
 }
 
 void TypeIgnore::print(std::ostream &out) const {
-    out << "TypeIgnore(" << name_ << ")";
+    out << "TypeIgnore[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeIgnore> type("Ignore");

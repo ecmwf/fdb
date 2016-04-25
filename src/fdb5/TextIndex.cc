@@ -161,7 +161,7 @@ void TextIndex::save(const eckit::PathName& path) const
 
 void TextIndex::print(std::ostream& out) const
 {
-    out << "TextIndex()";
+    out << "TextIndex[]";
 }
 
 static IndexBuilder<TextIndex> builder("TextIndex");

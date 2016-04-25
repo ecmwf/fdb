@@ -28,7 +28,7 @@ TypeDefault::~TypeDefault()
 
 void TypeDefault::print(std::ostream &out) const
 {
-    out << "TypeDefault()";
+    out << "TypeDefault[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeDefault> type("Default");

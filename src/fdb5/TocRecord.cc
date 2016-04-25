@@ -40,16 +40,16 @@ TocRecord::MetaData TocRecord::metadata() const {
 }
 
 void TocRecord::print(std::ostream &out) const {
-    out << "TocRecord("
-        << "tag:" << head_.tag_ << ","
-        << "tagVersion:" << int(head_.tagVersion_) << ","
-        << "fdbVersion:" << head_.fdbVersion_ << ","
-        << "timestamp:" << head_.timestamp_.tv_sec << "." << head_.timestamp_.tv_usec << ","
-        << "pid:" << head_.pid_ << ","
-        << "uid:" << head_.uid_ << ","
-        << "hostname:" << head_.hostname_ << ","
-        << "metadata:" << metadata_ << ","
-        << "payload:" << payload_ << ")";
+    out << "TocRecord["
+        << "tag=" << head_.tag_ << ","
+        << "tagVersion=" << int(head_.tagVersion_) << ","
+        << "fdbVersion=" << head_.fdbVersion_ << ","
+        << "timestamp=" << head_.timestamp_.tv_sec << "." << head_.timestamp_.tv_usec << ","
+        << "pid=" << head_.pid_ << ","
+        << "uid=" << head_.uid_ << ","
+        << "hostname=" << head_.hostname_ << ","
+        << "metadata=" << metadata_ << ","
+        << "payload=" << payload_ << "]";
 }
 
 //-----------------------------------------------------------------------------

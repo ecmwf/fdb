@@ -70,7 +70,7 @@ void TypeParam::getValues(const MarsRequest& request,
 
 void TypeParam::print(std::ostream &out) const
 {
-    out << "TypeParam(" << name_ << ")";
+    out << "TypeParam[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeParam> type("Param");

@@ -61,7 +61,7 @@ void TypeMonth::getValues(const MarsRequest& request,
 
 void TypeMonth::print(std::ostream &out) const
 {
-    out << "TypeMonth(" << name_ << ")";
+    out << "TypeMonth[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeMonth> type("Month");

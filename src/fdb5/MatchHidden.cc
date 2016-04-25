@@ -56,7 +56,7 @@ void MatchHidden::dump(std::ostream& s, const std::string& keyword, const TypesR
 
 void MatchHidden::print(std::ostream& out) const
 {
-    out << "MatchHidden()";
+    out << "MatchHidden[default" << default_ << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

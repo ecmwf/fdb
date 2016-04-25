@@ -56,7 +56,7 @@ void TypeDouble::getValues(const MarsRequest& request,
 
 void TypeDouble::print(std::ostream &out) const
 {
-    out << "TypeDouble(" << name_ << ")";
+    out << "TypeDouble[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeDouble> type("Double");

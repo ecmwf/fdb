@@ -125,7 +125,7 @@ void BTreeIndex::flush()
 
 void BTreeIndex::print(std::ostream& out) const
 {
-    out << "BTreeIndex()";
+    out << "BTreeIndex[]";
 }
 
 static IndexBuilder<BTreeIndex> builder("BTreeIndex");

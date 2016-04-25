@@ -50,7 +50,7 @@ void TypeInteger::getValues(const MarsRequest& request,
 
 void TypeInteger::print(std::ostream &out) const
 {
-    out << "TypeInteger(" << name_ << ")";
+    out << "TypeInteger[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeInteger> type("Integer");

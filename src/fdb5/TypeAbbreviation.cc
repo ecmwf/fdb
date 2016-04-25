@@ -54,7 +54,7 @@ void TypeAbbreviation::getValues(const MarsRequest& request,
 
 void TypeAbbreviation::print(std::ostream &out) const
 {
-    out << "TypeAbbreviation(" << name_ << ")";
+    out << "TypeAbbreviation[name=" << name_ << ",count=" << count_ << "]";
 }
 
 static TypeBuilder<TypeAbbreviation> type("First3");

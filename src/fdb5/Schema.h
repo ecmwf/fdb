@@ -51,6 +51,7 @@ public: // methods
     void dump(std::ostream& s) const;
 
     void compareTo(const Schema& other) const;
+    bool empty() const;
 
     const Type& lookupType(const std::string& keyword) const;
 

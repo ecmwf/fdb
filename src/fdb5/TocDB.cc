@@ -16,6 +16,7 @@
 #include "eckit/types/Types.h"
 #include "fdb5/TocDB.h"
 #include "fdb5/Rule.h"
+#include "fdb5/MasterConfig.h"
 
 
 namespace fdb5 {
@@ -204,7 +205,22 @@ void TocDB::closeIndexes()
 
 void TocDB::loadSchema() {
     Timer timer("TocDB::loadSchema()");
+
+    // There is a possible race condition, when two writers create the TOC
+    // at the same tiem, during which the file exists
+    // but is not flushed to disk, and therefore is emoty.
+    // TODO: find a better way to address this problem
+
     schema_.load( path_ / "schema" );
+
+    if(schema_.empty()) {
+        eckit::Log::warning() << schema_ << " is empty" << std::endl;
+        schema_.load(MasterConfig::instance().schemaPath());
+        eckit::Log::warning() << "Using " << schema_ << " instead" << std::endl;
+    }
+
+
+
 }
 
 void TocDB::checkSchema(const Key& key) const {

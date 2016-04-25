@@ -155,8 +155,8 @@ eckit::DataHandle* Retriever::retrieve()
 
 void Retriever::print(std::ostream& out) const
 {
-    out << "Retriever(" << task_.request()
-        << ")";
+    out << "Retriever[request" << eckit::setformat(out, Log::compactFormat) << task_.request()
+        << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
