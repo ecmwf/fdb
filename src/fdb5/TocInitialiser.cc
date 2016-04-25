@@ -28,7 +28,7 @@ TocInitialiser::TocInitialiser(const eckit::PathName &dir) : TocHandler(dir) {
     }
 
     int iomode = O_CREAT | O_RDWR;
-    fd_ = ::open( filePath().asString().c_str(), iomode, (mode_t)0777 );
+    fd_ = ::open( filePath().asString().c_str(), iomode, mode_t(0777) );
 
     TocRecord r;
 

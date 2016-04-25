@@ -88,20 +88,33 @@ size_t TocHandler::readNext( TocRecord& r )
 {
 	ASSERT( isOpen() && read_ );
 
-    size_t len;
+
+
+    int len;
 
     SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord)), filePath() );
+    if(len == 0) {
+        return len;
+    }
 
-    ASSERT( TocRecord::currentTagVersion() == r.version() );
+    eckit::Log::info() << "len is " << len << std::endl;
+
+    if(len != sizeof(TocRecord))
+    {
+        close();
+        std::ostringstream msg;
+        msg << "Failed to read complete TocRecord from " << filePath().asString();
+        throw eckit::ReadError( msg.str() );
+    }
+
+    if( TocRecord::currentTagVersion() != r.version() ) {
+        std::ostringstream oss;
+        oss << "Record version mistach, expected " << int(TocRecord::currentTagVersion())
+            << ", got " << int(r.version());
+        throw eckit::SeriousBug(oss.str());
+    }
+
     ASSERT( r.isComplete() );
-
-    if( len != 0 && len != sizeof(TocRecord) )
-	{
-		close();
-		std::ostringstream msg;
-		msg << "Failed to read complete TocRecord from " << filePath().asString();
-		throw eckit::ReadError( msg.str() );
-	}
 
     return len;
 }
