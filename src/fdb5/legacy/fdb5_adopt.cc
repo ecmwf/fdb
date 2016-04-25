@@ -51,8 +51,6 @@ public:
 
 private:
 
-    fdb5::legacy::IndexCache cache_;
-
     eckit::ThreadPool scan_;
 
 };
@@ -65,7 +63,7 @@ void FDBIndex::run()
     {
         eckit::PathName path(ctx.argv(i));
 
-        scan_.push( new fdb5::legacy::FDBScanner(cache_) );
+        scan_.push( new fdb5::legacy::FDBScanner(path) );
     }
 }
 

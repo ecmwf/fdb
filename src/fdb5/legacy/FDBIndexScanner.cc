@@ -26,8 +26,7 @@ namespace legacy {
 
 //-----------------------------------------------------------------------------
 
-FDBIndexScanner::FDBIndexScanner(IndexCache &cache, const PathName &path):
-    cache_(cache),
+FDBIndexScanner::FDBIndexScanner(const PathName &path):
     path_(path)
 {
 }

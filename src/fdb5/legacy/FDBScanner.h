@@ -11,27 +11,28 @@
 #ifndef fdb5_legacy_FDBScanner_H
 #define fdb5_legacy_FDBScanner_H
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/thread/ThreadPool.h"
 
 namespace fdb5 {
 namespace legacy {
-
-class IndexCache;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBScanner : public eckit::ThreadPoolTask {
 public:
 
-    FDBScanner(IndexCache& cache);
+    FDBScanner(const eckit::PathName& path);
 
     virtual ~FDBScanner();
 
-private:
+private: // methods
 
     virtual void execute();
 
-    IndexCache& cache_;
+private: // members
+
+    eckit::PathName path_;
 
 };
 

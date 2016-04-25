@@ -26,7 +26,7 @@ class IndexCache;
 class FDBIndexScanner : public eckit::ThreadPoolTask {
 public:
 
-    FDBIndexScanner(IndexCache& cache, const eckit::PathName& path);
+    FDBIndexScanner(const eckit::PathName& path);
 
     virtual ~FDBIndexScanner();
 
@@ -36,7 +36,6 @@ private:
 
     void process(FILE*);
 
-    IndexCache& cache_;
     eckit::PathName path_;
 };
 

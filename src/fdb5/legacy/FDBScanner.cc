@@ -23,8 +23,8 @@ namespace legacy {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDBScanner::FDBScanner(IndexCache& cache) :
-    cache_(cache)
+FDBScanner::FDBScanner(const eckit::PathName& path) :
+    path_(path)
 {
 }
 
@@ -49,7 +49,7 @@ void FDBScanner::execute()
         eckit::PathName::match(path, indexes, true);
 
         for(std::vector<PathName>::const_iterator j = indexes.begin(); j != indexes.end(); ++j)
-            pool().push(new FDBIndexScanner(cache_,*j));
+            pool().push(new FDBIndexScanner(*j));
     }
 }
 

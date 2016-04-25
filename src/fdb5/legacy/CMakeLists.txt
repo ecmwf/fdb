@@ -5,8 +5,8 @@ list( APPEND fdb5_legacy_srcs
   FDBScanner.cc
   FDBIndexScanner.h
   FDBIndexScanner.cc
-  IndexCache.h
-  IndexCache.cc
+#  IndexCache.h
+#  IndexCache.cc
 )
 
 ecbuild_add_library(
