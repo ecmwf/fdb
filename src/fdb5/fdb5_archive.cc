@@ -32,7 +32,7 @@ void FDBArchive::run() {
 
         std::cout << "Processing " << path << std::endl;
 
-        std::auto_ptr<DataHandle> dh ( path.fileHandle() );
+        eckit::ScopedPtr<DataHandle> dh ( path.fileHandle() );
         archiver.archive( *dh );
     }
 }

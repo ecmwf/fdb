@@ -138,7 +138,7 @@ eckit::DataHandle* Retriever::retrieve()
     const Schema& schema = MasterConfig::instance().schema();
 
     // TODO: this logic does not work if a retrieval spans several
-    // databases with different schemas
+    // databases with different schemas. Another SchemaHasChanged will be thrown.
     try {
 
         return retrieve(schema, sorted);

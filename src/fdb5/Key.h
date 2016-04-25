@@ -44,6 +44,8 @@ public: // methods
     void push(const std::string& k, const std::string& v);
     void pop(const std::string& k);
 
+    bool has( const std::string& k ) const;
+
     const std::string& get( const std::string& k ) const;
 
     const eckit::StringDict& dict() const { return keys_; }
