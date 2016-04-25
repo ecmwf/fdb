@@ -92,6 +92,7 @@ eckit::Length TocHandler::readNext( TocRecord& r )
 
     SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord)), filePath() );
 
+    ASSERT( TocRecord::currentTagVersion() == r.version() );
     ASSERT( r.isComplete() );
 
     if( len != 0 && len != sizeof(TocRecord) )
@@ -159,13 +160,13 @@ void TocHandler::printRecord(const TocRecord& r, std::ostream& os)
 
 TocRecord TocHandler::makeRecordTocInit() const
 {
-	TocRecord r( TOC_INIT, (unsigned char)(1) );
+    TocRecord r( TOC_INIT );
 	return r;
 }
 
 TocRecord TocHandler::makeRecordIdxInsert( const eckit::PathName& path, const TocRecord::MetaData& md ) const
 {
-	TocRecord r( TOC_INDEX, (unsigned char)(1) );
+    TocRecord r( TOC_INDEX );
 	r.metadata_ = md;
 	r.payload_  = path.asString();
 	return r;
@@ -173,14 +174,13 @@ TocRecord TocHandler::makeRecordIdxInsert( const eckit::PathName& path, const To
 
 TocRecord TocHandler::makeRecordIdxRemove() const
 {
-	TocRecord r( TOC_CLEAR, (unsigned char)(1) );
-	r.init();
+    TocRecord r( TOC_CLEAR );
 	return r;
 }
 
 TocRecord TocHandler::makeRecordTocWipe() const
 {
-	TocRecord r( TOC_WIPE, (unsigned char)(1) );
+    TocRecord r( TOC_WIPE );
     return r;
 }
 

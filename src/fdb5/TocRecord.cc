@@ -17,7 +17,19 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-void TocRecord::init() {
+TocRecord::TocRecord()
+{
+    eckit::zero(*this);
+    eckit::compile_assert< (sizeof(TocRecord) == TocRecord::size) >::check();
+    eckit::compile_assert< (TocRecord::payload_size >= 3*1024) >::check();
+}
+
+TocRecord::TocRecord(unsigned char tag)
+{
+    eckit::zero(*this);
+    head_.tag_  = tag;
+    head_.tagVersion_ = currentTagVersion();
+
     head_.fdbVersion_ = ::mars_server_version_int();
 
     SYSCALL( ::gettimeofday( &head_.timestamp_, 0 ) );
@@ -30,6 +42,13 @@ void TocRecord::init() {
     marker_[0] = '4';
     marker_[1] = '2';
 }
+
+unsigned char TocRecord::version() const
+{
+    return head_.tagVersion_;
+}
+
+bool TocRecord::isComplete() const { return ( marker_[0] == '4' && marker_[1] == '2' ); }
 
 eckit::PathName TocRecord::path() const {
     return eckit::PathName( payload_.data() );
@@ -50,6 +69,11 @@ void TocRecord::print(std::ostream &out) const {
         << "hostname=" << head_.hostname_ << ","
         << "metadata=" << metadata_ << ","
         << "payload=" << payload_ << "]";
+}
+
+unsigned char TocRecord::currentTagVersion()
+{
+    return 1;
 }
 
 //-----------------------------------------------------------------------------
