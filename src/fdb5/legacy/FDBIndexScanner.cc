@@ -145,6 +145,7 @@ void FDBIndexScanner::process(FILE* f)
             in >> prefix;
             prefix = prefix.substr(0, prefix.length()-1);
 
+            Log::info() << "prefix = " << prefix << std::endl;
 
         }
 
@@ -160,7 +161,7 @@ void FDBIndexScanner::process(FILE* f)
 
     }
 
-    Log::info() << "Index Done .... " << std::endl;
+    Log::info() << "Completed index " << path_ << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

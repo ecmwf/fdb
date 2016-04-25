@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <unistd.h>
+
 #include "eckit/eckit.h"
 
 #include "eckit/io/Buffer.h"
@@ -64,6 +66,11 @@ void FDBIndex::run()
         eckit::PathName path(ctx.argv(i));
 
         scan_.push( new fdb5::legacy::FDBScanner(path) );
+    }
+
+    for(;;)
+    {
+        ::sleep(120);
     }
 }
 
