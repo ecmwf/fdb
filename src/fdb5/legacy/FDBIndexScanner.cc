@@ -29,6 +29,7 @@ namespace legacy {
 FDBIndexScanner::FDBIndexScanner(const PathName& path):
     path_(path)
 {
+    Log::info() << "FDBIndexScanner( path = " << path_ << ")" << std::endl;
 }
 
 FDBIndexScanner::~FDBIndexScanner()
@@ -44,6 +45,8 @@ void FDBIndexScanner::execute()
 
     if( lsfdb1.exists() )
     {
+        Log::info() << "scanning file " << lsfdb1 << std::endl;
+
         StdFile f( lsfdb1, "r" );
         process(f);
         return;
@@ -51,14 +54,17 @@ void FDBIndexScanner::execute()
 
     if( lsfdb2.exists() )
     {
+        Log::info() << "scanning file " << lsfdb2 << std::endl;
+
         StdFile f( lsfdb2, "r" );
         process(f);
         return;
     }
 
     // if all else fails, lets try to run the old tool 'lsfdb' (must be in path)
-    {
+    {        
         std::string cmd(std::string("lsfdb ") + path_.asString());
+        Log::info() << "scanning with pipe to command: [" << cmd << "]" << std::endl;
         StdPipe f(cmd, "r");
         process(f);
     }

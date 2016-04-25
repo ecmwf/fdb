@@ -27,11 +27,6 @@ namespace legacy {
 FDBScanner::FDBScanner(const eckit::PathName& path) :
     path_(path)
 {
-    if(!path_.isDir()) {
-        std::ostringstream oss;
-        oss << "Path to FDB isn't a directory: " << path_ << std::endl;
-        throw fdb5::Error(Here(),oss.str());
-    }
 }
 
 FDBScanner::~FDBScanner()
@@ -53,10 +48,11 @@ void FDBScanner::execute()
     path /= pattern;
 
     std::vector<PathName> indexes;
-    eckit::PathName::match(path, indexes, true);
+
+    eckit::PathName::match(path, indexes, true); // match checks that path is a directory
 
     for(std::vector<PathName>::const_iterator j = indexes.begin(); j != indexes.end(); ++j) {
-        pool().push(new FDBIndexScanner(*j));
+        pool().push(new fdb5::legacy::FDBIndexScanner(*j));
     }
 }
 
