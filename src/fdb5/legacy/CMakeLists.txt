@@ -25,7 +25,7 @@ ecbuild_add_library(
         ${GRIB_API_INCLUDE_DIRS}
 
     LIBS
-        pointdb mars-fdb5
+        mars-fdb5
 )
 
 list( APPEND fdb5_legacy_tools
