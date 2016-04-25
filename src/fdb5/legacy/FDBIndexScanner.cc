@@ -73,10 +73,6 @@ void FDBIndexScanner::process(FILE* f)
     std::string ignore;
     std::string s;
 
-    unsigned long long len;
-    unsigned long long off;
-    int count = 0;
-
     // /ma_fdb/:od:oper:g:0001:20120617::/:fc:0000::::::::.
 
     std::vector<std::string> c;
