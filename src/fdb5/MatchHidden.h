@@ -34,7 +34,7 @@ public: // methods
 
     virtual bool match(const std::string& keyword, const Key& key) const;
 
-    virtual void dump(std::ostream& s, const std::string& keyword) const;
+    virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const;
 
 private: // methods
 

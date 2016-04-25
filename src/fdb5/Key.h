@@ -24,7 +24,7 @@
 
 namespace fdb5 {
 
-class Handlers;
+class TypesRegistry;
 class Rule;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -33,7 +33,7 @@ class Key {
 
 public: // methods
 
-    Key(const Handlers* = 0);
+    Key();
 
     explicit Key(const std::string& keys);
     explicit Key(const eckit::StringDict& keys);
@@ -43,6 +43,8 @@ public: // methods
 
     void push(const std::string& k, const std::string& v);
     void pop(const std::string& k);
+
+    bool has( const std::string& k ) const;
 
     const std::string& get( const std::string& k ) const;
 
@@ -68,11 +70,9 @@ public: // methods
         return s;
     }
 
-    void handlers(const Handlers* handlers);
-    const Handlers* handlers() const;
-
     void rule(const Rule* rule);
     const Rule* rule() const;
+    const TypesRegistry* registry() const;
 
     std::string valuesToString() const;
 
@@ -86,7 +86,6 @@ private: // members
 
     eckit::StringDict keys_;
     eckit::StringList names_;
-    const Handlers* handlers_;
     const Rule* rule_;
 
 };

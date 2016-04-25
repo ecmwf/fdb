@@ -26,7 +26,7 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
-class Handlers;
+class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -43,7 +43,7 @@ public: // methods
 
     virtual void values(const MarsRequest& request,
                         const std::string& keyword,
-                        const Handlers& handlers,
+                        const TypesRegistry& registry,
                         eckit::StringList& values) = 0;
 
 protected: // methods

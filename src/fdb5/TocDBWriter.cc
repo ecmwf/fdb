@@ -26,16 +26,14 @@
 #include <sys/mount.h>
 #endif
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/thread/AutoLock.h"
 #include "eckit/config/Resource.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 #include "eckit/log/Timer.h"
 #include "eckit/io/AIOHandle.h"
+#include "fdb5/TocInitialiser.h"
+#include "fdb5/TocAddIndex.h"
 
-#include "fdb5/Error.h"
-#include "fdb5/TocActions.h"
 #include "fdb5/TocDBWriter.h"
 #include "fdb5/FDBFileHandle.h"
 
@@ -49,10 +47,7 @@ TocDBWriter::TocDBWriter(const Key& key) :
     current_(0),
     dirty_(false)
 {
-    if( !path_.exists() )
-    {
-        TocInitialiser init(path_);
-    }
+    TocInitialiser init(path_);
 
     blockSize_ = eckit::Resource<long>( "blockSize", 0 );
 
@@ -72,6 +67,7 @@ TocDBWriter::TocDBWriter(const Key& key) :
     aio_ = eckit::Resource<bool>("fdbAsyncWrite",false);
 
     Log::info() << "TocDBWriter for TOC [" << path_ << "] with block size of " << Bytes(blockSize_) << std::endl;
+    loadSchema();
 }
 
 TocDBWriter::~TocDBWriter()
@@ -81,7 +77,7 @@ TocDBWriter::~TocDBWriter()
 
 bool TocDBWriter::selectIndex(const Key& key)
 {
-    TocIndex& toc = getTocIndex(key);
+    TocAddIndex& toc = getTocIndex(key);
     current_ = &getIndex(key, toc.index());
     return true;
 }
@@ -190,13 +186,14 @@ void TocDBWriter::closeDataHandles()
 
 eckit::DataHandle* TocDBWriter::createFileHandle(const PathName& path)
 {
-    return new FDBFileHandle(path);
+    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize",64*1024*1024);
+    return new FDBFileHandle(path, sizeBuffer);
 }
 
 DataHandle* TocDBWriter::createAsyncHandle(const PathName& path)
 {
-    size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers",4);
-    size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer",64*1024*1024);
+    static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers",4);
+    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer",64*1024*1024);
 
     return new AIOHandle(path,nbBuffers,sizeBuffer);
 }
@@ -219,9 +216,9 @@ DataHandle& TocDBWriter::getDataHandle( const PathName& path )
     return *dh;
 }
 
-TocIndex& TocDBWriter::getTocIndex(const Key& key)
+TocAddIndex& TocDBWriter::getTocIndex(const Key& key)
 {
-    TocIndex* toc = 0;
+    TocAddIndex* toc = 0;
 
     TocIndexStore::const_iterator itr = tocEntries_.find( key );
     if( itr != tocEntries_.end() )
@@ -230,7 +227,7 @@ TocIndex& TocDBWriter::getTocIndex(const Key& key)
     }
     else
     {
-        toc = new TocIndex(path_, generateIndexPath(key), key);
+        toc = new TocAddIndex(path_, generateIndexPath(key), key);
         tocEntries_[ key ] = toc;
     }
 
@@ -309,12 +306,12 @@ void TocDBWriter::closeTocEntries()
 
 void TocDBWriter::print(std::ostream &out) const
 {
-    out << "TocDBWriter("
+    out << "TocDBWriter["
         /// @todo should print more here
-        << ")";
+        << "]";
 }
 
-DBBuilder<TocDBWriter> TocDBWriter_Builder("toc.writer");
+static DBBuilder<TocDBWriter> builder("toc.writer");
 
 //----------------------------------------------------------------------------------------------------------------------
 

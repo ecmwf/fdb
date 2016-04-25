@@ -13,6 +13,7 @@
 #include <fcntl.h>
 
 #include "eckit/types/DateTime.h"
+#include "eckit/config/Resource.h"
 
 #include "fdb5/TocHandler.h"
 
@@ -83,23 +84,37 @@ void TocHandler::append( const TocRecord& r )
 	}
 }
 
-eckit::Length TocHandler::readNext( TocRecord& r )
+size_t TocHandler::readNext( TocRecord& r )
 {
 	ASSERT( isOpen() && read_ );
 
-    eckit::Length len;
+
+
+    int len;
 
     SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord)), filePath() );
+    if(len == 0) {
+        return len;
+    }
+
+    eckit::Log::info() << "len is " << len << std::endl;
+
+    if(len != sizeof(TocRecord))
+    {
+        close();
+        std::ostringstream msg;
+        msg << "Failed to read complete TocRecord from " << filePath().asString();
+        throw eckit::ReadError( msg.str() );
+    }
+
+    if( TocRecord::currentTagVersion() != r.version() ) {
+        std::ostringstream oss;
+        oss << "Record version mistach, expected " << int(TocRecord::currentTagVersion())
+            << ", got " << int(r.version());
+        throw eckit::SeriousBug(oss.str());
+    }
 
     ASSERT( r.isComplete() );
-
-    if( len != 0 && len != sizeof(TocRecord) )
-	{
-		close();
-		std::ostringstream msg;
-		msg << "Failed to read complete TocRecord from " << filePath().asString();
-		throw eckit::ReadError( msg.str() );
-	}
 
     return len;
 }
@@ -109,6 +124,22 @@ void TocHandler::close()
 	if( isOpen() )
 	{
         eckit::Log::info() << "Closing TOC " << filePath() << std::endl;
+
+        if(!read_) {
+            int ret = fsync(fd_);
+
+            while (ret < 0 && errno == EINTR)
+                ret = fsync(fd_);
+
+            if (ret < 0) {
+                eckit::Log::error() << "Cannot fsync(" << filePath() << ") " << fd_ <<  eckit::Log::syserr << std::endl;
+            }
+
+            // On Linux, you must also flush the directory
+            static bool fileHandleSyncsParentDir = eckit::Resource<bool>("fileHandleSyncsParentDir", true);
+            if( fileHandleSyncsParentDir )
+                filePath().syncParentDirectory();
+        }
 
 		SYSCALL2( ::close(fd_), filePath() );
 		fd_ = -1;
@@ -143,13 +174,13 @@ void TocHandler::printRecord(const TocRecord& r, std::ostream& os)
 
 TocRecord TocHandler::makeRecordTocInit() const
 {
-	TocRecord r( TOC_INIT, (unsigned char)(1) );
+    TocRecord r( TOC_INIT );
 	return r;
 }
 
 TocRecord TocHandler::makeRecordIdxInsert( const eckit::PathName& path, const TocRecord::MetaData& md ) const
 {
-	TocRecord r( TOC_INDEX, (unsigned char)(1) );
+    TocRecord r( TOC_INDEX );
 	r.metadata_ = md;
 	r.payload_  = path.asString();
 	return r;
@@ -157,19 +188,18 @@ TocRecord TocHandler::makeRecordIdxInsert( const eckit::PathName& path, const To
 
 TocRecord TocHandler::makeRecordIdxRemove() const
 {
-	TocRecord r( TOC_CLEAR, (unsigned char)(1) );
-	r.init();
+    TocRecord r( TOC_CLEAR );
 	return r;
 }
 
 TocRecord TocHandler::makeRecordTocWipe() const
 {
-	TocRecord r( TOC_WIPE, (unsigned char)(1) );
+    TocRecord r( TOC_WIPE );
     return r;
 }
 
 void TocHandler::print(std::ostream& out) const {
-    out << "TocHandler(" << filePath() << ")";
+    out << "TocHandler[path=" << filePath() << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

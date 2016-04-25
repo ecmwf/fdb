@@ -13,7 +13,6 @@
 #include "eckit/parser/JSON.h"
 
 #include "fdb5/IndexAxis.h"
-#include "fdb5/Index.h"
 #include "fdb5/Key.h"
 
 namespace fdb5 {
@@ -26,14 +25,16 @@ IndexAxis::IndexAxis(const eckit::PathName& path) :
 {
     if( path.exists() )
     {
-        std::ifstream f;
-        f.open( path_.asString().c_str() );
+        std::ifstream f(path_.asString().c_str());
+
         eckit::JSONParser parser(f);
 
         eckit::Value v = parser.parse();
         eckit::JSONParser::toDictStrSet(v, axis_);
 
-        f.close();
+        if(f.bad()) {
+            throw eckit::ReadError(path_.asString());
+        }
 
         readOnly_ = true;
     }
@@ -87,11 +88,11 @@ const eckit::StringSet& IndexAxis::values(const std::string& keyword) const
 
 void IndexAxis::print(std::ostream& out) const
 {
-    out << "IndexAxis("
+    out << "IndexAxis["
         << "path=" << path_
         <<  ",axis=";
     eckit::__print_container(out, axis_);
-    out  << ")";
+    out  << "]";
 }
 
 void IndexAxis::json(eckit::JSON& j) const

@@ -19,9 +19,9 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-BTreeIndex::BTreeIndex(const Key& key, const eckit::PathName& path, Index::Mode m ) :
-    Index(key,path,m),
-    btree_( path, bool( m == Index::READ ) ),
+BTreeIndex::BTreeIndex(const Key& key, const eckit::PathName& path, Index::Mode mode ) :
+    Index(key, path, mode),
+    btree_( path, bool( mode == Index::READ ) ),
     fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert", true) ),
     dirty_(false)
 {
@@ -125,8 +125,10 @@ void BTreeIndex::flush()
 
 void BTreeIndex::print(std::ostream& out) const
 {
-    out << "BTreeIndex()";
+    out << "BTreeIndex[]";
 }
+
+static IndexBuilder<BTreeIndex> builder("BTreeIndex");
 
 //-----------------------------------------------------------------------------
 

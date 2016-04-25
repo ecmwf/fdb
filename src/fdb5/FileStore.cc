@@ -40,8 +40,7 @@ FileStore::FileStore( const eckit::PathName& path ) :
 {
     if( path.exists() )
     {
-        std::ifstream in;
-        in.open( path_.asString().c_str() );
+        std::ifstream in(path_.asString().c_str());
 
         std::string line;
         while( getline(in,line) )
@@ -59,7 +58,11 @@ FileStore::FileStore( const eckit::PathName& path ) :
                 // Log::info() << id << " ----> " << p << std::endl;
             }
         }
-        in.close();
+
+        if(in.bad()) {
+            throw eckit::ReadError(path_.asString());
+        }
+
     }
 }
 
@@ -116,7 +119,7 @@ void FileStore::flush()
         std::ostringstream os;
 
         for( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr )
-            os << itr->first << " " << itr->second << "\n";
+            os << itr->first << " " << itr->second << std::endl;
 
         eckit::FileHandle storage(path_);
         storage.openForWrite(0);
@@ -131,7 +134,7 @@ void FileStore::flush()
 void FileStore::print( std::ostream& out ) const
 {
     for( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr )
-		out << itr->first << " " << itr->second << "\n";
+		out << itr->first << " " << itr->second << std::endl;
 }
 
 //-----------------------------------------------------------------------------

@@ -19,8 +19,8 @@
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/DB.h"
-#include "fdb5/Rules.h"
-#include "fdb5/Handlers.h"
+#include "fdb5/Schema.h"
+#include "fdb5/TypesRegistry.h"
 
 class MarsTask;
 class MarsRequest;
@@ -35,7 +35,9 @@ public: // methods
 
     static MasterConfig& instance();
 
-    const Rules& rules() const;
+    const Schema& schema() const;
+
+    std::string schemaPath() const;
 
 
 private: // methods
@@ -49,7 +51,7 @@ private: // methods
 
 private: // members
 
-    Rules rules_;
+    Schema schema_;
 
 };
 

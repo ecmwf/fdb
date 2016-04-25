@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2013 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -30,23 +30,23 @@ namespace fdb5 {
 class BTreeIndex : public Index {
 
 public: // types
-   
+
     typedef eckit::FixedString<256> BTreeKey;
-    
+
 public: // methods
-    
-    BTreeIndex(const Key& key, const eckit::PathName& path, Index::Mode m );
-    
+
+    BTreeIndex(const Key& key, const eckit::PathName& path, Index::Mode mode );
+
     virtual ~BTreeIndex();
-    
+
 private: // methods
 
     virtual bool    exists( const Key& key ) const;
 
     virtual bool    get( const Key& key, Field& field ) const;
-    
+
     virtual Field   get( const Key& key ) const;
-    
+
     virtual void    put_( const Key& key, const Field& field );
 
     virtual bool    remove( const Key& key );
@@ -54,16 +54,16 @@ private: // methods
 	virtual void	flush();
 
 private: // methods
-        
+
     virtual void print( std::ostream& out ) const;
 
 private: // types
 
     typedef FileStore::FieldRef FieldRef;
     typedef eckit::BTree< BTreeKey , FieldRef, 65536 > BTreeStore;
-    
-private: // members    
-    
+
+private: // members
+
     BTreeStore  btree_;
 
     bool fdbCheckDoubleInsert_; ///< check for keys overwriting each other within same archive request (useful to check fdbRules are sane)

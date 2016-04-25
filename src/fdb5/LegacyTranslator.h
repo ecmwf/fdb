@@ -15,7 +15,7 @@
 #define fdb5_LegacyTranslator_H
 
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/types/Types.h"
+#include "eckit/types/TypesRegistry.h"
 
 #include "fdb5/Key.h"
 

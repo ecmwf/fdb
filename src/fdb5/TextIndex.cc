@@ -9,22 +9,17 @@
  */
 
 #include "eckit/config/Resource.h"
-#include "eckit/exception/Exceptions.h"
-#include "eckit/io/AIOHandle.h"
 #include "eckit/io/FileHandle.h"
-#include "eckit/parser/Tokenizer.h"
-
 #include "fdb5/TextIndex.h"
 #include "fdb5/Error.h"
-#include "fdb5/Key.h"
 
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TextIndex::TextIndex(const Key& key, const eckit::PathName& path, Index::Mode m ) :
-    Index(key,path,m),
+TextIndex::TextIndex(const Key& key, const eckit::PathName& path, Index::Mode mode ) :
+    Index(key, path, mode),
     flushed_(true),
     fdbCheckDoubleInsert_( eckit::Resource<bool>("fdbCheckDoubleInsert",false) )
 {
@@ -120,8 +115,7 @@ void TextIndex::flush()
 
 void TextIndex::load(const eckit::PathName& path)
 {
-    std::ifstream in;
-    in.open( path.asString().c_str() );
+    std::ifstream in( path.asString().c_str() );
 
     std::string line;
     while( getline(in,line) )
@@ -141,7 +135,9 @@ void TextIndex::load(const eckit::PathName& path)
         }
     }
 
-    in.close();
+    if(in.bad()) {
+        throw eckit::ReadError(path_.asString());
+    }
 }
 
 void TextIndex::save(const eckit::PathName& path) const
@@ -165,8 +161,10 @@ void TextIndex::save(const eckit::PathName& path) const
 
 void TextIndex::print(std::ostream& out) const
 {
-    out << "BTreeIndex()";
+    out << "TextIndex[]";
 }
+
+static IndexBuilder<TextIndex> builder("TextIndex");
 
 //----------------------------------------------------------------------------------------------------------------------
 

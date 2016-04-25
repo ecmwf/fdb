@@ -17,43 +17,63 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-void TocRecord::init()
+TocRecord::TocRecord()
 {
-	head_.fdbVersion_ = ::mars_server_version_int();
-
-	SYSCALL( ::gettimeofday( &head_.timestamp_, 0 ) );
-
-	head_.pid_       = ::getpid();
-	head_.uid_       = ::getuid();
-
-	SYSCALL( ::gethostname( head_.hostname_.data(), head_.hostname_.static_size() ) );
-
-	marker_[0] = '4';
-	marker_[1] = '2';
+    eckit::zero(*this);
+    eckit::compile_assert< (sizeof(TocRecord) == TocRecord::size) >::check();
+    eckit::compile_assert< (TocRecord::payload_size >= 3*1024) >::check();
 }
 
-eckit::PathName TocRecord::path() const
+TocRecord::TocRecord(unsigned char tag)
 {
-	return eckit::PathName( payload_.data() );
+    eckit::zero(*this);
+    head_.tag_  = tag;
+    head_.tagVersion_ = currentTagVersion();
+
+    head_.fdbVersion_ = ::mars_server_version_int();
+
+    SYSCALL( ::gettimeofday( &head_.timestamp_, 0 ) );
+
+    head_.pid_       = ::getpid();
+    head_.uid_       = ::getuid();
+
+    SYSCALL( ::gethostname( head_.hostname_.data(), head_.hostname_.static_size() ) );
+
+    marker_[0] = '4';
+    marker_[1] = '2';
 }
 
-TocRecord::MetaData TocRecord::metadata() const
+unsigned char TocRecord::version() const
 {
+    return head_.tagVersion_;
+}
+
+bool TocRecord::isComplete() const { return ( marker_[0] == '4' && marker_[1] == '2' ); }
+
+eckit::PathName TocRecord::path() const {
+    return eckit::PathName( payload_.data() );
+}
+
+TocRecord::MetaData TocRecord::metadata() const {
     return metadata_;
 }
 
-void TocRecord::print(std::ostream& out) const
+void TocRecord::print(std::ostream &out) const {
+    out << "TocRecord["
+        << "tag=" << head_.tag_ << ","
+        << "tagVersion=" << int(head_.tagVersion_) << ","
+        << "fdbVersion=" << head_.fdbVersion_ << ","
+        << "timestamp=" << head_.timestamp_.tv_sec << "." << head_.timestamp_.tv_usec << ","
+        << "pid=" << head_.pid_ << ","
+        << "uid=" << head_.uid_ << ","
+        << "hostname=" << head_.hostname_ << ","
+        << "metadata=" << metadata_ << ","
+        << "payload=" << payload_ << "]";
+}
+
+unsigned char TocRecord::currentTagVersion()
 {
-  out << "TocRecord("
-      << "tag:" << head_.tag_ << ","
-      << "tagVersion:" << int(head_.tagVersion_) << ","
-      << "fdbVersion:" << head_.fdbVersion_ << ","
-      << "timestamp:" << head_.timestamp_.tv_sec << "." << head_.timestamp_.tv_usec << ","
-      << "pid:" << head_.pid_ << ","
-      << "uid:" << head_.uid_ << ","
-      << "hostname:" << head_.hostname_ << ","
-      << "metadata:" << metadata_ << ","
-      << "payload:" << payload_ << ")";
+    return 1;
 }
 
 //-----------------------------------------------------------------------------

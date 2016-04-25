@@ -30,6 +30,7 @@ namespace fdb5 {
 class Key;
 class Op;
 class DB;
+class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -51,6 +52,8 @@ public: // methods
 private: // methods
 
     void print(std::ostream& out) const;
+    eckit::DataHandle* retrieve(const Schema& schema, bool sorted);
+
 
 private: // members
 

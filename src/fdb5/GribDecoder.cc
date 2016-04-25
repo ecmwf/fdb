@@ -28,6 +28,13 @@ GribDecoder::GribDecoder(bool checkDuplicates):
     checkDuplicates_(checkDuplicates) {
 }
 
+class HandleDeleter {
+    grib_handle *h_;
+public:
+    HandleDeleter(grib_handle *h) : h_(h) {}
+    ~HandleDeleter() { grib_handle_delete(h_); }
+};
+
 size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
 
     size_t len;
@@ -43,6 +50,7 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
 
         grib_handle *h = grib_handle_new_from_message(0, buffer_, len);
         ASSERT(h);
+        HandleDeleter del(h);
 
         char mars_str [] = "mars";
         grib_keys_iterator *ks = grib_keys_iterator_new(h, GRIB_KEYS_ITERATOR_ALL_KEYS, mars_str);
@@ -59,8 +67,8 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
             ASSERT( grib_keys_iterator_get_string(ks, val, &len) == 0);
 
             /// @todo cannocicalisation of values
-            /// const KeywordHandler& handler = KeywordHandler::lookup(name);
-            //  request.set( name, handler.cannocalise(val) );
+            /// const Type& type = Type::lookup(name);
+            //  request.set( name, type.cannocalise(val) );
             key.set( name, val );
         }
 
@@ -109,6 +117,7 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
 
             seen_.insert(key);
         }
+
     }
 
     return len;

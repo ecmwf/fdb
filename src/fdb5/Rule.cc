@@ -22,15 +22,17 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Rule::Rule(size_t line,
+Rule::Rule(const Schema& schema,
+    size_t line,
     std::vector<Predicate*>& predicates, std::vector<Rule*>& rules,
     const std::map<std::string, std::string>& types):
+    schema_(schema),
     line_(line)
 {
     std::swap(predicates, predicates_);
     std::swap(rules, rules_);
     for(std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
-        handlers_.addType(i->first, i->second);
+        registry_.addType(i->first, i->second);
     }
 }
 
@@ -57,7 +59,6 @@ void Rule::expand( const MarsRequest& request,
     if(cur == predicates_.end()) {
 
         // TODO: join these 2 methods
-        keys[depth].handlers(&handlers_);
         keys[depth].rule(this);
 
         if(rules_.empty()) {
@@ -100,7 +101,7 @@ void Rule::expand( const MarsRequest& request,
 
     eckit::StringList values;
 
-    visitor.values(request, keyword, handlers_, values);
+    visitor.values(request, keyword, registry_, values);
 
     Key& k = keys[depth];
 
@@ -148,7 +149,6 @@ void Rule::expand( const Key& field,
 
     if(cur == predicates_.end()) {
 
-        keys[depth].handlers(&handlers_);
         keys[depth].rule(this);
 
         if(rules_.empty()) {
@@ -170,7 +170,7 @@ void Rule::expand( const Key& field,
 
             switch(depth) {
                 case 0:
-                    if(keys[0] != visitor.prev_[0] || keys[0].handlers() != visitor.prev_[0].handlers()) {
+                    if(keys[0] != visitor.prev_[0] /*|| keys[0].registry() != visitor.prev_[0].registry()*/) {
                         visitor.selectDatabase(keys[0], full);
                         visitor.prev_[0] = keys[0];
                         visitor.prev_[1] = Key();
@@ -178,7 +178,7 @@ void Rule::expand( const Key& field,
                     break;
 
                 case 1:
-                    if(keys[1] != visitor.prev_[1] || keys[1].handlers() != visitor.prev_[1].handlers()) {
+                    if(keys[1] != visitor.prev_[1] /*|| keys[1].registry() != visitor.prev_[1].registry()*/) {
                         visitor.selectIndex(keys[1], full);
                         visitor.prev_[1] = keys[1];
                     }
@@ -238,7 +238,7 @@ void Rule::dump(std::ostream& s, size_t depth) const
     const char* sep = "";
     for(std::vector<Predicate*>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
         s << sep;
-        (*i)->dump(s);
+        (*i)->dump(s, registry_);
         sep = ",";
     }
 
@@ -261,19 +261,21 @@ void Rule::updateParent(const Rule* parent)
 {
     parent_ = parent;
     if(parent) {
-        handlers_.updateParent(&parent_->handlers_);
+        registry_.updateParent(&parent_->registry_);
     }
     for(std::vector<Rule*>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->updateParent(this);
     }
 }
 
+const TypesRegistry& Rule::registry() const {
+    return registry_;
+}
 
 void Rule::print(std::ostream& out) const
 {
-    out << "Rule(line=" << line_ ;
-//    out << ", handlers=" << handlers_;
-    out << ")";
+    out << "Rule[line=" << line_ ;
+    out << "]";
 }
 
 const Rule& Rule::topRule() const {
@@ -283,6 +285,10 @@ const Rule& Rule::topRule() const {
     else {
         return *this;
     }
+}
+
+const Schema& Rule::schema() const {
+    return schema_;
 }
 
 std::ostream& operator<<(std::ostream& s, const Rule& x)

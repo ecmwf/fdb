@@ -66,26 +66,14 @@ struct TocRecord {
 public: // methods
 
     /// default constructor without initialization
-    TocRecord()
-    {
-        eckit::zero(*this);
-        eckit::compile_assert< (sizeof(TocRecord) == TocRecord::size) >::check();
-        eckit::compile_assert< (TocRecord::payload_size >= 3*1024) >::check();
-    }
+    TocRecord();
 
     /// constructor with initialization
-    TocRecord( unsigned char tag, unsigned char tagVersion )
-	{
-		eckit::zero(*this);
-		head_.tag_  = tag;
-		head_.tagVersion_ = tagVersion;
-		init();
-	}
+    TocRecord( unsigned char tag );
 
-	void init();
+    unsigned char version() const;
 
-    bool isInit() const { return ( head_.fdbVersion_ != 0); }
-    bool isComplete() const { return ( marker_[0] == '4' && marker_[1] == '2' ); }
+    bool isComplete() const;
 
 	eckit::PathName path() const;
 
@@ -94,6 +82,8 @@ public: // methods
     friend std::ostream& operator<<(std::ostream& s,const TocRecord& x) { x.print(s); return s; }
 
     void print( std::ostream& out ) const;
+
+    static unsigned char currentTagVersion();
 };
 
 //-----------------------------------------------------------------------------

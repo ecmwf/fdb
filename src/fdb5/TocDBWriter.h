@@ -24,7 +24,7 @@
 namespace fdb5 {
 
 class Key;
-class TocIndex;
+class TocAddIndex;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -59,7 +59,7 @@ private: // types
 
     typedef std::map< std::string, eckit::DataHandle* >  HandleStore;
 
-    typedef std::map< Key, TocIndex* > TocIndexStore;
+    typedef std::map< Key, TocAddIndex* > TocIndexStore;
     typedef std::map< Key, std::string > PathStore;
 
 private: // methods
@@ -77,7 +77,7 @@ private: // methods
     eckit::DataHandle* createAsyncHandle(const eckit::PathName& path);
     eckit::DataHandle* createPartHandle(const eckit::PathName& path, eckit::Offset offset, eckit::Length length);
 
-    TocIndex& getTocIndex(const Key& key);
+    TocAddIndex& getTocIndex(const Key& key);
 
     void flushIndexes();
     void flushDataHandles();

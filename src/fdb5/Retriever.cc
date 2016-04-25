@@ -8,22 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/memory/ScopedPtr.h"
-#include "eckit/types/Types.h"
-#include "eckit/log/Timer.h"
-
-#include "marslib/MarsTask.h"
-
-#include "fdb5/Retriever.h"
-#include "fdb5/MasterConfig.h"
-#include "fdb5/DB.h"
-#include "fdb5/Key.h"
-#include "fdb5/Rule.h"
-#include "fdb5/KeywordHandler.h"
-#include "fdb5/HandleGatherer.h"
-#include "fdb5/ReadVisitor.h"
-
 #include "eckit/config/Resource.h"
+#include "eckit/log/Log.h"
+#include "eckit/memory/ScopedPtr.h"
+#include "fdb5/DB.h"
+#include "fdb5/Error.h"
+#include "fdb5/HandleGatherer.h"
+#include "fdb5/Key.h"
+#include "fdb5/MasterConfig.h"
+#include "fdb5/ReadVisitor.h"
+#include "fdb5/Retriever.h"
+#include "fdb5/Schema.h"
+#include "fdb5/Type.h"
+#include "fdb5/TypesRegistry.h"
+#include "marslib/MarsTask.h"
 
 
 namespace fdb5 {
@@ -42,7 +40,7 @@ Retriever::~Retriever()
 {
 }
 
-struct RetrieveVisitor : public ReadVisitor {
+class RetrieveVisitor : public ReadVisitor {
 
     Retriever& owner_;
 
@@ -51,7 +49,7 @@ struct RetrieveVisitor : public ReadVisitor {
     std::string fdbReaderDB_;
     HandleGatherer& gatherer_;
 
-
+public:
     RetrieveVisitor(Retriever& owner, const MarsTask& task, HandleGatherer& gatherer):
         owner_(owner),
         gatherer_(gatherer) {
@@ -64,28 +62,30 @@ struct RetrieveVisitor : public ReadVisitor {
     // From Visitor
 
     virtual bool selectDatabase(const Key& key, const Key& full) {
-        Log::info() << "selectDatabase " << key << std::endl;
+        eckit::Log::info() << "selectDatabase " << key << std::endl;
         db_.reset(DBFactory::build(fdbReaderDB_, key));
+
         if(!db_->open()) {
-            Log::info() << "Database does not exists " << key << std::endl;
+            eckit::Log::info() << "Database does not exists " << key << std::endl;
             return false;
         }
         else {
+            db_->checkSchema(key);
             return true;
         }
     }
 
     virtual bool selectIndex(const Key& key, const Key& full) {
         ASSERT(db_);
-        Log::info() << "selectIndex " << key << std::endl;
+        eckit::Log::info() << "selectIndex " << key << std::endl;
         return db_->selectIndex(key);
     }
 
     virtual bool selectDatum(const Key& key, const Key& full) {
         ASSERT(db_);
-        Log::info() << "selectDatum " << key << ", " << full << std::endl;
+        eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
 
-        DataHandle* dh = db_->retrieve(key);
+        eckit::DataHandle* dh = db_->retrieve(key);
 
         if(dh) {
             gatherer_.add(dh);
@@ -95,9 +95,9 @@ struct RetrieveVisitor : public ReadVisitor {
     }
 
     virtual void values(const MarsRequest& request, const std::string& keyword,
-            const Handlers& handlers,
+            const TypesRegistry& registry,
             eckit::StringList& values) {
-        handlers.lookupHandler(keyword).getValues(request, keyword, values, owner_.task_, db_.get());
+        registry.lookupType(keyword).getValues(request, keyword, values, owner_.task_, db_.get());
     }
 
     virtual void print( std::ostream& out ) const {
@@ -108,6 +108,15 @@ struct RetrieveVisitor : public ReadVisitor {
 
 };
 
+
+eckit::DataHandle* Retriever::retrieve(const Schema& schema, bool sorted) {
+    HandleGatherer result(sorted);
+
+    RetrieveVisitor visitor(*this, task_, result);
+    schema.expand(task_.request(), visitor);
+
+    return result.dataHandle();
+}
 
 eckit::DataHandle* Retriever::retrieve()
 {
@@ -126,20 +135,28 @@ eckit::DataHandle* Retriever::retrieve()
         sorted = true;
     }
 
-    HandleGatherer result(sorted);
+    const Schema& schema = MasterConfig::instance().schema();
 
-    RetrieveVisitor visitor(*this, task_, result);
+    // TODO: this logic does not work if a retrieval spans several
+    // databases with different schemas. Another SchemaHasChanged will be thrown.
+    try {
 
-    const Rules& rules = MasterConfig::instance().rules();
-    rules.expand(task_.request(), visitor);
+        return retrieve(schema, sorted);
 
-    return result.dataHandle();
+    } catch(SchemaHasChanged& e) {
+
+        eckit::Log::error() << e.what() << std::endl;
+        eckit::Log::error() << "Trying with old schema: " << e.path() << std::endl;
+
+        return retrieve(Schema(e.path()), sorted);
+    }
+
 }
 
 void Retriever::print(std::ostream& out) const
 {
-    out << "Retriever(" << task_.request()
-        << ")";
+    out << "Retriever[request" << eckit::setformat(out, Log::compactFormat) << task_.request()
+        << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

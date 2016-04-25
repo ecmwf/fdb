@@ -52,7 +52,7 @@ protected: // methods
 
 	void append( const TocRecord& r );
 
-	eckit::Length readNext( TocRecord& r );
+    size_t readNext( TocRecord& r );
 
 	/// Closes the file descriptor if it is still open. Always safe to call.
 	void close();

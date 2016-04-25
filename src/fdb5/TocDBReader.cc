@@ -11,9 +11,6 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/config/Resource.h"
-
-#include "fdb5/TocActions.h"
-
 #include "fdb5/Error.h"
 #include "fdb5/TocDBReader.h"
 
@@ -47,6 +44,7 @@ bool TocDBReader::open() {
         return false;
     }
 
+    loadSchema();
     return true;
 }
 
@@ -96,10 +94,10 @@ Index* TocDBReader::openIndex(const Key& key, const eckit::PathName& path) const
 
 void TocDBReader::print(std::ostream &out) const
 {
-    out << "TocDBReader(" << toc_ << ")";
+    out << "TocDBReader[toc=" << toc_ << "]";
 }
 
-DBBuilder<TocDBReader> TocDBReader_builder("toc.reader");
+static DBBuilder<TocDBReader> builder("toc.reader");
 
 //----------------------------------------------------------------------------------------------------------------------
 
