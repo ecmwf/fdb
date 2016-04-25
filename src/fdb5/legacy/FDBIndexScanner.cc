@@ -26,7 +26,7 @@ namespace legacy {
 
 //-----------------------------------------------------------------------------
 
-FDBIndexScanner::FDBIndexScanner(const PathName &path):
+FDBIndexScanner::FDBIndexScanner(const PathName& path):
     path_(path)
 {
 }
