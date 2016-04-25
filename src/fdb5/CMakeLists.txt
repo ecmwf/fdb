@@ -177,6 +177,8 @@ ecbuild_add_library(
         grib_api
 )
 
+add_subdirectory( legacy )
+
 list( APPEND fdb5_tools
     fdb5_index
     fdb5_archive
