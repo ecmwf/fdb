@@ -22,6 +22,7 @@ namespace fdb5 {
 //-----------------------------------------------------------------------------
 
 TocInitialiser::TocInitialiser(const eckit::PathName &dir) : TocHandler(dir) {
+
     if ( !dir_.exists() ) {
         dirPath().mkdir();
     }
