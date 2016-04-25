@@ -88,16 +88,12 @@ size_t TocHandler::readNext( TocRecord& r )
 {
 	ASSERT( isOpen() && read_ );
 
-
-
     int len;
 
     SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord)), filePath() );
     if(len == 0) {
         return len;
     }
-
-    eckit::Log::info() << "len is " << len << std::endl;
 
     if(len != sizeof(TocRecord))
     {

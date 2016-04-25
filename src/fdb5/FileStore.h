@@ -69,6 +69,8 @@ public: // methods
     void load(const eckit::Value&);
     void json(eckit::JSON&) const;
 
+    bool changed() const;
+
 	/// Inserts the path in the store
 	/// @returns PathID associated to the provided eckit::PathName
 	FileStore::PathID insert( const eckit::PathName& path );
@@ -98,9 +100,11 @@ private: // members
     FileStore::PathID   next_;
 
     bool                readOnly_;
+    mutable bool        changed_;
 
     PathStore           paths_;
     IdStore             ids_;
+
 
 };
 

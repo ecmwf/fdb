@@ -112,7 +112,6 @@ protected: // members
 
     FileStore   files_;
     IndexAxis   axis_;
-    bool readOnly_;
 
     Key key_; ///< key that selected this index
 

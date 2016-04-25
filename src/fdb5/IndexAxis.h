@@ -45,6 +45,7 @@ public: // methods
 
     void load(const eckit::Value&);
     void json(eckit::JSON&) const;
+    bool changed() const;
 
 
     const eckit::StringSet& values(const std::string& keyword) const;
@@ -65,6 +66,7 @@ private: // members
     eckit::PathName path_;
 
     bool readOnly_;
+    mutable bool changed_;
 
 };
 

@@ -36,10 +36,15 @@ void FileStore::FieldRef::dump(std::ostream &s) const {
 
 FileStore::FileStore() :
     next_(0),
-    readOnly_(false) {
+    readOnly_(false),
+    changed_(false) {
 }
 
 FileStore::~FileStore() {
+}
+
+bool FileStore::changed() const {
+    return changed_;
 }
 
 void FileStore::load(const eckit::Value &v) {
@@ -71,6 +76,7 @@ void FileStore::json(eckit::JSON &j) const {
         j.endList();
     }
     j.endList();
+    changed_ = false;
 }
 
 
@@ -85,6 +91,8 @@ FileStore::PathID FileStore::insert( const eckit::PathName &path ) {
     next_++;
     ids_[path] = current;
     paths_[current] = path;
+
+    changed_ = true;
 
     return current;
 }

@@ -19,49 +19,52 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-Index* Index::create(const Key& key, const std::string& type, const eckit::PathName& path, Index::Mode mode )
-{
+Index *Index::create(const Key &key, const std::string &type, const eckit::PathName &path, Index::Mode mode ) {
     return IndexFactory::build(type, key, path, mode);
 }
 
 //-----------------------------------------------------------------------------
 
-Index::Index(const Key& key, const eckit::PathName& path, Index::Mode mode ) :
-	mode_(mode),
-	path_(path),
+Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
+    mode_(mode),
+    path_(path),
     files_(),
     axis_(),
-    key_(key)
-{
+    key_(key) {
     eckit::PathName json(path_ + ".json");
 
-    if( json.exists() )
-    {
+    if ( json.exists() ) {
+        eckit::Log::info() << "Load " << json << std::endl;
         std::ifstream f(json.asString().c_str());
 
         eckit::JSONParser parser(f);
 
         eckit::Value v = parser.parse();
         files_.load(v["files"]);
-        axis_.load(v["axis"]);
+        eckit::Log::info() << "Files " << files_ << std::endl;
 
-        if(f.bad()) {
+        axis_.load(v["axis"]);
+        eckit::Log::info() << "Axis " << axis_ << std::endl;
+
+
+        if (f.bad()) {
             throw eckit::ReadError(json.asString());
         }
 
-        readOnly_ = true;
     }
 }
 
-Index::~Index()
-{
+Index::~Index() {
     flush();
 }
 
 void Index::flush() {
-    if(!readOnly_) {
+    if (files_.changed() || axis_.changed()) {
 
         eckit::PathName json(path_ + ".json");
+
+        eckit::Log::info() << "Save " << json << std::endl;
+
 
         eckit::FileHandle f(json);
 
@@ -83,8 +86,7 @@ void Index::flush() {
     }
 }
 
-void Index::put(const Key& key, const Index::Field& field)
-{
+void Index::put(const Key &key, const Index::Field &field) {
     axis_.insert(key);
     put_(key, field);
 }
@@ -92,8 +94,7 @@ void Index::put(const Key& key, const Index::Field& field)
 
 //-----------------------------------------------------------------------------
 
-void Index::Field::load(std::istream& s)
-{
+void Index::Field::load(std::istream &s) {
     std::string spath;
     long long offset;
     long long length;
@@ -103,15 +104,13 @@ void Index::Field::load(std::istream& s)
     length_  = length;
 }
 
-void Index::Field::dump(std::ostream& s) const
-{
+void Index::Field::dump(std::ostream &s) const {
     s << path_ << " " << offset_ << " " << length_;
 }
 
 //-----------------------------------------------------------------------------
 
-const Key& Index::key() const
-{
+const Key &Index::key() const {
     return key_;
 }
 
@@ -119,16 +118,16 @@ const Key& Index::key() const
 
 
 namespace {
-    eckit::Mutex* local_mutex = 0;
-    std::map<std::string, IndexFactory*> *m = 0;
-    pthread_once_t once = PTHREAD_ONCE_INIT;
-    void init() {
-        local_mutex = new eckit::Mutex();
-        m = new std::map<std::string, IndexFactory*>();
-    }
+eckit::Mutex *local_mutex = 0;
+std::map<std::string, IndexFactory *> *m = 0;
+pthread_once_t once = PTHREAD_ONCE_INIT;
+void init() {
+    local_mutex = new eckit::Mutex();
+    m = new std::map<std::string, IndexFactory *>();
+}
 }
 
-IndexFactory::IndexFactory(const std::string& name) :
+IndexFactory::IndexFactory(const std::string &name) :
     name_(name) {
 
     pthread_once(&once, init);
@@ -144,21 +143,21 @@ IndexFactory::~IndexFactory() {
     m->erase(name_);
 }
 
-void IndexFactory::list(std::ostream& out) {
+void IndexFactory::list(std::ostream &out) {
 
     pthread_once(&once, init);
 
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    const char* sep = "";
-    for (std::map<std::string, IndexFactory*>::const_iterator j = m->begin(); j != m->end(); ++j) {
+    const char *sep = "";
+    for (std::map<std::string, IndexFactory *>::const_iterator j = m->begin(); j != m->end(); ++j) {
         out << sep << (*j).first;
         sep = ", ";
     }
 }
 
 
-const IndexFactory& IndexFactory::findFactory(const std::string& name) {
+const IndexFactory &IndexFactory::findFactory(const std::string &name) {
 
     pthread_once(&once, init);
 
@@ -179,10 +178,10 @@ const IndexFactory& IndexFactory::findFactory(const std::string& name) {
 }
 
 
-Index* IndexFactory::build(const std::string& name,
-    const Key& key, const eckit::PathName& path, Index::Mode mode) {
+Index *IndexFactory::build(const std::string &name,
+                           const Key &key, const eckit::PathName &path, Index::Mode mode) {
 
-    const IndexFactory& factory( findFactory(name) );
+    const IndexFactory &factory( findFactory(name) );
 
     return factory.make(key, path, mode);
 }

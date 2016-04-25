@@ -22,10 +22,15 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 IndexAxis::IndexAxis() :
-    readOnly_(false) {
+    readOnly_(false),
+    changed_(false) {
 }
 
 IndexAxis::~IndexAxis() {
+}
+
+bool IndexAxis::changed() const {
+    return changed_;
 }
 
 void IndexAxis::load(const eckit::Value &v) {
@@ -49,6 +54,7 @@ void IndexAxis::load(const eckit::Value &v) {
 
 void IndexAxis::insert(const Key &key) {
     ASSERT(!readOnly_);
+    changed_ = true;
 
     //    Log::info() << *this << std::endl;
 
@@ -79,6 +85,7 @@ void IndexAxis::print(std::ostream &out) const {
 
 void IndexAxis::json(eckit::JSON &j) const {
     j << axis_;
+    changed_ = false;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
