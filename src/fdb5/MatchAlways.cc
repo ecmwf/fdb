@@ -38,7 +38,7 @@ void MatchAlways::dump(std::ostream& s, const std::string& keyword, const TypesR
 
 void MatchAlways::print(std::ostream& out) const
 {
-    out << "MatchAlways()";
+    out << "MatchAlways[]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

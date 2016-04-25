@@ -185,7 +185,7 @@ TocRecord TocHandler::makeRecordTocWipe() const
 }
 
 void TocHandler::print(std::ostream& out) const {
-    out << "TocHandler(" << filePath() << ")";
+    out << "TocHandler[path=" << filePath() << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

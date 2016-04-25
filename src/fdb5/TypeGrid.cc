@@ -41,7 +41,7 @@ void TypeGrid::getValues(const MarsRequest& request,
 
 void TypeGrid::print(std::ostream &out) const
 {
-    out << "TypeGrid()";
+    out << "TypeGrid[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeGrid> type("Grid");

@@ -41,7 +41,7 @@ void Predicate::dump(std::ostream& s, const TypesRegistry& registry) const
 
 void Predicate::print(std::ostream& out) const
 {
-    out << "Predicate()";
+    out << "Predicate[keyword=" << keyword_ << ",matcher=" << *matcher_ << "]";
 }
 
 std::string Predicate::keyword() const

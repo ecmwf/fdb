@@ -50,7 +50,13 @@ void MatchAny::dump(std::ostream& s, const std::string& keyword, const TypesRegi
 
 void MatchAny::print(std::ostream& out) const
 {
-    out << "MatchAny()";
+    out << "MatchAny[values=";
+    const char* sep = "";
+    for( std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
+        out << sep << *i;
+        sep = ",";
+    }
+    out << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

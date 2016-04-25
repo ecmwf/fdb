@@ -76,7 +76,7 @@ void TypeStep::getValues(const MarsRequest &request,
 }
 
 void TypeStep::print(std::ostream &out) const {
-    out << "TypeStep(" << name_ << ")";
+    out << "TypeStep[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeStep> type("Step");

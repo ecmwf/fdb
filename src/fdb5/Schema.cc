@@ -78,7 +78,6 @@ void Schema::load(const eckit::PathName& path, bool replace)
     SchemaParser parser(in);
 
     parser.parse(*this, rules_, registry_);
-    ASSERT(rules_.size());
 
     check();
 }
@@ -111,12 +110,13 @@ void Schema::check()
 
 void Schema::print(std::ostream& out) const
 {
-    out << "Schema()";
+    out << "Schema[path=" << path_ << "]";
 }
 
 const Type& Schema::lookupType(const std::string& keyword) const {
     return registry_.lookupType(keyword);
 }
+
 
 
 void Schema::compareTo(const Schema& other) const {
@@ -126,9 +126,21 @@ void Schema::compareTo(const Schema& other) const {
     dump(a);
     other.dump(b);
 
+    if(empty()) {
+        eckit::Log::warning() << *this << " is empty" << std::endl;
+    }
+
+     if(other.empty()) {
+        eckit::Log::warning() << other << " is empty" << std::endl;
+    }
+
     if(a.str() != b.str()) {
         throw SchemaHasChanged(*this);
     }
+}
+
+bool Schema::empty() const {
+    return rules_.empty();
 }
 
 const std::string& Schema::path() const {

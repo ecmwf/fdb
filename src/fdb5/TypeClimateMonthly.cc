@@ -78,7 +78,7 @@ void TypeClimateMonthly::getValues(const MarsRequest& request,
 
 void TypeClimateMonthly::print(std::ostream &out) const
 {
-    out << "TypeClimateMonthly(" << name_ << ")";
+    out << "TypeClimateMonthly[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeClimateMonthly> type("ClimateMonthly");

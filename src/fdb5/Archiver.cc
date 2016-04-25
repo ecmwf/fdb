@@ -98,8 +98,8 @@ DB& Archiver::database(const Key& key)
 
 void Archiver::print(std::ostream& out) const
 {
-    out << "Archiver("
-        << ")"
+    out << "Archiver["
+        << "]"
         << std::endl;
 }
 

@@ -88,11 +88,11 @@ const eckit::StringSet& IndexAxis::values(const std::string& keyword) const
 
 void IndexAxis::print(std::ostream& out) const
 {
-    out << "IndexAxis("
+    out << "IndexAxis["
         << "path=" << path_
         <<  ",axis=";
     eckit::__print_container(out, axis_);
-    out  << ")";
+    out  << "]";
 }
 
 void IndexAxis::json(eckit::JSON& j) const

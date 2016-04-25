@@ -63,7 +63,7 @@ void MatchOptional::dump(std::ostream& s, const std::string& keyword, const Type
 
 void MatchOptional::print(std::ostream& out) const
 {
-    out << "MatchOptional()";
+    out << "MatchOptional[default=" << default_ << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

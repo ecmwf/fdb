@@ -47,11 +47,11 @@ bool AdoptVisitor::selectDatum(const Key &key, const Key &full) {
 
 void AdoptVisitor::print(std::ostream& out) const
 {
-    out << "AdoptVisitor("
+    out << "AdoptVisitor["
         << "path=" << path_
         << ",offset=" << offset_
         << ",length=" << length_
-        << ")"
+        << "]"
         << std::endl;
 }
 

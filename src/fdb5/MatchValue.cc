@@ -45,7 +45,7 @@ void MatchValue::dump(std::ostream& s, const std::string& keyword, const TypesRe
 
 void MatchValue::print(std::ostream& out) const
 {
-    out << "MatchValue()";
+    out << "MatchValue[value=" << value_ << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

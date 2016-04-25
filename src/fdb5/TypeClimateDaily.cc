@@ -89,7 +89,7 @@ void TypeClimateDaily::getValues(const MarsRequest& request,
 
 void TypeClimateDaily::print(std::ostream &out) const
 {
-    out << "TypeClimateDaily(" << name_ << ")";
+    out << "TypeClimateDaily[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeClimateDaily> type("ClimateDaily");
