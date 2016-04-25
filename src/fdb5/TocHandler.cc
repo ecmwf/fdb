@@ -84,11 +84,11 @@ void TocHandler::append( const TocRecord& r )
 	}
 }
 
-eckit::Length TocHandler::readNext( TocRecord& r )
+size_t TocHandler::readNext( TocRecord& r )
 {
 	ASSERT( isOpen() && read_ );
 
-    eckit::Length len;
+    size_t len;
 
     SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord)), filePath() );
 

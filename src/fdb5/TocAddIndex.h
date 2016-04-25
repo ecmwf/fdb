@@ -11,8 +11,8 @@
 /// @author Tiago Quintino
 /// @date Dec 2014
 
-#ifndef fdb5_TocIndex_H
-#define fdb5_TocIndex_H
+#ifndef fdb5_TocAddIndex_H
+#define fdb5_TocAddIndex_H
 
 #include "fdb5/TocHandler.h"
 
@@ -22,13 +22,13 @@ class Key;
 
 //-----------------------------------------------------------------------------
 
-class TocIndex : public TocHandler {
+class TocAddIndex : public TocHandler {
 
 public: // methods
 
-    TocIndex(const eckit::PathName& dir, const eckit::PathName& idx, const fdb5::Key& key);
+    TocAddIndex(const eckit::PathName& dir, const eckit::PathName& idx, const fdb5::Key& key);
 
-	~TocIndex();
+	~TocAddIndex();
 
 	eckit::PathName index() const;
 

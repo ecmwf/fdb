@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/TocIndex.h"
+#include "fdb5/TocAddIndex.h"
 #include "fdb5/Key.h"
 
 
@@ -16,20 +16,20 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-TocIndex::TocIndex(const eckit::PathName &dir, const eckit::PathName &idx, const Key &key) :
+TocAddIndex::TocAddIndex(const eckit::PathName &dir, const eckit::PathName &idx, const Key &key) :
     TocHandler( dir ),
     index_(idx),
     tocMD_(key.valuesToString()) {
 }
 
-TocIndex::~TocIndex() {
+TocAddIndex::~TocAddIndex() {
     openForAppend();
     TocRecord r = makeRecordIdxInsert(index_, tocMD_);
     append(r);
     close();
 }
 
-eckit::PathName TocIndex::index() const {
+eckit::PathName TocAddIndex::index() const {
     return index_;
 }
 

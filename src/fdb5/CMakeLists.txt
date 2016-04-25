@@ -107,8 +107,8 @@ list( APPEND fdb5_srcs
     TocDBWriter.h
     TocHandler.cc
     TocHandler.h
-    TocIndex.cc
-    TocIndex.h
+    TocAddIndex.cc
+    TocAddIndex.h
     TocInitialiser.cc
     TocInitialiser.h
     TocList.cc

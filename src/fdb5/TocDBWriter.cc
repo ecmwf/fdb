@@ -32,7 +32,7 @@
 #include "eckit/log/Timer.h"
 #include "eckit/io/AIOHandle.h"
 #include "fdb5/TocInitialiser.h"
-#include "fdb5/TocIndex.h"
+#include "fdb5/TocAddIndex.h"
 
 #include "fdb5/TocDBWriter.h"
 #include "fdb5/FDBFileHandle.h"
@@ -47,11 +47,7 @@ TocDBWriter::TocDBWriter(const Key& key) :
     current_(0),
     dirty_(false)
 {
-    if( !path_.exists() )
-    {
-        TocInitialiser init(path_);
-    }
-
+    TocInitialiser init(path_);
 
     blockSize_ = eckit::Resource<long>( "blockSize", 0 );
 
@@ -81,7 +77,7 @@ TocDBWriter::~TocDBWriter()
 
 bool TocDBWriter::selectIndex(const Key& key)
 {
-    TocIndex& toc = getTocIndex(key);
+    TocAddIndex& toc = getTocIndex(key);
     current_ = &getIndex(key, toc.index());
     return true;
 }
@@ -220,9 +216,9 @@ DataHandle& TocDBWriter::getDataHandle( const PathName& path )
     return *dh;
 }
 
-TocIndex& TocDBWriter::getTocIndex(const Key& key)
+TocAddIndex& TocDBWriter::getTocIndex(const Key& key)
 {
-    TocIndex* toc = 0;
+    TocAddIndex* toc = 0;
 
     TocIndexStore::const_iterator itr = tocEntries_.find( key );
     if( itr != tocEntries_.end() )
@@ -231,7 +227,7 @@ TocIndex& TocDBWriter::getTocIndex(const Key& key)
     }
     else
     {
-        toc = new TocIndex(path_, generateIndexPath(key), key);
+        toc = new TocAddIndex(path_, generateIndexPath(key), key);
         tocEntries_[ key ] = toc;
     }
 
