@@ -170,7 +170,7 @@ void Rule::expand( const Key& field,
 
             switch(depth) {
                 case 0:
-                    if(keys[0] != visitor.prev_[0] || keys[0].registry() != visitor.prev_[0].registry()) {
+                    if(keys[0] != visitor.prev_[0] /*|| keys[0].registry() != visitor.prev_[0].registry()*/) {
                         visitor.selectDatabase(keys[0], full);
                         visitor.prev_[0] = keys[0];
                         visitor.prev_[1] = Key();
@@ -178,7 +178,7 @@ void Rule::expand( const Key& field,
                     break;
 
                 case 1:
-                    if(keys[1] != visitor.prev_[1] || keys[1].registry() != visitor.prev_[1].registry()) {
+                    if(keys[1] != visitor.prev_[1] /*|| keys[1].registry() != visitor.prev_[1].registry()*/) {
                         visitor.selectIndex(keys[1], full);
                         visitor.prev_[1] = keys[1];
                     }
