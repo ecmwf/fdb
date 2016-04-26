@@ -47,7 +47,7 @@ Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
         eckit::Value v = parser.parse();
 //        eckit::Log::info() << "JSON: " << v << std::endl;
 
-//        prefix_ = v["prefix"].as<std::string>();
+        prefix_ = v["prefix"].as<std::string>();
 
         files_.load(v["files"]);
 //        eckit::Log::info() << "Files " << files_ << std::endl;
