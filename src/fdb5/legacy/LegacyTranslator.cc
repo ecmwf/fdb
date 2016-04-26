@@ -40,10 +40,19 @@ static bool iswave(const Key& key) {
 
 static StringDict::value_type integer(const Key& key, const std::string& keyword, const std::string& value )
 {
-	static Translator<std::string,long> s2l;
-	static Translator<long,std::string> l2s;
+    static Translator<std::string,long> s2l;
+    static Translator<long,std::string> l2s;
 
-	return StringDict::value_type(keyword, l2s(s2l(value)));
+    return StringDict::value_type(keyword, l2s(s2l(value)));
+
+}
+
+static StringDict::value_type real(const Key& key, const std::string& keyword, const std::string& value )
+{
+    static Translator<std::string,double> s2r;
+    static Translator<double,std::string> r2s;
+
+    return StringDict::value_type(keyword, r2s(s2r(value)));
 
 }
 
@@ -72,16 +81,6 @@ static StringDict::value_type levtype(const Key& key, const std::string& keyword
 static StringDict::value_type repres(const Key& key, const std::string& keyword, const std::string& value )
 {
     return StringDict::value_type( "repres" , value );
-}
-
-static StringDict::value_type levelist(const Key& key, const std::string& keyword, const std::string& value )
-{
-    static const char * levelist_ = "levelist";
-
-    if( StringTools::startsWith(value,"0") )
-        return StringDict::value_type( levelist_, StringTools::front_trim(value,"0") );
-
-    return StringDict::value_type( levelist_ , value );
 }
 
 static StringDict::value_type param(const Key& key, const std::string& keyword, const std::string& value )
@@ -117,15 +116,6 @@ static StringDict::value_type time(const Key& key, const std::string& keyword, c
     return StringDict::value_type( time_ , value );
 }
 
-static StringDict::value_type step(const Key& key, const std::string& keyword, const std::string& value )
-{
-    static const char * step_ = "step";
-
-    unsigned int v = Translator<std::string,unsigned int>()(value);
-
-    return StringDict::value_type( step_ , Translator<unsigned int,std::string>()(v) );
-}
-
 //-----------------------------------------------------------------------------
 
 LegacyTranslator::LegacyTranslator()
@@ -138,10 +128,11 @@ LegacyTranslator::LegacyTranslator()
 
     translators_["repr"]  = &repres;
 
-    translators_["step"]  = &step;
+    translators_["step"]  = &real;
 
-    translators_["LEVEL"] = &levelist;
-    translators_["level"] = &levelist;
+    translators_["LEVEL"]    = &real;
+    translators_["level"]    = &real;
+    translators_["levelist"] = &real;
 
     translators_["parameter"] = &param;
     translators_["PARAMETER"] = &param;
