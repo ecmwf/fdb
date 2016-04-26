@@ -52,8 +52,11 @@ void FDBList::run()
         struct PurgeVisitor : public EntryVisitor {
 
             PurgeVisitor() :
-                count_(0),
-                size_(0)
+                totalCount_(0),
+                totalSize_(0),
+                uniqueSize_(0),
+                duplicateCount_(0),
+                duplicateSize_(0)
             {
             }
 
@@ -61,13 +64,35 @@ void FDBList::run()
                                const std::string& key,
                                const eckit::PathName& path,
                                eckit::Offset offset,
-                               eckit::Length length){
-                ++count_;
-                size_ += length;
+                               eckit::Length length)
+            {
+                ++totalCount_;
+                totalSize_ += length;
+
+                std::string indexKey = index + key;
+                if(active_.find(indexKey) == active_.end()) {
+                    active_.insert( make_pair(indexKey, Index::Field(path, offset, length)));
+                    uniqueSize_ += length;
+                }
+                else {
+                    ++duplicates_[current_];
+                    duplicateSize_ += length;
+                }
             }
 
-            size_t count_;
-            Length size_;
+            size_t totalCount_;
+            Length totalSize_;
+            Length uniqueSize_;
+            size_t duplicateCount_;
+            Length duplicateSize_;
+
+            eckit::PathName current_;
+
+            std::map<std::string, Index::Field> active_;
+
+            std::map<eckit::PathName, size_t> duplicates_;
+
+            void currentIndex(const eckit::PathName& path) { current_ = path; }
         };
 
         PurgeVisitor visitor;
@@ -79,11 +104,18 @@ void FDBList::run()
             Key dummy;
             eckit::ScopedPtr<Index> index ( Index::create(dummy, *i, Index::READ) );
 
+            visitor.currentIndex(*i);
+
             index->entries(visitor);
         }
 
-        Log::info() << "FDB total count: " << eckit::BigNum(visitor.count_) << std::endl;
-        Log::info() << "FDB total size: " << eckit::Bytes(visitor.size_) << std::endl;
+        Log::info() << "FDB Totals:"              << std::endl
+                    << "    fields count      : " << eckit::BigNum(visitor.totalCount_) << std::endl
+                    << "    unique fields     : " << eckit::BigNum(visitor.active_.size()) << std::endl
+                    << "    unique size       : " << eckit::Bytes(visitor.uniqueSize_) << std::endl
+                    << "    duplicates fields : " << eckit::BigNum(visitor.duplicateCount_) << std::endl
+                    << "    duplicates size   : " << eckit::Bytes(visitor.duplicateSize_) << std::endl
+                    << "    total size        : " << eckit::Bytes(visitor.totalSize_) << std::endl;
     }
 
 }
@@ -94,4 +126,3 @@ int main(int argc, char **argv)
     FDBList app(argc,argv);
     return app.start();
 }
-
