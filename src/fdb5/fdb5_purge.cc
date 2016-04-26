@@ -76,6 +76,7 @@ void FDBList::run()
                 }
                 else {
                     ++duplicates_[current_];
+                    ++duplicateCount_;
                     duplicateSize_ += length;
                 }
             }
