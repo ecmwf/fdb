@@ -82,54 +82,49 @@ void FDBIndexScanner::process(FILE* f)
 
     PathName dirpath = path_.dirName();
 
+    Log::info() << path_ << std::endl;
+    //     Log::info() << path_.baseName() << std::endl;
+    //     Log::info() << std::string(path_.baseName()) << std::endl;
+
     // /ma_fdb/:od:oper:g:0001:20120617::/:fc:0000::::::::.
-
-    std::vector<std::string> c;
-
-     Log::info() << c << std::endl;
-     Log::info() << path_ << std::endl;
-//     Log::info() << path_.baseName() << std::endl;
-//     Log::info() << std::string(path_.baseName()) << std::endl;
 
     std::string indexFileName(path_.baseName());
     Log::info() << "Index filename [" << indexFileName << "]" << std::endl;
 
-    Tokenizer p(":");
-    p(indexFileName, c);
+    Tokenizer p(":",true);
 
-     Log::info() << "CCCCCCC(" << c.size() << ") " << c << std::endl;
+    StringList idx;
+    p(indexFileName, idx); // first elem will be always empty
 
-    ASSERT(c.size() >= 3);
+    Log::info() << "Parsed index (size=" << idx.size() << ") " << idx << std::endl;
+
+    ASSERT(idx.size() >= 3);
 
     Key r;
-    translator.set(r, "type",  c[0]);
-    translator.set(r, "time",  c[1]);
-//    translator.set(r, "number", "0");
 
+    translator.set(r, "type",  idx[1]);
+    translator.set(r, "time",  idx[2]);
     translator.set(r, "step", "0");
 
-    if(c.size() > 4 && !c[4].empty()) {
-    	translator.set(r, "iteration", c[4]);
+//    translator.set(r, "number", "0");
+
+
+    if(idx.size() > 5 && !idx[5].empty()) {
+        translator.set(r, "iteration", idx[5]);
     }
-		
 
-    c.clear();
+    StringList db;
+    p(dirpath.baseName(), db);
 
-    // Log::info() << c << std::endl;
-    // Log::info() << path_ << std::endl;
-    // Log::info() << dirpath << std::endl;
-    // Log::info() << dirpath.baseName() << std::endl;
-    p(dirpath.baseName(),c);
+    Log::info() << "Parsed db (size=" << db.size() << ") " << db << std::endl;
 
-    Log::info() << "[" << c << "]" << std::endl;
+    ASSERT(db.size() >= 5);
 
-    ASSERT(c.size() >= 5);
-
-    translator.set(r, "class", c[0]);
-    translator.set(r, "stream", c[1]);
-    translator.set(r, "domain", c[2]);
-    translator.set(r, "expver", c[3]);
-    translator.set(r, "date", c[4]);
+    translator.set(r, "class",  db[0]);
+    translator.set(r, "stream", db[1]);
+    translator.set(r, "domain", db[2]);
+    translator.set(r, "expver", db[3]);
+    translator.set(r, "date",   db[4]);
 
     try {
 
