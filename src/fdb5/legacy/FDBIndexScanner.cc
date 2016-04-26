@@ -97,8 +97,7 @@ void FDBIndexScanner::process(FILE* f)
     Tokenizer p(":");
     p(indexFileName, c);
 
-     Log::info() << c.size() << std::endl;
-     Log::info() << c << std::endl;
+     Log::info() << "CCCCCCC(" << c.size() << ") " << c << std::endl;
 
     ASSERT(c.size() >= 3);
 
