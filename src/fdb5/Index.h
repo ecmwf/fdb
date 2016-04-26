@@ -47,16 +47,41 @@ public: // types
         Field(const eckit::PathName& path, eckit::Offset offset, eckit::Length length ) :
             path_(path),
             offset_(offset),
-            length_(length) {
+            length_(length)
+  #if 0
+          ,
+            referenceValue_(0),
+            binaryScaleFactor_(0),
+            decimalScaleFactor_(0),
+            bitsPerValue_(0),
+            offsetBeforeData_(0),
+            offsetBeforeBitmap_(0),
+            numberOfValues_(0),
+            numberOfDataPoints_(0),
+            sphericalHarmonics_(0)
+  #endif
+        {
         }
 
         eckit::PathName path_;
         eckit::Offset   offset_;
         eckit::Length   length_;
 
-        /// @todo
-        /// Should return here the information about bit encoding for direct value access
-        /// this should also persits in some other class
+        ///////////////////////////////////////////////
+#if 0
+        double        referenceValue_;
+        long          binaryScaleFactor_;
+        long          decimalScaleFactor_;
+        unsigned long bitsPerValue_;
+        unsigned long offsetBeforeData_;
+        unsigned long offsetBeforeBitmap_;
+        unsigned long numberOfValues_;
+        unsigned long numberOfDataPoints_;
+        long          sphericalHarmonics_;
+
+        eckit::FixedString<32>   gridMD5_; ///< md5 of the grid geometry section in GRIB
+#endif
+        ///////////////////////////////////////////////
 
         void load( std::istream& s );
 

@@ -2,34 +2,21 @@
 #
 #  * tool to purge
 #
-#  * run the suite and slowly build the rules
-#
-#  * fdbRoot is a list of paths to visit ---> speak to Hodge
-#  * check overwrite
-#
 #  * Axis should consider Type
-#
-#  * Merge *.axis and *.files in a single file
-#  * Too many files open: only cache a maximum number of databases
-#
-#  * fdb_ingest --path fdbroot
-#      - check for duplicates
-#      - check that keysIdx are fully defined
-#      - build a suite
 #
 #  * client "database" for direct fdb5 read
 #
-#  * copy the schema (fdbRules) into toc dir and read it fromt here on retrieves
-#
-#  * fdb5_ls -class od -expver 0001
+#  * fdb5_list -class od -expver 0001
 #
 #  * consider using more than a service node on the HPC
-#
-#  * Rules for data files (eg {type,levtype} )
 #
 #  * marsadm tools:
 #    --  list roots
 
+# MAYBE:
+#  * fdbRoot is a list of paths to visit ---> speak to Hodge
+#  * Rules for data files (eg {type,levtype} )
+#
 # Confluence documentation on how to install
 # -- dont forget the ~/mars/wind
 
