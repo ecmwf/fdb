@@ -11,6 +11,8 @@
 #include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/log/Bytes.h"
+#include "eckit/log/BigNum.h"
 
 #include "fdb5/Key.h"
 #include "fdb5/TocReverseIndexes.h"
@@ -46,6 +48,30 @@ void FDBList::run()
 
         std::vector<eckit::PathName> indexes = toc.indexes();
 
+
+        struct PurgeVisitor : public EntryVisitor {
+
+            PurgeVisitor() :
+                count_(0),
+                size_(0)
+            {
+            }
+
+            virtual void visit(const std::string& index,
+                               const std::string& key,
+                               const eckit::PathName& path,
+                               eckit::Offset offset,
+                               eckit::Length length){
+                ++count_;
+                size_ += length;
+            }
+
+            size_t count_;
+            Length size_;
+        };
+
+        PurgeVisitor visitor;
+
         for(std::vector<eckit::PathName>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
 
             Log::info() << "Index path " << *i << std::endl;
@@ -53,9 +79,11 @@ void FDBList::run()
             Key dummy;
             eckit::ScopedPtr<Index> index ( Index::create(dummy, *i, Index::READ) );
 
-            index->entries();
+            index->entries(visitor);
         }
 
+        Log::info() << "FDB total count: " << eckit::BigNum(visitor.count_) << std::endl;
+        Log::info() << "FDB total size: " << eckit::Bytes(visitor.size_) << std::endl;
     }
 
 }

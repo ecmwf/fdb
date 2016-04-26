@@ -53,7 +53,7 @@ private: // methods
 
     virtual void	flush();
 
-    virtual void	entries() const;
+    virtual void entries(EntryVisitor& visitor) const;
 
 private: // methods
 

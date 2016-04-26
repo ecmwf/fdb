@@ -110,7 +110,12 @@ void TextIndex::flush()
 
     Index::flush();
     if( !flushed_ )
-		save( path_ );
+        save( path_ );
+}
+
+void TextIndex::entries(EntryVisitor& visitor) const
+{
+    NOTIMP;
 }
 
 void TextIndex::load(const eckit::PathName& path)
@@ -170,11 +175,6 @@ void TextIndex::print(std::ostream& out) const
 }
 
 static IndexBuilder<TextIndex> builder("TextIndex");
-
-void fdb5::TextIndex::entries() const
-{
-    NOTIMP;
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 

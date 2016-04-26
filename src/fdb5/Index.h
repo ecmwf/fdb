@@ -33,6 +33,15 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class EntryVisitor {
+public:
+    virtual void visit(const std::string& index,
+                       const std::string& key,
+                       const eckit::PathName& path,
+                       eckit::Offset offset,
+                       eckit::Length length) = 0;
+};
+
 class Index : private eckit::NonCopyable {
 
 public: // types
@@ -117,7 +126,7 @@ public: // methods
 
     virtual void list( std::ostream& out ) const = 0;
 
-    virtual void entries() const = 0;
+    virtual void entries(EntryVisitor& visitor) const = 0;
 
     friend std::ostream& operator<<(std::ostream& s, const Index& x) { x.print(s); return s; }
 
@@ -144,6 +153,8 @@ protected: // members
     IndexAxis   axes_;
 
     Key key_; ///< key that selected this index
+
+    std::string prefix_;
 
 };
 
