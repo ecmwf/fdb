@@ -18,19 +18,7 @@
 #include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
 
-#include "fdb5/legacy/FDBScanner.h"
-#include "fdb5/legacy/IndexCache.h"
-
-// Make sure this program has enough memory (ulimit)
-// On AIX, the threads can corrupt the main stack and create unexpected behaviours
-// Also, export AIXTHREAD_GUARDPAGES=1
-// On AIX, set stack size to 1Mb
-
-#ifdef _AIX
-#define STACK_SIZE (1024*1024)
-#else
-#define STACK_SIZE (0)
-#endif
+#include "fdb5/legacy/FDBIndexScanner.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -43,17 +31,9 @@ private:
 public:
 
     FDBIndex(int argc, char **argv) :
-        eckit::Tool(argc,argv),
-        scan_("scan",
-              eckit::Resource<int>("-scans;numberOfScanThreads", 1),
-              eckit::Resource<int>("-stack;scanThreadsStackSize", STACK_SIZE))
+        eckit::Tool(argc,argv)
     {
-
     }
-
-private:
-
-    eckit::ThreadPool scan_;
 
 };
 
@@ -61,16 +41,23 @@ void FDBIndex::run()
 {
     eckit::Context& ctx = eckit::Context::instance();
 
+    static std::string pattern = eckit::Resource<std::string>("fdbPattern", "/:*.");
+    //  e.g. "/*[pcf][fc]:0000:*."
+
     for(int i = 1; i < ctx.argc(); i++)
     {
         eckit::PathName path(ctx.argv(i));
 
-        scan_.push( new fdb5::legacy::FDBScanner(path) );
-    }
+        eckit::Log::info() << "Scanning FDB db " << path << std::endl;
 
-    for(;;)
-    {
-        ::sleep(120);
+        std::vector<eckit::PathName> indexes;
+
+        eckit::PathName::match(path / pattern, indexes, true); // match checks that path is a directory
+
+        for(std::vector<eckit::PathName>::const_iterator j = indexes.begin(); j != indexes.end(); ++j) {
+            fdb5::legacy::FDBIndexScanner scanner(*j);
+            scanner.execute();
+        }
     }
 }
 

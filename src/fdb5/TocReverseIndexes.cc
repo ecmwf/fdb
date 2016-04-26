@@ -43,6 +43,7 @@ void TocReverseIndexes::init() {
 }
 
 std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
+
     const_cast<TocReverseIndexes *>(this)->init();
 
     TocMap::const_iterator f = cacheIndexes_.find(key);
@@ -54,15 +55,20 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
 
     TocRecord::MetaData md( key.valuesToString() );
 
+    eckit::Log::info() << "TocReverseIndexes md = " << md << std::endl;
+    eckit::Log::info() << "TocReverseIndexes key = " << key << std::endl;
+
     std::vector< eckit::PathName > indexes;
 
     for ( TocVec::const_iterator itr = toc_.begin(); itr != toc_.end(); ++itr ) {
         const TocRecord &r = *itr;
+        eckit::Log::info() << "TocRecord " << r << std::endl;
         switch (r.head_.tag_) {
         case TOC_INIT: // ignore the Toc initialisation
             break;
 
         case TOC_INDEX:
+            eckit::Log::info() << "TOC_INDEX " << r.metadata() << std::endl;
             if ( r.metadata() == md )
                 indexes.push_back( r.path() );
             break;

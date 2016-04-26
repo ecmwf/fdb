@@ -16,8 +16,11 @@
 #include "eckit/utils/Translator.h"
 #include "eckit/types/Types.h"
 
+#include "fdb5/AdoptVisitor.h"
+#include "fdb5/Key.h"
+
 #include "fdb5/legacy/FDBIndexScanner.h"
-#include "fdb5/legacy/IndexCache.h"
+#include "fdb5/legacy/LegacyTranslator.h"
 
 using namespace eckit;
 
@@ -27,7 +30,7 @@ namespace legacy {
 //-----------------------------------------------------------------------------
 
 FDBIndexScanner::FDBIndexScanner(const PathName& path):
-    path_(path)
+    path_(path.realName())
 {
     Log::info() << "FDBIndexScanner( path = " << path_ << ")" << std::endl;
 }
@@ -62,7 +65,7 @@ void FDBIndexScanner::execute()
     }
 
     // if all else fails, lets try to run the old tool 'lsfdb' (must be in path)
-    {        
+    {
         std::string cmd(std::string("lsfdb ") + path_.asString());
         Log::info() << "scanning with pipe to command: [" << cmd << "]" << std::endl;
         StdPipe f(cmd, "r");
@@ -72,6 +75,8 @@ void FDBIndexScanner::execute()
 
 void FDBIndexScanner::process(FILE* f)
 {
+    LegacyTranslator translator;
+
     std::string ignore;
     std::string s;
 
@@ -97,10 +102,14 @@ void FDBIndexScanner::process(FILE* f)
 
     ASSERT(c.size() >= 3);
 
-    StringDict r;
-    r["type"]   = c[0];
-    r["time"]   = c[1];
-    r["number"] = c[2];
+    Key r;
+    translator.set(r, "type",  c[0]);
+    translator.set(r, "time",  c[1]);
+//    translator.set(r, "number", "0");
+
+    if(c[0] == "an") {
+        translator.set(r, "step", "0");
+    }
 
     c.clear();
 
@@ -114,11 +123,11 @@ void FDBIndexScanner::process(FILE* f)
 
     ASSERT(c.size() >= 5);
 
-    r["class"]    = c[0];
-    r["type"]     = c[1];
-    r["domain"]   = c[2];
-    r["expver"]   = c[3];
-    r["date"]     = c[4];
+    translator.set(r, "class", c[0]);
+    translator.set(r, "stream", c[1]);
+    translator.set(r, "domain", c[2]);
+    translator.set(r, "expver", c[3]);
+    translator.set(r, "date", c[4]);
 
     try {
 
@@ -131,11 +140,17 @@ void FDBIndexScanner::process(FILE* f)
 
         while(fgets(buf, sizeof(buf), f))
         {
-            StringDict m(r);
+            ASSERT(strlen(buf));
+
+            buf[strlen(buf)-1] = 0;
+
+            Key key(r);
 
             std::string line(buf);
 
-            Log::info() << line << std::endl;
+            Log::info() << "line [" << line << "]" << std::endl;
+
+            if(line.empty()) continue;
 
             std::istringstream in(line);
             // e.g. 409802 FDB;  4558 0:6:0;  levelist=27 levtype=m parameter=155 step=6  3281188 (61798740)
@@ -149,12 +164,12 @@ void FDBIndexScanner::process(FILE* f)
 
             Log::info() << "prefix = " << prefix << std::endl;
 
-            std::string datapath = dirpath + "/:" + prefix + path_.baseName();
+            std::string datapath = dirpath + "/:" + prefix + path_.baseName(false);
 
             Log::info() << "datapath = " << datapath << std::endl;
 
-            size_t length;
-            size_t offset;
+            Length length;
+            Offset offset;
             for(;;)
             {
                 StringList v;
@@ -164,19 +179,24 @@ void FDBIndexScanner::process(FILE* f)
 
                 if(isdigit(s[0])) // when we hit digits, parse length and offset, e.g.   3281188 (61798740)
                 {
-                    length = Translator<std::string, size_t>()(s);
+                    length = Translator<std::string, unsigned long long>()(s);
                     in >> s;
-                    offset = Translator<std::string, size_t>()(s.substr(1,s.length()-2));
+                    offset = Translator<std::string, unsigned long long>()(s.substr(1,s.length()-2));
                     break;
                 }
 
                 // parse keywords, e.g. levelist=27 levtype=m parameter=155 step=6
 
                 parse(s,v);
-                m[v[0]] = v[1];
+                ASSERT(v.size() == 2);
+                translator.set(key, v[0], v[1]);
             }
 
             Log::info() << "Indexed field @ " << datapath << " offset=" << offset << " lenght=" << length << std::endl;
+
+            AdoptVisitor visitor(*this, key, datapath, offset, length);
+
+            archive(key, visitor);
         }
     }
     catch(Exception& e)

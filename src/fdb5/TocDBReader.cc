@@ -34,6 +34,9 @@ bool TocDBReader::selectIndex(const Key& key)
 {
     currentIndexKey_ = key;
     current_ = toc_.indexes(key);
+
+    eckit::Log::info() << "Found indexes " << current_ << std::endl;
+
     return (current_.size() != 0);
 }
 

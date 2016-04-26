@@ -66,8 +66,6 @@ list( APPEND fdb5_srcs
     IndexAxis.h
     Key.cc
     Key.h
-    LegacyKey.cc
-    LegacyKey.h
     MasterConfig.cc
     MasterConfig.h
     MatchAlways.cc

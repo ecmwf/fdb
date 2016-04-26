@@ -25,7 +25,7 @@ AdoptVisitor::AdoptVisitor(Archiver &owner, const Key &field, const PathName &pa
     length_(length)
 {
     Log::info() << *this << std::endl;
-    ASSERT(offset_ > Offset(0));
+    ASSERT(offset_ >= Offset(0));
     ASSERT(length_ > Length(0));
 }
 

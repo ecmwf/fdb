@@ -100,6 +100,7 @@ void TocDBWriter::close() {
 void TocDBWriter::index(const Key& key, const PathName& path, Offset offset, Length length)
 {
     ASSERT(current_);
+    dirty_ = true;
 
     Index::Field field(path, offset, length);
 

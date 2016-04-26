@@ -1,12 +1,10 @@
 # fdb5-legacy library
 
 list( APPEND fdb5_legacy_srcs
-  FDBScanner.h
-  FDBScanner.cc
   FDBIndexScanner.h
   FDBIndexScanner.cc
-#  IndexCache.h
-#  IndexCache.cc
+  LegacyTranslator.cc
+  LegacyTranslator.h
 )
 
 ecbuild_add_library(

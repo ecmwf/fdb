@@ -16,6 +16,8 @@
 #include "eckit/thread/ThreadPool.h"
 #include "eckit/filesystem/PathName.h"
 
+#include "fdb5/Archiver.h"
+
 namespace fdb5 {
 namespace legacy {
 
@@ -23,14 +25,14 @@ class IndexCache;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBIndexScanner : public eckit::ThreadPoolTask {
+class FDBIndexScanner : public Archiver {
 public:
 
     FDBIndexScanner(const eckit::PathName& path);
 
-    virtual ~FDBIndexScanner();
+    ~FDBIndexScanner();
 
-    virtual void execute();
+    void execute();
 
 private:
 
