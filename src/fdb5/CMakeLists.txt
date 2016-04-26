@@ -30,6 +30,9 @@
 #  * marsadm tools:
 #    --  list roots
 
+# Confluence documentation on how to install
+# -- dont forget the ~/mars/wind
+
 
 # fdb5 library
 
