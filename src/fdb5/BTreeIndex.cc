@@ -113,13 +113,12 @@ void BTreeIndex::flush()
 {
     ASSERT( mode() == Index::WRITE );
 
-    if(!dirty_) {
-        return;
+    if(dirty_) {
+        btree_.flush();
+        dirty_ = false;
     }
 
     Index::flush();
-
-    dirty_ = false;
 }
 
 void BTreeIndex::print(std::ostream& out) const

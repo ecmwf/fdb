@@ -148,6 +148,8 @@ void TocDBWriter::flush()
     flushIndexes();
 
     // close the indexes before the Toc's
+    /// @note FTM, we close the index because we want readers to acccess data
+    ///       and we aren't sure BTree can handle concurrent readers and writers
     closeIndexes();
 
     // finally write all Toc entries

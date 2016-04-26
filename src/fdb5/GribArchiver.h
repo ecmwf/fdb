@@ -34,6 +34,7 @@ class GribArchiver :
 public: // methods
 
     GribArchiver(bool completeTransfers = false);
+
     eckit::Length archive(eckit::DataHandle& source);
 
 private: // members

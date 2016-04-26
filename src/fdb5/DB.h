@@ -63,6 +63,9 @@ public: // methods
 
     friend std::ostream& operator<<(std::ostream& s,const DB& x);
 
+    time_t lastAccess() const;
+    void touch();
+
 protected: // methods
 
     virtual void print( std::ostream& out ) const = 0;
@@ -70,6 +73,8 @@ protected: // methods
 protected: // members
 
     Key key_;
+
+    time_t lastAccess_;
 
 };
 

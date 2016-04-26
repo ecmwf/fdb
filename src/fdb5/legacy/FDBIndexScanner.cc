@@ -72,9 +72,6 @@ void FDBIndexScanner::execute()
 
 void FDBIndexScanner::process(FILE* f)
 {
-    Tokenizer p(":");
-    Tokenizer parse("=");
-
     std::string ignore;
     std::string s;
 
@@ -84,22 +81,21 @@ void FDBIndexScanner::process(FILE* f)
 
     std::vector<std::string> c;
 
-    // Log::info() << c << std::endl;
-    // Log::info() << path_ << std::endl;
-    // Log::info() << path_.baseName() << std::endl;
-    // Log::info() << string(path_.baseName()) << std::endl;
+     Log::info() << c << std::endl;
+     Log::info() << path_ << std::endl;
+//     Log::info() << path_.baseName() << std::endl;
+//     Log::info() << std::string(path_.baseName()) << std::endl;
 
-    std::string t(path_.baseName());
-    Log::info() << "[" << t << "]" << std::endl;
+    std::string indexFileName(path_.baseName());
+    Log::info() << "Index filename [" << indexFileName << "]" << std::endl;
 
-    p(t,c);
+    Tokenizer p(":");
+    p(indexFileName, c);
 
-    // Log::info() << c.size() << std::endl;
-    // Log::info() << c << std::endl;
+     Log::info() << c.size() << std::endl;
+     Log::info() << c << std::endl;
 
-	//ASSERT(c.size() >= 3);
-
-
+    ASSERT(c.size() >= 3);
 
     StringDict r;
     r["type"]   = c[0];
@@ -114,18 +110,20 @@ void FDBIndexScanner::process(FILE* f)
     // Log::info() << dirpath.baseName() << std::endl;
     p(dirpath.baseName(),c);
 
-    // Log::info() << c << std::endl;
+    Log::info() << "[" << c << "]" << std::endl;
 
-	//ASSERT(c.size() >= 5);
+    ASSERT(c.size() >= 5);
+
     r["class"]    = c[0];
     r["type"]     = c[1];
     r["domain"]   = c[2];
     r["expver"]   = c[3];
     r["date"]     = c[4];
 
-    std::string prefix;
-
     try {
+
+        Tokenizer parse("=");
+        std::string prefix;
 
         char buf[10240];
 
@@ -155,18 +153,20 @@ void FDBIndexScanner::process(FILE* f)
 
             Log::info() << "datapath = " << datapath << std::endl;
 
-            size_t len;
-            size_t off;
+            size_t length;
+            size_t offset;
             for(;;)
             {
-                std::vector<std::string> v;
+                StringList v;
                 in >> s;
+
+                Log::info() << "s -> [" << s << "]" << std::endl;
 
                 if(isdigit(s[0])) // when we hit digits, parse length and offset, e.g.   3281188 (61798740)
                 {
-                    len = Translator<std::string, size_t>()(s);
+                    length = Translator<std::string, size_t>()(s);
                     in >> s;
-                    off = Translator<std::string, size_t>()(s.substr(1,s.length()-2));
+                    offset = Translator<std::string, size_t>()(s.substr(1,s.length()-2));
                     break;
                 }
 
@@ -175,6 +175,8 @@ void FDBIndexScanner::process(FILE* f)
                 parse(s,v);
                 m[v[0]] = v[1];
             }
+
+            Log::info() << "Indexed field @ " << datapath << " offset=" << offset << " lenght=" << length << std::endl;
         }
     }
     catch(Exception& e)

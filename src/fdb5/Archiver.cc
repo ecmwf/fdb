@@ -74,8 +74,31 @@ DB& Archiver::database(const Key& key)
 {
     store_t::iterator i = databases_.find(key);
 
-    if(i != databases_.end() )
-        return *(i->second.get());
+    if(i != databases_.end() ) {
+        DB& db = *(i->second.get());
+        db.touch();
+        return db;
+    }
+
+    static size_t fdbMaxNbDBsOpen = eckit::Resource<size_t>("fdbMaxNbDBsOpen", 64);
+
+    if(databases_.size() >= fdbMaxNbDBsOpen) {
+        bool found = false;
+        time_t oldest = ::time(0) + 24*60*60;
+        Key oldK;
+        for(store_t::iterator i = databases_.begin(); i != databases_.end(); ++i) {
+            DB& db = *(i->second.get());
+            if(db.lastAccess() <= oldest) {
+                found = true;
+                oldK = i->first;
+                oldest = db.lastAccess();
+            }
+        }
+        if(found) {
+            eckit::Log::info() << "Closing database " << *databases_[oldK] << std::endl;
+            databases_.erase(oldK);
+        }
+    }
 
     eckit::SharedPtr<DB> db ( DBFactory::build(fdbWriterDB_, key) );
     ASSERT(db);

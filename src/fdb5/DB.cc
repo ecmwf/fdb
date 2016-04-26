@@ -93,10 +93,21 @@ DB* DBFactory::build(const std::string& name, const Key& key) {
 DB::DB(const Key& key):
     key_(key)
 {
+    touch();
 }
 
 DB::~DB()
 {
+}
+
+time_t DB::lastAccess() const
+{
+    return lastAccess_;
+}
+
+void DB::touch()
+{
+    lastAccess_ = ::time(0);
 }
 
 std::ostream& operator<<(std::ostream& s, const DB& x)
