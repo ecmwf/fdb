@@ -22,6 +22,90 @@ using namespace std;
 using namespace eckit;
 using namespace fdb5;
 
+//----------------------------------------------------------------------------------------------------------------------
+
+struct Stats {
+
+    Stats() : fields(0), dups(0), size(0), dupSize(0) {}
+
+    size_t fields;
+    size_t dups;
+    Length size;
+    Length dupSize;
+
+    Stats& operator+=(const Stats& rhs) {
+        fields += rhs.fields;
+        dups += rhs.dups;
+        size += rhs.size;
+        dupSize += rhs.dupSize;
+        return *this;
+    }
+
+    friend std::ostream& operator<<(std::ostream& s,const Stats& x) { x.print(s); return s; }
+
+    void print(std::ostream& out) const {
+        out << "fields: "  << eckit::BigNum(fields)
+            << "dups: "    << eckit::BigNum(dups)
+            << "size: "    << eckit::Bytes(size)
+            << "dupSize: " << eckit::Bytes(dupSize);
+    }
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+struct PurgeVisitor : public EntryVisitor {
+
+    PurgeVisitor() {}
+
+    virtual void visit(const std::string& index,
+                       const std::string& key,
+                       const eckit::PathName& path,
+                       eckit::Offset offset,
+                       eckit::Length length)
+    {
+        Stats& stats = indexStats_[current_];
+
+        ++stats.fields;
+        stats.size += length;
+
+        std::string indexKey = index + key;
+        if(active_.find(indexKey) == active_.end()) {
+            active_.insert( make_pair(indexKey, Index::Field(path, offset, length)));
+        }
+        else {
+            ++stats.dups;
+            stats.dupSize += length;
+        }
+    }
+
+    void currentIndex(const eckit::PathName& path) { current_ = path; }
+
+    Stats totals() const {
+        Stats total;
+        for(std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+            total += i->second;
+        }
+        return total;
+    }
+
+    eckit::PathName current_;
+
+    std::map<std::string, Index::Field> active_;
+
+    std::map<eckit::PathName, Stats> indexStats_;
+
+
+    friend std::ostream& operator<<(std::ostream& s,const PurgeVisitor& x) { x.print(s); return s; }
+
+    void print(std::ostream& out) const {
+        out << "PurgeVisitor(indexStats=" << indexStats_ << ")";
+    }
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class FDBList : public eckit::Tool {
     virtual void run();
 public:
@@ -49,53 +133,6 @@ void FDBList::run()
         std::vector<eckit::PathName> indexes = toc.indexes();
 
 
-        struct PurgeVisitor : public EntryVisitor {
-
-            PurgeVisitor() :
-                totalCount_(0),
-                totalSize_(0),
-                uniqueSize_(0),
-                duplicateCount_(0),
-                duplicateSize_(0)
-            {
-            }
-
-            virtual void visit(const std::string& index,
-                               const std::string& key,
-                               const eckit::PathName& path,
-                               eckit::Offset offset,
-                               eckit::Length length)
-            {
-                ++totalCount_;
-                totalSize_ += length;
-
-                std::string indexKey = index + key;
-                if(active_.find(indexKey) == active_.end()) {
-                    active_.insert( make_pair(indexKey, Index::Field(path, offset, length)));
-                    uniqueSize_ += length;
-                }
-                else {
-                    ++duplicates_[current_];
-                    ++duplicateCount_;
-                    duplicateSize_ += length;
-                }
-            }
-
-            size_t totalCount_;
-            Length totalSize_;
-            Length uniqueSize_;
-            size_t duplicateCount_;
-            Length duplicateSize_;
-
-            eckit::PathName current_;
-
-            std::map<std::string, Index::Field> active_;
-
-            std::map<eckit::PathName, size_t> duplicates_;
-
-            void currentIndex(const eckit::PathName& path) { current_ = path; }
-        };
-
         PurgeVisitor visitor;
 
         for(std::vector<eckit::PathName>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
@@ -110,16 +147,9 @@ void FDBList::run()
             index->entries(visitor);
         }
 
-        Log::info() << "FDB Totals:"              << std::endl
-                    << "    fields count      : " << eckit::BigNum(visitor.totalCount_) << std::endl
-                    << "    unique fields     : " << eckit::BigNum(visitor.active_.size()) << std::endl
-                    << "    unique size       : " << eckit::Bytes(visitor.uniqueSize_) << std::endl
-                    << "    duplicates fields : " << eckit::BigNum(visitor.duplicateCount_) << std::endl
-                    << "    duplicates size   : " << eckit::Bytes(visitor.duplicateSize_) << std::endl
-                    << "    total size        : " << eckit::Bytes(visitor.totalSize_) << std::endl;
+        Log::info() << "FDB Stats: " << visitor << std::endl;
 
-        Log::info() << "FDB Duplicates: " << visitor.duplicates_ << std::endl;
-
+        Log::info() << "FDB Totals:" << visitor.totals() << std::endl;
     }
 
 }
