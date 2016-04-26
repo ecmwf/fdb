@@ -10,6 +10,7 @@
 #  * Axis should consider Type
 #
 #  * Merge *.axis and *.files in a single file
+#  * Too many files open: only cache a maximum number of databases
 #
 #  * fdb_ingest --path fdbroot
 #      - check for duplicates

@@ -240,7 +240,7 @@ eckit::PathName TocDBWriter::generateIndexPath(const Key& key) const
 {
     PathName tocPath ( path_ );
     tocPath /= key.valuesToString();
-    tocPath = PathName::unique(tocPath) + ".idx";
+    tocPath = PathName::unique(tocPath) + ".index";
     return tocPath;
 }
 
@@ -248,7 +248,7 @@ eckit::PathName TocDBWriter::generateDataPath(const Key& key) const
 {
     PathName dpath ( path_ );
     dpath /=  key.valuesToString();
-    dpath = PathName::unique(dpath) + ".dat";
+    dpath = PathName::unique(dpath) + ".data";
     return dpath;
 }
 

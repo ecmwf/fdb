@@ -53,7 +53,7 @@ void TocDBReader::axis(const std::string& keyword, eckit::StringSet& s) const
     for( std::vector<eckit::PathName>::const_iterator itr = current_.begin(); itr != current_.end(); ++itr )
     {
         const Index& idx = getIndex(currentIndexKey_, *itr);
-        const eckit::StringSet& a = idx.axis().values(keyword);
+        const eckit::StringSet& a = idx.axes().values(keyword);
         s.insert(a.begin(), a.end());
     }
 }

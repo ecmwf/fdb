@@ -96,13 +96,14 @@ public: // methods
 
 	Mode mode() const { return mode_; }
 
-    const IndexAxis& axis() const { return axis_; }
+    const IndexAxis& axes() const { return axes_; }
 
     const Key& key() const;
 
 protected: // methods
 
     virtual void put_( const Key& key, const Field& field ) = 0;
+    eckit::PathName jsonFile() const;
 
 protected: // members
 
@@ -111,7 +112,7 @@ protected: // members
 	eckit::PathName path_;
 
     FileStore   files_;
-    IndexAxis   axis_;
+    IndexAxis   axes_;
 
     Key key_; ///< key that selected this index
 

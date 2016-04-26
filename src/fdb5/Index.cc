@@ -29,9 +29,9 @@ Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
     mode_(mode),
     path_(path),
     files_(),
-    axis_(),
+    axes_(),
     key_(key) {
-    eckit::PathName json(path_ + ".json");
+    eckit::PathName json(jsonFile());
 
     if ( json.exists() ) {
         eckit::Log::info() << "Load " << json << std::endl;
@@ -46,13 +46,16 @@ Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
         files_.load(v["files"]);
         eckit::Log::info() << "Files " << files_ << std::endl;
 
-        axis_.load(v["axis"]);
-        eckit::Log::info() << "Axis " << axis_ << std::endl;
+        axes_.load(v["axes"]);
+        eckit::Log::info() << "Axis " << axes_ << std::endl;
 
 
         if (f.bad()) {
             throw eckit::ReadError(json.asString());
         }
+
+    } else {
+                eckit::Log::info() << json << " does not exist" << std::endl;
 
     }
 }
@@ -61,10 +64,15 @@ Index::~Index() {
     flush();
 }
 
-void Index::flush() {
-    if (files_.changed() || axis_.changed()) {
+eckit::PathName Index::jsonFile() const {
+    std::string path = path_;
+    return path.substr(0, path.length() - path_.extension().length()) + ".json";
+}
 
-        eckit::PathName json(path_ + ".json");
+void Index::flush() {
+    if (files_.changed() || axes_.changed()) {
+
+        eckit::PathName json(jsonFile());
 
         eckit::Log::info() << "Save " << json << std::endl;
 
@@ -81,8 +89,8 @@ void Index::flush() {
         j.startObject();
         j << "files";
         files_.json(j);
-        j << "axis";
-        axis_.json(j);
+        j << "axes";
+        axes_.json(j);
         j.endObject();
 
         f.write(os.str().c_str(), os.str().size());
@@ -90,7 +98,7 @@ void Index::flush() {
 }
 
 void Index::put(const Key &key, const Index::Field &field) {
-    axis_.insert(key);
+    axes_.insert(key);
     put_(key, field);
 }
 
