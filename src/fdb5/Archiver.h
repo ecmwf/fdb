@@ -42,16 +42,10 @@ public: // methods
 
     ~Archiver();
 
+    /// @todo implement this to use with MultIO
     void write(const eckit::DataBlobPtr blob);
 
-    /// Archives the data in the buffer and described by the fdb5::Key
-    /// @param key metadata identifying the data
-    /// @param data buffer
-    /// @param length buffer length
-    ///
-    void write(const Key& key, const void* data, size_t length);
-
-    void adopt(const Key& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length);
+    void archive(const Key& key, BaseArchiveVisitor& visitor);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
@@ -60,8 +54,6 @@ public: // methods
     friend std::ostream& operator<<(std::ostream& s, const Archiver& x) { x.print(s); return s; }
 
 private: // methods
-
-    void archive(const Key& key, BaseArchiveVisitor&);
 
     void print(std::ostream& out) const;
 

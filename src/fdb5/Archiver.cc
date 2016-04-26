@@ -9,14 +9,13 @@
  */
 
 #include "fdb5/Archiver.h"
+
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 
-#include "fdb5/MasterConfig.h"
-#include "fdb5/ArchiveVisitor.h"
-#include "fdb5/AdoptVisitor.h"
+#include "fdb5/BaseArchiveVisitor.h"
 #include "fdb5/Error.h"
-
+#include "fdb5/MasterConfig.h"
 
 namespace fdb5 {
 
@@ -61,18 +60,6 @@ void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
         oss << "FDB: Could not find a rule to archive " << key;
         throw eckit::SeriousBug(oss.str());
     }
-}
-
-void Archiver::write(const Key& key, const void* data, size_t length)
-{
-    ArchiveVisitor visitor(*this, key, data, length);
-    archive(key, visitor);
-}
-
-void Archiver::adopt(const Key& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length)
-{
-    AdoptVisitor visitor(*this, key, path, offset, length);
-    archive(key, visitor);
 }
 
 void Archiver::flush()

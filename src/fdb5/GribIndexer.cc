@@ -13,8 +13,11 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
+
 #include "marslib/EmosFile.h"
+
 #include "fdb5/GribIndexer.h"
+#include "fdb5/AdoptVisitor.h"
 
 namespace fdb5 {
 
@@ -52,7 +55,9 @@ void GribIndexer::index(const eckit::PathName& path)
         eckit::Length length = len;
         eckit::Offset offset = file.position() - length;
 
-        adopt(key, path, offset, length); // now index it
+        AdoptVisitor visitor(*this, key, path, offset, length);
+
+        archive(key, visitor);
 
         total_size += len;
         progress(total_size);

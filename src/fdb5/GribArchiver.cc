@@ -13,14 +13,19 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
+
 #include "marslib/EmosFile.h"
+
 #include "fdb5/GribArchiver.h"
+#include "fdb5/ArchiveVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GribArchiver::GribArchiver(bool completeTransfers):
+GribArchiver::GribArchiver(bool completeTransfers) :
+    Archiver(),
+    GribDecoder(),
     completeTransfers_(completeTransfers)
 {
 }
@@ -43,13 +48,17 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source)
 
         while( (len = gribToKey(file, key)) )
         {
-            write(key, static_cast<const void *>(buffer()), len ); // finally archive it
+            ArchiveVisitor visitor(*this, key, static_cast<const void *>(buffer()), len);
+
+            this->Archiver::archive(key, visitor);
+
             total_size += len;
             count++;
             progress(total_size);
         }
     }
     catch(...) {
+
         if(completeTransfers_) {
             eckit::Log::error() << "Exception recieved. Completing transfer." << std::endl;
             // Consume rest of datahandle otherwise client retries for ever
