@@ -51,6 +51,12 @@ static StringDict::value_type levtype(const Key& key, const std::string& keyword
     if ( value == "p" )
         return StringDict::value_type( levtype_ , "pl" );
 
+    if ( value == "t" )
+        return StringDict::value_type( levtype_ , "pt" );
+
+    if ( value == "v" )
+        return StringDict::value_type( levtype_ , "pv" );
+
     return StringDict::value_type( levtype_ , value );
 }
 
