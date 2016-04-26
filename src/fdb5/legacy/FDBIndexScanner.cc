@@ -118,13 +118,13 @@ void FDBIndexScanner::process(FILE* f)
 
     Log::info() << "Parsed db (size=" << db.size() << ") " << db << std::endl;
 
-    ASSERT(db.size() >= 5);
+    ASSERT(db.size() >= 6);
 
-    translator.set(r, "class",  db[0]);
-    translator.set(r, "stream", db[1]);
-    translator.set(r, "domain", db[2]);
-    translator.set(r, "expver", db[3]);
-    translator.set(r, "date",   db[4]);
+    translator.set(r, "class",  db[1]);
+    translator.set(r, "stream", db[2]);
+    translator.set(r, "domain", db[3]);
+    translator.set(r, "expver", db[4]);
+    translator.set(r, "date",   db[5]);
 
     try {
 
