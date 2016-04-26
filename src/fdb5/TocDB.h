@@ -74,8 +74,6 @@ protected: // members
 
     eckit::PathName path_;
 
-    std::string indexType_;
-
     Index* current_;
 
     mutable IndexStore indexes_;    ///< stores the indexes being used by the Session

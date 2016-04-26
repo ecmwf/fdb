@@ -9,6 +9,8 @@
  */
 
 #include "fdb5/Index.h"
+
+#include "eckit/config/Resource.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/parser/JSON.h"
 #include "eckit/parser/JSONParser.h"
@@ -19,8 +21,11 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-Index *Index::create(const Key &key, const std::string &type, const eckit::PathName &path, Index::Mode mode ) {
-    return IndexFactory::build(type, key, path, mode);
+Index *Index::create(const Key &key, const eckit::PathName &path, Index::Mode mode ) {
+
+    static std::string fdbIndexType = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex" );
+
+    return IndexFactory::build(fdbIndexType, key, path, mode);
 }
 
 //-----------------------------------------------------------------------------
@@ -40,11 +45,11 @@ Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
         eckit::JSONParser parser(f);
 
         eckit::Value v = parser.parse();
-        eckit::Log::info() << "JSON: " << v << std::endl;
+//        eckit::Log::info() << "JSON: " << v << std::endl;
 
 
         files_.load(v["files"]);
-        eckit::Log::info() << "Files " << files_ << std::endl;
+//        eckit::Log::info() << "Files " << files_ << std::endl;
 
         axes_.load(v["axes"]);
         eckit::Log::info() << "Axis " << axes_ << std::endl;

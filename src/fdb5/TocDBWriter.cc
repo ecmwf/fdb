@@ -161,7 +161,7 @@ void TocDBWriter::flush()
 
 Index* TocDBWriter::openIndex(const Key& key, const PathName& path) const
 {
-    return Index::create(key, indexType_, path, Index::WRITE );
+    return Index::create(key, path, Index::WRITE );
 }
 
 eckit::DataHandle* TocDBWriter::getCachedHandle( const PathName& path ) const

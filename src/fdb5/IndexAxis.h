@@ -63,8 +63,6 @@ private: // members
 
     AxisMap axis_;
 
-    eckit::PathName path_;
-
     bool readOnly_;
     mutable bool changed_;
 

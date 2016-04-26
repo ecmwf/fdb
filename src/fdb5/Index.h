@@ -70,7 +70,7 @@ public: // types
 
 public: // methods
 
-    static Index* create(const Key& key, const std::string& type, const eckit::PathName& path, Index::Mode mode);
+    static Index* create(const Key& key, const eckit::PathName& path, Index::Mode mode);
 
     Index(const Key& key, const eckit::PathName& path, Index::Mode mode );
 
@@ -89,6 +89,8 @@ public: // methods
     virtual void flush();
 
     virtual void print( std::ostream& out ) const = 0;
+
+    virtual void list( std::ostream& out ) const = 0;
 
     friend std::ostream& operator<<(std::ostream& s, const Index& x) { x.print(s); return s; }
 

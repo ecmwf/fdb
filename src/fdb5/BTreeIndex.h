@@ -55,6 +55,8 @@ private: // methods
 
 private: // methods
 
+    virtual void list( std::ostream& out ) const;
+
     virtual void print( std::ostream& out ) const;
 
 private: // types

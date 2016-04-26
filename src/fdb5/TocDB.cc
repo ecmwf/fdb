@@ -8,12 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/log/Timer.h"
-#include "eckit/utils/Regex.h"
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/types/Types.h"
+#include "eckit/utils/Regex.h"
+
 #include "fdb5/TocDB.h"
 #include "fdb5/Rule.h"
 #include "fdb5/MasterConfig.h"
@@ -121,7 +122,6 @@ TocDB::TocDB(const Key& dbKey) : DB(dbKey),
 
     path_ = PathName(root) / dbKey.valuesToString();
 
-    indexType_ = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex" );
 }
 
 TocDB::~TocDB()

@@ -140,6 +140,11 @@ void TextIndex::load(const eckit::PathName& path)
     }
 }
 
+void TextIndex::list(std::ostream& out) const
+{
+    NOTIMP;
+}
+
 void TextIndex::save(const eckit::PathName& path) const
 {
     std::ostringstream os;

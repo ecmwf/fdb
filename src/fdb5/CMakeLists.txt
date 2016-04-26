@@ -184,6 +184,7 @@ add_subdirectory( legacy )
 list( APPEND fdb5_tools
     fdb5_index
     fdb5_archive
+    fdb5_list
     fdb5_extract
     fdb5_retrieve
     fdb5_schema

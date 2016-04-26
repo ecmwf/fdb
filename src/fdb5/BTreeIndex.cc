@@ -10,6 +10,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/config/Resource.h"
+#include "eckit/log/BigNum.h"
 
 #include "fdb5/Key.h"
 #include "fdb5/BTreeIndex.h"
@@ -119,6 +120,11 @@ void BTreeIndex::flush()
     }
 
     Index::flush();
+}
+
+void BTreeIndex::list(std::ostream& out) const
+{
+    out << "BTreeIndex count: " << eckit::BigNum(btree_.count()) << std::endl;
 }
 
 void BTreeIndex::print(std::ostream& out) const
