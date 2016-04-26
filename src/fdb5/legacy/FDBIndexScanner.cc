@@ -78,6 +78,8 @@ void FDBIndexScanner::process(FILE* f)
     std::string ignore;
     std::string s;
 
+    PathName dirpath = path_.dirName();
+
     // /ma_fdb/:od:oper:g:0001:20120617::/:fc:0000::::::::.
 
     std::vector<std::string> c;
@@ -88,7 +90,7 @@ void FDBIndexScanner::process(FILE* f)
     // Log::info() << string(path_.baseName()) << std::endl;
 
     std::string t(path_.baseName());
-    // Log::info() << "[" << t << "]" << std::endl;
+    Log::info() << "[" << t << "]" << std::endl;
 
     p(t,c);
 
@@ -108,9 +110,9 @@ void FDBIndexScanner::process(FILE* f)
 
     // Log::info() << c << std::endl;
     // Log::info() << path_ << std::endl;
-    // Log::info() << path_.dirName() << std::endl;
-    // Log::info() << path_.dirName().baseName() << std::endl;
-    p(path_.dirName().baseName(),c);
+    // Log::info() << dirpath << std::endl;
+    // Log::info() << dirpath.baseName() << std::endl;
+    p(dirpath.baseName(),c);
 
     // Log::info() << c << std::endl;
 
@@ -131,34 +133,56 @@ void FDBIndexScanner::process(FILE* f)
 
         while(fgets(buf, sizeof(buf), f))
         {
-            std::map<std::string, std::string> m(r);
+            StringDict m(r);
 
             std::string line(buf);
 
             Log::info() << line << std::endl;
 
             std::istringstream in(line);
-            // 409802 FDB;  4558 0:6:0;  levelist=27 levtype=m parameter=155 step=6  3281188 (61798740)
+            // e.g. 409802 FDB;  4558 0:6:0;  levelist=27 levtype=m parameter=155 step=6  3281188 (61798740)
+
             in >> ignore;
             in >> ignore;
             in >> ignore;
             in >> prefix;
-            prefix = prefix.substr(0, prefix.length()-1);
+
+            prefix = prefix.substr(0, prefix.length()-1); // chop off trailing ';' so prefix = 0:6:0
 
             Log::info() << "prefix = " << prefix << std::endl;
 
+            std::string datapath = dirpath + "/:" + prefix + path_.baseName();
+
+            Log::info() << "datapath = " << datapath << std::endl;
+
+            size_t len;
+            size_t off;
+            for(;;)
+            {
+                std::vector<std::string> v;
+                in >> s;
+
+                if(isdigit(s[0])) // when we hit digits, parse length and offset, e.g.   3281188 (61798740)
+                {
+                    len = Translator<std::string, size_t>()(s);
+                    in >> s;
+                    off = Translator<std::string, size_t>()(s.substr(1,s.length()-2));
+                    break;
+                }
+
+                // parse keywords, e.g. levelist=27 levtype=m parameter=155 step=6
+
+                parse(s,v);
+                m[v[0]] = v[1];
+            }
         }
-
-
     }
     catch(Exception& e)
     {
-
         Log::error() << "** " << e.what() << " Caught in " << Here()  <<  std::endl;
         Log::error() << "** Exception is handled" << std::endl;
 
         throw;
-
     }
 
     Log::info() << "Completed index " << path_ << std::endl;
