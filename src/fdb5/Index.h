@@ -117,6 +117,8 @@ public: // methods
 
     virtual void list( std::ostream& out ) const = 0;
 
+    virtual void entries() const = 0;
+
     friend std::ostream& operator<<(std::ostream& s, const Index& x) { x.print(s); return s; }
 
 	eckit::PathName path() const { return path_; }
@@ -146,7 +148,6 @@ protected: // members
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-
 
 class IndexFactory {
 

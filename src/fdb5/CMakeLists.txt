@@ -174,6 +174,7 @@ list( APPEND fdb5_tools
     fdb5_list
     fdb5_extract
     fdb5_retrieve
+    fdb5_purge
     fdb5_schema
     )
 

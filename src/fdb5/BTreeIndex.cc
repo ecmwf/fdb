@@ -122,6 +122,15 @@ void BTreeIndex::flush()
     Index::flush();
 }
 
+void BTreeIndex::entries() const
+{
+    std::vector<BTreeStore::result_type> result;
+    result.reserve(1000000);
+    const_cast<BTreeIndex*>(this)->btree_.range("", "\255", result);
+
+    eckit::Log::info() << "Btree result size:" << eckit::BigNum(result.size()) << std::endl;
+}
+
 void BTreeIndex::list(std::ostream& out) const
 {
     out << "BTreeIndex count: " << eckit::BigNum(btree_.count()) << std::endl;

@@ -51,7 +51,9 @@ private: // methods
 
     virtual bool    remove( const Key& key );
 
-	virtual void	flush();
+    virtual void	flush();
+
+    virtual void	entries() const;
 
 private: // methods
 

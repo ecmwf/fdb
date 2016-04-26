@@ -48,6 +48,8 @@ private: // methods
 
     virtual void flush();
 
+    virtual void entries() const;
+
     void save(const eckit::PathName& path) const;
     void load(const eckit::PathName& path);
 

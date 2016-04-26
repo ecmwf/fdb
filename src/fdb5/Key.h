@@ -22,6 +22,8 @@
 
 #include "eckit/types/Types.h"
 
+namespace eckit { class JSON; }
+
 namespace fdb5 {
 
 class TypesRegistry;
@@ -79,6 +81,7 @@ public: // methods
     void load(std::istream& s);
     void dump(std::ostream& s) const;
 
+    void json(eckit::JSON&) const;
 
 private: // members
 

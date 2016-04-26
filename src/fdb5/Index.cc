@@ -92,6 +92,7 @@ void Index::flush() {
         eckit::JSON j(os);
 
         j.startObject();
+        j << "prefix" << key_.valuesToString();
         j << "files";
         files_.json(j);
         j << "axes";

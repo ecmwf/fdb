@@ -171,6 +171,11 @@ void TextIndex::print(std::ostream& out) const
 
 static IndexBuilder<TextIndex> builder("TextIndex");
 
+void fdb5::TextIndex::entries() const
+{
+    NOTIMP;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
