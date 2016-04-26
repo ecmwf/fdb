@@ -107,9 +107,12 @@ void FDBIndexScanner::process(FILE* f)
     translator.set(r, "time",  c[1]);
 //    translator.set(r, "number", "0");
 
-    if(c[0] == "an") {
-        translator.set(r, "step", "0");
+    translator.set(r, "step", "0");
+
+    if(c.size() > 4 && !c[4].empty()) {
+    	translator.set(r, "iteration", c[4]);
     }
+		
 
     c.clear();
 

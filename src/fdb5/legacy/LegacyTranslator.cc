@@ -38,6 +38,15 @@ static bool iswave(const Key& key) {
     return false;
 }
 
+static StringDict::value_type integer(const Key& key, const std::string& keyword, const std::string& value )
+{
+	static Translator<std::string,long> s2l;
+	static Translator<long,std::string> l2s;
+
+	return StringDict::value_type(keyword, l2s(s2l(value)));
+
+}
+
 static StringDict::value_type levtype(const Key& key, const std::string& keyword, const std::string& value )
 {
     static const char * levtype_ = "levtype";
@@ -118,6 +127,8 @@ LegacyTranslator::LegacyTranslator()
     translators_["levt"]     = &levtype;
     translators_["levtype"]  = &levtype;
     translators_["levty"]    = &levtype;
+
+    translators_["iteration"]  = &integer;
 
     translators_["repr"]  = &repres;
 
