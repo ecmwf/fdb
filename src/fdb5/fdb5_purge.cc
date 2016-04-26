@@ -117,6 +117,9 @@ void FDBList::run()
                     << "    duplicates fields : " << eckit::BigNum(visitor.duplicateCount_) << std::endl
                     << "    duplicates size   : " << eckit::Bytes(visitor.duplicateSize_) << std::endl
                     << "    total size        : " << eckit::Bytes(visitor.totalSize_) << std::endl;
+
+        Log::info() << "FDB Duplicates: " << visitor.duplicates_ << std::endl;
+
     }
 
 }
