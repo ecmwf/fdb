@@ -65,6 +65,7 @@ private: // types
 
     typedef FileStore::FieldRef FieldRef;
     typedef eckit::BTree< BTreeKey , FieldRef, 65536 > BTreeStore;
+    friend class BTreeIndexVisitor;
 
 private: // members
 

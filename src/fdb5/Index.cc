@@ -35,7 +35,9 @@ Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
     path_(path),
     files_(),
     axes_(),
-    key_(key) {
+    key_(key),
+    prefix_(key.valuesToString()) {
+
     eckit::PathName json(jsonFile());
 
     if ( json.exists() ) {
@@ -93,7 +95,7 @@ void Index::flush() {
         eckit::JSON j(os);
 
         j.startObject();
-        j << "prefix" << key_.valuesToString();
+        j << "prefix" << prefix_;
         j << "files";
         files_.json(j);
         j << "axes";

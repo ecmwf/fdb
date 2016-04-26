@@ -122,21 +122,35 @@ void BTreeIndex::flush()
     Index::flush();
 }
 
+class BTreeIndexVisitor {
+    const std::string& prefix_;
+    const FileStore& files_;
+    EntryVisitor& visitor_;
+public:
+    BTreeIndexVisitor(const std::string& prefix, const FileStore& files, EntryVisitor& visitor):
+        prefix_(prefix),
+        files_(files),
+        visitor_(visitor) {}
+
+    // BTree::range() expect a STL like collection
+
+    void clear() {
+
+    }
+
+    void push_back(const BTreeIndex::BTreeStore::result_type& kv) {
+        visitor_.visit(prefix_,
+                       kv.first,
+                       files_.get( kv.second.pathId_ ),
+                       kv.second.offset_,
+                       kv.second.length_);
+    }
+};
+
 void BTreeIndex::entries(EntryVisitor& visitor) const
 {
-    std::vector<BTreeStore::result_type> result;
-    result.reserve(1000000);
-    const_cast<BTreeIndex*>(this)->btree_.range("", "\255", result);
-
-    eckit::Log::info() << "Btree result size:" << eckit::BigNum(result.size()) << std::endl;
-
-    for(std::vector<BTreeStore::result_type>::const_iterator i = result.begin(); i != result.end(); ++i) {
-        visitor.visit(prefix_,
-                      i->first,
-                      files_.get( i->second.pathId_ ),
-                      i->second.offset_,
-                      i->second.length_);
-    }
+    BTreeIndexVisitor v(prefix_, files_, visitor);
+    const_cast<BTreeIndex*>(this)->btree_.range("", "\255", v);
 }
 
 void BTreeIndex::list(std::ostream& out) const
