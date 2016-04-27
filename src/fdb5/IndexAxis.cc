@@ -77,8 +77,7 @@ const eckit::StringSet &IndexAxis::values(const std::string &keyword) const {
 
 void IndexAxis::print(std::ostream &out) const {
     out << "IndexAxis["
-        << "path=" << path_
-        <<  ",axis=";
+        <<  "axis=";
     eckit::__print_container(out, axis_);
     out  << "]";
 }

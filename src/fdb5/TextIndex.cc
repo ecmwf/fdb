@@ -110,7 +110,12 @@ void TextIndex::flush()
 
     Index::flush();
     if( !flushed_ )
-		save( path_ );
+        save( path_ );
+}
+
+void TextIndex::entries(EntryVisitor& visitor) const
+{
+    NOTIMP;
 }
 
 void TextIndex::load(const eckit::PathName& path)
@@ -138,6 +143,11 @@ void TextIndex::load(const eckit::PathName& path)
     if(in.bad()) {
         throw eckit::ReadError(path_.asString());
     }
+}
+
+void TextIndex::list(std::ostream& out) const
+{
+    NOTIMP;
 }
 
 void TextIndex::save(const eckit::PathName& path) const

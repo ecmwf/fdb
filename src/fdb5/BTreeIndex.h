@@ -51,9 +51,13 @@ private: // methods
 
     virtual bool    remove( const Key& key );
 
-	virtual void	flush();
+    virtual void	flush();
+
+    virtual void entries(EntryVisitor& visitor) const;
 
 private: // methods
+
+    virtual void list( std::ostream& out ) const;
 
     virtual void print( std::ostream& out ) const;
 
@@ -61,6 +65,7 @@ private: // types
 
     typedef FileStore::FieldRef FieldRef;
     typedef eckit::BTree< BTreeKey , FieldRef, 65536 > BTreeStore;
+    friend class BTreeIndexVisitor;
 
 private: // members
 

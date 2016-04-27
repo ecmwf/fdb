@@ -48,8 +48,12 @@ private: // methods
 
     virtual void flush();
 
+    virtual void entries(EntryVisitor& visitor) const;
+
     void save(const eckit::PathName& path) const;
     void load(const eckit::PathName& path);
+
+    virtual void list( std::ostream& out ) const;
 
     virtual void print( std::ostream& out ) const;
 

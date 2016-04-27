@@ -146,6 +146,11 @@ void Key::dump(std::ostream& s) const
     // }
 }
 
+void Key::json(eckit::JSON&) const
+{
+
+}
+
 void Key::print(std::ostream &out) const
 {
     if(names_.size() == keys_.size()) {

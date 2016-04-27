@@ -10,6 +10,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/config/Resource.h"
+#include "eckit/log/BigNum.h"
 
 #include "fdb5/Key.h"
 #include "fdb5/BTreeIndex.h"
@@ -119,6 +120,42 @@ void BTreeIndex::flush()
     }
 
     Index::flush();
+}
+
+class BTreeIndexVisitor {
+    const std::string& prefix_;
+    const FileStore& files_;
+    EntryVisitor& visitor_;
+public:
+    BTreeIndexVisitor(const std::string& prefix, const FileStore& files, EntryVisitor& visitor):
+        prefix_(prefix),
+        files_(files),
+        visitor_(visitor) {}
+
+    // BTree::range() expect a STL like collection
+
+    void clear() {
+
+    }
+
+    void push_back(const BTreeIndex::BTreeStore::result_type& kv) {
+        visitor_.visit(prefix_,
+                       kv.first,
+                       files_.get( kv.second.pathId_ ),
+                       kv.second.offset_,
+                       kv.second.length_);
+    }
+};
+
+void BTreeIndex::entries(EntryVisitor& visitor) const
+{
+    BTreeIndexVisitor v(prefix_, files_, visitor);
+    const_cast<BTreeIndex*>(this)->btree_.range("", "\255", v);
+}
+
+void BTreeIndex::list(std::ostream& out) const
+{
+    out << "BTreeIndex count: " << eckit::BigNum(btree_.count()) << std::endl;
 }
 
 void BTreeIndex::print(std::ostream& out) const

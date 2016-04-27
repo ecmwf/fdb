@@ -95,6 +95,41 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
     return indexes;
 }
 
+std::vector<eckit::PathName> TocReverseIndexes::indexes() const {
+
+    const_cast<TocReverseIndexes *>(this)->init();
+
+    std::vector< eckit::PathName > indexes;
+
+    for ( TocVec::const_iterator itr = toc_.begin(); itr != toc_.end(); ++itr ) {
+        const TocRecord &r = *itr;
+        switch (r.head_.tag_) {
+        case TOC_INIT: // ignore the Toc initialisation
+            break;
+
+        case TOC_INDEX:
+            indexes.push_back( r.path() );
+            break;
+
+        case TOC_CLEAR:
+            indexes.erase( std::remove( indexes.begin(), indexes.end(), r.path() ), indexes.end() );
+            break;
+
+        case TOC_WIPE:
+            indexes.clear();
+            break;
+
+        default:
+            throw eckit::SeriousBug("Unknown tag in TocRecord", Here());
+            break;
+        }
+    }
+
+    std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
+
+    return indexes;
+}
+
 //-----------------------------------------------------------------------------
 
 } // namespace fdb5

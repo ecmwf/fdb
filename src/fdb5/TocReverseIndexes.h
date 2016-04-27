@@ -14,11 +14,10 @@
 #ifndef fdb5_TocReverseIndexes_H
 #define fdb5_TocReverseIndexes_H
 
+#include "fdb5/Key.h"
 #include "fdb5/TocHandler.h"
 
 namespace fdb5 {
-
-class Key;
 
 //-----------------------------------------------------------------------------
 
@@ -31,6 +30,7 @@ public: // methods
     TocReverseIndexes( const eckit::PathName& dir );
 
     std::vector< eckit::PathName > indexes(const Key& key) const;
+    std::vector< eckit::PathName > indexes() const;
 
 private:
 

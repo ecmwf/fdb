@@ -9,6 +9,8 @@
  */
 
 #include "fdb5/Index.h"
+
+#include "eckit/config/Resource.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/parser/JSON.h"
 #include "eckit/parser/JSONParser.h"
@@ -19,8 +21,11 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-Index *Index::create(const Key &key, const std::string &type, const eckit::PathName &path, Index::Mode mode ) {
-    return IndexFactory::build(type, key, path, mode);
+Index *Index::create(const Key &key, const eckit::PathName &path, Index::Mode mode ) {
+
+    static std::string fdbIndexType = eckit::Resource<std::string>( "fdbIndexType", "BTreeIndex" );
+
+    return IndexFactory::build(fdbIndexType, key, path, mode);
 }
 
 //-----------------------------------------------------------------------------
@@ -30,7 +35,9 @@ Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
     path_(path),
     files_(),
     axes_(),
-    key_(key) {
+    key_(key),
+    prefix_(key.valuesToString()) {
+
     eckit::PathName json(jsonFile());
 
     if ( json.exists() ) {
@@ -40,11 +47,12 @@ Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
         eckit::JSONParser parser(f);
 
         eckit::Value v = parser.parse();
-        eckit::Log::info() << "JSON: " << v << std::endl;
+//        eckit::Log::info() << "JSON: " << v << std::endl;
 
+        prefix_ = v["prefix"].as<std::string>();
 
         files_.load(v["files"]);
-        eckit::Log::info() << "Files " << files_ << std::endl;
+//        eckit::Log::info() << "Files " << files_ << std::endl;
 
         axes_.load(v["axes"]);
         eckit::Log::info() << "Axis " << axes_ << std::endl;
@@ -87,6 +95,7 @@ void Index::flush() {
         eckit::JSON j(os);
 
         j.startObject();
+        j << "prefix" << prefix_;
         j << "files";
         files_.json(j);
         j << "axes";

@@ -92,7 +92,7 @@ eckit::DataHandle* TocDBReader::retrieve(const Key& key) const
 
 Index* TocDBReader::openIndex(const Key& key, const eckit::PathName& path) const
 {
-    return Index::create(key, indexType_, path, Index::READ );
+    return Index::create(key, path, Index::READ );
 }
 
 void TocDBReader::print(std::ostream &out) const
