@@ -44,10 +44,12 @@ struct Stats {
     friend std::ostream& operator<<(std::ostream& s,const Stats& x) { x.print(s); return s; }
 
     void print(std::ostream& out) const {
-        out << "fields: "  << eckit::BigNum(fields)
-            << "dups: "    << eckit::BigNum(dups)
-            << "size: "    << eckit::Bytes(size)
-            << "dupSize: " << eckit::Bytes(dupSize);
+        out << "Stats("
+            << " fields: "  << eckit::BigNum(fields)
+            << " dups: "    << eckit::BigNum(dups)
+            << " size: "    << eckit::Bytes(size)
+            << " dupSize: " << eckit::Bytes(dupSize)
+            << ")";
     }
 
 };
