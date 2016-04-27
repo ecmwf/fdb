@@ -11,14 +11,11 @@
 #include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/log/BigNum.h"
-#include "eckit/log/Plural.h"
 
 #include "fdb5/Index.h"
 #include "fdb5/Key.h"
-#include "fdb5/TocClearIndex.h"
 #include "fdb5/TocReverseIndexes.h"
+#include "fdb5/PurgeVisitor.h"
 
 using namespace std;
 using namespace eckit;
@@ -26,149 +23,13 @@ using namespace fdb5;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-struct Stats {
-
-    Stats() : totalFields(0), duplicates(0), totalSize(0), duplicatesSize(0) {}
-
-    size_t totalFields;
-    size_t duplicates;
-    Length totalSize;
-    Length duplicatesSize;
-
-    Stats& operator+=(const Stats& rhs) {
-        totalFields += rhs.totalFields;
-        duplicates += rhs.duplicates;
-        totalSize += rhs.totalSize;
-        duplicatesSize += rhs.duplicatesSize;
-        return *this;
-    }
-
-    friend std::ostream& operator<<(std::ostream& s,const Stats& x) { x.print(s); return s; }
-
-    void print(std::ostream& out) const {
-        out << "Stats:"
-            << " totalFields: "  << eckit::BigNum(totalFields)
-            << ", duplicates: "    << eckit::BigNum(duplicates)
-            << ", totalSize: "    << eckit::Bytes(totalSize)
-            << ", duplicatesSize: " << eckit::Bytes(duplicatesSize);
-    }
-
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-struct PurgeVisitor : public EntryVisitor {
-
-    PurgeVisitor(const eckit::PathName& dir) : dir_(dir) {}
-
-    virtual void visit(const std::string& index,
-                       const std::string& key,
-                       const eckit::PathName& path,
-                       eckit::Offset offset,
-                       eckit::Length length)
-    {
-        Stats& stats = indexStats_[current_];
-
-        ++(stats.totalFields);
-        stats.totalSize += length;
-
-        allDataFiles_.insert(path);
-
-        std::string indexKey = index + key;
-        if(active_.find(indexKey) == active_.end()) {
-            active_.insert(indexKey);
-            activeDataFiles_.insert(path);
-        }
-        else {
-            ++(stats.duplicates);
-            stats.duplicatesSize += length;
-        }
-    }
-
-    void currentIndex(const eckit::PathName& path) { current_ = path; }
-
-    Stats totals() const {
-        Stats total;
-        for(std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-            total += i->second;
-        }
-        return total;
-    }
-
-    eckit::PathName dir_;
-    eckit::PathName current_; //< current Index being scanned
-
-    std::set<eckit::PathName> activeDataFiles_;
-    std::set<eckit::PathName> allDataFiles_;
-
-    std::set<std::string> active_;
-
-    std::map<eckit::PathName, Stats> indexStats_;
-
-
-    friend std::ostream& operator<<(std::ostream& s,const PurgeVisitor& x) { x.print(s); return s; }
-
-    void print(std::ostream& out) const {
-        out << "PurgeVisitor(indexStats=" << indexStats_ << ")";
-    }
-
-    void report(std::ostream& out) const {
-
-        Stats total = totals();
-
-        out << "Index Report:" << std::endl;
-        for(std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-            out << "    Index " << i->first << " " << i->second << std::endl;
-        }
-
-        size_t adopted = 0;
-        size_t duplicated = 0;
-        size_t duplicatedAdopted = 0;
-        out << "Data file(s) than can deleted:" << std::endl;
-        for(std::set<eckit::PathName>::const_iterator i = allDataFiles_.begin(); i != allDataFiles_.end(); ++i) {
-
-            bool adoptedFile = (!i->dirName().sameAs(dir_));
-
-            if(adoptedFile) { ++adopted; }
-
-            if(activeDataFiles_.find(*i) == activeDataFiles_.end()) {
-                ++duplicated;
-                out << "    " << *i;
-                if(adoptedFile) {
-                    ++duplicatedAdopted;
-                    out << " -> is an adopted file, so it will not be deleted.";
-                }
-                out << std::endl;
-            }
-        }
-
-        out << "Summary:" << std::endl;
-
-        out << "   " << eckit::Plural(total.totalFields, "field") << " referenced"
-            << " ("   << eckit::Plural(active_.size(), "field") << " active"
-            << ", "  << eckit::Plural(total.duplicates, "field") << " duplicated)" << std::endl;
-
-        out << "   " << eckit::Plural(allDataFiles_.size(), "data file") << " referenced"
-            << " of which "   << adopted << " adopted"
-            << " ("   << activeDataFiles_.size() << " active"
-            << ", "  << duplicated << " duplicated"
-            << " of which "  << duplicatedAdopted << " adopted)" << std::endl;
-
-        out << "   "  << eckit::Bytes(total.totalSize) << " referenced"
-            << " (" << eckit::Bytes(total.duplicatesSize) << " duplicated)" << std::endl;
-    }
-
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class FDBList : public eckit::Tool {
+class FDBPurge : public eckit::Tool {
     virtual void run();
 public:
-    FDBList(int argc,char **argv): Tool(argc,argv) {}
+    FDBPurge(int argc,char **argv): Tool(argc,argv) {}
 };
 
-void FDBList::run()
+void FDBPurge::run()
 {
     Context& ctx = Context::instance();
 
@@ -205,24 +66,13 @@ void FDBList::run()
 
         visitor.report(Log::info());
 
-        for(std::map<eckit::PathName, Stats>::const_iterator i = visitor.indexStats_.begin();
-            i != visitor.indexStats_.end(); ++i) {
-
-            const Stats& stats = i->second;
-
-            if(stats.totalFields == stats.duplicates) {
-                Log::info() << "Index is inactive: " << i->first << std::endl;
-                TocClearIndex clear(path, i->first);
-            }
-        }
-
+        visitor.purge();
     }
-
 }
 
-
+//----------------------------------------------------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-    FDBList app(argc,argv);
+    FDBPurge app(argc,argv);
     return app.start();
 }

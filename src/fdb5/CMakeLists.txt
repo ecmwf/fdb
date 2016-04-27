@@ -78,6 +78,8 @@ list( APPEND fdb5_srcs
     NotFound.h
     Predicate.cc
     Predicate.h
+    PurgeVisitor.cc
+    PurgeVisitor.h
     ReadVisitor.cc
     ReadVisitor.h
     RequestParser.cc

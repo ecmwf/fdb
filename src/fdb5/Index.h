@@ -33,7 +33,7 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class EntryVisitor {
+class EntryVisitor : private eckit::NonCopyable {
 public:
     virtual void visit(const std::string& index,
                        const std::string& key,
@@ -41,6 +41,8 @@ public:
                        eckit::Offset offset,
                        eckit::Length length) = 0;
 };
+
+//----------------------------------------------------------------------------------------------------------------------
 
 class Index : private eckit::NonCopyable {
 
