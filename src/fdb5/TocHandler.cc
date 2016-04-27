@@ -178,13 +178,14 @@ TocRecord TocHandler::makeRecordIdxInsert( const eckit::PathName& path, const To
 {
     TocRecord r( TOC_INDEX );
 	r.metadata_ = md;
-	r.payload_  = path.asString();
+    r.payload_  = path./*baseName().*/asString();
 	return r;
 }
 
-TocRecord TocHandler::makeRecordIdxRemove() const
+TocRecord TocHandler::makeRecordIdxRemove(const eckit::PathName& path) const
 {
     TocRecord r( TOC_CLEAR );
+    r.payload_  = path./*baseName().*/asString();
 	return r;
 }
 

@@ -15,9 +15,10 @@
 #include "eckit/log/BigNum.h"
 #include "eckit/log/Plural.h"
 
-#include "fdb5/Key.h"
-#include "fdb5/TocReverseIndexes.h"
 #include "fdb5/Index.h"
+#include "fdb5/Key.h"
+#include "fdb5/TocClearIndex.h"
+#include "fdb5/TocReverseIndexes.h"
 
 using namespace std;
 using namespace eckit;
@@ -181,6 +182,18 @@ void FDBList::run()
         Log::info() << "FDB Totals:" << visitor.totals() << std::endl;
 
         visitor.report(Log::info());
+
+        for(std::map<eckit::PathName, Stats>::const_iterator i = visitor.indexStats_.begin();
+            i != visitor.indexStats_.end(); ++i) {
+
+            const Stats& stats = i->second;
+
+            if(stats.totalFields == stats.duplicates) {
+                Log::info() << "Index is inactive: " << i->first << std::endl;
+                TocClearIndex clear(path, i->first);
+            }
+        }
+
     }
 
 }

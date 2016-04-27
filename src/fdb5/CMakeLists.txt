@@ -13,6 +13,10 @@
 #  * marsadm tools:
 #    --  list roots
 
+
+# Handling of paths:
+#
+
 # MAYBE:
 #  * fdbRoot is a list of paths to visit ---> speak to Hodge
 #  * Rules for data files (eg {type,levtype} )
@@ -98,6 +102,8 @@ list( APPEND fdb5_srcs
     TocHandler.h
     TocAddIndex.cc
     TocAddIndex.h
+    TocClearIndex.cc
+    TocClearIndex.h
     TocInitialiser.cc
     TocInitialiser.h
     TocList.cc

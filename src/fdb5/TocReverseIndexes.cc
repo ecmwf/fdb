@@ -74,8 +74,7 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
             break;
 
         case TOC_CLEAR:
-            if ( r.metadata() == md )
-                indexes.erase( std::remove( indexes.begin(), indexes.end(), r.path() ), indexes.end() );
+            indexes.erase( std::remove( indexes.begin(), indexes.end(), r.path() ), indexes.end() );
             break;
 
         case TOC_WIPE:
