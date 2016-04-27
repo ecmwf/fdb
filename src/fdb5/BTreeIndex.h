@@ -31,7 +31,7 @@ class BTreeIndex : public Index {
 
 public: // types
 
-    typedef eckit::FixedString<256> BTreeKey;
+    typedef eckit::FixedString<32> BTreeKey;
 
 public: // methods
 
