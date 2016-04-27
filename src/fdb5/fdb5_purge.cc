@@ -46,11 +46,11 @@ struct Stats {
     friend std::ostream& operator<<(std::ostream& s,const Stats& x) { x.print(s); return s; }
 
     void print(std::ostream& out) const {
-        out << "Stats"
+        out << "Stats:"
             << " totalFields: "  << eckit::BigNum(totalFields)
-            << " duplicates: "    << eckit::BigNum(duplicates)
-            << " totalSize: "    << eckit::Bytes(totalSize)
-            << " duplicatesSize: " << eckit::Bytes(duplicatesSize);
+            << ", duplicates: "    << eckit::BigNum(duplicates)
+            << ", totalSize: "    << eckit::Bytes(totalSize)
+            << ", duplicatesSize: " << eckit::Bytes(duplicatesSize);
     }
 
 };
@@ -114,20 +114,31 @@ struct PurgeVisitor : public EntryVisitor {
 
     void report(std::ostream& out) const {
 
+        Stats total = totals();
+
+        out << "Index Report:" << std::endl;
         for(std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-            out << "Index " << i->first << " " << i->second << std::endl;
+            out << "    Index " << i->first << " " << i->second << std::endl;
         }
 
-        out << eckit::Plural(active_.size(), "active field") << std::endl;
-        out << eckit::Plural(allDataFiles_.size(), "data file") << std::endl;
-        out << eckit::Plural(activeDataFiles_.size(), "active data file") << std::endl;
+        out << "Summary:" << std::endl;
+        out << "   " << eckit::Plural(total.totalFields, "field") << " referenced" << std::endl;
+        out << "   " << eckit::Plural(active_.size(), "field") << " active" << std::endl;
+        out << "   " << eckit::Plural(total.duplicates, "field") << " duplicated" << std::endl;
+        out << "   " << eckit::Plural(allDataFiles_.size(), "data file") << " referenced" << std::endl;
+        out << "   " << eckit::Plural(activeDataFiles_.size(), "data file") << " active" << std::endl;
+        out << "   " << eckit::Bytes(total.totalSize) << " referenced" << std::endl;
+        out << "   " << eckit::Bytes(total.duplicatesSize) << " duplicated" << std::endl;
+        out << std::endl;
 
+        out << "Data file(s) than can deleted:" << std::endl;
         for(std::set<eckit::PathName>::const_iterator i = allDataFiles_.begin(); i != allDataFiles_.end(); ++i) {
             if(activeDataFiles_.find(*i) == activeDataFiles_.end()) {
-                out << "Data file to be deleted: " << *i << std::endl;
+                out << "    " << *i;
                 if(!i->dirName().sameAs(dir_)) {
-                    out << "   -> File is not owned by FDB, it will not be deleted." << std::endl;
+                    out << " -> Not owned by FDB, it will not be deleted.";
                 }
+                out << std::endl;
             }
         }
     }
@@ -176,10 +187,6 @@ void FDBList::run()
 
             index->entries(visitor);
         }
-
-        Log::info() << "FDB Stats: " << visitor << std::endl;
-
-        Log::info() << "FDB Totals:" << visitor.totals() << std::endl;
 
         visitor.report(Log::info());
 

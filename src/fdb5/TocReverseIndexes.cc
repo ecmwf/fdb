@@ -70,11 +70,11 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
         case TOC_INDEX:
             eckit::Log::info() << "TOC_INDEX " << r.metadata() << std::endl;
             if ( r.metadata() == md )
-                indexes.push_back( r.path() );
+                indexes.push_back( r.path(dirPath()) );
             break;
 
         case TOC_CLEAR:
-            indexes.erase( std::remove( indexes.begin(), indexes.end(), r.path() ), indexes.end() );
+            indexes.erase( std::remove( indexes.begin(), indexes.end(), r.path(dirPath()) ), indexes.end() );
             break;
 
         case TOC_WIPE:
@@ -107,11 +107,11 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes() const {
             break;
 
         case TOC_INDEX:
-            indexes.push_back( r.path() );
+            indexes.push_back( r.path(dirPath()) );
             break;
 
         case TOC_CLEAR:
-            indexes.erase( std::remove( indexes.begin(), indexes.end(), r.path() ), indexes.end() );
+            indexes.erase( std::remove( indexes.begin(), indexes.end(), r.path(dirPath()) ), indexes.end() );
             break;
 
         case TOC_WIPE:
@@ -125,6 +125,8 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes() const {
     }
 
     std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
+
+    //
 
     return indexes;
 }

@@ -75,7 +75,7 @@ public: // methods
 
     bool isComplete() const;
 
-	eckit::PathName path() const;
+    eckit::PathName path(const eckit::PathName& tocdir) const;
 
     MetaData metadata() const;
 

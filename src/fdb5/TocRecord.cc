@@ -50,8 +50,8 @@ unsigned char TocRecord::version() const
 
 bool TocRecord::isComplete() const { return ( marker_[0] == '4' && marker_[1] == '2' ); }
 
-eckit::PathName TocRecord::path() const {
-    return eckit::PathName( payload_.data() );
+eckit::PathName TocRecord::path(const eckit::PathName& tocdir) const {
+    return eckit::PathName( tocdir / payload_.data() );
 }
 
 TocRecord::MetaData TocRecord::metadata() const {
