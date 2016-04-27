@@ -27,33 +27,61 @@ using namespace fdb5;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBPurge : public eckit::Tool {
+class FDBTool : public eckit::Tool {
+
+public: // methods
+
+    FDBTool(int argc, char** argv) : eckit::Tool(argc,argv) {
+
+        options_.push_back(new SimpleOption<std::string>("class", "keyword class"));
+        options_.push_back(new SimpleOption<std::string>("stream", "keyword stream"));
+        options_.push_back(new SimpleOption<std::string>("expver", "keyword expver"));
+        options_.push_back(new SimpleOption<std::string>("date", "keyword class"));
+        options_.push_back(new SimpleOption<std::string>("time", "keyword class"));
+        options_.push_back(new SimpleOption<std::string>("domain", "keyword class"));
+
+    }
+
+protected: // methods
+
+    static void usage(const std::string& tool) {
+    }
+
+protected: // members
+
+    std::vector<Option*> options_;
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class FDBPurge : public FDBTool {
+
+public: // methods
+
+    FDBPurge(int argc, char** argv) : FDBTool(argc, argv) {
+
+        options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
+
+    }
+
+private: // methods
 
     virtual void run();
 
-    static void usage(const std::string &tool);
-
-public:
-
-    FDBPurge(int argc,char **argv): Tool(argc,argv) {}
+    static void usage(const std::string& tool);
 
 };
 
 void FDBPurge::usage(const std::string& tool) {
 
-    eckit::Log::info()
-            << std::endl << "Usage: " << tool << " [--doit] [path1] [path2] ..." << std::endl
-            ;
+    eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [path1] [path2] ..." << std::endl;
+    FDBTool::usage(tool);
 }
-
 
 void FDBPurge::run()
 {
-    std::vector<Option*> options;
-
-    options.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
-
-    eckit::option::CmdArgs args(&usage, -1, options);
+    eckit::option::CmdArgs args(&FDBPurge::usage, -1, options_);
 
     for (int i = 0; i < args.count(); ++i) {
 
