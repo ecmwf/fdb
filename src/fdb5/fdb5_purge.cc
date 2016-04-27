@@ -49,7 +49,7 @@ struct Stats {
             << " duplicates: "    << eckit::BigNum(duplicates)
             << " size: "    << eckit::Bytes(size)
             << " duplicatesize: " << eckit::Bytes(duplicatesize)
-            << ")";
+            << ")" << std::endl;
     }
 
 };
