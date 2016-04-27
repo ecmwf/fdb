@@ -13,6 +13,7 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/BigNum.h"
+#include "eckit/log/Plural.h"
 
 #include "fdb5/Key.h"
 #include "fdb5/TocReverseIndexes.h"
@@ -26,18 +27,18 @@ using namespace fdb5;
 
 struct Stats {
 
-    Stats() : fields(0), duplicates(0), size(0), duplicatesize(0) {}
+    Stats() : totalFields(0), duplicates(0), totalSize(0), duplicatesSize(0) {}
 
-    size_t fields;
+    size_t totalFields;
     size_t duplicates;
-    Length size;
-    Length duplicatesize;
+    Length totalSize;
+    Length duplicatesSize;
 
     Stats& operator+=(const Stats& rhs) {
-        fields += rhs.fields;
+        totalFields += rhs.totalFields;
         duplicates += rhs.duplicates;
-        size += rhs.size;
-        duplicatesize += rhs.duplicatesize;
+        totalSize += rhs.totalSize;
+        duplicatesSize += rhs.duplicatesSize;
         return *this;
     }
 
@@ -45,10 +46,10 @@ struct Stats {
 
     void print(std::ostream& out) const {
         out << "Stats"
-            << " fields: "  << eckit::BigNum(fields)
+            << " totalFields: "  << eckit::BigNum(totalFields)
             << " duplicates: "    << eckit::BigNum(duplicates)
-            << " size: "    << eckit::Bytes(size)
-            << " duplicatesize: " << eckit::Bytes(duplicatesize);
+            << " totalSize: "    << eckit::Bytes(totalSize)
+            << " duplicatesSize: " << eckit::Bytes(duplicatesSize);
     }
 
 };
@@ -67,8 +68,8 @@ struct PurgeVisitor : public EntryVisitor {
     {
         Stats& stats = indexStats_[current_];
 
-        ++stats.fields;
-        stats.size += length;
+        ++(stats.totalFields);
+        stats.totalSize += length;
 
         allDataFiles_.insert(path);
 
@@ -78,8 +79,8 @@ struct PurgeVisitor : public EntryVisitor {
             activeDataFiles_.insert(path);
         }
         else {
-            ++stats.duplicates;
-            stats.duplicatesize += length;
+            ++(stats.duplicates);
+            stats.duplicatesSize += length;
         }
     }
 
@@ -116,11 +117,15 @@ struct PurgeVisitor : public EntryVisitor {
             out << "Index " << i->first << " " << i->second << std::endl;
         }
 
+        out << eckit::Plural(active_.size(), "active field") << std::endl;
+        out << eckit::Plural(allDataFiles_.size(), "data file") << std::endl;
+        out << eckit::Plural(activeDataFiles_.size(), "active data file") << std::endl;
+
         for(std::set<eckit::PathName>::const_iterator i = allDataFiles_.begin(); i != allDataFiles_.end(); ++i) {
             if(activeDataFiles_.find(*i) != activeDataFiles_.end()) {
                 out << "Data file to be deleted: " << *i << std::endl;
-                if(i->dirName().realName() != dir_) {
-                    out << "   -> File is adopted, will not delete." << std::endl;
+                if(!i->dirName().sameAs(dir_)) {
+                    out << "   -> File is not owned by FDB, it will not be deleted." << std::endl;
                 }
             }
         }
