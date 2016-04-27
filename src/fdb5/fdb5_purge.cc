@@ -44,12 +44,11 @@ struct Stats {
     friend std::ostream& operator<<(std::ostream& s,const Stats& x) { x.print(s); return s; }
 
     void print(std::ostream& out) const {
-        out << "Stats("
+        out << "Stats"
             << " fields: "  << eckit::BigNum(fields)
             << " duplicates: "    << eckit::BigNum(duplicates)
             << " size: "    << eckit::Bytes(size)
-            << " duplicatesize: " << eckit::Bytes(duplicatesize)
-            << ")" << std::endl;
+            << " duplicatesize: " << eckit::Bytes(duplicatesize);
     }
 
 };
@@ -58,7 +57,7 @@ struct Stats {
 
 struct PurgeVisitor : public EntryVisitor {
 
-    PurgeVisitor() {}
+    PurgeVisitor(const eckit::PathName& dir) : dir_(dir) {}
 
     virtual void visit(const std::string& index,
                        const std::string& key,
@@ -94,7 +93,8 @@ struct PurgeVisitor : public EntryVisitor {
         return total;
     }
 
-    eckit::PathName current_;
+    eckit::PathName dir_;
+    eckit::PathName current_; //< current Index being scanned
 
     std::set<eckit::PathName> activeDataFiles_;
     std::set<eckit::PathName> allDataFiles_;
@@ -111,9 +111,17 @@ struct PurgeVisitor : public EntryVisitor {
     }
 
     void report(std::ostream& out) const {
+
+        for(std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+            out << "Index " << i->first << " " << i->second << std::endl;
+        }
+
         for(std::set<eckit::PathName>::const_iterator i = allDataFiles_.begin(); i != allDataFiles_.end(); ++i) {
             if(activeDataFiles_.find(*i) != activeDataFiles_.end()) {
                 out << "Data file to be deleted: " << *i << std::endl;
+                if(i->dirName().realName() != dir_) {
+                    out << "   -> File is adopted, will not delete." << std::endl;
+                }
             }
         }
     }
@@ -149,7 +157,7 @@ void FDBList::run()
         std::vector<eckit::PathName> indexes = toc.indexes();
 
 
-        PurgeVisitor visitor;
+        PurgeVisitor visitor(path);
 
         for(std::vector<eckit::PathName>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
 
