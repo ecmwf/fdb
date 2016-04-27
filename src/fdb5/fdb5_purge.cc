@@ -121,26 +121,41 @@ struct PurgeVisitor : public EntryVisitor {
             out << "    Index " << i->first << " " << i->second << std::endl;
         }
 
-        out << "Summary:" << std::endl;
-        out << "   " << eckit::Plural(total.totalFields, "field") << " referenced" << std::endl;
-        out << "   " << eckit::Plural(active_.size(), "field") << " active" << std::endl;
-        out << "   " << eckit::Plural(total.duplicates, "field") << " duplicated" << std::endl;
-        out << "   " << eckit::Plural(allDataFiles_.size(), "data file") << " referenced" << std::endl;
-        out << "   " << eckit::Plural(activeDataFiles_.size(), "data file") << " active" << std::endl;
-        out << "   " << eckit::Bytes(total.totalSize) << " referenced" << std::endl;
-        out << "   " << eckit::Bytes(total.duplicatesSize) << " duplicated" << std::endl;
-        out << std::endl;
-
+        size_t adopted = 0;
+        size_t duplicated = 0;
+        size_t duplicatedAdopted = 0;
         out << "Data file(s) than can deleted:" << std::endl;
         for(std::set<eckit::PathName>::const_iterator i = allDataFiles_.begin(); i != allDataFiles_.end(); ++i) {
+
+            bool adoptedFile = (!i->dirName().sameAs(dir_));
+
+            if(adoptedFile) { ++adopted; }
+
             if(activeDataFiles_.find(*i) == activeDataFiles_.end()) {
+                ++duplicated;
                 out << "    " << *i;
-                if(!i->dirName().sameAs(dir_)) {
-                    out << " -> Not owned by FDB, it will not be deleted.";
+                if(adoptedFile) {
+                    ++duplicatedAdopted;
+                    out << " -> is an adopted file, so it will not be deleted.";
                 }
                 out << std::endl;
             }
         }
+
+        out << "Summary:" << std::endl;
+
+        out << "   " << eckit::Plural(total.totalFields, "field") << " referenced"
+            << " ("   << eckit::Plural(active_.size(), "field") << " active"
+            << ", "  << eckit::Plural(total.duplicates, "field") << " duplicated)" << std::endl;
+
+        out << "   " << eckit::Plural(allDataFiles_.size(), "data file") << " referenced"
+            << " of which "   << adopted << " adopted"
+            << " ("   << activeDataFiles_.size() << " active"
+            << ", "  << duplicated << " duplicated"
+            << " of which "  << duplicatedAdopted << " adopted)" << std::endl;
+
+        out << "   "  << eckit::Bytes(total.totalSize) << " referenced"
+            << " (" << eckit::Bytes(total.duplicatesSize) << " duplicated)" << std::endl;
     }
 
 };
