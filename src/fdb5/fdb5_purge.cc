@@ -11,6 +11,9 @@
 #include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/option/SimpleOption.h"
+#include "eckit/option/Option.h"
+#include "eckit/option/CmdArgs.h"
 
 #include "fdb5/Index.h"
 #include "fdb5/Key.h"
@@ -19,23 +22,42 @@
 
 using namespace std;
 using namespace eckit;
+using namespace eckit::option;
 using namespace fdb5;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBPurge : public eckit::Tool {
+
     virtual void run();
+
+    static void usage(const std::string &tool);
+
 public:
+
     FDBPurge(int argc,char **argv): Tool(argc,argv) {}
+
 };
+
+void FDBPurge::usage(const std::string& tool) {
+
+    eckit::Log::info()
+            << std::endl << "Usage: " << tool << " [--doit] [path1] [path2] ..." << std::endl
+            ;
+}
+
 
 void FDBPurge::run()
 {
-    Context& ctx = Context::instance();
+    std::vector<Option*> options;
 
-    for (int i = 1; i < ctx.argc(); i++) {
+    options.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
 
-        eckit::PathName path(ctx.argv(i));
+    eckit::option::CmdArgs args(&usage, -1, options);
+
+    for (int i = 0; i < args.count(); ++i) {
+
+        eckit::PathName path(args.args(i));
 
         if(!path.isDir()) {
             path = path.dirName();
@@ -65,7 +87,10 @@ void FDBPurge::run()
 
         visitor.report(Log::info());
 
-        visitor.purge(false);
+        bool doit = false;
+        args.get("doit", doit);
+
+        visitor.purge(doit);
     }
 }
 

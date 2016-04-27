@@ -190,6 +190,6 @@ foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   ${_tool}.cc
-                          LIBS      mars-fdb5 )
+                          LIBS      mars-fdb5 eckit_option )
 
 endforeach()

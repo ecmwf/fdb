@@ -111,7 +111,7 @@ void PurgeVisitor::report(std::ostream& out) const {
 
     std::vector<eckit::PathName> tobeDeleted = filesToBeDeleted(adopted, duplicated, duplicatedAdopted);
 
-    out << "Data file report:" << std::endl;
+    out << "Data files to be deleted:" << std::endl;
     for(std::vector<eckit::PathName>::const_iterator i = tobeDeleted.begin(); i != tobeDeleted.end(); ++i) {
         out << "    " << *i << std::endl;
     }
