@@ -122,7 +122,7 @@ struct PurgeVisitor : public EntryVisitor {
         out << eckit::Plural(activeDataFiles_.size(), "active data file") << std::endl;
 
         for(std::set<eckit::PathName>::const_iterator i = allDataFiles_.begin(); i != allDataFiles_.end(); ++i) {
-            if(activeDataFiles_.find(*i) != activeDataFiles_.end()) {
+            if(activeDataFiles_.find(*i) == activeDataFiles_.end()) {
                 out << "Data file to be deleted: " << *i << std::endl;
                 if(!i->dirName().sameAs(dir_)) {
                     out << "   -> File is not owned by FDB, it will not be deleted." << std::endl;
