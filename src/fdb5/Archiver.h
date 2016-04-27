@@ -42,9 +42,6 @@ public: // methods
 
     ~Archiver();
 
-    /// @todo implement this to use with MultIO
-    void write(const eckit::DataBlobPtr blob);
-
     void archive(const Key& key, BaseArchiveVisitor& visitor);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state

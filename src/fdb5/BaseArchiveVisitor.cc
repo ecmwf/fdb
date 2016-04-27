@@ -50,17 +50,17 @@ void BaseArchiveVisitor::checkMissingKeys(const Key &full)
             if(k.find((*j).first) == k.end()) {
                 missing.insert((*j).first);
             }
+        }
 
-            if(missing.size()) {
-                std::ostringstream oss;
-                oss << "Keys not used in archiving: " << missing;
+        if(missing.size()) {
+            std::ostringstream oss;
+            oss << "Keys not used in archiving: " << missing;
 
-                if(rule()) {
-                    oss << " " << *rule();
-                }
-
-                throw eckit::SeriousBug(oss.str());
+            if(rule()) {
+                oss << " " << *rule();
             }
+
+            throw eckit::SeriousBug(oss.str());
         }
     }
 }

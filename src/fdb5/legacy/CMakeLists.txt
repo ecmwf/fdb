@@ -5,6 +5,8 @@ list( APPEND fdb5_legacy_srcs
   FDBIndexScanner.cc
   LegacyTranslator.cc
   LegacyTranslator.h
+  LegacyArchiver.cc
+  LegacyArchiver.h
 )
 
 ecbuild_add_library(

@@ -1,20 +1,20 @@
 ### TODO
 #
-#  * tool to purge
-#
 #  * Axis should consider Type
 #
 #  * client "database" for direct fdb5 read
 #
 #  * fdb5_list -class od -expver 0001
+#  * fdb5_list .
+#  * fdb5_purge -class rd -expver ghtf
 #
 #  * consider using more than a service node on the HPC
 #
 #  * marsadm tools:
 #    --  list roots
-
-
-# Handling of paths:
+#
+#  * Create class LegacyArchiver to use inside MultIO
+#    -- use the LegacyTranslator to assert all the Keys
 #
 
 # MAYBE:

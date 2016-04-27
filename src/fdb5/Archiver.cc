@@ -33,11 +33,6 @@ Archiver::~Archiver()
     flush(); // certify that all sessions are flushed before closing them
 }
 
-void Archiver::write(const eckit::DataBlobPtr blob)
-{
-    NOTIMP; /// @todo this will substitute the GribArchiver
-}
-
 void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
     const Schema& schema = MasterConfig::instance().schema();
