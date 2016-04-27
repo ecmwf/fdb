@@ -101,7 +101,8 @@ void PurgeVisitor::report(std::ostream& out) const {
 
     out << "Index Report:" << std::endl;
     for(std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-        out << "    Index " << i->first << " " << i->second << std::endl;
+        out << "    Index " << i->first << std::endl
+            << "          " << i->second << std::endl;
     }
 
     size_t adopted = 0;
@@ -147,8 +148,7 @@ void PurgeVisitor::purge(bool doit) const
 
             if(doit) { TocClearIndex clear(dir_, i->first); }
 
-            Key dummy;
-            eckit::ScopedPtr<Index> index ( Index::create(dummy, i->first, Index::READ) );
+            eckit::ScopedPtr<Index> index ( Index::create(i->first) );
             index->deleteFiles(doit);
         }
     }

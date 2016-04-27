@@ -106,6 +106,10 @@ public: // types
 
 public: // methods
 
+    /// Creates an Index from a path in read mode
+    static Index* create(const eckit::PathName& path);
+
+    /// Creates an Index from a path, indexing the metadata described in the Key
     static Index* create(const Key& key, const eckit::PathName& path, Index::Mode mode);
 
     Index(const Key& key, const eckit::PathName& path, Index::Mode mode );

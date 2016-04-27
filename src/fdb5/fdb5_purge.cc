@@ -56,8 +56,7 @@ void FDBPurge::run()
 
             Log::info() << "Index path " << *i << std::endl;
 
-            Key dummy;
-            eckit::ScopedPtr<Index> index ( Index::create(dummy, *i, Index::READ) );
+            eckit::ScopedPtr<Index> index ( Index::create(*i) );
 
             visitor.currentIndex(*i);
 

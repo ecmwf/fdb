@@ -28,6 +28,11 @@ Index *Index::create(const Key &key, const eckit::PathName &path, Index::Mode mo
     return IndexFactory::build(fdbIndexType, key, path, mode);
 }
 
+Index *Index::create(const eckit::PathName &path) {
+    Key dummy;
+    return Index::create(dummy, path, Index::READ);
+}
+
 //-----------------------------------------------------------------------------
 
 Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
