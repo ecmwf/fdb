@@ -110,6 +110,14 @@ struct PurgeVisitor : public EntryVisitor {
         out << "PurgeVisitor(indexStats=" << indexStats_ << ")";
     }
 
+    void report(std::ostream& out) const {
+        for(std::set<eckit::PathName>::const_iterator i = allDataFiles_.begin(); i != allDataFiles_.end(); ++i) {
+            if(activeDataFiles_.find(*i) != activeDataFiles_.end()) {
+                out << "Data file to be deleted: " << *i << std::endl;
+            }
+        }
+    }
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -158,6 +166,8 @@ void FDBList::run()
         Log::info() << "FDB Stats: " << visitor << std::endl;
 
         Log::info() << "FDB Totals:" << visitor.totals() << std::endl;
+
+        visitor.report(Log::info());
     }
 
 }
