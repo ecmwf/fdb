@@ -14,7 +14,9 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/BigNum.h"
 #include "eckit/log/Plural.h"
+#include "eckit/memory/ScopedPtr.h"
 
+#include "fdb5/Index.h"
 #include "fdb5/TocClearIndex.h"
 
 namespace fdb5 {
@@ -131,7 +133,7 @@ void PurgeVisitor::report(std::ostream& out) const {
         << " (" << eckit::Bytes(total.duplicatesSize) << " duplicated)" << std::endl;
 }
 
-void PurgeVisitor::purge() const
+void PurgeVisitor::purge(bool doit) const
 {
     // clear Toc Index
 
@@ -141,15 +143,27 @@ void PurgeVisitor::purge() const
         const Stats& stats = i->second;
 
         if(stats.totalFields == stats.duplicates) {
-            eckit::Log::info() << "Index is inactive: " << i->first << std::endl;
-            TocClearIndex clear(dir_, i->first);
+            eckit::Log::info() << "Index to remove: " << i->first << std::endl;
+
+            if(doit) { TocClearIndex clear(dir_, i->first); }
+
+            Key dummy;
+            eckit::ScopedPtr<Index> index ( Index::create(dummy, i->first, Index::READ) );
+            index->deleteFiles(doit);
         }
     }
 
     // delete data files
 
+    size_t adopted = 0;
+    size_t duplicated = 0;
+    size_t duplicatedAdopted = 0;
+    std::vector<eckit::PathName> tobeDeleted = filesToBeDeleted(adopted, duplicated, duplicatedAdopted);
 
-
+    for(std::vector<eckit::PathName>::const_iterator i = tobeDeleted.begin(); i != tobeDeleted.end(); ++i) {
+        eckit::Log::info() << "File to remove " << *i << std::endl;
+        if(doit) { i->unlink(); }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

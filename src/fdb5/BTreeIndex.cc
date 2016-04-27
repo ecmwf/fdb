@@ -153,6 +153,14 @@ void BTreeIndex::entries(EntryVisitor& visitor) const
     const_cast<BTreeIndex*>(this)->btree_.range("", "\255", v);
 }
 
+void BTreeIndex::deleteFiles(bool doit) const
+{
+    eckit::Log::info() << "File to remove " << btree_.path() << std::endl;
+    if(doit) {  btree_.path().unlink(); }
+
+    this->Index::deleteFiles(doit);
+}
+
 void BTreeIndex::list(std::ostream& out) const
 {
     out << "BTreeIndex count: " << eckit::BigNum(btree_.count()) << std::endl;

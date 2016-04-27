@@ -106,6 +106,12 @@ void Index::flush() {
     }
 }
 
+void Index::deleteFiles(bool doit) const
+{
+    eckit::Log::info() << "File to remove " << jsonFile() << std::endl;
+    if(doit) {  jsonFile().unlink(); }
+}
+
 void Index::put(const Key &key, const Index::Field &field) {
     axes_.insert(key);
     put_(key, field);

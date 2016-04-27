@@ -50,6 +50,8 @@ private: // methods
 
     virtual void entries(EntryVisitor& visitor) const;
 
+    virtual void deleteFiles(bool doit) const;
+
     void save(const eckit::PathName& path) const;
     void load(const eckit::PathName& path);
 

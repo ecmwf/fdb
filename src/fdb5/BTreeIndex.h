@@ -55,6 +55,8 @@ private: // methods
 
     virtual void entries(EntryVisitor& visitor) const;
 
+    virtual void deleteFiles(bool doit) const;
+
 private: // methods
 
     virtual void list( std::ostream& out ) const;

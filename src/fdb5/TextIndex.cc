@@ -118,6 +118,11 @@ void TextIndex::entries(EntryVisitor& visitor) const
     NOTIMP;
 }
 
+void TextIndex::deleteFiles(bool doit) const
+{
+    NOTIMP;
+}
+
 void TextIndex::load(const eckit::PathName& path)
 {
     std::ifstream in( path.asString().c_str() );

@@ -63,7 +63,7 @@ struct PurgeVisitor : public EntryVisitor {
 
     void report(std::ostream& out) const;
 
-    void purge() const;
+    void purge(bool doit) const;
 
 private: // methods
 

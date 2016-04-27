@@ -66,7 +66,7 @@ void FDBPurge::run()
 
         visitor.report(Log::info());
 
-        visitor.purge();
+        visitor.purge(false);
     }
 }
 
