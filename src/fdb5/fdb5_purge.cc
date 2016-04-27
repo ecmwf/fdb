@@ -26,18 +26,18 @@ using namespace fdb5;
 
 struct Stats {
 
-    Stats() : fields(0), dups(0), size(0), dupSize(0) {}
+    Stats() : fields(0), duplicates(0), size(0), duplicatesize(0) {}
 
     size_t fields;
-    size_t dups;
+    size_t duplicates;
     Length size;
-    Length dupSize;
+    Length duplicatesize;
 
     Stats& operator+=(const Stats& rhs) {
         fields += rhs.fields;
-        dups += rhs.dups;
+        duplicates += rhs.duplicates;
         size += rhs.size;
-        dupSize += rhs.dupSize;
+        duplicatesize += rhs.duplicatesize;
         return *this;
     }
 
@@ -46,9 +46,9 @@ struct Stats {
     void print(std::ostream& out) const {
         out << "Stats("
             << " fields: "  << eckit::BigNum(fields)
-            << " dups: "    << eckit::BigNum(dups)
+            << " duplicates: "    << eckit::BigNum(duplicates)
             << " size: "    << eckit::Bytes(size)
-            << " dupSize: " << eckit::Bytes(dupSize)
+            << " duplicatesize: " << eckit::Bytes(duplicatesize)
             << ")";
     }
 
@@ -71,13 +71,16 @@ struct PurgeVisitor : public EntryVisitor {
         ++stats.fields;
         stats.size += length;
 
+        allDataFiles_.insert(path);
+
         std::string indexKey = index + key;
         if(active_.find(indexKey) == active_.end()) {
-            active_.insert( make_pair(indexKey, Index::Field(path, offset, length)));
+            active_.insert(indexKey);
+            activeDataFiles_.insert(path);
         }
         else {
-            ++stats.dups;
-            stats.dupSize += length;
+            ++stats.duplicates;
+            stats.duplicatesize += length;
         }
     }
 
@@ -93,7 +96,10 @@ struct PurgeVisitor : public EntryVisitor {
 
     eckit::PathName current_;
 
-    std::map<std::string, Index::Field> active_;
+    std::set<eckit::PathName> activeDataFiles_;
+    std::set<eckit::PathName> allDataFiles_;
+
+    std::set<std::string> active_;
 
     std::map<eckit::PathName, Stats> indexStats_;
 
