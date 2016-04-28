@@ -73,13 +73,13 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
 
         grib_keys_iterator_delete(ks);
 
-        {
-            char value[1024];
-            size_t len = sizeof(value);
-            if(grib_get_string(h, "paramId", value, &len) == 0) {
-                key.set("param", value);
-            }
-        }
+        // {
+        //     char value[1024];
+        //     size_t len = sizeof(value);
+        //     if(grib_get_string(h, "paramId", value, &len) == 0) {
+        //         key.set("param", value);
+        //     }
+        // }
 
         // Look for request embbeded in GRIB message
         long local;
