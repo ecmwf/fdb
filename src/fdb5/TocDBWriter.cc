@@ -42,31 +42,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
 TocDBWriter::TocDBWriter(const Key& key) :
     TocDB(key),
     current_(0),
     dirty_(false)
 {
-    TocInitialiser init(path_, key);
-
-    blockSize_ = eckit::Resource<long>( "blockSize", 0 );
-
-    if( blockSize_ < 0 ) // take blockSize_ from statfs
-    {
-        struct statfs s;
-        SYSCALL2( statfs(const_cast<char*>( path_.localPath() ), &s ), path_ );
-        if( s.f_bsize > 0 )
-            blockSize_ = s.f_bsize;
-        /// @note should we use s.f_iosize, optimal transfer block size, on macosx ?
-    }
-
-    if( blockSize_ > 0 ) {
-        padding_.resize(blockSize_,'\0');
-    }
-
-    aio_ = eckit::Resource<bool>("fdbAsyncWrite",false);
-
-    Log::info() << "TocDBWriter for TOC [" << path_ << "] with block size of " << Bytes(blockSize_) << std::endl;
+    TocInitialiser init(directory_, key);
     loadSchema();
 }
 
@@ -97,7 +79,7 @@ bool TocDBWriter::open() {
 
 void TocDBWriter::close() {
 
-    Log::info() << "Closing path " << path_ << std::endl;
+    Log::info() << "Closing path " << directory_ << std::endl;
 
     flush(); // closes the TOC entries & indexes but not data files
 
@@ -105,7 +87,6 @@ void TocDBWriter::close() {
 
     closeDataHandles(); // close data handles
 }
-
 
 
 void TocDBWriter::index(const Key& key, const PathName& path, Offset offset, Length length)
@@ -140,14 +121,6 @@ void TocDBWriter::archive(const Key& key, const void *data, Length length)
     Offset position = dh.position();
 
     dh.write( data, length );
-
-    if( blockSize_ > 0 ) // padding?
-    {
-        long long len = length;
-        size_t paddingSize       =  (( len + blockSize_-1 ) / blockSize_ ) * blockSize_ - len;
-        if(paddingSize)
-            dh.write( &padding_[0], paddingSize );
-    }
 
     Index::Field field (dataPath, position, length);
 
@@ -229,7 +202,9 @@ DataHandle& TocDBWriter::getDataHandle( const PathName& path )
     eckit::DataHandle* dh = getCachedHandle( path );
     if( !dh )
     {
-        dh = aio_ ? createAsyncHandle( path ) : createFileHandle( path );
+        static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite", false);
+
+        dh = fdbAsyncWrite ? createAsyncHandle( path ) : createFileHandle( path );
         handles_[path] = dh;
         ASSERT( dh );
         dh->openForAppend(0);
@@ -248,7 +223,7 @@ TocAddIndex& TocDBWriter::getTocIndex(const Key& key)
     }
     else
     {
-        toc = new TocAddIndex(path_, generateIndexPath(key));
+        toc = new TocAddIndex(directory_, generateIndexPath(key));
         tocEntries_[ key ] = toc;
     }
 
@@ -259,7 +234,7 @@ TocAddIndex& TocDBWriter::getTocIndex(const Key& key)
 
 eckit::PathName TocDBWriter::generateIndexPath(const Key& key) const
 {
-    PathName tocPath ( path_ );
+    PathName tocPath ( directory_ );
     tocPath /= key.valuesToString();
     tocPath = PathName::unique(tocPath) + ".index";
     return tocPath;
@@ -267,7 +242,7 @@ eckit::PathName TocDBWriter::generateIndexPath(const Key& key) const
 
 eckit::PathName TocDBWriter::generateDataPath(const Key& key) const
 {
-    PathName dpath ( path_ );
+    PathName dpath ( directory_ );
     dpath /=  key.valuesToString();
     dpath = PathName::unique(dpath) + ".data";
     return dpath;

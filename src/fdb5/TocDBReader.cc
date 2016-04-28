@@ -21,9 +21,8 @@ namespace fdb5 {
 
 TocDBReader::TocDBReader(const Key& key) :
     TocDB(key),
-    toc_(path_)
+    toc_(directory_)
 {
-    eckit::Log::info() << "TocDBReader for TOC [" << path_ << "]" << std::endl;
 }
 
 TocDBReader::~TocDBReader()

@@ -120,7 +120,7 @@ TocDB::TocDB(const Key& dbKey) : DB(dbKey),
         throw SeriousBug(oss.str());
     }
 
-    path_ = PathName(root) / dbKey.valuesToString();
+    directory_ = PathName(root) / dbKey.valuesToString();
 
 }
 
@@ -205,7 +205,7 @@ void TocDB::closeIndexes()
 
 void TocDB::loadSchema() {
     Timer timer("TocDB::loadSchema()");
-    schema_.load( path_ / "schema" );
+    schema_.load( directory_ / "schema" );
 }
 
 void TocDB::checkSchema(const Key& key) const {

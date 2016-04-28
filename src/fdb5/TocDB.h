@@ -72,7 +72,7 @@ protected: // methods
 
 protected: // members
 
-    eckit::PathName path_;
+    eckit::PathName directory_;
 
     Index* current_;
 

@@ -100,16 +100,12 @@ private: // members
     TocIndexStore tocEntries_;
     PathStore     dataPaths_;
 
-    long				blockSize_;
-    std::vector<char>   padding_;
-
-    std::set<Key> seen_;
+    // std::set<Key> seen_;
 
     Index* current_;
 
     Key currentIndexKey_;
 
-    bool aio_;
     bool dirty_;
 };
 
