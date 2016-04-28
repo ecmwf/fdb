@@ -63,7 +63,6 @@ bool TocDBWriter::selectIndex(const Key& key)
 
     TocAddIndex& toc = getTocIndex(key);
     current_ = &getIndex(key, toc.indexPath());
-    toc.setIndex(current_); //TODO: check the life time of current_
     return true;
 }
 
@@ -223,7 +222,7 @@ TocAddIndex& TocDBWriter::getTocIndex(const Key& key)
     }
     else
     {
-        toc = new TocAddIndex(directory_, generateIndexPath(key));
+        toc = new TocAddIndex(directory_, generateIndexPath(key), key);
         tocEntries_[ key ] = toc;
     }
 

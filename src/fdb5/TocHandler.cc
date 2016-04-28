@@ -182,16 +182,14 @@ TocRecord TocHandler::makeRecordTocInit(const Key& key) const
 	return r;
 }
 
-TocRecord TocHandler::makeRecordIdxInsert(const eckit::PathName& path, const Index* index ) const
+TocRecord TocHandler::makeRecordIdxInsert(const eckit::PathName& path, const Key& key ) const
 {
     TocRecord r( TOC_INDEX );
 
     eckit::MemoryStream s(r.payload_.data(), r.payload_size);
 
-    ASSERT(index);
-    s << index->key();
+    s << key;
     s << path.baseName();
-    index->encode(s);
 
 	return r;
 }
