@@ -21,6 +21,8 @@
 
 namespace fdb5 {
 
+class Key;
+
 //-----------------------------------------------------------------------------
 
 class TocHandler : private eckit::NonCopyable {
@@ -59,7 +61,7 @@ protected: // methods
 
 	void printRecord( const TocRecord& r, std::ostream& os );
 
-	TocRecord makeRecordTocInit() const;
+    TocRecord makeRecordTocInit(const Key& key) const;
 	TocRecord makeRecordIdxInsert(const eckit::PathName& path, const TocRecord::MetaData& md) const;
     TocRecord makeRecordIdxRemove(const eckit::PathName& path) const;
 	TocRecord makeRecordTocWipe() const;

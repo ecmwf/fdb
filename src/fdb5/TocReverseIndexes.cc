@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/serialisation/HandleStream.h"
 
 #include "fdb5/TocReverseIndexes.h"
 #include "fdb5/Key.h"
@@ -65,16 +67,48 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
         eckit::Log::info() << "TocRecord " << r << std::endl;
         switch (r.head_.tag_) {
         case TOC_INIT: // ignore the Toc initialisation
+            {
+                eckit::MemoryHandle handle(r.payload_.data(), r.payload_size);
+                handle.openForRead();
+                eckit::AutoClose close(handle);
+                eckit::HandleStream s(handle);
+
+                Key k(s);
+
+                eckit::Log::info() << "TocInit key is " << k << std::endl;
+            }
             break;
 
         case TOC_INDEX:
             eckit::Log::info() << "TOC_INDEX " << r.metadata() << std::endl;
-            if ( r.metadata() == md )
-                indexes.push_back( r.path(dirPath()) );
+            if ( r.metadata() == md ) {
+                eckit::MemoryHandle handle(r.payload_.data(), r.payload_size);
+                handle.openForRead();
+                eckit::AutoClose close(handle);
+                eckit::HandleStream s(handle);
+
+                std::string path;
+                s >> path;
+
+                eckit::PathName full(dirPath() / path);
+                indexes.push_back( full );
+            }
             break;
 
         case TOC_CLEAR:
-            indexes.erase( std::remove( indexes.begin(), indexes.end(), r.path(dirPath()) ), indexes.end() );
+            {
+                eckit::MemoryHandle handle(r.payload_.data(), r.payload_size);
+                handle.openForRead();
+                eckit::AutoClose close(handle);
+                eckit::HandleStream s(handle);
+
+                std::string path;
+                s >> path;
+
+                eckit::PathName full(dirPath() / path);
+
+                indexes.erase( std::remove( indexes.begin(), indexes.end(), full ), indexes.end() );
+            }
             break;
 
         case TOC_WIPE:

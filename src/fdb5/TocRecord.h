@@ -32,7 +32,7 @@ namespace fdb5 {
 
 struct TocRecord {
 
-	typedef eckit::FixedString< 384 > MetaData;
+    typedef eckit::FixedString< 32 > MetaData;
 
 	struct Head {
 
@@ -54,10 +54,10 @@ struct TocRecord {
 
 	} head_;
 
-	static const size_t size = 4096;
-	static const size_t payload_size = TocRecord::size - sizeof(Head) - sizeof(MetaData) - sizeof(2);
-
 	MetaData metadata_;
+
+    static const size_t size = 4096;
+    static const size_t payload_size = TocRecord::size - sizeof(Head) - sizeof(MetaData) - 2;
 
 	eckit::FixedString< payload_size > payload_;
 

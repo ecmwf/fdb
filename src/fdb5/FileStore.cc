@@ -34,10 +34,11 @@ void FileStore::FieldRef::dump(std::ostream &s) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FileStore::FileStore() :
+FileStore::FileStore(const eckit::PathName& tocDir) :
     next_(0),
     readOnly_(false),
-    changed_(false) {
+    changed_(false),
+    tocDir_(tocDir) {
 }
 
 FileStore::~FileStore() {
@@ -59,10 +60,14 @@ void FileStore::load(const eckit::Value &v) {
         std::string p = pair[1];
 
         eckit::PathName path(p);
+
+        if(!p.empty() && p[0] != '/') {
+            path = tocDir_ / path;
+        }
+
         paths_[id] = path;
         ids_[path] = id;
         next_ = std::max(id + 1, next_);
-
     }
 
 }
@@ -72,7 +77,8 @@ void FileStore::json(eckit::JSON &j) const {
     for ( PathStore::const_iterator i = paths_.begin(); i != paths_.end(); ++i ) {
         j.startList();
         j << i->first;
-        j << i->second;
+        const eckit::PathName& path = i->second;
+        j << ( (path.dirName() == tocDir_) ?  path.baseName() : path );
         j.endList();
     }
     j.endList();

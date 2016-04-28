@@ -35,9 +35,14 @@ void Type::getValues(const MarsRequest& request,
     request.getValues(keyword, values);
 }
 
+const std::string& Type::type() const
+{
+    return type_;
+}
+
 
 void Type::toKey(std::ostream& out,
-                       const std::string& keyword,
+                 const std::string& keyword,
                        const std::string& value) const {
     out << value;
 }

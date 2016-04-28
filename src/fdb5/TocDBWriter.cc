@@ -47,7 +47,7 @@ TocDBWriter::TocDBWriter(const Key& key) :
     current_(0),
     dirty_(false)
 {
-    TocInitialiser init(path_);
+    TocInitialiser init(path_, key);
 
     blockSize_ = eckit::Resource<long>( "blockSize", 0 );
 

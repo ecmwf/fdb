@@ -19,6 +19,7 @@
 namespace fdb5 {
 
 class TocSchema;
+class Key;
 
 //-----------------------------------------------------------------------------
 
@@ -28,7 +29,7 @@ class TocInitialiser : public TocHandler {
 
 public: // methods
 
-	TocInitialiser( const eckit::PathName& dir );
+    TocInitialiser( const eckit::PathName& dir, const Key& tocKey );
 
 };
 

@@ -37,6 +37,7 @@ public: // methods
 
     Key();
 
+    explicit Key(eckit::Stream&);
     explicit Key(const std::string& keys);
     explicit Key(const eckit::StringDict& keys);
 
@@ -72,6 +73,11 @@ public: // methods
         return s;
     }
 
+    friend eckit::Stream& operator<<(eckit::Stream& s,const Key& x) {
+        x.encode(s);
+        return s;
+    }
+
     void rule(const Rule* rule);
     const Rule* rule() const;
     const TypesRegistry* registry() const;
@@ -86,6 +92,7 @@ public: // methods
 private: // members
 
     void print( std::ostream& out ) const;
+    void encode(eckit::Stream& s) const;
 
     eckit::StringDict keys_;
     eckit::StringList names_;

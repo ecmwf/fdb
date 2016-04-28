@@ -21,7 +21,7 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-TocInitialiser::TocInitialiser(const eckit::PathName &dir) : TocHandler(dir) {
+TocInitialiser::TocInitialiser(const eckit::PathName &dir, const Key& tocKey) : TocHandler(dir) {
 
     if ( !dir_.exists() ) {
         dirPath().mkdir();
@@ -55,7 +55,7 @@ TocInitialiser::TocInitialiser(const eckit::PathName &dir) : TocHandler(dir) {
         eckit::PathName::rename(tmp, schemaPath);
 
         read_   = false;
-        TocRecord r = makeRecordTocInit();
+        TocRecord r = makeRecordTocInit(tocKey);
         append(r);
     }
     else {

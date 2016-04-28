@@ -54,6 +54,8 @@ public: // class methods
 
     static const Type& lookup(const std::string& keyword);
 
+    const std::string& type() const;
+
 private: // methods
 
     virtual void print( std::ostream& out ) const = 0;

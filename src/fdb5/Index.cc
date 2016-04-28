@@ -38,7 +38,7 @@ Index *Index::create(const eckit::PathName &path) {
 Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
     mode_(mode),
     path_(path),
-    files_(),
+    files_(path.dirName()),
     axes_(),
     key_(key),
     prefix_(key.valuesToString()) {

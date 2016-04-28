@@ -16,7 +16,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
 Key::Key() :
     keys_(),
     rule_(0)
@@ -34,6 +33,44 @@ Key::Key(const eckit::StringDict& keys) :
     keys_(keys),
     rule_(0)
 {
+}
+
+Key::Key(eckit::Stream& s) :
+    rule_(0)
+{
+    size_t n;
+
+    s >> n;
+    std::string k;
+    std::string v;
+    for(size_t i = 0; i < n; ++i) {
+        s >> k;
+        s >> v;
+        keys_[k] = v;
+    }
+
+    s >> n;
+    for(size_t i = 0; i < n; ++i) {
+        s >> k;
+        s >> v; // this is the type (ignoring FTM)
+        names_.push_back(k);
+    }
+}
+
+void Key::encode(eckit::Stream& s) const
+{
+    const TypesRegistry* registry = rule_ ? &rule_->registry() : 0;
+
+    s << keys_.size();
+    for(eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
+         s << i->first << i->second;
+    }
+
+    s << names_.size();
+    for(eckit::StringList::const_iterator i = names_.begin(); i != names_.end(); ++i) {
+         s << *i;
+         s << registry->lookupType(*i).type();
+    }
 }
 
 void Key::rule(const Rule* rule) {

@@ -14,8 +14,11 @@
 
 #include "eckit/types/DateTime.h"
 #include "eckit/config/Resource.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/serialisation/HandleStream.h"
 
 #include "fdb5/TocHandler.h"
+#include "fdb5/Key.h"
 
 
 namespace fdb5 {
@@ -168,25 +171,47 @@ void TocHandler::printRecord(const TocRecord& r, std::ostream& os)
 	}
 }
 
-TocRecord TocHandler::makeRecordTocInit() const
+TocRecord TocHandler::makeRecordTocInit(const Key& key) const
 {
     TocRecord r( TOC_INIT );
+
+    eckit::MemoryHandle handle(r.payload_.data(), r.payload_size);
+    handle.openForWrite(0);
+    eckit::AutoClose close(handle);
+    eckit::HandleStream s(handle);
+
+    s << key;
+
 	return r;
 }
 
 TocRecord TocHandler::makeRecordIdxInsert( const eckit::PathName& path, const TocRecord::MetaData& md ) const
 {
     TocRecord r( TOC_INDEX );
-	r.metadata_ = md;
-    r.payload_  = path.baseName().asString();
+    r.metadata_ = md;
+
+    eckit::MemoryHandle handle(r.payload_.data(), r.payload_size);
+    handle.openForWrite(0);
+    eckit::AutoClose close(handle);
+    eckit::HandleStream s(handle);
+
+    s <<  path.baseName();
+
 	return r;
 }
 
 TocRecord TocHandler::makeRecordIdxRemove(const eckit::PathName& path) const
 {
     TocRecord r( TOC_CLEAR );
-    r.payload_  = path.baseName().asString();
-	return r;
+
+    eckit::MemoryHandle handle(r.payload_.data(), r.payload_size);
+    handle.openForWrite(0);
+    eckit::AutoClose close(handle);
+    eckit::HandleStream s(handle);
+
+    s <<  path.baseName();
+
+    return r;
 }
 
 TocRecord TocHandler::makeRecordTocWipe() const
