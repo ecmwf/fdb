@@ -185,16 +185,16 @@ TocRecord TocHandler::makeRecordTocInit(const Key& key) const
 	return r;
 }
 
-TocRecord TocHandler::makeRecordIdxInsert( const eckit::PathName& path, const TocRecord::MetaData& md ) const
+TocRecord TocHandler::makeRecordIdxInsert(const eckit::PathName& path, const Key& key ) const
 {
     TocRecord r( TOC_INDEX );
-    r.metadata_ = md;
 
     eckit::MemoryHandle handle(r.payload_.data(), r.payload_size);
     handle.openForWrite(0);
     eckit::AutoClose close(handle);
     eckit::HandleStream s(handle);
 
+    s << key;
     s <<  path.baseName();
 
 	return r;

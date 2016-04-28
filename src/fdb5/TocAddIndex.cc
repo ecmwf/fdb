@@ -19,12 +19,13 @@ namespace fdb5 {
 TocAddIndex::TocAddIndex(const eckit::PathName &dir, const eckit::PathName &idx, const Key &key) :
     TocHandler( dir ),
     index_(idx),
-    tocMD_(key.valuesToString()) {
+    tocKey_(key)
+{
 }
 
 TocAddIndex::~TocAddIndex() {
     openForAppend();
-    TocRecord r = makeRecordIdxInsert(index_, tocMD_);
+    TocRecord r = makeRecordIdxInsert(index_, tocKey_);
     append(r);
     close();
 }

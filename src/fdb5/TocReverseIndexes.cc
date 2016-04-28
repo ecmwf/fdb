@@ -55,9 +55,6 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
 
     // not in cache
 
-    TocRecord::MetaData md( key.valuesToString() );
-
-    eckit::Log::info() << "TocReverseIndexes md = " << md << std::endl;
     eckit::Log::info() << "TocReverseIndexes key = " << key << std::endl;
 
     std::vector< eckit::PathName > indexes;
@@ -80,18 +77,20 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
             break;
 
         case TOC_INDEX:
-            eckit::Log::info() << "TOC_INDEX " << r.metadata() << std::endl;
-            if ( r.metadata() == md ) {
+            {
                 eckit::MemoryHandle handle(r.payload_.data(), r.payload_size);
                 handle.openForRead();
                 eckit::AutoClose close(handle);
                 eckit::HandleStream s(handle);
 
-                std::string path;
-                s >> path;
+                Key k(s);
 
-                eckit::PathName full(dirPath() / path);
-                indexes.push_back( full );
+                if(k == key) {
+                    std::string path;
+                    s >> path;
+                    eckit::PathName full(dirPath() / path);
+                    indexes.push_back( full );
+                }
             }
             break;
 

@@ -56,10 +56,6 @@ eckit::PathName TocRecord::path(const eckit::PathName& tocdir) const {
     return eckit::PathName( tocdir / path );
 }
 
-TocRecord::MetaData TocRecord::metadata() const {
-    return metadata_;
-}
-
 void TocRecord::print(std::ostream &out) const {
     out << "TocRecord["
         << "tag=" << head_.tag_ << ","
@@ -68,9 +64,7 @@ void TocRecord::print(std::ostream &out) const {
         << "timestamp=" << head_.timestamp_.tv_sec << "." << head_.timestamp_.tv_usec << ","
         << "pid=" << head_.pid_ << ","
         << "uid=" << head_.uid_ << ","
-        << "hostname=" << head_.hostname_ << ","
-        << "metadata=" << metadata_ << ","
-        << "payload=" << payload_ << "]";
+        << "hostname=" << head_.hostname_ << "]";
 }
 
 unsigned char TocRecord::currentTagVersion()

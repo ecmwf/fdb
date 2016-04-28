@@ -32,8 +32,6 @@ namespace fdb5 {
 
 struct TocRecord {
 
-    typedef eckit::FixedString< 32 > MetaData;
-
 	struct Head {
 
 		unsigned char   tag_;					///<  (1) tag identifying the TocRecord type
@@ -54,10 +52,8 @@ struct TocRecord {
 
 	} head_;
 
-	MetaData metadata_;
-
     static const size_t size = 4096;
-    static const size_t payload_size = TocRecord::size - sizeof(Head) - sizeof(MetaData) - 2;
+    static const size_t payload_size = TocRecord::size - sizeof(Head) - 2;
 
 	eckit::FixedString< payload_size > payload_;
 
@@ -76,8 +72,6 @@ public: // methods
     bool isComplete() const;
 
     eckit::PathName path(const eckit::PathName& tocdir) const;
-
-    MetaData metadata() const;
 
     friend std::ostream& operator<<(std::ostream& s,const TocRecord& x) { x.print(s); return s; }
 

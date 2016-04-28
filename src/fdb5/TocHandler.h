@@ -62,7 +62,7 @@ protected: // methods
 	void printRecord( const TocRecord& r, std::ostream& os );
 
     TocRecord makeRecordTocInit(const Key& key) const;
-	TocRecord makeRecordIdxInsert(const eckit::PathName& path, const TocRecord::MetaData& md) const;
+    TocRecord makeRecordIdxInsert(const eckit::PathName& path, const Key& key) const;
     TocRecord makeRecordIdxRemove(const eckit::PathName& path) const;
 	TocRecord makeRecordTocWipe() const;
 

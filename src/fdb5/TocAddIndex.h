@@ -14,11 +14,10 @@
 #ifndef fdb5_TocAddIndex_H
 #define fdb5_TocAddIndex_H
 
+#include "fdb5/Key.h"
 #include "fdb5/TocHandler.h"
 
 namespace fdb5 {
-
-class Key;
 
 //-----------------------------------------------------------------------------
 
@@ -35,8 +34,7 @@ public: // methods
 private: // members
 
 	eckit::PathName index_;
-	TocRecord::MetaData tocMD_;
-
+    Key tocKey_;
 };
 
 //-----------------------------------------------------------------------------
