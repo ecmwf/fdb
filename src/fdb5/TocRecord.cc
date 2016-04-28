@@ -50,12 +50,6 @@ unsigned char TocRecord::version() const
 
 bool TocRecord::isComplete() const { return ( marker_[0] == '4' && marker_[1] == '2' ); }
 
-eckit::PathName TocRecord::path(const eckit::PathName& tocdir) const {
-    std::string path = payload_.data();
-    if(!path.empty() && path[0] == '/') { return path; }
-    return eckit::PathName( tocdir / path );
-}
-
 void TocRecord::print(std::ostream &out) const {
     out << "TocRecord["
         << "tag=" << head_.tag_ << ","

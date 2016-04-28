@@ -63,40 +63,25 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
         eckit::Log::info() << "TocRecord " << r << std::endl;
 
         eckit::MemoryStream s(r.payload_.data(), r.payload_size);
+        std::string path;
+
 
         switch (r.head_.tag_) {
-        case TOC_INIT: // ignore the Toc initialisation
-            {
 
-                Key k(s);
-
-                eckit::Log::info() << "TocInit key is " << k << std::endl;
-            }
+        case TOC_INIT:
+            eckit::Log::info() << "TOC_INIT key is " << Key(s) << std::endl;
             break;
 
         case TOC_INDEX:
-            {
-
-                Key k(s);
-
-                if(k == key) {
-                    std::string path;
-                    s >> path;
-                    eckit::PathName full(dirPath() / path);
-                    indexes.push_back( full );
-                }
+            if (Key(s) == key) {
+                s >> path;
+                indexes.push_back( dirPath() / path );
             }
             break;
 
         case TOC_CLEAR:
-            {
-                std::string path;
-                s >> path;
-
-                eckit::PathName full(dirPath() / path);
-
-                indexes.erase( std::remove( indexes.begin(), indexes.end(), full ), indexes.end() );
-            }
+            s >> path;
+            indexes.erase( std::remove( indexes.begin(), indexes.end(), dirPath() / path ), indexes.end() );
             break;
 
         case TOC_WIPE:
@@ -106,6 +91,7 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
         default:
             throw eckit::SeriousBug("Unknown tag in TocRecord", Here());
             break;
+
         }
     }
 
@@ -124,16 +110,24 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes() const {
 
     for ( TocVec::const_iterator itr = toc_.begin(); itr != toc_.end(); ++itr ) {
         const TocRecord &r = *itr;
+
+        eckit::MemoryStream s(r.payload_.data(), r.payload_size);
+        std::string path;
+
+
         switch (r.head_.tag_) {
+
         case TOC_INIT: // ignore the Toc initialisation
             break;
 
         case TOC_INDEX:
-            indexes.push_back( r.path(dirPath()) );
+            s >> path;
+            indexes.push_back( dirPath() / path );
             break;
 
         case TOC_CLEAR:
-            indexes.erase( std::remove( indexes.begin(), indexes.end(), r.path(dirPath()) ), indexes.end() );
+            s >> path;
+            indexes.erase( std::remove( indexes.begin(), indexes.end(), dirPath() / path ), indexes.end() );
             break;
 
         case TOC_WIPE:
@@ -143,6 +137,7 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes() const {
         default:
             throw eckit::SeriousBug("Unknown tag in TocRecord", Here());
             break;
+
         }
     }
 
