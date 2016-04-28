@@ -13,9 +13,12 @@
 #  * marsadm tools:
 #    --  list roots
 #
-#  * Create class LegacyArchiver to use inside MultIO
-#    -- use the LegacyTranslator to assert all the Keys
-#
+
+# TESTS:
+# check effect on retrieve:
+#  * delete a json
+#  * delete a data
+#  * delete a index
 
 # MAYBE:
 #  * fdbRoot is a list of paths to visit ---> speak to Hodge
