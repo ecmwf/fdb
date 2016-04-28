@@ -77,9 +77,17 @@ TocDBWriter::~TocDBWriter()
 
 bool TocDBWriter::selectIndex(const Key& key)
 {
+    currentIndexKey_ = key;
+
     TocAddIndex& toc = getTocIndex(key);
     current_ = &getIndex(key, toc.index());
     return true;
+}
+
+void TocDBWriter::deselectIndex()
+{
+    current_ = 0;
+    currentIndexKey_ = Key();
 }
 
 bool TocDBWriter::open() {
@@ -92,6 +100,8 @@ void TocDBWriter::close() {
 
     flush(); // closes the TOC entries & indexes but not data files
 
+    deselectIndex();
+
     closeDataHandles(); // close data handles
 }
 
@@ -99,8 +109,12 @@ void TocDBWriter::close() {
 
 void TocDBWriter::index(const Key& key, const PathName& path, Offset offset, Length length)
 {
-    ASSERT(current_);
     dirty_ = true;
+
+    if(!current_) {
+        ASSERT(!currentIndexKey_.dict().empty());
+        selectIndex(currentIndexKey_);
+    }
 
     Index::Field field(path, offset, length);
 
@@ -110,9 +124,13 @@ void TocDBWriter::index(const Key& key, const PathName& path, Offset offset, Len
 }
 
 void TocDBWriter::archive(const Key& key, const void *data, Length length)
-{
-    ASSERT(current_);
+{   
     dirty_ = true;
+
+    if(!current_) {
+        ASSERT(!currentIndexKey_.dict().empty());
+        selectIndex(currentIndexKey_);
+    }
 
     PathName dataPath = getDataPath(current_->key());
 
@@ -157,6 +175,7 @@ void TocDBWriter::flush()
     closeTocEntries();
 
     dirty_ = false;
+    current_ = 0;
 }
 
 Index* TocDBWriter::openIndex(const Key& key, const PathName& path) const
@@ -178,11 +197,9 @@ void TocDBWriter::closeDataHandles()
     for( HandleStore::iterator itr = handles_.begin(); itr != handles_.end(); ++itr )
     {
         eckit::DataHandle* dh = itr->second;
-        if( dh )
-        {
-            dh->close();
-            delete dh;
-        }
+        ASSERT(dh);
+        dh->close();
+        delete dh;
     }
     handles_.clear();
 }
@@ -274,8 +291,8 @@ void TocDBWriter::flushIndexes()
     for(IndexStore::iterator itr = indexes_.begin(); itr != indexes_.end(); ++itr )
     {
         Index* idx = itr->second;
-        if( idx )
-            idx->flush();
+        ASSERT(idx);
+        idx->flush();
     }
 }
 
@@ -288,12 +305,9 @@ void TocDBWriter::flushDataHandles()
     for(HandleStore::iterator itr = handles_.begin(); itr != handles_.end(); ++itr)
     {
         eckit::DataHandle* dh = itr->second;
-        if( dh ) {
-            std::ostringstream oss;
-            oss << *dh;
-            Timer timer2(oss.str());
-            dh->flush();
-        }
+        ASSERT(dh);
+        Timer timer2(dh->title());
+        dh->flush();
     }
 }
 

@@ -44,6 +44,7 @@ public: // methods
 protected: // methods
 
     virtual bool selectIndex(const Key& key);
+    virtual void deselectIndex();
 
     virtual bool open();
 
@@ -105,6 +106,8 @@ private: // members
     std::set<Key> seen_;
 
     Index* current_;
+
+    Key currentIndexKey_;
 
     bool aio_;
     bool dirty_;

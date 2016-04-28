@@ -40,6 +40,11 @@ bool TocDBReader::selectIndex(const Key& key)
     return (current_.size() != 0);
 }
 
+void TocDBReader::deselectIndex()
+{
+    NOTIMP; //< should not be called
+}
+
 bool TocDBReader::open() {
 
     if(!toc_.exists()) {

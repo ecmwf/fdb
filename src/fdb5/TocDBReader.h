@@ -36,6 +36,7 @@ public: // methods
 private: // methods
 
     virtual bool selectIndex(const Key& key);
+    virtual void deselectIndex();
 
     virtual bool open();
 
