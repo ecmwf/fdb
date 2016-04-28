@@ -18,6 +18,7 @@
 
 #include "fdb5/TocHandler.h"
 #include "fdb5/Key.h"
+#include "fdb5/Index.h"
 
 
 namespace fdb5 {
@@ -181,14 +182,16 @@ TocRecord TocHandler::makeRecordTocInit(const Key& key) const
 	return r;
 }
 
-TocRecord TocHandler::makeRecordIdxInsert(const eckit::PathName& path, const Key& key ) const
+TocRecord TocHandler::makeRecordIdxInsert(const eckit::PathName& path, const Index* index ) const
 {
     TocRecord r( TOC_INDEX );
 
     eckit::MemoryStream s(r.payload_.data(), r.payload_size);
 
-    s << key;
+    ASSERT(index);
+    s << index->key();
     s << path.baseName();
+    index->encode(s);
 
 	return r;
 }

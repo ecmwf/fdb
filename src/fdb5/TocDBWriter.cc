@@ -80,7 +80,8 @@ bool TocDBWriter::selectIndex(const Key& key)
     currentIndexKey_ = key;
 
     TocAddIndex& toc = getTocIndex(key);
-    current_ = &getIndex(key, toc.index());
+    current_ = &getIndex(key, toc.indexPath());
+    toc.setIndex(current_); //TODO: check the life time of current_
     return true;
 }
 
@@ -124,7 +125,7 @@ void TocDBWriter::index(const Key& key, const PathName& path, Offset offset, Len
 }
 
 void TocDBWriter::archive(const Key& key, const void *data, Length length)
-{   
+{
     dirty_ = true;
 
     if(!current_) {
@@ -247,7 +248,7 @@ TocAddIndex& TocDBWriter::getTocIndex(const Key& key)
     }
     else
     {
-        toc = new TocAddIndex(path_, generateIndexPath(key), key);
+        toc = new TocAddIndex(path_, generateIndexPath(key));
         tocEntries_[ key ] = toc;
     }
 

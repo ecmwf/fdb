@@ -24,6 +24,7 @@
 #include "eckit/filesystem/PathName.h"
 
 namespace eckit { class Value; }
+namespace eckit { class Stream; }
 namespace eckit { class JSON; }
 
 namespace fdb5 {
@@ -88,6 +89,7 @@ public: // methods
     /// check the eckit::PathName exists in the FileStore
     bool exists( const eckit::PathName& path ) const;
 
+    void encode(eckit::Stream& s) const;
 
     friend std::ostream& operator<<(std::ostream& s,const FileStore& x) { x.print(s); return s; }
 

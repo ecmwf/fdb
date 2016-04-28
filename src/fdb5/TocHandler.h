@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2013 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -22,6 +22,7 @@
 namespace fdb5 {
 
 class Key;
+class Index;
 
 //-----------------------------------------------------------------------------
 
@@ -62,7 +63,7 @@ protected: // methods
 	void printRecord( const TocRecord& r, std::ostream& os );
 
     TocRecord makeRecordTocInit(const Key& key) const;
-    TocRecord makeRecordIdxInsert(const eckit::PathName& path, const Key& key) const;
+    TocRecord makeRecordIdxInsert(const eckit::PathName& path, const Index* index) const;
     TocRecord makeRecordIdxRemove(const eckit::PathName& path) const;
 	TocRecord makeRecordTocWipe() const;
 

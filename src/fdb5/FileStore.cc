@@ -14,6 +14,7 @@
 
 #include "eckit/parser/JSON.h"
 #include "fdb5/FileStore.h"
+#include "eckit/serialisation/Stream.h"
 
 
 namespace fdb5 {
@@ -46,6 +47,16 @@ FileStore::~FileStore() {
 
 bool FileStore::changed() const {
     return changed_;
+}
+
+
+void FileStore::encode(eckit::Stream& s) const {
+    s << paths_.size();
+    for ( PathStore::const_iterator i = paths_.begin(); i != paths_.end(); ++i ) {
+        s << i->first;
+        const eckit::PathName& path = i->second;
+        s << ( (path.dirName() == tocDir_) ?  path.baseName() : path );
+    }
 }
 
 void FileStore::load(const eckit::Value &v) {

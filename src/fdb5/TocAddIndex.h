@@ -19,22 +19,25 @@
 
 namespace fdb5 {
 
+class Index;
+
 //-----------------------------------------------------------------------------
 
 class TocAddIndex : public TocHandler {
 
 public: // methods
 
-    TocAddIndex(const eckit::PathName& dir, const eckit::PathName& idx, const fdb5::Key& key);
+    TocAddIndex(const eckit::PathName& dir, const eckit::PathName& indexPath);
 
 	~TocAddIndex();
 
-	eckit::PathName index() const;
+	eckit::PathName indexPath() const;
+    void setIndex(const Index*);
 
 private: // members
 
-	eckit::PathName index_;
-    Key tocKey_;
+	eckit::PathName indexPath_;
+    const Index* index_;
 };
 
 //-----------------------------------------------------------------------------

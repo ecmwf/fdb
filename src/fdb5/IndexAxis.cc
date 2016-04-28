@@ -16,6 +16,7 @@
 
 #include "fdb5/IndexAxis.h"
 #include "fdb5/Key.h"
+#include "eckit/serialisation/Stream.h"
 
 namespace fdb5 {
 
@@ -31,6 +32,18 @@ IndexAxis::~IndexAxis() {
 
 bool IndexAxis::changed() const {
     return changed_;
+}
+
+void IndexAxis::encode(eckit::Stream& s) const {
+    s << axis_.size();
+    for(AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
+        s << (*i).first;
+        const std::set<std::string> &values = (*i).second;
+        s << values.size();
+        for(std::set<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
+            s << (*j);
+        }
+    }
 }
 
 void IndexAxis::load(const eckit::Value &v) {

@@ -16,22 +16,27 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-TocAddIndex::TocAddIndex(const eckit::PathName &dir, const eckit::PathName &idx, const Key &key) :
+TocAddIndex::TocAddIndex(const eckit::PathName &dir, const eckit::PathName &indexPath) :
     TocHandler( dir ),
-    index_(idx),
-    tocKey_(key)
+    indexPath_(indexPath),
+    index_(0)
 {
+}
+
+void TocAddIndex::setIndex(const Index* index) {
+    ASSERT(index_ == 0 || index_ == index);
+    index_ = index;
 }
 
 TocAddIndex::~TocAddIndex() {
     openForAppend();
-    TocRecord r = makeRecordIdxInsert(index_, tocKey_);
+    TocRecord r = makeRecordIdxInsert(indexPath_, index_);
     append(r);
     close();
 }
 
-eckit::PathName TocAddIndex::index() const {
-    return index_;
+eckit::PathName TocAddIndex::indexPath() const {
+    return indexPath_;
 }
 
 

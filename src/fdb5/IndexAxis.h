@@ -26,6 +26,7 @@
 
 namespace eckit { class Value; }
 namespace eckit { class JSON; }
+namespace eckit { class Stream; }
 
 namespace fdb5 {
 
@@ -47,6 +48,7 @@ public: // methods
     void json(eckit::JSON&) const;
     bool changed() const;
 
+    void encode(eckit::Stream& s) const;
 
     const eckit::StringSet& values(const std::string& keyword) const;
 

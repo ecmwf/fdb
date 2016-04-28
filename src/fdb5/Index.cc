@@ -16,6 +16,7 @@
 #include "eckit/parser/JSONParser.h"
 #include "eckit/thread/AutoLock.h"
 
+#include "eckit/serialisation/Stream.h"
 
 namespace fdb5 {
 
@@ -80,6 +81,14 @@ Index::~Index() {
 eckit::PathName Index::jsonFile() const {
     std::string path = path_;
     return path.substr(0, path.length() - path_.extension().length()) + ".json";
+}
+
+void Index::encode(eckit::Stream& s) const
+{
+    s << key_;
+    s << prefix_;
+    files_.encode(s);
+    axes_.encode(s);
 }
 
 void Index::flush() {

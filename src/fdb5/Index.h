@@ -27,6 +27,8 @@
 #include "fdb5/IndexAxis.h"
 #include "fdb5/Key.h"
 
+namespace eckit { class Stream; }
+
 namespace fdb5 {
 
 class Key;
@@ -127,6 +129,8 @@ public: // methods
     virtual bool    remove( const Key& key ) = 0;
 
     virtual void flush();
+
+    virtual void encode(eckit::Stream& s) const;
 
     virtual void print( std::ostream& out ) const = 0;
 
