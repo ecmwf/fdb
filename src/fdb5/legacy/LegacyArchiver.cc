@@ -46,6 +46,9 @@ void LegacyArchiver::archive(const eckit::DataBlobPtr blob)
         key.set(*i, value);
     }
 
+    std::cout << "Metadata keys " << key << std::endl;
+    std::cout << "Legacy keys " << legacy_ << std::endl;
+
     // compare legacy and metadata
 
     eckit::StringSet missing;

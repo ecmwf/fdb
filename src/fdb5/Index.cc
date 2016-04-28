@@ -165,6 +165,8 @@ IndexFactory::IndexFactory(const std::string &name) :
 
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
+    std::cout << "Registering IndexFactory " << name << std::endl;
+
     ASSERT(m->find(name) == m->end());
     (*m)[name] = this;
 }

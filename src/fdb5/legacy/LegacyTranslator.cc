@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <cctype>
+
 #include "eckit/parser/StringTools.h"
 #include "eckit/utils/Translator.h"
 
@@ -56,6 +58,15 @@ static StringDict::value_type real(const Key& key, const std::string& keyword, c
 
 }
 
+static StringDict::value_type levelist(const Key& key, const std::string& keyword, const std::string& value )
+{
+    static Translator<std::string,double> s2r;
+    static Translator<double,std::string> r2s;
+
+    return StringDict::value_type("levelist", r2s(s2r(value)));
+
+}
+
 static StringDict::value_type levtype(const Key& key, const std::string& keyword, const std::string& value )
 {
     static const char * levtype_ = "levtype";
@@ -87,23 +98,18 @@ static StringDict::value_type param(const Key& key, const std::string& keyword, 
 {
     Param p(value);
 
-    if(p.table() == 0) {
-        if(p.value() < 1000) {
-            if(iswave(key)) {
-                p = Param(140, p.value());
-            }
-            else {
-                p = Param(128, p.value());
-            }
-        }
-    }
+    // if(p.table() == 0) {
+    //     if(p.value() < 1000) {
+    //         if(iswave(key)) {
+    //             p = Param(140, p.value());
+    //         }
+    //         else {
+    //             p = Param(128, p.value());
+    //         }
+    //     }
+    // }
 
     return StringDict::value_type( "param" , std::string(p) );
-}
-
-static StringDict::value_type channel(const Key& key, const std::string& keyword, const std::string& value )
-{
-    return StringDict::value_type( "channel" , value );
 }
 
 static StringDict::value_type time(const Key& key, const std::string& keyword, const std::string& value )
@@ -130,28 +136,36 @@ LegacyTranslator::LegacyTranslator()
 
     translators_["step"]  = &real;
 
-    translators_["LEVEL"]    = &real;
-    translators_["level"]    = &real;
-    translators_["levelist"] = &real;
+    translators_["level"]    = &levelist;
+    translators_["levelist"] = &levelist;
 
     translators_["parameter"] = &param;
-    translators_["PARAMETER"] = &param;
 
-    translators_["CHANNEL"] = &channel;
+    translators_["channel"] = &integer;
 
     translators_["time"]   = &time;
-    translators_["TIME"]   = &time;
 }
 
 void legacy::LegacyTranslator::set(Key& key, const std::string& keyword, const std::string& value) const
 {
-        store_t::const_iterator i = translators_.find(keyword);
+        std::string k(keyword);
+        std::string v(value);
+
+        std::transform(k.begin(), k.end(), k.begin(), tolower);
+        std::transform(v.begin(), v.end(), v.begin(), tolower);
+
+        if(v == "off") {
+            key.unset(k);
+            return;
+        }
+
+        store_t::const_iterator i = translators_.find(k);
         if( i != translators_.end() ) {
-            StringDict::value_type kv = (*(*i).second)(key, keyword, value);
+            StringDict::value_type kv = (*(*i).second)(key, k, v);
             key.set(kv.first, kv.second);
         }
         else {
-            key.set(keyword, value);
+            key.set(k, v);
         }
 }
 

@@ -10,10 +10,12 @@
 
 // #include <algorithm>
 #include "fdb5/MasterConfig.h"
+
 #include "eckit/runtime/Context.h"
 #include "eckit/config/ResourceMgr.h"
 #include "eckit/config/Resource.h"
 
+#include "fdb5/Error.h"
 
 namespace fdb5 {
 
@@ -21,9 +23,18 @@ namespace fdb5 {
 
 MasterConfig::MasterConfig()
 {
-    char* home = ::getenv("DHSHOME");
-    if(home) {
-        eckit::Context::instance().home(home);
+    char* home1 = ::getenv("DHSHOME");
+    if(home1) {
+        eckit::Context::instance().home(home1);
+    }
+
+    char* home2 = ::getenv("FDB5_HOME");
+    if(home2) {
+        eckit::Context::instance().home(home2);
+    }
+
+    if(!!home1 == !!home2) {
+        throw eckit::SeriousBug("Either FDB5_HOME or DHSHOME environment variable must be defined (but not both)");
     }
 
     eckit::ResourceMgr::instance().appendConfig("~/etc/config/fdb");

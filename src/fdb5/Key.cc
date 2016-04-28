@@ -56,7 +56,6 @@ void Key::set(const std::string& k, const std::string& v) {
 
 void Key::unset(const std::string& k) {
     keys_.erase(k);
-    ASSERT(names_.back() == k);
 }
 
 void Key::push(const std::string& k, const std::string& v) {
