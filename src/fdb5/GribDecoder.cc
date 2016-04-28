@@ -13,8 +13,7 @@
 
 #include "grib_api.h"
 
-#include "eckit/serialisation/HandleStream.h"
-#include "eckit/io/MemoryHandle.h"
+#include "eckit/serialisation/MemoryStream.h"
 
 #include "marslib/EmosFile.h"
 #include "fdb5/GribDecoder.h"
@@ -90,10 +89,9 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
             if (grib_get_size(h, "freeFormData", &size) ==  0 && size != 0) {
                 unsigned char buffer[size];
                 ASSERT(grib_get_bytes(h, "freeFormData", buffer, &size) == 0);
-                eckit::MemoryHandle handle(buffer, size);
-                handle.openForRead();
-                eckit::AutoClose close(handle);
-                eckit::HandleStream s(handle);
+
+                eckit::MemoryStream s(buffer, size);
+
                 int count;
                 s >> count; // Number of requests
                 ASSERT(count == 1);

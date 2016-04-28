@@ -8,8 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/io/MemoryHandle.h"
-#include "eckit/serialisation/HandleStream.h"
+#include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/TocReverseIndexes.h"
 #include "fdb5/Key.h"
@@ -62,13 +61,12 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
     for ( TocVec::const_iterator itr = toc_.begin(); itr != toc_.end(); ++itr ) {
         const TocRecord &r = *itr;
         eckit::Log::info() << "TocRecord " << r << std::endl;
+
+        eckit::MemoryStream s(r.payload_.data(), r.payload_size);
+
         switch (r.head_.tag_) {
         case TOC_INIT: // ignore the Toc initialisation
             {
-                eckit::MemoryHandle handle(r.payload_.data(), r.payload_size);
-                handle.openForRead();
-                eckit::AutoClose close(handle);
-                eckit::HandleStream s(handle);
 
                 Key k(s);
 
@@ -78,10 +76,6 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
 
         case TOC_INDEX:
             {
-                eckit::MemoryHandle handle(r.payload_.data(), r.payload_size);
-                handle.openForRead();
-                eckit::AutoClose close(handle);
-                eckit::HandleStream s(handle);
 
                 Key k(s);
 
@@ -96,11 +90,6 @@ std::vector<eckit::PathName> TocReverseIndexes::indexes(const Key &key) const {
 
         case TOC_CLEAR:
             {
-                eckit::MemoryHandle handle(r.payload_.data(), r.payload_size);
-                handle.openForRead();
-                eckit::AutoClose close(handle);
-                eckit::HandleStream s(handle);
-
                 std::string path;
                 s >> path;
 
