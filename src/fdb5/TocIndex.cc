@@ -14,7 +14,6 @@
 
 #include "fdb5/Key.h"
 #include "fdb5/TocIndex.h"
-#include "fdb5/Error.h"
 
 namespace fdb5 {
 
@@ -101,7 +100,8 @@ void TocIndex::put_(const Key &key, const TocIndex::Field &field) {
     ref.offset_ = field.offset_;
     ref.length_ = field.length_;
 
-    bool replace = btree_->set(k, ref); // returns true if replace, false if new insert
+//  bool replace =
+    btree_->set(k, ref); // returns true if replace, false if new insert
 
     dirty_ = true;
 

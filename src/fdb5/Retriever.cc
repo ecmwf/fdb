@@ -11,8 +11,8 @@
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 #include "eckit/memory/ScopedPtr.h"
+
 #include "fdb5/DB.h"
-#include "fdb5/Error.h"
 #include "fdb5/HandleGatherer.h"
 #include "fdb5/Key.h"
 #include "fdb5/MasterConfig.h"
@@ -21,6 +21,7 @@
 #include "fdb5/Schema.h"
 #include "fdb5/Type.h"
 #include "fdb5/TypesRegistry.h"
+
 #include "marslib/MarsTask.h"
 
 

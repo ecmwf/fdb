@@ -19,8 +19,10 @@
 #include <iosfwd>
 #include <vector>
 
-#include "eckit/memory/NonCopyable.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/memory/NonCopyable.h"
+
 #include "fdb5/TypesRegistry.h"
 
 class MarsRequest;
@@ -31,6 +33,17 @@ class Key;
 class Rule;
 class ReadVisitor;
 class WriteVisitor;
+class Schema;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class SchemaHasChanged: public eckit::Exception {
+    std::string path_;
+public:
+    SchemaHasChanged(const Schema& schema);
+    ~SchemaHasChanged() throw();
+    const std::string& path() const { return path_; }
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

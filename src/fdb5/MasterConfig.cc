@@ -8,14 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <algorithm>
 #include "fdb5/MasterConfig.h"
 
 #include "eckit/runtime/Context.h"
 #include "eckit/config/ResourceMgr.h"
 #include "eckit/config/Resource.h"
-
-#include "fdb5/Error.h"
 
 namespace fdb5 {
 

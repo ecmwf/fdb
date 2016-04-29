@@ -19,9 +19,19 @@
 #include "fdb5/Key.h"
 #include "fdb5/SchemaParser.h"
 #include "fdb5/WriteVisitor.h"
-#include "fdb5/Error.h"
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+SchemaHasChanged::SchemaHasChanged(const Schema& schema):
+    Exception("Schema has changed: " + schema.path()),
+    path_(schema.path()) {
+}
+
+SchemaHasChanged::~SchemaHasChanged() throw() {
+
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

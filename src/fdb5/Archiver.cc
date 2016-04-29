@@ -14,8 +14,8 @@
 #include "eckit/exception/Exceptions.h"
 
 #include "fdb5/BaseArchiveVisitor.h"
-#include "fdb5/Error.h"
 #include "fdb5/MasterConfig.h"
+#include "fdb5/Schema.h"
 
 namespace fdb5 {
 

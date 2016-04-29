@@ -145,7 +145,7 @@ void FDBIndexScanner::process(FILE* f)
 
             std::string line(buf);
 
-            Log::info() << "line [" << line << "]" << std::endl;
+//            Log::info() << "line [" << line << "]" << std::endl;
 
             if(line.empty()) continue;
 
@@ -159,11 +159,11 @@ void FDBIndexScanner::process(FILE* f)
 
             prefix = prefix.substr(0, prefix.length()-1); // chop off trailing ';' so prefix = 0:6:0
 
-            Log::info() << "prefix = " << prefix << std::endl;
+//            Log::info() << "prefix = " << prefix << std::endl;
 
             std::string datapath = dirpath + "/:" + prefix + path_.baseName(false);
 
-            Log::info() << "datapath = " << datapath << std::endl;
+//            Log::info() << "datapath = " << datapath << std::endl;
 
             Length length;
             Offset offset;
@@ -172,7 +172,7 @@ void FDBIndexScanner::process(FILE* f)
                 StringList v;
                 in >> s;
 
-                Log::info() << "s -> [" << s << "]" << std::endl;
+//                Log::info() << "s -> [" << s << "]" << std::endl;
 
                 if(isdigit(s[0])) // when we hit digits, parse length and offset, e.g.   3281188 (61798740)
                 {

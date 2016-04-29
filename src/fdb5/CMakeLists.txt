@@ -41,8 +41,6 @@ list( APPEND fdb5_srcs
     BaseArchiveVisitor.h
     DB.cc
     DB.h
-    Error.cc
-    Error.h
     FDBFileHandle.cc
     FDBFileHandle.h
     FileStore.cc
