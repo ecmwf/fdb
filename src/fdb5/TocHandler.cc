@@ -206,14 +206,14 @@ void TocHandler::writeWipeRecord() {
 }
 
 
-void TocHandler::writeIndexRecord(const eckit::PathName &path, const Index &index) {
+void TocHandler::writeIndexRecord(const Index &index) {
     openForAppend();
 
     TocRecord r( TOC_INDEX );
 
     eckit::MemoryStream s(r.payload_.data(), r.payload_size);
 
-    s << path.baseName();
+    s << index.path().baseName();
     index.encode(s);
 
     append(r);

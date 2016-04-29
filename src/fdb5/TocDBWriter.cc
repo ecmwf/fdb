@@ -168,7 +168,6 @@ void TocDBWriter::closeDataHandles()
     for( HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j )
     {
         eckit::DataHandle* dh = j->second;
-        ASSERT(dh);
         dh->close();
         delete dh;
     }
@@ -240,7 +239,6 @@ void TocDBWriter::flushIndexes()
     for(IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j )
     {
         Index* idx = j->second;
-        ASSERT(idx);
         idx->flush();
     }
 }
@@ -248,13 +246,16 @@ void TocDBWriter::flushIndexes()
 
 void TocDBWriter::closeIndexes()
 {
-    Timer timer("TocDBWriter::flushIndexes()");
+    Timer timer("TocDBWriter::close()");
     for(IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j )
     {
         Index* idx = j->second;
-        ASSERT(idx);
-        idx->flush();
+        idx->close();
+        writeIndexRecord(*idx);
+        delete idx;
     }
+
+    indexes_.clear();
 }
 
 void TocDBWriter::flushDataHandles()
@@ -266,8 +267,6 @@ void TocDBWriter::flushDataHandles()
     for(HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j)
     {
         eckit::DataHandle* dh = j->second;
-        ASSERT(dh);
-        Timer timer2(dh->title());
         dh->flush();
     }
 }

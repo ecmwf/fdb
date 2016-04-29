@@ -48,7 +48,7 @@ public: // methods
 
     void writeInitRecord(const Key& tocKey);
     void writeClearRecord(const eckit::PathName&);
-    void writeIndexRecord(const eckit::PathName&, const Index&);
+    void writeIndexRecord(const Index&);
     void writeWipeRecord();
     std::vector<Index *> loadIndexes();
     void freeIndexes(std::vector<Index *>&);
