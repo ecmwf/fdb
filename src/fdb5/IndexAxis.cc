@@ -23,15 +23,31 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 IndexAxis::IndexAxis() :
-    readOnly_(false),
-    changed_(false) {
+    readOnly_(false) {
 }
 
 IndexAxis::~IndexAxis() {
 }
 
-bool IndexAxis::changed() const {
-    return changed_;
+IndexAxis::IndexAxis(eckit::Stream& s) :
+    readOnly_(true)
+     {
+        size_t n;
+        s >> n;
+
+        std::string k;
+        std::string v;
+
+        for(size_t i = 0; i < n; i++) {
+            s >> k;
+            std::set<std::string> &values = axis_[k];
+            size_t m;
+            s >> m;
+            for(size_t j = 0; j < m; j++) {
+                s >> v;
+                values.insert(v);
+            }
+        }
 }
 
 void IndexAxis::encode(eckit::Stream& s) const {
@@ -46,28 +62,9 @@ void IndexAxis::encode(eckit::Stream& s) const {
     }
 }
 
-void IndexAxis::load(const eckit::Value &v) {
-
-    eckit::ValueMap m = v.as<eckit::ValueMap>();
-
-    for ( eckit::ValueMap::iterator i = m.begin(); i != m.end(); ++i ) {
-        std::string k( i->first );
-
-        std::set<std::string> &s = axis_[i->first];
-
-        eckit::ValueList list = i->second.as<eckit::ValueList>();
-
-        for ( eckit::ValueList::iterator j = list.begin(); j != list.end(); ++j ) {
-            s.insert( std::string(*j) );
-        }
-    }
-
-    readOnly_ = true;
-}
 
 void IndexAxis::insert(const Key &key) {
     ASSERT(!readOnly_);
-    changed_ = true;
 
     //    Log::info() << *this << std::endl;
 
@@ -93,11 +90,6 @@ void IndexAxis::print(std::ostream &out) const {
         <<  "axis=";
     eckit::__print_container(out, axis_);
     out  << "]";
-}
-
-void IndexAxis::json(eckit::JSON &j) const {
-    j << axis_;
-    changed_ = false;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

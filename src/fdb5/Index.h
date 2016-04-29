@@ -110,7 +110,7 @@ public: // methods
 
 
     Index(const Key& key, const eckit::PathName& path, Index::Mode mode );
-    Index(eckit::Stream&, const eckit::PathName& path);
+    Index(eckit::Stream&, const eckit::PathName& directory, const eckit::PathName& path);
 
     virtual void open() = 0;
     virtual void close() = 0;
@@ -152,19 +152,16 @@ public: // methods
 protected: // methods
 
     virtual void put_( const Key& key, const Field& field ) = 0;
-    eckit::PathName jsonFile() const;
 
 protected: // members
 
 	Mode            mode_;
-
 	eckit::PathName path_;
 
+    // Order is important here...
     FileStore   files_;
     IndexAxis   axes_;
-
     Key key_; ///< key that selected this index
-
     std::string prefix_;
 
 };

@@ -40,6 +40,7 @@ bool TocDBReader::selectIndex(const Key& key)
     for(std::vector<Index*>::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
         if((*j)->key() == key) {
             current_.push_back(*j);
+            (*j)->open();
         }
     }
 

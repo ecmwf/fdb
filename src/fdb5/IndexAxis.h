@@ -24,8 +24,6 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/types/Types.h"
 
-namespace eckit { class Value; }
-namespace eckit { class JSON; }
 namespace eckit { class Stream; }
 
 namespace fdb5 {
@@ -39,15 +37,11 @@ class IndexAxis : private eckit::NonCopyable {
 public: // methods
 
     IndexAxis();
+    IndexAxis(eckit::Stream&);
 
     ~IndexAxis();
 
     void insert(const Key& key);
-
-    void load(const eckit::Value&);
-    void json(eckit::JSON&) const;
-    bool changed() const;
-
     void encode(eckit::Stream& s) const;
 
     const eckit::StringSet& values(const std::string& keyword) const;
@@ -62,11 +56,9 @@ private: // methods
 private: // members
 
     typedef std::map<std::string, eckit::StringSet> AxisMap;
-
     AxisMap axis_;
 
     bool readOnly_;
-    mutable bool changed_;
 
 };
 

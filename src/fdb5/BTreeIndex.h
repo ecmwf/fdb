@@ -38,7 +38,7 @@ public: // types
 public: // methods
 
     BTreeIndex(const Key& key, const eckit::PathName& path, Index::Mode mode );
-    BTreeIndex(eckit::Stream&, const eckit::PathName& path);
+    BTreeIndex(eckit::Stream&, const eckit::PathName& directory, const eckit::PathName& path);
 
     virtual ~BTreeIndex();
     virtual void deleteFiles(bool doit) const;

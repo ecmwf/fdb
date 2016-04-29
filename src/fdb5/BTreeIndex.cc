@@ -26,8 +26,9 @@ BTreeIndex::BTreeIndex(const Key &key, const eckit::PathName &path, Index::Mode 
     dirty_(false) {
 }
 
-BTreeIndex::BTreeIndex(eckit::Stream &s, const eckit::PathName &path):
-    Index(s, path),
+BTreeIndex::BTreeIndex(eckit::Stream &s, const eckit::PathName& directory, const eckit::PathName &path):
+    Index(s, directory, path),
+    btree_(0),
     dirty_(false) {
 
 }

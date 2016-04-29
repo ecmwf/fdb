@@ -257,7 +257,7 @@ std::vector<Index*> TocHandler::loadIndexes() {
 
         case TOC_INDEX:
             s >> path;
-            indexes.push_back( new BTreeIndex(s, directory_ / path) );
+            indexes.push_back( new BTreeIndex(s, directory_, directory_ / path) );
             break;
 
         case TOC_CLEAR:

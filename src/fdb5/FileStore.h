@@ -23,9 +23,7 @@
 #include "eckit/io/Offset.h"
 #include "eckit/filesystem/PathName.h"
 
-namespace eckit { class Value; }
 namespace eckit { class Stream; }
-namespace eckit { class JSON; }
 
 namespace fdb5 {
 
@@ -64,13 +62,9 @@ public: // types
 public: // methods
 
     FileStore(const eckit::PathName& tocDir);
+    FileStore(const eckit::PathName& tocDir, eckit::Stream& );
 
     ~FileStore();
-
-    void load(const eckit::Value&);
-    void json(eckit::JSON&) const;
-
-    bool changed() const;
 
 	/// Inserts the path in the store
 	/// @returns PathID associated to the provided eckit::PathName
@@ -100,12 +94,8 @@ private: // members
 private: // members
 
     FileStore::PathID   next_;
-
     eckit::PathName     tocDir_;
-
     bool                readOnly_;
-    mutable bool        changed_;
-
     PathStore           paths_;
     IdStore             ids_;
 
