@@ -34,12 +34,14 @@ class Stream;
 namespace fdb5 {
 
 class Key;
+class Index;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class EntryVisitor : private eckit::NonCopyable {
 public:
-    virtual void visit(const std::string &index,
+    virtual void visit(const Index& index,
+                       const std::string &prefix,
                        const std::string &key,
                        const eckit::PathName &path,
                        eckit::Offset offset,

@@ -41,7 +41,6 @@ public: // methods
     TocIndex(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
 
     virtual ~TocIndex();
-    virtual void deleteFiles(bool doit) const;
 
 private: // methods
 
@@ -64,6 +63,7 @@ private: // methods
 
     virtual void entries(EntryVisitor &visitor) const;
 
+    virtual void deleteFiles(bool doit) const;
 
 private: // methods
 
@@ -82,6 +82,8 @@ private: // members
     eckit::ScopedPtr<BTreeStore>  btree_;
 
     bool dirty_;
+
+    friend class TocIndexCloser;
 
 };
 

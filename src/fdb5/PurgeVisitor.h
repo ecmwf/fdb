@@ -79,7 +79,8 @@ private: // methods
 
     void print(std::ostream &out) const;
 
-    virtual void visit(const std::string &index,
+    virtual void visit(const Index& index,
+                       const std::string &prefix,
                        const std::string &key,
                        const eckit::PathName &path,
                        eckit::Offset offset,

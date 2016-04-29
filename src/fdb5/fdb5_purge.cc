@@ -103,9 +103,7 @@ void FDBPurge::run() {
         for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
             Log::info() << "Index path " << (*i)->path() << std::endl;
             visitor.currentIndex((*i)->path());
-            (*i)->open();
             (*i)->entries(visitor);
-            (*i)->close();
         }
 
         handler.freeIndexes(indexes);

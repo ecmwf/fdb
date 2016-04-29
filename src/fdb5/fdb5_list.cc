@@ -47,9 +47,7 @@ void FDBList::run() {
 
         for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
             Log::info() << "Index path " << (*i)->path() << std::endl;
-            (*i)->open();
             (*i)->list(Log::info());
-            (*i)->close();
         }
 
         handler.freeIndexes(indexes);

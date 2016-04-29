@@ -13,6 +13,23 @@
 
 namespace fdb5 {
 
+
+class TocIndexCloser {
+    bool opened_;
+    const TocIndex &index_;
+public:
+    TocIndexCloser(const TocIndex &index): index_(index), opened_(index.btree_) {
+        if (!opened_) {
+            const_cast<TocIndex&>(index_).open();
+        }
+    }
+    ~TocIndexCloser() {
+        if (!opened_) {
+            const_cast<TocIndex&>(index_).close();
+        }
+    }
+};
+
 //-----------------------------------------------------------------------------
 
 TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode ) :
@@ -138,11 +155,13 @@ void TocIndex::flush() {
 }
 
 class BTreeIndexVisitor {
+    const Index& index_;
     const std::string &prefix_;
     const FileStore &files_;
     EntryVisitor &visitor_;
 public:
-    BTreeIndexVisitor(const std::string &prefix, const FileStore &files, EntryVisitor &visitor):
+    BTreeIndexVisitor(const Index& index, const std::string &prefix, const FileStore &files, EntryVisitor &visitor):
+        index_(index),
         prefix_(prefix),
         files_(files),
         visitor_(visitor) {}
@@ -154,7 +173,8 @@ public:
     }
 
     void push_back(const TocIndex::BTreeStore::result_type &kv) {
-        visitor_.visit(prefix_,
+        visitor_.visit(index_,
+                       prefix_,
                        kv.first,
                        files_.get( kv.second.pathId_ ),
                        kv.second.offset_,
@@ -163,13 +183,14 @@ public:
 };
 
 void TocIndex::entries(EntryVisitor &visitor) const {
-    ASSERT(btree_);
-    BTreeIndexVisitor v(prefix_, files_, visitor);
+    TocIndexCloser closer(*this);
+
+    BTreeIndexVisitor v(*this, prefix_, files_, visitor);
     const_cast<TocIndex *>(this)->btree_->range("", "\255", v);
 }
 
 void TocIndex::deleteFiles(bool doit) const {
-    ASSERT(btree_);
+    TocIndexCloser closer(*this);
     eckit::Log::info() << "File to remove " << btree_->path() << std::endl;
     if (doit) {
         btree_->path().unlink();
@@ -179,6 +200,7 @@ void TocIndex::deleteFiles(bool doit) const {
 }
 
 void TocIndex::list(std::ostream &out) const {
+    TocIndexCloser closer(*this);
     out << "TocIndex count: " << eckit::BigNum(btree_->count()) << std::endl;
 }
 

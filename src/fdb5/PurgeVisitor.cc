@@ -34,15 +34,19 @@ PurgeVisitor::PurgeVisitor(const eckit::PathName &dir) :
     dir_(dir) {
 }
 
-void PurgeVisitor::visit(const std::string &index, const std::string &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+void PurgeVisitor::visit(const Index& index,
+                       const std::string &prefix,
+                       const std::string &key,
+                       const eckit::PathName &path,
+                       eckit::Offset offset,
+                       eckit::Length length) {
     Stats &stats = indexStats_[current_];
 
     ++(stats.totalFields);
     stats.totalSize += length;
 
     allDataFiles_.insert(path);
-
-    std::string indexKey = index + key;
+    std::string indexKey = prefix + key;
     if (active_.find(indexKey) == active_.end()) {
         active_.insert(indexKey);
         activeDataFiles_.insert(path);
@@ -148,7 +152,7 @@ void PurgeVisitor::purge(bool doit) const {
             }
 
             TocIndex index(Key(), i->first, 0, Index::READ);
-            index.deleteFiles(doit);
+            // index.deleteFiles(doit);
         }
     }
 
