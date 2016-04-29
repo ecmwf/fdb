@@ -40,10 +40,16 @@ bool TocDBReader::selectIndex(const Key& key)
 
     current_.clear();
 
+     eckit::Log::info() << "TocDBReader::selectIndex " << key << std::endl;
+
     for(std::vector<Index*>::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
         if((*j)->key() == key) {
+            eckit::Log::info() << "Matching " << (*j)->key() << std::endl;
             current_.push_back(*j);
             (*j)->open();
+        }
+        else {
+            eckit::Log::info() << "Not matching " << (*j)->key() << std::endl;
         }
     }
 

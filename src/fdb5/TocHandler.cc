@@ -262,11 +262,13 @@ std::vector<Index*> TocHandler::loadIndexes() {
 
         case TOC_INDEX:
             s >> path;
+            eckit::Log::info() << "TOC_INDEX " << path << std::endl;
             indexes.push_back( new TocIndex(s, directory_, directory_ / path) );
             break;
 
         case TOC_CLEAR:
             s >> path;
+            eckit::Log::info() << "TOC_CLEAR " << path << std::endl;
             j = std::find_if (indexes.begin(), indexes.end(), HasPath(directory_ / path));
             if(j != indexes.end()) {
                 delete (*j);
@@ -275,6 +277,7 @@ std::vector<Index*> TocHandler::loadIndexes() {
             break;
 
         case TOC_WIPE:
+            eckit::Log::info() << "TOC_WIPE" << std::endl;
             freeIndexes(indexes);
             break;
 
@@ -284,11 +287,14 @@ std::vector<Index*> TocHandler::loadIndexes() {
 
         }
 
-        std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
     }
 
     close();
 
+    std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
+
+    eckit::Log::info() << "TOC indexes " << indexes.size() << std::endl;
+    
     return indexes;
 
 }

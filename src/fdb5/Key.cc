@@ -63,13 +63,17 @@ void Key::encode(eckit::Stream& s) const
 
     s << keys_.size();
     for(eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
-         s << i->first << i->second;
+         const Type& t = registry->lookupType(i->first);
+         std::ostringstream oss;
+         t.toKey(oss, i->first, i->second);
+         s << i->first << oss.str();
     }
 
     s << names_.size();
     for(eckit::StringList::const_iterator i = names_.begin(); i != names_.end(); ++i) {
-         s << *i;
-         s << registry->lookupType(*i).type();
+         const Type& t = registry->lookupType(*i);
+         s << (*i);
+         s << t.type();
     }
 }
 
