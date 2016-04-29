@@ -33,12 +33,10 @@
 list( APPEND fdb5_srcs
     AdoptVisitor.cc
     AdoptVisitor.h
-    ArchiveVisitor.cc
-    ArchiveVisitor.h
     Archiver.cc
     Archiver.h
-    TocIndex.cc
-    TocIndex.h
+    ArchiveVisitor.cc
+    ArchiveVisitor.h
     BaseArchiveVisitor.cc
     BaseArchiveVisitor.h
     DB.cc
@@ -69,14 +67,14 @@ list( APPEND fdb5_srcs
     MatchAlways.h
     MatchAny.cc
     MatchAny.h
+    Matcher.cc
+    Matcher.h
     MatchHidden.cc
     MatchHidden.h
     MatchOptional.cc
     MatchOptional.h
     MatchValue.cc
     MatchValue.h
-    Matcher.cc
-    Matcher.h
     NotFound.cc
     NotFound.h
     Predicate.cc
@@ -103,6 +101,8 @@ list( APPEND fdb5_srcs
     TocDBWriter.h
     TocHandler.cc
     TocHandler.h
+    TocIndex.cc
+    TocIndex.h
     TocRecord.cc
     TocRecord.h
     Type.cc
@@ -131,12 +131,12 @@ list( APPEND fdb5_srcs
     TypeMonth.h
     TypeParam.cc
     TypeParam.h
-    TypeStep.cc
-    TypeStep.h
     TypesFactory.cc
     TypesFactory.h
     TypesRegistry.cc
     TypesRegistry.h
+    TypeStep.cc
+    TypeStep.h
     WriteVisitor.cc
     WriteVisitor.h
 )

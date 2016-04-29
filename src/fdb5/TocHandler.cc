@@ -234,11 +234,16 @@ public:
 
 std::vector<Index*> TocHandler::loadIndexes() {
 
+    std::vector<Index *> indexes;
+
+    if(!filePath_.exists()) {
+        return indexes;
+    }
+
     openForRead();
 
     TocRecord r;
 
-    std::vector<Index *> indexes;
 
     while ( readNext(r) ) {
 
