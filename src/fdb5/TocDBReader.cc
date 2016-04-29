@@ -101,7 +101,7 @@ Index* TocDBReader::openIndex(const Key& key, const eckit::PathName& path) const
 
 void TocDBReader::print(std::ostream &out) const
 {
-    out << "TocDBReader[toc=" << toc_ << "]";
+    out << "TocDBReader[]";
 }
 
 static DBBuilder<TocDBReader> builder("toc.reader");

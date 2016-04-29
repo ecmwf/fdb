@@ -23,46 +23,6 @@ namespace fdb5 {
 
 TocInitialiser::TocInitialiser(const eckit::PathName &dir, const Key& tocKey) : TocHandler(dir) {
 
-    if ( !dir_.exists() ) {
-        dirPath().mkdir();
-    }
-
-    int iomode = O_CREAT | O_RDWR;
-    fd_ = ::open( filePath().asString().c_str(), iomode, mode_t(0777) );
-
-    TocRecord r;
-
-    read_ = true;
-    size_t len = readNext(r);
-    if(len == 0) {
-
-        /* Copy rules first */
-
-        eckit::PathName schemaPath(dir_ / "schema");
-
-        eckit::Log::info() << "Copy schema from "
-                           << MasterConfig::instance().schemaPath()
-                           << " to "
-                           << schemaPath
-                           << std::endl;
-
-        eckit::PathName tmp = eckit::PathName::unique(schemaPath);
-
-        eckit::FileHandle in(MasterConfig::instance().schemaPath());
-        eckit::FileHandle out(tmp);
-        in.saveInto(out);
-
-        eckit::PathName::rename(tmp, schemaPath);
-
-        read_   = false;
-        TocRecord r = makeRecordTocInit(tocKey);
-        append(r);
-    }
-    else {
-        ASSERT(r.head_.tag_ == TOC_INIT);
-    }
-
-    close();
 }
 
 //-----------------------------------------------------------------------------

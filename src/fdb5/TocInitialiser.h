@@ -26,10 +26,10 @@ class Key;
 /// Initialises an FDB directory with an empty Toc
 /// On existing directories has no effect.
 class TocInitialiser : public TocHandler {
+    TocInitialiser( const eckit::PathName& dir, const Key& tocKey );
 
 public: // methods
 
-    TocInitialiser( const eckit::PathName& dir, const Key& tocKey );
 
 };
 

@@ -19,6 +19,7 @@
 #include "fdb5/DB.h"
 #include "fdb5/Index.h"
 #include "fdb5/Schema.h"
+#include "fdb5/TocHandler.h"
 
 namespace fdb5 {
 
@@ -26,7 +27,7 @@ namespace fdb5 {
 
 /// DB that implements the FDB on POSIX filesystems
 
-class TocDB : public DB {
+class TocDB : public DB, public TocHandler {
 
 public: // methods
 
@@ -71,8 +72,6 @@ protected: // methods
     void loadSchema();
 
 protected: // members
-
-    eckit::PathName directory_;
 
     Index* current_;
 

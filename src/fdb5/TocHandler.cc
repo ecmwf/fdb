@@ -19,15 +19,17 @@
 #include "fdb5/TocHandler.h"
 #include "fdb5/Key.h"
 #include "fdb5/Index.h"
+#include "fdb5/MasterConfig.h"
 
+#include "eckit/io/FileHandle.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocHandler::TocHandler(const eckit::PathName& dir) :
-    dir_(dir),
-    filePath_(dir_ / "toc"),
+TocHandler::TocHandler(const eckit::PathName& directory) :
+    directory_(directory),
+    filePath_(directory / "toc"),
     fd_(-1),
     read_(false)
 {
@@ -171,17 +173,6 @@ void TocHandler::printRecord(const TocRecord& r, std::ostream& os)
 	}
 }
 
-TocRecord TocHandler::makeRecordTocInit(const Key& key) const
-{
-    TocRecord r( TOC_INIT );
-
-    eckit::MemoryStream s(r.payload_.data(), r.payload_size);
-
-    s << key;
-
-	return r;
-}
-
 TocRecord TocHandler::makeRecordIdxInsert(const eckit::PathName& path, const Key& key ) const
 {
     TocRecord r( TOC_INDEX );
@@ -211,8 +202,53 @@ TocRecord TocHandler::makeRecordTocWipe() const
     return r;
 }
 
-void TocHandler::print(std::ostream& out) const {
-    out << "TocHandler[path=" << filePath() << "]";
+
+void TocHandler::writeInitRecord(const Key& key) {
+
+    if ( !directory_.exists() ) {
+        dirPath().mkdir();
+    }
+
+    int iomode = O_CREAT | O_RDWR;
+    fd_ = ::open( filePath().asString().c_str(), iomode, mode_t(0777) );
+
+    TocRecord r;
+
+    read_ = true;
+    size_t len = readNext(r);
+    if(len == 0) {
+
+        /* Copy rules first */
+
+        eckit::PathName schemaPath(directory_ / "schema");
+
+        eckit::Log::info() << "Copy schema from "
+                           << MasterConfig::instance().schemaPath()
+                           << " to "
+                           << schemaPath
+                           << std::endl;
+
+        eckit::PathName tmp = eckit::PathName::unique(schemaPath);
+
+        eckit::FileHandle in(MasterConfig::instance().schemaPath());
+        eckit::FileHandle out(tmp);
+        in.saveInto(out);
+
+        eckit::PathName::rename(tmp, schemaPath);
+
+        read_   = false;
+
+        TocRecord r( TOC_INIT );
+        eckit::MemoryStream s(r.payload_.data(), r.payload_size);
+        s << key;
+
+        append(r);
+    }
+    else {
+        ASSERT(r.head_.tag_ == TOC_INIT);
+    }
+
+    close();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

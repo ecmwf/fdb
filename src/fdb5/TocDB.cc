@@ -81,9 +81,7 @@ static void readTable()
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDB::TocDB(const Key& dbKey) : DB(dbKey),
-    current_(0)
-{
+static eckit::PathName directory(const Key& dbKey) {
     static StringList fdbRootPattern( eckit::Resource<StringList>("fdbRootPattern", "class,stream,expver", true ) );
     pthread_once(&once,readTable);
 
@@ -120,7 +118,15 @@ TocDB::TocDB(const Key& dbKey) : DB(dbKey),
         throw SeriousBug(oss.str());
     }
 
-    directory_ = PathName(root) / dbKey.valuesToString();
+    return PathName(root) / dbKey.valuesToString();
+}
+
+TocDB::TocDB(const Key& dbKey) :
+    DB(dbKey),
+    TocHandler(directory(dbKey)),
+    current_(0)
+{
+
 
 }
 

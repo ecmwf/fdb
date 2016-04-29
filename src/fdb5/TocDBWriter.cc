@@ -48,7 +48,7 @@ TocDBWriter::TocDBWriter(const Key& key) :
     current_(0),
     dirty_(false)
 {
-    TocInitialiser init(directory_, key);
+    writeInitRecord(key);
     loadSchema();
 }
 

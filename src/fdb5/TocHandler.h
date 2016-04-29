@@ -40,12 +40,10 @@ public: // methods
 	~TocHandler();
 
     eckit::PathName filePath() const { return filePath_; }
-	eckit::PathName dirPath() const { return dir_; }
+	eckit::PathName dirPath() const { return directory_; }
 
     bool isOpen() const { return fd_ >= 0; }
     bool exists() const;
-
-    friend std::ostream& operator<<(std::ostream& s,const TocHandler& x) { x.print(s); return s; }
 
 protected: // methods
 
@@ -61,16 +59,17 @@ protected: // methods
 
 	void printRecord( const TocRecord& r, std::ostream& os );
 
-    TocRecord makeRecordTocInit(const Key& key) const;
     TocRecord makeRecordIdxInsert(const eckit::PathName& path, const Key& key) const;
     TocRecord makeRecordIdxRemove(const eckit::PathName& path) const;
 	TocRecord makeRecordTocWipe() const;
 
-    void print( std::ostream& out ) const;
+protected:
+
+    void writeInitRecord(const Key& tocKey);
 
 protected: // members
 
-    eckit::PathName dir_;
+    eckit::PathName directory_;
     eckit::PathName filePath_;
 
 	int fd_;      ///< file descriptor, if zero file is not yet open.
