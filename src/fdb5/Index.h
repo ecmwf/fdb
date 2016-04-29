@@ -115,6 +115,7 @@ public: // methods
     static Index* create(const Key& key, const eckit::PathName& path, Index::Mode mode);
 
     Index(const Key& key, const eckit::PathName& path, Index::Mode mode );
+    Index(eckit::Stream&, const eckit::PathName& path);
 
     virtual ~Index();
 

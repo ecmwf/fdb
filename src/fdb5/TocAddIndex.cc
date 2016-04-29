@@ -25,10 +25,10 @@ TocAddIndex::TocAddIndex(const eckit::PathName &dir, const eckit::PathName &inde
 
 
 TocAddIndex::~TocAddIndex() {
-    openForAppend();
-    TocRecord r = makeRecordIdxInsert(indexPath_, key_);
-    append(r);
-    close();
+    // openForAppend();
+    // TocRecord r = makeRecordIdxInsert(indexPath_, key_);
+    // append(r);
+    // close();
 }
 
 eckit::PathName TocAddIndex::indexPath() const {

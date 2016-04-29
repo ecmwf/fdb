@@ -35,6 +35,9 @@ Index *Index::create(const eckit::PathName &path) {
 }
 
 //-----------------------------------------------------------------------------
+Index::Index(eckit::Stream &s, const eckit::PathName &path) : files_("") {
+    NOTIMP;
+}
 
 Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
     mode_(mode),

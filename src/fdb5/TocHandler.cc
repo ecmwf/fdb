@@ -20,6 +20,7 @@
 #include "fdb5/Key.h"
 #include "fdb5/Index.h"
 #include "fdb5/MasterConfig.h"
+#include "fdb5/BTreeIndex.h"
 
 #include "eckit/io/FileHandle.h"
 
@@ -159,17 +160,6 @@ void TocHandler::printRecord(const TocRecord &r, std::ostream &os) {
     }
 }
 
-TocRecord TocHandler::makeRecordIdxInsert(const eckit::PathName &path, const Key &key ) const {
-    TocRecord r( TOC_INDEX );
-
-    eckit::MemoryStream s(r.payload_.data(), r.payload_size);
-
-    s << key;
-    s << path.baseName();
-
-    return r;
-}
-
 void TocHandler::writeInitRecord(const Key &key) {
 
     if ( !directory_.exists() ) {
@@ -242,7 +232,7 @@ void TocHandler::writeWipeRecord() {
 }
 
 
-void TocHandler::writeIndexRecord(const eckit::PathName &path, const Index& index) {
+void TocHandler::writeIndexRecord(const eckit::PathName &path, const Index &index) {
     openForAppend();
 
     TocRecord r( TOC_INDEX );
@@ -256,6 +246,72 @@ void TocHandler::writeIndexRecord(const eckit::PathName &path, const Index& inde
     close();
 
 }
+
+//==========================================================================
+
+class HasPath {
+    eckit::PathName path_;
+public:
+    HasPath(const eckit::PathName& path): path_(path) {}
+    bool operator()(const Index* index) const {
+        return index->path() == path_;
+    }
+};
+
+std::vector<Index *> TocHandler::loadIndexes() {
+
+    openForRead();
+
+    TocRecord r;
+
+    std::vector<Index *> indexes;
+
+    while ( readNext(r) ) {
+
+        eckit::Log::info() << "TocRecord " << r << std::endl;
+
+        eckit::MemoryStream s(r.payload_.data(), r.payload_size);
+        std::string path;
+
+
+        switch (r.head_.tag_) {
+
+        case TOC_INIT:
+            eckit::Log::info() << "TOC_INIT key is " << Key(s) << std::endl;
+            break;
+
+        case TOC_INDEX:
+            s >> path;
+            indexes.push_back( new BTreeIndex(s, dirPath() / path) );
+            break;
+
+        case TOC_CLEAR:
+            s >> path;
+            std::remove_if (indexes.begin(), indexes.end(), HasPath(dirPath() / path));
+            break;
+
+        case TOC_WIPE:
+            indexes.clear();
+            break;
+
+        default:
+            throw eckit::SeriousBug("Unknown tag in TocRecord", Here());
+            break;
+
+        }
+
+        std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
+
+
+    }
+
+    close();
+
+    return indexes;
+
+}
+
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

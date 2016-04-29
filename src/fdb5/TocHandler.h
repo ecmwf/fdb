@@ -51,6 +51,8 @@ public: // methods
     void writeClearRecord(const eckit::PathName&);
     void writeIndexRecord(const eckit::PathName&, const Index&);
     void writeWipeRecord();
+    std::vector<Index *> loadIndexes();
+
 
 protected: // methods
 
@@ -65,9 +67,6 @@ protected: // methods
 	void close();
 
 	void printRecord( const TocRecord& r, std::ostream& os );
-
-    TocRecord makeRecordIdxInsert(const eckit::PathName& path, const Key& key) const;
-
 
 
 protected: // members

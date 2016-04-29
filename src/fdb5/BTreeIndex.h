@@ -21,6 +21,8 @@
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 #include "eckit/memory/NonCopyable.h"
+#include "eckit/memory/ScopedPtr.h"
+
 #include "eckit/types/FixedString.h"
 
 #include "fdb5/Index.h"
@@ -36,6 +38,7 @@ public: // types
 public: // methods
 
     BTreeIndex(const Key& key, const eckit::PathName& path, Index::Mode mode );
+    BTreeIndex(eckit::Stream&, const eckit::PathName& path);
 
     virtual ~BTreeIndex();
 
@@ -71,9 +74,7 @@ private: // types
 
 private: // members
 
-    BTreeStore  btree_;
-
-    bool fdbCheckDoubleInsert_; ///< check for keys overwriting each other within same archive request (useful to check fdbRules are sane)
+    eckit::ScopedPtr<BTreeStore>  btree_;
 
     bool dirty_;
 
