@@ -37,8 +37,8 @@ list( APPEND fdb5_srcs
     ArchiveVisitor.h
     Archiver.cc
     Archiver.h
-    BTreeIndex.cc
-    BTreeIndex.h
+    TocIndex.cc
+    TocIndex.h
     BaseArchiveVisitor.cc
     BaseArchiveVisitor.h
     DB.cc

@@ -34,7 +34,7 @@
 
 #include "fdb5/TocDBWriter.h"
 #include "fdb5/FDBFileHandle.h"
-#include "fdb5/BTreeIndex.h"
+#include "fdb5/TocIndex.h"
 
 
 namespace fdb5 {
@@ -61,7 +61,7 @@ bool TocDBWriter::selectIndex(const Key& key)
     currentIndexKey_ = key;
 
     if(indexes_.find(key) == indexes_.end()) {
-        indexes_[key] = new BTreeIndex(key, generateIndexPath(key), Index::WRITE);
+        indexes_[key] = new TocIndex(key, generateIndexPath(key), Index::WRITE);
     }
 
     current_ = indexes_[key];

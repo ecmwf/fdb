@@ -20,7 +20,7 @@
 #include "fdb5/Key.h"
 #include "fdb5/Index.h"
 #include "fdb5/MasterConfig.h"
-#include "fdb5/BTreeIndex.h"
+#include "fdb5/TocIndex.h"
 
 #include "eckit/io/FileHandle.h"
 
@@ -257,7 +257,7 @@ std::vector<Index*> TocHandler::loadIndexes() {
 
         case TOC_INDEX:
             s >> path;
-            indexes.push_back( new BTreeIndex(s, directory_, directory_ / path) );
+            indexes.push_back( new TocIndex(s, directory_, directory_ / path) );
             break;
 
         case TOC_CLEAR:

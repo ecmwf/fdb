@@ -12,8 +12,8 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb5_BTreeIndex_H
-#define fdb5_BTreeIndex_H
+#ifndef fdb5_TocIndex_H
+#define fdb5_TocIndex_H
 
 #include "eckit/eckit.h"
 
@@ -29,7 +29,7 @@
 
 namespace fdb5 {
 
-class BTreeIndex : public Index {
+class TocIndex : public Index {
 
 public: // types
 
@@ -37,10 +37,10 @@ public: // types
 
 public: // methods
 
-    BTreeIndex(const Key& key, const eckit::PathName& path, Index::Mode mode );
-    BTreeIndex(eckit::Stream&, const eckit::PathName& directory, const eckit::PathName& path);
+    TocIndex(const Key& key, const eckit::PathName& path, Index::Mode mode );
+    TocIndex(eckit::Stream&, const eckit::PathName& directory, const eckit::PathName& path);
 
-    virtual ~BTreeIndex();
+    virtual ~TocIndex();
     virtual void deleteFiles(bool doit) const;
 
 private: // methods
