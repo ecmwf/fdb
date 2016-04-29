@@ -41,8 +41,7 @@ class Index;
 class EntryVisitor : private eckit::NonCopyable {
 public:
     virtual void visit(const Index& index,
-                       const std::string &prefix,
-                       const std::string &key,
+                       const std::string &unique, // Represent a unique field
                        const eckit::PathName &path,
                        eckit::Offset offset,
                        eckit::Length length) = 0;

@@ -58,17 +58,26 @@ void Key::encode(eckit::Stream &s) const {
 
     s << keys_.size();
     for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
-        const Type &t = registry->lookupType(i->first);
-        std::ostringstream oss;
-        t.toKey(oss, i->first, i->second);
-        s << i->first << oss.str();
+        if (registry) {
+            const Type &t = registry->lookupType(i->first);
+            std::ostringstream oss;
+            t.toKey(oss, i->first, i->second);
+            s << i->first << oss.str();
+        } else {
+            s << i->first << i->second;
+        }
     }
 
     s << names_.size();
     for (eckit::StringList::const_iterator i = names_.begin(); i != names_.end(); ++i) {
-        const Type &t = registry->lookupType(*i);
-        s << (*i);
-        s << t.type();
+        if (registry) {
+            const Type &t = registry->lookupType(*i);
+            s << (*i);
+            s << t.type();
+        } else {
+            s << (*i);
+            s << "Default";
+        }
     }
 }
 

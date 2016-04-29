@@ -41,7 +41,7 @@ public: // methods
     bool exists() const;
 
     void writeInitRecord(const Key &tocKey);
-    void writeClearRecord(const eckit::PathName &, off_t offset);
+    void writeClearRecord(const Index &);
     void writeIndexRecord(const Index &);
     void writeWipeRecord();
 

@@ -102,11 +102,9 @@ void FDBPurge::run() {
 
         for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
             Log::info() << "Index path " << (*i)->path() << std::endl;
-            visitor.currentIndex((*i)->path());
             (*i)->entries(visitor);
         }
 
-        handler.freeIndexes(indexes);
 
         visitor.report(Log::info());
 
@@ -114,6 +112,9 @@ void FDBPurge::run() {
         args.get("doit", doit);
 
         visitor.purge(doit);
+
+        handler.freeIndexes(indexes);
+
     }
 }
 

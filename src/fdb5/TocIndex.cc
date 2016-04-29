@@ -174,8 +174,7 @@ public:
 
     void push_back(const TocIndex::BTreeStore::result_type &kv) {
         visitor_.visit(index_,
-                       prefix_,
-                       kv.first,
+                       prefix_ + std::string(kv.first), // unique key representing a field
                        files_.get( kv.second.pathId_ ),
                        kv.second.offset_,
                        kv.second.length_);
@@ -205,7 +204,7 @@ void TocIndex::list(std::ostream &out) const {
 }
 
 void TocIndex::print(std::ostream &out) const {
-    out << "TocIndex[]";
+    out << "TocIndex[path=" << path_ << ",offset="<< offset_ << "]";
 }
 
 

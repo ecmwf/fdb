@@ -30,25 +30,24 @@ void Stats::print(std::ostream &out) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-PurgeVisitor::PurgeVisitor(const eckit::PathName &dir) :
-    dir_(dir) {
+PurgeVisitor::PurgeVisitor(const eckit::PathName &directory) :
+    directory_(directory) {
 }
 
 void PurgeVisitor::visit(const Index& index,
-                       const std::string &prefix,
-                       const std::string &key,
+                       const std::string &unique,
                        const eckit::PathName &path,
                        eckit::Offset offset,
                        eckit::Length length) {
-    Stats &stats = indexStats_[current_];
+
+    Stats &stats = indexStats_[&index];
 
     ++(stats.totalFields);
     stats.totalSize += length;
 
     allDataFiles_.insert(path);
-    std::string indexKey = prefix + key;
-    if (active_.find(indexKey) == active_.end()) {
-        active_.insert(indexKey);
+    if (active_.find(unique) == active_.end()) {
+        active_.insert(unique);
         activeDataFiles_.insert(path);
     } else {
         ++(stats.duplicates);
@@ -56,13 +55,9 @@ void PurgeVisitor::visit(const Index& index,
     }
 }
 
-void PurgeVisitor::currentIndex(const eckit::PathName &path) {
-    current_ = path;
-}
-
 Stats PurgeVisitor::totals() const {
     Stats total;
-    for (std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+    for (std::map<const Index*, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
         total += i->second;
     }
     return total;
@@ -78,7 +73,7 @@ std::vector<eckit::PathName> PurgeVisitor::filesToBeDeleted(size_t &adopted, siz
 
     for (std::set<eckit::PathName>::const_iterator i = allDataFiles_.begin(); i != allDataFiles_.end(); ++i) {
 
-        bool adoptedFile = (!i->dirName().sameAs(dir_));
+        bool adoptedFile = (!i->dirName().sameAs(directory_));
 
         if (adoptedFile) {
             ++adopted;
@@ -101,8 +96,8 @@ void PurgeVisitor::report(std::ostream &out) const {
     Stats total = totals();
 
     out << "Index Report:" << std::endl;
-    for (std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-        out << "    Index " << i->first << std::endl
+    for (std::map<const Index*, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+        out << "    Index " << *(i->first) << std::endl
             << "          " << i->second << std::endl;
     }
 
@@ -138,21 +133,20 @@ void PurgeVisitor::report(std::ostream &out) const {
 void PurgeVisitor::purge(bool doit) const {
     // clear Toc Index
 
-    for (std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin();
+    for (std::map<const Index*, Stats>::const_iterator i = indexStats_.begin();
             i != indexStats_.end(); ++i) {
 
         const Stats &stats = i->second;
 
         if (stats.totalFields == stats.duplicates) {
-            eckit::Log::info() << "Index to remove: " << i->first << std::endl;
+            eckit::Log::info() << "Index to remove: " << *(i->first) << std::endl;
 
             if (doit) {
-                TocHandler handler(dir_);
-                handler.writeClearRecord(i->first, 0);
+                TocHandler handler(directory_);
+                handler.writeClearRecord(*(*i).first);
             }
 
-            TocIndex index(Key(), i->first, 0, Index::READ);
-            // index.deleteFiles(doit);
+            (*i).first->deleteFiles(doit);
         }
     }
 

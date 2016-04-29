@@ -58,11 +58,11 @@ struct Stats {
 
 struct PurgeVisitor : public EntryVisitor {
 
-    PurgeVisitor(const eckit::PathName &dir);
+    PurgeVisitor(const eckit::PathName &directory);
 
     Stats totals() const;
 
-    void currentIndex(const eckit::PathName &path);
+    // void currentIndex(const Index* index);
 
     void report(std::ostream &out) const;
 
@@ -80,23 +80,21 @@ private: // methods
     void print(std::ostream &out) const;
 
     virtual void visit(const Index& index,
-                       const std::string &prefix,
-                       const std::string &key,
+                       const std::string &unique,
                        const eckit::PathName &path,
                        eckit::Offset offset,
                        eckit::Length length);
 
 private: // members
 
-    eckit::PathName dir_;
-    eckit::PathName current_; //< current Index being scanned
+    eckit::PathName directory_;
 
     std::set<eckit::PathName> activeDataFiles_;
     std::set<eckit::PathName> allDataFiles_;
 
     std::set<std::string> active_;
 
-    std::map<eckit::PathName, Stats> indexStats_;
+    std::map<const Index*, Stats> indexStats_;
 
 };
 

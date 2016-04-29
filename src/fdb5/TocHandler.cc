@@ -168,14 +168,14 @@ void TocHandler::writeInitRecord(const Key &key) {
     }
 }
 
-void TocHandler::writeClearRecord(const eckit::PathName &path, off_t offset) {
+void TocHandler::writeClearRecord(const Index &index) {
     openForAppend();
     TocHandlerCloser closer(*this);
 
     TocRecord r( TocRecord::TOC_CLEAR );
     eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
-    s << path.baseName();
-    s << offset;
+    s << index.path().baseName();
+    s << index.offset();
     append(r, s.position());
 }
 

@@ -65,8 +65,8 @@ public: // types
 
 public: // methods
 
-    FileStore(const eckit::PathName &tocDir);
-    FileStore(const eckit::PathName &tocDir, eckit::Stream & );
+    FileStore(const eckit::PathName &directory);
+    FileStore(const eckit::PathName &directory, eckit::Stream & );
 
     ~FileStore();
 
@@ -101,8 +101,9 @@ private: // members
 private: // members
 
     FileStore::PathID   next_;
-    eckit::PathName     tocDir_;
     bool                readOnly_;
+
+    eckit::PathName     directory_;
     PathStore           paths_;
     IdStore             ids_;
 
