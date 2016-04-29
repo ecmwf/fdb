@@ -41,8 +41,13 @@ public: // methods
     BTreeIndex(eckit::Stream&, const eckit::PathName& path);
 
     virtual ~BTreeIndex();
+    virtual void deleteFiles(bool doit) const;
 
 private: // methods
+
+    virtual void open();
+    virtual void close();
+
 
     virtual bool    exists( const Key& key ) const;
 
@@ -58,7 +63,6 @@ private: // methods
 
     virtual void entries(EntryVisitor& visitor) const;
 
-    virtual void deleteFiles(bool doit) const;
 
 private: // methods
 

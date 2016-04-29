@@ -31,8 +31,8 @@ namespace fdb5 {
 TocHandler::TocHandler(const eckit::PathName &directory) :
     directory_(directory),
     filePath_(directory / "toc"),
-    fd_(-1),
-    read_(false) {
+    fd_(-1)
+{
 }
 
 TocHandler::~TocHandler() {
@@ -44,37 +44,32 @@ bool TocHandler::exists() const {
 }
 
 void TocHandler::openForAppend() {
-    ASSERT( !isOpen() );
 
-    eckit::Log::info() << "Opening for append TOC " << filePath() << std::endl;
+    eckit::Log::info() << "Opening for append TOC " << filePath_ << std::endl;
 
     int iomode = O_WRONLY | O_APPEND;
     //#ifdef __linux__
     //  iomode |= O_NOATIME;
     //#endif
-    SYSCALL2((fd_ = ::open( filePath().asString().c_str(), iomode, (mode_t)0777 )), filePath());
-    read_   = false;
+    SYSCALL2((fd_ = ::open( filePath_.asString().c_str(), iomode, (mode_t)0777 )), filePath_);
 }
 
 void TocHandler::openForRead() {
-    ASSERT( !isOpen() );
 
-    eckit::Log::info() << "Opening for read TOC " << filePath() << std::endl;
+    eckit::Log::info() << "Opening for read TOC " << filePath_ << std::endl;
 
     int iomode = O_RDONLY;
     //#ifdef __linux__
     //  iomode |= O_NOATIME;
     //#endif
-    SYSCALL2((fd_ = ::open( filePath().asString().c_str(), iomode )), filePath() );
-    read_   = true;
+    SYSCALL2((fd_ = ::open( filePath_.asString().c_str(), iomode )), filePath_ );
 }
 
 void TocHandler::append( const TocRecord &r ) {
-    ASSERT( isOpen() && !read_ );
 
     try {
         size_t len;
-        SYSCALL2( len = ::write(fd_, &r, sizeof(TocRecord)), filePath() );
+        SYSCALL2( len = ::write(fd_, &r, sizeof(TocRecord)), filePath_ );
         ASSERT( len == sizeof(TocRecord) );
     } catch (...) {
         close();
@@ -83,11 +78,10 @@ void TocHandler::append( const TocRecord &r ) {
 }
 
 size_t TocHandler::readNext( TocRecord &r ) {
-    ASSERT( isOpen() && read_ );
 
     int len;
 
-    SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord)), filePath() );
+    SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord)), filePath_ );
     if (len == 0) {
         return len;
     }
@@ -95,7 +89,7 @@ size_t TocHandler::readNext( TocRecord &r ) {
     if (len != sizeof(TocRecord)) {
         close();
         std::ostringstream msg;
-        msg << "Failed to read complete TocRecord from " << filePath().asString();
+        msg << "Failed to read complete TocRecord from " << filePath_.asString();
         throw eckit::ReadError( msg.str() );
     }
 
@@ -112,26 +106,9 @@ size_t TocHandler::readNext( TocRecord &r ) {
 }
 
 void TocHandler::close() {
-    if ( isOpen() ) {
-        eckit::Log::info() << "Closing TOC " << filePath() << std::endl;
-
-        if (!read_) {
-            int ret = fsync(fd_);
-
-            while (ret < 0 && errno == EINTR)
-                ret = fsync(fd_);
-
-            if (ret < 0) {
-                eckit::Log::error() << "Cannot fsync(" << filePath() << ") " << fd_ <<  eckit::Log::syserr << std::endl;
-            }
-
-            // On Linux, you must also flush the directory
-            static bool fileHandleSyncsParentDir = eckit::Resource<bool>("fileHandleSyncsParentDir", true);
-            if ( fileHandleSyncsParentDir )
-                filePath().syncParentDirectory();
-        }
-
-        SYSCALL2( ::close(fd_), filePath() );
+    if ( fd_ >= 0 ) {
+        eckit::Log::info() << "Closing TOC " << filePath_ << std::endl;
+        SYSCALL2( ::close(fd_), filePath_ );
         fd_ = -1;
     }
 }
@@ -163,15 +140,14 @@ void TocHandler::printRecord(const TocRecord &r, std::ostream &os) {
 void TocHandler::writeInitRecord(const Key &key) {
 
     if ( !directory_.exists() ) {
-        dirPath().mkdir();
+        directory_.mkdir();
     }
 
     int iomode = O_CREAT | O_RDWR;
-    fd_ = ::open( filePath().asString().c_str(), iomode, mode_t(0777) );
+    fd_ = ::open( filePath_.asString().c_str(), iomode, mode_t(0777) );
 
     TocRecord r;
 
-    read_ = true;
     size_t len = readNext(r);
     if (len == 0) {
 
@@ -192,8 +168,6 @@ void TocHandler::writeInitRecord(const Key &key) {
         in.saveInto(out);
 
         eckit::PathName::rename(tmp, schemaPath);
-
-        read_   = false;
 
         TocRecord r( TOC_INIT );
         eckit::MemoryStream s(r.payload_.data(), r.payload_size);
@@ -258,7 +232,7 @@ public:
     }
 };
 
-std::vector<Index *> TocHandler::loadIndexes() {
+std::vector<Index*> TocHandler::loadIndexes() {
 
     openForRead();
 
@@ -272,6 +246,7 @@ std::vector<Index *> TocHandler::loadIndexes() {
 
         eckit::MemoryStream s(r.payload_.data(), r.payload_size);
         std::string path;
+        std::vector<Index *>::iterator j;
 
 
         switch (r.head_.tag_) {
@@ -282,16 +257,20 @@ std::vector<Index *> TocHandler::loadIndexes() {
 
         case TOC_INDEX:
             s >> path;
-            indexes.push_back( new BTreeIndex(s, dirPath() / path) );
+            indexes.push_back( new BTreeIndex(s, directory_ / path) );
             break;
 
         case TOC_CLEAR:
             s >> path;
-            std::remove_if (indexes.begin(), indexes.end(), HasPath(dirPath() / path));
+            j = std::find_if (indexes.begin(), indexes.end(), HasPath(directory_ / path));
+            if(j != indexes.end()) {
+                delete (*j);
+                indexes.erase(j);
+            }
             break;
 
         case TOC_WIPE:
-            indexes.clear();
+            freeIndexes(indexes);
             break;
 
         default:
@@ -301,14 +280,19 @@ std::vector<Index *> TocHandler::loadIndexes() {
         }
 
         std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
-
-
     }
 
     close();
 
     return indexes;
 
+}
+
+void TocHandler::freeIndexes(std::vector<Index *>& indexes) {
+    for(std::vector<Index *>::iterator j = indexes.begin(); j != indexes.end(); ++j) {
+        delete (*j);
+    }
+    indexes.clear();
 }
 
 

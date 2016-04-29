@@ -17,7 +17,6 @@
 #define fdb5_TocDBReader_H
 
 #include "fdb5/TocDB.h"
-#include "fdb5/TocReverseIndexes.h"
 
 namespace fdb5 {
 
@@ -39,26 +38,20 @@ private: // methods
     virtual void deselectIndex();
 
     virtual bool open();
+    virtual void close();
 
     virtual void axis(const std::string& keyword, eckit::StringSet& s) const;
 
     virtual eckit::DataHandle* retrieve(const Key& key) const;
 
-    virtual void close();
-
-    /// Opens an Index with the associated path
-    virtual Index* openIndex(const Key& key, const eckit::PathName& path ) const;
-
     virtual void print( std::ostream& out ) const;
 
-    Index::Field findField(const Key& key);
 
 private: // members
 
-    TocReverseIndexes toc_;
-
-    std::vector< eckit::PathName > current_;
     Key currentIndexKey_;
+    std::vector<Index*> current_; // Indexes matching current key
+    std::vector<Index*> indexes_; // All indexes
 
 };
 

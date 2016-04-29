@@ -16,7 +16,7 @@
 #include "eckit/log/Plural.h"
 #include "eckit/memory/ScopedPtr.h"
 
-#include "fdb5/Index.h"
+#include "fdb5/BTreeIndex.h"
 #include "fdb5/TocHandler.h"
 
 namespace fdb5 {
@@ -149,11 +149,10 @@ void PurgeVisitor::purge(bool doit) const
             if(doit) {
                 TocHandler handler(dir_);
                 handler.writeClearRecord(i->first);
-                // TocClearIndex clear(dir_, i->first);
             }
 
-            eckit::ScopedPtr<Index> index ( Index::create(i->first) );
-            index->deleteFiles(doit);
+            BTreeIndex index(Key(), i->first, Index::READ);
+            index.deleteFiles(doit);
         }
     }
 

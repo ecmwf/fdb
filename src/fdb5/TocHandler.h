@@ -40,10 +40,9 @@ public: // methods
 
 	~TocHandler();
 
-    eckit::PathName filePath() const { return filePath_; }
-	eckit::PathName dirPath() const { return directory_; }
+    // eckit::PathName filePath() const { return filePath_; }
+	// eckit::PathName dirPath() const { return directory_; }
 
-    bool isOpen() const { return fd_ >= 0; }
     bool exists() const;
 
 
@@ -52,6 +51,7 @@ public: // methods
     void writeIndexRecord(const eckit::PathName&, const Index&);
     void writeWipeRecord();
     std::vector<Index *> loadIndexes();
+    void freeIndexes(std::vector<Index *>&);
 
 
 protected: // methods
@@ -76,7 +76,6 @@ protected: // members
 
 	int fd_;      ///< file descriptor, if zero file is not yet open.
 
-	bool read_;
 };
 
 //-----------------------------------------------------------------------------

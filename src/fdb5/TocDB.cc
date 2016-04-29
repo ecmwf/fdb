@@ -123,16 +123,12 @@ static eckit::PathName directory(const Key& dbKey) {
 
 TocDB::TocDB(const Key& dbKey) :
     DB(dbKey),
-    TocHandler(directory(dbKey)),
-    current_(0)
+    TocHandler(directory(dbKey))
 {
-
-
 }
 
 TocDB::~TocDB()
 {
-    closeIndexes();
 }
 
 void TocDB::axis(const std::string& keyword, eckit::StringSet& s) const
@@ -169,44 +165,6 @@ void TocDB::close()
 {
     Log::error() << "Close not implemented for " << *this << std::endl;
     NOTIMP;
-}
-
-Index* TocDB::getCachedIndex( const PathName& path ) const
-{
-    IndexStore::const_iterator itr = indexes_.find( path );
-    if( itr != indexes_.end() )
-        return itr->second;
-    else
-        return 0;
-}
-
-Index& TocDB::getIndex(const Key& key, const PathName& path) const
-{
-    Index* idx = getCachedIndex(path);
-    if( !idx )
-    {
-        idx = openIndex(key, path);
-        ASSERT(idx);
-        indexes_[ path ] = idx;
-    }
-    return *idx;
-}
-
-void TocDB::closeIndexes()
-{
-    Timer timer("TocDB::closeIndexes()");
-
-    for( IndexStore::iterator itr = indexes_.begin(); itr != indexes_.end(); ++itr )
-    {
-        Index* idx = itr->second;
-        if( idx )
-        {
-            delete idx;
-            itr->second = 0;
-        }
-    }
-
-    indexes_.clear();
 }
 
 void TocDB::loadSchema() {

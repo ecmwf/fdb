@@ -47,63 +47,44 @@ protected: // methods
     virtual void deselectIndex();
 
     virtual bool open();
+    virtual void flush();
+    virtual void close();
 
     virtual void archive(const Key& key, const void* data, eckit::Length length);
 
-    virtual void flush();
-
-    virtual void close();
 
     virtual void print( std::ostream& out ) const;
+
+private: // methods
+
+
+    eckit::DataHandle* getCachedHandle( const eckit::PathName& path ) const;
+    eckit::DataHandle* createFileHandle(const eckit::PathName& path);
+    eckit::DataHandle* createAsyncHandle(const eckit::PathName& path);
+
+    void closeIndexes();
+    void closeDataHandles();
+    void flushIndexes();
+    void flushDataHandles();
+
+    eckit::DataHandle& getDataHandle( const eckit::PathName& );
+    eckit::PathName getDataPath(const Key& key);
+    eckit::PathName generateIndexPath(const Key& key) const;
+    eckit::PathName generateDataPath(const Key& key) const;
 
 private: // types
 
     typedef std::map< std::string, eckit::DataHandle* >  HandleStore;
-
-    typedef std::map< Key, TocAddIndex* > TocIndexStore;
+    typedef std::map< Key, Index* > IndexStore;
     typedef std::map< Key, std::string > PathStore;
-
-private: // methods
-
-    /// Opens an Index with the associated path
-    virtual Index* openIndex(const Key& key, const eckit::PathName& path ) const;
-
-    /// @param path PathName to the handle
-    /// @returns the cached eckit::DataHandle or NULL if not found
-    eckit::DataHandle* getCachedHandle( const eckit::PathName& path ) const;
-
-    void closeDataHandles();
-
-    eckit::DataHandle* createFileHandle(const eckit::PathName& path);
-    eckit::DataHandle* createAsyncHandle(const eckit::PathName& path);
-    eckit::DataHandle* createPartHandle(const eckit::PathName& path, eckit::Offset offset, eckit::Length length);
-
-    TocAddIndex& getTocIndex(const Key& key);
-
-    void flushIndexes();
-    void flushDataHandles();
-
-    void closeTocEntries();
-
-    eckit::DataHandle& getDataHandle( const eckit::PathName& );
-
-    eckit::PathName getDataPath(const Key& key);
-
-    eckit::PathName generateIndexPath(const Key& key) const;
-
-    eckit::PathName generateDataPath(const Key& key) const;
 
 private: // members
 
-    HandleStore     handles_;    ///< stores the DataHandles being used by the Session
-
-    TocIndexStore tocEntries_;
-    PathStore     dataPaths_;
-
-    // std::set<Key> seen_;
+    HandleStore handles_;    ///< stores the DataHandles being used by the Session
+    IndexStore  indexes_;
+    PathStore   dataPaths_;
 
     Index* current_;
-
     Key currentIndexKey_;
 
     bool dirty_;

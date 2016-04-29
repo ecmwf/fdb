@@ -17,8 +17,8 @@
 
 #include "fdb5/Index.h"
 #include "fdb5/Key.h"
-#include "fdb5/TocReverseIndexes.h"
 #include "fdb5/PurgeVisitor.h"
+#include "fdb5/TocHandler.h"
 
 using namespace std;
 using namespace eckit;
@@ -95,23 +95,19 @@ void FDBPurge::run()
 
         Log::info() << "Listing " << path << std::endl;
 
-        fdb5::TocReverseIndexes toc(path);
+        fdb5::TocHandler handler(path);
 
-        std::vector<eckit::PathName> indexes = toc.indexes();
-
+        std::vector<Index*> indexes = handler.loadIndexes();
 
         PurgeVisitor visitor(path);
 
-        for(std::vector<eckit::PathName>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-
-            Log::info() << "Index path " << *i << std::endl;
-
-            eckit::ScopedPtr<Index> index ( Index::create(*i) );
-
-            visitor.currentIndex(*i);
-
-            index->entries(visitor);
+        for(std::vector<Index*>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+            Log::info() << "Index path " << (*i)->path() << std::endl;
+            visitor.currentIndex((*i)->path());
+            (*i)->entries(visitor);
         }
+
+        handler.freeIndexes(indexes);
 
         visitor.report(Log::info());
 

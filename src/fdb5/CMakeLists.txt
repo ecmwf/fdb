@@ -95,8 +95,6 @@ list( APPEND fdb5_srcs
     Schema.h
     SchemaParser.cc
     SchemaParser.h
-    TextIndex.cc
-    TextIndex.h
     TocDB.cc
     TocDB.h
     TocDBReader.cc
@@ -113,8 +111,6 @@ list( APPEND fdb5_srcs
     TocPrint.h
     TocRecord.cc
     TocRecord.h
-    TocReverseIndexes.cc
-    TocReverseIndexes.h
     Type.cc
     Type.h
     TypeAbbreviation.cc

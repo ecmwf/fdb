@@ -108,14 +108,12 @@ public: // types
 
 public: // methods
 
-    /// Creates an Index from a path in read mode
-    static Index* create(const eckit::PathName& path);
-
-    /// Creates an Index from a path, indexing the metadata described in the Key
-    static Index* create(const Key& key, const eckit::PathName& path, Index::Mode mode);
 
     Index(const Key& key, const eckit::PathName& path, Index::Mode mode );
     Index(eckit::Stream&, const eckit::PathName& path);
+
+    virtual void open() = 0;
+    virtual void close() = 0;
 
     virtual ~Index();
 
@@ -172,39 +170,6 @@ protected: // members
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-
-class IndexFactory {
-
-    std::string name_;
-
-    virtual Index* make(const Key& key, const eckit::PathName& path, Index::Mode mode) const = 0 ;
-
-protected:
-
-    IndexFactory(const std::string&);
-    virtual ~IndexFactory();
-
-public:
-
-    static void list(std::ostream &);
-    static Index* build(const std::string&,
-        const Key& key, const eckit::PathName& path, Index::Mode mode);
-
-private: // methods
-
-    static const IndexFactory& findFactory(const std::string&);
-};
-
-template< class T>
-class IndexBuilder : public IndexFactory {
-
-    virtual Index* make(const Key& key, const eckit::PathName& path, Index::Mode mode) const {
-        return new T(key, path, mode);
-    }
-
-public:
-    IndexBuilder(const std::string &name) : IndexFactory(name) {}
-};
 
 } // namespace fdb5
 

@@ -21,20 +21,29 @@ namespace fdb5 {
 
 TocDBReader::TocDBReader(const Key& key) :
     TocDB(key),
-    toc_(directory_)
+    indexes_(loadIndexes())
 {
 }
 
 TocDBReader::~TocDBReader()
 {
+    for(std::vector<Index*>::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
+        delete (*j);
+    }
 }
 
 bool TocDBReader::selectIndex(const Key& key)
 {
     currentIndexKey_ = key;
-    current_ = toc_.indexes(key);
 
-    eckit::Log::info() << "Found indexes " << current_ << std::endl;
+    current_.clear();
+    for(std::vector<Index*>::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
+        if((*j)->key() == key) {
+            current_.push_back(*j);
+        }
+    }
+
+    eckit::Log::info() << "Found indexes " << current_.size() << std::endl;
 
     return (current_.size() != 0);
 }
@@ -46,8 +55,7 @@ void TocDBReader::deselectIndex()
 
 bool TocDBReader::open() {
 
-    if(!toc_.exists()) {
-        eckit::Log::info() << "TOC doesn't exist " << toc_.filePath() << std::endl;
+    if(indexes_.empty()) {
         return false;
     }
 
@@ -57,47 +65,35 @@ bool TocDBReader::open() {
 
 void TocDBReader::axis(const std::string& keyword, eckit::StringSet& s) const
 {
-    for( std::vector<eckit::PathName>::const_iterator itr = current_.begin(); itr != current_.end(); ++itr )
+    for(std::vector<Index*>::const_iterator j = current_.begin(); j != current_.end(); ++j)
     {
-        const Index& idx = getIndex(currentIndexKey_, *itr);
-        const eckit::StringSet& a = idx.axes().values(keyword);
+        const eckit::StringSet& a = (*j)->axes().values(keyword);
         s.insert(a.begin(), a.end());
     }
 }
 
 void TocDBReader::close() {
+    for(std::vector<Index*>::const_iterator j = current_.begin(); j != current_.end(); ++j) {
+        (*j)->close();
+    }
 }
 
 eckit::DataHandle* TocDBReader::retrieve(const Key& key) const
 {
     eckit::Log::info() << "Trying to retrieve key " << key << std::endl;
-
-    eckit::Log::info() << "Scanning indexes " << current_ << std::endl;
-
-    const Index* index = 0;
+    eckit::Log::info() << "Scanning indexes " << current_.size() << std::endl;
 
     Index::Field field;
-    for( std::vector<eckit::PathName>::const_iterator itr = current_.begin(); itr != current_.end(); ++itr )
+    for(std::vector<Index*>::const_iterator j = current_.begin(); j != current_.end(); ++j)
     {
-        const Index& idx = getIndex(currentIndexKey_, *itr);
-
-        if( idx.get(key, field) )
-        {
-            index = &idx;
-            break;
+        if((*j)->get(key, field)) {
+            return field.path_.partHandle(field.offset_, field.length_);
         }
     }
 
-    if( ! index ) // not found
-        return 0;
-    else
-        return field.path_.partHandle(field.offset_, field.length_);
+    return 0;
 }
 
-Index* TocDBReader::openIndex(const Key& key, const eckit::PathName& path) const
-{
-    return Index::create(key, path, Index::READ );
-}
 
 void TocDBReader::print(std::ostream &out) const
 {

@@ -13,8 +13,8 @@
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/Key.h"
-#include "fdb5/TocReverseIndexes.h"
 #include "fdb5/Index.h"
+#include "fdb5/TocHandler.h"
 
 using namespace std;
 using namespace eckit;
@@ -42,20 +42,17 @@ void FDBList::run()
 
         Log::info() << "Listing " << path << std::endl;
 
-        fdb5::TocReverseIndexes toc(path);
 
-        std::vector<eckit::PathName> indexes = toc.indexes();
+        fdb5::TocHandler handler(path);
 
-        for(std::vector<eckit::PathName>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+        std::vector<Index*> indexes = handler.loadIndexes();
 
-            Log::info() << "Index path " << *i << std::endl;
-
-            Key dummy;
-
-            eckit::ScopedPtr<Index> index ( Index::create(dummy, *i, Index::READ) );
-
-            index->list(Log::info());
+        for(std::vector<Index*>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+            Log::info() << "Index path " << (*i)->path() << std::endl;
+            (*i)->list(Log::info());
         }
+
+        handler.freeIndexes(indexes);
 
     }
 

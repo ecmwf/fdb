@@ -75,6 +75,17 @@ BTreeIndex::Field BTreeIndex::get(const Key &key) const {
     return result;
 }
 
+
+void BTreeIndex::open() {
+    if(!btree_) {
+        btree_.reset(new BTreeStore(path_, mode() == Index::READ));
+    }
+}
+
+void BTreeIndex::close() {
+    btree_.reset(0);
+}
+
 void BTreeIndex::put_(const Key &key, const BTreeIndex::Field &field) {
     ASSERT(btree_);
     ASSERT( mode() == Index::WRITE );
@@ -168,7 +179,6 @@ void BTreeIndex::print(std::ostream &out) const {
     out << "BTreeIndex[]";
 }
 
-static IndexBuilder<BTreeIndex> builder("BTreeIndex");
 
 //-----------------------------------------------------------------------------
 
