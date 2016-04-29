@@ -28,20 +28,20 @@ class MatchOptional : public Matcher {
 
 public: // methods
 
-	MatchOptional(const std::string& def);
+    MatchOptional(const std::string &def);
 
     virtual ~MatchOptional();
 
-    virtual bool match(const std::string& keyword, const Key& key) const;
+    virtual bool match(const std::string &keyword, const Key &key) const;
 
-    virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const;
+    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const;
 
 private: // methods
 
     virtual bool optional() const;
-    virtual const std::string& value(const Key&, const std::string& keyword) const;
-    virtual void print( std::ostream& out ) const;
-    virtual const std::string& defaultValue() const;
+    virtual const std::string &value(const Key &, const std::string &keyword) const;
+    virtual void print( std::ostream &out ) const;
+    virtual const std::string &defaultValue() const;
 
 
     std::string default_;

@@ -10,9 +10,8 @@
 
 #include "eckit/log/Log.h"
 
-#include "fdb5/Archiver.h"
 #include "fdb5/AdoptVisitor.h"
-#include "fdb5/TocDBWriter.h" // for adopt
+#include "fdb5/TocDBWriter.h"
 
 using namespace eckit;
 
@@ -22,8 +21,7 @@ AdoptVisitor::AdoptVisitor(Archiver &owner, const Key &field, const PathName &pa
     BaseArchiveVisitor(owner, field),
     path_(path),
     offset_(offset),
-    length_(length)
-{
+    length_(length) {
     Log::info() << *this << std::endl;
     ASSERT(offset_ >= Offset(0));
     ASSERT(length_ > Length(0));
@@ -36,7 +34,7 @@ bool AdoptVisitor::selectDatum(const Key &key, const Key &full) {
 
     ASSERT(current());
 
-    TocDBWriter* writer = dynamic_cast<TocDBWriter*>(current());
+    TocDBWriter *writer = dynamic_cast<TocDBWriter *>(current());
 
     ASSERT(writer);
 
@@ -45,8 +43,7 @@ bool AdoptVisitor::selectDatum(const Key &key, const Key &full) {
     return true;
 }
 
-void AdoptVisitor::print(std::ostream& out) const
-{
+void AdoptVisitor::print(std::ostream &out) const {
     out << "AdoptVisitor["
         << "path=" << path_
         << ",offset=" << offset_

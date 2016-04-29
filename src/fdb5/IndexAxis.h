@@ -24,7 +24,9 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/types/Types.h"
 
-namespace eckit { class Stream; }
+namespace eckit {
+class Stream;
+}
 
 namespace fdb5 {
 
@@ -37,20 +39,23 @@ class IndexAxis : private eckit::NonCopyable {
 public: // methods
 
     IndexAxis();
-    IndexAxis(eckit::Stream&);
+    IndexAxis(eckit::Stream &);
 
     ~IndexAxis();
 
-    void insert(const Key& key);
-    void encode(eckit::Stream& s) const;
+    void insert(const Key &key);
+    void encode(eckit::Stream &s) const;
 
-    const eckit::StringSet& values(const std::string& keyword) const;
+    const eckit::StringSet &values(const std::string &keyword) const;
 
-    friend std::ostream& operator<<(std::ostream& s,const IndexAxis& x) { x.print(s); return s; }
+    friend std::ostream &operator<<(std::ostream &s, const IndexAxis &x) {
+        x.print(s);
+        return s;
+    }
 
 private: // methods
 
-    void print(std::ostream& out) const;
+    void print(std::ostream &out) const;
 
 
 private: // members

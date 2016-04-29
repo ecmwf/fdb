@@ -26,19 +26,19 @@ class TypeDate : public Type {
 
 public: // methods
 
-    TypeDate(const std::string& name, const std::string& type);
+    TypeDate(const std::string &name, const std::string &type);
 
     virtual ~TypeDate();
 
-    virtual void getValues(const MarsRequest& request,
-                           const std::string& keyword,
-                           eckit::StringList& values,
-                           const MarsTask& task,
-                           const DB* db) const;
+    virtual void getValues(const MarsRequest &request,
+                           const std::string &keyword,
+                           eckit::StringList &values,
+                           const MarsTask &task,
+                           const DB *db) const;
 
 private: // methods
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream &out ) const;
 
 };
 

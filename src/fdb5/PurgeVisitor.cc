@@ -10,11 +10,8 @@
 
 #include "fdb5/PurgeVisitor.h"
 
-#include "eckit/log/Log.h"
 #include "eckit/log/Bytes.h"
-#include "eckit/log/BigNum.h"
 #include "eckit/log/Plural.h"
-#include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/TocIndex.h"
 #include "fdb5/TocHandler.h"
@@ -23,7 +20,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void Stats::print(std::ostream& out) const {
+void Stats::print(std::ostream &out) const {
     out << "Stats:"
         << " totalFields: "  << eckit::BigNum(totalFields)
         << ", duplicates: "    << eckit::BigNum(duplicates)
@@ -33,14 +30,12 @@ void Stats::print(std::ostream& out) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-PurgeVisitor::PurgeVisitor(const eckit::PathName& dir) :
-    dir_(dir)
-{
+PurgeVisitor::PurgeVisitor(const eckit::PathName &dir) :
+    dir_(dir) {
 }
 
-void PurgeVisitor::visit(const std::string& index, const std::string& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length)
-{
-    Stats& stats = indexStats_[current_];
+void PurgeVisitor::visit(const std::string &index, const std::string &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+    Stats &stats = indexStats_[current_];
 
     ++(stats.totalFields);
     stats.totalSize += length;
@@ -48,46 +43,48 @@ void PurgeVisitor::visit(const std::string& index, const std::string& key, const
     allDataFiles_.insert(path);
 
     std::string indexKey = index + key;
-    if(active_.find(indexKey) == active_.end()) {
+    if (active_.find(indexKey) == active_.end()) {
         active_.insert(indexKey);
         activeDataFiles_.insert(path);
-    }
-    else {
+    } else {
         ++(stats.duplicates);
         stats.duplicatesSize += length;
     }
 }
 
-void PurgeVisitor::currentIndex(const eckit::PathName& path) { current_ = path; }
+void PurgeVisitor::currentIndex(const eckit::PathName &path) {
+    current_ = path;
+}
 
 Stats PurgeVisitor::totals() const {
     Stats total;
-    for(std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+    for (std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
         total += i->second;
     }
     return total;
 }
 
-void PurgeVisitor::print(std::ostream& out) const {
+void PurgeVisitor::print(std::ostream &out) const {
     out << "PurgeVisitor(indexStats=" << indexStats_ << ")";
 }
 
-std::vector<eckit::PathName> PurgeVisitor::filesToBeDeleted(size_t& adopted, size_t& duplicated, size_t& duplicatedAdopted) const {
+std::vector<eckit::PathName> PurgeVisitor::filesToBeDeleted(size_t &adopted, size_t &duplicated, size_t &duplicatedAdopted) const {
 
     std::vector<eckit::PathName> result;
 
-    for(std::set<eckit::PathName>::const_iterator i = allDataFiles_.begin(); i != allDataFiles_.end(); ++i) {
+    for (std::set<eckit::PathName>::const_iterator i = allDataFiles_.begin(); i != allDataFiles_.end(); ++i) {
 
         bool adoptedFile = (!i->dirName().sameAs(dir_));
 
-        if(adoptedFile) { ++adopted; }
+        if (adoptedFile) {
+            ++adopted;
+        }
 
-        if(activeDataFiles_.find(*i) == activeDataFiles_.end()) {
+        if (activeDataFiles_.find(*i) == activeDataFiles_.end()) {
             ++duplicated;
-            if(adoptedFile) {
+            if (adoptedFile) {
                 ++duplicatedAdopted;
-            }
-            else {
+            } else {
                 result.push_back(*i);
             }
         }
@@ -95,12 +92,12 @@ std::vector<eckit::PathName> PurgeVisitor::filesToBeDeleted(size_t& adopted, siz
     return result;
 }
 
-void PurgeVisitor::report(std::ostream& out) const {
+void PurgeVisitor::report(std::ostream &out) const {
 
     Stats total = totals();
 
     out << "Index Report:" << std::endl;
-    for(std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+    for (std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
         out << "    Index " << i->first << std::endl
             << "          " << i->second << std::endl;
     }
@@ -112,7 +109,7 @@ void PurgeVisitor::report(std::ostream& out) const {
     std::vector<eckit::PathName> tobeDeleted = filesToBeDeleted(adopted, duplicated, duplicatedAdopted);
 
     out << "Data files to be deleted:" << std::endl;
-    for(std::vector<eckit::PathName>::const_iterator i = tobeDeleted.begin(); i != tobeDeleted.end(); ++i) {
+    for (std::vector<eckit::PathName>::const_iterator i = tobeDeleted.begin(); i != tobeDeleted.end(); ++i) {
         out << "    " << *i << std::endl;
     }
 
@@ -134,19 +131,18 @@ void PurgeVisitor::report(std::ostream& out) const {
         << " (" << eckit::Bytes(total.duplicatesSize) << " duplicated)" << std::endl;
 }
 
-void PurgeVisitor::purge(bool doit) const
-{
+void PurgeVisitor::purge(bool doit) const {
     // clear Toc Index
 
-    for(std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin();
-        i != indexStats_.end(); ++i) {
+    for (std::map<eckit::PathName, Stats>::const_iterator i = indexStats_.begin();
+            i != indexStats_.end(); ++i) {
 
-        const Stats& stats = i->second;
+        const Stats &stats = i->second;
 
-        if(stats.totalFields == stats.duplicates) {
+        if (stats.totalFields == stats.duplicates) {
             eckit::Log::info() << "Index to remove: " << i->first << std::endl;
 
-            if(doit) {
+            if (doit) {
                 TocHandler handler(dir_);
                 handler.writeClearRecord(i->first);
             }
@@ -163,9 +159,11 @@ void PurgeVisitor::purge(bool doit) const
     size_t duplicatedAdopted = 0;
     std::vector<eckit::PathName> tobeDeleted = filesToBeDeleted(adopted, duplicated, duplicatedAdopted);
 
-    for(std::vector<eckit::PathName>::const_iterator i = tobeDeleted.begin(); i != tobeDeleted.end(); ++i) {
+    for (std::vector<eckit::PathName>::const_iterator i = tobeDeleted.begin(); i != tobeDeleted.end(); ++i) {
         eckit::Log::info() << "File to remove " << *i << std::endl;
-        if(doit) { i->unlink(); }
+        if (doit) {
+            i->unlink();
+        }
     }
 }
 

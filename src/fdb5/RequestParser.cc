@@ -38,10 +38,9 @@ std::string RequestParser::parseIdent(bool lower) {
 
         default:
             consume(c);
-            if(lower) {
+            if (lower) {
                 s += tolower(c);
-            }
-            else {
+            } else {
                 s += c;
             }
             break;

@@ -34,31 +34,31 @@ class Type : private eckit::NonCopyable {
 
 public: // methods
 
-    Type(const std::string& name, const std::string& type);
+    Type(const std::string &name, const std::string &type);
 
     virtual ~Type();
 
-    virtual void toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const ;
+    virtual void toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const ;
 
-    virtual void getValues(const MarsRequest& request,
-                           const std::string& keyword,
-                           eckit::StringList& values,
-                           const MarsTask& task,
-                           const DB* db) const;
+    virtual void getValues(const MarsRequest &request,
+                           const std::string &keyword,
+                           eckit::StringList &values,
+                           const MarsTask &task,
+                           const DB *db) const;
 
-    friend std::ostream& operator<<(std::ostream& s,const Type& x);
+    friend std::ostream &operator<<(std::ostream &s, const Type &x);
 
 public: // class methods
 
-    static const Type& lookup(const std::string& keyword);
+    static const Type &lookup(const std::string &keyword);
 
-    const std::string& type() const;
+    const std::string &type() const;
 
 private: // methods
 
-    virtual void print( std::ostream& out ) const = 0;
+    virtual void print( std::ostream &out ) const = 0;
 
 protected: // members
 

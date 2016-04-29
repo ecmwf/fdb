@@ -27,7 +27,9 @@
 #include "fdb5/IndexAxis.h"
 #include "fdb5/Key.h"
 
-namespace eckit { class Stream; }
+namespace eckit {
+class Stream;
+}
 
 namespace fdb5 {
 
@@ -37,9 +39,9 @@ class Key;
 
 class EntryVisitor : private eckit::NonCopyable {
 public:
-    virtual void visit(const std::string& index,
-                       const std::string& key,
-                       const eckit::PathName& path,
+    virtual void visit(const std::string &index,
+                       const std::string &key,
+                       const eckit::PathName &path,
                        eckit::Offset offset,
                        eckit::Length length) = 0;
 };
@@ -57,12 +59,12 @@ public: // types
 
         Field() {}
 
-        Field(const eckit::PathName& path, eckit::Offset offset, eckit::Length length ) :
+        Field(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ) :
             path_(path),
             offset_(offset),
             length_(length)
-  #if 0
-          ,
+#if 0
+            ,
             referenceValue_(0),
             binaryScaleFactor_(0),
             decimalScaleFactor_(0),
@@ -72,7 +74,7 @@ public: // types
             numberOfValues_(0),
             numberOfDataPoints_(0),
             sphericalHarmonics_(0)
-  #endif
+#endif
         {
         }
 
@@ -96,67 +98,81 @@ public: // types
 #endif
         ///////////////////////////////////////////////
 
-        void load( std::istream& s );
+        void load( std::istream &s );
 
-        void dump( std::ostream& s ) const;
+        void dump( std::ostream &s ) const;
 
-        friend std::ostream& operator<<(std::ostream& s,const Field& x) { x.print(s); return s; }
+        friend std::ostream &operator<<(std::ostream &s, const Field &x) {
+            x.print(s);
+            return s;
+        }
 
-		void print( std::ostream& out ) const { out << path_ << "," << offset_ << "+" << length_ ; }
+        void print( std::ostream &out ) const {
+            out << path_ << "," << offset_ << "+" << length_ ;
+        }
 
     };
 
 public: // methods
 
 
-    Index(const Key& key, const eckit::PathName& path, Index::Mode mode );
-    Index(eckit::Stream&, const eckit::PathName& directory, const eckit::PathName& path);
+    Index(const Key &key, const eckit::PathName &path, Index::Mode mode );
+    Index(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path);
 
     virtual void open() = 0;
     virtual void close() = 0;
 
     virtual ~Index();
 
-    virtual bool    exists( const Key& key ) const = 0;
+    virtual bool    exists( const Key &key ) const = 0;
 
-    virtual bool    get( const Key& key, Field& field ) const = 0;
+    virtual bool    get( const Key &key, Field &field ) const = 0;
 
-    virtual Field   get( const Key& key ) const = 0;
+    virtual Field   get( const Key &key ) const = 0;
 
-    virtual void    put( const Key& key, const Field& field );
+    virtual void    put( const Key &key, const Field &field );
 
-    virtual bool    remove( const Key& key ) = 0;
+    virtual bool    remove( const Key &key ) = 0;
 
     virtual void flush();
 
-    virtual void encode(eckit::Stream& s) const;
+    virtual void encode(eckit::Stream &s) const;
 
-    virtual void print( std::ostream& out ) const = 0;
+    virtual void print( std::ostream &out ) const = 0;
 
-    virtual void list( std::ostream& out ) const = 0;
+    virtual void list( std::ostream &out ) const = 0;
 
-    virtual void entries(EntryVisitor& visitor) const = 0;
+    virtual void entries(EntryVisitor &visitor) const = 0;
 
     virtual void deleteFiles(bool doit) const;
 
-    friend std::ostream& operator<<(std::ostream& s, const Index& x) { x.print(s); return s; }
+    friend std::ostream &operator<<(std::ostream &s, const Index &x) {
+        x.print(s);
+        return s;
+    }
 
-	eckit::PathName path() const { return path_; }
+    eckit::PathName path() const {
+        return path_;
+    }
 
-	Mode mode() const { return mode_; }
+    Mode mode() const {
+        return mode_;
+    }
 
-    const IndexAxis& axes() const { return axes_; }
+    const IndexAxis &axes() const {
+        return axes_;
+    }
 
-    const Key& key() const;
+    const Key &key() const;
 
 protected: // methods
 
-    virtual void put_( const Key& key, const Field& field ) = 0;
+    virtual void put_( const Key &key, const Field &field ) = 0;
 
 protected: // members
 
-	Mode            mode_;
-	eckit::PathName path_;
+    Mode            mode_;
+    eckit::PathName path_;
 
     // Order is important here...
     FileStore   files_;

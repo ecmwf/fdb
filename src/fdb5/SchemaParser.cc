@@ -28,95 +28,92 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::string SchemaParser::parseIdent(bool emptyOK)
-{
+std::string SchemaParser::parseIdent(bool emptyOK) {
     std::string s;
-    for(;;)
-    {
+    for (;;) {
         char c = peek();
-        switch(c) {
-            case 0:
-            case '/':
-            case '=':
-            case ',':
-            case '-':
-            case ';':
-            case ':':
-            case '[':
-            case ']':
-            case '?':
-                if(s.empty() && !emptyOK) {
-                    throw StreamParser::Error("Syntax error (possible trailing comma)", line_+1);
-                }
-                return s;
+        switch (c) {
+        case 0:
+        case '/':
+        case '=':
+        case ',':
+        case '-':
+        case ';':
+        case ':':
+        case '[':
+        case ']':
+        case '?':
+            if (s.empty() && !emptyOK) {
+                throw StreamParser::Error("Syntax error (possible trailing comma)", line_ + 1);
+            }
+            return s;
 
-            default:
-                consume(c);
-                s += c;
-                break;
+        default:
+            consume(c);
+            s += c;
+            break;
         }
     }
 }
 
-Predicate* SchemaParser::parsePredicate(std::map<std::string, std::string>& types) {
+Predicate *SchemaParser::parsePredicate(std::map<std::string, std::string> &types) {
 
     std::set<std::string> values;
     std::string k = parseIdent();
 
     char c = peek();
 
-    if(c == ':') {
+    if (c == ':') {
         consume(c);
         ASSERT(types.find(k) == types.end());
         types[k] = parseIdent();
         c = peek();
     }
 
-    if(c == '?') {
+    if (c == '?') {
         consume(c);
         return new Predicate(k, new MatchOptional(parseIdent(true)));
     }
 
-    if(c == '-') {
+    if (c == '-') {
         consume(c);
-        if(types.find(k) == types.end()) {
+        if (types.find(k) == types.end()) {
             // Register ignore type
             types[k] = "Ignore";
         }
         return new Predicate(k, new MatchHidden(parseIdent(true)));
     }
 
-    if(c != ',' && c != '[' && c != ']')
-    {
+    if (c != ',' && c != '[' && c != ']') {
         consume("=");
 
         values.insert(parseIdent());
 
-        while((c = peek()) == '/') {
+        while ((c = peek()) == '/') {
             consume(c);
             values.insert(parseIdent());
         }
     }
 
-    switch(values.size()) {
-        case 0:
-            return new Predicate(k, new MatchAlways());
-            break;
+    switch (values.size()) {
+    case 0:
+        return new Predicate(k, new MatchAlways());
+        break;
 
-        case 1:
-            return new Predicate(k, new MatchValue(*values.begin()));
-            break;
+    case 1:
+        return new Predicate(k, new MatchValue(*values.begin()));
+        break;
 
-        default:
-            return new Predicate(k, new MatchAny(values));
-            break;
+    default:
+        return new Predicate(k, new MatchAny(values));
+        break;
     }
 }
 
-void SchemaParser::parseTypes(std::map<std::string, std::string>& types) {
-    for(;;) {
+void SchemaParser::parseTypes(std::map<std::string, std::string> &types) {
+    for (;;) {
         std::string name = parseIdent(true);
-        if(name.empty()) {
+        if (name.empty()) {
             break;
         }
         consume(':');
@@ -127,10 +124,9 @@ void SchemaParser::parseTypes(std::map<std::string, std::string>& types) {
     }
 }
 
-Rule* SchemaParser::parseRule(const Schema& owner)
-{
-    std::vector<Predicate*> predicates;
-    std::vector<Rule*> rules;
+Rule *SchemaParser::parseRule(const Schema &owner) {
+    std::vector<Predicate *> predicates;
+    std::vector<Rule *> rules;
     std::map<std::string, std::string> types;
 
     consume('[');
@@ -138,34 +134,31 @@ Rule* SchemaParser::parseRule(const Schema& owner)
     size_t line = line_ + 1;
 
     char c = peek();
-    if(c == ']')
-    {
+    if (c == ']') {
         consume(c);
         return new Rule(owner, line, predicates, rules, types);
     }
 
 
-    for(;;) {
+    for (;;) {
 
         char c = peek();
 
-        if( c == '[') {
-            while( c == '[') {
+        if ( c == '[') {
+            while ( c == '[') {
                 rules.push_back(parseRule(owner));
                 c = peek();
             }
-        }
-        else {
+        } else {
             predicates.push_back(parsePredicate(types));
-            while( (c = peek()) == ',') {
+            while ( (c = peek()) == ',') {
                 consume(c);
                 predicates.push_back(parsePredicate(types));
             }
         }
 
         c = peek();
-        if(c == ']')
-        {
+        if (c == ']') {
             consume(c);
             return new Rule(owner, line, predicates, rules, types);
         }
@@ -174,25 +167,23 @@ Rule* SchemaParser::parseRule(const Schema& owner)
     }
 }
 
-SchemaParser::SchemaParser(std::istream &in) : StreamParser(in, true)
-{
+SchemaParser::SchemaParser(std::istream &in) : StreamParser(in, true) {
 }
 
-void SchemaParser::parse(const Schema& owner,
-    std::vector<Rule*>& result, TypesRegistry& registry)
-{
+void SchemaParser::parse(const Schema &owner,
+                         std::vector<Rule *> &result, TypesRegistry &registry) {
     char c;
     std::map<std::string, std::string> types;
 
     parseTypes(types);
-    for(std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
+    for (std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
         registry.addType(i->first, i->second);
     }
 
-    while((c = peek()) == '[') {
+    while ((c = peek()) == '[') {
         result.push_back(parseRule(owner));
     }
-    if(c) {
+    if (c) {
         throw StreamParser::Error(std::string("Error parsing rules: remaining char: ") + c);
     }
 }

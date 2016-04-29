@@ -22,7 +22,9 @@
 
 #include "eckit/types/Types.h"
 
-namespace eckit { class JSON; }
+namespace eckit {
+class JSON;
+}
 
 namespace fdb5 {
 
@@ -37,66 +39,68 @@ public: // methods
 
     Key();
 
-    explicit Key(eckit::Stream&);
-    explicit Key(const std::string& keys);
-    explicit Key(const eckit::StringDict& keys);
+    explicit Key(eckit::Stream &);
+    explicit Key(const std::string &keys);
+    explicit Key(const eckit::StringDict &keys);
 
-    void set(const std::string& k, const std::string& v);
-    void unset(const std::string& k);
+    void set(const std::string &k, const std::string &v);
+    void unset(const std::string &k);
 
-    void push(const std::string& k, const std::string& v);
-    void pop(const std::string& k);
+    void push(const std::string &k, const std::string &v);
+    void pop(const std::string &k);
 
-    bool has( const std::string& k ) const;
+    bool has( const std::string &k ) const;
 
-    const std::string& get( const std::string& k ) const;
+    const std::string &get( const std::string &k ) const;
 
-    const eckit::StringDict& dict() const { return keys_; }
+    const eckit::StringDict &dict() const {
+        return keys_;
+    }
 
     void clear();
 
 
-    bool operator< (const Key& other) const {
+    bool operator< (const Key &other) const {
         return keys_ < other.keys_;
     }
 
-    bool operator!= (const Key& other) const {
+    bool operator!= (const Key &other) const {
         return keys_ != other.keys_;
     }
 
-    bool operator== (const Key& other) const {
+    bool operator== (const Key &other) const {
         return keys_ == other.keys_;
     }
 
-    friend std::ostream& operator<<(std::ostream& s,const Key& x) {
+    friend std::ostream &operator<<(std::ostream &s, const Key &x) {
         x.print(s);
         return s;
     }
 
-    friend eckit::Stream& operator<<(eckit::Stream& s,const Key& x) {
+    friend eckit::Stream &operator<<(eckit::Stream &s, const Key &x) {
         x.encode(s);
         return s;
     }
 
-    void rule(const Rule* rule);
-    const Rule* rule() const;
-    const TypesRegistry* registry() const;
+    void rule(const Rule *rule);
+    const Rule *rule() const;
+    const TypesRegistry *registry() const;
 
     std::string valuesToString() const;
 
-    void load(std::istream& s);
-    void dump(std::ostream& s) const;
+    void load(std::istream &s);
+    void dump(std::ostream &s) const;
 
-    void json(eckit::JSON&) const;
+    void json(eckit::JSON &) const;
 
 private: // members
 
-    void print( std::ostream& out ) const;
-    void encode(eckit::Stream& s) const;
+    void print( std::ostream &out ) const;
+    void encode(eckit::Stream &s) const;
 
     eckit::StringDict keys_;
     eckit::StringList names_;
-    const Rule* rule_;
+    const Rule *rule_;
 
 };
 

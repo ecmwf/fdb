@@ -18,19 +18,18 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MasterConfig::MasterConfig()
-{
-    char* home1 = ::getenv("DHSHOME");
-    if(home1) {
+MasterConfig::MasterConfig() {
+    char *home1 = ::getenv("DHSHOME");
+    if (home1) {
         eckit::Context::instance().home(home1);
     }
 
-    char* home2 = ::getenv("FDB5_HOME");
-    if(home2) {
+    char *home2 = ::getenv("FDB5_HOME");
+    if (home2) {
         eckit::Context::instance().home(home2);
     }
 
-    if(!!home1 == !!home2) {
+    if (!!home1 == !!home2) {
         throw eckit::SeriousBug("Either FDB5_HOME or DHSHOME environment variable must be defined (but not both)");
     }
 
@@ -39,23 +38,19 @@ MasterConfig::MasterConfig()
     schema_.load( schemaPath() );
 }
 
-MasterConfig::~MasterConfig()
-{
+MasterConfig::~MasterConfig() {
 }
 
-std::string MasterConfig::schemaPath() const
-{
+std::string MasterConfig::schemaPath() const {
     static eckit::PathName fdbRules = eckit::Resource<eckit::PathName>("fdbRules", "~/etc/fdb/schema");
     return fdbRules;
 }
 
-const Schema& MasterConfig::schema() const
-{
+const Schema &MasterConfig::schema() const {
     return schema_;
 }
 
-MasterConfig& MasterConfig::instance()
-{
+MasterConfig &MasterConfig::instance() {
     static MasterConfig master;
     return master;
 }

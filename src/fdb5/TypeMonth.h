@@ -26,23 +26,23 @@ class TypeMonth : public Type {
 
 public: // methods
 
-    TypeMonth(const std::string& name, const std::string& type);
+    TypeMonth(const std::string &name, const std::string &type);
 
     virtual ~TypeMonth();
 
-    virtual void toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const ;
+    virtual void toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const ;
 
-    virtual void getValues(const MarsRequest& request,
-                           const std::string& keyword,
-                           eckit::StringList& values,
-                           const MarsTask& task,
-                           const DB* db) const;
+    virtual void getValues(const MarsRequest &request,
+                           const std::string &keyword,
+                           eckit::StringList &values,
+                           const MarsTask &task,
+                           const DB *db) const;
 
 private: // methods
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream &out ) const;
 
 };
 

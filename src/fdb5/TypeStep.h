@@ -26,22 +26,22 @@ class TypeStep : public Type {
 
 public: // methods
 
-    TypeStep(const std::string& name, const std::string& type);
+    TypeStep(const std::string &name, const std::string &type);
 
     virtual ~TypeStep();
 
-    virtual void getValues(const MarsRequest& request,
-                           const std::string& keyword,
-                           eckit::StringList& values,
-                           const MarsTask& task,
-                           const DB* db) const;
+    virtual void getValues(const MarsRequest &request,
+                           const std::string &keyword,
+                           eckit::StringList &values,
+                           const MarsTask &task,
+                           const DB *db) const;
 
-    virtual void toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const;
+    virtual void toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const;
 private: // methods
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream &out ) const;
 
 };
 

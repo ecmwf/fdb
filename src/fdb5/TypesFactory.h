@@ -31,11 +31,11 @@ class Type;
 
 class TypesFactory {
 
-    virtual Type* make(const std::string& keyword) const = 0 ;
+    virtual Type *make(const std::string &keyword) const = 0 ;
 
 protected:
 
-    TypesFactory(const std::string&);
+    TypesFactory(const std::string &);
     virtual ~TypesFactory();
 
     std::string name_;
@@ -43,7 +43,7 @@ protected:
 public:
 
     static void list(std::ostream &);
-    static Type* build(const std::string& name, const std::string& keyword);
+    static Type *build(const std::string &name, const std::string &keyword);
 
 };
 
@@ -53,12 +53,12 @@ public:
 template< class T>
 class TypeBuilder : public TypesFactory {
 
-    virtual Type* make(const std::string& keyword) const {
+    virtual Type *make(const std::string &keyword) const {
         return new T(keyword, name_);
     }
 
 public:
-    TypeBuilder(const std::string& name) : TypesFactory(name) {}
+    TypeBuilder(const std::string &name) : TypesFactory(name) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------

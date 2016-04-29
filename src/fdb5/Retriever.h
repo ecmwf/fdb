@@ -21,7 +21,9 @@
 
 #include "eckit/memory/NonCopyable.h"
 
-namespace eckit { class DataHandle; }
+namespace eckit {
+class DataHandle;
+}
 
 class MarsTask;
 
@@ -38,26 +40,29 @@ class Retriever : public eckit::NonCopyable {
 
 public: // methods
 
-    Retriever(const MarsTask& task);
+    Retriever(const MarsTask &task);
 
     ~Retriever();
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from
 
-    eckit::DataHandle* retrieve();
+    eckit::DataHandle *retrieve();
 
-    friend std::ostream& operator<<(std::ostream& s,const Retriever& x) { x.print(s); return s; }
+    friend std::ostream &operator<<(std::ostream &s, const Retriever &x) {
+        x.print(s);
+        return s;
+    }
 
 private: // methods
 
-    void print(std::ostream& out) const;
-    eckit::DataHandle* retrieve(const Schema& schema, bool sorted);
+    void print(std::ostream &out) const;
+    eckit::DataHandle *retrieve(const Schema &schema, bool sorted);
 
 
 private: // members
 
-    const MarsTask& task_;
+    const MarsTask &task_;
 
     friend class RetrieveVisitor;
 

@@ -8,14 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Timer.h"
-#include "eckit/log/Plural.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/log/Seconds.h"
-#include "eckit/log/Progress.h"
 #include "eckit/types/Metadata.h"
 
-#include "marslib/EmosFile.h"
 
 #include "fdb5/legacy/LegacyArchiver.h"
 #include "fdb5/ArchiveVisitor.h"
@@ -28,20 +22,18 @@ namespace legacy {
 LegacyArchiver::LegacyArchiver() :
     Archiver(),
     translator_(),
-    legacy_()
-{
+    legacy_() {
 }
 
-void LegacyArchiver::archive(const eckit::DataBlobPtr blob)
-{
-    const eckit::Metadata& metadata = blob->metadata();
+void LegacyArchiver::archive(const eckit::DataBlobPtr blob) {
+    const eckit::Metadata &metadata = blob->metadata();
 
     Key key;
 
     eckit::StringList keywords = metadata.keywords();
 
     std::string value;
-    for(eckit::StringList::const_iterator i = keywords.begin(); i != keywords.end(); ++i) {
+    for (eckit::StringList::const_iterator i = keywords.begin(); i != keywords.end(); ++i) {
         metadata.get(*i, value);
         key.set(*i, value);
     }
@@ -54,17 +46,16 @@ void LegacyArchiver::archive(const eckit::DataBlobPtr blob)
     eckit::StringSet missing;
     eckit::StringSet mismatch;
 
-    const eckit::StringDict& f = key.dict();
-    const eckit::StringDict& k = legacy_.dict();
+    const eckit::StringDict &f = key.dict();
+    const eckit::StringDict &k = legacy_.dict();
 
-    for(eckit::StringDict::const_iterator j = f.begin(); j != f.end(); ++j) {
+    for (eckit::StringDict::const_iterator j = f.begin(); j != f.end(); ++j) {
 
         eckit::StringDict::const_iterator itr = k.find((*j).first);
-        if(itr == k.end()) {
+        if (itr == k.end()) {
             missing.insert((*j).first);
-        }
-        else {
-            if(j->second != itr->second) {
+        } else {
+            if (j->second != itr->second) {
                 std::ostringstream oss;
                 oss << j->first << "=" << j->second << " and " << itr->second;
                 mismatch.insert(oss.str());
@@ -72,7 +63,7 @@ void LegacyArchiver::archive(const eckit::DataBlobPtr blob)
         }
     }
 
-    if(missing.size() || mismatch.size()) {
+    if (missing.size() || mismatch.size()) {
 
         std::ostringstream oss;
         oss << "FDB LegacyArchiver missing keys: " << missing;
@@ -88,8 +79,7 @@ void LegacyArchiver::archive(const eckit::DataBlobPtr blob)
     this->Archiver::archive(key, visitor);
 }
 
-void LegacyArchiver::legacy(const std::string& keyword, const std::string& value)
-{
+void LegacyArchiver::legacy(const std::string &keyword, const std::string &value) {
     translator_.set(legacy_, keyword, value);
 }
 

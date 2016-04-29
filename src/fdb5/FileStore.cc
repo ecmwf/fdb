@@ -8,11 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-// #include "eckit/io/FileHandle.h"
-#include "eckit/value/Value.h"
-#include "eckit/value/Content.h"
-
-#include "eckit/parser/JSON.h"
 #include "fdb5/FileStore.h"
 #include "eckit/serialisation/Stream.h"
 
@@ -35,7 +30,7 @@ void FileStore::FieldRef::dump(std::ostream &s) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FileStore::FileStore(const eckit::PathName& tocDir) :
+FileStore::FileStore(const eckit::PathName &tocDir) :
     next_(0),
     readOnly_(false),
     tocDir_(tocDir) {
@@ -45,14 +40,14 @@ FileStore::~FileStore() {
 }
 
 
-FileStore::FileStore(const eckit::PathName& tocDir, eckit::Stream& s):
+FileStore::FileStore(const eckit::PathName &tocDir, eckit::Stream &s):
     next_(0),
     readOnly_(true),
     tocDir_(tocDir) {
     size_t n;
 
     s >> n;
-    for(size_t i = 0; i < n ; i++) {
+    for (size_t i = 0; i < n ; i++) {
         FileStore::PathID id;
         std::string p;
 
@@ -61,7 +56,7 @@ FileStore::FileStore(const eckit::PathName& tocDir, eckit::Stream& s):
 
         eckit::PathName path(p);
 
-        if(!p.empty() && p[0] != '/') {
+        if (!p.empty() && p[0] != '/') {
             path = tocDir_ / path;
         }
 
@@ -73,11 +68,11 @@ FileStore::FileStore(const eckit::PathName& tocDir, eckit::Stream& s):
 }
 
 
-void FileStore::encode(eckit::Stream& s) const {
+void FileStore::encode(eckit::Stream &s) const {
     s << paths_.size();
     for ( PathStore::const_iterator i = paths_.begin(); i != paths_.end(); ++i ) {
         s << i->first;
-        const eckit::PathName& path = i->second;
+        const eckit::PathName &path = i->second;
         s << ( (path.dirName() == tocDir_) ?  path.baseName() : path );
     }
 }

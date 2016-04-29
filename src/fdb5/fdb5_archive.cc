@@ -18,7 +18,7 @@ using namespace eckit;
 
 class FDBArchive : public eckit::Tool {
     virtual void run();
-  public:
+public:
     FDBArchive(int argc, char **argv): Tool(argc, argv) {}
 };
 

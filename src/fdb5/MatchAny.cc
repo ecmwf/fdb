@@ -16,44 +16,39 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchAny::MatchAny(const std::set<std::string>& values) :
+MatchAny::MatchAny(const std::set<std::string> &values) :
     Matcher(),
-    values_(values)
-{
+    values_(values) {
 }
 
-MatchAny::~MatchAny()
-{
+MatchAny::~MatchAny() {
 }
 
-bool MatchAny::match(const std::string& keyword, const Key& key) const
-{
+bool MatchAny::match(const std::string &keyword, const Key &key) const {
 
     eckit::StringDict::const_iterator i = key.dict().find(keyword);
 
-    if(i == key.dict().end()) {
+    if (i == key.dict().end()) {
         return false;
     }
 
     return (values_.find(i->second) != values_.end());
 }
 
-void MatchAny::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const
-{
-    const char* sep = "";
+void MatchAny::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
+    const char *sep = "";
     registry.dump(s, keyword);
     s << "=";
-    for( std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
+    for ( std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
         s << sep << *i;
         sep = "/";
     }
 }
 
-void MatchAny::print(std::ostream& out) const
-{
+void MatchAny::print(std::ostream &out) const {
     out << "MatchAny[values=";
-    const char* sep = "";
-    for( std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
+    const char *sep = "";
+    for ( std::set<std::string>::const_iterator i = values_.begin(); i != values_.end(); ++i) {
         out << sep << *i;
         sep = ",";
     }

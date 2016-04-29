@@ -33,24 +33,24 @@ class Matcher : public eckit::NonCopyable {
 
 public: // methods
 
-	Matcher();
+    Matcher();
 
     virtual ~Matcher();
 
     virtual bool optional() const;
 
-    virtual const std::string& value(const Key&, const std::string& keyword) const;
-    virtual const std::string& defaultValue() const;
+    virtual const std::string &value(const Key &, const std::string &keyword) const;
+    virtual const std::string &defaultValue() const;
 
-    virtual bool match(const std::string& keyword, const Key& key) const = 0;
+    virtual bool match(const std::string &keyword, const Key &key) const = 0;
 
-    virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const = 0;
+    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const = 0;
 
-    friend std::ostream& operator<<(std::ostream& s,const Matcher& x);
+    friend std::ostream &operator<<(std::ostream &s, const Matcher &x);
 
 private: // methods
 
-    virtual void print( std::ostream& out ) const = 0;
+    virtual void print( std::ostream &out ) const = 0;
 
 };
 

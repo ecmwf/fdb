@@ -31,21 +31,18 @@ private:
 public:
 
     FDBIndex(int argc, char **argv) :
-        eckit::Tool(argc,argv)
-    {
+        eckit::Tool(argc, argv) {
     }
 
 };
 
-void FDBIndex::run()
-{
-    eckit::Context& ctx = eckit::Context::instance();
+void FDBIndex::run() {
+    eckit::Context &ctx = eckit::Context::instance();
 
     static std::string pattern = eckit::Resource<std::string>("fdbPattern", "/:*.");
     //  e.g. "/*[pcf][fc]:0000:*."
 
-    for(int i = 1; i < ctx.argc(); i++)
-    {
+    for (int i = 1; i < ctx.argc(); i++) {
         eckit::PathName path(ctx.argv(i));
 
         eckit::Log::info() << "Scanning FDB db " << path << std::endl;
@@ -54,7 +51,7 @@ void FDBIndex::run()
 
         eckit::PathName::match(path / pattern, indexes, true); // match checks that path is a directory
 
-        for(std::vector<eckit::PathName>::const_iterator j = indexes.begin(); j != indexes.end(); ++j) {
+        for (std::vector<eckit::PathName>::const_iterator j = indexes.begin(); j != indexes.end(); ++j) {
             fdb5::legacy::FDBIndexScanner scanner(*j);
             scanner.execute();
         }
@@ -63,9 +60,8 @@ void FDBIndex::run()
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int main(int argc, char **argv)
-{
-    FDBIndex app(argc,argv);
+int main(int argc, char **argv) {
+    FDBIndex app(argc, argv);
     return app.start();
 }
 

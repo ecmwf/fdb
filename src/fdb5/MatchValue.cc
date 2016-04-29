@@ -16,35 +16,30 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchValue::MatchValue(const std::string& value) :
+MatchValue::MatchValue(const std::string &value) :
     Matcher(),
-    value_(value)
-{
+    value_(value) {
 }
 
-MatchValue::~MatchValue()
-{
+MatchValue::~MatchValue() {
 }
 
-bool MatchValue::match(const std::string& keyword, const Key& key) const
-{
+bool MatchValue::match(const std::string &keyword, const Key &key) const {
     eckit::StringDict::const_iterator i = key.dict().find(keyword);
 
-    if(i == key.dict().end()) {
+    if (i == key.dict().end()) {
         return false;
     }
 
     return ( i->second == value_ );
 }
 
-void MatchValue::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const
-{
+void MatchValue::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
     registry.dump(s, keyword);
     s << "=" << value_;
 }
 
-void MatchValue::print(std::ostream& out) const
-{
+void MatchValue::print(std::ostream &out) const {
     out << "MatchValue[value=" << value_ << "]";
 }
 

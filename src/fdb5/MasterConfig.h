@@ -33,9 +33,9 @@ class MasterConfig : public eckit::NonCopyable {
 
 public: // methods
 
-    static MasterConfig& instance();
+    static MasterConfig &instance();
 
-    const Schema& schema() const;
+    const Schema &schema() const;
 
     std::string schemaPath() const;
 

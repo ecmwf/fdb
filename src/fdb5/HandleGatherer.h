@@ -21,7 +21,9 @@
 
 #include "eckit/memory/NonCopyable.h"
 
-namespace eckit { class DataHandle; }
+namespace eckit {
+class DataHandle;
+}
 
 
 namespace fdb5 {
@@ -37,18 +39,18 @@ public: // methods
 
     ~HandleGatherer();
 
-    void add(eckit::DataHandle*);
+    void add(eckit::DataHandle *);
 
-    eckit::DataHandle* dataHandle();
+    eckit::DataHandle *dataHandle();
 
 
 private: // members
 
     bool sorted_;
-    std::vector<eckit::DataHandle*> handles_;
+    std::vector<eckit::DataHandle *> handles_;
 
-    void print( std::ostream& out ) const;
-    friend std::ostream& operator<<(std::ostream& s,const HandleGatherer& x) {
+    void print( std::ostream &out ) const;
+    friend std::ostream &operator<<(std::ostream &s, const HandleGatherer &x) {
         x.print(s);
         return s;
     }

@@ -8,10 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
 
-#include "marslib/MarsTask.h"
+#include "marslib/MarsRequest.h"
 
 #include "fdb5/TypesFactory.h"
 #include "fdb5/TypeInteger.h"
@@ -20,36 +19,32 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeInteger::TypeInteger(const std::string& name, const std::string& type) :
-    Type(name, type)
-{
+TypeInteger::TypeInteger(const std::string &name, const std::string &type) :
+    Type(name, type) {
 }
 
-TypeInteger::~TypeInteger()
-{
+TypeInteger::~TypeInteger() {
 }
 
-void TypeInteger::getValues(const MarsRequest& request,
-                               const std::string& keyword,
-                               StringList& values,
-                               const MarsTask& task,
-                               const DB* db) const
-{
+void TypeInteger::getValues(const MarsRequest &request,
+                            const std::string &keyword,
+                            eckit::StringList &values,
+                            const MarsTask &task,
+                            const DB *db) const {
     std::vector<long> intValues;
 
     request.getValues(keyword, intValues);
 
-    Translator<long, std::string> t;
+    eckit::Translator<long, std::string> t;
 
     values.reserve(intValues.size());
 
-    for(std::vector<long>::const_iterator i = intValues.begin(); i != intValues.end(); ++i) {
+    for (std::vector<long>::const_iterator i = intValues.begin(); i != intValues.end(); ++i) {
         values.push_back(t(*i));
     }
 }
 
-void TypeInteger::print(std::ostream &out) const
-{
+void TypeInteger::print(std::ostream &out) const {
     out << "TypeInteger[name=" << name_ << "]";
 }
 

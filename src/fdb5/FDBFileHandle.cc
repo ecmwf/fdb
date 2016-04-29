@@ -16,74 +16,62 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void FDBFileHandle::print(std::ostream& s) const
-{
+void FDBFileHandle::print(std::ostream &s) const {
     s << "FDBFileHandle[file=" << name_ << ']';
 }
 
-FDBFileHandle::FDBFileHandle(const std::string& name,size_t buffer):
+FDBFileHandle::FDBFileHandle(const std::string &name, size_t buffer):
     name_(name),
     file_(0),
-    buffer_(buffer)
-{
+    buffer_(buffer) {
 }
 
-FDBFileHandle::~FDBFileHandle()
-{
+FDBFileHandle::~FDBFileHandle() {
 }
 
-Length FDBFileHandle::openForRead()
-{
+Length FDBFileHandle::openForRead() {
     NOTIMP;
 }
 
-void FDBFileHandle::openForWrite(const Length& length)
-{
+void FDBFileHandle::openForWrite(const Length &length) {
     NOTIMP;
 }
 
-void FDBFileHandle::openForAppend(const Length&)
-{
+void FDBFileHandle::openForAppend(const Length &) {
     file_ = fopen(name_.c_str(), "a");
-    if(!file_) {
+    if (!file_) {
         throw eckit::CantOpenFile(name_);
     }
 
     SYSCALL(::setvbuf(file_, buffer_, _IOFBF, buffer_.size()));
 }
 
-long FDBFileHandle::read(void* buffer,long length)
-{
+long FDBFileHandle::read(void *buffer, long length) {
     NOTIMP;
 }
 
-long FDBFileHandle::write(const void* buffer,long length)
-{
-	ASSERT( buffer );
+long FDBFileHandle::write(const void *buffer, long length) {
+    ASSERT( buffer );
 
-	long written = ::fwrite(buffer,1,length,file_);
+    long written = ::fwrite(buffer, 1, length, file_);
 
-    if(written != length) {
+    if (written != length) {
         throw eckit::WriteError(name_);
     }
 
     return written;
 }
 
-void FDBFileHandle::flush()
-{
-    if(file_) {
+void FDBFileHandle::flush() {
+    if (file_) {
         if (::fflush(file_))
             throw WriteError(std::string("FDBFileHandle::~FDBFileHandle(fflush(") + name_ + "))");
     }
 }
 
-void FDBFileHandle::close()
-{
-    if(file_)
-    {
-        if(::fclose(file_))
-        {
+void FDBFileHandle::close() {
+    if (file_) {
+        if (::fclose(file_)) {
             file_ = 0;
             throw WriteError(std::string("fclose ") + name());
         }
@@ -91,14 +79,12 @@ void FDBFileHandle::close()
     }
 }
 
-Offset FDBFileHandle::position()
-{
+Offset FDBFileHandle::position() {
     ASSERT(file_);
     return ::ftello(file_);
 }
 
-std::string FDBFileHandle::title() const
-{
+std::string FDBFileHandle::title() const {
     return PathName::shorten(name_);
 }
 

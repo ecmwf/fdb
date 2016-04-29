@@ -28,14 +28,14 @@ namespace fdb5 {
 struct TocRecord {
 
     enum {
-        TOC_NULL =   0,
-        TOC_INIT =   't',
-        TOC_INDEX=   'i',
-        TOC_CLEAR=   'c',
-        TOC_WIPE =   'w'
+        TOC_NULL = 0,
+        TOC_INIT = 't',
+        TOC_INDEX = 'i',
+        TOC_CLEAR = 'c',
+        TOC_WIPE = 'w'
     };
 
-    static const size_t maxPayloadSize = 1024*1024;
+    static const size_t maxPayloadSize = 1024 * 1024;
 
     TocRecord( unsigned char tag = TOC_NULL);
 
@@ -58,11 +58,11 @@ struct TocRecord {
     Header                 header_;
     unsigned char          payload_[maxPayloadSize];
 
-    static const size_t headerSize = sizeof(header_);
+    static const size_t headerSize = sizeof(Header);
 
     void print(std::ostream &out) const;
 
-    friend std::ostream& operator<<(std::ostream& s,const TocRecord& r) {
+    friend std::ostream &operator<<(std::ostream &s, const TocRecord &r) {
         r.print(s);
         return s;
     }

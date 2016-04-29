@@ -21,18 +21,15 @@ static std::string empty;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchOptional::MatchOptional(const std::string& def) :
+MatchOptional::MatchOptional(const std::string &def) :
     Matcher(),
-    default_(def)
-{
+    default_(def) {
 }
 
-MatchOptional::~MatchOptional()
-{
+MatchOptional::~MatchOptional() {
 }
 
-bool MatchOptional::match(const std::string& keyword, const Key& key) const
-{
+bool MatchOptional::match(const std::string &keyword, const Key &key) const {
     return true;
 }
 
@@ -41,28 +38,26 @@ bool MatchOptional::optional() const {
 }
 
 
-const std::string& MatchOptional::value(const Key& key, const std::string& keyword) const {
+const std::string &MatchOptional::value(const Key &key, const std::string &keyword) const {
     eckit::StringDict::const_iterator i = key.dict().find(keyword);
 
-    if(i == key.dict().end()) {
+    if (i == key.dict().end()) {
         return default_;
     }
 
     return key.get(keyword);
 }
 
-const std::string& MatchOptional::defaultValue() const {
+const std::string &MatchOptional::defaultValue() const {
     return default_;
 }
 
-void MatchOptional::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const
-{
+void MatchOptional::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
     registry.dump(s, keyword);
     s << '?' << default_;
 }
 
-void MatchOptional::print(std::ostream& out) const
-{
+void MatchOptional::print(std::ostream &out) const {
     out << "MatchOptional[default=" << default_ << "]";
 }
 

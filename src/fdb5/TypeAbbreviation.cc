@@ -18,42 +18,38 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeAbbreviation::TypeAbbreviation(const std::string& name, const std::string& type) :
-    Type(name, type)
-{
-    count_ = char(type[type.length()-1]) - '0';
+TypeAbbreviation::TypeAbbreviation(const std::string &name, const std::string &type) :
+    Type(name, type) {
+    count_ = char(type[type.length() - 1]) - '0';
 }
 
-TypeAbbreviation::~TypeAbbreviation()
-{
+TypeAbbreviation::~TypeAbbreviation() {
 }
 
-void TypeAbbreviation::toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const {
+void TypeAbbreviation::toKey(std::ostream &out,
+                             const std::string &keyword,
+                             const std::string &value) const {
 
     out << value.substr(0, count_);
 }
 
-void TypeAbbreviation::getValues(const MarsRequest& request,
-                               const std::string& keyword,
-                               eckit::StringList& values,
-                               const MarsTask& task,
-                               const DB* db) const
-{
+void TypeAbbreviation::getValues(const MarsRequest &request,
+                                 const std::string &keyword,
+                                 eckit::StringList &values,
+                                 const MarsTask &task,
+                                 const DB *db) const {
     std::vector<std::string> vals;
 
     request.getValues(keyword, vals);
 
     values.reserve(vals.size());
 
-    for(std::vector<std::string>::const_iterator i = vals.begin(); i != vals.end(); ++i) {
+    for (std::vector<std::string>::const_iterator i = vals.begin(); i != vals.end(); ++i) {
         values.push_back((*i).substr(0, count_));
     }
 }
 
-void TypeAbbreviation::print(std::ostream &out) const
-{
+void TypeAbbreviation::print(std::ostream &out) const {
     out << "TypeAbbreviation[name=" << name_ << ",count=" << count_ << "]";
 }
 

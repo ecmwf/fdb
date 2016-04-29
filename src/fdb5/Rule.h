@@ -40,73 +40,73 @@ class Rule : public eckit::NonCopyable {
 public: // methods
 
     /// Takes ownership of vectors
-    Rule(const Schema& schema,
-        size_t line,
-        std::vector<Predicate*>& predicates,
-        std::vector<Rule*>& rules,
-        const std::map<std::string, std::string>& types
+    Rule(const Schema &schema,
+         size_t line,
+         std::vector<Predicate *> &predicates,
+         std::vector<Rule *> &rules,
+         const std::map<std::string, std::string> &types
         );
 
     ~Rule();
 
-    bool match(const Key& key) const;
+    bool match(const Key &key) const;
 
     eckit::StringList keys(size_t level) const;
 
-    void dump(std::ostream& s, size_t depth = 0) const;
+    void dump(std::ostream &s, size_t depth = 0) const;
 
-    void expand(const MarsRequest& request,
-        ReadVisitor& Visitor,
-        size_t depth,
-        std::vector<fdb5::Key>& keys,
-        Key& full) const;
-
-    void expand(const Key& field,
-                WriteVisitor& Visitor,
+    void expand(const MarsRequest &request,
+                ReadVisitor &Visitor,
                 size_t depth,
-                std::vector<fdb5::Key>& keys,
-                Key& full) const;
+                std::vector<fdb5::Key> &keys,
+                Key &full) const;
+
+    void expand(const Key &field,
+                WriteVisitor &Visitor,
+                size_t depth,
+                std::vector<fdb5::Key> &keys,
+                Key &full) const;
 
 
 
     size_t depth() const;
-    void updateParent(const Rule* parent);
+    void updateParent(const Rule *parent);
 
-    const Rule& topRule() const;
+    const Rule &topRule() const;
 
-    const Schema& schema() const;
-    const TypesRegistry& registry() const;
+    const Schema &schema() const;
+    const TypesRegistry &registry() const;
 
 private: // methods
 
-    void expand(const MarsRequest& request,
-                 std::vector<Predicate*>::const_iterator cur,
-                 size_t depth,
-                 std::vector<Key>& keys,
-                 Key& full,
-                 ReadVisitor& Visitor) const;
+    void expand(const MarsRequest &request,
+                std::vector<Predicate *>::const_iterator cur,
+                size_t depth,
+                std::vector<Key> &keys,
+                Key &full,
+                ReadVisitor &Visitor) const;
 
-    void expand(const Key& field,
-             std::vector<Predicate*>::const_iterator cur,
-             size_t depth,
-             std::vector<Key>& keys,
-             Key& full,
-             WriteVisitor& Visitor) const;
+    void expand(const Key &field,
+                std::vector<Predicate *>::const_iterator cur,
+                size_t depth,
+                std::vector<Key> &keys,
+                Key &full,
+                WriteVisitor &Visitor) const;
 
 
-    void keys(size_t level, size_t depth, eckit::StringList&result, eckit::StringSet& seen) const;
+    void keys(size_t level, size_t depth, eckit::StringList &result, eckit::StringSet &seen) const;
 
-    friend std::ostream& operator<<(std::ostream& s,const Rule& x);
+    friend std::ostream &operator<<(std::ostream &s, const Rule &x);
 
-    void print( std::ostream& out ) const;
+    void print( std::ostream &out ) const;
 
 
 private: // members
 
-    const Schema& schema_;
-    const Rule* parent_;
-    std::vector<Predicate*> predicates_;
-    std::vector<Rule*>      rules_;
+    const Schema &schema_;
+    const Rule *parent_;
+    std::vector<Predicate *> predicates_;
+    std::vector<Rule *>      rules_;
     TypesRegistry registry_;
 
     friend class Schema;

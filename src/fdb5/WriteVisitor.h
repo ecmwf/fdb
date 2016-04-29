@@ -36,30 +36,37 @@ class WriteVisitor : public eckit::NonCopyable {
 
 public: // methods
 
-    WriteVisitor(std::vector<Key>&);
+    WriteVisitor(std::vector<Key> &);
 
     virtual ~WriteVisitor();
 
-    virtual bool selectDatabase(const Key& key, const Key& full) = 0;
-    virtual bool selectIndex(const Key& key, const Key& full) = 0;
-    virtual bool selectDatum(const Key& key, const Key& full) = 0;
+    virtual bool selectDatabase(const Key &key, const Key &full) = 0;
+    virtual bool selectIndex(const Key &key, const Key &full) = 0;
+    virtual bool selectDatum(const Key &key, const Key &full) = 0;
 
-    void rule(const Rule* r) { rule_ = r; }
-    const Rule* rule() const { return rule_; }
+    void rule(const Rule *r) {
+        rule_ = r;
+    }
+    const Rule *rule() const {
+        return rule_;
+    }
 
 protected: // methods
 
-    virtual void print( std::ostream& out ) const = 0;
+    virtual void print( std::ostream &out ) const = 0;
 
 private: // members
 
-    friend std::ostream& operator<<(std::ostream& s,const WriteVisitor& x) { x.print(s); return s; }
+    friend std::ostream &operator<<(std::ostream &s, const WriteVisitor &x) {
+        x.print(s);
+        return s;
+    }
 
     friend class Rule;
 
-    std::vector<Key>& prev_;
+    std::vector<Key> &prev_;
 
-    const Rule* rule_; // Last rule used
+    const Rule *rule_; // Last rule used
 
 };
 

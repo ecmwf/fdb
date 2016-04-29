@@ -36,23 +36,26 @@ public: // methods
 
     virtual ~ReadVisitor();
 
-    virtual bool selectDatabase(const Key& key, const Key& full) = 0;
-    virtual bool selectIndex(const Key& key, const Key& full) = 0;
-    virtual bool selectDatum(const Key& key, const Key& full) = 0;
+    virtual bool selectDatabase(const Key &key, const Key &full) = 0;
+    virtual bool selectIndex(const Key &key, const Key &full) = 0;
+    virtual bool selectDatum(const Key &key, const Key &full) = 0;
 
 
-    virtual void values(const MarsRequest& request,
-                        const std::string& keyword,
-                        const TypesRegistry& registry,
-                        eckit::StringList& values) = 0;
+    virtual void values(const MarsRequest &request,
+                        const std::string &keyword,
+                        const TypesRegistry &registry,
+                        eckit::StringList &values) = 0;
 
 protected: // methods
 
-    virtual void print( std::ostream& out ) const = 0;
+    virtual void print( std::ostream &out ) const = 0;
 
 private: // members
 
-    friend std::ostream& operator<<(std::ostream& s,const ReadVisitor& x) { x.print(s); return s; }
+    friend std::ostream &operator<<(std::ostream &s, const ReadVisitor &x) {
+        x.print(s);
+        return s;
+    }
 
 };
 

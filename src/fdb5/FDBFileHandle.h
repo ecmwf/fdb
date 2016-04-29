@@ -1,9 +1,9 @@
 /*
  * (C) Copyright 1996-2016 ECMWF.
- * 
+ *
  * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0. 
- * In applying this licence, ECMWF does not waive the privileges and immunities 
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
@@ -18,7 +18,6 @@
 
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/Buffer.h"
-#include "eckit/memory/ScopedPtr.h"
 
 namespace fdb5 {
 
@@ -32,37 +31,37 @@ namespace fdb5 {
 class FDBFileHandle : public eckit::DataHandle {
 public:
 
-// -- Contructors
+    // -- Contructors
 
-    FDBFileHandle(const std::string&, size_t buffer);
+    FDBFileHandle(const std::string &, size_t buffer);
 
-// -- Destructor
+    // -- Destructor
 
     ~FDBFileHandle();
 
-// --  Methods
+    // --  Methods
 
 
-// -- Overridden methods
+    // -- Overridden methods
 
     // From eckit::DataHandle
 
     virtual eckit::Length openForRead();
-    virtual void   openForWrite(const eckit::Length&);
-    virtual void   openForAppend(const eckit::Length&);
+    virtual void   openForWrite(const eckit::Length &);
+    virtual void   openForAppend(const eckit::Length &);
 
-	virtual long   read(void*,long);
-	virtual long   write(const void*,long);
+    virtual long   read(void *, long);
+    virtual long   write(const void *, long);
     virtual void   close();
     virtual void   flush();
-	virtual void   print(std::ostream&) const;
+    virtual void   print(std::ostream &) const;
     virtual eckit::Offset position();
     virtual std::string title() const;
 
 private: // members
 
     std::string      name_;
-	FILE*            file_;
+    FILE            *file_;
     eckit::Buffer    buffer_;
 
 };

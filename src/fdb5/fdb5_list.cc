@@ -12,7 +12,6 @@
 #include "eckit/runtime/Context.h"
 #include "eckit/filesystem/PathName.h"
 
-#include "fdb5/Key.h"
 #include "fdb5/Index.h"
 #include "fdb5/TocHandler.h"
 
@@ -23,18 +22,17 @@ using namespace fdb5;
 class FDBList : public eckit::Tool {
     virtual void run();
 public:
-    FDBList(int argc,char **argv): Tool(argc,argv) {}
+    FDBList(int argc, char **argv): Tool(argc, argv) {}
 };
 
-void FDBList::run()
-{
-    Context& ctx = Context::instance();
+void FDBList::run() {
+    Context &ctx = Context::instance();
 
     for (int i = 1; i < ctx.argc(); i++) {
 
         eckit::PathName path(ctx.argv(i));
 
-        if(!path.isDir()) {
+        if (!path.isDir()) {
             path = path.dirName();
         }
 
@@ -45,9 +43,9 @@ void FDBList::run()
 
         fdb5::TocHandler handler(path);
 
-        std::vector<Index*> indexes = handler.loadIndexes();
+        std::vector<Index *> indexes = handler.loadIndexes();
 
-        for(std::vector<Index*>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+        for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
             Log::info() << "Index path " << (*i)->path() << std::endl;
             (*i)->list(Log::info());
         }
@@ -59,9 +57,8 @@ void FDBList::run()
 }
 
 
-int main(int argc, char **argv)
-{
-    FDBList app(argc,argv);
+int main(int argc, char **argv) {
+    FDBList app(argc, argv);
     return app.start();
 }
 

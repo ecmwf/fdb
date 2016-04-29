@@ -22,7 +22,9 @@
 #include "fdb5/Key.h"
 #include "fdb5/legacy/LegacyTranslator.h"
 
-namespace eckit { class DataHandle; }
+namespace eckit {
+class DataHandle;
+}
 
 namespace fdb5 {
 namespace legacy {
@@ -37,7 +39,7 @@ public: // methods
 
     void archive(const eckit::DataBlobPtr blob);
 
-    void legacy(const std::string& keyword, const std::string& value);
+    void legacy(const std::string &keyword, const std::string &value);
 
 private: // members
 

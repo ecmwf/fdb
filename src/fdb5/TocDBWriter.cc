@@ -8,28 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "mars_server_config.h"
-
-#include <cstring>
-#include <fcntl.h>
-#include <errno.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#ifdef EC_HAVE_SYS_VFS_H
-#include <sys/vfs.h>
-#endif
-
-#ifdef EC_HAVE_SYS_MOUNT_H
-#include <sys/param.h>
-#include <sys/mount.h>
-#endif
 
 #include "eckit/config/Resource.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/log/Plural.h"
-#include "eckit/log/Timer.h"
 #include "eckit/io/AIOHandle.h"
 
 #include "fdb5/TocDBWriter.h"
@@ -42,25 +22,22 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-TocDBWriter::TocDBWriter(const Key& key) :
+TocDBWriter::TocDBWriter(const Key &key) :
     TocDB(key),
     current_(0),
-    dirty_(false)
-{
+    dirty_(false) {
     writeInitRecord(key);
     loadSchema();
 }
 
-TocDBWriter::~TocDBWriter()
-{
+TocDBWriter::~TocDBWriter() {
     close();
 }
 
-bool TocDBWriter::selectIndex(const Key& key)
-{
+bool TocDBWriter::selectIndex(const Key &key) {
     currentIndexKey_ = key;
 
-    if(indexes_.find(key) == indexes_.end()) {
+    if (indexes_.find(key) == indexes_.end()) {
         indexes_[key] = new TocIndex(key, generateIndexPath(key), Index::WRITE);
     }
 
@@ -70,8 +47,7 @@ bool TocDBWriter::selectIndex(const Key& key)
     return true;
 }
 
-void TocDBWriter::deselectIndex()
-{
+void TocDBWriter::deselectIndex() {
     current_ = 0;
     currentIndexKey_ = Key();
 }
@@ -82,7 +58,7 @@ bool TocDBWriter::open() {
 
 void TocDBWriter::close() {
 
-    Log::info() << "Closing path " << directory_ << std::endl;
+    eckit::Log::info() << "Closing path " << directory_ << std::endl;
 
     flush(); // closes the TOC entries & indexes but not data files
 
@@ -92,49 +68,42 @@ void TocDBWriter::close() {
 }
 
 
-void TocDBWriter::index(const Key& key, const PathName& path, Offset offset, Length length)
-{
+void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
     dirty_ = true;
 
-    if(!current_) {
+    if (!current_) {
         ASSERT(!currentIndexKey_.dict().empty());
         selectIndex(currentIndexKey_);
     }
 
     Index::Field field(path, offset, length);
 
-    Log::debug(2) << " indexing {" << key << "," << field << "}" << std::endl;
-
     current_->put(key, field);
 }
 
-void TocDBWriter::archive(const Key& key, const void *data, Length length)
-{
+void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length) {
     dirty_ = true;
 
-    if(!current_) {
+    if (!current_) {
         ASSERT(!currentIndexKey_.dict().empty());
         selectIndex(currentIndexKey_);
     }
 
-    PathName dataPath = getDataPath(current_->key());
+    eckit::PathName dataPath = getDataPath(current_->key());
 
-    eckit::DataHandle& dh = getDataHandle(dataPath);
+    eckit::DataHandle &dh = getDataHandle(dataPath);
 
-    Offset position = dh.position();
+    eckit::Offset position = dh.position();
 
     dh.write( data, length );
 
     Index::Field field (dataPath, position, length);
 
-    Log::debug(2) << " pushing {" << key << "," << field << "}" << std::endl;
-
     current_->put(key, field);
 }
 
-void TocDBWriter::flush()
-{
-    if(!dirty_) {
+void TocDBWriter::flush() {
+    if (!dirty_) {
         return;
     }
 
@@ -153,46 +122,39 @@ void TocDBWriter::flush()
 }
 
 
-eckit::DataHandle* TocDBWriter::getCachedHandle( const PathName& path ) const
-{
+eckit::DataHandle *TocDBWriter::getCachedHandle( const eckit::PathName &path ) const {
     HandleStore::const_iterator j = handles_.find( path );
-    if( j != handles_.end() )
+    if ( j != handles_.end() )
         return j->second;
     else
         return 0;
 }
 
-void TocDBWriter::closeDataHandles()
-{
-    for( HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j )
-    {
-        eckit::DataHandle* dh = j->second;
+void TocDBWriter::closeDataHandles() {
+    for ( HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j ) {
+        eckit::DataHandle *dh = j->second;
         dh->close();
         delete dh;
     }
     handles_.clear();
 }
 
-eckit::DataHandle* TocDBWriter::createFileHandle(const PathName& path)
-{
-    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize",64*1024*1024);
+eckit::DataHandle *TocDBWriter::createFileHandle(const eckit::PathName &path) {
+    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
     return new FDBFileHandle(path, sizeBuffer);
 }
 
-DataHandle* TocDBWriter::createAsyncHandle(const PathName& path)
-{
-    static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers",4);
-    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer",64*1024*1024);
+eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
+    static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
+    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
 
-    return new AIOHandle(path,nbBuffers,sizeBuffer);
+    return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
 }
 
 
-DataHandle& TocDBWriter::getDataHandle( const PathName& path )
-{
-    eckit::DataHandle* dh = getCachedHandle( path );
-    if( !dh )
-    {
+eckit::DataHandle &TocDBWriter::getDataHandle( const eckit::PathName &path ) {
+    eckit::DataHandle *dh = getCachedHandle( path );
+    if ( !dh ) {
         static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite", false);
 
         dh = fdbAsyncWrite ? createAsyncHandle( path ) : createFileHandle( path );
@@ -203,52 +165,43 @@ DataHandle& TocDBWriter::getDataHandle( const PathName& path )
     return *dh;
 }
 
-eckit::PathName TocDBWriter::generateIndexPath(const Key& key) const
-{
-    PathName tocPath ( directory_ );
+eckit::PathName TocDBWriter::generateIndexPath(const Key &key) const {
+    eckit::PathName tocPath ( directory_ );
     tocPath /= key.valuesToString();
-    tocPath = PathName::unique(tocPath) + ".index";
+    tocPath = eckit::PathName::unique(tocPath) + ".index";
     return tocPath;
 }
 
-eckit::PathName TocDBWriter::generateDataPath(const Key& key) const
-{
-    PathName dpath ( directory_ );
+eckit::PathName TocDBWriter::generateDataPath(const Key &key) const {
+    eckit::PathName dpath ( directory_ );
     dpath /=  key.valuesToString();
-    dpath = PathName::unique(dpath) + ".data";
+    dpath = eckit::PathName::unique(dpath) + ".data";
     return dpath;
 }
 
-PathName TocDBWriter::getDataPath(const Key& key)
-{
+eckit::PathName TocDBWriter::getDataPath(const Key &key) {
     PathStore::const_iterator j = dataPaths_.find(key);
-    if( j != dataPaths_.end() )
+    if ( j != dataPaths_.end() )
         return j->second;
 
-    PathName dataPath = generateDataPath(key);
+    eckit::PathName dataPath = generateDataPath(key);
 
     dataPaths_[ key ] = dataPath;
 
     return dataPath;
 }
 
-void TocDBWriter::flushIndexes()
-{
-    Timer timer("TocDBWriter::flushIndexes()");
-    for(IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j )
-    {
-        Index* idx = j->second;
+void TocDBWriter::flushIndexes() {
+    for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
+        Index *idx = j->second;
         idx->flush();
     }
 }
 
 
-void TocDBWriter::closeIndexes()
-{
-    Timer timer("TocDBWriter::close()");
-    for(IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j )
-    {
-        Index* idx = j->second;
+void TocDBWriter::closeIndexes() {
+    for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
+        Index *idx = j->second;
         idx->close();
         writeIndexRecord(*idx);
         delete idx;
@@ -257,22 +210,16 @@ void TocDBWriter::closeIndexes()
     indexes_.clear();
 }
 
-void TocDBWriter::flushDataHandles()
-{
-    Timer timer("TocDBWriter::flushDataHandles()");
+void TocDBWriter::flushDataHandles() {
 
-    Log::info() << "Flushing " << Plural(handles_.size(),"data handle") << std::endl;
-
-    for(HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j)
-    {
-        eckit::DataHandle* dh = j->second;
+    for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
+        eckit::DataHandle *dh = j->second;
         dh->flush();
     }
 }
 
 
-void TocDBWriter::print(std::ostream &out) const
-{
+void TocDBWriter::print(std::ostream &out) const {
     out << "TocDBWriter["
         /// @todo should print more here
         << "]";

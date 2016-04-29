@@ -28,30 +28,30 @@ class TocDBReader : public TocDB {
 
 public: // methods
 
-    TocDBReader(const Key& key);
+    TocDBReader(const Key &key);
 
     virtual ~TocDBReader();
 
 private: // methods
 
-    virtual bool selectIndex(const Key& key);
+    virtual bool selectIndex(const Key &key);
     virtual void deselectIndex();
 
     virtual bool open();
     virtual void close();
 
-    virtual void axis(const std::string& keyword, eckit::StringSet& s) const;
+    virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
 
-    virtual eckit::DataHandle* retrieve(const Key& key) const;
+    virtual eckit::DataHandle *retrieve(const Key &key) const;
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream &out ) const;
 
 
 private: // members
 
     Key currentIndexKey_;
-    std::vector<Index*> current_; // Indexes matching current key
-    std::vector<Index*> indexes_; // All indexes
+    std::vector<Index *> current_; // Indexes matching current key
+    std::vector<Index *> indexes_; // All indexes
 
 };
 

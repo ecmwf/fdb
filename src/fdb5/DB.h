@@ -25,7 +25,9 @@
 
 #include "fdb5/Key.h"
 
-namespace eckit { class DataHandle; }
+namespace eckit {
+class DataHandle;
+}
 
 class MarsTask;
 
@@ -39,37 +41,39 @@ class DB : public eckit::OwnedLock {
 
 public: // methods
 
-    DB(const Key& key);
+    DB(const Key &key);
 
     virtual ~DB();
 
-    const Key& key() const { return key_; }
+    const Key &key() const {
+        return key_;
+    }
 
-    virtual bool selectIndex(const Key& key) = 0;
+    virtual bool selectIndex(const Key &key) = 0;
     virtual void deselectIndex() = 0;
 
     virtual bool open() = 0;
 
-    virtual void axis(const std::string& keyword, eckit::StringSet& s) const = 0;
+    virtual void axis(const std::string &keyword, eckit::StringSet &s) const = 0;
 
-    virtual eckit::DataHandle* retrieve(const Key& key) const = 0;
+    virtual eckit::DataHandle *retrieve(const Key &key) const = 0;
 
-    virtual void archive(const Key& key, const void* data, eckit::Length length) = 0;
+    virtual void archive(const Key &key, const void *data, eckit::Length length) = 0;
 
     virtual void flush() = 0;
 
     virtual void close() = 0;
 
-    virtual void checkSchema(const Key& key) const = 0;
+    virtual void checkSchema(const Key &key) const = 0;
 
-    friend std::ostream& operator<<(std::ostream& s,const DB& x);
+    friend std::ostream &operator<<(std::ostream &s, const DB &x);
 
     time_t lastAccess() const;
     void touch();
 
 protected: // methods
 
-    virtual void print( std::ostream& out ) const = 0;
+    virtual void print( std::ostream &out ) const = 0;
 
 protected: // members
 
@@ -89,21 +93,21 @@ class DBFactory {
 
     std::string name_;
 
-    virtual DB* make(const Key& key) const = 0 ;
+    virtual DB *make(const Key &key) const = 0 ;
 
 protected:
 
-    DBFactory(const std::string&);
+    DBFactory(const std::string &);
     virtual ~DBFactory();
 
 public:
 
     static void list(std::ostream &);
-    static DB* build(const std::string&, const Key &key);
+    static DB *build(const std::string &, const Key &key);
 
 private: // methods
 
-    static const DBFactory& findFactory(const std::string&);
+    static const DBFactory &findFactory(const std::string &);
 };
 
 /// Templated specialisation of the self-registering factory,
@@ -112,7 +116,7 @@ private: // methods
 template< class T>
 class DBBuilder : public DBFactory {
 
-    virtual DB* make(const Key& key) const {
+    virtual DB *make(const Key &key) const {
         return new T(key);
     }
 

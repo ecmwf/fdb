@@ -9,8 +9,6 @@
  */
 
 #include "mars_server_version.h"
-
-#include "eckit/types/DateTime.h"
 #include "fdb5/TocRecord.h"
 
 namespace fdb5 {
@@ -20,7 +18,7 @@ namespace fdb5 {
 TocRecord::Header::Header(unsigned char tag):
     tag_(tag) {
 
-    if(tag_ != TOC_NULL) {
+    if (tag_ != TOC_NULL) {
         eckit::zero(*this);
         tag_        = tag;
         version_    = currentVersion();
@@ -40,8 +38,7 @@ TocRecord::Header::Header(unsigned char tag):
 //-----------------------------------------------------------------------------
 
 TocRecord::TocRecord(unsigned char tag):
-    header_(tag)
-{
+    header_(tag) {
 }
 
 
@@ -56,8 +53,7 @@ void TocRecord::print(std::ostream &out) const {
         << "hostname=" << header_.hostname_ << "]";
 }
 
-unsigned int TocRecord::currentVersion()
-{
+unsigned int TocRecord::currentVersion() {
     return 1;
 }
 

@@ -15,28 +15,25 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Matcher::Matcher()
-{
+Matcher::Matcher() {
 }
 
-Matcher::~Matcher()
-{
+Matcher::~Matcher() {
 }
 
 bool Matcher::optional() const {
     return false;
 }
 
-const std::string& Matcher::value(const Key& key, const std::string& keyword) const {
+const std::string &Matcher::value(const Key &key, const std::string &keyword) const {
     return key.get(keyword);
 }
 
-const std::string& Matcher::defaultValue() const {
+const std::string &Matcher::defaultValue() const {
     NOTIMP;
 }
 
-std::ostream& operator<<(std::ostream& s, const Matcher& x)
-{
+std::ostream &operator<<(std::ostream &s, const Matcher &x) {
     x.print(s);
     return s;
 }

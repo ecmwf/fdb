@@ -21,18 +21,15 @@ static std::string empty;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchHidden::MatchHidden(const std::string& def) :
+MatchHidden::MatchHidden(const std::string &def) :
     Matcher(),
-    default_(def)
-{
+    default_(def) {
 }
 
-MatchHidden::~MatchHidden()
-{
+MatchHidden::~MatchHidden() {
 }
 
-bool MatchHidden::match(const std::string& keyword, const Key& key) const
-{
+bool MatchHidden::match(const std::string &keyword, const Key &key) const {
     return true;
 }
 
@@ -40,22 +37,20 @@ bool MatchHidden::optional() const {
     return true;
 }
 
-const std::string& MatchHidden::value(const Key& key, const std::string& keyword) const {
+const std::string &MatchHidden::value(const Key &key, const std::string &keyword) const {
     return default_;
 }
 
-const std::string& MatchHidden::defaultValue() const {
+const std::string &MatchHidden::defaultValue() const {
     return default_;
 }
 
-void MatchHidden::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const
-{
+void MatchHidden::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
     registry.dump(s, keyword);
     s << '-' << default_;
 }
 
-void MatchHidden::print(std::ostream& out) const
-{
+void MatchHidden::print(std::ostream &out) const {
     out << "MatchHidden[default" << default_ << "]";
 }
 

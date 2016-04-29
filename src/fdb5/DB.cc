@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/thread/AutoLock.h"
 
 #include "fdb5/DB.h"
@@ -18,19 +17,19 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace {
-    eckit::Mutex* local_mutex = 0;
-    std::map<std::string, DBFactory*> *m = 0;
-    pthread_once_t once = PTHREAD_ONCE_INIT;
-    void init() {
-        local_mutex = new eckit::Mutex();
-        m = new std::map<std::string, DBFactory*>();
-    }
+eckit::Mutex *local_mutex = 0;
+std::map<std::string, DBFactory *> *m = 0;
+pthread_once_t once = PTHREAD_ONCE_INIT;
+void init() {
+    local_mutex = new eckit::Mutex();
+    m = new std::map<std::string, DBFactory *>();
+}
 }
 
 /// When a concrete instance of a DBFactory is instantiated (in practice
 /// a DBBuilder<>) add it to the list of available factories.
 
-DBFactory::DBFactory(const std::string& name) :
+DBFactory::DBFactory(const std::string &name) :
     name_(name) {
 
     pthread_once(&once, init);
@@ -46,21 +45,21 @@ DBFactory::~DBFactory() {
     m->erase(name_);
 }
 
-void DBFactory::list(std::ostream& out) {
+void DBFactory::list(std::ostream &out) {
 
     pthread_once(&once, init);
 
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    const char* sep = "";
-    for (std::map<std::string, DBFactory*>::const_iterator j = m->begin(); j != m->end(); ++j) {
+    const char *sep = "";
+    for (std::map<std::string, DBFactory *>::const_iterator j = m->begin(); j != m->end(); ++j) {
         out << sep << (*j).first;
         sep = ", ";
     }
 }
 
 
-const DBFactory& DBFactory::findFactory(const std::string& name) {
+const DBFactory &DBFactory::findFactory(const std::string &name) {
 
     pthread_once(&once, init);
 
@@ -81,37 +80,32 @@ const DBFactory& DBFactory::findFactory(const std::string& name) {
 }
 
 
-DB* DBFactory::build(const std::string& name, const Key& key) {
+DB *DBFactory::build(const std::string &name, const Key &key) {
 
-    const DBFactory& factory( findFactory(name) );
+    const DBFactory &factory( findFactory(name) );
 
     return factory.make(key);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DB::DB(const Key& key):
-    key_(key)
-{
+DB::DB(const Key &key):
+    key_(key) {
     touch();
 }
 
-DB::~DB()
-{
+DB::~DB() {
 }
 
-time_t DB::lastAccess() const
-{
+time_t DB::lastAccess() const {
     return lastAccess_;
 }
 
-void DB::touch()
-{
+void DB::touch() {
     lastAccess_ = ::time(0);
 }
 
-std::ostream& operator<<(std::ostream& s, const DB& x)
-{
+std::ostream &operator<<(std::ostream &s, const DB &x) {
     x.print(s);
     return s;
 }

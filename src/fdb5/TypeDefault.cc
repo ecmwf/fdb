@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
-
 #include "fdb5/TypesFactory.h"
 #include "fdb5/TypeDefault.h"
 
@@ -17,17 +15,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeDefault::TypeDefault(const std::string& name, const std::string& type) :
-    Type(name, type)
-{
+TypeDefault::TypeDefault(const std::string &name, const std::string &type) :
+    Type(name, type) {
 }
 
-TypeDefault::~TypeDefault()
-{
+TypeDefault::~TypeDefault() {
 }
 
-void TypeDefault::print(std::ostream &out) const
-{
+void TypeDefault::print(std::ostream &out) const {
     out << "TypeDefault[name=" << name_ << "]";
 }
 

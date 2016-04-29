@@ -23,7 +23,9 @@
 
 #include "fdb5/DB.h"
 
-namespace eckit   { class DataHandle; }
+namespace eckit   {
+class DataHandle;
+}
 
 class MarsTask;
 
@@ -42,19 +44,22 @@ public: // methods
 
     ~Archiver();
 
-    void archive(const Key& key, BaseArchiveVisitor& visitor);
+    void archive(const Key &key, BaseArchiveVisitor &visitor);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
     void flush();
 
-    friend std::ostream& operator<<(std::ostream& s, const Archiver& x) { x.print(s); return s; }
+    friend std::ostream &operator<<(std::ostream &s, const Archiver &x) {
+        x.print(s);
+        return s;
+    }
 
 private: // methods
 
-    void print(std::ostream& out) const;
+    void print(std::ostream &out) const;
 
-    DB& database(const Key& key);
+    DB &database(const Key &key);
 
 private: // members
 
@@ -68,7 +73,7 @@ private: // members
 
     std::vector<Key> prev_;
 
-    DB* current_;
+    DB *current_;
 
 };
 

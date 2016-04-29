@@ -40,9 +40,11 @@ class Schema;
 class SchemaHasChanged: public eckit::Exception {
     std::string path_;
 public:
-    SchemaHasChanged(const Schema& schema);
+    SchemaHasChanged(const Schema &schema);
     ~SchemaHasChanged() throw();
-    const std::string& path() const { return path_; }
+    const std::string &path() const {
+        return path_;
+    }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -52,23 +54,23 @@ class Schema : private eckit::NonCopyable {
 public: // methods
 
     Schema();
-    Schema(const eckit::PathName& path);
+    Schema(const eckit::PathName &path);
 
     ~Schema();
 
-    void expand(const Key& field, WriteVisitor& visitor) const;
-    void expand(const MarsRequest& request, ReadVisitor& visitor) const;
+    void expand(const Key &field, WriteVisitor &visitor) const;
+    void expand(const MarsRequest &request, ReadVisitor &visitor) const;
 
-    void load(const eckit::PathName& path, bool replace = false);
+    void load(const eckit::PathName &path, bool replace = false);
 
-    void dump(std::ostream& s) const;
+    void dump(std::ostream &s) const;
 
-    void compareTo(const Schema& other) const;
+    void compareTo(const Schema &other) const;
     bool empty() const;
 
-    const Type& lookupType(const std::string& keyword) const;
+    const Type &lookupType(const std::string &keyword) const;
 
-    const std::string& path() const;
+    const std::string &path() const;
 
 
 private: // methods
@@ -76,14 +78,14 @@ private: // methods
     void clear();
     void check();
 
-    friend std::ostream& operator<<(std::ostream& s,const Schema& x);
+    friend std::ostream &operator<<(std::ostream &s, const Schema &x);
 
-    void print( std::ostream& out ) const;
+    void print( std::ostream &out ) const;
 
 private: // members
 
     TypesRegistry registry_;
-    std::vector<Rule*>  rules_;
+    std::vector<Rule *>  rules_;
     std::string path_;
 
 };

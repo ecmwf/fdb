@@ -8,18 +8,16 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
 
 #include "fdb5/DB.h"
 #include "fdb5/ArchiveVisitor.h"
 
 namespace fdb5 {
 
-ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& field, const void* data, size_t size) :
+ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size) :
     BaseArchiveVisitor(owner, field),
     data_(data),
-    size_(size)
-{
+    size_(size) {
     eckit::Log::info() << *this << std::endl;
 }
 
@@ -36,8 +34,7 @@ bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
     return true;
 }
 
-void ArchiveVisitor::print(std::ostream &out) const
-{
+void ArchiveVisitor::print(std::ostream &out) const {
     out << "ArchiveVisitor["
         << "size=" << size_
         << "]"

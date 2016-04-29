@@ -35,26 +35,26 @@ public: // methods
 
     ~TypesRegistry();
 
-    const Type& lookupType(const std::string& keyword) const;
+    const Type &lookupType(const std::string &keyword) const;
 
-    void addType(const std::string&, const std::string&);
-    void updateParent(const TypesRegistry*);
-    void dump( std::ostream& out ) const;
-    void dump( std::ostream& out, const std::string& keyword ) const;
+    void addType(const std::string &, const std::string &);
+    void updateParent(const TypesRegistry *);
+    void dump( std::ostream &out ) const;
+    void dump( std::ostream &out, const std::string &keyword ) const;
 
 
 private: // members
 
-    typedef std::map<std::string, Type*> TypeMap;
+    typedef std::map<std::string, Type *> TypeMap;
 
     mutable TypeMap cache_;
 
     std::map<std::string, std::string> types_;
-    const TypesRegistry* parent_;
+    const TypesRegistry *parent_;
 
-    friend std::ostream& operator<<(std::ostream& s,const TypesRegistry& x);
+    friend std::ostream &operator<<(std::ostream &s, const TypesRegistry &x);
 
-    void print( std::ostream& out ) const;
+    void print( std::ostream &out ) const;
 
 };
 

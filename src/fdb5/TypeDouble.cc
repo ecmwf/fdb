@@ -8,10 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
 
-#include "marslib/MarsTask.h"
+#include "marslib/MarsRequest.h"
 
 #include "fdb5/TypesFactory.h"
 #include "fdb5/TypeDouble.h"
@@ -20,42 +19,38 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeDouble::TypeDouble(const std::string& name, const std::string& type) :
-    Type(name, type)
-{
+TypeDouble::TypeDouble(const std::string &name, const std::string &type) :
+    Type(name, type) {
 }
 
-TypeDouble::~TypeDouble()
-{
+TypeDouble::~TypeDouble() {
 }
 
-void TypeDouble::toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const {
+void TypeDouble::toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const {
     out << eckit::Translator<std::string, double>()(value);
 }
 
-void TypeDouble::getValues(const MarsRequest& request,
-                               const std::string& keyword,
-                               StringList& values,
-                               const MarsTask& task,
-                               const DB* db) const
-{
+void TypeDouble::getValues(const MarsRequest &request,
+                           const std::string &keyword,
+                           eckit::StringList &values,
+                           const MarsTask &task,
+                           const DB *db) const {
     std::vector<double> dblValues;
 
     request.getValues(keyword, dblValues);
 
-    Translator<double, std::string> t;
+    eckit::Translator<double, std::string> t;
 
     values.reserve(dblValues.size());
 
-    for(std::vector<double>::const_iterator i = dblValues.begin(); i != dblValues.end(); ++i) {
+    for (std::vector<double>::const_iterator i = dblValues.begin(); i != dblValues.end(); ++i) {
         values.push_back(t(*i));
     }
 }
 
-void TypeDouble::print(std::ostream &out) const
-{
+void TypeDouble::print(std::ostream &out) const {
     out << "TypeDouble[name=" << name_ << "]";
 }
 

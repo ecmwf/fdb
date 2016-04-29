@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
 
 #include "eckit/types/Date.h"
@@ -21,21 +20,18 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeDate::TypeDate(const std::string& name, const std::string& type) :
-    Type(name, type)
-{
+TypeDate::TypeDate(const std::string &name, const std::string &type) :
+    Type(name, type) {
 }
 
-TypeDate::~TypeDate()
-{
+TypeDate::~TypeDate() {
 }
 
-void TypeDate::getValues(const MarsRequest& request,
-                               const std::string& keyword,
-                               eckit::StringList& values,
-                               const MarsTask& task,
-                               const DB* db) const
-{
+void TypeDate::getValues(const MarsRequest &request,
+                         const std::string &keyword,
+                         eckit::StringList &values,
+                         const MarsTask &task,
+                         const DB *db) const {
     std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates);
@@ -44,13 +40,12 @@ void TypeDate::getValues(const MarsRequest& request,
 
     values.reserve(dates.size());
 
-    for(std::vector<eckit::Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
+    for (std::vector<eckit::Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
         values.push_back(t(i->yyyymmdd()));
     }
 }
 
-void TypeDate::print(std::ostream &out) const
-{
+void TypeDate::print(std::ostream &out) const {
     out << "TypeDate[name=" << name_ << "]";
 }
 

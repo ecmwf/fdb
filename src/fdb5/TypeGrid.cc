@@ -18,38 +18,34 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeGrid::TypeGrid(const std::string& name, const std::string& type) :
-    Type(name, type)
-{
+TypeGrid::TypeGrid(const std::string &name, const std::string &type) :
+    Type(name, type) {
 }
 
-TypeGrid::~TypeGrid()
-{
+TypeGrid::~TypeGrid() {
 }
 
-void TypeGrid::toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const {
+void TypeGrid::toKey(std::ostream &out,
+                     const std::string &keyword,
+                     const std::string &value) const {
 
-        std::string s(value);
-        std::replace( s.begin(), s.end(), '/', '+');
-        out << s;
+    std::string s(value);
+    std::replace( s.begin(), s.end(), '/', '+');
+    out << s;
 }
 
-void TypeGrid::getValues(const MarsRequest& request,
-                               const std::string& keyword,
-                               eckit::StringList& values,
-                               const MarsTask& task,
-                               const DB* db) const
-{
+void TypeGrid::getValues(const MarsRequest &request,
+                         const std::string &keyword,
+                         eckit::StringList &values,
+                         const MarsTask &task,
+                         const DB *db) const {
     std::vector<std::string> v;
     request.getValues(keyword, v);
     values.push_back(eckit::StringTools::join("+", v));
 }
 
 
-void TypeGrid::print(std::ostream &out) const
-{
+void TypeGrid::print(std::ostream &out) const {
     out << "TypeGrid[name=" << name_ << "]";
 }
 

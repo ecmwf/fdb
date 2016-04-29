@@ -17,35 +17,29 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Predicate::Predicate(const std::string& keyword, Matcher* matcher) :
+Predicate::Predicate(const std::string &keyword, Matcher *matcher) :
     matcher_(matcher),
-    keyword_(keyword)
-{
-//    dump(std::cout);
-//    std::cout << std::endl;
+    keyword_(keyword) {
+    //    dump(std::cout);
+    //    std::cout << std::endl;
 }
 
-Predicate::~Predicate()
-{
+Predicate::~Predicate() {
 }
 
-bool Predicate::match(const Key& key) const
-{
+bool Predicate::match(const Key &key) const {
     return matcher_->match(keyword_, key);
 }
 
-void Predicate::dump(std::ostream& s, const TypesRegistry& registry) const
-{
+void Predicate::dump(std::ostream &s, const TypesRegistry &registry) const {
     matcher_->dump(s, keyword_, registry);
 }
 
-void Predicate::print(std::ostream& out) const
-{
+void Predicate::print(std::ostream &out) const {
     out << "Predicate[keyword=" << keyword_ << ",matcher=" << *matcher_ << "]";
 }
 
-std::string Predicate::keyword() const
-{
+std::string Predicate::keyword() const {
     return keyword_;
 }
 
@@ -53,16 +47,15 @@ bool Predicate::optional() const {
     return matcher_->optional();
 }
 
-const std::string& Predicate::value(const Key& key) const {
+const std::string &Predicate::value(const Key &key) const {
     return matcher_->value(key, keyword_);
 }
 
-const std::string& Predicate::defaultValue() const {
+const std::string &Predicate::defaultValue() const {
     return matcher_->defaultValue();
 }
 
-std::ostream& operator<<(std::ostream& s, const Predicate& x)
-{
+std::ostream &operator<<(std::ostream &s, const Predicate &x) {
     x.print(s);
     return s;
 }

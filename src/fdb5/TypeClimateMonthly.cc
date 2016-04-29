@@ -8,11 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/utils/Translator.h"
-#include "eckit/types/Date.h"
 
-#include "marslib/MarsTask.h"
+#include "eckit/types/Date.h"
+#include "marslib/MarsRequest.h"
 
 #include "fdb5/TypesFactory.h"
 #include "fdb5/TypeClimateMonthly.h"
@@ -22,62 +20,58 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static const char* months[] = {
+static const char *months[] = {
     "jan", "feb", "mar", "apr", "may", "jun",
-    "jul", "aug", "sep", "oct", "nov", "dec",};
+    "jul", "aug", "sep", "oct", "nov", "dec",
+};
 
-TypeClimateMonthly::TypeClimateMonthly(const std::string& name, const std::string& type) :
-    Type(name, type)
-{
+TypeClimateMonthly::TypeClimateMonthly(const std::string &name, const std::string &type) :
+    Type(name, type) {
 }
 
-TypeClimateMonthly::~TypeClimateMonthly()
-{
+TypeClimateMonthly::~TypeClimateMonthly() {
 }
 
-static int month(const std::string& value) {
-  if(isdigit(value[0])) {
-      Date date(value);
-      return date.month();
-  }
-  else {
+static int month(const std::string &value) {
+    if (isdigit(value[0])) {
+        eckit::Date date(value);
+        return date.month();
+    } else {
 
-      for(int i = 0; i < 12 ; i++ ) {
-          if(value == months[i]) {
-              return i+1;
-          }
-      }
+        for (int i = 0; i < 12 ; i++ ) {
+            if (value == months[i]) {
+                return i + 1;
+            }
+        }
 
-      throw SeriousBug("TypeClimateMonthly: invalid date: " + value);
-  }
+        throw eckit::SeriousBug("TypeClimateMonthly: invalid date: " + value);
+    }
 }
 
-void TypeClimateMonthly::toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const {
+void TypeClimateMonthly::toKey(std::ostream &out,
+                               const std::string &keyword,
+                               const std::string &value) const {
 
     out << month(value);
 }
 
-void TypeClimateMonthly::getValues(const MarsRequest& request,
-                               const std::string& keyword,
-                               StringList& values,
-                               const MarsTask& task,
-                               const DB* db) const
-{
+void TypeClimateMonthly::getValues(const MarsRequest &request,
+                                   const std::string &keyword,
+                                   eckit::StringList &values,
+                                   const MarsTask &task,
+                                   const DB *db) const {
     std::vector<std::string> dates;
 
     request.getValues(keyword, dates);
 
     values.reserve(dates.size());
 
-    for(std::vector<std::string>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
-        values.push_back(months[month(*i)-1]);
+    for (std::vector<std::string>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
+        values.push_back(months[month(*i) - 1]);
     }
 }
 
-void TypeClimateMonthly::print(std::ostream &out) const
-{
+void TypeClimateMonthly::print(std::ostream &out) const {
     out << "TypeClimateMonthly[name=" << name_ << "]";
 }
 

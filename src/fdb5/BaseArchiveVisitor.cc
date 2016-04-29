@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
 #include "eckit/config/Resource.h"
 
 #include "fdb5/Archiver.h"
@@ -17,15 +16,14 @@
 
 namespace fdb5 {
 
-BaseArchiveVisitor::BaseArchiveVisitor(Archiver& owner, const Key& field) :
+BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key &field) :
     WriteVisitor(owner.prev_),
     owner_(owner),
-    field_(field)
-{
+    field_(field) {
     checkMissingKeysOnWrite_ = eckit::Resource<bool>("checkMissingKeysOnWrite", true);
 }
 
-bool BaseArchiveVisitor::selectDatabase(const Key& key, const Key& full) {
+bool BaseArchiveVisitor::selectDatabase(const Key &key, const Key &full) {
     eckit::Log::info() << "selectDatabase " << key << std::endl;
     owner_.current_ = &owner_.database(key);
     owner_.current_->checkSchema(key);
@@ -35,31 +33,29 @@ bool BaseArchiveVisitor::selectDatabase(const Key& key, const Key& full) {
     return true;
 }
 
-bool BaseArchiveVisitor::selectIndex(const Key& key, const Key& full) {
+bool BaseArchiveVisitor::selectIndex(const Key &key, const Key &full) {
     eckit::Log::info() << "selectIndex " << key << std::endl;
     ASSERT(owner_.current_);
     return owner_.current_->selectIndex(key);
 }
 
-void BaseArchiveVisitor::checkMissingKeys(const Key &full)
-{
-    if(checkMissingKeysOnWrite_)
-    {
+void BaseArchiveVisitor::checkMissingKeys(const Key &full) {
+    if (checkMissingKeysOnWrite_) {
         eckit::StringSet missing;
-        const eckit::StringDict& f = field_.dict();
-        const eckit::StringDict& k = full.dict();
+        const eckit::StringDict &f = field_.dict();
+        const eckit::StringDict &k = full.dict();
 
-        for(eckit::StringDict::const_iterator j = f.begin(); j != f.end(); ++j) {
-            if(k.find((*j).first) == k.end()) {
+        for (eckit::StringDict::const_iterator j = f.begin(); j != f.end(); ++j) {
+            if (k.find((*j).first) == k.end()) {
                 missing.insert((*j).first);
             }
         }
 
-        if(missing.size()) {
+        if (missing.size()) {
             std::ostringstream oss;
             oss << "Keys not used in archiving: " << missing;
 
-            if(rule()) {
+            if (rule()) {
                 oss << " " << *rule();
             }
 
@@ -68,8 +64,7 @@ void BaseArchiveVisitor::checkMissingKeys(const Key &full)
     }
 }
 
-DB* BaseArchiveVisitor::current() const
-{
+DB *BaseArchiveVisitor::current() const {
     return owner_.current_;
 }
 

@@ -8,11 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
+// #include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
 #include "eckit/types/Date.h"
 
-#include "marslib/MarsTask.h"
+#include "marslib/MarsRequest.h"
 
 #include "fdb5/TypesFactory.h"
 #include "fdb5/TypeMonth.h"
@@ -22,45 +22,41 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeMonth::TypeMonth(const std::string& name, const std::string& type) :
-    Type(name, type)
-{
+TypeMonth::TypeMonth(const std::string &name, const std::string &type) :
+    Type(name, type) {
 }
 
-TypeMonth::~TypeMonth()
-{
+TypeMonth::~TypeMonth() {
 }
 
-void TypeMonth::toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const {
+void TypeMonth::toKey(std::ostream &out,
+                      const std::string &keyword,
+                      const std::string &value) const {
 
-    Date date(value);
+    eckit::Date date(value);
     out << date.year() * 100 + date.month();
 }
 
-void TypeMonth::getValues(const MarsRequest& request,
-                               const std::string& keyword,
-                               StringList& values,
-                               const MarsTask& task,
-                               const DB* db) const
-{
-    std::vector<Date> dates;
+void TypeMonth::getValues(const MarsRequest &request,
+                          const std::string &keyword,
+                          eckit::StringList &values,
+                          const MarsTask &task,
+                          const DB *db) const {
+    std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates);
 
     values.reserve(dates.size());
 
-    eckit::Translator<Date, std::string> t;
+    eckit::Translator<eckit::Date, std::string> t;
 
-    for(std::vector<Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
-        const Date& date = *i;
+    for (std::vector<eckit::Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
+        const eckit::Date &date = *i;
         values.push_back(t(date));
     }
 }
 
-void TypeMonth::print(std::ostream &out) const
-{
+void TypeMonth::print(std::ostream &out) const {
     out << "TypeMonth[name=" << name_ << "]";
 }
 

@@ -9,15 +9,12 @@
  */
 
 #include "eckit/config/Resource.h"
-#include "eckit/exception/Exceptions.h"
 #include "eckit/log/Timer.h"
 #include "eckit/parser/Tokenizer.h"
-#include "eckit/types/Types.h"
 #include "eckit/utils/Regex.h"
 
 #include "fdb5/TocDB.h"
 #include "fdb5/Rule.h"
-#include "fdb5/MasterConfig.h"
 
 
 namespace fdb5 {
@@ -27,51 +24,46 @@ namespace fdb5 {
 using namespace eckit;
 
 static pthread_once_t once = PTHREAD_ONCE_INIT;
-static std::vector< std::pair<Regex,std::string> > rootsTable;
+static std::vector< std::pair<Regex, std::string> > rootsTable;
 
-static void readTable()
-{
+static void readTable() {
     eckit::PathName path("~/etc/fdb/roots");
     std::ifstream in(path.localPath());
 
     Log::info() << "FDB table " << path << std::endl;
 
-    if(in.bad())
-    {
+    if (in.bad()) {
         Log::error() << path << Log::syserr << std::endl;
         return;
     }
 
     char line[1024];
-    while(in.getline(line,sizeof(line)))
-    {
+    while (in.getline(line, sizeof(line))) {
         Tokenizer parse(" ");
         std::vector<std::string> s;
-        parse(line,s);
+        parse(line, s);
 
         Log::info() << "FDB table " << line << std::endl;
 
         Ordinal i = 0;
-        while(i < s.size())
-        {
-            if(s[i].length() == 0)
-                s.erase(s.begin()+i);
+        while (i < s.size()) {
+            if (s[i].length() == 0)
+                s.erase(s.begin() + i);
             else
                 i++;
         }
 
-        if(s.size() == 0 || s[0][0] == '#')
+        if (s.size() == 0 || s[0][0] == '#')
             continue;
 
-        switch(s.size())
-        {
-            case 2:
-                rootsTable.push_back(std::make_pair(Regex(s[0]),s[1]));
-                break;
+        switch (s.size()) {
+        case 2:
+            rootsTable.push_back(std::make_pair(Regex(s[0]), s[1]));
+            break;
 
-            default:
-                Log::warning() << "FDB Root: Invalid line ignored: " << line << std::endl;
-                break;
+        default:
+            Log::warning() << "FDB Root: Invalid line ignored: " << line << std::endl;
+            break;
 
         }
     }
@@ -81,21 +73,20 @@ static void readTable()
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static eckit::PathName directory(const Key& dbKey) {
+static eckit::PathName directory(const Key &dbKey) {
     static StringList fdbRootPattern( eckit::Resource<StringList>("fdbRootPattern", "class,stream,expver", true ) );
-    pthread_once(&once,readTable);
+    pthread_once(&once, readTable);
 
     std::ostringstream oss;
-    const eckit::StringDict& d = dbKey.dict();
+    const eckit::StringDict &d = dbKey.dict();
 
-    const char* sep = "";
-    for(StringList::const_iterator j = fdbRootPattern.begin(); j != fdbRootPattern.end(); ++j) {
+    const char *sep = "";
+    for (StringList::const_iterator j = fdbRootPattern.begin(); j != fdbRootPattern.end(); ++j) {
         eckit::StringDict::const_iterator i = d.find(*j);
-        if(i == d.end()) {
+        if (i == d.end()) {
             oss << sep << "unknown";
             eckit::Log::warning() << "FDB root: cannot get " << *j << " from " << dbKey << std::endl;
-        }
-        else {
+        } else {
             oss << sep << dbKey.get(*j);
         }
         sep = ":";
@@ -104,15 +95,13 @@ static eckit::PathName directory(const Key& dbKey) {
     std::string name(oss.str());
     std::string root;
 
-    for(Ordinal i = 0; i < rootsTable.size() ; i++)
-        if(rootsTable[i].first.match(name))
-        {
+    for (Ordinal i = 0; i < rootsTable.size() ; i++)
+        if (rootsTable[i].first.match(name)) {
             root = rootsTable[i].second;
             break;
         }
 
-    if(root.length() == 0)
-    {
+    if (root.length() == 0) {
         std::ostringstream oss;
         oss << "No FDB root for " << dbKey;
         throw SeriousBug(oss.str());
@@ -121,48 +110,40 @@ static eckit::PathName directory(const Key& dbKey) {
     return PathName(root) / dbKey.valuesToString();
 }
 
-TocDB::TocDB(const Key& dbKey) :
+TocDB::TocDB(const Key &dbKey) :
     DB(dbKey),
-    TocHandler(directory(dbKey))
-{
+    TocHandler(directory(dbKey)) {
 }
 
-TocDB::~TocDB()
-{
+TocDB::~TocDB() {
 }
 
-void TocDB::axis(const std::string& keyword, eckit::StringSet& s) const
-{
+void TocDB::axis(const std::string &keyword, eckit::StringSet &s) const {
     Log::error() << "axis() not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
-bool TocDB::open()
-{
+bool TocDB::open() {
     Log::error() << "Open not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
-void TocDB::archive(const Key& key, const void *data, Length length)
-{
+void TocDB::archive(const Key &key, const void *data, Length length) {
     Log::error() << "Archive not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
-void TocDB::flush()
-{
+void TocDB::flush() {
     Log::error() << "Flush not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
-eckit::DataHandle* TocDB::retrieve(const Key& key) const
-{
+eckit::DataHandle *TocDB::retrieve(const Key &key) const {
     Log::error() << "Retrieve not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
-void TocDB::close()
-{
+void TocDB::close() {
     Log::error() << "Close not implemented for " << *this << std::endl;
     NOTIMP;
 }
@@ -172,7 +153,7 @@ void TocDB::loadSchema() {
     schema_.load( directory_ / "schema" );
 }
 
-void TocDB::checkSchema(const Key& key) const {
+void TocDB::checkSchema(const Key &key) const {
     Timer timer("TocDB::checkSchema()");
     ASSERT(key.rule());
     schema_.compareTo(key.rule()->schema());

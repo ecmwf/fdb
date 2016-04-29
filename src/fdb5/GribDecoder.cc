@@ -31,7 +31,9 @@ class HandleDeleter {
     grib_handle *h_;
 public:
     HandleDeleter(grib_handle *h) : h_(h) {}
-    ~HandleDeleter() { grib_handle_delete(h_); }
+    ~HandleDeleter() {
+        grib_handle_delete(h_);
+    }
 };
 
 size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {

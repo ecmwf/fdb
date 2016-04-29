@@ -30,17 +30,17 @@ class ArchiveVisitor : public BaseArchiveVisitor {
 
 public: // methods
 
-    ArchiveVisitor(Archiver& owner, const Key& field, const void* data, size_t size);
+    ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size);
 
 protected: // methods
 
-    virtual bool selectDatum(const Key& key, const Key& full);
+    virtual bool selectDatum(const Key &key, const Key &full);
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream &out ) const;
 
 private: // members
 
-    const void* data_;
+    const void *data_;
     size_t size_;
 
 };

@@ -18,106 +18,99 @@ namespace fdb5 {
 
 Key::Key() :
     keys_(),
-    rule_(0)
-{
+    rule_(0) {
 }
 
-Key::Key(const std::string& s) :
+Key::Key(const std::string &s) :
     keys_(),
-    rule_(0)
-{
+    rule_(0) {
     NOTIMP;
 }
 
-Key::Key(const eckit::StringDict& keys) :
+Key::Key(const eckit::StringDict &keys) :
     keys_(keys),
-    rule_(0)
-{
+    rule_(0) {
 }
 
-Key::Key(eckit::Stream& s) :
-    rule_(0)
-{
+Key::Key(eckit::Stream &s) :
+    rule_(0) {
     size_t n;
 
     s >> n;
     std::string k;
     std::string v;
-    for(size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i) {
         s >> k;
         s >> v;
         keys_[k] = v;
     }
 
     s >> n;
-    for(size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i) {
         s >> k;
         s >> v; // this is the type (ignoring FTM)
         names_.push_back(k);
     }
 }
 
-void Key::encode(eckit::Stream& s) const
-{
-    const TypesRegistry* registry = rule_ ? &rule_->registry() : 0;
+void Key::encode(eckit::Stream &s) const {
+    const TypesRegistry *registry = rule_ ? &rule_->registry() : 0;
 
     s << keys_.size();
-    for(eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
-         const Type& t = registry->lookupType(i->first);
-         std::ostringstream oss;
-         t.toKey(oss, i->first, i->second);
-         s << i->first << oss.str();
+    for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
+        const Type &t = registry->lookupType(i->first);
+        std::ostringstream oss;
+        t.toKey(oss, i->first, i->second);
+        s << i->first << oss.str();
     }
 
     s << names_.size();
-    for(eckit::StringList::const_iterator i = names_.begin(); i != names_.end(); ++i) {
-         const Type& t = registry->lookupType(*i);
-         s << (*i);
-         s << t.type();
+    for (eckit::StringList::const_iterator i = names_.begin(); i != names_.end(); ++i) {
+        const Type &t = registry->lookupType(*i);
+        s << (*i);
+        s << t.type();
     }
 }
 
-void Key::rule(const Rule* rule) {
+void Key::rule(const Rule *rule) {
     rule_ = rule;
 }
 
-const Rule* Key::rule() const {
+const Rule *Key::rule() const {
     return rule_;
 }
 
-void Key::clear()
-{
+void Key::clear() {
     keys_.clear();
     names_.clear();
 }
 
-void Key::set(const std::string& k, const std::string& v) {
+void Key::set(const std::string &k, const std::string &v) {
     keys_[k] = v;
 }
 
-void Key::unset(const std::string& k) {
+void Key::unset(const std::string &k) {
     keys_.erase(k);
 }
 
-void Key::push(const std::string& k, const std::string& v) {
+void Key::push(const std::string &k, const std::string &v) {
     keys_[k] = v;
     names_.push_back(k);
 }
 
-void Key::pop(const std::string& k) {
+void Key::pop(const std::string &k) {
     keys_.erase(k);
     ASSERT(names_.back() == k);
     names_.pop_back();
 }
 
-bool Key::has(const std::string& k) const
-{
+bool Key::has(const std::string &k) const {
     return keys_.find(k) != keys_.end();
 }
 
-const std::string& Key::get( const std::string& k ) const {
+const std::string &Key::get( const std::string &k ) const {
     eckit::StringDict::const_iterator i = keys_.find(k);
-    if( i == keys_.end() ) {
+    if ( i == keys_.end() ) {
         std::ostringstream oss;
         oss << "Key::get() failed for [" + k + "] in " << *this;
         throw eckit::SeriousBug(oss.str(), Here());
@@ -126,31 +119,28 @@ const std::string& Key::get( const std::string& k ) const {
     return i->second;
 }
 
-const TypesRegistry* Key::registry() const {
+const TypesRegistry *Key::registry() const {
     return rule_ ? &rule_->registry() : 0;
 }
 
-std::string Key::valuesToString() const
-{
+std::string Key::valuesToString() const {
     ASSERT(names_.size() == keys_.size());
 
     std::ostringstream oss;
-    const TypesRegistry* registry = rule_ ? &rule_->registry() : 0;
+    const TypesRegistry *registry = rule_ ? &rule_->registry() : 0;
 
     const char *sep = "";
 
-    for(eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
+    for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
         eckit::StringDict::const_iterator i = keys_.find(*j);
         ASSERT(i != keys_.end());
 
         oss << sep;
-        if(registry)
-        {
-             if(!(*i).second.empty()) {
-                 registry->lookupType(*j).toKey(oss, *j, (*i).second);
-             }
-        }
-        else {
+        if (registry) {
+            if (!(*i).second.empty()) {
+                registry->lookupType(*j).toKey(oss, *j, (*i).second);
+            }
+        } else {
             oss << (*i).second;
         }
         sep = ":";
@@ -159,8 +149,7 @@ std::string Key::valuesToString() const
     return oss.str();
 }
 
-void Key::load(std::istream& s)
-{
+void Key::load(std::istream &s) {
     NOTIMP;
     // std::string params;
     // s >> params;
@@ -177,8 +166,7 @@ void Key::load(std::istream& s)
     // }
 }
 
-void Key::dump(std::ostream& s) const
-{
+void Key::dump(std::ostream &s) const {
     NOTIMP;
     // s << sep;
     // for(StringDict::const_iterator ktr = keys_.begin(); ktr != keys_.end(); ++ktr) {
@@ -186,17 +174,15 @@ void Key::dump(std::ostream& s) const
     // }
 }
 
-void Key::json(eckit::JSON&) const
-{
+void Key::json(eckit::JSON &) const {
 
 }
 
-void Key::print(std::ostream &out) const
-{
-    if(names_.size() == keys_.size()) {
+void Key::print(std::ostream &out) const {
+    if (names_.size() == keys_.size()) {
         const char *sep = "";
         out << "{";
-        for(eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
+        for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
             eckit::StringDict::const_iterator i = keys_.find(*j);
             ASSERT(i != keys_.end());
             out << sep << *j << '=' << i->second;
@@ -205,13 +191,12 @@ void Key::print(std::ostream &out) const
         }
         out << "}";
 
-        if(rule_) {
+        if (rule_) {
             out << " (" << *rule_ << ")";
         }
-    }
-    else {
+    } else {
         out << keys_;
-        if(rule_) {
+        if (rule_) {
             out << " (" << *rule_ << ")";
         }
     }

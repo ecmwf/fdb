@@ -26,19 +26,19 @@ class TypeParam : public Type {
 
 public: // methods
 
-    TypeParam(const std::string& name, const std::string& type);
+    TypeParam(const std::string &name, const std::string &type);
 
     virtual ~TypeParam();
 
-    virtual void getValues(const MarsRequest& request,
-                           const std::string& keyword,
-                           eckit::StringList& values,
-                           const MarsTask& task,
-                           const DB* db) const;
+    virtual void getValues(const MarsRequest &request,
+                           const std::string &keyword,
+                           eckit::StringList &values,
+                           const MarsTask &task,
+                           const DB *db) const;
 
 private: // methods
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream &out ) const;
 
 };
 

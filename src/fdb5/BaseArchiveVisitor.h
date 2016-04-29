@@ -31,23 +31,23 @@ class BaseArchiveVisitor : public WriteVisitor {
 
 public: // methods
 
-    BaseArchiveVisitor(Archiver& owner, const Key& field);
+    BaseArchiveVisitor(Archiver &owner, const Key &field);
 
 protected: // methods
 
-    virtual bool selectDatabase(const Key& key, const Key& full);
+    virtual bool selectDatabase(const Key &key, const Key &full);
 
-    virtual bool selectIndex(const Key& key, const Key& full);
+    virtual bool selectIndex(const Key &key, const Key &full);
 
-    void checkMissingKeys(const Key& full);
+    void checkMissingKeys(const Key &full);
 
-    fdb5::DB* current() const;
+    fdb5::DB *current() const;
 
 private: // members
 
-    Archiver& owner_;
+    Archiver &owner_;
 
-    const Key& field_;
+    const Key &field_;
 
     bool checkMissingKeysOnWrite_;
 };

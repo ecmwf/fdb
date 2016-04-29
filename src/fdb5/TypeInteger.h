@@ -26,19 +26,19 @@ class TypeInteger : public Type {
 
 public: // methods
 
-    TypeInteger(const std::string& name, const std::string& type);
+    TypeInteger(const std::string &name, const std::string &type);
 
     virtual ~TypeInteger();
 
-    virtual void getValues(const MarsRequest& request,
-                           const std::string& keyword,
-                           eckit::StringList& values,
-                           const MarsTask& task,
-                           const DB* db) const;
+    virtual void getValues(const MarsRequest &request,
+                           const std::string &keyword,
+                           eckit::StringList &values,
+                           const MarsTask &task,
+                           const DB *db) const;
 
 private: // methods
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream &out ) const;
 
 };
 

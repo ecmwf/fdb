@@ -27,9 +27,9 @@ class RequestParser : public eckit::StreamParser {
 
 public: // methods
 
-    RequestParser(std::istream& in);
+    RequestParser(std::istream &in);
 
-    MarsRequest parse(bool lower=true);
+    MarsRequest parse(bool lower = true);
 
 private: // methods
 

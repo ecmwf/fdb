@@ -9,7 +9,6 @@
  */
 
 #include "eckit/io/MultiHandle.h"
-#include "eckit/types/Types.h"
 #include "eckit/log/Plural.h"
 
 

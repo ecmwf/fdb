@@ -8,18 +8,16 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/utils/Translator.h"
 
 #include "fdb5/TypesFactory.h"
 #include "fdb5/TypeIgnore.h"
-#include "fdb5/DB.h"
 
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeIgnore::TypeIgnore(const std::string &name, const std::string& type) :
+TypeIgnore::TypeIgnore(const std::string &name, const std::string &type) :
     Type(name, type) {
 }
 
@@ -27,16 +25,16 @@ TypeIgnore::~TypeIgnore() {
 }
 
 
-void TypeIgnore::toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const {
+void TypeIgnore::toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const {
 }
 
 void TypeIgnore::getValues(const MarsRequest &request,
-                            const std::string &keyword,
-                            eckit::StringList &values,
-                            const MarsTask &task,
-                            const DB *db) const {
+                           const std::string &keyword,
+                           eckit::StringList &values,
+                           const MarsTask &task,
+                           const DB *db) const {
 }
 
 void TypeIgnore::print(std::ostream &out) const {

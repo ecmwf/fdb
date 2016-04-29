@@ -21,21 +21,23 @@
 
 #include "eckit/io/Length.h"
 
-namespace eckit { class DataHandle; }
+namespace eckit {
+class DataHandle;
+}
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class GribArchiver :
-        public Archiver,
-        public GribDecoder {
+    public Archiver,
+    public GribDecoder {
 
 public: // methods
 
     GribArchiver(bool completeTransfers = false);
 
-    eckit::Length archive(eckit::DataHandle& source);
+    eckit::Length archive(eckit::DataHandle &source);
 
 private: // members
 

@@ -24,18 +24,14 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 GribIndexer::GribIndexer(bool checkDuplicates) :
-    GribDecoder(checkDuplicates)
-{
+    GribDecoder(checkDuplicates) {
 }
 
-void GribIndexer::index(const eckit::PathName& path)
-{
+void GribIndexer::index(const eckit::PathName &path) {
     eckit::Timer timer("fdb::service::archive");
 
     EmosFile file(path);
     size_t len = 0;
-
-    std::set<Key> seen;
 
     size_t count = 0;
     eckit::Length total_size = 0;
@@ -47,8 +43,7 @@ void GribIndexer::index(const eckit::PathName& path)
     Key key;
 
 
-    while( (len = gribToKey(file, key))  )
-    {
+    while ( (len = gribToKey(file, key))  ) {
 
         eckit::Log::info() << key << std::endl;
 

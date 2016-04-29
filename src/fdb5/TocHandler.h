@@ -30,23 +30,23 @@ class TocHandler : private eckit::NonCopyable {
 
 public: // typedefs
 
-	typedef std::vector<TocRecord> TocVec;
-	typedef std::vector< eckit::PathName > TocPaths;
+    typedef std::vector<TocRecord> TocVec;
+    typedef std::vector< eckit::PathName > TocPaths;
 
 public: // methods
 
-	TocHandler( const eckit::PathName& dir );
-	~TocHandler();
+    TocHandler( const eckit::PathName &dir );
+    ~TocHandler();
 
     bool exists() const;
 
-    void writeInitRecord(const Key& tocKey);
-    void writeClearRecord(const eckit::PathName&);
-    void writeIndexRecord(const Index&);
+    void writeInitRecord(const Key &tocKey);
+    void writeClearRecord(const eckit::PathName &);
+    void writeIndexRecord(const Index &);
     void writeWipeRecord();
 
     std::vector<Index *> loadIndexes();
-    void freeIndexes(std::vector<Index *>&);
+    void freeIndexes(std::vector<Index *> &);
 
 protected: // members
 
@@ -56,16 +56,16 @@ private: // methods
 
     friend class TocHandlerCloser;
 
-	void openForAppend();
+    void openForAppend();
     void openForRead();
     void close();
 
-	void append(TocRecord& r, size_t payloadSize);
-    bool readNext(TocRecord& r);
+    void append(TocRecord &r, size_t payloadSize);
+    bool readNext(TocRecord &r);
 
     eckit::PathName filePath_;
 
-	int fd_;      ///< file descriptor, if zero file is not yet open.
+    int fd_;      ///< file descriptor, if zero file is not yet open.
 
 };
 

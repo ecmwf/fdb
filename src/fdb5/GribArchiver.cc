@@ -26,12 +26,10 @@ namespace fdb5 {
 GribArchiver::GribArchiver(bool completeTransfers) :
     Archiver(),
     GribDecoder(),
-    completeTransfers_(completeTransfers)
-{
+    completeTransfers_(completeTransfers) {
 }
 
-eckit::Length GribArchiver::archive(eckit::DataHandle& source)
-{
+eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
     eckit::Timer timer("fdb::service::archive");
 
     EmosFile file(source);
@@ -42,12 +40,11 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source)
 
     eckit::Progress progress("FDB archive", 0, file.length());
 
-    try{
+    try {
 
         Key key;
 
-        while( (len = gribToKey(file, key)) )
-        {
+        while ( (len = gribToKey(file, key)) ) {
             ArchiveVisitor visitor(*this, key, static_cast<const void *>(buffer()), len);
 
             this->Archiver::archive(key, visitor);
@@ -56,14 +53,13 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source)
             count++;
             progress(total_size);
         }
-    }
-    catch(...) {
+    } catch (...) {
 
-        if(completeTransfers_) {
+        if (completeTransfers_) {
             eckit::Log::error() << "Exception recieved. Completing transfer." << std::endl;
             // Consume rest of datahandle otherwise client retries for ever
-            eckit::Buffer buffer(80*1024*1024);
-            while( (len = file.readSome(buffer)) )
+            eckit::Buffer buffer(80 * 1024 * 1024);
+            while ( (len = file.readSome(buffer)) )
                 /* empty */;
         }
         throw;

@@ -28,7 +28,7 @@ class IndexCache;
 class FDBIndexScanner : public Archiver {
 public:
 
-    FDBIndexScanner(const eckit::PathName& path);
+    FDBIndexScanner(const eckit::PathName &path);
 
     ~FDBIndexScanner();
 
@@ -36,7 +36,7 @@ public:
 
 private:
 
-    void process(FILE*);
+    void process(FILE *);
 
     eckit::PathName path_;
 };

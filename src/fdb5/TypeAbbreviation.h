@@ -26,23 +26,23 @@ class TypeAbbreviation : public Type {
 
 public: // methods
 
-    TypeAbbreviation(const std::string& name, const std::string& type);
+    TypeAbbreviation(const std::string &name, const std::string &type);
 
     virtual ~TypeAbbreviation();
 
-    virtual void toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const ;
+    virtual void toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const ;
 
-    virtual void getValues(const MarsRequest& request,
-                           const std::string& keyword,
-                           eckit::StringList& values,
-                           const MarsTask& task,
-                           const DB* db) const;
+    virtual void getValues(const MarsRequest &request,
+                           const std::string &keyword,
+                           eckit::StringList &values,
+                           const MarsTask &task,
+                           const DB *db) const;
 
 private: // methods
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream &out ) const;
     size_t count_;
 
 };

@@ -8,23 +8,19 @@
  * does it submit to any jurisdiction.
  */
 
-// #include "eckit/log/Log.h"
-
 #include "fdb5/WriteVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WriteVisitor::WriteVisitor(std::vector<Key>& prev) :
+WriteVisitor::WriteVisitor(std::vector<Key> &prev) :
     prev_(prev),
-    rule_(0)
-{
+    rule_(0) {
     prev.resize(3);
 }
 
-WriteVisitor::~WriteVisitor()
-{
+WriteVisitor::~WriteVisitor() {
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -33,16 +33,16 @@ class Predicate : public eckit::NonCopyable {
 
 public: // methods
 
-    Predicate(const std::string& keyword, Matcher* matcher);
+    Predicate(const std::string &keyword, Matcher *matcher);
 
     ~Predicate();
 
-    bool match(const Key& key) const;
+    bool match(const Key &key) const;
 
-    void dump( std::ostream& s, const TypesRegistry& registry ) const;
+    void dump( std::ostream &s, const TypesRegistry &registry ) const;
 
-    const std::string& value(const Key& key) const;
-    const std::string& defaultValue() const;
+    const std::string &value(const Key &key) const;
+    const std::string &defaultValue() const;
 
     bool optional() const;
 
@@ -50,9 +50,9 @@ public: // methods
 
 private: // methods
 
-    friend std::ostream& operator<<(std::ostream& s,const Predicate& x);
+    friend std::ostream &operator<<(std::ostream &s, const Predicate &x);
 
-    void print( std::ostream& out ) const;
+    void print( std::ostream &out ) const;
 
 private: // members
 

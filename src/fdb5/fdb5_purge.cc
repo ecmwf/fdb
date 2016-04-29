@@ -31,7 +31,7 @@ class FDBTool : public eckit::Tool {
 
 public: // methods
 
-    FDBTool(int argc, char** argv) : eckit::Tool(argc,argv) {
+    FDBTool(int argc, char **argv) : eckit::Tool(argc, argv) {
 
         options_.push_back(new SimpleOption<std::string>("class", "keyword class"));
         options_.push_back(new SimpleOption<std::string>("stream", "keyword stream"));
@@ -44,12 +44,12 @@ public: // methods
 
 protected: // methods
 
-    static void usage(const std::string& tool) {
+    static void usage(const std::string &tool) {
     }
 
 protected: // members
 
-    std::vector<Option*> options_;
+    std::vector<Option *> options_;
 
 };
 
@@ -59,7 +59,7 @@ class FDBPurge : public FDBTool {
 
 public: // methods
 
-    FDBPurge(int argc, char** argv) : FDBTool(argc, argv) {
+    FDBPurge(int argc, char **argv) : FDBTool(argc, argv) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
 
@@ -69,25 +69,24 @@ private: // methods
 
     virtual void run();
 
-    static void usage(const std::string& tool);
+    static void usage(const std::string &tool);
 
 };
 
-void FDBPurge::usage(const std::string& tool) {
+void FDBPurge::usage(const std::string &tool) {
 
     eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [path1] [path2] ..." << std::endl;
     FDBTool::usage(tool);
 }
 
-void FDBPurge::run()
-{
+void FDBPurge::run() {
     eckit::option::CmdArgs args(&FDBPurge::usage, -1, options_);
 
     for (size_t i = 0; i < args.count(); ++i) {
 
         eckit::PathName path(args.args(i));
 
-        if(!path.isDir()) {
+        if (!path.isDir()) {
             path = path.dirName();
         }
 
@@ -97,11 +96,11 @@ void FDBPurge::run()
 
         fdb5::TocHandler handler(path);
 
-        std::vector<Index*> indexes = handler.loadIndexes();
+        std::vector<Index *> indexes = handler.loadIndexes();
 
         PurgeVisitor visitor(path);
 
-        for(std::vector<Index*>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+        for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
             Log::info() << "Index path " << (*i)->path() << std::endl;
             visitor.currentIndex((*i)->path());
             (*i)->entries(visitor);
@@ -119,8 +118,7 @@ void FDBPurge::run()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-int main(int argc, char **argv)
-{
-    FDBPurge app(argc,argv);
+int main(int argc, char **argv) {
+    FDBPurge app(argc, argv);
     return app.start();
 }

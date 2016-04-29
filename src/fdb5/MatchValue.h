@@ -28,17 +28,17 @@ class MatchValue : public Matcher {
 
 public: // methods
 
-    MatchValue(const std::string& value);
+    MatchValue(const std::string &value);
 
     virtual ~MatchValue();
 
-    virtual bool match(const std::string& keyword, const Key& key) const;
+    virtual bool match(const std::string &keyword, const Key &key) const;
 
-    virtual void dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const;
+    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const;
 
 private: // methods
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream &out ) const;
 
 private: // members
 

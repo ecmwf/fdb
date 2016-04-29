@@ -30,18 +30,18 @@ class SchemaParser : public eckit::StreamParser {
 
 public: // methods
 
-    SchemaParser(std::istream& in);
+    SchemaParser(std::istream &in);
 
-    void parse(const Schema& owner, std::vector<Rule*>&, TypesRegistry& registry);
+    void parse(const Schema &owner, std::vector<Rule *> &, TypesRegistry &registry);
 
 private: // methods
 
     std::string parseIdent(bool emptyOK = false);
 
-    Rule* parseRule(const Schema& owner);
+    Rule *parseRule(const Schema &owner);
 
-    Predicate* parsePredicate(std::map<std::string, std::string>& types);
-    void parseTypes(std::map<std::string, std::string>&);
+    Predicate *parsePredicate(std::map<std::string, std::string> &types);
+    void parseTypes(std::map<std::string, std::string> &);
 
 };
 

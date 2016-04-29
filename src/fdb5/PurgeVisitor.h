@@ -38,7 +38,7 @@ struct Stats {
     eckit::Length totalSize;
     eckit::Length duplicatesSize;
 
-    Stats& operator+=(const Stats& rhs) {
+    Stats &operator+=(const Stats &rhs) {
         totalFields += rhs.totalFields;
         duplicates += rhs.duplicates;
         totalSize += rhs.totalSize;
@@ -46,36 +46,42 @@ struct Stats {
         return *this;
     }
 
-    friend std::ostream& operator<<(std::ostream& s,const Stats& x) { x.print(s); return s; }
+    friend std::ostream &operator<<(std::ostream &s, const Stats &x) {
+        x.print(s);
+        return s;
+    }
 
-    void print(std::ostream& out) const;
+    void print(std::ostream &out) const;
 
 };
 //----------------------------------------------------------------------------------------------------------------------
 
 struct PurgeVisitor : public EntryVisitor {
 
-    PurgeVisitor(const eckit::PathName& dir);
+    PurgeVisitor(const eckit::PathName &dir);
 
     Stats totals() const;
 
-    void currentIndex(const eckit::PathName& path);
+    void currentIndex(const eckit::PathName &path);
 
-    void report(std::ostream& out) const;
+    void report(std::ostream &out) const;
 
     void purge(bool doit) const;
 
 private: // methods
 
-    std::vector<eckit::PathName> filesToBeDeleted(size_t& adopted, size_t& duplicated, size_t& duplicatedAdopted) const;
+    std::vector<eckit::PathName> filesToBeDeleted(size_t &adopted, size_t &duplicated, size_t &duplicatedAdopted) const;
 
-    friend std::ostream& operator<<(std::ostream& s,const PurgeVisitor& x) { x.print(s); return s; }
+    friend std::ostream &operator<<(std::ostream &s, const PurgeVisitor &x) {
+        x.print(s);
+        return s;
+    }
 
-    void print(std::ostream& out) const;
+    void print(std::ostream &out) const;
 
-    virtual void visit(const std::string& index,
-                       const std::string& key,
-                       const eckit::PathName& path,
+    virtual void visit(const std::string &index,
+                       const std::string &key,
+                       const eckit::PathName &path,
                        eckit::Offset offset,
                        eckit::Length length);
 

@@ -34,48 +34,48 @@ class TocDBWriter : public TocDB {
 
 public: // methods
 
-    TocDBWriter(const Key& key);
+    TocDBWriter(const Key &key);
 
     virtual ~TocDBWriter();
 
     /// Used for adopting & indexing external data to the TOC dir
-    void index(const Key& key, const eckit::PathName& path, eckit::Offset offset, eckit::Length length);
+    void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
 
 protected: // methods
 
-    virtual bool selectIndex(const Key& key);
+    virtual bool selectIndex(const Key &key);
     virtual void deselectIndex();
 
     virtual bool open();
     virtual void flush();
     virtual void close();
 
-    virtual void archive(const Key& key, const void* data, eckit::Length length);
+    virtual void archive(const Key &key, const void *data, eckit::Length length);
 
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream &out ) const;
 
 private: // methods
 
 
-    eckit::DataHandle* getCachedHandle( const eckit::PathName& path ) const;
-    eckit::DataHandle* createFileHandle(const eckit::PathName& path);
-    eckit::DataHandle* createAsyncHandle(const eckit::PathName& path);
+    eckit::DataHandle *getCachedHandle( const eckit::PathName &path ) const;
+    eckit::DataHandle *createFileHandle(const eckit::PathName &path);
+    eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
 
     void closeIndexes();
     void closeDataHandles();
     void flushIndexes();
     void flushDataHandles();
 
-    eckit::DataHandle& getDataHandle( const eckit::PathName& );
-    eckit::PathName getDataPath(const Key& key);
-    eckit::PathName generateIndexPath(const Key& key) const;
-    eckit::PathName generateDataPath(const Key& key) const;
+    eckit::DataHandle &getDataHandle( const eckit::PathName & );
+    eckit::PathName getDataPath(const Key &key);
+    eckit::PathName generateIndexPath(const Key &key) const;
+    eckit::PathName generateDataPath(const Key &key) const;
 
 private: // types
 
-    typedef std::map< std::string, eckit::DataHandle* >  HandleStore;
-    typedef std::map< Key, Index* > IndexStore;
+    typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
+    typedef std::map< Key, Index * > IndexStore;
     typedef std::map< Key, std::string > PathStore;
 
 private: // members
@@ -84,7 +84,7 @@ private: // members
     IndexStore  indexes_;
     PathStore   dataPaths_;
 
-    Index* current_;
+    Index *current_;
     Key currentIndexKey_;
 
     bool dirty_;

@@ -32,17 +32,17 @@ class AdoptVisitor : public BaseArchiveVisitor {
 
 public: // methods
 
-    AdoptVisitor(Archiver& owner,
-                 const Key& field,
-                 const eckit::PathName& path,
+    AdoptVisitor(Archiver &owner,
+                 const Key &field,
+                 const eckit::PathName &path,
                  eckit::Offset offset,
                  eckit::Length length);
 
 protected: // methods
 
-    virtual bool selectDatum(const Key& key, const Key& full);
+    virtual bool selectDatum(const Key &key, const Key &full);
 
-    virtual void print( std::ostream& out ) const;
+    virtual void print( std::ostream &out ) const;
 
 private: // members
 

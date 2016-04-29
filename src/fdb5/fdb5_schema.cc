@@ -21,26 +21,24 @@ using namespace fdb5;
 class FdbSchema : public eckit::Tool {
     virtual void run();
 public:
-    FdbSchema(int argc,char **argv): Tool(argc,argv) {}
+    FdbSchema(int argc, char **argv): Tool(argc, argv) {}
 };
 
-void FdbSchema::run()
-{
-    Context& ctx = Context::instance();
+void FdbSchema::run() {
+    Context &ctx = Context::instance();
 
     // ASSERT( ctx.argc() == 2 );
 
-    fdb5::Schema rules;
+    fdb5::Schema schema;
 
-    rules.load(ctx.argc() > 1 ? ctx.argv(1) : MasterConfig::instance().schemaPath());
+    schema.load(ctx.argc() > 1 ? ctx.argv(1) : MasterConfig::instance().schemaPath());
 
-    rules.dump(std::cout);
+    schema.dump(std::cout);
 }
 
 
-int main(int argc, char **argv)
-{
-    FdbSchema app(argc,argv);
+int main(int argc, char **argv) {
+    FdbSchema app(argc, argv);
     return app.start();
 }
 

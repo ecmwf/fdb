@@ -23,17 +23,16 @@ using namespace eckit;
 class FDBExtract : public eckit::Tool {
     virtual void run();
 public:
-    FDBExtract(int argc,char **argv): Tool(argc,argv) {}
+    FDBExtract(int argc, char **argv): Tool(argc, argv) {}
 };
 
-void FDBExtract::run()
-{
-    Context& ctx = Context::instance();
+void FDBExtract::run() {
+    Context &ctx = Context::instance();
 
     ASSERT( ctx.argc() == 3 );
 
     ifstream in(ctx.argv(1).c_str());
-    if(in.bad()) {
+    if (in.bad()) {
         throw eckit::ReadError(ctx.argv(1));
     }
     fdb5::RequestParser parser(in);
@@ -44,7 +43,7 @@ void FDBExtract::run()
 
     MarsRequest e("environ");
 
-    MarsTask task(r,e);
+    MarsTask task(r, e);
 
     fdb5::Retriever retriever(task);
 
@@ -56,9 +55,8 @@ void FDBExtract::run()
 }
 
 
-int main(int argc, char **argv)
-{
-    FDBExtract app(argc,argv);
+int main(int argc, char **argv) {
+    FDBExtract app(argc, argv);
     return app.start();
 }
 

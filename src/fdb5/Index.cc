@@ -10,13 +10,6 @@
 
 #include "fdb5/Index.h"
 
-#include "eckit/config/Resource.h"
-#include "eckit/io/FileHandle.h"
-#include "eckit/parser/JSON.h"
-#include "eckit/parser/JSONParser.h"
-#include "eckit/thread/AutoLock.h"
-
-#include "eckit/serialisation/Stream.h"
 
 namespace fdb5 {
 
@@ -31,8 +24,7 @@ Index::Index(eckit::Stream &s, const eckit::PathName &directory, const eckit::Pa
     s >> prefix_;
 }
 
-void Index::encode(eckit::Stream& s) const
-{
+void Index::encode(eckit::Stream &s) const {
     files_.encode(s);
     axes_.encode(s);
     s << key_;
@@ -55,8 +47,7 @@ Index::~Index() {
 void Index::flush() {
 }
 
-void Index::deleteFiles(bool doit) const
-{
+void Index::deleteFiles(bool doit) const {
 }
 
 void Index::put(const Key &key, const Index::Field &field) {

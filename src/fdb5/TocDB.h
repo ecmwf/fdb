@@ -31,7 +31,7 @@ class TocDB : public DB, public TocHandler {
 
 public: // methods
 
-    TocDB(const Key& dbKey);
+    TocDB(const Key &dbKey);
     // TocDB(const PathName&); for tools, read key from TOC
 
     virtual ~TocDB();
@@ -42,12 +42,12 @@ protected: // methods
     virtual void close();
     virtual void flush();
 
-    virtual eckit::DataHandle* retrieve(const Key& key) const;
-    virtual void archive(const Key& key, const void* data, eckit::Length length);
-    virtual void axis(const std::string& keyword, eckit::StringSet& s) const;
+    virtual eckit::DataHandle *retrieve(const Key &key) const;
+    virtual void archive(const Key &key, const void *data, eckit::Length length);
+    virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
 
     void loadSchema();
-    void checkSchema(const Key& key) const;
+    void checkSchema(const Key &key) const;
 
 private: // members
 

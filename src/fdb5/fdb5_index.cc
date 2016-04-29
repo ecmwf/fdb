@@ -18,17 +18,15 @@ using namespace eckit;
 class FDBIndex : public eckit::Tool {
     virtual void run();
 public:
-    FDBIndex(int argc,char **argv): Tool(argc,argv) {}
+    FDBIndex(int argc, char **argv): Tool(argc, argv) {}
 };
 
-void FDBIndex::run()
-{
-    Context& ctx = Context::instance();
+void FDBIndex::run() {
+    Context &ctx = Context::instance();
 
     fdb5::GribIndexer indexer;
 
-    for(int i = 1; i < ctx.argc(); i++)
-    {
+    for (int i = 1; i < ctx.argc(); i++) {
         eckit::PathName path(ctx.argv(i));
 
         std::cout << "Processing " << path << std::endl;
@@ -38,9 +36,8 @@ void FDBIndex::run()
 }
 
 
-int main(int argc, char **argv)
-{
-    FDBIndex app(argc,argv);
+int main(int argc, char **argv) {
+    FDBIndex app(argc, argv);
     return app.start();
 }
 

@@ -23,7 +23,9 @@
 #include "eckit/io/Offset.h"
 #include "eckit/filesystem/PathName.h"
 
-namespace eckit { class Stream; }
+namespace eckit {
+class Stream;
+}
 
 namespace fdb5 {
 
@@ -42,14 +44,16 @@ public: // types
         /// @todo
         /// this is where the information of field encoding should be placed
 
-		void load( std::istream& s );
+        void load( std::istream &s );
 
-        void dump( std::ostream& s ) const;
+        void dump( std::ostream &s ) const;
 
-        friend std::ostream& operator<<(std::ostream& s,const FieldRef& x) { x.print(s); return s; }
+        friend std::ostream &operator<<(std::ostream &s, const FieldRef &x) {
+            x.print(s);
+            return s;
+        }
 
-		void print( std::ostream& out ) const
-		{
+        void print( std::ostream &out ) const {
             out << " FileId " << pathId_
                 << " eckit::Offset " << offset_
                 << " eckit::Length " << length_ ;
@@ -61,35 +65,38 @@ public: // types
 
 public: // methods
 
-    FileStore(const eckit::PathName& tocDir);
-    FileStore(const eckit::PathName& tocDir, eckit::Stream& );
+    FileStore(const eckit::PathName &tocDir);
+    FileStore(const eckit::PathName &tocDir, eckit::Stream & );
 
     ~FileStore();
 
-	/// Inserts the path in the store
-	/// @returns PathID associated to the provided eckit::PathName
-	FileStore::PathID insert( const eckit::PathName& path );
+    /// Inserts the path in the store
+    /// @returns PathID associated to the provided eckit::PathName
+    FileStore::PathID insert( const eckit::PathName &path );
 
-	/// @returns a PathID associated to the provided eckit::PathName
-	FileStore::PathID get( const eckit::PathName& path) const;
+    /// @returns a PathID associated to the provided eckit::PathName
+    FileStore::PathID get( const eckit::PathName &path) const;
 
-	/// @returns a eckit::PathName associated to the provided id
+    /// @returns a eckit::PathName associated to the provided id
     /// @pre assumes that the eckit::filesystem/PathName.has already been inserted
-	eckit::PathName get( const FileStore::PathID id ) const;
+    eckit::PathName get( const FileStore::PathID id ) const;
 
     /// check that a PathID is valid and has a eckit::PathName associated to it
     bool exists( const FileStore::PathID id ) const;
 
     /// check the eckit::PathName exists in the FileStore
-    bool exists( const eckit::PathName& path ) const;
+    bool exists( const eckit::PathName &path ) const;
 
-    void encode(eckit::Stream& s) const;
+    void encode(eckit::Stream &s) const;
 
-    friend std::ostream& operator<<(std::ostream& s,const FileStore& x) { x.print(s); return s; }
+    friend std::ostream &operator<<(std::ostream &s, const FileStore &x) {
+        x.print(s);
+        return s;
+    }
 
 private: // members
 
-    void print( std::ostream& out ) const;
+    void print( std::ostream &out ) const;
 
 private: // members
 

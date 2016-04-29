@@ -8,15 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-// #include "eckit/io/FileHandle.h"
-#include "eckit/value/Value.h"
-#include "eckit/value/Content.h"
-
-#include "eckit/parser/JSON.h"
 
 #include "fdb5/IndexAxis.h"
 #include "fdb5/Key.h"
-#include "eckit/serialisation/Stream.h"
 
 namespace fdb5 {
 
@@ -29,34 +23,33 @@ IndexAxis::IndexAxis() :
 IndexAxis::~IndexAxis() {
 }
 
-IndexAxis::IndexAxis(eckit::Stream& s) :
-    readOnly_(true)
-     {
-        size_t n;
-        s >> n;
+IndexAxis::IndexAxis(eckit::Stream &s) :
+    readOnly_(true) {
+    size_t n;
+    s >> n;
 
-        std::string k;
-        std::string v;
+    std::string k;
+    std::string v;
 
-        for(size_t i = 0; i < n; i++) {
-            s >> k;
-            std::set<std::string> &values = axis_[k];
-            size_t m;
-            s >> m;
-            for(size_t j = 0; j < m; j++) {
-                s >> v;
-                values.insert(v);
-            }
+    for (size_t i = 0; i < n; i++) {
+        s >> k;
+        std::set<std::string> &values = axis_[k];
+        size_t m;
+        s >> m;
+        for (size_t j = 0; j < m; j++) {
+            s >> v;
+            values.insert(v);
         }
+    }
 }
 
-void IndexAxis::encode(eckit::Stream& s) const {
+void IndexAxis::encode(eckit::Stream &s) const {
     s << axis_.size();
-    for(AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
+    for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
         s << (*i).first;
         const std::set<std::string> &values = (*i).second;
         s << values.size();
-        for(std::set<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
+        for (std::set<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
             s << (*j);
         }
     }

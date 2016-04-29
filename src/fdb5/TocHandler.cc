@@ -8,30 +8,28 @@
  * does it submit to any jurisdiction.
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 
-#include "eckit/types/DateTime.h"
 #include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/io/FileHandle.h"
 
 #include "fdb5/TocHandler.h"
-#include "fdb5/Key.h"
 #include "fdb5/Index.h"
 #include "fdb5/MasterConfig.h"
 #include "fdb5/TocIndex.h"
 
-#include "eckit/io/FileHandle.h"
 
 namespace fdb5 {
 
 
 class TocHandlerCloser {
-    TocHandler& handler_;
+    TocHandler &handler_;
 public:
-    TocHandlerCloser(TocHandler& handler): handler_(handler) {}
-    ~TocHandlerCloser() { handler_.close(); }
+    TocHandlerCloser(TocHandler &handler): handler_(handler) {}
+    ~TocHandlerCloser() {
+        handler_.close();
+    }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -39,8 +37,7 @@ public:
 TocHandler::TocHandler(const eckit::PathName &directory) :
     directory_(directory),
     filePath_(directory / "toc"),
-    fd_(-1)
-{
+    fd_(-1) {
 }
 
 TocHandler::~TocHandler() {
@@ -78,7 +75,7 @@ void TocHandler::openForRead() {
 }
 
 static size_t round(size_t a, size_t b) {
-    return ((a + b - 1)/b) * b;
+    return ((a + b - 1) / b) * b;
 }
 
 void TocHandler::append(TocRecord &r, size_t payloadSize ) {
@@ -207,17 +204,17 @@ void TocHandler::writeIndexRecord(const Index &index) {
 class HasPath {
     eckit::PathName path_;
 public:
-    HasPath(const eckit::PathName& path): path_(path) {}
-    bool operator()(const Index* index) const {
+    HasPath(const eckit::PathName &path): path_(path) {}
+    bool operator()(const Index *index) const {
         return index->path() == path_;
     }
 };
 
-std::vector<Index*> TocHandler::loadIndexes() {
+std::vector<Index *> TocHandler::loadIndexes() {
 
     std::vector<Index *> indexes;
 
-    if(!filePath_.exists()) {
+    if (!filePath_.exists()) {
         return indexes;
     }
 
@@ -250,7 +247,7 @@ std::vector<Index*> TocHandler::loadIndexes() {
             s >> path;
             eckit::Log::info() << "TOC_CLEAR " << path << std::endl;
             j = std::find_if (indexes.begin(), indexes.end(), HasPath(directory_ / path));
-            if(j != indexes.end()) {
+            if (j != indexes.end()) {
                 delete (*j);
                 indexes.erase(j);
             }
@@ -277,8 +274,8 @@ std::vector<Index*> TocHandler::loadIndexes() {
 
 }
 
-void TocHandler::freeIndexes(std::vector<Index *>& indexes) {
-    for(std::vector<Index *>::iterator j = indexes.begin(); j != indexes.end(); ++j) {
+void TocHandler::freeIndexes(std::vector<Index *> &indexes) {
+    for (std::vector<Index *>::iterator j = indexes.begin(); j != indexes.end(); ++j) {
         delete (*j);
     }
     indexes.clear();

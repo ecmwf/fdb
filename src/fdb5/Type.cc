@@ -8,47 +8,41 @@
  * does it submit to any jurisdiction.
  */
 
-#include "marslib/MarsTask.h"
-
 #include "fdb5/Type.h"
-
+#include "marslib/MarsTask.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Type::Type(const std::string& name, const std::string& type) :
+Type::Type(const std::string &name, const std::string &type) :
     name_(name),
-    type_(type)
-{
+    type_(type) {
 }
 
 Type::~Type() {
 }
 
-void Type::getValues(const MarsRequest& request,
-                               const std::string& keyword,
-                               StringList& values,
-                               const MarsTask& task,
-                               const DB* db) const
-{
+void Type::getValues(const MarsRequest &request,
+                     const std::string &keyword,
+                     eckit::StringList &values,
+                     const MarsTask &task,
+                     const DB *db) const {
     request.getValues(keyword, values);
 }
 
-const std::string& Type::type() const
-{
+const std::string &Type::type() const {
     return type_;
 }
 
 
-void Type::toKey(std::ostream& out,
-                 const std::string& keyword,
-                       const std::string& value) const {
+void Type::toKey(std::ostream &out,
+                 const std::string &keyword,
+                 const std::string &value) const {
     out << value;
 }
 
-std::ostream& operator<<(std::ostream& s, const Type& x)
-{
+std::ostream &operator<<(std::ostream &s, const Type &x) {
     x.print(s);
     return s;
 }

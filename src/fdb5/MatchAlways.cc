@@ -18,26 +18,21 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 MatchAlways::MatchAlways() :
-    Matcher()
-{
+    Matcher() {
 }
 
-MatchAlways::~MatchAlways()
-{
+MatchAlways::~MatchAlways() {
 }
 
-bool MatchAlways::match(const std::string& keyword, const Key& key) const
-{
+bool MatchAlways::match(const std::string &keyword, const Key &key) const {
     return true;
 }
 
-void MatchAlways::dump(std::ostream& s, const std::string& keyword, const TypesRegistry& registry) const
-{
+void MatchAlways::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
     registry.dump(s, keyword);
 }
 
-void MatchAlways::print(std::ostream& out) const
-{
+void MatchAlways::print(std::ostream &out) const {
     out << "MatchAlways[]";
 }
 

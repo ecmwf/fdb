@@ -8,11 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/config/Resource.h"
-#include "eckit/log/BigNum.h"
 
-#include "fdb5/Key.h"
+#include "eckit/log/BigNum.h"
 #include "fdb5/TocIndex.h"
 
 namespace fdb5 {
@@ -25,7 +22,7 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, Index::Mode mode
     dirty_(false) {
 }
 
-TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName& directory, const eckit::PathName &path):
+TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path):
     Index(s, directory, path),
     btree_(0),
     dirty_(false) {
@@ -77,7 +74,7 @@ TocIndex::Field TocIndex::get(const Key &key) const {
 
 
 void TocIndex::open() {
-    if(!btree_) {
+    if (!btree_) {
         btree_.reset(new BTreeStore(path_, mode() == Index::READ));
     }
 }
@@ -100,7 +97,7 @@ void TocIndex::put_(const Key &key, const TocIndex::Field &field) {
     ref.offset_ = field.offset_;
     ref.length_ = field.length_;
 
-//  bool replace =
+    //  bool replace =
     btree_->set(k, ref); // returns true if replace, false if new insert
 
     dirty_ = true;
@@ -135,7 +132,7 @@ class BTreeIndexVisitor {
     const std::string &prefix_;
     const FileStore &files_;
     EntryVisitor &visitor_;
-  public:
+public:
     BTreeIndexVisitor(const std::string &prefix, const FileStore &files, EntryVisitor &visitor):
         prefix_(prefix),
         files_(files),

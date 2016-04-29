@@ -73,8 +73,6 @@ list( APPEND fdb5_srcs
     MatchOptional.h
     MatchValue.cc
     MatchValue.h
-    NotFound.cc
-    NotFound.h
     Predicate.cc
     Predicate.h
     PurgeVisitor.cc

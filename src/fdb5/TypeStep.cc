@@ -10,7 +10,7 @@
 
 #include "eckit/utils/Translator.h"
 
-#include "marslib/MarsTask.h"
+#include "marslib/MarsRequest.h"
 #include "marslib/StepRange.h"
 
 #include "fdb5/TypesFactory.h"
@@ -22,7 +22,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeStep::TypeStep(const std::string &name, const std::string& type) :
+TypeStep::TypeStep(const std::string &name, const std::string &type) :
     Type(name, type) {
 }
 
@@ -30,17 +30,17 @@ TypeStep::~TypeStep() {
 }
 
 
-void TypeStep::toKey(std::ostream& out,
-                       const std::string& keyword,
-                       const std::string& value) const {
-  out << StepRange(value);
+void TypeStep::toKey(std::ostream &out,
+                     const std::string &keyword,
+                     const std::string &value) const {
+    out << StepRange(value);
 }
 
 void TypeStep::getValues(const MarsRequest &request,
-                            const std::string &keyword,
-                            eckit::StringList &values,
-                            const MarsTask &task,
-                            const DB *db) const {
+                         const std::string &keyword,
+                         eckit::StringList &values,
+                         const MarsTask &task,
+                         const DB *db) const {
     std::vector<std::string> steps;
 
     request.getValues(keyword, steps);
@@ -49,26 +49,23 @@ void TypeStep::getValues(const MarsRequest &request,
 
     values.reserve(steps.size());
 
-    if(db && !steps.empty()) {
-        StringSet axis;
+    if (db && !steps.empty()) {
+        eckit::StringSet axis;
         db->axis(keyword, axis);
         for (std::vector<std::string>::const_iterator i = steps.begin(); i != steps.end(); ++i) {
             std::string s(t(StepRange(*i)));
-            if(axis.find(s) == axis.end()) {
+            if (axis.find(s) == axis.end()) {
                 std::string z = "0-" + s;
-                if(axis.find(z) != axis.end()) {
+                if (axis.find(z) != axis.end()) {
                     values.push_back(z);
-                }
-                else {
+                } else {
                     values.push_back(s);
                 }
-            }
-            else {
+            } else {
                 values.push_back(s);
             }
         }
-    }
-    else {
+    } else {
         for (std::vector<std::string>::const_iterator i = steps.begin(); i != steps.end(); ++i) {
             values.push_back(t(StepRange(*i)));
         }
