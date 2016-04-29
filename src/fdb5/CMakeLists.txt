@@ -103,12 +103,6 @@ list( APPEND fdb5_srcs
     TocDBWriter.h
     TocHandler.cc
     TocHandler.h
-    TocAddIndex.cc
-    TocAddIndex.h
-    TocList.cc
-    TocList.h
-    TocPrint.cc
-    TocPrint.h
     TocRecord.cc
     TocRecord.h
     Type.cc

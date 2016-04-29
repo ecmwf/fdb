@@ -27,9 +27,7 @@ TocDBReader::TocDBReader(const Key& key) :
 
 TocDBReader::~TocDBReader()
 {
-    for(std::vector<Index*>::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
-        delete (*j);
-    }
+    freeIndexes(indexes_);
 }
 
 bool TocDBReader::selectIndex(const Key& key)
