@@ -22,6 +22,7 @@
 namespace fdb5 {
 
 class Key;
+class Index;
 
 //-----------------------------------------------------------------------------
 
@@ -45,6 +46,12 @@ public: // methods
     bool isOpen() const { return fd_ >= 0; }
     bool exists() const;
 
+
+    void writeInitRecord(const Key& tocKey);
+    void writeClearRecord(const eckit::PathName&);
+    void writeIndexRecord(const eckit::PathName&, const Index&);
+    void writeWipeRecord();
+
 protected: // methods
 
 	void openForAppend();
@@ -60,12 +67,8 @@ protected: // methods
 	void printRecord( const TocRecord& r, std::ostream& os );
 
     TocRecord makeRecordIdxInsert(const eckit::PathName& path, const Key& key) const;
-    TocRecord makeRecordIdxRemove(const eckit::PathName& path) const;
-	TocRecord makeRecordTocWipe() const;
 
-protected:
 
-    void writeInitRecord(const Key& tocKey);
 
 protected: // members
 

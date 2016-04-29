@@ -17,7 +17,7 @@
 #include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/Index.h"
-#include "fdb5/TocClearIndex.h"
+#include "fdb5/TocHandler.h"
 
 namespace fdb5 {
 
@@ -146,7 +146,11 @@ void PurgeVisitor::purge(bool doit) const
         if(stats.totalFields == stats.duplicates) {
             eckit::Log::info() << "Index to remove: " << i->first << std::endl;
 
-            if(doit) { TocClearIndex clear(dir_, i->first); }
+            if(doit) {
+                TocHandler handler(dir_);
+                handler.writeClearRecord(i->first);
+                // TocClearIndex clear(dir_, i->first);
+            }
 
             eckit::ScopedPtr<Index> index ( Index::create(i->first) );
             index->deleteFiles(doit);

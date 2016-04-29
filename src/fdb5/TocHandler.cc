@@ -27,16 +27,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocHandler::TocHandler(const eckit::PathName& directory) :
+TocHandler::TocHandler(const eckit::PathName &directory) :
     directory_(directory),
     filePath_(directory / "toc"),
     fd_(-1),
-    read_(false)
-{
+    read_(false) {
 }
 
-TocHandler::~TocHandler()
-{
+TocHandler::~TocHandler() {
     close();
 }
 
@@ -44,71 +42,63 @@ bool TocHandler::exists() const {
     return filePath_.exists();
 }
 
-void TocHandler::openForAppend()
-{
-	ASSERT( !isOpen() );
+void TocHandler::openForAppend() {
+    ASSERT( !isOpen() );
 
     eckit::Log::info() << "Opening for append TOC " << filePath() << std::endl;
 
     int iomode = O_WRONLY | O_APPEND;
-//#ifdef __linux__
-//	iomode |= O_NOATIME;
-//#endif
+    //#ifdef __linux__
+    //  iomode |= O_NOATIME;
+    //#endif
     SYSCALL2((fd_ = ::open( filePath().asString().c_str(), iomode, (mode_t)0777 )), filePath());
-	read_   = false;
+    read_   = false;
 }
 
-void TocHandler::openForRead()
-{
-	ASSERT( !isOpen() );
+void TocHandler::openForRead() {
+    ASSERT( !isOpen() );
 
     eckit::Log::info() << "Opening for read TOC " << filePath() << std::endl;
 
     int iomode = O_RDONLY;
-//#ifdef __linux__
-//	iomode |= O_NOATIME;
-//#endif
+    //#ifdef __linux__
+    //  iomode |= O_NOATIME;
+    //#endif
     SYSCALL2((fd_ = ::open( filePath().asString().c_str(), iomode )), filePath() );
-	read_   = true;
+    read_   = true;
 }
 
-void TocHandler::append( const TocRecord& r )
-{
-	ASSERT( isOpen() && !read_ );
+void TocHandler::append( const TocRecord &r ) {
+    ASSERT( isOpen() && !read_ );
 
-	try
-	{
+    try {
         size_t len;
         SYSCALL2( len = ::write(fd_, &r, sizeof(TocRecord)), filePath() );
         ASSERT( len == sizeof(TocRecord) );
-	}
-	catch(...)
-	{
-		close();
-		throw;
-	}
+    } catch (...) {
+        close();
+        throw;
+    }
 }
 
-size_t TocHandler::readNext( TocRecord& r )
-{
-	ASSERT( isOpen() && read_ );
+size_t TocHandler::readNext( TocRecord &r ) {
+    ASSERT( isOpen() && read_ );
 
     int len;
 
     SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord)), filePath() );
-    if(len == 0) {
+    if (len == 0) {
         return len;
     }
 
-    if(len != sizeof(TocRecord))
-    {
+    if (len != sizeof(TocRecord)) {
         close();
         std::ostringstream msg;
         msg << "Failed to read complete TocRecord from " << filePath().asString();
         throw eckit::ReadError( msg.str() );
     }
 
-    if( TocRecord::currentTagVersion() != r.version() ) {
+    if ( TocRecord::currentTagVersion() != r.version() ) {
         std::ostringstream oss;
         oss << "Record version mistach, expected " << int(TocRecord::currentTagVersion())
             << ", got " << int(r.version());
@@ -120,13 +110,11 @@ size_t TocHandler::readNext( TocRecord& r )
     return len;
 }
 
-void TocHandler::close()
-{
-	if( isOpen() )
-	{
+void TocHandler::close() {
+    if ( isOpen() ) {
         eckit::Log::info() << "Closing TOC " << filePath() << std::endl;
 
-        if(!read_) {
+        if (!read_) {
             int ret = fsync(fd_);
 
             while (ret < 0 && errno == EINTR)
@@ -138,43 +126,40 @@ void TocHandler::close()
 
             // On Linux, you must also flush the directory
             static bool fileHandleSyncsParentDir = eckit::Resource<bool>("fileHandleSyncsParentDir", true);
-            if( fileHandleSyncsParentDir )
+            if ( fileHandleSyncsParentDir )
                 filePath().syncParentDirectory();
         }
 
-		SYSCALL2( ::close(fd_), filePath() );
-		fd_ = -1;
-	}
+        SYSCALL2( ::close(fd_), filePath() );
+        fd_ = -1;
+    }
 }
 
-void TocHandler::printRecord(const TocRecord& r, std::ostream& os)
-{
-	switch (r.head_.tag_)
-	{
-		case TOC_INIT:
-			os << "Record TocInit [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
-		break;
+void TocHandler::printRecord(const TocRecord &r, std::ostream &os) {
+    switch (r.head_.tag_) {
+    case TOC_INIT:
+        os << "Record TocInit [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
+        break;
 
-		case TOC_INDEX:
-			os << "Record IdxFinal [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
-		break;
+    case TOC_INDEX:
+        os << "Record IdxFinal [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
+        break;
 
-		case TOC_CLEAR:
-			os << "Record IdxCancel [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
-		break;
+    case TOC_CLEAR:
+        os << "Record IdxCancel [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
+        break;
 
-		case TOC_WIPE:
-			os << "Record TocWipe [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
-		break;
+    case TOC_WIPE:
+        os << "Record TocWipe [" << eckit::DateTime( r.head_.timestamp_.tv_sec ) << "]";
+        break;
 
-		default:
-			throw eckit::SeriousBug("Unknown tag in TocRecord",Here());
-		break;
-	}
+    default:
+        throw eckit::SeriousBug("Unknown tag in TocRecord", Here());
+        break;
+    }
 }
 
-TocRecord TocHandler::makeRecordIdxInsert(const eckit::PathName& path, const Key& key ) const
-{
+TocRecord TocHandler::makeRecordIdxInsert(const eckit::PathName &path, const Key &key ) const {
     TocRecord r( TOC_INDEX );
 
     eckit::MemoryStream s(r.payload_.data(), r.payload_size);
@@ -182,28 +167,10 @@ TocRecord TocHandler::makeRecordIdxInsert(const eckit::PathName& path, const Key
     s << key;
     s << path.baseName();
 
-	return r;
-}
-
-TocRecord TocHandler::makeRecordIdxRemove(const eckit::PathName& path) const
-{
-    TocRecord r( TOC_CLEAR );
-
-    eckit::MemoryStream s(r.payload_.data(), r.payload_size);
-
-    s << path.baseName();
-
     return r;
 }
 
-TocRecord TocHandler::makeRecordTocWipe() const
-{
-    TocRecord r( TOC_WIPE );
-    return r;
-}
-
-
-void TocHandler::writeInitRecord(const Key& key) {
+void TocHandler::writeInitRecord(const Key &key) {
 
     if ( !directory_.exists() ) {
         dirPath().mkdir();
@@ -216,7 +183,7 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     read_ = true;
     size_t len = readNext(r);
-    if(len == 0) {
+    if (len == 0) {
 
         /* Copy rules first */
 
@@ -243,14 +210,52 @@ void TocHandler::writeInitRecord(const Key& key) {
         s << key;
 
         append(r);
-    }
-    else {
+    } else {
         ASSERT(r.head_.tag_ == TOC_INIT);
     }
 
     close();
 }
 
+void TocHandler::writeClearRecord(const eckit::PathName &path) {
+    openForAppend();
+
+    TocRecord r( TOC_CLEAR );
+
+    eckit::MemoryStream s(r.payload_.data(), r.payload_size);
+
+    s << path.baseName();
+
+    append(r);
+    close();
+
+}
+
+void TocHandler::writeWipeRecord() {
+    openForAppend();
+
+    TocRecord r( TOC_WIPE );
+
+    append(r);
+    close();
+
+}
+
+
+void TocHandler::writeIndexRecord(const eckit::PathName &path, const Index& index) {
+    openForAppend();
+
+    TocRecord r( TOC_INDEX );
+
+    eckit::MemoryStream s(r.payload_.data(), r.payload_size);
+
+    s << path.baseName();
+    index.encode(s);
+
+    append(r);
+    close();
+
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
