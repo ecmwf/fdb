@@ -32,6 +32,7 @@ class TocDB : public DB, public TocHandler {
 public: // methods
 
     TocDB(const Key& dbKey);
+    // TocDB(const PathName&); for tools, read key from TOC
 
     virtual ~TocDB();
 

@@ -35,43 +35,34 @@ public: // typedefs
 
 public: // methods
 
-	/// contructor for Toc's that already exist
 	TocHandler( const eckit::PathName& dir );
-
 	~TocHandler();
 
-    // eckit::PathName filePath() const { return filePath_; }
-	// eckit::PathName dirPath() const { return directory_; }
-
     bool exists() const;
-
 
     void writeInitRecord(const Key& tocKey);
     void writeClearRecord(const eckit::PathName&);
     void writeIndexRecord(const Index&);
     void writeWipeRecord();
+
     std::vector<Index *> loadIndexes();
     void freeIndexes(std::vector<Index *>&);
 
+protected: // members
 
-protected: // methods
+    const eckit::PathName directory_;
+
+private: // methods
+
+    friend class TocHandlerCloser;
 
 	void openForAppend();
     void openForRead();
+    void close();
 
-	void append( const TocRecord& r );
+	void append(TocRecord& r, size_t payloadSize);
+    bool readNext(TocRecord& r);
 
-    size_t readNext( TocRecord& r );
-
-	/// Closes the file descriptor if it is still open. Always safe to call.
-	void close();
-
-	void printRecord( const TocRecord& r, std::ostream& os );
-
-
-protected: // members
-
-    eckit::PathName directory_;
     eckit::PathName filePath_;
 
 	int fd_;      ///< file descriptor, if zero file is not yet open.

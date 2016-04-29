@@ -15,53 +15,48 @@
 
 namespace fdb5 {
 
+
+
+TocRecord::Header::Header(unsigned char tag):
+    tag_(tag) {
+
+    if(tag_ != TOC_NULL) {
+        eckit::zero(*this);
+        tag_        = tag;
+        version_    = currentVersion();
+
+        fdbVersion_ = ::mars_server_version_int();
+
+        SYSCALL( ::gettimeofday( &timestamp_, 0 ) );
+
+        pid_       = ::getpid();
+        uid_       = ::getuid();
+
+        //TODO: cache hostname
+        SYSCALL( ::gethostname( hostname_.data(), hostname_.static_size() ) );
+    }
+}
+
 //-----------------------------------------------------------------------------
 
-TocRecord::TocRecord()
+TocRecord::TocRecord(unsigned char tag):
+    header_(tag)
 {
-    eckit::zero(*this);
-    eckit::compile_assert< (sizeof(TocRecord) == TocRecord::size) >::check();
-    eckit::compile_assert< (TocRecord::payload_size >= 3*1024) >::check();
 }
 
-TocRecord::TocRecord(unsigned char tag)
-{
-    eckit::zero(*this);
-    head_.tag_  = tag;
-    head_.tagVersion_ = currentTagVersion();
-
-    head_.fdbVersion_ = ::mars_server_version_int();
-
-    SYSCALL( ::gettimeofday( &head_.timestamp_, 0 ) );
-
-    head_.pid_       = ::getpid();
-    head_.uid_       = ::getuid();
-
-    SYSCALL( ::gethostname( head_.hostname_.data(), head_.hostname_.static_size() ) );
-
-    marker_[0] = '4';
-    marker_[1] = '2';
-}
-
-unsigned char TocRecord::version() const
-{
-    return head_.tagVersion_;
-}
-
-bool TocRecord::isComplete() const { return ( marker_[0] == '4' && marker_[1] == '2' ); }
 
 void TocRecord::print(std::ostream &out) const {
     out << "TocRecord["
-        << "tag=" << head_.tag_ << ","
-        << "tagVersion=" << int(head_.tagVersion_) << ","
-        << "fdbVersion=" << head_.fdbVersion_ << ","
-        << "timestamp=" << head_.timestamp_.tv_sec << "." << head_.timestamp_.tv_usec << ","
-        << "pid=" << head_.pid_ << ","
-        << "uid=" << head_.uid_ << ","
-        << "hostname=" << head_.hostname_ << "]";
+        << "tag=" << header_.tag_ << ","
+        << "tagVersion=" << header_.version_ << ","
+        << "fdbVersion=" << header_.fdbVersion_ << ","
+        << "timestamp=" << header_.timestamp_.tv_sec << "." << header_.timestamp_.tv_usec << ","
+        << "pid=" << header_.pid_ << ","
+        << "uid=" << header_.uid_ << ","
+        << "hostname=" << header_.hostname_ << "]";
 }
 
-unsigned char TocRecord::currentTagVersion()
+unsigned int TocRecord::currentVersion()
 {
     return 1;
 }
