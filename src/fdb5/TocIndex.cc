@@ -120,10 +120,10 @@ bool TocIndex::remove(const Key &key) {
 }
 
 void TocIndex::flush() {
-    ASSERT(btree_);
     ASSERT( mode() == Index::WRITE );
 
     if (dirty_) {
+        ASSERT(btree_);
         btree_->flush();
         dirty_ = false;
     }

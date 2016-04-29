@@ -25,6 +25,7 @@ namespace legacy {
 
 //-----------------------------------------------------------------------------
 
+#if 0 // unused
 static bool iswave(const Key& key) {
 
     static const char* wavestreams[] = { "wave", "waef", "weov", "dcwv", "scwv", "ewda", 0 };
@@ -39,6 +40,7 @@ static bool iswave(const Key& key) {
     }
     return false;
 }
+#endif
 
 static StringDict::value_type integer(const Key& key, const std::string& keyword, const std::string& value )
 {
