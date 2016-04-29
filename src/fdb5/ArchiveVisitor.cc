@@ -18,12 +18,11 @@ ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &field, const void *da
     BaseArchiveVisitor(owner, field),
     data_(data),
     size_(size) {
-    eckit::Log::info() << *this << std::endl;
 }
 
 bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
 
-    eckit::Log::info() << "selectDatum " << key << ", " << full << " " << size_ << std::endl;
+    // eckit::Log::info() << "selectDatum " << key << ", " << full << " " << size_ << std::endl;
     checkMissingKeys(full);
 
     ASSERT(current());
@@ -37,8 +36,7 @@ bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
 void ArchiveVisitor::print(std::ostream &out) const {
     out << "ArchiveVisitor["
         << "size=" << size_
-        << "]"
-        << std::endl;
+        << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -116,10 +116,11 @@ public: // types
 public: // methods
 
 
-    Index(const Key &key, const eckit::PathName &path, Index::Mode mode );
-    Index(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path);
+    Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode );
+    Index(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
 
     virtual void open() = 0;
+    virtual void reopen() = 0;
     virtual void close() = 0;
 
     virtual ~Index();
@@ -151,8 +152,12 @@ public: // methods
         return s;
     }
 
-    eckit::PathName path() const {
+    const eckit::PathName& path() const {
         return path_;
+    }
+
+    off_t offset() const {
+        return offset_;
     }
 
     Mode mode() const {
@@ -173,6 +178,7 @@ protected: // members
 
     Mode            mode_;
     eckit::PathName path_;
+    off_t           offset_;
 
     // Order is important here...
     FileStore   files_;

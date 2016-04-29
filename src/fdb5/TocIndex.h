@@ -37,8 +37,8 @@ public: // types
 
 public: // methods
 
-    TocIndex(const Key &key, const eckit::PathName &path, Index::Mode mode );
-    TocIndex(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path);
+    TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode );
+    TocIndex(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
 
     virtual ~TocIndex();
     virtual void deleteFiles(bool doit) const;
@@ -47,6 +47,7 @@ private: // methods
 
     virtual void open();
     virtual void close();
+    virtual void reopen();
 
 
     virtual bool    exists( const Key &key ) const;

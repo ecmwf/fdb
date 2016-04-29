@@ -38,7 +38,7 @@ bool TocDBWriter::selectIndex(const Key &key) {
     currentIndexKey_ = key;
 
     if (indexes_.find(key) == indexes_.end()) {
-        indexes_[key] = new TocIndex(key, generateIndexPath(key), Index::WRITE);
+        indexes_[key] = new TocIndex(key, generateIndexPath(key), 0, Index::WRITE);
     }
 
     current_ = indexes_[key];
@@ -64,7 +64,10 @@ void TocDBWriter::close() {
 
     deselectIndex();
 
+
     closeDataHandles(); // close data handles
+    closeIndexes();
+
 }
 
 
@@ -111,11 +114,6 @@ void TocDBWriter::flush() {
 
     flushDataHandles();
     flushIndexes();
-
-    // close the indexes before the Toc's
-    /// @note FTM, we close the index because we want readers to acccess data
-    ///       and we aren't sure BTree can handle concurrent readers and writers
-    closeIndexes();
 
     dirty_ = false;
     current_ = 0;
@@ -195,6 +193,8 @@ void TocDBWriter::flushIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
         Index *idx = j->second;
         idx->flush();
+        writeIndexRecord(*idx);
+        idx->reopen(); // Create a new btree
     }
 }
 
@@ -203,7 +203,7 @@ void TocDBWriter::closeIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
         Index *idx = j->second;
         idx->close();
-        writeIndexRecord(*idx);
+        // writeIndexRecord(*idx);
         delete idx;
     }
 

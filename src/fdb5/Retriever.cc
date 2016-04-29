@@ -76,7 +76,7 @@ public:
 
     virtual bool selectDatum(const Key &key, const Key &full) {
         ASSERT(db_);
-        eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
+        // eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
 
         eckit::DataHandle *dh = db_->retrieve(key);
 

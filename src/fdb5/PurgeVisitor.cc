@@ -144,10 +144,10 @@ void PurgeVisitor::purge(bool doit) const {
 
             if (doit) {
                 TocHandler handler(dir_);
-                handler.writeClearRecord(i->first);
+                handler.writeClearRecord(i->first, 0);
             }
 
-            TocIndex index(Key(), i->first, Index::READ);
+            TocIndex index(Key(), i->first, 0, Index::READ);
             index.deleteFiles(doit);
         }
     }

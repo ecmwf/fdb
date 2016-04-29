@@ -52,6 +52,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
             total_size += len;
             count++;
             progress(total_size);
+
         }
     } catch (...) {
 

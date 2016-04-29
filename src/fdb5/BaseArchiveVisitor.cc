@@ -34,7 +34,7 @@ bool BaseArchiveVisitor::selectDatabase(const Key &key, const Key &full) {
 }
 
 bool BaseArchiveVisitor::selectIndex(const Key &key, const Key &full) {
-    eckit::Log::info() << "selectIndex " << key << std::endl;
+    // eckit::Log::info() << "selectIndex " << key << std::endl;
     ASSERT(owner_.current_);
     return owner_.current_->selectIndex(key);
 }

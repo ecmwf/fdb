@@ -109,11 +109,10 @@ void TypeParam::getValues(const MarsRequest &request,
         }
     }
 
-    Log::info() << "TypeParam before: " << us << std::endl;
-    Log::info() << "              after: " << values << std::endl;
-    Log::info() << "               wind: " << (windConvertion ? "true" : "false") << std::endl;
-    // Log::info() << "               user: " << user << std::endl;
-    Log::info() << "               axis: " << ax << std::endl;
+    // Log::info() << "TypeParam before: " << us << std::endl;
+    // Log::info() << "              after: " << values << std::endl;
+    // Log::info() << "               wind: " << (windConvertion ? "true" : "false") << std::endl;
+    // Log::info() << "               axis: " << ax << std::endl;
 
     if (windConvertion) {
         task.notifyWinds();

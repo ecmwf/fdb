@@ -15,9 +15,10 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-Index::Index(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path) :
+Index::Index(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset) :
     mode_(Index::READ),
     path_(path),
+    offset_(offset),
     files_(directory, s),
     axes_(s),
     key_(s) {
@@ -31,9 +32,10 @@ void Index::encode(eckit::Stream &s) const {
     s << prefix_;
 }
 
-Index::Index(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
+Index::Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode ) :
     mode_(mode),
     path_(path),
+    offset_(offset),
     files_(path.dirName()),
     axes_(),
     key_(key),

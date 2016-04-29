@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-
 #include "eckit/log/BigNum.h"
 #include "fdb5/TocIndex.h"
 
@@ -16,14 +15,14 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
-TocIndex::TocIndex(const Key &key, const eckit::PathName &path, Index::Mode mode ) :
-    Index(key, path, mode),
+TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode ) :
+    Index(key, path, offset, mode),
     btree_( 0 ),
     dirty_(false) {
 }
 
-TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path):
-    Index(s, directory, path),
+TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
+    Index(s, directory, path, offset),
     btree_(0),
     dirty_(false) {
 
@@ -57,7 +56,7 @@ TocIndex::Field TocIndex::get(const Key &key) const {
     Field result;
     FieldRef ref;
     BTreeKey k (key.valuesToString());
-    eckit::Log::info() << "TocIndex get " << key << " (" << k << ")" << std::endl;
+    // eckit::Log::info() << "TocIndex get " << key << " (" << k << ")" << std::endl;
     bool found = const_cast<TocIndex *>(this)->btree_->get(k, ref);
     if ( !found ) {
         std::ostringstream oss;
@@ -75,8 +74,18 @@ TocIndex::Field TocIndex::get(const Key &key) const {
 
 void TocIndex::open() {
     if (!btree_) {
-        btree_.reset(new BTreeStore(path_, mode() == Index::READ));
+        btree_.reset(new BTreeStore(path_, mode() == Index::READ, offset_));
     }
+}
+
+void TocIndex::reopen() {
+    close();
+
+    // Create a new btree at the end of this one
+
+    offset_ = path_.size();
+
+    open();
 }
 
 void TocIndex::close() {
@@ -91,7 +100,7 @@ void TocIndex::put_(const Key &key, const TocIndex::Field &field) {
     BTreeKey k( key.valuesToString() );
     FieldRef ref;
 
-    eckit::Log::info() << "TocIndex insert " << key << " (" << k << ") = " << field << std::endl;
+    // eckit::Log::info() << "TocIndex insert " << key << " (" << k << ") = " << field << std::endl;
 
     ref.pathId_ = files_.insert( field.path_ ); // inserts not yet in filestore
     ref.offset_ = field.offset_;
