@@ -8,27 +8,31 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeStep.h
+/// @file   TypeDouble.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeStep_H
-#define fdb5_TypeStep_H
+#ifndef fdb5_TypeDouble_H
+#define fdb5_TypeDouble_H
 
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeStep : public Type {
+class TypeDouble : public Type {
 
 public: // methods
 
-    TypeStep(const std::string &name, const std::string &type);
+    TypeDouble(const std::string &name, const std::string &type);
 
-    virtual ~TypeStep();
+    virtual ~TypeDouble();
+
+    virtual void toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const ;
 
     virtual void getValues(const MarsRequest &request,
                            const std::string &keyword,
@@ -36,9 +40,6 @@ public: // methods
                            const MarsTask &task,
                            const DB *db) const;
 
-    virtual void toKey(std::ostream &out,
-                       const std::string &keyword,
-                       const std::string &value) const;
 private: // methods
 
     virtual void print( std::ostream &out ) const;

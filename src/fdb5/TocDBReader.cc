@@ -21,11 +21,6 @@ TocDBReader::TocDBReader(const Key& key) :
     indexes_(loadIndexes()) {
 }
 
-TocDBReader::TocDBReader(const eckit::PathName& directory) :
-    TocDB(directory),
-    indexes_(loadIndexes()) {
-}
-
 TocDBReader::~TocDBReader() {
     freeIndexes(indexes_);
 }

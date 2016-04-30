@@ -11,7 +11,7 @@
 #include "eckit/log/Log.h"
 
 #include "fdb5/MatchAlways.h"
-#include "fdb5/TypesRegistry.h"
+#include "fdb5/type/TypesRegistry.h"
 
 namespace fdb5 {
 

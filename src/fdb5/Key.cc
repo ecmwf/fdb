@@ -12,7 +12,7 @@
 
 #include "fdb5/Key.h"
 #include "fdb5/Rule.h"
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 

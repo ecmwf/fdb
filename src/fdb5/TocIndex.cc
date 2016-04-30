@@ -10,6 +10,7 @@
 
 #include "eckit/log/BigNum.h"
 #include "fdb5/TocIndex.h"
+#include "fdb5/BTreeIndex.h"
 
 namespace fdb5 {
 
@@ -50,9 +51,9 @@ TocIndex::~TocIndex() {
 
 bool TocIndex::get(const Key &key, Index::Field &field) const {
     ASSERT(btree_);
-    FieldRef ref;
-    BTreeKey k (key.valuesToString());
-    bool found = const_cast<TocIndex *>(this)->btree_->get(k, ref);
+    FileStore::FieldRef ref;
+
+    bool found = btree_->get(key.valuesToString(), ref);
     if ( found ) {
         field.path_     = files_.get( ref.pathId_ );
         field.offset_   = ref.offset_;
@@ -64,7 +65,7 @@ bool TocIndex::get(const Key &key, Index::Field &field) const {
 
 void TocIndex::open() {
     if (!btree_) {
-        btree_.reset(new BTreeStore(path_, mode_ == Index::READ, offset_));
+        btree_.reset(new BTreeIndex_32_65536(path_, mode_ == Index::READ, offset_));
     }
 }
 
@@ -86,9 +87,7 @@ void TocIndex::add(const Key &key, const TocIndex::Field &field) {
     ASSERT(btree_);
     ASSERT( mode_ == Index::WRITE );
 
-
-    BTreeKey k( key.valuesToString() );
-    FieldRef ref;
+    FileStore::FieldRef ref;
 
     // eckit::Log::info() << "TocIndex insert " << key << " (" << k << ") = " << field << std::endl;
 
@@ -97,7 +96,7 @@ void TocIndex::add(const Key &key, const TocIndex::Field &field) {
     ref.length_ = field.length_;
 
     //  bool replace =
-    btree_->set(k, ref); // returns true if replace, false if new insert
+    btree_->set(key.valuesToString(), ref); // returns true if replace, false if new insert
 
     dirty_ = true;
 
@@ -113,39 +112,33 @@ void TocIndex::flush() {
     }
 }
 
-class BTreeIndexVisitor {
+class TocIndexVisitor : public BTreeIndexVisitor {
     const Index& index_;
     const std::string& prefix_;
     const FileStore &files_;
     EntryVisitor &visitor_;
 public:
-    BTreeIndexVisitor(const Index& index, const std::string &prefix, const FileStore &files, EntryVisitor &visitor):
+    TocIndexVisitor(const Index& index, const std::string &prefix, const FileStore &files, EntryVisitor &visitor):
         index_(index),
         prefix_(prefix),
         files_(files),
         visitor_(visitor) {}
 
-    // BTree::range() expect a STL like collection
-
-    void clear() {
-
-    }
-
-    void push_back(const TocIndex::BTreeStore::result_type &kv) {
+    void visit(const std::string& key, const FileStore::FieldRef& field) {
         visitor_.visit(index_,
                        prefix_,
-                       kv.first,
-                       files_.get( kv.second.pathId_ ),
-                       kv.second.offset_,
-                       kv.second.length_);
+                       key,
+                       files_.get( field.pathId_ ),
+                       field.offset_,
+                       field.length_);
     }
 };
 
 void TocIndex::entries(EntryVisitor &visitor) const {
     TocIndexCloser closer(*this);
 
-    BTreeIndexVisitor v(*this, prefix_, files_, visitor);
-    const_cast<TocIndex *>(this)->btree_->range("", "\255", v);
+    TocIndexVisitor v(*this, prefix_, files_, visitor);
+    btree_->visit(v);
 }
 
 void TocIndex::print(std::ostream &out) const {

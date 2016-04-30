@@ -15,8 +15,8 @@
 
 #include "marslib/MarsRequest.h"
 
-#include "fdb5/TypesFactory.h"
-#include "fdb5/TypeClimateDaily.h"
+#include "fdb5/type/TypesFactory.h"
+#include "fdb5/type/TypeClimateDaily.h"
 
 namespace fdb5 {
 
@@ -63,7 +63,7 @@ void TypeClimateDaily::toKey(std::ostream &out,
                              const std::string &keyword,
                              const std::string &value) const {
   char prev = out.fill ('0');
-  out.width (4);
+  out.width(4);
   out << month(value);
   out.fill(prev);
 }

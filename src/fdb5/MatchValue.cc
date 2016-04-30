@@ -10,7 +10,7 @@
 
 #include "fdb5/Key.h"
 #include "fdb5/MatchValue.h"
-#include "fdb5/TypesRegistry.h"
+#include "fdb5/type/TypesRegistry.h"
 
 namespace fdb5 {
 

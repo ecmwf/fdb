@@ -29,7 +29,6 @@ class TocDBReader : public TocDB {
 public: // methods
 
     TocDBReader(const Key& key);
-    TocDBReader(const eckit::PathName& directory);
 
     virtual ~TocDBReader();
 

@@ -12,8 +12,8 @@
 #include "eckit/types/Date.h"
 #include "marslib/MarsRequest.h"
 
-#include "fdb5/TypesFactory.h"
-#include "fdb5/TypeClimateMonthly.h"
+#include "fdb5/type/TypesFactory.h"
+#include "fdb5/type/TypeClimateMonthly.h"
 
 
 namespace fdb5 {

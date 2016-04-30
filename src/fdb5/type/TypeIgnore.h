@@ -8,31 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeDouble.h
+/// @file   TypeIgnore.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeDouble_H
-#define fdb5_TypeDouble_H
+#ifndef fdb5_TypeIgnore_H
+#define fdb5_TypeIgnore_H
 
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeDouble : public Type {
+class TypeIgnore : public Type {
 
 public: // methods
 
-    TypeDouble(const std::string &name, const std::string &type);
+    TypeIgnore(const std::string &name, const std::string &type);
 
-    virtual ~TypeDouble();
-
-    virtual void toKey(std::ostream &out,
-                       const std::string &keyword,
-                       const std::string &value) const ;
+    virtual ~TypeIgnore();
 
     virtual void getValues(const MarsRequest &request,
                            const std::string &keyword,
@@ -40,6 +36,9 @@ public: // methods
                            const MarsTask &task,
                            const DB *db) const;
 
+    virtual void toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const;
 private: // methods
 
     virtual void print( std::ostream &out ) const;

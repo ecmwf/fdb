@@ -22,7 +22,7 @@
 #include "fdb5/MatchValue.h"
 #include "fdb5/MatchOptional.h"
 #include "fdb5/MatchHidden.h"
-#include "fdb5/TypesRegistry.h"
+#include "fdb5/type/TypesRegistry.h"
 
 namespace fdb5 {
 

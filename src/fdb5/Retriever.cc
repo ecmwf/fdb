@@ -15,7 +15,7 @@
 #include "fdb5/MasterConfig.h"
 #include "fdb5/ReadVisitor.h"
 #include "fdb5/Retriever.h"
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 #include "marslib/MarsTask.h"
 

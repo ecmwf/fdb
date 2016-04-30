@@ -8,39 +8,38 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeGrid.h
+/// @file   TypeStep.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeGrid_H
-#define fdb5_TypeGrid_H
+#ifndef fdb5_TypeStep_H
+#define fdb5_TypeStep_H
 
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeGrid : public Type {
+class TypeStep : public Type {
 
 public: // methods
 
-    TypeGrid(const std::string &name, const std::string &type);
+    TypeStep(const std::string &name, const std::string &type);
 
-    virtual ~TypeGrid();
-
-private: // methods
-
-    virtual void toKey(std::ostream &out,
-                       const std::string &keyword,
-                       const std::string &value) const ;
+    virtual ~TypeStep();
 
     virtual void getValues(const MarsRequest &request,
                            const std::string &keyword,
                            eckit::StringList &values,
                            const MarsTask &task,
                            const DB *db) const;
+
+    virtual void toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const;
+private: // methods
 
     virtual void print( std::ostream &out ) const;
 

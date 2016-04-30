@@ -29,11 +29,12 @@
 
 namespace fdb5 {
 
+class BTreeIndex;
+
 class TocIndex : public Index {
 
 public: // types
 
-    typedef eckit::FixedString<32> BTreeKey;
 
 public: // methods
 
@@ -55,21 +56,18 @@ private: // methods
 
     virtual void print( std::ostream &out ) const;
 
-private: // types
-
-    typedef FileStore::FieldRef FieldRef;
-    typedef eckit::BTree< BTreeKey , FieldRef, 65536 > BTreeStore;
-    friend class BTreeIndexVisitor;
 
 private: // members
 
-    eckit::ScopedPtr<BTreeStore>  btree_;
+    eckit::ScopedPtr<BTreeIndex>  btree_;
 
     bool dirty_;
 
     friend class TocIndexCloser;
 
 };
+
+
 
 } // namespace fdb5
 

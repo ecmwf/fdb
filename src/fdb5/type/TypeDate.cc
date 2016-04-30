@@ -8,48 +8,48 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/parser/StringTools.h"
+#include "eckit/utils/Translator.h"
+
+#include "eckit/types/Date.h"
 #include "marslib/MarsRequest.h"
 
-#include "fdb5/TypesFactory.h"
-#include "fdb5/TypeGrid.h"
+#include "fdb5/type/TypesFactory.h"
+#include "fdb5/type/TypeDate.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeGrid::TypeGrid(const std::string &name, const std::string &type) :
+TypeDate::TypeDate(const std::string &name, const std::string &type) :
     Type(name, type) {
 }
 
-TypeGrid::~TypeGrid() {
+TypeDate::~TypeDate() {
 }
 
-void TypeGrid::toKey(std::ostream &out,
-                     const std::string &keyword,
-                     const std::string &value) const {
-
-    std::string s(value);
-    std::replace( s.begin(), s.end(), '/', '+');
-    out << s;
-}
-
-void TypeGrid::getValues(const MarsRequest &request,
+void TypeDate::getValues(const MarsRequest &request,
                          const std::string &keyword,
                          eckit::StringList &values,
                          const MarsTask &task,
                          const DB *db) const {
-    std::vector<std::string> v;
-    request.getValues(keyword, v);
-    values.push_back(eckit::StringTools::join("+", v));
+    std::vector<eckit::Date> dates;
+
+    request.getValues(keyword, dates);
+
+    eckit::Translator<long, std::string> t;
+
+    values.reserve(dates.size());
+
+    for (std::vector<eckit::Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
+        values.push_back(t(i->yyyymmdd()));
+    }
 }
 
-
-void TypeGrid::print(std::ostream &out) const {
-    out << "TypeGrid[name=" << name_ << "]";
+void TypeDate::print(std::ostream &out) const {
+    out << "TypeDate[name=" << name_ << "]";
 }
 
-static TypeBuilder<TypeGrid> type("Grid");
+static TypeBuilder<TypeDate> type("Date");
 
 //----------------------------------------------------------------------------------------------------------------------
 

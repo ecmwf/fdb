@@ -8,42 +8,26 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeInteger.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   April 2016
-
-#ifndef fdb5_TypeInteger_H
-#define fdb5_TypeInteger_H
-
-#include "fdb5/Type.h"
+#include "fdb5/type/TypesFactory.h"
+#include "fdb5/type/TypeDefault.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeInteger : public Type {
+TypeDefault::TypeDefault(const std::string &name, const std::string &type) :
+    Type(name, type) {
+}
 
-public: // methods
+TypeDefault::~TypeDefault() {
+}
 
-    TypeInteger(const std::string &name, const std::string &type);
+void TypeDefault::print(std::ostream &out) const {
+    out << "TypeDefault[name=" << name_ << "]";
+}
 
-    virtual ~TypeInteger();
-
-    virtual void getValues(const MarsRequest &request,
-                           const std::string &keyword,
-                           eckit::StringList &values,
-                           const MarsTask &task,
-                           const DB *db) const;
-
-private: // methods
-
-    virtual void print( std::ostream &out ) const;
-
-};
+static TypeBuilder<TypeDefault> type("Default");
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

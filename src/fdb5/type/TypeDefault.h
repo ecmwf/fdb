@@ -8,42 +8,31 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeAbbreviation.h
+/// @file   TypeDefault.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeAbbreviation_H
-#define fdb5_TypeAbbreviation_H
+#ifndef fdb5_TypeDefault_H
+#define fdb5_TypeDefault_H
 
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeAbbreviation : public Type {
+class TypeDefault : public Type {
 
 public: // methods
 
-    TypeAbbreviation(const std::string &name, const std::string &type);
+    TypeDefault(const std::string &name, const std::string &type);
 
-    virtual ~TypeAbbreviation();
-
-    virtual void toKey(std::ostream &out,
-                       const std::string &keyword,
-                       const std::string &value) const ;
-
-    virtual void getValues(const MarsRequest &request,
-                           const std::string &keyword,
-                           eckit::StringList &values,
-                           const MarsTask &task,
-                           const DB *db) const;
+    virtual ~TypeDefault();
 
 private: // methods
 
     virtual void print( std::ostream &out ) const;
-    size_t count_;
 
 };
 

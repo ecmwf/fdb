@@ -8,27 +8,31 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeDate.h
+/// @file   TypeClimateMonthly.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeDate_H
-#define fdb5_TypeDate_H
+#ifndef fdb5_TypeClimateMonthly_H
+#define fdb5_TypeClimateMonthly_H
 
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeDate : public Type {
+class TypeClimateMonthly : public Type {
 
 public: // methods
 
-    TypeDate(const std::string &name, const std::string &type);
+    TypeClimateMonthly(const std::string &name, const std::string &type);
 
-    virtual ~TypeDate();
+    virtual ~TypeClimateMonthly();
+
+    virtual void toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const ;
 
     virtual void getValues(const MarsRequest &request,
                            const std::string &keyword,

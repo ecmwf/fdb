@@ -21,7 +21,7 @@
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
-#include "fdb5/TypesRegistry.h"
+#include "fdb5/type/TypesRegistry.h"
 
 class MarsRequest;
 

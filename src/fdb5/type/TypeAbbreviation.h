@@ -8,27 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeClimateMonthly.h
+/// @file   TypeAbbreviation.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeClimateMonthly_H
-#define fdb5_TypeClimateMonthly_H
+#ifndef fdb5_TypeAbbreviation_H
+#define fdb5_TypeAbbreviation_H
 
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeClimateMonthly : public Type {
+class TypeAbbreviation : public Type {
 
 public: // methods
 
-    TypeClimateMonthly(const std::string &name, const std::string &type);
+    TypeAbbreviation(const std::string &name, const std::string &type);
 
-    virtual ~TypeClimateMonthly();
+    virtual ~TypeAbbreviation();
 
     virtual void toKey(std::ostream &out,
                        const std::string &keyword,
@@ -43,6 +43,7 @@ public: // methods
 private: // methods
 
     virtual void print( std::ostream &out ) const;
+    size_t count_;
 
 };
 

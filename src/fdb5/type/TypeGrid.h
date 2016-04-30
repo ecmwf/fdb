@@ -8,35 +8,39 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeParam.h
+/// @file   TypeGrid.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeParam_H
-#define fdb5_TypeParam_H
+#ifndef fdb5_TypeGrid_H
+#define fdb5_TypeGrid_H
 
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeParam : public Type {
+class TypeGrid : public Type {
 
 public: // methods
 
-    TypeParam(const std::string &name, const std::string &type);
+    TypeGrid(const std::string &name, const std::string &type);
 
-    virtual ~TypeParam();
+    virtual ~TypeGrid();
+
+private: // methods
+
+    virtual void toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const ;
 
     virtual void getValues(const MarsRequest &request,
                            const std::string &keyword,
                            eckit::StringList &values,
                            const MarsTask &task,
                            const DB *db) const;
-
-private: // methods
 
     virtual void print( std::ostream &out ) const;
 

@@ -8,27 +8,31 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeIgnore.h
+/// @file   TypeClimateDaily.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeIgnore_H
-#define fdb5_TypeIgnore_H
+#ifndef fdb5_TypeClimateDaily_H
+#define fdb5_TypeClimateDaily_H
 
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeIgnore : public Type {
+class TypeClimateDaily : public Type {
 
 public: // methods
 
-    TypeIgnore(const std::string &name, const std::string &type);
+    TypeClimateDaily(const std::string &name, const std::string &type);
 
-    virtual ~TypeIgnore();
+    virtual ~TypeClimateDaily();
+
+    virtual void toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const ;
 
     virtual void getValues(const MarsRequest &request,
                            const std::string &keyword,
@@ -36,9 +40,6 @@ public: // methods
                            const MarsTask &task,
                            const DB *db) const;
 
-    virtual void toKey(std::ostream &out,
-                       const std::string &keyword,
-                       const std::string &value) const;
 private: // methods
 
     virtual void print( std::ostream &out ) const;

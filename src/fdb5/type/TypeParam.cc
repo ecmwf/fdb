@@ -9,8 +9,8 @@
  */
 
 
-#include "fdb5/TypesFactory.h"
-#include "fdb5/TypeParam.h"
+#include "fdb5/type/TypesFactory.h"
+#include "fdb5/type/TypeParam.h"
 #include "fdb5/DB.h"
 
 #include "marslib/MarsParam.h"

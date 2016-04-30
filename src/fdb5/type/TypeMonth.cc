@@ -14,8 +14,8 @@
 
 #include "marslib/MarsRequest.h"
 
-#include "fdb5/TypesFactory.h"
-#include "fdb5/TypeMonth.h"
+#include "fdb5/type/TypesFactory.h"
+#include "fdb5/type/TypeMonth.h"
 
 
 namespace fdb5 {

@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 #include "marslib/MarsTask.h"
 
 namespace fdb5 {

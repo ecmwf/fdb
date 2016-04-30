@@ -8,27 +8,37 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeDefault.h
+/// @file   TypeMonth.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeDefault_H
-#define fdb5_TypeDefault_H
+#ifndef fdb5_TypeMonth_H
+#define fdb5_TypeMonth_H
 
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeDefault : public Type {
+class TypeMonth : public Type {
 
 public: // methods
 
-    TypeDefault(const std::string &name, const std::string &type);
+    TypeMonth(const std::string &name, const std::string &type);
 
-    virtual ~TypeDefault();
+    virtual ~TypeMonth();
+
+    virtual void toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const ;
+
+    virtual void getValues(const MarsRequest &request,
+                           const std::string &keyword,
+                           eckit::StringList &values,
+                           const MarsTask &task,
+                           const DB *db) const;
 
 private: // methods
 

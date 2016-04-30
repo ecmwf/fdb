@@ -12,8 +12,8 @@
 
 #include "marslib/MarsRequest.h"
 
-#include "fdb5/TypesFactory.h"
-#include "fdb5/TypeDouble.h"
+#include "fdb5/type/TypesFactory.h"
+#include "fdb5/type/TypeDouble.h"
 
 namespace fdb5 {
 

@@ -8,11 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/TypeAbbreviation.h"
+#include "fdb5/type/TypeAbbreviation.h"
 
 #include "marslib/MarsRequest.h"
 
-#include "fdb5/TypesFactory.h"
+#include "fdb5/type/TypesFactory.h"
 
 namespace fdb5 {
 

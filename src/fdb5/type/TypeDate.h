@@ -8,26 +8,42 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/TypesFactory.h"
-#include "fdb5/TypeDefault.h"
+/// @file   TypeDate.h
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
+/// @date   April 2016
+
+#ifndef fdb5_TypeDate_H
+#define fdb5_TypeDate_H
+
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeDefault::TypeDefault(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+class TypeDate : public Type {
 
-TypeDefault::~TypeDefault() {
-}
+public: // methods
 
-void TypeDefault::print(std::ostream &out) const {
-    out << "TypeDefault[name=" << name_ << "]";
-}
+    TypeDate(const std::string &name, const std::string &type);
 
-static TypeBuilder<TypeDefault> type("Default");
+    virtual ~TypeDate();
+
+    virtual void getValues(const MarsRequest &request,
+                           const std::string &keyword,
+                           eckit::StringList &values,
+                           const MarsTask &task,
+                           const DB *db) const;
+
+private: // methods
+
+    virtual void print( std::ostream &out ) const;
+
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
+
+#endif

@@ -13,7 +13,7 @@
 #include "fdb5/MatchOptional.h"
 #include "fdb5/Key.h"
 #include "eckit/types/Types.h"
-#include "fdb5/TypesRegistry.h"
+#include "fdb5/type/TypesRegistry.h"
 
 namespace fdb5 {
 

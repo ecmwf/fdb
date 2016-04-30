@@ -9,9 +9,9 @@
  */
 
 
-#include "fdb5/TypesRegistry.h"
-#include "fdb5/TypesFactory.h"
-#include "fdb5/Type.h"
+#include "fdb5/type/TypesRegistry.h"
+#include "fdb5/type/TypesFactory.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 

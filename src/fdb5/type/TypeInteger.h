@@ -8,31 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeClimateDaily.h
+/// @file   TypeInteger.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeClimateDaily_H
-#define fdb5_TypeClimateDaily_H
+#ifndef fdb5_TypeInteger_H
+#define fdb5_TypeInteger_H
 
-#include "fdb5/Type.h"
+#include "fdb5/type/Type.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeClimateDaily : public Type {
+class TypeInteger : public Type {
 
 public: // methods
 
-    TypeClimateDaily(const std::string &name, const std::string &type);
+    TypeInteger(const std::string &name, const std::string &type);
 
-    virtual ~TypeClimateDaily();
-
-    virtual void toKey(std::ostream &out,
-                       const std::string &keyword,
-                       const std::string &value) const ;
+    virtual ~TypeInteger();
 
     virtual void getValues(const MarsRequest &request,
                            const std::string &keyword,

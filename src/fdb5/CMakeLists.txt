@@ -37,6 +37,8 @@ list( APPEND fdb5_srcs
     Archiver.h
     ArchiveVisitor.cc
     ArchiveVisitor.h
+    BTreeIndex.h
+    BTreeIndex.cc
     BaseArchiveVisitor.cc
     BaseArchiveVisitor.h
     DB.cc
@@ -103,38 +105,38 @@ list( APPEND fdb5_srcs
     TocIndex.h
     TocRecord.cc
     TocRecord.h
-    Type.cc
-    Type.h
-    TypeAbbreviation.cc
-    TypeAbbreviation.h
-    TypeClimateDaily.cc
-    TypeClimateDaily.h
-    TypeClimateMonthly.cc
-    TypeClimateMonthly.h
-    TypeDate.cc
-    TypeDate.h
-    TypeDefault.cc
-    TypeDefault.h
-    TypeDouble.cc
-    TypeDouble.cc
-    TypeDouble.h
-    TypeDouble.h
-    TypeGrid.cc
-    TypeGrid.h
-    TypeIgnore.cc
-    TypeIgnore.h
-    TypeInteger.cc
-    TypeInteger.h
-    TypeMonth.cc
-    TypeMonth.h
-    TypeParam.cc
-    TypeParam.h
-    TypesFactory.cc
-    TypesFactory.h
-    TypesRegistry.cc
-    TypesRegistry.h
-    TypeStep.cc
-    TypeStep.h
+    type/Type.cc
+    type/Type.h
+    type/TypeAbbreviation.cc
+    type/TypeAbbreviation.h
+    type/TypeClimateDaily.cc
+    type/TypeClimateDaily.h
+    type/TypeClimateMonthly.cc
+    type/TypeClimateMonthly.h
+    type/TypeDate.cc
+    type/TypeDate.h
+    type/TypeDefault.cc
+    type/TypeDefault.h
+    type/TypeDouble.cc
+    type/TypeDouble.cc
+    type/TypeDouble.h
+    type/TypeDouble.h
+    type/TypeGrid.cc
+    type/TypeGrid.h
+    type/TypeIgnore.cc
+    type/TypeIgnore.h
+    type/TypeInteger.cc
+    type/TypeInteger.h
+    type/TypeMonth.cc
+    type/TypeMonth.h
+    type/TypeParam.cc
+    type/TypeParam.h
+    type/TypesFactory.cc
+    type/TypesFactory.h
+    type/TypesRegistry.cc
+    type/TypesRegistry.h
+    type/TypeStep.cc
+    type/TypeStep.h
     WriteVisitor.cc
     WriteVisitor.h
 )

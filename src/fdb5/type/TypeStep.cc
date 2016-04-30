@@ -13,8 +13,8 @@
 #include "marslib/MarsRequest.h"
 #include "marslib/StepRange.h"
 
-#include "fdb5/TypesFactory.h"
-#include "fdb5/TypeStep.h"
+#include "fdb5/type/TypesFactory.h"
+#include "fdb5/type/TypeStep.h"
 #include "fdb5/DB.h"
 
 

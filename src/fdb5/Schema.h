@@ -23,7 +23,7 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/TypesRegistry.h"
+#include "fdb5/type/TypesRegistry.h"
 
 class MarsRequest;
 
