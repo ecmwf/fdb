@@ -75,7 +75,7 @@ const IndexAxis &Index::axes() const {
     return axes_;
 }
 
-void Index::Field::print(std::__1::ostream &out) const {
+void Index::Field::print(std::ostream &out) const {
     out << path_ << "," << offset_ << "+" << length_ ;
 }
 
