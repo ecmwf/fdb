@@ -10,6 +10,8 @@
 
 #include "eckit/runtime/Context.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/option/SimpleOption.h"
+#include "eckit/option/CmdArgs.h"
 
 #include "fdb5/FDBTool.h"
 #include "fdb5/Index.h"
@@ -23,19 +25,16 @@ using namespace fdb5;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBList : public FDBTool {
-
-    virtual void run();
-
-public:
-
-    FDBList(int argc, char **argv) : FDBTool(argc, argv) {}
-
-};
-
 class ListVisitor : public EntryVisitor {
  public:
-    ListVisitor(const Key& key, const fdb5::Schema& schema): key_(key), schema_(schema) {}
+    ListVisitor(const Key& key,
+                const fdb5::Schema& schema,
+                const eckit::option::CmdArgs& args) :
+        key_(key),
+        schema_(schema),
+        args_(args)
+    {
+    }
 
 private:
     virtual void visit(const Index& index,
@@ -47,6 +46,7 @@ private:
 
     const Key& key_;
     const fdb5::Schema& schema_;
+    const eckit::option::CmdArgs& args_;
 };
 
 void ListVisitor::visit(const Index& index,
@@ -61,21 +61,49 @@ void ListVisitor::visit(const Index& index,
 
     Key field(fieldFingerprint, schema_.ruleFor(keys));
 
-    std::cout << key_ << index.key() << field << std::endl;
+    std::cout << key_ << index.key() << field;
 
-//    Log::info() << dbKeyStr_ << ":" << unique << " "
-//                << path << " " << offset << " " << length
-//                << std::endl;
+    bool location = false;
+    args_.get("location", location);
 
+    if(location) { std::cout << " " <<  path << " " << offset << " " << length; }
+
+    std::cout << std::endl;
+
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class FDBList : public FDBTool {
+
+public: // methods
+
+    FDBList(int argc, char **argv) : FDBTool(argc, argv) {
+        options_.push_back(new eckit::option::SimpleOption<bool>("location", "Also print the location of each field"));
+
+    }
+
+private: // methods
+
+    virtual void run();
+
+    static void usage(const std::string &tool);
+
+};
+
+void FDBList::usage(const std::string &tool) {
+
+    eckit::Log::info() << std::endl << "Usage: " << tool << " [--location] [path1] [path2] ..." << std::endl;
+    FDBTool::usage(tool);
 }
 
 void FDBList::run() {
 
-    Context &ctx = Context::instance();
+    eckit::option::CmdArgs args(&FDBList::usage, -1, options_);
 
-    for (int i = 1; i < ctx.argc(); i++) {
+    for (size_t i = 0; i < args.count(); ++i) {
 
-        eckit::PathName path(ctx.argv(i));
+        eckit::PathName path(args.args(i));
 
         if (!path.isDir()) {
             path = path.dirName();
@@ -92,7 +120,7 @@ void FDBList::run() {
         fdb5::Schema schema(path / "schema");
 
         std::vector<Index *> indexes = handler.loadIndexes();
-        ListVisitor visitor(key, schema);
+        ListVisitor visitor(key, schema, args);
 
         for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
             (*i)->entries(visitor);

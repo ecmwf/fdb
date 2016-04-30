@@ -28,7 +28,7 @@ using namespace fdb5;
 
 class FDBPurge : public FDBTool {
 
-  public: // methods
+public: // methods
 
     FDBPurge(int argc, char **argv) : FDBTool(argc, argv) {
 
@@ -36,7 +36,7 @@ class FDBPurge : public FDBTool {
 
     }
 
-  private: // methods
+private: // methods
 
     virtual void run();
 
