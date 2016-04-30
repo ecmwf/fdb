@@ -37,6 +37,11 @@ bool MatchOptional::optional() const {
     return true;
 }
 
+void MatchOptional::fill(Key &key, const std::string &keyword, const std::string& value) const {
+    if (!value.empty()) {
+        key.push(keyword, value);
+    }
+}
 
 const std::string &MatchOptional::value(const Key &key, const std::string &keyword) const {
     eckit::StringDict::const_iterator i = key.dict().find(keyword);

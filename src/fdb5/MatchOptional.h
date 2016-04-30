@@ -42,6 +42,7 @@ private: // methods
     virtual const std::string &value(const Key &, const std::string &keyword) const;
     virtual void print( std::ostream &out ) const;
     virtual const std::string &defaultValue() const;
+    virtual void fill(Key &key, const std::string &keyword, const std::string& value) const;
 
 
     std::string default_;
