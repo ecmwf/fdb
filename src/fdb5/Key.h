@@ -57,7 +57,6 @@ public: // methods
         return keys_;
     }
 
-    bool empty() const;
     void clear();
 
     bool operator< (const Key &other) const {

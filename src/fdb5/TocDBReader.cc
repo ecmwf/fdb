@@ -103,11 +103,6 @@ void TocDBReader::print(std::ostream &out) const {
     out << "TocDBReader[]";
 }
 
-const std::vector<Index *> &TocDBReader::indexes() const
-{
-    return indexes_;
-}
-
 static DBBuilder<TocDBReader> builder("toc.reader");
 
 //----------------------------------------------------------------------------------------------------------------------

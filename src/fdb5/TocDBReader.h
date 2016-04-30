@@ -33,8 +33,6 @@ public: // methods
 
     virtual ~TocDBReader();
 
-    const std::vector<Index*>& indexes() const;
-
 private: // methods
 
     virtual bool selectIndex(const Key &key);

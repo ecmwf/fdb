@@ -136,11 +136,6 @@ const std::string &Key::get( const std::string &k ) const {
     return i->second;
 }
 
-bool Key::empty() const
-{
-    return keys_.empty();
-}
-
 const TypesRegistry *Key::registry() const {
     return rule_ ? &rule_->registry() : 0;
 }
