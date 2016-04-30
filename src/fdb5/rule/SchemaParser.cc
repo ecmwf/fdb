@@ -14,14 +14,14 @@
 /// @date   April 2016
 
 
-#include "fdb5/SchemaParser.h"
-#include "fdb5/Rule.h"
+#include "fdb5/rule/SchemaParser.h"
+#include "fdb5/rule/Rule.h"
 #include "fdb5/Predicate.h"
-#include "fdb5/MatchAlways.h"
-#include "fdb5/MatchAny.h"
-#include "fdb5/MatchValue.h"
-#include "fdb5/MatchOptional.h"
-#include "fdb5/MatchHidden.h"
+#include "fdb5/rule/MatchAlways.h"
+#include "fdb5/rule/MatchAny.h"
+#include "fdb5/rule/MatchValue.h"
+#include "fdb5/rule/MatchOptional.h"
+#include "fdb5/rule/MatchHidden.h"
 #include "fdb5/type/TypesRegistry.h"
 
 namespace fdb5 {

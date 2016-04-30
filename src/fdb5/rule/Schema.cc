@@ -8,10 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/Schema.h"
-#include "fdb5/Rule.h"
+#include "fdb5/rule/Schema.h"
+#include "fdb5/rule/Rule.h"
 #include "fdb5/Key.h"
-#include "fdb5/SchemaParser.h"
+#include "fdb5/rule/SchemaParser.h"
 #include "fdb5/WriteVisitor.h"
 
 namespace fdb5 {

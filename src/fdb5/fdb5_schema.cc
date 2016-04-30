@@ -11,7 +11,7 @@
 #include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
 
-#include "fdb5/Schema.h"
+#include "fdb5/rule/Schema.h"
 #include "fdb5/MasterConfig.h"
 
 using namespace std;

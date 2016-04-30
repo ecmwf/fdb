@@ -8,29 +8,29 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   MatchHidden.h
+/// @file   MatchAlways.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_MatchHidden_H
-#define fdb5_MatchHidden_H
+#ifndef fdb5_MatchAlways_H
+#define fdb5_MatchAlways_H
 
 #include <iosfwd>
 
-#include "fdb5/Matcher.h"
+#include "fdb5/rule/Matcher.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class MatchHidden : public Matcher {
+class MatchAlways : public Matcher {
 
 public: // methods
 
-    MatchHidden(const std::string &def);
+    MatchAlways();
 
-    virtual ~MatchHidden();
+    virtual ~MatchAlways();
 
     virtual bool match(const std::string &keyword, const Key &key) const;
 
@@ -38,13 +38,7 @@ public: // methods
 
 private: // methods
 
-    virtual bool optional() const;
-    virtual const std::string &value(const Key &, const std::string &keyword) const;
     virtual void print( std::ostream &out ) const;
-    virtual const std::string &defaultValue() const;
-
-
-    std::string default_;
 
 };
 

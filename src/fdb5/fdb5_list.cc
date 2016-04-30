@@ -16,8 +16,8 @@
 #include "fdb5/FDBTool.h"
 #include "fdb5/Index.h"
 #include "fdb5/TocHandler.h"
-#include "fdb5/Schema.h"
-#include "fdb5/Rule.h"
+#include "fdb5/rule/Schema.h"
+#include "fdb5/rule/Rule.h"
 
 using namespace std;
 using namespace eckit;

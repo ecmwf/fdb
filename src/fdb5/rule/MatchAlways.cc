@@ -8,39 +8,32 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/Key.h"
-#include "fdb5/MatchValue.h"
+#include "eckit/log/Log.h"
+
+#include "fdb5/rule/MatchAlways.h"
 #include "fdb5/type/TypesRegistry.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MatchValue::MatchValue(const std::string &value) :
-    Matcher(),
-    value_(value) {
+MatchAlways::MatchAlways() :
+    Matcher() {
 }
 
-MatchValue::~MatchValue() {
+MatchAlways::~MatchAlways() {
 }
 
-bool MatchValue::match(const std::string &keyword, const Key &key) const {
-    eckit::StringDict::const_iterator i = key.dict().find(keyword);
-
-    if (i == key.dict().end()) {
-        return false;
-    }
-
-    return ( i->second == value_ );
+bool MatchAlways::match(const std::string &keyword, const Key &key) const {
+    return true;
 }
 
-void MatchValue::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
+void MatchAlways::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
     registry.dump(s, keyword);
-    s << "=" << value_;
 }
 
-void MatchValue::print(std::ostream &out) const {
-    out << "MatchValue[value=" << value_ << "]";
+void MatchAlways::print(std::ostream &out) const {
+    out << "MatchAlways[]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

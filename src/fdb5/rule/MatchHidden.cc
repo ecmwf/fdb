@@ -10,7 +10,7 @@
 
 #include "eckit/log/Log.h"
 
-#include "fdb5/MatchHidden.h"
+#include "fdb5/rule/MatchHidden.h"
 #include "fdb5/Key.h"
 #include "eckit/types/Types.h"
 #include "fdb5/type/TypesRegistry.h"

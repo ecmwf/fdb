@@ -8,46 +8,41 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   MatchValue.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Mar 2016
-
-#ifndef fdb5_MatchValue_H
-#define fdb5_MatchValue_H
-
-#include <iosfwd>
-
-#include "fdb5/Matcher.h"
+#include "fdb5/rule/Matcher.h"
+#include "fdb5/Key.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class MatchValue : public Matcher {
+Matcher::Matcher() {
+}
 
-public: // methods
+Matcher::~Matcher() {
+}
 
-    MatchValue(const std::string &value);
+bool Matcher::optional() const {
+    return false;
+}
 
-    virtual ~MatchValue();
+const std::string &Matcher::value(const Key &key, const std::string &keyword) const {
+    return key.get(keyword);
+}
 
-    virtual bool match(const std::string &keyword, const Key &key) const;
+void Matcher::fill(Key &key, const std::string &keyword, const std::string& value) const {
+    key.push(keyword, value);
+}
 
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const;
 
-private: // methods
+const std::string &Matcher::defaultValue() const {
+    NOTIMP;
+}
 
-    virtual void print( std::ostream &out ) const;
-
-private: // members
-
-    std::string value_;
-
-};
+std::ostream &operator<<(std::ostream &s, const Matcher &x) {
+    x.print(s);
+    return s;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

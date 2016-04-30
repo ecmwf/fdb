@@ -14,7 +14,7 @@
 #include "eckit/utils/Regex.h"
 
 #include "fdb5/TocDB.h"
-#include "fdb5/Rule.h"
+#include "fdb5/rule/Rule.h"
 
 using namespace eckit;
 

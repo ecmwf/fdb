@@ -19,7 +19,7 @@
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/DB.h"
-#include "fdb5/Schema.h"
+#include "fdb5/rule/Schema.h"
 #include "fdb5/type/TypesRegistry.h"
 
 class MarsTask;

@@ -8,50 +8,45 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TocDB.h
+/// @file   MatchOptional.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_TocDB_H
-#define fdb5_TocDB_H
+#ifndef fdb5_MatchOptional_H
+#define fdb5_MatchOptional_H
 
-#include "fdb5/DB.h"
-#include "fdb5/Index.h"
-#include "fdb5/rule/Schema.h"
-#include "fdb5/TocHandler.h"
+#include <iosfwd>
+
+#include "fdb5/rule/Matcher.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// DB that implements the FDB on POSIX filesystems
-
-class TocDB : public DB, public TocHandler {
+class MatchOptional : public Matcher {
 
 public: // methods
 
-    TocDB(const Key& dbKey);
-    TocDB(const eckit::PathName& directory);
+    MatchOptional(const std::string &def);
 
-    virtual ~TocDB();
+    virtual ~MatchOptional();
 
-protected: // methods
+    virtual bool match(const std::string &keyword, const Key &key) const;
 
-    virtual bool open();
-    virtual void close();
-    virtual void flush();
+    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const;
 
-    virtual eckit::DataHandle *retrieve(const Key &key) const;
-    virtual void archive(const Key &key, const void *data, eckit::Length length);
-    virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
+private: // methods
 
-    void loadSchema();
-    void checkSchema(const Key &key) const;
+    virtual bool optional() const;
+    virtual const std::string &value(const Key &, const std::string &keyword) const;
+    virtual void print( std::ostream &out ) const;
+    virtual const std::string &defaultValue() const;
+    virtual void fill(Key &key, const std::string &keyword, const std::string& value) const;
 
-private: // members
 
-    Schema schema_;
+    std::string default_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

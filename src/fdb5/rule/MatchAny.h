@@ -19,7 +19,7 @@
 #include <iosfwd>
 #include <set>
 
-#include "fdb5/Matcher.h"
+#include "fdb5/rule/Matcher.h"
 
 namespace fdb5 {
 

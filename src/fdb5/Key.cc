@@ -11,7 +11,7 @@
 #include "eckit/parser/Tokenizer.h"
 
 #include "fdb5/Key.h"
-#include "fdb5/Rule.h"
+#include "fdb5/rule/Rule.h"
 #include "fdb5/type/Type.h"
 
 namespace fdb5 {

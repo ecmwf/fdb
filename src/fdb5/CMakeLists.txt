@@ -65,18 +65,18 @@ list( APPEND fdb5_srcs
     Key.h
     MasterConfig.cc
     MasterConfig.h
-    MatchAlways.cc
-    MatchAlways.h
-    MatchAny.cc
-    MatchAny.h
-    Matcher.cc
-    Matcher.h
-    MatchHidden.cc
-    MatchHidden.h
-    MatchOptional.cc
-    MatchOptional.h
-    MatchValue.cc
-    MatchValue.h
+    rule/MatchAlways.cc
+    rule/MatchAlways.h
+    rule/MatchAny.cc
+    rule/MatchAny.h
+    rule/Matcher.cc
+    rule/Matcher.h
+    rule/MatchHidden.cc
+    rule/MatchHidden.h
+    rule/MatchOptional.cc
+    rule/MatchOptional.h
+    rule/MatchValue.cc
+    rule/MatchValue.h
     Predicate.cc
     Predicate.h
     PurgeVisitor.cc
@@ -87,12 +87,12 @@ list( APPEND fdb5_srcs
     RequestParser.h
     Retriever.cc
     Retriever.h
-    Rule.cc
-    Rule.h
-    Schema.cc
-    Schema.h
-    SchemaParser.cc
-    SchemaParser.h
+    rule/Rule.cc
+    rule/Rule.h
+    rule/Schema.cc
+    rule/Schema.h
+    rule/SchemaParser.cc
+    rule/SchemaParser.h
     TocDB.cc
     TocDB.h
     TocDBReader.cc

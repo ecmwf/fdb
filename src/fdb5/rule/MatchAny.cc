@@ -9,7 +9,7 @@
  */
 
 #include "fdb5/Key.h"
-#include "fdb5/MatchAny.h"
+#include "fdb5/rule/MatchAny.h"
 #include "fdb5/type/TypesRegistry.h"
 
 namespace fdb5 {

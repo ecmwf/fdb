@@ -11,7 +11,7 @@
 #include "eckit/log/Log.h"
 
 #include "fdb5/Predicate.h"
-#include "fdb5/Matcher.h"
+#include "fdb5/rule/Matcher.h"
 
 namespace fdb5 {
 

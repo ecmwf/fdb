@@ -8,39 +8,39 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/Matcher.h"
 #include "fdb5/Key.h"
+#include "fdb5/rule/MatchValue.h"
+#include "fdb5/type/TypesRegistry.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Matcher::Matcher() {
+MatchValue::MatchValue(const std::string &value) :
+    Matcher(),
+    value_(value) {
 }
 
-Matcher::~Matcher() {
+MatchValue::~MatchValue() {
 }
 
-bool Matcher::optional() const {
-    return false;
+bool MatchValue::match(const std::string &keyword, const Key &key) const {
+    eckit::StringDict::const_iterator i = key.dict().find(keyword);
+
+    if (i == key.dict().end()) {
+        return false;
+    }
+
+    return ( i->second == value_ );
 }
 
-const std::string &Matcher::value(const Key &key, const std::string &keyword) const {
-    return key.get(keyword);
+void MatchValue::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
+    registry.dump(s, keyword);
+    s << "=" << value_;
 }
 
-void Matcher::fill(Key &key, const std::string &keyword, const std::string& value) const {
-    key.push(keyword, value);
-}
-
-
-const std::string &Matcher::defaultValue() const {
-    NOTIMP;
-}
-
-std::ostream &operator<<(std::ostream &s, const Matcher &x) {
-    x.print(s);
-    return s;
+void MatchValue::print(std::ostream &out) const {
+    out << "MatchValue[value=" << value_ << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

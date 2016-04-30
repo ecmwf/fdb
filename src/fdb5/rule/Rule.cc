@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/Rule.h"
+#include "fdb5/rule/Rule.h"
 
 #include "eckit/config/Resource.h"
 

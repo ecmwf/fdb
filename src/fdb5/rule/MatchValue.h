@@ -8,29 +8,29 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   MatchOptional.h
+/// @file   MatchValue.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_MatchOptional_H
-#define fdb5_MatchOptional_H
+#ifndef fdb5_MatchValue_H
+#define fdb5_MatchValue_H
 
 #include <iosfwd>
 
-#include "fdb5/Matcher.h"
+#include "fdb5/rule/Matcher.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class MatchOptional : public Matcher {
+class MatchValue : public Matcher {
 
 public: // methods
 
-    MatchOptional(const std::string &def);
+    MatchValue(const std::string &value);
 
-    virtual ~MatchOptional();
+    virtual ~MatchValue();
 
     virtual bool match(const std::string &keyword, const Key &key) const;
 
@@ -38,14 +38,11 @@ public: // methods
 
 private: // methods
 
-    virtual bool optional() const;
-    virtual const std::string &value(const Key &, const std::string &keyword) const;
     virtual void print( std::ostream &out ) const;
-    virtual const std::string &defaultValue() const;
-    virtual void fill(Key &key, const std::string &keyword, const std::string& value) const;
 
+private: // members
 
-    std::string default_;
+    std::string value_;
 
 };
 

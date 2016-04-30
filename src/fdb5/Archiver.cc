@@ -14,7 +14,7 @@
 
 #include "fdb5/BaseArchiveVisitor.h"
 #include "fdb5/MasterConfig.h"
-#include "fdb5/Schema.h"
+#include "fdb5/rule/Schema.h"
 
 namespace fdb5 {
 

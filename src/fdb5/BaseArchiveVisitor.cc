@@ -12,7 +12,7 @@
 
 #include "fdb5/Archiver.h"
 #include "fdb5/BaseArchiveVisitor.h"
-#include "fdb5/Rule.h"
+#include "fdb5/rule/Rule.h"
 
 namespace fdb5 {
 
