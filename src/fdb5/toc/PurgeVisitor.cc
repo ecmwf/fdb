@@ -177,13 +177,17 @@ void PurgeVisitor::purge() const {
 
     for (std::map<eckit::PathName, size_t>::const_iterator i = dataUsage_.begin(); i != dataUsage_.end(); ++i) {
         if (i->second == 0) {
-            i->first.unlink();
+            if (i->first.dirName().sameAs(directory_)) {
+                i->first.unlink();
+            }
         }
     }
 
     for (std::map<eckit::PathName, size_t>::const_iterator i = indexUsage_.begin(); i != indexUsage_.end(); ++i) {
         if (i->second == 0) {
-            i->first.unlink();
+            if (i->first.dirName().sameAs(directory_)) {
+                i->first.unlink();
+            }
         }
     }
 
