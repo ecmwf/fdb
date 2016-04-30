@@ -188,16 +188,6 @@ void TocIndex::entries(EntryVisitor &visitor) const {
     const_cast<TocIndex *>(this)->btree_->range("", "\255", v);
 }
 
-void TocIndex::deleteFiles(bool doit) const {
-    TocIndexCloser closer(*this);
-    eckit::Log::info() << "File to remove " << btree_->path() << std::endl;
-    if (doit) {
-        btree_->path().unlink();
-    }
-
-    this->Index::deleteFiles(doit);
-}
-
 void TocIndex::list(std::ostream &out) const {
     TocIndexCloser closer(*this);
     out << "TocIndex count: " << eckit::BigNum(btree_->count()) << std::endl;

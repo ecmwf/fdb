@@ -66,11 +66,10 @@ struct PurgeVisitor : public EntryVisitor {
 
     void report(std::ostream &out) const;
 
-    void purge(bool doit) const;
+    void purge() const;
 
 private: // methods
 
-    std::vector<eckit::PathName> filesToBeDeleted(size_t &adopted, size_t &duplicated, size_t &duplicatedAdopted) const;
 
     friend std::ostream &operator<<(std::ostream &s, const PurgeVisitor &x) {
         x.print(s);
@@ -91,6 +90,8 @@ private: // members
 
     std::set<eckit::PathName> activeDataFiles_;
     std::set<eckit::PathName> allDataFiles_;
+    std::map<eckit::PathName, size_t> indexUsage_;
+    std::map<eckit::PathName, size_t> dataUsage_;
 
     std::set<std::string> active_;
 

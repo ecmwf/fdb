@@ -25,7 +25,7 @@ namespace fdb5 {
 
 class TocHandlerCloser {
     TocHandler &handler_;
-public:
+  public:
     TocHandlerCloser(TocHandler &handler): handler_(handler) {}
     ~TocHandlerCloser() {
         handler_.close();
@@ -177,6 +177,9 @@ void TocHandler::writeClearRecord(const Index &index) {
     s << index.path().baseName();
     s << index.offset();
     append(r, s.position());
+
+    eckit::Log::info() << "TOC_CLEAR " << index.path().baseName() << " - " << index.offset() << std::endl;
+
 }
 
 void TocHandler::writeWipeRecord() {
@@ -206,7 +209,7 @@ void TocHandler::writeIndexRecord(const Index &index) {
 class HasPath {
     eckit::PathName path_;
     off_t offset_;
-public:
+  public:
     HasPath(const eckit::PathName &path, off_t offset): path_(path), offset_(offset) {}
     bool operator()(const Index *index) const {
         return (index->path() == path_) && (index->offset() == offset_);
@@ -251,7 +254,7 @@ std::vector<Index *> TocHandler::loadIndexes() {
         case TocRecord::TOC_CLEAR:
             s >> path;
             s >> offset;
-            eckit::Log::info() << "TOC_CLEAR " << path << std::endl;
+            eckit::Log::info() << "TOC_CLEAR " << path << " - " << offset << std::endl;
             j = std::find_if (indexes.begin(), indexes.end(), HasPath(directory_ / path, offset));
             if (j != indexes.end()) {
                 delete (*j);

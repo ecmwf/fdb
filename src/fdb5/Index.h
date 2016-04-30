@@ -146,8 +146,6 @@ public: // methods
 
     virtual void entries(EntryVisitor &visitor) const = 0;
 
-    virtual void deleteFiles(bool doit) const;
-
     friend std::ostream &operator<<(std::ostream &s, const Index &x) {
         x.print(s);
         return s;

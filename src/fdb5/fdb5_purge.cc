@@ -29,7 +29,7 @@ using namespace fdb5;
 
 class FDBTool : public eckit::Tool {
 
-public: // methods
+  public: // methods
 
     FDBTool(int argc, char **argv) : eckit::Tool(argc, argv) {
 
@@ -42,12 +42,12 @@ public: // methods
 
     }
 
-protected: // methods
+  protected: // methods
 
     static void usage(const std::string &tool) {
     }
 
-protected: // members
+  protected: // members
 
     std::vector<Option *> options_;
 
@@ -57,7 +57,7 @@ protected: // members
 
 class FDBPurge : public FDBTool {
 
-public: // methods
+  public: // methods
 
     FDBPurge(int argc, char **argv) : FDBTool(argc, argv) {
 
@@ -65,7 +65,7 @@ public: // methods
 
     }
 
-private: // methods
+  private: // methods
 
     virtual void run();
 
@@ -81,6 +81,8 @@ void FDBPurge::usage(const std::string &tool) {
 
 void FDBPurge::run() {
     eckit::option::CmdArgs args(&FDBPurge::usage, -1, options_);
+    bool doit = false;
+    args.get("doit", doit);
 
     for (size_t i = 0; i < args.count(); ++i) {
 
@@ -92,7 +94,7 @@ void FDBPurge::run() {
 
         path = path.realName();
 
-        Log::info() << "Listing " << path << std::endl;
+        Log::info() << "Scanning " << path << std::endl;
 
         fdb5::TocHandler handler(path);
 
@@ -101,20 +103,20 @@ void FDBPurge::run() {
         PurgeVisitor visitor(path);
 
         for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-            Log::info() << "Index path " << (*i)->path() << std::endl;
             (*i)->entries(visitor);
         }
 
-
         visitor.report(Log::info());
 
-        bool doit = false;
-        args.get("doit", doit);
-
-        visitor.purge(doit);
+        if (doit)
+        {visitor.purge();}
 
         handler.freeIndexes(indexes);
 
+    }
+
+    if(!doit) {
+        Log::info() << std::endl << "Rerun command with --doit flag to delete unused files" << std::endl;
     }
 }
 
