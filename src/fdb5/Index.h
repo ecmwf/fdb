@@ -41,7 +41,8 @@ class Index;
 class EntryVisitor : private eckit::NonCopyable {
 public:
     virtual void visit(const Index& index,
-                       const std::string &unique, // Represent a unique field
+                       const std::string &indexFingerprint,
+                       const std::string &fieldFingerprint,
                        const eckit::PathName &path,
                        eckit::Offset offset,
                        eckit::Length length) = 0;
@@ -99,9 +100,6 @@ public: // types
 #endif
         ///////////////////////////////////////////////
 
-        void load( std::istream &s );
-
-        void dump( std::ostream &s ) const;
 
         friend std::ostream &operator<<(std::ostream &s, const Field &x) {
             x.print(s);
@@ -119,71 +117,46 @@ public: // methods
 
     Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode );
     Index(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
+    virtual ~Index();
 
     virtual void open() = 0;
     virtual void reopen() = 0;
     virtual void close() = 0;
+    virtual void flush() = 0;
 
-    virtual ~Index();
+    const eckit::PathName& path() const ;
+    off_t offset() const ;
 
-    virtual bool    exists( const Key &key ) const = 0;
-
-    virtual bool    get( const Key &key, Field &field ) const = 0;
-
-    virtual Field   get( const Key &key ) const = 0;
-
-    virtual void    put( const Key &key, const Field &field );
-
-    virtual bool    remove( const Key &key ) = 0;
-
-    virtual void flush();
-
-    virtual void encode(eckit::Stream &s) const;
-
-    virtual void print( std::ostream &out ) const = 0;
-
-    virtual void list( std::ostream &out ) const = 0;
-
-    virtual void entries(EntryVisitor &visitor) const = 0;
-
-    friend std::ostream &operator<<(std::ostream &s, const Index &x) {
-        x.print(s);
-        return s;
-    }
-
-    const eckit::PathName& path() const {
-        return path_;
-    }
-
-    off_t offset() const {
-        return offset_;
-    }
-
-    Mode mode() const {
-        return mode_;
-    }
-
-    const IndexAxis &axes() const {
-        return axes_;
-    }
-
+    const IndexAxis &axes() const ;
     const Key &key() const;
 
-protected: // methods
+    virtual bool get(const Key &key, Field &field) const = 0;
+    virtual void put(const Key &key, const Field &field);
+    virtual void encode(eckit::Stream &s) const;
+    virtual void entries(EntryVisitor &visitor) const = 0;
 
-    virtual void put_( const Key &key, const Field &field ) = 0;
+private: // methods
+
+    virtual void add(const Key &key, const Field &field) = 0;
+    virtual void print( std::ostream &out ) const = 0;
 
 protected: // members
 
-    Mode            mode_;
-    eckit::PathName path_;
+    const Mode            mode_;
+    const eckit::PathName path_;
     off_t           offset_;
 
     // Order is important here...
     FileStore   files_;
     IndexAxis   axes_;
-    Key key_; ///< key that selected this index
+    const Key key_; ///< key that selected this index
     std::string prefix_;
+
+
+    friend std::ostream &operator<<(std::ostream &s, const Index &x) {
+        x.print(s);
+        return s;
+    }
 
 };
 

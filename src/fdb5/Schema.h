@@ -61,6 +61,8 @@ public: // methods
     void expand(const Key &field, WriteVisitor &visitor) const;
     void expand(const MarsRequest &request, ReadVisitor &visitor) const;
 
+    const Rule* ruleFor(const std::vector<Key>& keys) const;
+
     void load(const eckit::PathName &path, bool replace = false);
 
     void dump(std::ostream &s) const;

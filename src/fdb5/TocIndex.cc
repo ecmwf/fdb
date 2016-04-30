@@ -48,13 +48,6 @@ TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eck
 TocIndex::~TocIndex() {
 }
 
-bool TocIndex::exists(const Key &key) const {
-    ASSERT(btree_);
-    BTreeKey k (key.valuesToString());
-    FieldRef ignore;
-    return const_cast<TocIndex *>(this)->btree_->get(k, ignore);
-}
-
 bool TocIndex::get(const Key &key, Index::Field &field) const {
     ASSERT(btree_);
     FieldRef ref;
@@ -68,30 +61,10 @@ bool TocIndex::get(const Key &key, Index::Field &field) const {
     return found;
 }
 
-TocIndex::Field TocIndex::get(const Key &key) const {
-    ASSERT(btree_);
-    Field result;
-    FieldRef ref;
-    BTreeKey k (key.valuesToString());
-    // eckit::Log::info() << "TocIndex get " << key << " (" << k << ")" << std::endl;
-    bool found = const_cast<TocIndex *>(this)->btree_->get(k, ref);
-    if ( !found ) {
-        std::ostringstream oss;
-        oss << "FDB key not found " << key;
-        throw eckit::BadParameter(oss.str(), Here());
-    }
-
-    result.path_     = files_.get( ref.pathId_ );
-    result.offset_   = ref.offset_;
-    result.length_   = ref.length_;
-
-    return result;
-}
-
 
 void TocIndex::open() {
     if (!btree_) {
-        btree_.reset(new BTreeStore(path_, mode() == Index::READ, offset_));
+        btree_.reset(new BTreeStore(path_, mode_ == Index::READ, offset_));
     }
 }
 
@@ -109,9 +82,9 @@ void TocIndex::close() {
     btree_.reset(0);
 }
 
-void TocIndex::put_(const Key &key, const TocIndex::Field &field) {
+void TocIndex::add(const Key &key, const TocIndex::Field &field) {
     ASSERT(btree_);
-    ASSERT( mode() == Index::WRITE );
+    ASSERT( mode_ == Index::WRITE );
 
 
     BTreeKey k( key.valuesToString() );
@@ -130,33 +103,19 @@ void TocIndex::put_(const Key &key, const TocIndex::Field &field) {
 
 }
 
-bool TocIndex::remove(const Key &key) {
-    ASSERT(btree_);
-    NOTIMP;
-
-    ASSERT( mode() == Index::WRITE );
-
-    dirty_ = true;
-
-    BTreeKey k( key.valuesToString() );
-    return btree_->remove(k);
-}
-
 void TocIndex::flush() {
-    ASSERT( mode() == Index::WRITE );
+    ASSERT( mode_ == Index::WRITE );
 
     if (dirty_) {
         ASSERT(btree_);
         btree_->flush();
         dirty_ = false;
     }
-
-    Index::flush();
 }
 
 class BTreeIndexVisitor {
     const Index& index_;
-    const std::string &prefix_;
+    const std::string& prefix_;
     const FileStore &files_;
     EntryVisitor &visitor_;
 public:
@@ -174,7 +133,8 @@ public:
 
     void push_back(const TocIndex::BTreeStore::result_type &kv) {
         visitor_.visit(index_,
-                       prefix_ + std::string(kv.first), // unique key representing a field
+                       prefix_,
+                       kv.first,
                        files_.get( kv.second.pathId_ ),
                        kv.second.offset_,
                        kv.second.length_);
@@ -186,11 +146,6 @@ void TocIndex::entries(EntryVisitor &visitor) const {
 
     BTreeIndexVisitor v(*this, prefix_, files_, visitor);
     const_cast<TocIndex *>(this)->btree_->range("", "\255", v);
-}
-
-void TocIndex::list(std::ostream &out) const {
-    TocIndexCloser closer(*this);
-    out << "TocIndex count: " << eckit::BigNum(btree_->count()) << std::endl;
 }
 
 void TocIndex::print(std::ostream &out) const {

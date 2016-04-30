@@ -224,6 +224,35 @@ bool Rule::match(const Key &key) const {
     return true;
 }
 
+// Find the first rule that matches a list of keys
+const Rule* Rule::ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const {
+
+    if (depth == keys.size()) {
+        return this;
+    }
+
+    if (match(keys[depth])) {
+
+        for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+            const Rule *r = (*i)->ruleFor(keys, depth + 1);
+            if (r) {
+                return r;
+            }
+        }
+    }
+    return 0;
+}
+
+void Rule::fill(Key& key, const eckit::StringList& values) const {
+
+    ASSERT(values.size() == predicates_.size());
+
+    eckit::StringList::const_iterator j = values.begin();
+    for (std::vector<Predicate *>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i, ++j ) {
+        (*i)->fill(key, *j);
+    }
+}
+
 void Rule::dump(std::ostream &s, size_t depth) const {
     s << "[";
     const char *sep = "";

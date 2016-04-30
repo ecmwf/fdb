@@ -67,6 +67,8 @@ public: // methods
                 std::vector<fdb5::Key> &keys,
                 Key &full) const;
 
+    const Rule* ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const;
+    void fill(Key& key, const eckit::StringList& values) const;
 
 
     size_t depth() const;

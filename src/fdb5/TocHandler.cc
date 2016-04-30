@@ -216,6 +216,22 @@ class HasPath {
     }
 };
 
+Key TocHandler::databaseKey() {
+    openForRead();
+    TocHandlerCloser close(*this);
+
+    TocRecord r;
+
+    while ( readNext(r) ) {
+        if (r.header_.tag_ == TocRecord::TOC_INIT) {
+            eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+            return Key(s);
+        }
+    }
+
+    throw eckit::SeriousBug("Cannot find a TOC_INIT record");
+}
+
 std::vector<Index *> TocHandler::loadIndexes() {
 
     std::vector<Index *> indexes;

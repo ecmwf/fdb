@@ -48,6 +48,8 @@ public: // methods
     std::vector<Index *> loadIndexes();
     void freeIndexes(std::vector<Index *> &);
 
+    Key databaseKey();
+
 protected: // members
 
     const eckit::PathName directory_;

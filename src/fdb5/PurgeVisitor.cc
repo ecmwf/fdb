@@ -22,10 +22,10 @@ namespace fdb5 {
 
 void Stats::print(std::ostream &out) const {
     out << "Stats:"
-        << " totalFields: "  << eckit::BigNum(totalFields)
-        << ", duplicates: "    << eckit::BigNum(duplicates)
-        << ", totalSize: "    << eckit::Bytes(totalSize)
-        << ", duplicatesSize: " << eckit::Bytes(duplicatesSize);
+        << " number of fields: "  << eckit::BigNum(totalFields_)
+        << ", number of duplicates: "    << eckit::BigNum(duplicates_)
+        << ", total size: "    << eckit::Bytes(totalSize_)
+        << ", size pf dumplicates: " << eckit::Bytes(duplicatesSize_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -35,26 +35,29 @@ PurgeVisitor::PurgeVisitor(const eckit::PathName &directory) :
 }
 
 void PurgeVisitor::visit(const Index &index,
-                         const std::string &unique,
+                         const std::string &indexFingerprint,
+                         const std::string &fieldFingerprint,
                          const eckit::PathName &path,
                          eckit::Offset offset,
                          eckit::Length length) {
 
     Stats &stats = indexStats_[&index];
 
-    ++(stats.totalFields);
-    stats.totalSize += length;
+    ++stats.totalFields_;
+    stats.totalSize_ += length;
 
     allDataFiles_.insert(path);
     indexUsage_[index.path()]++;
     dataUsage_[path]++;
 
+    std::string unique = indexFingerprint + "+" + fieldFingerprint;
+
     if (active_.find(unique) == active_.end()) {
         active_.insert(unique);
         activeDataFiles_.insert(path);
     } else {
-        ++stats.duplicates;
-        stats.duplicatesSize += length;
+        ++stats.duplicates_;
+        stats.duplicatesSize_ += length;
         indexUsage_[index.path()]--;
         dataUsage_[path]--;
     }
@@ -66,10 +69,6 @@ Stats PurgeVisitor::totals() const {
         total += i->second;
     }
     return total;
-}
-
-void PurgeVisitor::print(std::ostream &out) const {
-    out << "PurgeVisitor[indexStats=" << indexStats_ << "]";
 }
 
 void PurgeVisitor::report(std::ostream &out) const {
@@ -142,9 +141,9 @@ void PurgeVisitor::report(std::ostream &out) const {
     out << std::endl;
     out << "Summary:" << std::endl;
 
-    out << "   " << eckit::Plural(total.totalFields, "field") << " referenced"
+    out << "   " << eckit::Plural(total.totalFields_, "field") << " referenced"
         << " ("   << eckit::Plural(active_.size(), "field") << " active"
-        << ", "  << eckit::Plural(total.duplicates, "field") << " duplicated)" << std::endl;
+        << ", "  << eckit::Plural(total.duplicates_, "field") << " duplicated)" << std::endl;
 
     out << "   " << eckit::Plural(allDataFiles_.size(), "data file") << " referenced"
         << " of which "   << adopted << " adopted"
@@ -156,8 +155,8 @@ void PurgeVisitor::report(std::ostream &out) const {
     out << "   " << eckit::Plural(indexToDelete, "index file") << " to delete" << std::endl;
     out << "   " << eckit::Plural(indexToDelete, "index record") << " to clear" << std::endl;
 
-    out << "   "  << eckit::Bytes(total.totalSize) << " referenced"
-        << " (" << eckit::Bytes(total.duplicatesSize) << " duplicated)" << std::endl;
+    out << "   "  << eckit::Bytes(total.totalSize_) << " referenced"
+        << " (" << eckit::Bytes(total.duplicatesSize_) << " duplicated)" << std::endl;
 }
 
 void PurgeVisitor::purge() const {
@@ -168,7 +167,7 @@ void PurgeVisitor::purge() const {
 
         const Stats &stats = i->second;
 
-        if (stats.totalFields == stats.duplicates) {
+        if (stats.totalFields_ == stats.duplicates_) {
             eckit::Log::info() << "Removing: " << *(i->first) << std::endl;
             TocHandler handler(directory_);
             handler.writeClearRecord(*(*i).first);

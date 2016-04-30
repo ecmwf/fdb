@@ -48,25 +48,10 @@ private: // methods
     virtual void close();
     virtual void reopen();
 
-
-    virtual bool    exists( const Key &key ) const;
-
-    virtual bool    get( const Key &key, Field &field ) const;
-
-    virtual Field   get( const Key &key ) const;
-
-    virtual void    put_( const Key &key, const Field &field );
-
-    virtual bool    remove( const Key &key );
-
-    virtual void    flush();
-
+    virtual bool get( const Key &key, Field &field ) const;
+    virtual void add( const Key &key, const Field &field );
+    virtual void flush();
     virtual void entries(EntryVisitor &visitor) const;
-
-
-private: // methods
-
-    virtual void list( std::ostream &out ) const;
 
     virtual void print( std::ostream &out ) const;
 

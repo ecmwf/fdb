@@ -29,6 +29,11 @@ const std::string &Matcher::value(const Key &key, const std::string &keyword) co
     return key.get(keyword);
 }
 
+void Matcher::fill(Key &key, const std::string &keyword, const std::string& value) const {
+    key.push(keyword, value);
+}
+
+
 const std::string &Matcher::defaultValue() const {
     NOTIMP;
 }

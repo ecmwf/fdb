@@ -40,6 +40,7 @@ public: // methods
     bool match(const Key &key) const;
 
     void dump( std::ostream &s, const TypesRegistry &registry ) const;
+    void fill(Key &key, const std::string& value) const;
 
     const std::string &value(const Key &key) const;
     const std::string &defaultValue() const;

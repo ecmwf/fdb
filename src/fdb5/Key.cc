@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/parser/Tokenizer.h"
+
 #include "fdb5/Key.h"
 #include "fdb5/Rule.h"
 #include "fdb5/Type.h"
@@ -21,16 +23,22 @@ Key::Key() :
     rule_(0) {
 }
 
-Key::Key(const std::string &s) :
+Key::Key(const std::string &s, const Rule* rule) :
     keys_(),
     rule_(0) {
-    NOTIMP;
+    eckit::Tokenizer parse(":", true);
+    eckit::StringList values;
+    parse(s, values);
+
+    ASSERT(rule);
+    rule->fill(*this, values);
 }
 
 Key::Key(const eckit::StringDict &keys) :
     keys_(keys),
     rule_(0) {
 }
+
 
 Key::Key(eckit::Stream &s) :
     rule_(0) {

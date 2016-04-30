@@ -51,6 +51,10 @@ const std::string &Predicate::value(const Key &key) const {
     return matcher_->value(key, keyword_);
 }
 
+void Predicate::fill(Key &key, const std::string& value) const {
+    matcher_->fill(key, keyword_, value);
+}
+
 const std::string &Predicate::defaultValue() const {
     return matcher_->defaultValue();
 }

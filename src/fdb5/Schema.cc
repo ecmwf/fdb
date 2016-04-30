@@ -40,6 +40,16 @@ Schema::~Schema() {
     clear();
 }
 
+const Rule*  Schema::ruleFor(const std::vector<Key>& keys) const {
+    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+        const Rule* r = (*i)->ruleFor(keys , 0);
+        if (r) {
+            return r;
+        }
+    }
+    return 0;
+}
+
 void Schema::expand(const MarsRequest &request, ReadVisitor &visitor) const {
     Key full;
     std::vector<Key> keys(3);

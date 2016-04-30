@@ -43,33 +43,27 @@ Index::Index(const Key &key, const eckit::PathName &path, off_t offset, Index::M
 }
 
 Index::~Index() {
-    flush();
 }
 
-void Index::flush() {
-}
 
 void Index::put(const Key &key, const Index::Field &field) {
     axes_.insert(key);
-    put_(key, field);
+    add(key, field);
 }
 
 //-----------------------------------------------------------------------------
 
-void Index::Field::load(std::istream &s) {
-    std::string spath;
-    long long offset;
-    long long length;
-    s >> spath >> offset >> length;
-    path_    = spath;
-    offset_  = offset;
-    length_  = length;
+const eckit::PathName& Index::path() const {
+    return path_;
 }
 
-void Index::Field::dump(std::ostream &s) const {
-    s << path_ << " " << offset_ << " " << length_;
+off_t Index::offset() const {
+    return offset_;
 }
 
+const IndexAxis &Index::axes() const {
+    return axes_;
+}
 //-----------------------------------------------------------------------------
 
 const Key &Index::key() const {

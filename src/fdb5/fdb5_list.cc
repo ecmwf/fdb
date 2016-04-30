@@ -14,6 +14,8 @@
 
 #include "fdb5/Index.h"
 #include "fdb5/TocHandler.h"
+#include "fdb5/Schema.h"
+#include "fdb5/Rule.h"
 
 using namespace std;
 using namespace eckit;
@@ -24,6 +26,38 @@ class FDBList : public eckit::Tool {
 public:
     FDBList(int argc, char **argv): Tool(argc, argv) {}
 };
+
+class ListVisitor : public EntryVisitor {
+ public:
+    ListVisitor(const Key& key, const fdb5::Schema& schema): key_(key), schema_(schema) {}
+
+private:
+    virtual void visit(const Index& index,
+                       const std::string &indexFingerprint,
+                       const std::string &fieldFingerprint,
+                       const eckit::PathName &path,
+                       eckit::Offset offset,
+                       eckit::Length length);
+
+    const Key& key_;
+    const fdb5::Schema& schema_;
+};
+
+void ListVisitor::visit(const Index& index,
+                        const std::string &indexFingerprint,
+                        const std::string &fieldFingerprint,
+                        const eckit::PathName &path,
+                        eckit::Offset offset,
+                        eckit::Length length) {
+    std::vector<Key> keys;
+    keys.push_back(key_);
+    keys.push_back(index.key());
+
+    Key field(fieldFingerprint, schema_.ruleFor(keys));
+
+    std::cout << key_ << index.key() << field << std::endl;
+
+}
 
 void FDBList::run() {
     Context &ctx = Context::instance();
@@ -42,12 +76,16 @@ void FDBList::run() {
 
 
         fdb5::TocHandler handler(path);
+        Key key = handler.databaseKey();
+        Log::info() << "Database key " << key << std::endl;
+
+        fdb5::Schema schema(path / "schema");
 
         std::vector<Index *> indexes = handler.loadIndexes();
+        ListVisitor visitor(key, schema);
 
         for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-            Log::info() << "Index path " << (*i)->path() << std::endl;
-            (*i)->list(Log::info());
+            (*i)->entries(visitor);
         }
 
         handler.freeIndexes(indexes);

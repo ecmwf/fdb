@@ -31,18 +31,18 @@ namespace fdb5 {
 
 struct Stats {
 
-    Stats() : totalFields(0), duplicates(0), totalSize(0), duplicatesSize(0) {}
+    Stats() : totalFields_(0), duplicates_(0), totalSize_(0), duplicatesSize_(0) {}
 
-    size_t totalFields;
-    size_t duplicates;
-    eckit::Length totalSize;
-    eckit::Length duplicatesSize;
+    size_t totalFields_;
+    size_t duplicates_;
+    eckit::Length totalSize_;
+    eckit::Length duplicatesSize_;
 
     Stats &operator+=(const Stats &rhs) {
-        totalFields += rhs.totalFields;
-        duplicates += rhs.duplicates;
-        totalSize += rhs.totalSize;
-        duplicatesSize += rhs.duplicatesSize;
+        totalFields_ += rhs.totalFields_;
+        duplicates_ += rhs.duplicates_;
+        totalSize_ += rhs.totalSize_;
+        duplicatesSize_ += rhs.duplicatesSize_;
         return *this;
     }
 
@@ -56,7 +56,8 @@ struct Stats {
 };
 //----------------------------------------------------------------------------------------------------------------------
 
-struct PurgeVisitor : public EntryVisitor {
+class PurgeVisitor : public EntryVisitor {
+public:
 
     PurgeVisitor(const eckit::PathName &directory);
 
@@ -71,15 +72,10 @@ struct PurgeVisitor : public EntryVisitor {
 private: // methods
 
 
-    friend std::ostream &operator<<(std::ostream &s, const PurgeVisitor &x) {
-        x.print(s);
-        return s;
-    }
-
-    void print(std::ostream &out) const;
 
     virtual void visit(const Index& index,
-                       const std::string &unique,
+                       const std::string &indexFingerprint,
+                       const std::string &fieldFingerprint,
                        const eckit::PathName &path,
                        eckit::Offset offset,
                        eckit::Length length);
