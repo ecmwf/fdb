@@ -65,7 +65,7 @@ bool TocIndex::get(const Key &key, Index::Field &field) const {
 
 void TocIndex::open() {
     if (!btree_) {
-        btree_.reset(new BTreeIndex_32_65536(path_, mode_ == Index::READ, offset_));
+        btree_.reset(BTreeIndex::build(type_, path_, mode_ == Index::READ, offset_));
     }
 }
 

@@ -43,44 +43,12 @@ public:
     virtual void visit(BTreeIndexVisitor& visitor) const = 0;
 
 
-    static std::string defaulType();
+    static const std::string& defaulType();
+
+    static BTreeIndex* build(const std::string& type, const eckit::PathName& path, bool readOnly, off_t offset);
 
 };
 
-
-template<int KEYSIZE, int RECSIZE>
-class TBTreeIndex : public BTreeIndex {
-
-public: // types
-
-    typedef eckit::FixedString<KEYSIZE> BTreeKey;
-    typedef FileStore::FieldRef FieldRef;
-    typedef eckit::BTree< BTreeKey , FieldRef, RECSIZE > BTreeStore;
-
-public: // methods
-
-    TBTreeIndex(const eckit::PathName &path, bool readOnly, off_t offset );
-
-private: // methods
-
-    virtual bool get(const std::string& key, FileStore::FieldRef& data) const;
-    virtual bool set(const std::string& key, const FileStore::FieldRef& data);
-    virtual void flush();
-    virtual void visit(BTreeIndexVisitor& visitor) const;
-
-private: // members
-
-    mutable BTreeStore btree_;
-
-};
-
-
-
-
-class BTreeIndex_32_65536 : public TBTreeIndex<32, 65536> {
-public:
-    BTreeIndex_32_65536(const eckit::PathName& path, bool readOnly, off_t offset);
-};
 
 } // namespace fdb5
 

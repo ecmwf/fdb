@@ -9,16 +9,41 @@
  */
 
 #include "eckit/log/BigNum.h"
+#include "eckit/config/Resource.h"
+
 #include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/toc/TocIndex.h"
 
 namespace fdb5 {
 
 
-BTreeIndex::~BTreeIndex() {
-}
+template<int KEYSIZE, int RECSIZE>
+class TBTreeIndex : public BTreeIndex {
 
-//-----------------------------------------------------------------------------
+public: // types
+
+    typedef eckit::FixedString<KEYSIZE> BTreeKey;
+    typedef FileStore::FieldRef FieldRef;
+    typedef eckit::BTree< BTreeKey , FieldRef, RECSIZE > BTreeStore;
+
+public: // methods
+
+    TBTreeIndex(const eckit::PathName &path, bool readOnly, off_t offset );
+
+private: // methods
+
+    virtual bool get(const std::string& key, FileStore::FieldRef& data) const;
+    virtual bool set(const std::string& key, const FileStore::FieldRef& data);
+    virtual void flush();
+    virtual void visit(BTreeIndexVisitor& visitor) const;
+
+private: // members
+
+    mutable BTreeStore btree_;
+
+};
+
+
 template<int KEYSIZE, int RECSIZE>
 TBTreeIndex<KEYSIZE, RECSIZE>::TBTreeIndex(const eckit::PathName &path, bool readOnly, off_t offset):
     btree_( path, readOnly, offset) {
@@ -67,14 +92,39 @@ void TBTreeIndex<KEYSIZE, RECSIZE>::visit(BTreeIndexVisitor &visitor) const {
 }
 
 
-BTreeIndex_32_65536::BTreeIndex_32_65536(const eckit::PathName& path, bool readOnly, off_t offset):
-    TBTreeIndex<32, 65536>(path, readOnly, offset) {
+//-----------------------------------------------------------------------------
+
+#define BTREE(KEYSIZE, RECSIZE)                                                                  \
+struct BTreeIndex_##KEYSIZE##_##RECSIZE : public TBTreeIndex<KEYSIZE, RECSIZE> {                 \
+    BTreeIndex_##KEYSIZE##_##RECSIZE (const eckit::PathName& path, bool readOnly, off_t offset): \
+        TBTreeIndex<KEYSIZE, RECSIZE>(path, readOnly, offset){};                                 \
 }
 
 
+BTREE(32, 65536);
+// BTREE(64, 65536);
 
-std::string BTreeIndex::defaulType() {
-    return "BTreeIndex_32_65536";
+
+//-----------------------------------------------------------------------------
+
+BTreeIndex::~BTreeIndex() {
+}
+
+
+const std::string& BTreeIndex::defaulType() {
+    static std::string fdbIndexType = eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE", "BTreeIndex_32_65536");
+    return fdbIndexType;
+}
+
+
+BTreeIndex* BTreeIndex::build(const std::string& type, const eckit::PathName& path, bool readOnly, off_t offset) {
+    if(type == "BTreeIndex_32_65536") {
+        return new BTreeIndex_32_65536(path, readOnly, offset);
+    }
+    // if(type == "BTreeIndex_64_65536") {
+    //     return new BTreeIndex_64_65536(path, readOnly, offset);
+    // }
+    throw eckit::SeriousBug("Invalid index type: " + type);
 }
 
 //-----------------------------------------------------------------------------
