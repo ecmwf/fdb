@@ -36,6 +36,8 @@ public: // methods
 
     virtual ~TocDB();
 
+    const Schema& schema() const;
+
 protected: // methods
 
     virtual bool open();

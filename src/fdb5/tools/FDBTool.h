@@ -17,10 +17,16 @@
 #define fdb5_FDBTool_H
 
 #include "eckit/runtime/Tool.h"
-#include "eckit/option/Option.h"
-#include "eckit/option/SimpleOption.h"
+#include "eckit/filesystem/PathName.h"
 
 #include "fdb5/database/DB.h"
+
+namespace eckit {
+namespace option {
+class Option;
+class CmdArgs;
+}
+}
 
 namespace fdb5 {
 
@@ -35,6 +41,8 @@ public: // methods
 protected: // methods
 
     static void usage(const std::string &tool);
+
+    eckit::PathName directoryFromOption(const eckit::option::CmdArgs &args) const;
 
 protected: // members
 

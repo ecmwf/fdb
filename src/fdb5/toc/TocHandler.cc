@@ -40,6 +40,8 @@ TocHandler::TocHandler(const eckit::PathName &directory) :
     directory_(directory),
     filePath_(directory / "toc"),
     fd_(-1) {
+    eckit::Log::info() << "directory " << directory_ << std::endl;
+
 }
 
 TocHandler::~TocHandler() {
@@ -67,7 +69,7 @@ void TocHandler::openForRead() {
 
     ASSERT(fd_ == -1);
 
-    // eckit::Log::info() << "Opening for read TOC " << filePath_ << std::endl;
+     eckit::Log::info() << "Opening for read TOC " << filePath_ << std::endl;
 
     int iomode = O_RDONLY;
     //#ifdef __linux__

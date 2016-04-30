@@ -32,6 +32,8 @@ public: // methods
 
     virtual ~TocDBReader();
 
+    const std::vector<Index*>& indexes() const;
+
 private: // methods
 
     virtual bool selectIndex(const Key &key);
@@ -45,7 +47,6 @@ private: // methods
     virtual eckit::DataHandle *retrieve(const Key &key) const;
 
     virtual void print( std::ostream &out ) const;
-
 
 private: // members
 

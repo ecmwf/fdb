@@ -18,7 +18,8 @@ namespace fdb5 {
 
 TocDBReader::TocDBReader(const Key& key) :
     TocDB(key),
-    indexes_(loadIndexes()) {
+    indexes_(loadIndexes())
+{
 }
 
 TocDBReader::~TocDBReader() {
@@ -96,6 +97,11 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
 
 void TocDBReader::print(std::ostream &out) const {
     out << "TocDBReader[]";
+}
+
+const std::vector<Index *> &TocDBReader::indexes() const
+{
+    return indexes_;
 }
 
 static DBBuilder<TocDBReader> builder("toc.reader");

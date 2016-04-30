@@ -170,6 +170,12 @@ void TocDB::checkSchema(const Key &key) const {
     ASSERT(key.rule());
     schema_.compareTo(key.rule()->schema());
 }
+
+const Schema& TocDB::schema() const
+{
+    return schema_;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

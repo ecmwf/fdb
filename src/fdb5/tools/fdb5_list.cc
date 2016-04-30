@@ -15,9 +15,8 @@
 
 #include "fdb5/tools/FDBTool.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/toc/TocHandler.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/rules/Rule.h"
+#include "fdb5/toc/TocHandler.h"
 
 using namespace std;
 using namespace eckit;
@@ -89,6 +88,8 @@ private: // methods
 
     static void usage(const std::string &tool);
 
+    void listToc(const eckit::PathName& path, const option::CmdArgs &args);
+
 };
 
 void FDBList::usage(const std::string &tool) {
@@ -97,36 +98,47 @@ void FDBList::usage(const std::string &tool) {
     FDBTool::usage(tool);
 }
 
+void FDBList::listToc(const eckit::PathName& p, const option::CmdArgs& args) {
+
+    PathName path = p;
+
+    if (!path.isDir()) {
+        path = path.dirName();
+    }
+
+    path = path.realName();
+
+    Log::info() << "Listing " << path << std::endl;
+
+    fdb5::TocHandler handler(path);
+    Key key = handler.databaseKey();
+    Log::info() << "Database key " << key << std::endl;
+
+    fdb5::Schema schema(path / "schema");
+
+    std::vector<Index *> indexes = handler.loadIndexes();
+    ListVisitor visitor(key, schema, args);
+
+    for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+        (*i)->entries(visitor);
+    }
+
+    handler.freeIndexes(indexes);
+}
+
 void FDBList::run() {
 
     eckit::option::CmdArgs args(&FDBList::usage, -1, options_);
 
+    Log::info() << args << std::endl;
+
+    if(args.has("class"))
+    {
+       listToc(directoryFromOption(args), args);
+    }
+
     for (size_t i = 0; i < args.count(); ++i) {
-
-        eckit::PathName path(args.args(i));
-
-        if (!path.isDir()) {
-            path = path.dirName();
-        }
-
-        path = path.realName();
-
-        Log::info() << "Listing " << path << std::endl;
-
-        fdb5::TocHandler handler(path);
-        Key key = handler.databaseKey();
-        Log::info() << "Database key " << key << std::endl;
-
-        fdb5::Schema schema(path / "schema");
-
-        std::vector<Index *> indexes = handler.loadIndexes();
-        ListVisitor visitor(key, schema, args);
-
-        for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-            (*i)->entries(visitor);
-        }
-
-        handler.freeIndexes(indexes);
+        listToc(args.args(i), args);
     }
 }
 
