@@ -15,8 +15,8 @@
 #include "eckit/serialisation/MemoryStream.h"
 
 
-#include "fdb5/Index.h"
-#include "fdb5/MasterConfig.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/config/MasterConfig.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 

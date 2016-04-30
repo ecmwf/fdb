@@ -18,8 +18,8 @@
 
 #include "eckit/types/Types.h"
 
-#include "fdb5/Archiver.h"
-#include "fdb5/Key.h"
+#include "fdb5/database/Archiver.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/legacy/LegacyTranslator.h"
 
 namespace eckit {

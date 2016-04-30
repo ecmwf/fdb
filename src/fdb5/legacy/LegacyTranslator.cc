@@ -14,7 +14,7 @@
 
 #include "marslib/Param.h"
 
-#include "fdb5/Key.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/legacy/LegacyTranslator.h"
 
 using namespace eckit;

@@ -16,7 +16,7 @@
 #ifndef fdb5_TocDBWriter_H
 #define fdb5_TocDBWriter_H
 
-#include "fdb5/Index.h"
+#include "fdb5/database/Index.h"
 #include "fdb5/toc/TocRecord.h"
 
 #include "fdb5/toc/TocDB.h"

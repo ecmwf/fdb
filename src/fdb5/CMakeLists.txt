@@ -31,68 +31,66 @@
 # fdb5 library
 
 list( APPEND fdb5_srcs
-    AdoptVisitor.cc
-    AdoptVisitor.h
-    Archiver.cc
-    Archiver.h
-    ArchiveVisitor.cc
-    ArchiveVisitor.h
-    toc/BTreeIndex.h
+    config/MasterConfig.cc
+    config/MasterConfig.h
+    database/Archiver.cc
+    database/Archiver.h
+    database/ArchiveVisitor.cc
+    database/ArchiveVisitor.h
+    database/BaseArchiveVisitor.cc
+    database/BaseArchiveVisitor.h
+    database/DB.cc
+    database/DB.h
+    database/FileStore.cc
+    database/FileStore.h
+    database/Index.cc
+    database/Index.h
+    database/IndexAxis.cc
+    database/IndexAxis.h
+    database/Key.cc
+    database/Key.h
+    database/ReadVisitor.cc
+    database/ReadVisitor.h
+    database/Retriever.cc
+    database/Retriever.h
+    database/WriteVisitor.cc
+    database/WriteVisitor.h
+    grib/GribArchiver.cc
+    grib/GribArchiver.h
+    grib/GribDecoder.cc
+    grib/GribDecoder.h
+    grib/GribIndexer.cc
+    grib/GribIndexer.h
+    io/FDBFileHandle.cc
+    io/FDBFileHandle.h
+    io/HandleGatherer.cc
+    io/HandleGatherer.h
+    rules/MatchAlways.cc
+    rules/MatchAlways.h
+    rules/MatchAny.cc
+    rules/MatchAny.h
+    rules/Matcher.cc
+    rules/Matcher.h
+    rules/MatchHidden.cc
+    rules/MatchHidden.h
+    rules/MatchOptional.cc
+    rules/MatchOptional.h
+    rules/MatchValue.cc
+    rules/MatchValue.h
+    rules/Predicate.cc
+    rules/Predicate.h
+    rules/Rule.cc
+    rules/Rule.h
+    rules/Schema.cc
+    rules/Schema.h
+    rules/SchemaParser.cc
+    rules/SchemaParser.h
+    toc/AdoptVisitor.cc
+    toc/AdoptVisitor.h
     toc/BTreeIndex.cc
-    BaseArchiveVisitor.cc
-    BaseArchiveVisitor.h
-    DB.cc
-    DB.h
-    FDBFileHandle.cc
-    FDBFileHandle.h
-    FDBTool.cc
-    FDBTool.h
-    FileStore.cc
-    FileStore.h
-    GribArchiver.cc
-    GribArchiver.h
-    GribDecoder.cc
-    GribDecoder.h
-    GribIndexer.cc
-    GribIndexer.h
-    HandleGatherer.cc
-    HandleGatherer.h
-    Index.cc
-    Index.h
-    IndexAxis.cc
-    IndexAxis.h
-    Key.cc
-    Key.h
-    MasterConfig.cc
-    MasterConfig.h
-    rule/MatchAlways.cc
-    rule/MatchAlways.h
-    rule/MatchAny.cc
-    rule/MatchAny.h
-    rule/Matcher.cc
-    rule/Matcher.h
-    rule/MatchHidden.cc
-    rule/MatchHidden.h
-    rule/MatchOptional.cc
-    rule/MatchOptional.h
-    rule/MatchValue.cc
-    rule/MatchValue.h
-    Predicate.cc
-    Predicate.h
-    PurgeVisitor.cc
-    PurgeVisitor.h
-    ReadVisitor.cc
-    ReadVisitor.h
-    RequestParser.cc
-    RequestParser.h
-    Retriever.cc
-    Retriever.h
-    rule/Rule.cc
-    rule/Rule.h
-    rule/Schema.cc
-    rule/Schema.h
-    rule/SchemaParser.cc
-    rule/SchemaParser.h
+    toc/BTreeIndex.h
+    toc/PurgeVisitor.cc
+    toc/PurgeVisitor.h
     toc/TocDB.cc
     toc/TocDB.h
     toc/TocDBReader.cc
@@ -105,40 +103,42 @@ list( APPEND fdb5_srcs
     toc/TocIndex.h
     toc/TocRecord.cc
     toc/TocRecord.h
-    type/Type.cc
-    type/Type.h
-    type/TypeAbbreviation.cc
-    type/TypeAbbreviation.h
-    type/TypeClimateDaily.cc
-    type/TypeClimateDaily.h
-    type/TypeClimateMonthly.cc
-    type/TypeClimateMonthly.h
-    type/TypeDate.cc
-    type/TypeDate.h
-    type/TypeDefault.cc
-    type/TypeDefault.h
-    type/TypeDouble.cc
-    type/TypeDouble.cc
-    type/TypeDouble.h
-    type/TypeDouble.h
-    type/TypeGrid.cc
-    type/TypeGrid.h
-    type/TypeIgnore.cc
-    type/TypeIgnore.h
-    type/TypeInteger.cc
-    type/TypeInteger.h
-    type/TypeMonth.cc
-    type/TypeMonth.h
-    type/TypeParam.cc
-    type/TypeParam.h
-    type/TypesFactory.cc
-    type/TypesFactory.h
-    type/TypesRegistry.cc
-    type/TypesRegistry.h
-    type/TypeStep.cc
-    type/TypeStep.h
-    WriteVisitor.cc
-    WriteVisitor.h
+    tools/FDBTool.cc
+    tools/FDBTool.h
+    tools/RequestParser.cc
+    tools/RequestParser.h
+    types/Type.cc
+    types/Type.h
+    types/TypeAbbreviation.cc
+    types/TypeAbbreviation.h
+    types/TypeClimateDaily.cc
+    types/TypeClimateDaily.h
+    types/TypeClimateMonthly.cc
+    types/TypeClimateMonthly.h
+    types/TypeDate.cc
+    types/TypeDate.h
+    types/TypeDefault.cc
+    types/TypeDefault.h
+    types/TypeDouble.cc
+    types/TypeDouble.cc
+    types/TypeDouble.h
+    types/TypeDouble.h
+    types/TypeGrid.cc
+    types/TypeGrid.h
+    types/TypeIgnore.cc
+    types/TypeIgnore.h
+    types/TypeInteger.cc
+    types/TypeInteger.h
+    types/TypeMonth.cc
+    types/TypeMonth.h
+    types/TypeParam.cc
+    types/TypeParam.h
+    types/TypesFactory.cc
+    types/TypesFactory.h
+    types/TypesRegistry.cc
+    types/TypesRegistry.h
+    types/TypeStep.cc
+    types/TypeStep.h
 )
 
 ecbuild_add_library(
@@ -179,7 +179,7 @@ list( APPEND fdb5_tools
 foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
-                          SOURCES   ${_tool}.cc
+                          SOURCES   tools/${_tool}.cc
                           LIBS
                           mars-fdb5 )
 

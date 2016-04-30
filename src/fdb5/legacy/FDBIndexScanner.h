@@ -16,7 +16,7 @@
 #include "eckit/thread/ThreadPool.h"
 #include "eckit/filesystem/PathName.h"
 
-#include "fdb5/Archiver.h"
+#include "fdb5/database/Archiver.h"
 
 namespace fdb5 {
 namespace legacy {

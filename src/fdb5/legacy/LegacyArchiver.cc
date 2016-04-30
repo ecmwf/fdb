@@ -12,7 +12,7 @@
 
 
 #include "fdb5/legacy/LegacyArchiver.h"
-#include "fdb5/ArchiveVisitor.h"
+#include "fdb5/database/ArchiveVisitor.h"
 
 namespace fdb5 {
 namespace legacy {

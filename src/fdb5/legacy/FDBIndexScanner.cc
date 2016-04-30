@@ -15,7 +15,7 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 
-#include "fdb5/AdoptVisitor.h"
+#include "fdb5/toc/AdoptVisitor.h"
 
 #include "fdb5/legacy/FDBIndexScanner.h"
 #include "fdb5/legacy/LegacyTranslator.h"

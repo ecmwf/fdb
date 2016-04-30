@@ -16,9 +16,9 @@
 #ifndef fdb5_TocDB_H
 #define fdb5_TocDB_H
 
-#include "fdb5/DB.h"
-#include "fdb5/Index.h"
-#include "fdb5/rule/Schema.h"
+#include "fdb5/database/DB.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocHandler.h"
 
 namespace fdb5 {
