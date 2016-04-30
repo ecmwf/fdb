@@ -23,6 +23,7 @@ Index::Index(eckit::Stream &s, const eckit::PathName &directory, const eckit::Pa
     axes_(s),
     key_(s) {
     s >> prefix_;
+    s >> type_;
 }
 
 void Index::encode(eckit::Stream &s) const {
@@ -30,16 +31,18 @@ void Index::encode(eckit::Stream &s) const {
     axes_.encode(s);
     s << key_;
     s << prefix_;
+    s << type_;
 }
 
-Index::Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode ) :
+Index::Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string& type ) :
     mode_(mode),
     path_(path),
     offset_(offset),
     files_(path.dirName()),
     axes_(),
     key_(key),
-    prefix_(key.valuesToString()) {
+    prefix_(key.valuesToString()),
+    type_(type) {
 }
 
 Index::~Index() {
@@ -55,6 +58,9 @@ const Key &Index::key() const {
     return key_;
 }
 
+const std::string &Index::type() const {
+    return type_;
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 const eckit::PathName& Index::path() const {

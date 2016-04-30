@@ -33,8 +33,8 @@ public:
 
 //-----------------------------------------------------------------------------
 
-TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode ) :
-    Index(key, path, offset, mode),
+TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string& type ) :
+    Index(key, path, offset, mode, type),
     btree_( 0 ),
     dirty_(false) {
 }
@@ -145,6 +145,10 @@ void TocIndex::print(std::ostream &out) const {
     out << "TocIndex[path=" << path_ << ",offset="<< offset_ << "]";
 }
 
+
+std::string TocIndex::defaulType() {
+    return BTreeIndex::defaulType();
+}
 
 //-----------------------------------------------------------------------------
 

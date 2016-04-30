@@ -110,7 +110,7 @@ public: // types
 public: // methods
 
 
-    Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode );
+    Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string& type );
     Index(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
     virtual ~Index();
 
@@ -121,6 +121,7 @@ public: // methods
 
     const eckit::PathName& path() const ;
     off_t offset() const ;
+    const std::string& type() const ;
 
     const IndexAxis &axes() const ;
     const Key &key() const;
@@ -140,6 +141,7 @@ protected: // members
     const Mode            mode_;
     const eckit::PathName path_;
     off_t           offset_;
+    std::string type_;
 
     // Order is important here...
     FileStore   files_;

@@ -167,6 +167,8 @@ void TocHandler::writeInitRecord(const Key &key) {
 
     } else {
         ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
+        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        ASSERT(key == Key(s));
     }
 }
 
@@ -200,10 +202,12 @@ void TocHandler::writeIndexRecord(const Index &index) {
     eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
     s << index.path().baseName();
     s << index.offset();
+    s << index.type();
+
     index.encode(s);
     append(r, s.position());
 
-    eckit::Log::info() << "TOC_INDEX " << index.path().baseName() << " - " << index.offset() << std::endl;
+    eckit::Log::info() << "TOC_INDEX " << index.path().baseName() << " - " << index.offset() << " " << index.type() << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -252,6 +256,8 @@ std::vector<Index *> TocHandler::loadIndexes() {
 
         eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
         std::string path;
+        std::string type;
+
         off_t offset;
         std::vector<Index *>::iterator j;
 
@@ -259,22 +265,13 @@ std::vector<Index *> TocHandler::loadIndexes() {
         switch (r.header_.tag_) {
 
         case TocRecord::TOC_INIT:
-            {
-                Key key(s);
-                eckit::Log::info() << "TOC_INIT key is " << key << std::endl;
-
-//                if(dbKey.empty()) { dbKey = key; }
-//                if(dbKey != key) {
-//                    std::ostringstream oss;
-//                    oss << "Key in TOC " << key << " doesn't match key from opened DB " << dbKey;
-//                    throw eckit::SeriousBug(oss.str());
-//                }
-            }
+            eckit::Log::info() << "TOC_INIT key is " << Key(s) << std::endl;
             break;
 
         case TocRecord::TOC_INDEX:
             s >> path;
             s >> offset;
+            s >> type;
             eckit::Log::info() << "TOC_INDEX " << path << " - " << offset << std::endl;
             indexes.push_back( new TocIndex(s, directory_, directory_ / path, offset) );
             break;

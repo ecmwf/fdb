@@ -42,6 +42,9 @@ public:
     virtual void flush() = 0;
     virtual void visit(BTreeIndexVisitor& visitor) const = 0;
 
+
+    static std::string defaulType();
+
 };
 
 

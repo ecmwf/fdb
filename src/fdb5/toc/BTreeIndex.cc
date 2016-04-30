@@ -73,6 +73,10 @@ BTreeIndex_32_65536::BTreeIndex_32_65536(const eckit::PathName& path, bool readO
 
 
 
+std::string BTreeIndex::defaulType() {
+    return "BTreeIndex_32_65536";
+}
+
 //-----------------------------------------------------------------------------
 
 } // namespace fdb5
