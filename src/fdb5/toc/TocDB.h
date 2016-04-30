@@ -8,15 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TocDBReader.h
+/// @file   TocDB.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_TocDBReader_H
-#define fdb5_TocDBReader_H
+#ifndef fdb5_TocDB_H
+#define fdb5_TocDB_H
 
-#include "fdb5/TocDB.h"
+#include "fdb5/DB.h"
+#include "fdb5/Index.h"
+#include "fdb5/rule/Schema.h"
+#include "fdb5/toc/TocHandler.h"
 
 namespace fdb5 {
 
@@ -24,35 +27,31 @@ namespace fdb5 {
 
 /// DB that implements the FDB on POSIX filesystems
 
-class TocDBReader : public TocDB {
+class TocDB : public DB, public TocHandler {
 
 public: // methods
 
-    TocDBReader(const Key& key);
+    TocDB(const Key& dbKey);
+    TocDB(const eckit::PathName& directory);
 
-    virtual ~TocDBReader();
+    virtual ~TocDB();
 
-private: // methods
-
-    virtual bool selectIndex(const Key &key);
-    virtual void deselectIndex();
+protected: // methods
 
     virtual bool open();
     virtual void close();
-
-    virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
+    virtual void flush();
 
     virtual eckit::DataHandle *retrieve(const Key &key) const;
+    virtual void archive(const Key &key, const void *data, eckit::Length length);
+    virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
 
-    virtual void print( std::ostream &out ) const;
-
+    void loadSchema();
+    void checkSchema(const Key &key) const;
 
 private: // members
 
-    Key currentIndexKey_;
-    std::vector<Index *> matching_; // Indexes matching current key
-    std::vector<Index *> indexes_;  // All indexes
-
+    Schema schema_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

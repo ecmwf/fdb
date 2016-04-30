@@ -16,7 +16,7 @@
 #include "fdb5/Index.h"
 #include "fdb5/Key.h"
 #include "fdb5/PurgeVisitor.h"
-#include "fdb5/TocHandler.h"
+#include "fdb5/toc/TocHandler.h"
 #include "fdb5/FDBTool.h"
 
 using namespace std;

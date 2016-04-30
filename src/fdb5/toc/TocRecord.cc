@@ -9,7 +9,7 @@
  */
 
 #include "mars_server_version.h"
-#include "fdb5/TocRecord.h"
+#include "fdb5/toc/TocRecord.h"
 
 namespace fdb5 {
 

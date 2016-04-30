@@ -13,7 +13,7 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/utils/Regex.h"
 
-#include "fdb5/TocDB.h"
+#include "fdb5/toc/TocDB.h"
 #include "fdb5/rule/Rule.h"
 
 using namespace eckit;

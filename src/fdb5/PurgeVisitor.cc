@@ -13,8 +13,8 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 
-#include "fdb5/TocIndex.h"
-#include "fdb5/TocHandler.h"
+#include "fdb5/toc/TocIndex.h"
+#include "fdb5/toc/TocHandler.h"
 
 namespace fdb5 {
 

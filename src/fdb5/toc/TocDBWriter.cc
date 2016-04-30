@@ -12,9 +12,9 @@
 #include "eckit/config/Resource.h"
 #include "eckit/io/AIOHandle.h"
 
-#include "fdb5/TocDBWriter.h"
+#include "fdb5/toc/TocDBWriter.h"
 #include "fdb5/FDBFileHandle.h"
-#include "fdb5/TocIndex.h"
+#include "fdb5/toc/TocIndex.h"
 
 
 namespace fdb5 {

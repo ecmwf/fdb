@@ -17,7 +17,7 @@
 #include "eckit/io/Length.h"
 #include "eckit/filesystem/PathName.h"
 
-#include "fdb5/TocRecord.h"
+#include "fdb5/toc/TocRecord.h"
 
 namespace fdb5 {
 

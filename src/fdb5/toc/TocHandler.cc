@@ -17,8 +17,8 @@
 
 #include "fdb5/Index.h"
 #include "fdb5/MasterConfig.h"
-#include "fdb5/TocHandler.h"
-#include "fdb5/TocIndex.h"
+#include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/TocIndex.h"
 
 
 namespace fdb5 {

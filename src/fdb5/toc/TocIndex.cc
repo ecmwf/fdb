@@ -9,8 +9,8 @@
  */
 
 #include "eckit/log/BigNum.h"
-#include "fdb5/TocIndex.h"
-#include "fdb5/BTreeIndex.h"
+#include "fdb5/toc/TocIndex.h"
+#include "fdb5/toc/BTreeIndex.h"
 
 namespace fdb5 {
 

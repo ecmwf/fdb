@@ -15,7 +15,7 @@
 
 #include "fdb5/FDBTool.h"
 #include "fdb5/Index.h"
-#include "fdb5/TocHandler.h"
+#include "fdb5/toc/TocHandler.h"
 #include "fdb5/rule/Schema.h"
 #include "fdb5/rule/Rule.h"
 

@@ -11,7 +11,7 @@
 #include "eckit/log/Log.h"
 
 #include "fdb5/AdoptVisitor.h"
-#include "fdb5/TocDBWriter.h"
+#include "fdb5/toc/TocDBWriter.h"
 
 using namespace eckit;
 

@@ -37,8 +37,8 @@ list( APPEND fdb5_srcs
     Archiver.h
     ArchiveVisitor.cc
     ArchiveVisitor.h
-    BTreeIndex.h
-    BTreeIndex.cc
+    toc/BTreeIndex.h
+    toc/BTreeIndex.cc
     BaseArchiveVisitor.cc
     BaseArchiveVisitor.h
     DB.cc
@@ -93,18 +93,18 @@ list( APPEND fdb5_srcs
     rule/Schema.h
     rule/SchemaParser.cc
     rule/SchemaParser.h
-    TocDB.cc
-    TocDB.h
-    TocDBReader.cc
-    TocDBReader.h
-    TocDBWriter.cc
-    TocDBWriter.h
-    TocHandler.cc
-    TocHandler.h
-    TocIndex.cc
-    TocIndex.h
-    TocRecord.cc
-    TocRecord.h
+    toc/TocDB.cc
+    toc/TocDB.h
+    toc/TocDBReader.cc
+    toc/TocDBReader.h
+    toc/TocDBWriter.cc
+    toc/TocDBWriter.h
+    toc/TocHandler.cc
+    toc/TocHandler.h
+    toc/TocIndex.cc
+    toc/TocIndex.h
+    toc/TocRecord.cc
+    toc/TocRecord.h
     type/Type.cc
     type/Type.h
     type/TypeAbbreviation.cc

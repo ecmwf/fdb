@@ -9,7 +9,7 @@
  */
 
 
-#include "fdb5/TocDBReader.h"
+#include "fdb5/toc/TocDBReader.h"
 
 
 namespace fdb5 {
