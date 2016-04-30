@@ -59,11 +59,8 @@ void IndexAxis::encode(eckit::Stream &s) const {
 void IndexAxis::insert(const Key &key) {
     ASSERT(!readOnly_);
 
-    //    Log::info() << *this << std::endl;
 
-    const eckit::StringDict &keymap = key.dict();
-
-    for (eckit::StringDict::const_iterator i = keymap.begin(); i  != keymap.end(); ++i) {
+    for (Key::const_iterator i = key.begin(); i  != key.end(); ++i) {
         const std::string &keyword = i->first;
         const std::string &value   = i->second;
         axis_[keyword].insert(value);

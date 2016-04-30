@@ -31,7 +31,7 @@ class TocDB : public DB, public TocHandler {
 
 public: // methods
 
-    TocDB(const Key& dbKey);
+    TocDB(const Key& key);
     TocDB(const eckit::PathName& directory);
 
     virtual ~TocDB();

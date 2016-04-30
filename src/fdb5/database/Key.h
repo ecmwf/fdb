@@ -49,13 +49,7 @@ public: // methods
     void push(const std::string &k, const std::string &v);
     void pop(const std::string &k);
 
-    bool has( const std::string &k ) const;
-
     const std::string &get( const std::string &k ) const;
-
-    const eckit::StringDict &dict() const {
-        return keys_;
-    }
 
     void clear();
 
@@ -87,10 +81,12 @@ public: // methods
 
     std::string valuesToString() const;
 
-    void load(std::istream &s);
-    void dump(std::ostream &s) const;
+    typedef eckit::StringDict::const_iterator const_iterator;
+    const_iterator begin() const { return keys_.begin(); }
+    const_iterator end() const { return keys_.end(); }
+    const_iterator find(const std::string& s) const { return keys_.find(s); }
+    bool empty() const { return keys_.empty(); }
 
-    void json(eckit::JSON &) const;
 
 private: // members
 

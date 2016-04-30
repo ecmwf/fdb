@@ -70,7 +70,7 @@ static void readTable() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static eckit::PathName directory(const Key &dbKey) {
+static eckit::PathName directory(const Key &key) {
 
     /// @note This may not be needed once in operations, but helps with testing tools
     static std::string overideRoot = eckit::Resource<std::string>("$FDB_ROOT", "");
@@ -83,16 +83,15 @@ static eckit::PathName directory(const Key &dbKey) {
         pthread_once(&once, readTable);
 
         std::ostringstream oss;
-        const eckit::StringDict &d = dbKey.dict();
 
         const char *sep = "";
         for (StringList::const_iterator j = fdbRootPattern.begin(); j != fdbRootPattern.end(); ++j) {
-            eckit::StringDict::const_iterator i = d.find(*j);
-            if (i == d.end()) {
+            Key::const_iterator i = key.find(*j);
+            if (i == key.end()) {
                 oss << sep << "unknown";
-                eckit::Log::warning() << "FDB root: cannot get " << *j << " from " << dbKey << std::endl;
+                eckit::Log::warning() << "FDB root: cannot get " << *j << " from " << key << std::endl;
             } else {
-                oss << sep << dbKey.get(*j);
+                oss << sep << key.get(*j);
             }
             sep = ":";
         }
@@ -107,19 +106,19 @@ static eckit::PathName directory(const Key &dbKey) {
 
         if (root.length() == 0) {
             std::ostringstream oss;
-            oss << "No FDB root for " << dbKey;
+            oss << "No FDB root for " << key;
             throw SeriousBug(oss.str());
         }
     }
 
-    return PathName(root) / dbKey.valuesToString();
+    return PathName(root) / key.valuesToString();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDB::TocDB(const Key& dbKey) :
-    DB(dbKey),
-    TocHandler(directory(dbKey)) {
+TocDB::TocDB(const Key& key) :
+    DB(key),
+    TocHandler(directory(key)) {
 }
 
 TocDB::TocDB(const eckit::PathName& directory) :

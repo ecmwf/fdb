@@ -39,7 +39,6 @@ Key::Key(const eckit::StringDict &keys) :
     rule_(0) {
 }
 
-
 Key::Key(eckit::Stream &s) :
     rule_(0) {
     size_t n;
@@ -121,9 +120,6 @@ void Key::pop(const std::string &k) {
     names_.pop_back();
 }
 
-bool Key::has(const std::string &k) const {
-    return keys_.find(k) != keys_.end();
-}
 
 const std::string &Key::get( const std::string &k ) const {
     eckit::StringDict::const_iterator i = keys_.find(k);
@@ -164,35 +160,6 @@ std::string Key::valuesToString() const {
     }
 
     return oss.str();
-}
-
-void Key::load(std::istream &s) {
-    NOTIMP;
-    // std::string params;
-    // s >> params;
-
-    // Tokenizer parse(sep);
-    // std::vector<std::string> result;
-    // parse(params,result);
-
-    // ASSERT( result.size() % 2 == 0 ); // even number of entries
-
-    // clear();
-    // for( size_t i = 0; i < result.size(); ++i,++i ) {
-    //     set(result[i], result[i+1]);
-    // }
-}
-
-void Key::dump(std::ostream &s) const {
-    NOTIMP;
-    // s << sep;
-    // for(StringDict::const_iterator ktr = keys_.begin(); ktr != keys_.end(); ++ktr) {
-    //     s << ktr->first << sep << ktr->second << sep;
-    // }
-}
-
-void Key::json(eckit::JSON &) const {
-
 }
 
 void Key::print(std::ostream &out) const {

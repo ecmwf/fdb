@@ -142,8 +142,7 @@ MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *
     std::map<std::string, std::set<std::string> > s;
 
     while ( (len = gribToKey(file, key))  ) {
-        const eckit::StringDict &d = key.dict();
-        for (eckit::StringDict::const_iterator j = d.begin(); j != d.end(); ++j) {
+        for (Key::const_iterator j = key.begin(); j != key.end(); ++j) {
             s[j->first].insert(j->second);
         }
     }

@@ -26,9 +26,9 @@ MatchAny::~MatchAny() {
 
 bool MatchAny::match(const std::string &keyword, const Key &key) const {
 
-    eckit::StringDict::const_iterator i = key.dict().find(keyword);
+    Key::const_iterator i = key.find(keyword);
 
-    if (i == key.dict().end()) {
+    if (i == key.end()) {
         return false;
     }
 

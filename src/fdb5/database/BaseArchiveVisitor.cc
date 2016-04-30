@@ -42,11 +42,9 @@ bool BaseArchiveVisitor::selectIndex(const Key &key, const Key &full) {
 void BaseArchiveVisitor::checkMissingKeys(const Key &full) {
     if (checkMissingKeysOnWrite_) {
         eckit::StringSet missing;
-        const eckit::StringDict &f = field_.dict();
-        const eckit::StringDict &k = full.dict();
 
-        for (eckit::StringDict::const_iterator j = f.begin(); j != f.end(); ++j) {
-            if (k.find((*j).first) == k.end()) {
+        for (Key::const_iterator j = field_.begin(); j != field_.end(); ++j) {
+            if (full.find((*j).first) == full.end()) {
                 missing.insert((*j).first);
             }
         }

@@ -44,9 +44,9 @@ void MatchOptional::fill(Key &key, const std::string &keyword, const std::string
 }
 
 const std::string &MatchOptional::value(const Key &key, const std::string &keyword) const {
-    eckit::StringDict::const_iterator i = key.dict().find(keyword);
+    Key::const_iterator i = key.find(keyword);
 
-    if (i == key.dict().end()) {
+    if (i == key.end()) {
         return default_;
     }
 
