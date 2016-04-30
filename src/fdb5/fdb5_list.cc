@@ -8,10 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
 #include "eckit/filesystem/PathName.h"
 
+#include "fdb5/FDBTool.h"
 #include "fdb5/Index.h"
 #include "fdb5/TocHandler.h"
 #include "fdb5/Schema.h"
@@ -21,10 +21,16 @@ using namespace std;
 using namespace eckit;
 using namespace fdb5;
 
-class FDBList : public eckit::Tool {
+//----------------------------------------------------------------------------------------------------------------------
+
+class FDBList : public FDBTool {
+
     virtual void run();
+
 public:
-    FDBList(int argc, char **argv): Tool(argc, argv) {}
+
+    FDBList(int argc, char **argv) : FDBTool(argc, argv) {}
+
 };
 
 class ListVisitor : public EntryVisitor {
@@ -57,9 +63,14 @@ void ListVisitor::visit(const Index& index,
 
     std::cout << key_ << index.key() << field << std::endl;
 
+//    Log::info() << dbKeyStr_ << ":" << unique << " "
+//                << path << " " << offset << " " << length
+//                << std::endl;
+
 }
 
 void FDBList::run() {
+
     Context &ctx = Context::instance();
 
     for (int i = 1; i < ctx.argc(); i++) {
@@ -73,7 +84,6 @@ void FDBList::run() {
         path = path.realName();
 
         Log::info() << "Listing " << path << std::endl;
-
 
         fdb5::TocHandler handler(path);
         Key key = handler.databaseKey();
@@ -89,11 +99,10 @@ void FDBList::run() {
         }
 
         handler.freeIndexes(indexes);
-
     }
-
 }
 
+//----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv) {
     FDBList app(argc, argv);

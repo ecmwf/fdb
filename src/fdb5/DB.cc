@@ -89,8 +89,8 @@ DB *DBFactory::build(const std::string &name, const Key &key) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DB::DB(const Key &key):
-    key_(key) {
+DB::DB(const Key &key) :
+    dbKey_(key) {
     touch();
 }
 

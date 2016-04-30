@@ -8,50 +8,21 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/runtime/Tool.h"
 #include "eckit/runtime/Context.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/option/SimpleOption.h"
-#include "eckit/option/Option.h"
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/Index.h"
 #include "fdb5/Key.h"
 #include "fdb5/PurgeVisitor.h"
 #include "fdb5/TocHandler.h"
+#include "fdb5/FDBTool.h"
 
 using namespace std;
 using namespace eckit;
 using namespace eckit::option;
 using namespace fdb5;
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class FDBTool : public eckit::Tool {
-
-  public: // methods
-
-    FDBTool(int argc, char **argv) : eckit::Tool(argc, argv) {
-
-        options_.push_back(new SimpleOption<std::string>("class", "keyword class"));
-        options_.push_back(new SimpleOption<std::string>("stream", "keyword stream"));
-        options_.push_back(new SimpleOption<std::string>("expver", "keyword expver"));
-        options_.push_back(new SimpleOption<std::string>("date", "keyword class"));
-        options_.push_back(new SimpleOption<std::string>("time", "keyword class"));
-        options_.push_back(new SimpleOption<std::string>("domain", "keyword class"));
-
-    }
-
-  protected: // methods
-
-    static void usage(const std::string &tool) {
-    }
-
-  protected: // members
-
-    std::vector<Option *> options_;
-
-};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -80,6 +51,7 @@ void FDBPurge::usage(const std::string &tool) {
 }
 
 void FDBPurge::run() {
+
     eckit::option::CmdArgs args(&FDBPurge::usage, -1, options_);
     bool doit = false;
     args.get("doit", doit);
@@ -97,6 +69,8 @@ void FDBPurge::run() {
         Log::info() << "Scanning " << path << std::endl;
 
         fdb5::TocHandler handler(path);
+        Key key = handler.databaseKey();
+        Log::info() << "Database key " << key << std::endl;
 
         std::vector<Index *> indexes = handler.loadIndexes();
 
@@ -108,11 +82,13 @@ void FDBPurge::run() {
 
         visitor.report(Log::info());
 
+        bool doit = false;
+        args.get("doit", doit);
+
         if (doit)
         {visitor.purge();}
 
         handler.freeIndexes(indexes);
-
     }
 
     if(!doit) {
@@ -121,6 +97,7 @@ void FDBPurge::run() {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+
 int main(int argc, char **argv) {
     FDBPurge app(argc, argv);
     return app.start();

@@ -11,17 +11,19 @@
 #include <fcntl.h>
 
 #include "eckit/config/Resource.h"
-#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/io/FileHandle.h"
+#include "eckit/serialisation/MemoryStream.h"
 
-#include "fdb5/TocHandler.h"
+
 #include "fdb5/Index.h"
 #include "fdb5/MasterConfig.h"
+#include "fdb5/TocHandler.h"
 #include "fdb5/TocIndex.h"
 
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
 
 class TocHandlerCloser {
     TocHandler &handler_;
@@ -204,7 +206,7 @@ void TocHandler::writeIndexRecord(const Index &index) {
     eckit::Log::info() << "TOC_INDEX " << index.path().baseName() << " - " << index.offset() << std::endl;
 }
 
-//==========================================================================
+//----------------------------------------------------------------------------------------------------------------------
 
 class HasPath {
     eckit::PathName path_;
@@ -257,7 +259,17 @@ std::vector<Index *> TocHandler::loadIndexes() {
         switch (r.header_.tag_) {
 
         case TocRecord::TOC_INIT:
-            eckit::Log::info() << "TOC_INIT key is " << Key(s) << std::endl;
+            {
+                Key key(s);
+                eckit::Log::info() << "TOC_INIT key is " << key << std::endl;
+
+//                if(dbKey.empty()) { dbKey = key; }
+//                if(dbKey != key) {
+//                    std::ostringstream oss;
+//                    oss << "Key in TOC " << key << " doesn't match key from opened DB " << dbKey;
+//                    throw eckit::SeriousBug(oss.str());
+//                }
+            }
             break;
 
         case TocRecord::TOC_INDEX:

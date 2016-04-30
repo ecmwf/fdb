@@ -43,6 +43,8 @@ list( APPEND fdb5_srcs
     DB.h
     FDBFileHandle.cc
     FDBFileHandle.h
+    FDBTool.cc
+    FDBTool.h
     FileStore.cc
     FileStore.h
     GribArchiver.cc
@@ -156,6 +158,7 @@ ecbuild_add_library(
         Mars
         Common
         eckit
+        eckit_option
         grib_api
 )
 
@@ -176,8 +179,7 @@ foreach( _tool ${fdb5_tools} )
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   ${_tool}.cc
                           LIBS
-                          mars-fdb5
-                          eckit_option )
+                          mars-fdb5 )
 
 endforeach()
 

@@ -8,50 +8,38 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TocDB.h
+/// @file   FDBTool.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_TocDB_H
-#define fdb5_TocDB_H
+#ifndef fdb5_FDBTool_H
+#define fdb5_FDBTool_H
+
+#include "eckit/runtime/Tool.h"
+#include "eckit/option/Option.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/DB.h"
-#include "fdb5/Index.h"
-#include "fdb5/Schema.h"
-#include "fdb5/TocHandler.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// DB that implements the FDB on POSIX filesystems
-
-class TocDB : public DB, public TocHandler {
+class FDBTool : public eckit::Tool {
 
 public: // methods
 
-    TocDB(const Key& dbKey);
-    TocDB(const eckit::PathName& directory);
-
-    virtual ~TocDB();
+    FDBTool(int argc, char **argv);
 
 protected: // methods
 
-    virtual bool open();
-    virtual void close();
-    virtual void flush();
+    static void usage(const std::string &tool);
 
-    virtual eckit::DataHandle *retrieve(const Key &key) const;
-    virtual void archive(const Key &key, const void *data, eckit::Length length);
-    virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
+protected: // members
 
-    void loadSchema();
-    void checkSchema(const Key &key) const;
+    std::vector<eckit::option::Option *> options_;
 
-private: // members
-
-    Schema schema_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

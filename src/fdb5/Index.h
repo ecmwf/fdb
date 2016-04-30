@@ -101,14 +101,9 @@ public: // types
         ///////////////////////////////////////////////
 
 
-        friend std::ostream &operator<<(std::ostream &s, const Field &x) {
-            x.print(s);
-            return s;
-        }
+        friend std::ostream &operator<<(std::ostream &s, const Field &x) { x.print(s); return s; }
 
-        void print( std::ostream &out ) const {
-            out << path_ << "," << offset_ << "+" << length_ ;
-        }
+        void print( std::ostream &out ) const;
 
     };
 

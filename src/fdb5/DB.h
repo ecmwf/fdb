@@ -45,8 +45,8 @@ public: // methods
 
     virtual ~DB();
 
-    const Key &key() const {
-        return key_;
+    const Key& key() const {
+        return dbKey_;
     }
 
     virtual bool selectIndex(const Key &key) = 0;
@@ -77,7 +77,7 @@ protected: // methods
 
 protected: // members
 
-    Key key_;
+    Key dbKey_;
 
     time_t lastAccess_;
 

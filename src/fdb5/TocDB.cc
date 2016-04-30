@@ -16,12 +16,11 @@
 #include "fdb5/TocDB.h"
 #include "fdb5/Rule.h"
 
+using namespace eckit;
 
 namespace fdb5 {
 
-
-
-using namespace eckit;
+//----------------------------------------------------------------------------------------------------------------------
 
 static pthread_once_t once = PTHREAD_ONCE_INIT;
 static std::vector< std::pair<Regex, std::string> > rootsTable;
@@ -67,52 +66,66 @@ static void readTable() {
 
         }
     }
-
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
 static eckit::PathName directory(const Key &dbKey) {
-    static StringList fdbRootPattern( eckit::Resource<StringList>("fdbRootPattern", "class,stream,expver", true ) );
-    pthread_once(&once, readTable);
 
-    std::ostringstream oss;
-    const eckit::StringDict &d = dbKey.dict();
+    /// @note This may not be needed once in operations, but helps with testing tools
+    static std::string overideRoot = eckit::Resource<std::string>("$FDB_ROOT", "");
 
-    const char *sep = "";
-    for (StringList::const_iterator j = fdbRootPattern.begin(); j != fdbRootPattern.end(); ++j) {
-        eckit::StringDict::const_iterator i = d.find(*j);
-        if (i == d.end()) {
-            oss << sep << "unknown";
-            eckit::Log::warning() << "FDB root: cannot get " << *j << " from " << dbKey << std::endl;
-        } else {
-            oss << sep << dbKey.get(*j);
-        }
-        sep = ":";
-    }
+    std::string root( overideRoot );
 
-    std::string name(oss.str());
-    std::string root;
+    if(root.empty())
+    {
+        static StringList fdbRootPattern( eckit::Resource<StringList>("fdbRootPattern", "class,stream,expver", true ) );
+        pthread_once(&once, readTable);
 
-    for (Ordinal i = 0; i < rootsTable.size() ; i++)
-        if (rootsTable[i].first.match(name)) {
-            root = rootsTable[i].second;
-            break;
-        }
-
-    if (root.length() == 0) {
         std::ostringstream oss;
-        oss << "No FDB root for " << dbKey;
-        throw SeriousBug(oss.str());
+        const eckit::StringDict &d = dbKey.dict();
+
+        const char *sep = "";
+        for (StringList::const_iterator j = fdbRootPattern.begin(); j != fdbRootPattern.end(); ++j) {
+            eckit::StringDict::const_iterator i = d.find(*j);
+            if (i == d.end()) {
+                oss << sep << "unknown";
+                eckit::Log::warning() << "FDB root: cannot get " << *j << " from " << dbKey << std::endl;
+            } else {
+                oss << sep << dbKey.get(*j);
+            }
+            sep = ":";
+        }
+
+        std::string name(oss.str());
+
+        for (Ordinal i = 0; i < rootsTable.size() ; i++)
+            if (rootsTable[i].first.match(name)) {
+                root = rootsTable[i].second;
+                break;
+            }
+
+        if (root.length() == 0) {
+            std::ostringstream oss;
+            oss << "No FDB root for " << dbKey;
+            throw SeriousBug(oss.str());
+        }
     }
 
     return PathName(root) / dbKey.valuesToString();
 }
 
-TocDB::TocDB(const Key &dbKey) :
+//----------------------------------------------------------------------------------------------------------------------
+
+TocDB::TocDB(const Key& dbKey) :
     DB(dbKey),
     TocHandler(directory(dbKey)) {
+}
+
+TocDB::TocDB(const eckit::PathName& directory) :
+    DB(Key()),
+    TocHandler(directory)
+{
 }
 
 TocDB::~TocDB() {
