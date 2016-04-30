@@ -153,7 +153,7 @@ void PurgeVisitor::report(std::ostream &out) const {
         << " of which "  << duplicatedAdopted << " adopted)" << std::endl;
 
     out << "   " << eckit::Plural(dataToDelete, "data file") << " to delete" << std::endl;
-    out << "   " << eckit::Plural(indexToDelete, "data file") << " to delete" << std::endl;
+    out << "   " << eckit::Plural(indexToDelete, "index file") << " to delete" << std::endl;
     out << "   " << eckit::Plural(indexToDelete, "index record") << " to clear" << std::endl;
 
     out << "   "  << eckit::Bytes(total.totalSize) << " referenced"
