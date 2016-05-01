@@ -28,48 +28,49 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 FDBTool::FDBTool(int argc, char **argv) : eckit::Tool(argc, argv, "DHSHOME") {
-
-    options_.push_back(new eckit::option::SimpleOption<std::string>("request",  "keyword class"));
-    options_.push_back(new eckit::option::SimpleOption<std::string>("stream", "keyword stream"));
-    options_.push_back(new eckit::option::SimpleOption<std::string>("expver", "keyword expver"));
-    options_.push_back(new eckit::option::SimpleOption<std::string>("date",   "keyword date"));
-    options_.push_back(new eckit::option::SimpleOption<std::string>("time",   "keyword time"));
-    options_.push_back(new eckit::option::SimpleOption<std::string>("domain", "keyword domain"));
 }
 
 void FDBTool::usage(const std::string &tool) {
 }
 
-eckit::PathName FDBTool::directoryFromOption(const eckit::option::CmdArgs &args) const {
-    std::string request;
-    args.get("request", request);
 
-    Key k("class=od,expver=0001,date=0,domain=g,stream=oper," + request);
+eckit::PathName FDBTool::databasePath(const std::string &arg) const {
+
+    eckit::PathName path(arg);
+    if (!path.exists()) {
+        const Schema& schema = MasterConfig::instance().schema();
+
+        std::ostringstream oss;
+        eckit::Date today(0);
+
+        oss << "class=od,expver=0001,domain=g,stream=oper,time=1200,date=";
+        oss << today.yyyymmdd();
+        oss << "," << arg;
+
+        try {
+            Key key(oss.str());
+            Key result;
+
+            if (schema.expandFirstLevel(key, result)) {
+                path = TocDB::directory(result);
+                Log::info() << arg << " => " << key << " => " << result << " => " << path << std::endl;
+            }
+        } catch (eckit::Exception& e) {
+
+        }
+    }
+
+    if (path.exists()) {
+
+        if (!path.isDir()) {
+            path = path.dirName();
+        }
+
+        path = path.realName();
+    }
 
 
-    Log::info() << "Selected Key " << k << std::endl;
 
-    return TocDB::directory(k);
-}
-
-eckit::PathName FDBTool::expand(const std::string &arg) const {
-    Key key("class=od,expver=0001,date=0,domain=g,stream=oper," + arg);
-
-    struct V : public WriteVisitor {
-        V(std::vector<Key>& keys): WriteVisitor(keys) {}
-        virtual bool selectDatabase(const Key &key, const Key &full) { std::cout << key << std::endl; return true;}
-        virtual bool selectIndex(const Key &key, const Key &full) {return true;}
-        virtual bool selectDatum(const Key &key, const Key &full) {return true;}
-        virtual void print( std::ostream &out ) const {}
-    };
-
-    std::vector<Key> keys(3);
-    V visitor(keys);
-    MasterConfig::instance().schema().expand(key, visitor);
-
-    eckit::PathName path = TocDB::directory(key);
-
-    Log::info() << arg << " => " << key << " => " << path << std::endl;
     return path;
 
 }

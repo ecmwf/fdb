@@ -58,19 +58,12 @@ void FDBPurge::run() {
 
     for (size_t i = 0; i < args.count(); ++i) {
 
-        eckit::PathName path(args.args(i));
-
-        if (!path.isDir()) {
-            path = path.dirName();
-        }
-
-        path = path.realName();
+        eckit::PathName path(databasePath(args.args(i)));
 
         Log::info() << "Scanning " << path << std::endl;
 
         fdb5::TocHandler handler(path);
-        Key key = handler.databaseKey();
-        Log::info() << "Database key " << key << std::endl;
+        Log::info() << "Database key " << handler.databaseKey() << std::endl;
 
         std::vector<Index *> indexes = handler.loadIndexes();
 

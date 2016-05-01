@@ -42,8 +42,7 @@ protected: // methods
 
     static void usage(const std::string &tool);
 
-    eckit::PathName directoryFromOption(const eckit::option::CmdArgs &args) const;
-    eckit::PathName expand(const std::string& arg) const;
+    eckit::PathName databasePath(const std::string& arg) const;
 
 protected: // members
 

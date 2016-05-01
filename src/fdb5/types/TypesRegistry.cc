@@ -54,7 +54,7 @@ const Type &TypesRegistry::lookupType(const std::string &keyword) const {
             }
         }
 
-        // eckit::Log::info() << "Type of " << keyword << " is " << type << std::endl;
+        eckit::Log::info() << "Type of " << keyword << " is " << type << std::endl;
         Type *newKH = TypesFactory::build(type, keyword);
         cache_[keyword] = newKH;
         return *newKH;

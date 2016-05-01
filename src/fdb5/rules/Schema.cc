@@ -70,6 +70,14 @@ void Schema::expand(const Key &field, WriteVisitor &visitor) const {
     }
 }
 
+bool Schema::expandFirstLevel(const Key &field,  Key &result) const {
+    bool found = false;
+    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end() && !found; ++i ) {
+        (*i)->expandFirstLevel(field, result, found);
+    }
+    return found;
+}
+
 void Schema::load(const eckit::PathName &path, bool replace) {
     if (replace) {
         clear();

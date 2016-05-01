@@ -98,15 +98,7 @@ void FDBList::usage(const std::string &tool) {
     FDBTool::usage(tool);
 }
 
-void FDBList::listToc(const eckit::PathName& p, const option::CmdArgs& args) {
-
-    PathName path = p;
-
-    if (!path.isDir()) {
-        path = path.dirName();
-    }
-
-    path = path.realName();
+void FDBList::listToc(const eckit::PathName& path, const option::CmdArgs& args) {
 
     Log::info() << "Listing " << path << std::endl;
 
@@ -132,9 +124,8 @@ void FDBList::run() {
 
     Log::info() << args << std::endl;
 
-
     for (size_t i = 0; i < args.count(); ++i) {
-        listToc( expand(args.args(i)) , args);
+        listToc( databasePath(args.args(i)) , args);
     }
 }
 

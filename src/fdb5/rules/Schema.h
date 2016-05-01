@@ -60,6 +60,7 @@ public: // methods
 
     void expand(const Key &field, WriteVisitor &visitor) const;
     void expand(const MarsRequest &request, ReadVisitor &visitor) const;
+    bool expandFirstLevel(const Key &field,  Key &result) const ;
 
     const Rule* ruleFor(const std::vector<Key>& keys) const;
 
