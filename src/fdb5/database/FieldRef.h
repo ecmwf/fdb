@@ -57,16 +57,17 @@ class FieldRefBase {
 };
 
 
-class FieldRef : public FieldRefBase, public FieldDetails {
+class FieldRef : public FieldRefBase  {
+    FieldDetails details_;
 public:
     FieldRef();
     explicit FieldRef(const FileStore &, const Field &);
 
     FieldRef(const FieldRefBase&);
-    // FieldRef(const FieldRef&);
+    FieldRef(const FieldRef&);
 
     FieldRef& operator=(const FieldRefBase&);
-    // FieldRef& operator=(const FieldRef&);
+    FieldRef& operator=(const FieldRef&);
 
 };
 

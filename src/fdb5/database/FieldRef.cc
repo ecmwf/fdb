@@ -60,8 +60,22 @@ FieldRef::FieldRef(const FieldRefBase &other):
 
 FieldRef::FieldRef(const FileStore &store, const Field &field):
     FieldRefBase(store, field),
-    FieldDetails(field.details()) {
+    details_(field.details()) {
 }
+
+FieldRef::FieldRef(const FieldRef &other):
+    FieldRefBase(other),
+    details_(other.details_) {
+
+}
+
+FieldRef &FieldRef::operator=(const FieldRef &other) {
+    FieldRefBase &self = *this;
+    self = other;
+    details_ = other.details_;
+    return *this;
+}
+
 
 FieldRef &FieldRef::operator=(const FieldRefBase &other) {
     FieldRefBase &self = *this;
