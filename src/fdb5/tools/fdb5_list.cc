@@ -24,10 +24,10 @@ using namespace fdb5;
 
 class ListVisitor : public EntryVisitor {
  public:
-    ListVisitor(const Key& key,
+    ListVisitor(const Key& dbKey,
                 const fdb5::Schema& schema,
                 const eckit::option::CmdArgs& args) :
-        key_(key),
+        dbKey_(dbKey),
         schema_(schema),
         args_(args)
     {
@@ -41,7 +41,7 @@ private:
                        eckit::Offset offset,
                        eckit::Length length);
 
-    const Key& key_;
+    const Key& dbKey_;
     const fdb5::Schema& schema_;
     const eckit::option::CmdArgs& args_;
 };
@@ -52,18 +52,15 @@ void ListVisitor::visit(const Index& index,
                         const eckit::PathName &path,
                         eckit::Offset offset,
                         eckit::Length length) {
-    std::vector<Key> keys;
-    keys.push_back(key_);
-    keys.push_back(index.key());
 
-    Key field(fieldFingerprint, schema_.ruleFor(keys));
+    Key field(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
 
-    std::cout << key_ << index.key() << field;
+    std::cout << dbKey_ << index.key() << field;
 
     bool location = false;
     args_.get("location", location);
 
-    if(location) { std::cout << " " <<  path << " " << offset << " " << length; }
+    if(location) { std::cout << " (" <<  path << ", " << offset << ", " << length << ")"; }
 
     std::cout << std::endl;
 

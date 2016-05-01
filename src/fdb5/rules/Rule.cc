@@ -215,7 +215,7 @@ void Rule::expand(const Key &field, WriteVisitor &visitor, size_t depth, std::ve
     expand(field, predicates_.begin(), depth, keys, full, visitor);
 }
 
-void Rule::expandFirstLevel( const Key &field, std::vector<Predicate *>::const_iterator cur, Key &result, bool& found) const {
+void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& found) const {
 
     if (cur == predicates_.end()) {
         found = true;
@@ -227,12 +227,12 @@ void Rule::expandFirstLevel( const Key &field, std::vector<Predicate *>::const_i
     ++next;
 
     const std::string &keyword = (*cur)->keyword();
-    const std::string &value = (*cur)->value(field);
+    const std::string &value = (*cur)->value(dbKey);
 
     result.push(keyword, value);
 
     if ((*cur)->match(result)) {
-        expandFirstLevel(field, next, result, found);
+        expandFirstLevel(dbKey, next, result, found);
     }
 
     if(!found) {
@@ -240,8 +240,8 @@ void Rule::expandFirstLevel( const Key &field, std::vector<Predicate *>::const_i
     }
 }
 
-void Rule::expandFirstLevel(const Key &field,  Key &result, bool& found) const {
-    expandFirstLevel(field, predicates_.begin(), result, found);
+void Rule::expandFirstLevel(const Key &dbKey,  Key &result, bool& found) const {
+    expandFirstLevel(dbKey, predicates_.begin(), result, found);
 }
 
 bool Rule::match(const Key &key) const {

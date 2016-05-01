@@ -40,7 +40,11 @@ Schema::~Schema() {
     clear();
 }
 
-const Rule*  Schema::ruleFor(const std::vector<Key>& keys) const {
+const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
+    std::vector<Key> keys;
+    keys.push_back(dbKey);
+    keys.push_back(idxKey);
+
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         const Rule* r = (*i)->ruleFor(keys , 0);
         if (r) {
@@ -70,10 +74,10 @@ void Schema::expand(const Key &field, WriteVisitor &visitor) const {
     }
 }
 
-bool Schema::expandFirstLevel(const Key &field,  Key &result) const {
+bool Schema::expandFirstLevel(const Key &dbKey,  Key &result) const {
     bool found = false;
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end() && !found; ++i ) {
-        (*i)->expandFirstLevel(field, result, found);
+        (*i)->expandFirstLevel(dbKey, result, found);
     }
     return found;
 }

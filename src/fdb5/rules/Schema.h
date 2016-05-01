@@ -60,9 +60,9 @@ public: // methods
 
     void expand(const Key &field, WriteVisitor &visitor) const;
     void expand(const MarsRequest &request, ReadVisitor &visitor) const;
-    bool expandFirstLevel(const Key &field,  Key &result) const ;
 
-    const Rule* ruleFor(const std::vector<Key>& keys) const;
+    bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
+    const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
 
     void load(const eckit::PathName &path, bool replace = false);
 

@@ -45,12 +45,12 @@ eckit::PathName FDBTool::databasePath(const std::string &arg) const {
         oss << "," << arg;
 
         try {
-            Key key(oss.str());
+            Key dbKey(oss.str());
             Key result;
 
-            if (schema.expandFirstLevel(key, result)) {
+            if (schema.expandFirstLevel(dbKey, result)) {
                 path = TocDB::directory(result);
-                // Log::info() << arg << " => " << key << " => " << result << " => " << path << std::endl;
+                // Log::info() << arg << " => " << dbKey << " => " << result << " => " << path << std::endl;
             }
         } catch (eckit::Exception& e) {
 

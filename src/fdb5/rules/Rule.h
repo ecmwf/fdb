@@ -95,8 +95,8 @@ private: // methods
                 Key &full,
                 WriteVisitor &Visitor) const;
 
-    void expandFirstLevel(const Key &field, std::vector<Predicate *>::const_iterator cur, Key &result, bool& done) const;
-    void expandFirstLevel(const Key &field,  Key &result, bool& done) const ;
+    void expandFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& done) const;
+    void expandFirstLevel(const Key &dbKey,  Key &result, bool& done) const ;
 
     void keys(size_t level, size_t depth, eckit::StringList &result, eckit::StringSet &seen) const;
 
