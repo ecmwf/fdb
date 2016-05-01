@@ -46,7 +46,7 @@ private: // methods
 
 void FDBPurge::usage(const std::string &tool) {
 
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [path1] [path2] ..." << std::endl;
+    eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [path1|request1] [path2|request2] ..." << std::endl;
     FDBTool::usage(tool);
 }
 

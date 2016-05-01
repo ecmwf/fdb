@@ -29,7 +29,7 @@ static void readTable() {
     eckit::PathName path("~/etc/fdb/roots");
     std::ifstream in(path.localPath());
 
-    Log::info() << "FDB table " << path << std::endl;
+    Log::info() << "Loading FDB roots from " << path << std::endl;
 
     if (in.bad()) {
         Log::error() << path << Log::syserr << std::endl;
@@ -42,7 +42,7 @@ static void readTable() {
         std::vector<std::string> s;
         parse(line, s);
 
-        Log::info() << "FDB table " << line << std::endl;
+        // Log::info() << "FDB table " << line << std::endl;
 
         Ordinal i = 0;
         while (i < s.size()) {

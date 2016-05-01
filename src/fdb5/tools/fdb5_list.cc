@@ -94,7 +94,7 @@ private: // methods
 
 void FDBList::usage(const std::string &tool) {
 
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--location] [path1] [path2] ..." << std::endl;
+    eckit::Log::info() << std::endl << "Usage: " << tool << " [--location] [path1|request1] [path2|request2] ..." << std::endl;
     FDBTool::usage(tool);
 }
 

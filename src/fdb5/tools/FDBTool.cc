@@ -55,7 +55,7 @@ eckit::PathName FDBTool::databasePath(const std::string &arg) const {
 
             if (schema.expandFirstLevel(key, result)) {
                 path = TocDB::directory(result);
-                Log::info() << arg << " => " << key << " => " << result << " => " << path << std::endl;
+                // Log::info() << arg << " => " << key << " => " << result << " => " << path << std::endl;
             }
         } catch (eckit::Exception& e) {
 

@@ -174,6 +174,7 @@ list( APPEND fdb5_tools
     fdb5_retrieve
     fdb5_purge
     fdb5_schema
+    fdb5_where
     )
 
 foreach( _tool ${fdb5_tools} )
