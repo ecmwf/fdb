@@ -9,10 +9,17 @@
  */
 
 #include "fdb5/tools/FDBTool.h"
+#include "fdb5/toc/TocDB.h"
+#include "fdb5/database/WriteVisitor.h"
+
+#include "fdb5/rules/Schema.h"
+#include "fdb5/config/MasterConfig.h"
 
 #include "eckit/option/Option.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/types/Date.h"
+#include "eckit/utils/Translator.h"
 
 using eckit::Log;
 
@@ -22,7 +29,7 @@ namespace fdb5 {
 
 FDBTool::FDBTool(int argc, char **argv) : eckit::Tool(argc, argv, "DHSHOME") {
 
-    options_.push_back(new eckit::option::SimpleOption<std::string>("class",  "keyword class"));
+    options_.push_back(new eckit::option::SimpleOption<std::string>("request",  "keyword class"));
     options_.push_back(new eckit::option::SimpleOption<std::string>("stream", "keyword stream"));
     options_.push_back(new eckit::option::SimpleOption<std::string>("expver", "keyword expver"));
     options_.push_back(new eckit::option::SimpleOption<std::string>("date",   "keyword date"));
@@ -33,39 +40,40 @@ FDBTool::FDBTool(int argc, char **argv) : eckit::Tool(argc, argv, "DHSHOME") {
 void FDBTool::usage(const std::string &tool) {
 }
 
-eckit::PathName FDBTool::directoryFromOption(const eckit::option::CmdArgs& args) const
-{
-    std::string kclass("od");
-    args.get("class",kclass);
-    std::string kstream("oper");
-    args.get("stream",kstream);
-    std::string kexpver("0001");
-    args.get("expver",kexpver);
-    std::string kdate("10111977"); /// @todo make equivalent to date=-1 in mars
-    args.get("date",kdate);
-    std::string ktime("1200");
-    args.get("time",ktime);
-    std::string kdomain("g");
-    args.get("domain",kdomain);
+eckit::PathName FDBTool::directoryFromOption(const eckit::option::CmdArgs &args) const {
+    std::string request;
+    args.get("request", request);
 
-    Key k;
-    k.push("class",kclass);
-    k.push("expver",kexpver);
-    k.push("stream",kstream);
-    k.push("date",kdate);
-    k.push("time",ktime);
-    k.push("domain",kdomain);
+    Key k("class=od,expver=0001,date=0,domain=g,stream=oper," + request);
 
-    /// @todo come back here: should use schema to get directory path: valuesToString
-    ///       uses the order we just pushed in the lines above
-
-    /// @todo It also does not take prepend the FDB root according to the rootd table
 
     Log::info() << "Selected Key " << k << std::endl;
-    Log::info() << "Selected Key str" << k.valuesToString() << std::endl;
 
-    return eckit::PathName(k.valuesToString());
+    return TocDB::directory(k);
 }
+
+eckit::PathName FDBTool::expand(const std::string &arg) const {
+    Key key("class=od,expver=0001,date=0,domain=g,stream=oper," + arg);
+
+    struct V : public WriteVisitor {
+        V(std::vector<Key>& keys): WriteVisitor(keys) {}
+        virtual bool selectDatabase(const Key &key, const Key &full) { std::cout << key << std::endl; return true;}
+        virtual bool selectIndex(const Key &key, const Key &full) {return true;}
+        virtual bool selectDatum(const Key &key, const Key &full) {return true;}
+        virtual void print( std::ostream &out ) const {}
+    };
+
+    std::vector<Key> keys(3);
+    V visitor(keys);
+    MasterConfig::instance().schema().expand(key, visitor);
+
+    eckit::PathName path = TocDB::directory(key);
+
+    Log::info() << arg << " => " << key << " => " << path << std::endl;
+    return path;
+
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

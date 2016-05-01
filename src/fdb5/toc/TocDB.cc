@@ -70,7 +70,7 @@ static void readTable() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static eckit::PathName directory(const Key &key) {
+eckit::PathName TocDB::directory(const Key &key) {
 
     /// @note This may not be needed once in operations, but helps with testing tools
     static std::string overideRoot = eckit::Resource<std::string>("$FDB_ROOT", "");

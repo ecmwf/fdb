@@ -40,7 +40,9 @@ public: // methods
     Key();
 
     explicit Key(eckit::Stream &);
+    explicit Key(const std::string &request);
     explicit Key(const std::string &keys, const Rule* rule);
+
     explicit Key(const eckit::StringDict &keys);
 
     void set(const std::string &k, const std::string &v);

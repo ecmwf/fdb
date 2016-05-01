@@ -132,13 +132,9 @@ void FDBList::run() {
 
     Log::info() << args << std::endl;
 
-    if(args.has("class"))
-    {
-       listToc(directoryFromOption(args), args);
-    }
 
     for (size_t i = 0; i < args.count(); ++i) {
-        listToc(args.args(i), args);
+        listToc( expand(args.args(i)) , args);
     }
 }
 

@@ -23,7 +23,7 @@ Key::Key() :
     rule_(0) {
 }
 
-Key::Key(const std::string &s, const Rule* rule) :
+Key::Key(const std::string &s, const Rule *rule) :
     keys_(),
     rule_(0) {
     eckit::Tokenizer parse(":", true);
@@ -32,6 +32,29 @@ Key::Key(const std::string &s, const Rule* rule) :
 
     ASSERT(rule);
     rule->fill(*this, values);
+}
+
+Key::Key(const std::string &s) :
+    keys_(),
+    rule_(0) {
+    eckit::Tokenizer parse1(",");
+    eckit::StringList v;
+
+    parse1(s, v);
+
+    eckit::Tokenizer parse2("=");
+    for (eckit::StringList::const_iterator i = v.begin(); i != v.end(); ++i) {
+        eckit::StringList kv;
+        parse2(*i, kv);
+        ASSERT(kv.size() == 2);
+
+        if (find(kv[0]) == end()) {
+            push(kv[0], kv[1]);
+        } else {
+            set(kv[0], kv[1]);
+        }
+    }
+
 }
 
 Key::Key(const eckit::StringDict &keys) :
