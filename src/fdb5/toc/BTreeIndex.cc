@@ -99,17 +99,20 @@ void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::visit(BTreeIndexVisitor &visitor) c
 
 //-----------------------------------------------------------------------------
 
+
+//-----------------------------------------------------------------------------
+
 #define BTREE(KEYSIZE, RECSIZE, PAYLOAD)                                                                   \
 struct BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD : public TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD> {                  \
     BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD (const eckit::PathName& path, bool readOnly, off_t offset): \
         TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>(path, readOnly, offset){};                                  \
-}
-
+}; \
+static IndexBuilder<BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD> \
+maker_BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD("BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD")
 
 BTREE(32, 65536, FieldRefReduced);
 BTREE(32, 65536, FieldRefFull);
 
-// BTREE(64, 65536);
 
 
 //-----------------------------------------------------------------------------
@@ -119,20 +122,12 @@ BTreeIndex::~BTreeIndex() {
 
 
 const std::string& BTreeIndex::defaulType() {
-    static std::string fdbIndexType = eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE", "BTreeIndex_32_65536");
+    static std::string fdbIndexType = eckit::Resource<std::string>("fdbIndexType;$FDB_INDEX_TYPE", "BTreeIndex");
     return fdbIndexType;
 }
 
+static IndexBuilder<BTreeIndex_32_65536_FieldRefReduced> defaultIndex("BTreeIndex");
 
-BTreeIndex* BTreeIndex::build(const std::string& type, const eckit::PathName& path, bool readOnly, off_t offset) {
-    if(type == "BTreeIndex_32_65536") {
-        return new BTreeIndex_32_65536_FieldRefReduced(path, readOnly, offset);
-    }
-    // if(type == "BTreeIndex_64_65536") {
-    //     return new BTreeIndex_64_65536(path, readOnly, offset);
-    // }
-    throw eckit::SeriousBug("Invalid index type: " + type);
-}
 
 //-----------------------------------------------------------------------------
 

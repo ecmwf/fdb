@@ -36,7 +36,7 @@ public:
 
 class BTreeIndex {
 public:
-    virtual ~ BTreeIndex();
+    virtual ~BTreeIndex();
     virtual bool get(const std::string& key, FieldRef& data) const = 0;
     virtual bool set(const std::string& key, const FieldRef& data)= 0;
     virtual void flush() = 0;
@@ -45,11 +45,40 @@ public:
 
     static const std::string& defaulType();
 
-    static BTreeIndex* build(const std::string& type, const eckit::PathName& path, bool readOnly, off_t offset);
+};
+
+//---------------------------------------------------------------------------
+class IndexFactory {
+
+    virtual BTreeIndex *make(const eckit::PathName& path, bool readOnly, off_t offset) const = 0 ;
+
+protected:
+
+    IndexFactory(const std::string &);
+    virtual ~IndexFactory();
+
+    std::string name_;
+
+public:
+
+    static void list(std::ostream &);
+    static BTreeIndex *build(const std::string &name, const eckit::PathName& path, bool readOnly, off_t offset);
 
 };
 
+/// Templated specialisation of the self-registering factory,
+/// that does the self-registration, and the construction of each object.
 
+template< class T>
+class IndexBuilder : public IndexFactory {
+
+    virtual BTreeIndex *make(const eckit::PathName& path, bool readOnly, off_t offset) const {
+        return new T(path, readOnly, offset);
+    }
+
+public:
+    IndexBuilder(const std::string &name) : IndexFactory(name) {}
+};
 } // namespace fdb5
 
 #endif

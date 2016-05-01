@@ -60,13 +60,13 @@ class FieldRefBase {
 class FieldRef : public FieldRefBase, public FieldDetails {
 public:
     FieldRef();
-    FieldRef(const FileStore &, const Field &);
+    explicit FieldRef(const FileStore &, const Field &);
 
     FieldRef(const FieldRefBase&);
-    FieldRef(const FieldRef&);
+    // FieldRef(const FieldRef&);
 
     FieldRef& operator=(const FieldRefBase&);
-    FieldRef& operator=(const FieldRef&);
+    // FieldRef& operator=(const FieldRef&);
 
 };
 

@@ -53,6 +53,7 @@ FieldRefReduced::FieldRefReduced(const FieldRef &other):
 FieldRef::FieldRef() {
 }
 
+
 FieldRef::FieldRef(const FieldRefBase &other):
     FieldRefBase(other) {
 }

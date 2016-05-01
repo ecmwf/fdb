@@ -47,6 +47,8 @@ list( APPEND fdb5_srcs
     database/BaseArchiveVisitor.h
     database/DB.cc
     database/DB.h
+    database/IndexFactory.cc
+    database/IndexFactory.h
     database/FieldRef.cc
     database/FieldRef.h
     database/FileStore.cc
