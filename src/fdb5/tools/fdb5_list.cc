@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/runtime/Context.h"
-#include "eckit/filesystem/PathName.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/CmdArgs.h"
 

@@ -10,16 +10,11 @@
 
 #include "fdb5/tools/FDBTool.h"
 #include "fdb5/toc/TocDB.h"
-#include "fdb5/database/WriteVisitor.h"
 
 #include "fdb5/rules/Schema.h"
 #include "fdb5/config/MasterConfig.h"
 
-#include "eckit/option/Option.h"
-#include "eckit/option/SimpleOption.h"
-#include "eckit/option/CmdArgs.h"
 #include "eckit/types/Date.h"
-#include "eckit/utils/Translator.h"
 
 using eckit::Log;
 

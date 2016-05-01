@@ -8,13 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/runtime/Context.h"
-#include "eckit/filesystem/PathName.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "fdb5/database/Index.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/toc/PurgeVisitor.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBTool.h"
