@@ -41,10 +41,12 @@ eckit::PathName FDBTool::databasePath(const std::string &arg) const {
         const Schema& schema = MasterConfig::instance().schema();
 
         std::ostringstream oss;
-        eckit::Date today(0);
+        eckit::Date date(0);
+
+        date -= 1; // Yesterday
 
         oss << "class=od,expver=0001,domain=g,stream=oper,time=1200,date=";
-        oss << today.yyyymmdd();
+        oss << date.yyyymmdd();
         oss << "," << arg;
 
         try {
