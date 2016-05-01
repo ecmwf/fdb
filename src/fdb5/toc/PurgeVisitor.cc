@@ -37,14 +37,14 @@ PurgeVisitor::PurgeVisitor(const eckit::PathName &directory) :
 void PurgeVisitor::visit(const Index &index,
                          const std::string &indexFingerprint,
                          const std::string &fieldFingerprint,
-                         const eckit::PathName &path,
-                         eckit::Offset offset,
-                         eckit::Length length) {
+                         const Field& field) {
 
     Stats &stats = indexStats_[&index];
 
     ++stats.totalFields_;
-    stats.totalSize_ += length;
+    stats.totalSize_ += field.length();
+
+    const eckit::PathName& path = field.path();
 
     allDataFiles_.insert(path);
     indexUsage_[index.path()]++;
@@ -57,7 +57,7 @@ void PurgeVisitor::visit(const Index &index,
         activeDataFiles_.insert(path);
     } else {
         ++stats.duplicates_;
-        stats.duplicatesSize_ += length;
+        stats.duplicatesSize_ += field.length();
         indexUsage_[index.path()]--;
         dataUsage_[path]--;
     }

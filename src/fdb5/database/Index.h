@@ -22,10 +22,12 @@
 #include "eckit/io/Offset.h"
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
+#include "eckit/types/FixedString.h"
 
 #include "fdb5/database/FileStore.h"
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/Field.h"
 
 namespace eckit {
 class Stream;
@@ -39,78 +41,25 @@ class Index;
 //----------------------------------------------------------------------------------------------------------------------
 
 class EntryVisitor : private eckit::NonCopyable {
-public:
-    virtual void visit(const Index& index,
+  public:
+    virtual void visit(const Index &index,
                        const std::string &indexFingerprint,
                        const std::string &fieldFingerprint,
-                       const eckit::PathName &path,
-                       eckit::Offset offset,
-                       eckit::Length length) = 0;
+                       const Field& field) = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class Index : private eckit::NonCopyable {
 
-public: // types
+  public: // types
 
     enum Mode { WRITE, READ };
 
-    /// A field location on the FDB
-    struct Field {
-
-        Field() {}
-
-        Field(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ) :
-            path_(path),
-            offset_(offset),
-            length_(length)
-#if 0
-            ,
-            referenceValue_(0),
-            binaryScaleFactor_(0),
-            decimalScaleFactor_(0),
-            bitsPerValue_(0),
-            offsetBeforeData_(0),
-            offsetBeforeBitmap_(0),
-            numberOfValues_(0),
-            numberOfDataPoints_(0),
-            sphericalHarmonics_(0)
-#endif
-        {
-        }
-
-        eckit::PathName path_;
-        eckit::Offset   offset_;
-        eckit::Length   length_;
-
-        ///////////////////////////////////////////////
-#if 0
-        double        referenceValue_;
-        long          binaryScaleFactor_;
-        long          decimalScaleFactor_;
-        unsigned long bitsPerValue_;
-        unsigned long offsetBeforeData_;
-        unsigned long offsetBeforeBitmap_;
-        unsigned long numberOfValues_;
-        unsigned long numberOfDataPoints_;
-        long          sphericalHarmonics_;
-
-        eckit::FixedString<32>   gridMD5_; ///< md5 of the grid geometry section in GRIB
-#endif
-        ///////////////////////////////////////////////
+  public: // methods
 
 
-        friend std::ostream &operator<<(std::ostream &s, const Field &x) { x.print(s); return s; }
-
-        void print( std::ostream &out ) const;
-
-    };
-
-public: // methods
-
-
-    Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string& type );
+    Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string &type );
     Index(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
     virtual ~Index();
 
@@ -119,9 +68,9 @@ public: // methods
     virtual void close() = 0;
     virtual void flush() = 0;
 
-    const eckit::PathName& path() const ;
+    const eckit::PathName &path() const ;
     off_t offset() const ;
-    const std::string& type() const ;
+    const std::string &type() const ;
 
     const IndexAxis &axes() const ;
     const Key &key() const;
@@ -131,12 +80,12 @@ public: // methods
     virtual void encode(eckit::Stream &s) const;
     virtual void entries(EntryVisitor &visitor) const = 0;
 
-private: // methods
+  private: // methods
 
     virtual void add(const Key &key, const Field &field) = 0;
     virtual void print( std::ostream &out ) const = 0;
 
-protected: // members
+  protected: // members
 
     const Mode            mode_;
     const eckit::PathName path_;

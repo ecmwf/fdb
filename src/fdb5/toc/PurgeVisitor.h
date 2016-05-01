@@ -24,6 +24,7 @@
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/database/Index.h"
+#include "fdb5/database/Field.h"
 
 namespace fdb5 {
 
@@ -76,9 +77,7 @@ private: // methods
     virtual void visit(const Index& index,
                        const std::string &indexFingerprint,
                        const std::string &fieldFingerprint,
-                       const eckit::PathName &path,
-                       eckit::Offset offset,
-                       eckit::Length length);
+                       const Field& field);
 
 private: // members
 

@@ -49,7 +49,7 @@ Index::~Index() {
 }
 
 
-void Index::put(const Key &key, const Index::Field &field) {
+void Index::put(const Key &key, const Field &field) {
     axes_.insert(key);
     add(key, field);
 }
@@ -75,8 +75,8 @@ const IndexAxis &Index::axes() const {
     return axes_;
 }
 
-void Index::Field::print(std::ostream &out) const {
-    out << path_ << "," << offset_ << "+" << length_ ;
+void Field::print(std::ostream &out) const {
+    out << "Field[TODO]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

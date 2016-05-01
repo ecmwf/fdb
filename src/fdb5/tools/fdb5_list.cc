@@ -15,6 +15,7 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/database/Field.h"
 
 using namespace std;
 using namespace eckit;
@@ -23,44 +24,41 @@ using namespace fdb5;
 //----------------------------------------------------------------------------------------------------------------------
 
 class ListVisitor : public EntryVisitor {
- public:
-    ListVisitor(const Key& dbKey,
-                const fdb5::Schema& schema,
-                const eckit::option::CmdArgs& args) :
+public:
+    ListVisitor(const Key &dbKey,
+                const fdb5::Schema &schema,
+                const eckit::option::CmdArgs &args) :
         dbKey_(dbKey),
         schema_(schema),
-        args_(args)
-    {
+        args_(args) {
     }
 
 private:
-    virtual void visit(const Index& index,
+    virtual void visit(const Index &index,
                        const std::string &indexFingerprint,
                        const std::string &fieldFingerprint,
-                       const eckit::PathName &path,
-                       eckit::Offset offset,
-                       eckit::Length length);
+                       const Field &field);
 
-    const Key& dbKey_;
-    const fdb5::Schema& schema_;
-    const eckit::option::CmdArgs& args_;
+    const Key &dbKey_;
+    const fdb5::Schema &schema_;
+    const eckit::option::CmdArgs &args_;
 };
 
-void ListVisitor::visit(const Index& index,
+void ListVisitor::visit(const Index &index,
                         const std::string &indexFingerprint,
                         const std::string &fieldFingerprint,
-                        const eckit::PathName &path,
-                        eckit::Offset offset,
-                        eckit::Length length) {
+                        const Field &field) {
 
-    Key field(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
+    Key key(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
 
-    std::cout << dbKey_ << index.key() << field;
+    std::cout << dbKey_ << index.key() << key;
 
     bool location = false;
     args_.get("location", location);
 
-    if(location) { std::cout << " (" <<  path << ", " << offset << ", " << length << ")"; }
+    if (location) {
+        std::cout << " " << field.location();
+    }
 
     std::cout << std::endl;
 
@@ -70,20 +68,20 @@ void ListVisitor::visit(const Index& index,
 
 class FDBList : public FDBTool {
 
-public: // methods
+  public: // methods
 
     FDBList(int argc, char **argv) : FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("location", "Also print the location of each field"));
 
     }
 
-private: // methods
+  private: // methods
 
     virtual void run();
 
     static void usage(const std::string &tool);
 
-    void listToc(const eckit::PathName& path, const option::CmdArgs &args);
+    void listToc(const eckit::PathName &path, const option::CmdArgs &args);
 
 };
 
@@ -93,7 +91,7 @@ void FDBList::usage(const std::string &tool) {
     FDBTool::usage(tool);
 }
 
-void FDBList::listToc(const eckit::PathName& path, const option::CmdArgs& args) {
+void FDBList::listToc(const eckit::PathName &path, const option::CmdArgs &args) {
 
     Log::info() << "Listing " << path << std::endl;
 

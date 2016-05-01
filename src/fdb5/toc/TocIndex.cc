@@ -11,6 +11,7 @@
 #include "eckit/log/BigNum.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/BTreeIndex.h"
+#include "fdb5/database/FieldRef.h"
 
 namespace fdb5 {
 
@@ -49,15 +50,16 @@ TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eck
 TocIndex::~TocIndex() {
 }
 
-bool TocIndex::get(const Key &key, Index::Field &field) const {
+bool TocIndex::get(const Key &key, Field &field) const {
     ASSERT(btree_);
-    FileStore::FieldRef ref;
+    FieldRef ref;
 
     bool found = btree_->get(key.valuesToString(), ref);
     if ( found ) {
-        field.path_     = files_.get( ref.pathId_ );
-        field.offset_   = ref.offset_;
-        field.length_   = ref.length_;
+        field = Field(files_, ref);
+        // field.path_     = files_.get( ref.pathId_ );
+        // field.offset_   = ref.offset_;
+        // field.length_   = ref.length_;
     }
     return found;
 }
@@ -83,17 +85,11 @@ void TocIndex::close() {
     btree_.reset(0);
 }
 
-void TocIndex::add(const Key &key, const TocIndex::Field &field) {
+void TocIndex::add(const Key &key, const Field &field) {
     ASSERT(btree_);
     ASSERT( mode_ == Index::WRITE );
 
-    FileStore::FieldRef ref;
-
-    // eckit::Log::info() << "TocIndex insert " << key << " (" << k << ") = " << field << std::endl;
-
-    ref.pathId_ = files_.insert( field.path_ ); // inserts not yet in filestore
-    ref.offset_ = field.offset_;
-    ref.length_ = field.length_;
+    FieldRef ref(files_, field);
 
     //  bool replace =
     btree_->set(key.valuesToString(), ref); // returns true if replace, false if new insert
@@ -124,13 +120,12 @@ public:
         files_(files),
         visitor_(visitor) {}
 
-    void visit(const std::string& key, const FileStore::FieldRef& field) {
+    void visit(const std::string& key, const FieldRef& ref) {
+        Field field(files_, ref);
         visitor_.visit(index_,
                        prefix_,
                        key,
-                       files_.get( field.pathId_ ),
-                       field.offset_,
-                       field.length_);
+                       field);
     }
 };
 

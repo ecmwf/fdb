@@ -84,10 +84,10 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
     // eckit::Log::info() << "Trying to retrieve key " << key << std::endl;
     // eckit::Log::info() << "Scanning indexes " << current_.size() << std::endl;
 
-    Index::Field field;
+    Field field;
     for (std::vector<Index *>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
         if ((*j)->get(key, field)) {
-            return field.path_.partHandle(field.offset_, field.length_);
+            return field.dataHandle();
         }
     }
 

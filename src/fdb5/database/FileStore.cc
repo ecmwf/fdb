@@ -16,12 +16,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void FileStore::FieldRef::print( std::ostream &out ) const {
-    out << "FieldRef[id=" << pathId_
-        << ",offset=" << offset_
-        << ",length" << length_ <<"]";
-}
-
 //----------------------------------------------------------------------------------------------------------------------
 
 FileStore::FileStore(const eckit::PathName &directory) :

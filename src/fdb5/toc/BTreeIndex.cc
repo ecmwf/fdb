@@ -13,18 +13,18 @@
 
 #include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/toc/TocIndex.h"
+#include "fdb5/database/FieldRef.h"
 
 namespace fdb5 {
 
 
-template<int KEYSIZE, int RECSIZE>
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
 class TBTreeIndex : public BTreeIndex {
 
 public: // types
 
     typedef eckit::FixedString<KEYSIZE> BTreeKey;
-    typedef FileStore::FieldRef FieldRef;
-    typedef eckit::BTree< BTreeKey , FieldRef, RECSIZE > BTreeStore;
+    typedef eckit::BTree< BTreeKey , PAYLOAD, RECSIZE > BTreeStore;
 
 public: // methods
 
@@ -32,8 +32,8 @@ public: // methods
 
 private: // methods
 
-    virtual bool get(const std::string& key, FileStore::FieldRef& data) const;
-    virtual bool set(const std::string& key, const FileStore::FieldRef& data);
+    virtual bool get(const std::string& key, FieldRef& data) const;
+    virtual bool set(const std::string& key, const FieldRef& data);
     virtual void flush();
     virtual void visit(BTreeIndexVisitor& visitor) const;
 
@@ -44,31 +44,36 @@ private: // members
 };
 
 
-template<int KEYSIZE, int RECSIZE>
-TBTreeIndex<KEYSIZE, RECSIZE>::TBTreeIndex(const eckit::PathName &path, bool readOnly, off_t offset):
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
+TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::TBTreeIndex(const eckit::PathName &path, bool readOnly, off_t offset):
     btree_( path, readOnly, offset) {
 }
 
-template<int KEYSIZE, int RECSIZE>
-bool TBTreeIndex<KEYSIZE, RECSIZE>::get(const std::string& key, FileStore::FieldRef &data) const {
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
+bool TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::get(const std::string& key, FieldRef &data) const {
     BTreeKey k (key);
-    return btree_.get(k, data);
+    PAYLOAD payload;
+    bool found = btree_.get(k, payload);
+    if(found) {
+        data = payload;
+    }
+    return found;
 }
 
 
-template<int KEYSIZE, int RECSIZE>
-bool TBTreeIndex<KEYSIZE, RECSIZE>::set(const std::string& key, const FileStore::FieldRef &data) {
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
+bool TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::set(const std::string& key, const FieldRef &data) {
     BTreeKey k (key);
-    return btree_.set(k, data);
+    PAYLOAD payload(data);
+    return btree_.set(k, payload);
 }
 
-template<int KEYSIZE, int RECSIZE>
-void TBTreeIndex<KEYSIZE, RECSIZE>::flush() {
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
+void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::flush() {
     btree_.flush();
 }
 
-template<int KEYSIZE, int RECSIZE>
-
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
 class TBTreeIndexVisitor {
     BTreeIndexVisitor &visitor_;
 public:
@@ -80,28 +85,30 @@ public:
     void clear() {
     }
 
-    void push_back(const typename TBTreeIndex<KEYSIZE, RECSIZE>::BTreeStore::result_type &kv) {
+    void push_back(const typename TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::BTreeStore::result_type &kv) {
         visitor_.visit(kv.first, kv.second);
     }
 };
 
-template<int KEYSIZE, int RECSIZE>
-void TBTreeIndex<KEYSIZE, RECSIZE>::visit(BTreeIndexVisitor &visitor) const {
-    TBTreeIndexVisitor<KEYSIZE, RECSIZE> v(visitor);
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
+void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::visit(BTreeIndexVisitor &visitor) const {
+    TBTreeIndexVisitor<KEYSIZE, RECSIZE, PAYLOAD> v(visitor);
     btree_.range("", "\255", v);
 }
 
 
 //-----------------------------------------------------------------------------
 
-#define BTREE(KEYSIZE, RECSIZE)                                                                  \
-struct BTreeIndex_##KEYSIZE##_##RECSIZE : public TBTreeIndex<KEYSIZE, RECSIZE> {                 \
-    BTreeIndex_##KEYSIZE##_##RECSIZE (const eckit::PathName& path, bool readOnly, off_t offset): \
-        TBTreeIndex<KEYSIZE, RECSIZE>(path, readOnly, offset){};                                 \
+#define BTREE(KEYSIZE, RECSIZE, PAYLOAD)                                                                   \
+struct BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD : public TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD> {                  \
+    BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD (const eckit::PathName& path, bool readOnly, off_t offset): \
+        TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>(path, readOnly, offset){};                                  \
 }
 
 
-BTREE(32, 65536);
+BTREE(32, 65536, FieldRefReduced);
+BTREE(32, 65536, FieldRefFull);
+
 // BTREE(64, 65536);
 
 
@@ -119,7 +126,7 @@ const std::string& BTreeIndex::defaulType() {
 
 BTreeIndex* BTreeIndex::build(const std::string& type, const eckit::PathName& path, bool readOnly, off_t offset) {
     if(type == "BTreeIndex_32_65536") {
-        return new BTreeIndex_32_65536(path, readOnly, offset);
+        return new BTreeIndex_32_65536_FieldRefReduced(path, readOnly, offset);
     }
     // if(type == "BTreeIndex_64_65536") {
     //     return new BTreeIndex_64_65536(path, readOnly, offset);

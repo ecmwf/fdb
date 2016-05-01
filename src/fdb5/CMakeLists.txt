@@ -33,6 +33,12 @@
 list( APPEND fdb5_srcs
     config/MasterConfig.cc
     config/MasterConfig.h
+    database/Field.h
+    database/Field.cc
+    database/FieldDetails.h
+    database/FieldDetails.cc
+    database/FieldLocation.h
+    database/FieldLocation.cc
     database/Archiver.cc
     database/Archiver.h
     database/ArchiveVisitor.cc
@@ -41,6 +47,8 @@ list( APPEND fdb5_srcs
     database/BaseArchiveVisitor.h
     database/DB.cc
     database/DB.h
+    database/FieldRef.cc
+    database/FieldRef.h
     database/FileStore.cc
     database/FileStore.h
     database/Index.cc

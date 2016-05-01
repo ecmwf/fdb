@@ -79,7 +79,7 @@ void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offs
         selectIndex(currentIndexKey_);
     }
 
-    Index::Field field(path, offset, length);
+    Field field(path, offset, length);
 
     current_->put(key, field);
 }
@@ -100,7 +100,7 @@ void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length
 
     dh.write( data, length );
 
-    Index::Field field (dataPath, position, length);
+    Field field (dataPath, position, length);
 
     current_->put(key, field);
 }

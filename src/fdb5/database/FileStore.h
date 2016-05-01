@@ -35,20 +35,6 @@ public: // types
 
     typedef size_t PathID;
 
-    struct FieldRef {
-
-        PathID          pathId_;
-        eckit::Offset   offset_;
-        eckit::Length   length_;
-
-        void print(std::ostream &s) const;
-
-        friend std::ostream &operator<<(std::ostream &s, const FieldRef &x) {
-            x.print(s);
-            return s;
-        }
-    };
-
     typedef std::map< FileStore::PathID, eckit::PathName >     PathStore;
     typedef std::map< eckit::PathName, FileStore::PathID >     IdStore;
 
