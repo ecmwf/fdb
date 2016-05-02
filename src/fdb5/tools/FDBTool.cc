@@ -9,7 +9,7 @@
  */
 
 #include "fdb5/tools/FDBTool.h"
-#include "fdb5/toc/TocDB.h"
+#include "fdb5/toc/TocHandler.h"
 
 #include "fdb5/rules/Schema.h"
 #include "fdb5/config/MasterConfig.h"
@@ -49,7 +49,7 @@ eckit::PathName FDBTool::databasePath(const std::string &arg) const {
             Key result;
 
             if (schema.expandFirstLevel(dbKey, result)) {
-                path = TocDB::directory(result);
+                path = TocHandler::directory(result);
                 // Log::info() << arg << " => " << dbKey << " => " << result << " => " << path << std::endl;
             }
         } catch (eckit::Exception& e) {
