@@ -30,55 +30,64 @@ namespace fdb5 {
 class Field;
 class FileStore;
 
-class FieldRefBase {
+class FieldRefLocation {
 
-  public:
+public:
     typedef size_t PathID;
 
-    FieldRefBase();
-    FieldRefBase(const FileStore &, const Field &);
+    FieldRefLocation();
+    FieldRefLocation(const FileStore &, const Field &);
 
 
-    PathID pathId() const;
-    const eckit::Offset &offset() const;
-    const eckit::Length &length() const;
+    PathID pathId() const { return pathId_; }
+    const eckit::Offset &offset() const { return offset_; }
+    const eckit::Length &length() const { return length_; }
 
-  protected:
+protected:
     PathID          pathId_;
     eckit::Offset   offset_;
     eckit::Length   length_;
 
     void print(std::ostream &s) const;
 
-    friend std::ostream &operator<<(std::ostream &s, const FieldRefBase &x) {
+    friend std::ostream &operator<<(std::ostream &s, const FieldRefLocation &x) {
         x.print(s);
         return s;
     }
 };
 
+// ==============================================================================
+class FieldRef;
 
-class FieldRef : public FieldRefBase  {
+class FieldRefReduced {
+    FieldRefLocation location_;
+public:
+    FieldRefReduced();
+    FieldRefReduced(const FieldRef&);
+    const FieldRefLocation& location() const { return location_; }
+};
+
+class FieldRef  {
+    FieldRefLocation location_;
     FieldDetails details_;
 public:
+
     FieldRef();
-    explicit FieldRef(const FileStore &, const Field &);
+    FieldRef(const FileStore &, const Field &);
 
-    FieldRef(const FieldRefBase&);
-    FieldRef(const FieldRef&);
+    FieldRef(const FieldRefReduced&);
 
-    FieldRef& operator=(const FieldRefBase&);
-    FieldRef& operator=(const FieldRef&);
+    FieldRefLocation::PathID pathId() const { return location_.pathId(); }
+    const eckit::Offset &offset() const { return location_.offset(); }
+    const eckit::Length &length() const { return location_.length(); }
+
+    const FieldRefLocation& location() const { return location_; }
+    const FieldDetails& details() const { return details_; }
+    // FieldRef& operator=(const FieldRef&);
 
 };
 
 typedef FieldRef FieldRefFull;
-
-class FieldRefReduced : public FieldRefBase {
-public:
-    FieldRefReduced();
-    FieldRefReduced(const FieldRef&);
-};
-
 
 
 } // namespace fdb5

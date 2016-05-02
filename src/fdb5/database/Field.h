@@ -48,14 +48,14 @@ class Field {
     Field(const eckit::PathName &path, eckit::Offset offset, eckit::Length length );
 
 
-    eckit::DataHandle *dataHandle() const;
+    eckit::DataHandle *dataHandle() const { return location_.dataHandle(); }
 
-    const eckit::PathName &path() const;
-    const eckit::Offset &offset() const;
-    const eckit::Length &length() const;
+    const eckit::PathName &path() const { return location_.path(); }
+    const eckit::Offset &offset() const { return location_.offset(); }
+    const eckit::Length &length() const { return location_.length(); }
 
-    const FieldLocation& location() const;
-    const FieldDetails& details() const;
+    const FieldLocation& location() const { return location_; }
+    const FieldDetails& details() const { return details_; }
 
   private:
     FieldLocation location_;

@@ -24,7 +24,6 @@ FieldLocation::FieldLocation(const eckit::PathName &path, eckit::Offset offset, 
 
 }
 
-
 eckit::DataHandle *FieldLocation::dataHandle() const {
     return path_.partHandle(offset_, length_);
 }
@@ -33,17 +32,6 @@ void FieldLocation::print(std::ostream &out) const {
     out << "(" << path_ << "," << offset_ << "," << length_ << ")";
 }
 
-const eckit::PathName &FieldLocation::path() const {
-    return path_;
-}
-
-const eckit::Offset &FieldLocation::offset() const {
-    return offset_;
-}
-
-const eckit::Length &FieldLocation::length() const {
-    return length_;
-}
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

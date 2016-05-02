@@ -17,26 +17,14 @@
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-FieldRefBase::FieldRefBase() {
+FieldRefLocation::FieldRefLocation() {
 }
 
-FieldRefBase::FieldRefBase(const FileStore   &store, const Field  &field):
+FieldRefLocation::FieldRefLocation(const FileStore   &store, const Field  &field):
     pathId_(store.get(field.path())),
     offset_(field.offset()),
     length_(field.length()) {
 
-}
-
-FieldRefBase::PathID FieldRefBase::pathId() const {
-    return pathId_;
-}
-
-const eckit::Offset &FieldRefBase::offset() const {
-    return offset_;
-}
-
-const eckit::Length &FieldRefBase::length() const {
-    return length_;
 }
 
 
@@ -46,42 +34,20 @@ FieldRefReduced::FieldRefReduced() {
 }
 
 FieldRefReduced::FieldRefReduced(const FieldRef &other):
-    FieldRefBase(other) {
+    location_(other.location()) {
 }
 
 //-----------------------------------------------------------------------------
 FieldRef::FieldRef() {
 }
 
-
-FieldRef::FieldRef(const FieldRefBase &other):
-    FieldRefBase(other) {
-}
-
 FieldRef::FieldRef(const FileStore &store, const Field &field):
-    FieldRefBase(store, field),
+    location_(store, field),
     details_(field.details()) {
 }
 
-FieldRef::FieldRef(const FieldRef &other):
-    FieldRefBase(other),
-    details_(other.details_) {
-
-}
-
-FieldRef &FieldRef::operator=(const FieldRef &other) {
-    FieldRefBase &self = *this;
-    self = other;
-    details_ = other.details_;
-    return *this;
-}
-
-
-FieldRef &FieldRef::operator=(const FieldRefBase &other) {
-    FieldRefBase &self = *this;
-    self = other;
-    return *this;
-}
-
+FieldRef::FieldRef(const FieldRefReduced& other):
+    location_(other.location()) {
+    }
 
 } // namespace fdb5

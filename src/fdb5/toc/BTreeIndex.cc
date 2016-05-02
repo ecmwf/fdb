@@ -55,7 +55,7 @@ bool TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::get(const std::string& key, FieldRe
     PAYLOAD payload;
     bool found = btree_.get(k, payload);
     if(found) {
-        data = payload;
+        data = FieldRef(payload);
     }
     return found;
 }

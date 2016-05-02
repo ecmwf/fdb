@@ -22,36 +22,14 @@ Field::Field() {
 }
 
 Field::Field(const FileStore &store, const FieldRef &ref):
-    location_(store.get(ref.pathId()), ref.offset(), ref.length()) {
+    location_(store.get(ref.pathId()), ref.offset(), ref.length()),
+    details_(ref.details()) {
 }
 
 Field::Field(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ):
     location_(path, offset, length) {
 }
 
-eckit::DataHandle *Field::dataHandle() const {
-    return location_.dataHandle();
-}
-
-const eckit::PathName &Field::path() const {
-    return location_.path();
-}
-
-const eckit::Length &Field::length() const {
-    return location_.length();
-}
-
-const eckit::Offset &Field::offset() const {
-    return location_.offset();
-}
-
-const FieldLocation &Field::location() const {
-    return location_;
-}
-
-const FieldDetails &Field::details() const {
-    return details_;
-}
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

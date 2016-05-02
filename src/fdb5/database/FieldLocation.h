@@ -39,16 +39,18 @@ public:
 
     FieldLocation(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ) ;
 
-    const eckit::PathName &path() const;
-    const eckit::Offset &offset() const;
-    const eckit::Length &length() const;
+    const eckit::PathName &path() const { return path_; }
+    const eckit::Offset &offset() const { return offset_; }
+    const eckit::Length &length() const { return length_; }
 
     eckit::DataHandle *dataHandle() const ;
 
-  private:
+private:
+
     eckit::PathName path_;
     eckit::Offset   offset_;
     eckit::Length   length_;
+
     void print( std::ostream &out ) const;
 
 
