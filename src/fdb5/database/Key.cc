@@ -155,6 +155,22 @@ const std::string &Key::get( const std::string &k ) const {
     return i->second;
 }
 
+bool Key::match(const Key& other) const {
+    for (const_iterator i = other.begin(); i != other.end(); ++i) {
+        const_iterator j = find(i->first);
+        if (j == end()) {
+            return false;
+        }
+
+        if (j->second != i->second) {
+            return false;
+        }
+
+    }
+    return true;
+}
+
+
 const TypesRegistry *Key::registry() const {
     return rule_ ? &rule_->registry() : 0;
 }

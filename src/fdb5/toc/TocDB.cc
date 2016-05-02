@@ -8,111 +8,16 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
-#include "eckit/log/Timer.h"
-#include "eckit/parser/Tokenizer.h"
-#include "eckit/utils/Regex.h"
 
 #include "fdb5/toc/TocDB.h"
 #include "fdb5/rules/Rule.h"
+#include "eckit/log/Timer.h"
 
 using namespace eckit;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-
-static pthread_once_t once = PTHREAD_ONCE_INIT;
-static std::vector< std::pair<Regex, std::string> > rootsTable;
-
-static void readTable() {
-    eckit::PathName path("~/etc/fdb/roots");
-    std::ifstream in(path.localPath());
-
-    Log::info() << "Loading FDB roots from " << path << std::endl;
-
-    if (in.bad()) {
-        Log::error() << path << Log::syserr << std::endl;
-        return;
-    }
-
-    char line[1024];
-    while (in.getline(line, sizeof(line))) {
-        Tokenizer parse(" ");
-        std::vector<std::string> s;
-        parse(line, s);
-
-        // Log::info() << "FDB table " << line << std::endl;
-
-        Ordinal i = 0;
-        while (i < s.size()) {
-            if (s[i].length() == 0)
-                s.erase(s.begin() + i);
-            else
-                i++;
-        }
-
-        if (s.size() == 0 || s[0][0] == '#')
-            continue;
-
-        switch (s.size()) {
-        case 2:
-            rootsTable.push_back(std::make_pair(Regex(s[0]), s[1]));
-            break;
-
-        default:
-            Log::warning() << "FDB Root: Invalid line ignored: " << line << std::endl;
-            break;
-
-        }
-    }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-eckit::PathName TocDB::directory(const Key &key) {
-
-    /// @note This may not be needed once in operations, but helps with testing tools
-    static std::string overideRoot = eckit::Resource<std::string>("$FDB_ROOT", "");
-
-    std::string root( overideRoot );
-
-    if(root.empty())
-    {
-        static StringList fdbRootPattern( eckit::Resource<StringList>("fdbRootPattern", "class,stream,expver", true ) );
-        pthread_once(&once, readTable);
-
-        std::ostringstream oss;
-
-        const char *sep = "";
-        for (StringList::const_iterator j = fdbRootPattern.begin(); j != fdbRootPattern.end(); ++j) {
-            Key::const_iterator i = key.find(*j);
-            if (i == key.end()) {
-                oss << sep << "unknown";
-                eckit::Log::warning() << "FDB root: cannot get " << *j << " from " << key << std::endl;
-            } else {
-                oss << sep << key.get(*j);
-            }
-            sep = ":";
-        }
-
-        std::string name(oss.str());
-
-        for (Ordinal i = 0; i < rootsTable.size() ; i++)
-            if (rootsTable[i].first.match(name)) {
-                root = rootsTable[i].second;
-                break;
-            }
-
-        if (root.length() == 0) {
-            std::ostringstream oss;
-            oss << "No FDB root for " << key;
-            throw SeriousBug(oss.str());
-        }
-    }
-
-    return PathName(root) / key.valuesToString();
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -123,8 +28,7 @@ TocDB::TocDB(const Key& key) :
 
 TocDB::TocDB(const eckit::PathName& directory) :
     DB(Key()),
-    TocHandler(directory)
-{
+    TocHandler(directory) {
 }
 
 TocDB::~TocDB() {
@@ -171,8 +75,7 @@ void TocDB::checkSchema(const Key &key) const {
     schema_.compareTo(key.rule()->schema());
 }
 
-const Schema& TocDB::schema() const
-{
+const Schema& TocDB::schema() const {
     return schema_;
 }
 

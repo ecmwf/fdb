@@ -50,6 +50,9 @@ public: // methods
 
     Key databaseKey();
 
+    static eckit::PathName directory(const Key &key);
+    static std::vector<eckit::PathName> databases(const Key &key);
+
 protected: // members
 
     const eckit::PathName directory_;
