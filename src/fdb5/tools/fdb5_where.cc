@@ -10,6 +10,7 @@
 
 #include "eckit/option/CmdArgs.h"
 #include "fdb5/tools/FDBTool.h"
+#include "fdb5/toc/TocHandler.h"
 
 using namespace std;
 using namespace eckit;
@@ -18,13 +19,12 @@ using namespace fdb5;
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBWhere : public FDBTool {
-
-  public: // methods
+public: // methods
 
     FDBWhere(int argc, char **argv) : FDBTool(argc, argv) {
     }
 
-  private: // methods
+private: // methods
 
     virtual void run();
 
@@ -41,6 +41,13 @@ void FDBWhere::usage(const std::string &tool) {
 void FDBWhere::run() {
 
     eckit::option::CmdArgs args(&FDBWhere::usage, -1, options_);
+
+    if (args.count() == 0) {
+        std::vector<eckit::PathName> roots = TocHandler::roots();
+        for (std::vector<eckit::PathName>::const_iterator i = roots.begin(); i != roots.end(); ++i) {
+            std::cout << *i << std::endl;
+        }
+    }
 
     for (size_t i = 0; i < args.count(); ++i) {
         std::cout << databasePath(args.args(i)) << std::endl;

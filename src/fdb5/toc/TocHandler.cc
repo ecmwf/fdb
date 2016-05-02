@@ -414,28 +414,16 @@ eckit::PathName TocHandler::directory(const Key &key) {
 
 std::vector<eckit::PathName> TocHandler::databases(const Key &key) {
 
-    static std::string overideRoot = eckit::Resource<std::string>("$FDB_ROOT", "");
-    std::string root( overideRoot );
+
+    std::vector<eckit::PathName> dirs = roots();
     std::vector<eckit::PathName> result;
 
-    eckit::StringSet roots;
-
-    if (!root.empty()) {
-        roots.insert(root);
-    } else {
-        pthread_once(&once, readTable);
-
-        for (size_t i = 0; i < rootsTable.size() ; i++) {
-            roots.insert(rootsTable[i].second);
-        }
-    }
-
-    for (eckit::StringSet::const_iterator j = roots.begin(); j != roots.end(); ++j) {
+    for (std::vector<eckit::PathName>::const_iterator j = dirs.begin(); j != dirs.end(); ++j) {
         std::vector<eckit::PathName> files;
         std::vector<eckit::PathName> subdirs;
 
-        eckit::Log::info() << "ROOT : " << eckit::PathName(*j) << std::endl;
-        eckit::PathName(*j).children(files, subdirs);
+        eckit::Log::info() << "ROOT : " << *j << std::endl;
+        j->children(files, subdirs);
 
         for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
 
@@ -454,6 +442,27 @@ std::vector<eckit::PathName> TocHandler::databases(const Key &key) {
 
     return result;
 }
+
+std::vector<eckit::PathName> TocHandler::roots() {
+
+    static std::string overideRoot = eckit::Resource<std::string>("$FDB_ROOT", "");
+    std::string root( overideRoot );
+
+    eckit::StringSet roots;
+
+    if (!root.empty()) {
+        roots.insert(root);
+    } else {
+        pthread_once(&once, readTable);
+
+        for (size_t i = 0; i < rootsTable.size() ; i++) {
+            roots.insert(rootsTable[i].second);
+        }
+    }
+
+    return std::vector<eckit::PathName>(roots.begin(), roots.end());
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
