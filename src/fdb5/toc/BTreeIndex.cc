@@ -108,7 +108,7 @@ struct BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD : public TBTreeIndex<KEYSIZE
         TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>(path, readOnly, offset){};                                  \
 }; \
 static IndexBuilder<BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD> \
-maker_BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD("BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD")
+maker_BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD("BTreeIndex_" #KEYSIZE "_" #RECSIZE "_" #PAYLOAD)
 
 BTREE(32, 65536, FieldRefReduced);
 BTREE(32, 65536, FieldRefFull);
@@ -127,6 +127,7 @@ const std::string& BTreeIndex::defaulType() {
 }
 
 static IndexBuilder<BTreeIndex_32_65536_FieldRefReduced> defaultIndex("BTreeIndex");
+static IndexBuilder<BTreeIndex_32_65536_FieldRefFull> pointDBIndex("PointDBIndex");
 
 
 //-----------------------------------------------------------------------------
