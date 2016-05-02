@@ -49,18 +49,10 @@ public: // methods
     /// @returns PathID associated to the provided eckit::PathName
     FileStore::PathID insert( const eckit::PathName &path );
 
-    /// @returns a PathID associated to the provided eckit::PathName
-    FileStore::PathID get( const eckit::PathName &path) const;
-
     /// @returns a eckit::PathName associated to the provided id
     /// @pre assumes that the eckit::filesystem/PathName.has already been inserted
     eckit::PathName get( const FileStore::PathID id ) const;
 
-    /// check that a PathID is valid and has a eckit::PathName associated to it
-    bool exists( const FileStore::PathID id ) const;
-
-    /// check the eckit::PathName exists in the FileStore
-    bool exists( const eckit::PathName &path ) const;
 
     void encode(eckit::Stream &s) const;
 

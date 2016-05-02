@@ -36,7 +36,7 @@ public:
     typedef size_t PathID;
 
     FieldRefLocation();
-    FieldRefLocation(const FileStore &, const Field &);
+    FieldRefLocation(FileStore &, const Field &);
 
 
     PathID pathId() const { return pathId_; }
@@ -73,7 +73,7 @@ class FieldRef  {
 public:
 
     FieldRef();
-    FieldRef(const FileStore &, const Field &);
+    FieldRef(FileStore &, const Field &);
 
     FieldRef(const FieldRefReduced&);
 

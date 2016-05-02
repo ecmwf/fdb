@@ -20,8 +20,8 @@ namespace fdb5 {
 FieldRefLocation::FieldRefLocation() {
 }
 
-FieldRefLocation::FieldRefLocation(const FileStore   &store, const Field  &field):
-    pathId_(store.get(field.path())),
+FieldRefLocation::FieldRefLocation(FileStore &store, const Field  &field):
+    pathId_(store.insert(field.path())),
     offset_(field.offset()),
     length_(field.length()) {
 
@@ -41,7 +41,7 @@ FieldRefReduced::FieldRefReduced(const FieldRef &other):
 FieldRef::FieldRef() {
 }
 
-FieldRef::FieldRef(const FileStore &store, const Field &field):
+FieldRef::FieldRef(FileStore &store, const Field &field):
     location_(store, field),
     details_(field.details()) {
 }

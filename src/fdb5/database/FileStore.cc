@@ -81,26 +81,10 @@ FileStore::PathID FileStore::insert( const eckit::PathName &path ) {
     return current;
 }
 
-FileStore::PathID FileStore::get( const eckit::PathName &path ) const {
-    IdStore::const_iterator itr = ids_.find(path);
-    ASSERT( itr != ids_.end() );
-    return itr->second;
-}
-
 eckit::PathName FileStore::get(const FileStore::PathID id) const {
     PathStore::const_iterator itr = paths_.find(id);
     ASSERT( itr != paths_.end() );
     return itr->second;
-}
-
-bool FileStore::exists(const PathID id ) const {
-    PathStore::const_iterator itr = paths_.find(id);
-    return ( itr != paths_.end() );
-}
-
-bool FileStore::exists(const eckit::PathName &path) const {
-    IdStore::const_iterator itr = ids_.find(path);
-    return ( itr != ids_.end() );
 }
 
 void FileStore::print( std::ostream &out ) const {
