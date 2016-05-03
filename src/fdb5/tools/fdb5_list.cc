@@ -15,6 +15,7 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/TocDB.h"
 
 #include "fdb5/database/Field.h"
 
@@ -119,7 +120,7 @@ void FDBList::run() {
     Log::info() << args << std::endl;
 
     if(args.count() == 0) {
-        std::vector<eckit::PathName> dbs = TocHandler::databases(Key());
+        std::vector<eckit::PathName> dbs = TocDB::databases(Key());
         for(std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
             eckit::Log::info() << *j << std::endl;
         }

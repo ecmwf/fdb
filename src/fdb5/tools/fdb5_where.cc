@@ -10,7 +10,7 @@
 
 #include "eckit/option/CmdArgs.h"
 #include "fdb5/tools/FDBTool.h"
-#include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/TocDB.h"
 
 using namespace std;
 using namespace eckit;
@@ -43,7 +43,7 @@ void FDBWhere::run() {
     eckit::option::CmdArgs args(&FDBWhere::usage, -1, options_);
 
     if (args.count() == 0) {
-        std::vector<eckit::PathName> roots = TocHandler::roots();
+        std::vector<eckit::PathName> roots = TocDB::roots();
         for (std::vector<eckit::PathName>::const_iterator i = roots.begin(); i != roots.end(); ++i) {
             std::cout << *i << std::endl;
         }
