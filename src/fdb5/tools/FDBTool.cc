@@ -42,7 +42,7 @@ static void usage(const std::string &tool) {
 void FDBTool::run() {
     eckit::option::CmdArgs args(&fdb5::usage, numberOfPositionalArguments(), options_);
 
-    Log::info() << args << std::endl;
+    init(args);
 
     if (args.count() == 0) {
 
@@ -61,6 +61,8 @@ void FDBTool::run() {
     for (size_t i = 0; i < args.count(); ++i) {
         process( databasePath(args.args(i)) , args);
     }
+
+    finish(args);
 }
 
 
