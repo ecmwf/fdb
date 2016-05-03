@@ -8,14 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/tools/FDBTool.h"
-#include "fdb5/toc/TocHandler.h"
-#include "fdb5/toc/TocDB.h"
-
-#include "fdb5/rules/Schema.h"
-#include "fdb5/config/MasterConfig.h"
-
+#include "eckit/option/CmdArgs.h"
 #include "eckit/types/Date.h"
+
+#include "fdb5/config/MasterConfig.h"
+#include "fdb5/rules/Schema.h"
+#include "fdb5/toc/TocDB.h"
+#include "fdb5/toc/TocHandler.h"
+#include "fdb5/tools/FDBTool.h"
 
 using eckit::Log;
 
@@ -23,10 +23,57 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDBTool::FDBTool(int argc, char **argv) : eckit::Tool(argc, argv, "DHSHOME") {
+static FDBTool* instance_ = 0;
+
+FDBTool::FDBTool(int argc, char **argv):
+    eckit::Tool(argc, argv, "DHSHOME") {
+    ASSERT(instance_ == 0);
+    instance_ = this;
+
+    options_.push_back(new eckit::option::SimpleOption<std::string>("match", "Provide a partial request,  e.g. --match=expver=0001"));
+
 }
 
+static void usage(const std::string &tool) {
+    ASSERT(instance_);
+    instance_->usage(tool);
+}
+
+void FDBTool::run() {
+    eckit::option::CmdArgs args(&fdb5::usage, numberOfPositionalArguments(), options_);
+
+    Log::info() << args << std::endl;
+
+    if (args.count() == 0) {
+
+        std::string match = "";
+        if (args.get("match", match)) {
+
+            std::vector<eckit::PathName> dbs = TocDB::databases(Key(match));
+            for (std::vector<eckit::PathName>::const_iterator i = dbs.begin(); i != dbs.end(); ++i) {
+                process(databasePath(*i), args);
+            }
+        } else {
+            usage(args.tool());
+        }
+    }
+
+    for (size_t i = 0; i < args.count(); ++i) {
+        process( databasePath(args.args(i)) , args);
+    }
+}
+
+
 void FDBTool::usage(const std::string &tool) {
+
+}
+
+void FDBTool::init(const eckit::option::CmdArgs& args) {
+
+}
+
+void FDBTool::finish(const eckit::option::CmdArgs& args) {
+
 }
 
 

@@ -20,6 +20,7 @@
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/database/DB.h"
+#include "eckit/option/SimpleOption.h"
 
 namespace eckit {
 namespace option {
@@ -34,19 +35,30 @@ namespace fdb5 {
 
 class FDBTool : public eckit::Tool {
 
-public: // methods
+protected: // methods
 
     FDBTool(int argc, char **argv);
 
-protected: // methods
 
-    static void usage(const std::string &tool);
-
-    eckit::PathName databasePath(const std::string& arg) const;
+public:
+    virtual void usage(const std::string &tool);
 
 protected: // members
 
     std::vector<eckit::option::Option *> options_;
+
+private: // methods
+
+    eckit::PathName databasePath(const std::string& arg) const;
+
+    virtual void init(const eckit::option::CmdArgs& args);
+    virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
+    virtual void finish(const eckit::option::CmdArgs& args);
+
+
+    virtual int numberOfPositionalArguments() const { return -1; }
+
+    virtual void run();
 
 };
 

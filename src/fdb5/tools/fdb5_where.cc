@@ -21,19 +21,20 @@ using namespace fdb5;
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBWhere : public FDBTool {
-  public: // methods
+public: // methods
 
     FDBWhere(int argc, char **argv) : FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<std::string>("pattern", "Provide a pattern to match 'class:stream:expver', e.g. --pattern=od:.*:0001"));
-        options_.push_back(new eckit::option::SimpleOption<std::string>("match", "Provide a partial request,  e.g. --match=expver=0001"));
 
     }
 
-  private: // methods
+private: // methods
 
-    virtual void run();
+    virtual void usage(const std::string &tool);
+    virtual int numberOfPositionalArguments() const { return 0; }
+    virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args);
+    virtual void finish(const eckit::option::CmdArgs& args);
 
-    static void usage(const std::string &tool);
 
 };
 
@@ -47,9 +48,12 @@ void FDBWhere::usage(const std::string &tool) {
     FDBTool::usage(tool);
 }
 
-void FDBWhere::run() {
+void FDBWhere::process(const eckit::PathName& path, const eckit::option::CmdArgs& args)  {
+    std::cout << path << std::endl;
+}
 
-    eckit::option::CmdArgs args(&FDBWhere::usage, -1, options_);
+void FDBWhere::finish(const eckit::option::CmdArgs& args) {
+
 
     if (args.count() == 0) {
         std::string pattern = ".*";
@@ -59,20 +63,8 @@ void FDBWhere::run() {
         for (std::vector<eckit::PathName>::const_iterator i = roots.begin(); i != roots.end(); ++i) {
             std::cout << *i << std::endl;
         }
-
-        std::string match = "";
-        if (args.get("match", match)) {
-
-            std::vector<eckit::PathName> dbs = TocDB::databases(Key(match));
-            for (std::vector<eckit::PathName>::const_iterator i = dbs.begin(); i != dbs.end(); ++i) {
-                std::cout << *i << std::endl;
-            }
-        }
     }
 
-    for (size_t i = 0; i < args.count(); ++i) {
-        std::cout << databasePath(args.args(i)) << std::endl;
-    }
 
 }
 

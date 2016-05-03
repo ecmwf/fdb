@@ -74,18 +74,13 @@ class FDBList : public FDBTool {
 
     FDBList(int argc, char **argv) : FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("location", "Also print the location of each field"));
-        options_.push_back(new eckit::option::SimpleOption<std::string>("match", "Provide a partial request,  e.g. --match=expver=0001"));
 
     }
 
   private: // methods
 
-    virtual void run();
-
-    static void usage(const std::string &tool);
-
-    void listToc(const eckit::PathName &path, const option::CmdArgs &args);
-
+    virtual void usage(const std::string &tool);
+    virtual void process(const eckit::PathName &path, const option::CmdArgs &args);
 };
 
 void FDBList::usage(const std::string &tool) {
@@ -101,7 +96,7 @@ void FDBList::usage(const std::string &tool) {
     FDBTool::usage(tool);
 }
 
-void FDBList::listToc(const eckit::PathName &path, const option::CmdArgs &args) {
+void FDBList::process(const eckit::PathName &path, const option::CmdArgs &args) {
 
     Log::info() << "Listing " << path << std::endl;
 
@@ -121,31 +116,6 @@ void FDBList::listToc(const eckit::PathName &path, const option::CmdArgs &args) 
     handler.freeIndexes(indexes);
 }
 
-void FDBList::run() {
-
-    eckit::option::CmdArgs args(&FDBList::usage, -1, options_);
-
-    Log::info() << args << std::endl;
-
-    if (args.count() == 0) {
-
-        std::string match = "";
-        if (args.get("match", match)) {
-
-            std::vector<eckit::PathName> dbs = TocDB::databases(Key(match));
-            for (std::vector<eckit::PathName>::const_iterator i = dbs.begin(); i != dbs.end(); ++i) {
-                listToc(databasePath(*i), args);
-            }
-        }
-        else {
-            usage(args.tool());
-        }
-    }
-
-    for (size_t i = 0; i < args.count(); ++i) {
-        listToc( databasePath(args.args(i)) , args);
-    }
-}
 //----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv) {

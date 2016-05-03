@@ -24,20 +24,22 @@ using namespace fdb5;
 
 class FDBPurge : public FDBTool {
 
-public: // methods
+  public: // methods
 
-    FDBPurge(int argc, char **argv) : FDBTool(argc, argv) {
+    FDBPurge(int argc, char **argv) : FDBTool(argc, argv), doit_(false) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
 
     }
 
-private: // methods
+  private: // methods
 
-    virtual void run();
+    virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args);
+    virtual void usage(const std::string &tool);
+    virtual void init(const eckit::option::CmdArgs& args);
+    virtual void finish(const eckit::option::CmdArgs& args);
 
-    static void usage(const std::string &tool);
-
+    bool doit_;
 };
 
 void FDBPurge::usage(const std::string &tool) {
@@ -46,41 +48,37 @@ void FDBPurge::usage(const std::string &tool) {
     FDBTool::usage(tool);
 }
 
-void FDBPurge::run() {
+void FDBPurge::init(const eckit::option::CmdArgs& args) {
+    args.get("doit", doit_);
+}
 
-    eckit::option::CmdArgs args(&FDBPurge::usage, -1, options_);
-    bool doit = false;
-    args.get("doit", doit);
+void FDBPurge::process(const eckit::PathName& path, const eckit::option::CmdArgs& args) {
 
-    for (size_t i = 0; i < args.count(); ++i) {
+    Log::info() << "Scanning " << path << std::endl;
 
-        eckit::PathName path(databasePath(args.args(i)));
+    fdb5::TocHandler handler(path);
+    Log::info() << "Database key " << handler.databaseKey() << std::endl;
 
-        Log::info() << "Scanning " << path << std::endl;
+    std::vector<Index *> indexes = handler.loadIndexes();
 
-        fdb5::TocHandler handler(path);
-        Log::info() << "Database key " << handler.databaseKey() << std::endl;
+    PurgeVisitor visitor(path);
 
-        std::vector<Index *> indexes = handler.loadIndexes();
-
-        PurgeVisitor visitor(path);
-
-        for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-            (*i)->entries(visitor);
-        }
-
-        visitor.report(Log::info());
-
-        bool doit = false;
-        args.get("doit", doit);
-
-        if (doit)
-        {visitor.purge();}
-
-        handler.freeIndexes(indexes);
+    for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+        (*i)->entries(visitor);
     }
 
-    if(!doit) {
+    visitor.report(Log::info());
+
+    if (doit_) {
+        visitor.purge();
+    }
+
+    handler.freeIndexes(indexes);
+}
+
+
+void FDBPurge::finish(const eckit::option::CmdArgs& args) {
+    if (!doit_) {
         Log::info() << std::endl << "Rerun command with --doit flag to delete unused files" << std::endl;
     }
 }
