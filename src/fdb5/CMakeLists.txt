@@ -115,6 +115,10 @@ list( APPEND fdb5_srcs
     toc/TocRecord.h
     tools/FDBTool.cc
     tools/FDBTool.h
+    tools/FDBInspect.cc
+    tools/FDBInspect.h
+    tools/FDBAccess.cc
+    tools/FDBAccess.h
     tools/RequestParser.cc
     tools/RequestParser.h
     types/Type.cc

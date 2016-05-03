@@ -9,7 +9,7 @@
  */
 
 #include "eckit/option/CmdArgs.h"
-#include "fdb5/tools/FDBTool.h"
+#include "fdb5/tools/FDBInspect.h"
 #include "fdb5/toc/TocDB.h"
 #include "eckit/parser/StringTools.h"
 #include "eckit/option/SimpleOption.h"
@@ -20,10 +20,10 @@ using namespace fdb5;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBWhere : public FDBTool {
+class FDBWhere : public FDBInspect {
 public: // methods
 
-    FDBWhere(int argc, char **argv) : FDBTool(argc, argv) {
+    FDBWhere(int argc, char **argv) : FDBInspect(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<std::string>("pattern", "Provide a pattern to match 'class:stream:expver', e.g. --pattern=od:.*:0001"));
 
     }
@@ -45,7 +45,7 @@ void FDBWhere::usage(const std::string &tool) {
                        << "       " << tool << "--pattern pattern" << std::endl
                        << "       " << tool << "--match k1=v1,k2=v2"  << std::endl
                        << "       " << tool << "path1|request1 [path2|request2] ..." << std::endl;
-    FDBTool::usage(tool);
+    FDBInspect::usage(tool);
 }
 
 void FDBWhere::process(const eckit::PathName& path, const eckit::option::CmdArgs& args)  {

@@ -11,7 +11,7 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "fdb5/tools/FDBTool.h"
+#include "fdb5/tools/FDBInspect.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocHandler.h"
@@ -68,11 +68,11 @@ void ListVisitor::visit(const Index &index,
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBList : public FDBTool {
+class FDBList : public FDBInspect {
 
   public: // methods
 
-    FDBList(int argc, char **argv) : FDBTool(argc, argv) {
+    FDBList(int argc, char **argv) : FDBInspect(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("location", "Also print the location of each field"));
 
     }
@@ -93,7 +93,7 @@ void FDBList::usage(const std::string &tool) {
                        << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g will list this directory" << std::endl
                        << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200,domain=g will list the same directory"
                        << std::endl;
-    FDBTool::usage(tool);
+    FDBInspect::usage(tool);
 }
 
 void FDBList::process(const eckit::PathName &path, const option::CmdArgs &args) {

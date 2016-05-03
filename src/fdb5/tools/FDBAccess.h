@@ -8,36 +8,25 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   FDBTool.h
+/// @file   FDBAccess.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_FDBTool_H
-#define fdb5_FDBTool_H
+#ifndef fdb5_FDBAccess_H
+#define fdb5_FDBAccess_H
 
-#include "eckit/runtime/Tool.h"
-#include "eckit/filesystem/PathName.h"
-
-#include "fdb5/database/DB.h"
-#include "eckit/option/SimpleOption.h"
-
-namespace eckit {
-namespace option {
-class Option;
-class CmdArgs;
-}
-}
+#include "fdb5/tools/FDBTool.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBTool : public eckit::Tool {
+class FDBAccess : public FDBTool {
 
 protected: // methods
 
-    FDBTool(int argc, char **argv);
+    FDBAccess(int argc, char **argv);
 
 
 public:
@@ -49,13 +38,10 @@ protected: // members
 
 private: // methods
 
-    virtual void init(const eckit::option::CmdArgs& args);
-    virtual void execute(const eckit::option::CmdArgs& args) = 0;
-    virtual void finish(const eckit::option::CmdArgs& args);
+    eckit::PathName databasePath(const std::string& arg) const;
 
-    virtual int numberOfPositionalArguments() const { return -1; }
-
-    virtual void run();
+    virtual void execute(const eckit::option::CmdArgs& args);
+    virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
 
 };
 

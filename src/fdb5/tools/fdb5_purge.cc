@@ -13,7 +13,7 @@
 
 #include "fdb5/toc/PurgeVisitor.h"
 #include "fdb5/toc/TocHandler.h"
-#include "fdb5/tools/FDBTool.h"
+#include "fdb5/tools/FDBInspect.h"
 
 using namespace std;
 using namespace eckit;
@@ -22,11 +22,11 @@ using namespace fdb5;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBPurge : public FDBTool {
+class FDBPurge : public FDBInspect {
 
   public: // methods
 
-    FDBPurge(int argc, char **argv) : FDBTool(argc, argv), doit_(false) {
+    FDBPurge(int argc, char **argv) : FDBInspect(argc, argv), doit_(false) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
 
@@ -45,7 +45,7 @@ class FDBPurge : public FDBTool {
 void FDBPurge::usage(const std::string &tool) {
 
     eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [path1|request1] [path2|request2] ..." << std::endl;
-    FDBTool::usage(tool);
+    FDBInspect::usage(tool);
 }
 
 void FDBPurge::init(const eckit::option::CmdArgs& args) {
