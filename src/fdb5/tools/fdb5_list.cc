@@ -26,7 +26,7 @@ using namespace fdb5;
 //----------------------------------------------------------------------------------------------------------------------
 
 class ListVisitor : public EntryVisitor {
-public:
+  public:
     ListVisitor(const Key &dbKey,
                 const fdb5::Schema &schema,
                 const eckit::option::CmdArgs &args) :
@@ -35,7 +35,7 @@ public:
         args_(args) {
     }
 
-private:
+  private:
     virtual void visit(const Index &index,
                        const std::string &indexFingerprint,
                        const std::string &fieldFingerprint,
@@ -74,6 +74,7 @@ class FDBList : public FDBTool {
 
     FDBList(int argc, char **argv) : FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("location", "Also print the location of each field"));
+        options_.push_back(new eckit::option::SimpleOption<std::string>("match", "Provide a partial request,  e.g. --match=expver=0001"));
 
     }
 
@@ -89,7 +90,14 @@ class FDBList : public FDBTool {
 
 void FDBList::usage(const std::string &tool) {
 
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--location] [path1|request1] [path2|request2] ..." << std::endl;
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " [--location] --match=k1=v1,k2=v2..." << std::endl
+                       << "       " << tool << " [--location] [path1|request1] [path2|request2] ..." << std::endl
+                       << "Example:" << std::endl
+                       << tool << " --match=expver=0069 will list all databases matching the expver provided" << std::endl
+                       << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g will list this directory" << std::endl
+                       << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200,domain=g will list the same directory"
+                       << std::endl;
     FDBTool::usage(tool);
 }
 
@@ -119,10 +127,18 @@ void FDBList::run() {
 
     Log::info() << args << std::endl;
 
-    if(args.count() == 0) {
-        std::vector<eckit::PathName> dbs = TocDB::databases(Key());
-        for(std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
-            eckit::Log::info() << *j << std::endl;
+    if (args.count() == 0) {
+
+        std::string match = "";
+        if (args.get("match", match)) {
+
+            std::vector<eckit::PathName> dbs = TocDB::databases(Key(match));
+            for (std::vector<eckit::PathName>::const_iterator i = dbs.begin(); i != dbs.end(); ++i) {
+                listToc(databasePath(*i), args);
+            }
+        }
+        else {
+            usage(args.tool());
         }
     }
 
@@ -130,7 +146,6 @@ void FDBList::run() {
         listToc( databasePath(args.args(i)) , args);
     }
 }
-
 //----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv) {

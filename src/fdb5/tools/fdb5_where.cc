@@ -11,6 +11,8 @@
 #include "eckit/option/CmdArgs.h"
 #include "fdb5/tools/FDBTool.h"
 #include "fdb5/toc/TocDB.h"
+#include "eckit/parser/StringTools.h"
+#include "eckit/option/SimpleOption.h"
 
 using namespace std;
 using namespace eckit;
@@ -19,12 +21,15 @@ using namespace fdb5;
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBWhere : public FDBTool {
-public: // methods
+  public: // methods
 
     FDBWhere(int argc, char **argv) : FDBTool(argc, argv) {
+        options_.push_back(new eckit::option::SimpleOption<std::string>("pattern", "Provide a pattern to match 'class:stream:expver', e.g. --pattern=od:.*:0001"));
+        options_.push_back(new eckit::option::SimpleOption<std::string>("match", "Provide a partial request,  e.g. --match=expver=0001"));
+
     }
 
-private: // methods
+  private: // methods
 
     virtual void run();
 
@@ -34,7 +39,11 @@ private: // methods
 
 void FDBWhere::usage(const std::string &tool) {
 
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [path1|request1] [path2|request2] ..." << std::endl;
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << std::endl
+                       << "       " << tool << "--pattern pattern" << std::endl
+                       << "       " << tool << "--match k1=v1,k2=v2"  << std::endl
+                       << "       " << tool << "path1|request1 [path2|request2] ..." << std::endl;
     FDBTool::usage(tool);
 }
 
@@ -43,9 +52,21 @@ void FDBWhere::run() {
     eckit::option::CmdArgs args(&FDBWhere::usage, -1, options_);
 
     if (args.count() == 0) {
-        std::vector<eckit::PathName> roots = TocDB::roots();
+        std::string pattern = ".*";
+        args.get("pattern", pattern);
+
+        std::vector<eckit::PathName> roots = TocDB::roots(pattern);
         for (std::vector<eckit::PathName>::const_iterator i = roots.begin(); i != roots.end(); ++i) {
             std::cout << *i << std::endl;
+        }
+
+        std::string match = "";
+        if (args.get("match", match)) {
+
+            std::vector<eckit::PathName> dbs = TocDB::databases(Key(match));
+            for (std::vector<eckit::PathName>::const_iterator i = dbs.begin(); i != dbs.end(); ++i) {
+                std::cout << *i << std::endl;
+            }
         }
     }
 

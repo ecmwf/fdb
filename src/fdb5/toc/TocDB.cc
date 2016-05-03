@@ -207,7 +207,7 @@ std::vector<eckit::PathName> TocDB::databases(const Key &key) {
     return result;
 }
 
-std::vector<eckit::PathName> TocDB::roots() {
+std::vector<eckit::PathName> TocDB::roots(const std::string& match) {
 
     static std::string overideRoot = eckit::Resource<std::string>("$FDB_ROOT", "");
     std::string root( overideRoot );
@@ -220,7 +220,9 @@ std::vector<eckit::PathName> TocDB::roots() {
         pthread_once(&once, readTable);
 
         for (size_t i = 0; i < rootsTable.size() ; i++) {
-            roots.insert(rootsTable[i].second);
+            if (rootsTable[i].first.match(match)) {
+                roots.insert(rootsTable[i].second);
+            }
         }
     }
 
