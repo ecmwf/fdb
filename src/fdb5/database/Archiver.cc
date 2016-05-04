@@ -28,6 +28,10 @@ Archiver::Archiver() :
 
 Archiver::~Archiver() {
     flush(); // certify that all sessions are flushed before closing them
+
+    for(std::vector<Schema*>::iterator j = schemas_.begin(); j != schemas_.end(); ++j) {
+        delete (*j);
+    }
 }
 
 void Archiver::archive(const Key &key, BaseArchiveVisitor &visitor) {
@@ -44,7 +48,9 @@ void Archiver::archive(const Key &key, BaseArchiveVisitor &visitor) {
         eckit::Log::error() << e.what() << std::endl;
         eckit::Log::error() << "Trying with old schema: " << e.path() << std::endl;
 
-        Schema(e.path()).expand(key, visitor);
+        // Ensure that the schema lives until the data is flushed
+        schemas_.push_back(new Schema(e.path()));
+        schemas_.back()->expand(key, visitor);
     }
 
     if (visitor.rule() == 0) { // Make sure we did find a rule that matched

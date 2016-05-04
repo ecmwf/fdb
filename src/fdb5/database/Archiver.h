@@ -33,6 +33,7 @@ namespace fdb5 {
 
 class Key;
 class BaseArchiveVisitor;
+class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -74,6 +75,8 @@ private: // members
     std::vector<Key> prev_;
 
     DB *current_;
+    std::vector<Schema*> schemas_;
+
 
 };
 
