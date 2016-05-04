@@ -29,27 +29,27 @@ TypeDate::~TypeDate() {
 
 
 void TypeDate::toKey(std::ostream &out,
-                       const std::string &keyword,
-                       const std::string &value) const
-{
-    eckit::Translator<std::string, long> t;
-    long n = t(value);
-    if(n <= 0) {
-        eckit::Date now(0);
-        now += n;
-        out << now.yyyymmdd();
+                     const std::string &keyword,
+                     const std::string &value) const {
+    if (!value.empty() && (value[0] == '0' || value[0] == '-')) {
+        eckit::Translator<std::string, long> t;
+        long n = t(value);
+        if (n <= 0) {
+            eckit::Date now(0);
+            now += n;
+            out << now.yyyymmdd();
+            return;
+        }
     }
-    else {
-        out << eckit::Date(value).yyyymmdd();
-    }
- }
+    out << value;
 
+}
 
-void TypeDate::getValues(const MarsRequest &request,
-                         const std::string &keyword,
-                         eckit::StringList &values,
-                         const MarsTask &task,
-                         const DB *db) const {
+void TypeDate::getValues(const MarsRequest & request,
+                         const std::string & keyword,
+                         eckit::StringList & values,
+                         const MarsTask & task,
+                         const DB * db) const {
     std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates);
@@ -63,7 +63,7 @@ void TypeDate::getValues(const MarsRequest &request,
     }
 }
 
-void TypeDate::print(std::ostream &out) const {
+void TypeDate::print(std::ostream & out) const {
     out << "TypeDate[name=" << name_ << "]";
 }
 

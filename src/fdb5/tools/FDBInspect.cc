@@ -49,7 +49,12 @@ void FDBInspect::execute(const eckit::option::CmdArgs& args) {
                 paths.push_back(*j);
             }
 
+            if(dbs.size() == 0) {
+                eckit::Log::warning() << "No FDB matches " << dbKey << std::endl;
+            }
+
         } catch (eckit::Exception& e) {
+            eckit::Log::warning() << e.what() << std::endl;
             paths.push_back(path);
         }
 

@@ -131,6 +131,8 @@ list( APPEND fdb5_srcs
     types/TypeClimateMonthly.h
     types/TypeDate.cc
     types/TypeDate.h
+    types/TypeExpver.cc
+    types/TypeExpver.h
     types/TypeDefault.cc
     types/TypeDefault.h
     types/TypeDouble.cc
