@@ -74,7 +74,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs& args) {
 
         }
 
-        eckit::Log::info() << "PATH =====> " << path << std::endl;
+        // eckit::Log::info() << "PATH =====> " << path << std::endl;
         process( path , args);
 
     }
