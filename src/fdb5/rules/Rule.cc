@@ -235,7 +235,7 @@ void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_i
         expandFirstLevel(dbKey, next, result, found);
     }
 
-    if(!found) {
+    if (!found) {
         result.pop(keyword);
     }
 }
@@ -243,6 +243,44 @@ void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_i
 void Rule::expandFirstLevel(const Key &dbKey,  Key &result, bool& found) const {
     expandFirstLevel(dbKey, predicates_.begin(), result, found);
 }
+
+
+void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result) const {
+
+    if (cur == predicates_.end()) {
+        if (tmp.match(dbKey)) {
+            result.insert(tmp);
+        }
+        return;
+    }
+
+    std::vector<Predicate *>::const_iterator next = cur;
+    ++next;
+
+    const std::string &keyword = (*cur)->keyword();
+
+    if (dbKey.find(keyword) == dbKey.end()) {
+        tmp.push(keyword, "[^:]*");
+        matchFirstLevel(dbKey, next, tmp, result);
+    } else {
+        const std::string &value = (*cur)->value(dbKey);
+
+        tmp.push(keyword, value);
+
+        if ((*cur)->match(tmp)) {
+            matchFirstLevel(dbKey, next, tmp, result);
+        }
+    }
+
+    tmp.pop(keyword);
+
+}
+
+void Rule::matchFirstLevel(const Key &dbKey,  std::set<Key>& result) const {
+    Key tmp;
+    matchFirstLevel(dbKey, predicates_.begin(), tmp, result);
+}
+
 
 bool Rule::match(const Key &key) const {
     for (std::vector<Predicate *>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {

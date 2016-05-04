@@ -82,6 +82,12 @@ bool Schema::expandFirstLevel(const Key &dbKey,  Key &result) const {
     return found;
 }
 
+void Schema::matchFirstLevel(const Key &dbKey,  std::set<Key> &result) const {
+    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+        (*i)->matchFirstLevel(dbKey, result);
+    }
+}
+
 void Schema::load(const eckit::PathName &path, bool replace) {
     if (replace) {
         clear();

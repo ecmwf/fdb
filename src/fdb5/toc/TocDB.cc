@@ -15,6 +15,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/utils/Regex.h"
+#include "fdb5/config/MasterConfig.h"
 
 using namespace eckit;
 
@@ -178,29 +179,45 @@ eckit::PathName TocDB::directory(const Key &key) {
 
 std::vector<eckit::PathName> TocDB::databases(const Key &key) {
 
+    const Schema& schema = MasterConfig::instance().schema();
+    std::set<Key> keys;
+    schema.matchFirstLevel(key, keys);
 
-    std::vector<eckit::PathName> dirs = roots();
+    std::vector<eckit::PathName> dirs = roots(); // TODO: filter roots() with key
     std::vector<eckit::PathName> result;
+    std::set<eckit::PathName> seen;
 
     for (std::vector<eckit::PathName>::const_iterator j = dirs.begin(); j != dirs.end(); ++j) {
-        std::vector<eckit::PathName> files;
+
         std::vector<eckit::PathName> subdirs;
+        eckit::PathName::match((*j) / "*:*", subdirs, false);
 
-        eckit::Log::info() << "ROOT : " << *j << std::endl;
-        j->children(files, subdirs);
+        for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 
-        for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
 
-            try {
-                TocHandler toc(*k);
-                if (toc.databaseKey().match(key)) {
-                    result.push_back(*k);
+            Regex re("^" + (*i).valuesToString() + "$");
+
+
+            for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
+
+                if(seen.find(*k) != seen.end()) {
+                    continue;
                 }
-            } catch (eckit::Exception& e) {
-                eckit::Log::error() <<  "Error loading FDB database from " << *k << std::endl;
-                eckit::Log::error() << e.what() << std::endl;
-            }
 
+                if (re.match((*k).baseName())) {
+                    try {
+                        TocHandler toc(*k);
+                        if (toc.databaseKey().match(key)) {
+                            result.push_back(*k);
+                        }
+                    } catch (eckit::Exception& e) {
+                        eckit::Log::error() <<  "Error loading FDB database from " << *k << std::endl;
+                        eckit::Log::error() << e.what() << std::endl;
+                    }
+                    seen.insert(*k);;
+                }
+
+            }
         }
     }
 

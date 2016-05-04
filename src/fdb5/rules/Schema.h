@@ -62,6 +62,8 @@ public: // methods
     void expand(const MarsRequest &request, ReadVisitor &visitor) const;
 
     bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
+    void matchFirstLevel(const Key &dbKey,  std::set<Key> &result) const ;
+
     const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
 
     void load(const eckit::PathName &path, bool replace = false);
