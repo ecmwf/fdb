@@ -31,7 +31,7 @@ public:
 
 void FDBAdopt::usage(const std::string &tool) {
     eckit::Log::info() << std::endl
-                       << "Usage: " << tool << "[--pattern=/*fc:0000:*.] gribfile1 [gribfile2] ..." << std::endl;
+                       << "Usage: " << tool << " [--pattern=/*fc:0000:*.] gribfile1 [gribfile2] ..." << std::endl;
     fdb5::FDBAccess::usage(tool);
 }
 
