@@ -13,6 +13,7 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/types/Type.h"
+#include "fdb5/config/MasterConfig.h"
 
 namespace fdb5 {
 
@@ -37,6 +38,9 @@ Key::Key(const std::string &s, const Rule *rule) :
 Key::Key(const std::string &s) :
     keys_(),
     rule_(0) {
+
+    const TypesRegistry &registry = this->registry();
+
     eckit::Tokenizer parse1(",");
     eckit::StringList v;
 
@@ -48,10 +52,14 @@ Key::Key(const std::string &s) :
         parse2(*i, kv);
         ASSERT(kv.size() == 2);
 
+        const Type &t = registry.lookupType(kv[0]);
+        std::ostringstream oss;
+        t.toKey(oss, kv[0], kv[1]);
+
         if (find(kv[0]) == end()) {
-            push(kv[0], kv[1]);
+            push(kv[0], oss.str());
         } else {
-            set(kv[0], kv[1]);
+            set(kv[0], oss.str());
         }
     }
 
@@ -84,30 +92,22 @@ Key::Key(eckit::Stream &s) :
 }
 
 void Key::encode(eckit::Stream &s) const {
-    const TypesRegistry *registry = rule_ ? &rule_->registry() : 0;
+    const TypesRegistry& registry = this->registry();
 
     s << keys_.size();
     for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
-        if (registry) {
-            const Type &t = registry->lookupType(i->first);
-            std::ostringstream oss;
-            t.toKey(oss, i->first, i->second);
-            s << i->first << oss.str();
-        } else {
-            s << i->first << i->second;
-        }
+        const Type &t = registry.lookupType(i->first);
+        std::ostringstream oss;
+        t.toKey(oss, i->first, i->second);
+        s << i->first << oss.str();
+
     }
 
     s << names_.size();
     for (eckit::StringList::const_iterator i = names_.begin(); i != names_.end(); ++i) {
-        if (registry) {
-            const Type &t = registry->lookupType(*i);
-            s << (*i);
-            s << t.type();
-        } else {
-            s << (*i);
-            s << "Default";
-        }
+        const Type &t = registry.lookupType(*i);
+        s << (*i);
+        s << t.type();
     }
 }
 
@@ -171,15 +171,15 @@ bool Key::match(const Key& other) const {
 }
 
 
-const TypesRegistry *Key::registry() const {
-    return rule_ ? &rule_->registry() : 0;
+const TypesRegistry& Key::registry() const {
+    return rule_ ? rule_->registry() : MasterConfig::instance().schema().registry();
 }
 
 std::string Key::valuesToString() const {
     ASSERT(names_.size() == keys_.size());
 
     std::ostringstream oss;
-    const TypesRegistry *registry = rule_ ? &rule_->registry() : 0;
+    const TypesRegistry &registry = this->registry();
 
     const char *sep = "";
 
@@ -188,13 +188,10 @@ std::string Key::valuesToString() const {
         ASSERT(i != keys_.end());
 
         oss << sep;
-        if (registry) {
-            if (!(*i).second.empty()) {
-                registry->lookupType(*j).toKey(oss, *j, (*i).second);
-            }
-        } else {
-            oss << (*i).second;
+        if (!(*i).second.empty()) {
+            registry.lookupType(*j).toKey(oss, *j, (*i).second);
         }
+
         sep = ":";
     }
 

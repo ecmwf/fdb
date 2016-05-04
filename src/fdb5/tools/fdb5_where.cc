@@ -27,7 +27,6 @@ class FDBWhere : public fdb5::FDBInspect {
   private: // methods
 
     virtual void usage(const std::string &tool) const;
-    virtual int numberOfPositionalArguments() const { return 0; }
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args);
     virtual void finish(const eckit::option::CmdArgs& args);
 

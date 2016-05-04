@@ -43,6 +43,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs& args) {
 
         try {
             Key dbKey(args(i));
+            eckit::Log::info() << "KEY =====> " << dbKey << std::endl;
             std::vector<eckit::PathName> dbs = TocDB::databases(dbKey);
             for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
                 paths.push_back(*j);
@@ -68,6 +69,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs& args) {
 
         }
 
+        eckit::Log::info() << "PATH =====> " << path << std::endl;
         process( path , args);
 
     }

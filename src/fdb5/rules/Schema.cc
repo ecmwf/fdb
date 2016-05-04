@@ -169,6 +169,10 @@ const std::string &Schema::path() const {
     return path_;
 }
 
+const TypesRegistry& Schema::registry() const {
+    return registry_;
+}
+
 
 std::ostream &operator<<(std::ostream &s, const Schema &x) {
     x.print(s);

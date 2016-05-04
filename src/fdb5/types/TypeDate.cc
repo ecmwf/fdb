@@ -27,6 +27,24 @@ TypeDate::TypeDate(const std::string &name, const std::string &type) :
 TypeDate::~TypeDate() {
 }
 
+
+void TypeDate::toKey(std::ostream &out,
+                       const std::string &keyword,
+                       const std::string &value) const
+{
+    eckit::Translator<std::string, long> t;
+    long n = t(value);
+    if(n <= 0) {
+        eckit::Date now(0);
+        now += n;
+        out << now.yyyymmdd();
+    }
+    else {
+        out << eckit::Date(value).yyyymmdd();
+    }
+ }
+
+
 void TypeDate::getValues(const MarsRequest &request,
                          const std::string &keyword,
                          eckit::StringList &values,

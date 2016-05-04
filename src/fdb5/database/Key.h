@@ -81,7 +81,7 @@ public: // methods
 
     void rule(const Rule *rule);
     const Rule *rule() const;
-    const TypesRegistry *registry() const;
+    const TypesRegistry& registry() const;
 
     std::string valuesToString() const;
 

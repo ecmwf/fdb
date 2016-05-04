@@ -77,6 +77,8 @@ public: // methods
 
     const std::string &path() const;
 
+    const TypesRegistry& registry() const;
+
 
 private: // methods
 
