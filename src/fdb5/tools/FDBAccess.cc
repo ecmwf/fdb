@@ -26,9 +26,6 @@ namespace fdb5 {
 
 FDBAccess::FDBAccess(int argc, char **argv):
     FDBTool(argc, argv) {
-
-    options_.push_back(new eckit::option::SimpleOption<std::string>("match", "Provide a partial request,  e.g. --match=expver=0001"));
-
 }
 
 

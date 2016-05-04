@@ -29,9 +29,6 @@ FDBTool::FDBTool(int argc, char **argv):
     eckit::Tool(argc, argv, "DHSHOME") {
     ASSERT(instance_ == 0);
     instance_ = this;
-
-    options_.push_back(new eckit::option::SimpleOption<std::string>("match", "Provide a partial request,  e.g. --match=expver=0001"));
-
 }
 
 static void usage(const std::string &tool) {
