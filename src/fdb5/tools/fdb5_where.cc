@@ -26,7 +26,7 @@ public: // methods
 
 private: // methods
 
-    virtual void usage(const std::string &tool);
+    virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return 0; }
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args);
     virtual void finish(const eckit::option::CmdArgs& args);
@@ -34,7 +34,7 @@ private: // methods
 
 };
 
-void FDBWhere::usage(const std::string &tool) {
+void FDBWhere::usage(const std::string &tool) const {
 
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << std::endl

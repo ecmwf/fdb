@@ -56,7 +56,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs& args) {
 }
 
 
-void FDBInspect::usage(const std::string &tool) {
+void FDBInspect::usage(const std::string &tool) const {
     FDBTool::usage(tool);
 }
 

@@ -71,11 +71,11 @@ class FDBList : public fdb5::FDBInspect {
 
   private: // methods
 
-    virtual void usage(const std::string &tool);
+    virtual void usage(const std::string &tool) const;
     virtual void process(const eckit::PathName &path, const eckit::option::CmdArgs &args);
 };
 
-void FDBList::usage(const std::string &tool) {
+void FDBList::usage(const std::string &tool) const {
 
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " [--location] --match=k1=v1,k2=v2..." << std::endl

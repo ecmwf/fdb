@@ -28,14 +28,14 @@ class FDBPurge : public fdb5::FDBInspect {
   private: // methods
 
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args);
-    virtual void usage(const std::string &tool);
+    virtual void usage(const std::string &tool) const;
     virtual void init(const eckit::option::CmdArgs& args);
     virtual void finish(const eckit::option::CmdArgs& args);
 
     bool doit_;
 };
 
-void FDBPurge::usage(const std::string &tool) {
+void FDBPurge::usage(const std::string &tool) const {
 
     eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [path1|request1] [path2|request2] ..." << std::endl;
     FDBInspect::usage(tool);

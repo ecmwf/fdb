@@ -19,13 +19,13 @@
 
 class FDBRetrieve : public fdb5::FDBAccess {
     virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool);
+    virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return 2; }
 public:
     FDBRetrieve(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
 };
 
-void FDBRetrieve::usage(const std::string &tool) {
+void FDBRetrieve::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " request.mars target.grib" << std::endl;
     fdb5::FDBAccess::usage(tool);

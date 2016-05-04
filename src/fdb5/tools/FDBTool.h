@@ -41,7 +41,7 @@ protected: // methods
 
 
 public:
-    virtual void usage(const std::string &tool) = 0;
+    virtual void usage(const std::string &tool) const = 0;
 
 protected: // members
 
@@ -54,6 +54,7 @@ private: // methods
     virtual void finish(const eckit::option::CmdArgs& args);
 
     virtual int numberOfPositionalArguments() const { return -1; }
+    virtual int minimumPositionalArguments() const { return -1; }
 
     virtual void run();
 

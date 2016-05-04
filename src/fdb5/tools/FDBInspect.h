@@ -28,11 +28,7 @@ protected: // methods
 
     FDBInspect(int argc, char **argv);
 
-
-public:
-    virtual void usage(const std::string &tool) = 0;
-
-protected: // members
+    virtual void usage(const std::string &tool) const = 0;
 
 
 private: // methods

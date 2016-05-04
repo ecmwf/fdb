@@ -17,7 +17,8 @@
 class FDBAdopt : public fdb5::FDBAccess {
 
     virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool);
+    virtual void usage(const std::string &tool) const;
+    virtual int minimumPositionalArguments() const { return 1; }
 
 public:
 
@@ -29,7 +30,7 @@ public:
 
 };
 
-void FDBAdopt::usage(const std::string &tool) {
+void FDBAdopt::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " [--pattern=/*fc:0000:*.] gribfile1 [gribfile2] ..." << std::endl;
     fdb5::FDBAccess::usage(tool);
@@ -37,10 +38,6 @@ void FDBAdopt::usage(const std::string &tool) {
 
 void FDBAdopt::execute(const eckit::option::CmdArgs &args) {
 
-    if(args.count() == 0) {
-        usage(args.tool());
-        return;
-    }
 
     std::string pattern = "/:*.";
     args.get("pattern", pattern);

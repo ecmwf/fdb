@@ -39,13 +39,21 @@ static void usage(const std::string &tool) {
 void FDBTool::run() {
     eckit::option::CmdArgs args(&fdb5::usage, numberOfPositionalArguments(), options_);
 
+    if(minimumPositionalArguments() > 0) {
+        if(args.count() < minimumPositionalArguments()) {
+            usage(args.tool());
+            return;
+        }
+    }
+
+
     init(args);
     execute(args);
     finish(args);
 }
 
 
-void FDBTool::usage(const std::string &tool) {
+void FDBTool::usage(const std::string &tool) const {
 
 }
 

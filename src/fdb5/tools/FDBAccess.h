@@ -27,16 +27,7 @@ class FDBAccess : public FDBTool {
 protected: // methods
 
     FDBAccess(int argc, char **argv);
-
-
-public:
-    virtual void usage(const std::string &tool) = 0;
-
-protected: // members
-
-
-private: // methods
-
+    virtual void usage(const std::string &tool) const = 0;
 
 };
 

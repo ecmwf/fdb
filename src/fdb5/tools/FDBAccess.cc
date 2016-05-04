@@ -30,7 +30,7 @@ FDBAccess::FDBAccess(int argc, char **argv):
 
 
 
-void FDBAccess::usage(const std::string &tool) {
+void FDBAccess::usage(const std::string &tool) const {
     FDBTool::usage(tool);
 }
 
