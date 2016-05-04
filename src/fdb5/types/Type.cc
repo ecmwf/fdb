@@ -35,6 +35,10 @@ const std::string &Type::type() const {
     return type_;
 }
 
+std::string Type::tidy(const std::string &keyword,
+                       const std::string &value) const  {
+    return value;
+}
 
 void Type::toKey(std::ostream &out,
                  const std::string &keyword,

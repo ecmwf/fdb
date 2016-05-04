@@ -33,12 +33,6 @@
 list( APPEND fdb5_srcs
     config/MasterConfig.cc
     config/MasterConfig.h
-    database/Field.h
-    database/Field.cc
-    database/FieldDetails.h
-    database/FieldDetails.cc
-    database/FieldLocation.h
-    database/FieldLocation.cc
     database/Archiver.cc
     database/Archiver.h
     database/ArchiveVisitor.cc
@@ -47,8 +41,12 @@ list( APPEND fdb5_srcs
     database/BaseArchiveVisitor.h
     database/DB.cc
     database/DB.h
-    database/IndexFactory.cc
-    database/IndexFactory.h
+    database/Field.cc
+    database/Field.h
+    database/FieldDetails.cc
+    database/FieldDetails.h
+    database/FieldLocation.cc
+    database/FieldLocation.h
     database/FieldRef.cc
     database/FieldRef.h
     database/FileStore.cc
@@ -57,6 +55,8 @@ list( APPEND fdb5_srcs
     database/Index.h
     database/IndexAxis.cc
     database/IndexAxis.h
+    database/IndexFactory.cc
+    database/IndexFactory.h
     database/Key.cc
     database/Key.h
     database/ReadVisitor.cc
@@ -113,12 +113,12 @@ list( APPEND fdb5_srcs
     toc/TocIndex.h
     toc/TocRecord.cc
     toc/TocRecord.h
-    tools/FDBTool.cc
-    tools/FDBTool.h
-    tools/FDBInspect.cc
-    tools/FDBInspect.h
     tools/FDBAccess.cc
     tools/FDBAccess.h
+    tools/FDBInspect.cc
+    tools/FDBInspect.h
+    tools/FDBTool.cc
+    tools/FDBTool.h
     tools/RequestParser.cc
     tools/RequestParser.h
     types/Type.cc
@@ -131,14 +131,14 @@ list( APPEND fdb5_srcs
     types/TypeClimateMonthly.h
     types/TypeDate.cc
     types/TypeDate.h
-    types/TypeExpver.cc
-    types/TypeExpver.h
     types/TypeDefault.cc
     types/TypeDefault.h
     types/TypeDouble.cc
     types/TypeDouble.cc
     types/TypeDouble.h
     types/TypeDouble.h
+    types/TypeExpver.cc
+    types/TypeExpver.h
     types/TypeGrid.cc
     types/TypeGrid.h
     types/TypeIgnore.cc
@@ -155,6 +155,8 @@ list( APPEND fdb5_srcs
     types/TypesRegistry.h
     types/TypeStep.cc
     types/TypeStep.h
+    types/TypeTime.cc
+    types/TypeTime.h
 )
 
 ecbuild_add_library(
