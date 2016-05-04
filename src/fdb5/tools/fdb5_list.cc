@@ -8,26 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/option/SimpleOption.h"
 #include "eckit/option/CmdArgs.h"
-
-#include "fdb5/tools/FDBInspect.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocHandler.h"
-#include "fdb5/toc/TocDB.h"
+#include "fdb5/tools/FDBInspect.h"
 
-#include "fdb5/database/Field.h"
-
-using namespace std;
-using namespace eckit;
-using namespace fdb5;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ListVisitor : public EntryVisitor {
+class ListVisitor : public fdb5::EntryVisitor {
   public:
-    ListVisitor(const Key &dbKey,
+    ListVisitor(const fdb5::Key &dbKey,
                 const fdb5::Schema &schema,
                 const eckit::option::CmdArgs &args) :
         dbKey_(dbKey),
@@ -36,22 +28,22 @@ class ListVisitor : public EntryVisitor {
     }
 
   private:
-    virtual void visit(const Index &index,
+    virtual void visit(const fdb5::Index &index,
                        const std::string &indexFingerprint,
                        const std::string &fieldFingerprint,
-                       const Field &field);
+                       const fdb5::Field &field);
 
-    const Key &dbKey_;
+    const fdb5::Key &dbKey_;
     const fdb5::Schema &schema_;
     const eckit::option::CmdArgs &args_;
 };
 
-void ListVisitor::visit(const Index &index,
+void ListVisitor::visit(const fdb5::Index &index,
                         const std::string &indexFingerprint,
                         const std::string &fieldFingerprint,
-                        const Field &field) {
+                        const fdb5::Field &field) {
 
-    Key key(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
+    fdb5::Key key(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
 
     std::cout << dbKey_ << index.key() << key;
 
@@ -68,11 +60,11 @@ void ListVisitor::visit(const Index &index,
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBList : public FDBInspect {
+class FDBList : public fdb5::FDBInspect {
 
   public: // methods
 
-    FDBList(int argc, char **argv) : FDBInspect(argc, argv) {
+    FDBList(int argc, char **argv) : fdb5::FDBInspect(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("location", "Also print the location of each field"));
 
     }
@@ -80,7 +72,7 @@ class FDBList : public FDBInspect {
   private: // methods
 
     virtual void usage(const std::string &tool);
-    virtual void process(const eckit::PathName &path, const option::CmdArgs &args);
+    virtual void process(const eckit::PathName &path, const eckit::option::CmdArgs &args);
 };
 
 void FDBList::usage(const std::string &tool) {
@@ -96,20 +88,20 @@ void FDBList::usage(const std::string &tool) {
     FDBInspect::usage(tool);
 }
 
-void FDBList::process(const eckit::PathName &path, const option::CmdArgs &args) {
+void FDBList::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
 
-    Log::info() << "Listing " << path << std::endl;
+    eckit::Log::info() << "Listing " << path << std::endl;
 
     fdb5::TocHandler handler(path);
-    Key key = handler.databaseKey();
-    Log::info() << "Database key " << key << std::endl;
+    fdb5::Key key = handler.databaseKey();
+    eckit::Log::info() << "Database key " << key << std::endl;
 
     fdb5::Schema schema(path / "schema");
 
-    std::vector<Index *> indexes = handler.loadIndexes();
+    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
     ListVisitor visitor(key, schema, args);
 
-    for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
         (*i)->entries(visitor);
     }
 

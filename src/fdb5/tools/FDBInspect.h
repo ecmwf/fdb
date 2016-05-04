@@ -34,7 +34,6 @@ public:
 
 protected: // members
 
-    std::vector<eckit::option::Option *> options_;
 
 private: // methods
 

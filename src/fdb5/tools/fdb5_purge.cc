@@ -8,27 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/option/SimpleOption.h"
 #include "eckit/option/CmdArgs.h"
-
 #include "fdb5/toc/PurgeVisitor.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBInspect.h"
 
-using namespace std;
-using namespace eckit;
-using namespace eckit::option;
-using namespace fdb5;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBPurge : public FDBInspect {
+class FDBPurge : public fdb5::FDBInspect {
 
   public: // methods
 
-    FDBPurge(int argc, char **argv) : FDBInspect(argc, argv), doit_(false) {
+    FDBPurge(int argc, char **argv) : fdb5::FDBInspect(argc, argv), doit_(false) {
 
-        options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
 
     }
 
@@ -54,20 +47,20 @@ void FDBPurge::init(const eckit::option::CmdArgs& args) {
 
 void FDBPurge::process(const eckit::PathName& path, const eckit::option::CmdArgs& args) {
 
-    Log::info() << "Scanning " << path << std::endl;
+    eckit::Log::info() << "Scanning " << path << std::endl;
 
     fdb5::TocHandler handler(path);
-    Log::info() << "Database key " << handler.databaseKey() << std::endl;
+    eckit::Log::info() << "Database key " << handler.databaseKey() << std::endl;
 
-    std::vector<Index *> indexes = handler.loadIndexes();
+    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
 
-    PurgeVisitor visitor(path);
+    fdb5::PurgeVisitor visitor(path);
 
-    for (std::vector<Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
         (*i)->entries(visitor);
     }
 
-    visitor.report(Log::info());
+    visitor.report(eckit::Log::info());
 
     if (doit_) {
         visitor.purge();
@@ -79,7 +72,7 @@ void FDBPurge::process(const eckit::PathName& path, const eckit::option::CmdArgs
 
 void FDBPurge::finish(const eckit::option::CmdArgs& args) {
     if (!doit_) {
-        Log::info() << std::endl << "Rerun command with --doit flag to delete unused files" << std::endl;
+        eckit::Log::info() << std::endl << "Rerun command with --doit flag to delete unused files" << std::endl;
     }
 }
 

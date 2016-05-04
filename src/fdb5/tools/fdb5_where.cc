@@ -11,19 +11,15 @@
 #include "eckit/option/CmdArgs.h"
 #include "fdb5/tools/FDBInspect.h"
 #include "fdb5/toc/TocDB.h"
-#include "eckit/parser/StringTools.h"
-#include "eckit/option/SimpleOption.h"
-
-using namespace std;
-using namespace eckit;
-using namespace fdb5;
+// #include "eckit/parser/StringTools.h"
+// #include "eckit/option/SimpleOption.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBWhere : public FDBInspect {
+class FDBWhere : public fdb5::FDBInspect {
 public: // methods
 
-    FDBWhere(int argc, char **argv) : FDBInspect(argc, argv) {
+    FDBWhere(int argc, char **argv) : fdb5::FDBInspect(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<std::string>("pattern", "Provide a pattern to match 'class:stream:expver', e.g. --pattern=od:.*:0001"));
 
     }
@@ -59,7 +55,7 @@ void FDBWhere::finish(const eckit::option::CmdArgs& args) {
         std::string pattern = ".*";
         args.get("pattern", pattern);
 
-        std::vector<eckit::PathName> roots = TocDB::roots(pattern);
+        std::vector<eckit::PathName> roots = fdb5::TocDB::roots(pattern);
         for (std::vector<eckit::PathName>::const_iterator i = roots.begin(); i != roots.end(); ++i) {
             std::cout << *i << std::endl;
         }

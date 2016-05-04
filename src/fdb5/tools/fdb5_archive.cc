@@ -8,31 +8,29 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/runtime/Tool.h"
-#include "eckit/runtime/Context.h"
 #include "eckit/io/DataHandle.h"
-
+#include "eckit/memory/ScopedPtr.h"
+#include "eckit/option/CmdArgs.h"
 #include "fdb5/grib/GribArchiver.h"
+#include "fdb5/tools/FDBAccess.h"
 
-using namespace eckit;
+class FDBArchive : public fdb5::FDBAccess {
+    virtual void execute(const eckit::option::CmdArgs &args);
 
-class FDBArchive : public eckit::Tool {
-    virtual void run();
 public:
-    FDBArchive(int argc, char **argv): Tool(argc, argv) {}
+    FDBArchive(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
 };
 
-void FDBArchive::run() {
-    Context &ctx = Context::instance();
+void FDBArchive::execute(const eckit::option::CmdArgs &args) {
 
     fdb5::GribArchiver archiver;
 
-    for (int i = 1; i < ctx.argc(); i++) {
-        eckit::PathName path(ctx.argv(i));
+    for (int i = 0; i < args.count(); i++) {
+        eckit::PathName path(args(i));
 
         std::cout << "Processing " << path << std::endl;
 
-        eckit::ScopedPtr<DataHandle> dh ( path.fileHandle() );
+        eckit::ScopedPtr<eckit::DataHandle> dh ( path.fileHandle() );
 
         archiver.archive( *dh );
     }

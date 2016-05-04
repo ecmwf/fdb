@@ -8,26 +8,24 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/runtime/Tool.h"
-#include "eckit/runtime/Context.h"
 
+#include "eckit/option/CmdArgs.h"
 #include "fdb5/grib/GribIndexer.h"
+#include "fdb5/tools/FDBAccess.h"
 
-using namespace eckit;
 
-class FDBIndex : public eckit::Tool {
-    virtual void run();
+class FDBIndex : public fdb5::FDBAccess {
+    virtual void execute(const eckit::option::CmdArgs &args);
 public:
-    FDBIndex(int argc, char **argv): Tool(argc, argv) {}
+    FDBIndex(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
 };
 
-void FDBIndex::run() {
-    Context &ctx = Context::instance();
+void FDBIndex::execute(const eckit::option::CmdArgs &args) {
 
     fdb5::GribIndexer indexer;
 
-    for (int i = 1; i < ctx.argc(); i++) {
-        eckit::PathName path(ctx.argv(i));
+    for (int i = 0; i < args.count(); i++) {
+        eckit::PathName path(args(i));
 
         std::cout << "Processing " << path << std::endl;
 

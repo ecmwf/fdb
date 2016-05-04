@@ -8,57 +8,28 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/runtime/Tool.h"
-#include "eckit/runtime/Context.h"
 #include "eckit/io/FileHandle.h"
-
-#include "marslib/MarsTask.h"
-
+#include "eckit/memory/ScopedPtr.h"
+#include "eckit/option/CmdArgs.h"
 #include "fdb5/database/Retriever.h"
 #include "fdb5/grib/GribDecoder.h"
+#include "fdb5/tools/FDBAccess.h"
+#include "marslib/MarsTask.h"
 
-using namespace std;
-using namespace eckit;
-
-class FDBExtract : public eckit::Tool {
-    virtual void run();
+class FDBExtract : public fdb5::FDBAccess {
+    virtual void execute(const eckit::option::CmdArgs &args);
+    virtual int numberOfPositionalArguments() const { return 2; }
 public:
-    FDBExtract(int argc, char **argv): Tool(argc, argv) {}
+    FDBExtract(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
 };
 
-void FDBExtract::run() {
-    Context &ctx = Context::instance();
+void FDBExtract::execute(const eckit::option::CmdArgs &args) {
 
-    ASSERT( ctx.argc() == 3 );
 
     fdb5::GribDecoder decoder;
 
-    MarsRequest r = decoder.gribToRequest(ctx.argv(1));
+    MarsRequest r = decoder.gribToRequest(args(0));
     std::cout << r << std::endl;
-
-    // MarsRequest r("retrieve");
-    // r.setValue("class","od");
-    // r.setValue("stream","oper");
-    // r.setValue("expver","0001");
-    // r.setValue("type","an");
-    // r.setValue("levtype","pl");
-    // r.setValue("date","20160412");
-    // r.setValue("time","1200");
-    // r.setValue("domain","g");
-
-    // vector<string> params;
-    // params.push_back( "131" );
-    // params.push_back( "138" );
-    // // params.push_back( "129" );
-    // r.setValues("param",params);
-
-    // r.setValue("step","0");
-
-    // vector<string> levels;
-    // levels.push_back( "850" );
-    // levels.push_back( "400" );
-    // levels.push_back( "300" );
-    // r.setValues("levelist",levels);
 
     MarsRequest e("environ");
 
@@ -68,7 +39,7 @@ void FDBExtract::run() {
 
     eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve() );
 
-    eckit::FileHandle out( ctx.argv(2));
+    eckit::FileHandle out( args(1));
 
     dh->saveInto(out);
 }

@@ -8,32 +8,33 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/runtime/Tool.h"
-#include "eckit/runtime/Context.h"
 
 #include "fdb5/rules/Schema.h"
 #include "fdb5/config/MasterConfig.h"
+#include "eckit/option/CmdArgs.h"
+#include "fdb5/tools/FDBAccess.h"
 
-using namespace std;
-using namespace eckit;
-using namespace fdb5;
 
-class FdbSchema : public eckit::Tool {
-    virtual void run();
+class FdbSchema : public fdb5::FDBAccess {
+    virtual void execute(const eckit::option::CmdArgs &args);
 public:
-    FdbSchema(int argc, char **argv): Tool(argc, argv) {}
+    FdbSchema(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
 };
 
-void FdbSchema::run() {
-    Context &ctx = Context::instance();
+void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
 
-    // ASSERT( ctx.argc() == 2 );
 
     fdb5::Schema schema;
 
-    schema.load(ctx.argc() > 1 ? ctx.argv(1) : MasterConfig::instance().schemaPath());
+    if (args.count() == 0) {
+        schema.load(fdb5::MasterConfig::instance().schemaPath());
+        schema.dump(std::cout);
+    }
 
-    schema.dump(std::cout);
+    for (size_t i = 0; i < args.count(); i++) {
+        schema.load(args(i));
+        schema.dump(std::cout);
+    }
 }
 
 

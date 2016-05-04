@@ -50,7 +50,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs& args) {
     }
 
     for (size_t i = 0; i < args.count(); ++i) {
-        process( databasePath(args.args(i)) , args);
+        process( databasePath(args(i)) , args);
     }
 
 }

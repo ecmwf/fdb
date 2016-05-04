@@ -8,32 +8,28 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/runtime/Tool.h"
-#include "eckit/runtime/Context.h"
 #include "eckit/io/FileHandle.h"
-
+#include "eckit/memory/ScopedPtr.h"
+#include "eckit/option/CmdArgs.h"
+#include "fdb5/database/Retriever.h"
+#include "fdb5/tools/FDBAccess.h"
+#include "fdb5/tools/RequestParser.h"
 #include "marslib/MarsTask.h"
 
-#include "fdb5/database/Retriever.h"
-#include "fdb5/tools/RequestParser.h"
 
-using namespace std;
-using namespace eckit;
-
-class FDBExtract : public eckit::Tool {
-    virtual void run();
+class FDBRetrieve : public fdb5::FDBAccess {
+    virtual void execute(const eckit::option::CmdArgs &args);
+    virtual int numberOfPositionalArguments() const { return 2; }
 public:
-    FDBExtract(int argc, char **argv): Tool(argc, argv) {}
+    FDBRetrieve(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
 };
 
-void FDBExtract::run() {
-    Context &ctx = Context::instance();
+void FDBRetrieve::execute(const eckit::option::CmdArgs &args) {
 
-    ASSERT( ctx.argc() == 3 );
 
-    ifstream in(ctx.argv(1).c_str());
+    std::ifstream in(args(0).c_str());
     if (in.bad()) {
-        throw eckit::ReadError(ctx.argv(1));
+        throw eckit::ReadError(args(0));
     }
     fdb5::RequestParser parser(in);
 
@@ -49,14 +45,14 @@ void FDBExtract::run() {
 
     eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve() );
 
-    eckit::FileHandle out( ctx.argv(2));
+    eckit::FileHandle out( args(1));
 
     dh->saveInto(out);
 }
 
 
 int main(int argc, char **argv) {
-    FDBExtract app(argc, argv);
+    FDBRetrieve app(argc, argv);
     return app.start();
 }
 

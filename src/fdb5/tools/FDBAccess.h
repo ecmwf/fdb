@@ -34,14 +34,9 @@ public:
 
 protected: // members
 
-    std::vector<eckit::option::Option *> options_;
 
 private: // methods
 
-    eckit::PathName databasePath(const std::string& arg) const;
-
-    virtual void execute(const eckit::option::CmdArgs& args);
-    virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
 
 };
 
