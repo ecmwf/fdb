@@ -30,7 +30,7 @@ protected: // methods
 
 
 public:
-    virtual void usage(const std::string &tool);
+    virtual void usage(const std::string &tool) = 0;
 
 protected: // members
 

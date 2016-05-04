@@ -18,10 +18,18 @@
 
 class FDBExtract : public fdb5::FDBAccess {
     virtual void execute(const eckit::option::CmdArgs &args);
+    virtual void usage(const std::string &tool);
     virtual int numberOfPositionalArguments() const { return 2; }
 public:
     FDBExtract(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
 };
+
+void FDBExtract::usage(const std::string &tool) {
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " sample.grib target.grib" << std::endl;
+    fdb5::FDBAccess::usage(tool);
+}
+
 
 void FDBExtract::execute(const eckit::option::CmdArgs &args) {
 

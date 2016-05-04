@@ -16,14 +16,26 @@
 
 class FDBArchive : public fdb5::FDBAccess {
     virtual void execute(const eckit::option::CmdArgs &args);
+    virtual void usage(const std::string &tool);
 
 public:
     FDBArchive(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
 };
 
+void FDBArchive::usage(const std::string &tool) {
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " gribfile1 [gribfile2] ..." << std::endl;
+    fdb5::FDBAccess::usage(tool);
+}
+
 void FDBArchive::execute(const eckit::option::CmdArgs &args) {
 
     fdb5::GribArchiver archiver;
+
+    if(args.count() == 0) {
+        usage(args.tool());
+        return;
+    }
 
     for (int i = 0; i < args.count(); i++) {
         eckit::PathName path(args(i));

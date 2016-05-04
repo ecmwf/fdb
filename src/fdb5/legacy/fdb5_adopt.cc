@@ -8,42 +8,45 @@
  * does it submit to any jurisdiction.
  */
 
-#include <unistd.h>
-
-#include "eckit/eckit.h"
-
-#include "eckit/io/Buffer.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/config/Resource.h"
-#include "eckit/runtime/Tool.h"
-#include "eckit/runtime/Context.h"
-
+#include "eckit/option/CmdArgs.h"
 #include "fdb5/legacy/FDBIndexScanner.h"
+#include "fdb5/tools/FDBAccess.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBIndex : public eckit::Tool {
+class FDBAdopt : public fdb5::FDBAccess {
 
-private:
-
-    virtual void run();
+    virtual void execute(const eckit::option::CmdArgs &args);
+    virtual void usage(const std::string &tool);
 
 public:
 
-    FDBIndex(int argc, char **argv) :
-        eckit::Tool(argc, argv) {
+    FDBAdopt(int argc, char **argv) :
+        fdb5::FDBAccess(argc, argv) {
+        options_.push_back(new eckit::option::SimpleOption<std::string>("pattern", "Pattern matching the legacy fdb directory, e.g. /*[pcf][fc]:0000:*."));
+
     }
 
 };
 
-void FDBIndex::run() {
-    eckit::Context &ctx = eckit::Context::instance();
+void FDBAdopt::usage(const std::string &tool) {
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << "[--pattern=/*fc:0000:*.] gribfile1 [gribfile2] ..." << std::endl;
+    fdb5::FDBAccess::usage(tool);
+}
 
-    static std::string pattern = eckit::Resource<std::string>("fdbPattern", "/:*.");
-    //  e.g. "/*[pcf][fc]:0000:*."
+void FDBAdopt::execute(const eckit::option::CmdArgs &args) {
 
-    for (int i = 1; i < ctx.argc(); i++) {
-        eckit::PathName path(ctx.argv(i));
+    if(args.count() == 0) {
+        usage(args.tool());
+        return;
+    }
+
+    std::string pattern = "/:*.";
+    args.get("pattern", pattern);
+
+    for (size_t i = 0; i < args.count(); i++) {
+        eckit::PathName path(args(i));
 
         eckit::Log::info() << "Scanning FDB db " << path << std::endl;
 
@@ -61,7 +64,7 @@ void FDBIndex::run() {
 //----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv) {
-    FDBIndex app(argc, argv);
+    FDBAdopt app(argc, argv);
     return app.start();
 }
 

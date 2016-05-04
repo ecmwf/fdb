@@ -85,7 +85,7 @@ void FDBList::usage(const std::string &tool) {
                        << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g will list this directory" << std::endl
                        << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200,domain=g will list the same directory"
                        << std::endl;
-    FDBInspect::usage(tool);
+    fdb5::FDBInspect::usage(tool);
 }
 
 void FDBList::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {

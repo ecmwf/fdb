@@ -17,9 +17,16 @@
 
 class FdbSchema : public fdb5::FDBAccess {
     virtual void execute(const eckit::option::CmdArgs &args);
+    virtual void usage(const std::string &tool);
 public:
     FdbSchema(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
 };
+
+void FdbSchema::usage(const std::string &tool) {
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " [shema] ..." << std::endl;
+    fdb5::FDBAccess::usage(tool);
+}
 
 void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
 

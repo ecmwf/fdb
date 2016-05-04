@@ -16,13 +16,25 @@
 
 class FDBIndex : public fdb5::FDBAccess {
     virtual void execute(const eckit::option::CmdArgs &args);
+    virtual void usage(const std::string &tool);
 public:
     FDBIndex(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
 };
 
+void FDBIndex::usage(const std::string &tool) {
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " gribfile1 [gribfile2] ..." << std::endl;
+    fdb5::FDBAccess::usage(tool);
+}
+
 void FDBIndex::execute(const eckit::option::CmdArgs &args) {
 
     fdb5::GribIndexer indexer;
+
+    if(args.count() == 0) {
+        usage(args.tool());
+        return;
+    }
 
     for (int i = 0; i < args.count(); i++) {
         eckit::PathName path(args(i));
