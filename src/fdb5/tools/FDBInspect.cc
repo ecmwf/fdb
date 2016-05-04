@@ -26,83 +26,66 @@ namespace fdb5 {
 
 FDBInspect::FDBInspect(int argc, char **argv):
     FDBTool(argc, argv) {
-
-    options_.push_back(new eckit::option::SimpleOption<std::string>("match", "Provide a partial request,  e.g. --match=expver=0001"));
-
 }
 
 
 void FDBInspect::execute(const eckit::option::CmdArgs& args) {
 
-
-    if (args.count() == 0) {
-
-        std::string match = "";
-        if (args.get("match", match)) {
-
-            std::vector<eckit::PathName> dbs = TocDB::databases(Key(match));
-            for (std::vector<eckit::PathName>::const_iterator i = dbs.begin(); i != dbs.end(); ++i) {
-                process(databasePath(*i), args);
-            }
-        } else {
-            usage(args.tool());
-        }
-    }
+    std::vector<eckit::PathName> paths;
 
     for (size_t i = 0; i < args.count(); ++i) {
-        process( databasePath(args(i)) , args);
+
+        eckit::PathName path(args(i));
+        if (path.exists()) {
+            paths.push_back(path);
+            continue;
+        }
+
+        try {
+            Key dbKey(args(i));
+            std::vector<eckit::PathName> dbs = TocDB::databases(dbKey);
+            for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
+                paths.push_back(*j);
+            }
+
+        } catch (eckit::Exception& e) {
+            paths.push_back(path);
+        }
+
     }
 
+    for (std::vector<eckit::PathName>::const_iterator j = paths.begin(); j != paths.end(); ++j) {
+
+        eckit::PathName path = *j;
+
+        if (path.exists()) {
+
+            if (!path.isDir()) {
+                path = path.dirName();
+            }
+
+            path = path.realName();
+
+        }
+
+        process( path , args);
+
+    }
 }
 
 
-void FDBInspect::usage(const std::string &tool) const {
+void FDBInspect::usage(const std::string & tool) const {
+     eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " [options] [path1|request1] [path2|request2] ..." << std::endl
+                       << std::endl
+                       << "Examples:" << std::endl
+                       << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g will list this directory" << std::endl
+                       << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200,domain=g"
+                       << std::endl;
     FDBTool::usage(tool);
 }
 
 
-eckit::PathName FDBInspect::databasePath(const std::string &arg) const {
-
-    eckit::PathName path(arg);
-    if (!path.exists()) {
-        const Schema& schema = MasterConfig::instance().schema();
-
-        std::ostringstream oss;
-        eckit::Date date(0);
-
-        date -= 1; // Yesterday
-
-        oss << "class=od,expver=0001,domain=g,stream=oper,time=1200,date=";
-        oss << date.yyyymmdd();
-        oss << "," << arg;
-
-        try {
-            Key dbKey(oss.str());
-            Key result;
-
-            if (schema.expandFirstLevel(dbKey, result)) {
-                path = TocDB::directory(result);
-                // Log::info() << arg << " => " << dbKey << " => " << result << " => " << path << std::endl;
-            }
-        } catch (eckit::Exception& e) {
-
-        }
-    }
-
-    if (path.exists()) {
-
-        if (!path.isDir()) {
-            path = path.dirName();
-        }
-
-        path = path.realName();
-    }
-
-
-
-    return path;
-
-}
 
 
 //----------------------------------------------------------------------------------------------------------------------

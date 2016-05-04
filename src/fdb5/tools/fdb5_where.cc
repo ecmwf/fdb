@@ -17,14 +17,14 @@
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBWhere : public fdb5::FDBInspect {
-public: // methods
+  public: // methods
 
     FDBWhere(int argc, char **argv) : fdb5::FDBInspect(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<std::string>("pattern", "Provide a pattern to match 'class:stream:expver', e.g. --pattern=od:.*:0001"));
 
     }
 
-private: // methods
+  private: // methods
 
     virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return 0; }
@@ -39,7 +39,6 @@ void FDBWhere::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << std::endl
                        << "       " << tool << "--pattern pattern" << std::endl
-                       << "       " << tool << "--match k1=v1,k2=v2"  << std::endl
                        << "       " << tool << "path1|request1 [path2|request2] ..." << std::endl;
     FDBInspect::usage(tool);
 }
