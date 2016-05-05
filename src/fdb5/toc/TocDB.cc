@@ -196,7 +196,7 @@ std::vector<eckit::PathName> TocDB::databases(const Key &key) {
 
 
             Regex re("^" + (*i).valuesToString() + "$");
-            std::cout << re << std::endl;
+            // std::cout << re << std::endl;
 
 
             for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {

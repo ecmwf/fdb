@@ -40,7 +40,7 @@ TocHandler::TocHandler(const eckit::PathName &directory) :
     directory_(directory),
     filePath_(directory / "toc"),
     fd_(-1) {
-    eckit::Log::info() << "directory " << directory_ << std::endl;
+    // eckit::Log::info() << "directory " << directory_ << std::endl;
 
 }
 
@@ -69,7 +69,7 @@ void TocHandler::openForRead() {
 
     ASSERT(fd_ == -1);
 
-    eckit::Log::info() << "Opening for read TOC " << filePath_ << std::endl;
+    // eckit::Log::info() << "Opening for read TOC " << filePath_ << std::endl;
 
     int iomode = O_RDONLY;
     //#ifdef __linux__
@@ -304,7 +304,7 @@ std::vector<Index *> TocHandler::loadIndexes() {
 
     std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
 
-    eckit::Log::info() << "TOC indexes " << indexes.size() << std::endl;
+    // eckit::Log::info() << "TOC indexes " << indexes.size() << std::endl;
 
     return indexes;
 
