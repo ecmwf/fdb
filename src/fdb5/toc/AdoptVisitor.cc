@@ -17,6 +17,8 @@ using namespace eckit;
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 AdoptVisitor::AdoptVisitor(Archiver &owner, const Key &field, const PathName &path, Offset offset, Length length) :
     BaseArchiveVisitor(owner, field),
     path_(path),
