@@ -29,7 +29,7 @@ FDBInspect::FDBInspect(int argc, char **argv):
 }
 
 
-void FDBInspect::execute(const eckit::option::CmdArgs& args) {
+void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
     std::vector<eckit::PathName> paths;
 
@@ -49,11 +49,11 @@ void FDBInspect::execute(const eckit::option::CmdArgs& args) {
                 paths.push_back(*j);
             }
 
-            if(dbs.size() == 0) {
+            if (dbs.size() == 0) {
                 eckit::Log::warning() << "No FDB matches " << dbKey << std::endl;
             }
 
-        } catch (eckit::Exception& e) {
+        } catch (eckit::Exception &e) {
             eckit::Log::warning() << e.what() << std::endl;
             paths.push_back(path);
         }
@@ -81,13 +81,19 @@ void FDBInspect::execute(const eckit::option::CmdArgs& args) {
 }
 
 
-void FDBInspect::usage(const std::string & tool) const {
-     eckit::Log::info() << std::endl
+void FDBInspect::usage(const std::string &tool) const {
+    eckit::Log::info() << std::endl
                        << "Usage: " << tool << " [options] [path1|request1] [path2|request2] ..." << std::endl
                        << std::endl
+                       << std::endl
                        << "Examples:" << std::endl
-                       << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g will list this directory" << std::endl
+                       << "=========" << std::endl << std::endl
+                       << tool << " ."
+                       << std::endl
+                       << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g"
+                       << std::endl
                        << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200,domain=g"
+                       << std::endl
                        << std::endl;
     FDBTool::usage(tool);
 }
