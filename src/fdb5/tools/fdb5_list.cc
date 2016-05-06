@@ -73,18 +73,11 @@ class FDBList : public fdb5::FDBInspect {
 
     virtual void usage(const std::string &tool) const;
     virtual void process(const eckit::PathName &path, const eckit::option::CmdArgs &args);
+    virtual int minimumPositionalArguments() const { return 1; }
+
 };
 
 void FDBList::usage(const std::string &tool) const {
-
-    eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " [--location] --match=k1=v1,k2=v2..." << std::endl
-                       << "       " << tool << " [--location] [path1|request1] [path2|request2] ..." << std::endl
-                       << "Example:" << std::endl
-                       << tool << " --match=expver=0069 will list all databases matching the expver provided" << std::endl
-                       << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g will list this directory" << std::endl
-                       << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200,domain=g will list the same directory"
-                       << std::endl;
     fdb5::FDBInspect::usage(tool);
 }
 

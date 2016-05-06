@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeExpver.h
+/// @file   TypeTime.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_TypeExpver_H
-#define fdb5_TypeExpver_H
+#ifndef fdb5_TypeTime_H
+#define fdb5_TypeTime_H
 
 #include "fdb5/types/Type.h"
 
@@ -22,13 +22,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeExpver : public Type {
+class TypeTime : public Type {
 
 public: // methods
 
-    TypeExpver(const std::string &name, const std::string &type);
+    TypeTime(const std::string &name, const std::string &type);
 
-    virtual ~TypeExpver();
+    virtual ~TypeTime();
 
     virtual std::string tidy(const std::string &keyword,
                              const std::string &value) const ;

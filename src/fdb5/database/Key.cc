@@ -53,13 +53,13 @@ Key::Key(const std::string &s) :
         ASSERT(kv.size() == 2);
 
         const Type &t = registry.lookupType(kv[0]);
-        std::ostringstream oss;
-        t.toKey(oss, kv[0], kv[1]);
+
+        std::string v = t.tidy(kv[0], kv[1]);
 
         if (find(kv[0]) == end()) {
-            push(kv[0], oss.str());
+            push(kv[0], v);
         } else {
-            set(kv[0], oss.str());
+            set(kv[0], v);
         }
     }
 

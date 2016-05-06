@@ -14,36 +14,38 @@
 #include "marslib/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
-#include "fdb5/types/TypeExpver.h"
+#include "fdb5/types/TypeTime.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeExpver::TypeExpver(const std::string &name, const std::string &type) :
+TypeTime::TypeTime(const std::string &name, const std::string &type) :
     Type(name, type) {
 }
 
-TypeExpver::~TypeExpver() {
+TypeTime::~TypeTime() {
 }
 
+std::string TypeTime::tidy(const std::string &keyword,
+                           const std::string &value) const {
+    eckit::Translator<std::string, long> t;
 
-std::string TypeExpver::tidy(const std::string &keyword,
-                             const std::string &value) const {
+    long n = t(value);
+    if (n < 100) {
+        n *= 100;
+    }
 
-    std::stringstream oss;
-    oss << std::setfill('0') << std::setw(4) << value;
+    std::ostringstream oss;
+    oss << std::setfill('0') << std::setw(4) << n;
     return oss.str();
-
 }
 
-
-
-void TypeExpver::print(std::ostream &out) const {
-    out << "TypeExpver[name=" << name_ << "]";
+void TypeTime::print(std::ostream &out) const {
+    out << "TypeTime[name=" << name_ << "]";
 }
 
-static TypeBuilder<TypeExpver> type("Expver");
+static TypeBuilder<TypeTime> type("Time");
 
 //----------------------------------------------------------------------------------------------------------------------
 

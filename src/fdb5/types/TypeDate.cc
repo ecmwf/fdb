@@ -28,7 +28,7 @@ TypeDate::~TypeDate() {
 }
 
 
-void TypeDate::toKey(std::ostream &out,
+std::string TypeDate::tidy(
                      const std::string &keyword,
                      const std::string &value) const {
     if (!value.empty() && (value[0] == '0' || value[0] == '-')) {
@@ -37,11 +37,12 @@ void TypeDate::toKey(std::ostream &out,
         if (n <= 0) {
             eckit::Date now(0);
             now += n;
-            out << now.yyyymmdd();
-            return;
+
+            eckit::Translator<long, std::string> t;
+            return t(now.yyyymmdd());
         }
     }
-    out << value;
+    return value;
 
 }
 

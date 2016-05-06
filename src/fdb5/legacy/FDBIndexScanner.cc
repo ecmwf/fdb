@@ -178,7 +178,7 @@ void FDBIndexScanner::process(FILE *f) {
                 translator.set(key, v[0], v[1]);
             }
 
-            Log::info() << "Indexed field @ " << datapath << " offset=" << offset << " lenght=" << length << std::endl;
+//            Log::info() << "Indexed field @ " << datapath << " offset=" << offset << " lenght=" << length << std::endl;
 
             AdoptVisitor visitor(*this, key, datapath, offset, length);
 

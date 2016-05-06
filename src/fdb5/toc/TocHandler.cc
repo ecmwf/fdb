@@ -304,7 +304,7 @@ std::vector<Index *> TocHandler::loadIndexes() {
 
     std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
 
-    eckit::Log::info() << "TOC indexes " << indexes.size() << std::endl;
+    // eckit::Log::info() << "TOC indexes " << indexes.size() << std::endl;
 
     return indexes;
 
