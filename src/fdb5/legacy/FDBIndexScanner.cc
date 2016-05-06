@@ -202,6 +202,10 @@ void FDBIndexScanner::process(FILE *f) {
                 Key grib;
                 decoder.gribToKey(file, grib);
 
+                if(checkValues_) { // FTM we know that param is not comparable in the old FDB
+                    key.set("param", grib.get("param"));
+                }
+
                 grib.validateKeysOf(key, checkValues_);
             }
 
