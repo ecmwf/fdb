@@ -28,7 +28,7 @@ class IndexCache;
 class FDBIndexScanner : public Archiver {
 public:
 
-    FDBIndexScanner(const eckit::PathName &path, bool compareToGrib );
+    FDBIndexScanner(const eckit::PathName &path, bool compareToGrib, bool checkValues );
 
     ~FDBIndexScanner();
 
@@ -41,6 +41,7 @@ private:
     eckit::PathName path_;
 
     bool compareToGrib_;
+    bool checkValues_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

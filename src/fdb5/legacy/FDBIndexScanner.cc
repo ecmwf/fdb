@@ -31,9 +31,11 @@ namespace legacy {
 
 //-----------------------------------------------------------------------------
 
-FDBIndexScanner::FDBIndexScanner(const PathName &path, bool compareToGrib):
+FDBIndexScanner::FDBIndexScanner(const PathName &path, bool compareToGrib, bool checkValues):
     path_(path.realName()),
-    compareToGrib_(compareToGrib) {
+    compareToGrib_(compareToGrib),
+    checkValues_(checkValues)
+{
     Log::info() << "FDBIndexScanner( path = " << path_ << ")" << std::endl;
 }
 
@@ -193,7 +195,7 @@ void FDBIndexScanner::process(FILE *f) {
                 Key grib;
                 decoder.gribToKey(file, grib);
 
-                grib.validateKeysOf(key, true);
+                grib.validateKeysOf(key, checkValues_);
             }
 
             AdoptVisitor visitor(*this, key, datapath, offset, length);
