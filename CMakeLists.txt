@@ -50,7 +50,18 @@ endif()
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
 
-ecbuild_use_package( PROJECT grib_api VERSION 1.10  REQUIRED )
+ecbuild_add_option( FEATURE ECCODES DESCRIPTION "" DEFAULT OFF )
+
+if( HAVE_ECCODES )
+  ecbuild_use_package( PROJECT eccodes VERSION 0.14 REQUIRED )
+  set( GRIB_API_INCLUDE_DIRS ${ECCODES_INCLUDE_DIRS} )
+  set( GRIB_API_LIBRARIES    ${ECCODES_LIBRARIES} )
+  set( GRIB_API_DEFINITIONS  ${ECCODES_DEFINITIONS} )
+  set( grib_api_BASE_DIR     ${eccodes_BASE_DIR} )
+else()
+  ecbuild_use_package( PROJECT grib_api VERSION 1.10 REQUIRED )
+endif()
+
 ecbuild_use_package( PROJECT eckit    VERSION 0.12  REQUIRED )
 
 ### ODB support
