@@ -39,6 +39,8 @@ void FDBIndex::execute(const eckit::option::CmdArgs &args) {
         std::cout << "Processing " << path << std::endl;
 
         indexer.index(path);
+
+        indexer.flush();
     }
 }
 
