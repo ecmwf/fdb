@@ -76,41 +76,16 @@ void FDBIndexScanner::execute() {
 void FDBIndexScanner::process(FILE *f) {
     LegacyTranslator translator;
 
+    Tokenizer p(":", true);
+
     std::string ignore;
     std::string s;
 
-    PathName dirpath = path_.dirName();
-
-    Log::info() << path_ << std::endl;
-    //     Log::info() << path_.baseName() << std::endl;
-    //     Log::info() << std::string(path_.baseName()) << std::endl;
-
-    // /ma_fdb/:od:oper:g:0001:20120617::/:fc:0000::::::::.
-
-    std::string indexFileName(path_.baseName());
-    Log::info() << "Index filename [" << indexFileName << "]" << std::endl;
-
-    Tokenizer p(":", true);
-
-    StringList idx;
-    p(indexFileName, idx); // first elem will be always empty
-
-    Log::info() << "Parsed index (size=" << idx.size() << ") " << idx << std::endl;
-
-    ASSERT(idx.size() >= 3);
-
     Key r;
 
-    translator.set(r, "type",  idx[1]);
-    translator.set(r, "time",  idx[2]);
-    translator.set(r, "step", "0");
+    PathName dirpath = path_.dirName();
 
-    //    translator.set(r, "number", "0");
-
-
-    if (idx.size() > 5 && !idx[5].empty()) {
-        translator.set(r, "iteration", idx[5]);
-    }
+    // crack the db entry
 
     StringList db;
     p(dirpath.baseName(), db);
@@ -124,6 +99,38 @@ void FDBIndexScanner::process(FILE *f) {
     translator.set(r, "domain", db[3]);
     translator.set(r, "expver", db[4]);
     translator.set(r, "date",   db[5]);
+
+
+    Log::info() << path_ << std::endl;
+
+    //     Log::info() << path_.baseName() << std::endl;
+    //     Log::info() << std::string(path_.baseName()) << std::endl;
+
+    // /ma_fdb/:od:oper:g:0001:20120617::/:fc:0000::::::::.
+
+    // crack the index filename
+
+    std::string indexFileName(path_.baseName());
+    Log::info() << "Index filename [" << indexFileName << "]" << std::endl;
+
+    StringList idx;
+    p(indexFileName, idx); // first elem will be always empty
+
+    Log::info() << "Parsed index (size=" << idx.size() << ") " << idx << std::endl;
+
+    ASSERT(idx.size() >= 3);
+
+    translator.set(r, "type",  idx[1]);
+    translator.set(r, "time",  idx[2]);
+    translator.set(r, "step", "0");
+
+    translator.set(r, "number", idx[3]);
+
+    translator.set(r, "iteration", idx[5]);
+
+    // if r["stream"]
+    translator.set(r, "anoffset", idx[8]);
+
 
     try {
 
