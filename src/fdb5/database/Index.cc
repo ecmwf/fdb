@@ -38,11 +38,11 @@ Index::Index(const Key &key, const eckit::PathName &path, off_t offset, Index::M
     mode_(mode),
     path_(path),
     offset_(offset),
+    type_(type),
     files_(path.dirName()),
     axes_(),
     key_(key),
-    prefix_(key.valuesToString()),
-    type_(type) {
+    prefix_(key.valuesToString()) {
 }
 
 Index::~Index() {
