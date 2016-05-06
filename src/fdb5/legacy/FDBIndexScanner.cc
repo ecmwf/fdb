@@ -122,7 +122,6 @@ void FDBIndexScanner::process(FILE *f) {
 
     translator.set(r, "type",  idx[1]);
     translator.set(r, "time",  idx[2]);
-    translator.set(r, "step", "0");
 
     translator.set(r, "number", idx[3]);
 
@@ -131,6 +130,7 @@ void FDBIndexScanner::process(FILE *f) {
     // if r["stream"]
     translator.set(r, "anoffset", idx[8]);
 
+    translator.set(r, "step", "0"); // in case the step is not in the index (eg. type=an)
 
     try {
 
