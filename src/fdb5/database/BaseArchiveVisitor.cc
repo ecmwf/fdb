@@ -41,24 +41,7 @@ bool BaseArchiveVisitor::selectIndex(const Key &key, const Key &full) {
 
 void BaseArchiveVisitor::checkMissingKeys(const Key &full) {
     if (checkMissingKeysOnWrite_) {
-        eckit::StringSet missing;
-
-        for (Key::const_iterator j = field_.begin(); j != field_.end(); ++j) {
-            if (full.find((*j).first) == full.end()) {
-                missing.insert((*j).first);
-            }
-        }
-
-        if (missing.size()) {
-            std::ostringstream oss;
-            oss << "Keys not used in archiving: " << missing;
-
-            if (rule()) {
-                oss << " " << *rule();
-            }
-
-            throw eckit::SeriousBug(oss.str());
-        }
+        field_.validateKeysOf(full);
     }
 }
 

@@ -25,9 +25,8 @@ public:
     FDBAdopt(int argc, char **argv) :
         fdb5::FDBAccess(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<std::string>("pattern", "Pattern matching the legacy fdb directory, e.g. /*[pcf][fc]:0000:*."));
-
+        options_.push_back(new eckit::option::SimpleOption<bool>("check", "Compare to metadata in GRIB message with lsfdb"));
     }
-
 };
 
 void FDBAdopt::usage(const std::string &tool) const {
@@ -38,9 +37,11 @@ void FDBAdopt::usage(const std::string &tool) const {
 
 void FDBAdopt::execute(const eckit::option::CmdArgs &args) {
 
-
     std::string pattern = "/:*.";
     args.get("pattern", pattern);
+
+    bool compareToGrib = false;
+    args.get("check", compareToGrib);
 
     for (size_t i = 0; i < args.count(); i++) {
         eckit::PathName path(args(i));
@@ -52,7 +53,7 @@ void FDBAdopt::execute(const eckit::option::CmdArgs &args) {
         eckit::PathName::match(path / pattern, indexes, true); // match checks that path is a directory
 
         for (std::vector<eckit::PathName>::const_iterator j = indexes.begin(); j != indexes.end(); ++j) {
-            fdb5::legacy::FDBIndexScanner scanner(*j);
+            fdb5::legacy::FDBIndexScanner scanner(*j, compareToGrib);
             scanner.execute();
         }
     }

@@ -14,11 +14,15 @@
 #include "eckit/io/StdPipe.h"
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/utils/Translator.h"
+#include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/toc/AdoptVisitor.h"
+#include "fdb5/grib/GribDecoder.h"
 
 #include "fdb5/legacy/FDBIndexScanner.h"
 #include "fdb5/legacy/LegacyTranslator.h"
+
+#include "marslib/EmosFile.h"
 
 using namespace eckit;
 
@@ -27,8 +31,9 @@ namespace legacy {
 
 //-----------------------------------------------------------------------------
 
-FDBIndexScanner::FDBIndexScanner(const PathName &path):
-    path_(path.realName()) {
+FDBIndexScanner::FDBIndexScanner(const PathName &path, bool compareToGrib):
+    path_(path.realName()),
+    compareToGrib_(compareToGrib) {
     Log::info() << "FDBIndexScanner( path = " << path_ << ")" << std::endl;
 }
 
@@ -179,6 +184,17 @@ void FDBIndexScanner::process(FILE *f) {
             }
 
 //            Log::info() << "Indexed field @ " << datapath << " offset=" << offset << " lenght=" << length << std::endl;
+
+
+            if(compareToGrib_) {
+                eckit::ScopedPtr<DataHandle> h(PathName(datapath).partHandle(offset, length));
+                EmosFile file(*h);
+                GribDecoder decoder;
+                Key grib;
+                decoder.gribToKey(file, grib);
+
+                grib.validateKeysOf(key, true);
+            }
 
             AdoptVisitor visitor(*this, key, datapath, offset, length);
 

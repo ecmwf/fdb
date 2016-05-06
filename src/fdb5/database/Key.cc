@@ -198,6 +198,42 @@ std::string Key::valuesToString() const {
     return oss.str();
 }
 
+void Key::validateKeysOf(const Key& other, bool checkAlsoValues) const
+{
+    eckit::StringSet missing;
+    eckit::StringSet mismatch;
+
+    for (Key::const_iterator j = begin(); j != end(); ++j) {
+        Key::const_iterator k = other.find((*j).first);
+        if (k == other.end()) {
+            missing.insert((*j).first);
+        }
+        else {
+            if(checkAlsoValues && (k->second != j->second)) {
+                mismatch.insert((*j).first + "=" + j->second + " and " + k->second);
+            }
+        }
+    }
+
+    if (missing.size() || mismatch.size()) {
+        std::ostringstream oss;
+
+        if(missing.size()) {
+            oss << "Keys not used: " << missing << " ";
+        }
+
+        if(mismatch.size()) {
+            oss << "Values mismatch: " << mismatch << " ";
+        }
+
+        if (rule()) {
+            oss << *rule();
+        }
+
+        throw eckit::SeriousBug(oss.str());
+    }
+}
+
 void Key::print(std::ostream &out) const {
     if (names_.size() == keys_.size()) {
         const char *sep = "";
