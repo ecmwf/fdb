@@ -219,15 +219,17 @@ void Key::validateKeysOf(const Key& other, bool checkAlsoValues) const
         std::ostringstream oss;
 
         if(missing.size()) {
-            oss << "Keys not used: " << missing << " ";
+            oss << "Keywords not used: " << missing << " ";
         }
 
         if(mismatch.size()) {
             oss << "Values mismatch: " << mismatch << " ";
         }
 
+        oss << "for key " << *this << " validating " << other;
+
         if (rule()) {
-            oss << *rule();
+            oss << " " << *rule();
         }
 
         throw eckit::SeriousBug(oss.str());
