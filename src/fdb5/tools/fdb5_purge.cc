@@ -72,7 +72,10 @@ void FDBPurge::process(const eckit::PathName& path, const eckit::option::CmdArgs
 
 void FDBPurge::finish(const eckit::option::CmdArgs& args) {
     if (!doit_) {
-        eckit::Log::info() << std::endl << "Rerun command with --doit flag to delete unused files" << std::endl;
+        eckit::Log::info() << std::endl
+                           << "Rerun command with --doit flag to delete unused files"
+                           << std::endl
+                           << std::endl;
     }
 }
 

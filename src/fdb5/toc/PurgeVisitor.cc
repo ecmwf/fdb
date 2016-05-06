@@ -37,14 +37,14 @@ PurgeVisitor::PurgeVisitor(const eckit::PathName &directory) :
 void PurgeVisitor::visit(const Index &index,
                          const std::string &indexFingerprint,
                          const std::string &fieldFingerprint,
-                         const Field& field) {
+                         const Field &field) {
 
     Stats &stats = indexStats_[&index];
 
     ++stats.totalFields_;
     stats.totalSize_ += field.length();
 
-    const eckit::PathName& path = field.path();
+    const eckit::PathName &path = field.path();
 
     allDataFiles_.insert(path);
     indexUsage_[index.path()]++;
@@ -103,19 +103,46 @@ void PurgeVisitor::report(std::ostream &out) const {
     }
 
     out << std::endl;
+    size_t cnt = 0;
     out << "Data files to be deleted:" << std::endl;
     for (std::map<eckit::PathName, size_t>::const_iterator i = dataUsage_.begin(); i != dataUsage_.end(); ++i) {
         if (i->second == 0) {
-            out << "    " << i->first << std::endl;
+            if (i->first.dirName().sameAs(directory_)) {
+                out << "    " << i->first << std::endl;
+                cnt++;
+            }
         };
+    }
+    if(!cnt) {
+        out << "    - NONE -" << std::endl;
     }
 
     out << std::endl;
+    cnt = 0;
+    out << "Unreferenced adopted data files:" << std::endl;
+    for (std::map<eckit::PathName, size_t>::const_iterator i = dataUsage_.begin(); i != dataUsage_.end(); ++i) {
+        if (i->second == 0) {
+            if (!i->first.dirName().sameAs(directory_)) {
+                out << "    " << i->first << std::endl;
+                cnt++;
+            }
+        };
+    }
+    if(!cnt) {
+        out << "    - NONE -" << std::endl;
+    }
+
+    out << std::endl;
+    cnt = 0;
     out << "Index files to be deleted:" << std::endl;
     for (std::map<eckit::PathName, size_t>::const_iterator i = indexUsage_.begin(); i != indexUsage_.end(); ++i) {
         if (i->second == 0) {
             out << "    " << i->first << std::endl;
+            cnt++;
         };
+    }
+    if(!cnt) {
+        out << "    - NONE -" << std::endl;
     }
 
     size_t adopted = 0;
@@ -156,7 +183,9 @@ void PurgeVisitor::report(std::ostream &out) const {
     out << "   " << eckit::Plural(indexToDelete, "index record") << " to clear" << std::endl;
 
     out << "   "  << eckit::Bytes(total.totalSize_) << " referenced"
-        << " (" << eckit::Bytes(total.duplicatesSize_) << " duplicated)" << std::endl;
+        << " (" << eckit::Bytes(total.totalSize_ - total.duplicatesSize_) << " accessible, "
+        << eckit::Bytes(total.duplicatesSize_)
+        << " duplicated)" << std::endl;
 }
 
 void PurgeVisitor::purge() const {
