@@ -26,12 +26,36 @@ namespace fdb5 {
 
 FDBInspect::FDBInspect(int argc, char **argv):
     FDBTool(argc, argv) {
+    options_.push_back(new eckit::option::SimpleOption<bool>("all", "Visit all FDB databases"));
 }
 
 
 void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
+    bool all = false;
+    args.get("all", all);
+
+    if (all && args.count()) {
+        usage(args.tool());
+        exit(1);
+    }
+
     std::vector<eckit::PathName> paths;
+
+    if (all) {
+        Key dbKey;
+        eckit::Log::info() << "KEY =====> " << dbKey << std::endl;
+        std::vector<eckit::PathName> dbs = TocDB::databases(dbKey);
+        for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
+            paths.push_back(*j);
+        }
+
+        if (dbs.size() == 0) {
+            eckit::Log::warning() << "No FDB matches " << dbKey << std::endl;
+        }
+    }
+
+
 
     for (size_t i = 0; i < args.count(); ++i) {
 

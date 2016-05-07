@@ -38,8 +38,8 @@ void ReportVisitor::visit(const Index &index,
 
     Statistics &stats = indexStats_[&index];
 
-    ++stats.totalFields_;
-    stats.totalSize_ += field.length();
+    ++stats.fields_;
+    stats.fieldsSize_ += field.length();
 
     const eckit::PathName &path = field.path();
 
@@ -168,7 +168,7 @@ void ReportVisitor::report(std::ostream &out) const {
     out << "   " << eckit::Plural(indexUsage_.size(), "index file") << std::endl;
     out << "   " << eckit::Plural(dataUsage_.size(), "data file") << std::endl;
 
-    out << "   " << eckit::Plural(total.totalFields_, "field") << " referenced"
+    out << "   " << eckit::Plural(total.fields_, "field") << " referenced"
         << " ("   << eckit::Plural(active_.size(), "field") << " active"
         << ", "  << eckit::Plural(total.duplicates_, "field") << " duplicated)" << std::endl;
 
@@ -182,8 +182,8 @@ void ReportVisitor::report(std::ostream &out) const {
     out << "   " << eckit::Plural(indexToDelete, "index file") << " to delete" << std::endl;
     out << "   " << eckit::Plural(indexToDelete, "index record") << " to clear" << std::endl;
 
-    out << "   "  << eckit::Bytes(total.totalSize_) << " referenced"
-        << " (" << eckit::Bytes(total.totalSize_ - total.duplicatesSize_) << " accessible, "
+    out << "   "  << eckit::Bytes(total.fieldsSize_) << " referenced"
+        << " (" << eckit::Bytes(total.fieldsSize_ - total.duplicatesSize_) << " accessible, "
         << eckit::Bytes(total.duplicatesSize_)
         << " duplicated)" << std::endl;
 }

@@ -35,10 +35,17 @@ class Statistics {
 public:
     Statistics() ;
 
-    size_t totalFields_;
+    size_t fields_;
     size_t duplicates_;
+    // size_t dataFiles_;
+    // size_t indexFiles_;
 
-    eckit::Length totalSize_;
+    // eckit::Length dataSize_;
+    // eckit::Length indexSize_;
+
+    // size_t tocSize_;
+
+    eckit::Length fieldsSize_;
     eckit::Length duplicatesSize_;
 
     Statistics &operator+=(const Statistics &rhs) ;

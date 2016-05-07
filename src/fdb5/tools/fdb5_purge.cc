@@ -31,7 +31,7 @@ void PurgeVisitor::purge() const {
 
         const fdb5::Statistics &stats = i->second;
 
-        if (stats.totalFields_ == stats.duplicates_) {
+        if (stats.fields_ == stats.duplicates_) {
             eckit::Log::info() << "Removing: " << *(i->first) << std::endl;
             fdb5::TocHandler handler(directory_);
             handler.writeClearRecord(*(*i).first);
