@@ -41,33 +41,7 @@ void LegacyArchiver::archive(const eckit::DataBlobPtr blob) {
     std::cout << "Metadata keys " << key << std::endl;
     std::cout << "Legacy keys " << legacy_ << std::endl;
 
-    // compare legacy and metadata
-
-    eckit::StringSet missing;
-    eckit::StringSet mismatch;
-
-    for (Key::const_iterator j = key.begin(); j != key.end(); ++j) {
-
-        Key::const_iterator itr = legacy_.find((*j).first);
-        if (itr == legacy_.end()) {
-            missing.insert((*j).first);
-        } else {
-            if (j->second != itr->second) {
-                std::ostringstream oss;
-                oss << j->first << "=" << j->second << " and " << itr->second;
-                mismatch.insert(oss.str());
-            }
-        }
-    }
-
-    if (missing.size() || mismatch.size()) {
-
-        std::ostringstream oss;
-        oss << "FDB LegacyArchiver missing keys: " << missing;
-        oss << " mismatch keys: " << mismatch;
-
-        throw eckit::SeriousBug(oss.str());
-    }
+    key.validateKeysOf(legacy_); //< compare legacy and metadata
 
     // archive
 

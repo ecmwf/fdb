@@ -136,42 +136,37 @@ static void readTable() {
 
 eckit::PathName TocDB::directory(const Key &key) {
 
-    /// @note This may not be needed once in operations, but helps with testing tools
-    static std::string overideRoot = eckit::Resource<std::string>("$FDB_ROOT", "");
+    std::string root;
 
-    std::string root( overideRoot );
+    static eckit::StringList fdbRootPattern( eckit::Resource<eckit::StringList>("fdbRootPattern", "class,stream,expver", true ) );
+    pthread_once(&once, readTable);
 
-    if (root.empty()) {
-        static eckit::StringList fdbRootPattern( eckit::Resource<eckit::StringList>("fdbRootPattern", "class,stream,expver", true ) );
-        pthread_once(&once, readTable);
+    std::ostringstream oss;
 
+    const char *sep = "";
+    for (eckit::StringList::const_iterator j = fdbRootPattern.begin(); j != fdbRootPattern.end(); ++j) {
+        Key::const_iterator i = key.find(*j);
+        if (i == key.end()) {
+            oss << sep << "unknown";
+            eckit::Log::warning() << "FDB root: cannot get " << *j << " from " << key << std::endl;
+        } else {
+            oss << sep << key.get(*j);
+        }
+        sep = ":";
+    }
+
+    std::string name(oss.str());
+
+    for (size_t i = 0; i < rootsTable.size() ; i++)
+        if (rootsTable[i].first.match(name)) {
+            root = rootsTable[i].second;
+            break;
+        }
+
+    if (root.length() == 0) {
         std::ostringstream oss;
-
-        const char *sep = "";
-        for (eckit::StringList::const_iterator j = fdbRootPattern.begin(); j != fdbRootPattern.end(); ++j) {
-            Key::const_iterator i = key.find(*j);
-            if (i == key.end()) {
-                oss << sep << "unknown";
-                eckit::Log::warning() << "FDB root: cannot get " << *j << " from " << key << std::endl;
-            } else {
-                oss << sep << key.get(*j);
-            }
-            sep = ":";
-        }
-
-        std::string name(oss.str());
-
-        for (size_t i = 0; i < rootsTable.size() ; i++)
-            if (rootsTable[i].first.match(name)) {
-                root = rootsTable[i].second;
-                break;
-            }
-
-        if (root.length() == 0) {
-            std::ostringstream oss;
-            oss << "No FDB root for " << key;
-            throw eckit::SeriousBug(oss.str());
-        }
+        oss << "No FDB root for " << key;
+        throw eckit::SeriousBug(oss.str());
     }
 
     return eckit::PathName(root) / key.valuesToString();
@@ -227,20 +222,13 @@ std::vector<eckit::PathName> TocDB::databases(const Key &key) {
 
 std::vector<eckit::PathName> TocDB::roots(const std::string& match) {
 
-    static std::string overideRoot = eckit::Resource<std::string>("$FDB_ROOT", "");
-    std::string root( overideRoot );
-
     eckit::StringSet roots;
 
-    if (!root.empty()) {
-        roots.insert(root);
-    } else {
-        pthread_once(&once, readTable);
+    pthread_once(&once, readTable);
 
-        for (size_t i = 0; i < rootsTable.size() ; i++) {
-            if (rootsTable[i].first.match(match)) {
-                roots.insert(rootsTable[i].second);
-            }
+    for (size_t i = 0; i < rootsTable.size() ; i++) {
+        if (rootsTable[i].first.match(match)) {
+            roots.insert(rootsTable[i].second);
         }
     }
 

@@ -91,6 +91,8 @@ public: // methods
     const_iterator find(const std::string& s) const { return keys_.find(s); }
     bool empty() const { return keys_.empty(); }
 
+    /// @throws When "other" doesn't contain all the keys of "this"
+    void validateKeysOf(const Key& other, bool checkAlsoValues = false) const;
 
 private: // members
 

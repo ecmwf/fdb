@@ -33,12 +33,14 @@ void FDBIndex::execute(const eckit::option::CmdArgs &args) {
 
     fdb5::GribIndexer indexer;
 
-    for (int i = 0; i < args.count(); i++) {
+    for(size_t i = 0; i < args.count(); i++) {
         eckit::PathName path(args(i));
 
         std::cout << "Processing " << path << std::endl;
 
         indexer.index(path);
+
+        indexer.flush();
     }
 }
 

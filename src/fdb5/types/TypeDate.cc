@@ -35,9 +35,7 @@ std::string TypeDate::tidy(
         eckit::Translator<std::string, long> t;
         long n = t(value);
         if (n <= 0) {
-            eckit::Date now(0);
-            now += n;
-
+            eckit::Date now(n);
             eckit::Translator<long, std::string> t;
             return t(now.yyyymmdd());
         }

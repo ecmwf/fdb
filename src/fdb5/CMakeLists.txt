@@ -99,10 +99,12 @@ list( APPEND fdb5_srcs
     toc/AdoptVisitor.h
     toc/BTreeIndex.cc
     toc/BTreeIndex.h
-    toc/PurgeVisitor.cc
-    toc/PurgeVisitor.h
+    toc/ReportVisitor.cc
+    toc/ReportVisitor.h
     toc/TocDB.cc
     toc/TocDB.h
+    toc/Statistics.cc
+    toc/Statistics.h
     toc/TocDBReader.cc
     toc/TocDBReader.h
     toc/TocDBWriter.cc
@@ -191,6 +193,8 @@ list( APPEND fdb5_tools
     fdb5_extract
     fdb5_retrieve
     fdb5_purge
+    fdb5_wipe
+    fdb5_report
     fdb5_schema
     fdb5_where
     )

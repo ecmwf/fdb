@@ -58,7 +58,7 @@ bool TocDBWriter::open() {
 
 void TocDBWriter::close() {
 
-    eckit::Log::info() << "Closing path " << directory_ << std::endl;
+    // eckit::Log::info() << "Closing path " << directory_ << std::endl;
 
     flush(); // closes the TOC entries & indexes but not data files
 

@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   PurgeVisitor.h
+/// @file   ReportVisitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_PurgeVisitor_H
-#define fdb5_PurgeVisitor_H
+#ifndef fdb5_ReportVisitor_H
+#define fdb5_ReportVisitor_H
 
 #include <iosfwd>
 #include <set>
@@ -25,50 +25,26 @@
 
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Field.h"
+#include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/Statistics.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-struct Stats {
 
-    Stats() : totalFields_(0), duplicates_(0), totalSize_(0), duplicatesSize_(0) {}
-
-    size_t totalFields_;
-    size_t duplicates_;
-    eckit::Length totalSize_;
-    eckit::Length duplicatesSize_;
-
-    Stats &operator+=(const Stats &rhs) {
-        totalFields_ += rhs.totalFields_;
-        duplicates_ += rhs.duplicates_;
-        totalSize_ += rhs.totalSize_;
-        duplicatesSize_ += rhs.duplicatesSize_;
-        return *this;
-    }
-
-    friend std::ostream &operator<<(std::ostream &s, const Stats &x) {
-        x.print(s);
-        return s;
-    }
-
-    void print(std::ostream &out) const;
-
-};
-//----------------------------------------------------------------------------------------------------------------------
-
-class PurgeVisitor : public EntryVisitor {
+class ReportVisitor : public EntryVisitor {
 public:
 
-    PurgeVisitor(const eckit::PathName &directory);
+    ReportVisitor(const eckit::PathName &directory);
+    ~ReportVisitor();
 
-    Stats totals() const;
+    Statistics totals() const;
 
     // void currentIndex(const Index* index);
 
     void report(std::ostream &out) const;
 
-    void purge() const;
 
 private: // methods
 
@@ -79,7 +55,8 @@ private: // methods
                        const std::string &fieldFingerprint,
                        const Field& field);
 
-private: // members
+
+protected: // members
 
     eckit::PathName directory_;
 
@@ -90,8 +67,7 @@ private: // members
 
     std::set<std::string> active_;
 
-    std::map<const Index*, Stats> indexStats_;
-
+    std::map<const Index*, Statistics> indexStats_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
