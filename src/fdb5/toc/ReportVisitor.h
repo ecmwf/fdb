@@ -62,10 +62,14 @@ protected: // members
 
     std::set<eckit::PathName> activeDataFiles_;
     std::set<eckit::PathName> allDataFiles_;
+    std::set<eckit::PathName> allIndexFiles_;
     std::map<eckit::PathName, size_t> indexUsage_;
     std::map<eckit::PathName, size_t> dataUsage_;
 
     std::set<std::string> active_;
+
+    eckit::Length totalDataFiles_;
+    eckit::Length totalIndexFiles_;
 
     std::map<const Index*, Statistics> indexStats_;
 };

@@ -33,6 +33,8 @@
 list( APPEND fdb5_srcs
     config/MasterConfig.cc
     config/MasterConfig.h
+    config/UMask.cc
+    config/UMask.h
     database/Archiver.cc
     database/Archiver.h
     database/ArchiveVisitor.cc

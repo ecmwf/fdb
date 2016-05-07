@@ -12,6 +12,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "fdb5/grib/GribIndexer.h"
 #include "fdb5/tools/FDBAccess.h"
+#include "fdb5/config/UMask.h"
 
 
 class FDBIndex : public fdb5::FDBAccess {
@@ -30,6 +31,8 @@ void FDBIndex::usage(const std::string &tool) const {
 }
 
 void FDBIndex::execute(const eckit::option::CmdArgs &args) {
+
+    fdb5::UMask umask(fdb5::UMask::defaultUMask());
 
     fdb5::GribIndexer indexer;
 
