@@ -45,7 +45,7 @@ void GribIndexer::index(const eckit::PathName &path) {
 
     while ( (len = gribToKey(file, key))  ) {
 
-        eckit::Log::info() << key << std::endl;
+        // eckit::Log::info() << key << std::endl;
 
         eckit::Length length = len;
         eckit::Offset offset = file.position() - length;

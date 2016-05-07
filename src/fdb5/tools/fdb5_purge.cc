@@ -19,20 +19,29 @@ class FDBPurge : public fdb5::FDBInspect {
 
   public: // methods
 
-    FDBPurge(int argc, char **argv) : fdb5::FDBInspect(argc, argv), doit_(false) {
+    FDBPurge(int argc, char **argv) :
+        fdb5::FDBInspect(argc, argv),
+        doit_(false),
+        wipe_(false),
+        count_(0) {
 
         options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("wipe", "Add a wipe record"));
 
     }
 
   private: // methods
 
-    virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args);
+    virtual void process(const eckit::PathName &, const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
-    virtual void init(const eckit::option::CmdArgs& args);
-    virtual void finish(const eckit::option::CmdArgs& args);
+    virtual void init(const eckit::option::CmdArgs &args);
+    virtual void finish(const eckit::option::CmdArgs &args);
 
     bool doit_;
+    bool wipe_;
+    fdb5::Stats stats_;
+    size_t count_;
+
 };
 
 void FDBPurge::usage(const std::string &tool) const {
@@ -41,20 +50,28 @@ void FDBPurge::usage(const std::string &tool) const {
     FDBInspect::usage(tool);
 }
 
-void FDBPurge::init(const eckit::option::CmdArgs& args) {
+void FDBPurge::init(const eckit::option::CmdArgs &args) {
     args.get("doit", doit_);
+    args.get("wipe", wipe_);
 }
 
-void FDBPurge::process(const eckit::PathName& path, const eckit::option::CmdArgs& args) {
+void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
 
     eckit::Log::info() << "Scanning " << path << std::endl;
 
     fdb5::TocHandler handler(path);
     eckit::Log::info() << "Database key " << handler.databaseKey() << std::endl;
 
-    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
-
     fdb5::PurgeVisitor visitor(path);
+    // handler.visitor(visitor);
+
+
+    if (wipe_) {
+        handler.writeWipeRecord();
+    }
+
+    std::vector<fdb5::Index *> indexes = handler.loadIndexes(&visitor);
+
 
     for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
         (*i)->entries(visitor);
@@ -67,16 +84,29 @@ void FDBPurge::process(const eckit::PathName& path, const eckit::option::CmdArgs
     }
 
     handler.freeIndexes(indexes);
+
+    stats_ += visitor.totals();
+    count_ ++;
 }
 
 
-void FDBPurge::finish(const eckit::option::CmdArgs& args) {
+void FDBPurge::finish(const eckit::option::CmdArgs &args) {
+
+    if (count_ > 1) {
+        eckit::Log::info() << std::endl
+                           << "Grand total:" << std::endl
+                           << "============" << std::endl
+                           << std::endl
+                           << stats_ << std::endl;
+    }
+
     if (!doit_) {
         eckit::Log::info() << std::endl
                            << "Rerun command with --doit flag to delete unused files"
                            << std::endl
                            << std::endl;
     }
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------

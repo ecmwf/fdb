@@ -19,6 +19,7 @@ Index::Index(eckit::Stream &s, const eckit::PathName &directory, const eckit::Pa
     mode_(Index::READ),
     path_(path),
     offset_(offset),
+    wiped_(false),
     files_(directory, s),
     axes_(s),
     key_(s) {
@@ -34,11 +35,12 @@ void Index::encode(eckit::Stream &s) const {
     s << type_;
 }
 
-Index::Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string& type ) :
+Index::Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string &type ) :
     mode_(mode),
     path_(path),
     offset_(offset),
     type_(type),
+    wiped_(false),
     files_(path.dirName()),
     axes_(),
     key_(key),
@@ -61,9 +63,18 @@ const Key &Index::key() const {
 const std::string &Index::type() const {
     return type_;
 }
+
+bool Index::wiped() const {
+    return wiped_;
+}
+
+void Index::wiped(bool w) {
+    wiped_ = w;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
-const eckit::PathName& Index::path() const {
+const eckit::PathName &Index::path() const {
     return path_;
 }
 
@@ -75,9 +86,6 @@ const IndexAxis &Index::axes() const {
     return axes_;
 }
 
-void Field::print(std::ostream &out) const {
-    out << "Field[TODO]";
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 

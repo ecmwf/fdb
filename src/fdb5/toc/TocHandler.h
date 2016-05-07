@@ -24,6 +24,10 @@ namespace fdb5 {
 class Key;
 class Index;
 
+class TocWiper {
+public:
+    virtual void wipe(const std::vector<Index*>&) = 0;
+};
 //-----------------------------------------------------------------------------
 
 class TocHandler : private eckit::NonCopyable {
@@ -45,7 +49,7 @@ public: // methods
     void writeIndexRecord(const Index &);
     void writeWipeRecord();
 
-    std::vector<Index *> loadIndexes();
+    std::vector<Index *> loadIndexes(TocWiper* = 0);
     void freeIndexes(std::vector<Index *> &);
 
     Key databaseKey();

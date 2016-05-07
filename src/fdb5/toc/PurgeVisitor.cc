@@ -24,14 +24,65 @@ void Stats::print(std::ostream &out) const {
     out << "Stats:"
         << " number of fields: "  << eckit::BigNum(totalFields_)
         << ", number of duplicates: "    << eckit::BigNum(duplicates_)
+        << ", number of wiped entries: "    << eckit::BigNum(wiped_)
         << ", total size: "    << eckit::Bytes(totalSize_)
-        << ", size of duplicates: " << eckit::Bytes(duplicatesSize_);
+        << ", size of duplicates: " << eckit::Bytes(duplicatesSize_)
+        << ", size of wiped entries: " << eckit::Bytes(wipedSize_);
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 PurgeVisitor::PurgeVisitor(const eckit::PathName &directory) :
     directory_(directory) {
+}
+
+PurgeVisitor::~PurgeVisitor() {
+    for (std::set<Index *>::iterator j = delete_.begin(); j != delete_.end(); ++j) {
+        delete (*j);
+    }
+}
+
+void PurgeVisitor::wipe(const std::vector<Index *> &indexes) {
+
+
+    struct Wiped : public EntryVisitor {
+
+        PurgeVisitor &owner_;
+
+        Wiped(PurgeVisitor &owner): owner_(owner) {
+        }
+
+        void visit(const Index &index,
+                   const std::string &indexFingerprint,
+                   const std::string &fieldFingerprint,
+                   const Field &field) {
+
+            const eckit::PathName &path = field.path();
+
+            owner_.allDataFiles_.insert(path);
+            owner_.indexUsage_[index.path()] = 0;
+            owner_.dataUsage_[path] = 0;
+            owner_.wiped_.insert(index.path());
+
+            Stats &stats = owner_.indexStats_[&index];
+            ++stats.totalFields_;
+            stats.totalSize_ += field.length();
+
+            ++stats.wiped_;
+            stats.wipedSize_ += field.length();
+        }
+    };
+
+    Wiped w(*this);
+
+
+    for (std::vector<Index *>::const_iterator j = indexes.begin(); j != indexes.end(); ++j) {
+        eckit::Log::info() << "WIPE ====> " << *(*j) << std::endl;
+        (*j)->wiped(true);
+        (*j)->entries(w);
+        delete_.insert(*j);
+    }
 }
 
 void PurgeVisitor::visit(const Index &index,
@@ -113,7 +164,7 @@ void PurgeVisitor::report(std::ostream &out) const {
             }
         };
     }
-    if(!cnt) {
+    if (!cnt) {
         out << "    - NONE -" << std::endl;
     }
 
@@ -128,7 +179,7 @@ void PurgeVisitor::report(std::ostream &out) const {
             }
         };
     }
-    if(!cnt) {
+    if (!cnt) {
         out << "    - NONE -" << std::endl;
     }
 
@@ -141,7 +192,7 @@ void PurgeVisitor::report(std::ostream &out) const {
             cnt++;
         };
     }
-    if(!cnt) {
+    if (!cnt) {
         out << "    - NONE -" << std::endl;
     }
 
@@ -167,6 +218,9 @@ void PurgeVisitor::report(std::ostream &out) const {
 
     out << std::endl;
     out << "Summary:" << std::endl;
+
+    out << "   " << eckit::Plural(indexUsage_.size(), "index file") << std::endl;
+    out << "   " << eckit::Plural(dataUsage_.size(), "data file") << std::endl;
 
     out << "   " << eckit::Plural(total.totalFields_, "field") << " referenced"
         << " ("   << eckit::Plural(active_.size(), "field") << " active"
@@ -194,12 +248,15 @@ void PurgeVisitor::purge() const {
     for (std::map<const Index *, Stats>::const_iterator i = indexStats_.begin();
             i != indexStats_.end(); ++i) {
 
-        const Stats &stats = i->second;
+        if (!i->first->wiped()) {
 
-        if (stats.totalFields_ == stats.duplicates_) {
-            eckit::Log::info() << "Removing: " << *(i->first) << std::endl;
-            TocHandler handler(directory_);
-            handler.writeClearRecord(*(*i).first);
+            const Stats &stats = i->second;
+
+            if (stats.totalFields_ == stats.duplicates_) {
+                eckit::Log::info() << "Removing: " << *(i->first) << std::endl;
+                TocHandler handler(directory_);
+                handler.writeClearRecord(*(*i).first);
+            }
         }
     }
 

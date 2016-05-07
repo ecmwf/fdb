@@ -240,7 +240,7 @@ Key TocHandler::databaseKey() {
     throw eckit::SeriousBug("Cannot find a TOC_INIT record");
 }
 
-std::vector<Index *> TocHandler::loadIndexes() {
+std::vector<Index *> TocHandler::loadIndexes(TocWiper *wiper) {
 
     std::vector<Index *> indexes;
 
@@ -291,7 +291,12 @@ std::vector<Index *> TocHandler::loadIndexes() {
 
         case TocRecord::TOC_WIPE:
             eckit::Log::info() << "TOC_WIPE" << std::endl;
-            freeIndexes(indexes);
+            if (wiper) {
+                wiper->wipe(indexes);
+            } else {
+                freeIndexes(indexes);
+            }
+            indexes.clear();
             break;
 
         default:
