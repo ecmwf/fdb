@@ -19,7 +19,6 @@ Index::Index(eckit::Stream &s, const eckit::PathName &directory, const eckit::Pa
     mode_(Index::READ),
     path_(path),
     offset_(offset),
-    wiped_(false),
     files_(directory, s),
     axes_(s),
     key_(s) {
@@ -40,7 +39,6 @@ Index::Index(const Key &key, const eckit::PathName &path, off_t offset, Index::M
     path_(path),
     offset_(offset),
     type_(type),
-    wiped_(false),
     files_(path.dirName()),
     axes_(),
     key_(key),
@@ -62,14 +60,6 @@ const Key &Index::key() const {
 
 const std::string &Index::type() const {
     return type_;
-}
-
-bool Index::wiped() const {
-    return wiped_;
-}
-
-void Index::wiped(bool w) {
-    wiped_ = w;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

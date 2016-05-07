@@ -75,9 +75,6 @@ class Index : private eckit::NonCopyable {
     const IndexAxis &axes() const ;
     const Key &key() const;
 
-    bool wiped() const;
-    void wiped(bool);
-
     virtual bool get(const Key &key, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);
     virtual void encode(eckit::Stream &s) const;
@@ -94,7 +91,6 @@ class Index : private eckit::NonCopyable {
     const eckit::PathName path_;
     off_t           offset_;
     std::string type_;
-    bool wiped_;
 
     // Order is important here...
     FileStore   files_;

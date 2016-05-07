@@ -9,11 +9,53 @@
  */
 
 #include "eckit/option/CmdArgs.h"
-#include "fdb5/toc/PurgeVisitor.h"
+#include "fdb5/toc/ReportVisitor.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBInspect.h"
 
 //----------------------------------------------------------------------------------------------------------------------
+
+class PurgeVisitor : public fdb5::ReportVisitor {
+public:
+    PurgeVisitor(const eckit::PathName& directory): ReportVisitor(directory) {}
+    void purge() const;
+};
+
+
+
+void PurgeVisitor::purge() const {
+
+
+    for (std::map<const fdb5::Index *, fdb5::Statistics>::const_iterator i = indexStats_.begin();
+            i != indexStats_.end(); ++i) {
+
+        const fdb5::Statistics &stats = i->second;
+
+        if (stats.totalFields_ == stats.duplicates_) {
+            eckit::Log::info() << "Removing: " << *(i->first) << std::endl;
+            fdb5::TocHandler handler(directory_);
+            handler.writeClearRecord(*(*i).first);
+        }
+    }
+
+
+    for (std::map<eckit::PathName, size_t>::const_iterator i = dataUsage_.begin(); i != dataUsage_.end(); ++i) {
+        if (i->second == 0) {
+            if (i->first.dirName().sameAs(directory_)) {
+                i->first.unlink();
+            }
+        }
+    }
+
+    for (std::map<eckit::PathName, size_t>::const_iterator i = indexUsage_.begin(); i != indexUsage_.end(); ++i) {
+        if (i->second == 0) {
+            if (i->first.dirName().sameAs(directory_)) {
+                i->first.unlink();
+            }
+        }
+    }
+
+}
 
 class FDBPurge : public fdb5::FDBInspect {
 
@@ -26,7 +68,6 @@ class FDBPurge : public fdb5::FDBInspect {
         count_(0) {
 
         options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("wipe", "Add a wipe record"));
 
     }
 
@@ -39,7 +80,7 @@ class FDBPurge : public fdb5::FDBInspect {
 
     bool doit_;
     bool wipe_;
-    fdb5::Stats stats_;
+    fdb5::Statistics stats_;
     size_t count_;
 
 };
@@ -52,7 +93,6 @@ void FDBPurge::usage(const std::string &tool) const {
 
 void FDBPurge::init(const eckit::option::CmdArgs &args) {
     args.get("doit", doit_);
-    args.get("wipe", wipe_);
 }
 
 void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
@@ -62,15 +102,9 @@ void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs
     fdb5::TocHandler handler(path);
     eckit::Log::info() << "Database key " << handler.databaseKey() << std::endl;
 
-    fdb5::PurgeVisitor visitor(path);
-    // handler.visitor(visitor);
+    PurgeVisitor visitor(path);
 
-
-    if (wipe_) {
-        handler.writeWipeRecord();
-    }
-
-    std::vector<fdb5::Index *> indexes = handler.loadIndexes(&visitor);
+    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
 
 
     for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
