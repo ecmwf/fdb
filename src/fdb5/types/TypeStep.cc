@@ -36,6 +36,11 @@ void TypeStep::toKey(std::ostream &out,
     out << StepRange(value);
 }
 
+bool TypeStep::match(const std::string&, const std::string& value1, const std::string& value2) const
+{
+    return (value1 == value2);
+}
+
 void TypeStep::getValues(const MarsRequest &request,
                          const std::string &keyword,
                          eckit::StringList &values,

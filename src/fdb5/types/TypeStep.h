@@ -39,6 +39,9 @@ public: // methods
     virtual void toKey(std::ostream &out,
                        const std::string &keyword,
                        const std::string &value) const;
+
+    virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const;
+
 private: // methods
 
     virtual void print( std::ostream &out ) const;
