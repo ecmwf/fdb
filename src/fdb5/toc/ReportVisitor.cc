@@ -32,31 +32,46 @@ ReportVisitor::~ReportVisitor() {
 }
 
 void ReportVisitor::visit(const Index &index,
-                         const std::string &indexFingerprint,
-                         const std::string &fieldFingerprint,
-                         const Field &field) {
+                          const std::string &indexFingerprint,
+                          const std::string &fieldFingerprint,
+                          const Field &field) {
 
     Statistics &stats = indexStats_[&index];
 
     ++stats.fields_;
     stats.fieldsSize_ += field.length();
 
-    const eckit::PathName &path = field.path();
+    const eckit::PathName &dataPath = field.path();
+    const eckit::PathName &indexPath = index.path();
 
-    allDataFiles_.insert(path);
-    indexUsage_[index.path()]++;
-    dataUsage_[path]++;
+    if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
+        if (dataPath.dirName().sameAs(directory_)) {
+            totalDataFiles_ += dataPath.size();
+        } else {
+            totalAdoptedFiles_ += dataPath.size();
+        }
+        allDataFiles_.insert(dataPath);
+    }
+
+    if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
+        totalIndexFiles_ += indexPath.size();
+        allIndexFiles_.insert(indexPath);
+    }
+
+
+    indexUsage_[indexPath]++;
+    dataUsage_[dataPath]++;
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
 
     if (active_.find(unique) == active_.end()) {
         active_.insert(unique);
-        activeDataFiles_.insert(path);
+        activeDataFiles_.insert(dataPath);
     } else {
         ++stats.duplicates_;
         stats.duplicatesSize_ += field.length();
-        indexUsage_[index.path()]--;
-        dataUsage_[path]--;
+        indexUsage_[indexPath]--;
+        dataUsage_[dataPath]--;
     }
 }
 
@@ -162,8 +177,33 @@ void ReportVisitor::report(std::ostream &out) const {
         }
     }
 
+    TocHandler handler(directory_);
+    size_t numberOfRecords = handler.numberOfRecords();
+    eckit::Length tocSize = handler.tocPath().size();
+    eckit::Length schemaSize = handler.schemaPath().size();
+
     out << std::endl;
     out << "Summary:" << std::endl;
+
+    out << "Records in TOC " << eckit::BigNum(numberOfRecords)  << std::endl;
+
+    out << "Bytes in owned data files " << eckit::BigNum(totalDataFiles_)
+        << " (" << eckit::Bytes(totalDataFiles_) << ")" << std::endl;
+    out << "Bytes in adopted data files " << eckit::BigNum(totalAdoptedFiles_)
+        << " (" << eckit::Bytes(totalAdoptedFiles_) << ")" << std::endl;
+
+            out << "Bytes in index files " << eckit::BigNum(totalIndexFiles_)
+        << " (" << eckit::Bytes(totalIndexFiles_) << ")" << std::endl;
+
+    out << "Bytes in TOC " << eckit::BigNum(tocSize)
+        << " (" << eckit::Bytes(tocSize) << ")" << std::endl;
+
+    out << "Bytes in schema "  << eckit::BigNum(schemaSize)
+        << " (" << eckit::Bytes(schemaSize) << ")" << std::endl;
+    out << "Total " << eckit::BigNum(schemaSize + tocSize + totalIndexFiles_ + totalDataFiles_)
+        << " (" << eckit::Bytes(schemaSize + tocSize + totalIndexFiles_ + totalDataFiles_) << ")" << std::endl;
+    out << "Total numer of files " << eckit::BigNum(indexUsage_.size() + dataUsage_.size() + 2)
+        << std::endl;
 
     out << "   " << eckit::Plural(indexUsage_.size(), "index file") << std::endl;
     out << "   " << eckit::Plural(dataUsage_.size(), "data file") << std::endl;

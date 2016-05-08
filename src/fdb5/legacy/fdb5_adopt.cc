@@ -11,6 +11,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "fdb5/legacy/FDBIndexScanner.h"
 #include "fdb5/tools/FDBAccess.h"
+#include "fdb5/config/UMask.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -37,6 +38,8 @@ void FDBAdopt::usage(const std::string &tool) const {
 }
 
 void FDBAdopt::execute(const eckit::option::CmdArgs &args) {
+
+    fdb5::UMask umask(fdb5::UMask::defaultUMask());
 
     std::string pattern = "/:*.";
     args.get("pattern", pattern);

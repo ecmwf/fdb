@@ -70,7 +70,7 @@ void TocDB::close() {
 
 void TocDB::loadSchema() {
     Timer timer("TocDB::loadSchema()");
-    schema_.load( directory_ / "schema" );
+    schema_.load( schemaPath() );
 }
 
 void TocDB::checkSchema(const Key &key) const {
