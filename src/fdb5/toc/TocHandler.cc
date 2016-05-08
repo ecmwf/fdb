@@ -13,6 +13,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/log/BigNum.h"
 
 
 #include "fdb5/database/Index.h"
@@ -38,10 +39,10 @@ class TocHandlerCloser {
 
 TocHandler::TocHandler(const eckit::PathName &directory) :
     directory_(directory),
-    filePath_(directory / "toc"),
-    fd_(-1) {
-    // eckit::Log::info() << "directory " << directory_ << std::endl;
-
+    tocPath_(directory / "toc"),
+    schemaPath_(directory / "schema"),
+    fd_(-1),
+    count_(0) {
 }
 
 TocHandler::~TocHandler() {
@@ -49,33 +50,33 @@ TocHandler::~TocHandler() {
 }
 
 bool TocHandler::exists() const {
-    return filePath_.exists();
+    return tocPath_.exists();
 }
 
 void TocHandler::openForAppend() {
 
     ASSERT(fd_ == -1);
 
-    // eckit::Log::info() << "Opening for append TOC " << filePath_ << std::endl;
+    // eckit::Log::info() << "Opening for append TOC " << tocPath_ << std::endl;
 
     int iomode = O_WRONLY | O_APPEND;
     //#ifdef __linux__
     //  iomode |= O_NOATIME;
     //#endif
-    SYSCALL2((fd_ = ::open( filePath_.asString().c_str(), iomode, (mode_t)0777 )), filePath_);
+    SYSCALL2((fd_ = ::open( tocPath_.asString().c_str(), iomode, (mode_t)0777 )), tocPath_);
 }
 
 void TocHandler::openForRead() {
 
     ASSERT(fd_ == -1);
 
-    // eckit::Log::info() << "Opening for read TOC " << filePath_ << std::endl;
+    // eckit::Log::info() << "Opening for read TOC " << tocPath_ << std::endl;
 
     int iomode = O_RDONLY;
     //#ifdef __linux__
     //  iomode |= O_NOATIME;
     //#endif
-    SYSCALL2((fd_ = ::open( filePath_.asString().c_str(), iomode )), filePath_ );
+    SYSCALL2((fd_ = ::open( tocPath_.asString().c_str(), iomode )), tocPath_ );
 }
 
 static size_t round(size_t a, size_t b) {
@@ -91,7 +92,7 @@ void TocHandler::append(TocRecord &r, size_t payloadSize ) {
     r.header_.size_ = round(sizeof(TocRecord::Header) + payloadSize, fdbRoundTocRecords);
 
     size_t len;
-    SYSCALL2( len = ::write(fd_, &r, r.header_.size_), filePath_ );
+    SYSCALL2( len = ::write(fd_, &r, r.header_.size_), tocPath_ );
     ASSERT( len == r.header_.size_ );
 
 }
@@ -100,14 +101,14 @@ bool TocHandler::readNext( TocRecord &r ) {
 
     int len;
 
-    SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord::Header)), filePath_ );
+    SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord::Header)), tocPath_ );
     if (len == 0) {
         return false;
     }
 
     ASSERT(len == sizeof(TocRecord::Header));
 
-    SYSCALL2( len = ::read(fd_, &r.payload_, r.header_.size_ - sizeof(TocRecord::Header)), filePath_ );
+    SYSCALL2( len = ::read(fd_, &r.payload_, r.header_.size_ - sizeof(TocRecord::Header)), tocPath_ );
     ASSERT(len == r.header_.size_ - sizeof(TocRecord::Header));
 
     if ( TocRecord::currentVersion() != r.header_.version_ ) {
@@ -122,8 +123,8 @@ bool TocHandler::readNext( TocRecord &r ) {
 
 void TocHandler::close() {
     if ( fd_ >= 0 ) {
-        // eckit::Log::info() << "Closing TOC " << filePath_ << std::endl;
-        SYSCALL2( ::close(fd_), filePath_ );
+        // eckit::Log::info() << "Closing TOC " << tocPath_ << std::endl;
+        SYSCALL2( ::close(fd_), tocPath_ );
         fd_ = -1;
     }
 }
@@ -135,7 +136,7 @@ void TocHandler::writeInitRecord(const Key &key) {
     }
 
     int iomode = O_CREAT | O_RDWR;
-    SYSCALL2(fd_ = ::open( filePath_.asString().c_str(), iomode, mode_t(0777) ), filePath_);
+    SYSCALL2(fd_ = ::open( tocPath_.asString().c_str(), iomode, mode_t(0777) ), tocPath_);
 
     TocHandlerCloser closer(*this);
 
@@ -146,21 +147,20 @@ void TocHandler::writeInitRecord(const Key &key) {
 
         /* Copy rules first */
 
-        eckit::PathName schemaPath(directory_ / "schema");
 
         eckit::Log::info() << "Copy schema from "
                            << MasterConfig::instance().schemaPath()
                            << " to "
-                           << schemaPath
+                           << schemaPath_
                            << std::endl;
 
-        eckit::PathName tmp = eckit::PathName::unique(schemaPath);
+        eckit::PathName tmp = eckit::PathName::unique(schemaPath_);
 
         eckit::FileHandle in(MasterConfig::instance().schemaPath());
         eckit::FileHandle out(tmp);
         in.saveInto(out);
 
-        eckit::PathName::rename(tmp, schemaPath);
+        eckit::PathName::rename(tmp, schemaPath_);
 
         TocRecord r( TocRecord::TOC_INIT );
         eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
@@ -240,11 +240,27 @@ Key TocHandler::databaseKey() {
     throw eckit::SeriousBug("Cannot find a TOC_INIT record");
 }
 
+size_t TocHandler::numberOfRecords() {
+
+    if (count_ == 0) {
+        openForRead();
+        TocHandlerCloser close(*this);
+
+        TocRecord r;
+
+        while ( readNext(r) ) {
+            count_++;
+        }
+    }
+
+    return count_;
+}
+
 std::vector<Index *> TocHandler::loadIndexes() {
 
     std::vector<Index *> indexes;
 
-    if (!filePath_.exists()) {
+    if (!tocPath_.exists()) {
         return indexes;
     }
 
@@ -252,6 +268,7 @@ std::vector<Index *> TocHandler::loadIndexes() {
     TocHandlerCloser close(*this);
 
     TocRecord r;
+    count_ = 0;
 
 
     while ( readNext(r) ) {
@@ -263,25 +280,27 @@ std::vector<Index *> TocHandler::loadIndexes() {
         off_t offset;
         std::vector<Index *>::iterator j;
 
+        count_++;
+
 
         switch (r.header_.tag_) {
 
         case TocRecord::TOC_INIT:
-            eckit::Log::info() << "TOC_INIT key is " << Key(s) << std::endl;
+            // eckit::Log::info() << "TOC_INIT key is " << Key(s) << std::endl;
             break;
 
         case TocRecord::TOC_INDEX:
             s >> path;
             s >> offset;
             s >> type;
-            eckit::Log::info() << "TOC_INDEX " << path << " - " << offset << std::endl;
+            // eckit::Log::info() << "TOC_INDEX " << path << " - " << offset << std::endl;
             indexes.push_back( new TocIndex(s, directory_, directory_ / path, offset) );
             break;
 
         case TocRecord::TOC_CLEAR:
             s >> path;
             s >> offset;
-            eckit::Log::info() << "TOC_CLEAR " << path << " - " << offset << std::endl;
+            // eckit::Log::info() << "TOC_CLEAR " << path << " - " << offset << std::endl;
             j = std::find_if (indexes.begin(), indexes.end(), HasPath(directory_ / path, offset));
             if (j != indexes.end()) {
                 delete (*j);
@@ -290,7 +309,7 @@ std::vector<Index *> TocHandler::loadIndexes() {
             break;
 
         case TocRecord::TOC_WIPE:
-            eckit::Log::info() << "TOC_WIPE" << std::endl;
+            // eckit::Log::info() << "TOC_WIPE" << std::endl;
             freeIndexes(indexes);
             break;
 
@@ -304,7 +323,7 @@ std::vector<Index *> TocHandler::loadIndexes() {
 
     std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
 
-    // eckit::Log::info() << "TOC indexes " << indexes.size() << std::endl;
+    eckit::Log::info() << "TOC records: " << eckit::BigNum(count_) << std::endl;
 
     return indexes;
 
@@ -317,6 +336,13 @@ void TocHandler::freeIndexes(std::vector<Index *> &indexes) {
     indexes.clear();
 }
 
+const eckit::PathName &TocHandler::tocPath() const {
+    return tocPath_;
+}
+
+const eckit::PathName &TocHandler::schemaPath() const {
+    return schemaPath_;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

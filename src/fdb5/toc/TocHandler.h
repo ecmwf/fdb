@@ -49,6 +49,10 @@ public: // methods
     void freeIndexes(std::vector<Index *> &);
 
     Key databaseKey();
+    size_t numberOfRecords();
+
+    const eckit::PathName& tocPath() const;
+    const eckit::PathName& schemaPath() const;
 
 protected: // members
 
@@ -65,10 +69,11 @@ private: // methods
     void append(TocRecord &r, size_t payloadSize);
     bool readNext(TocRecord &r);
 
-    eckit::PathName filePath_;
+    eckit::PathName tocPath_;
+    eckit::PathName schemaPath_;
 
     int fd_;      ///< file descriptor, if zero file is not yet open.
-
+    size_t count_;
 };
 
 //-----------------------------------------------------------------------------

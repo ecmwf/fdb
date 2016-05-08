@@ -69,6 +69,8 @@ protected: // members
     std::set<std::string> active_;
 
     eckit::Length totalDataFiles_;
+    eckit::Length totalAdoptedFiles_;
+
     eckit::Length totalIndexFiles_;
 
     std::map<const Index*, Statistics> indexStats_;
