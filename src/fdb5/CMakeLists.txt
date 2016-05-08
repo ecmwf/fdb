@@ -31,6 +31,12 @@
 # fdb5 library
 
 list( APPEND fdb5_srcs
+    legacy/FDBIndexScanner.h
+    legacy/FDBIndexScanner.cc
+    legacy/LegacyTranslator.cc
+    legacy/LegacyTranslator.h
+    legacy/LegacyArchiver.cc
+    legacy/LegacyArchiver.h
     config/MasterConfig.cc
     config/MasterConfig.h
     config/UMask.cc
@@ -186,10 +192,8 @@ ecbuild_add_library(
         grib_api
 )
 
-add_subdirectory( legacy )
 
 list( APPEND fdb5_tools
-    fdb5_index
     fdb5_archive
     fdb5_list
     fdb5_extract
@@ -199,6 +203,7 @@ list( APPEND fdb5_tools
     fdb5_report
     fdb5_schema
     fdb5_where
+    fdb5_adopt
     )
 
 foreach( _tool ${fdb5_tools} )
