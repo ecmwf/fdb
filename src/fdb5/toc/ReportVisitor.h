@@ -45,7 +45,7 @@ public:
 
     // void currentIndex(const Index* index);
 
-    void report(std::ostream &out, bool detailed) const;
+    void purgeable(std::ostream &out) const;
 
 
 private: // methods

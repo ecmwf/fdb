@@ -21,15 +21,15 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 IndexStatistics::IndexStatistics():
-    fields_(0),
-    duplicates_(0),
+    fieldsCount_(0),
+    duplicatesCount_(0),
     fieldsSize_(0),
     duplicatesSize_(0) {}
 
 
 IndexStatistics &IndexStatistics::operator+=(const IndexStatistics &rhs) {
-    fields_ += rhs.fields_;
-    duplicates_ += rhs.duplicates_;
+    fieldsCount_ += rhs.fieldsCount_;
+    duplicatesCount_ += rhs.duplicatesCount_;
     fieldsSize_ += rhs.fieldsSize_;
     duplicatesSize_ += rhs.duplicatesSize_;
 
@@ -38,10 +38,12 @@ IndexStatistics &IndexStatistics::operator+=(const IndexStatistics &rhs) {
 
 
 void IndexStatistics::report(std::ostream &out, const char *indent) const {
-    reportCount(out, "Fields", fields_, indent);
+    reportCount(out, "Fields", fieldsCount_, indent);
     reportBytes(out, "Size of fields", fieldsSize_, indent);
-    reportCount(out, "Duplicated fields ", duplicates_, indent);
+    reportCount(out, "Duplicated fields ", duplicatesCount_, indent);
     reportBytes(out, "Size of duplicates", duplicatesSize_, indent);
+    reportCount(out, "Reacheable fields ", fieldsCount_ - duplicatesCount_, indent);
+    reportBytes(out, "Reachable size", fieldsSize_ - duplicatesSize_, indent);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

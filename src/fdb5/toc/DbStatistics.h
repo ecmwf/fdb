@@ -27,15 +27,19 @@ class TocHandler;
 //----------------------------------------------------------------------------------------------------------------------
 
 class DbStatistics : public Statistics {
-public:
+  public:
     DbStatistics() ;
 
-    size_t tocRecords_;
-    eckit::Length tocSize_;
-    eckit::Length schemaSize_;
-    eckit::Length totalDataFiles_;
-    eckit::Length totalAdoptedFiles_;
-    eckit::Length totalIndexFiles_;
+    size_t tocRecordsCount_;
+    eckit::Length tocFileSize_;
+    eckit::Length schemaFileSize_;
+    eckit::Length ownedFilesSize_;
+    eckit::Length adoptedFilesSize_;
+    eckit::Length indexFilesSize_;
+
+    size_t ownedFilesCount_;
+    size_t adoptedFilesCount_;
+    size_t indexFilesCount_;
 
     DbStatistics &operator+=(const DbStatistics &rhs) ;
 
