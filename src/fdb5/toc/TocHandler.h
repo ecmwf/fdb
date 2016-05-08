@@ -54,6 +54,9 @@ public: // methods
     const eckit::PathName& tocPath() const;
     const eckit::PathName& schemaPath() const;
 
+    void dump(std::ostream& out);
+
+
 protected: // members
 
     const eckit::PathName directory_;

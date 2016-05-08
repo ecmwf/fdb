@@ -48,6 +48,8 @@ public: // methods
 
     const eckit::StringSet &values(const std::string &keyword) const;
 
+    void dump(std::ostream &out, const char* indent) const;
+
     friend std::ostream &operator<<(std::ostream &s, const IndexAxis &x) {
         x.print(s);
         return s;

@@ -145,6 +145,11 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
+void TocIndex::dump(std::ostream &out, const char* indent) const {
+    Index::dump(out, indent);
+}
+
+
 //-----------------------------------------------------------------------------
 
 } // namespace fdb5

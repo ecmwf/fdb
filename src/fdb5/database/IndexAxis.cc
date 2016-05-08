@@ -55,6 +55,17 @@ void IndexAxis::encode(eckit::Stream &s) const {
     }
 }
 
+void IndexAxis::dump(std::ostream &out, const char* indent) const {
+    out << indent << "Axes:" << std::endl;
+   for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
+        out << indent << indent << (*i).first << std::endl;
+        const std::set<std::string> &values = (*i).second;
+        for (std::set<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
+            out << indent << indent << indent <<  (*j) << std::endl;
+        }
+    }
+    // out << std::endl;
+}
 
 void IndexAxis::insert(const Key &key) {
     ASSERT(!readOnly_);

@@ -60,6 +60,8 @@ struct TocRecord {
 
     static const size_t headerSize = sizeof(Header);
 
+    void dump(std::ostream &out) const;
+
     void print(std::ostream &out) const;
 
     friend std::ostream &operator<<(std::ostream &s, const TocRecord &r) {
