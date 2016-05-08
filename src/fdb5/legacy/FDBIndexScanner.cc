@@ -15,6 +15,7 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 #include "eckit/memory/ScopedPtr.h"
+#include "eckit/config/Resource.h"
 
 #include "fdb5/toc/AdoptVisitor.h"
 #include "fdb5/grib/GribDecoder.h"
@@ -66,9 +67,13 @@ void FDBIndexScanner::execute() {
 
     // if all else fails, lets try to run the old tool 'lsfdb' (must be in path)
     {
-        std::string cmd(std::string("lsfdb ") + path_.asString());
-        Log::info() << "scanning with pipe to command: [" << cmd << "]" << std::endl;
-        StdPipe f(cmd, "r");
+        static std::string fdbLegacyLsfdb = eckit::Resource<std::string>("fdbLegacyLsfdb", "lsfdb");
+
+        std::ostringstream cmd;
+        cmd << fdbLegacyLsfdb << " " << path_;
+
+        Log::info() << "scanning with pipe to command: [" << cmd.str() << "]" << std::endl;
+        StdPipe f(cmd.str(), "r");
         process(f);
     }
 }
