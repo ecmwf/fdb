@@ -108,7 +108,7 @@ void ReportVisitor::purgeable(std::ostream &out) const {
 
     size_t indexToDelete = 0;
     out << std::endl;
-    out << "Number of accessible fields per index file:" << std::endl;
+    out << "Number of reachable fields per index file:" << std::endl;
     for (std::map<eckit::PathName, size_t>::const_iterator i = indexUsage_.begin(); i != indexUsage_.end(); ++i) {
         out << "    " << i->first << ": " << eckit::BigNum(i->second) << std::endl;
         if (i->second == 0) {
@@ -118,7 +118,7 @@ void ReportVisitor::purgeable(std::ostream &out) const {
 
     size_t dataToDelete = 0;
     out << std::endl;
-    out << "Number of accessible fields per data file:" << std::endl;
+    out << "Number of reachable fields per data file:" << std::endl;
     for (std::map<eckit::PathName, size_t>::const_iterator i = dataUsage_.begin(); i != dataUsage_.end(); ++i) {
         out << "    " << i->first << ": " << eckit::BigNum(i->second) << std::endl;
         if (i->second == 0) {
@@ -128,7 +128,7 @@ void ReportVisitor::purgeable(std::ostream &out) const {
 
     out << std::endl;
     size_t cnt = 0;
-    out << "Data files to be deleted:" << std::endl;
+    out << "Unreferenced owned data files:" << std::endl;
     for (std::map<eckit::PathName, size_t>::const_iterator i = dataUsage_.begin(); i != dataUsage_.end(); ++i) {
         if (i->second == 0) {
             if (i->first.dirName().sameAs(directory_)) {
@@ -150,7 +150,7 @@ void ReportVisitor::purgeable(std::ostream &out) const {
                 out << "    " << i->first << std::endl;
                 cnt++;
             }
-        };
+        }
     }
     if (!cnt) {
         out << "    - NONE -" << std::endl;
@@ -163,7 +163,7 @@ void ReportVisitor::purgeable(std::ostream &out) const {
         if (i->second == 0) {
             out << "    " << i->first << std::endl;
             cnt++;
-        };
+        }
     }
     if (!cnt) {
         out << "    - NONE -" << std::endl;
