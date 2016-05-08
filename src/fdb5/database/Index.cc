@@ -77,6 +77,14 @@ const IndexAxis &Index::axes() const {
 }
 
 
+void Index::dump(std::ostream &out, const char* indent) const {
+    out << indent << "Prefix: " << prefix_ << ", key: " << key_ << std::endl;
+    files_.dump(out, indent);
+    axes_.dump(out, indent);
+}
+
+
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

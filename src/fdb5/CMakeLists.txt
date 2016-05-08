@@ -127,6 +127,8 @@ list( APPEND fdb5_srcs
     toc/TocIndex.h
     toc/TocRecord.cc
     toc/TocRecord.h
+    tools/fdb5_dump.cc
+    tools/fdb5_dump.cc
     tools/FDBAccess.cc
     tools/FDBAccess.h
     tools/FDBInspect.cc
@@ -208,6 +210,7 @@ list( APPEND fdb5_tools
     fdb5_schema
     fdb5_where
     fdb5_adopt
+    fdb5_dump
     )
 
 foreach( _tool ${fdb5_tools} )

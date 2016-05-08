@@ -344,6 +344,67 @@ const eckit::PathName &TocHandler::schemaPath() const {
     return schemaPath_;
 }
 
+
+void TocHandler::dump(std::ostream& out) {
+
+
+    openForRead();
+    TocHandlerCloser close(*this);
+
+    TocRecord r;
+
+
+    while ( readNext(r) ) {
+
+        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        std::string path;
+        std::string type;
+
+        off_t offset;
+        std::vector<Index *>::iterator j;
+        Index *index = 0;
+
+        r.dump(out);
+
+
+        switch (r.header_.tag_) {
+
+        case TocRecord::TOC_INIT:
+            out << "  Key: " << Key(s) << std::endl;
+            break;
+
+        case TocRecord::TOC_INDEX:
+            s >> path;
+            s >> offset;
+            s >> type;
+            out << "  Path: " << path << ", offset: " << offset << ", type: " << type << std::endl;
+            index = new TocIndex(s, directory_, directory_ / path, offset);
+            index->dump(out, "  ");
+            delete index;
+            break;
+
+        case TocRecord::TOC_CLEAR:
+            s >> path;
+            s >> offset;
+            out << "  Path: " << path << ", offset: " << offset << std::endl;
+            break;
+
+        case TocRecord::TOC_WIPE:
+            out << "-" << std::endl;
+            break;
+
+        default:
+            out << "   Unknown TOC entry" << std::endl;
+            break;
+
+        }
+        out << std::endl;
+
+    }
+
+
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

@@ -93,6 +93,13 @@ void FileStore::print( std::ostream &out ) const {
     }
 }
 
+void FileStore::dump(std::ostream &out, const char* indent) const {
+    out << indent << "Files:" << std::endl;
+   for ( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr ) {
+        out << indent << indent << std::setw(3) << itr->first << " => " << itr->second << std::endl;
+    }
+}
+
 //-----------------------------------------------------------------------------
 
 } // namespace fdb5

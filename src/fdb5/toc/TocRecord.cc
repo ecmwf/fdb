@@ -8,8 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
+#include <sys/types.h>
+#include <pwd.h>
+
 #include "mars_server_version.h"
 #include "fdb5/toc/TocRecord.h"
+#include "eckit/log/TimeStamp.h"
 
 namespace fdb5 {
 
@@ -41,8 +45,65 @@ TocRecord::TocRecord(unsigned char tag):
     header_(tag) {
 }
 
+void TocRecord::dump(std::ostream &out) const {
+    switch (header_.tag_) {
 
-void TocRecord::print(std::ostream &out) const {
+    case TocRecord::TOC_INIT:
+        out << "TOC_INIT ";
+        break;
+
+    case TocRecord::TOC_INDEX:
+        out << "TOC_INDEX";
+        break;
+
+    case TocRecord::TOC_CLEAR:
+        out << "TOC_CLEAR";
+        break;
+
+    case TocRecord::TOC_WIPE:
+        out << "TOC_WIPE ";
+        break;
+
+    default:
+        out << "TOC_???? " << std::endl;
+        break;
+    }
+
+    std::ostringstream oss;
+    oss << (header_.timestamp_.tv_usec / 1000000.0);
+
+    out << " "
+        << eckit::TimeStamp(header_.timestamp_.tv_sec)
+        << "."
+        << std::setw(6)
+        << std::left
+        << std::setfill('0')
+        << oss.str().substr(2)
+        << std::setfill(' ')
+        << ", version:"
+        << header_.version_
+        << ", fdb: "
+        << header_.fdbVersion_
+        << ", uid: "
+        << std::setw(4);
+
+    struct passwd * p = getpwuid(header_.uid_);
+
+    if (p) {
+        out  << p->pw_name;
+    } else {
+        out << header_.uid_;
+    }
+
+    out << ", pid "
+        << std::setw(5)
+        << header_.pid_
+        << ", host: "
+        << header_.hostname_
+        << std::endl;
+}
+
+void TocRecord::print(std::ostream & out) const {
     out << "TocRecord["
         << "tag=" << header_.tag_ << ","
         << "tagVersion=" << header_.version_ << ","
