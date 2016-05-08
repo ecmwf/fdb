@@ -153,7 +153,7 @@ eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
 eckit::DataHandle &TocDBWriter::getDataHandle( const eckit::PathName &path ) {
     eckit::DataHandle *dh = getCachedHandle( path );
     if ( !dh ) {
-        static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite", true);
+        static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite", false);
 
         dh = fdbAsyncWrite ? createAsyncHandle( path ) : createFileHandle( path );
         handles_[path] = dh;

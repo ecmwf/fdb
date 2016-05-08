@@ -18,40 +18,20 @@
 
 namespace fdb5 {
 
+const size_t WIDTH = 25;
+
 //----------------------------------------------------------------------------------------------------------------------
+void Statistics::reportCount(std::ostream& out, const char* title, size_t value, const char* indent) {
+    out << indent << title << std::setw(WIDTH - strlen(title)) << " : "  << eckit::BigNum(value) << std::endl;
 
-Statistics::Statistics():
-    fields_(0),
-    duplicates_(0),
-    fieldsSize_(0),
-    duplicatesSize_(0) {}
+}
 
+void Statistics::reportBytes(std::ostream& out, const char* title, eckit::Length value, const char* indent) {
+    out << indent << title << std::setw(WIDTH - strlen(title)) << " : "  << eckit::BigNum(value) << " (" << eckit::Bytes(value) << ")" << std::endl;
 
-Statistics &Statistics::operator+=(const Statistics &rhs) {
-    fields_ += rhs.fields_;
-    duplicates_ += rhs.duplicates_;
-    fieldsSize_ += rhs.fieldsSize_;
-    duplicatesSize_ += rhs.duplicatesSize_;
-
-    return *this;
 }
 
 
-void Statistics::report(std::ostream &out, const char *indent) const {
-    out << indent << "Number of fields             : "  << eckit::BigNum(fields_) << std::endl;
-    out << indent << "Number of bytes in data files: "  << eckit::BigNum(fieldsSize_) << " (" << eckit::Bytes(fieldsSize_) << ")" << std::endl;
-    out << indent << "Number of duplicated fields  : "  << eckit::BigNum(duplicates_) << std::endl;
-    out << indent << "Number of bytes in duplicates: "  << eckit::BigNum(duplicatesSize_) << " (" << eckit::Bytes(duplicatesSize_) << ")" << std::endl;
-}
-
-void Statistics::print(std::ostream &out) const {
-    out << "Statistics:"
-        << " number of fields: "  << eckit::BigNum(fields_)
-        << ", number of duplicates: "    << eckit::BigNum(duplicates_)
-        << ", total size: "    << eckit::Bytes(fieldsSize_)
-        << ", size of duplicates: " << eckit::Bytes(duplicatesSize_);
-
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 

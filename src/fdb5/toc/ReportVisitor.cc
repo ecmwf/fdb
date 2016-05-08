@@ -26,6 +26,9 @@ namespace fdb5 {
 
 ReportVisitor::ReportVisitor(const eckit::PathName &directory) :
     directory_(directory) {
+
+    TocHandler handler(directory_);
+    dbStats_.update(handler);
 }
 
 ReportVisitor::~ReportVisitor() {
@@ -36,7 +39,7 @@ void ReportVisitor::visit(const Index &index,
                           const std::string &fieldFingerprint,
                           const Field &field) {
 
-    Statistics &stats = indexStats_[&index];
+    IndexStatistics &stats = indexStats_[&index];
 
     ++stats.fields_;
     stats.fieldsSize_ += field.length();
@@ -46,15 +49,15 @@ void ReportVisitor::visit(const Index &index,
 
     if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
         if (dataPath.dirName().sameAs(directory_)) {
-            totalDataFiles_ += dataPath.size();
+            dbStats_.totalDataFiles_ += dataPath.size();
         } else {
-            totalAdoptedFiles_ += dataPath.size();
+            dbStats_.totalAdoptedFiles_ += dataPath.size();
         }
         allDataFiles_.insert(dataPath);
     }
 
     if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
-        totalIndexFiles_ += indexPath.size();
+        dbStats_.totalIndexFiles_ += indexPath.size();
         allIndexFiles_.insert(indexPath);
     }
 
@@ -75,23 +78,27 @@ void ReportVisitor::visit(const Index &index,
     }
 }
 
-Statistics ReportVisitor::totals() const {
-    Statistics total;
-    for (std::map<const Index *, Statistics>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+DbStatistics ReportVisitor::dbStatistics() const {
+    return dbStats_;
+}
+
+IndexStatistics ReportVisitor::indexStatistics() const {
+    IndexStatistics total;
+    for (std::map<const Index *, IndexStatistics>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
         total += i->second;
     }
     return total;
 }
 
-void ReportVisitor::report(std::ostream &out) const {
+void ReportVisitor::report(std::ostream &out, bool detailed) const {
 
-    Statistics total = totals();
+    IndexStatistics total = indexStatistics();
 
     out << std::endl;
     out << "Index Report:" << std::endl;
-    for (std::map<const Index *, Statistics>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-        out << "    Index " << *(i->first) << std::endl
-            << "          " << i->second << std::endl;
+    for (std::map<const Index *, IndexStatistics>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+        out << "    Index " << *(i->first) << std::endl;
+        i->second.report(out, "          ");
     }
 
     size_t indexToDelete = 0;
@@ -177,31 +184,26 @@ void ReportVisitor::report(std::ostream &out) const {
         }
     }
 
-    TocHandler handler(directory_);
-    size_t numberOfRecords = handler.numberOfRecords();
-    eckit::Length tocSize = handler.tocPath().size();
-    eckit::Length schemaSize = handler.schemaPath().size();
+
+
+
 
     out << std::endl;
     out << "Summary:" << std::endl;
+    dbStats_.report(out);
 
-    out << "Records in TOC " << eckit::BigNum(numberOfRecords)  << std::endl;
 
-    out << "Bytes in owned data files " << eckit::BigNum(totalDataFiles_)
-        << " (" << eckit::Bytes(totalDataFiles_) << ")" << std::endl;
-    out << "Bytes in adopted data files " << eckit::BigNum(totalAdoptedFiles_)
-        << " (" << eckit::Bytes(totalAdoptedFiles_) << ")" << std::endl;
+    out << "Bytes in owned data files " << eckit::BigNum(dbStats_.totalDataFiles_)
+        << " (" << eckit::Bytes(dbStats_.totalDataFiles_) << ")" << std::endl;
+    out << "Bytes in adopted data files " << eckit::BigNum(dbStats_.totalAdoptedFiles_)
+        << " (" << eckit::Bytes(dbStats_.totalAdoptedFiles_) << ")" << std::endl;
 
-            out << "Bytes in index files " << eckit::BigNum(totalIndexFiles_)
-        << " (" << eckit::Bytes(totalIndexFiles_) << ")" << std::endl;
+    out << "Bytes in index files " << eckit::BigNum(dbStats_.totalIndexFiles_)
+        << " (" << eckit::Bytes(dbStats_.totalIndexFiles_) << ")" << std::endl;
 
-    out << "Bytes in TOC " << eckit::BigNum(tocSize)
-        << " (" << eckit::Bytes(tocSize) << ")" << std::endl;
 
-    out << "Bytes in schema "  << eckit::BigNum(schemaSize)
-        << " (" << eckit::Bytes(schemaSize) << ")" << std::endl;
-    out << "Total " << eckit::BigNum(schemaSize + tocSize + totalIndexFiles_ + totalDataFiles_)
-        << " (" << eckit::Bytes(schemaSize + tocSize + totalIndexFiles_ + totalDataFiles_) << ")" << std::endl;
+    // out << "Total " << eckit::BigNum(schemaSize + tocSize + dbStats_.totalIndexFiles_ + dbStats_.totalDataFiles_)
+    //     << " (" << eckit::Bytes(schemaSize + tocSize + dbStats_.totalIndexFiles_ + dbStats_.totalDataFiles_) << ")" << std::endl;
     out << "Total numer of files " << eckit::BigNum(indexUsage_.size() + dataUsage_.size() + 2)
         << std::endl;
 

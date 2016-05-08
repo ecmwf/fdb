@@ -12,7 +12,7 @@
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBInspect.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/toc/Statistics.h"
+#include "fdb5/toc/IndexStatistics.h"
 #include "fdb5/toc/ReportVisitor.h"
 #include "eckit/log/BigNum.h"
 
@@ -26,9 +26,9 @@ class FDBReport : public fdb5::FDBInspect {
 
     FDBReport(int argc, char **argv) :
         fdb5::FDBInspect(argc, argv),
-        count_(0) {
-
-
+        count_(0),
+        details_(false) {
+        options_.push_back(new eckit::option::SimpleOption<bool>("details", "Print report for each database visited"));
     }
 
   private: // methods
@@ -37,18 +37,22 @@ class FDBReport : public fdb5::FDBInspect {
     virtual void usage(const std::string &tool) const;
     virtual void init(const eckit::option::CmdArgs &args);
     virtual void finish(const eckit::option::CmdArgs &args);
-    fdb5::Statistics stats_;
+    fdb5::IndexStatistics indexStats_;
+    fdb5::DbStatistics dbStats_;
+
     size_t count_;
+    bool details_;
 
 };
 
 void FDBReport::usage(const std::string &tool) const {
 
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [path1|request1] [path2|request2] ..." << std::endl;
+    eckit::Log::info() << std::endl << "Usage: " << tool << " [--details] [path1|request1] [path2|request2] ..." << std::endl;
     FDBInspect::usage(tool);
 }
 
 void FDBReport::init(const eckit::option::CmdArgs &args) {
+    args.get("details", details_);
 }
 
 void FDBReport::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
@@ -73,17 +77,30 @@ void FDBReport::process(const eckit::PathName &path, const eckit::option::CmdArg
 
     handler.freeIndexes(indexes);
 
-    stats_ += visitor.totals();
+    if (details_) {
+        eckit::Log::info() << std::endl;
+        visitor.indexStatistics().report(eckit::Log::info());
+        visitor.dbStatistics().report(eckit::Log::info());
+        eckit::Log::info() << std::endl;
+    }
+
+    indexStats_ += visitor.indexStatistics();
+    dbStats_ += visitor.dbStatistics();
+
     count_ ++;
 }
 
 
 void FDBReport::finish(const eckit::option::CmdArgs &args) {
+    eckit::Log::info() << std::endl;
+    eckit::Log::info() << "Summary:" << std::endl;
+    eckit::Log::info() << "========" << std::endl;
 
-        eckit::Log::info() << std::endl
-        << "Number of databases          : " << eckit::BigNum(count_) << std::endl;
-        stats_.report(eckit::Log::info());
-        eckit::Log::info() << std::endl;
+    eckit::Log::info() << std::endl;
+    fdb5::Statistics::reportCount(eckit::Log::info(), "Number of databases", count_);
+    indexStats_.report(eckit::Log::info());
+    dbStats_.report(eckit::Log::info());
+    eckit::Log::info() << std::endl;
 
 }
 
