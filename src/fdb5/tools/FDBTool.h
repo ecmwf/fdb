@@ -23,10 +23,10 @@
 #include "eckit/option/SimpleOption.h"
 
 namespace eckit {
-namespace option {
-class Option;
-class CmdArgs;
-}
+    namespace option {
+    class Option;
+    class CmdArgs;
+    }
 }
 
 namespace fdb5 {
@@ -38,7 +38,6 @@ class FDBTool : public eckit::Tool {
 protected: // methods
 
     FDBTool(int argc, char **argv);
-
 
 public:
     virtual void usage(const std::string &tool) const = 0;

@@ -44,6 +44,7 @@ FDBIndexScanner::~FDBIndexScanner() {
 }
 
 void FDBIndexScanner::execute() {
+
     Log::info() << "scanning " << path_ << std::endl;
 
     PathName lsfdb1( path_ + ".lsfdb" );

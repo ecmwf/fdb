@@ -29,6 +29,8 @@ FDBTool::FDBTool(int argc, char **argv):
     eckit::Tool(argc, argv, "DHSHOME") {
     ASSERT(instance_ == 0);
     instance_ = this;
+
+    MasterConfig::instance(); // ensure we initialize the configuration
 }
 
 static void usage(const std::string &tool) {
