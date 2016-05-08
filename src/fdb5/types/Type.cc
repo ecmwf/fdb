@@ -51,6 +51,11 @@ std::ostream &operator<<(std::ostream &s, const Type &x) {
     return s;
 }
 
+bool Type::match(const std::string&, const std::string& value1, const std::string& value2) const
+{
+    return (value1 == value2);
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
