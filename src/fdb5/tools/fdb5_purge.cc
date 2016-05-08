@@ -31,7 +31,7 @@ void PurgeVisitor::purge() const {
 
         const fdb5::IndexStatistics &stats = i->second;
 
-        if (stats.fields_ == stats.duplicates_) {
+        if (stats.fieldsCount_ == stats.duplicatesCount_) {
             eckit::Log::info() << "Removing: " << *(i->first) << std::endl;
             fdb5::TocHandler handler(directory_);
             handler.writeClearRecord(*(*i).first);
@@ -63,9 +63,7 @@ class FDBPurge : public fdb5::FDBInspect {
 
     FDBPurge(int argc, char **argv) :
         fdb5::FDBInspect(argc, argv),
-        doit_(false),
-        wipe_(false),
-        count_(0) {
+        doit_(false) {
 
         options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
 
@@ -79,9 +77,6 @@ class FDBPurge : public fdb5::FDBInspect {
     virtual void finish(const eckit::option::CmdArgs &args);
 
     bool doit_;
-    bool wipe_;
-    fdb5::IndexStatistics stats_;
-    size_t count_;
 
 };
 
@@ -111,7 +106,7 @@ void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs
         (*i)->entries(visitor);
     }
 
-    visitor.report(eckit::Log::info(), true);
+    visitor.purgeable(eckit::Log::info());
 
     if (doit_) {
         visitor.purge();
@@ -119,20 +114,12 @@ void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     handler.freeIndexes(indexes);
 
-    stats_ += visitor.indexStatistics();
-    count_ ++;
 }
 
 
 void FDBPurge::finish(const eckit::option::CmdArgs &args) {
 
-    if (count_ > 1) {
-        eckit::Log::info() << std::endl
-                           << "Grand total:" << std::endl
-                           << "============" << std::endl
-                           << std::endl;
-                           stats_.report(eckit::Log::info() );
-    }
+
 
     if (!doit_) {
         eckit::Log::info() << std::endl

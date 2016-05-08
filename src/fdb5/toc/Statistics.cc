@@ -18,7 +18,7 @@
 
 namespace fdb5 {
 
-const size_t WIDTH = 25;
+const size_t WIDTH = 30;
 
 //----------------------------------------------------------------------------------------------------------------------
 void Statistics::reportCount(std::ostream& out, const char* title, size_t value, const char* indent) {

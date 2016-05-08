@@ -21,43 +21,59 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DbStatistics::DbStatistics():
-    tocRecords_(0),
-    tocSize_(0),
-    schemaSize_(0),
-    totalDataFiles_(0),
-    totalAdoptedFiles_(0),
-    totalIndexFiles_(0) {}
+    tocRecordsCount_(0),
+    tocFileSize_(0),
+    schemaFileSize_(0),
+    ownedFilesSize_(0),
+    adoptedFilesSize_(0),
+    indexFilesSize_(0),
+    ownedFilesCount_(0),
+    adoptedFilesCount_(0),
+    indexFilesCount_(0)
+{}
 
 
 void DbStatistics::update(TocHandler& handler) {
-    tocRecords_ += handler.numberOfRecords();
-    tocSize_ += handler.tocPath().size();
-    schemaSize_ += handler.schemaPath().size();
+    tocRecordsCount_ += handler.numberOfRecords();
+    tocFileSize_ += handler.tocPath().size();
+    schemaFileSize_ += handler.schemaPath().size();
 }
 
 
 
 DbStatistics &DbStatistics::operator+=(const DbStatistics &rhs) {
-    tocRecords_ += rhs.tocRecords_;
-    tocSize_ += rhs.tocSize_;
-    schemaSize_ += rhs.schemaSize_;
-    totalDataFiles_ += rhs.totalDataFiles_;
-    totalAdoptedFiles_ += rhs.totalAdoptedFiles_;
-    totalIndexFiles_ += rhs.totalIndexFiles_;
+    tocRecordsCount_ += rhs.tocRecordsCount_;
+    tocFileSize_ += rhs.tocFileSize_;
+    schemaFileSize_ += rhs.schemaFileSize_;
+    ownedFilesSize_ += rhs.ownedFilesSize_;
+    adoptedFilesSize_ += rhs.adoptedFilesSize_;
+    indexFilesSize_ += rhs.indexFilesSize_;
+    ownedFilesCount_ += rhs.ownedFilesCount_;
+    adoptedFilesCount_ += rhs.adoptedFilesCount_;
+    indexFilesCount_ += rhs.indexFilesCount_;
 
     return *this;
 }
 
 
 void DbStatistics::report(std::ostream &out, const char *indent) const {
-    reportCount(out, "TOC records", tocRecords_, indent);
-    reportBytes(out, "Size of TOC files", tocSize_, indent);
-    reportBytes(out, "Size of schemas files", schemaSize_, indent);
-    reportBytes(out, "Size of data files", totalDataFiles_, indent);
-    reportBytes(out, "Size of adopted files", totalAdoptedFiles_, indent);
-    reportBytes(out, "Size of index files", totalIndexFiles_, indent);
-    reportBytes(out, "Total size", tocSize_, indent);
-    reportBytes(out, "Size of TOC files", tocSize_ + schemaSize_ +  totalIndexFiles_ + totalDataFiles_, indent);
+    reportCount(out, "TOC records", tocRecordsCount_, indent);
+    reportBytes(out, "Size of TOC files", tocFileSize_, indent);
+    reportBytes(out, "Size of schemas files", schemaFileSize_, indent);
+    reportCount(out, "TOC records", tocRecordsCount_, indent);
+
+    reportCount(out, "Owned data files", ownedFilesCount_, indent);
+    reportBytes(out, "Size of owned data files", ownedFilesSize_, indent);
+    reportCount(out, "Adopted data files", adoptedFilesCount_, indent);
+
+    reportBytes(out, "Size of adopted data files", adoptedFilesSize_, indent);
+    reportCount(out, "Index files", indexFilesCount_, indent);
+
+    reportBytes(out, "Size of index files", indexFilesSize_, indent);
+    reportBytes(out, "Size of TOC files", tocFileSize_, indent);
+    reportBytes(out, "Total owned size", tocFileSize_ + schemaFileSize_ +  indexFilesSize_ + ownedFilesSize_, indent);
+    reportBytes(out, "Total size", tocFileSize_ + schemaFileSize_ +  indexFilesSize_ + ownedFilesSize_ + adoptedFilesSize_, indent);
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------

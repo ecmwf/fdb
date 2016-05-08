@@ -17,15 +17,6 @@
 #define fdb5_IndexStatistics_H
 
 #include <iosfwd>
-// #include <set>
-// #include <map>
-// #include <vector>
-
-// #include "eckit/filesystem/PathName.h"
-
-// #include "fdb5/database/Index.h"
-// #include "fdb5/database/Field.h"
-// #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/Statistics.h"
 
 namespace fdb5 {
@@ -36,8 +27,8 @@ class IndexStatistics : public Statistics {
 public:
     IndexStatistics() ;
 
-    size_t fields_;
-    size_t duplicates_;
+    size_t fieldsCount_;
+    size_t duplicatesCount_;
     eckit::Length fieldsSize_;
     eckit::Length duplicatesSize_;
 

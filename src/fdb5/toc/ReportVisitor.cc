@@ -41,7 +41,7 @@ void ReportVisitor::visit(const Index &index,
 
     IndexStatistics &stats = indexStats_[&index];
 
-    ++stats.fields_;
+    ++stats.fieldsCount_;
     stats.fieldsSize_ += field.length();
 
     const eckit::PathName &dataPath = field.path();
@@ -49,16 +49,21 @@ void ReportVisitor::visit(const Index &index,
 
     if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
         if (dataPath.dirName().sameAs(directory_)) {
-            dbStats_.totalDataFiles_ += dataPath.size();
+            dbStats_.ownedFilesSize_ += dataPath.size();
+            dbStats_.ownedFilesCount_++;
+
         } else {
-            dbStats_.totalAdoptedFiles_ += dataPath.size();
+            dbStats_.adoptedFilesSize_ += dataPath.size();
+            dbStats_.adoptedFilesCount_++;
+
         }
         allDataFiles_.insert(dataPath);
     }
 
     if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
-        dbStats_.totalIndexFiles_ += indexPath.size();
+        dbStats_.indexFilesSize_ += indexPath.size();
         allIndexFiles_.insert(indexPath);
+        dbStats_.indexFilesCount_++;
     }
 
 
@@ -71,7 +76,7 @@ void ReportVisitor::visit(const Index &index,
         active_.insert(unique);
         activeDataFiles_.insert(dataPath);
     } else {
-        ++stats.duplicates_;
+        ++stats.duplicatesCount_;
         stats.duplicatesSize_ += field.length();
         indexUsage_[indexPath]--;
         dataUsage_[dataPath]--;
@@ -90,7 +95,7 @@ IndexStatistics ReportVisitor::indexStatistics() const {
     return total;
 }
 
-void ReportVisitor::report(std::ostream &out, bool detailed) const {
+void ReportVisitor::purgeable(std::ostream &out) const {
 
     IndexStatistics total = indexStatistics();
 
@@ -164,70 +169,7 @@ void ReportVisitor::report(std::ostream &out, bool detailed) const {
         out << "    - NONE -" << std::endl;
     }
 
-    size_t adopted = 0;
-    size_t duplicated = 0;
-    size_t duplicatedAdopted = 0;
-
-    for (std::set<eckit::PathName>::const_iterator i = allDataFiles_.begin(); i != allDataFiles_.end(); ++i) {
-
-        bool adoptedFile = (!i->dirName().sameAs(directory_));
-
-        if (adoptedFile) {
-            ++adopted;
-        }
-
-        if (activeDataFiles_.find(*i) == activeDataFiles_.end()) {
-            ++duplicated;
-            if (adoptedFile) {
-                ++duplicatedAdopted;
-            }
-        }
-    }
-
-
-
-
-
     out << std::endl;
-    out << "Summary:" << std::endl;
-    dbStats_.report(out);
-
-
-    out << "Bytes in owned data files " << eckit::BigNum(dbStats_.totalDataFiles_)
-        << " (" << eckit::Bytes(dbStats_.totalDataFiles_) << ")" << std::endl;
-    out << "Bytes in adopted data files " << eckit::BigNum(dbStats_.totalAdoptedFiles_)
-        << " (" << eckit::Bytes(dbStats_.totalAdoptedFiles_) << ")" << std::endl;
-
-    out << "Bytes in index files " << eckit::BigNum(dbStats_.totalIndexFiles_)
-        << " (" << eckit::Bytes(dbStats_.totalIndexFiles_) << ")" << std::endl;
-
-
-    // out << "Total " << eckit::BigNum(schemaSize + tocSize + dbStats_.totalIndexFiles_ + dbStats_.totalDataFiles_)
-    //     << " (" << eckit::Bytes(schemaSize + tocSize + dbStats_.totalIndexFiles_ + dbStats_.totalDataFiles_) << ")" << std::endl;
-    out << "Total numer of files " << eckit::BigNum(indexUsage_.size() + dataUsage_.size() + 2)
-        << std::endl;
-
-    out << "   " << eckit::Plural(indexUsage_.size(), "index file") << std::endl;
-    out << "   " << eckit::Plural(dataUsage_.size(), "data file") << std::endl;
-
-    out << "   " << eckit::Plural(total.fields_, "field") << " referenced"
-        << " ("   << eckit::Plural(active_.size(), "field") << " active"
-        << ", "  << eckit::Plural(total.duplicates_, "field") << " duplicated)" << std::endl;
-
-    out << "   " << eckit::Plural(allDataFiles_.size(), "data file") << " referenced"
-        << " of which "   << adopted << " adopted"
-        << " ("   << activeDataFiles_.size() << " active"
-        << ", "  << duplicated << " duplicated"
-        << " of which "  << duplicatedAdopted << " adopted)" << std::endl;
-
-    out << "   " << eckit::Plural(dataToDelete, "data file") << " to delete" << std::endl;
-    out << "   " << eckit::Plural(indexToDelete, "index file") << " to delete" << std::endl;
-    out << "   " << eckit::Plural(indexToDelete, "index record") << " to clear" << std::endl;
-
-    out << "   "  << eckit::Bytes(total.fieldsSize_) << " referenced"
-        << " (" << eckit::Bytes(total.fieldsSize_ - total.duplicatesSize_) << " accessible, "
-        << eckit::Bytes(total.duplicatesSize_)
-        << " duplicated)" << std::endl;
 }
 
 
