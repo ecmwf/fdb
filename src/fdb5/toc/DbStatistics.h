@@ -8,27 +8,40 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Statistics.h
+/// @file   DbStatistics.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_Statistics_H
-#define fdb5_Statistics_H
+#ifndef fdb5_DbStatistics_H
+#define fdb5_DbStatistics_H
 
 #include <iosfwd>
 
-#include "eckit/io/Length.h"
-
+#include "fdb5/toc/Statistics.h"
 
 namespace fdb5 {
 
+class TocHandler;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class Statistics {
+class DbStatistics : public Statistics {
 public:
-    static void reportCount(std::ostream& out, const char* title, size_t value, const char* indent = "");
-    static void reportBytes(std::ostream& out, const char* title, eckit::Length value, const char* indent = "");
+    DbStatistics() ;
+
+    size_t tocRecords_;
+    eckit::Length tocSize_;
+    eckit::Length schemaSize_;
+    eckit::Length totalDataFiles_;
+    eckit::Length totalAdoptedFiles_;
+    eckit::Length totalIndexFiles_;
+
+    DbStatistics &operator+=(const DbStatistics &rhs) ;
+
+    void update(TocHandler&);
+    void report(std::ostream &out, const char* indent = "") const;
+
 
 };
 

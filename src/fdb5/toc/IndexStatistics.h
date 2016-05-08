@@ -8,27 +8,42 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Statistics.h
+/// @file   IndexStatistics.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_Statistics_H
-#define fdb5_Statistics_H
+#ifndef fdb5_IndexStatistics_H
+#define fdb5_IndexStatistics_H
 
 #include <iosfwd>
+// #include <set>
+// #include <map>
+// #include <vector>
 
-#include "eckit/io/Length.h"
+// #include "eckit/filesystem/PathName.h"
 
+// #include "fdb5/database/Index.h"
+// #include "fdb5/database/Field.h"
+// #include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/Statistics.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Statistics {
+class IndexStatistics : public Statistics {
 public:
-    static void reportCount(std::ostream& out, const char* title, size_t value, const char* indent = "");
-    static void reportBytes(std::ostream& out, const char* title, eckit::Length value, const char* indent = "");
+    IndexStatistics() ;
+
+    size_t fields_;
+    size_t duplicates_;
+    eckit::Length fieldsSize_;
+    eckit::Length duplicatesSize_;
+
+    IndexStatistics &operator+=(const IndexStatistics &rhs) ;
+
+    void report(std::ostream &out, const char* indent = "") const;
 
 };
 

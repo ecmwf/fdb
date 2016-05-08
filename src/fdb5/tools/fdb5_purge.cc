@@ -26,10 +26,10 @@ public:
 void PurgeVisitor::purge() const {
 
 
-    for (std::map<const fdb5::Index *, fdb5::Statistics>::const_iterator i = indexStats_.begin();
+    for (std::map<const fdb5::Index *, fdb5::IndexStatistics>::const_iterator i = indexStats_.begin();
             i != indexStats_.end(); ++i) {
 
-        const fdb5::Statistics &stats = i->second;
+        const fdb5::IndexStatistics &stats = i->second;
 
         if (stats.fields_ == stats.duplicates_) {
             eckit::Log::info() << "Removing: " << *(i->first) << std::endl;
@@ -80,7 +80,7 @@ class FDBPurge : public fdb5::FDBInspect {
 
     bool doit_;
     bool wipe_;
-    fdb5::Statistics stats_;
+    fdb5::IndexStatistics stats_;
     size_t count_;
 
 };
@@ -111,7 +111,7 @@ void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs
         (*i)->entries(visitor);
     }
 
-    visitor.report(eckit::Log::info());
+    visitor.report(eckit::Log::info(), true);
 
     if (doit_) {
         visitor.purge();
@@ -119,7 +119,7 @@ void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     handler.freeIndexes(indexes);
 
-    stats_ += visitor.totals();
+    stats_ += visitor.indexStatistics();
     count_ ++;
 }
 
@@ -130,8 +130,8 @@ void FDBPurge::finish(const eckit::option::CmdArgs &args) {
         eckit::Log::info() << std::endl
                            << "Grand total:" << std::endl
                            << "============" << std::endl
-                           << std::endl
-                           << stats_ << std::endl;
+                           << std::endl;
+                           stats_.report(eckit::Log::info() );
     }
 
     if (!doit_) {

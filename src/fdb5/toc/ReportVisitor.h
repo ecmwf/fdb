@@ -26,7 +26,8 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/toc/TocHandler.h"
-#include "fdb5/toc/Statistics.h"
+#include "fdb5/toc/IndexStatistics.h"
+#include "fdb5/toc/DbStatistics.h"
 
 namespace fdb5 {
 
@@ -39,11 +40,12 @@ public:
     ReportVisitor(const eckit::PathName &directory);
     ~ReportVisitor();
 
-    Statistics totals() const;
+    IndexStatistics indexStatistics() const;
+    DbStatistics dbStatistics() const;
 
     // void currentIndex(const Index* index);
 
-    void report(std::ostream &out) const;
+    void report(std::ostream &out, bool detailed) const;
 
 
 private: // methods
@@ -68,12 +70,10 @@ protected: // members
 
     std::set<std::string> active_;
 
-    eckit::Length totalDataFiles_;
-    eckit::Length totalAdoptedFiles_;
 
-    eckit::Length totalIndexFiles_;
 
-    std::map<const Index*, Statistics> indexStats_;
+    std::map<const Index*, IndexStatistics> indexStats_;
+     DbStatistics dbStats_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
