@@ -66,25 +66,25 @@ void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
         }
 
         if (k == "-e") {
-            check["expver"] = args(i + 1);
+            check.set("expver", args(i + 1));
             i += 2;
             continue;
         }
 
         if (k == "-c") {
-            check["class"] = args(i + 1);
+            check.set("class", args(i + 1));
             i += 2;
             continue;
         }
 
         if (k == "-s") {
-            check["stream"] = args(i + 1);
+            check.set("stream", args(i + 1));
             i += 2;
             continue;
         }
 
         if (k == "-T") {
-            check["type"] = args(i + 1);
+            check.set("type", args(i + 1));
             i += 2;
             continue;
         }
