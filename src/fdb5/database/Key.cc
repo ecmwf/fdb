@@ -203,13 +203,16 @@ void Key::validateKeysOf(const Key& other, bool checkAlsoValues) const
     eckit::StringSet missing;
     eckit::StringSet mismatch;
 
+    const TypesRegistry& registry = this->registry();
+
     for (Key::const_iterator j = begin(); j != end(); ++j) {
-        Key::const_iterator k = other.find((*j).first);
+        const std::string& keyword = (*j).first;
+        Key::const_iterator k = other.find(keyword);
         if (k == other.end()) {
-            missing.insert((*j).first);
+            missing.insert(keyword);
         }
         else {
-            if(checkAlsoValues && (k->second != j->second)) {
+            if(checkAlsoValues && !registry.lookupType(keyword).match(keyword, k->second, j->second) ) {
                 mismatch.insert((*j).first + "=" + j->second + " and " + k->second);
             }
         }

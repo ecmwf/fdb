@@ -65,6 +65,25 @@ static StringDict::value_type levelist(const Key &key, const std::string &keywor
 
 }
 
+static StringDict::value_type step(const Key &key, const std::string &keyword, const std::string &value ) {
+
+    static Translator<std::string, long> s2l;
+    static Translator<long, std::string> l2s;
+
+    long lvalue = s2l(value);
+
+    if(lvalue >= 100000) { // we have a StepRange encoded as a string (eg. 7200096)
+        long stepBegin = lvalue / 100000;
+        long stepEnd   = lvalue % 100000;
+        std::ostringstream oss;
+        oss << stepBegin << "-" << stepEnd;
+        return StringDict::value_type(keyword, oss.str());
+    }
+    else {
+        return StringDict::value_type(keyword, l2s(lvalue));
+    }
+}
+
 static StringDict::value_type levtype(const Key &key, const std::string &keyword, const std::string &value ) {
     static const char *levtype_ = "levtype";
 
@@ -127,7 +146,7 @@ LegacyTranslator::LegacyTranslator() {
 
     translators_["repr"]  = &repres;
 
-    translators_["step"]  = &real;
+    translators_["step"]  = &step;
 
     translators_["level"]    = &levelist;
     translators_["levelist"] = &levelist;
