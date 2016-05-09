@@ -18,6 +18,7 @@
 
 #include "fdb5/database/Archiver.h"
 #include "fdb5/grib/GribDecoder.h"
+#include "fdb5/database/Key.h"
 
 #include "eckit/io/Length.h"
 
@@ -35,12 +36,13 @@ class GribArchiver :
 
 public: // methods
 
-    GribArchiver(bool completeTransfers = false);
+    GribArchiver(const fdb5::Key& key = Key(), bool completeTransfers = false);
 
     eckit::Length archive(eckit::DataHandle &source);
 
 private: // members
 
+    fdb5::Key key_;
     bool completeTransfers_;
 
 };
