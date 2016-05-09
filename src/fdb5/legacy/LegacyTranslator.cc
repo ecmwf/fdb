@@ -74,7 +74,7 @@ static StringDict::value_type step(const Key &key, const std::string &keyword, c
 
     if(lvalue >= 100000) { // we have a StepRange encoded as a string (eg. 7200096)
         long stepBegin = lvalue / 100000;
-        long stepEnd   = lvalue - 100000*stepBegin;
+        long stepEnd   = lvalue % 100000;
         std::ostringstream oss;
         oss << stepBegin << "-" << stepEnd;
         return StringDict::value_type(keyword, oss.str());
@@ -165,7 +165,7 @@ void legacy::LegacyTranslator::set(Key &key, const std::string &keyword, const s
     std::transform(k.begin(), k.end(), k.begin(), tolower);
     std::transform(v.begin(), v.end(), v.begin(), tolower);
 
-    if((v == "off") || v.empty()) {
+    if((v == "off") || v.empty() || (k[0] == '_') ) {
         key.unset(k);
         return;
     }

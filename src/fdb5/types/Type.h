@@ -51,6 +51,8 @@ public: // methods
                            const MarsTask &task,
                            const DB *db) const;
 
+    virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const;
+
     friend std::ostream &operator<<(std::ostream &s, const Type &x);
 
 public: // class methods
