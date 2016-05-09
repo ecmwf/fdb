@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_MasterConfig_H
-#define fdb5_MasterConfig_H
+#ifndef fdb5_UMask_H
+#define fdb5_UMask_H
 
 #include <sys/stat.h>
 
