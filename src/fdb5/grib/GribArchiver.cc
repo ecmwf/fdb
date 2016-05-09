@@ -23,9 +23,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GribArchiver::GribArchiver(bool completeTransfers) :
+GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers) :
     Archiver(),
     GribDecoder(),
+    key_(key),
     completeTransfers_(completeTransfers) {
 }
 
@@ -45,6 +46,9 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
         Key key;
 
         while ( (len = gribToKey(file, key)) ) {
+
+            ASSERT(key.match(key_));
+
             ArchiveVisitor visitor(*this, key, static_cast<const void *>(buffer()), len);
 
             this->Archiver::archive(key, visitor);

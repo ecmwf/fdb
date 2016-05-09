@@ -165,7 +165,7 @@ void legacy::LegacyTranslator::set(Key &key, const std::string &keyword, const s
     std::transform(k.begin(), k.end(), k.begin(), tolower);
     std::transform(v.begin(), v.end(), v.begin(), tolower);
 
-    if((v == "off") || v.empty()) {
+    if((v == "off") || v.empty() || (k[0] == '_') ) {
         key.unset(k);
         return;
     }
