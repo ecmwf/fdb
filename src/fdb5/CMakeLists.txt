@@ -211,6 +211,7 @@ list( APPEND fdb5_tools
     fdb5_where
     fdb5_adopt
     fdb5_dump
+    grib2fdb5
     )
 
 foreach( _tool ${fdb5_tools} )

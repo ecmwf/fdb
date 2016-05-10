@@ -20,7 +20,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TypeDouble::TypeDouble(const std::string &name, const std::string &type) :
-    Type(name, type) {
+  Type(name, type) {
 }
 
 TypeDouble::~TypeDouble() {
@@ -29,7 +29,14 @@ TypeDouble::~TypeDouble() {
 void TypeDouble::toKey(std::ostream &out,
                        const std::string &keyword,
                        const std::string &value) const {
-    out << eckit::Translator<std::string, double>()(value);
+  double v = eckit::Translator<std::string, double>()(value);
+  long long ll = static_cast<long long>(v);
+
+  if (ll == v) {
+    out << ll;
+  } else {
+    out << v;
+  }
 }
 
 void TypeDouble::getValues(const MarsRequest &request,
@@ -37,21 +44,21 @@ void TypeDouble::getValues(const MarsRequest &request,
                            eckit::StringList &values,
                            const MarsTask &task,
                            const DB *db) const {
-    std::vector<double> dblValues;
+  std::vector<double> dblValues;
 
-    request.getValues(keyword, dblValues);
+  request.getValues(keyword, dblValues);
 
-    eckit::Translator<double, std::string> t;
+  eckit::Translator<double, std::string> t;
 
-    values.reserve(dblValues.size());
+  values.reserve(dblValues.size());
 
-    for (std::vector<double>::const_iterator i = dblValues.begin(); i != dblValues.end(); ++i) {
-        values.push_back(t(*i));
-    }
+  for (std::vector<double>::const_iterator i = dblValues.begin(); i != dblValues.end(); ++i) {
+    values.push_back(t(*i));
+  }
 }
 
 void TypeDouble::print(std::ostream &out) const {
-    out << "TypeDouble[name=" << name_ << "]";
+  out << "TypeDouble[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeDouble> type("Double");
