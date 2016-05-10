@@ -132,8 +132,6 @@ list( APPEND fdb5_srcs
     toc/TocIndex.h
     toc/TocRecord.cc
     toc/TocRecord.h
-    tools/fdb5_dump.cc
-    tools/fdb5_dump.cc
     tools/FDBAccess.cc
     tools/FDBAccess.h
     tools/FDBInspect.cc
