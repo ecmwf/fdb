@@ -201,6 +201,12 @@ ecbuild_add_library(
         grib_api
 )
 
+configure_file(tools/fdb.in ${CMAKE_BINARY_DIR}/bin/fdb @ONLY)
+# install(FILES ${CMAKE_BINARY_DIR}/bin/fdb)
+        # PERMISSIONS
+        # OWNER_READ OWNER_EXECUTE
+        # GROUP_READ GROUP_EXECUTE
+        # WORLD_READ WORLD_EXECUTE)
 
 list( APPEND fdb5_tools
     fdb-adopt

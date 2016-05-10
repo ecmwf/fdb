@@ -1,0 +1,4 @@
+#!/bin/bash
+command=$1
+shift
+$(dirname $0)/fdb-$command "$@"
