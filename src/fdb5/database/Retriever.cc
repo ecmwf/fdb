@@ -125,6 +125,7 @@ eckit::DataHandle *Retriever::retrieve() {
 
     if (sort.size() == 1 && sort[0] == "on") {
         sorted = true;
+        eckit::Log::userInfo() << "Using optimise" << std::endl;
     }
 
     const Schema &schema = MasterConfig::instance().schema();
