@@ -61,7 +61,14 @@ void IndexAxis::dump(std::ostream &out, const char* indent) const {
         out << indent << indent << (*i).first << std::endl;
         const std::set<std::string> &values = (*i).second;
         for (std::set<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
-            out << indent << indent << indent <<  (*j) << std::endl;
+            out << indent << indent << indent;
+            if ((*j).empty()) {
+                out << "<empty>";
+            }
+            else {
+                out << (*j);
+            }
+            out  << std::endl;
         }
     }
     // out << std::endl;
