@@ -205,19 +205,19 @@ ecbuild_add_library(
 
 
 list( APPEND fdb5_tools
-    fdb5_adopt
-    fdb5_archive
-    fdb5_dump
-    fdb5_extract
-    fdb5_list
-    fdb5_purge
-    fdb5_report
-    fdb5_retrieve
-    fdb5_schema
-    fdb5_where
-    fdb5_wipe
+    fdb-adopt
+    fdb-archive
+    fdb-dump
+    fdb-extract
+    fdb-list
+    fdb-purge
+    fdb-report
+    fdb-retrieve
+    fdb-schema
+    fdb-where
+    fdb-wipe
     grib2fdb5
-    )
+   )
 
 foreach( _tool ${fdb5_tools} )
 
