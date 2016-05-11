@@ -206,11 +206,9 @@ ecbuild_add_library(
 )
 
 configure_file(tools/fdb.in ${CMAKE_BINARY_DIR}/bin/fdb @ONLY)
-# install(FILES ${CMAKE_BINARY_DIR}/bin/fdb)
-        # PERMISSIONS
-        # OWNER_READ OWNER_EXECUTE
-        # GROUP_READ GROUP_EXECUTE
-        # WORLD_READ WORLD_EXECUTE)
+
+install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/fdb
+        DESTINATION ${INSTALL_BIN_DIR} )
 
 list( APPEND fdb5_tools
     fdb-adopt
