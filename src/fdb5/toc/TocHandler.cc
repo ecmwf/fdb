@@ -77,7 +77,7 @@ void TocHandler::checkUID() {
             << userName(userUID_)
             << "'";
 
-        throw eckit::SeriousBug(oss.str());
+        throw eckit::UserError(oss.str());
     }
 }
 
