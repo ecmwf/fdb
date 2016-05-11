@@ -63,24 +63,25 @@ static void readTable() {
         return;
     }
 
+    eckit::Tokenizer parse(" ");
+
     char line[1024];
     while (in.getline(line, sizeof(line))) {
-        eckit::Tokenizer parse(" ");
         std::vector<std::string> s;
         parse(line, s);
 
-        // Log::info() << "FDB table " << line << std::endl;
-
         size_t i = 0;
         while (i < s.size()) {
-            if (s[i].length() == 0)
+            if (s[i].length() == 0) {
                 s.erase(s.begin() + i);
-            else
+            } else {
                 i++;
+            }
         }
 
-        if (s.size() == 0 || s[0][0] == '#')
+        if (s.size() == 0 || s[0][0] == '#') {
             continue;
+        }
 
         switch (s.size()) {
         case 2:
@@ -105,7 +106,7 @@ eckit::PathName Root::directory(const Key &key) {
 
     for (std::vector<Root>::const_iterator i = rootsTable.begin(); i != rootsTable.end() ; ++i) {
         if (i->active() && i->match(name)) {
-            return  i->path() / name;
+            return i->path() / name;
         }
     }
 
@@ -130,4 +131,4 @@ std::vector<eckit::PathName> Root::roots(const std::string &match) {
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
 
-} // namespace fdb5
+}  // namespace fdb5

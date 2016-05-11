@@ -27,7 +27,7 @@ namespace fdb5 {
 class StdDir {
     DIR *d_;
 public:
-    StdDir(const eckit::PathName& p) { d_ = opendir(p.asString().c_str());}
+    StdDir(const eckit::PathName& p) { d_ = opendir(p.localPath());}
     ~StdDir()                 { if(d_) closedir(d_);    }
     operator DIR*()           { return d_;              }
 };
@@ -87,7 +87,7 @@ void WipeVisitor::scan(const eckit::PathName &directory) {
 
 
         eckit::Stat::Struct info;
-        SYSCALL(eckit::Stat::lstat(path.asString().c_str(), &info));
+        SYSCALL(eckit::Stat::lstat(path.localPath(), &info));
         if(S_ISDIR(info.st_mode)) {
             scan(path);
         }

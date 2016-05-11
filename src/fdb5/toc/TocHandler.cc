@@ -97,7 +97,7 @@ void TocHandler::openForAppend() {
     //#ifdef __linux__
     //  iomode |= O_NOATIME;
     //#endif
-    SYSCALL2((fd_ = ::open( tocPath_.asString().c_str(), iomode, (mode_t)0777 )), tocPath_);
+    SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode, (mode_t)0777 )), tocPath_);
 }
 
 void TocHandler::openForRead() {
@@ -110,7 +110,7 @@ void TocHandler::openForRead() {
     //#ifdef __linux__
     //  iomode |= O_NOATIME;
     //#endif
-    SYSCALL2((fd_ = ::open( tocPath_.asString().c_str(), iomode )), tocPath_ );
+    SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
 }
 
 static size_t round(size_t a, size_t b) {
@@ -170,7 +170,7 @@ void TocHandler::writeInitRecord(const Key &key) {
     }
 
     int iomode = O_CREAT | O_RDWR;
-    SYSCALL2(fd_ = ::open( tocPath_.asString().c_str(), iomode, mode_t(0777) ), tocPath_);
+    SYSCALL2(fd_ = ::open( tocPath_.localPath(), iomode, mode_t(0777) ), tocPath_);
 
     TocHandlerCloser closer(*this);
 
