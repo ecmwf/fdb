@@ -188,14 +188,6 @@ void TocHandler::writeClearRecord(const Index &index) {
 
 }
 
-void TocHandler::writeWipeRecord() {
-    openForAppend();
-    TocHandlerCloser closer(*this);
-
-    TocRecord r( TocRecord::TOC_WIPE );
-    append(r, 0);
-}
-
 void TocHandler::writeIndexRecord(const Index &index) {
     openForAppend();
     TocHandlerCloser closer(*this);
@@ -308,11 +300,6 @@ std::vector<Index *> TocHandler::loadIndexes() {
             }
             break;
 
-        case TocRecord::TOC_WIPE:
-            // eckit::Log::info() << "TOC_WIPE" << std::endl;
-            freeIndexes(indexes);
-            break;
-
         default:
             throw eckit::SeriousBug("Unknown tag in TocRecord", Here());
             break;
@@ -387,10 +374,6 @@ void TocHandler::dump(std::ostream& out) {
             s >> path;
             s >> offset;
             out << "  Path: " << path << ", offset: " << offset << std::endl;
-            break;
-
-        case TocRecord::TOC_WIPE:
-            out << "-" << std::endl;
             break;
 
         default:

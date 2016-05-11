@@ -43,7 +43,6 @@ public: // methods
     void writeInitRecord(const Key &tocKey);
     void writeClearRecord(const Index &);
     void writeIndexRecord(const Index &);
-    void writeWipeRecord();
 
     std::vector<Index *> loadIndexes();
     void freeIndexes(std::vector<Index *> &);
