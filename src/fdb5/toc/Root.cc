@@ -24,9 +24,11 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-Root::Root(const std::string &re, const std::string &path):
+Root::Root(const std::string &re, const std::string &path, bool active, bool visit):
     re_(re),
-    path_(path) {}
+    path_(path),
+    active_(active),
+    visit_(visit) {}
 
 bool Root::match(const std::string &s) const {
     return re_.match(s);
@@ -37,11 +39,11 @@ const eckit::PathName &Root::path() const {
 }
 
 bool Root::active() const {
-    return true; // Root is in use, when archiving
+    return active_; // Root is in use, when archiving
 }
 
 bool Root::visit() const {
-    return true; // Root is visited, when retrievind
+    return visit_; // Root is visited, when retrievind
 }
 
 
@@ -97,40 +99,20 @@ static void readTable() {
 
 eckit::PathName Root::directory(const Key &key) {
 
-    std::string root;
-
-    static eckit::StringList fdbRootPattern( eckit::Resource<eckit::StringList>("fdbRootPattern", "class,stream,expver", true ) );
     pthread_once(&once, readTable);
 
+    std::string name(key.valuesToString());
+
+    for (std::vector<Root>::const_iterator i = rootsTable.begin(); i != rootsTable.end() ; ++i) {
+        if (i->active() && i->match(name)) {
+            return  i->path() / name;
+        }
+    }
+
     std::ostringstream oss;
+    oss << "No FDB root for " << key << " (" << name << ")";
+    throw eckit::SeriousBug(oss.str());
 
-    const char *sep = "";
-    for (eckit::StringList::const_iterator j = fdbRootPattern.begin(); j != fdbRootPattern.end(); ++j) {
-        Key::const_iterator i = key.find(*j);
-        if (i == key.end()) {
-            oss << sep << "unknown";
-            eckit::Log::warning() << "FDB root: cannot get " << *j << " from " << key << std::endl;
-        } else {
-            oss << sep << key.get(*j);
-        }
-        sep = ":";
-    }
-
-    std::string name(oss.str());
-
-    for (size_t i = 0; i < rootsTable.size() ; i++)
-        if (rootsTable[i].active() && rootsTable[i].match(name)) {
-            root = rootsTable[i].path();
-            break;
-        }
-
-    if (root.length() == 0) {
-        std::ostringstream oss;
-        oss << "No FDB root for " << key;
-        throw eckit::SeriousBug(oss.str());
-    }
-
-    return eckit::PathName(root) / key.valuesToString();
 }
 
 std::vector<eckit::PathName> Root::roots(const std::string &match) {
@@ -139,9 +121,9 @@ std::vector<eckit::PathName> Root::roots(const std::string &match) {
 
     pthread_once(&once, readTable);
 
-    for (size_t i = 0; i < rootsTable.size() ; i++) {
-        if (rootsTable[i].visit() && rootsTable[i].match(match)) {
-            roots.insert(rootsTable[i].path());
+    for (std::vector<Root>::const_iterator i = rootsTable.begin(); i != rootsTable.end() ; ++i) {
+        if (i->visit() && i->match(match)) {
+            roots.insert(i->path());
         }
     }
 

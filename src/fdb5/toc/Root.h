@@ -29,7 +29,7 @@ class Key;
 class Root  {
 public: // methods
 
-    Root(const std::string &re, const std::string &path);
+    Root(const std::string &re, const std::string &path, bool active = true, bool visit = true);
 
     bool match(const std::string &s) const;
 
@@ -45,6 +45,9 @@ private: // members
 
     eckit::Regex re_;
     eckit::PathName path_;
+
+    bool active_;
+    bool visit_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
