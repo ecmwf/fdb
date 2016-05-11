@@ -16,4 +16,4 @@ then
 fi
 
 shift
-exec CMD "$@"
+exec $CMD "$@"
