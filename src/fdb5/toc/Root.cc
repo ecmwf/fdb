@@ -21,14 +21,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//----------------------------------------------------------------------------------------------------------------------
-
 
 Root::Root(const std::string &re, const std::string &path, bool active, bool visit):
     re_(re),
     path_(path),
     active_(active),
-    visit_(visit) {}
+    visit_(visit) {
+
+}
 
 bool Root::match(const std::string &s) const {
     return re_.match(s);
@@ -39,11 +39,11 @@ const eckit::PathName &Root::path() const {
 }
 
 bool Root::active() const {
-    return active_; // Root is in use, when archiving
+    return active_;  // Root is in use, when archiving
 }
 
 bool Root::visit() const {
-    return visit_; // Root is visited, when retrievind
+    return visit_;  // Root is visited, when retrievind
 }
 
 
