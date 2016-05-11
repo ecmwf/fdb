@@ -28,7 +28,7 @@ class StdDir {
 
     DIR *d_;
 
-public:
+  public:
 
     StdDir(const eckit::PathName &p) {
         d_ = opendir(p.localPath());
@@ -50,9 +50,17 @@ public:
 WipeVisitor::WipeVisitor(const eckit::PathName &directory) :
     ReportVisitor(directory) {
 
-    eckit::Log::info() << "Scanning " << directory_  << std::endl;
+    eckit::Log::info() << "Scanning "
+                       << directory_
+                       << std::endl;
+
     scan(directory_);
-    eckit::Log::info() << "Found " << eckit::Plural(files_.size(), "file") << ", size: " << eckit::Bytes(total_) << std::endl;
+
+    eckit::Log::info() << "Found "
+                       << eckit::Plural(files_.size(), "file")
+                       << ", size: "
+                       << eckit::Bytes(total_)
+                       << std::endl;
 
 }
 
