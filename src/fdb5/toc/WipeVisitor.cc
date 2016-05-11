@@ -8,34 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-#include <limits.h>
-#include <stdlib.h>
+// #include <limits.h>
+// #include <stdlib.h>
 
 #include <sys/stat.h>
 #include <dirent.h>
-#include <sys/statvfs.h>
-
-#include "eckit/config/Resource.h"
-#include "eckit/filesystem/BasePathNameT.h"
-#include "eckit/filesystem/LocalPathName.h"
-#include "eckit/filesystem/marsfs/MarsFSPath.h"
-#include "eckit/io/cluster/ClusterDisks.h"
-#include "eckit/io/cluster/NodeInfo.h"
-#include "eckit/io/FileHandle.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/PartFileHandle.h"
-#include "eckit/io/StdFile.h"
-#include "eckit/log/Bytes.h"
 
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
-#include "eckit/log/TimeStamp.h"
-#include "eckit/os/Stat.h"
-#include "eckit/runtime/Context.h"
-#include "eckit/thread/AutoLock.h"
-#include "eckit/thread/Mutex.h"
-#include "eckit/thread/Once.h"
-#include "eckit/utils/Regex.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/WipeVisitor.h"
