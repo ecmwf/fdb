@@ -29,19 +29,17 @@ class Key;
 class Root  {
 public: // methods
 
-    Root(const std::string& re, const std::string& path);
+    Root(const std::string &re, const std::string &path);
 
-    bool match(const std::string& s) const;
+    bool match(const std::string &s) const;
 
-    const eckit::PathName& path() const;
+    const eckit::PathName &path() const;
 
     bool active() const;// Root is in use, when archiving
     bool visit() const; // Root is visited, when retrievind
 
     static eckit::PathName directory(const Key &key);
-    static std::vector<eckit::PathName> roots(const std::string& match = ".*");
-
-
+    static std::vector<eckit::PathName> roots(const std::string &match = ".*");
 
 private: // members
 

@@ -10,12 +10,10 @@
 
 
 #include "fdb5/toc/Root.h"
-#include "fdb5/rules/Rule.h"
-#include "eckit/log/Timer.h"
+#include "fdb5/database/Key.h"
 #include "eckit/config/Resource.h"
 #include "eckit/parser/Tokenizer.h"
-#include "eckit/utils/Regex.h"
-#include "fdb5/config/MasterConfig.h"
+
 
 using namespace eckit;
 
@@ -26,15 +24,15 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-Root::Root(const std::string& re, const std::string& path):
+Root::Root(const std::string &re, const std::string &path):
     re_(re),
     path_(path) {}
 
-bool Root::match(const std::string& s) const {
+bool Root::match(const std::string &s) const {
     return re_.match(s);
 }
 
-const eckit::PathName& Root::path() const {
+const eckit::PathName &Root::path() const {
     return path_;
 }
 
@@ -135,7 +133,7 @@ eckit::PathName Root::directory(const Key &key) {
     return eckit::PathName(root) / key.valuesToString();
 }
 
-std::vector<eckit::PathName> Root::roots(const std::string& match) {
+std::vector<eckit::PathName> Root::roots(const std::string &match) {
 
     eckit::StringSet roots;
 

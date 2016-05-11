@@ -16,6 +16,9 @@ function usage {
     ) | sort
 }
 
+function fdb_builtin_roots {
+    cat $FDB_HOME/etc/fdb/roots
+}
 
 function fdb_builtin_home {
     echo $FDB_HOME
