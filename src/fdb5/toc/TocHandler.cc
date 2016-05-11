@@ -9,6 +9,8 @@
  */
 
 #include <fcntl.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/FileHandle.h"
@@ -41,6 +43,8 @@ TocHandler::TocHandler(const eckit::PathName &directory) :
     directory_(directory),
     tocPath_(directory / "toc"),
     schemaPath_(directory / "schema"),
+    dbUID_(-1),
+    userUID_(::getuid()),
     fd_(-1),
     count_(0) {
 }
@@ -53,7 +57,33 @@ bool TocHandler::exists() const {
     return tocPath_.exists();
 }
 
+void TocHandler::checkUID() {
+
+    static bool fdbOnlyCreatorCanWrite = eckit::Resource<bool>("fdbOnlyCreatorCanWrite", true);
+    if (!fdbOnlyCreatorCanWrite) {
+        return;
+    }
+
+    if (dbUID() != userUID_) {
+        std::ostringstream oss;
+
+
+        oss << "Only user '"
+            << userName(dbUID())
+
+            << "' can write to FDB "
+            << directory_
+            << ", current user is '"
+            << userName(userUID_)
+            << "'";
+
+        throw eckit::UserError(oss.str());
+    }
+}
+
 void TocHandler::openForAppend() {
+
+    checkUID();
 
     ASSERT(fd_ == -1);
 
@@ -166,11 +196,13 @@ void TocHandler::writeInitRecord(const Key &key) {
         eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
         s << key;
         append(r, s.position());
+        dbUID_ = r.header_.uid_;
 
     } else {
         ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
         eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
         ASSERT(key == Key(s));
+        dbUID_ = r.header_.uid_;
     }
 }
 
@@ -216,6 +248,27 @@ class HasPath {
     }
 };
 
+long TocHandler::dbUID() {
+
+    if (dbUID_ != -1) {
+        return dbUID_;
+    }
+
+    openForRead();
+    TocHandlerCloser close(*this);
+
+    TocRecord r;
+
+    while ( readNext(r) ) {
+        if (r.header_.tag_ == TocRecord::TOC_INIT) {
+            dbUID_ = r.header_.uid_;
+            return dbUID_;
+        }
+    }
+
+    throw eckit::SeriousBug("Cannot find a TOC_INIT record");
+}
+
 Key TocHandler::databaseKey() {
     openForRead();
     TocHandlerCloser close(*this);
@@ -225,6 +278,7 @@ Key TocHandler::databaseKey() {
     while ( readNext(r) ) {
         if (r.header_.tag_ == TocRecord::TOC_INIT) {
             eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+            dbUID_ = r.header_.uid_;
             return Key(s);
         }
     }
@@ -278,6 +332,7 @@ std::vector<Index *> TocHandler::loadIndexes() {
         switch (r.header_.tag_) {
 
         case TocRecord::TOC_INIT:
+            dbUID_ = r.header_.uid_;
             // eckit::Log::info() << "TOC_INIT key is " << Key(s) << std::endl;
             break;
 
@@ -310,8 +365,6 @@ std::vector<Index *> TocHandler::loadIndexes() {
 
     std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
 
-    eckit::Log::info() << "TOC records: " << eckit::BigNum(count_) << std::endl;
-
     return indexes;
 
 }
@@ -332,14 +385,12 @@ const eckit::PathName &TocHandler::schemaPath() const {
 }
 
 
-void TocHandler::dump(std::ostream& out) {
-
+void TocHandler::dump(std::ostream &out) {
 
     openForRead();
     TocHandlerCloser close(*this);
 
     TocRecord r;
-
 
     while ( readNext(r) ) {
 
@@ -352,7 +403,6 @@ void TocHandler::dump(std::ostream& out) {
         Index *index = 0;
 
         r.dump(out);
-
 
         switch (r.header_.tag_) {
 
@@ -388,6 +438,19 @@ void TocHandler::dump(std::ostream& out) {
 
 }
 
+std::string TocHandler::dbOwner() {
+    return userName(dbUID());
+}
+
+std::string TocHandler::userName(long id) const {
+    struct passwd *p = getpwuid(id);
+
+    if (p) {
+        return p->pw_name;
+    } else {
+        return eckit::Translator<long, std::string>()(id);
+    }
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

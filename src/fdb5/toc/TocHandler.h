@@ -54,11 +54,18 @@ public: // methods
     const eckit::PathName& schemaPath() const;
 
     void dump(std::ostream& out);
+    std::string dbOwner();
 
 
 protected: // members
 
     const eckit::PathName directory_;
+    long dbUID_;
+    long userUID_;
+
+    void checkUID();
+
+    long dbUID();
 
 private: // methods
 
@@ -70,6 +77,8 @@ private: // methods
 
     void append(TocRecord &r, size_t payloadSize);
     bool readNext(TocRecord &r);
+
+    std::string userName(long) const;
 
     eckit::PathName tocPath_;
     eckit::PathName schemaPath_;

@@ -121,10 +121,11 @@ eckit::DataHandle *Retriever::retrieve() {
 
     bool sorted = false;
     std::vector<std::string> sort;
-    task_.request().getValues("_sort", sort);
+    task_.request().getValues("optimise", sort);
 
-    if (sort.size() == 1 && sort[0] == "1") {
+    if (sort.size() == 1 && sort[0] == "on") {
         sorted = true;
+        eckit::Log::userInfo() << "Using optimise" << std::endl;
     }
 
     const Schema &schema = MasterConfig::instance().schema();

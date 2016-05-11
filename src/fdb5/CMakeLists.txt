@@ -26,17 +26,16 @@
 #
 # Confluence documentation on how to install
 # -- dont forget the ~/mars/wind
+#
+# Implement access control: only the user that create the toc can:
+# - Add new data
+# - purge
+# Implement privilege users that can do everything
 
 
 # fdb5 library
 
 list( APPEND fdb5_srcs
-    legacy/FDBIndexScanner.h
-    legacy/FDBIndexScanner.cc
-    legacy/LegacyTranslator.cc
-    legacy/LegacyTranslator.h
-    legacy/LegacyArchiver.cc
-    legacy/LegacyArchiver.h
     config/MasterConfig.cc
     config/MasterConfig.h
     config/UMask.cc
@@ -83,6 +82,12 @@ list( APPEND fdb5_srcs
     io/FDBFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
+    legacy/FDBIndexScanner.cc
+    legacy/FDBIndexScanner.h
+    legacy/LegacyArchiver.cc
+    legacy/LegacyArchiver.h
+    legacy/LegacyTranslator.cc
+    legacy/LegacyTranslator.h
     rules/MatchAlways.cc
     rules/MatchAlways.h
     rules/MatchAny.cc
@@ -107,16 +112,16 @@ list( APPEND fdb5_srcs
     toc/AdoptVisitor.h
     toc/BTreeIndex.cc
     toc/BTreeIndex.h
-    toc/ReportVisitor.cc
-    toc/ReportVisitor.h
-    toc/TocDB.cc
-    toc/TocDB.h
-    toc/Statistics.cc
-    toc/Statistics.h
-    toc/IndexStatistics.cc
-    toc/IndexStatistics.h
     toc/DbStatistics.cc
     toc/DbStatistics.h
+    toc/IndexStatistics.cc
+    toc/IndexStatistics.h
+    toc/ReportVisitor.cc
+    toc/ReportVisitor.h
+    toc/Statistics.cc
+    toc/Statistics.h
+    toc/TocDB.cc
+    toc/TocDB.h
     toc/TocDBReader.cc
     toc/TocDBReader.h
     toc/TocDBWriter.cc
@@ -127,8 +132,6 @@ list( APPEND fdb5_srcs
     toc/TocIndex.h
     toc/TocRecord.cc
     toc/TocRecord.h
-    tools/fdb5_dump.cc
-    tools/fdb5_dump.cc
     tools/FDBAccess.cc
     tools/FDBAccess.h
     tools/FDBInspect.cc
@@ -198,21 +201,27 @@ ecbuild_add_library(
         grib_api
 )
 
+configure_file(tools/fdb.in ${CMAKE_BINARY_DIR}/bin/fdb @ONLY)
+# install(FILES ${CMAKE_BINARY_DIR}/bin/fdb)
+        # PERMISSIONS
+        # OWNER_READ OWNER_EXECUTE
+        # GROUP_READ GROUP_EXECUTE
+        # WORLD_READ WORLD_EXECUTE)
 
 list( APPEND fdb5_tools
-    fdb5_archive
-    fdb5_list
-    fdb5_extract
-    fdb5_retrieve
-    fdb5_purge
-    fdb5_wipe
-    fdb5_report
-    fdb5_schema
-    fdb5_where
-    fdb5_adopt
-    fdb5_dump
+    fdb-adopt
+    fdb-archive
+    fdb-dump
+    fdb-extract
+    fdb-list
+    fdb-purge
+    fdb-report
+    fdb-retrieve
+    fdb-schema
+    fdb-where
+    fdb-wipe
     grib2fdb5
-    )
+   )
 
 foreach( _tool ${fdb5_tools} )
 
