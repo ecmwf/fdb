@@ -26,7 +26,7 @@ class FDBInspect : public FDBTool {
 
 protected: // methods
 
-    FDBInspect(int argc, char **argv);
+    FDBInspect(int argc, char **argv, const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
 
     virtual void usage(const std::string &tool) const = 0;
 
@@ -35,6 +35,8 @@ private: // methods
 
     virtual void execute(const eckit::option::CmdArgs& args);
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
+
+     std::vector<std::string> minimumKeySet_;
 
 };
 

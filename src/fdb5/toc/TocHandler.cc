@@ -64,20 +64,24 @@ void TocHandler::checkUID() {
         return;
     }
 
+    static std::vector<std::string> fdbSuperUsers = eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);;
+
     if (dbUID() != userUID_) {
-        std::ostringstream oss;
 
+        if(std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(userUID_)) == fdbSuperUsers.end()) {
 
-        oss << "Only user '"
-            << userName(dbUID())
+            std::ostringstream oss;
+            oss << "Only user '"
+                << userName(dbUID())
 
-            << "' can write to FDB "
-            << directory_
-            << ", current user is '"
-            << userName(userUID_)
-            << "'";
+                << "' can write to FDB "
+                << directory_
+                << ", current user is '"
+                << userName(userUID_)
+                << "'";
 
-        throw eckit::UserError(oss.str());
+            throw eckit::UserError(oss.str());
+        }
     }
 }
 

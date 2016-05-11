@@ -110,6 +110,10 @@ list( APPEND fdb5_srcs
     rules/SchemaParser.h
     toc/AdoptVisitor.cc
     toc/AdoptVisitor.h
+    toc/WipeVisitor.cc
+    toc/WipeVisitor.h
+    toc/PurgeVisitor.cc
+    toc/PurgeVisitor.h
     toc/BTreeIndex.cc
     toc/BTreeIndex.h
     toc/DbStatistics.cc

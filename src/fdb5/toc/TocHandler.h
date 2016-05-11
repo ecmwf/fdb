@@ -39,6 +39,7 @@ public: // methods
     ~TocHandler();
 
     bool exists() const;
+    void checkUID();
 
     void writeInitRecord(const Key &tocKey);
     void writeClearRecord(const Index &);
@@ -63,7 +64,6 @@ protected: // members
     long dbUID_;
     long userUID_;
 
-    void checkUID();
 
     long dbUID();
 
