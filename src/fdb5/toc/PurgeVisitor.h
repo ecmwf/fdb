@@ -8,35 +8,28 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   FDBInspect.h
+/// @file   PurgeVisitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   Mar 2016
+/// @date   April 2016
 
-#ifndef fdb5_FDBInspect_H
-#define fdb5_FDBInspect_H
+#ifndef fdb5_PurgeVisitor_H
+#define fdb5_PurgeVisitor_H
 
-#include "fdb5/tools/FDBTool.h"
+
+#include "fdb5/toc/ReportVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBInspect : public FDBTool {
 
-protected: // methods
+class PurgeVisitor : public ReportVisitor {
+public:
 
-    FDBInspect(int argc, char **argv, const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
-
-    virtual void usage(const std::string &tool) const = 0;
-
-
-private: // methods
-
-    virtual void execute(const eckit::option::CmdArgs& args);
-    virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
-
-     std::vector<std::string> minimumKeySet_;
+    PurgeVisitor(const eckit::PathName &directory);
+    void report(std::ostream &out) const;
+    void purge(std::ostream &out) const;
 
 };
 

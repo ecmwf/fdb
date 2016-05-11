@@ -1,0 +1,19 @@
+#!/bin/bash
+
+BINDIR=$(dirname $0)
+CMD=$BINDIR/fdb-$1
+
+if [[ ! -x $CMD ]]
+then
+    echo "Usage $(basename $0): command [options] ..." 1>&2
+    echo "Commands are:" 1>&2
+    for n in $BINDIR/fdb-*
+    do
+        m=$(basename $n | sed 's/fdb-//')
+        echo "   $m" 1>&2
+    done
+    exit 1
+fi
+
+shift
+exec $CMD "$@"

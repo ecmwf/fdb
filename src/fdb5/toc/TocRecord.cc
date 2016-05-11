@@ -60,10 +60,6 @@ void TocRecord::dump(std::ostream &out) const {
         out << "TOC_CLEAR";
         break;
 
-    case TocRecord::TOC_WIPE:
-        out << "TOC_WIPE ";
-        break;
-
     default:
         out << "TOC_???? " << std::endl;
         break;

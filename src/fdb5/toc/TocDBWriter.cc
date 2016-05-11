@@ -28,6 +28,7 @@ TocDBWriter::TocDBWriter(const Key &key) :
     dirty_(false) {
     writeInitRecord(key);
     loadSchema();
+    checkUID();
 }
 
 TocDBWriter::~TocDBWriter() {

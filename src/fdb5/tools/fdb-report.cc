@@ -60,7 +60,7 @@ void FDBReport::process(const eckit::PathName &path, const eckit::option::CmdArg
     eckit::Log::info() << "Scanning " << path << std::endl;
 
     fdb5::TocHandler handler(path);
-    eckit::Log::info() << "Database key " << handler.databaseKey() << std::endl;
+    eckit::Log::info() << "Database key: " << handler.databaseKey() << ", owner: " << handler.dbOwner() << std::endl;
 
     fdb5::ReportVisitor visitor(path);
     // handler.visitor(visitor);

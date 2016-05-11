@@ -8,35 +8,35 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   FDBInspect.h
+/// @file   WipeVisitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   Mar 2016
+/// @date   April 2016
 
-#ifndef fdb5_FDBInspect_H
-#define fdb5_FDBInspect_H
+#ifndef fdb5_WipeVisitor_H
+#define fdb5_WipeVisitor_H
 
-#include "fdb5/tools/FDBTool.h"
+
+#include "fdb5/toc/ReportVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBInspect : public FDBTool {
 
-protected: // methods
+class WipeVisitor : public ReportVisitor {
 
-    FDBInspect(int argc, char **argv, const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
+    mutable std::set<eckit::PathName> files_;
+    eckit::Length total_;
 
-    virtual void usage(const std::string &tool) const = 0;
+    void scan(const eckit::PathName& path);
+    const eckit::PathName& mark(const eckit::PathName& path) const;
 
+public:
 
-private: // methods
-
-    virtual void execute(const eckit::option::CmdArgs& args);
-    virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
-
-     std::vector<std::string> minimumKeySet_;
+    WipeVisitor(const eckit::PathName &directory);
+    void report(std::ostream &out) const;
+    void wipe(std::ostream &out) const;
 
 };
 
