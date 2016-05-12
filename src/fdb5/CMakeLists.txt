@@ -232,6 +232,7 @@ foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   tools/${_tool}.cc
+                          INCLUDES  ${GRIB_API_INCLUDE_DIRS}
                           LIBS
                           mars-fdb5 )
 
