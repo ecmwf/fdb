@@ -122,8 +122,18 @@ void TypeParam::getValues(const MarsRequest &request,
 bool TypeParam::match(const std::string& keyword,
                        const std::string& value1,
                        const std::string& value2) const {
-    std::cout << "Param " << value1 << " " << value2 << std::endl;
-    return value1 == value2;
+    if(value1 == value2) {
+        return true;
+    }
+
+    Param p1(value1);
+    Param p2(value2);
+
+    if((p1.value() == p2.value()) && (p1.table() == 0 || p2.table() == 0)) {
+        return true;
+    }
+
+    return false;
 }
 
 void TypeParam::print(std::ostream &out) const {
