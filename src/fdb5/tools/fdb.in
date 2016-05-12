@@ -1,17 +1,49 @@
 #!/bin/bash
 
+shopt -s nullglob
+
+function usage {
+    echo "Usage $(basename $0): command [options] ..."
+    echo "Commands are:"
+
+    (
+    declare -F | grep fdb_builtin_ | sed 's/.*fdb_builtin_/   /'
+    for n in $FDB_HOME/bin/fdb-*
+    do
+        m=$(basename $n | sed 's/fdb-//')
+        echo "   $m"
+    done
+    ) | sort
+}
+
+function fdb_builtin_roots {
+    cat $FDB_HOME/etc/fdb/roots
+}
+
+function fdb_builtin_home {
+    echo $FDB_HOME
+}
+
+function fdb_builtin_help {
+    usage
+}
+
 BINDIR=$(dirname $0)
-CMD=$BINDIR/fdb-$1
+FDB_HOME=$(cd $BINDIR/..; /bin/pwd)
+PROC=$1
+
+declare -f "fdb_builtin_$PROC" > /dev/null
+if [[ $? -eq 0  ]]
+then
+    "fdb_builtin_$PROC"
+    exit
+fi
+
+CMD=$FDB_HOME/bin/fdb-$PROC
 
 if [[ ! -x $CMD ]]
 then
-    echo "Usage $(basename $0): command [options] ..." 1>&2
-    echo "Commands are:" 1>&2
-    for n in $BINDIR/fdb-*
-    do
-        m=$(basename $n | sed 's/fdb-//')
-        echo "   $m" 1>&2
-    done
+    usage 1>&2
     exit 1
 fi
 

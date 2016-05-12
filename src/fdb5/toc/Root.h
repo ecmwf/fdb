@@ -8,42 +8,46 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeParam.h
+/// @file   Root.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   April 2016
+/// @date   Mar 2016
 
-#ifndef fdb5_TypeParam_H
-#define fdb5_TypeParam_H
+#ifndef fdb5_Root_H
+#define fdb5_Root_H
 
-#include "fdb5/types/Type.h"
+#include "eckit/utils/Regex.h"
+#include "eckit/filesystem/PathName.h"
 
 namespace fdb5 {
 
+class Key;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeParam : public Type {
 
+class Root  {
 public: // methods
 
-    TypeParam(const std::string &name, const std::string &type);
+    Root(const std::string &re, const std::string &path, bool active = true, bool visit = true);
 
-    virtual ~TypeParam();
+    bool match(const std::string &s) const;
 
-    virtual void getValues(const MarsRequest &request,
-                           const std::string &keyword,
-                           eckit::StringList &values,
-                           const MarsTask &task,
-                           const DB *db) const;
+    const eckit::PathName &path() const;
 
-    virtual bool match(const std::string& keyword,
-                       const std::string& value1,
-                       const std::string& value2) const;
+    bool active() const;// Root is in use, when archiving
+    bool visit() const; // Root is visited, when retrievind
 
-private: // methods
+    static eckit::PathName directory(const Key &key);
+    static std::vector<eckit::PathName> roots(const std::string &match = ".*");
 
-    virtual void print( std::ostream &out ) const;
+private: // members
 
+    eckit::Regex re_;
+    eckit::PathName path_;
+
+    bool active_;
+    bool visit_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

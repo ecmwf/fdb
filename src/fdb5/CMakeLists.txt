@@ -126,6 +126,8 @@ list( APPEND fdb5_srcs
     toc/Statistics.h
     toc/TocDB.cc
     toc/TocDB.h
+    toc/Root.cc
+    toc/Root.h
     toc/TocDBReader.cc
     toc/TocDBReader.h
     toc/TocDBWriter.cc

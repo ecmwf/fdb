@@ -96,7 +96,7 @@ void Schema::load(const eckit::PathName &path, bool replace) {
     path_ = path;
     eckit::Log::info() << "Loading FDB rules from " << path << std::endl;
 
-    std::ifstream in(path.asString().c_str());
+    std::ifstream in(path.localPath());
     if (!in) {
         throw eckit::CantOpenFile(path);
     }
