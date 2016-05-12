@@ -99,22 +99,19 @@ void FDBPatch::execute(const eckit::option::CmdArgs &args) {
 
 void FDBPatch::init(const eckit::option::CmdArgs &args) {
 
-    bool ok = false;
     std::string s;
 
     if (args.get("expver", s)) {
         std::ostringstream oss;
         oss << std::setfill('0') << std::setw(4) << s;
         key_.set("expver", oss.str());
-        ok = true;
     }
 
-     if (args.get("class", s)) {
+    if (args.get("class", s)) {
         key_.set("class", s);
-        ok = true;
     }
 
-    if(!ok) {
+    if (key_.empty()) {
         eckit::Log::info() << "Please provide either --expver or --class" << std::endl;
         exit(1);
     }
