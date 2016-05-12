@@ -122,6 +122,7 @@ void TypeParam::getValues(const MarsRequest &request,
 bool TypeParam::match(const std::string& keyword,
                        const std::string& value1,
                        const std::string& value2) const {
+    std::cout << "Param " << value1 << " " << value2 << std::endl;
     return value1 == value2;
 }
 
