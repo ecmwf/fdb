@@ -133,6 +133,16 @@ bool TypeParam::match(const std::string& keyword,
         return true;
     }
 
+    if(p1.table() * 100 + p1.value() == p2.value())
+    {
+        return true;
+    }
+
+    if(p2.table() * 100 + p2.value() == p1.value())
+    {
+        return true;
+    }
+
     return false;
 }
 
