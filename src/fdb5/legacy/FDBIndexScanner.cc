@@ -212,7 +212,12 @@ void FDBIndexScanner::process(FILE *f) {
                 //     key.set("param", grib.get("param"));
                 // }
 
-                grib.validateKeysOf(key, checkValues_);
+                try {
+                    grib.validateKeysOf(key, checkValues_);
+                }
+                catch(eckit::Exception& e) {
+                    std::cerr << e.what() << std::endl;
+                }
             }
 
             AdoptVisitor visitor(*this, key, datapath, offset, length);
