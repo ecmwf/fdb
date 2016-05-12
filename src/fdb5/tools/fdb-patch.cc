@@ -12,6 +12,11 @@
 
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/log/BigNum.h"
+#include "eckit/log/Bytes.h"
+#include "eckit/log/Timer.h"
+#include "eckit/log/Plural.h"
+
 #include "fdb5/config/UMask.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/grib/GribArchiver.h"
@@ -24,8 +29,10 @@
 
 class PatchVisitor : public fdb5::EntryVisitor {
   public:
-    PatchVisitor(fdb5::HandleGatherer &gatherer) :
-        gatherer_(gatherer) {
+    PatchVisitor(fdb5::HandleGatherer &gatherer, size_t &count, eckit::Length &total) :
+        gatherer_(gatherer),
+        count_(count),
+        total_(total) {
     }
 
   private:
@@ -35,6 +42,8 @@ class PatchVisitor : public fdb5::EntryVisitor {
                        const fdb5::Field &field);
 
     fdb5::HandleGatherer &gatherer_;
+    size_t &count_;
+    eckit::Length &total_;
 };
 
 void PatchVisitor::visit(const fdb5::Index &index,
@@ -42,6 +51,8 @@ void PatchVisitor::visit(const fdb5::Index &index,
                          const std::string &fieldFingerprint,
                          const fdb5::Field &field) {
     gatherer_.add(field.dataHandle());
+    count_++;
+    total_ += field.length();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -67,7 +78,10 @@ class FDBPatch : public fdb5::FDBInspect {
 
   public: // methods
 
-    FDBPatch(int argc, char **argv) : fdb5::FDBInspect(argc, argv) {
+    FDBPatch(int argc, char **argv) :
+        fdb5::FDBInspect(argc, argv),
+        count_(0),
+        total_(0) {
         options_.push_back(new eckit::option::SimpleOption<std::string>("expver", "Set the expver"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("class", "Set the class"));
 
@@ -85,7 +99,8 @@ class FDBPatch : public fdb5::FDBInspect {
     }
 
     fdb5::Key key_;
-
+    size_t count_;
+    eckit::Length total_;
 };
 
 void FDBPatch::usage(const std::string &tool) const {
@@ -93,8 +108,23 @@ void FDBPatch::usage(const std::string &tool) const {
 }
 
 void FDBPatch::execute(const eckit::option::CmdArgs &args) {
+    eckit::Timer timer(args.tool());
     fdb5::UMask umask(fdb5::UMask::defaultUMask());
     fdb5::FDBInspect::execute(args);
+
+    eckit::Log::info() << eckit::Plural(count_, "field")
+                       << " ("
+                       << eckit::Bytes(total_)
+                       << ") copied to "
+                       << key_
+                       << std::endl;
+
+    eckit::Log::info() << "Rates: "
+    << eckit::Bytes(total_, timer)
+    << ", "
+    << count_  / timer.elapsed()
+    << " fields/s"
+    << std::endl;
 }
 
 void FDBPatch::init(const eckit::option::CmdArgs &args) {
@@ -117,7 +147,6 @@ void FDBPatch::init(const eckit::option::CmdArgs &args) {
     }
 }
 
-
 void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
 
     eckit::Log::info() << "Listing " << path << std::endl;
@@ -134,7 +163,7 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
         fdb5::HandleGatherer gatherer(true);
-        PatchVisitor visitor(gatherer);
+        PatchVisitor visitor(gatherer, count_, total_);
         (*i)->entries(visitor);
 
         eckit::ScopedPtr<eckit::DataHandle> dh(gatherer.dataHandle());
