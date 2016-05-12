@@ -54,7 +54,7 @@ WipeVisitor::WipeVisitor(const eckit::PathName &directory) :
                        << directory_
                        << std::endl;
 
-    scan(directory_);
+    scan(directory_.realName());
 
     eckit::Log::info() << "Found "
                        << eckit::Plural(files_.size(), "file")
@@ -85,7 +85,7 @@ void WipeVisitor::scan(const eckit::PathName &directory) {
         }
 
         eckit::PathName path(directory / e->d_name);
-        files_.insert( path.realName() );
+        files_.insert( path );
 
         eckit::Stat::Struct info;
         SYSCALL(eckit::Stat::lstat(path.localPath(), &info));
@@ -178,7 +178,7 @@ void WipeVisitor::wipe(std::ostream &out) const {
     }
 
     for (std::set<eckit::PathName>::const_reverse_iterator i = files_.rbegin(); i != files_.rend(); ++i) {
-        if (i->isDir()) {
+        if (i->isDir() && !i->isLink()) {
             i->rmdir();
         } else {
             i->unlink();
