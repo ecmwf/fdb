@@ -30,10 +30,10 @@ protected: // methods
 
     virtual void usage(const std::string &tool) const = 0;
 
+    virtual void execute(const eckit::option::CmdArgs& args);
 
 private: // methods
 
-    virtual void execute(const eckit::option::CmdArgs& args);
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
 
      std::vector<std::string> minimumKeySet_;

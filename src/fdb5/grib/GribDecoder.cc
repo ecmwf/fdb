@@ -53,6 +53,8 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
         ASSERT(h);
         HandleDeleter del(h);
 
+        patch(h);
+
         char mars_str [] = "mars";
         grib_keys_iterator *ks = grib_keys_iterator_new(h, GRIB_KEYS_ITERATOR_ALL_KEYS, mars_str);
         ASSERT(ks);
@@ -155,6 +157,10 @@ MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *
     return r;
 }
 
+
+void GribDecoder::patch(grib_handle*) {
+    // Give a chance to subclasses to modify the grib
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

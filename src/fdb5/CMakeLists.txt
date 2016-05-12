@@ -218,6 +218,7 @@ list( APPEND fdb5_tools
     fdb-dump
     fdb-extract
     fdb-list
+    fdb-patch
     fdb-purge
     fdb-report
     fdb-retrieve
