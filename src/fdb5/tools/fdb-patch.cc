@@ -16,6 +16,7 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Timer.h"
 #include "eckit/log/Plural.h"
+#include "eckit/thread/ThreadPool.h"
 
 #include "fdb5/config/UMask.h"
 #include "fdb5/database/Index.h"
@@ -72,6 +73,21 @@ void PatchArchiver::patch(grib_handle *h) {
         ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
     }
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ArchiveThread : public eckit::ThreadPoolTask {
+    eckit::ScopedPtr<eckit::DataHandle> handle_;
+    PatchArchiver archiver_;
+
+    virtual void execute() {
+        archiver_.archive(*handle_);
+    }
+
+public:
+    ArchiveThread(eckit::DataHandle* handle, const fdb5::Key& key): handle_(handle), archiver_(key) {}
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBPatch : public fdb5::FDBInspect {
@@ -84,7 +100,7 @@ class FDBPatch : public fdb5::FDBInspect {
         total_(0) {
         options_.push_back(new eckit::option::SimpleOption<std::string>("expver", "Set the expver"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("class", "Set the class"));
-
+        options_.push_back(new eckit::option::SimpleOption<size_t>("threads", "Number of threads (default 1)"));
     }
 
   private: // methods
@@ -101,6 +117,7 @@ class FDBPatch : public fdb5::FDBInspect {
     fdb5::Key key_;
     size_t count_;
     eckit::Length total_;
+    eckit::ScopedPtr<eckit::ThreadPool> pool_;
 };
 
 void FDBPatch::usage(const std::string &tool) const {
@@ -111,6 +128,8 @@ void FDBPatch::execute(const eckit::option::CmdArgs &args) {
     eckit::Timer timer(args.tool());
     fdb5::UMask umask(fdb5::UMask::defaultUMask());
     fdb5::FDBInspect::execute(args);
+
+    pool_->waitForThreads();
 
     eckit::Log::info() << eckit::Plural(count_, "field")
                        << " ("
@@ -145,6 +164,11 @@ void FDBPatch::init(const eckit::option::CmdArgs &args) {
         eckit::Log::info() << "Please provide either --expver or --class" << std::endl;
         exit(1);
     }
+
+    size_t threads = 1;
+    args.get("threads", threads);
+
+    pool_.reset(new eckit::ThreadPool(args.tool(), threads));
 }
 
 void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
@@ -155,7 +179,6 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
     fdb5::Key key = handler.databaseKey();
     eckit::Log::info() << "Database key " << key << std::endl;
 
-    PatchArchiver archiver(key_);
 
 
     std::vector<fdb5::Index *> indexes = handler.loadIndexes();
@@ -165,9 +188,7 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
         fdb5::HandleGatherer gatherer(true);
         PatchVisitor visitor(gatherer, count_, total_);
         (*i)->entries(visitor);
-
-        eckit::ScopedPtr<eckit::DataHandle> dh(gatherer.dataHandle());
-        // archiver.archive(*dh);
+        pool_->push(new ArchiveThread(gatherer.dataHandle(), key_));
     }
 
     handler.freeIndexes(indexes);
