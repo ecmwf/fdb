@@ -200,19 +200,21 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     std::vector<fdb5::Index *> indexes = handler.loadIndexes();
 
+    fdb5::HandleGatherer gatherer(true);
 
     for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-        fdb5::HandleGatherer gatherer(true);
         PatchVisitor visitor(gatherer, count_, total_);
         (*i)->entries(visitor);
 
         if (pool_) {
             pool_->push(new ArchiveThread(gatherer.dataHandle(), key_));
         } else {
-            eckit::ScopedPtr<eckit::DataHandle> handle(gatherer.dataHandle());
-            archiver.archive(*handle);
+
         }
     }
+
+    eckit::ScopedPtr<eckit::DataHandle> handle(gatherer.dataHandle());
+    archiver.archive(*handle);
 
     handler.freeIndexes(indexes);
 }
