@@ -95,8 +95,8 @@ class ArchiveThread : public eckit::ThreadPoolTask {
         archiver_.archive(*handle_);
     }
 
-public:
-    ArchiveThread(eckit::DataHandle* handle, const fdb5::Key& key): handle_(handle), archiver_(key) {}
+  public:
+    ArchiveThread(eckit::DataHandle *handle, const fdb5::Key &key): handle_(handle), archiver_(key) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -178,10 +178,12 @@ void FDBPatch::init(const eckit::option::CmdArgs &args) {
 
     size_t threads = 1;
     args.get("threads", threads);
-    
-    static size_t threadStackSize = eckit::Resource<size_t>("$THREAD_STACK_SIZE", 20 * 1024 * 1024);
 
-    pool_.reset(new eckit::ThreadPool(args.tool(), threads, threadStackSize));
+    if (threads > 1) {
+        static size_t threadStackSize = eckit::Resource<size_t>("$THREAD_STACK_SIZE", 20 * 1024 * 1024);
+
+        pool_.reset(new eckit::ThreadPool(args.tool(), threads, threadStackSize));
+    }
 }
 
 void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
@@ -192,7 +194,7 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
     fdb5::Key key = handler.databaseKey();
     eckit::Log::info() << "Database key " << key << std::endl;
 
-
+    PatchArchiver archiver(key_);
 
     std::vector<fdb5::Index *> indexes = handler.loadIndexes();
 
@@ -201,7 +203,13 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
         fdb5::HandleGatherer gatherer(true);
         PatchVisitor visitor(gatherer, count_, total_);
         (*i)->entries(visitor);
-        pool_->push(new ArchiveThread(gatherer.dataHandle(), key_));
+
+        if (pool_) {
+            pool_->push(new ArchiveThread(gatherer.dataHandle(), key_));
+        } else {
+            eckit::ScopedPtr<eckit::DataHandle> handle(gatherer.dataHandle());
+            archiver.archive(*handle);
+        }
     }
 
     handler.freeIndexes(indexes);
