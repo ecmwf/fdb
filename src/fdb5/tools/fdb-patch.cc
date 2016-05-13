@@ -140,7 +140,9 @@ void FDBPatch::execute(const eckit::option::CmdArgs &args) {
     fdb5::UMask umask(fdb5::UMask::defaultUMask());
     fdb5::FDBInspect::execute(args);
 
-    pool_->waitForThreads();
+    if (pool_) {
+        pool_->waitForThreads();
+    }
 
     eckit::Log::info() << eckit::Plural(count_, "field")
                        << " ("
