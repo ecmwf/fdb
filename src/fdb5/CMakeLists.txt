@@ -184,11 +184,6 @@ list( APPEND fdb5_srcs
     types/TypeTime.h
 )
 
-set( grib_handling_pkg grib_api )
-if( HAVE_ECCODES )
-  set( grib_handling_pkg eccodes )
-endif()
-
 ecbuild_add_library(
 
     TARGET  mars-fdb5
@@ -209,13 +204,19 @@ ecbuild_add_library(
         Common
         eckit
         eckit_option
-        ${grib_handling_pkg}
+        grib_api
 )
 
 configure_file(tools/fdb.in ${CMAKE_BINARY_DIR}/bin/fdb @ONLY)
 
 install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/fdb
         DESTINATION ${INSTALL_BIN_DIR} )
+
+configure_file(tools/grib2fdb.in ${CMAKE_BINARY_DIR}/bin/grib2fdb @ONLY)
+
+install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/grib2fdb
+        DESTINATION ${INSTALL_BIN_DIR} )
+
 
 list( APPEND fdb5_tools
     fdb-adopt
@@ -237,7 +238,6 @@ foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   tools/${_tool}.cc
-                          INCLUDES  ${GRIB_API_INCLUDE_DIRS}
                           LIBS
                           mars-fdb5 )
 
