@@ -20,7 +20,7 @@
 
 namespace fdb5 {
 
-static eckit::Mutex local_mutex;
+// static eckit::Mutex local_mutex;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -48,7 +48,7 @@ MasterConfig::~MasterConfig() {
 }
 
 std::string MasterConfig::schemaPath() const {
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+    // eckit::AutoLock<eckit::Mutex> lock(local_mutex);
     static eckit::PathName fdbRules = eckit::Resource<eckit::PathName>("fdbRules", "~/etc/fdb/schema");
     return fdbRules;
 }
@@ -58,7 +58,7 @@ const Schema &MasterConfig::schema() const {
 }
 
 MasterConfig &MasterConfig::instance() {
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+    // eckit::AutoLock<eckit::Mutex> lock(local_mutex);
     static MasterConfig master;
     return master;
 }

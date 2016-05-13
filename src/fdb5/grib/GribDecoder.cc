@@ -42,7 +42,7 @@ public:
 
 size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
 
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+    // eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
     size_t len;
 
