@@ -18,9 +18,13 @@
 #include "marslib/EmosFile.h"
 #include "fdb5/grib/GribDecoder.h"
 
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+static eckit::Mutex local_mutex;
 
 GribDecoder::GribDecoder(bool checkDuplicates):
     buffer_(80 * 1024 * 1024),
@@ -37,6 +41,8 @@ public:
 };
 
 size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
+
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
     size_t len;
 

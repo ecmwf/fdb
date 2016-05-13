@@ -44,15 +44,24 @@ class PatchVisitor : public fdb5::EntryVisitor {
     fdb5::HandleGatherer &gatherer_;
     size_t &count_;
     eckit::Length &total_;
+    std::set<std::string> active_;
+
 };
 
 void PatchVisitor::visit(const fdb5::Index &index,
                          const std::string &indexFingerprint,
                          const std::string &fieldFingerprint,
                          const fdb5::Field &field) {
-    gatherer_.add(field.dataHandle());
-    count_++;
-    total_ += field.length();
+
+    std::string unique = indexFingerprint + "+" + fieldFingerprint;
+
+    if (active_.find(unique) == active_.end()) {
+        active_.insert(unique);
+
+        gatherer_.add(field.dataHandle());
+        count_++;
+        total_ += field.length();
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -120,11 +129,11 @@ void FDBPatch::execute(const eckit::option::CmdArgs &args) {
                        << std::endl;
 
     eckit::Log::info() << "Rates: "
-    << eckit::Bytes(total_, timer)
-    << ", "
-    << count_  / timer.elapsed()
-    << " fields/s"
-    << std::endl;
+                       << eckit::Bytes(total_, timer)
+                       << ", "
+                       << count_  / timer.elapsed()
+                       << " fields/s"
+                       << std::endl;
 }
 
 void FDBPatch::init(const eckit::option::CmdArgs &args) {
