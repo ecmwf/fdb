@@ -18,7 +18,7 @@
 #include "eckit/log/Plural.h"
 #include "eckit/thread/ThreadPool.h"
 
-#include "fdb5/config/Resource.h"
+#include "eckit/config/Resource.h"
 
 #include "fdb5/config/UMask.h"
 #include "fdb5/database/Index.h"
