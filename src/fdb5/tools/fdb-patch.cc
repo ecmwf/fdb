@@ -167,7 +167,7 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
         (*i)->entries(visitor);
 
         eckit::ScopedPtr<eckit::DataHandle> dh(gatherer.dataHandle());
-        archiver.archive(*dh);
+        // archiver.archive(*dh);
     }
 
     handler.freeIndexes(indexes);
