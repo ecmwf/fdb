@@ -18,6 +18,8 @@
 #include "eckit/log/Plural.h"
 #include "eckit/thread/ThreadPool.h"
 
+#include "fdb5/config/Resource.h"
+
 #include "fdb5/config/UMask.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/grib/GribArchiver.h"
@@ -176,8 +178,10 @@ void FDBPatch::init(const eckit::option::CmdArgs &args) {
 
     size_t threads = 1;
     args.get("threads", threads);
+    
+    static size_t threadStackSize = eckit::Resource<size_t>("$THREAD_STACK_SIZE", 20 * 1024 * 1024);
 
-    pool_.reset(new eckit::ThreadPool(args.tool(), threads));
+    pool_.reset(new eckit::ThreadPool(args.tool(), threads, threadStackSize));
 }
 
 void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
