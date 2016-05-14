@@ -75,7 +75,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             bool force = false;
             args.get("force", force);
 
-            if (force) {
+            if (!force) {
                 for (std::vector<std::string>::const_iterator j = minimumKeySet_.begin(); j != minimumKeySet_.end(); ++j) {
                     if (dbKey.find(*j) == dbKey.end()) {
                         throw eckit::UserError("Please provide a value for '" + (*j) + "'");
