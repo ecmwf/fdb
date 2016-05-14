@@ -27,8 +27,9 @@ namespace fdb5 {
 FDBInspect::FDBInspect(int argc, char **argv, const std::vector<std::string>& minimumKeySet):
     FDBTool(argc, argv),
     minimumKeySet_(minimumKeySet) {
-    if(minimumKeySet_.size() == 0) {
+    if (minimumKeySet_.size() == 0) {
         options_.push_back(new eckit::option::SimpleOption<bool>("all", "Visit all FDB databases"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("", "Visit all FDB databases"));
     }
 }
 
@@ -71,9 +72,14 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
         try {
             Key dbKey(args(i));
 
-            for(std::vector<std::string>::const_iterator j = minimumKeySet_.begin(); j != minimumKeySet_.end(); ++j) {
-                if(dbKey.find(*j) == dbKey.end()) {
-                    throw eckit::UserError("Please provide a value for '" + (*j) + "'");
+            bool force = false;
+            args.get("force", force);
+
+            if (force) {
+                for (std::vector<std::string>::const_iterator j = minimumKeySet_.begin(); j != minimumKeySet_.end(); ++j) {
+                    if (dbKey.find(*j) == dbKey.end()) {
+                        throw eckit::UserError("Please provide a value for '" + (*j) + "'");
+                    }
                 }
             }
 
@@ -87,11 +93,9 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
                 eckit::Log::warning() << "No FDB matches " << dbKey << std::endl;
             }
 
-        }
-        catch (eckit::UserError& e) {
+        } catch (eckit::UserError& e) {
             throw;
-        }
-        catch (eckit::Exception &e) {
+        } catch (eckit::Exception &e) {
             eckit::Log::warning() << e.what() << std::endl;
             paths.push_back(path);
         }

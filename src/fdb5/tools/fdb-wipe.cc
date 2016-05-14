@@ -26,6 +26,7 @@ class FDBWipe : public fdb5::FDBInspect {
         doit_(false) {
 
         options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("force", "Ignore minimun set of keys"));
 
     }
 
