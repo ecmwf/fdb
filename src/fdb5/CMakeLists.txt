@@ -13,7 +13,10 @@
 #  * marsadm tools:
 #    --  list roots
 #
-
+#  Understand 'invalid ioctl' error
+#  What happens if the mars client is killed in a mars2mars transfer
+#
+#
 # TESTS:
 # check effect on retrieve:
 #  * delete a json
@@ -184,6 +187,10 @@ list( APPEND fdb5_srcs
     types/TypeTime.h
 )
 
+set( grib_handling_pkg grib_api )
+if( HAVE_ECCODES )
+  set( grib_handling_pkg eccodes )
+endif()
 ecbuild_add_library(
 
     TARGET  mars-fdb5
@@ -204,37 +211,49 @@ ecbuild_add_library(
         Common
         eckit
         eckit_option
-        grib_api
+        ${grib_handling_pkg}
 )
 
-configure_file(tools/fdb.in ${CMAKE_BINARY_DIR}/bin/fdb @ONLY)
+list( APPEND fdb5_scripts fdb grib2fdb fdb-which )
 
-install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/fdb
+foreach( _script ${fdb5_scripts} )
+
+configure_file(scripts/${_script}.in ${CMAKE_BINARY_DIR}/bin/${_script} @ONLY)
+
+install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/${_script}
         DESTINATION ${INSTALL_BIN_DIR} )
+endforeach()
+
 
 list( APPEND fdb5_tools
     fdb-adopt
-    fdb-archive
+    fdb-write
     fdb-dump
-    fdb-extract
     fdb-list
     fdb-patch
     fdb-purge
-    fdb-report
-    fdb-retrieve
+    fdb-stats
+    fdb-read
     fdb-schema
     fdb-where
     fdb-wipe
-    grib2fdb5
    )
 
 foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   tools/${_tool}.cc
-                          INCLUDES  ${GRIB_API_INCLUDE_DIRS}
+                          INCLUDES  ${GRIB_API_INCLUDE_DIRS} # Please don't remove me, I am needed
                           LIBS
                           mars-fdb5 )
 
 endforeach()
+
+
+ecbuild_add_executable( TARGET    grib2fdb5
+                          SOURCES   compat/grib2fdb5.cc
+                          INCLUDES  ${GRIB_API_INCLUDE_DIRS} # Please don't remove me, I am needed
+                          LIBS
+                          mars-fdb5 )
+
 

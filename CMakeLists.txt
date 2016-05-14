@@ -57,6 +57,7 @@ if( HAVE_ECCODES )
   set( GRIB_API_LIBRARIES    ${ECCODES_LIBRARIES} )
   set( GRIB_API_DEFINITIONS  ${ECCODES_DEFINITIONS} )
   set( grib_api_BASE_DIR     ${eccodes_BASE_DIR} )
+  set( GRIB_API_FOUND        1 )  # Temporary hack
 else()
   ecbuild_use_package( PROJECT grib_api VERSION 1.10 REQUIRED )
 endif()

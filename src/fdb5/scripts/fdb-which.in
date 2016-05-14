@@ -1,0 +1,21 @@
+#!/bin/bash
+
+MULTIO_SINKS=${MULTIO_SINKS:=fdb4}
+
+set -e
+
+for sink in $(echo MULTIO_SINKS | tr ':' ' ')
+do
+
+    if [[ "$sink" == "fdb5" ]]
+    then
+        echo "fdbdev"
+        exit
+    else
+        echo "$SCHOST fdb"
+        exit
+    fi
+
+done
+
+echo "fdb"
