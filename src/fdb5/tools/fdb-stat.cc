@@ -20,11 +20,11 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBReport : public fdb5::FDBInspect {
+class FDBStat : public fdb5::FDBInspect {
 
   public: // methods
 
-    FDBReport(int argc, char **argv) :
+    FDBStat(int argc, char **argv) :
         fdb5::FDBInspect(argc, argv),
         count_(0),
         details_(false) {
@@ -45,17 +45,17 @@ class FDBReport : public fdb5::FDBInspect {
 
 };
 
-void FDBReport::usage(const std::string &tool) const {
+void FDBStat::usage(const std::string &tool) const {
 
     eckit::Log::info() << std::endl << "Usage: " << tool << " [--details] [path1|request1] [path2|request2] ..." << std::endl;
     FDBInspect::usage(tool);
 }
 
-void FDBReport::init(const eckit::option::CmdArgs &args) {
+void FDBStat::init(const eckit::option::CmdArgs &args) {
     args.get("details", details_);
 }
 
-void FDBReport::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
+void FDBStat::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
 
     eckit::Log::info() << "Scanning " << path << std::endl;
 
@@ -91,7 +91,7 @@ void FDBReport::process(const eckit::PathName &path, const eckit::option::CmdArg
 }
 
 
-void FDBReport::finish(const eckit::option::CmdArgs &args) {
+void FDBStat::finish(const eckit::option::CmdArgs &args) {
     eckit::Log::info() << std::endl;
     eckit::Log::info() << "Summary:" << std::endl;
     eckit::Log::info() << "========" << std::endl;
@@ -107,6 +107,6 @@ void FDBReport::finish(const eckit::option::CmdArgs &args) {
 //----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv) {
-    FDBReport app(argc, argv);
+    FDBStat app(argc, argv);
     return app.start();
 }

@@ -12,31 +12,50 @@
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 #include "fdb5/database/Retriever.h"
-#include "fdb5/grib/GribDecoder.h"
 #include "fdb5/tools/FDBAccess.h"
+#include "fdb5/tools/RequestParser.h"
 #include "marslib/MarsTask.h"
+#include "fdb5/grib/GribDecoder.h"
 
-class FDBExtract : public fdb5::FDBAccess {
+
+class FDBRetrieve : public fdb5::FDBAccess {
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return 2; }
-public:
-    FDBExtract(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
+  public:
+    FDBRetrieve(int argc, char **argv): fdb5::FDBAccess(argc, argv) {
+        options_.push_back(new eckit::option::SimpleOption<bool>("extract", "Extract request from a GRIB file"));
+
+    }
 };
 
-void FDBExtract::usage(const std::string &tool) const {
+void FDBRetrieve::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " sample.grib target.grib" << std::endl;
+                       << "Usage: " << tool << " request.mars target.grib" << std::endl
+                       << "       " << tool << " --extract source.grib target.grib" << std::endl;
+
     fdb5::FDBAccess::usage(tool);
 }
 
+void FDBRetrieve::execute(const eckit::option::CmdArgs &args) {
 
-void FDBExtract::execute(const eckit::option::CmdArgs &args) {
+    bool extract = false;
+    args.get("extract", extract);
 
+    MarsRequest r;
 
-    fdb5::GribDecoder decoder;
+    if (extract) {
+        fdb5::GribDecoder decoder;
+        r = decoder.gribToRequest(args(0));
+    } else {
+        std::ifstream in(args(0).c_str());
+        if (in.bad()) {
+            throw eckit::ReadError(args(0));
+        }
+        fdb5::RequestParser parser(in);
+        r = parser.parse();
+    }
 
-    MarsRequest r = decoder.gribToRequest(args(0));
     std::cout << r << std::endl;
 
     MarsRequest e("environ");
@@ -54,7 +73,7 @@ void FDBExtract::execute(const eckit::option::CmdArgs &args) {
 
 
 int main(int argc, char **argv) {
-    FDBExtract app(argc, argv);
+    FDBRetrieve app(argc, argv);
     return app.start();
 }
 
