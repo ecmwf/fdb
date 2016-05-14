@@ -20,6 +20,8 @@
 #include "eckit/io/Buffer.h"
 #include "marslib/MarsRequest.h"
 
+struct grib_handle;
+
 namespace eckit {
 class PathName;
 }
@@ -46,6 +48,8 @@ public:
     }
 
 private:
+
+    virtual void patch(grib_handle*);
 
     eckit::Buffer buffer_;
     std::set<Key> seen_;

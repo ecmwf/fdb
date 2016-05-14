@@ -21,10 +21,10 @@ class ListVisitor : public fdb5::EntryVisitor {
   public:
     ListVisitor(const fdb5::Key &dbKey,
                 const fdb5::Schema &schema,
-                const eckit::option::CmdArgs &args) :
+               bool location) :
         dbKey_(dbKey),
         schema_(schema),
-        args_(args) {
+        location_(location) {
     }
 
   private:
@@ -35,7 +35,7 @@ class ListVisitor : public fdb5::EntryVisitor {
 
     const fdb5::Key &dbKey_;
     const fdb5::Schema &schema_;
-    const eckit::option::CmdArgs &args_;
+    bool location_;
 };
 
 void ListVisitor::visit(const fdb5::Index &index,
@@ -47,10 +47,7 @@ void ListVisitor::visit(const fdb5::Index &index,
 
     std::cout << dbKey_ << index.key() << key;
 
-    bool location = false;
-    args_.get("location", location);
-
-    if (location) {
+    if (location_) {
         std::cout << " " << field.location();
     }
 
@@ -64,9 +61,10 @@ class FDBList : public fdb5::FDBInspect {
 
   public: // methods
 
-    FDBList(int argc, char **argv) : fdb5::FDBInspect(argc, argv) {
+    FDBList(int argc, char **argv) :
+        fdb5::FDBInspect(argc, argv),
+        location_(false) {
         options_.push_back(new eckit::option::SimpleOption<bool>("location", "Also print the location of each field"));
-
     }
 
   private: // methods
@@ -74,11 +72,18 @@ class FDBList : public fdb5::FDBInspect {
     virtual void usage(const std::string &tool) const;
     virtual void process(const eckit::PathName &path, const eckit::option::CmdArgs &args);
     virtual int minimumPositionalArguments() const { return 1; }
+    virtual void init(const eckit::option::CmdArgs &args);
+
+    bool location_;
 
 };
 
 void FDBList::usage(const std::string &tool) const {
     fdb5::FDBInspect::usage(tool);
+}
+
+void FDBList::init(const eckit::option::CmdArgs &args) {
+    args.get("location", location_);
 }
 
 void FDBList::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
@@ -92,7 +97,7 @@ void FDBList::process(const eckit::PathName &path, const eckit::option::CmdArgs 
     fdb5::Schema schema(path / "schema");
 
     std::vector<fdb5::Index *> indexes = handler.loadIndexes();
-    ListVisitor visitor(key, schema, args);
+    ListVisitor visitor(key, schema, location_);
 
     for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
         (*i)->entries(visitor);

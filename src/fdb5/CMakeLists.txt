@@ -207,32 +207,46 @@ ecbuild_add_library(
         grib_api
 )
 
-configure_file(tools/fdb.in ${CMAKE_BINARY_DIR}/bin/fdb @ONLY)
+configure_file(scripts/fdb.in ${CMAKE_BINARY_DIR}/bin/fdb @ONLY)
 
 install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/fdb
         DESTINATION ${INSTALL_BIN_DIR} )
 
+configure_file(scripts/grib2fdb.in ${CMAKE_BINARY_DIR}/bin/grib2fdb @ONLY)
+
+install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/grib2fdb
+        DESTINATION ${INSTALL_BIN_DIR} )
+
+
 list( APPEND fdb5_tools
     fdb-adopt
-    fdb-archive
+    fdb-write
     fdb-dump
-    fdb-extract
     fdb-list
+    fdb-patch
     fdb-purge
-    fdb-report
-    fdb-retrieve
+    fdb-stats
+    fdb-read
     fdb-schema
     fdb-where
     fdb-wipe
-    grib2fdb5
    )
 
 foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   tools/${_tool}.cc
+                          INCLUDES  ${GRIB_API_INCLUDE_DIRS} # Please don't remove me, I am needed
                           LIBS
                           mars-fdb5 )
 
 endforeach()
+
+
+ecbuild_add_executable( TARGET    grib2fdb5
+                          SOURCES   compat/grib2fdb5.cc
+                          INCLUDES  ${GRIB_API_INCLUDE_DIRS} # Please don't remove me, I am needed
+                          LIBS
+                          mars-fdb5 )
+
 

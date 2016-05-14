@@ -16,7 +16,8 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/log/BigNum.h"
-
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
 
 #include "fdb5/database/Index.h"
 #include "fdb5/config/MasterConfig.h"
@@ -25,6 +26,9 @@
 
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+static eckit::Mutex local_mutex;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -164,6 +168,8 @@ void TocHandler::close() {
 }
 
 void TocHandler::writeInitRecord(const Key &key) {
+
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
     if ( !directory_.exists() ) {
         directory_.mkdir();
