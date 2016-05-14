@@ -214,15 +214,15 @@ ecbuild_add_library(
         ${grib_handling_pkg}
 )
 
-configure_file(scripts/fdb.in ${CMAKE_BINARY_DIR}/bin/fdb @ONLY)
+list( APPEND fdb5_scripts fdb grib2fdb fdb-which )
 
-install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/fdb
+foreach( _script ${fdb5_scripts} )
+
+configure_file(scripts/${_script}.in ${CMAKE_BINARY_DIR}/bin/${_script} @ONLY)
+
+install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/${_script}
         DESTINATION ${INSTALL_BIN_DIR} )
-
-configure_file(scripts/grib2fdb.in ${CMAKE_BINARY_DIR}/bin/grib2fdb @ONLY)
-
-install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/grib2fdb
-        DESTINATION ${INSTALL_BIN_DIR} )
+endforeach()
 
 
 list( APPEND fdb5_tools
