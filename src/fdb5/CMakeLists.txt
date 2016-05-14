@@ -13,7 +13,10 @@
 #  * marsadm tools:
 #    --  list roots
 #
-
+#  Understand 'invalid ioctl' error
+#  What happens if the mars client is killed in a mars2mars transfer
+#
+#
 # TESTS:
 # check effect on retrieve:
 #  * delete a json
