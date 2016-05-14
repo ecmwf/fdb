@@ -15,22 +15,22 @@
 #include "fdb5/tools/FDBAccess.h"
 #include "fdb5/config/UMask.h"
 
-class FDBArchive : public fdb5::FDBAccess {
+class FDBWrite : public fdb5::FDBAccess {
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
     virtual int minimumPositionalArguments() const { return 1; }
 
 public:
-    FDBArchive(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
+    FDBWrite(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
 };
 
-void FDBArchive::usage(const std::string &tool) const {
+void FDBWrite::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " gribfile1 [gribfile2] ..." << std::endl;
     fdb5::FDBAccess::usage(tool);
 }
 
-void FDBArchive::execute(const eckit::option::CmdArgs &args) {
+void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
     fdb5::UMask umask(fdb5::UMask::defaultUMask());
 
@@ -50,7 +50,7 @@ void FDBArchive::execute(const eckit::option::CmdArgs &args) {
 
 
 int main(int argc, char **argv) {
-    FDBArchive app(argc, argv);
+    FDBWrite app(argc, argv);
     return app.start();
 }
 

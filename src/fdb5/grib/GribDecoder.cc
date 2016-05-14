@@ -18,9 +18,13 @@
 #include "marslib/EmosFile.h"
 #include "fdb5/grib/GribDecoder.h"
 
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+static eckit::Mutex local_mutex;
 
 GribDecoder::GribDecoder(bool checkDuplicates):
     buffer_(80 * 1024 * 1024),
@@ -38,6 +42,8 @@ public:
 
 size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
 
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+
     size_t len;
 
     if ( (len = file.readSome(buffer_)) ) {
@@ -52,6 +58,8 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
         grib_handle *h = grib_handle_new_from_message(0, buffer_, len);
         ASSERT(h);
         HandleDeleter del(h);
+
+        patch(h);
 
         char mars_str [] = "mars";
         grib_keys_iterator *ks = grib_keys_iterator_new(h, GRIB_KEYS_ITERATOR_ALL_KEYS, mars_str);
@@ -155,6 +163,10 @@ MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *
     return r;
 }
 
+
+void GribDecoder::patch(grib_handle*) {
+    // Give a chance to subclasses to modify the grib
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

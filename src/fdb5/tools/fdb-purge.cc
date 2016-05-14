@@ -9,18 +9,20 @@
  */
 
 #include "eckit/option/CmdArgs.h"
+#include "fdb5/toc/PurgeVisitor.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBInspect.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBWipe : public fdb5::FDBInspect {
+
+class FDBPurge : public fdb5::FDBInspect {
 
   public: // methods
 
-    FDBWipe(int argc, char **argv) :
+    FDBPurge(int argc, char **argv) :
         fdb5::FDBInspect(argc, argv),
-        doit_(false){
+        doit_(false) {
 
         options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
 
@@ -37,34 +39,59 @@ class FDBWipe : public fdb5::FDBInspect {
 
 };
 
-void FDBWipe::usage(const std::string &tool) const {
+void FDBPurge::usage(const std::string &tool) const {
 
     eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [path1|request1] [path2|request2] ..." << std::endl;
     FDBInspect::usage(tool);
 }
 
-void FDBWipe::init(const eckit::option::CmdArgs &args) {
+void FDBPurge::init(const eckit::option::CmdArgs &args) {
     args.get("doit", doit_);
 }
 
-void FDBWipe::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
+void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
 
-    NOTIMP;
     eckit::Log::info() << "Scanning " << path << std::endl;
 
     fdb5::TocHandler handler(path);
     eckit::Log::info() << "Database key " << handler.databaseKey() << std::endl;
 
+    fdb5::PurgeVisitor visitor(path);
+
+    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
+
+
+    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+        (*i)->entries(visitor);
+    }
+
+    visitor.report(eckit::Log::info());
+
+    if (doit_) {
+        visitor.purge(eckit::Log::info());
+    }
+
+    handler.freeIndexes(indexes);
+
 }
 
 
-void FDBWipe::finish(const eckit::option::CmdArgs &args) {
+void FDBPurge::finish(const eckit::option::CmdArgs &args) {
+
+
+
+    if (!doit_) {
+        eckit::Log::info() << std::endl
+                           << "Rerun command with --doit flag to delete unused files"
+                           << std::endl
+                           << std::endl;
+    }
 
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv) {
-    FDBWipe app(argc, argv);
+    FDBPurge app(argc, argv);
     return app.start();
 }

@@ -31,8 +31,7 @@ struct TocRecord {
         TOC_NULL = 0,
         TOC_INIT = 't',
         TOC_INDEX = 'i',
-        TOC_CLEAR = 'c',
-        TOC_WIPE = 'w'
+        TOC_CLEAR = 'c'
     };
 
     static const size_t maxPayloadSize = 1024 * 1024;

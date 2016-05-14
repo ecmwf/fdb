@@ -26,17 +26,16 @@
 #
 # Confluence documentation on how to install
 # -- dont forget the ~/mars/wind
+#
+# Implement access control: only the user that create the toc can:
+# - Add new data
+# - purge
+# Implement privilege users that can do everything
 
 
 # fdb5 library
 
 list( APPEND fdb5_srcs
-    legacy/FDBIndexScanner.h
-    legacy/FDBIndexScanner.cc
-    legacy/LegacyTranslator.cc
-    legacy/LegacyTranslator.h
-    legacy/LegacyArchiver.cc
-    legacy/LegacyArchiver.h
     config/MasterConfig.cc
     config/MasterConfig.h
     config/UMask.cc
@@ -83,6 +82,12 @@ list( APPEND fdb5_srcs
     io/FDBFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
+    legacy/FDBIndexScanner.cc
+    legacy/FDBIndexScanner.h
+    legacy/LegacyArchiver.cc
+    legacy/LegacyArchiver.h
+    legacy/LegacyTranslator.cc
+    legacy/LegacyTranslator.h
     rules/MatchAlways.cc
     rules/MatchAlways.h
     rules/MatchAny.cc
@@ -105,18 +110,24 @@ list( APPEND fdb5_srcs
     rules/SchemaParser.h
     toc/AdoptVisitor.cc
     toc/AdoptVisitor.h
+    toc/WipeVisitor.cc
+    toc/WipeVisitor.h
+    toc/PurgeVisitor.cc
+    toc/PurgeVisitor.h
     toc/BTreeIndex.cc
     toc/BTreeIndex.h
-    toc/ReportVisitor.cc
-    toc/ReportVisitor.h
-    toc/TocDB.cc
-    toc/TocDB.h
-    toc/Statistics.cc
-    toc/Statistics.h
-    toc/IndexStatistics.cc
-    toc/IndexStatistics.h
     toc/DbStatistics.cc
     toc/DbStatistics.h
+    toc/IndexStatistics.cc
+    toc/IndexStatistics.h
+    toc/ReportVisitor.cc
+    toc/ReportVisitor.h
+    toc/Statistics.cc
+    toc/Statistics.h
+    toc/TocDB.cc
+    toc/TocDB.h
+    toc/Root.cc
+    toc/Root.h
     toc/TocDBReader.cc
     toc/TocDBReader.h
     toc/TocDBWriter.cc
@@ -127,8 +138,6 @@ list( APPEND fdb5_srcs
     toc/TocIndex.h
     toc/TocRecord.cc
     toc/TocRecord.h
-    tools/fdb5_dump.cc
-    tools/fdb5_dump.cc
     tools/FDBAccess.cc
     tools/FDBAccess.h
     tools/FDBInspect.cc
@@ -198,28 +207,46 @@ ecbuild_add_library(
         grib_api
 )
 
+configure_file(scripts/fdb.in ${CMAKE_BINARY_DIR}/bin/fdb @ONLY)
+
+install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/fdb
+        DESTINATION ${INSTALL_BIN_DIR} )
+
+configure_file(scripts/grib2fdb.in ${CMAKE_BINARY_DIR}/bin/grib2fdb @ONLY)
+
+install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/grib2fdb
+        DESTINATION ${INSTALL_BIN_DIR} )
+
 
 list( APPEND fdb5_tools
-    fdb5_archive
-    fdb5_list
-    fdb5_extract
-    fdb5_retrieve
-    fdb5_purge
-    fdb5_wipe
-    fdb5_report
-    fdb5_schema
-    fdb5_where
-    fdb5_adopt
-    fdb5_dump
-    grib2fdb5
-    )
+    fdb-adopt
+    fdb-write
+    fdb-dump
+    fdb-list
+    fdb-patch
+    fdb-purge
+    fdb-stats
+    fdb-read
+    fdb-schema
+    fdb-where
+    fdb-wipe
+   )
 
 foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   tools/${_tool}.cc
+                          INCLUDES  ${GRIB_API_INCLUDE_DIRS} # Please don't remove me, I am needed
                           LIBS
                           mars-fdb5 )
 
 endforeach()
+
+
+ecbuild_add_executable( TARGET    grib2fdb5
+                          SOURCES   compat/grib2fdb5.cc
+                          INCLUDES  ${GRIB_API_INCLUDE_DIRS} # Please don't remove me, I am needed
+                          LIBS
+                          mars-fdb5 )
+
 

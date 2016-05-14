@@ -208,11 +208,16 @@ void FDBIndexScanner::process(FILE *f) {
                 Key grib;
                 decoder.gribToKey(file, grib);
 
-                if(checkValues_) { // FTM we know that param is not comparable in the old FDB
-                    key.set("param", grib.get("param"));
-                }
+                // if(checkValues_) { // FTM we know that param is not comparable in the old FDB
+                //     key.set("param", grib.get("param"));
+                // }
 
-                grib.validateKeysOf(key, checkValues_);
+                try {
+                    grib.validateKeysOf(key, checkValues_);
+                }
+                catch(eckit::Exception& e) {
+                    std::cerr << e.what() << std::endl;
+                }
             }
 
             AdoptVisitor visitor(*this, key, datapath, offset, length);

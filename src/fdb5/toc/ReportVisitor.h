@@ -43,11 +43,6 @@ public:
     IndexStatistics indexStatistics() const;
     DbStatistics dbStatistics() const;
 
-    // void currentIndex(const Index* index);
-
-    void purgeable(std::ostream &out) const;
-
-
 private: // methods
 
 
@@ -70,10 +65,8 @@ protected: // members
 
     std::set<std::string> active_;
 
-
-
     std::map<const Index*, IndexStatistics> indexStats_;
-     DbStatistics dbStats_;
+    DbStatistics dbStats_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

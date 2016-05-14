@@ -36,6 +36,10 @@ public: // methods
                            const MarsTask &task,
                            const DB *db) const;
 
+    virtual bool match(const std::string& keyword,
+                       const std::string& value1,
+                       const std::string& value2) const;
+
 private: // methods
 
     virtual void print( std::ostream &out ) const;

@@ -42,6 +42,8 @@ void GribIndexer::index(const eckit::PathName &path) {
 
     Key key;
 
+    eckit::PathName full(path.realName());
+
 
     while ( (len = gribToKey(file, key))  ) {
 
@@ -50,7 +52,7 @@ void GribIndexer::index(const eckit::PathName &path) {
         eckit::Length length = len;
         eckit::Offset offset = file.position() - length;
 
-        AdoptVisitor visitor(*this, key, path, offset, length);
+        AdoptVisitor visitor(*this, key, full, offset, length);
 
         archive(key, visitor);
 

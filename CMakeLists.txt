@@ -12,11 +12,10 @@
 #       -DCMAKE_PREFIX_PATH=/path/to/jasper:/path/to/any/package/out/of/place
 #       -DBUILD_SHARED_LIBS=OFF
 #
-#       -DGRIB_API_PATH=/path/to/grib
 #       -DHPSS_PATH=/path/to/hpss
 #       -DADSM_PATH=/path/to/adsm
 
-cmake_minimum_required( VERSION 2.8.4 FATAL_ERROR )
+cmake_minimum_required( VERSION 2.8.11 FATAL_ERROR )
 
 project( mars_server C CXX )
 
@@ -58,13 +57,14 @@ if( HAVE_ECCODES )
   set( GRIB_API_LIBRARIES    ${ECCODES_LIBRARIES} )
   set( GRIB_API_DEFINITIONS  ${ECCODES_DEFINITIONS} )
   set( grib_api_BASE_DIR     ${eccodes_BASE_DIR} )
+  set( GRIB_API_FOUND        1 )  # Temporary hack
 else()
   ecbuild_use_package( PROJECT grib_api VERSION 1.10 REQUIRED )
 endif()
 
 ecbuild_use_package( PROJECT eckit    VERSION 0.12  REQUIRED )
 
-### ODB support
+### third party archive support
 
 ecbuild_add_option( FEATURE MARS2MARS
                     DEFAULT OFF
@@ -97,10 +97,18 @@ if( DHSHOME AND NOT DEFINED EC_LINK_DIR )
 	set( EC_LINK_DIR ${DHSHOME} )
 endif()
 
+### server mode
+# builds binaries for mars-server
+# otherwise skip them for when MARS is built within ifs-support for FDB
+
+ecbuild_add_option( FEATURE MARS_SERVER
+                    DEFAULT ON
+                    DESCRIPTION "Whether or not to build the Mars Server executables" )
+
 ### pointdb
 
 ecbuild_add_option( FEATURE POINTDB
-					DEFAULT ON
+                    DEFAULT ON
                     DESCRIPTION "Whether or not to build the PointDB -- [EXPERIMENTAL]"
                     REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.1" )
 
@@ -110,16 +118,21 @@ ecbuild_add_option( FEATURE     FDB
                     DEFAULT     ON
                     DESCRIPTION "Whether or not to build the FDB -- [EXPERIMENTAL]" )
 
-ecbuild_add_option( FEATURE DUMMY_TAPES DESCRIPTION "use dummy tape management libraries for testing" DEFAULT OFF )
+### dummy tapes stubs to build when no tape library exists (for development only)
+
+ecbuild_add_option( FEATURE DUMMY_TAPES
+                    DESCRIPTION "use dummy tape management libraries for testing"
+                    DEFAULT OFF )
 
 #set( NETCDF_CXX TRUE )
 #ecbuild_add_option( FEATURE NETCDF
 #	DEFAULT ON
 #	DESCRIPTION "support for NetCDF"
 #	REQUIRED_PACKAGES NetCDF )
-#
 
-ecbuild_add_option( FEATURE SANDBOX DEFAULT OFF	DESCRIPTION "build the sandbox stuff" )
+ecbuild_add_option( FEATURE SANDBOX
+                    DESCRIPTION "build the sandbox stuff"
+                    DEFAULT OFF	 )
 
 ###############################################################################
 # find extra packages

@@ -38,9 +38,6 @@ public: // methods
 
     const Schema& schema() const;
 
-
-    static eckit::PathName directory(const Key &key);
-    static std::vector<eckit::PathName> roots(const std::string& match = ".*");
     static std::vector<eckit::PathName> databases(const Key &key);
 
 protected: // methods

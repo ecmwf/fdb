@@ -39,11 +39,11 @@ public: // methods
     ~TocHandler();
 
     bool exists() const;
+    void checkUID();
 
     void writeInitRecord(const Key &tocKey);
     void writeClearRecord(const Index &);
     void writeIndexRecord(const Index &);
-    void writeWipeRecord();
 
     std::vector<Index *> loadIndexes();
     void freeIndexes(std::vector<Index *> &);
@@ -55,11 +55,17 @@ public: // methods
     const eckit::PathName& schemaPath() const;
 
     void dump(std::ostream& out);
+    std::string dbOwner();
 
 
 protected: // members
 
     const eckit::PathName directory_;
+    long dbUID_;
+    long userUID_;
+
+
+    long dbUID();
 
 private: // methods
 
@@ -71,6 +77,8 @@ private: // methods
 
     void append(TocRecord &r, size_t payloadSize);
     bool readNext(TocRecord &r);
+
+    std::string userName(long) const;
 
     eckit::PathName tocPath_;
     eckit::PathName schemaPath_;

@@ -8,52 +8,36 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   GribDecoder.h
+/// @file   WipeVisitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   Mar 2016
+/// @date   April 2016
 
-#ifndef fdb5_GribDecoder_H
-#define fdb5_GribDecoder_H
+#ifndef fdb5_WipeVisitor_H
+#define fdb5_WipeVisitor_H
 
 
-#include "eckit/io/Buffer.h"
-#include "marslib/MarsRequest.h"
-
-struct grib_handle;
-
-namespace eckit {
-class PathName;
-}
-
-class EmosFile;
-
-#include "fdb5/database/Key.h"
+#include "fdb5/toc/ReportVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class GribDecoder {
+class WipeVisitor : public ReportVisitor {
+
+    mutable std::set<eckit::PathName> files_;
+    eckit::Length total_;
+
+    void scan(const eckit::PathName& path);
+    const eckit::PathName& mark(const eckit::PathName& path) const;
+
 public:
 
-    GribDecoder(bool checkDuplicates = false);
+    WipeVisitor(const eckit::PathName &directory);
+    void report(std::ostream &out) const;
+    void wipe(std::ostream &out) const;
 
-    size_t gribToKey(EmosFile &file, Key &key);
-    MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
-
-    const eckit::Buffer &buffer() const {
-        return buffer_;
-    }
-
-private:
-
-    virtual void patch(grib_handle*);
-
-    eckit::Buffer buffer_;
-    std::set<Key> seen_;
-    bool checkDuplicates_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

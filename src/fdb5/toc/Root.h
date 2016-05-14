@@ -8,36 +8,46 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   FDBInspect.h
+/// @file   Root.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_FDBInspect_H
-#define fdb5_FDBInspect_H
+#ifndef fdb5_Root_H
+#define fdb5_Root_H
 
-#include "fdb5/tools/FDBTool.h"
+#include "eckit/utils/Regex.h"
+#include "eckit/filesystem/PathName.h"
 
 namespace fdb5 {
 
+class Key;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBInspect : public FDBTool {
 
-protected: // methods
+class Root  {
+public: // methods
 
-    FDBInspect(int argc, char **argv, const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
+    Root(const std::string &re, const std::string &path, bool active = true, bool visit = true);
 
-    virtual void usage(const std::string &tool) const = 0;
+    bool match(const std::string &s) const;
 
-    virtual void execute(const eckit::option::CmdArgs& args);
+    const eckit::PathName &path() const;
 
-private: // methods
+    bool active() const;// Root is in use, when archiving
+    bool visit() const; // Root is visited, when retrievind
 
-    virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
+    static eckit::PathName directory(const Key &key);
+    static std::vector<eckit::PathName> roots(const std::string &match = ".*");
 
-     std::vector<std::string> minimumKeySet_;
+private: // members
 
+    eckit::Regex re_;
+    eckit::PathName path_;
+
+    bool active_;
+    bool visit_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
