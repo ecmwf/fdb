@@ -18,18 +18,18 @@
 #include "fdb5/grib/GribDecoder.h"
 
 
-class FDBRetrieve : public fdb5::FDBAccess {
+class FDBRead : public fdb5::FDBAccess {
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return 2; }
   public:
-    FDBRetrieve(int argc, char **argv): fdb5::FDBAccess(argc, argv) {
+    FDBRead(int argc, char **argv): fdb5::FDBAccess(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("extract", "Extract request from a GRIB file"));
 
     }
 };
 
-void FDBRetrieve::usage(const std::string &tool) const {
+void FDBRead::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " request.mars target.grib" << std::endl
                        << "       " << tool << " --extract source.grib target.grib" << std::endl;
@@ -37,7 +37,7 @@ void FDBRetrieve::usage(const std::string &tool) const {
     fdb5::FDBAccess::usage(tool);
 }
 
-void FDBRetrieve::execute(const eckit::option::CmdArgs &args) {
+void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     bool extract = false;
     args.get("extract", extract);
@@ -73,7 +73,7 @@ void FDBRetrieve::execute(const eckit::option::CmdArgs &args) {
 
 
 int main(int argc, char **argv) {
-    FDBRetrieve app(argc, argv);
+    FDBRead app(argc, argv);
     return app.start();
 }
 

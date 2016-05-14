@@ -225,7 +225,7 @@ list( APPEND fdb5_tools
     fdb-list
     fdb-patch
     fdb-purge
-    fdb-stat
+    fdb-stats
     fdb-read
     fdb-schema
     fdb-where
