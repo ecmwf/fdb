@@ -184,11 +184,11 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
         eckit::Log::info() << eckit::Plural(count_ - count, "field")
                            << " ("
-                           << eckit::Bytes(total_ - total_)
-                           << ") to copy to"
+                           << eckit::Bytes(total_ - total)
+                           << ") to copy to "
                            << key_
                            << " from "
-                           << path
+                           << *(*i)
                            << std::endl;
 
 
