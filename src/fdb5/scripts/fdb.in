@@ -4,13 +4,16 @@ shopt -s nullglob
 
 export FDB_ASYNC_WRITE=1
 
+FDB_HOME=${FDB_HOME:=/home/ma/tmpfdb}
+
+
 function usage {
     echo "Usage $(basename $0): command [options] ..."
     echo "Commands are:"
 
     (
     declare -F | grep fdb_builtin_ | sed 's/.*fdb_builtin_/   /'
-    for n in $FDB_HOME/bin/fdb-*
+    for n in $BINDIR/fdb-*
     do
         m=$(basename $n | sed 's/fdb-//')
         echo "   $m"
@@ -31,7 +34,6 @@ function fdb_builtin_help {
 }
 
 BINDIR=$(dirname $0)
-FDB_HOME=$(cd $BINDIR/..; /bin/pwd)
 PROC=$1
 
 declare -f "fdb_builtin_$PROC" > /dev/null
@@ -41,7 +43,7 @@ then
     exit
 fi
 
-CMD=$FDB_HOME/bin/fdb-$PROC
+CMD=$BINDIR/fdb-$PROC
 
 if [[ ! -x $CMD ]]
 then
