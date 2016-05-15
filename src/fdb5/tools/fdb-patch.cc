@@ -178,21 +178,22 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
     for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
         PatchVisitor visitor(gatherer, count_, total_);
         (*i)->entries(visitor);
+
+
+        eckit::ScopedPtr<eckit::DataHandle> handle(gatherer.dataHandle());
+
+        eckit::Log::info() << eckit::Plural(count_ - count, "field")
+                           << " ("
+                           << eckit::Bytes(total_ - total_)
+                           << ") to copy to"
+                           << key_
+                           << " from "
+                           << path
+                           << std::endl;
+
+
+        archiver.archive(*handle);
     }
-
-    eckit::ScopedPtr<eckit::DataHandle> handle(gatherer.dataHandle());
-
-    eckit::Log::info() << eckit::Plural(count_ - count, "field")
-                       << " ("
-                       << eckit::Bytes(total_ - total_)
-                       << ") to copy to"
-                       << key_
-                       << " from "
-                       << path
-                       << std::endl;
-
-
-    archiver.archive(*handle);
 
     handler.freeIndexes(indexes);
 }
