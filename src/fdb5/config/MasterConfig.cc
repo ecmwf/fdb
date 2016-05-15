@@ -30,13 +30,13 @@ MasterConfig::MasterConfig() {
         eckit::Context::instance().home(home1);
     }
 
-    char *home2 = ::getenv("FDB5_HOME");
+    char *home2 = ::getenv("FDB_HOME");
     if (home2) {
         eckit::Context::instance().home(home2);
     }
 
     if (!!home1 == !!home2) {
-        throw eckit::SeriousBug("Either FDB5_HOME or DHSHOME environment variable must be defined (but not both)");
+        throw eckit::SeriousBug("Either FDB_HOME or DHSHOME environment variable must be defined (but not both)");
     }
 
     eckit::ResourceMgr::instance().appendConfig("~/etc/config/fdb");
