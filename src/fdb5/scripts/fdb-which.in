@@ -1,8 +1,9 @@
 #!/bin/bash
 
+set -ex
+
 MULTIO_SINKS=${MULTIO_SINKS:=fdb4}
 
-set -e
 
 for sink in $(echo $MULTIO_SINKS | tr ':' ' ')
 do
