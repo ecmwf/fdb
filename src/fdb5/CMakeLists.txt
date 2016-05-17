@@ -35,6 +35,11 @@
 # - purge
 # Implement privilege users that can do everything
 
+### config header
+
+if( NOT FDB_HOME  )
+    set( FDB_HOME "${CMAKE_INSTALL_PREFIX}" )
+endif()
 
 # fdb5 library
 
@@ -187,10 +192,6 @@ list( APPEND fdb5_srcs
     types/TypeTime.h
 )
 
-set( grib_handling_pkg grib_api )
-if( HAVE_ECCODES )
-  set( grib_handling_pkg eccodes )
-endif()
 ecbuild_add_library(
 
     TARGET  mars-fdb5
