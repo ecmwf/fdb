@@ -3,8 +3,7 @@
 shopt -s nullglob
 
 export FDB_ASYNC_WRITE=1
-
-FDB_HOME=${FDB_HOME:=/home/ma/tmpfdb}
+export FDB_HOME=${FDB_HOME:=@FDB_HOME@}
 
 
 function usage {
