@@ -31,7 +31,7 @@ class FDBDump : public fdb5::FDBInspect {
 
     virtual void usage(const std::string &tool) const;
     virtual void process(const eckit::PathName &path, const eckit::option::CmdArgs &args);
-    virtual int minimumPositionalArguments() const { return 1; }
+    // virtual int minimumPositionalArguments() const { return 1; }
 
 };
 

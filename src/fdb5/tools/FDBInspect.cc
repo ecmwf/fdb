@@ -29,7 +29,6 @@ FDBInspect::FDBInspect(int argc, char **argv, const std::vector<std::string>& mi
     minimumKeySet_(minimumKeySet) {
     if (minimumKeySet_.size() == 0) {
         options_.push_back(new eckit::option::SimpleOption<bool>("all", "Visit all FDB databases"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("", "Visit all FDB databases"));
     }
 }
 
