@@ -1,4 +1,4 @@
-############################################################################################
+########################################################################################################################
 # cmake options:
 #
 #       -DCMAKE_BUILD_TYPE=Debug|RelWithDebInfo|Release|Production
@@ -25,6 +25,9 @@ include( ecbuild_system NO_POLICY_SCOPE )
 
 ecbuild_requires_macro_version( 1.9 )
 
+########################################################################################################################
+# sanity checks
+
 ### off_t must be 64 bits exactly
 
 # test by c compilation
@@ -44,10 +47,15 @@ if( NOT EC_SIZEOF_OFF_T EQUAL "8" )
 		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${EC_SIZEOF_OFF_T}] -- off_t must be 64 bits exactly" )
 endif()
 
-###############################################################################
+########################################################################################################################
 # project dependencies
 
+### eckit
+
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
+ecbuild_use_package( PROJECT eckit    VERSION 0.12  REQUIRED )
+
+### GRIB support
 
 ecbuild_add_option( FEATURE ECCODES DESCRIPTION "" DEFAULT OFF )
 
@@ -58,11 +66,11 @@ if( HAVE_ECCODES )
   set( GRIB_API_DEFINITIONS  ${ECCODES_DEFINITIONS} )
   set( grib_api_BASE_DIR     ${eccodes_BASE_DIR} )
   set( GRIB_API_FOUND        1 )  # Temporary hack
+  set( grib_handling_pkg eccodes )
 else()
   ecbuild_use_package( PROJECT grib_api VERSION 1.10 REQUIRED )
+  set( grib_handling_pkg grib_api )
 endif()
-
-ecbuild_use_package( PROJECT eckit    VERSION 0.12  REQUIRED )
 
 ### third party archive support
 
@@ -83,7 +91,7 @@ if( HAVE_ODB )
     set( odbtoolslib odbtools )
 endif()
 
-###############################################################################
+########################################################################################################################
 # project vars & options
 
 ecbuild_declare_project()
@@ -134,7 +142,7 @@ ecbuild_add_option( FEATURE SANDBOX
                     DESCRIPTION "build the sandbox stuff"
                     DEFAULT OFF	 )
 
-###############################################################################
+########################################################################################################################
 # find extra packages
 
 find_package( HPSS QUIET )
@@ -146,7 +154,7 @@ find_package( ADSM QUIET )
 set( CMAKE_THREAD_PREFER_PTHREAD 1 )
 find_package(Threads REQUIRED)
 
-###############################################################################
+########################################################################################################################
 # checks
 
 # check thread library is pthreads
@@ -155,7 +163,7 @@ if( NOT ${CMAKE_USE_PTHREADS_INIT} )
 	message( FATAL_ERROR "Only pthreads supported - thread library found is [${CMAKE_THREAD_LIBS_INIT}]" )
 endif()
 
-###############################################################################
+########################################################################################################################
 # contents
 
 set( MARS_SERVER_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
