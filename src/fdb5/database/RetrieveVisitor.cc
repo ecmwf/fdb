@@ -36,6 +36,13 @@ RetrieveVisitor::~RetrieveVisitor() {
 // From Visitor
 
 bool RetrieveVisitor::selectDatabase(const Key &key, const Key &full) {
+
+    if(db_) {
+        if(key == db_->key()) {
+            return true;
+        }
+    }
+
     eckit::Log::info() << "selectDatabase " << key << std::endl;
     db_.reset(DBFactory::build(fdbReaderDB_, key));
 
@@ -50,7 +57,7 @@ bool RetrieveVisitor::selectDatabase(const Key &key, const Key &full) {
 
 bool RetrieveVisitor::selectIndex(const Key &key, const Key &full) {
     ASSERT(db_);
-    eckit::Log::info() << "selectIndex " << key << std::endl;
+    // eckit::Log::info() << "selectIndex " << key << std::endl;
     return db_->selectIndex(key);
 }
 
