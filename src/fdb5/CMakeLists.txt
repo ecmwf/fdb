@@ -78,6 +78,8 @@ list( APPEND fdb5_srcs
     database/ReadVisitor.h
     database/Retriever.cc
     database/Retriever.h
+    database/RetrieveVisitor.cc
+    database/RetrieveVisitor.h
     database/WriteVisitor.cc
     database/WriteVisitor.h
     grib/GribArchiver.cc

@@ -40,14 +40,14 @@ class Retriever : public eckit::NonCopyable {
 
 public: // methods
 
-    Retriever(const MarsTask &task);
+    Retriever();
 
     ~Retriever();
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from
 
-    eckit::DataHandle *retrieve();
+    eckit::DataHandle *retrieve(const MarsTask &task) const;
 
     friend std::ostream &operator<<(std::ostream &s, const Retriever &x) {
         x.print(s);
@@ -57,14 +57,8 @@ public: // methods
 private: // methods
 
     void print(std::ostream &out) const;
-    eckit::DataHandle *retrieve(const Schema &schema, bool sorted);
+    eckit::DataHandle *retrieve(const MarsTask &task, const Schema &schema, bool sorted) const;
 
-
-private: // members
-
-    const MarsTask &task_;
-
-    friend class RetrieveVisitor;
 
 };
 
