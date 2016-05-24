@@ -18,6 +18,7 @@
 
 #include <cstdlib>
 #include <vector>
+#include <iosfwd>
 
 #include "eckit/memory/NonCopyable.h"
 
