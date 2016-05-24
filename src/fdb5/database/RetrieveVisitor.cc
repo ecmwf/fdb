@@ -81,9 +81,7 @@ void RetrieveVisitor::values(const MarsRequest &request, const std::string &keyw
 }
 
 void RetrieveVisitor::print( std::ostream &out ) const {
-    out << "RetrieveVisitor("
-        << ")"
-        << std::endl;
+    out << "RetrieveVisitor[]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

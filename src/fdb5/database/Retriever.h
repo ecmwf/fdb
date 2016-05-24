@@ -16,6 +16,7 @@
 #ifndef fdb5_Retriever_H
 #define fdb5_Retriever_H
 
+#include <iosfwd>
 #include <cstdlib>
 #include <vector>
 
