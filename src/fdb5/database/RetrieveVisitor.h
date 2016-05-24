@@ -21,11 +21,11 @@
 #include "eckit/memory/ScopedPtr.h"
 
 
-class MarsTask;
 
 namespace fdb5 {
 
 class HandleGatherer;
+class NotifyWind;
 
 // class Key;
 // class Op;
@@ -38,7 +38,7 @@ class RetrieveVisitor : public ReadVisitor {
 
 public: // methods
 
-    RetrieveVisitor(const MarsTask &task, HandleGatherer &gatherer);
+    RetrieveVisitor(const NotifyWind &wind, HandleGatherer &gatherer);
 
     ~RetrieveVisitor();
 
@@ -61,7 +61,7 @@ private:  // methods
 
 private:
 
-    const MarsTask &task_;
+    const NotifyWind &wind_;
 
     eckit::ScopedPtr<DB> db_;
 

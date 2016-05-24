@@ -71,7 +71,7 @@ void TypeClimateDaily::toKey(std::ostream &out,
 void TypeClimateDaily::getValues(const MarsRequest &request,
                                  const std::string &keyword,
                                  eckit::StringList &values,
-                                 const MarsTask &task,
+                                 const NotifyWind &wind,
                                  const DB *db) const {
   std::vector<eckit::Date> dates;
 

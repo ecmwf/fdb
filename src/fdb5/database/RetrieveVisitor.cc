@@ -24,8 +24,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RetrieveVisitor::RetrieveVisitor(const MarsTask &task, HandleGatherer &gatherer):
-    task_(task),
+RetrieveVisitor::RetrieveVisitor(const NotifyWind &wind, HandleGatherer &gatherer):
+    wind_(wind),
     gatherer_(gatherer) {
     fdbReaderDB_ = eckit::Resource<std::string>("fdbReaderDB", "toc.reader");
 }
@@ -77,7 +77,7 @@ bool RetrieveVisitor::selectDatum(const Key &key, const Key &full) {
 void RetrieveVisitor::values(const MarsRequest &request, const std::string &keyword,
                              const TypesRegistry &registry,
                              eckit::StringList &values) {
-    registry.lookupType(keyword).getValues(request, keyword, values, task_, db_.get());
+    registry.lookupType(keyword).getValues(request, keyword, values, wind_, db_.get());
 }
 
 void RetrieveVisitor::print( std::ostream &out ) const {

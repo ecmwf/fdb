@@ -82,6 +82,8 @@ list( APPEND fdb5_srcs
     database/RetrieveVisitor.h
     database/WriteVisitor.cc
     database/WriteVisitor.h
+    database/NotifyWind.cc
+    database/NotifyWind.h
     grib/GribArchiver.cc
     grib/GribArchiver.h
     grib/GribDecoder.cc

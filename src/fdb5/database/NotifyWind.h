@@ -8,38 +8,30 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TypeInteger.h
+/// @file   NotifyWind.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   April 2016
+/// @date   Mar 2016
 
-#ifndef fdb5_TypeInteger_H
-#define fdb5_TypeInteger_H
+#ifndef fdb5_NotifyWind_H
+#define fdb5_NotifyWind_H
 
-#include "fdb5/types/Type.h"
+
 
 namespace fdb5 {
 
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypeInteger : public Type {
+class NotifyWind {
 
 public: // methods
 
-    TypeInteger(const std::string &name, const std::string &type);
+    NotifyWind();
 
-    virtual ~TypeInteger();
+    virtual ~NotifyWind();
 
-    virtual void getValues(const MarsRequest &request,
-                           const std::string &keyword,
-                           eckit::StringList &values,
-                           const NotifyWind &wind,
-                           const DB *db) const;
-
-private: // methods
-
-    virtual void print( std::ostream &out ) const;
-
+    virtual void notifyWind() const = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

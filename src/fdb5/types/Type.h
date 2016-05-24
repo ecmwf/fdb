@@ -21,12 +21,13 @@
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
 
-class MarsTask;
+class NotifyWind;
 class MarsRequest;
 
 namespace fdb5 {
 
 class DB;
+class NotifyWind;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -48,7 +49,7 @@ public: // methods
     virtual void getValues(const MarsRequest &request,
                            const std::string &keyword,
                            eckit::StringList &values,
-                           const MarsTask &task,
+                           const NotifyWind &wind,
                            const DB *db) const;
 
     virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const;

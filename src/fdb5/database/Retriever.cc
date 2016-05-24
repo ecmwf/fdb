@@ -14,6 +14,7 @@
 #include "fdb5/database/Retriever.h"
 #include "fdb5/database/RetrieveVisitor.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/database/NotifyWind.h"
 
 #include "marslib/MarsTask.h"
 
@@ -31,7 +32,16 @@ Retriever::~Retriever() {
 eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const Schema &schema, bool sorted) const {
     HandleGatherer result(sorted);
 
-    RetrieveVisitor visitor(task, result);
+    class NotifyClient : public NotifyWind {
+        const MarsTask& task_;
+        virtual void notifyWind() const {
+            task_.notifyWinds();
+        }
+    public:
+        NotifyClient(const MarsTask& task): task_(task) {}
+    };
+
+    RetrieveVisitor visitor(NotifyClient(task), result);
     schema.expand(task.request(), visitor);
 
     return result.dataHandle();
