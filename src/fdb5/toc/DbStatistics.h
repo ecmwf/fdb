@@ -18,7 +18,7 @@
 
 #include <iosfwd>
 
-#include "fdb5/toc/Statistics.h"
+#include "eckit/log/Statistics.h"
 
 namespace fdb5 {
 
@@ -26,7 +26,7 @@ class TocHandler;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DbStatistics : public Statistics {
+class DbStatistics : public eckit::Statistics {
   public:
     DbStatistics() ;
 

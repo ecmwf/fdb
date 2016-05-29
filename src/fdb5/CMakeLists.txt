@@ -134,8 +134,6 @@ list( APPEND fdb5_srcs
     toc/IndexStatistics.h
     toc/ReportVisitor.cc
     toc/ReportVisitor.h
-    toc/Statistics.cc
-    toc/Statistics.h
     toc/TocDB.cc
     toc/TocDB.h
     toc/Root.cc

@@ -17,13 +17,13 @@
 #define fdb5_IndexStatistics_H
 
 #include <iosfwd>
-#include "fdb5/toc/Statistics.h"
+#include "eckit/log/Statistics.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IndexStatistics : public Statistics {
+class IndexStatistics : public eckit::Statistics {
 public:
     IndexStatistics() ;
 
