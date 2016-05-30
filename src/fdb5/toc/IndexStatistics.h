@@ -29,8 +29,8 @@ public:
 
     size_t fieldsCount_;
     size_t duplicatesCount_;
-    eckit::Length fieldsSize_;
-    eckit::Length duplicatesSize_;
+    unsigned long long fieldsSize_;
+    unsigned long long duplicatesSize_;
 
     IndexStatistics &operator+=(const IndexStatistics &rhs) ;
 

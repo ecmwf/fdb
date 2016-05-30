@@ -31,11 +31,11 @@ class DbStatistics : public eckit::Statistics {
     DbStatistics() ;
 
     size_t tocRecordsCount_;
-    eckit::Length tocFileSize_;
-    eckit::Length schemaFileSize_;
-    eckit::Length ownedFilesSize_;
-    eckit::Length adoptedFilesSize_;
-    eckit::Length indexFilesSize_;
+    unsigned long long tocFileSize_;
+    unsigned long long schemaFileSize_;
+    unsigned long long ownedFilesSize_;
+    unsigned long long adoptedFilesSize_;
+    unsigned long long indexFilesSize_;
 
     size_t ownedFilesCount_;
     size_t adoptedFilesCount_;
