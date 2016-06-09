@@ -18,6 +18,7 @@
 #include "eckit/log/BigNum.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
+#include "eckit/maths/Functions.h"
 
 #include "fdb5/database/Index.h"
 #include "fdb5/config/MasterConfig.h"
@@ -27,7 +28,9 @@
 
 namespace fdb5 {
 
+
 //----------------------------------------------------------------------------------------------------------------------
+
 static eckit::Mutex local_mutex;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -117,17 +120,13 @@ void TocHandler::openForRead() {
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
 }
 
-static size_t round(size_t a, size_t b) {
-    return ((a + b - 1) / b) * b;
-}
-
 void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
     ASSERT(fd_ != -1);
 
     static size_t fdbRoundTocRecords = eckit::Resource<size_t>("fdbRoundTocRecords", 1024);
 
-    r.header_.size_ = round(sizeof(TocRecord::Header) + payloadSize, fdbRoundTocRecords);
+    r.header_.size_ = eckit::maths::roundToMultiple(sizeof(TocRecord::Header) + payloadSize, fdbRoundTocRecords);
 
     size_t len;
     SYSCALL2( len = ::write(fd_, &r, r.header_.size_), tocPath_ );
