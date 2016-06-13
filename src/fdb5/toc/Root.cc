@@ -58,7 +58,7 @@ static void readTable() {
 
     eckit::Log::info() << "Loading FDB roots from " << path << std::endl;
 
-    if (in.bad()) {
+    if (!in) {
         eckit::Log::error() << path << eckit::Log::syserr << std::endl;
         return;
     }

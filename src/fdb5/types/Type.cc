@@ -9,7 +9,7 @@
  */
 
 #include "fdb5/types/Type.h"
-#include "marslib/MarsTask.h"
+#include "marslib/MarsRequest.h"
 
 namespace fdb5 {
 
@@ -26,7 +26,7 @@ Type::~Type() {
 void Type::getValues(const MarsRequest &request,
                      const std::string &keyword,
                      eckit::StringList &values,
-                     const MarsTask &task,
+                     const NotifyWind &wind,
                      const DB *db) const {
     request.getValues(keyword, values);
 }

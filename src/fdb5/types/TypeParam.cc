@@ -14,7 +14,7 @@
 #include "fdb5/database/DB.h"
 
 #include "marslib/MarsParam.h"
-#include "marslib/MarsTask.h"
+#include "fdb5/database/NotifyWind.h"
 
 
 namespace fdb5 {
@@ -31,7 +31,7 @@ TypeParam::~TypeParam() {
 void TypeParam::getValues(const MarsRequest &request,
                           const std::string &keyword,
                           eckit::StringList &values,
-                          const MarsTask &task,
+                          const NotifyWind &wind,
                           const DB *db) const {
     ASSERT(db);
 
@@ -41,7 +41,7 @@ void TypeParam::getValues(const MarsRequest &request,
 
     eckit::StringList us;
 
-    Type::getValues(request, keyword, us, task, db);
+    Type::getValues(request, keyword, us, wind, db);
 
     std::vector<Param> user;
     std::copy(us.begin(), us.end(), std::back_inserter(user));
@@ -115,7 +115,7 @@ void TypeParam::getValues(const MarsRequest &request,
     // Log::info() << "               axis: " << ax << std::endl;
 
     if (windConvertion) {
-        task.notifyWinds();
+        wind.notifyWind();
     }
 }
 

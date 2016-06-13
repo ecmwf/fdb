@@ -8,38 +8,19 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   IndexStatistics.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   April 2016
 
-#ifndef fdb5_IndexStatistics_H
-#define fdb5_IndexStatistics_H
-
-#include <iosfwd>
-#include "eckit/log/Statistics.h"
+#include "fdb5/database/NotifyWind.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IndexStatistics : public eckit::Statistics {
-public:
-    IndexStatistics() ;
+NotifyWind::NotifyWind() {
+}
 
-    size_t fieldsCount_;
-    size_t duplicatesCount_;
-    unsigned long long fieldsSize_;
-    unsigned long long duplicatesSize_;
-
-    IndexStatistics &operator+=(const IndexStatistics &rhs) ;
-
-    void report(std::ostream &out, const char* indent = "") const;
-
-};
+NotifyWind::~NotifyWind() {
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

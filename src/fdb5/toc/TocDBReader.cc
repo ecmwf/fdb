@@ -27,6 +27,11 @@ TocDBReader::~TocDBReader() {
 }
 
 bool TocDBReader::selectIndex(const Key &key) {
+
+    if(currentIndexKey_ == key) {
+        return true;
+    }
+
     currentIndexKey_ = key;
 
     for (std::vector<Index *>::iterator j = matching_.begin(); j != matching_.end(); ++j) {

@@ -8,28 +8,30 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Statistics.h
+/// @file   NotifyWind.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   April 2016
+/// @date   Mar 2016
 
-#ifndef fdb5_Statistics_H
-#define fdb5_Statistics_H
+#ifndef fdb5_NotifyWind_H
+#define fdb5_NotifyWind_H
 
-#include <iosfwd>
-
-#include "eckit/io/Length.h"
 
 
 namespace fdb5 {
 
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class Statistics {
-public:
-    static void reportCount(std::ostream& out, const char* title, size_t value, const char* indent = "");
-    static void reportBytes(std::ostream& out, const char* title, eckit::Length value, const char* indent = "");
+class NotifyWind {
 
+public: // methods
+
+    NotifyWind();
+
+    virtual ~NotifyWind();
+
+    virtual void notifyWind() const = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

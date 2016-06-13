@@ -78,8 +78,12 @@ list( APPEND fdb5_srcs
     database/ReadVisitor.h
     database/Retriever.cc
     database/Retriever.h
+    database/RetrieveVisitor.cc
+    database/RetrieveVisitor.h
     database/WriteVisitor.cc
     database/WriteVisitor.h
+    database/NotifyWind.cc
+    database/NotifyWind.h
     grib/GribArchiver.cc
     grib/GribArchiver.h
     grib/GribDecoder.cc
@@ -130,8 +134,6 @@ list( APPEND fdb5_srcs
     toc/IndexStatistics.h
     toc/ReportVisitor.cc
     toc/ReportVisitor.h
-    toc/Statistics.cc
-    toc/Statistics.h
     toc/TocDB.cc
     toc/TocDB.h
     toc/Root.cc

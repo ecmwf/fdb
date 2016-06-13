@@ -62,9 +62,9 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     MarsTask task(r, e);
 
-    fdb5::Retriever retriever(task);
+    fdb5::Retriever retriever;
 
-    eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve() );
+    eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve(task) );
 
     eckit::FileHandle out( args(1));
 
