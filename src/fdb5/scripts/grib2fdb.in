@@ -9,7 +9,7 @@ do
 
     if [[ "$sink" == "fdb5" ]]
     then
-        CMD="env GRIB_DEFINITION_PATH=/home/ma/tmpfdb/share/grib_api/definitions /home/ma/tmpfdb/bin/grib2fdb5"
+        CMD="grib2fdb5"
     else
         if [[ -x /usr/local/apps/mars/current/GNU/48/bin/grib2fdb ]]
         then
