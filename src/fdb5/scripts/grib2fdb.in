@@ -11,12 +11,7 @@ do
     then
         CMD="grib2fdb5"
     else
-        if [[ -x /usr/local/apps/mars/current/GNU/48/bin/grib2fdb ]]
-        then
-            CMD=/usr/local/apps/mars/current/GNU/48/bin/grib2fdb
-        else
-            CMD=/usr/local/lib/metaps/mars_grib_api/bin/grib2fdb
-        fi
+        CMD="/usr/local/apps/mars/configs/prod/bin/grib2fdb"
     fi
 
     $CMD "$@"
