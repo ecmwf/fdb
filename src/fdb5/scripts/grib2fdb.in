@@ -4,7 +4,7 @@ MULTIO_SINKS=${MULTIO_SINKS:=fdb4}
 
 set -e
 
-for sink in $(echo MULTIO_SINKS | tr ':' ' ')
+for sink in $(echo $MULTIO_SINKS | tr ':' ' ')
 do
 
     if [[ "$sink" == "fdb5" ]]
