@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 MULTIO_SINKS=${MULTIO_SINKS:=fdb4}
 
