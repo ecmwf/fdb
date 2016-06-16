@@ -126,6 +126,8 @@ void FDBIndexScanner::process(FILE *f) {
 
     ASSERT(idx.size() >= 3);
 
+    if(idx[1] == "tf") return; // skip tf because FTM we do not handle BUFR type
+
     translator.set(r, "type",  idx[1]);
     translator.set(r, "time",  idx[2]);
 
