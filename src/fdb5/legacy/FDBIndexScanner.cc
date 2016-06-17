@@ -9,6 +9,10 @@
  */
 
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "eckit/io/StdFile.h"
 #include "eckit/io/StdPipe.h"
@@ -84,7 +88,7 @@ void FDBIndexScanner::execute() {
 void FDBIndexScanner::process(FILE *f) {
     LegacyTranslator translator;
 
-    std::map<std::string, eckit::StdFile*> files;
+    std::map<std::string, int> files;
 
     Tokenizer p(":", true);
 
@@ -129,6 +133,9 @@ void FDBIndexScanner::process(FILE *f) {
     Log::info() << "Parsed index (size=" << idx.size() << ") " << idx << std::endl;
 
     ASSERT(idx.size() >= 3);
+    if (idx[1] == "tf") {
+        return;
+    }
 
     translator.set(r, "type",  idx[1]);
     translator.set(r, "time",  idx[2]);
@@ -177,9 +184,11 @@ void FDBIndexScanner::process(FILE *f) {
             //            Log::info() << "prefix = " << prefix << std::endl;
 
             std::string datapath = dirpath + "/:" + prefix + path_.baseName(false);
-            std::map<std::string, eckit::StdFile*>::iterator file = files.find(datapath);
+            std::map<std::string, int>::iterator file = files.find(datapath);
             if (file == files.end()) {
-                files[datapath] = new eckit::StdFile(datapath);
+                int fd;
+                SYSCALL(fd = ::open(datapath.c_str(), O_RDONLY));
+                files[datapath] = fd;
                 file = files.find(datapath);
             }
 
@@ -200,23 +209,28 @@ void FDBIndexScanner::process(FILE *f) {
 
                     off_t o = off_t(length) + off_t(offset);
                     if (o >= 8) {
-                        FILE* g = *(file->second);
+                        int fd = (*file).second;
 
                         o -= 8;
-                        SYSCALL(fseek(g, o, SEEK_SET));
-                        ASSERT(ftell(g) == o);
+                        SYSCALL(o == lseek(fd, o, SEEK_SET));
 
-                        char seven[4] = {0,};
+                        int n;
+                        char sevens[8];
+
+                        SYSCALL(n = ::read(fd, sevens, 8));
+
                         bool ok = false;
-                        for (int i = 0; i < 8 ; i++, o++) {
-                            ASSERT(fread(&seven[i % 4], 1, 1, g) == 1);
-                            if (strncmp(seven, "7777", 4) == 0) {
-                                offset = o - length;
+                        for (int i = 0; i < 4 ; i++, o++) {
+                            if (sevens[i] == '7' && sevens[i + 1] == '7'
+                                    && sevens[i + 2] == '7' && sevens[i + 3] == '7') {
                                 ok = true;
                                 break;
                             }
                         }
                         ASSERT(ok);
+//std::cout << "o = " << o << ", length = " << length << ", off" << offset ;
+                        length = o + 4 - off_t(offset);
+//std::cout << ", new = " << length << std::endl;
                     }
 
                     break;
@@ -264,8 +278,8 @@ void FDBIndexScanner::process(FILE *f) {
 
     Log::info() << "Completed index " << path_ << std::endl;
 
-    for (std::map<std::string, eckit::StdFile*>::iterator j = files.begin(); j != files.end(); ++j) {
-        delete (*j).second;
+    for (std::map<std::string, int>::iterator j = files.begin(); j != files.end(); ++j) {
+        close((*j).second);
     }
 }
 
