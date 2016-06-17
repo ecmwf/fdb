@@ -89,6 +89,7 @@ void FDBIndexScanner::process(FILE *f) {
     LegacyTranslator translator;
 
     std::map<std::string, int> files;
+    std::map<eckit::Length, eckit::Length> guess;
 
     Tokenizer p(":", true);
 
@@ -207,30 +208,36 @@ void FDBIndexScanner::process(FILE *f) {
                     in >> s;
                     offset = Translator<std::string, unsigned long long>()(s.substr(1, s.length() - 2));
 
-                    off_t o = off_t(length) + off_t(offset);
-                    if (o >= 8) {
-                        int fd = (*file).second;
+                    std::map<eckit::Length, eckit::Length>::const_iterator g = guess.find(length);
+                    if (g == guess.end()) {
 
-                        o -= 8;
-                        SYSCALL(o == lseek(fd, o, SEEK_SET));
+                        off_t o = off_t(length) + off_t(offset);
+                        if (o >= 8) {
+                            int fd = (*file).second;
+
+                            o -= 8;
+                            SYSCALL(o == lseek(fd, o, SEEK_SET));
 
 
-                        char sevens[8] = {0,};
+                            char sevens[8] = {0,};
 
-                        SYSCALL(::read(fd, sevens, 8));
+                            SYSCALL(::read(fd, sevens, 8));
 
-                        bool ok = false;
-                        for (int i = 0; i <= 4 ; i++, o++) {
-                            if (sevens[i] == '7' && sevens[i + 1] == '7'
-                                    && sevens[i + 2] == '7' && sevens[i + 3] == '7') {
-                                ok = true;
-                                break;
+                            bool ok = false;
+                            for (int i = 0; i <= 4 ; i++, o++) {
+                                if (sevens[i] == '7' && sevens[i + 1] == '7'
+                                        && sevens[i + 2] == '7' && sevens[i + 3] == '7') {
+                                    ok = true;
+                                    break;
+                                }
                             }
+                            ASSERT(ok);
+                            o += 4;
                         }
-                        ASSERT(ok);
-                        length = o + 4 - off_t(offset);
+                        guess[length] = o - off_t(offset);
+                        g = guess.find(length);
                     }
-
+                    length = (*g).second;
                     break;
                 }
 
