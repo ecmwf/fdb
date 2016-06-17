@@ -214,13 +214,13 @@ void FDBIndexScanner::process(FILE *f) {
                         o -= 8;
                         SYSCALL(o == lseek(fd, o, SEEK_SET));
 
-                        int n;
-                        char sevens[8];
 
-                        SYSCALL(n = ::read(fd, sevens, 8));
+                        char sevens[8] = {0,};
+
+                        SYSCALL(::read(fd, sevens, 8));
 
                         bool ok = false;
-                        for (int i = 0; i < 4 ; i++, o++) {
+                        for (int i = 0; i <= 4 ; i++, o++) {
                             if (sevens[i] == '7' && sevens[i + 1] == '7'
                                     && sevens[i + 2] == '7' && sevens[i + 3] == '7') {
                                 ok = true;
@@ -228,9 +228,7 @@ void FDBIndexScanner::process(FILE *f) {
                             }
                         }
                         ASSERT(ok);
-//std::cout << "o = " << o << ", length = " << length << ", off" << offset ;
                         length = o + 4 - off_t(offset);
-//std::cout << ", new = " << length << std::endl;
                     }
 
                     break;
