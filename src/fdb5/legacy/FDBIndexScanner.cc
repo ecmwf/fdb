@@ -198,21 +198,25 @@ void FDBIndexScanner::process(FILE *f) {
                     in >> s;
                     offset = Translator<std::string, unsigned long long>()(s.substr(1, s.length() - 2));
 
-
-                    if (offset >= Offset(8)) {
+                    off_t o = off_t(length) + off_t(offset);
+                    if (o >= 8) {
                         FILE* g = *(file->second);
-                        off_t o = off_t(offset) - 8;
+
+                        o -= 8;
                         SYSCALL(fseek(g, o, SEEK_SET));
                         ASSERT(ftell(g) == o);
 
                         char seven[4] = {0,};
+                        bool ok = false;
                         for (int i = 0; i < 8 ; i++, o++) {
                             ASSERT(fread(&seven[i % 4], 1, 1, g) == 1);
                             if (strncmp(seven, "7777", 4) == 0) {
-                                offset = o - 4;
+                                offset = o - length;
+                                ok = true;
                                 break;
                             }
                         }
+                        ASSERT(ok);
                     }
 
                     break;
@@ -260,7 +264,7 @@ void FDBIndexScanner::process(FILE *f) {
 
     Log::info() << "Completed index " << path_ << std::endl;
 
-    for(std::map<std::string, eckit::StdFile*>::iterator j = files.begin(); j != files.end(); ++j) {
+    for (std::map<std::string, eckit::StdFile*>::iterator j = files.begin(); j != files.end(); ++j) {
         delete (*j).second;
     }
 }
