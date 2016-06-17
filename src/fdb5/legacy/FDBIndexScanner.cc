@@ -175,7 +175,7 @@ void FDBIndexScanner::process(FILE *f) {
             //            Log::info() << "prefix = " << prefix << std::endl;
 
             std::string datapath = dirpath + "/:" + prefix + path_.baseName(false);
-            eckit::StdFile file(dirpath);
+            eckit::StdFile f(datapath);
 
             //            Log::info() << "datapath = " << datapath << std::endl;
 
@@ -194,7 +194,7 @@ void FDBIndexScanner::process(FILE *f) {
 
                     if (offset >= Offset(8)) {
                         off_t o = off_t(offset) - 8;
-                        fseek(f, o, SEEK_SET);
+                        SYSCALL(fseek(f, o, SEEK_SET));
                         ASSERT(ftell(f) == o);
 
                         char seven[4] = {0,};

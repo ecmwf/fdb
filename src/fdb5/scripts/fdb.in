@@ -5,6 +5,7 @@ shopt -s nullglob
 export FDB_ASYNC_WRITE=1
 export FDB_HOME=${FDB_HOME:=@FDB_HOME@}
 
+unset DHSHOME
 
 function usage {
     echo "Usage $(basename $0): command [options] ..."
