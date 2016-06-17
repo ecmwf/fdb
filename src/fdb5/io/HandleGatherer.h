@@ -44,11 +44,14 @@ public: // methods
 
     eckit::DataHandle *dataHandle();
 
+    size_t count() const;
+
 
 private: // members
 
     bool sorted_;
     std::vector<eckit::DataHandle *> handles_;
+    size_t count_;
 
     void print( std::ostream &out ) const;
     friend std::ostream &operator<<(std::ostream &s, const HandleGatherer &x) {

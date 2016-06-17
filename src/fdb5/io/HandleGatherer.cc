@@ -19,7 +19,8 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 HandleGatherer::HandleGatherer(bool sorted):
-    sorted_(sorted) {
+    sorted_(sorted),
+    count_(0) {
 }
 
 HandleGatherer::~HandleGatherer() {
@@ -39,6 +40,7 @@ eckit::DataHandle *HandleGatherer::dataHandle() {
 }
 
 void HandleGatherer::add(eckit::DataHandle *h) {
+    count_++;
     ASSERT(h);
     if (sorted_) {
         for (std::vector<eckit::DataHandle *>::iterator j = handles_.begin(); j != handles_.end(); ++j) {
@@ -56,6 +58,10 @@ void HandleGatherer::add(eckit::DataHandle *h) {
         }
     }
     handles_.push_back(h);
+}
+
+size_t HandleGatherer::count() const {
+    return count_;
 }
 
 void HandleGatherer::print( std::ostream &out ) const {

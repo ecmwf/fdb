@@ -15,6 +15,7 @@
 #include "fdb5/database/RetrieveVisitor.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/database/NotifyWind.h"
+#include "eckit/log/Plural.h"
 
 #include "marslib/MarsTask.h"
 
@@ -43,6 +44,8 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const Schema &schem
 
     RetrieveVisitor visitor(NotifyClient(task), result);
     schema.expand(task.request(), visitor);
+
+    eckit::Log::userInfo() << "Retrieving " << eckit::Plural(result.count(), "field") << std::endl;
 
     return result.dataHandle();
 }
