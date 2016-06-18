@@ -112,6 +112,7 @@ maker_BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD("BTreeIndex_" #KEYSIZE "_" #R
 
 BTREE(32, 65536, FieldRefReduced);
 BTREE(32, 65536, FieldRefFull);
+BTREE(32, 4194304, FieldRefReduced);
 
 
 
@@ -128,6 +129,7 @@ const std::string& BTreeIndex::defaulType() {
 
 static IndexBuilder<BTreeIndex_32_65536_FieldRefReduced> defaultIndex("BTreeIndex");
 static IndexBuilder<BTreeIndex_32_65536_FieldRefFull> pointDBIndex("PointDBIndex");
+static IndexBuilder<BTreeIndex_32_4194304_FieldRefReduced> index4MB("BTreeIndex4MB");
 
 
 //-----------------------------------------------------------------------------

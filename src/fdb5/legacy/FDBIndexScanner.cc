@@ -9,6 +9,10 @@
  */
 
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "eckit/io/StdFile.h"
 #include "eckit/io/StdPipe.h"
@@ -16,6 +20,7 @@
 #include "eckit/utils/Translator.h"
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/config/Resource.h"
+#include "eckit/io/StdFile.h"
 
 #include "fdb5/toc/AdoptVisitor.h"
 #include "fdb5/grib/GribDecoder.h"
@@ -68,7 +73,8 @@ void FDBIndexScanner::execute() {
 
     // if all else fails, lets try to run the old tool 'lsfdb' (must be in path)
     {
-        static std::string fdbLegacyLsfdb = eckit::Resource<std::string>("fdbLegacyLsfdb", "lsfdb");
+        static std::string fdbLegacyLsfdb = eckit::Resource<std::string>("fdbLegacyLsfdb",
+                                            "/usr/local/apps/fdb/current/bin/lsfdb");
 
         std::ostringstream cmd;
         cmd << fdbLegacyLsfdb << " " << path_;
@@ -81,6 +87,9 @@ void FDBIndexScanner::execute() {
 
 void FDBIndexScanner::process(FILE *f) {
     LegacyTranslator translator;
+
+    std::map<std::string, int> files;
+    std::map<eckit::Length, eckit::Length> guess;
 
     Tokenizer p(":", true);
 
@@ -125,6 +134,9 @@ void FDBIndexScanner::process(FILE *f) {
     Log::info() << "Parsed index (size=" << idx.size() << ") " << idx << std::endl;
 
     ASSERT(idx.size() >= 3);
+    if (idx[1] == "tf") {
+        return;
+    }
 
     if(idx[1] == "tf") return; // skip tf because FTM we do not handle BUFR type
 
@@ -175,6 +187,13 @@ void FDBIndexScanner::process(FILE *f) {
             //            Log::info() << "prefix = " << prefix << std::endl;
 
             std::string datapath = dirpath + "/:" + prefix + path_.baseName(false);
+            std::map<std::string, int>::iterator file = files.find(datapath);
+            if (file == files.end()) {
+                int fd;
+                SYSCALL(fd = ::open(datapath.c_str(), O_RDONLY));
+                files[datapath] = fd;
+                file = files.find(datapath);
+            }
 
             //            Log::info() << "datapath = " << datapath << std::endl;
 
@@ -190,6 +209,37 @@ void FDBIndexScanner::process(FILE *f) {
                     length = Translator<std::string, unsigned long long>()(s);
                     in >> s;
                     offset = Translator<std::string, unsigned long long>()(s.substr(1, s.length() - 2));
+
+                    std::map<eckit::Length, eckit::Length>::const_iterator g = guess.find(length);
+                    if (g == guess.end()) {
+
+                        off_t o = off_t(length) + off_t(offset);
+                        if (o >= 8) {
+                            int fd = (*file).second;
+
+                            o -= 8;
+                            SYSCALL(o == lseek(fd, o, SEEK_SET));
+
+
+                            char sevens[8] = {0,};
+
+                            SYSCALL(::read(fd, sevens, 8));
+
+                            bool ok = false;
+                            for (int i = 0; i <= 4 ; i++, o++) {
+                                if (sevens[i] == '7' && sevens[i + 1] == '7'
+                                        && sevens[i + 2] == '7' && sevens[i + 3] == '7') {
+                                    ok = true;
+                                    break;
+                                }
+                            }
+                            ASSERT(ok);
+                            o += 4;
+                        }
+                        guess[length] = o - off_t(offset);
+                        g = guess.find(length);
+                    }
+                    length = (*g).second;
                     break;
                 }
 
@@ -203,7 +253,7 @@ void FDBIndexScanner::process(FILE *f) {
 //            Log::info() << "Indexed field @ " << datapath << " offset=" << offset << " lenght=" << length << std::endl;
 
 
-            if(compareToGrib_) {
+            if (compareToGrib_) {
                 eckit::ScopedPtr<DataHandle> h(PathName(datapath).partHandle(offset, length));
                 EmosFile file(*h);
                 GribDecoder decoder;
@@ -217,7 +267,7 @@ void FDBIndexScanner::process(FILE *f) {
                 try {
                     grib.validateKeysOf(key, checkValues_);
                 }
-                catch(eckit::Exception& e) {
+                catch (eckit::Exception& e) {
                     std::cerr << e.what() << std::endl;
                 }
             }
@@ -234,6 +284,10 @@ void FDBIndexScanner::process(FILE *f) {
     }
 
     Log::info() << "Completed index " << path_ << std::endl;
+
+    for (std::map<std::string, int>::iterator j = files.begin(); j != files.end(); ++j) {
+        close((*j).second);
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

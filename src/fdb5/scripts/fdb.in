@@ -2,7 +2,7 @@
 
 shopt -s nullglob
 
-unset DHSHOME # in case we run insode fdb server service account
+unset DHSHOME # in case we run inside fdb server service account
 
 export FDB_ASYNC_WRITE=1
 export FDB_HOME=${FDB_HOME:=@FDB_HOME@}
