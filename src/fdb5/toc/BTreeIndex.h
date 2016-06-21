@@ -29,6 +29,8 @@
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 class BTreeIndexVisitor {
 public:
     virtual void visit(const std::string& key, const FieldRef&) = 0;
@@ -47,7 +49,8 @@ public:
 
 };
 
-//---------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+
 class IndexFactory {
 
     virtual BTreeIndex *make(const eckit::PathName& path, bool readOnly, off_t offset) const = 0 ;
@@ -79,6 +82,10 @@ class IndexBuilder : public IndexFactory {
 public:
     IndexBuilder(const std::string &name) : IndexFactory(name) {}
 };
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
 } // namespace fdb5
 
 #endif

@@ -17,6 +17,7 @@
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
 
 template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
 class TBTreeIndex : public BTreeIndex {
@@ -24,7 +25,7 @@ class TBTreeIndex : public BTreeIndex {
 public: // types
 
     typedef eckit::FixedString<KEYSIZE> BTreeKey;
-    typedef eckit::BTree< BTreeKey , PAYLOAD, RECSIZE > BTreeStore;
+    typedef eckit::BTree<BTreeKey, PAYLOAD, RECSIZE> BTreeStore;
 
 public: // methods
 
@@ -97,10 +98,7 @@ void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::visit(BTreeIndexVisitor &visitor) c
 }
 
 
-//-----------------------------------------------------------------------------
-
-
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 #define BTREE(KEYSIZE, RECSIZE, PAYLOAD)                                                                   \
 struct BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD : public TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD> {                  \
@@ -116,7 +114,7 @@ BTREE(32, 4194304, FieldRefReduced);
 
 
 
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 BTreeIndex::~BTreeIndex() {
 }
@@ -131,7 +129,6 @@ static IndexBuilder<BTreeIndex_32_65536_FieldRefReduced> defaultIndex("BTreeInde
 static IndexBuilder<BTreeIndex_32_65536_FieldRefFull> pointDBIndex("PointDBIndex");
 static IndexBuilder<BTreeIndex_32_4194304_FieldRefReduced> index4MB("BTreeIndex4MB");
 
-
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
