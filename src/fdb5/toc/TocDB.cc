@@ -12,7 +12,7 @@
 
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/rules/Rule.h"
-#include "fdb5/toc/Root.h"
+#include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocDB.h"
 
 using namespace eckit;
@@ -21,11 +21,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//----------------------------------------------------------------------------------------------------------------------
-
 TocDB::TocDB(const Key& key) :
     DB(key),
-    TocHandler(Root::directory(key)) {
+    TocHandler(RootManager::directory(key)) {
 }
 
 TocDB::TocDB(const eckit::PathName& directory) :
@@ -80,8 +78,8 @@ void TocDB::checkSchema(const Key &key) const {
 const Schema& TocDB::schema() const {
     return schema_;
 }
-//----------------------------------------------------------------------------------------------------------------------
 
+//----------------------------------------------------------------------------------------------------------------------
 
 std::vector<eckit::PathName> TocDB::databases(const Key &key) {
 
@@ -89,7 +87,7 @@ std::vector<eckit::PathName> TocDB::databases(const Key &key) {
     std::set<Key> keys;
     schema.matchFirstLevel(key, keys);
 
-    std::vector<eckit::PathName> dirs = Root::roots(); // TODO: filter roots() with key
+    std::vector<eckit::PathName> dirs = RootManager::roots(); // TODO: filter roots() with key
     std::vector<eckit::PathName> result;
     std::set<eckit::PathName> seen;
 
@@ -131,5 +129,6 @@ std::vector<eckit::PathName> TocDB::databases(const Key &key) {
     return result;
 }
 
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

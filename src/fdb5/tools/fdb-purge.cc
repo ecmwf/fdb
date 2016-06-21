@@ -15,6 +15,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// Purges duplicate entries from the database and removes associated data (if owned, not adopted)
 
 class FDBPurge : public fdb5::FDBInspect {
 
@@ -41,7 +42,9 @@ class FDBPurge : public fdb5::FDBInspect {
 
 void FDBPurge::usage(const std::string &tool) const {
 
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [path1|request1] [path2|request2] ..." << std::endl;
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " [--doit] [path1|request1] [path2|request2] ..."
+                       << std::endl;
     FDBInspect::usage(tool);
 }
 

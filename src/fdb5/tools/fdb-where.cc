@@ -10,7 +10,7 @@
 
 #include "eckit/option/CmdArgs.h"
 #include "fdb5/tools/FDBInspect.h"
-#include "fdb5/toc/Root.h"
+#include "fdb5/toc/RootManager.h"
 
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -52,7 +52,7 @@ void FDBWhere::finish(const eckit::option::CmdArgs& args) {
         std::string pattern = ".*";
         args.get("pattern", pattern);
 
-        std::vector<eckit::PathName> roots = fdb5::Root::roots(pattern);
+        std::vector<eckit::PathName> roots = fdb5::RootManager::roots(pattern);
         for (std::vector<eckit::PathName>::const_iterator i = roots.begin(); i != roots.end(); ++i) {
             std::cout << *i << std::endl;
         }

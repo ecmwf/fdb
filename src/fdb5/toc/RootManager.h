@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Root.h
+/// @file   RootManager.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Root_H
-#define fdb5_Root_H
+#ifndef fdb5_RootManager_H
+#define fdb5_RootManager_H
 
 #include "eckit/utils/Regex.h"
 #include "eckit/filesystem/PathName.h"
@@ -25,29 +25,18 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Root  {
+class RootManager  {
 
 public: // methods
 
-    Root(const std::string& re,
-         const std::string& path,
-         const std::string& handler,
-         bool active,
-         bool visit);
+    static eckit::PathName directory(const Key &key);
 
-    bool match(const std::string &s) const;
-
-    const eckit::PathName &path() const;
-
-    bool active() const; ///< Root is in use, when archiving
-    bool visit() const;  ///< Root is visited, when retrievind
+    static std::vector<eckit::PathName> roots(const std::string &match = ".*");
 
 private: // members
 
     eckit::Regex re_;
     eckit::PathName path_;
-
-    std::string handler_;
 
     bool active_;
     bool visit_;

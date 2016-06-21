@@ -8,29 +8,22 @@
  * does it submit to any jurisdiction.
  */
 
-
 #include "fdb5/toc/Root.h"
-#include "fdb5/database/Key.h"
-#include "eckit/config/Resource.h"
-#include "eckit/parser/Tokenizer.h"
-
-
-using namespace eckit;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-Root::Root(const std::string &re, const std::string &path, bool active, bool visit):
+Root::Root(const std::string &re, const std::string &path, const std::string& handler, bool active, bool visit):
     re_(re),
     path_(path),
+    handler_(handler),
     active_(active),
     visit_(visit) {
 
 }
 
-bool Root::match(const std::string &s) const {
+bool Root::match(const std::string& s) const {
     return re_.match(s);
 }
 
@@ -39,96 +32,13 @@ const eckit::PathName &Root::path() const {
 }
 
 bool Root::active() const {
-    return active_;  // Root is in use, when archiving
+    return active_;
 }
 
 bool Root::visit() const {
-    return visit_;  // Root is visited, when retrievind
-}
-
-
-//----------------------------------------------------------------------------------------------------------------------
-
-static pthread_once_t once = PTHREAD_ONCE_INIT;
-static std::vector<Root> rootsTable;
-
-static void readTable() {
-    eckit::PathName path("~/etc/fdb/roots");
-    std::ifstream in(path.localPath());
-
-    eckit::Log::info() << "Loading FDB roots from " << path << std::endl;
-
-    if (!in) {
-        eckit::Log::error() << path << eckit::Log::syserr << std::endl;
-        return;
-    }
-
-    eckit::Tokenizer parse(" ");
-
-    char line[1024];
-    while (in.getline(line, sizeof(line))) {
-        std::vector<std::string> s;
-        parse(line, s);
-
-        size_t i = 0;
-        while (i < s.size()) {
-            if (s[i].length() == 0) {
-                s.erase(s.begin() + i);
-            } else {
-                i++;
-            }
-        }
-
-        if (s.size() == 0 || s[0][0] == '#') {
-            continue;
-        }
-
-        switch (s.size()) {
-        case 2:
-            rootsTable.push_back(Root(s[0], s[1]));
-            break;
-
-        default:
-            eckit::Log::warning() << "FDB Root: Invalid line ignored: " << line << std::endl;
-            break;
-
-        }
-    }
+    return visit_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-
-eckit::PathName Root::directory(const Key &key) {
-
-    pthread_once(&once, readTable);
-
-    std::string name(key.valuesToString());
-
-    for (std::vector<Root>::const_iterator i = rootsTable.begin(); i != rootsTable.end() ; ++i) {
-        if (i->active() && i->match(name)) {
-            return i->path() / name;
-        }
-    }
-
-    std::ostringstream oss;
-    oss << "No FDB root for " << key << " (" << name << ")";
-    throw eckit::SeriousBug(oss.str());
-
-}
-
-std::vector<eckit::PathName> Root::roots(const std::string &match) {
-
-    eckit::StringSet roots;
-
-    pthread_once(&once, readTable);
-
-    for (std::vector<Root>::const_iterator i = rootsTable.begin(); i != rootsTable.end() ; ++i) {
-        if (i->visit() && i->match(match)) {
-            roots.insert(i->path());
-        }
-    }
-
-    return std::vector<eckit::PathName>(roots.begin(), roots.end());
-}
 
 }  // namespace fdb5
