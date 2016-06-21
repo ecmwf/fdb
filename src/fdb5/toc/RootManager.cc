@@ -60,9 +60,13 @@ static void readTable() {
         }
 
         switch (s.size()) {
-        case 5:
-            rootsTable.push_back(Root(s[0], s[1], s[2], str2bool(s[3]), str2bool(s[4])));
-            break;
+            case 5:
+                rootsTable.push_back(Root(s[0], s[1], s[2], str2bool(s[3]), str2bool(s[4])));
+                break;
+
+            case 2:
+                rootsTable.push_back(Root(s[0], s[1], "default"));
+                break;
 
         default:
             eckit::Log::warning() << "FDB RootManager: Invalid line ignored: " << line << std::endl;

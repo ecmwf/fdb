@@ -32,8 +32,8 @@ public: // methods
     Root(const std::string& re,
          const std::string& path,
          const std::string& handler,
-         bool active,
-         bool visit);
+         bool active = true,
+         bool visit  = true);
 
     bool match(const std::string &s) const;
 
