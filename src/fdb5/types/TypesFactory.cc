@@ -9,15 +9,9 @@
  */
 
 #include "eckit/thread/AutoLock.h"
-// #include "eckit/thread/Mutex.h"
 #include "eckit/exception/Exceptions.h"
-// #include "eckit/config/Resource.h"
-
-// #include "marslib/NotifyWind.h"
 
 #include "fdb5/types/TypesFactory.h"
-// #include "fdb5/TypeDefault.h"
-
 
 namespace fdb5 {
 

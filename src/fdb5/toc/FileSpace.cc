@@ -14,6 +14,7 @@
 #include "eckit/exception/Exceptions.h"
 
 #include "fdb5/toc/TocDB.h"
+#include "fdb5/toc/FileSpaceHandler.h"
 #include "fdb5/database/Key.h"
 
 using eckit::Log;
@@ -45,11 +46,7 @@ eckit::PathName FileSpace::filesystem(const Key& key) const
 
     Log::info() << "FDB for key " << key << " not found, selecting a root" << std::endl;
 
-    // no existing DB found so use the handler to select the strategy
-
-    /// TODO: make a proper handler
-
-    return eckit::FileSpaceStrategies::selectFileSystem(writable(), handler_);
+    return FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this);
 }
 
 std::vector<eckit::PathName> FileSpace::writable() const

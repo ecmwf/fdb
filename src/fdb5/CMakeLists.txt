@@ -138,6 +138,8 @@ list( APPEND fdb5_srcs
     toc/TocDB.h
     toc/Root.cc
     toc/Root.h
+    toc/FileSpaceHandler.cc
+    toc/FileSpaceHandler.h
     toc/FileSpace.cc
     toc/FileSpace.h
     toc/RootManager.cc

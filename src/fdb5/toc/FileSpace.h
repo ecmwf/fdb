@@ -11,7 +11,7 @@
 /// @file   FileSpace.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   Mar 2016
+/// @date   June 2016
 
 #ifndef fdb5_FileSpace_H
 #define fdb5_FileSpace_H
@@ -25,9 +25,11 @@
 
 namespace fdb5 {
 
+class FileSpaceHandler;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class FileSpace  {
+class FileSpace {
 
 public: // methods
 
@@ -46,10 +48,10 @@ public: // methods
 
     bool match(const std::string& s) const;
 
-private: // methods
-
     std::vector<eckit::PathName> writable() const;
     std::vector<eckit::PathName> visitable() const;
+
+private: // methods
 
     bool existsDB(const Key& key, eckit::PathName& path) const;
 
@@ -58,6 +60,7 @@ private: // members
     typedef std::vector<Root> RootVec;
 
     std::string name_;
+
     std::string handler_;
 
     eckit::Regex re_;
