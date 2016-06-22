@@ -87,7 +87,7 @@ std::vector<eckit::PathName> TocDB::databases(const Key &key) {
     std::set<Key> keys;
     schema.matchFirstLevel(key, keys);
 
-    std::vector<eckit::PathName> dirs = RootManager::roots(); // TODO: filter roots() with key
+    std::vector<eckit::PathName> dirs = RootManager::visitRoots(key);
     std::vector<eckit::PathName> result;
     std::set<eckit::PathName> seen;
 

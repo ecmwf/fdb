@@ -8,37 +8,30 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/toc/Root.h"
+#include "fdb5/tools/ToolRequest.h"
+
+using eckit::Log;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Root::Root(const std::string &path, const std::string& filespace, bool active, bool visit):
-    path_(path),
-    filespace_(filespace),
-    writable_(active),
-    visit_(visit) {
+ToolRequest::ToolRequest(const std::string& r, const std::vector<std::string>& minimumKeySet) :
+    key_(r) {
 
+    for (std::vector<std::string>::const_iterator j = minimumKeySet.begin(); j != minimumKeySet.end(); ++j) {
+        if (key_.find(*j) == key_.end()) {
+            throw eckit::UserError("Please provide a value for '" + (*j) + "'");
+        }
+    }
 }
 
-const eckit::PathName& Root::path() const {
-    return path_;
-}
-
-bool Root::writable() const {
-    return writable_;
-}
-
-bool Root::visit() const {
-    return visit_;
-}
-
-const std::string& Root::filespace() const
+const Key& ToolRequest::key() const
 {
-    return filespace_;
+    return key_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace fdb5
+} // namespace fdb5
+

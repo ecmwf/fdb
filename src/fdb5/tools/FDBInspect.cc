@@ -16,6 +16,7 @@
 #include "fdb5/toc/TocDB.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBInspect.h"
+#include "fdb5/tools/ToolRequest.h"
 
 using eckit::Log;
 
@@ -69,27 +70,20 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
         }
 
         try {
-            Key dbKey(args(i));
 
             bool force = false;
-            args.get("force", force);
+            args.get("force", force); //< bypass the check for minimum key set
 
-            if (!force) {
-                for (std::vector<std::string>::const_iterator j = minimumKeySet_.begin(); j != minimumKeySet_.end(); ++j) {
-                    if (dbKey.find(*j) == dbKey.end()) {
-                        throw eckit::UserError("Please provide a value for '" + (*j) + "'");
-                    }
-                }
-            }
+            ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeySet_);
 
-            eckit::Log::info() << "KEY =====> " << dbKey << std::endl;
-            std::vector<eckit::PathName> dbs = TocDB::databases(dbKey);
+            eckit::Log::info() << "KEY =====> " << req.key() << std::endl;
+            std::vector<eckit::PathName> dbs = TocDB::databases(req.key());
             for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
                 paths.push_back(*j);
             }
 
             if (dbs.size() == 0) {
-                eckit::Log::warning() << "No FDB matches " << dbKey << std::endl;
+                eckit::Log::warning() << "No FDB matches " << req.key() << std::endl;
             }
 
         } catch (eckit::UserError& e) {

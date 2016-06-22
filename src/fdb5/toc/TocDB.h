@@ -40,6 +40,8 @@ public: // methods
 
     static std::vector<eckit::PathName> databases(const Key &key);
 
+    static void initDatabase(const Key &key);
+
 protected: // methods
 
     virtual bool open();

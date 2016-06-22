@@ -29,9 +29,14 @@ class RootManager  {
 
 public: // methods
 
+    /// Uniquely selects a directory where the Key will be put or already exists
     static eckit::PathName directory(const Key &key);
 
-    static std::vector<eckit::PathName> roots(const std::string &match = ".*");
+    /// Lists the roots that can be visited given a DB key
+    static std::vector<eckit::PathName> visitRoots(const Key& key);
+
+    /// Lists the roots where a DB key would be able to be written
+    static std::vector<eckit::PathName> activeRoots(const Key& key);
 
 private: // members
 

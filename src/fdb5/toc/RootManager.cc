@@ -17,6 +17,7 @@
 
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/Root.h"
+#include "fdb5/toc/FileSpace.h"
 
 using namespace eckit;
 
@@ -24,10 +25,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static pthread_once_t once = PTHREAD_ONCE_INIT;
-static std::vector<Root> rootsTable;
+typedef std::vector<fdb5::FileSpace> FileSpaceTable;
 
-static void readTable() {
+static pthread_once_t once = PTHREAD_ONCE_INIT;
+static FileSpaceTable spacesTable;
+
+static std::vector<Root> readRoots() {
+
+    std::vector<Root> result;
+
     eckit::PathName path("~/etc/fdb/roots");
     std::ifstream in(path.localPath());
 
@@ -35,14 +41,16 @@ static void readTable() {
 
     if (!in) {
         eckit::Log::error() << path << eckit::Log::syserr << std::endl;
-        return;
+        return result;
     }
 
     eckit::Translator<std::string,bool> str2bool;
+
     eckit::Tokenizer parse(" ");
 
     char line[1024];
     while (in.getline(line, sizeof(line))) {
+
         std::vector<std::string> s;
         parse(line, s);
 
@@ -60,13 +68,82 @@ static void readTable() {
         }
 
         switch (s.size()) {
-            case 5:
-                rootsTable.push_back(Root(s[0], s[1], s[2], str2bool(s[3]), str2bool(s[4])));
-                break;
+            case 4: {
+                const std::string& path       = s[0];
+                const std::string& filespace  = s[1];
+                bool writable        = str2bool(s[2]);
+                bool visit           = str2bool(s[3]);
 
-            case 2:
-                rootsTable.push_back(Root(s[0], s[1], "default"));
+                result.push_back(Root(path, filespace, writable, visit));
                 break;
+            }
+
+        default:
+            eckit::Log::warning() << "FDB RootManager: Invalid line ignored: " << line << std::endl;
+            break;
+        }
+    }
+
+    return result;
+}
+
+static std::vector<Root> fileSpaceRoots(const std::vector<Root>& all, const std::string& filespace) {
+
+    std::vector<Root> roots;
+
+    for (std::vector<Root>::const_iterator i = all.begin(); i != all.end() ; ++i) {
+        if (i->filespace() == filespace) {
+            roots.push_back(*i);
+        }
+    }
+    return roots;
+}
+
+
+static void readFileSpaces() {
+
+    std::vector<Root> allRoots = readRoots();
+
+    eckit::PathName path("~/etc/fdb/spaces");
+    std::ifstream in(path.localPath());
+
+    eckit::Log::debug() << "Loading FDB file spaces from " << path << std::endl;
+
+    if (!in) {
+        eckit::Log::error() << path << eckit::Log::syserr << std::endl;
+        return;
+    }
+
+    eckit::Tokenizer parse(" ");
+
+    char line[1024];
+    while (in.getline(line, sizeof(line))) {
+
+        std::vector<std::string> s;
+        parse(line, s);
+
+        size_t i = 0;
+        while (i < s.size()) {
+            if (s[i].length() == 0) {
+                s.erase(s.begin() + i);
+            } else {
+                i++;
+            }
+        }
+
+        if (s.size() == 0 || s[0][0] == '#') {
+            continue;
+        }
+
+        switch (s.size()) {
+            case 3: {
+                const std::string& regex     = s[0];
+                const std::string& filespace = s[1];
+                const std::string& handler   = s[2];
+
+                spacesTable.push_back(FileSpace(regex, filespace, handler, fileSpaceRoots(allRoots, filespace)));
+                break;
+            }
 
         default:
             eckit::Log::warning() << "FDB RootManager: Invalid line ignored: " << line << std::endl;
@@ -80,13 +157,16 @@ static void readTable() {
 
 eckit::PathName RootManager::directory(const Key &key) {
 
-    pthread_once(&once, readTable);
+    pthread_once(&once, readFileSpaces);
 
     std::string name(key.valuesToString());
 
-    for (std::vector<Root>::const_iterator i = rootsTable.begin(); i != rootsTable.end() ; ++i) {
-        if (i->active() && i->match(name)) {
-            return i->path() / name;
+    /// @note returns the first filespace that matches
+
+    for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
+        if(i->match(name)) {
+            PathName path = i->filesystem(key);
+            return path / name;
         }
     }
 
@@ -96,21 +176,39 @@ eckit::PathName RootManager::directory(const Key &key) {
 }
 
 
-std::vector<eckit::PathName> RootManager::roots(const std::string &match) {
+std::vector<eckit::PathName> RootManager::visitRoots(const Key& key) {
 
     eckit::StringSet roots;
 
-    pthread_once(&once, readTable);
+    pthread_once(&once, readFileSpaces);
 
-    for (std::vector<Root>::const_iterator i = rootsTable.begin(); i != rootsTable.end() ; ++i) {
-        if (i->visit() && i->match(match)) {
-            roots.insert(i->path());
+    std::string k = key.valuesToString();
+
+    for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
+        if(i->match(k)) {
+            i->visitable(roots);
         }
     }
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
 
+std::vector<eckit::PathName> RootManager::activeRoots(const Key& key) {
+
+    eckit::StringSet roots;
+
+    pthread_once(&once, readFileSpaces);
+
+    std::string k = key.valuesToString();
+
+    for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
+        if(i->match(k)) {
+            i->writable(roots);
+        }
+    }
+
+    return std::vector<eckit::PathName>(roots.begin(), roots.end());
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

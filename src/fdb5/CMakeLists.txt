@@ -138,6 +138,8 @@ list( APPEND fdb5_srcs
     toc/TocDB.h
     toc/Root.cc
     toc/Root.h
+    toc/FileSpace.cc
+    toc/FileSpace.h
     toc/RootManager.cc
     toc/RootManager.h
     toc/TocDBReader.cc
@@ -156,6 +158,8 @@ list( APPEND fdb5_srcs
     tools/FDBInspect.h
     tools/FDBTool.cc
     tools/FDBTool.h
+    tools/ToolRequest.cc
+    tools/ToolRequest.h
     tools/RequestParser.cc
     tools/RequestParser.h
     types/Type.cc
@@ -242,7 +246,8 @@ list( APPEND fdb5_tools
     fdb-schema
     fdb-where
     fdb-wipe
-   )
+    fdb-root
+)
 
 foreach( _tool ${fdb5_tools} )
 

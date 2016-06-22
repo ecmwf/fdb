@@ -11,7 +11,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "fdb5/tools/FDBInspect.h"
 #include "fdb5/toc/RootManager.h"
-
+#include "fdb5/tools/ToolRequest.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -19,7 +19,7 @@ class FDBWhere : public fdb5::FDBInspect {
   public: // methods
 
     FDBWhere(int argc, char **argv) : fdb5::FDBInspect(argc, argv) {
-        options_.push_back(new eckit::option::SimpleOption<std::string>("pattern", "Provide a pattern to match 'class:stream:expver', e.g. --pattern=od:.*:0001"));
+        options_.push_back(new eckit::option::SimpleOption<std::string>("request", "Provide a request to match 'class:stream:expver', e.g. --request=class=od,expver=0001"));
 
     }
 
@@ -29,14 +29,13 @@ class FDBWhere : public fdb5::FDBInspect {
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args);
     virtual void finish(const eckit::option::CmdArgs& args);
 
-
 };
 
 void FDBWhere::usage(const std::string &tool) const {
 
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << std::endl
-                       << "       " << tool << "--pattern pattern" << std::endl
+                       << "       " << tool << "--request <request>" << std::endl
                        << "       " << tool << "path1|request1 [path2|request2] ..." << std::endl;
     FDBInspect::usage(tool);
 }
@@ -47,18 +46,22 @@ void FDBWhere::process(const eckit::PathName& path, const eckit::option::CmdArgs
 
 void FDBWhere::finish(const eckit::option::CmdArgs& args) {
 
-
     if (args.count() == 0) {
-        std::string pattern = ".*";
-        args.get("pattern", pattern);
+        std::string s;
+        args.get("request", s);
 
-        std::vector<eckit::PathName> roots = fdb5::RootManager::roots(pattern);
+        fdb5::ToolRequest req(s);
+
+        std::vector<eckit::PathName> roots = fdb5::RootManager::visitRoots(req.key());
+
+        if(!roots.size()) {
+            std::cout << "No roots found for request wtih key " << req.key() << std::endl;
+        }
+
         for (std::vector<eckit::PathName>::const_iterator i = roots.begin(); i != roots.end(); ++i) {
             std::cout << *i << std::endl;
-        }
+        }        
     }
-
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------

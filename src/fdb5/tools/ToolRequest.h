@@ -8,48 +8,34 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Root.h
+/// @file   ToolRequest.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Root_H
-#define fdb5_Root_H
+#ifndef fdb5_ToolRequest_H
+#define fdb5_ToolRequest_H
 
-#include "eckit/filesystem/PathName.h"
+#include <string>
+#include <vector>
+
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
-class Key;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class Root  {
-
+class ToolRequest {
 public: // methods
 
-    Root(const std::string& path,
-         const std::string& filespace,
-         bool writable = true,
-         bool visit  = true);
+    ToolRequest(const std::string& r, const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
 
-    bool match(const std::string &s) const;
+    const Key& key() const;
 
-    const eckit::PathName &path() const;
+private: // methods
 
-    bool writable() const; ///< Root is in use, when archiving
-    bool visit() const;    ///< Root is visited, when retrievind
+    Key key_;
 
-    const std::string& filespace() const;
-
-private: // members
-
-    eckit::PathName path_;
-
-    std::string filespace_;
-
-    bool writable_;
-    bool visit_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
