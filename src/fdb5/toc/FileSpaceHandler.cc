@@ -92,6 +92,18 @@ FileSpaceHandler::FileSpaceHandler() {
 
 namespace detail {
 
+struct First : public FileSpaceHandler {
+    First() {}
+    eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const {
+        std::vector<eckit::PathName> roots = fs.writable();
+        ASSERT(roots.size());
+        return roots[0];
+    }
+};
+
+FileSpaceHandlerRegister<First> def("Default");
+FileSpaceHandlerRegister<First> first("First");
+
 struct LeastUsed : public FileSpaceHandler {
     LeastUsed() {}
     eckit::PathName  selectFileSystem(const Key& key, const FileSpace& fs) const {
