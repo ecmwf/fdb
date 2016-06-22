@@ -81,13 +81,18 @@ const Schema& TocDB::schema() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::vector<eckit::PathName> TocDB::databases(const Key &key) {
-
+void TocDB::matchKeyToDB(const Key& key, std::set<Key>& keys)
+{
     const Schema& schema = MasterConfig::instance().schema();
-    std::set<Key> keys;
     schema.matchFirstLevel(key, keys);
+}
 
-    std::vector<eckit::PathName> dirs = RootManager::visitRoots(key);
+std::vector<eckit::PathName> TocDB::databases(const Key &key, const std::vector<eckit::PathName>& dirs) {
+
+    std::set<Key> keys;
+
+    matchKeyToDB(key,keys);
+
     std::vector<eckit::PathName> result;
     std::set<eckit::PathName> seen;
 
@@ -98,10 +103,7 @@ std::vector<eckit::PathName> TocDB::databases(const Key &key) {
 
         for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 
-
             Regex re("^" + (*i).valuesToString() + "$");
-            // std::cout << re << std::endl;
-
 
             for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
 
@@ -127,6 +129,18 @@ std::vector<eckit::PathName> TocDB::databases(const Key &key) {
     }
 
     return result;
+}
+
+std::vector<eckit::PathName> TocDB::allDatabases(const Key &key) {
+   return databases(key, RootManager::allRoots(key));
+}
+
+std::vector<eckit::PathName> TocDB::writableDatabases(const Key &key) {
+   return databases(key, RootManager::writableRoots(key));
+}
+
+std::vector<eckit::PathName> TocDB::visitableDatabases(const Key &key) {
+   return databases(key, RootManager::visitableRoots(key));
 }
 
 //----------------------------------------------------------------------------------------------------------------------

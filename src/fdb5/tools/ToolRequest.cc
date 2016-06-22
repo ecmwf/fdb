@@ -17,7 +17,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 ToolRequest::ToolRequest(const std::string& r, const std::vector<std::string>& minimumKeySet) :
-    key_(r) {
+    key_(r) {    
 
     for (std::vector<std::string>::const_iterator j = minimumKeySet.begin(); j != minimumKeySet.end(); ++j) {
         if (key_.find(*j) == key_.end()) {

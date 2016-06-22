@@ -141,7 +141,15 @@ static void readFileSpaces() {
                 const std::string& filespace = s[1];
                 const std::string& handler   = s[2];
 
-                spacesTable.push_back(FileSpace(regex, filespace, handler, fileSpaceRoots(allRoots, filespace)));
+                std::vector<Root> roots = fileSpaceRoots(allRoots, filespace);
+
+                if(!roots.size()) {
+                    std::ostringstream oss;
+                    oss << "No roots found for filespace " << filespace;
+                    throw UserError(oss.str(), Here());
+                }
+
+                spacesTable.push_back(FileSpace(filespace, regex, handler, roots));
                 break;
             }
 
@@ -155,7 +163,7 @@ static void readFileSpaces() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::PathName RootManager::directory(const Key &key) {
+eckit::PathName RootManager::directory(const Key& key) {
 
     pthread_once(&once, readFileSpaces);
 
@@ -171,12 +179,29 @@ eckit::PathName RootManager::directory(const Key &key) {
     }
 
     std::ostringstream oss;
-    oss << "No FDB root for " << key << " (" << name << ")";
+    oss << "No FDB file space for " << key << " (" << name << ")";
     throw eckit::SeriousBug(oss.str());
 }
 
+std::vector<PathName> RootManager::allRoots(const Key& key)
+{
+    eckit::StringSet roots;
 
-std::vector<eckit::PathName> RootManager::visitRoots(const Key& key) {
+    pthread_once(&once, readFileSpaces);
+
+    std::string k = key.valuesToString();
+
+    for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
+        if(i->match(k)) {
+            i->all(roots);
+        }
+    }
+
+    return std::vector<eckit::PathName>(roots.begin(), roots.end());
+}
+
+
+std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
 
     eckit::StringSet roots;
 
@@ -193,7 +218,7 @@ std::vector<eckit::PathName> RootManager::visitRoots(const Key& key) {
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
 
-std::vector<eckit::PathName> RootManager::activeRoots(const Key& key) {
+std::vector<eckit::PathName> RootManager::writableRoots(const Key& key) {
 
     eckit::StringSet roots;
 
@@ -209,6 +234,7 @@ std::vector<eckit::PathName> RootManager::activeRoots(const Key& key) {
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

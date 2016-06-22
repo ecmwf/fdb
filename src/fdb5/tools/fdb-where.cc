@@ -52,7 +52,7 @@ void FDBWhere::finish(const eckit::option::CmdArgs& args) {
 
         fdb5::ToolRequest req(s);
 
-        std::vector<eckit::PathName> roots = fdb5::RootManager::visitRoots(req.key());
+        std::vector<eckit::PathName> roots = fdb5::RootManager::visitableRoots(req.key());
 
         if(!roots.size()) {
             std::cout << "No roots found for request wtih key " << req.key() << std::endl;

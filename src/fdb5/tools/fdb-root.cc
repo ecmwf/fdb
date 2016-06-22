@@ -9,86 +9,62 @@
  */
 
 #include "eckit/option/CmdArgs.h"
-#include "eckit/config/Resource.h"
-#include "fdb5/toc/WipeVisitor.h"
-#include "fdb5/toc/TocHandler.h"
-#include "fdb5/tools/FDBInspect.h"
+#include "fdb5/tools/FDBTool.h"
+#include "fdb5/tools/ToolRequest.h"
+#include "fdb5/toc/TocDBWriter.h"
+#include "fdb5/toc/TocDB.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/config/UMask.h"
+#include "fdb5/rules/Schema.h"
+#include "fdb5/config/MasterConfig.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FdbRoot : public fdb5::FDBInspect {
+class FdbRoot : public fdb5::FDBTool {
 
-  public: // methods
+public: // methods
 
-    FdbRoot(int argc, char **argv) :
-        fdb5::FDBInspect(argc, argv,
-            eckit::Resource<std::vector<std::string> >("wipeMinimumKeySet", "class,expver,stream,date,time", true)),
-        doit_(false) {
-
-        options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("force", "Ignore minimun set of keys"));
-
+    FdbRoot(int argc, char **argv) : fdb5::FDBTool(argc, argv) {
     }
 
-  private: // methods
+private: // methods
 
-    virtual void process(const eckit::PathName &, const eckit::option::CmdArgs &args);
+    virtual void execute(const eckit::option::CmdArgs& args);
     virtual void usage(const std::string &tool) const;
-    virtual void init(const eckit::option::CmdArgs &args);
-    virtual void finish(const eckit::option::CmdArgs &args);
 
     bool doit_;
-
 };
 
 void FdbRoot::usage(const std::string &tool) const {
 
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [path1|request1] [path2|request2] ..." << std::endl;
-    FDBInspect::usage(tool);
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " [options] [request1] [request2] ..." << std::endl
+                       << std::endl
+                       << std::endl
+                       << "Examples:" << std::endl
+                       << "=========" << std::endl << std::endl
+                       << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200"
+                       << std::endl
+                       << std::endl;
+    FDBTool::usage(tool);
 }
 
-void FdbRoot::init(const eckit::option::CmdArgs &args) {
-    args.get("doit", doit_);
-}
+void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
-void FdbRoot::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
+    fdb5::UMask umask(fdb5::UMask::defaultUMask());
 
-    eckit::Log::info() << "Scanning " << path << std::endl;
+    for (size_t i = 0; i < args.count(); ++i) {
 
-    fdb5::TocHandler handler(path);
-    eckit::Log::info() << "Database key " << handler.databaseKey() << std::endl;
+        fdb5::ToolRequest req("domain=g," + args(i)); // domain add here as default
 
-    fdb5::WipeVisitor visitor(path);
+        const fdb5::Schema& schema = fdb5::MasterConfig::instance().schema();
+        fdb5::Key result;
+        ASSERT( schema.expandFirstLevel(req.key(), result) );
 
-    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
+        eckit::Log::info() << result << std::endl;
 
-
-    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-        (*i)->entries(visitor);
+        fdb5::TocDBWriter db(result); // this 'touches' the database
     }
-
-    visitor.report(eckit::Log::info());
-
-    if (doit_) {
-        visitor.wipe(eckit::Log::info());
-    }
-
-    handler.freeIndexes(indexes);
-
-}
-
-
-void FdbRoot::finish(const eckit::option::CmdArgs &args) {
-
-
-
-    if (!doit_) {
-        eckit::Log::info() << std::endl
-                           << "Rerun command with --doit flag to delete unused files"
-                           << std::endl
-                           << std::endl;
-    }
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -25,6 +25,10 @@ function fdb_builtin_roots {
     cat $FDB_HOME/etc/fdb/roots
 }
 
+function fdb_builtin_spaces {
+    cat $FDB_HOME/etc/fdb/spaces
+}
+
 function fdb_builtin_home {
     echo $FDB_HOME
 }

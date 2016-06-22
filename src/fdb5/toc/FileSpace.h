@@ -40,6 +40,7 @@ public: // methods
     /// @note This method must be idempotent -- it returns always the same value after the first call
     eckit::PathName filesystem(const Key& key) const;
 
+    void all(eckit::StringSet&) const;
     void writable(eckit::StringSet&) const;
     void visitable(eckit::StringSet&) const;
 
@@ -48,7 +49,7 @@ public: // methods
 private: // methods
 
     std::vector<eckit::PathName> writable() const;
-//    std::vector<eckit::PathName> visitable() const;
+    std::vector<eckit::PathName> visitable() const;
 
     bool existsDB(const Key& key, eckit::PathName& path) const;
 

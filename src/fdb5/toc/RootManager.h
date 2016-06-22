@@ -33,10 +33,13 @@ public: // methods
     static eckit::PathName directory(const Key &key);
 
     /// Lists the roots that can be visited given a DB key
-    static std::vector<eckit::PathName> visitRoots(const Key& key);
+    static std::vector<eckit::PathName> allRoots(const Key& key);
+
+    /// Lists the roots that can be visited given a DB key
+    static std::vector<eckit::PathName> visitableRoots(const Key& key);
 
     /// Lists the roots where a DB key would be able to be written
-    static std::vector<eckit::PathName> activeRoots(const Key& key);
+    static std::vector<eckit::PathName> writableRoots(const Key& key);
 
 private: // members
 

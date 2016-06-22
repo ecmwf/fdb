@@ -11,9 +11,12 @@
 #include "fdb5/toc/FileSpace.h"
 
 #include "eckit/filesystem/FileSpaceStrategies.h"
+#include "eckit/exception/Exceptions.h"
 
-#include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/TocDB.h"
 #include "fdb5/database/Key.h"
+
+using eckit::Log;
 
 namespace fdb5 {
 
@@ -31,12 +34,16 @@ FileSpace::FileSpace(const std::string& name,
 
 eckit::PathName FileSpace::filesystem(const Key& key) const
 {
-    eckit::PathName result;
-
     // check that the database isn't present already
     // if it is, then return that path
 
-    if(existsDB(key, result)) return result;
+    eckit::PathName path;
+    if(existsDB(key, path)) {
+        Log::info() << "Found FDB for key " << key << " -> " << path << std::endl;
+        return path.dirName();
+    }
+
+    Log::info() << "FDB for key " << key << " not found, selecting a root" << std::endl;
 
     // no existing DB found so use the handler to select the strategy
 
@@ -54,6 +61,24 @@ std::vector<eckit::PathName> FileSpace::writable() const
         }
     }
     return result;
+}
+
+std::vector<eckit::PathName> FileSpace::visitable() const
+{
+    std::vector<eckit::PathName> result;
+    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
+        if(i->visit()) {
+            result.push_back(i->path());
+        }
+    }
+    return result;
+}
+
+void FileSpace::all(eckit::StringSet& roots) const
+{
+    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
+        roots.insert(i->path());
+    }
 }
 
 void FileSpace::writable(eckit::StringSet& roots) const
@@ -80,16 +105,18 @@ bool FileSpace::match(const std::string& s) const {
 
 bool FileSpace::existsDB(const Key& key, eckit::PathName& path) const
 {
-    std::string subdir = key.valuesToString();
-    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
-        eckit::PathName dbpath = i->path() / subdir;
-        fdb5::TocHandler handler(dbpath);
-        if(handler.exists()) {
-            path = dbpath;
-            return true;
-        }
+    std::vector<eckit::PathName> dbs = TocDB::databases(key, visitable());
+
+    if(dbs.empty()) return false;
+
+    if(dbs.size() == 1) {
+        path = dbs[0];
+        return true;
     }
-    return false;
+
+    std::ostringstream msg;
+    msg << "Found multiple FDB roots matching key " << key << ", roots -> " << dbs;
+    throw eckit::UserError(msg.str(), Here());
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -49,7 +49,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
     if (all) {
         Key dbKey;
         eckit::Log::info() << "KEY =====> " << dbKey << std::endl;
-        std::vector<eckit::PathName> dbs = TocDB::databases(dbKey);
+        std::vector<eckit::PathName> dbs = TocDB::visitableDatabases(dbKey);
         for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
             paths.push_back(*j);
         }
@@ -77,7 +77,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeySet_);
 
             eckit::Log::info() << "KEY =====> " << req.key() << std::endl;
-            std::vector<eckit::PathName> dbs = TocDB::databases(req.key());
+            std::vector<eckit::PathName> dbs = TocDB::visitableDatabases(req.key());
             for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
                 paths.push_back(*j);
             }

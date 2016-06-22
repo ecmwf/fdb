@@ -38,9 +38,13 @@ public: // methods
 
     const Schema& schema() const;
 
-    static std::vector<eckit::PathName> databases(const Key &key);
+    static void matchKeyToDB(const Key& key, std::set<Key>& keys);
 
-    static void initDatabase(const Key &key);
+    static std::vector<eckit::PathName> databases(const Key& key, const std::vector<eckit::PathName>& dirs);
+
+    static std::vector<eckit::PathName> allDatabases(const Key& key);
+    static std::vector<eckit::PathName> writableDatabases(const Key& key);
+    static std::vector<eckit::PathName> visitableDatabases(const Key& key);
 
 protected: // methods
 
