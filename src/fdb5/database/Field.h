@@ -36,12 +36,14 @@ class DataHandle;
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 class FieldRef;
 class FileStore;
 
 class Field {
-  public:
-    // Field(const FileStore &);
+
+public: // methods
 
     Field();
     Field(const FileStore &, const FieldRef &);
@@ -57,8 +59,10 @@ class Field {
     const FieldLocation& location() const { return location_; }
     const FieldDetails& details() const { return details_; }
 
-  private:
+private: // members
+
     FieldLocation location_;
+
     FieldDetails details_;
 
     void print( std::ostream &out ) const;

@@ -28,6 +28,7 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Field.h"
+#include "fdb5/database/Indexer.h"
 
 namespace eckit {
 class Stream;
@@ -96,9 +97,10 @@ class Index : private eckit::NonCopyable {
     // Order is important here...
     FileStore   files_;
     IndexAxis   axes_;
-    const Key key_; ///< key that selected this index
+    const Key key_;             ///< key that selected this index
     std::string prefix_;
 
+    Indexer indexer_;
 
     friend std::ostream &operator<<(std::ostream &s, const Index &x) {
         x.print(s);

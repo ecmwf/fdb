@@ -8,30 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/Field.h"
-#include "fdb5/database/FieldRef.h"
-#include "fdb5/database/FileStore.h"
+#include "fdb5/database/Indexer.h"
 
+#include <pthread.h>
+#include <unistd.h>
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Field::Field() {
+Indexer::Indexer() :
+    pid_(::getpid()),
+    thread_(::pthread_self())
+{
+    SYSCALL( ::gethostname( hostname_.data(), hostname_.static_size() ) );
 }
 
-Field::Field(const FileStore &store, const FieldRef &ref):
-    location_(store.get(ref.pathId()), ref.offset(), ref.length()),
-    details_(ref.details()) {
-}
-
-Field::Field(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ):
-    location_(path, offset, length) {
-}
-
-void Field::print(std::ostream& out) const {
-    out << "Field(location=" << location_
-//        << ",details=" << details_
+void Indexer::print(std::ostream& out) const
+{
+    out << "(host=" << hostname_
+        << ",pid=" << pid_
+        << ",thread=" << thread_
         << ")";
 }
 

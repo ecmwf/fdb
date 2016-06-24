@@ -29,6 +29,8 @@
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 class BTreeIndex;
 
 class TocIndex : public Index {
@@ -38,7 +40,12 @@ public: // types
 
 public: // methods
 
-    TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string& type = defaulType());
+    TocIndex(const Key &key,
+             const eckit::PathName &path,
+             off_t offset,
+             Index::Mode mode,
+             const std::string& type = defaulType());
+
     TocIndex(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
 
     virtual ~TocIndex();
@@ -70,7 +77,7 @@ private: // members
 
 };
 
-
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 

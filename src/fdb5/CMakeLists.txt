@@ -66,6 +66,8 @@ list( APPEND fdb5_srcs
     database/FieldRef.h
     database/FileStore.cc
     database/FileStore.h
+    database/Indexer.cc
+    database/Indexer.h
     database/Index.cc
     database/Index.h
     database/IndexAxis.cc

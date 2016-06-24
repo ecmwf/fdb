@@ -35,6 +35,7 @@ namespace fdb5 {
 
 class FieldLocation {
 public:
+
     FieldLocation();
 
     FieldLocation(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ) ;
@@ -53,16 +54,11 @@ private:
 
     void print( std::ostream &out ) const;
 
-
     friend std::ostream &operator<<(std::ostream &s, const FieldLocation &x) {
         x.print(s);
         return s;
     }
-
-
 };
-
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

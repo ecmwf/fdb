@@ -28,9 +28,9 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
 
-
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
 
 struct FieldDetails {
     FieldDetails():
@@ -55,18 +55,14 @@ struct FieldDetails {
     long          sphericalHarmonics_;
 
     eckit::FixedString<32>   gridMD5_; ///< md5 of the grid geometry section in GRIB
+
     void print( std::ostream &out ) const;
-
-
 
     friend std::ostream &operator<<(std::ostream &s, const FieldDetails &x) {
         x.print(s);
         return s;
     }
-
-
 };
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

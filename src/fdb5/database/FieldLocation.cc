@@ -10,10 +10,10 @@
 
 #include "fdb5/database/FieldLocation.h"
 
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+
 FieldLocation::FieldLocation() {
 }
 

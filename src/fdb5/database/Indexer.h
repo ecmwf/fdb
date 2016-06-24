@@ -8,33 +8,39 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/Field.h"
-#include "fdb5/database/FieldRef.h"
-#include "fdb5/database/FileStore.h"
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
+/// @date   Jun 2016
 
+#ifndef fdb5_Indexer_H
+#define fdb5_Indexer_H
+
+#include <sys/types.h>
+
+#include "eckit/types/FixedString.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Field::Field() {
-}
+struct Indexer {
 
-Field::Field(const FileStore &store, const FieldRef &ref):
-    location_(store.get(ref.pathId()), ref.offset(), ref.length()),
-    details_(ref.details()) {
-}
+    Indexer();
 
-Field::Field(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ):
-    location_(path, offset, length) {
-}
+    void print(std::ostream &out) const;
 
-void Field::print(std::ostream& out) const {
-    out << "Field(location=" << location_
-//        << ",details=" << details_
-        << ")";
-}
+    friend std::ostream &operator<<(std::ostream& s, const Indexer& o) {
+        o.print(s);
+        return s;
+    }
+
+    pid_t pid_;
+    pthread_t thread_;
+    eckit::FixedString<64> hostname_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
+
+#endif

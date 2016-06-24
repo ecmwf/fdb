@@ -10,7 +10,6 @@
 
 #include "fdb5/database/Index.h"
 
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -49,7 +48,10 @@ Index::~Index() {
 }
 
 
-void Index::put(const Key &key, const Field &field) {
+void Index::put(const Key &key, const Field &field) {    
+
+    eckit::Log::info() << "FDB Index " << indexer_ << " " << key << " -> " << field << std::endl;
+
     axes_.insert(key);
     add(key, field);
 }
@@ -82,8 +84,6 @@ void Index::dump(std::ostream &out, const char* indent) const {
     files_.dump(out, indent);
     axes_.dump(out, indent);
 }
-
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
