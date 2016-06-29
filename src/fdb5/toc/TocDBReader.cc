@@ -93,7 +93,7 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
     Field field;
     for (std::vector<Index *>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
         if ((*j)->get(key, field)) {
-            eckit::Log::info() << "FOUND KEY " << key << " -> " << *j << " " << field << std::endl;
+            eckit::Log::info() << "FOUND KEY " << key << " -> " << **j << " " << field << std::endl;
             return field.dataHandle();
         }
     }
