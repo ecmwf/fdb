@@ -54,7 +54,7 @@ public: // methods
     const eckit::PathName& tocPath() const;
     const eckit::PathName& schemaPath() const;
 
-    void dump(std::ostream& out);
+    void dump(std::ostream& out, bool simple = false);
     std::string dbOwner();
 
 

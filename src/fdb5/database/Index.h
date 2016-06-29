@@ -80,7 +80,7 @@ class Index : private eckit::NonCopyable {
     virtual void put(const Key &key, const Field &field);
     virtual void encode(eckit::Stream &s) const;
     virtual void entries(EntryVisitor &visitor) const = 0;
-    virtual void dump(std::ostream &out, const char* indent) const;
+    virtual void dump(std::ostream &out, const char* indent, bool simple = false) const;
 
   private: // methods
 

@@ -145,8 +145,8 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-void TocIndex::dump(std::ostream &out, const char* indent) const {
-    Index::dump(out, indent);
+void TocIndex::dump(std::ostream& out, const char* indent, bool simple) const {
+    Index::dump(out, indent, simple);
 }
 
 

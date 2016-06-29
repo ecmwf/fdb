@@ -46,24 +46,24 @@ TocRecord::TocRecord(unsigned char tag):
     header_(tag) {
 }
 
-void TocRecord::dump(std::ostream &out) const {
+void TocRecord::dump(std::ostream& out, bool simple) const {
+
     switch (header_.tag_) {
+        case TocRecord::TOC_INIT:
+            out << "TOC_INIT ";
+            break;
 
-    case TocRecord::TOC_INIT:
-        out << "TOC_INIT ";
-        break;
+        case TocRecord::TOC_INDEX:
+            out << "TOC_INDEX";
+            break;
 
-    case TocRecord::TOC_INDEX:
-        out << "TOC_INDEX";
-        break;
+        case TocRecord::TOC_CLEAR:
+            out << "TOC_CLEAR";
+            break;
 
-    case TocRecord::TOC_CLEAR:
-        out << "TOC_CLEAR";
-        break;
-
-    default:
-        out << "TOC_???? " << std::endl;
-        break;
+        default:
+            out << "TOC_???? ";
+            break;
     }
 
     std::ostringstream oss;
@@ -96,8 +96,9 @@ void TocRecord::dump(std::ostream &out) const {
         << std::setw(5)
         << header_.pid_
         << ", host: "
-        << header_.hostname_
-        << std::endl;
+        << header_.hostname_;
+
+    if(!simple) { out << std::endl; }
 }
 
 void TocRecord::print(std::ostream & out) const {

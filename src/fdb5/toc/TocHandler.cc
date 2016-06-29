@@ -394,7 +394,7 @@ const eckit::PathName &TocHandler::schemaPath() const {
 }
 
 
-void TocHandler::dump(std::ostream &out) {
+void TocHandler::dump(std::ostream& out, bool simple) {
 
     openForRead();
     TocHandlerCloser close(*this);
@@ -411,21 +411,23 @@ void TocHandler::dump(std::ostream &out) {
         std::vector<Index *>::iterator j;
         Index *index = 0;
 
-        r.dump(out);
+        r.dump(out, simple);
 
         switch (r.header_.tag_) {
 
         case TocRecord::TOC_INIT:
-            out << "  Key: " << Key(s) << std::endl;
+            out << "  Key: " << Key(s);
+            if(!simple) { out << std::endl; }
             break;
 
         case TocRecord::TOC_INDEX:
             s >> path;
             s >> offset;
             s >> type;
-            out << "  Path: " << path << ", offset: " << offset << ", type: " << type << std::endl;
+            out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
+            if(!simple) { out << std::endl; }
             index = new TocIndex(s, directory_, directory_ / path, offset);
-            index->dump(out, "  ");
+            index->dump(out, "  ", simple);
             delete index;
             break;
 
@@ -452,14 +454,15 @@ std::string TocHandler::dbOwner() {
 }
 
 std::string TocHandler::userName(long id) const {
-    struct passwd *p = getpwuid(id);
+  struct passwd *p = getpwuid(id);
 
-    if (p) {
-        return p->pw_name;
-    } else {
-        return eckit::Translator<long, std::string>()(id);
-    }
+  if (p) {
+    return p->pw_name;
+  } else {
+    return eckit::Translator<long, std::string>()(id);
+  }
 }
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

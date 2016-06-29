@@ -59,7 +59,7 @@ struct TocRecord {
 
     static const size_t headerSize = sizeof(Header);
 
-    void dump(std::ostream &out) const;
+    void dump(std::ostream& out, bool simple = false) const;
 
     void print(std::ostream &out) const;
 
