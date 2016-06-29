@@ -43,7 +43,7 @@ bool TocDBReader::selectIndex(const Key &key) {
 
     for (std::vector<Index *>::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
         if ((*j)->key() == key) {
-            // eckit::Log::info() << "Matching " << (*j)->key() << std::endl;
+            eckit::Log::info() << "Matching " << (*j)->key() << std::endl;
             matching_.push_back(*j);
             (*j)->open();
         }
@@ -86,12 +86,14 @@ void TocDBReader::close() {
 }
 
 eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
-    // eckit::Log::info() << "Trying to retrieve key " << key << std::endl;
-    // eckit::Log::info() << "Scanning indexes " << current_.size() << std::endl;
+
+    eckit::Log::info() << "Trying to retrieve key " << key << std::endl;
+    eckit::Log::info() << "Scanning indexes " << matching_.size() << std::endl;
 
     Field field;
     for (std::vector<Index *>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
         if ((*j)->get(key, field)) {
+            eckit::Log::info() << "FOUND KEY " << key << " -> " << field << std::endl;
             return field.dataHandle();
         }
     }
