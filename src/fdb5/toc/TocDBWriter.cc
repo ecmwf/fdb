@@ -65,10 +65,9 @@ void TocDBWriter::close() {
 
     deselectIndex();
 
+    closeDataHandles();
 
-    closeDataHandles(); // close data handles
     closeIndexes();
-
 }
 
 
