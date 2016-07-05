@@ -126,7 +126,7 @@ void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
     static size_t fdbRoundTocRecords = eckit::Resource<size_t>("fdbRoundTocRecords", 1024);
 
-    r.header_.size_ = eckit::maths::roundToMultiple(sizeof(TocRecord::Header) + payloadSize, fdbRoundTocRecords);
+    r.header_.size_ = eckit::round(sizeof(TocRecord::Header) + payloadSize, fdbRoundTocRecords);
 
     size_t len;
     SYSCALL2( len = ::write(fd_, &r, r.header_.size_), tocPath_ );
