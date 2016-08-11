@@ -53,7 +53,7 @@ endif()
 ### eckit
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
-ecbuild_use_package( PROJECT eckit    VERSION 0.12  REQUIRED )
+ecbuild_use_package( PROJECT eckit    VERSION 0.13.2  REQUIRED )
 
 ### GRIB support
 
@@ -77,7 +77,7 @@ endif()
 ecbuild_add_option( FEATURE MARS2MARS
                     DEFAULT OFF
                     DESCRIPTION "Support direct archiving from another mars instance"
-                    REQUIRED_PACKAGES "PROJECT marskit  VERSION 0.1" )
+                    REQUIRED_PACKAGES "PROJECT marskit  VERSION 0.2" )
 
 ### ODB support
 
@@ -118,7 +118,7 @@ ecbuild_add_option( FEATURE MARS_SERVER
 ecbuild_add_option( FEATURE POINTDB
                     DEFAULT ON
                     DESCRIPTION "Whether or not to build the PointDB -- [EXPERIMENTAL]"
-                    REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.1" )
+                    REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.2" )
 
 ### fdb
 
