@@ -193,10 +193,6 @@ add_subdirectory( scripts )
 
 add_subdirectory( src )
 
-# (non-unit) tests
-
-add_subdirectory( tests )
-
 ############################################################################################
 # finalize
 
