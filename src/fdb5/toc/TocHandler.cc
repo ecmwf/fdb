@@ -71,11 +71,11 @@ void TocHandler::checkUID() {
         return;
     }
 
-    static std::vector<std::string> fdbSuperUsers = eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);
+    static std::string superUser = eckit::Resource<std::string>("fdbSuperUser", "<none>");
 
     if (dbUID() != userUID_) {
 
-        if(std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(userUID_)) == fdbSuperUsers.end()) {
+        if(userName(userUID_) == superUser) {
 
             std::ostringstream oss;
             oss << "Only user '"
