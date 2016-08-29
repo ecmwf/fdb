@@ -71,7 +71,7 @@ void TocHandler::checkUID() {
         return;
     }
 
-    static std::vector<std::string> fdbSuperUsers = eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);;
+    static std::vector<std::string> fdbSuperUsers = eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);
 
     if (dbUID() != userUID_) {
 
