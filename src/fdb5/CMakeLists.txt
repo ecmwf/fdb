@@ -102,6 +102,10 @@ list( APPEND fdb5_srcs
     legacy/LegacyArchiver.h
     legacy/LegacyTranslator.cc
     legacy/LegacyTranslator.h
+    pmem/PMemDB.cc
+    pmem/PMemDB.h
+    pmem/PMemDBWriter.cc
+    pmem/PMemDBWriter.h
     rules/MatchAlways.cc
     rules/MatchAlways.h
     rules/MatchAny.cc
