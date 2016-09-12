@@ -22,6 +22,8 @@
 
 #include "pmem/AtomicConstructor.h"
 
+#include <ctime>
+
 
 namespace fdb5 {
 
@@ -44,11 +46,19 @@ public: // methods
 
     bool valid() const;
 
+    const time_t& created() const;
+
 private: // members
 
     eckit::FixedString<8> tag_;
 
     unsigned short int version_;
+
+    /// Store the size of the PMemRoot object. Allows some form of sanity check
+    /// when it is being opened, that everything is safe.
+    unsigned short int rootSize_;
+
+    time_t created_;
 
 private: // friends
 

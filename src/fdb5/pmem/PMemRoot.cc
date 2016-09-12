@@ -33,6 +33,9 @@ void PMemRoot::Constructor::make(PMemRoot& object) const {
 
     object.tag_ = PMemRootTag;
     object.version_ = PMemRootVersion;
+
+    object.created_ = time(0);
+    object.rootSize_ = sizeof(PMemRoot);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -44,7 +47,26 @@ void PMemRoot::Constructor::make(PMemRoot& object) const {
  */
 bool PMemRoot::valid() const {
 
-    return (tag_ == PMemRootTag && version_ == PMemRootVersion);
+    if (tag_ != PMemRootTag) {
+        Log::error() << "Persistent root tag does not match" << std::endl;
+        return false;
+    }
+
+    if (rootSize_ != sizeof(PMemRoot)) {
+        Log::error() << "Invalid (old) structure size for persistent root" << std::endl;
+        return false;
+    }
+
+    if (version_ != PMemRootVersion) {
+        Log::error() << "Invalid persistent root version" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+const time_t& PMemRoot::created() const {
+    return created_;
 }
 
 

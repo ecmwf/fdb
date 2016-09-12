@@ -9,8 +9,10 @@
 
 /// @author Simon Smart
 /// @date   Feb 2016
-///
+
+
 #include "eckit/log/Log.h"
+#include "eckit/log/TimeStamp.h"
 
 #include "pmem/PersistentPtr.h"
 #include "pmem/Exceptions.h"
@@ -30,7 +32,14 @@ namespace fdb5 {
 // -------------------------------------------------------------------------------------------------
 
 PMemPool::PMemPool(const eckit::PathName& path, const std::string& name) :
-    PersistentPool(path, name) {}
+    PersistentPool(path, name) {
+
+    ASSERT(root()->valid());
+
+    Log::info() << "Opened persistent pool created at: " << TimeStamp(root()->created()) << std::endl;
+}
+
+
 
 
 PMemPool::PMemPool(const eckit::PathName& path, const size_t size, const std::string& name,
