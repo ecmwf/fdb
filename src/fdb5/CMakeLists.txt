@@ -102,10 +102,6 @@ list( APPEND fdb5_srcs
     legacy/LegacyArchiver.h
     legacy/LegacyTranslator.cc
     legacy/LegacyTranslator.h
-    pmem/PMemDB.cc
-    pmem/PMemDB.h
-    pmem/PMemDBWriter.cc
-    pmem/PMemDBWriter.h
     rules/MatchAlways.cc
     rules/MatchAlways.h
     rules/MatchAny.cc
@@ -208,6 +204,22 @@ list( APPEND fdb5_srcs
     types/TypeTime.h
 )
 
+if( HAVE_PMEMFDB )
+    list( APPEND fdb5_srcs
+        pmem/PMemDB.cc
+        pmem/PMemDB.h
+        pmem/PMemDBWriter.cc
+        pmem/PMemDBWriter.h
+        pmem/PMemPool.h
+        pmem/PMemPool.cc
+        pmem/PMemRoot.h
+        pmem/PMemRoot.cc
+    )
+else()
+    set( PMEM_LIBRARIES "" )
+    set( PMEM_INCLUDE_DIRS "" )
+endif()
+
 ecbuild_add_library(
 
     TARGET  mars-fdb5
@@ -222,6 +234,7 @@ ecbuild_add_library(
 
     PRIVATE_INCLUDES
         ${GRIB_API_INCLUDE_DIRS}
+        ${PMEM_INCLUDE_DIRS}
 
     LIBS
         Mars
@@ -229,6 +242,7 @@ ecbuild_add_library(
         eckit
         eckit_option
         ${grib_handling_pkg}
+        ${PMEM_LIBRARIES}
 )
 
 list( APPEND fdb5_scripts fdb grib2fdb fdb-which )

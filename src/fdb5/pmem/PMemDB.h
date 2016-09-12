@@ -16,9 +16,13 @@
 #ifndef fdb5_PMemDB_H
 #define fdb5_PMemDB_H
 
+#include "eckit/memory/ScopedPtr.h"
+
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
+
+#include "fdb5/pmem/PMemPool.h"
 
 namespace fdb5 {
 
@@ -51,7 +55,14 @@ protected: // methods
     virtual bool selectIndex(const Key &key);
     virtual void deselectIndex();
 
+private: // methods
+
+    /// Initialise or open the peristent pool. Worker function for the construtor
+    void initialisePool(const eckit::PathName& poolFile);
+
 private: // members
+
+    eckit::ScopedPtr<PMemPool> pool_;
 
 //    Schema schema_;
 };

@@ -8,7 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/config/Resource.h"
+
 #include "fdb5/pmem/PMemDB.h"
+#include "fdb5/toc/RootManager.h"
 
 using namespace eckit;
 
@@ -18,14 +21,27 @@ namespace fdb5 {
 
 PMemDB::PMemDB(const Key& key) :
     DB(key) {
+
+    // Utilise the RootManager from the TocDB to get a sensible location. Note that we are NOT
+    // using this as a directory, but rather as a pool file.
+    initialisePool(RootManager::directory(key));
 }
 
-PMemDB::PMemDB(const eckit::PathName& directory) :
+PMemDB::PMemDB(const PathName& poolFile) :
     DB(Key()) {
+
+    initialisePool(poolFile);
 }
 
 PMemDB::~PMemDB() {
 }
+
+void PMemDB::initialisePool(const PathName& poolFile) {
+
+    pool_.reset(PMemPool::obtain(poolFile, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024)));
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 bool PMemDB::open() {
     Log::error() << "Open not implemented for " << *this << std::endl;
@@ -49,12 +65,12 @@ void PMemDB::flush() {
 
 void PMemDB::close() {
     Log::error() << "Close not implemented for " << *this << std::endl;
-    NOTIMP;
+//    NOTIMP;
 }
 
 void PMemDB::checkSchema(const Key &key) const {
     Log::error() << "checkSchema not implemented for " << *this << std::endl;
-    NOTIMP;
+//    NOTIMP;
 }
 
 void PMemDB::axis(const std::string &keyword, eckit::StringSet &s) const {

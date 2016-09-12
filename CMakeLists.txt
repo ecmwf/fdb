@@ -86,6 +86,13 @@ ecbuild_add_option( FEATURE ODB
                     DESCRIPTION "Support for ODB handlers"
                     REQUIRED_PACKAGES "PROJECT odb_api  VERSION 0.10" )
 
+## pmem (NVRAM) support
+
+ecbuild_add_option( FEATURE PMEMFDB
+                    DEFAULT ON
+                    DESCRIPTION "Persistent memory (NVRAM) support for FDB"
+                    REQUIRED_PACKAGES "PROJECT pmem" )
+
 if( HAVE_ODB )
     set( odblib Odb )
     set( odbtoolslib odbtools )
