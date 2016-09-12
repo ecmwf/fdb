@@ -17,6 +17,8 @@
 
 #include "fdb5/pmem/PMemRoot.h"
 
+#include <unistd.h>
+
 using namespace eckit;
 using namespace pmem;
 
@@ -36,6 +38,8 @@ void PMemRoot::Constructor::make(PMemRoot& object) const {
 
     object.created_ = time(0);
     object.rootSize_ = sizeof(PMemRoot);
+
+    object.createdBy_ = getuid();
 }
 
 // -------------------------------------------------------------------------------------------------

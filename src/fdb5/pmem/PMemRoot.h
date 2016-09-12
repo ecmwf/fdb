@@ -60,6 +60,8 @@ private: // members
 
     time_t created_;
 
+    long createdBy_;
+
 private: // friends
 
     friend class TreeObject;
