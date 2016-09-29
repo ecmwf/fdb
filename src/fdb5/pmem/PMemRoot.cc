@@ -40,6 +40,9 @@ void PMemRoot::Constructor::make(PMemRoot& object) const {
     object.rootSize_ = sizeof(PMemRoot);
 
     object.createdBy_ = getuid();
+
+    // The root node of the tree does not have an associated key/value.
+    object.rootNode_.allocate(PMemBranchingNode::Constructor("", ""));
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -66,11 +69,24 @@ bool PMemRoot::valid() const {
         return false;
     }
 
+    if (rootNode_.null() || !rootNode_.valid()) {
+        Log::error() << "Inconsistent tree root node" << std::endl;
+        return false;
+    }
+
     return true;
 }
 
 const time_t& PMemRoot::created() const {
     return created_;
+}
+
+PMemBranchingNode& PMemRoot::getIndex(const Key& key) {
+
+    // Get the relevant index. If the system is open for writing then we should create
+    // a new index if it doesn't exist.
+
+    return rootNode_->getCreateBranchingNode(key);
 }
 
 

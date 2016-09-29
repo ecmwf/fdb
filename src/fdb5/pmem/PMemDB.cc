@@ -20,35 +20,42 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 PMemDB::PMemDB(const Key& key) :
-    DB(key) {
-
+    DB(key),
     // Utilise the RootManager from the TocDB to get a sensible location. Note that we are NOT
     // using this as a directory, but rather as a pool file.
-    initialisePool(RootManager::directory(key));
-}
+    pool_(initialisePool(RootManager::directory(key))),
+    root_(*pool_->root()),
+    currentIndex_(0) {}
+
 
 PMemDB::PMemDB(const PathName& poolFile) :
-    DB(Key()) {
+    DB(Key()),
+    pool_(initialisePool(poolFile)),
+    root_(*pool_->root()),
+    currentIndex_(0) {}
 
-    initialisePool(poolFile);
-}
 
 PMemDB::~PMemDB() {
 }
 
-void PMemDB::initialisePool(const PathName& poolFile) {
 
-    pool_.reset(PMemPool::obtain(poolFile, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024)));
+PMemPool* PMemDB::initialisePool(const PathName& poolFile) {
+
+    return PMemPool::obtain(poolFile, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 bool PMemDB::open() {
-    Log::error() << "Open not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
 void PMemDB::archive(const Key &key, const void *data, Length length) {
+
+    ASSERT(currentIndex_ != 0);
+
+    currentIndex_->createDataNode(key, data, length);
+    Log::error() << "key: " << key << ", len: " << length << std::endl;
     Log::error() << "Archive not implemented for " << *this << std::endl;
     NOTIMP;
 }
@@ -59,16 +66,16 @@ eckit::DataHandle * PMemDB::retrieve(const Key &key) const {
 }
 
 void PMemDB::flush() {
-    Log::error() << "Flush not implemented for " << *this << std::endl;
-    NOTIMP;
+    // Intentionally left blank.
+    // The libpmemobj functionality works with atomic writes, and everything is flushed before it returns success.
 }
 
 void PMemDB::close() {
-    Log::error() << "Close not implemented for " << *this << std::endl;
-//    NOTIMP;
+    NOTIMP;
 }
 
 void PMemDB::checkSchema(const Key &key) const {
+    Log::error() << "Key: " << key << std::endl;
     Log::error() << "checkSchema not implemented for " << *this << std::endl;
 //    NOTIMP;
 }
@@ -79,13 +86,17 @@ void PMemDB::axis(const std::string &keyword, eckit::StringSet &s) const {
 }
 
 bool PMemDB::selectIndex(const Key &key) {
-    Log::error() << "selectIndex not implemented for " << *this << std::endl;
-    NOTIMP;
+
+    // TODO: What if it isn't there, and we are trying to read?
+
+    currentIndex_ = &root_.getIndex(key);
+    return true;
 }
 
 void PMemDB::deselectIndex() {
-    Log::error() << "deselectIndox not implemented for " << *this << std::endl;
-    NOTIMP;
+
+    // This is essentially a NOP, as we don't have any files to open, etc.
+    currentIndex_ = 0;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

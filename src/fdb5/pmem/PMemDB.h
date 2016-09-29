@@ -23,6 +23,7 @@
 #include "fdb5/rules/Schema.h"
 
 #include "fdb5/pmem/PMemPool.h"
+#include "fdb5/pmem/PMemRoot.h"
 
 namespace fdb5 {
 
@@ -45,12 +46,12 @@ protected: // methods
     virtual void close();
     virtual void flush();
 
-     virtual eckit::DataHandle *retrieve(const Key &key) const;
-     virtual void archive(const Key &key, const void *data, eckit::Length length);
-     virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
+    virtual eckit::DataHandle *retrieve(const Key &key) const;
+    virtual void archive(const Key &key, const void *data, eckit::Length length);
+    virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
 
     // void loadSchema();
-     virtual void checkSchema(const Key &key) const;
+    virtual void checkSchema(const Key &key) const;
 
     virtual bool selectIndex(const Key &key);
     virtual void deselectIndex();
@@ -58,11 +59,18 @@ protected: // methods
 private: // methods
 
     /// Initialise or open the peristent pool. Worker function for the construtor
-    void initialisePool(const eckit::PathName& poolFile);
+    static PMemPool* initialisePool(const eckit::PathName& poolFile);
 
 private: // members
 
     eckit::ScopedPtr<PMemPool> pool_;
+
+    PMemRoot& root_;
+
+    /// Store the current position in the tree (index)
+    /// @note This is NOT data that is owned by the PMemDB, so there is no associated cleanup.
+
+    PMemBranchingNode* currentIndex_;
 
 //    Schema schema_;
 };

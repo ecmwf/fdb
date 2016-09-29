@@ -214,6 +214,12 @@ if( HAVE_PMEMFDB )
         pmem/PMemPool.cc
         pmem/PMemRoot.h
         pmem/PMemRoot.cc
+        pmem/PMemBranchingNode.h
+        pmem/PMemBranchingNode.cc
+        pmem/PMemDataNode.h
+        pmem/PMemDataNode.cc
+        pmem/PMemBaseNode.h
+        pmem/PMemBaseNode.cc
     )
 else()
     set( PMEM_LIBRARIES "" )

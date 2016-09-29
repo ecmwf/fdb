@@ -34,6 +34,10 @@ public: // methods
 private: // methods
 
     virtual void print( std::ostream &out ) const;
+    
+private: // members
+    
+    
 
 };
 

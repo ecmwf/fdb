@@ -19,12 +19,19 @@
 
 #include "fdb5/pmem/PMemPool.h"
 #include "fdb5/pmem/PMemRoot.h"
+#include "fdb5/pmem/PMemBaseNode.h"
+#include "fdb5/pmem/PMemBranchingNode.h"
 
 using namespace eckit;
 using namespace pmem;
 
 
 template<> uint64_t pmem::PersistentPtr<fdb5::PMemRoot>::type_id = POBJ_ROOT_TYPE_NUM;
+
+template<> uint64_t pmem::PersistentPtr<fdb5::PMemBaseNode>::type_id = 1;
+template<> uint64_t pmem::PersistentPtr<fdb5::PMemBranchingNode>::type_id = 2;
+template<> uint64_t pmem::PersistentPtr<fdb5::PMemDataNode>::type_id = 3;
+template<> uint64_t pmem::PersistentPtr<pmem::PersistentVectorData<fdb5::PMemBaseNode> >::type_id = 4;
 
 
 namespace fdb5 {

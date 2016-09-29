@@ -21,6 +21,9 @@
 #include "eckit/types/Types.h"
 
 #include "pmem/AtomicConstructor.h"
+#include "pmem/PersistentPtr.h"
+
+#include "fdb5/pmem/PMemBranchingNode.h"
 
 #include <ctime>
 
@@ -41,12 +44,13 @@ public: // Construction objects
         virtual void make(PMemRoot& object) const;
     };
 
-
 public: // methods
 
     bool valid() const;
 
     const time_t& created() const;
+
+    PMemBranchingNode& getIndex(const Key& key);
 
 private: // members
 
@@ -64,7 +68,7 @@ private: // members
 
 private: // friends
 
-    friend class TreeObject;
+    pmem::PersistentPtr<PMemBranchingNode> rootNode_;
 };
 
 
