@@ -50,14 +50,14 @@ public: // Construction objects
 
     class IndexConstructor : public PMemBranchingNode::Constructor {
     public: // methods
-        IndexConstructor(eckit::StringDict::const_iterator key,
-                         eckit::StringDict::const_iterator end,
+        IndexConstructor(Key::const_iterator key,
+                         Key::const_iterator end,
                          PMemBranchingNode** const indexNode);
         virtual void make(PMemBranchingNode& object) const;
 
     private: // members
-        eckit::StringDict::const_iterator keysIterator_;
-        eckit::StringDict::const_iterator endIterator_;
+        Key::const_iterator keysIterator_;
+        Key::const_iterator endIterator_;
         PMemBranchingNode** const indexNode_;
     };
 
@@ -86,8 +86,8 @@ public: // methods
 
 private: // methods
 
-    PMemBranchingNode& getCreateBranchingNode(eckit::StringDict::const_iterator start,
-                                              eckit::StringDict::const_iterator end);
+    PMemBranchingNode& getCreateBranchingNode(Key::const_iterator start,
+                                              Key::const_iterator end);
 
 private: // members
 

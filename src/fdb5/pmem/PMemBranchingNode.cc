@@ -42,8 +42,8 @@ void PMemBranchingNode::Constructor::make(PMemBranchingNode& object) const {
 }
 
 
-PMemBranchingNode::IndexConstructor::IndexConstructor(StringDict::const_iterator it,
-                                                      StringDict::const_iterator end,
+PMemBranchingNode::IndexConstructor::IndexConstructor(Key::const_iterator it,
+                                                      Key::const_iterator end,
                                                       PMemBranchingNode** const indexNode) :
     PMemBranchingNode::Constructor(it->first, it->second),
     keysIterator_(it),
@@ -62,14 +62,9 @@ void PMemBranchingNode::IndexConstructor::make(PMemBranchingNode& object) const 
 
     // Instantiate nodes recursively until they are all filled
 
-    StringDict::const_iterator next = keysIterator_;
+    Key::const_iterator next = keysIterator_;
     next++;
     if (next != endIterator_) {
-        Log::error() << "Creating new..." << std::endl;
-        Log::error() << "--" << std::endl;
-        Log::error() << "first: " << next->first << std::endl;
-        Log::error() << "second: " << next->second << std::endl;
-        Log::error() << "--" << std::endl;
         object.nodes_.push_back(BaseConstructor(IndexConstructor(next, endIterator_, indexNode_)));
     }
 }
@@ -133,8 +128,6 @@ PMemBranchingNode& PMemBranchingNode::getCreateBranchingNode(Key::const_iterator
             break;
         }
     }
-
-    Log::error() << "End of loop" << std::endl;
 
     return *current;
 }
