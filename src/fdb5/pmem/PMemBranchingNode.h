@@ -20,6 +20,7 @@
 
 #include "pmem/AtomicConstructor.h"
 #include "pmem/PersistentVector.h"
+#include "pmem/PersistentMutex.h"
 
 #include "fdb5/pmem/PMemBaseNode.h"
 
@@ -91,6 +92,8 @@ private: // methods
 private: // members
 
     pmem::PersistentVector<PMemBaseNode> nodes_;
+
+    pmem::PersistentMutex mutex_;
 
 };
 
