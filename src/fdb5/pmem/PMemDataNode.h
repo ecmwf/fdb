@@ -19,6 +19,7 @@
 #include "eckit/types/Types.h"
 
 #include "pmem/AtomicConstructor.h"
+#include "pmem/AtomicConstructorCast.h"
 #include "pmem/PersistentVector.h"
 
 #include "fdb5/pmem/PMemBaseNode.h"
@@ -46,17 +47,7 @@ public: // Construction objects
         const void* data_;
     };
 
-    /// A wrapper to allow us to pass a PMemDataNode constructor into allocate for the base class
-    /// TODO: Can we create a more generic templated AtomicConstructor-caster.
-    class BaseConstructor : public pmem::AtomicConstructor<PMemBaseNode> {
-    public: // methods
-        BaseConstructor(const PMemDataNode::Constructor& ctr);
-        virtual void make(PMemBaseNode& object) const;
-        virtual size_t size() const;
-
-    private: // members
-        const PMemDataNode::Constructor& ctr_;
-    };
+    typedef pmem::AtomicConstructorCast<PMemDataNode, PMemBaseNode> BaseConstructor;
 
 private: // members
 

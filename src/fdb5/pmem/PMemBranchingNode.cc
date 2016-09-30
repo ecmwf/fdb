@@ -69,20 +69,6 @@ void PMemBranchingNode::IndexConstructor::make(PMemBranchingNode& object) const 
     }
 }
 
-/// A wrapper to allow us to pass a PMemBranchingNode constructor into allocate for the base class
-
-PMemBranchingNode::BaseConstructor::BaseConstructor(const PMemBranchingNode::Constructor& ctr) :
-    ctr_(ctr) {}
-
-size_t PMemBranchingNode::BaseConstructor::size() const {
-    return ctr_.size();
-}
-
-void PMemBranchingNode::BaseConstructor::make(PMemBaseNode& object) const {
-    Log::error() << "Redirecting make --> PMemBranchingNode" << std::endl;
-    ctr_.make(static_cast<PMemBranchingNode&>(object));
-}
-
 // -------------------------------------------------------------------------------------------------
 
 

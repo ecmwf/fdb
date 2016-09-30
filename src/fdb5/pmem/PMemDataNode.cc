@@ -51,21 +51,6 @@ void PMemDataNode::Constructor::make(PMemDataNode& object) const {
     memcpy(object.data_, data_, length_);
 }
 
-/// A wrapper to allow us to pass a PMemDataNode constructor into allocate for the base class
-
-PMemDataNode::BaseConstructor::BaseConstructor(const PMemDataNode::Constructor& ctr) :
-    ctr_(ctr) {}
-
-size_t PMemDataNode::BaseConstructor::size() const {
-    return ctr_.size();
-}
-
-void PMemDataNode::BaseConstructor::make(PMemBaseNode& object) const {
-    Log::error() << "Redirecting make --> PMemDataNode" << std::endl;
-    ctr_.make(static_cast<PMemDataNode&>(object));
-}
-
-
 // -------------------------------------------------------------------------------------------------
 
 

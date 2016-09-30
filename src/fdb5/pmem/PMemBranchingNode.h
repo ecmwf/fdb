@@ -19,15 +19,17 @@
 #include "eckit/types/Types.h"
 
 #include "pmem/AtomicConstructor.h"
+#include "pmem/AtomicConstructorCast.h"
 #include "pmem/PersistentVector.h"
 #include "pmem/PersistentMutex.h"
 
 #include "fdb5/pmem/PMemBaseNode.h"
+#include "fdb5/database/Key.h"
 
 
 namespace fdb5 {
 
-class Key;
+//class Key;
 
 // -------------------------------------------------------------------------------------------------
 
@@ -61,17 +63,7 @@ public: // Construction objects
         PMemBranchingNode** const indexNode_;
     };
 
-    /// A wrapper to allow us to pass a PMemBranchingNode constructor into allocate for the base class
-    /// TODO: Can we create a more generic templated AtomicConstructor-caster.
-    class BaseConstructor : public pmem::AtomicConstructor<PMemBaseNode> {
-    public: // methods
-        BaseConstructor(const PMemBranchingNode::Constructor& ctr);
-        virtual void make(PMemBaseNode& object) const;
-        virtual size_t size() const;
-
-    private: // members
-        const PMemBranchingNode::Constructor& ctr_;
-    };
+    typedef pmem::AtomicConstructorCast<PMemBranchingNode, PMemBaseNode> BaseConstructor;
 
 public: // methods
 
