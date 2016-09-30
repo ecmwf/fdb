@@ -13,6 +13,7 @@
 #include "eckit/io/DataBlob.h"
 #include "eckit/log/Log.h"
 #include "eckit/parser/JSONDataBlob.h"
+#include "eckit/thread/AutoLock.h"
 #include "eckit/types/Types.h"
 
 #include "fdb5/database/Key.h"
@@ -102,7 +103,10 @@ PMemBranchingNode& PMemBranchingNode::getCreateBranchingNode(Key::const_iterator
     PMemBranchingNode* current = this;
 
     for (Key::const_iterator it = start; it != end; ++it) {
-        Log::error() << "bit: " << it->first << ", " << it->second << std::endl;
+
+        // We don't want two processes to simultaneously create two same-named branches. So one processs cannot be
+        // checking if a branch exists whilst the other might be creating it.
+        AutoLock<PersistentMutex> lock(current->mutex_);
 
         // Search _backwards_ through the subnodes to find the element we are looking for (this permits newly written
         // fields to mask existing ones without actually overwriting the data and making it irretrievable).
@@ -112,7 +116,6 @@ PMemBranchingNode& PMemBranchingNode::getCreateBranchingNode(Key::const_iterator
 
             PersistentPtr<PMemBaseNode> subnode = current->nodes_[i];
 
-            Log::error() << "Found node: " << *subnode << std::endl;
             if (subnode->matches(it->first, it->second)) {
 
                 // Given that we are operating inside a schema, if this matches then it WILL be of the
@@ -146,6 +149,8 @@ PMemDataNode& PMemBranchingNode::createDataNode(const Key& key, const void* data
 
     std::string k = dataKey->first;
     std::string v = dataKey->second;
+
+    AutoLock<PersistentMutex> lock(dataParent.mutex_);
 
     PMemBaseNode& newNode(*dataParent.nodes_.push_back(PMemDataNode::BaseConstructor(
                                                           PMemDataNode::Constructor(k, v, data, length))));
