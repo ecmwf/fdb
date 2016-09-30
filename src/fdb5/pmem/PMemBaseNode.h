@@ -69,6 +69,9 @@ public: // methods
     bool isBranchingNode() const;
     bool isDataNode() const;
 
+    PMemBranchingNode& asBranchingNode();
+    PMemDataNode& asDataNode();
+
     bool matches(const KeyType& key, const ValueType& value) const;
 
 protected: // members

@@ -118,8 +118,7 @@ PMemBranchingNode& PMemBranchingNode::getCreateBranchingNode(Key::const_iterator
                 // Given that we are operating inside a schema, if this matches then it WILL be of the
                 // correct type --> we can request it directly.
                 ASSERT(subnode->isBranchingNode());
-//                current = static_cast<PersistentPtr<PMemBranchingNode> >(subnode);
-                current = reinterpret_cast<PMemBranchingNode*>(&(*subnode));
+                current = &subnode->asBranchingNode();
                 break;
             }
         }
@@ -150,7 +149,7 @@ PMemDataNode& PMemBranchingNode::createDataNode(const Key& key, const void* data
 
     PMemBaseNode& newNode(*dataParent.nodes_.push_back(PMemDataNode::BaseConstructor(
                                                           PMemDataNode::Constructor(k, v, data, length))));
-    return static_cast<PMemDataNode&>(newNode);
+    return newNode.asDataNode();
 }
 
 

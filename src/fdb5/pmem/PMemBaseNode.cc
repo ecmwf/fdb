@@ -13,6 +13,8 @@
 #include "eckit/log/Log.h"
 
 #include "fdb5/pmem/PMemBaseNode.h"
+#include "fdb5/pmem/PMemDataNode.h"
+#include "fdb5/pmem/PMemBranchingNode.h"
 
 
 namespace fdb5 {
@@ -46,6 +48,18 @@ bool PMemBaseNode::isBranchingNode() const {
 
 bool PMemBaseNode::isDataNode() const {
     return type_ == PMemBaseNode::DATA_NODE;
+}
+
+PMemBranchingNode& PMemBaseNode::asBranchingNode() {
+    ASSERT(isBranchingNode());
+
+    return *(static_cast<PMemBranchingNode*>(this));
+}
+
+PMemDataNode& PMemBaseNode::asDataNode() {
+    ASSERT(isDataNode());
+
+    return *(static_cast<PMemDataNode*>(this));
 }
 
 bool PMemBaseNode::matches(const KeyType& key, const ValueType& value) const {
