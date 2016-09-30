@@ -145,9 +145,6 @@ PMemDataNode& PMemBranchingNode::createDataNode(const Key& key, const void* data
 
     PMemBranchingNode& dataParent(getCreateBranchingNode(key.begin(), dataKey));
 
-//    Key::const_reverse_iterator dataKey = key.rbegin();
-//    Key::const_reverse_iterator dataKey = key.end();
-
     std::string k = dataKey->first;
     std::string v = dataKey->second;
 

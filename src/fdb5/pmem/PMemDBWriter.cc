@@ -21,7 +21,22 @@ PMemDBWriter::PMemDBWriter(const Key &key) :
 }
 
 PMemDBWriter::~PMemDBWriter() {
-    close();
+}
+
+bool PMemDBWriter::selectIndex(const Key &key) {
+
+    // TODO: What if it isn't there, and we are trying to read?
+    // TODO: n.b. We can make this more efficient by keeping a map of the available indices.
+
+    //if (indices_.find(key) == indices_.end()) {
+    //    indices_[key] = new PMemIndex(key, root_.getBranchingNode(key));
+    //}
+
+    //currentIndex_ = indices_[key];
+
+    currentIndex_ = &root_.getBranchingNode(key);
+
+    return true;
 }
 
 void PMemDBWriter::print(std::ostream &out) const {

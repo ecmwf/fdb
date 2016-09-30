@@ -220,6 +220,8 @@ if( HAVE_PMEMFDB )
         pmem/PMemDataNode.cc
         pmem/PMemBaseNode.h
         pmem/PMemBaseNode.cc
+        pmem/PMemIndex.h
+        pmem/PMemIndex.cc
     )
 else()
     set( PMEM_LIBRARIES "" )

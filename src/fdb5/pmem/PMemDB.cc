@@ -36,6 +36,7 @@ PMemDB::PMemDB(const PathName& poolFile) :
 
 
 PMemDB::~PMemDB() {
+    close();
 }
 
 
@@ -71,7 +72,14 @@ void PMemDB::flush() {
 }
 
 void PMemDB::close() {
-    NOTIMP;
+
+    // Close any open indices
+
+    //for (IndexStore::iterator it = indices_.begin(); it != indices_.end(); ++it) {
+    //    Index* idx = it->second;
+    //    idx->close();
+    //    delete idx;
+    //}
 }
 
 void PMemDB::checkSchema(const Key &key) const {
@@ -86,11 +94,7 @@ void PMemDB::axis(const std::string &keyword, eckit::StringSet &s) const {
 }
 
 bool PMemDB::selectIndex(const Key &key) {
-
-    // TODO: What if it isn't there, and we are trying to read?
-
-    currentIndex_ = &root_.getIndex(key);
-    return true;
+    NOTIMP;
 }
 
 void PMemDB::deselectIndex() {

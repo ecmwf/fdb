@@ -61,15 +61,18 @@ private: // methods
     /// Initialise or open the peristent pool. Worker function for the construtor
     static PMemPool* initialisePool(const eckit::PathName& poolFile);
 
-private: // members
+protected: // types
+
+    typedef std::map<Key, Index> IndexStore;
+
+protected: // members
 
     eckit::ScopedPtr<PMemPool> pool_;
 
     PMemRoot& root_;
 
-    /// Store the current position in the tree (index)
-    /// @note This is NOT data that is owned by the PMemDB, so there is no associated cleanup.
-
+//    IndexStore  indexes_;
+//    Index* currentIndex_;
     PMemBranchingNode* currentIndex_;
 
 //    Schema schema_;

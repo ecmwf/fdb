@@ -31,6 +31,8 @@ public: // methods
 
     virtual ~PMemDBWriter();
 
+    virtual bool selectIndex(const Key &key);
+
 private: // methods
 
     virtual void print( std::ostream &out ) const;

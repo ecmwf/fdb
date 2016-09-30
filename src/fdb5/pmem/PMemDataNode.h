@@ -60,7 +60,7 @@ public: // Construction objects
 
 private: // members
 
-    size_t length_;
+    eckit::Length length_;
 
     // We use a length of 8 to ensure (a) this is legal c++, and (b) there is no possibility of the complier
     // adding unecessary padding due to an unreasonable desire for structure alignment.

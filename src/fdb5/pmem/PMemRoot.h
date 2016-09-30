@@ -50,7 +50,7 @@ public: // methods
 
     const time_t& created() const;
 
-    PMemBranchingNode& getIndex(const Key& key);
+    PMemBranchingNode& getBranchingNode(const Key& key);
 
 private: // members
 
