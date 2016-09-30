@@ -8,7 +8,7 @@
 
 
 /// @author Simon Smart
-/// @date   Feb 2016
+/// @date   Sept 2016
 
 #include "eckit/io/DataBlob.h"
 #include "eckit/log/Log.h"
@@ -92,4 +92,4 @@ PMemBranchingNode& PMemRoot::getBranchingNode(const Key& key) {
 
 // -------------------------------------------------------------------------------------------------
 
-} // namespace tree
+} // namespace fdb5

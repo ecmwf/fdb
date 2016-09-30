@@ -69,6 +69,13 @@ private: // members
 private: // friends
 
     pmem::PersistentPtr<PMemBranchingNode> rootNode_;
+
+    /// Keep track of how many data pools are in use. Ensure locking whenever updating this variable.
+
+    pmem::PersistentMutex mutex_;
+    size_t dataPools_;
+
+    // TODO: Keep a list of the uuids of the various different pools?
 };
 
 
