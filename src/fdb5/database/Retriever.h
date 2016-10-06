@@ -18,7 +18,7 @@
 
 #include <iosfwd>
 #include <cstdlib>
-#include <vector>
+#include <map>
 
 #include "eckit/memory/NonCopyable.h"
 
@@ -58,8 +58,14 @@ public: // methods
 private: // methods
 
     void print(std::ostream &out) const;
+
     eckit::DataHandle *retrieve(const MarsTask &task, const Schema &schema, bool sorted) const;
 
+private: // data
+
+    const Schema& schema_;
+
+    mutable std::map<Key,DB*> databases_;
 
 };
 

@@ -19,7 +19,6 @@
 #include <iosfwd>
 
 #include "eckit/memory/Owned.h"
-#include "eckit/memory/SharedPtr.h"
 #include "eckit/io/Length.h"
 #include "eckit/types/Types.h"
 
@@ -82,8 +81,6 @@ protected: // members
     time_t lastAccess_;
 
 };
-
-typedef std::vector< eckit::SharedPtr< DB > > VecDB;
 
 //----------------------------------------------------------------------------------------------------------------------
 

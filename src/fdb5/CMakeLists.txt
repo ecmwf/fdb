@@ -82,6 +82,8 @@ list( APPEND fdb5_srcs
     database/Retriever.h
     database/RetrieveVisitor.cc
     database/RetrieveVisitor.h
+    database/MultiRetrieveVisitor.cc
+    database/MultiRetrieveVisitor.h
     database/WriteVisitor.cc
     database/WriteVisitor.h
     database/NotifyWind.cc
