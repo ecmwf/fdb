@@ -8,12 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/database/Retriever.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/log/Plural.h"
 
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/database/NotifyWind.h"
-#include "fdb5/database/Retriever.h"
 #include "fdb5/database/MultiRetrieveVisitor.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/rules/Schema.h"
@@ -24,14 +25,17 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+static void purgeDB(Key& key, DB*& db) {
+    Log::debug() << "Purging DB with key " << key << std::endl;
+    delete db;
+}
+
 Retriever::Retriever() :
-    schema_(MasterConfig::instance().schema()) {
+    schema_(MasterConfig::instance().schema()),
+    databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeDB) {
 }
 
 Retriever::~Retriever() {
-    for(std::map<Key,DB*>::iterator itr = databases_.begin(); itr != databases_.end(); ++itr) {
-        delete itr->second;
-    }
 }
 
 eckit::DataHandle *Retriever::retrieve(const MarsTask& task, const Schema& schema, bool sorted) const {

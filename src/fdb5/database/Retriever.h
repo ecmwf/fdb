@@ -21,6 +21,7 @@
 #include <map>
 
 #include "eckit/memory/NonCopyable.h"
+#include "eckit/container/CacheLRU.h"
 
 namespace eckit {
 class DataHandle;
@@ -65,7 +66,7 @@ private: // data
 
     const Schema& schema_;
 
-    mutable std::map<Key,DB*> databases_;
+    mutable eckit::CacheLRU<Key,DB*> databases_;
 
 };
 

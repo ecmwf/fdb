@@ -25,7 +25,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MultiRetrieveVisitor::MultiRetrieveVisitor(const NotifyWind& wind, HandleGatherer& gatherer, std::map<Key,DB*>& databases) :
+MultiRetrieveVisitor::MultiRetrieveVisitor(const NotifyWind& wind, HandleGatherer& gatherer, eckit::CacheLRU<Key,DB*>& databases) :
     db_(0),
     wind_(wind),
     databases_(databases),
@@ -50,15 +50,15 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     /* is the DB already open ? */
 
-    std::map<Key,DB*>::iterator itr = databases_.find(key);
-    if(itr != databases_.end()) {
-        db_ = itr->second;
+    if(databases_.exists(key)) {
+//        eckit::Log::info() << "Reusing database " << key << std::endl;
+        db_ = databases_.access(key);
         return true;
     }
 
     /* DB not yet open */
 
-    eckit::Log::info() << "selectDatabase " << key << std::endl;
+//    eckit::Log::info() << "selectDatabase opening database " << key << std::endl;
 
     eckit::ScopedPtr<DB> newDB( DBFactory::build(fdbReaderDB_, key) );
 
@@ -68,7 +68,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     } else {
         newDB->checkSchema(key);
         db_ = newDB.release();
-        databases_[key] = db_;
+        databases_.insert(key, db_);
         return true;
     }
 }

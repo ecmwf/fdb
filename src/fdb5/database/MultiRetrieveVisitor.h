@@ -16,7 +16,11 @@
 #ifndef fdb5_MultiRetrieveVisitor_H
 #define fdb5_MultiRetrieveVisitor_H
 
+#include <string>
+
 #include "fdb5/database/ReadVisitor.h"
+
+#include "eckit/container/CacheLRU.h"
 
 namespace fdb5 {
 
@@ -31,7 +35,7 @@ class MultiRetrieveVisitor : public ReadVisitor {
 
 public: // methods
 
-    MultiRetrieveVisitor(const NotifyWind& wind, HandleGatherer& gatherer, std::map<Key,DB*>& databases);
+    MultiRetrieveVisitor(const NotifyWind& wind, HandleGatherer& gatherer, eckit::CacheLRU<Key,DB*>& databases);
 
     ~MultiRetrieveVisitor();
 
@@ -58,7 +62,7 @@ private:
 
     const NotifyWind& wind_;
 
-    std::map<Key,DB*>& databases_;
+    eckit::CacheLRU< Key,DB*>& databases_;
 
     std::string fdbReaderDB_;
 
