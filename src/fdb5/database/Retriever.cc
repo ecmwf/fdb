@@ -38,20 +38,13 @@ Retriever::Retriever() :
 Retriever::~Retriever() {
 }
 
-eckit::DataHandle *Retriever::retrieve(const MarsTask& task, const Schema& schema, bool sorted) const {
+eckit::DataHandle *Retriever::retrieve(const MarsTask &task,
+                                       const Schema &schema,
+                                       bool sorted,
+                                       const fdb5::NotifyWind &notifyee) const {
 
     HandleGatherer result(sorted);
-
-    class NotifyClient : public NotifyWind {
-        const MarsTask& task_;
-        virtual void notifyWind() const {
-            task_.notifyWinds();
-        }
-    public:
-        NotifyClient(const MarsTask& task): task_(task) {}
-    };
-
-    MultiRetrieveVisitor visitor(NotifyClient(task), result, databases_);
+    MultiRetrieveVisitor visitor(notifyee, result, databases_);
     schema_.expand(task.request(), visitor);
 
     eckit::Log::userInfo() << "Retrieving " << eckit::Plural(result.count(), "field") << std::endl;
@@ -60,6 +53,20 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask& task, const Schema& schem
 }
 
 eckit::DataHandle *Retriever::retrieve(const MarsTask &task) const {
+
+    class NotifyClient : public NotifyWind {
+        const MarsTask &task_;
+        virtual void notifyWind() const { task_.notifyWinds(); }
+
+      public:
+        NotifyClient(const MarsTask &task) : task_(task) {}
+    };
+
+    NotifyClient wind(task);
+    return retrieve(task, wind);
+}
+
+eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const NotifyWind& notifyee) const {
 
     bool sorted = false;
     std::vector<std::string> sort;
@@ -74,14 +81,14 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task) const {
     // databases with different schemas. Another SchemaHasChanged will be thrown.
     try {
 
-        return retrieve(task, schema_, sorted);
+        return retrieve(task, schema_, sorted, notifyee);
 
     } catch (SchemaHasChanged &e) {
 
         eckit::Log::error() << e.what() << std::endl;
         eckit::Log::error() << "Trying with old schema: " << e.path() << std::endl;
 
-        return retrieve(task, Schema(e.path()), sorted);
+        return retrieve(task, Schema(e.path()), sorted, notifyee);
     }
 
 }
