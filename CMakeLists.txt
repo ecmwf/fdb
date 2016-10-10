@@ -77,7 +77,7 @@ endif()
 ecbuild_add_option( FEATURE MARS2MARS
                     DEFAULT OFF
                     DESCRIPTION "Support direct archiving from another mars instance"
-                    REQUIRED_PACKAGES "PROJECT marskit  VERSION 0.2" )
+                    REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
 
 ### ODB support
 
