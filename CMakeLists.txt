@@ -118,7 +118,7 @@ ecbuild_add_option( FEATURE MARS_SERVER
 ecbuild_add_option( FEATURE POINTDB
                     DEFAULT ON
                     DESCRIPTION "Whether or not to build the PointDB -- [EXPERIMENTAL]"
-                    REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.2" )
+                    REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
 
 ### fdb
 
