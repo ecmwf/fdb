@@ -146,6 +146,8 @@ list( APPEND fdb5_srcs
     toc/FileSpaceHandler.h
     toc/FileSpace.cc
     toc/FileSpace.h
+    toc/KeyBasedFileSpaceHandler.cc
+    toc/KeyBasedFileSpaceHandler.h
     toc/RootManager.cc
     toc/RootManager.h
     toc/TocDBReader.cc
