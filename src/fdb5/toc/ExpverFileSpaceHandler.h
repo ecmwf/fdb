@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   KeyBasedFileSpaceHandler.h
+/// @file   ExpverFileSpaceHandler.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Oct 2016
 
-#ifndef fdb5_KeyBasedFileSpaceHandler_H
-#define fdb5_KeyBasedFileSpaceHandler_H
+#ifndef fdb5_ExpverFileSpaceHandler_H
+#define fdb5_ExpverFileSpaceHandler_H
 
 #include <map>
 #include <string>
@@ -29,15 +29,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class KeyBasedFileSpaceHandler : public FileSpaceHandler {
+class ExpverFileSpaceHandler : public FileSpaceHandler {
 
     typedef std::map<std::string, eckit::PathName>  PathTable;
 
 public: // methods
 
-    KeyBasedFileSpaceHandler();
+    ExpverFileSpaceHandler();
 
-    virtual ~KeyBasedFileSpaceHandler();
+    virtual ~ExpverFileSpaceHandler();
 
     virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const;
 
@@ -48,6 +48,8 @@ protected: // methods
     void append(const std::string& expver, const eckit::PathName& path) const;
 
     eckit::PathName select(const std::string& expver) const;
+
+    eckit::PathName fdbExpverFileSystems_;
 
     mutable eckit::Mutex mutex_;
 

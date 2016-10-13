@@ -8,7 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/toc/KeyBasedFileSpaceHandler.h"
+#include <sys/file.h>
+
+#include "fdb5/toc/ExpverFileSpaceHandler.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
@@ -24,21 +26,20 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-KeyBasedFileSpaceHandler::KeyBasedFileSpaceHandler() {
+ExpverFileSpaceHandler::ExpverFileSpaceHandler() :
+    fdbExpverFileSystems_(Resource<PathName>("fdbExpverFileSystems", "~fdb/etc/fdb/ExpverFileSystems")) {
 }
 
-KeyBasedFileSpaceHandler::~KeyBasedFileSpaceHandler() {
+ExpverFileSpaceHandler::~ExpverFileSpaceHandler() {
 }
 
-void KeyBasedFileSpaceHandler::load() const {
+void ExpverFileSpaceHandler::load() const {
 
-    PathName keyToFileSpaceDefinitions = Resource<PathName>("keyToFileSpaceDefinitions", "~fdb/share/fdb/ExpverFileSpace.cfg");
-
-    std::ifstream in(keyToFileSpaceDefinitions.localPath());
+    std::ifstream in(fdbExpverFileSystems_.localPath());
 
     if(!in) {
         std::ostringstream oss;
-        oss <<  keyToFileSpaceDefinitions << Log::syserr;
+        oss <<  fdbExpverFileSystems_ << Log::syserr;
         Log::error() << oss.str() << std::endl;
         throw CantOpenFile(oss.str(), Here());
     }
@@ -69,7 +70,7 @@ void KeyBasedFileSpaceHandler::load() const {
 
         if(s.size() != 2) {
             std::ostringstream oss;
-            oss << "Bad line (" << lineNo << ") in configuration file " << keyToFileSpaceDefinitions << " -- should have format 'key value'";
+            oss << "Bad line (" << lineNo << ") in configuration file " << fdbExpverFileSystems_ << " -- should have format 'expver filesystem'";
             throw ReadError(oss.str(), Here());
         }
 
@@ -77,17 +78,19 @@ void KeyBasedFileSpaceHandler::load() const {
     }
 }
 
-void KeyBasedFileSpaceHandler::append(const std::string& expver, const PathName& path) const
+void ExpverFileSpaceHandler::append(const std::string& expver, const PathName& path) const
+{
+    NOTIMP;
+
+    // obtain exclusive lock to file
+}
+
+PathName ExpverFileSpaceHandler::select(const std::string& expver) const
 {
     NOTIMP;
 }
 
-PathName KeyBasedFileSpaceHandler::select(const std::string& expver) const
-{
-    NOTIMP;
-}
-
-eckit::PathName KeyBasedFileSpaceHandler::selectFileSystem(const Key& key, const FileSpace& fs) const {
+eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const FileSpace& fs) const {
 
     AutoLock<Mutex> lock(mutex_);
 
@@ -113,7 +116,7 @@ eckit::PathName KeyBasedFileSpaceHandler::selectFileSystem(const Key& key, const
     return selected;
 }
 
-FileSpaceHandlerRegister<KeyBasedFileSpaceHandler> expver("expver");
+FileSpaceHandlerRegister<ExpverFileSpaceHandler> expver("expver");
 
 //----------------------------------------------------------------------------------------------------------------------
 
