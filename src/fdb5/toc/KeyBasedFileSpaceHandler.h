@@ -16,7 +16,14 @@
 #ifndef fdb5_KeyBasedFileSpaceHandler_H
 #define fdb5_KeyBasedFileSpaceHandler_H
 
+#include <map>
+#include <string>
+
+#include "eckit/filesystem/PathName.h"
+#include "eckit/thread/Mutex.h"
+
 #include "fdb5/toc/FileSpaceHandler.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
@@ -24,16 +31,27 @@ namespace fdb5 {
 
 class KeyBasedFileSpaceHandler : public FileSpaceHandler {
 
+    typedef std::map<std::string, eckit::PathName>  PathTable;
+
 public: // methods
-
-    virtual ~KeyBasedFileSpaceHandler();
-
-    virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const = 0;
-
-protected: // methods
 
     KeyBasedFileSpaceHandler();
 
+    virtual ~KeyBasedFileSpaceHandler();
+
+    virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const;
+
+protected: // methods
+
+    void load() const;
+
+    void append(const std::string& expver, const eckit::PathName& path) const;
+
+    eckit::PathName select(const std::string& expver) const;
+
+    mutable eckit::Mutex mutex_;
+
+    mutable PathTable table_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
