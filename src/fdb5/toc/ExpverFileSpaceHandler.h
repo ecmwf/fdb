@@ -45,9 +45,9 @@ protected: // methods
 
     void load() const;
 
-    void append(const std::string& expver, const eckit::PathName& path) const;
+    eckit::PathName append(const std::string& expver, const eckit::PathName& path) const;
 
-    eckit::PathName select(const std::string& expver) const;
+    eckit::PathName select(const Key& key, const FileSpace& fs) const;
 
     eckit::PathName fdbExpverFileSystems_;
 

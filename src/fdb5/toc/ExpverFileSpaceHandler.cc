@@ -16,6 +16,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/thread/AutoLock.h"
+#include "eckit/io/FileLock.h"
 
 #include "fdb5/toc/FileSpace.h"
 #include "fdb5/database/Key.h"
@@ -78,16 +79,64 @@ void ExpverFileSpaceHandler::load() const {
     }
 }
 
-void ExpverFileSpaceHandler::append(const std::string& expver, const PathName& path) const
+eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const PathName& path) const
 {
-    NOTIMP;
-
     // obtain exclusive lock to file
+
+    PathName lockFile = fdbExpverFileSystems_ / ".lock";
+
+    eckit::FileLock locker(lockFile);
+    eckit::AutoLock<eckit::FileLock> lock(locker);
+
+    // read the file first to check that this expver hasn't been inserted yet by another process
+
+    std::fstream iof(fdbExpverFileSystems_.localPath(), std::ios::in | std::ios::out);
+
+    char line[1024];
+    size_t lineNo = 0;
+    Tokenizer parse(" ");
+    std::vector<std::string> s;
+
+    while(iof.getline(line, sizeof(line)))
+    {
+        ++lineNo;
+        s.clear();
+
+        parse(line,s);
+
+        size_t i = 0;
+        while( i < s.size() ) /* cleanup entries that are empty */
+        {
+            if(s[i].length() == 0)
+                s.erase(s.begin()+i);
+            else
+                i++;
+        }
+
+        if(s.size() == 0 || s[0][0] == '#')
+            continue;
+
+        if(s.size() != 2) {
+            std::ostringstream oss;
+            oss << "Bad line (" << lineNo << ") in configuration file " << fdbExpverFileSystems_ << " -- should have format 'expver filesystem'";
+            throw ReadError(oss.str(), Here());
+        }
+
+        if(s[0] == expver) return PathName(s[1]);
+    }
+
+    // append to the file
+
+    iof << expver << " " << path << std::endl;
+
+    iof.close();
+
+    return path;
 }
 
-PathName ExpverFileSpaceHandler::select(const std::string& expver) const
+PathName ExpverFileSpaceHandler::select(const Key& key, const FileSpace& fs) const
 {
-    NOTIMP;
+    return FileSpaceHandler::lookup("WeightedRandom").selectFileSystem(key, fs);
 }
 
 eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const FileSpace& fs) const {
@@ -107,11 +156,11 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     // if not, assign a filesystem
 
-    PathName selected = select(expver);
+    PathName maybe = select(key, fs);
+
+    PathName selected = append(expver, maybe);
 
     table_[expver] = selected;
-
-    append(expver, selected);
 
     return selected;
 }
