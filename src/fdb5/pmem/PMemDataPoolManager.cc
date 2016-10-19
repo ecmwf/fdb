@@ -68,6 +68,7 @@ PMemDataPool& PMemDataPoolManager::currentWritePool() {
         Log::error() << "Master root uuids: " << masterRoot_.dataPoolUUIDs_ << std::endl;
 
         size_t pool_count = masterRoot_.dataPoolUUIDs_.size();
+        Log::error() << "Pool count: " << pool_count << std::endl;
 
         // If there are any pools in the pool list, open the last one. If this is not finalised, then use it.
 
@@ -76,13 +77,19 @@ PMemDataPool& PMemDataPoolManager::currentWritePool() {
             // TODO: Given index, get UUID
             // TODO: Given UUID, have function that checks if it is in the pools_ list, and if not, open it.
             size_t idx = pool_count - 1;
-            Log::error() << "[" << *this << "]: " << "Opening pool index: " << idx << std::endl;
+            size_t uuid = masterRoot_.dataPoolUUIDs_[idx];
+            PMemDataPool* pool;
 
-            PMemDataPool* pool = new PMemDataPool(poolDir_, idx);
+            if (pools_.find(uuid) == pools_.end()) {
 
-            size_t uuid = pool->uuid();
-            ASSERT(pools_.find(uuid) == pools_.end());
-            pools_[uuid] = pool;
+                Log::error() << "[" << *this << "]: " << "Opening pool index: " << idx << std::endl;
+                pool = new PMemDataPool(poolDir_, idx);
+
+                uuid = pool->uuid();
+                pools_[uuid] = pool;
+            } else {
+                pool = pools_[uuid];
+            }
 
             if (!pool->finalised())
                 currentPool_ = pool;
@@ -118,6 +125,8 @@ void PMemDataPoolManager::invalidateCurrentPool(PMemDataPool& pool) {
 
     // We don't worry too much about other threads/processors. They will also hit out-of-space allocation errors.
     // This finalisation is only for informational purposes.
+
+    Log::error() << "[" << *this << "]: " << "Finalising current pool" << std::endl;
 
     currentPool_->finalise();
     currentPool_ = 0;
