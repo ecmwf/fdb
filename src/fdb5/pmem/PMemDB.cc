@@ -23,15 +23,19 @@ PMemDB::PMemDB(const Key& key) :
     DB(key),
     // Utilise the RootManager from the TocDB to get a sensible location. Note that we are NOT
     // using this as a directory, but rather as a pool file.
-    pool_(initialisePool(RootManager::directory(key))),
+    poolDir_(RootManager::directory(key)),
+    pool_(initialisePool(poolDir_)),
     root_(*pool_->root()),
+    dataPoolMgr_(poolDir_, root_),
     currentIndex_(0) {}
 
 
-PMemDB::PMemDB(const PathName& poolFile) :
+PMemDB::PMemDB(const PathName& poolDir) :
     DB(Key()),
-    pool_(initialisePool(poolFile)),
+    poolDir_(poolDir),
+    pool_(initialisePool(poolDir)),
     root_(*pool_->root()),
+    dataPoolMgr_(poolDir_, root_),
     currentIndex_(0) {}
 
 
@@ -45,6 +49,7 @@ PMemPool* PMemDB::initialisePool(const PathName& poolFile) {
     return PMemPool::obtain(poolFile, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024));
 }
 
+
 //----------------------------------------------------------------------------------------------------------------------
 
 bool PMemDB::open() {
@@ -55,10 +60,8 @@ void PMemDB::archive(const Key &key, const void *data, Length length) {
 
     ASSERT(currentIndex_ != 0);
 
-    currentIndex_->createDataNode(key, data, length);
     Log::error() << "key: " << key << ", len: " << length << std::endl;
-    Log::error() << "Archive not implemented for " << *this << std::endl;
-    NOTIMP;
+    currentIndex_->createDataNode(key, data, length, dataPoolMgr_);
 }
 
 eckit::DataHandle * PMemDB::retrieve(const Key &key) const {

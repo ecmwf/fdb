@@ -22,6 +22,7 @@
 
 #include "pmem/AtomicConstructor.h"
 #include "pmem/PersistentPtr.h"
+#include "pmem/PersistentPODVector.h"
 
 #include "fdb5/pmem/PMemBranchingNode.h"
 
@@ -52,6 +53,8 @@ public: // methods
 
     PMemBranchingNode& getBranchingNode(const Key& key);
 
+    void print(std::ostream& s) const;
+
 private: // members
 
     eckit::FixedString<8> tag_;
@@ -66,16 +69,18 @@ private: // members
 
     long createdBy_;
 
-private: // friends
-
     pmem::PersistentPtr<PMemBranchingNode> rootNode_;
 
     /// Keep track of how many data pools are in use. Ensure locking whenever updating this variable.
 
     pmem::PersistentMutex mutex_;
-    size_t dataPools_;
+    pmem::PersistentPODVector<uint64_t> dataPoolUUIDs_;
 
-    // TODO: Keep a list of the uuids of the various different pools?
+private: // friends
+
+    friend class PMemDataPoolManager;
+
+    friend std::ostream& operator<<(std::ostream& s, const PMemRoot& r) { r.print(s); return s; }
 };
 
 

@@ -43,6 +43,8 @@ void PMemRoot::Constructor::make(PMemRoot& object) const {
 
     // The root node of the tree does not have an associated key/value.
     object.rootNode_.allocate(PMemBranchingNode::Constructor("", ""));
+
+    object.dataPoolUUIDs_.nullify();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -87,6 +89,10 @@ PMemBranchingNode& PMemRoot::getBranchingNode(const Key& key) {
     // a new index if it doesn't exist.
 
     return rootNode_->getCreateBranchingNode(key);
+}
+
+void PMemRoot::print(std::ostream& s) const {
+    s << "PMemRoot(0x" << this << ")";
 }
 
 

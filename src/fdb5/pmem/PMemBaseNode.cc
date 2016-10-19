@@ -27,7 +27,6 @@ PMemBaseNode::Constructor::Constructor( PMemBaseNode::NodeType type,
     type_(type),
     key_(key),
     value_(value) {
-    eckit::Log::error() << "BaseConstructor(" << key_ << ":" << value_ << ")";
 }
 
 

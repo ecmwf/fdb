@@ -24,6 +24,7 @@
 
 #include "fdb5/pmem/PMemPool.h"
 #include "fdb5/pmem/PMemRoot.h"
+#include "fdb5/pmem/PMemDataPoolManager.h"
 
 namespace fdb5 {
 
@@ -67,9 +68,13 @@ protected: // types
 
 protected: // members
 
+    eckit::PathName poolDir_;
+
     eckit::ScopedPtr<PMemPool> pool_;
 
     PMemRoot& root_;
+
+    PMemDataPoolManager dataPoolMgr_;
 
 //    IndexStore  indexes_;
 //    Index* currentIndex_;

@@ -30,6 +30,7 @@
 namespace fdb5 {
 
 //class Key;
+class PMemDataPoolManager;
 
 // -------------------------------------------------------------------------------------------------
 
@@ -74,7 +75,10 @@ public: // methods
     /// @note This is primarily in place to support the getIndex functionality.
     PMemBranchingNode& getCreateBranchingNode(const Key& key);
 
-    PMemDataNode& createDataNode(const Key& key, const void* data, eckit::Length length);
+    PMemDataNode& createDataNode(const Key& key,
+                                 const void* data,
+                                 eckit::Length length,
+                                 PMemDataPoolManager& dataManager);
 
 private: // methods
 

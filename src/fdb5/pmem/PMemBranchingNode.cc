@@ -19,6 +19,7 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/pmem/PMemRoot.h"
 #include "fdb5/pmem/PMemDataNode.h"
+#include "fdb5/pmem/PMemDataPoolManager.h"
 
 #include <unistd.h>
 
@@ -32,7 +33,7 @@ namespace fdb5 {
 
 PMemBranchingNode::Constructor::Constructor(const KeyType& key, const ValueType& value) :
     PMemBaseNode::Constructor(BRANCHING_NODE, key, value) {
-    Log::error() << "Constructor(" << key << ": " << value << std::endl;
+    Log::error() << "Constructor(" << key << ": " << value << ")" << std::endl;
 }
 
 void PMemBranchingNode::Constructor::make(PMemBranchingNode& object) const {
@@ -119,7 +120,10 @@ PMemBranchingNode& PMemBranchingNode::getCreateBranchingNode(Key::const_iterator
 }
 
 
-PMemDataNode& PMemBranchingNode::createDataNode(const Key& key, const void* data, Length length) {
+PMemDataNode& PMemBranchingNode::createDataNode(const Key& key,
+                                                const void* data,
+                                                Length length,
+                                                PMemDataPoolManager& dataManager) {
 
     Key::const_iterator dataKey = key.end();
     --dataKey;
@@ -131,8 +135,9 @@ PMemDataNode& PMemBranchingNode::createDataNode(const Key& key, const void* data
 
     AutoLock<PersistentMutex> lock(dataParent.mutex_);
 
-    PMemBaseNode& newNode(*dataParent.nodes_.push_back(PMemDataNode::BaseConstructor(
-                                                          PMemDataNode::Constructor(k, v, data, length))));
+    PMemBaseNode& newNode(*dataParent.nodes_.push_back(
+                              PMemDataNode::BaseConstructor(PMemDataNode::Constructor(k, v, data, length)),
+                              dataManager));
     return newNode.asDataNode();
 }
 

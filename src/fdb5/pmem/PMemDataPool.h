@@ -49,6 +49,9 @@ public: // methods
     PMemDataPool(const eckit::PathName& poolDir, size_t poolIndex, size_t size);
 
     ~PMemDataPool();
+
+    bool finalised() const;
+    void finalise();
 };
 
 // -------------------------------------------------------------------------------------------------

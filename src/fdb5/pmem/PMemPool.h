@@ -49,11 +49,11 @@ public: // methods
     PMemPool(const eckit::PathName& path, const std::string& name);
 
     PMemPool(const eckit::PathName& path, const size_t size, const std::string& name,
-             const pmem::AtomicConstructorBase& constructor);
+             const pmem::AtomicConstructor<PMemRoot>& constructor);
 
     ~PMemPool();
 
-    static PMemPool* obtain(const eckit::PathName& path, const size_t size);
+    static PMemPool* obtain(const eckit::PathName& poolDir, const size_t size);
 
     pmem::PersistentPtr<PMemRoot> root() const;
 

@@ -47,6 +47,10 @@ public: // methods
 
     const time_t& created() const;
 
+    bool finalised() const;
+
+    void finalise();
+
 private: // members
 
     eckit::FixedString<8> tag_;
@@ -96,6 +100,16 @@ const time_t& PMemDataRoot::created() const {
     return created_;
 }
 
+bool PMemDataRoot::finalised() const {
+    return finalised_;
+}
+
+void PMemDataRoot::finalise() {
+
+    finalised_ = true;
+    ::pmemobj_persist(::pmemobj_pool_by_ptr(&finalised_), &finalised_, sizeof(finalised_));
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 
 std::string data_pool_name(size_t index) {
@@ -124,6 +138,14 @@ PMemDataPool::PMemDataPool(const PathName& poolDir, size_t index, const size_t s
 
 
 PMemDataPool::~PMemDataPool() {}
+
+bool PMemDataPool::finalised() const {
+    return getRoot<PMemDataRoot>()->finalised();
+}
+
+void PMemDataPool::finalise() {
+    getRoot<PMemDataRoot>()->finalise();
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 

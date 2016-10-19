@@ -32,13 +32,14 @@ template<> uint64_t pmem::PersistentPtr<fdb5::PMemBaseNode>::type_id = 1;
 template<> uint64_t pmem::PersistentPtr<fdb5::PMemBranchingNode>::type_id = 2;
 template<> uint64_t pmem::PersistentPtr<fdb5::PMemDataNode>::type_id = 3;
 template<> uint64_t pmem::PersistentPtr<pmem::PersistentVectorData<fdb5::PMemBaseNode> >::type_id = 4;
+template<> uint64_t pmem::PersistentPtr<pmem::PersistentPODVectorData<uint64_t> >::type_id = 5;
 
 
 namespace fdb5 {
 
 // -------------------------------------------------------------------------------------------------
 
-PMemPool::PMemPool(const eckit::PathName& path, const std::string& name) :
+PMemPool::PMemPool(const PathName& path, const std::string& name) :
     PersistentPool(path, name) {
 
     ASSERT(root()->valid());
@@ -49,29 +50,37 @@ PMemPool::PMemPool(const eckit::PathName& path, const std::string& name) :
 
 
 
-PMemPool::PMemPool(const eckit::PathName& path, const size_t size, const std::string& name,
-                   const AtomicConstructorBase& constructor) :
+PMemPool::PMemPool(const PathName& path, const size_t size, const std::string& name,
+                   const AtomicConstructor<PMemRoot>& constructor) :
     PersistentPool(path, size, name, constructor) {}
 
 
 PMemPool::~PMemPool() {}
 
 
-PMemPool* PMemPool::obtain(const eckit::PathName &path, const size_t size) {
+/// Open an existing persistent pool, if it exists. If it does _not_ exist, then create it.
+/// If open/create fail for other reasons, then the appropriate error is thrown.
+///
+/// @arg path - Specifies the directory to open, rather than the pool size itself.
+PMemPool* PMemPool::obtain(const PathName &poolDir, const size_t size) {
 
-    // Open an existing persistent pool, if it exists. If it does _not_ exist, then create it.
-    // If open/create fail for other reasons, then the appropriate error is thrown.
+    // The pool must exist as a file within a directory.
+    // n.b. PathName::mkdir uses mkdir_if_not_exists internally, so works OK if another process gets ahead.
+    if (!poolDir.exists())
+        poolDir.mkdir();
+    ASSERT(poolDir.isDir());
 
+    PathName masterPath = poolDir / "master";
     PMemPool* pool = 0;
 
     try {
 
         Log::error() << "Opening.. " << std::endl;
-        pool = new PMemPool(path, "pmem-pool");
+        pool = new PMemPool(masterPath, "pmem-pool");
 
     } catch (PersistentOpenError& e) {
         if (e.errno_ == ENOENT)
-            pool = new PMemPool(path, size, "pmem-pool", PMemRoot::Constructor());
+            pool = new PMemPool(masterPath, size, "pmem-pool", PMemRoot::Constructor());
         else
             throw;
     }

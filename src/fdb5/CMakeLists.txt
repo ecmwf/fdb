@@ -216,6 +216,8 @@ if( HAVE_PMEMFDB )
         pmem/PMemDBWriter.h
         pmem/PMemDataNode.cc
         pmem/PMemDataNode.h
+        pmem/PMemDataPool.cc
+        pmem/PMemDataPool.h
         pmem/PMemDataPoolManager.cc
         pmem/PMemDataPoolManager.h
         pmem/PMemIndex.cc
