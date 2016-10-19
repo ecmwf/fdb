@@ -138,7 +138,8 @@ struct Random : public FileSpaceHandler {
     }
 };
 
-FileSpaceHandlerRegister<Random> pureRandom("Random");
+FileSpaceHandlerRegister<Random> pureRandom("PureRandom"); /* alias to match name in MARS server */
+FileSpaceHandlerRegister<Random> random("Random");
 
 struct WeightedRandom : public FileSpaceHandler {
     WeightedRandom() {}
