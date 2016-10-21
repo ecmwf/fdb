@@ -208,6 +208,10 @@ list( APPEND fdb5_srcs
     types/TypeTime.h
 )
 
+if( LUSTREAPI_FOUND )
+	list( APPEND fdb5_srcs LustreFileHandle.h LustreFileHandle.cc )
+endif()
+
 ecbuild_add_library(
 
     TARGET  mars-fdb5
@@ -221,7 +225,8 @@ ecbuild_add_library(
         ${INSTALL_INCLUDE_DIR}/fdb5
 
     PRIVATE_INCLUDES
-        ${GRIB_API_INCLUDE_DIRS}
+        "${GRIB_API_INCLUDE_DIRS}"
+		"${LUSTREAPI_INCLUDE_DIRS}"
 
     LIBS
         Mars
@@ -229,6 +234,7 @@ ecbuild_add_library(
         eckit
         eckit_option
         ${grib_handling_pkg}
+		${LUSTREAPI_LIBRARIES}
 )
 
 list( APPEND fdb5_scripts fdb grib2fdb fdb-which )
