@@ -33,7 +33,7 @@ public:
 
     // -- Contructors
 
-    FDBFileHandle(const std::string &, size_t buffer);
+    FDBFileHandle(const std::string&, size_t buffer);
 
     // -- Destructor
 
@@ -60,7 +60,7 @@ public:
 
 private: // members
 
-    std::string      name_;
+    std::string      path_;
     FILE            *file_;
     eckit::Buffer    buffer_;
 

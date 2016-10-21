@@ -209,7 +209,7 @@ list( APPEND fdb5_srcs
 )
 
 if( LUSTREAPI_FOUND )
-	list( APPEND fdb5_srcs LustreFileHandle.h LustreFileHandle.cc )
+	list( APPEND fdb5_srcs LustreFileHandle.h )
 endif()
 
 ecbuild_add_library(
