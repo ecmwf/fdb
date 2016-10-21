@@ -58,9 +58,12 @@ public:
     virtual eckit::Offset position();
     virtual std::string title() const;
 
-private: // members
+protected: // members
 
     std::string      path_;
+
+private: // members
+
     FILE            *file_;
     eckit::Buffer    buffer_;
 

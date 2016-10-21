@@ -18,14 +18,11 @@
 
 #include "mars_server_config.h"
 
-#if defined(LUSTREAPI_FOUND)
-#include <lustre/lustreapi.h>
-#else
-#error Lustre API not found so LustreFileHandle is not supported
-#endif
-
+#include "eckit/io/Length.h"
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
+
+extern int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
 
 namespace fdb5 {
 
@@ -38,8 +35,15 @@ public:
     // -- Contructors
 
     LustreFileHandle(const std::string& path) :
-        HANDLE(name),
-        path(){
+        HANDLE(path) {
+    }
+
+    LustreFileHandle(const std::string& path, size_t buffsize) :
+        HANDLE(path, buffsize) {
+    }
+
+    LustreFileHandle(const std::string& path, size_t buffcount, size_t buffsize) :
+        HANDLE(path, buffcount, buffsize) {
     }
 
     // -- Destructor
@@ -56,9 +60,9 @@ public:
             /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
 
             std::string path = path_;
-            int rc = llapi_file_create(path_.c_str(), lustreStripeSize, 0, lustreStripeCount, LOV_PATTERN_RAID0);
+            int err = fdb5_lustreapi_file_create(path.c_str(), lustreStripeSize, lustreStripeCount);
 
-            if(rc == EINVAL) {
+            if(err == EINVAL) {
 
                 std::ostringstream oss;
                 oss << "Invalid stripe parameters for Lustre file system"
@@ -68,15 +72,12 @@ public:
                 throw eckit::BadParameter(oss.str(), Here());
             }
 
-            if(rc && rc != EEXIST) {
+            if(err && err != EEXIST) {
                 throw eckit::FailedSystemCall("llapi_file_create", Here());
             }
-
         }
 
         this->HANDLE::openForAppend(len);
-
-        }
     }
 };
 
