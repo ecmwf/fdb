@@ -8,14 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
+#include "mars_server_config.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/AIOHandle.h"
 
-#include "fdb5/toc/TocDBWriter.h"
 #include "fdb5/io/FDBFileHandle.h"
-#include "fdb5/toc/TocIndex.h"
+#if defined(LUSTREAPI_FOUND)
+#include "fdb5/io/LustreFileHandle.h"
+#endif
 
+#include "fdb5/toc/TocDBWriter.h"
+#include "fdb5/toc/TocIndex.h"
 
 namespace fdb5 {
 
@@ -138,13 +142,24 @@ void TocDBWriter::closeDataHandles() {
 }
 
 eckit::DataHandle *TocDBWriter::createFileHandle(const eckit::PathName &path) {
+
     static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
+
+#if defined(LUSTREAPI_FOUND)
+    return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer);
+#endif
+
     return new FDBFileHandle(path, sizeBuffer);
 }
 
 eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
+
     static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
     static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
+
+#if defined(LUSTREAPI_FOUND)
+    return new LustreFileHandle<eckit::AIOHandle>(path, sizeBuffer);
+#endif
 
     return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
 }
