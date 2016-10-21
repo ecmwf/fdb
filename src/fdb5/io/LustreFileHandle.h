@@ -22,7 +22,9 @@
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 
-extern int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
+extern "C" {
+int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
+}
 
 namespace fdb5 {
 
@@ -59,7 +61,7 @@ public:
 
             /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
 
-            std::string path = path_;
+            std::string path = HANDLE::path_;
             int err = fdb5_lustreapi_file_create(path.c_str(), lustreStripeSize, lustreStripeCount);
 
             if(err == EINVAL) {

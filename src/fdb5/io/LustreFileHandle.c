@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/io/FDBFileHandle.h"
-
 #include "mars_server_config.h"
 
 #include <lustre/lustreapi.h>
