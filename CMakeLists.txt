@@ -149,6 +149,12 @@ find_package( HPSS QUIET )
 
 find_package( ADSM QUIET )
 
+find_package( LustreAPI QUIET )
+
+ecbuild_warning( LUSTREAPI_FOUND ${LUSTREAPI_FOUND} )
+ecbuild_warning( LUSTREAPI_INCLUDE_DIRS ${LUSTREAPI_INCLUDE_DIRS} )
+ecbuild_warning( LUSTREAPI_LIBRARIES ${LUSTREAPI_LIBRARIES} )
+
 # find thread library ( preferably pthreads )
 
 set( CMAKE_THREAD_PREFER_PTHREAD 1 )
