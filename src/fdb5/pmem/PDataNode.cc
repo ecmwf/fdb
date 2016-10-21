@@ -17,7 +17,7 @@
 #include "eckit/types/Types.h"
 
 #include "fdb5/database/Key.h"
-#include "fdb5/pmem/PMemDataNode.h"
+#include "fdb5/pmem/PDataNode.h"
 
 #include <unistd.h>
 
@@ -26,24 +26,25 @@ using namespace pmem;
 
 
 namespace fdb5 {
+namespace pmem {
 
-// -------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
 
-PMemDataNode::Constructor::Constructor(const KeyType& key,
-                                       const ValueType& value,
-                                       const void* data,
-                                       Length length) :
-    PMemBaseNode::Constructor(DATA_NODE, key, value),
+PDataNode::Constructor::Constructor(const KeyType& key,
+                                    const ValueType& value,
+                                    const void* data,
+                                    Length length) :
+    PBaseNode::Constructor(DATA_NODE, key, value),
     length_(length),
     data_(data) {
     Log::error() << "Constructor(" << key << ": " << value << " -- " << length << std::endl;
 }
 
-size_t PMemDataNode::Constructor::size() const {
-    return sizeof(PMemDataNode) - sizeof(PMemDataNode::data_) + length_;
+size_t PDataNode::Constructor::size() const {
+    return sizeof(PDataNode) - sizeof(PDataNode::data_) + length_;
 }
 
-void PMemDataNode::Constructor::make(PMemDataNode& object) const {
+void PDataNode::Constructor::make(PDataNode& object) const {
     constructBase(object);
     Log::info() << "Base constructed" << std::endl;
 
@@ -51,9 +52,7 @@ void PMemDataNode::Constructor::make(PMemDataNode& object) const {
     memcpy(object.data_, data_, length_);
 }
 
-// -------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
 
-
-// -------------------------------------------------------------------------------------------------
-
+} // namespace pmem
 } // namespace tree

@@ -13,8 +13,8 @@
 /// @date   Sep 2016
 
 
-#ifndef fdb5_pmem_PMemRoot_H
-#define fdb5_pmem_PMemRoot_H
+#ifndef fdb5_pmem_PRoot_H
+#define fdb5_pmem_PRoot_H
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/FixedString.h"
@@ -24,25 +24,26 @@
 #include "pmem/PersistentPtr.h"
 #include "pmem/PersistentPODVector.h"
 
-#include "fdb5/pmem/PMemBranchingNode.h"
+#include "fdb5/pmem/PBranchingNode.h"
 
 #include <ctime>
 
 
 namespace fdb5 {
+namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
 
 // N.B. This is to be stored in PersistentPtr --> NO virtual behaviour.
 
-class PMemRoot {
+class PRoot {
 
 public: // Construction objects
 
-    class Constructor : public pmem::AtomicConstructor<PMemRoot> {
+    class Constructor : public ::pmem::AtomicConstructor<PRoot> {
     public: // methods
         Constructor();
-        virtual void make(PMemRoot& object) const;
+        virtual void make(PRoot& object) const;
     };
 
 public: // methods
@@ -51,7 +52,7 @@ public: // methods
 
     const time_t& created() const;
 
-    PMemBranchingNode& getBranchingNode(const Key& key);
+    PBranchingNode& getBranchingNode(const Key& key);
 
     void print(std::ostream& s) const;
 
@@ -69,28 +70,29 @@ private: // members
 
     long createdBy_;
 
-    pmem::PersistentPtr<PMemBranchingNode> rootNode_;
+    ::pmem::PersistentPtr<PBranchingNode> rootNode_;
 
     /// Keep track of how many data pools are in use. Ensure locking whenever updating this variable.
 
-    pmem::PersistentMutex mutex_;
-    pmem::PersistentPODVector<uint64_t> dataPoolUUIDs_;
+    ::pmem::PersistentMutex mutex_;
+    ::pmem::PersistentPODVector<uint64_t> dataPoolUUIDs_;
 
 private: // friends
 
-    friend class PMemDataPoolManager;
+    friend class DataPoolManager;
 
-    friend std::ostream& operator<<(std::ostream& s, const PMemRoot& r) { r.print(s); return s; }
+    friend std::ostream& operator<<(std::ostream& s, const PRoot& r) { r.print(s); return s; }
 };
 
 
 // A consistent definition of the tag for comparison purposes.
-const eckit::FixedString<8> PMemRootTag = "99FDB599";
-const unsigned short int PMemRootVersion = 1;
+const eckit::FixedString<8> PRootTag = "99FDB599";
+const unsigned short int PRootVersion = 1;
 
 
 // -------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace fdb5
 
-#endif // fdb5_pmem_PMemRoot_H
+#endif // fdb5_pmem_PRoot_H

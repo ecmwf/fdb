@@ -206,26 +206,26 @@ list( APPEND fdb5_srcs
 
 if( HAVE_PMEMFDB )
     list( APPEND fdb5_srcs
-        pmem/PMemBaseNode.cc
-        pmem/PMemBaseNode.h
-        pmem/PMemBranchingNode.cc
-        pmem/PMemBranchingNode.h
+        pmem/DataPool.cc
+        pmem/DataPool.h
+        pmem/DataPoolManager.cc
+        pmem/DataPoolManager.h
+        pmem/PBaseNode.cc
+        pmem/PBaseNode.h
+        pmem/PBranchingNode.cc
+        pmem/PBranchingNode.h
+        pmem/PDataNode.cc
+        pmem/PDataNode.h
         pmem/PMemDB.cc
         pmem/PMemDB.h
         pmem/PMemDBWriter.cc
         pmem/PMemDBWriter.h
-        pmem/PMemDataNode.cc
-        pmem/PMemDataNode.h
-        pmem/PMemDataPool.cc
-        pmem/PMemDataPool.h
-        pmem/PMemDataPoolManager.cc
-        pmem/PMemDataPoolManager.h
         pmem/PMemIndex.cc
         pmem/PMemIndex.h
-        pmem/PMemPool.cc
-        pmem/PMemPool.h
-        pmem/PMemRoot.cc
-        pmem/PMemRoot.h
+        pmem/PRoot.cc
+        pmem/PRoot.h
+        pmem/Pool.cc
+        pmem/Pool.h
     )
 else()
     set( PMEM_LIBRARIES "" )

@@ -15,7 +15,7 @@
 #include "eckit/parser/JSONDataBlob.h"
 #include "eckit/types/Types.h"
 
-#include "fdb5/pmem/PMemRoot.h"
+#include "fdb5/pmem/PRoot.h"
 
 #include <unistd.h>
 
@@ -24,25 +24,26 @@ using namespace pmem;
 
 
 namespace fdb5 {
+namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
 
 
-PMemRoot::Constructor::Constructor() {}
+PRoot::Constructor::Constructor() {}
 
 
-void PMemRoot::Constructor::make(PMemRoot& object) const {
+void PRoot::Constructor::make(PRoot& object) const {
 
-    object.tag_ = PMemRootTag;
-    object.version_ = PMemRootVersion;
+    object.tag_ = PRootTag;
+    object.version_ = PRootVersion;
 
     object.created_ = time(0);
-    object.rootSize_ = sizeof(PMemRoot);
+    object.rootSize_ = sizeof(PRoot);
 
     object.createdBy_ = getuid();
 
     // The root node of the tree does not have an associated key/value.
-    object.rootNode_.allocate(PMemBranchingNode::Constructor("", ""));
+    object.rootNode_.allocate(PBranchingNode::Constructor("", ""));
 
     object.dataPoolUUIDs_.nullify();
 }
@@ -54,19 +55,19 @@ void PMemRoot::Constructor::make(PMemRoot& object) const {
  *
  * For now, we just check that the tag is set (i.e. it is initialised).
  */
-bool PMemRoot::valid() const {
+bool PRoot::valid() const {
 
-    if (tag_ != PMemRootTag) {
+    if (tag_ != PRootTag) {
         Log::error() << "Persistent root tag does not match" << std::endl;
         return false;
     }
 
-    if (rootSize_ != sizeof(PMemRoot)) {
+    if (rootSize_ != sizeof(PRoot)) {
         Log::error() << "Invalid (old) structure size for persistent root" << std::endl;
         return false;
     }
 
-    if (version_ != PMemRootVersion) {
+    if (version_ != PRootVersion) {
         Log::error() << "Invalid persistent root version" << std::endl;
         return false;
     }
@@ -79,11 +80,11 @@ bool PMemRoot::valid() const {
     return true;
 }
 
-const time_t& PMemRoot::created() const {
+const time_t& PRoot::created() const {
     return created_;
 }
 
-PMemBranchingNode& PMemRoot::getBranchingNode(const Key& key) {
+PBranchingNode& PRoot::getBranchingNode(const Key& key) {
 
     // Get the relevant index. If the system is open for writing then we should create
     // a new index if it doesn't exist.
@@ -91,11 +92,12 @@ PMemBranchingNode& PMemRoot::getBranchingNode(const Key& key) {
     return rootNode_->getCreateBranchingNode(key);
 }
 
-void PMemRoot::print(std::ostream& s) const {
-    s << "PMemRoot(0x" << this << ")";
+void PRoot::print(std::ostream& s) const {
+    s << "PRoot(0x" << this << ")";
 }
 
 
 // -------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace fdb5

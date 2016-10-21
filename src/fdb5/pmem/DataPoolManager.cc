@@ -17,20 +17,21 @@
 
 #include "pmem/PersistentMutex.h"
 
-#include "fdb5/pmem/PMemDataPoolManager.h"
-#include "fdb5/pmem/PMemDataPool.h"
-#include "fdb5/pmem/PMemPool.h"
-#include "fdb5/pmem/PMemRoot.h"
+#include "fdb5/pmem/DataPoolManager.h"
+#include "fdb5/pmem/DataPool.h"
+#include "fdb5/pmem/Pool.h"
+#include "fdb5/pmem/PRoot.h"
 
 using namespace eckit;
 using namespace pmem;
 
 
 namespace fdb5 {
+namespace pmem {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-PMemDataPoolManager::PMemDataPoolManager(const PathName& poolDir, PMemRoot& masterRoot) :
+DataPoolManager::DataPoolManager(const PathName& poolDir, PRoot& masterRoot) :
     poolDir_(poolDir),
     masterRoot_(masterRoot),
     currentPool_(0) {
@@ -39,11 +40,11 @@ PMemDataPoolManager::PMemDataPoolManager(const PathName& poolDir, PMemRoot& mast
 }
 
 
-PMemDataPoolManager::~PMemDataPoolManager() {
+DataPoolManager::~DataPoolManager() {
 
     // Clean up the pools
 
-    std::map<uint64_t, PMemDataPool*>::iterator it = pools_.begin();
+    std::map<uint64_t, DataPool*>::iterator it = pools_.begin();
 
     for (; it != pools_.end(); ++it) {
         delete it->second;
@@ -52,7 +53,7 @@ PMemDataPoolManager::~PMemDataPoolManager() {
 
 
 
-PMemDataPool& PMemDataPoolManager::currentWritePool() {
+DataPool& DataPoolManager::currentWritePool() {
 
     Log::error() << "[" << *this << "]: " << "Requesting current pool" << std::endl;
 
@@ -78,12 +79,12 @@ PMemDataPool& PMemDataPoolManager::currentWritePool() {
             // TODO: Given UUID, have function that checks if it is in the pools_ list, and if not, open it.
             size_t idx = pool_count - 1;
             size_t uuid = masterRoot_.dataPoolUUIDs_[idx];
-            PMemDataPool* pool;
+            DataPool* pool;
 
             if (pools_.find(uuid) == pools_.end()) {
 
                 Log::error() << "[" << *this << "]: " << "Opening pool index: " << idx << std::endl;
-                pool = new PMemDataPool(poolDir_, idx);
+                pool = new DataPool(poolDir_, idx);
 
                 uuid = pool->uuid();
                 pools_[uuid] = pool;
@@ -101,7 +102,7 @@ PMemDataPool& PMemDataPoolManager::currentWritePool() {
             Log::error() << "Create new..." << std::endl;
             size_t idx = pool_count;
             Log::error() << "Creating a new data pool with index: " << idx << std::endl;
-            currentPool_ = new PMemDataPool(poolDir_, idx, Resource<size_t>("fdbPMemDataPoolSize", 1024 * 1024 * 1024));
+            currentPool_ = new DataPool(poolDir_, idx, Resource<size_t>("fdbPMemDataPoolSize", 1024 * 1024 * 1024));
 
             // Add pool to the list of opened pools
 
@@ -117,7 +118,7 @@ PMemDataPool& PMemDataPoolManager::currentWritePool() {
 }
 
 
-void PMemDataPoolManager::invalidateCurrentPool(PMemDataPool& pool) {
+void DataPoolManager::invalidateCurrentPool(DataPool& pool) {
 
     // If the supplied pool does not equal currentPool_, then another thread/process has already done this.
     if (&pool != currentPool_)
@@ -132,11 +133,12 @@ void PMemDataPoolManager::invalidateCurrentPool(PMemDataPool& pool) {
     currentPool_ = 0;
 }
 
-void PMemDataPoolManager::print(std::ostream& s) const {
+void DataPoolManager::print(std::ostream& s) const {
     s << "PMemDataPoolManager(" << poolDir_ << ")";
 }
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace fdb5

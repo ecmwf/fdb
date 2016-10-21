@@ -12,60 +12,59 @@
 
 #include "eckit/log/Log.h"
 
-#include "fdb5/pmem/PMemBaseNode.h"
-#include "fdb5/pmem/PMemDataNode.h"
-#include "fdb5/pmem/PMemBranchingNode.h"
+#include "fdb5/pmem/PBaseNode.h"
+#include "fdb5/pmem/PDataNode.h"
+#include "fdb5/pmem/PBranchingNode.h"
 
 
 namespace fdb5 {
+namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
 
-PMemBaseNode::Constructor::Constructor( PMemBaseNode::NodeType type,
-                                        const KeyType& key,
-                                        const ValueType& value) :
+PBaseNode::Constructor::Constructor( PBaseNode::NodeType type, const KeyType& key, const ValueType& value) :
     type_(type),
     key_(key),
     value_(value) {
 }
 
 
-void PMemBaseNode::Constructor::constructBase(PMemBaseNode &object) const {
+void PBaseNode::Constructor::constructBase(PBaseNode &object) const {
     object.type_ = type_;
     object.idKey_ = key_;
     object.idValue_ = value_;
     eckit::Log::error() << "constructBase(" << key_ << ":" << value_ << ")" << std::endl;
 }
 
-bool PMemBaseNode::isNull() const {
-    return type_ == PMemBaseNode::NULL_NODE;
+bool PBaseNode::isNull() const {
+    return type_ == PBaseNode::NULL_NODE;
 }
 
-bool PMemBaseNode::isBranchingNode() const {
-    return type_ == PMemBaseNode::BRANCHING_NODE;
+bool PBaseNode::isBranchingNode() const {
+    return type_ == PBaseNode::BRANCHING_NODE;
 }
 
-bool PMemBaseNode::isDataNode() const {
-    return type_ == PMemBaseNode::DATA_NODE;
+bool PBaseNode::isDataNode() const {
+    return type_ == PBaseNode::DATA_NODE;
 }
 
-PMemBranchingNode& PMemBaseNode::asBranchingNode() {
+PBranchingNode& PBaseNode::asBranchingNode() {
     ASSERT(isBranchingNode());
 
-    return *(static_cast<PMemBranchingNode*>(this));
+    return *(static_cast<PBranchingNode*>(this));
 }
 
-PMemDataNode& PMemBaseNode::asDataNode() {
+PDataNode& PBaseNode::asDataNode() {
     ASSERT(isDataNode());
 
-    return *(static_cast<PMemDataNode*>(this));
+    return *(static_cast<PDataNode*>(this));
 }
 
-bool PMemBaseNode::matches(const KeyType& key, const ValueType& value) const {
+bool PBaseNode::matches(const KeyType& key, const ValueType& value) const {
     return key == idKey_ && value == idValue_;
 }
 
-std::ostream& operator<< (std::ostream& s, const PMemBaseNode& n) {
+std::ostream& operator<< (std::ostream& s, const PBaseNode& n) {
 
     // TODO: Include the node _type_ here
 
@@ -75,4 +74,5 @@ std::ostream& operator<< (std::ostream& s, const PMemBaseNode& n) {
 
 // -------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace tree

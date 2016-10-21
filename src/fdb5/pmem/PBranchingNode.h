@@ -13,8 +13,8 @@
 /// @date   Sep 2016
 
 
-#ifndef fdb5_pmem_PMemBranchingNode_H
-#define fdb5_pmem_PMemBranchingNode_H
+#ifndef fdb5_pmem_PBranchingNode_H
+#define fdb5_pmem_PBranchingNode_H
 
 #include "eckit/types/Types.h"
 
@@ -23,48 +23,48 @@
 #include "pmem/PersistentVector.h"
 #include "pmem/PersistentMutex.h"
 
-#include "fdb5/pmem/PMemBaseNode.h"
+#include "fdb5/pmem/PBaseNode.h"
 #include "fdb5/database/Key.h"
 
 
 namespace fdb5 {
+namespace pmem {
 
-//class Key;
-class PMemDataPoolManager;
+class DataPoolManager;
 
 // -------------------------------------------------------------------------------------------------
 
 // N.B. This is to be stored in PersistentPtr --> NO virtual behaviour.
 
-class PMemBranchingNode : public PMemBaseNode {
+class PBranchingNode : public PBaseNode {
 
 public: // Construction objects
 
     /// The standard constructor just creates a node
 
-    class Constructor : public pmem::AtomicConstructor<PMemBranchingNode>, public PMemBaseNode::Constructor {
+    class Constructor : public ::pmem::AtomicConstructor<PBranchingNode>, public PBaseNode::Constructor {
     public: // methods
         Constructor(const KeyType& key, const ValueType& value);
-        virtual void make(PMemBranchingNode& object) const;
+        virtual void make(PBranchingNode& object) const;
     };
 
     /// The Index constructor creates a BranchingNode, and then recursively creates required
     /// subnodes until the key is exhausted with a BranchingNode.
 
-    class IndexConstructor : public PMemBranchingNode::Constructor {
+    class IndexConstructor : public PBranchingNode::Constructor {
     public: // methods
         IndexConstructor(Key::const_iterator key,
                          Key::const_iterator end,
-                         PMemBranchingNode** const indexNode);
-        virtual void make(PMemBranchingNode& object) const;
+                         PBranchingNode** const indexNode);
+        virtual void make(PBranchingNode& object) const;
 
     private: // members
         Key::const_iterator keysIterator_;
         Key::const_iterator endIterator_;
-        PMemBranchingNode** const indexNode_;
+        PBranchingNode** const indexNode_;
     };
 
-    typedef pmem::AtomicConstructorCast<PMemBranchingNode, PMemBaseNode> BaseConstructor;
+    typedef ::pmem::AtomicConstructorCast<PBranchingNode, PBaseNode> BaseConstructor;
 
 public: // methods
 
@@ -73,28 +73,29 @@ public: // methods
     /// @arg key - The key of the node to create or get _relative_to_the_current_node_
     /// @return A reference to the newly created, or found, node
     /// @note This is primarily in place to support the getIndex functionality.
-    PMemBranchingNode& getCreateBranchingNode(const Key& key);
+    PBranchingNode& getCreateBranchingNode(const Key& key);
 
-    PMemDataNode& createDataNode(const Key& key,
-                                 const void* data,
-                                 eckit::Length length,
-                                 PMemDataPoolManager& dataManager);
+    PDataNode& createDataNode(const Key& key,
+                              const void* data,
+                              eckit::Length length,
+                              DataPoolManager& dataManager);
 
 private: // methods
 
-    PMemBranchingNode& getCreateBranchingNode(Key::const_iterator start,
-                                              Key::const_iterator end);
+    PBranchingNode& getCreateBranchingNode(Key::const_iterator start,
+                                           Key::const_iterator end);
 
 private: // members
 
-    pmem::PersistentVector<PMemBaseNode> nodes_;
+    ::pmem::PersistentVector<PBaseNode> nodes_;
 
-    pmem::PersistentMutex mutex_;
+    ::pmem::PersistentMutex mutex_;
 
 };
 
 // -------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace fdb5
 
-#endif // fdb5_pmem_PMemBranchingNode_H
+#endif // fdb5_pmem_PBranchingNode_H

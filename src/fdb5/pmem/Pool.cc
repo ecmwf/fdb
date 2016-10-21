@@ -17,29 +17,30 @@
 #include "pmem/PersistentPtr.h"
 #include "pmem/Exceptions.h"
 
-#include "fdb5/pmem/PMemPool.h"
-#include "fdb5/pmem/PMemRoot.h"
-#include "fdb5/pmem/PMemBaseNode.h"
-#include "fdb5/pmem/PMemBranchingNode.h"
+#include "fdb5/pmem/Pool.h"
+#include "fdb5/pmem/PRoot.h"
+#include "fdb5/pmem/PBaseNode.h"
+#include "fdb5/pmem/PBranchingNode.h"
 
 using namespace eckit;
 using namespace pmem;
 
 
-template<> uint64_t pmem::PersistentPtr<fdb5::PMemRoot>::type_id = POBJ_ROOT_TYPE_NUM;
+template<> uint64_t pmem::PersistentPtr<fdb5::pmem::PRoot>::type_id = POBJ_ROOT_TYPE_NUM;
 
-template<> uint64_t pmem::PersistentPtr<fdb5::PMemBaseNode>::type_id = 1;
-template<> uint64_t pmem::PersistentPtr<fdb5::PMemBranchingNode>::type_id = 2;
-template<> uint64_t pmem::PersistentPtr<fdb5::PMemDataNode>::type_id = 3;
-template<> uint64_t pmem::PersistentPtr<pmem::PersistentVectorData<fdb5::PMemBaseNode> >::type_id = 4;
+template<> uint64_t pmem::PersistentPtr<fdb5::pmem::PBaseNode>::type_id = 1;
+template<> uint64_t pmem::PersistentPtr<fdb5::pmem::PBranchingNode>::type_id = 2;
+template<> uint64_t pmem::PersistentPtr<fdb5::pmem::PDataNode>::type_id = 3;
+template<> uint64_t pmem::PersistentPtr<pmem::PersistentVectorData<fdb5::pmem::PBaseNode> >::type_id = 4;
 template<> uint64_t pmem::PersistentPtr<pmem::PersistentPODVectorData<uint64_t> >::type_id = 5;
 
 
 namespace fdb5 {
+namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
 
-PMemPool::PMemPool(const PathName& path, const std::string& name) :
+Pool::Pool(const PathName& path, const std::string& name) :
     PersistentPool(path, name) {
 
     ASSERT(root()->valid());
@@ -50,19 +51,19 @@ PMemPool::PMemPool(const PathName& path, const std::string& name) :
 
 
 
-PMemPool::PMemPool(const PathName& path, const size_t size, const std::string& name,
-                   const AtomicConstructor<PMemRoot>& constructor) :
+Pool::Pool(const PathName& path, const size_t size, const std::string& name,
+                   const AtomicConstructor<PRoot>& constructor) :
     PersistentPool(path, size, name, constructor) {}
 
 
-PMemPool::~PMemPool() {}
+Pool::~Pool() {}
 
 
 /// Open an existing persistent pool, if it exists. If it does _not_ exist, then create it.
 /// If open/create fail for other reasons, then the appropriate error is thrown.
 ///
 /// @arg path - Specifies the directory to open, rather than the pool size itself.
-PMemPool* PMemPool::obtain(const PathName &poolDir, const size_t size) {
+Pool* Pool::obtain(const PathName &poolDir, const size_t size) {
 
     // The pool must exist as a file within a directory.
     // n.b. PathName::mkdir uses mkdir_if_not_exists internally, so works OK if another process gets ahead.
@@ -71,16 +72,16 @@ PMemPool* PMemPool::obtain(const PathName &poolDir, const size_t size) {
     ASSERT(poolDir.isDir());
 
     PathName masterPath = poolDir / "master";
-    PMemPool* pool = 0;
+    Pool* pool = 0;
 
     try {
 
         Log::error() << "Opening.. " << std::endl;
-        pool = new PMemPool(masterPath, "pmem-pool");
+        pool = new Pool(masterPath, "pmem-pool");
 
     } catch (PersistentOpenError& e) {
         if (e.errno_ == ENOENT)
-            pool = new PMemPool(masterPath, size, "pmem-pool", PMemRoot::Constructor());
+            pool = new Pool(masterPath, size, "pmem-pool", PRoot::Constructor());
         else
             throw;
     }
@@ -90,9 +91,9 @@ PMemPool* PMemPool::obtain(const PathName &poolDir, const size_t size) {
 }
 
 
-PersistentPtr<PMemRoot> PMemPool::root() const {
+PersistentPtr<PRoot> Pool::root() const {
 
-    PersistentPtr<PMemRoot> rt = getRoot<PMemRoot>();
+    PersistentPtr<PRoot> rt = getRoot<PRoot>();
     ASSERT(rt.valid());
 
     return rt;
@@ -100,4 +101,5 @@ PersistentPtr<PMemRoot> PMemPool::root() const {
 
 // -------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace tree

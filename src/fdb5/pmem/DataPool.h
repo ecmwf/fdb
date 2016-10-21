@@ -11,8 +11,8 @@
 /// @date   Feb 2016
 
 
-#ifndef fdb5_pmem_PMemPool_H
-#define fdb5_pmem_PMemPool_H
+#ifndef fdb5_pmem_DataPool_H
+#define fdb5_pmem_DataPool_H
 
 #include "pmem/PersistentPool.h"
 
@@ -27,8 +27,7 @@ namespace pmem {
 // -------------------------------------------------------------------------------------------------
 
 namespace fdb5 {
-
-class PMemRoot;
+namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
 
@@ -42,26 +41,24 @@ class PMemRoot;
  *     iii) How to map type_ids to actual types
  */
 
-class PMemPool : public pmem::PersistentPool {
+class DataPool : public ::pmem::PersistentPool {
 
 public: // methods
 
-    PMemPool(const eckit::PathName& path, const std::string& name);
+    DataPool(const eckit::PathName& poolDir, size_t poolIndex);
 
-    PMemPool(const eckit::PathName& path, const size_t size, const std::string& name,
-             const pmem::AtomicConstructor<PMemRoot>& constructor);
+    DataPool(const eckit::PathName& poolDir, size_t poolIndex, size_t size);
 
-    ~PMemPool();
+    ~DataPool();
 
-    static PMemPool* obtain(const eckit::PathName& poolDir, const size_t size);
-
-    pmem::PersistentPtr<PMemRoot> root() const;
-
+    bool finalised() const;
+    void finalise();
 };
 
 // -------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace fdb5
 
 
-#endif // fdb5_pmem_PMemPool_H
+#endif // fdb5_pmem_DataPool_H

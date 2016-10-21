@@ -9,7 +9,7 @@
  */
 
 #include "fdb5/pmem/PMemIndex.h"
-#include "fdb5/pmem/PMemBranchingNode.h"
+#include "fdb5/pmem/PBranchingNode.h"
 
 namespace fdb5 {
 

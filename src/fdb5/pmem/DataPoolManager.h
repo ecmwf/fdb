@@ -13,15 +13,15 @@
 /// @date   Sep 2016
 
 
-#ifndef fdb5_pmem_PMemDataPoolManager_H
-#define fdb5_pmem_PMemDataPoolManager_H
+#ifndef fdb5_pmem_DataPoolManager_H
+#define fdb5_pmem_DataPoolManager_H
 
 #include "eckit/memory/NonCopyable.h"
 
 #include "pmem/AtomicConstructor.h"
 #include "pmem/PersistentPtr.h"
 
-#include "fdb5/pmem/PMemDataPool.h"
+#include "fdb5/pmem/DataPool.h"
 
 #include <stdint.h>
 #include <iosfwd>
@@ -34,8 +34,9 @@ namespace eckit {
 
 
 namespace fdb5 {
+namespace pmem {
 
-class PMemRoot;
+class PRoot;
 
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -49,25 +50,25 @@ class PMemRoot;
  * - Manage atomic allocations, with retries.
  */
 
-class PMemDataPoolManager : private eckit::NonCopyable {
+class DataPoolManager : private eckit::NonCopyable {
 
 public: // methods
 
-    PMemDataPoolManager(const eckit::PathName& poolDir, PMemRoot& masterRoot);
-    ~PMemDataPoolManager();
+    DataPoolManager(const eckit::PathName& poolDir, PRoot& masterRoot);
+    ~DataPoolManager();
 
     /// Allocate data into the currently active pool
     template <typename T>
-    void allocate(pmem::PersistentPtr<T>& ptr, const pmem::AtomicConstructor<T>& ctr);
+    void allocate(::pmem::PersistentPtr<T>& ptr, const ::pmem::AtomicConstructor<T>& ctr);
 
 private: // methods
 
     /// Obtain the current pool for writing. If no pool is opened, then open/create the latest one.
-    PMemDataPool& currentWritePool();
+    DataPool& currentWritePool();
 
     /// The current pool is full! Finalise it, and create a new one. Check for the obvious complications (e.g. another
     /// process, or thread, has already created a new pool, or the pool being used is already out of date).
-    void invalidateCurrentPool(PMemDataPool& pool);
+    void invalidateCurrentPool(DataPool& pool);
 
     virtual void print(std::ostream& out) const;
 
@@ -76,35 +77,35 @@ private: // members
     eckit::PathName poolDir_;
 
     /// A mapping of pools' UUIDs to the opened pool objects.
-    std::map<uint64_t, PMemDataPool*> pools_;
+    std::map<uint64_t, DataPool*> pools_;
 
-    PMemRoot& masterRoot_;
+    PRoot& masterRoot_;
 
-    PMemDataPool* currentPool_;
+    DataPool* currentPool_;
 
 private: // friends
 
-    friend std::ostream& operator<<(std::ostream& s,const PMemDataPoolManager& p) { p.print(s); return s; }
+    friend std::ostream& operator<<(std::ostream& s,const DataPoolManager& p) { p.print(s); return s; }
 };
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 template <typename T>
-void PMemDataPoolManager::allocate(pmem::PersistentPtr<T>& ptr, const pmem::AtomicConstructor<T>& ctr) {
+void DataPoolManager::allocate(::pmem::PersistentPtr<T>& ptr, const ::pmem::AtomicConstructor<T>& ctr) {
 
     // n.b. Remember to lock the PMemRoot whilst updating the list of pools.
 
     while (true) {
 
-        PMemDataPool& pool(currentWritePool());
+        DataPool& pool(currentWritePool());
 
         try {
 
             ptr.allocate(pool, ctr);
             break;
 
-        } catch (pmem::AtomicConstructorBase::AllocationError& e) {
+        } catch (::pmem::AtomicConstructorBase::AllocationError& e) {
 
             // TODO: Check errno
             // If the allocation fails due to lack of space, this is fine. We just need to retry.
@@ -114,6 +115,7 @@ void PMemDataPoolManager::allocate(pmem::PersistentPtr<T>& ptr, const pmem::Atom
     };
 }
 
+} // namespace pmem
 } // namespace fdb5
 
 #endif // fdb5_pmem_PMemDataPoolManager_H

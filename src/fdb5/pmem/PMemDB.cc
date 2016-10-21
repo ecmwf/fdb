@@ -16,6 +16,7 @@
 using namespace eckit;
 
 namespace fdb5 {
+namespace pmem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -44,9 +45,9 @@ PMemDB::~PMemDB() {
 }
 
 
-PMemPool* PMemDB::initialisePool(const PathName& poolFile) {
+Pool* PMemDB::initialisePool(const PathName& poolFile) {
 
-    return PMemPool::obtain(poolFile, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024));
+    return Pool::obtain(poolFile, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024));
 }
 
 
@@ -108,4 +109,5 @@ void PMemDB::deselectIndex() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace fdb5

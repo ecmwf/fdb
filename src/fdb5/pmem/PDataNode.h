@@ -13,8 +13,8 @@
 /// @date   Sep 2016
 
 
-#ifndef fdb5_pmem_PMemDataNode_H
-#define fdb5_pmem_PMemDataNode_H
+#ifndef fdb5_pmem_PDataNode_H
+#define fdb5_pmem_PDataNode_H
 
 #include "eckit/types/Types.h"
 
@@ -22,32 +22,34 @@
 #include "pmem/AtomicConstructorCast.h"
 #include "pmem/PersistentVector.h"
 
-#include "fdb5/pmem/PMemBaseNode.h"
+#include "fdb5/pmem/PBaseNode.h"
 
 
 namespace fdb5 {
 
 class Key;
 
+namespace pmem {
+
 // -------------------------------------------------------------------------------------------------
 
 // N.B. This is to be stored in PersistentPtr --> NO virtual behaviour.
 
-class PMemDataNode : public PMemBaseNode {
+class PDataNode : public PBaseNode {
 
 public: // Construction objects
 
-    class Constructor : public pmem::AtomicConstructor<PMemDataNode>, public PMemBaseNode::Constructor {
+    class Constructor : public ::pmem::AtomicConstructor<PDataNode>, public PBaseNode::Constructor {
     public: // methods
         Constructor(const KeyType& key, const ValueType& value, const void* data, eckit::Length length);
         virtual size_t size() const;
-        virtual void make(PMemDataNode& object) const;
+        virtual void make(PDataNode& object) const;
     private:
         eckit::Length length_;
         const void* data_;
     };
 
-    typedef pmem::AtomicConstructorCast<PMemDataNode, PMemBaseNode> BaseConstructor;
+    typedef ::pmem::AtomicConstructorCast<PDataNode, PBaseNode> BaseConstructor;
 
 private: // members
 
@@ -61,6 +63,7 @@ private: // members
 
 // -------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace fdb5
 
-#endif // fdb5_pmem_PMemDataNode_H
+#endif // fdb5_pmem_PDataNode_H

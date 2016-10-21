@@ -22,11 +22,12 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 
-#include "fdb5/pmem/PMemPool.h"
-#include "fdb5/pmem/PMemRoot.h"
-#include "fdb5/pmem/PMemDataPoolManager.h"
+#include "fdb5/pmem/Pool.h"
+#include "fdb5/pmem/PRoot.h"
+#include "fdb5/pmem/DataPoolManager.h"
 
 namespace fdb5 {
+namespace pmem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -60,7 +61,7 @@ protected: // methods
 private: // methods
 
     /// Initialise or open the peristent pool. Worker function for the construtor
-    static PMemPool* initialisePool(const eckit::PathName& poolFile);
+    static Pool* initialisePool(const eckit::PathName& poolFile);
 
 protected: // types
 
@@ -70,21 +71,22 @@ protected: // members
 
     eckit::PathName poolDir_;
 
-    eckit::ScopedPtr<PMemPool> pool_;
+    eckit::ScopedPtr<Pool> pool_;
 
-    PMemRoot& root_;
+    PRoot& root_;
 
-    PMemDataPoolManager dataPoolMgr_;
+    DataPoolManager dataPoolMgr_;
 
 //    IndexStore  indexes_;
 //    Index* currentIndex_;
-    PMemBranchingNode* currentIndex_;
+    PBranchingNode* currentIndex_;
 
 //    Schema schema_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace fdb5
 
 #endif

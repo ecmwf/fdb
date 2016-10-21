@@ -13,8 +13,8 @@
 /// @date   Sep 2016
 
 
-#ifndef fdb5_pmem_PMemBaseNode_H
-#define fdb5_pmem_PMemBaseNode_H
+#ifndef fdb5_pmem_PBaseNode_H
+#define fdb5_pmem_PBaseNode_H
 
 #include "eckit/types/FixedString.h"
 
@@ -22,15 +22,16 @@
 
 
 namespace fdb5 {
+namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
 
-class PMemBranchingNode;
-class PMemDataNode;
+class PBranchingNode;
+class PDataNode;
 
 // N.B. This is to be stored in PersistentPtr --> NO virtual behaviour.
 
-class PMemBaseNode {
+class PBaseNode {
 
 public: // Types
 
@@ -51,7 +52,7 @@ protected: // Types
     class Constructor {
     public: // methods
         Constructor(NodeType type, const KeyType& key, const ValueType& value);
-        void constructBase(PMemBaseNode& object) const;
+        void constructBase(PBaseNode& object) const;
     private: // members
         NodeType type_;
         KeyType key_;
@@ -61,7 +62,7 @@ protected: // Types
 private: // Construction objects
 
     // This object MUST NOT be constructed manually. Only as part of a derived base
-    PMemBaseNode() {}
+    PBaseNode() {}
 
 public: // methods
 
@@ -69,8 +70,8 @@ public: // methods
     bool isBranchingNode() const;
     bool isDataNode() const;
 
-    PMemBranchingNode& asBranchingNode();
-    PMemDataNode& asDataNode();
+    PBranchingNode& asBranchingNode();
+    PDataNode& asDataNode();
 
     bool matches(const KeyType& key, const ValueType& value) const;
 
@@ -85,12 +86,13 @@ protected: // members
 
 private: // friends
 
-    friend std::ostream& operator<< (std::ostream&, const PMemBaseNode&);
+    friend std::ostream& operator<< (std::ostream&, const PBaseNode&);
 };
 
 
 // -------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace fdb5
 
-#endif // fdb5_pmem_PMemBaseNode_H
+#endif // fdb5_pmem_PBaseNode_H

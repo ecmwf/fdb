@@ -17,7 +17,7 @@
 
 #include "pmem/PersistentPtr.h"
 
-#include "fdb5/pmem/PMemDataPool.h"
+#include "fdb5/pmem/DataPool.h"
 
 #include <unistd.h>
 
@@ -27,18 +27,19 @@ using namespace pmem;
 
 
 namespace fdb5 {
+namespace pmem {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 
-class PMemDataRoot {
+class PDataRoot {
 
 public: // Construction objects
 
-    class Constructor : public pmem::AtomicConstructor<PMemDataRoot> {
+    class Constructor : public AtomicConstructor<PDataRoot> {
     public: // methods
         Constructor() {}
-        virtual void make(PMemDataRoot& object) const;
+        virtual void make(PDataRoot& object) const;
     };
 
 public: // methods
@@ -66,29 +67,29 @@ private: // members
 
 
 // A consistent definition of the tag for comparison purposes.
-const eckit::FixedString<8> PMemDataRootTag = "66FDB566";
-const unsigned short int PMemDataRootVersion = 1;
+const eckit::FixedString<8> PDataRootTag = "66FDB566";
+const unsigned short int PDataRootVersion = 1;
 
 // n.b. This also has POBJ_ROOT_TYPE_NUM, as it is a root element (of a different type)
-template<> uint64_t pmem::PersistentPtr<fdb5::PMemDataRoot>::type_id = POBJ_ROOT_TYPE_NUM;
+template<> uint64_t PersistentPtr<fdb5::pmem::PDataRoot>::type_id = POBJ_ROOT_TYPE_NUM;
 
 
-void PMemDataRoot::Constructor::make(PMemDataRoot& object) const {
-    object.tag_ = PMemDataRootTag;
-    object.version_ = PMemDataRootVersion;
+void PDataRoot::Constructor::make(PDataRoot& object) const {
+    object.tag_ = PDataRootTag;
+    object.version_ = PDataRootVersion;
     object.created_ = time(0);
     object.createdBy_ = getuid();
     object.finalised_ = false;
 }
 
-bool PMemDataRoot::valid() const {
+bool PDataRoot::valid() const {
 
-    if (tag_ != PMemDataRootTag) {
+    if (tag_ != PDataRootTag) {
         Log::error() << "Persistent root tag does not match" << std::endl;
         return false;
     }
 
-    if (version_ != PMemDataRootVersion) {
+    if (version_ != PDataRootVersion) {
         Log::error() << "Invalid persistent root version" << std::endl;
         return false;
     }
@@ -96,15 +97,15 @@ bool PMemDataRoot::valid() const {
     return true;
 }
 
-const time_t& PMemDataRoot::created() const {
+const time_t& PDataRoot::created() const {
     return created_;
 }
 
-bool PMemDataRoot::finalised() const {
+bool PDataRoot::finalised() const {
     return finalised_;
 }
 
-void PMemDataRoot::finalise() {
+void PDataRoot::finalise() {
 
     finalised_ = true;
     ::pmemobj_persist(::pmemobj_pool_by_ptr(&finalised_), &finalised_, sizeof(finalised_));
@@ -124,29 +125,30 @@ std::string data_pool_path(const PathName& poolDir, size_t index) {
 }
 
 
-PMemDataPool::PMemDataPool(const PathName& poolDir, size_t index) :
+DataPool::DataPool(const PathName& poolDir, size_t index) :
     PersistentPool(data_pool_path(poolDir, index), data_pool_name(index)) {
 
-    ASSERT(getRoot<PMemDataRoot>()->valid());
+    ASSERT(getRoot<PDataRoot>()->valid());
 
-    Log::info() << "Opened persistent pool created at: " << TimeStamp(getRoot<PMemDataRoot>()->created()) << std::endl;
+    Log::info() << "Opened persistent pool created at: " << TimeStamp(getRoot<PDataRoot>()->created()) << std::endl;
 }
 
 
-PMemDataPool::PMemDataPool(const PathName& poolDir, size_t index, const size_t size) :
-    PersistentPool(data_pool_path(poolDir, index), size, data_pool_name(index), PMemDataRoot::Constructor()) {}
+DataPool::DataPool(const PathName& poolDir, size_t index, const size_t size) :
+    PersistentPool(data_pool_path(poolDir, index), size, data_pool_name(index), PDataRoot::Constructor()) {}
 
 
-PMemDataPool::~PMemDataPool() {}
+DataPool::~DataPool() {}
 
-bool PMemDataPool::finalised() const {
-    return getRoot<PMemDataRoot>()->finalised();
+bool DataPool::finalised() const {
+    return getRoot<PDataRoot>()->finalised();
 }
 
-void PMemDataPool::finalise() {
-    getRoot<PMemDataRoot>()->finalise();
+void DataPool::finalise() {
+    getRoot<PDataRoot>()->finalise();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace tree

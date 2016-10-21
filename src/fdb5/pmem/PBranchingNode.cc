@@ -17,9 +17,10 @@
 #include "eckit/types/Types.h"
 
 #include "fdb5/database/Key.h"
-#include "fdb5/pmem/PMemRoot.h"
-#include "fdb5/pmem/PMemDataNode.h"
-#include "fdb5/pmem/PMemDataPoolManager.h"
+#include "fdb5/pmem/DataPoolManager.h"
+#include "fdb5/pmem/PBranchingNode.h"
+#include "fdb5/pmem/PDataNode.h"
+#include "fdb5/pmem/PRoot.h"
 
 #include <unistd.h>
 
@@ -28,25 +29,26 @@ using namespace pmem;
 
 
 namespace fdb5 {
+namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
 
-PMemBranchingNode::Constructor::Constructor(const KeyType& key, const ValueType& value) :
-    PMemBaseNode::Constructor(BRANCHING_NODE, key, value) {
+PBranchingNode::Constructor::Constructor(const KeyType& key, const ValueType& value) :
+    PBaseNode::Constructor(BRANCHING_NODE, key, value) {
     Log::error() << "Constructor(" << key << ": " << value << ")" << std::endl;
 }
 
-void PMemBranchingNode::Constructor::make(PMemBranchingNode& object) const {
+void PBranchingNode::Constructor::make(PBranchingNode& object) const {
     constructBase(object);
     Log::info() << "Base constructed" << std::endl;
     object.nodes_.nullify();
 }
 
 
-PMemBranchingNode::IndexConstructor::IndexConstructor(Key::const_iterator it,
-                                                      Key::const_iterator end,
-                                                      PMemBranchingNode** const indexNode) :
-    PMemBranchingNode::Constructor(it->first, it->second),
+PBranchingNode::IndexConstructor::IndexConstructor(Key::const_iterator it,
+                                                   Key::const_iterator end,
+                                                   PBranchingNode** const indexNode) :
+    PBranchingNode::Constructor(it->first, it->second),
     keysIterator_(it),
     endIterator_(end),
     indexNode_(indexNode){
@@ -54,8 +56,8 @@ PMemBranchingNode::IndexConstructor::IndexConstructor(Key::const_iterator it,
 }
 
 
-void PMemBranchingNode::IndexConstructor::make(PMemBranchingNode& object) const {
-    PMemBranchingNode::Constructor::make(object);
+void PBranchingNode::IndexConstructor::make(PBranchingNode& object) const {
+    PBranchingNode::Constructor::make(object);
 
     // Store the node being created as the indexNode. If further contained nodes are created, the
     // pointer will be (correctly) replaced with the deepest node.
@@ -73,16 +75,16 @@ void PMemBranchingNode::IndexConstructor::make(PMemBranchingNode& object) const 
 // -------------------------------------------------------------------------------------------------
 
 
-PMemBranchingNode& PMemBranchingNode::getCreateBranchingNode(const Key& key) {
+PBranchingNode& PBranchingNode::getCreateBranchingNode(const Key& key) {
 
     return getCreateBranchingNode(key.begin(), key.end());
 }
 
 
-PMemBranchingNode& PMemBranchingNode::getCreateBranchingNode(Key::const_iterator start,
-                                                             Key::const_iterator end) {
+PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start,
+                                                       Key::const_iterator end) {
 
-    PMemBranchingNode* current = this;
+    PBranchingNode* current = this;
 
     for (Key::const_iterator it = start; it != end; ++it) {
 
@@ -96,7 +98,7 @@ PMemBranchingNode& PMemBranchingNode::getCreateBranchingNode(Key::const_iterator
         int i = current->nodes_.size() - 1;
         for (; i >= 0; --i) {
 
-            PersistentPtr<PMemBaseNode> subnode = current->nodes_[i];
+            PersistentPtr<PBaseNode> subnode = current->nodes_[i];
 
             if (subnode->matches(it->first, it->second)) {
 
@@ -111,7 +113,7 @@ PMemBranchingNode& PMemBranchingNode::getCreateBranchingNode(Key::const_iterator
         // Create the node (and all contained sub-nodes) if it hasn't been found. Note that we
         // start at the first
         if (i < 0) {
-            current->nodes_.push_back(BaseConstructor(PMemBranchingNode::IndexConstructor(it, end, &current)));
+            current->nodes_.push_back(BaseConstructor(PBranchingNode::IndexConstructor(it, end, &current)));
             break;
         }
     }
@@ -120,28 +122,29 @@ PMemBranchingNode& PMemBranchingNode::getCreateBranchingNode(Key::const_iterator
 }
 
 
-PMemDataNode& PMemBranchingNode::createDataNode(const Key& key,
-                                                const void* data,
-                                                Length length,
-                                                PMemDataPoolManager& dataManager) {
+PDataNode& PBranchingNode::createDataNode(const Key& key,
+                                          const void* data,
+                                          Length length,
+                                          DataPoolManager& dataManager) {
 
     Key::const_iterator dataKey = key.end();
     --dataKey;
 
-    PMemBranchingNode& dataParent(getCreateBranchingNode(key.begin(), dataKey));
+    PBranchingNode& dataParent(getCreateBranchingNode(key.begin(), dataKey));
 
     std::string k = dataKey->first;
     std::string v = dataKey->second;
 
     AutoLock<PersistentMutex> lock(dataParent.mutex_);
 
-    PMemBaseNode& newNode(*dataParent.nodes_.push_back(
-                              PMemDataNode::BaseConstructor(PMemDataNode::Constructor(k, v, data, length)),
-                              dataManager));
+    PBaseNode& newNode(*dataParent.nodes_.push_back(
+                       PDataNode::BaseConstructor(PDataNode::Constructor(k, v, data, length)),
+                       dataManager));
     return newNode.asDataNode();
 }
 
 
 // -------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace tree
