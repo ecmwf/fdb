@@ -83,7 +83,7 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
 {
     // obtain exclusive lock to file
 
-    PathName lockFile = fdbExpverFileSystems_ / ".lock";
+    PathName lockFile = fdbExpverFileSystems_ + ".lock";
 
     eckit::FileLock locker(lockFile);
     eckit::AutoLock<eckit::FileLock> lock(locker);
