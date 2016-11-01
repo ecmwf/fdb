@@ -90,14 +90,21 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
 
     // read the file first to check that this expver hasn't been inserted yet by another process
 
-    std::fstream iof(fdbExpverFileSystems_.localPath(), std::ios::in | std::ios::out);
+    std::ifstream fi(fdbExpverFileSystems_.localPath());
 
-    char line[1024];
+    if(!fi) {
+        std::ostringstream oss;
+        oss <<  fdbExpverFileSystems_ << Log::syserr;
+        Log::error() << oss.str() << std::endl;
+        throw CantOpenFile(oss.str(), Here());
+    }
+
+    char line[4*1024];
     size_t lineNo = 0;
     Tokenizer parse(" ");
     std::vector<std::string> s;
 
-    while(iof.getline(line, sizeof(line)))
+    while(fi.getline(line, sizeof(line)))
     {
         ++lineNo;
         s.clear();
@@ -125,14 +132,25 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
         if(s[0] == expver) return PathName(s[1]);
     }
 
+    fi.close();
+
+    std::ofstream of(fdbExpverFileSystems_.localPath(), std::ofstream::app);
+
+    if(!of) {
+        std::ostringstream oss;
+        oss <<  fdbExpverFileSystems_ << Log::syserr;
+        Log::error() << oss.str() << std::endl;
+        throw WriteError(oss.str(), Here());
+    }
+
     // append to the file
 
     ECKIT_DEBUG_VAR(expver);
     ECKIT_DEBUG_VAR(path);
 
-    iof << expver << " " << path << std::endl;
+    of << expver << " " << path << std::endl;
 
-    iof.close();
+    of.close();
 
     return path;
 }
