@@ -127,6 +127,9 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
 
     // append to the file
 
+    ECKIT_DEBUG_VAR(expver);
+    ECKIT_DEBUG_VAR(path);
+
     iof << expver << " " << path << std::endl;
 
     iof.close();
@@ -158,7 +161,11 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     PathName maybe = select(key, fs);
 
+    ECKIT_DEBUG_VAR(maybe);
+
     PathName selected = append(expver, maybe);
+
+    ECKIT_DEBUG_VAR(selected);
 
     table_[expver] = selected;
 
