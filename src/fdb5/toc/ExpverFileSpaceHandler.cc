@@ -20,6 +20,7 @@
 
 #include "fdb5/toc/FileSpace.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/LibFdb.h"
 
 using namespace eckit;
 
@@ -35,6 +36,8 @@ ExpverFileSpaceHandler::~ExpverFileSpaceHandler() {
 }
 
 void ExpverFileSpaceHandler::load() const {
+
+    Log::debug<LibFdb>() << "Loading " << fdbExpverFileSystems_ << std::endl;
 
     std::ifstream in(fdbExpverFileSystems_.localPath());
 
@@ -129,7 +132,10 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
             throw ReadError(oss.str(), Here());
         }
 
-        if(s[0] == expver) return PathName(s[1]);
+        if(s[0] == expver) {
+            Log::debug<LibFdb>() << "Found expver " << expver << " " << path << " in " << fdbExpverFileSystems_ << std::endl;
+            return PathName(s[1]);
+        }
     }
 
     fi.close();
@@ -145,8 +151,7 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
 
     // append to the file
 
-    ECKIT_DEBUG_VAR(expver);
-    ECKIT_DEBUG_VAR(path);
+    Log::debug<LibFdb>() << "Appending expver " << expver << " " << path << " to " << fdbExpverFileSystems_ << std::endl;
 
     of << expver << " " << path << std::endl;
 
@@ -172,6 +177,7 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     PathTable::const_iterator itr = table_.find(expver);
     if(itr != table_.end()) {
+        Log::debug<LibFdb>() << "Found expver " << expver << " " << itr->second << " in " << fdbExpverFileSystems_ << std::endl;
         return itr->second;
     }
 
@@ -179,11 +185,7 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     PathName maybe = select(key, fs);
 
-    ECKIT_DEBUG_VAR(maybe);
-
     PathName selected = append(expver, maybe);
-
-    ECKIT_DEBUG_VAR(selected);
 
     table_[expver] = selected;
 
