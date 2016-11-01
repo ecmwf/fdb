@@ -44,7 +44,9 @@ endif()
 # fdb5 library
 
 list( APPEND fdb5_srcs
-    config/MasterConfig.cc
+	LibFdb.h
+	LibFdb.cc
+	config/MasterConfig.cc
     config/MasterConfig.h
     config/UMask.cc
     config/UMask.h
