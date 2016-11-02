@@ -14,9 +14,7 @@
 #include "eckit/io/AIOHandle.h"
 
 #include "fdb5/io/FDBFileHandle.h"
-#if defined(LUSTREAPI_FOUND)
 #include "fdb5/io/LustreFileHandle.h"
-#endif
 
 #include "fdb5/toc/TocDBWriter.h"
 #include "fdb5/toc/TocIndex.h"
@@ -141,13 +139,27 @@ void TocDBWriter::closeDataHandles() {
     handles_.clear();
 }
 
+static bool stripeLustre() {
+    static bool dataLustreStripeHandle = eckit::Resource<bool>("fdbDataLustreStripeHandle;$FDB5_DATA_LUSTRE_STRIPE_HANDLE", false);
+    return dataLustreStripeHandle;
+}
+
+static LustreStripe stripeLustreSettings() {
+
+    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB5_DATA_LUSTRE_STRIPE_COUNT", 8);
+    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB5_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
+
+    return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
+}
+
+
 eckit::DataHandle *TocDBWriter::createFileHandle(const eckit::PathName &path) {
 
     static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
 
-#if defined(LUSTREAPI_FOUND)
-    return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer);
-#endif
+    if(stripeLustre()) {
+        return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeLustreSettings());
+    }
 
     return new FDBFileHandle(path, sizeBuffer);
 }
@@ -157,9 +169,9 @@ eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
     static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
     static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
 
-#if defined(LUSTREAPI_FOUND)
-    return new LustreFileHandle<eckit::AIOHandle>(path, sizeBuffer);
-#endif
+    if(stripeLustre()) {
+        return new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeLustreSettings());
+    }
 
     return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
 }
