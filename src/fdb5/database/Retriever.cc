@@ -8,42 +8,44 @@
  * does it submit to any jurisdiction.
  */
 
-
-#include "fdb5/io/HandleGatherer.h"
-#include "fdb5/config/MasterConfig.h"
 #include "fdb5/database/Retriever.h"
-#include "fdb5/database/RetrieveVisitor.h"
-#include "fdb5/rules/Schema.h"
-#include "fdb5/database/NotifyWind.h"
+
+#include "eckit/config/Resource.h"
 #include "eckit/log/Plural.h"
 
-#include "marslib/MarsTask.h"
+#include "fdb5/config/MasterConfig.h"
+#include "fdb5/database/NotifyWind.h"
+#include "fdb5/database/MultiRetrieveVisitor.h"
+#include "fdb5/io/HandleGatherer.h"
+#include "fdb5/rules/Schema.h"
 
+#include "marslib/MarsTask.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Retriever::Retriever() {
+static void purgeDB(Key& key, DB*& db) {
+    Log::debug() << "Purging DB with key " << key << std::endl;
+    delete db;
+}
+
+Retriever::Retriever() :
+    schema_(MasterConfig::instance().schema()),
+    databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeDB) {
 }
 
 Retriever::~Retriever() {
 }
 
-eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const Schema &schema, bool sorted) const {
+eckit::DataHandle *Retriever::retrieve(const MarsTask &task,
+                                       const Schema &schema,
+                                       bool sorted,
+                                       const fdb5::NotifyWind &notifyee) const {
+
     HandleGatherer result(sorted);
-
-    class NotifyClient : public NotifyWind {
-        const MarsTask& task_;
-        virtual void notifyWind() const {
-            task_.notifyWinds();
-        }
-    public:
-        NotifyClient(const MarsTask& task): task_(task) {}
-    };
-
-    RetrieveVisitor visitor(NotifyClient(task), result);
-    schema.expand(task.request(), visitor);
+    MultiRetrieveVisitor visitor(notifyee, result, databases_);
+    schema_.expand(task.request(), visitor);
 
     eckit::Log::userInfo() << "Retrieving " << eckit::Plural(result.count(), "field") << std::endl;
 
@@ -51,12 +53,20 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const Schema &schem
 }
 
 eckit::DataHandle *Retriever::retrieve(const MarsTask &task) const {
-    // Log::info() << std::endl
-    //             << "---------------------------------------------------------------------------------------------------"
-    //             << std::endl
-    //             << std::endl
-    //             << *this
-    //             << std::endl;
+
+    class NotifyClient : public NotifyWind {
+        const MarsTask &task_;
+        virtual void notifyWind() const { task_.notifyWinds(); }
+
+      public:
+        NotifyClient(const MarsTask &task) : task_(task) {}
+    };
+
+    NotifyClient wind(task);
+    return retrieve(task, wind);
+}
+
+eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const NotifyWind& notifyee) const {
 
     bool sorted = false;
     std::vector<std::string> sort;
@@ -67,20 +77,18 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task) const {
         eckit::Log::userInfo() << "Using optimise" << std::endl;
     }
 
-    const Schema &schema = MasterConfig::instance().schema();
-
     // TODO: this logic does not work if a retrieval spans several
     // databases with different schemas. Another SchemaHasChanged will be thrown.
     try {
 
-        return retrieve(task, schema, sorted);
+        return retrieve(task, schema_, sorted, notifyee);
 
     } catch (SchemaHasChanged &e) {
 
         eckit::Log::error() << e.what() << std::endl;
         eckit::Log::error() << "Trying with old schema: " << e.path() << std::endl;
 
-        return retrieve(task, Schema(e.path()), sorted);
+        return retrieve(task, Schema(e.path()), sorted, notifyee);
     }
 
 }

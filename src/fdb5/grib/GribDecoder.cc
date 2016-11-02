@@ -13,6 +13,7 @@
 
 #include "grib_api.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "marslib/EmosFile.h"
@@ -24,6 +25,7 @@
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+
 static eckit::Mutex local_mutex;
 
 GribDecoder::GribDecoder(bool checkDuplicates):
@@ -42,13 +44,17 @@ public:
 
 size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
 
+    static std::string gribToRequestNamespace = eckit::Resource<std::string>("gribToRequestNamespace", "mars");
+
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
     size_t len;
 
-    if ( (len = file.readSome(buffer_)) ) {
-        ASSERT(len < buffer_.size());
+    /// @todo this code should be factored out into metkit
 
+    if((len = file.readSome(buffer_))) {
+
+        ASSERT(len < buffer_.size());
 
         const char *p = buffer_ + len - 4;
 
@@ -61,8 +67,8 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
 
         patch(h);
 
-        char mars_str [] = "mars";
-        grib_keys_iterator *ks = grib_keys_iterator_new(h, GRIB_KEYS_ITERATOR_ALL_KEYS, mars_str);
+
+        grib_keys_iterator *ks = grib_keys_iterator_new(h, GRIB_KEYS_ITERATOR_ALL_KEYS, gribToRequestNamespace.c_str());
         ASSERT(ks);
 
         while (grib_keys_iterator_next(ks)) {

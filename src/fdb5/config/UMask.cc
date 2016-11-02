@@ -10,7 +10,7 @@
 
 #include "fdb5/config/UMask.h"
 
-#include "eckit/runtime/Context.h"
+#include "eckit/runtime/Main.h"
 #include "eckit/config/ResourceMgr.h"
 #include "eckit/config/Resource.h"
 

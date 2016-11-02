@@ -8,19 +8,19 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   RetrieveVisitor.h
+/// @file   MultiRetrieveVisitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   Mar 2016
+/// @date   October 2016
 
-#ifndef fdb5_RetrieveVisitor_H
-#define fdb5_RetrieveVisitor_H
+#ifndef fdb5_MultiRetrieveVisitor_H
+#define fdb5_MultiRetrieveVisitor_H
 
+#include <string>
 
 #include "fdb5/database/ReadVisitor.h"
-#include "eckit/memory/ScopedPtr.h"
 
-
+#include "eckit/container/CacheLRU.h"
 
 namespace fdb5 {
 
@@ -31,14 +31,13 @@ class DB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class RetrieveVisitor : public ReadVisitor {
+class MultiRetrieveVisitor : public ReadVisitor {
 
 public: // methods
 
-    RetrieveVisitor(const NotifyWind &wind, HandleGatherer &gatherer);
+    MultiRetrieveVisitor(const NotifyWind& wind, HandleGatherer& gatherer, eckit::CacheLRU<Key,DB*>& databases);
 
-    ~RetrieveVisitor();
-
+    ~MultiRetrieveVisitor();
 
 private:  // methods
 
@@ -59,14 +58,15 @@ private:  // methods
 
 private:
 
-    const NotifyWind &wind_;
+    DB* db_;
 
-    eckit::ScopedPtr<DB> db_;
+    const NotifyWind& wind_;
+
+    eckit::CacheLRU< Key,DB*>& databases_;
 
     std::string fdbReaderDB_;
+
     HandleGatherer &gatherer_;
-
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
