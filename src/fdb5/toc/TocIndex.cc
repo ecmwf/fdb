@@ -20,7 +20,7 @@ class TocIndexCloser {
     bool opened_;
     const TocIndex &index_;
 public:
-    TocIndexCloser(const TocIndex &index): index_(index), opened_(index.btree_) {
+    TocIndexCloser(const TocIndex &index): opened_(index.btree_), index_(index) {
         if (!opened_) {
             const_cast<TocIndex&>(index_).open();
         }
@@ -34,21 +34,33 @@ public:
 
 //-----------------------------------------------------------------------------
 
-TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string& type ) :
-    Index(key, path, offset, mode, type),
+TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
+    Index(key, type),
     btree_( 0 ),
-    dirty_(false) {
-}
+    dirty_(false),
+    mode_(mode),
+    location_(path, offset),
+    files_(path.dirName()) {}
 
 TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
-    Index(s, directory, path, offset),
+    Index(s),
     btree_(0),
-    dirty_(false) {
-
-}
+    dirty_(false),
+    mode_(TocIndex::READ),
+    location_(path, offset),
+    files_(directory, s) {}
 
 TocIndex::~TocIndex() {
 }
+
+void TocIndex::encode(eckit::Stream &s) const {
+    files_.encode(s);
+    axes_.encode(s);
+    s << key_;
+    s << prefix_;
+    s << type_;
+}
+
 
 bool TocIndex::get(const Key &key, Field &field) const {
     ASSERT(btree_);
@@ -67,7 +79,7 @@ bool TocIndex::get(const Key &key, Field &field) const {
 
 void TocIndex::open() {
     if (!btree_) {
-        btree_.reset(IndexFactory::build(type_, path_, mode_ == Index::READ, offset_));
+        btree_.reset(IndexFactory::build(type_, location_.path_, mode_ == TocIndex::READ, location_.offset_));
     }
 }
 
@@ -76,7 +88,7 @@ void TocIndex::reopen() {
 
     // Create a new btree at the end of this one
 
-    offset_ = path_.size();
+    location_.offset_ = location_.path_.size();
 
     open();
 }
@@ -87,7 +99,7 @@ void TocIndex::close() {
 
 void TocIndex::add(const Key &key, const Field &field) {
     ASSERT(btree_);
-    ASSERT( mode_ == Index::WRITE );
+    ASSERT( mode_ == TocIndex::WRITE );
 
     FieldRef ref(files_, field);
 
@@ -99,7 +111,7 @@ void TocIndex::add(const Key &key, const Field &field) {
 }
 
 void TocIndex::flush() {
-    ASSERT( mode_ == Index::WRITE );
+    ASSERT( mode_ == TocIndex::WRITE );
 
     if (dirty_) {
         ASSERT(btree_);
@@ -107,6 +119,12 @@ void TocIndex::flush() {
         dirty_ = false;
     }
 }
+
+
+void TocIndex::visitLocation(IndexLocationVisitor &visitor) const {
+    visitor(location_);
+}
+
 
 class TocIndexVisitor : public BTreeIndexVisitor {
     const Index& index_;
@@ -137,7 +155,7 @@ void TocIndex::entries(EntryVisitor &visitor) const {
 }
 
 void TocIndex::print(std::ostream &out) const {
-    out << "TocIndex[path=" << path_ << ",offset="<< offset_ << "]";
+    out << "TocIndex[path=" << location_.path_ << ",offset="<< location_.offset_ << "]";
 }
 
 
@@ -145,8 +163,13 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-void TocIndex::dump(std::ostream& out, const char* indent, bool simple) const {
-    Index::dump(out, indent, simple);
+void TocIndex::dump(std::ostream &out, const char* indent, bool simple) const {
+    out << indent << "Prefix: " << prefix_ << ", key: " << key_;
+    if(!simple) {
+        out << std::endl;
+        files_.dump(out, indent);
+        axes_.dump(out, indent);
+    }
 }
 
 

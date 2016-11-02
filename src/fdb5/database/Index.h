@@ -38,6 +38,7 @@ namespace fdb5 {
 
 class Key;
 class Index;
+class IndexLocationVisitor;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -53,15 +54,10 @@ class EntryVisitor : private eckit::NonCopyable {
 
 class Index : private eckit::NonCopyable {
 
-  public: // types
-
-    enum Mode { WRITE, READ };
-
   public: // methods
 
-
-    Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string &type );
-    Index(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
+    Index(const Key& key, const std::string& type);
+    Index(eckit::Stream& s);
     virtual ~Index();
 
     virtual void open() = 0;
@@ -69,8 +65,10 @@ class Index : private eckit::NonCopyable {
     virtual void close() = 0;
     virtual void flush() = 0;
 
-    const eckit::PathName &path() const ;
-    off_t offset() const ;
+    virtual void visitLocation(IndexLocationVisitor& visitor) const = 0;
+
+//    const eckit::PathName &path() const ;
+//    off_t offset() const ;
     const std::string &type() const ;
 
     const IndexAxis &axes() const ;
@@ -78,9 +76,9 @@ class Index : private eckit::NonCopyable {
 
     virtual bool get(const Key &key, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);
-    virtual void encode(eckit::Stream &s) const;
+    virtual void encode(eckit::Stream &s) const = 0;
     virtual void entries(EntryVisitor &visitor) const = 0;
-    virtual void dump(std::ostream &out, const char* indent, bool simple = false) const;
+    virtual void dump(std::ostream &out, const char* indent, bool simple = false) const = 0;
 
   private: // methods
 
@@ -89,13 +87,9 @@ class Index : private eckit::NonCopyable {
 
   protected: // members
 
-    const Mode            mode_;
-    const eckit::PathName path_;
-    off_t           offset_;
     std::string type_;
 
     // Order is important here...
-    FileStore   files_;
     IndexAxis   axes_;
     const Key key_;             ///< key that selected this index
     std::string prefix_;

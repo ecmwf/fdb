@@ -62,7 +62,11 @@ void PMemDB::archive(const Key &key, const void *data, Length length) {
     ASSERT(currentIndex_ != 0);
 
     Log::error() << "key: " << key << ", len: " << length << std::endl;
-    currentIndex_->createDataNode(key, data, length, dataPoolMgr_);
+
+    NOTIMP;
+//    Field field(dataPoolMgr_.createDataNode(data, length));
+
+//    currentIndex_->put(key, field);
 }
 
 eckit::DataHandle * PMemDB::retrieve(const Key &key) const {

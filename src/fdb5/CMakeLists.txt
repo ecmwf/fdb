@@ -70,6 +70,8 @@ list( APPEND fdb5_srcs
     database/Indexer.h
     database/Index.cc
     database/Index.h
+    database/IndexLocation.cc
+    database/IndexLocation.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc
@@ -154,6 +156,8 @@ list( APPEND fdb5_srcs
     toc/TocHandler.h
     toc/TocIndex.cc
     toc/TocIndex.h
+    toc/TocIndexLocation.cc
+    toc/TocIndexLocation.h
     toc/TocRecord.cc
     toc/TocRecord.h
     tools/FDBAccess.cc

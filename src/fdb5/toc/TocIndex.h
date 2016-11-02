@@ -26,6 +26,7 @@
 #include "eckit/types/FixedString.h"
 
 #include "fdb5/database/Index.h"
+#include "fdb5/toc/TocIndexLocation.h"
 
 namespace fdb5 {
 
@@ -37,13 +38,14 @@ class TocIndex : public Index {
 
 public: // types
 
+    enum Mode { WRITE, READ };
 
 public: // methods
 
     TocIndex(const Key &key,
              const eckit::PathName &path,
              off_t offset,
-             Index::Mode mode,
+             Mode mode,
              const std::string& type = defaulType());
 
     TocIndex(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
@@ -58,9 +60,12 @@ private: // methods
     virtual void close();
     virtual void reopen();
 
+    virtual void visitLocation(IndexLocationVisitor& visitor) const;
+
     virtual bool get( const Key &key, Field &field ) const;
     virtual void add( const Key &key, const Field &field );
     virtual void flush();
+    virtual void encode(eckit::Stream &s) const;
     virtual void entries(EntryVisitor &visitor) const;
 
     virtual void print( std::ostream &out ) const;
@@ -74,6 +79,11 @@ private: // members
     bool dirty_;
 
     friend class TocIndexCloser;
+
+    const TocIndex::Mode mode_;
+
+    TocIndexLocation location_;
+    FileStore files_;
 
 };
 

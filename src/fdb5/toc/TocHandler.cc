@@ -48,10 +48,10 @@ class TocHandlerCloser {
 
 TocHandler::TocHandler(const eckit::PathName &directory) :
     directory_(directory),
-    tocPath_(directory / "toc"),
-    schemaPath_(directory / "schema"),
     dbUID_(-1),
     userUID_(::getuid()),
+    tocPath_(directory / "toc"),
+    schemaPath_(directory / "schema"),
     fd_(-1),
     count_(0) {
 }
@@ -219,30 +219,59 @@ void TocHandler::writeClearRecord(const Index &index) {
     openForAppend();
     TocHandlerCloser closer(*this);
 
-    TocRecord r( TocRecord::TOC_CLEAR );
-    eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
-    s << index.path().baseName();
-    s << index.offset();
-    append(r, s.position());
 
-    eckit::Log::info() << "TOC_CLEAR " << index.path().baseName() << " - " << index.offset() << std::endl;
+    struct WriteToStream : public IndexLocationVisitor {
+        WriteToStream(TocHandler& handler) : handler_(handler) {}
 
+        virtual void operator() (const TocIndexLocation& location) {
+
+            TocRecord r( TocRecord::TOC_CLEAR );
+            eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+
+            s << location.path().baseName();
+            s << location.offset();
+            handler_.append(r, s.position());
+
+            eckit::Log::info() << "TOC_CLEAR " << location.path().baseName() << " - " << location.offset() << std::endl;
+        }
+
+    private:
+        TocHandler& handler_;
+    };
+
+    WriteToStream writeVisitor(*this);
+    index.visitLocation(writeVisitor);
 }
 
 void TocHandler::writeIndexRecord(const Index &index) {
     openForAppend();
     TocHandlerCloser closer(*this);
 
-    TocRecord r( TocRecord::TOC_INDEX );
-    eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
-    s << index.path().baseName();
-    s << index.offset();
-    s << index.type();
+    struct WriteToStream : public IndexLocationVisitor {
+        WriteToStream(const Index& index, TocHandler& handler) : index_(index), handler_(handler) {}
 
-    index.encode(s);
-    append(r, s.position());
+        virtual void operator() (const TocIndexLocation& location) {
 
-    eckit::Log::info() << "TOC_INDEX " << index.path().baseName() << " - " << index.offset() << " " << index.type() << std::endl;
+            TocRecord r( TocRecord::TOC_INDEX );
+            eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+
+            s << location.path().baseName();
+            s << location.offset();
+            s << index_.type();
+
+            index_.encode(s);
+            handler_.append(r, s.position());
+
+            eckit::Log::info() << "TOC_INDEX " << location.path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
+        }
+
+    private:
+        const Index& index_;
+        TocHandler& handler_;
+    };
+
+    WriteToStream writeVisitor(index, *this);
+    index.visitLocation(writeVisitor);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -253,7 +282,11 @@ class HasPath {
   public:
     HasPath(const eckit::PathName &path, off_t offset): path_(path), offset_(offset) {}
     bool operator()(const Index *index) const {
-        return (index->path() == path_) && (index->offset() == offset_);
+
+        IndexPathOffsetGetter getter;
+        index->visitLocation(getter);
+
+        return (getter.path() == path_) && (getter.offset() == offset_);
     }
 };
 

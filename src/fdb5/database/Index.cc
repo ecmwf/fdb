@@ -14,34 +14,18 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Index::Index(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset) :
-    mode_(Index::READ),
-    path_(path),
-    offset_(offset),
-    files_(directory, s),
+Index::Index(const Key& key, const std::string& type) :
+    axes_(),
+    key_(key),
+    prefix_(key.valuesToString()),
+    type_(type) {}
+
+
+Index::Index(eckit::Stream& s) :
     axes_(s),
     key_(s) {
     s >> prefix_;
     s >> type_;
-}
-
-void Index::encode(eckit::Stream &s) const {
-    files_.encode(s);
-    axes_.encode(s);
-    s << key_;
-    s << prefix_;
-    s << type_;
-}
-
-Index::Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string &type ) :
-    mode_(mode),
-    path_(path),
-    offset_(offset),
-    type_(type),
-    files_(path.dirName()),
-    axes_(),
-    key_(key),
-    prefix_(key.valuesToString()) {
 }
 
 Index::~Index() {
@@ -66,27 +50,11 @@ const std::string &Index::type() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-const eckit::PathName &Index::path() const {
-    return path_;
-}
-
-off_t Index::offset() const {
-    return offset_;
-}
-
 const IndexAxis &Index::axes() const {
     return axes_;
 }
 
 
-void Index::dump(std::ostream &out, const char* indent, bool simple) const {
-    out << indent << "Prefix: " << prefix_ << ", key: " << key_;
-    if(!simple) {
-        out << std::endl;
-        files_.dump(out, indent);
-        axes_.dump(out, indent);
-    }
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 

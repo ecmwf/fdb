@@ -39,7 +39,7 @@ bool TocDBWriter::selectIndex(const Key &key) {
     currentIndexKey_ = key;
 
     if (indexes_.find(key) == indexes_.end()) {
-        indexes_[key] = new TocIndex(key, generateIndexPath(key), 0, Index::WRITE);
+        indexes_[key] = new TocIndex(key, generateIndexPath(key), 0, TocIndex::WRITE);
     }
 
     current_ = indexes_[key];

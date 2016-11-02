@@ -44,8 +44,17 @@ void ReportVisitor::visit(const Index &index,
     ++stats.fieldsCount_;
     stats.fieldsSize_ += field.length();
 
+    // n.b. We use an IndexPathgetter visitor to get the index location out of the Index. This code
+    //      should probably be refactored to be a bit more general. I.e. the different types of
+    //      IndexLocation should possibly know how to present themselves. Needs to work with other
+    //      types of index.
+    // TODO: Fix properly.
+
+    IndexPathOffsetGetter poGetter;
+    index.visitLocation(poGetter);
+
     const eckit::PathName &dataPath = field.path();
-    const eckit::PathName &indexPath = index.path();
+    const eckit::PathName &indexPath = poGetter.path();
 
     if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
         if (dataPath.dirName().sameAs(directory_)) {
