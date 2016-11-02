@@ -10,21 +10,15 @@
 
 #include "mars_server_config.h"
 
-#include "eckit/log/Log.h"
-
-#include "fdb5/LibFdb.h"
-
-extern "C" {
-int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
-}
-
-namespace fdb5 {
-
-int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripecount) {
+#include <stdlib.h>
 
 #if defined(LUSTREAPI_FOUND)
-    return fdb5_lustreapi_file_create(path, stripesize, stripecount);
-#endif
+
+#include <lustre/lustreapi.h>
+
+int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount) {
+
+    return llapi_file_create(path, stripesize, 0, stripecount, LOV_PATTERN_RAID0);
 
     eckit::Log::warning() << "LustreAPI was not found on this system. Creating file with striped information reverts to default system behavior." << std::endl;
 
@@ -33,4 +27,11 @@ int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripeco
     return 0;
 }
 
-} // namespace fdb5
+#else
+
+int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount) {
+    return 0; // this is never called
+}
+
+#endif
+

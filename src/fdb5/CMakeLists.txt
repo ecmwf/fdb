@@ -98,6 +98,7 @@ list( APPEND fdb5_srcs
     grib/GribIndexer.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
+    io/fdb5_lustreapi_file_create.c
     io/LustreFileHandle.cc
     io/LustreFileHandle.h
     io/HandleGatherer.cc

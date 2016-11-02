@@ -24,7 +24,7 @@
 
 namespace fdb5 {
 
-int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
+int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripecount);
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -72,7 +72,7 @@ public: // methods
 
             std::string path = HANDLE::path_;
 
-            int err = fdb5_lustreapi_file_create(path.c_str(), stripe_.size_, stripe_.count_);
+            int err = fdb5LustreapiFileCreate(path.c_str(), stripe_.size_, stripe_.count_);
 
             if(err == EINVAL) {
 
