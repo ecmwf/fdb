@@ -12,6 +12,9 @@
 /// @author Tiago Quintino
 /// @date   Nov 2016
 
+#ifndef fdb5_LibFdb_H
+#define fdb5_LibFdb_H
+
 #include "eckit/system/Library.h"
 
 namespace fdb5 {
@@ -39,3 +42,4 @@ protected:
 
 } // namespace fdb5
 
+#endif

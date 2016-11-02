@@ -19,8 +19,11 @@
 #include "mars_server_config.h"
 
 #include "eckit/io/Length.h"
+#include "eckit/log/Bytes.h"
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
+
+#include "fdb5/LibFdb.h"
 
 namespace fdb5 {
 
@@ -71,6 +74,11 @@ public: // methods
             /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
 
             std::string path = HANDLE::path_;
+
+            eckit::Log::debug<LibFdb>() << "Creating Lustre file " << path
+                                        << " with " << stripe_.count_ << " stripes "
+                                        << "of " << eckit::Bytes(stripe_.size_)
+                                        << std::endl;
 
             int err = fdb5LustreapiFileCreate(path.c_str(), stripe_.size_, stripe_.count_);
 

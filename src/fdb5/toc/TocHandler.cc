@@ -48,10 +48,10 @@ class TocHandlerCloser {
 
 TocHandler::TocHandler(const eckit::PathName &directory) :
     directory_(directory),
-    tocPath_(directory / "toc"),
-    schemaPath_(directory / "schema"),
     dbUID_(-1),
     userUID_(::getuid()),
+    tocPath_(directory / "toc"),
+    schemaPath_(directory / "schema"),
     fd_(-1),
     count_(0) {
 }

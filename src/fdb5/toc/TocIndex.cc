@@ -15,10 +15,13 @@
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
 
 class TocIndexCloser {
-    bool opened_;
+
     const TocIndex &index_;
+    bool opened_;
+
 public:
     TocIndexCloser(const TocIndex &index): index_(index), opened_(index.btree_) {
         if (!opened_) {
@@ -32,7 +35,7 @@ public:
     }
 };
 
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string& type ) :
     Index(key, path, offset, mode, type),
