@@ -20,11 +20,6 @@ int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t strip
 
     return llapi_file_create(path, stripesize, 0, stripecount, LOV_PATTERN_RAID0);
 
-    eckit::Log::warning() << "LustreAPI was not found on this system. Creating file with striped information reverts to default system behavior." << std::endl;
-
-    // will not create here, since openForAppend will call correct handle
-
-    return 0;
 }
 
 #else
