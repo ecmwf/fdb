@@ -33,7 +33,7 @@ public:
 
     // -- Contructors
 
-    FDBFileHandle(const std::string &, size_t buffer);
+    FDBFileHandle(const std::string&, size_t buffer);
 
     // -- Destructor
 
@@ -58,9 +58,12 @@ public:
     virtual eckit::Offset position();
     virtual std::string title() const;
 
+protected: // members
+
+    std::string      path_;
+
 private: // members
 
-    std::string      name_;
     FILE            *file_;
     eckit::Buffer    buffer_;
 

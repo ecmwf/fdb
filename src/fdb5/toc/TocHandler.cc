@@ -48,10 +48,10 @@ class TocHandlerCloser {
 
 TocHandler::TocHandler(const eckit::PathName &directory) :
     directory_(directory),
-    tocPath_(directory / "toc"),
-    schemaPath_(directory / "schema"),
     dbUID_(-1),
     userUID_(::getuid()),
+    tocPath_(directory / "toc"),
+    schemaPath_(directory / "schema"),
     fd_(-1),
     count_(0) {
 }
@@ -71,7 +71,7 @@ void TocHandler::checkUID() {
         return;
     }
 
-    static std::vector<std::string> fdbSuperUsers = eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);;
+    static std::vector<std::string> fdbSuperUsers = eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);
 
     if (dbUID() != userUID_) {
 

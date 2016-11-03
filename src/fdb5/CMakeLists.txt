@@ -44,7 +44,9 @@ endif()
 # fdb5 library
 
 list( APPEND fdb5_srcs
-    config/MasterConfig.cc
+	LibFdb.h
+	LibFdb.cc
+	config/MasterConfig.cc
     config/MasterConfig.h
     config/UMask.cc
     config/UMask.h
@@ -82,6 +84,8 @@ list( APPEND fdb5_srcs
     database/Retriever.h
     database/RetrieveVisitor.cc
     database/RetrieveVisitor.h
+    database/MultiRetrieveVisitor.cc
+    database/MultiRetrieveVisitor.h
     database/WriteVisitor.cc
     database/WriteVisitor.h
     database/NotifyWind.cc
@@ -94,6 +98,9 @@ list( APPEND fdb5_srcs
     grib/GribIndexer.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
+    io/fdb5_lustreapi_file_create.c
+    io/LustreFileHandle.cc
+    io/LustreFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
     legacy/FDBIndexScanner.cc
@@ -144,6 +151,8 @@ list( APPEND fdb5_srcs
     toc/FileSpaceHandler.h
     toc/FileSpace.cc
     toc/FileSpace.h
+    toc/ExpverFileSpaceHandler.cc
+    toc/ExpverFileSpaceHandler.h
     toc/RootManager.cc
     toc/RootManager.h
     toc/TocDBReader.cc
@@ -217,7 +226,8 @@ ecbuild_add_library(
         ${INSTALL_INCLUDE_DIR}/fdb5
 
     PRIVATE_INCLUDES
-        ${GRIB_API_INCLUDE_DIRS}
+        "${GRIB_API_INCLUDE_DIRS}"
+		"${LUSTREAPI_INCLUDE_DIRS}"
 
     LIBS
         Mars
@@ -225,6 +235,7 @@ ecbuild_add_library(
         eckit
         eckit_option
         ${grib_handling_pkg}
+		${LUSTREAPI_LIBRARIES}
 )
 
 list( APPEND fdb5_scripts fdb grib2fdb fdb-which )

@@ -8,29 +8,38 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/config/UMask.h"
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
+/// @date   Nov 2016
 
-#include "eckit/runtime/Main.h"
-#include "eckit/config/ResourceMgr.h"
-#include "eckit/config/Resource.h"
+#ifndef fdb5_LibFdb_H
+#define fdb5_LibFdb_H
+
+#include "eckit/system/Library.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-UMask::UMask(mode_t mode):
-    save_(umask(mode)) {
-}
+class LibFdb : public eckit::system::Library {
+public:
 
-UMask::~UMask() {
-    umask(save_);
-}
+    LibFdb();
 
-mode_t UMask::defaultUMask() {
-    static long fdbDefaultUMask = eckit::Resource<long>("fdbDefaultUMask", 0);
-    return fdbDefaultUMask;
-}
+    static const LibFdb& instance();
+
+protected:
+
+    const void* addr() const;
+
+    virtual std::string version() const;
+
+    virtual std::string gitsha1(unsigned int count) const;
+
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
+
+#endif

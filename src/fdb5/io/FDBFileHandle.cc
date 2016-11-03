@@ -17,11 +17,11 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 void FDBFileHandle::print(std::ostream &s) const {
-    s << "FDBFileHandle[file=" << name_ << ']';
+    s << "FDBFileHandle[file=" << path_ << ']';
 }
 
 FDBFileHandle::FDBFileHandle(const std::string &name, size_t buffer):
-    name_(name),
+    path_(name),
     file_(0),
     buffer_(buffer) {
 }
@@ -38,9 +38,9 @@ void FDBFileHandle::openForWrite(const Length &length) {
 }
 
 void FDBFileHandle::openForAppend(const Length &) {
-    file_ = fopen(name_.c_str(), "a");
+    file_ = fopen(path_.c_str(), "a");
     if (!file_) {
-        throw eckit::CantOpenFile(name_);
+        throw eckit::CantOpenFile(path_);
     }
 
     SYSCALL(::setvbuf(file_, buffer_, _IOFBF, buffer_.size()));
@@ -56,7 +56,7 @@ long FDBFileHandle::write(const void *buffer, long length) {
     long written = ::fwrite(buffer, 1, length, file_);
 
     if (written != length) {
-        throw eckit::WriteError(name_);
+        throw eckit::WriteError(path_);
     }
 
     return written;
@@ -65,7 +65,7 @@ long FDBFileHandle::write(const void *buffer, long length) {
 void FDBFileHandle::flush() {
     if (file_) {
         if (::fflush(file_))
-            throw WriteError(std::string("FDBFileHandle::~FDBFileHandle(fflush(") + name_ + "))");
+            throw WriteError(std::string("FDBFileHandle::~FDBFileHandle(fflush(") + path_ + "))");
     }
 }
 
@@ -85,7 +85,7 @@ Offset FDBFileHandle::position() {
 }
 
 std::string FDBFileHandle::title() const {
-    return PathName::shorten(name_);
+    return PathName::shorten(path_);
 }
 
 

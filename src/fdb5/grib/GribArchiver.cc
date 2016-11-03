@@ -65,8 +65,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
             eckit::Log::error() << "Exception recieved. Completing transfer." << std::endl;
             // Consume rest of datahandle otherwise client retries for ever
             eckit::Buffer buffer(80 * 1024 * 1024);
-            while ( (len = file.readSome(buffer)) )
-                /* empty */;
+            while ( (len = size_t( file.readSome(buffer)) ) ) { /* empty */ }
         }
         throw;
     }

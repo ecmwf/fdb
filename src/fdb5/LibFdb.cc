@@ -8,29 +8,44 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/config/UMask.h"
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
+/// @date   Nov 2016
 
-#include "eckit/runtime/Main.h"
-#include "eckit/config/ResourceMgr.h"
-#include "eckit/config/Resource.h"
+#include <algorithm>
+#include <string>
+
+#include "fdb5/LibFdb.h"
+
+#include "mars_server_version.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-UMask::UMask(mode_t mode):
-    save_(umask(mode)) {
+static LibFdb libfdb;
+
+LibFdb::LibFdb() : Library("fdb") {}
+
+const LibFdb& LibFdb::instance()
+{
+    return libfdb;
 }
 
-UMask::~UMask() {
-    umask(save_);
-}
+const void* LibFdb::addr() const { return this; }
 
-mode_t UMask::defaultUMask() {
-    static long fdbDefaultUMask = eckit::Resource<long>("fdbDefaultUMask", 0);
-    return fdbDefaultUMask;
+std::string LibFdb::version() const { return mars_server_version_str(); }
+
+std::string LibFdb::gitsha1(unsigned int count) const {
+    std::string sha1(mars_server_git_sha1());
+    if(sha1.empty()) {
+        return "not available";
+    }
+
+    return sha1.substr(0,std::min(count,40u));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
+

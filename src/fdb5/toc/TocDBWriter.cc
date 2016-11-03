@@ -8,14 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
+#include "mars_server_config.h"
 
 #include "eckit/config/Resource.h"
+#include "eckit/log/Log.h"
+#include "eckit/log/Bytes.h"
 #include "eckit/io/AIOHandle.h"
 
-#include "fdb5/toc/TocDBWriter.h"
-#include "fdb5/io/FDBFileHandle.h"
-#include "fdb5/toc/TocIndex.h"
+#include "fdb5/LibFdb.h"
 
+#include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/io/LustreFileHandle.h"
+
+#include "fdb5/toc/TocDBWriter.h"
+#include "fdb5/toc/TocIndex.h"
 
 namespace fdb5 {
 
@@ -137,14 +143,54 @@ void TocDBWriter::closeDataHandles() {
     handles_.clear();
 }
 
+static bool stripeLustre() {
+    static bool dataLustreStripeHandle = eckit::Resource<bool>("fdbDataLustreStripeHandle;$FDB5_DATA_LUSTRE_STRIPE_HANDLE", false);
+    return dataLustreStripeHandle;
+}
+
+static LustreStripe stripeLustreSettings() {
+
+    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB5_DATA_LUSTRE_STRIPE_COUNT", 8);
+    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB5_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
+
+    return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
+}
+
+
 eckit::DataHandle *TocDBWriter::createFileHandle(const eckit::PathName &path) {
+
     static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
+
+    if(stripeLustre()) {
+
+        eckit::Log::debug<LibFdb>() << "Creating LustreFileHandle<FDBFileHandle> to " << path
+                                    << " buffer size " << sizeBuffer
+                                    << std::endl;
+
+        return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeLustreSettings());
+    }
+
+    eckit::Log::debug<LibFdb>() << "Creating FDBFileHandle to " << path
+                                << " with buffer of " << eckit::Bytes(sizeBuffer)
+                                << std::endl;
+
     return new FDBFileHandle(path, sizeBuffer);
 }
 
 eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
+
     static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
     static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
+
+    if(stripeLustre()) {
+
+        eckit::Log::debug<LibFdb>() << "Creating LustreFileHandle<AIOHandle> to " << path
+                                    << " with " << nbBuffers
+                                    << " buffer each with " << eckit::Bytes(sizeBuffer)
+                                    << std::endl;
+
+        return new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeLustreSettings());
+    }
 
     return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
 }

@@ -77,7 +77,7 @@ endif()
 ecbuild_add_option( FEATURE MARS2MARS
                     DEFAULT OFF
                     DESCRIPTION "Support direct archiving from another mars instance"
-                    REQUIRED_PACKAGES "PROJECT marskit  VERSION 0.2" )
+                    REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
 
 ### ODB support
 
@@ -118,7 +118,7 @@ ecbuild_add_option( FEATURE MARS_SERVER
 ecbuild_add_option( FEATURE POINTDB
                     DEFAULT ON
                     DESCRIPTION "Whether or not to build the PointDB -- [EXPERIMENTAL]"
-                    REQUIRED_PACKAGES "PROJECT gribpp VERSION 0.2" )
+                    REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
 
 ### fdb
 
@@ -148,6 +148,8 @@ ecbuild_add_option( FEATURE SANDBOX
 find_package( HPSS QUIET )
 
 find_package( ADSM QUIET )
+
+find_package( LustreAPI QUIET )
 
 # find thread library ( preferably pthreads )
 
