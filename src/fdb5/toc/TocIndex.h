@@ -34,7 +34,23 @@ namespace fdb5 {
 
 class BTreeIndex;
 
-class TocIndex : public Index {
+
+/// FileStoreWrapper exists _only_ so that the files_ member can be initialised from the stream
+/// before the Index base class is initialised, for the TocIndex class. This order is required
+/// to preserve the order that data is stored/read from streams from before the files_ object
+/// was moved into the TocIndex class.
+
+struct FileStoreWrapper {
+
+    FileStoreWrapper(const eckit::PathName& directory) : files_(directory) {}
+    FileStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : files_(directory, s) {}
+
+    FileStore files_;
+};
+
+// --
+
+class TocIndex : private FileStoreWrapper, public Index {
 
 public: // types
 
@@ -83,8 +99,6 @@ private: // members
     const TocIndex::Mode mode_;
 
     TocIndexLocation location_;
-    FileStore files_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -34,21 +34,27 @@ public:
 
 //-----------------------------------------------------------------------------
 
+/// @note We use a FileStoreWrapper base that only exists to initialise the files_ member function
+///       before the Index constructor is called. This is necessary as due to (preexisting)
+///       serialisation ordering, the files_ member needs to be initialised from a Stream
+///       before the prefix_ and type_ members of Index, but Indexs WILL be constructed before
+///       the members of TocIndex
+
 TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
+    FileStoreWrapper(path.dirName()),
     Index(key, type),
     btree_( 0 ),
     dirty_(false),
     mode_(mode),
-    location_(path, offset),
-    files_(path.dirName()) {}
+    location_(path, offset) {}
 
 TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
+    FileStoreWrapper(directory, s),
     Index(s),
     btree_(0),
     dirty_(false),
     mode_(TocIndex::READ),
-    location_(path, offset),
-    files_(directory, s) {}
+    location_(path, offset) {}
 
 TocIndex::~TocIndex() {
 }
