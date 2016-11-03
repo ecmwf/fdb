@@ -230,8 +230,12 @@ if( HAVE_PMEMFDB )
         pmem/PMemDB.h
         pmem/PMemDBWriter.cc
         pmem/PMemDBWriter.h
+        pmem/PMemFieldLocation.cc
+        pmem/PMemFieldLocation.h
         pmem/PMemIndex.cc
         pmem/PMemIndex.h
+        pmem/PMemIndexLocation.cc
+        pmem/PMemIndexLocation.h
         pmem/PRoot.cc
         pmem/PRoot.h
         pmem/Pool.cc

@@ -12,14 +12,15 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb5_PMemIndex_H
-#define fdb5_PMemIndex_H
+#ifndef fdb5_pmem_PMemIndex_H
+#define fdb5_pmem_PMemIndex_H
 
 #include "eckit/eckit.h"
 
 #include "fdb5/database/Index.h"
 
 namespace fdb5 {
+namespace pmem {
 
 class PMemBranchingNode;
 
@@ -59,6 +60,7 @@ class PMemBranchingNode;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace fdb5
 
 #endif

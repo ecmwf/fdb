@@ -26,6 +26,7 @@ class IndexLocation {
 //----------------------------------------------------------------------------------------------------------------------
 
 class TocIndexLocation;
+class PMemIndexLocation;
 
 class IndexLocationVisitor {
 
@@ -34,6 +35,7 @@ public: // methods
     /// These are base methods (with default behaviour) for a visitor-pattern dispatch
     virtual void operator() (const IndexLocation& location);
     virtual void operator() (const TocIndexLocation& location);
+    virtual void operator() (const PMemIndexLocation& location);
 
 };
 

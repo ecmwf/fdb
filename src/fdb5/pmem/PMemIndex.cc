@@ -12,6 +12,7 @@
 #include "fdb5/pmem/PBranchingNode.h"
 
 namespace fdb5 {
+namespace pmem {
 
 
 //-----------------------------------------------------------------------------
@@ -70,4 +71,5 @@ namespace fdb5 {
 
 //-----------------------------------------------------------------------------
 
+} // namespace pmem
 } // namespace fdb5
