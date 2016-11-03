@@ -10,9 +10,23 @@
 
 #include "mars_server_config.h"
 
+#include <stdlib.h>
+
+#if defined(LUSTREAPI_FOUND)
+
 #include <lustre/lustreapi.h>
 
 int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount) {
 
     return llapi_file_create(path, stripesize, 0, stripecount, LOV_PATTERN_RAID0);
+
 }
+
+#else
+
+int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount) {
+    return 0; // this is never called
+}
+
+#endif
+

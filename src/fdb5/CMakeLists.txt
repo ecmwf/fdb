@@ -44,7 +44,9 @@ endif()
 # fdb5 library
 
 list( APPEND fdb5_srcs
-    config/MasterConfig.cc
+	LibFdb.h
+	LibFdb.cc
+	config/MasterConfig.cc
     config/MasterConfig.h
     config/UMask.cc
     config/UMask.h
@@ -96,6 +98,9 @@ list( APPEND fdb5_srcs
     grib/GribIndexer.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
+    io/fdb5_lustreapi_file_create.c
+    io/LustreFileHandle.cc
+    io/LustreFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
     legacy/FDBIndexScanner.cc
@@ -207,10 +212,6 @@ list( APPEND fdb5_srcs
     types/TypeTime.cc
     types/TypeTime.h
 )
-
-if(LUSTREAPI_FOUND)
-    list( APPEND fdb5_srcs io/LustreFileHandle.h io/LustreFileHandle.c )
-endif()
 
 ecbuild_add_library(
 
