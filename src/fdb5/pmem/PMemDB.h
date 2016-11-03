@@ -65,7 +65,7 @@ private: // methods
 
 protected: // types
 
-    typedef std::map<Key, Index> IndexStore;
+    typedef std::map<Key, Index*> IndexStore;
 
 protected: // members
 
@@ -77,9 +77,8 @@ protected: // members
 
     DataPoolManager dataPoolMgr_;
 
-//    IndexStore  indexes_;
-//    Index* currentIndex_;
-    PBranchingNode* currentIndex_;
+    IndexStore  indexes_;
+    Index* currentIndex_;
 
 //    Schema schema_;
 };

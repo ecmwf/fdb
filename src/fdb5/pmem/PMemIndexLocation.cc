@@ -22,12 +22,12 @@ namespace pmem {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemIndexLocation::PMemIndexLocation(const ::pmem::PersistentPtr<PBranchingNode>& node) :
+PMemIndexLocation::PMemIndexLocation(PBranchingNode& node) :
     node_(node) {}
 
 
 PBranchingNode& PMemIndexLocation::node() const {
-    return *node_;
+    return node_;
 }
 
 

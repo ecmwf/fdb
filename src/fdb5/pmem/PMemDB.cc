@@ -83,11 +83,11 @@ void PMemDB::close() {
 
     // Close any open indices
 
-    //for (IndexStore::iterator it = indices_.begin(); it != indices_.end(); ++it) {
-    //    Index* idx = it->second;
-    //    idx->close();
-    //    delete idx;
-    //}
+    for (IndexStore::iterator it = indexes_.begin(); it != indexes_.end(); ++it) {
+        Index* idx = it->second;
+        idx->close();
+        delete idx;
+    }
 }
 
 void PMemDB::checkSchema(const Key &key) const {

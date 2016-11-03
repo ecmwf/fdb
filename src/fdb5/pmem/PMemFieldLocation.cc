@@ -18,16 +18,16 @@ namespace pmem {
 PMemFieldLocation::PMemFieldLocation() {
 }
 
-PMemFieldLocation::PMemFieldLocation(const TocFieldLocation& rhs) :
+PMemFieldLocation::PMemFieldLocation(const PMemFieldLocation& rhs) :
     FieldLocation(rhs.length()) {}
 
 
-eckit::SharedPtr<FieldLocation> TocFieldLocation::make_shared() const {
+eckit::SharedPtr<FieldLocation> PMemFieldLocation::make_shared() const {
     return eckit::SharedPtr<FieldLocation>(new PMemFieldLocation(*this));
 }
 
 
-eckit::DataHandle *TocFieldLocation::dataHandle() const {
+eckit::DataHandle *PMemFieldLocation::dataHandle() const {
     NOTIMP;
 //    return path_.partHandle(offset_, length_);
 }

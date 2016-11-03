@@ -10,6 +10,7 @@
 
 
 #include "fdb5/pmem/PMemDBWriter.h"
+#include "fdb5/pmem/PMemIndex.h"
 
 namespace fdb5 {
 namespace pmem {
@@ -29,13 +30,11 @@ bool PMemDBWriter::selectIndex(const Key &key) {
     // TODO: What if it isn't there, and we are trying to read?
     // TODO: n.b. We can make this more efficient by keeping a map of the available indices.
 
-    //if (indices_.find(key) == indices_.end()) {
-    //    indices_[key] = new PMemIndex(key, root_.getBranchingNode(key));
-    //}
+    if (indexes_.find(key) == indexes_.end()) {
+        indexes_[key] = new PMemIndex(key, root_.getBranchingNode(key));
+    }
 
-    //currentIndex_ = indices_[key];
-
-    currentIndex_ = &root_.getBranchingNode(key);
+    currentIndex_ = indexes_[key];
 
     return true;
 }

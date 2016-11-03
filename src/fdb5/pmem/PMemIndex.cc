@@ -17,56 +17,65 @@ namespace pmem {
 
 //-----------------------------------------------------------------------------
 
-//PMemIndex::PMemIndex(const Key &key, PMemBranchingNode& node) :
-//    Index(key, path, offset, mode, type),
-//    node_(node) {
-//}
-//
-//
-//PMemIndex::~PMemIndex() {
-//}
-//
-//bool PMemIndex::get(const Key &key, Field &field) const {
-//    NOTIMP;
-//}
-//
-//
-//void PMemIndex::open() {
-//    // Intentionally left blank. Indices neither opened nor closed (part of open DB).
-//}
-//
-//void PMemIndex::reopen() {
-//    // Intentionally left blank. Indices neither opened nor closed (part of open DB).
-//}
-//
-//void PMemIndex::close() {
-//    // Intentionally left blank. Indices neither opened nor closed (part of open DB).
-//}
-//
-//void PMemIndex::add(const Key &key, const Field &field) {
-//    NOTIMP;
-//}
-//
-//void PMemIndex::flush() {
-//    // Intentionall left blank. Flush not used in PMem case.
-//}
-//
-//void PMemIndex::entries(EntryVisitor &visitor) const {
-//    NOTIMP;
-//}
-//
-//void PMemIndex::print(std::ostream &out) const {
-//    out << "PMemIndex[]";
-//}
-//
-//
-//std::string PMemIndex::defaulType() {
-//    NOTIMP;
-//}
-//
-//void PMemIndex::dump(std::ostream& out, const char* indent, bool simple) const {
-//    NOTIMP;
-//}
+
+PMemIndex::PMemIndex(const Key &key, PBranchingNode& node, const std::string& type) :
+    Index(key, type),
+    location_(node) {}
+
+
+PMemIndex::~PMemIndex() {}
+
+
+void PMemIndex::visitLocation(IndexLocationVisitor& visitor) const {
+    visitor(location_);
+}
+
+
+bool PMemIndex::get(const Key &key, Field &field) const {
+    NOTIMP;
+}
+
+
+void PMemIndex::open() {
+    // Intentionally left blank. Indices neither opened nor closed (part of open DB).
+}
+
+void PMemIndex::reopen() {
+    // Intentionally left blank. Indices neither opened nor closed (part of open DB).
+}
+
+void PMemIndex::close() {
+    // Intentionally left blank. Indices neither opened nor closed (part of open DB).
+}
+
+void PMemIndex::add(const Key &key, const Field &field) {
+    NOTIMP;
+}
+
+void PMemIndex::flush() {
+    // Intentionally left blank. Flush not used in PMem case.
+}
+
+void PMemIndex::encode(eckit::Stream& s) const {
+    NOTIMP;
+}
+
+void PMemIndex::entries(EntryVisitor &visitor) const {
+    NOTIMP;
+}
+
+void PMemIndex::print(std::ostream &out) const {
+    out << "PMemIndex[]";
+}
+
+
+std::string PMemIndex::defaulType() {
+    return "PMemIndex";
+}
+
+void PMemIndex::dump(std::ostream& out, const char* indent, bool simple) const {
+    NOTIMP;
+}
 
 
 //-----------------------------------------------------------------------------

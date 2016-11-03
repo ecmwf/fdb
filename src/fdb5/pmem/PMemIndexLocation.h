@@ -31,13 +31,13 @@ class PMemIndexLocation : public IndexLocation {
 
 public: // methods
 
-    PMemIndexLocation(const pmem::PersistentPtr<PBranchingNode>* node);
+    PMemIndexLocation(PBranchingNode& node);
 
     PBranchingNode& node() const;
 
 private: // friends
 
-    pmem::PersistentPtr<PBranchingNode> node_;
+    PBranchingNode& node_;
 };
 
 

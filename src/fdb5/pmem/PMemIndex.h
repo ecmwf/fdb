@@ -19,44 +19,50 @@
 
 #include "fdb5/database/Index.h"
 
+#include "fdb5/pmem/PMemIndexLocation.h"
+
 namespace fdb5 {
 namespace pmem {
 
-class PMemBranchingNode;
+class PBranchingNode;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-//class PMemIndex : public Index {
-//
+class PMemIndex : public Index {
+
 //public: // types
 //
 //
-//public: // methods
-//
-//    PMemIndex(const Key &key, PMemBranchingNode& node);
-//
-//    virtual ~PMemIndex();
-//
-//private: // methods
-//
-//    virtual void open();
-//    virtual void close();
-//    virtual void reopen();
-//
-//    virtual bool get( const Key &key, Field &field ) const;
-//    virtual void add( const Key &key, const Field &field );
-//    virtual void flush();
-//    virtual void entries(EntryVisitor &visitor) const;
-//
-//    virtual void print( std::ostream &out ) const;
-//    virtual void dump(std::ostream& out, const char* indent, bool simple = false) const;
-//
-//private: // members
-//
-//    PMemBranchingNode& node_;
-//
-//};
+public: // methods
+
+    PMemIndex(const Key &key, PBranchingNode& node, const std::string& type=defaulType());
+    virtual ~PMemIndex();
+
+    virtual void visitLocation(IndexLocationVisitor& visitor) const;
+
+    static std::string defaulType();
+
+protected: // methods
+
+    virtual void open();
+    virtual void close();
+    virtual void reopen();
+
+    virtual bool get( const Key &key, Field &field ) const;
+    virtual void add( const Key &key, const Field &field );
+    virtual void flush();
+    virtual void encode(eckit::Stream &s) const;
+    virtual void entries(EntryVisitor &visitor) const;
+
+    virtual void print( std::ostream &out ) const;
+    virtual void dump(std::ostream& out, const char* indent, bool simple = false) const;
+
+
+private: // members
+
+    PMemIndexLocation location_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

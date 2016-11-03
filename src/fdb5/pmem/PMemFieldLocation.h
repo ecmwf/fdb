@@ -30,7 +30,7 @@ class PMemFieldLocation : public FieldLocation {
 public:
 
     PMemFieldLocation();
-    PMemFieldLocation(const TocFieldLocation& rhs);
+    PMemFieldLocation(const PMemFieldLocation& rhs);
 
     virtual eckit::DataHandle *dataHandle() const;
 
