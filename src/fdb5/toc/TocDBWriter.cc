@@ -20,6 +20,7 @@
 
 #include "fdb5/toc/TocDBWriter.h"
 #include "fdb5/toc/TocIndex.h"
+#include "fdb5/toc/TocFieldLocation.h"
 
 namespace fdb5 {
 
@@ -83,7 +84,7 @@ void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offs
         selectIndex(currentIndexKey_);
     }
 
-    Field field(path, offset, length);
+    Field field(TocFieldLocation(path, offset, length));
 
     current_->put(key, field);
 }
@@ -104,7 +105,7 @@ void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length
 
     dh.write( data, length );
 
-    Field field (dataPath, position, length);
+    Field field (TocFieldLocation(dataPath, position, length));
 
     current_->put(key, field);
 }

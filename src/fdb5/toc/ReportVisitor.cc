@@ -15,6 +15,7 @@
 
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/TocFieldLocation.h"
 
 namespace fdb5 {
 
@@ -41,8 +42,12 @@ void ReportVisitor::visit(const Index &index,
 
     IndexStatistics &stats = indexStats_[&index];
 
+    /// Quick hack to get everything working. Potentially needs adaptation to non-toc fields
+    TocFieldLocationGetter flGetter;
+    field.location().visit(flGetter);
+
     ++stats.fieldsCount_;
-    stats.fieldsSize_ += field.length();
+    stats.fieldsSize_ += flGetter.length();
 
     // n.b. We use an IndexPathgetter visitor to get the index location out of the Index. This code
     //      should probably be refactored to be a bit more general. I.e. the different types of
@@ -50,10 +55,11 @@ void ReportVisitor::visit(const Index &index,
     //      types of index.
     // TODO: Fix properly.
 
+
     IndexPathOffsetGetter poGetter;
     index.visitLocation(poGetter);
 
-    const eckit::PathName &dataPath = field.path();
+    const eckit::PathName &dataPath = flGetter.path();
     const eckit::PathName &indexPath = poGetter.path();
 
     if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
@@ -86,7 +92,7 @@ void ReportVisitor::visit(const Index &index,
         activeDataFiles_.insert(dataPath);
     } else {
         ++stats.duplicatesCount_;
-        stats.duplicatesSize_ += field.length();
+        stats.duplicatesSize_ += flGetter.length();
         indexUsage_[indexPath]--;
         dataUsage_[dataPath]--;
     }

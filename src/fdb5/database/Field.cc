@@ -20,13 +20,9 @@ namespace fdb5 {
 Field::Field() {
 }
 
-Field::Field(const FileStore &store, const FieldRef &ref):
-    location_(store.get(ref.pathId()), ref.offset(), ref.length()),
-    details_(ref.details()) {
-}
-
-Field::Field(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ):
-    location_(path, offset, length) {
+Field::Field(const FieldLocation& location, const FieldDetails& details):
+    location_(location.make_shared()),
+    details_(details) {
 }
 
 void Field::print(std::ostream& out) const {

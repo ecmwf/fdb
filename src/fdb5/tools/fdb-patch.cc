@@ -62,7 +62,7 @@ void PatchVisitor::visit(const fdb5::Index &index,
 
         gatherer_.add(field.dataHandle());
         count_++;
-        total_ += field.length();
+        total_ += field.location().length();
     }
 }
 

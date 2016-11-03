@@ -156,6 +156,8 @@ list( APPEND fdb5_srcs
     toc/TocDBReader.h
     toc/TocDBWriter.cc
     toc/TocDBWriter.h
+    toc/TocFieldLocation.cc
+    toc/TocFieldLocation.h
     toc/TocHandler.cc
     toc/TocHandler.h
     toc/TocIndex.cc

@@ -13,6 +13,8 @@
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FileStore.h"
 
+#include "fdb5/toc/TocFieldLocation.h"
+
 
 namespace fdb5 {
 
@@ -20,11 +22,17 @@ namespace fdb5 {
 FieldRefLocation::FieldRefLocation() {
 }
 
-FieldRefLocation::FieldRefLocation(FileStore &store, const Field  &field):
-    pathId_(store.insert(field.path())),
-    offset_(field.offset()),
-    length_(field.length()) {
 
+FieldRefLocation::FieldRefLocation(FileStore &store, const Field& field) {
+
+    /// Quick hack to get everything working. Potentially needs adaptation to non-toc fields
+
+    TocFieldLocationGetter getter;
+    field.location().visit(getter);
+
+    pathId_ = store.insert(getter.path());
+    offset_ = getter.offset();
+    length_ = getter.length();
 }
 
 

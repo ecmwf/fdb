@@ -17,19 +17,25 @@ namespace fdb5 {
 FieldLocation::FieldLocation() {
 }
 
-FieldLocation::FieldLocation(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ) :
-    path_(path),
-    offset_(offset),
+FieldLocation::FieldLocation(eckit::Length length) :
     length_(length) {
 
 }
 
-eckit::DataHandle *FieldLocation::dataHandle() const {
-    return path_.partHandle(offset_, length_);
+void FieldLocation::print(std::ostream &out) const {
+    out << "FileLocation(" << length_ << ")";
 }
 
-void FieldLocation::print(std::ostream &out) const {
-    out << "(" << path_ << "," << offset_ << "," << length_ << ")";
+
+void FieldLocationVisitor::operator() (const FieldLocation& location) {
+
+    throw eckit::SeriousBug("Should never hit the default case visitor (base FieldLocation)", Here());
+}
+
+void FieldLocationVisitor::operator() (const TocFieldLocation& location) {
+
+    throw eckit::SeriousBug("Should never hit the default case visitor (base TocFieldLocation)", Here());
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------

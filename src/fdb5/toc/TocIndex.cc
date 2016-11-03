@@ -12,6 +12,7 @@
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/database/FieldRef.h"
+#include "fdb5/toc/TocFieldLocation.h"
 
 namespace fdb5 {
 
@@ -74,7 +75,7 @@ bool TocIndex::get(const Key &key, Field &field) const {
 
     bool found = btree_->get(key.valuesToString(), ref);
     if ( found ) {
-        field = Field(files_, ref);
+        field = Field(TocFieldLocation(files_, ref), ref.details());
         // field.path_     = files_.get( ref.pathId_ );
         // field.offset_   = ref.offset_;
         // field.length_   = ref.length_;
@@ -145,7 +146,7 @@ public:
         visitor_(visitor) {}
 
     void visit(const std::string& key, const FieldRef& ref) {
-        Field field(files_, ref);
+        Field field(TocFieldLocation(files_, ref), ref.details());
         visitor_.visit(index_,
                        prefix_,
                        key,
