@@ -14,6 +14,8 @@
 #ifndef fdb5_pmem_PMemFieldLocation_H
 #define fdb5_pmem_PMemFieldLocation_H
 
+#include "pmem/PersistentPtr.h"
+
 #include "eckit/memory/SharedPtr.h"
 
 #include "fdb5/database/FieldLocation.h"
@@ -23,6 +25,7 @@
 namespace fdb5 {
 namespace pmem {
 
+class PDataNode;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -31,6 +34,9 @@ public:
 
     PMemFieldLocation();
     PMemFieldLocation(const PMemFieldLocation& rhs);
+    PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode);
+
+    ::pmem::PersistentPtr<PDataNode> node() const;
 
     virtual eckit::DataHandle *dataHandle() const;
 
@@ -43,6 +49,8 @@ private: // methods
     void print(std::ostream &out) const;
 
 private: // members
+
+    ::pmem::PersistentPtr<PDataNode> dataNode_;
 
 };
 

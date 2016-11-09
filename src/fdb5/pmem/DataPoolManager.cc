@@ -133,6 +133,7 @@ void DataPoolManager::invalidateCurrentPool(DataPool& pool) {
     currentPool_ = 0;
 }
 
+
 void DataPoolManager::print(std::ostream& s) const {
     s << "PMemDataPoolManager(" << poolDir_ << ")";
 }

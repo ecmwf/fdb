@@ -91,6 +91,7 @@ private: // friends
 
 // ---------------------------------------------------------------------------------------------------------------------
 
+// TODO: Deprecate and remove.
 template <typename T>
 void DataPoolManager::allocate(::pmem::PersistentPtr<T>& ptr, const ::pmem::AtomicConstructor<T>& ctr) {
 

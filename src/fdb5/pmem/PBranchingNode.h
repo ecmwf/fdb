@@ -75,10 +75,7 @@ public: // methods
     /// @note This is primarily in place to support the getIndex functionality.
     PBranchingNode& getCreateBranchingNode(const Key& key);
 
-    PDataNode& createDataNode(const Key& key,
-                              const void* data,
-                              eckit::Length length,
-                              DataPoolManager& dataManager);
+    void insertDataNode(const Key& key, const ::pmem::PersistentPtr<PDataNode>& dataNode);
 
 private: // methods
 

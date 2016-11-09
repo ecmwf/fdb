@@ -27,14 +27,15 @@ void FieldLocation::print(std::ostream &out) const {
 }
 
 
-void FieldLocationVisitor::operator() (const FieldLocation& location) {
-
-    throw eckit::SeriousBug("Should never hit the default case visitor (base FieldLocation)", Here());
-}
-
 void FieldLocationVisitor::operator() (const TocFieldLocation& location) {
 
     throw eckit::SeriousBug("Should never hit the default case visitor (base TocFieldLocation)", Here());
+
+}
+
+void FieldLocationVisitor::operator() (const pmem::PMemFieldLocation& location) {
+
+    throw eckit::SeriousBug("Should never hit the default case visitor (base PMemFieldLocation)", Here());
 
 }
 

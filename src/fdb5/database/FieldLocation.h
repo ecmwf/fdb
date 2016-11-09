@@ -66,13 +66,16 @@ private: // friends
 
 
 class TocFieldLocation;
+namespace pmem {
+    class PMemFieldLocation;
+}
 
 class FieldLocationVisitor {
 
 public: // methods
 
-    virtual void operator() (const FieldLocation& location);
     virtual void operator() (const TocFieldLocation& location);
+    virtual void operator() (const pmem::PMemFieldLocation& location);
 
 };
 

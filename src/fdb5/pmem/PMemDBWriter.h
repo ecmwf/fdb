@@ -33,6 +33,7 @@ public: // methods
     virtual ~PMemDBWriter();
 
     virtual bool selectIndex(const Key &key);
+    virtual void archive(const Key &key, const void *data, eckit::Length length);
 
 private: // methods
 

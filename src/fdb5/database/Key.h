@@ -86,8 +86,11 @@ public: // methods
     std::string valuesToString() const;
 
     typedef eckit::StringDict::const_iterator const_iterator;
+    typedef eckit::StringDict::const_reverse_iterator const_reverse_iterator;
     const_iterator begin() const { return keys_.begin(); }
     const_iterator end() const { return keys_.end(); }
+    const_reverse_iterator rbegin() const { return keys_.rbegin(); }
+    const_reverse_iterator rend() const { return keys_.rend(); }
     const_iterator find(const std::string& s) const { return keys_.find(s); }
     bool empty() const { return keys_.empty(); }
 

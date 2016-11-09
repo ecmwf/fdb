@@ -122,10 +122,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
 }
 
 
-PDataNode& PBranchingNode::createDataNode(const Key& key,
-                                          const void* data,
-                                          Length length,
-                                          DataPoolManager& dataManager) {
+void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNode>& dataNode) {
 
     Key::const_iterator dataKey = key.end();
     --dataKey;
@@ -137,10 +134,7 @@ PDataNode& PBranchingNode::createDataNode(const Key& key,
 
     AutoLock<PersistentMutex> lock(dataParent.mutex_);
 
-    PBaseNode& newNode(*dataParent.nodes_.push_back(
-                       PDataNode::BaseConstructor(PDataNode::Constructor(k, v, data, length)),
-                       dataManager));
-    return newNode.asDataNode();
+    dataParent.nodes_.push_back(dataNode.forced_cast<PBaseNode>());
 }
 
 

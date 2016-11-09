@@ -24,6 +24,7 @@ namespace fdb5 {
 Archiver::Archiver() :
     current_(0) {
     fdbWriterDB_ = eckit::Resource<std::string>("fdbWriterDB", "toc.writer");
+    eckit::Log::error() << "Current writer: " << fdbWriterDB_ << std::endl;
 }
 
 Archiver::~Archiver() {

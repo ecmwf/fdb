@@ -10,6 +10,7 @@
 
 #include "fdb5/pmem/PMemIndex.h"
 #include "fdb5/pmem/PBranchingNode.h"
+#include "fdb5/pmem/PMemFieldLocation.h"
 
 namespace fdb5 {
 namespace pmem {
@@ -49,7 +50,23 @@ void PMemIndex::close() {
 }
 
 void PMemIndex::add(const Key &key, const Field &field) {
-    NOTIMP;
+
+    struct Inserter : FieldLocationVisitor {
+        Inserter(PBranchingNode& indexNode, const Key& key) :
+            indexNode_(indexNode),
+            key_(key) {}
+
+        virtual void operator() (const PMemFieldLocation& location) {
+            indexNode_.insertDataNode(key_, location.node());
+        }
+
+    private:
+        PBranchingNode& indexNode_;
+        const Key& key_;
+    };
+
+    Inserter inserter(location_.node(), key);
+    field.location().visit(inserter);
 }
 
 void PMemIndex::flush() {

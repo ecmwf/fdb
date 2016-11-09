@@ -11,6 +11,10 @@
 
 #include "fdb5/pmem/PMemDBWriter.h"
 #include "fdb5/pmem/PMemIndex.h"
+#include "fdb5/pmem/PMemFieldLocation.h"
+#include "fdb5/pmem/PDataNode.h"
+
+using namespace eckit;
 
 namespace fdb5 {
 namespace pmem {
@@ -37,6 +41,24 @@ bool PMemDBWriter::selectIndex(const Key &key) {
     currentIndex_ = indexes_[key];
 
     return true;
+}
+
+void PMemDBWriter::archive(const Key &key, const void *data, Length length) {
+
+    ASSERT(currentIndex_ != 0);
+
+    Log::error() << "key: " << key << ", len: " << length << std::endl;
+
+    // Note that this pointer is NOT inside persistent space. The craeated object will be
+    // orphaned if anything goes wrong before it is added to a tree structure.
+
+    ::pmem::PersistentPtr<PDataNode> ptr;
+    Key::const_reverse_iterator last = key.rbegin();
+    dataPoolMgr_.allocate(ptr, PDataNode::Constructor(last->first, last->second, data, length));
+
+    Field field( (PMemFieldLocation(ptr)) );
+
+    currentIndex_->put(key, field);
 }
 
 void PMemDBWriter::print(std::ostream &out) const {
