@@ -36,7 +36,8 @@ class DataPoolManager;
 
 // N.B. This is to be stored in PersistentPtr --> NO virtual behaviour.
 
-class PBranchingNode : public PBaseNode {
+class PBranchingNode : public PBaseNode
+                     , public ::pmem::PersistentType<PBranchingNode> {
 
 public: // Construction objects
 
@@ -90,7 +91,7 @@ private: // methods
 
 private: // members
 
-    ::pmem::PersistentVector<PBaseNode> nodes_;
+    ::pmem::PersistentVector<PersistentType<PBaseNode> > nodes_;
 
     ::pmem::PersistentMutex mutex_;
 
