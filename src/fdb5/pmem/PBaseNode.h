@@ -18,6 +18,8 @@
 
 #include "eckit/types/FixedString.h"
 
+#include "pmem/PersistentPtr.h"
+
 #include <iosfwd>
 
 
@@ -94,5 +96,8 @@ private: // friends
 
 } // namespace pmem
 } // namespace fdb5
+
+// -------------------------------------------------------------------------------------------------
+
 
 #endif // fdb5_pmem_PBaseNode_H

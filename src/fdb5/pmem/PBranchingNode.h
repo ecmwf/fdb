@@ -77,6 +77,12 @@ public: // methods
 
     void insertDataNode(const Key& key, const ::pmem::PersistentPtr<PDataNode>& dataNode);
 
+    /// Obtain a branching (intermediate) node in the tree. If it doesn't exist, then
+    /// a null pointer is returned.
+    /// @arg key - The key of the node to create or get _relative_to_the_current_node_
+    /// @return A PersistentPtr to the node, or a null() pointer.
+    ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key);
+
 private: // methods
 
     PBranchingNode& getCreateBranchingNode(Key::const_iterator start,
@@ -90,9 +96,11 @@ private: // members
 
 };
 
+
 // -------------------------------------------------------------------------------------------------
 
 } // namespace pmem
 } // namespace fdb5
+
 
 #endif // fdb5_pmem_PBranchingNode_H

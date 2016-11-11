@@ -35,7 +35,8 @@ namespace pmem {
 
 // N.B. This is to be stored in PersistentPtr --> NO virtual behaviour.
 
-class PDataNode : public PBaseNode {
+class PDataNode : public PBaseNode
+                , public ::pmem::PersistentType<PDataNode> {
 
 public: // Construction objects
 

@@ -23,8 +23,7 @@ namespace pmem {
 
 
 PMemDBWriter::PMemDBWriter(const Key &key) :
-    PMemDB(key) {
-}
+    PMemDB(key) {}
 
 PMemDBWriter::~PMemDBWriter() {
 }
@@ -35,12 +34,28 @@ bool PMemDBWriter::selectIndex(const Key &key) {
     // TODO: n.b. We can make this more efficient by keeping a map of the available indices.
 
     if (indexes_.find(key) == indexes_.end()) {
-        indexes_[key] = new PMemIndex(key, root_.getBranchingNode(key));
+        indexes_[key] = new PMemIndex(key, root_.getCreateBranchingNode(key));
     }
 
     currentIndex_ = indexes_[key];
 
     return true;
+}
+
+void PMemDBWriter::close() {
+
+    // Close any open indices
+
+    for (IndexStore::iterator it = indexes_.begin(); it != indexes_.end(); ++it) {
+        Index* idx = it->second;
+        idx->close();
+        delete idx;
+    }
+}
+
+void PMemDBWriter::deselectIndex() {
+    // This is essentially a NOP, as we don't have any files to open, etc.
+    currentIndex_ = 0;
 }
 
 void PMemDBWriter::archive(const Key &key, const void *data, Length length) {

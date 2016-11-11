@@ -51,9 +51,16 @@ void Rule::expand( const MarsRequest &request,
                    Key &full,
                    ReadVisitor &visitor) const {
 
+    eckit::Log::error() << "[" << depth << predicates_.end() - cur << "] " << full << std::endl;
+
     ASSERT(depth < 3);
 
     if (cur == predicates_.end()) {
+
+        eckit::Log::error() << "**********************************************************" << std::endl;
+        eckit::Log::error() << "Desced: " << depth << std::endl;
+
+        eckit::Log::error() << "**********************************************************" << std::endl;
 
         // TODO: join these 2 methods
         keys[depth].rule(this);
@@ -105,13 +112,21 @@ void Rule::expand( const MarsRequest &request,
         values.push_back((*cur)->defaultValue());
     }
 
+    eckit::Log::error() << "[" << depth << predicates_.end() - cur << "] ";
+    eckit::Log::error() << keyword << ": " << values << std::endl;
+
     for (eckit::StringList::const_iterator i = values.begin(); i != values.end(); ++i) {
 
         k.push(keyword, *i);
         full.push(keyword, *i);
 
+        eckit::Log::error() << "[" << depth << predicates_.end() - cur << "] ";
+        eckit::Log::error() << "KV: " << *i << "  ";
         if ((*cur)->match(k)) {
+            eckit::Log::error() << "true" << std::endl;
             expand(request, next, depth, keys, full, visitor);
+        } else {
+            eckit::Log::error() << "false" << std::endl;
         }
 
         full.pop(keyword);

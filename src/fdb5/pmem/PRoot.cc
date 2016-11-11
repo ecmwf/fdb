@@ -84,7 +84,14 @@ const time_t& PRoot::created() const {
     return created_;
 }
 
-PBranchingNode& PRoot::getBranchingNode(const Key& key) {
+::pmem::PersistentPtr<PBranchingNode> PRoot::getBranchingNode(const Key& key) const {
+
+    // Get the relevant index.
+
+    return rootNode_->getBranchingNode(key);
+}
+
+PBranchingNode& PRoot::getCreateBranchingNode(const Key& key) {
 
     // Get the relevant index. If the system is open for writing then we should create
     // a new index if it doesn't exist.

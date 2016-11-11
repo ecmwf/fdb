@@ -54,7 +54,7 @@ Pool* PMemDB::initialisePool(const PathName& poolFile) {
 //----------------------------------------------------------------------------------------------------------------------
 
 bool PMemDB::open() {
-    NOTIMP;
+    return true;
 }
 
 void PMemDB::archive(const Key &key, const void *data, Length length) {

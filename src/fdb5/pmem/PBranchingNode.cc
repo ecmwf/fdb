@@ -122,6 +122,51 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
 }
 
 
+::pmem::PersistentPtr<PBranchingNode> PBranchingNode::getBranchingNode(const Key& key) {
+
+    // need to ensure that the underlying vector doesn't change too much while we are
+    // reading it (there might be a purge!)
+
+    PersistentPtr<PBranchingNode> ret;
+    PBranchingNode* current = this;
+
+    for (Key::const_iterator it = key.begin(); it != key.end(); ++it) {
+
+        //TODO: Is this locking overzealous?
+
+        AutoLock<PersistentMutex> lock(current->mutex_);
+
+        // Search _backwards_ through the subnodes to find the element we are looking for (this permits newly written
+        // fields to mask existing ones without actually overwriting the data and making it irretrievable).
+
+        int i = current->nodes_.size() - 1;
+        for (; i >= 0; --i) {
+
+            PersistentPtr<PBaseNode> subnode = current->nodes_[i];
+
+            if (subnode->matches(it->first, it->second)) {
+
+                // Given that we are operating inside a schema, if this matches then it WILL be of the
+                // correct type --> we can request it directly.
+                ASSERT(subnode->isBranchingNode());
+
+                ret = subnode.forced_cast<PBranchingNode>();
+                current = &subnode->asBranchingNode();
+                break;
+            }
+        }
+
+        // We have failed to find the relevant node. Oops.
+        if (i < 0) {
+            ret.nullify();
+            break;
+        }
+    }
+
+    return ret;
+}
+
+
 void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNode>& dataNode) {
 
     Key::const_iterator dataKey = key.end();

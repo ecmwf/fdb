@@ -52,7 +52,8 @@ public: // methods
 
     const time_t& created() const;
 
-    PBranchingNode& getBranchingNode(const Key& key);
+    ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key) const;
+    PBranchingNode& getCreateBranchingNode(const Key& key);
 
     void print(std::ostream& s) const;
 

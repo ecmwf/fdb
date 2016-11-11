@@ -35,6 +35,27 @@ template<> uint64_t pmem::PersistentPtr<pmem::PersistentVectorData<fdb5::pmem::P
 template<> uint64_t pmem::PersistentPtr<pmem::PersistentPODVectorData<uint64_t> >::type_id = 5;
 
 
+// --------------------------------------------------------------------------------------------------
+
+// Add a specialisation of valid for PBaseNode, to facilitate the derived types.
+
+namespace pmem {
+
+template <>
+bool PersistentPtr<fdb5::pmem::PBaseNode>::valid() const {
+
+    uint64_t id = ::pmemobj_type_num(oid_);
+
+    // The Base node class should NEVER exist on its own. So exclude it from the possibilites.
+    return id == PersistentPtr<fdb5::pmem::PBranchingNode>::type_id ||
+           id == PersistentPtr<fdb5::pmem::PDataNode>::type_id;
+}
+
+}
+
+
+// --------------------------------------------------------------------------------------------------
+
 namespace fdb5 {
 namespace pmem {
 

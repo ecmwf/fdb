@@ -34,10 +34,7 @@ namespace pmem {
 DataPoolManager::DataPoolManager(const PathName& poolDir, PRoot& masterRoot) :
     poolDir_(poolDir),
     masterRoot_(masterRoot),
-    currentPool_(0) {
-
-    Log::error() << "Construct" << *this << std::endl;
-}
+    currentPool_(0) {}
 
 
 DataPoolManager::~DataPoolManager() {

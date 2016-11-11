@@ -12,8 +12,8 @@
 /// @author Simon Smart
 /// @date   Mar 2016
 
-#ifndef fdb5_PMemDBWriter_H
-#define fdb5_PMemDBWriter_H
+#ifndef fdb5_PMemDBReader_H
+#define fdb5_PMemDBReader_H
 
 #include "fdb5/pmem/PMemDB.h"
 
@@ -24,22 +24,24 @@ namespace pmem {
 
 /// DB that implements the FDB on POSIX filesystems
 
-class PMemDBWriter : public PMemDB {
+class PMemDBReader : public PMemDB {
+
+protected: // types
+
+    typedef std::vector<Index*> IndexVector;
 
 public: // methods
 
-    PMemDBWriter(const Key &key);
+    PMemDBReader(const Key &key);
 
-    virtual ~PMemDBWriter();
+    virtual ~PMemDBReader();
 
     virtual bool selectIndex(const Key &key);
-    virtual void close();
-    virtual void deselectIndex();
-    virtual void archive(const Key &key, const void *data, eckit::Length length);
 
 private: // methods
 
     virtual void print( std::ostream &out ) const;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -47,4 +49,4 @@ private: // methods
 } // namespace pmem
 } // namespace fdb5
 
-#endif
+#endif // fdb5_PMemDBReader_H
