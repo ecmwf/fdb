@@ -59,7 +59,7 @@ public: // methods
 
     /// Allocate data into the currently active pool
     template <typename T>
-    void allocate(::pmem::PersistentPtr<T>& ptr, const ::pmem::AtomicConstructor<T>& ctr);
+    void allocate(::pmem::PersistentPtr<T>& ptr, const ::pmem::AtomicConstructor<typename T::object_type>& ctr);
 
 private: // methods
 
@@ -93,7 +93,7 @@ private: // friends
 
 // TODO: Deprecate and remove.
 template <typename T>
-void DataPoolManager::allocate(::pmem::PersistentPtr<T>& ptr, const ::pmem::AtomicConstructor<T>& ctr) {
+void DataPoolManager::allocate(::pmem::PersistentPtr<T>& ptr, const ::pmem::AtomicConstructor<typename T::object_type>& ctr) {
 
     // n.b. Remember to lock the PMemRoot whilst updating the list of pools.
 
@@ -103,7 +103,7 @@ void DataPoolManager::allocate(::pmem::PersistentPtr<T>& ptr, const ::pmem::Atom
 
         try {
 
-            ptr.allocate(pool, ctr);
+            ptr.allocate_ctr(pool, ctr);
             break;
 
         } catch (::pmem::AtomicConstructorBase::AllocationError& e) {

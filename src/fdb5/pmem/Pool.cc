@@ -26,32 +26,13 @@ using namespace eckit;
 using namespace pmem;
 
 
-template<> uint64_t pmem::PersistentPtr<fdb5::pmem::PRoot>::type_id = POBJ_ROOT_TYPE_NUM;
+template<> uint64_t pmem::PersistentType<fdb5::pmem::PRoot>::type_id = POBJ_ROOT_TYPE_NUM;
 
-template<> uint64_t pmem::PersistentPtr<fdb5::pmem::PBaseNode>::type_id = 1;
-template<> uint64_t pmem::PersistentPtr<fdb5::pmem::PBranchingNode>::type_id = 2;
-template<> uint64_t pmem::PersistentPtr<fdb5::pmem::PDataNode>::type_id = 3;
-template<> uint64_t pmem::PersistentPtr<pmem::PersistentVectorData<fdb5::pmem::PBaseNode> >::type_id = 4;
-template<> uint64_t pmem::PersistentPtr<pmem::PersistentPODVectorData<uint64_t> >::type_id = 5;
-
-
-// --------------------------------------------------------------------------------------------------
-
-// Add a specialisation of valid for PBaseNode, to facilitate the derived types.
-
-namespace pmem {
-
-template <>
-bool PersistentPtr<fdb5::pmem::PBaseNode>::valid() const {
-
-    uint64_t id = ::pmemobj_type_num(oid_);
-
-    // The Base node class should NEVER exist on its own. So exclude it from the possibilites.
-    return id == PersistentPtr<fdb5::pmem::PBranchingNode>::type_id ||
-           id == PersistentPtr<fdb5::pmem::PDataNode>::type_id;
-}
-
-}
+template<> uint64_t pmem::PersistentType<fdb5::pmem::PBaseNode>::type_id = 1;
+template<> uint64_t pmem::PersistentType<fdb5::pmem::PBranchingNode>::type_id = 2;
+template<> uint64_t pmem::PersistentType<fdb5::pmem::PDataNode>::type_id = 3;
+template<> uint64_t pmem::PersistentType<pmem::PersistentVectorData<fdb5::pmem::PBaseNode> >::type_id = 4;
+template<> uint64_t pmem::PersistentType<pmem::PersistentPODVectorData<uint64_t> >::type_id = 5;
 
 
 // --------------------------------------------------------------------------------------------------

@@ -43,7 +43,7 @@ void PRoot::Constructor::make(PRoot& object) const {
     object.createdBy_ = getuid();
 
     // The root node of the tree does not have an associated key/value.
-    object.rootNode_.allocate(PBranchingNode::Constructor("", ""));
+    object.rootNode_.allocate_ctr(PBranchingNode::Constructor("", ""));
 
     object.dataPoolUUIDs_.nullify();
 }
@@ -84,7 +84,7 @@ const time_t& PRoot::created() const {
     return created_;
 }
 
-::pmem::PersistentPtr<PBranchingNode> PRoot::getBranchingNode(const Key& key) const {
+::pmem::PersistentPtr< ::pmem::PersistentType<PBranchingNode> > PRoot::getBranchingNode(const Key& key) const {
 
     // Get the relevant index.
 

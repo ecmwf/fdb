@@ -99,5 +99,21 @@ private: // friends
 
 // -------------------------------------------------------------------------------------------------
 
+// Add a specialisation of valid for PBaseNode, to facilitate the derived types.
+
+namespace pmem {
+
+template <>
+inline bool PersistentType<fdb5::pmem::PBaseNode>::validate_type_id(uint64_t id) {
+
+    // The Base node class should NEVER exist on its own. So exclude it from the possibilites.
+    return PersistentType<fdb5::pmem::PBranchingNode>::validate_type_id(id) ||
+           PersistentType<fdb5::pmem::PDataNode>::validate_type_id(id);
+}
+
+}
+
+// -------------------------------------------------------------------------------------------------
+
 
 #endif // fdb5_pmem_PBaseNode_H

@@ -34,9 +34,9 @@ public:
 
     PMemFieldLocation();
     PMemFieldLocation(const PMemFieldLocation& rhs);
-    PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode);
+    PMemFieldLocation(const ::pmem::PersistentPtr< ::pmem::PersistentType<PDataNode> >& dataNode);
 
-    ::pmem::PersistentPtr<PDataNode> node() const;
+    ::pmem::PersistentPtr< ::pmem::PersistentType<PDataNode> > node() const;
 
     virtual eckit::DataHandle *dataHandle() const;
 
@@ -50,7 +50,7 @@ private: // methods
 
 private: // members
 
-    ::pmem::PersistentPtr<PDataNode> dataNode_;
+    ::pmem::PersistentPtr< ::pmem::PersistentType<PDataNode> > dataNode_;
 
 };
 

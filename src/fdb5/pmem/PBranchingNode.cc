@@ -68,7 +68,7 @@ void PBranchingNode::IndexConstructor::make(PBranchingNode& object) const {
     Key::const_iterator next = keysIterator_;
     next++;
     if (next != endIterator_) {
-        object.nodes_.push_back(BaseConstructor(IndexConstructor(next, endIterator_, indexNode_)));
+        object.nodes_.push_back_ctr(BaseConstructor(IndexConstructor(next, endIterator_, indexNode_)));
     }
 }
 
@@ -98,7 +98,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
         int i = current->nodes_.size() - 1;
         for (; i >= 0; --i) {
 
-            PersistentPtr<PBaseNode> subnode = current->nodes_[i];
+            PersistentPtr<PersistentType<PBaseNode> > subnode = current->nodes_[i];
 
             if (subnode->matches(it->first, it->second)) {
 
@@ -113,7 +113,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
         // Create the node (and all contained sub-nodes) if it hasn't been found. Note that we
         // start at the first
         if (i < 0) {
-            current->nodes_.push_back(BaseConstructor(PBranchingNode::IndexConstructor(it, end, &current)));
+            current->nodes_.push_back_ctr(BaseConstructor(PBranchingNode::IndexConstructor(it, end, &current)));
             break;
         }
     }
@@ -122,12 +122,12 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
 }
 
 
-::pmem::PersistentPtr<PBranchingNode> PBranchingNode::getBranchingNode(const Key& key) {
+::pmem::PersistentPtr<PersistentType<PBranchingNode> > PBranchingNode::getBranchingNode(const Key& key) {
 
     // need to ensure that the underlying vector doesn't change too much while we are
     // reading it (there might be a purge!)
 
-    PersistentPtr<PBranchingNode> ret;
+    PersistentPtr<PersistentType<PBranchingNode> > ret;
     PBranchingNode* current = this;
 
     for (Key::const_iterator it = key.begin(); it != key.end(); ++it) {
@@ -142,7 +142,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
         int i = current->nodes_.size() - 1;
         for (; i >= 0; --i) {
 
-            PersistentPtr<PBaseNode> subnode = current->nodes_[i];
+            PersistentPtr<PersistentType<PBaseNode> > subnode = current->nodes_[i];
 
             if (subnode->matches(it->first, it->second)) {
 
@@ -150,7 +150,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
                 // correct type --> we can request it directly.
                 ASSERT(subnode->isBranchingNode());
 
-                ret = subnode.forced_cast<PBranchingNode>();
+                ret = subnode.as<PersistentType<PBranchingNode> >();
                 current = &subnode->asBranchingNode();
                 break;
             }
@@ -167,7 +167,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
 }
 
 
-void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNode>& dataNode) {
+void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PersistentType<PDataNode> >& dataNode) {
 
     Key::const_iterator dataKey = key.end();
     --dataKey;
@@ -179,7 +179,8 @@ void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNod
 
     AutoLock<PersistentMutex> lock(dataParent.mutex_);
 
-    dataParent.nodes_.push_back(dataNode.forced_cast<PBaseNode>());
+    NOTIMP;
+//    dataParent.nodes_.push_back(dataNode.as<PersistentType<PBaseNode> >());
 }
 
 

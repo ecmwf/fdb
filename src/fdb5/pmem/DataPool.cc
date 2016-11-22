@@ -16,6 +16,7 @@
 #include "eckit/types/FixedString.h"
 
 #include "pmem/PersistentPtr.h"
+#include "pmem/PersistentType.h"
 
 #include "fdb5/pmem/DataPool.h"
 
@@ -32,7 +33,7 @@ namespace pmem {
 // ---------------------------------------------------------------------------------------------------------------------
 
 
-class PDataRoot {
+class PDataRoot : public ::pmem::PersistentType<PDataRoot> {
 
 public: // Construction objects
 
@@ -71,7 +72,7 @@ const eckit::FixedString<8> PDataRootTag = "66FDB566";
 const unsigned short int PDataRootVersion = 1;
 
 // n.b. This also has POBJ_ROOT_TYPE_NUM, as it is a root element (of a different type)
-template<> uint64_t PersistentPtr<fdb5::pmem::PDataRoot>::type_id = POBJ_ROOT_TYPE_NUM;
+template<> uint64_t ::pmem::PersistentType<fdb5::pmem::PDataRoot>::type_id = POBJ_ROOT_TYPE_NUM;
 
 
 void PDataRoot::Constructor::make(PDataRoot& object) const {

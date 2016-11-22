@@ -25,6 +25,7 @@
 #include "pmem/PersistentPODVector.h"
 
 #include "fdb5/pmem/PBranchingNode.h"
+#include "fdb5/pmem/PDataNode.h"
 
 #include <ctime>
 
@@ -36,7 +37,7 @@ namespace pmem {
 
 // N.B. This is to be stored in PersistentPtr --> NO virtual behaviour.
 
-class PRoot {
+class PRoot : public ::pmem::PersistentType<PRoot> {
 
 public: // Construction objects
 
@@ -52,7 +53,7 @@ public: // methods
 
     const time_t& created() const;
 
-    ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key) const;
+    ::pmem::PersistentPtr< ::pmem::PersistentType<PBranchingNode> > getBranchingNode(const Key& key) const;
     PBranchingNode& getCreateBranchingNode(const Key& key);
 
     void print(std::ostream& s) const;
@@ -71,7 +72,7 @@ private: // members
 
     long createdBy_;
 
-    ::pmem::PersistentPtr<PBranchingNode> rootNode_;
+    ::pmem::PersistentPtr< ::pmem::PersistentType<PBranchingNode> > rootNode_;
 
     /// Keep track of how many data pools are in use. Ensure locking whenever updating this variable.
 
