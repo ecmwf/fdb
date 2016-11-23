@@ -16,7 +16,6 @@
 #include "eckit/types/FixedString.h"
 
 #include "pmem/PersistentPtr.h"
-#include "pmem/PersistentType.h"
 
 #include "fdb5/pmem/DataPool.h"
 
@@ -33,7 +32,7 @@ namespace pmem {
 // ---------------------------------------------------------------------------------------------------------------------
 
 
-class PDataRoot : public ::pmem::PersistentType<PDataRoot> {
+class PDataRoot {
 
 public: // Construction objects
 

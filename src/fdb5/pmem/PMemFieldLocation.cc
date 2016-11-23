@@ -23,7 +23,7 @@ PMemFieldLocation::PMemFieldLocation(const PMemFieldLocation& rhs) :
     dataNode_(rhs.dataNode_) {}
 
 
-PMemFieldLocation::PMemFieldLocation(const ::pmem::PersistentPtr< ::pmem::PersistentType<PDataNode> >& dataNode) :
+PMemFieldLocation::PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode) :
     dataNode_(dataNode) {}
 
 
@@ -45,7 +45,7 @@ void PMemFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
 }
 
-::pmem::PersistentPtr< ::pmem::PersistentType<PDataNode> > PMemFieldLocation::node() const {
+::pmem::PersistentPtr<PDataNode> PMemFieldLocation::node() const {
     return dataNode_;
 }
 

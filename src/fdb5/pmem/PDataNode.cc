@@ -46,7 +46,6 @@ size_t PDataNode::Constructor::size() const {
 
 void PDataNode::Constructor::make(PDataNode& object) const {
     constructBase(object);
-    Log::info() << "Base constructed" << std::endl;
 
     object.length_ = length_;
     memcpy(object.data_, data_, length_);

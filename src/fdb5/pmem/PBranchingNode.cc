@@ -40,7 +40,6 @@ PBranchingNode::Constructor::Constructor(const KeyType& key, const ValueType& va
 
 void PBranchingNode::Constructor::make(PBranchingNode& object) const {
     constructBase(object);
-    Log::info() << "Base constructed" << std::endl;
     object.nodes_.nullify();
 }
 
@@ -98,7 +97,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
         int i = current->nodes_.size() - 1;
         for (; i >= 0; --i) {
 
-            PersistentPtr<PersistentType<PBaseNode> > subnode = current->nodes_[i];
+            PersistentPtr<PBaseNode> subnode = current->nodes_[i];
 
             if (subnode->matches(it->first, it->second)) {
 
@@ -122,12 +121,12 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
 }
 
 
-::pmem::PersistentPtr<PersistentType<PBranchingNode> > PBranchingNode::getBranchingNode(const Key& key) {
+::pmem::PersistentPtr<PBranchingNode> PBranchingNode::getBranchingNode(const Key& key) {
 
     // need to ensure that the underlying vector doesn't change too much while we are
     // reading it (there might be a purge!)
 
-    PersistentPtr<PersistentType<PBranchingNode> > ret;
+    PersistentPtr<PBranchingNode> ret;
     PBranchingNode* current = this;
 
     for (Key::const_iterator it = key.begin(); it != key.end(); ++it) {
@@ -142,7 +141,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
         int i = current->nodes_.size() - 1;
         for (; i >= 0; --i) {
 
-            PersistentPtr<PersistentType<PBaseNode> > subnode = current->nodes_[i];
+            PersistentPtr<PBaseNode> subnode = current->nodes_[i];
 
             if (subnode->matches(it->first, it->second)) {
 
@@ -150,7 +149,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
                 // correct type --> we can request it directly.
                 ASSERT(subnode->isBranchingNode());
 
-                ret = subnode.as<PersistentType<PBranchingNode> >();
+                ret = subnode.as<PBranchingNode>();
                 current = &subnode->asBranchingNode();
                 break;
             }
@@ -167,7 +166,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
 }
 
 
-void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PersistentType<PDataNode> >& dataNode) {
+void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNode>& dataNode) {
 
     Key::const_iterator dataKey = key.end();
     --dataKey;
@@ -179,8 +178,9 @@ void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<Persiste
 
     AutoLock<PersistentMutex> lock(dataParent.mutex_);
 
-    NOTIMP;
-//    dataParent.nodes_.push_back(dataNode.as<PersistentType<PBaseNode> >());
+    eckit::Log::error() << "Data node: " << dataNode << std::endl;
+
+    dataParent.nodes_.push_back_elem(dataNode.as<PBaseNode>());
 }
 
 

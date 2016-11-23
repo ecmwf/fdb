@@ -84,7 +84,7 @@ const time_t& PRoot::created() const {
     return created_;
 }
 
-::pmem::PersistentPtr< ::pmem::PersistentType<PBranchingNode> > PRoot::getBranchingNode(const Key& key) const {
+::pmem::PersistentPtr<PBranchingNode> PRoot::getBranchingNode(const Key& key) const {
 
     // Get the relevant index.
 

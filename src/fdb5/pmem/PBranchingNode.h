@@ -75,13 +75,13 @@ public: // methods
     /// @note This is primarily in place to support the getIndex functionality.
     PBranchingNode& getCreateBranchingNode(const Key& key);
 
-    void insertDataNode(const Key& key, const ::pmem::PersistentPtr< ::pmem::PersistentType<PDataNode> >& dataNode);
+    void insertDataNode(const Key& key, const ::pmem::PersistentPtr<PDataNode>& dataNode);
 
     /// Obtain a branching (intermediate) node in the tree. If it doesn't exist, then
     /// a null pointer is returned.
     /// @arg key - The key of the node to create or get _relative_to_the_current_node_
     /// @return A PersistentPtr to the node, or a null() pointer.
-    ::pmem::PersistentPtr< ::pmem::PersistentType<PBranchingNode> > getBranchingNode(const Key& key);
+    ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key);
 
 private: // methods
 
@@ -90,7 +90,7 @@ private: // methods
 
 private: // members
 
-    ::pmem::PersistentVector< ::pmem::PersistentType<PBaseNode> > nodes_;
+    ::pmem::PersistentVector<PBaseNode> nodes_;
 
     ::pmem::PersistentMutex mutex_;
 

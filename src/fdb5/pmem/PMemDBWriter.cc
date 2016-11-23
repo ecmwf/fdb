@@ -67,7 +67,7 @@ void PMemDBWriter::archive(const Key &key, const void *data, Length length) {
     // Note that this pointer is NOT inside persistent space. The craeated object will be
     // orphaned if anything goes wrong before it is added to a tree structure.
 
-    ::pmem::PersistentPtr< ::pmem::PersistentType<PDataNode> > ptr;
+    ::pmem::PersistentPtr<PDataNode> ptr;
     Key::const_reverse_iterator last = key.rbegin();
     dataPoolMgr_.allocate(ptr, PDataNode::Constructor(last->first, last->second, data, length));
 

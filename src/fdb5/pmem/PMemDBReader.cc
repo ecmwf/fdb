@@ -34,7 +34,7 @@ bool PMemDBReader::selectIndex(const Key &key) {
 
     if (indexes_.find(key) == indexes_.end()) {
 
-        ::pmem::PersistentPtr< ::pmem::PersistentType<PBranchingNode> > node = root_.getBranchingNode(key);
+        ::pmem::PersistentPtr<PBranchingNode> node = root_.getBranchingNode(key);
         if (!node.null())
             indexes_[key] = new PMemIndex(key, *node);
         else
