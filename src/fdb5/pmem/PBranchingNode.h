@@ -22,6 +22,7 @@
 #include "pmem/AtomicConstructorCast.h"
 #include "pmem/PersistentVector.h"
 #include "pmem/PersistentMutex.h"
+#include "pmem/PersistentBuffer.h"
 
 #include "fdb5/pmem/PBaseNode.h"
 #include "fdb5/database/Key.h"
@@ -94,6 +95,12 @@ private: // members
 
     ::pmem::PersistentMutex mutex_;
 
+    // TODO: Do we want to have a separate IndexNode?
+    ::pmem::PersistentPtr< ::pmem::PersistentBuffer> axis_;
+
+private: // friends
+
+    friend class PMemIndex;
 };
 
 

@@ -50,6 +50,11 @@ public: // methods
 
     void dump(std::ostream &out, const char* indent) const;
 
+    /// Provide a means to test if the index has changed since it was last written out, and to
+    /// mark that it has been written out.
+    bool dirty() const;
+    void clean();
+
     friend std::ostream &operator<<(std::ostream &s, const IndexAxis &x) {
         x.print(s);
         return s;
@@ -66,6 +71,7 @@ private: // members
     AxisMap axis_;
 
     bool readOnly_;
+    bool dirty_;
 
 };
 

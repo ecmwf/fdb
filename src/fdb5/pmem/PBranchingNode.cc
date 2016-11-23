@@ -41,6 +41,7 @@ PBranchingNode::Constructor::Constructor(const KeyType& key, const ValueType& va
 void PBranchingNode::Constructor::make(PBranchingNode& object) const {
     constructBase(object);
     object.nodes_.nullify();
+    object.axis_.nullify();
 }
 
 

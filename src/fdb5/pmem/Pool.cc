@@ -33,6 +33,7 @@ template<> uint64_t pmem::PersistentType<fdb5::pmem::PBranchingNode>::type_id = 
 template<> uint64_t pmem::PersistentType<fdb5::pmem::PDataNode>::type_id = 3;
 template<> uint64_t pmem::PersistentType<pmem::PersistentVectorData<fdb5::pmem::PBaseNode> >::type_id = 4;
 template<> uint64_t pmem::PersistentType<pmem::PersistentPODVectorData<uint64_t> >::type_id = 5;
+template<> uint64_t pmem::PersistentType<pmem::PersistentBuffer>::type_id = 6;
 
 
 // --------------------------------------------------------------------------------------------------
