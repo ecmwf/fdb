@@ -17,6 +17,7 @@
 #include "pmem/PersistentPtr.h"
 
 #include "fdb5/database/IndexLocation.h"
+#include "fdb5/pmem/DataPoolManager.h"
 
 
 namespace fdb5 {
@@ -31,13 +32,15 @@ class PMemIndexLocation : public IndexLocation {
 
 public: // methods
 
-    PMemIndexLocation(PBranchingNode& node);
+    PMemIndexLocation(PBranchingNode& node, DataPoolManager& mgr);
 
     PBranchingNode& node() const;
+    DataPoolManager& pool_manager() const;
 
 private: // friends
 
     PBranchingNode& node_;
+    DataPoolManager& poolManager_;
 };
 
 

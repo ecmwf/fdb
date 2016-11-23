@@ -34,9 +34,12 @@ public: // methods
 
     PMemDBReader(const Key &key);
 
+    virtual void axis(const std::string& keyword, eckit::StringSet& s) const;
+
     virtual ~PMemDBReader();
 
     virtual bool selectIndex(const Key &key);
+    virtual eckit::DataHandle* retrieve(const Key &key) const;
 
 private: // methods
 

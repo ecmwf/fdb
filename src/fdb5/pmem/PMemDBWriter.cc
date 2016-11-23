@@ -34,7 +34,7 @@ bool PMemDBWriter::selectIndex(const Key &key) {
     // TODO: n.b. We can make this more efficient by keeping a map of the available indices.
 
     if (indexes_.find(key) == indexes_.end()) {
-        indexes_[key] = new PMemIndex(key, root_.getCreateBranchingNode(key));
+        indexes_[key] = new PMemIndex(key, root_.getCreateBranchingNode(key), dataPoolMgr_);
     }
 
     currentIndex_ = indexes_[key];

@@ -122,13 +122,65 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
 }
 
 
-::pmem::PersistentPtr<PBranchingNode> PBranchingNode::getBranchingNode(const Key& key) {
+::pmem::PersistentPtr<PDataNode> PBranchingNode::getDataNode(const Key& key, DataPoolManager& mgr) const {
+
+    PersistentPtr<PDataNode> ret;
+    const PBranchingNode* current = this;
+
+    for (Key::const_iterator it = key.begin(); it != key.end(); ++it) {
+
+        AutoLock<PersistentMutex> lock(current->mutex_);
+
+        // Search _backwards_ through the subnodes to find the element we are looking for (this permits newly written
+        // fields to mask existing ones without actually overwriting the data and making it irretrievable).
+
+        int i = current->nodes_.size() - 1;
+        for (; i >= 0; --i) {
+
+            PersistentPtr<PBaseNode> subnode = current->nodes_[i];
+
+            // This breaks a bit of the encapsulation, but hook in here to check that the relevant
+            // pools are loaded. We can't do this earlier, as the data is allowed to be changing
+            // up to this point...
+
+            mgr.ensurePoolLoaded(subnode.uuid());
+
+            if (subnode->matches(it->first, it->second)) {
+
+                // The last element in the chain is a data node, otherwise a branching node
+
+                Key::const_iterator next = it;
+                ++next;
+                if (next == key.end()) {
+                    ASSERT(subnode->isDataNode());
+                    ret = subnode.as<PDataNode>();
+                } else {
+                    ASSERT(subnode->isBranchingNode());
+                    current = &subnode->asBranchingNode();
+                }
+
+                break;
+            }
+        }
+
+        // We have failed to find the relevant node. Oops.
+        if (i < 0) {
+            ret.nullify();
+            break;
+        }
+    }
+
+    return ret;
+}
+
+
+::pmem::PersistentPtr<PBranchingNode> PBranchingNode::getBranchingNode(const Key& key) const {
 
     // need to ensure that the underlying vector doesn't change too much while we are
     // reading it (there might be a purge!)
 
     PersistentPtr<PBranchingNode> ret;
-    PBranchingNode* current = this;
+    const PBranchingNode* current = this;
 
     for (Key::const_iterator it = key.begin(); it != key.end(); ++it) {
 

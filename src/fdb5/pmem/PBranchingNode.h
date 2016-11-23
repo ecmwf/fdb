@@ -78,11 +78,13 @@ public: // methods
 
     void insertDataNode(const Key& key, const ::pmem::PersistentPtr<PDataNode>& dataNode);
 
+    ::pmem::PersistentPtr<PDataNode> getDataNode(const Key& key, DataPoolManager& mgr) const;
+
     /// Obtain a branching (intermediate) node in the tree. If it doesn't exist, then
     /// a null pointer is returned.
     /// @arg key - The key of the node to create or get _relative_to_the_current_node_
     /// @return A PersistentPtr to the node, or a null() pointer.
-    ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key);
+    ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key) const;
 
 private: // methods
 
@@ -93,7 +95,7 @@ private: // members
 
     ::pmem::PersistentVector<PBaseNode> nodes_;
 
-    ::pmem::PersistentMutex mutex_;
+    mutable ::pmem::PersistentMutex mutex_;
 
     // TODO: Do we want to have a separate IndexNode?
     ::pmem::PersistentPtr< ::pmem::PersistentBuffer> axis_;

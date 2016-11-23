@@ -27,7 +27,7 @@ PMemDB::PMemDB(const Key& key) :
     poolDir_(RootManager::directory(key)),
     pool_(initialisePool(poolDir_)),
     root_(*pool_->root()),
-    dataPoolMgr_(poolDir_, root_),
+    dataPoolMgr_(poolDir_, pool_->root()),
     currentIndex_(0) {}
 
 
@@ -36,7 +36,7 @@ PMemDB::PMemDB(const PathName& poolDir) :
     poolDir_(poolDir),
     pool_(initialisePool(poolDir)),
     root_(*pool_->root()),
-    dataPoolMgr_(poolDir_, root_),
+    dataPoolMgr_(poolDir_, pool_->root()),
     currentIndex_(0) {}
 
 

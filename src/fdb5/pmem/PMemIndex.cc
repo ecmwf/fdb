@@ -112,9 +112,9 @@ const Buffer& MemoryBufferStream::buffer() const {
 //-----------------------------------------------------------------------------
 
 
-PMemIndex::PMemIndex(const Key &key, PBranchingNode& node, const std::string& type) :
+PMemIndex::PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type) :
     Index(key, type),
-    location_(node) {
+    location_(node, mgr) {
 
     if (!location_.node().axis_.null()) {
 
@@ -136,7 +136,15 @@ void PMemIndex::visitLocation(IndexLocationVisitor& visitor) const {
 
 
 bool PMemIndex::get(const Key &key, Field &field) const {
-    NOTIMP;
+
+    ::pmem::PersistentPtr<PDataNode> node = location_.node().getDataNode(key, location_.pool_manager());
+
+    if (!node.null()) {
+        field = Field(PMemFieldLocation(node));
+        return true;
+    }
+
+    return false;
 }
 
 

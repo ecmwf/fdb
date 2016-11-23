@@ -31,9 +31,10 @@ namespace pmem {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-DataPoolManager::DataPoolManager(const PathName& poolDir, PRoot& masterRoot) :
+DataPoolManager::DataPoolManager(const PathName& poolDir, PersistentPtr<PRoot> masterRoot) :
     poolDir_(poolDir),
-    masterRoot_(masterRoot),
+    masterRoot_(*masterRoot),
+    masterUUID_(masterRoot.uuid()),
     currentPool_(0) {}
 
 
@@ -47,7 +48,6 @@ DataPoolManager::~DataPoolManager() {
         delete it->second;
     }
 }
-
 
 
 DataPool& DataPoolManager::currentWritePool() {
@@ -128,6 +128,31 @@ void DataPoolManager::invalidateCurrentPool(DataPool& pool) {
 
     currentPool_->finalise();
     currentPool_ = 0;
+}
+
+
+void DataPoolManager::ensurePoolLoaded(uint64_t uuid) {
+
+    if (uuid != masterUUID_ && pools_.find(uuid) == pools_.end()) {
+
+        Log::info() << "Data pool with UUID=" << uuid << " not yet opened" << std::endl;
+
+        size_t pool_count = masterRoot_.dataPoolUUIDs_.size();
+
+        for (size_t idx = 0; idx < pool_count; idx++) {
+            if (uuid == masterRoot_.dataPoolUUIDs_[idx]) {
+                Log::info() << "Opening data pool, UUID=" << uuid << ", index=" << idx << std::endl;
+                pools_[uuid] = new DataPool(poolDir_, idx);
+                return;
+            }
+        }
+
+        // If none are found, then we have an issue.
+
+        std::stringstream err;
+        err << "Data pool " << uuid << " not found";
+        throw SeriousBug(err.str(), Here());
+    }
 }
 
 

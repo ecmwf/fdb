@@ -22,12 +22,18 @@ namespace pmem {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemIndexLocation::PMemIndexLocation(PBranchingNode& node) :
-    node_(node) {}
+PMemIndexLocation::PMemIndexLocation(PBranchingNode& node, DataPoolManager& mgr) :
+    node_(node),
+    poolManager_(mgr) {}
 
 
 PBranchingNode& PMemIndexLocation::node() const {
     return node_;
+}
+
+
+DataPoolManager& PMemIndexLocation::pool_manager() const {
+    return poolManager_;
 }
 
 

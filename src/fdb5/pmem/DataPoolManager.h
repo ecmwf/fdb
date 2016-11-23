@@ -54,12 +54,16 @@ class DataPoolManager : private eckit::NonCopyable {
 
 public: // methods
 
-    DataPoolManager(const eckit::PathName& poolDir, PRoot& masterRoot);
+    DataPoolManager(const eckit::PathName& poolDir, ::pmem::PersistentPtr<PRoot> masterRoot);
     ~DataPoolManager();
 
     /// Allocate data into the currently active pool
     template <typename T>
     void allocate(::pmem::PersistentPtr<T>& ptr, const ::pmem::AtomicConstructor<T>& ctr);
+
+    /// Ensure that the pool associated with the specified UUID is loaded. If it is not, then load
+    /// it. If it is unavailable, then throw an error.
+    void ensurePoolLoaded(uint64_t uuid);
 
 private: // methods
 
@@ -80,6 +84,7 @@ private: // members
     std::map<uint64_t, DataPool*> pools_;
 
     PRoot& masterRoot_;
+    uint64_t masterUUID_;
 
     DataPool* currentPool_;
 

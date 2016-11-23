@@ -36,7 +36,7 @@ bool PMemDBReader::selectIndex(const Key &key) {
 
         ::pmem::PersistentPtr<PBranchingNode> node = root_.getBranchingNode(key);
         if (!node.null())
-            indexes_[key] = new PMemIndex(key, *node);
+            indexes_[key] = new PMemIndex(key, *node, dataPoolMgr_);
         else
             return false;
     }
@@ -48,6 +48,27 @@ bool PMemDBReader::selectIndex(const Key &key) {
 
     return true;
 }
+
+
+void PMemDBReader::axis(const std::string& keyword, eckit::StringSet& s) const {
+
+    ASSERT(currentIndex_);
+    s = currentIndex_->axes().values(keyword);
+}
+
+
+eckit::DataHandle* PMemDBReader::retrieve(const Key &key) const {
+
+    eckit::Log::info() << "Trying to retrieve key " << key << std::endl;
+    eckit::Log::info() << "From index " << currentIndex_ << std::endl;
+
+    Field field;
+    if (currentIndex_->get(key, field))
+        return field.dataHandle();
+
+    return 0;
+}
+
 
 void PMemDBReader::print(std::ostream &out) const {
     out << "PMemDBReader["

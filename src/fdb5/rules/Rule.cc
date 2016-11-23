@@ -58,7 +58,7 @@ void Rule::expand( const MarsRequest &request,
     if (cur == predicates_.end()) {
 
         eckit::Log::error() << "**********************************************************" << std::endl;
-        eckit::Log::error() << "Desced: " << depth << std::endl;
+        eckit::Log::error() << "Descend: " << depth << std::endl;
 
         eckit::Log::error() << "**********************************************************" << std::endl;
 

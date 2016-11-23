@@ -36,7 +36,7 @@ class PMemIndex : public Index {
 //
 public: // methods
 
-    PMemIndex(const Key &key, PBranchingNode& node, const std::string& type=defaulType());
+    PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type=defaulType());
     virtual ~PMemIndex();
 
     virtual void visitLocation(IndexLocationVisitor& visitor) const;
