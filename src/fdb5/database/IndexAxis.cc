@@ -28,6 +28,23 @@ IndexAxis::IndexAxis(eckit::Stream &s) :
     readOnly_(true),
     dirty_(false) {
 
+    decode(s);
+}
+
+void IndexAxis::encode(eckit::Stream &s) const {
+    s << axis_.size();
+    for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
+        s << (*i).first;
+        const std::set<std::string> &values = (*i).second;
+        s << values.size();
+        for (std::set<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
+            s << (*j);
+        }
+    }
+}
+
+void IndexAxis::decode(eckit::Stream &s) {
+
     size_t n;
     s >> n;
 
@@ -42,18 +59,6 @@ IndexAxis::IndexAxis(eckit::Stream &s) :
         for (size_t j = 0; j < m; j++) {
             s >> v;
             values.insert(v);
-        }
-    }
-}
-
-void IndexAxis::encode(eckit::Stream &s) const {
-    s << axis_.size();
-    for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
-        s << (*i).first;
-        const std::set<std::string> &values = (*i).second;
-        s << values.size();
-        for (std::set<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
-            s << (*j);
         }
     }
 }

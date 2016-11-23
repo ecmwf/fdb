@@ -46,6 +46,9 @@ public: // methods
     void insert(const Key &key);
     void encode(eckit::Stream &s) const;
 
+    // Decode can be used for two-stage initialisation (IndexAxis a; a.decode(s);)
+    void decode(eckit::Stream& s);
+
     const eckit::StringSet &values(const std::string &keyword) const;
 
     void dump(std::ostream &out, const char* indent) const;

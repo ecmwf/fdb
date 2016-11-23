@@ -8,8 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/serialisation/Stream.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/Stream.h"
 
 #include "fdb5/pmem/PMemIndex.h"
 #include "fdb5/pmem/PBranchingNode.h"
@@ -113,7 +114,17 @@ const Buffer& MemoryBufferStream::buffer() const {
 
 PMemIndex::PMemIndex(const Key &key, PBranchingNode& node, const std::string& type) :
     Index(key, type),
-    location_(node) {}
+    location_(node) {
+
+    if (!location_.node().axis_.null()) {
+
+        Log::error() << "** Loading axes from buffer" << std::endl;
+        const ::pmem::PersistentBuffer& buf(*location_.node().axis_);
+        MemoryStream s(buf.data(), buf.size());
+        axes_.decode(s);
+        Log::error() << "axes_ " << axes_ << std::endl;
+    }
+}
 
 
 PMemIndex::~PMemIndex() {}
@@ -159,6 +170,8 @@ void PMemIndex::add(const Key &key, const Field &field) {
 
     Inserter inserter(location_.node(), key);
     field.location().visit(inserter);
+
+    // Keep track of the axes()
 
     if (axes().dirty()) {
 
