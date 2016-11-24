@@ -11,10 +11,13 @@
 /// @date   Sept 2016
 
 #include "eckit/io/DataBlob.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/log/Log.h"
+#include "eckit/memory/ScopedPtr.h"
 #include "eckit/parser/JSONDataBlob.h"
 #include "eckit/types/Types.h"
 
+#include "fdb5/config/MasterConfig.h"
 #include "fdb5/pmem/PRoot.h"
 
 #include <unistd.h>
@@ -46,6 +49,15 @@ void PRoot::Constructor::make(PRoot& object) const {
     object.rootNode_.allocate_ctr(PBranchingNode::Constructor("", ""));
 
     object.dataPoolUUIDs_.nullify();
+
+    // Store the currently loaded master schema, so it can be recovered later
+
+    PathName schemaPath = MasterConfig::instance().schemaPath();
+    ScopedPtr<DataHandle> schemaFile(schemaPath.fileHandle());
+    Buffer buf(schemaFile->openForRead());
+    schemaFile->read(buf, buf.size());
+
+    object.schema_.allocate(static_cast<const void*>(buf), buf.size());
 }
 
 // -------------------------------------------------------------------------------------------------

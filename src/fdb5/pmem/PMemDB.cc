@@ -10,6 +10,7 @@
 
 #include "eckit/config/Resource.h"
 
+#include "fdb5/config/MasterConfig.h"
 #include "fdb5/pmem/PMemDB.h"
 #include "fdb5/toc/RootManager.h"
 

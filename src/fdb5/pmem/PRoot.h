@@ -79,6 +79,8 @@ private: // members
     ::pmem::PersistentMutex mutex_;
     ::pmem::PersistentPODVector<uint64_t> dataPoolUUIDs_;
 
+    ::pmem::PersistentPtr< ::pmem::PersistentBuffer> schema_;
+
 private: // friends
 
     friend class DataPoolManager;
