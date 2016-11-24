@@ -13,6 +13,7 @@
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/pmem/PMemDB.h"
 #include "fdb5/toc/RootManager.h"
+#include "fdb5/rules/Rule.h"
 
 using namespace eckit;
 using namespace pmem;
@@ -97,9 +98,8 @@ void PMemDB::close() {
 }
 
 void PMemDB::checkSchema(const Key &key) const {
-    Log::error() << "Key: " << key << std::endl;
-    Log::error() << "checkSchema not implemented for " << *this << std::endl;
-//    NOTIMP;
+    ASSERT(key.rule());
+    schema_.compareTo(key.rule()->schema());
 }
 
 void PMemDB::axis(const std::string &keyword, eckit::StringSet &s) const {
