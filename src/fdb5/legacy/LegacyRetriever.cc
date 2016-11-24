@@ -13,8 +13,6 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/exception/Exceptions.h"
 
-#include "metkit/grib/GribDataBlob.h"
-
 #include "fdb5/legacy/LegacyRetriever.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
@@ -31,7 +29,7 @@ LegacyRetriever::LegacyRetriever() :
     legacy_() {
 }
 
-void LegacyRetriever::retrieve(void* buffer, size_t length)
+size_t LegacyRetriever::retrieve(void* buffer, size_t length)
 {
     Log::info() << "Legacy Key is " << legacy_ << std::endl;
 
@@ -53,14 +51,12 @@ void LegacyRetriever::retrieve(void* buffer, size_t length)
 
     long len = dh->read(buffer, length);
 
-    Log::info() << "Read " << Bytes(len) << std::endl;
+    Log::info() << "FDB5 read " << Bytes(len) << std::endl;
 
     if(len < 0)
         throw eckit::ReadError("LegacyRetriever error reading from FDB5");
 
-    metkit::grib::GribDataBlob grib(buffer, length);
-
-    Log::info() << "Grib metadata " << grib.metadata() << std::endl;
+    return len;
 }
 
 void LegacyRetriever::legacy(const std::string &keyword, const std::string &value) {

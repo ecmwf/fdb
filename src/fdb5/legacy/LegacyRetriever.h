@@ -37,7 +37,7 @@ public: // methods
 
     LegacyRetriever();
 
-    void retrieve(void* buffer, size_t length);
+    size_t retrieve(void* buffer, size_t length);
 
     void legacy(const std::string &keyword, const std::string &value);
 
