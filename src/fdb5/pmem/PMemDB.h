@@ -80,7 +80,7 @@ protected: // members
     IndexStore  indexes_;
     Index* currentIndex_;
 
-//    Schema schema_;
+    Schema schema_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -23,6 +23,7 @@
 #include "pmem/AtomicConstructor.h"
 #include "pmem/PersistentPtr.h"
 #include "pmem/PersistentPODVector.h"
+#include "pmem/PersistentString.h"
 
 #include "fdb5/pmem/PBranchingNode.h"
 #include "fdb5/pmem/PDataNode.h"
@@ -58,6 +59,8 @@ public: // methods
 
     void print(std::ostream& s) const;
 
+    const ::pmem::PersistentString& schema() const;
+
 private: // members
 
     eckit::FixedString<8> tag_;
@@ -79,7 +82,7 @@ private: // members
     ::pmem::PersistentMutex mutex_;
     ::pmem::PersistentPODVector<uint64_t> dataPoolUUIDs_;
 
-    ::pmem::PersistentPtr< ::pmem::PersistentBuffer> schema_;
+    ::pmem::PersistentPtr< ::pmem::PersistentString> schema_;
 
 private: // friends
 

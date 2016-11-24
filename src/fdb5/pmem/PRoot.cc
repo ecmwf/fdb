@@ -54,10 +54,10 @@ void PRoot::Constructor::make(PRoot& object) const {
 
     PathName schemaPath = MasterConfig::instance().schemaPath();
     ScopedPtr<DataHandle> schemaFile(schemaPath.fileHandle());
-    Buffer buf(schemaFile->openForRead());
-    schemaFile->read(buf, buf.size());
+    std::string buf(static_cast<size_t>(schemaFile->openForRead()), '\0');
+    schemaFile->read(&buf[0], buf.size());
 
-    object.schema_.allocate(static_cast<const void*>(buf), buf.size());
+    object.schema_.allocate(buf);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -109,6 +109,10 @@ PBranchingNode& PRoot::getCreateBranchingNode(const Key& key) {
     // a new index if it doesn't exist.
 
     return rootNode_->getCreateBranchingNode(key);
+}
+
+const ::pmem::PersistentString& PRoot::schema() const {
+    return *schema_;
 }
 
 void PRoot::print(std::ostream& s) const {

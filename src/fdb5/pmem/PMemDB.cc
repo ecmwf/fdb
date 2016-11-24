@@ -15,6 +15,7 @@
 #include "fdb5/toc/RootManager.h"
 
 using namespace eckit;
+using namespace pmem;
 
 namespace fdb5 {
 namespace pmem {
@@ -29,7 +30,13 @@ PMemDB::PMemDB(const Key& key) :
     pool_(initialisePool(poolDir_)),
     root_(*pool_->root()),
     dataPoolMgr_(poolDir_, pool_->root()),
-    currentIndex_(0) {}
+    currentIndex_(0) {
+
+    const PersistentString& schemaBuf(root_.schema());
+    std::string s(schemaBuf.c_str(), schemaBuf.length());
+    std::istringstream iss(s);
+    schema_.load(iss);
+}
 
 
 PMemDB::PMemDB(const PathName& poolDir) :
@@ -38,7 +45,13 @@ PMemDB::PMemDB(const PathName& poolDir) :
     pool_(initialisePool(poolDir)),
     root_(*pool_->root()),
     dataPoolMgr_(poolDir_, pool_->root()),
-    currentIndex_(0) {}
+    currentIndex_(0) {
+
+    const PersistentString& schemaBuf(root_.schema());
+    std::string s(schemaBuf.c_str(), schemaBuf.length());
+    std::istringstream iss(s);
+    schema_.load(iss);
+}
 
 
 PMemDB::~PMemDB() {
