@@ -228,14 +228,16 @@ ecbuild_add_library(
         ${INSTALL_INCLUDE_DIR}/fdb5
 
     PRIVATE_INCLUDES
+        "${METKIT_INCLUDE_DIRS}"
         "${GRIB_API_INCLUDE_DIRS}"
-		"${LUSTREAPI_INCLUDE_DIRS}"
+        "${LUSTREAPI_INCLUDE_DIRS}"
 
     LIBS
         Mars
         Common
         eckit
         eckit_option
+        metkit
         ${grib_handling_pkg}
 		${LUSTREAPI_LIBRARIES}
 )

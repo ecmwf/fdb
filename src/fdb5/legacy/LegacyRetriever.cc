@@ -9,8 +9,11 @@
  */
 
 #include "eckit/memory/ScopedPtr.h"
+#include "eckit/log/Bytes.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/exception/Exceptions.h"
+
+#include "metkit/grib/GribDataBlob.h"
 
 #include "fdb5/legacy/LegacyRetriever.h"
 #include "fdb5/database/ArchiveVisitor.h"
@@ -30,6 +33,8 @@ LegacyRetriever::LegacyRetriever() :
 
 void LegacyRetriever::retrieve(void* buffer, size_t length)
 {
+    Log::info() << "Legacy Key is " << legacy_ << std::endl;
+
     MarsRequest r;
 
     for(Key::const_iterator itr = legacy_.begin(); itr != legacy_.end(); ++itr) {
@@ -48,8 +53,14 @@ void LegacyRetriever::retrieve(void* buffer, size_t length)
 
     long len = dh->read(buffer, length);
 
+    Log::info() << "Read " << Bytes(len) << std::endl;
+
     if(len < 0)
         throw eckit::ReadError("LegacyRetriever error reading from FDB5");
+
+    metkit::grib::GribDataBlob grib(buffer, length);
+
+    Log::info() << "Grib metadata " << grib.metadata() << std::endl;
 }
 
 void LegacyRetriever::legacy(const std::string &keyword, const std::string &value) {
