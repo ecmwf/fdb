@@ -84,6 +84,8 @@ public: // methods
     const TypesRegistry& registry() const;
 
     std::string valuesToString() const;
+    const eckit::StringList& names() const;
+    std::string value(const std::string& key) const;
 
     typedef eckit::StringDict::const_iterator const_iterator;
     typedef eckit::StringDict::const_reverse_iterator const_reverse_iterator;

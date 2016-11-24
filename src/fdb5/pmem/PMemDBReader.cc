@@ -29,9 +29,6 @@ PMemDBReader::~PMemDBReader() {
 
 bool PMemDBReader::selectIndex(const Key &key) {
 
-    // n.b. We could load the indices in the same way as is done in TocDBReader, but
-    //      lets try this first.
-
     if (indexes_.find(key) == indexes_.end()) {
 
         ::pmem::PersistentPtr<PBranchingNode> node = root_.getBranchingNode(key);

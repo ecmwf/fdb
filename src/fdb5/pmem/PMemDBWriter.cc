@@ -30,14 +30,14 @@ PMemDBWriter::~PMemDBWriter() {
 
 bool PMemDBWriter::selectIndex(const Key &key) {
 
-    // TODO: What if it isn't there, and we are trying to read?
-    // TODO: n.b. We can make this more efficient by keeping a map of the available indices.
-
     if (indexes_.find(key) == indexes_.end()) {
         indexes_[key] = new PMemIndex(key, root_.getCreateBranchingNode(key), dataPoolMgr_);
     }
 
     currentIndex_ = indexes_[key];
+
+    eckit::Log::info() << "PMemDBWriter::selectIndex " << key
+                       << ", found match" << std::endl;
 
     return true;
 }
@@ -62,14 +62,16 @@ void PMemDBWriter::archive(const Key &key, const void *data, Length length) {
 
     ASSERT(currentIndex_ != 0);
 
-    Log::error() << "key: " << key << ", len: " << length << std::endl;
+    // Get the key:value identifier associated with this key
+
+    std::string data_key = key.names().back();
+    std::string data_value = key.value(data_key);
 
     // Note that this pointer is NOT inside persistent space. The craeated object will be
     // orphaned if anything goes wrong before it is added to a tree structure.
 
     ::pmem::PersistentPtr<PDataNode> ptr;
-    Key::const_reverse_iterator last = key.rbegin();
-    dataPoolMgr_.allocate(ptr, PDataNode::Constructor(last->first, last->second, data, length));
+    dataPoolMgr_.allocate(ptr, PDataNode::Constructor(data_key, data_value, data, length));
 
     Field field( (PMemFieldLocation(ptr)) );
 

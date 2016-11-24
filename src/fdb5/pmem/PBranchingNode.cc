@@ -45,13 +45,13 @@ void PBranchingNode::Constructor::make(PBranchingNode& object) const {
 }
 
 
-PBranchingNode::IndexConstructor::IndexConstructor(Key::const_iterator it,
-                                                   Key::const_iterator end,
+PBranchingNode::IndexConstructor::IndexConstructor(KeyValueVector::const_iterator it,
+                                                   KeyValueVector::const_iterator end,
                                                    PBranchingNode** const indexNode) :
     PBranchingNode::Constructor(it->first, it->second),
     keysIterator_(it),
     endIterator_(end),
-    indexNode_(indexNode){
+    indexNode_(indexNode) {
     Log::error() << "IndexConstructor(it)" << std::endl;
 }
 
@@ -65,7 +65,7 @@ void PBranchingNode::IndexConstructor::make(PBranchingNode& object) const {
 
     // Instantiate nodes recursively until they are all filled
 
-    Key::const_iterator next = keysIterator_;
+    KeyValueVector::const_iterator next = keysIterator_;
     next++;
     if (next != endIterator_) {
         object.nodes_.push_back_ctr(BaseConstructor(IndexConstructor(next, endIterator_, indexNode_)));
@@ -77,16 +77,26 @@ void PBranchingNode::IndexConstructor::make(PBranchingNode& object) const {
 
 PBranchingNode& PBranchingNode::getCreateBranchingNode(const Key& key) {
 
-    return getCreateBranchingNode(key.begin(), key.end());
+    // Extract an _ordered_ sequence of key-values pairs to use to identify the node.
+    // Order comes (originally) from the schema.
+    // The vector names() is constructed as the Rules ar matched (see Rule.cc:216)
+
+    const StringList& ordered_keys(key.names());
+    KeyValueVector identifier;
+
+    identifier.reserve(ordered_keys.size());
+    for (StringList::const_iterator it = ordered_keys.begin(); it != ordered_keys.end(); ++it)
+        identifier.push_back(std::make_pair(*it, key.value(*it)));
+
+    return getCreateBranchingNode(identifier);
 }
 
 
-PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start,
-                                                       Key::const_iterator end) {
+PBranchingNode& PBranchingNode::getCreateBranchingNode(const KeyValueVector& identifier) {
 
     PBranchingNode* current = this;
 
-    for (Key::const_iterator it = start; it != end; ++it) {
+    for (KeyValueVector::const_iterator it = identifier.begin(); it != identifier.end(); ++it) {
 
         // We don't want two processes to simultaneously create two same-named branches. So one processs cannot be
         // checking if a branch exists whilst the other might be creating it.
@@ -113,7 +123,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
         // Create the node (and all contained sub-nodes) if it hasn't been found. Note that we
         // start at the first
         if (i < 0) {
-            current->nodes_.push_back_ctr(BaseConstructor(PBranchingNode::IndexConstructor(it, end, &current)));
+            current->nodes_.push_back_ctr(BaseConstructor(PBranchingNode::IndexConstructor(it, identifier.end(), &current)));
             break;
         }
     }
@@ -124,10 +134,23 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
 
 ::pmem::PersistentPtr<PDataNode> PBranchingNode::getDataNode(const Key& key, DataPoolManager& mgr) const {
 
+    // Extract an _ordered_ sequence of key-values pairs to use to identify the node.
+    // Order comes (originally) from the schema.
+    // The vector names() is constructed as the Rules ar matched (see Rule.cc:216)
+
+    const StringList& ordered_keys(key.names());
+    KeyValueVector identifier;
+
+    identifier.reserve(ordered_keys.size());
+    for (StringList::const_iterator it = ordered_keys.begin(); it != ordered_keys.end(); ++it)
+        identifier.push_back(std::make_pair(*it, key.value(*it)));
+
+    // And find and return the node!
+
     PersistentPtr<PDataNode> ret;
     const PBranchingNode* current = this;
 
-    for (Key::const_iterator it = key.begin(); it != key.end(); ++it) {
+    for (KeyValueVector::const_iterator it = identifier.begin(); it != identifier.end(); ++it) {
 
         AutoLock<PersistentMutex> lock(current->mutex_);
 
@@ -149,9 +172,9 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
 
                 // The last element in the chain is a data node, otherwise a branching node
 
-                Key::const_iterator next = it;
+                KeyValueVector::const_iterator next = it;
                 ++next;
-                if (next == key.end()) {
+                if (next == identifier.end()) {
                     ASSERT(subnode->isDataNode());
                     ret = subnode.as<PDataNode>();
                 } else {
@@ -176,13 +199,24 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
 
 ::pmem::PersistentPtr<PBranchingNode> PBranchingNode::getBranchingNode(const Key& key) const {
 
+    // Extract an _ordered_ sequence of key-values pairs to use to identify the node.
+    // Order comes (originally) from the schema.
+    // The vector names() is constructed as the Rules ar matched (see Rule.cc:216)
+
+    const StringList& ordered_keys(key.names());
+    KeyValueVector identifier;
+
+    identifier.reserve(ordered_keys.size());
+    for (StringList::const_iterator it = ordered_keys.begin(); it != ordered_keys.end(); ++it)
+        identifier.push_back(std::make_pair(*it, key.value(*it)));
+
     // need to ensure that the underlying vector doesn't change too much while we are
     // reading it (there might be a purge!)
 
     PersistentPtr<PBranchingNode> ret;
     const PBranchingNode* current = this;
 
-    for (Key::const_iterator it = key.begin(); it != key.end(); ++it) {
+    for (KeyValueVector::const_iterator it = identifier.begin(); it != identifier.end(); ++it) {
 
         //TODO: Is this locking overzealous?
 
@@ -221,17 +255,27 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(Key::const_iterator start
 
 void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNode>& dataNode) {
 
-    Key::const_iterator dataKey = key.end();
-    --dataKey;
+    // Obtain the _parent_ branching node - the final element in the chain identifies the
+    // specific data node, and so should be excluded from this first operation.
 
-    PBranchingNode& dataParent(getCreateBranchingNode(key.begin(), dataKey));
+    const StringList& ordered_keys(key.names());
+    KeyValueVector parentIdentifier;
 
-    std::string k = dataKey->first;
-    std::string v = dataKey->second;
+    StringList::const_iterator end = ordered_keys.end();
+    --end;
+
+    parentIdentifier.reserve(ordered_keys.size());
+    for (StringList::const_iterator it = ordered_keys.begin(); it != end; ++it)
+        parentIdentifier.push_back(std::make_pair(*it, key.value(*it)));
+
+    PBranchingNode& dataParent(getCreateBranchingNode(parentIdentifier));
+
+    // And then append the data node to that one.
+
+    std::string k = ordered_keys[ordered_keys.size()-1];
+    ASSERT(dataNode->matches(k, key.value(k)));
 
     AutoLock<PersistentMutex> lock(dataParent.mutex_);
-
-    eckit::Log::error() << "Data node: " << dataNode << std::endl;
 
     dataParent.nodes_.push_back_elem(dataNode.as<PBaseNode>());
 }

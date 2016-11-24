@@ -39,6 +39,10 @@ class DataPoolManager;
 
 class PBranchingNode : public PBaseNode {
 
+public: // types
+
+    typedef std::vector<std::pair<std::string, std::string> > KeyValueVector;
+
 public: // Construction objects
 
     /// The standard constructor just creates a node
@@ -54,14 +58,14 @@ public: // Construction objects
 
     class IndexConstructor : public PBranchingNode::Constructor {
     public: // methods
-        IndexConstructor(Key::const_iterator key,
-                         Key::const_iterator end,
+        IndexConstructor(KeyValueVector::const_iterator key,
+                         KeyValueVector::const_iterator end,
                          PBranchingNode** const indexNode);
         virtual void make(PBranchingNode& object) const;
 
     private: // members
-        Key::const_iterator keysIterator_;
-        Key::const_iterator endIterator_;
+        KeyValueVector::const_iterator keysIterator_;
+        KeyValueVector::const_iterator endIterator_;
         PBranchingNode** const indexNode_;
     };
 
@@ -88,8 +92,7 @@ public: // methods
 
 private: // methods
 
-    PBranchingNode& getCreateBranchingNode(Key::const_iterator start,
-                                           Key::const_iterator end);
+    PBranchingNode& getCreateBranchingNode(const KeyValueVector& identifier);
 
 private: // members
 
