@@ -51,6 +51,16 @@ void PDataNode::Constructor::make(PDataNode& object) const {
     memcpy(object.data_, data_, length_);
 }
 
+
+const void* PDataNode::data() const {
+    return data_;
+}
+
+
+eckit::Length PDataNode::length() const {
+    return length_;
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 
 } // namespace pmem

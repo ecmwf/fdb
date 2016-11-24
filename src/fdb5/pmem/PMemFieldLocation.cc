@@ -8,7 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/io/MemoryHandle.h"
+
 #include "fdb5/pmem/PMemFieldLocation.h"
+#include "fdb5/pmem/PDataNode.h"
 
 namespace fdb5 {
 namespace pmem {
@@ -33,8 +36,9 @@ eckit::SharedPtr<FieldLocation> PMemFieldLocation::make_shared() const {
 
 
 eckit::DataHandle *PMemFieldLocation::dataHandle() const {
-    NOTIMP;
-//    return path_.partHandle(offset_, length_);
+
+    const PDataNode& node(*dataNode_);
+    return new eckit::MemoryHandle(node.data(), node.length());
 }
 
 void PMemFieldLocation::print(std::ostream &out) const {

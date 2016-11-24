@@ -51,6 +51,10 @@ public: // Construction objects
 
     typedef ::pmem::AtomicConstructorCast<PDataNode, PBaseNode> BaseConstructor;
 
+    const void* data() const;
+
+    eckit::Length length() const;
+
 private: // members
 
     eckit::Length length_;
