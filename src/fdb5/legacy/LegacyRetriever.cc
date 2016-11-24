@@ -8,11 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/types/Metadata.h"
-
+#include "eckit/memory/ScopedPtr.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "fdb5/legacy/LegacyRetriever.h"
 #include "fdb5/database/ArchiveVisitor.h"
+
+#include "marslib/MarsTask.h"
 
 namespace fdb5 {
 namespace legacy {
@@ -27,7 +30,26 @@ LegacyRetriever::LegacyRetriever() :
 
 void LegacyRetriever::retrieve(void* buffer, size_t length)
 {
-    NOTIMP;
+    MarsRequest r;
+
+    for(Key::const_iterator itr = legacy_.begin(); itr != legacy_.end(); ++itr) {
+        const std::string& keyword = itr->first;
+        const std::string& value   = itr->second;
+        r.setValue(keyword, value);
+    }
+
+    MarsRequest e("environ");
+
+    MarsTask task(r, e);
+
+    eckit::ScopedPtr<DataHandle> dh ( this->Retriever::retrieve(task) );
+
+    dh->openForRead();  AutoClose closer(*dh);
+
+    long len = dh->read(buffer, length);
+
+    if(len < 0)
+        throw eckit::ReadError("LegacyRetriever error reading from FDB5");
 }
 
 void LegacyRetriever::legacy(const std::string &keyword, const std::string &value) {
