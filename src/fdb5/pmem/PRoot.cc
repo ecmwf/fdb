@@ -10,15 +10,11 @@
 /// @author Simon Smart
 /// @date   Sept 2016
 
-#include "eckit/io/DataBlob.h"
-#include "eckit/io/DataHandle.h"
 #include "eckit/log/Log.h"
-#include "eckit/memory/ScopedPtr.h"
-#include "eckit/parser/JSONDataBlob.h"
-#include "eckit/types/Types.h"
 
-#include "fdb5/config/MasterConfig.h"
 #include "fdb5/pmem/PRoot.h"
+#include "fdb5/pmem/PIndexRoot.h"
+#include "fdb5/pmem/PDataRoot.h"
 
 #include <unistd.h>
 
@@ -32,35 +28,23 @@ namespace pmem {
 // -------------------------------------------------------------------------------------------------
 
 
-PRoot::Constructor::Constructor() {}
+PRoot::PRoot(RootClass cls) :
+    tag_(PRootTag),
+    version_(PRootVersion),
+    rootSize_(sizeof(PRoot)),
+    created_(time(0)),
+    createdBy_(getuid()),
+    class_(cls),
+    indexRoot_(),
+    dataRoot_() {
 
-
-void PRoot::Constructor::make(PRoot& object) const {
-
-    object.tag_ = PRootTag;
-    object.version_ = PRootVersion;
-
-    object.created_ = time(0);
-    object.rootSize_ = sizeof(PRoot);
-
-    object.createdBy_ = getuid();
-
-    // The root node of the tree does not have an associated key/value.
-    object.rootNode_.allocate_ctr(PBranchingNode::Constructor("", ""));
-
-    object.dataPoolUUIDs_.nullify();
-
-    // Store the currently loaded master schema, so it can be recovered later
-
-    PathName schemaPath = MasterConfig::instance().schemaPath();
-    ScopedPtr<DataHandle> schemaFile(schemaPath.fileHandle());
-    std::string buf(static_cast<size_t>(schemaFile->openForRead()), '\0');
-    schemaFile->read(&buf[0], buf.size());
-
-    object.schema_.allocate(buf);
+    if (class_ == IndexClass) {
+        indexRoot_.allocate();
+    } else {
+        ASSERT(class_ == DataClass);
+        dataRoot_.allocate();
+    }
 }
-
-// -------------------------------------------------------------------------------------------------
 
 /*
  * We can use whatever knowledge we have to test the validity of the structure.
@@ -84,8 +68,11 @@ bool PRoot::valid() const {
         return false;
     }
 
-    if (rootNode_.null() || !rootNode_.valid()) {
-        Log::error() << "Inconsistent tree root node" << std::endl;
+    if ((class_ == IndexClass && ( indexRoot_.null() || !dataRoot_.null())) ||
+        (class_ == DataClass  && (!indexRoot_.null() ||  dataRoot_.null())) ||
+        (class_ != IndexClass && class_ != DataClass)) {
+
+        Log::error() << "Inconsistent root node" << std::endl;
         return false;
     }
 
@@ -96,29 +83,25 @@ const time_t& PRoot::created() const {
     return created_;
 }
 
-::pmem::PersistentPtr<PBranchingNode> PRoot::getBranchingNode(const Key& key) const {
-
-    // Get the relevant index.
-
-    return rootNode_->getBranchingNode(key);
-}
-
-PBranchingNode& PRoot::getCreateBranchingNode(const Key& key) {
-
-    // Get the relevant index. If the system is open for writing then we should create
-    // a new index if it doesn't exist.
-
-    return rootNode_->getCreateBranchingNode(key);
-}
-
-const ::pmem::PersistentString& PRoot::schema() const {
-    return *schema_;
-}
 
 void PRoot::print(std::ostream& s) const {
     s << "PRoot(0x" << this << ")";
 }
 
+
+PRoot::RootClass PRoot::root_class() const {
+    return class_;
+}
+
+
+PIndexRoot& PRoot::indexRoot() const {
+    return *indexRoot_;
+}
+
+
+PDataRoot& PRoot::dataRoot() const {
+    return *dataRoot_;
+}
 
 // -------------------------------------------------------------------------------------------------
 

@@ -13,11 +13,12 @@
 
 #include "eckit/log/Log.h"
 #include "eckit/log/TimeStamp.h"
-#include "eckit/types/FixedString.h"
 
 #include "pmem/PersistentPtr.h"
 
 #include "fdb5/pmem/DataPool.h"
+#include "fdb5/pmem/PDataRoot.h"
+#include "fdb5/pmem/PRoot.h"
 
 #include <unistd.h>
 
@@ -29,87 +30,6 @@ using namespace pmem;
 namespace fdb5 {
 namespace pmem {
 
-// ---------------------------------------------------------------------------------------------------------------------
-
-
-class PDataRoot {
-
-public: // Construction objects
-
-    class Constructor : public AtomicConstructor<PDataRoot> {
-    public: // methods
-        Constructor() {}
-        virtual void make(PDataRoot& object) const;
-    };
-
-public: // methods
-
-    bool valid() const;
-
-    const time_t& created() const;
-
-    bool finalised() const;
-
-    void finalise();
-
-private: // members
-
-    eckit::FixedString<8> tag_;
-
-    unsigned short int version_;
-
-    time_t created_;
-
-    long createdBy_;
-
-    bool finalised_;
-};
-
-
-// A consistent definition of the tag for comparison purposes.
-const eckit::FixedString<8> PDataRootTag = "66FDB566";
-const unsigned short int PDataRootVersion = 1;
-
-// n.b. This also has POBJ_ROOT_TYPE_NUM, as it is a root element (of a different type)
-template<> uint64_t ::pmem::PersistentType<fdb5::pmem::PDataRoot>::type_id = POBJ_ROOT_TYPE_NUM;
-
-
-void PDataRoot::Constructor::make(PDataRoot& object) const {
-    object.tag_ = PDataRootTag;
-    object.version_ = PDataRootVersion;
-    object.created_ = time(0);
-    object.createdBy_ = getuid();
-    object.finalised_ = false;
-}
-
-bool PDataRoot::valid() const {
-
-    if (tag_ != PDataRootTag) {
-        Log::error() << "Persistent root tag does not match" << std::endl;
-        return false;
-    }
-
-    if (version_ != PDataRootVersion) {
-        Log::error() << "Invalid persistent root version" << std::endl;
-        return false;
-    }
-
-    return true;
-}
-
-const time_t& PDataRoot::created() const {
-    return created_;
-}
-
-bool PDataRoot::finalised() const {
-    return finalised_;
-}
-
-void PDataRoot::finalise() {
-
-    finalised_ = true;
-    ::pmemobj_persist(::pmemobj_pool_by_ptr(&finalised_), &finalised_, sizeof(finalised_));
-}
 
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -128,24 +48,44 @@ std::string data_pool_path(const PathName& poolDir, size_t index) {
 DataPool::DataPool(const PathName& poolDir, size_t index) :
     PersistentPool(data_pool_path(poolDir, index), data_pool_name(index)) {
 
-    ASSERT(getRoot<PDataRoot>()->valid());
+    ASSERT(root().valid());
 
-    Log::info() << "Opened persistent pool created at: " << TimeStamp(getRoot<PDataRoot>()->created()) << std::endl;
+    Log::info() << "Opened persistent pool created at: " << TimeStamp(root().created()) << std::endl;
 }
 
 
 DataPool::DataPool(const PathName& poolDir, size_t index, const size_t size) :
-    PersistentPool(data_pool_path(poolDir, index), size, data_pool_name(index), PDataRoot::Constructor()) {}
+    PersistentPool(data_pool_path(poolDir, index), size, data_pool_name(index), PRoot::Constructor(PRoot::DataClass)) {}
 
 
 DataPool::~DataPool() {}
 
 bool DataPool::finalised() const {
-    return getRoot<PDataRoot>()->finalised();
+    return root().finalised();
 }
 
 void DataPool::finalise() {
-    getRoot<PDataRoot>()->finalise();
+    root().finalise();
+}
+
+
+PersistentPtr<PRoot> DataPool::baseRoot() const {
+    PersistentPtr<PRoot> rt = getRoot<PRoot>();
+
+    ASSERT(rt.valid());
+    ASSERT(rt->valid());
+    ASSERT(rt->root_class() == PRoot::DataClass);
+
+    return rt;
+}
+
+
+PDataRoot& DataPool::root() const {
+
+    PDataRoot& rt = baseRoot()->dataRoot();
+
+    ASSERT(rt.valid());
+    return rt;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

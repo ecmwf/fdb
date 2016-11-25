@@ -30,6 +30,7 @@ namespace fdb5 {
 namespace pmem {
 
 class PRoot;
+class PIndexRoot;
 
 // -------------------------------------------------------------------------------------------------
 
@@ -56,8 +57,8 @@ public: // methods
 
     static Pool* obtain(const eckit::PathName& poolDir, const size_t size);
 
-    ::pmem::PersistentPtr<PRoot> root() const;
-
+    ::pmem::PersistentPtr<PRoot> baseRoot() const;
+    PIndexRoot& root() const;
 };
 
 // -------------------------------------------------------------------------------------------------

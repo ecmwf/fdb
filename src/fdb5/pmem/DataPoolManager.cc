@@ -20,7 +20,7 @@
 #include "fdb5/pmem/DataPoolManager.h"
 #include "fdb5/pmem/DataPool.h"
 #include "fdb5/pmem/Pool.h"
-#include "fdb5/pmem/PRoot.h"
+#include "fdb5/pmem/PIndexRoot.h"
 
 using namespace eckit;
 using namespace pmem;
@@ -31,10 +31,10 @@ namespace pmem {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-DataPoolManager::DataPoolManager(const PathName& poolDir, PersistentPtr<PRoot> masterRoot) :
+DataPoolManager::DataPoolManager(const PathName& poolDir, PIndexRoot& masterRoot, uint64_t rootUUID) :
     poolDir_(poolDir),
-    masterRoot_(*masterRoot),
-    masterUUID_(masterRoot.uuid()),
+    masterRoot_(masterRoot),
+    masterUUID_(rootUUID),
     currentPool_(0) {}
 
 

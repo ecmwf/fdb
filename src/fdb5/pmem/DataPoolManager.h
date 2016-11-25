@@ -36,7 +36,7 @@ namespace eckit {
 namespace fdb5 {
 namespace pmem {
 
-class PRoot;
+class PIndexRoot;
 
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -54,7 +54,7 @@ class DataPoolManager : private eckit::NonCopyable {
 
 public: // methods
 
-    DataPoolManager(const eckit::PathName& poolDir, ::pmem::PersistentPtr<PRoot> masterRoot);
+    DataPoolManager(const eckit::PathName& poolDir, PIndexRoot& masterRoot, uint64_t rootUUID);
     ~DataPoolManager();
 
     /// Allocate data into the currently active pool
@@ -83,7 +83,7 @@ private: // members
     /// A mapping of pools' UUIDs to the opened pool objects.
     std::map<uint64_t, DataPool*> pools_;
 
-    PRoot& masterRoot_;
+    PIndexRoot& masterRoot_;
     uint64_t masterUUID_;
 
     DataPool* currentPool_;

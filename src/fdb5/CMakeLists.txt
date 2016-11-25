@@ -226,12 +226,16 @@ if( HAVE_PMEMFDB )
         pmem/PBranchingNode.h
         pmem/PDataNode.cc
         pmem/PDataNode.h
+        pmem/PDataRoot.cc
+        pmem/PDataRoot.h
+        pmem/PIndexRoot.cc
+        pmem/PIndexRoot.h
         pmem/PMemDB.cc
         pmem/PMemDB.h
-        pmem/PMemDBWriter.cc
-        pmem/PMemDBWriter.h
         pmem/PMemDBReader.cc
         pmem/PMemDBReader.h
+        pmem/PMemDBWriter.cc
+        pmem/PMemDBWriter.h
         pmem/PMemFieldLocation.cc
         pmem/PMemFieldLocation.h
         pmem/PMemIndex.cc

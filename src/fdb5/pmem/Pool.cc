@@ -17,10 +17,12 @@
 #include "pmem/PersistentPtr.h"
 #include "pmem/Exceptions.h"
 
-#include "fdb5/pmem/Pool.h"
-#include "fdb5/pmem/PRoot.h"
 #include "fdb5/pmem/PBaseNode.h"
 #include "fdb5/pmem/PBranchingNode.h"
+#include "fdb5/pmem/PDataRoot.h"
+#include "fdb5/pmem/PIndexRoot.h"
+#include "fdb5/pmem/PRoot.h"
+#include "fdb5/pmem/Pool.h"
 
 using namespace eckit;
 using namespace pmem;
@@ -35,6 +37,8 @@ template<> uint64_t pmem::PersistentType<pmem::PersistentVectorData<fdb5::pmem::
 template<> uint64_t pmem::PersistentType<pmem::PersistentPODVectorData<uint64_t> >::type_id = 5;
 template<> uint64_t pmem::PersistentType<pmem::PersistentBuffer>::type_id = 6;
 template<> uint64_t pmem::PersistentType<pmem::PersistentString>::type_id = 7;
+template<> uint64_t pmem::PersistentType<fdb5::pmem::PIndexRoot>::type_id = 8;
+template<> uint64_t pmem::PersistentType<fdb5::pmem::PDataRoot>::type_id = 9;
 
 
 // --------------------------------------------------------------------------------------------------
@@ -47,9 +51,11 @@ namespace pmem {
 Pool::Pool(const PathName& path, const std::string& name) :
     PersistentPool(path, name) {
 
-    ASSERT(root()->valid());
+    ASSERT(baseRoot().valid());
+    ASSERT(baseRoot()->valid());
+    ASSERT(root().valid());
 
-    Log::info() << "Opened persistent pool created at: " << TimeStamp(root()->created()) << std::endl;
+    Log::info() << "Opened persistent pool created at: " << TimeStamp(root().created()) << std::endl;
 }
 
 
@@ -85,7 +91,7 @@ Pool* Pool::obtain(const PathName &poolDir, const size_t size) {
 
     } catch (PersistentOpenError& e) {
         if (e.errno_ == ENOENT)
-            pool = new Pool(masterPath, size, "pmem-pool", PRoot::Constructor());
+            pool = new Pool(masterPath, size, "pmem-pool", PRoot::Constructor(PRoot::IndexClass));
         else
             throw;
     }
@@ -95,13 +101,25 @@ Pool* Pool::obtain(const PathName &poolDir, const size_t size) {
 }
 
 
-PersistentPtr<PRoot> Pool::root() const {
+PersistentPtr<PRoot> Pool::baseRoot() const {
 
     PersistentPtr<PRoot> rt = getRoot<PRoot>();
     ASSERT(rt.valid());
+    ASSERT(rt->valid());
+    ASSERT(rt->root_class() == PRoot::IndexClass);
 
     return rt;
 }
+
+
+PIndexRoot& Pool::root() const {
+
+    PIndexRoot& rt = baseRoot()->indexRoot();
+
+    ASSERT(rt.valid());
+    return rt;
+}
+
 
 // -------------------------------------------------------------------------------------------------
 

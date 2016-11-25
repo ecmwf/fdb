@@ -29,6 +29,9 @@ namespace pmem {
 namespace fdb5 {
 namespace pmem {
 
+class PRoot;
+class PDataRoot;
+
 // -------------------------------------------------------------------------------------------------
 
 /*
@@ -53,6 +56,11 @@ public: // methods
 
     bool finalised() const;
     void finalise();
+
+private: // methods
+
+    ::pmem::PersistentPtr<PRoot> baseRoot() const;
+    PDataRoot& root() const;
 };
 
 // -------------------------------------------------------------------------------------------------

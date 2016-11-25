@@ -15,6 +15,8 @@
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/rules/Rule.h"
 
+#include "pmem/PersistentString.h"
+
 using namespace eckit;
 using namespace pmem;
 
@@ -29,8 +31,8 @@ PMemDB::PMemDB(const Key& key) :
     // using this as a directory, but rather as a pool file.
     poolDir_(RootManager::directory(key)),
     pool_(initialisePool(poolDir_)),
-    root_(*pool_->root()),
-    dataPoolMgr_(poolDir_, pool_->root()),
+    root_(pool_->root()),
+    dataPoolMgr_(poolDir_, pool_->root(), pool_->baseRoot().uuid()),
     currentIndex_(0) {
 
     const PersistentString& schemaBuf(root_.schema());
@@ -44,8 +46,8 @@ PMemDB::PMemDB(const PathName& poolDir) :
     DB(Key()),
     poolDir_(poolDir),
     pool_(initialisePool(poolDir)),
-    root_(*pool_->root()),
-    dataPoolMgr_(poolDir_, pool_->root()),
+    root_(pool_->root()),
+    dataPoolMgr_(poolDir_, pool_->root(), pool_->baseRoot().uuid()),
     currentIndex_(0) {
 
     const PersistentString& schemaBuf(root_.schema());

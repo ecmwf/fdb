@@ -23,7 +23,7 @@
 #include "fdb5/rules/Schema.h"
 
 #include "fdb5/pmem/Pool.h"
-#include "fdb5/pmem/PRoot.h"
+#include "fdb5/pmem/PIndexRoot.h"
 #include "fdb5/pmem/DataPoolManager.h"
 
 namespace fdb5 {
@@ -73,7 +73,7 @@ protected: // members
 
     eckit::ScopedPtr<Pool> pool_;
 
-    PRoot& root_;
+    PIndexRoot& root_;
 
     DataPoolManager dataPoolMgr_;
 

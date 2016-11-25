@@ -13,13 +13,20 @@
 /// @date   Sep 2016
 
 
-#ifndef fdb5_pmem_PRoot_H
-#define fdb5_pmem_PRoot_H
+#ifndef fdb5_pmem_PIndexRoot_H
+#define fdb5_pmem_PIndexRoot_H
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/FixedString.h"
+#include "eckit/types/Types.h"
 
+#include "pmem/AtomicConstructor.h"
 #include "pmem/PersistentPtr.h"
+#include "pmem/PersistentPODVector.h"
+#include "pmem/PersistentString.h"
+
+#include "fdb5/pmem/PBranchingNode.h"
+#include "fdb5/pmem/PDataNode.h"
 
 #include <ctime>
 
@@ -27,42 +34,26 @@
 namespace fdb5 {
 namespace pmem {
 
-class PIndexRoot;
-class PDataRoot;
-
 // -------------------------------------------------------------------------------------------------
 
-/// The primary root object
-/// @note We have a "primary" root object, that points to either the real index or data data
-///       roots depending on the pool we are in. This permits having unique mapping between
-///       the type_ids (and correct versioning) for all objects, including the two differing
-///       root objects (as the root object MUST have the type_id POBJ_ROOT_TYPE_NUM).
+// N.B. This is to be stored in PersistentPtr --> NO virtual behaviour.
 
-class PRoot : public eckit::NonCopyable {
-
-public: // types
-
-    enum RootClass {
-        IndexClass = 0,
-        DataClass
-    };
-
-    typedef ::pmem::AtomicConstructor1<PRoot, RootClass> Constructor;
+class PIndexRoot : public eckit::NonCopyable {
 
 public: // methods
 
-    PRoot(RootClass cls);
+    PIndexRoot();
 
     bool valid() const;
 
     const time_t& created() const;
 
+    ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key) const;
+    PBranchingNode& getCreateBranchingNode(const Key& key);
+
     void print(std::ostream& s) const;
 
-    RootClass root_class() const;
-
-    PIndexRoot& indexRoot() const;
-    PDataRoot& dataRoot() const;
+    const ::pmem::PersistentString& schema() const;
 
 private: // members
 
@@ -78,23 +69,26 @@ private: // members
 
     long createdBy_;
 
-    RootClass class_;
+    ::pmem::PersistentPtr<PBranchingNode> rootNode_;
 
-    /// Access to the "real" root objects.
+    /// Keep track of how many data pools are in use. Ensure locking whenever updating this variable.
 
-    ::pmem::PersistentPtr<PIndexRoot> indexRoot_;
-    ::pmem::PersistentPtr<PDataRoot> dataRoot_;
+    ::pmem::PersistentMutex mutex_;
+    ::pmem::PersistentPODVector<uint64_t> dataPoolUUIDs_;
+
+    ::pmem::PersistentPtr< ::pmem::PersistentString> schema_;
 
 private: // friends
 
-    friend std::ostream& operator<<(std::ostream& s, const PRoot& r) { r.print(s); return s; }
+    friend class DataPoolManager;
+
+    friend std::ostream& operator<<(std::ostream& s, const PIndexRoot& r) { r.print(s); return s; }
 };
 
 
 // A consistent definition of the tag for comparison purposes.
-
-const eckit::FixedString<8> PRootTag = "99FDB599";
-const unsigned short int PRootVersion = 2;
+const eckit::FixedString<8> PIndexRootTag = "77FDB577";
+const unsigned short int PIndexRootVersion = 2;
 
 
 // -------------------------------------------------------------------------------------------------
@@ -102,4 +96,4 @@ const unsigned short int PRootVersion = 2;
 } // namespace pmem
 } // namespace fdb5
 
-#endif // fdb5_pmem_PRoot_H
+#endif // fdb5_pmem_PIndexRoot_H
