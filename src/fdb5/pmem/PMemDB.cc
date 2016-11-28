@@ -9,6 +9,7 @@
  */
 
 #include "eckit/config/Resource.h"
+#include "eckit/log/Timer.h"
 
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/pmem/PMemDB.h"
@@ -100,6 +101,7 @@ void PMemDB::close() {
 }
 
 void PMemDB::checkSchema(const Key &key) const {
+    eckit::Timer timer("PMemDB::checkSchema()");
     ASSERT(key.rule());
     schema_.compareTo(key.rule()->schema());
 }
