@@ -37,23 +37,24 @@ namespace pmem {
 
 class PDataNode : public PBaseNode {
 
-public: // Construction objects
+public: // types
 
-    class Constructor : public ::pmem::AtomicConstructor<PDataNode>, public PBaseNode::Constructor {
-    public: // methods
-        Constructor(const KeyType& key, const ValueType& value, const void* data, eckit::Length length);
-        virtual size_t size() const;
-        virtual void make(PDataNode& object) const;
-    private:
-        eckit::Length length_;
-        const void* data_;
-    };
+    typedef ::pmem::AtomicConstructor4<PDataNode, KeyType,
+                                                  ValueType,
+                                                  const void*,
+                                                  eckit::Length> Constructor;
 
     typedef ::pmem::AtomicConstructorCast<PDataNode, PBaseNode> BaseConstructor;
+
+public: // methods
+
+    PDataNode(const KeyType& key, const ValueType& value, const void* data, eckit::Length length);
 
     const void* data() const;
 
     eckit::Length length() const;
+
+    static size_t data_size(eckit::Length length);
 
 private: // members
 
@@ -69,5 +70,22 @@ private: // members
 
 } // namespace pmem
 } // namespace fdb5
+
+// -------------------------------------------------------------------------------------------------
+
+namespace pmem {
+
+template<>
+inline size_t AtomicConstructor4Base<fdb5::pmem::PDataNode,
+                                                fdb5::pmem::PBaseNode::KeyType,
+                                                fdb5::pmem::PBaseNode::ValueType,
+                                                const void*,
+                                                eckit::Length>::size() const {
+    return fdb5::pmem::PDataNode::data_size(x4_);
+
+}
+
+}
+
 
 #endif // fdb5_pmem_PDataNode_H

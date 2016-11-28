@@ -36,7 +36,7 @@ PIndexRoot::PIndexRoot() :
     createdBy_(getuid()) {
 
     // The root node of the tree does not have an associated key/value.
-    rootNode_.allocate_ctr(PBranchingNode::Constructor("", ""));
+    rootNode_.allocate(std::string(), std::string());
 
     // Store the currently loaded master schema, so it can be recovered later
 

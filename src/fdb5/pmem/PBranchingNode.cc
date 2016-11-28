@@ -33,44 +33,31 @@ namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
 
-PBranchingNode::Constructor::Constructor(const KeyType& key, const ValueType& value) :
-    PBaseNode::Constructor(BRANCHING_NODE, key, value) {
-    Log::error() << "Constructor(" << key << ": " << value << ")" << std::endl;
+
+PBranchingNode::PBranchingNode(const KeyType &key, const ValueType &value) :
+    PBaseNode(BRANCHING_NODE, key, value) {}
+
+
+/// This is the constructor for building a chain of nodes
+
+PBranchingNode::PBranchingNode(KeyValueVector::const_iterator start,
+                               KeyValueVector::const_iterator end,
+                               PBranchingNode** const tailNode) :
+    PBaseNode(BRANCHING_NODE, start->first, start->second) {
+
+    // Store this node as the tailNode. If further contained nodes are created, the pointer will
+    // be (correctly) replaced with the deepest node.
+
+    *tailNode = this;
+
+    // Instantiate nodes recursively until they are all filled.
+    // We use an explicit constructor so we can cast it to the PBaseNode type
+
+    ++start;
+    if (start != end)
+        nodes_.push_back_ctr(BaseConstructor(IndexConstructor(start, end, tailNode)));
 }
 
-void PBranchingNode::Constructor::make(PBranchingNode& object) const {
-    constructBase(object);
-    object.nodes_.nullify();
-    object.axis_.nullify();
-}
-
-
-PBranchingNode::IndexConstructor::IndexConstructor(KeyValueVector::const_iterator it,
-                                                   KeyValueVector::const_iterator end,
-                                                   PBranchingNode** const indexNode) :
-    PBranchingNode::Constructor(it->first, it->second),
-    keysIterator_(it),
-    endIterator_(end),
-    indexNode_(indexNode) {
-    Log::error() << "IndexConstructor(it)" << std::endl;
-}
-
-
-void PBranchingNode::IndexConstructor::make(PBranchingNode& object) const {
-    PBranchingNode::Constructor::make(object);
-
-    // Store the node being created as the indexNode. If further contained nodes are created, the
-    // pointer will be (correctly) replaced with the deepest node.
-    *indexNode_ = &object;
-
-    // Instantiate nodes recursively until they are all filled
-
-    KeyValueVector::const_iterator next = keysIterator_;
-    next++;
-    if (next != endIterator_) {
-        object.nodes_.push_back_ctr(BaseConstructor(IndexConstructor(next, endIterator_, indexNode_)));
-    }
-}
 
 // -------------------------------------------------------------------------------------------------
 

@@ -45,33 +45,24 @@ public: // types
 
 public: // Construction objects
 
-    /// The standard constructor just creates a node
-
-    class Constructor : public ::pmem::AtomicConstructor<PBranchingNode>, public PBaseNode::Constructor {
-    public: // methods
-        Constructor(const KeyType& key, const ValueType& value);
-        virtual void make(PBranchingNode& object) const;
-    };
-
     /// The Index constructor creates a BranchingNode, and then recursively creates required
     /// subnodes until the key is exhausted with a BranchingNode.
 
-    class IndexConstructor : public PBranchingNode::Constructor {
-    public: // methods
-        IndexConstructor(KeyValueVector::const_iterator key,
-                         KeyValueVector::const_iterator end,
-                         PBranchingNode** const indexNode);
-        virtual void make(PBranchingNode& object) const;
-
-    private: // members
-        KeyValueVector::const_iterator keysIterator_;
-        KeyValueVector::const_iterator endIterator_;
-        PBranchingNode** const indexNode_;
-    };
+    typedef ::pmem::AtomicConstructor3<PBranchingNode,
+                                       KeyValueVector::const_iterator,
+                                       KeyValueVector::const_iterator,
+                                       PBranchingNode** const> IndexConstructor;
 
     typedef ::pmem::AtomicConstructorCast<PBranchingNode, PBaseNode> BaseConstructor;
 
 public: // methods
+
+    PBranchingNode(const KeyType& key, const ValueType& value);
+
+    /// Recursively create a chain of nodes, returning a pointer to the tail of the chain
+    PBranchingNode(KeyValueVector::const_iterator start,
+                   KeyValueVector::const_iterator end,
+                   PBranchingNode** const tailNode);
 
     /// Obtain a branching (intermediate) node in the tree. If it doesn't exist, then
     /// create it.

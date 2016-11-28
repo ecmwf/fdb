@@ -22,19 +22,11 @@ namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
 
-PBaseNode::Constructor::Constructor( PBaseNode::NodeType type, const KeyType& key, const ValueType& value) :
+PBaseNode::PBaseNode(NodeType type, const KeyType &key, const ValueType &value) :
     type_(type),
-    key_(key),
-    value_(value) {
-}
+    idKey_(key),
+    idValue_(value) {}
 
-
-void PBaseNode::Constructor::constructBase(PBaseNode &object) const {
-    object.type_ = type_;
-    object.idKey_ = key_;
-    object.idValue_ = value_;
-    eckit::Log::error() << "constructBase(" << key_ << ":" << value_ << ")" << std::endl;
-}
 
 bool PBaseNode::isNull() const {
     return type_ == PBaseNode::NULL_NODE;

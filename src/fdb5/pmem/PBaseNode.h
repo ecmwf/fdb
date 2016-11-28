@@ -48,23 +48,11 @@ protected: // Types
         BRANCHING_NODE
     };
 
-    /// Base class constructor. Note that this does NOT derive from AtomicConstructor. It needs
-    /// to be mixed in with an AtomicConstructor<T> to form a meaningful derived class constructor.
-
-    class Constructor {
-    public: // methods
-        Constructor(NodeType type, const KeyType& key, const ValueType& value);
-        void constructBase(PBaseNode& object) const;
-    private: // members
-        NodeType type_;
-        KeyType key_;
-        ValueType value_;
-    };
-
-private: // Construction objects
+protected: // Construction objects
 
     // This object MUST NOT be constructed manually. Only as part of a derived base
-    PBaseNode() {}
+
+    PBaseNode(NodeType type, const KeyType& key, const ValueType& value);
 
 public: // methods
 

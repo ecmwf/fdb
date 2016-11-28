@@ -30,25 +30,17 @@ namespace pmem {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-PDataNode::Constructor::Constructor(const KeyType& key,
-                                    const ValueType& value,
-                                    const void* data,
-                                    Length length) :
-    PBaseNode::Constructor(DATA_NODE, key, value),
-    length_(length),
-    data_(data) {
-    Log::error() << "Constructor(" << key << ": " << value << " -- " << length << std::endl;
+
+PDataNode::PDataNode(const KeyType& key, const ValueType& value, const void* data, eckit::Length length) :
+    PBaseNode(DATA_NODE, key, value),
+    length_(length) {
+
+    ::memcpy(data_, data, length_);
 }
 
-size_t PDataNode::Constructor::size() const {
-    return sizeof(PDataNode) - sizeof(PDataNode::data_) + length_;
-}
 
-void PDataNode::Constructor::make(PDataNode& object) const {
-    constructBase(object);
-
-    object.length_ = length_;
-    memcpy(object.data_, data_, length_);
+size_t PDataNode::data_size(eckit::Length length) {
+    return sizeof(PDataNode) - sizeof(PDataNode::data_) + length;
 }
 
 
