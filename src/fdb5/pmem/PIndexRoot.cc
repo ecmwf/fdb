@@ -109,6 +109,10 @@ const ::pmem::PersistentString& PIndexRoot::schema() const {
     return *schema_;
 }
 
+const ::pmem::PersistentPODVector<uint64_t>& PIndexRoot::dataPoolUUIDs() const {
+    return dataPoolUUIDs_;
+}
+
 void PIndexRoot::print(std::ostream& s) const {
     s << "PIndexRoot(0x" << this << ")";
 }

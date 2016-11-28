@@ -59,14 +59,9 @@ DataPool& DataPoolManager::currentWritePool() {
         // If there isn't a currently active pool, we are potentially going to be modifying the root object,
         // so lock things.
 
-        Log::error() << "locking... " << std::endl;
         AutoLock<PersistentMutex> lock(masterRoot_.mutex_);
 
-        Log::error() << "Master root: " << masterRoot_ << std::endl;
-        Log::error() << "Master root uuids: " << masterRoot_.dataPoolUUIDs_ << std::endl;
-
         size_t pool_count = masterRoot_.dataPoolUUIDs_.size();
-        Log::error() << "Pool count: " << pool_count << std::endl;
 
         // If there are any pools in the pool list, open the last one. If this is not finalised, then use it.
 
@@ -96,9 +91,9 @@ DataPool& DataPoolManager::currentWritePool() {
         // If we still don't have a workable pool, we need to open a new one.
         if (currentPool_ == 0) {
 
-            Log::error() << "Create new..." << std::endl;
             size_t idx = pool_count;
-            Log::error() << "Creating a new data pool with index: " << idx << std::endl;
+
+            Log::info() << "[" << *this << "]: " << "Creating a new data pool with index: " << idx << std::endl;
             currentPool_ = new DataPool(poolDir_, idx, Resource<size_t>("fdbPMemDataPoolSize", 1024 * 1024 * 1024));
 
             // Add pool to the list of opened pools
@@ -124,7 +119,7 @@ void DataPoolManager::invalidateCurrentPool(DataPool& pool) {
     // We don't worry too much about other threads/processors. They will also hit out-of-space allocation errors.
     // This finalisation is only for informational purposes.
 
-    Log::error() << "[" << *this << "]: " << "Finalising current pool" << std::endl;
+    Log::info() << "[" << *this << "]: " << "Finalising current pool" << std::endl;
 
     currentPool_->finalise();
     currentPool_ = 0;

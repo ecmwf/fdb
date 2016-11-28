@@ -55,6 +55,8 @@ public: // methods
 
     const ::pmem::PersistentString& schema() const;
 
+    const ::pmem::PersistentPODVector<uint64_t>& dataPoolUUIDs() const;
+
 private: // members
 
     eckit::FixedString<8> tag_;
