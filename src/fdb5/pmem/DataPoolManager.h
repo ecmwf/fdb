@@ -76,6 +76,8 @@ protected: // methods
 
     virtual void print(std::ostream& out) const;
 
+    const std::map<uint64_t, DataPool*>& pools() const;
+
 private: // members
 
     eckit::PathName poolDir_;
