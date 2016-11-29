@@ -20,6 +20,7 @@
 
 #include "eckit/io/Length.h"
 #include "eckit/log/Bytes.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 
@@ -71,30 +72,32 @@ public: // methods
 
     virtual void openForAppend(const eckit::Length& len) {
 
-            /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
+        std::string path = HANDLE::path_;
 
-            std::string path = HANDLE::path_;
+        if(eckit::PathName(path).exists()) return; //< Lustre API outputs ioctl error messages when called on files exist
 
-            eckit::Log::debug<LibFdb>() << "Creating Lustre file " << path
-                                        << " with " << stripe_.count_ << " stripes "
-                                        << "of " << eckit::Bytes(stripe_.size_)
-                                        << std::endl;
+        /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
 
-            int err = fdb5LustreapiFileCreate(path.c_str(), stripe_.size_, stripe_.count_);
+        eckit::Log::debug<LibFdb>() << "Creating Lustre file " << path
+                                    << " with " << stripe_.count_ << " stripes "
+                                    << "of " << eckit::Bytes(stripe_.size_)
+                                    << std::endl;
 
-            if(err == EINVAL) {
+        int err = fdb5LustreapiFileCreate(path.c_str(), stripe_.size_, stripe_.count_);
 
-                std::ostringstream oss;
-                oss << "Invalid stripe parameters for Lustre file system"
-                    << " - stripe count " << stripe_.count_
-                    << " - stripe size "  << stripe_.size_;
+        if(err == EINVAL) {
 
-                throw eckit::BadParameter(oss.str(), Here());
-            }
+            std::ostringstream oss;
+            oss << "Invalid stripe parameters for Lustre file system"
+                << " - stripe count " << stripe_.count_
+                << " - stripe size "  << stripe_.size_;
 
-            if(err && err != EEXIST) {
-                throw eckit::FailedSystemCall("llapi_file_create", Here());
-            }
+            throw eckit::BadParameter(oss.str(), Here());
+        }
+
+        if(err && err != EEXIST && err != EALREADY) {
+            throw eckit::FailedSystemCall("llapi_file_create", Here());
+        }
 
         this->HANDLE::openForAppend(len);
     }
