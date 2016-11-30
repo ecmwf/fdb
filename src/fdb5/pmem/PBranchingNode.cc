@@ -257,12 +257,26 @@ void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNod
 
     PBranchingNode& dataParent(getCreateBranchingNode(parentIdentifier));
 
-    // And then append the data node to that one.
+    // Some sanity checking
 
     std::string k = ordered_keys[ordered_keys.size()-1];
-    ASSERT(dataNode->matches(k, key.value(k)));
+    std::string v = key.value(k);
+    ASSERT(dataNode->matches(k, v));
+
+    // Lock the parent node for editing.
 
     AutoLock<PersistentMutex> lock(dataParent.mutex_);
+
+
+    // Check that we will only mask PDataNodes if there is a matching one. We don't want to block
+    // off whole sections of the tree because someone has gone off-schema.
+
+    for (size_t i = 0; i < dataParent.nodes_.size(); i++) {
+        if (dataParent.nodes_[i]->matches(k, v))
+            ASSERT(dataParent.nodes_[i]->isDataNode());
+    }
+
+    // And then append the data node to that one.
 
     dataParent.nodes_.push_back_elem(dataNode.as<PBaseNode>());
 }
