@@ -85,7 +85,7 @@ private: // methods
 
     PBranchingNode& getCreateBranchingNode(const KeyValueVector& identifier);
 
-private: // members
+protected: // members
 
     ::pmem::PersistentVector<PBaseNode> nodes_;
 
