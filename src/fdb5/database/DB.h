@@ -26,6 +26,7 @@
 
 namespace eckit {
 class DataHandle;
+class PathName;
 }
 
 class MarsTask;
@@ -89,22 +90,29 @@ protected: // members
 class DBFactory {
 
     std::string name_;
+    bool read_;
+    bool write_;
 
     virtual DB *make(const Key &key) const = 0 ;
+    virtual DB *make(const eckit::PathName& path) const = 0 ;
 
 protected:
 
-    DBFactory(const std::string &);
+    DBFactory(const std::string &, bool read, bool write);
     virtual ~DBFactory();
 
 public:
 
     static void list(std::ostream &);
     static DB *build(const std::string &, const Key &key);
+    static DB *build_read(const eckit::PathName& path);
 
 private: // methods
 
     static const DBFactory &findFactory(const std::string &);
+
+    bool read() const;
+    bool write() const;
 };
 
 /// Templated specialisation of the self-registering factory,
@@ -116,9 +124,12 @@ class DBBuilder : public DBFactory {
     virtual DB *make(const Key &key) const {
         return new T(key);
     }
+    virtual DB *make(const eckit::PathName& path) const {
+        return new T(path);
+    }
 
 public:
-    DBBuilder(const std::string &name) : DBFactory(name) {}
+    DBBuilder(const std::string &name, bool read, bool write) : DBFactory(name, read, write) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------

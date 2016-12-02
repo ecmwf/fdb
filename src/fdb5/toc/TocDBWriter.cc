@@ -36,6 +36,17 @@ TocDBWriter::TocDBWriter(const Key &key) :
     checkUID();
 }
 
+TocDBWriter::TocDBWriter(const eckit::PathName &directory) :
+    TocDB(directory),
+    current_(0),
+    dirty_(false) {
+
+    // TODO: Not clear what should occur here for writeInitRecord.
+    NOTIMP;
+    loadSchema();
+    checkUID();
+}
+
 TocDBWriter::~TocDBWriter() {
     close();
 }
@@ -241,7 +252,7 @@ void TocDBWriter::print(std::ostream &out) const {
         << "]";
 }
 
-static DBBuilder<TocDBWriter> builder("toc.writer");
+static DBBuilder<TocDBWriter> builder("toc.writer", false, true);
 
 //----------------------------------------------------------------------------------------------------------------------
 

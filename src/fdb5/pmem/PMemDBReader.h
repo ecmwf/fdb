@@ -33,6 +33,7 @@ protected: // types
 public: // methods
 
     PMemDBReader(const Key &key);
+    PMemDBReader(const eckit::PathName& directory);
 
     virtual void axis(const std::string& keyword, eckit::StringSet& s) const;
 

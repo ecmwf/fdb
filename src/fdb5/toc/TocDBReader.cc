@@ -22,6 +22,11 @@ TocDBReader::TocDBReader(const Key& key) :
 {
 }
 
+TocDBReader::TocDBReader(const eckit::PathName& directory) :
+    TocDB(directory),
+    indexes_(loadIndexes()) {}
+
+
 TocDBReader::~TocDBReader() {
     freeIndexes(indexes_);
 }
@@ -111,7 +116,7 @@ const std::vector<Index *> &TocDBReader::indexes() const
     return indexes_;
 }
 
-static DBBuilder<TocDBReader> builder("toc.reader");
+static DBBuilder<TocDBReader> builder("toc.reader", true, false);
 
 //----------------------------------------------------------------------------------------------------------------------
 

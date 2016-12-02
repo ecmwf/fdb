@@ -25,6 +25,10 @@ namespace pmem {
 PMemDBWriter::PMemDBWriter(const Key &key) :
     PMemDB(key) {}
 
+
+PMemDBWriter::PMemDBWriter(const PathName &directory) :
+    PMemDB(directory) {}
+
 PMemDBWriter::~PMemDBWriter() {
 }
 
@@ -84,7 +88,7 @@ void PMemDBWriter::print(std::ostream &out) const {
         << "]";
 }
 
-static DBBuilder<PMemDBWriter> builder("pmem.writer");
+static DBBuilder<PMemDBWriter> builder("pmem.writer", false, true);
 
 //----------------------------------------------------------------------------------------------------------------------
 

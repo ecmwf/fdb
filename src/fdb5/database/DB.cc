@@ -9,6 +9,7 @@
  */
 
 #include "eckit/thread/AutoLock.h"
+#include "eckit/filesystem/PathName.h"
 
 #include "fdb5/database/DB.h"
 
@@ -29,8 +30,10 @@ void init() {
 /// When a concrete instance of a DBFactory is instantiated (in practice
 /// a DBBuilder<>) add it to the list of available factories.
 
-DBFactory::DBFactory(const std::string &name) :
-    name_(name) {
+DBFactory::DBFactory(const std::string &name, bool read, bool write) :
+    name_(name),
+    read_(read),
+    write_(write) {
 
     pthread_once(&once, init);
 
@@ -85,6 +88,40 @@ DB *DBFactory::build(const std::string &name, const Key &key) {
     const DBFactory &factory( findFactory(name) );
 
     return factory.make(key);
+}
+
+
+/// If we have been supplied a path to a DB, but don't know what type it is, then we
+/// need to try and open it with the different DBs, and see how they cope.
+///
+DB *DBFactory::build_read(const eckit::PathName& path) {
+
+    pthread_once(&once, init);
+
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+
+    eckit::Log::info() << "Trying to open DB at path: " << path << std::endl;
+
+    std::map<std::string, DBFactory*>::const_iterator j;
+    for (j = m->begin(); j != m->end(); ++j) {
+
+        if (j->second->read()) {
+            DB* db = j->second->make(path);
+            if (db != 0)
+                return db;
+        }
+    }
+
+    throw eckit::SeriousBug(std::string("No appropriate DBFactory found for path") + path);
+}
+
+
+bool DBFactory::read() const {
+    return read_;
+}
+
+bool DBFactory::write() const {
+    return write_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -29,6 +29,7 @@ class PMemDBWriter : public PMemDB {
 public: // methods
 
     PMemDBWriter(const Key &key);
+    PMemDBWriter(const eckit::PathName& directory);
 
     virtual ~PMemDBWriter();
 

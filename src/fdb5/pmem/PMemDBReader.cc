@@ -23,6 +23,11 @@ namespace pmem {
 PMemDBReader::PMemDBReader(const Key &key) :
     PMemDB(key) {}
 
+
+PMemDBReader::PMemDBReader(const eckit::PathName& directory) :
+    PMemDB(directory) {}
+
+
 PMemDBReader::~PMemDBReader() {
 }
 
@@ -73,7 +78,7 @@ void PMemDBReader::print(std::ostream &out) const {
         << "]";
 }
 
-static DBBuilder<PMemDBReader> builder("pmem.reader");
+static DBBuilder<PMemDBReader> builder("pmem.reader", true, false);
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -35,6 +35,7 @@ class TocDBWriter : public TocDB {
 public: // methods
 
     TocDBWriter(const Key &key);
+    TocDBWriter(const eckit::PathName& directory);
 
     virtual ~TocDBWriter();
 
