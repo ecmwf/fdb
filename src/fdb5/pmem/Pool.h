@@ -55,10 +55,16 @@ public: // methods
 
     ~Pool();
 
+    static bool exists(const eckit::PathName& poolDir);
+
     static Pool* obtain(const eckit::PathName& poolDir, const size_t size);
 
     ::pmem::PersistentPtr<PRoot> baseRoot() const;
     PIndexRoot& root() const;
+
+private: // methods
+
+    static eckit::PathName poolMaster(const eckit::PathName& poolDir);
 };
 
 // -------------------------------------------------------------------------------------------------

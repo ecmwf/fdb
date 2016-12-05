@@ -81,23 +81,33 @@ Pool* Pool::obtain(const PathName &poolDir, const size_t size) {
         poolDir.mkdir();
     ASSERT(poolDir.isDir());
 
-    PathName masterPath = poolDir / "master";
     Pool* pool = 0;
 
     try {
 
         Log::error() << "Opening.. " << std::endl;
-        pool = new Pool(masterPath, "pmem-pool");
+        pool = new Pool(poolMaster(poolDir), "pmem-pool");
 
     } catch (PersistentOpenError& e) {
         if (e.errno_ == ENOENT)
-            pool = new Pool(masterPath, size, "pmem-pool", PRoot::Constructor(PRoot::IndexClass));
+            pool = new Pool(poolMaster(poolDir), size, "pmem-pool", PRoot::Constructor(PRoot::IndexClass));
         else
             throw;
     }
 
     ASSERT(pool != 0);
     return pool;
+}
+
+
+bool Pool::exists(const PathName &poolDir) {
+    return poolMaster(poolDir).exists();
+}
+
+
+eckit::PathName Pool::poolMaster(const PathName &poolDir) {
+
+    return poolDir / "master";
 }
 
 

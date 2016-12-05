@@ -76,8 +76,7 @@ bool PMemDB::open() {
 }
 
 bool PMemDB::exists() const {
-    NOTIMP;
-    return false;
+    return Pool::exists(poolDir_);
 }
 
 void PMemDB::archive(const Key &key, const void *data, Length length) {
