@@ -35,6 +35,7 @@ public: // methods
     PMemDBReader(const Key &key);
     PMemDBReader(const eckit::PathName& directory);
 
+    virtual bool open();
     virtual void axis(const std::string& keyword, eckit::StringSet& s) const;
 
     virtual ~PMemDBReader();

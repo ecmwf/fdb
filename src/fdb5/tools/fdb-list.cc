@@ -11,8 +11,8 @@
 #include "eckit/option/CmdArgs.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBInspect.h"
+#include "fdb5/database/DB.h"
 
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -90,20 +90,25 @@ void FDBList::process(const eckit::PathName &path, const eckit::option::CmdArgs 
 
     eckit::Log::info() << "Listing " << path << std::endl;
 
-    fdb5::TocHandler handler(path);
-    fdb5::Key key = handler.databaseKey();
-    eckit::Log::info() << "Database key " << key << std::endl;
+    fdb5::DB* db = fdb5::DBFactory::build_read(path);
 
-    fdb5::Schema schema(path / "schema");
+    eckit::Log::info() << "DB: " << *db << std::endl;
 
-    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
-    ListVisitor visitor(key, schema, location_);
 
-    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-        (*i)->entries(visitor);
-    }
-
-    handler.freeIndexes(indexes);
+//    fdb5::TocHandler handler(path);
+//    fdb5::Key key = handler.databaseKey();
+//    eckit::Log::info() << "Database key " << key << std::endl;
+//
+//    fdb5::Schema schema(path / "schema");
+//
+//    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
+//    ListVisitor visitor(key, schema, location_);
+//
+//    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+//        (*i)->entries(visitor);
+//    }
+//
+//    handler.freeIndexes(indexes);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -31,48 +31,53 @@ PMemDB::PMemDB(const Key& key) :
     // Utilise the RootManager from the TocDB to get a sensible location. Note that we are NOT
     // using this as a directory, but rather as a pool file.
     poolDir_(RootManager::directory(key)),
-    pool_(initialisePool(poolDir_)),
-    root_(pool_->root()),
-    dataPoolMgr_(poolDir_, pool_->root(), pool_->baseRoot().uuid()),
-    currentIndex_(0) {
-
-    const PersistentString& schemaBuf(root_.schema());
-    std::string s(schemaBuf.c_str(), schemaBuf.length());
-    std::istringstream iss(s);
-    schema_.load(iss);
-}
+    currentIndex_(0) {}
+//}
 
 
 PMemDB::PMemDB(const PathName& poolDir) :
     DB(Key()),
     poolDir_(poolDir),
-    pool_(initialisePool(poolDir)),
-    root_(pool_->root()),
-    dataPoolMgr_(poolDir_, pool_->root(), pool_->baseRoot().uuid()),
-    currentIndex_(0) {
-
-    const PersistentString& schemaBuf(root_.schema());
-    std::string s(schemaBuf.c_str(), schemaBuf.length());
-    std::istringstream iss(s);
-    schema_.load(iss);
-}
-
+    currentIndex_(0) {}
 
 PMemDB::~PMemDB() {
     close();
 }
 
 
-Pool* PMemDB::initialisePool(const PathName& poolFile) {
+void PMemDB::initialisePool() {
 
-    return Pool::obtain(poolFile, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024));
+    ASSERT(currentIndex_ == 0);
+
+    // Get (or create) the pool
+    pool_.reset(Pool::obtain(poolDir_, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024)));
+
+    root_ = &pool_->root();
+
+    dataPoolMgr_.reset(new DataPoolManager(poolDir_, *root_, pool_->baseRoot().uuid()));
+
+    // Initialise the schema object for comparison against the global schema.
+
+    const PersistentString& schemaBuf(root_->schema());
+    std::string s(schemaBuf.c_str(), schemaBuf.length());
+    std::istringstream iss(s);
+    schema_.load(iss);
 }
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
 bool PMemDB::open() {
+
+    if (!pool_)
+        initialisePool();
+
     return true;
+}
+
+bool PMemDB::exists() const {
+    NOTIMP;
+    return false;
 }
 
 void PMemDB::archive(const Key &key, const void *data, Length length) {

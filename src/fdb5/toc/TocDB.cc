@@ -44,6 +44,10 @@ bool TocDB::open() {
     NOTIMP;
 }
 
+bool TocDB::exists() const {
+    return TocHandler::exists();
+}
+
 void TocDB::archive(const Key &key, const void *data, Length length) {
     Log::error() << "Archive not implemented for " << *this << std::endl;
     NOTIMP;

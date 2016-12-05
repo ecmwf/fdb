@@ -51,6 +51,7 @@ protected: // methods
     virtual bool open();
     virtual void close();
     virtual void flush();
+    virtual bool exists() const;
 
     virtual eckit::DataHandle *retrieve(const Key &key) const;
     virtual void archive(const Key &key, const void *data, eckit::Length length);

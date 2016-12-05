@@ -35,7 +35,7 @@ PMemDBWriter::~PMemDBWriter() {
 bool PMemDBWriter::selectIndex(const Key &key) {
 
     if (indexes_.find(key) == indexes_.end()) {
-        indexes_[key] = new PMemIndex(key, root_.getCreateBranchingNode(key), dataPoolMgr_);
+        indexes_[key] = new PMemIndex(key, root_->getCreateBranchingNode(key), *dataPoolMgr_);
     }
 
     currentIndex_ = indexes_[key];
@@ -75,7 +75,7 @@ void PMemDBWriter::archive(const Key &key, const void *data, Length length) {
     // orphaned if anything goes wrong before it is added to a tree structure.
 
     ::pmem::PersistentPtr<PDataNode> ptr;
-    dataPoolMgr_.allocate(ptr, PDataNode::Constructor(data_key, data_value, data, length));
+    dataPoolMgr_->allocate(ptr, PDataNode::Constructor(data_key, data_value, data, length));
 
     Field field( (PMemFieldLocation(ptr)) );
 

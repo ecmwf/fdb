@@ -32,13 +32,23 @@ PMemDBReader::~PMemDBReader() {
 }
 
 
+bool PMemDBReader::open() {
+
+    // We don't want to create a DB if it doesn't exist when opening for read.
+    if (!exists())
+        return false;
+
+    return PMemDB::open();
+}
+
+
 bool PMemDBReader::selectIndex(const Key &key) {
 
     if (indexes_.find(key) == indexes_.end()) {
 
-        ::pmem::PersistentPtr<PBranchingNode> node = root_.getBranchingNode(key);
+        ::pmem::PersistentPtr<PBranchingNode> node = root_->getBranchingNode(key);
         if (!node.null())
-            indexes_[key] = new PMemIndex(key, *node, dataPoolMgr_);
+            indexes_[key] = new PMemIndex(key, *node, *dataPoolMgr_);
         else
             return false;
     }

@@ -47,6 +47,7 @@ protected: // methods
     virtual bool open();
     virtual void close();
     virtual void flush();
+    virtual bool exists() const;
 
     virtual eckit::DataHandle *retrieve(const Key &key) const;
     virtual void archive(const Key &key, const void *data, eckit::Length length);
@@ -61,7 +62,7 @@ protected: // methods
 private: // methods
 
     /// Initialise or open the peristent pool. Worker function for the construtor
-    static Pool* initialisePool(const eckit::PathName& poolFile);
+    void initialisePool();
 
 protected: // types
 
@@ -73,9 +74,11 @@ protected: // members
 
     eckit::ScopedPtr<Pool> pool_;
 
-    PIndexRoot& root_;
+    // Not owned by PMemDB but by pool_. This is only a pointer not a reference so it can
+    // be initialised later than the PMemDB is constructed.
+    PIndexRoot* root_;
 
-    DataPoolManager dataPoolMgr_;
+    eckit::ScopedPtr<DataPoolManager> dataPoolMgr_;
 
     IndexStore  indexes_;
     Index* currentIndex_;

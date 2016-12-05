@@ -106,9 +106,16 @@ DB *DBFactory::build_read(const eckit::PathName& path) {
     for (j = m->begin(); j != m->end(); ++j) {
 
         if (j->second->read()) {
+
+            eckit::Log::info() << "Read DB found: " << j->first << std::endl;
+
             DB* db = j->second->make(path);
-            if (db != 0)
-                return db;
+            if (db != 0) {
+                if (!db->exists())
+                    delete db;
+                else
+                    return db;
+            }
         }
     }
 

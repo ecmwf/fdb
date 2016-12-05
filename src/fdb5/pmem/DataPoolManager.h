@@ -74,7 +74,7 @@ protected: // methods
     /// process, or thread, has already created a new pool, or the pool being used is already out of date).
     void invalidateCurrentPool(DataPool& pool);
 
-    virtual void print(std::ostream& out) const;
+    void print(std::ostream& out) const;
 
     const std::map<uint64_t, DataPool*>& pools() const;
 
