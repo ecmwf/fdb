@@ -31,8 +31,11 @@ PMemDB::PMemDB(const Key& key) :
     // Utilise the RootManager from the TocDB to get a sensible location. Note that we are NOT
     // using this as a directory, but rather as a pool file.
     poolDir_(RootManager::directory(key)),
-    currentIndex_(0) {}
-//}
+    currentIndex_(0) {
+
+    // If opened with a key in this manner, it is for write, so should open up fully.
+    initialisePool();
+}
 
 
 PMemDB::PMemDB(const PathName& poolDir) :
