@@ -29,6 +29,9 @@ TocDB::TocDB(const Key& key) :
 TocDB::TocDB(const eckit::PathName& directory) :
     DB(Key()),
     TocHandler(directory) {
+
+    // Read the real DB key into the DB base object
+    dbKey_ = databaseKey();
 }
 
 TocDB::~TocDB() {
@@ -68,6 +71,21 @@ void TocDB::close() {
     NOTIMP;
 }
 
+const Schema& TocDB::schema() const {
+    return schema_;
+}
+
+void TocDB::visitEntries(EntryVisitor& visitor) {
+
+    std::vector<Index*> indexes = loadIndexes();
+
+    for (std::vector<Index*>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+        (*i)->entries(visitor);
+    }
+
+    freeIndexes(indexes);
+}
+
 void TocDB::loadSchema() {
     Timer timer("TocDB::loadSchema()");
     schema_.load( schemaPath() );
@@ -77,10 +95,6 @@ void TocDB::checkSchema(const Key &key) const {
     Timer timer("TocDB::checkSchema()");
     ASSERT(key.rule());
     schema_.compareTo(key.rule()->schema());
-}
-
-const Schema& TocDB::schema() const {
-    return schema_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

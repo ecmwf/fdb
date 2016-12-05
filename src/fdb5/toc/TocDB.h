@@ -36,8 +36,6 @@ public: // methods
 
     virtual ~TocDB();
 
-    const Schema& schema() const;
-
     static void matchKeyToDB(const Key& key, std::set<Key>& keys);
 
     static std::vector<eckit::PathName> databases(const Key& key, const std::vector<eckit::PathName>& dirs);
@@ -52,6 +50,8 @@ protected: // methods
     virtual void close();
     virtual void flush();
     virtual bool exists() const;
+    virtual void visitEntries(EntryVisitor& visitor);
+    virtual const Schema& schema() const;
 
     virtual eckit::DataHandle *retrieve(const Key &key) const;
     virtual void archive(const Key &key, const void *data, eckit::Length length);

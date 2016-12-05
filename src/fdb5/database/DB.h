@@ -34,6 +34,8 @@ class MarsTask;
 namespace fdb5 {
 
 class Key;
+class EntryVisitor;
+class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -67,6 +69,10 @@ public: // methods
     virtual void checkSchema(const Key &key) const = 0;
 
     virtual bool exists() const = 0;
+
+    virtual void visitEntries(EntryVisitor& visitor) = 0;
+
+    virtual const Schema& schema() const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const DB &x);
 

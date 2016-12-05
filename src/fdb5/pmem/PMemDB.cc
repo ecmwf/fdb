@@ -80,6 +80,12 @@ bool PMemDB::exists() const {
 }
 
 void PMemDB::archive(const Key &key, const void *data, Length length) {
+    Log::error() << "archive not implemented for " << *this << std::endl;
+    NOTIMP;
+}
+
+void PMemDB::visitEntries(EntryVisitor& visitor) {
+    Log::error() << "visitEntries not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
@@ -117,6 +123,14 @@ void PMemDB::axis(const std::string &keyword, eckit::StringSet &s) const {
 
 bool PMemDB::selectIndex(const Key &key) {
     NOTIMP;
+}
+
+
+const Schema& PMemDB::schema() const {
+
+    // We must have opened the DB for the schema to have been loaded.
+    ASSERT(pool_);
+    return schema_;
 }
 
 void PMemDB::deselectIndex() {

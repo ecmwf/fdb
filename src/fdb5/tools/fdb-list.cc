@@ -91,24 +91,11 @@ void FDBList::process(const eckit::PathName &path, const eckit::option::CmdArgs 
     eckit::Log::info() << "Listing " << path << std::endl;
 
     fdb5::DB* db = fdb5::DBFactory::build_read(path);
+    ASSERT(db->open());
 
-    eckit::Log::info() << "DB: " << *db << std::endl;
+    ListVisitor visitor(db->key(), db->schema(), location_);
 
-
-//    fdb5::TocHandler handler(path);
-//    fdb5::Key key = handler.databaseKey();
-//    eckit::Log::info() << "Database key " << key << std::endl;
-//
-//    fdb5::Schema schema(path / "schema");
-//
-//    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
-//    ListVisitor visitor(key, schema, location_);
-//
-//    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-//        (*i)->entries(visitor);
-//    }
-//
-//    handler.freeIndexes(indexes);
+    db->visitEntries(visitor);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
