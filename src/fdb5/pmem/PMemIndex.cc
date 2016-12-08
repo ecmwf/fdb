@@ -76,20 +76,22 @@ void PMemIndex::close() {
 void PMemIndex::add(const Key &key, const Field &field) {
 
     struct Inserter : FieldLocationVisitor {
-        Inserter(PBranchingNode& indexNode, const Key& key) :
+        Inserter(PBranchingNode& indexNode, const Key& key, DataPoolManager& poolManager) :
             indexNode_(indexNode),
-            key_(key) {}
+            key_(key),
+            poolManager_(poolManager) {}
 
         virtual void operator() (const PMemFieldLocation& location) {
-            indexNode_.insertDataNode(key_, location.node());
+            indexNode_.insertDataNode(key_, location.node(), poolManager_);
         }
 
     private:
         PBranchingNode& indexNode_;
         const Key& key_;
+        DataPoolManager& poolManager_;
     };
 
-    Inserter inserter(location_.node(), key);
+    Inserter inserter(location_.node(), key, location_.pool_manager());
     field.location().visit(inserter);
 
     // Keep track of the axes()

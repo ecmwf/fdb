@@ -76,7 +76,7 @@ public: // methods
     /// @note This is primarily in place to support the getIndex functionality.
     PBranchingNode& getCreateBranchingNode(const Key& key);
 
-    void insertDataNode(const Key& key, const ::pmem::PersistentPtr<PDataNode>& dataNode);
+    void insertDataNode(const Key& key, const ::pmem::PersistentPtr<PDataNode>& dataNode, DataPoolManager& mgr);
 
     ::pmem::PersistentPtr<PDataNode> getDataNode(const Key& key, DataPoolManager& mgr) const;
 

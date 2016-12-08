@@ -245,7 +245,7 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(const KeyValueVector& ide
 }
 
 
-void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNode>& dataNode) {
+void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNode>& dataNode, DataPoolManager& mgr) {
 
     // Obtain the _parent_ branching node - the final element in the chain identifies the
     // specific data node, and so should be excluded from this first operation.
@@ -277,6 +277,13 @@ void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNod
     // off whole sections of the tree because someone has gone off-schema.
 
     for (size_t i = 0; i < dataParent.nodes_.size(); i++) {
+
+        // This breaks a bit of the encapsulation, but hook in here to check that the relevant
+        // pools are loaded. We can't do this earlier, as the data is allowed to be changing
+        // up to this point...
+
+        mgr.ensurePoolLoaded(dataParent.nodes_[i].uuid());
+
         if (dataParent.nodes_[i]->matches(k, v))
             ASSERT(dataParent.nodes_[i]->isDataNode());
     }
