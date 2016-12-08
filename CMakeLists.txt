@@ -52,7 +52,8 @@ endif()
 
 ### eckit
 
-set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
+set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
+
 ecbuild_use_package( PROJECT eckit    VERSION 0.13.2  REQUIRED )
 
 ### GRIB support
@@ -157,10 +158,6 @@ find_package( HPSS QUIET )
 find_package( ADSM QUIET )
 
 find_package( LustreAPI QUIET )
-
-ecbuild_warn( LUSTREAPI_FOUND ${LUSTREAPI_FOUND} )
-ecbuild_warn( LUSTREAPI_INCLUDE_DIRS ${LUSTREAPI_INCLUDE_DIRS} )
-ecbuild_warn( LUSTREAPI_LIBRARIES ${LUSTREAPI_LIBRARIES} )
 
 # find thread library ( preferably pthreads )
 

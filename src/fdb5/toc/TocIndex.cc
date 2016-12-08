@@ -16,10 +16,13 @@
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
 
 class TocIndexCloser {
-    bool opened_;
+
     const TocIndex &index_;
+    bool opened_;
+
 public:
     TocIndexCloser(const TocIndex &index): opened_(index.btree_), index_(index) {
         if (!opened_) {
@@ -33,7 +36,7 @@ public:
     }
 };
 
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 /// @note We use a FileStoreWrapper base that only exists to initialise the files_ member function
 ///       before the Index constructor is called. This is necessary as due to (preexisting)

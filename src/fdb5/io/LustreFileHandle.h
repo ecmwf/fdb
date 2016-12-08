@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   AdoptVisitor.h
+/// @file   LustreFileHandle.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   October 2016
@@ -19,68 +19,93 @@
 #include "mars_server_config.h"
 
 #include "eckit/io/Length.h"
+#include "eckit/log/Bytes.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 
-extern "C" {
-int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
-}
+#include "fdb5/LibFdb.h"
 
 namespace fdb5 {
 
+int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripecount);
+
 //----------------------------------------------------------------------------------------------------------------------
+
+struct LustreStripe {
+
+    LustreStripe(unsigned int count, size_t size) :
+        count_(count),
+        size_(size)
+    {
+    }
+
+    unsigned int count_;
+    size_t size_;
+};
+
 
 template< class HANDLE >
 class LustreFileHandle : public HANDLE {
-public:
 
-    // -- Contructors
+public: // methods
 
-    LustreFileHandle(const std::string& path) :
-        HANDLE(path) {
+    LustreFileHandle(const std::string& path, LustreStripe stripe) :
+        HANDLE(path),
+        stripe_(stripe)
+    {
     }
 
-    LustreFileHandle(const std::string& path, size_t buffsize) :
-        HANDLE(path, buffsize) {
+    LustreFileHandle(const std::string& path, size_t buffsize, LustreStripe stripe) :
+        HANDLE(path, buffsize),
+        stripe_(stripe)
+    {
     }
 
-    LustreFileHandle(const std::string& path, size_t buffcount, size_t buffsize) :
-        HANDLE(path, buffcount, buffsize) {
+    LustreFileHandle(const std::string& path, size_t buffcount, size_t buffsize, LustreStripe stripe) :
+        HANDLE(path, buffcount, buffsize),
+        stripe_(stripe)
+    {
     }
-
-    // -- Destructor
 
     virtual ~LustreFileHandle() {}
 
     virtual void openForAppend(const eckit::Length& len) {
 
-        static unsigned int lustreStripeCount = eckit::Resource<unsigned int>("lustreStripeCount;$FDB5_LUSTRE_STRIPE_COUNT", 8);
-        static size_t lustreStripeSize = eckit::Resource<size_t>("lustreStripeSize;$FDB5_LUSTRE_STRIPE_SIZE", 8*1024*1024);
+        std::string path = HANDLE::path_;
 
-        if(lustreStripeCount > 1) {
+        if(eckit::PathName(path).exists()) return; //< Lustre API outputs ioctl error messages when called on files exist
 
-            /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
+        /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
 
-            std::string path = HANDLE::path_;
-            int err = fdb5_lustreapi_file_create(path.c_str(), lustreStripeSize, lustreStripeCount);
+        eckit::Log::debug<LibFdb>() << "Creating Lustre file " << path
+                                    << " with " << stripe_.count_ << " stripes "
+                                    << "of " << eckit::Bytes(stripe_.size_)
+                                    << std::endl;
 
-            if(err == EINVAL) {
+        int err = fdb5LustreapiFileCreate(path.c_str(), stripe_.size_, stripe_.count_);
 
-                std::ostringstream oss;
-                oss << "Invalid stripe parameters for Lustre file system"
-                    << " - stripe count " << lustreStripeCount
-                    << " - stripe size "  << lustreStripeSize;
+        if(err == EINVAL) {
 
-                throw eckit::BadParameter(oss.str(), Here());
-            }
+            std::ostringstream oss;
+            oss << "Invalid stripe parameters for Lustre file system"
+                << " - stripe count " << stripe_.count_
+                << " - stripe size "  << stripe_.size_;
 
-            if(err && err != EEXIST) {
-                throw eckit::FailedSystemCall("llapi_file_create", Here());
-            }
+            throw eckit::BadParameter(oss.str(), Here());
+        }
+
+        if(err && err != EEXIST && err != EALREADY) {
+            throw eckit::FailedSystemCall("llapi_file_create", Here());
         }
 
         this->HANDLE::openForAppend(len);
     }
+
+private: // members
+
+    LustreStripe stripe_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -20,6 +20,7 @@
 
 #include "fdb5/toc/FileSpace.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/LibFdb.h"
 
 using namespace eckit;
 
@@ -28,13 +29,15 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 ExpverFileSpaceHandler::ExpverFileSpaceHandler() :
-    fdbExpverFileSystems_(Resource<PathName>("fdbExpverFileSystems", "~fdb/etc/fdb/ExpverFileSystems")) {
+    fdbExpverFileSystems_(Resource<PathName>("fdbExpverFileSystems", "~fdb/etc/fdb/expver_filesystems")) {
 }
 
 ExpverFileSpaceHandler::~ExpverFileSpaceHandler() {
 }
 
 void ExpverFileSpaceHandler::load() const {
+
+    Log::debug<LibFdb>() << "Loading " << fdbExpverFileSystems_ << std::endl;
 
     std::ifstream in(fdbExpverFileSystems_.localPath());
 
@@ -83,21 +86,28 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
 {
     // obtain exclusive lock to file
 
-    PathName lockFile = fdbExpverFileSystems_ / ".lock";
+    PathName lockFile = fdbExpverFileSystems_ + ".lock";
 
     eckit::FileLock locker(lockFile);
     eckit::AutoLock<eckit::FileLock> lock(locker);
 
     // read the file first to check that this expver hasn't been inserted yet by another process
 
-    std::fstream iof(fdbExpverFileSystems_.localPath(), std::ios::in | std::ios::out);
+    std::ifstream fi(fdbExpverFileSystems_.localPath());
 
-    char line[1024];
+    if(!fi) {
+        std::ostringstream oss;
+        oss <<  fdbExpverFileSystems_ << Log::syserr;
+        Log::error() << oss.str() << std::endl;
+        throw CantOpenFile(oss.str(), Here());
+    }
+
+    char line[4*1024];
     size_t lineNo = 0;
     Tokenizer parse(" ");
     std::vector<std::string> s;
 
-    while(iof.getline(line, sizeof(line)))
+    while(fi.getline(line, sizeof(line)))
     {
         ++lineNo;
         s.clear();
@@ -122,14 +132,30 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
             throw ReadError(oss.str(), Here());
         }
 
-        if(s[0] == expver) return PathName(s[1]);
+        if(s[0] == expver) {
+            Log::debug<LibFdb>() << "Found expver " << expver << " " << path << " in " << fdbExpverFileSystems_ << std::endl;
+            return PathName(s[1]);
+        }
+    }
+
+    fi.close();
+
+    std::ofstream of(fdbExpverFileSystems_.localPath(), std::ofstream::app);
+
+    if(!of) {
+        std::ostringstream oss;
+        oss <<  fdbExpverFileSystems_ << Log::syserr;
+        Log::error() << oss.str() << std::endl;
+        throw WriteError(oss.str(), Here());
     }
 
     // append to the file
 
-    iof << expver << " " << path << std::endl;
+    Log::debug<LibFdb>() << "Appending expver " << expver << " " << path << " to " << fdbExpverFileSystems_ << std::endl;
 
-    iof.close();
+    of << expver << " " << path << std::endl;
+
+    of.close();
 
     return path;
 }
@@ -151,6 +177,7 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     PathTable::const_iterator itr = table_.find(expver);
     if(itr != table_.end()) {
+        Log::debug<LibFdb>() << "Found expver " << expver << " " << itr->second << " in " << fdbExpverFileSystems_ << std::endl;
         return itr->second;
     }
 
