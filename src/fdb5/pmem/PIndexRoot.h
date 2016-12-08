@@ -32,6 +32,9 @@
 
 
 namespace fdb5 {
+
+class EntryVisitor;
+
 namespace pmem {
 
 // -------------------------------------------------------------------------------------------------
@@ -42,7 +45,7 @@ class PIndexRoot : public eckit::NonCopyable {
 
 public: // methods
 
-    PIndexRoot();
+    PIndexRoot(const Key& dbKey);
 
     bool valid() const;
 
@@ -51,11 +54,15 @@ public: // methods
     ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key) const;
     PBranchingNode& getCreateBranchingNode(const Key& key);
 
+    void visitLeaves(EntryVisitor& visitor, DataPoolManager& mgr, const Schema& schema) const;
+
     void print(std::ostream& s) const;
 
     const ::pmem::PersistentString& schema() const;
 
     const ::pmem::PersistentPODVector<uint64_t>& dataPoolUUIDs() const;
+
+    Key databaseKey() const;
 
 private: // members
 
@@ -79,6 +86,8 @@ private: // members
     ::pmem::PersistentPODVector<uint64_t> dataPoolUUIDs_;
 
     ::pmem::PersistentPtr< ::pmem::PersistentString> schema_;
+
+    ::pmem::PersistentPtr< ::pmem::PersistentBuffer> dbKey_;
 
 private: // friends
 

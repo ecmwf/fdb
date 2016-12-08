@@ -65,6 +65,9 @@ public: // methods
 
     bool matches(const KeyType& key, const ValueType& value) const;
 
+    std::string key() const;
+    std::string value() const;
+
 protected: // members
 
     unsigned int type_;

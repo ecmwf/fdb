@@ -220,6 +220,8 @@ if( HAVE_PMEMFDB )
         pmem/DataPool.h
         pmem/DataPoolManager.cc
         pmem/DataPoolManager.h
+        pmem/MemoryBufferStream.h
+        pmem/MemoryBufferStream.cc
         pmem/PBaseNode.cc
         pmem/PBaseNode.h
         pmem/PBranchingNode.cc

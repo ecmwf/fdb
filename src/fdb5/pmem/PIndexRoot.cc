@@ -12,9 +12,11 @@
 
 #include "eckit/log/Log.h"
 #include "eckit/memory/ScopedPtr.h"
+#include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/pmem/PIndexRoot.h"
+#include "fdb5/pmem/MemoryBufferStream.h"
 
 #include <unistd.h>
 
@@ -28,7 +30,7 @@ namespace pmem {
 // -------------------------------------------------------------------------------------------------
 
 
-PIndexRoot::PIndexRoot() :
+PIndexRoot::PIndexRoot(const Key& dbKey) :
     tag_(PIndexRootTag),
     version_(PIndexRootVersion),
     rootSize_(sizeof(PIndexRoot)),
@@ -46,6 +48,13 @@ PIndexRoot::PIndexRoot() :
     schemaFile->read(&buf[0], buf.size());
 
     schema_.allocate(buf);
+
+    // Store the current DB key
+
+    MemoryBufferStream s;
+    s << dbKey;
+    const void* key_data = s.buffer();
+    dbKey_.allocate(key_data, s.position());
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -80,7 +89,11 @@ bool PIndexRoot::valid() const {
     if (schema_.null()) {
         Log::error() << "Schema missing from tree root node" << std::endl;
         return false;
+    }
 
+    if (dbKey_.null()) {
+        Log::error() << "(Root) database key missing from tree root node" << std::endl;
+        return false;
     }
 
     return true;
@@ -105,12 +118,30 @@ PBranchingNode& PIndexRoot::getCreateBranchingNode(const Key& key) {
     return rootNode_->getCreateBranchingNode(key);
 }
 
+void PIndexRoot::visitLeaves(EntryVisitor& visitor, DataPoolManager& mgr, const Schema& schema) const {
+
+    std::vector<Key> keys;
+    keys.push_back(databaseKey());
+    keys.push_back(Key());
+    return rootNode_->visitLeaves(visitor, mgr, keys, 1);
+}
+
 const ::pmem::PersistentString& PIndexRoot::schema() const {
     return *schema_;
 }
 
 const ::pmem::PersistentPODVector<uint64_t>& PIndexRoot::dataPoolUUIDs() const {
     return dataPoolUUIDs_;
+}
+
+Key PIndexRoot::databaseKey() const {
+
+    ASSERT(!dbKey_.null());
+    const PersistentBuffer& buf(*dbKey_);
+    MemoryStream s(buf.data(), buf.size());
+
+    Key k(s);
+    return k;
 }
 
 void PIndexRoot::print(std::ostream& s) const {

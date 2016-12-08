@@ -56,6 +56,14 @@ bool PBaseNode::matches(const KeyType& key, const ValueType& value) const {
     return key == idKey_ && value == idValue_;
 }
 
+std::string PBaseNode::key() const {
+    return idKey_;
+}
+
+std::string PBaseNode::value() const {
+    return idValue_;
+}
+
 std::ostream& operator<< (std::ostream& s, const PBaseNode& n) {
 
     // TODO: Include the node _type_ here

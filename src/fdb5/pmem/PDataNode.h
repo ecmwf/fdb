@@ -28,8 +28,11 @@
 namespace fdb5 {
 
 class Key;
+class EntryVisitor;
 
 namespace pmem {
+
+class DataPoolManager;
 
 // -------------------------------------------------------------------------------------------------
 

@@ -29,6 +29,11 @@
 
 
 namespace fdb5 {
+
+class EntryVisitor;
+class Schema;
+class Index;
+
 namespace pmem {
 
 class DataPoolManager;
@@ -80,6 +85,15 @@ public: // methods
     /// @arg key - The key of the node to create or get _relative_to_the_current_node_
     /// @return A PersistentPtr to the node, or a null() pointer.
     ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key) const;
+
+    void visitLeaves(EntryVisitor &visitor,
+                     DataPoolManager& mgr,
+                     std::vector<Key>& keys,
+                     size_t depth,
+                     const Index* index=0);
+
+    /// Returns true if this node is (or at least has been used as) an Index.
+    bool isIndex() const;
 
 private: // methods
 

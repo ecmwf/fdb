@@ -18,6 +18,9 @@
 
 #include "fdb5/database/Key.h"
 #include "fdb5/pmem/PDataNode.h"
+#include "fdb5/pmem/PMemIndex.h"
+#include "fdb5/pmem/PMemFieldLocation.h"
+#include "fdb5/pmem/PBranchingNode.h"
 
 #include <unistd.h>
 
@@ -52,6 +55,7 @@ const void* PDataNode::data() const {
 eckit::Length PDataNode::length() const {
     return length_;
 }
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 

@@ -25,6 +25,9 @@
 
 
 namespace fdb5 {
+
+class Key;
+
 namespace pmem {
 
 class PIndexRoot;
@@ -48,10 +51,12 @@ public: // types
     };
 
     typedef ::pmem::AtomicConstructor1<PRoot, RootClass> Constructor;
+    typedef ::pmem::AtomicConstructor2<PRoot, RootClass, Key> ConstructorKey;
 
 public: // methods
 
     PRoot(RootClass cls);
+    PRoot(RootClass cls, const Key& dbKey);
 
     bool valid() const;
 

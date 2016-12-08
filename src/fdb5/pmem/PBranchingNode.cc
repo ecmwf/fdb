@@ -15,12 +15,17 @@
 #include "eckit/parser/JSONDataBlob.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/types/Types.h"
+#include "eckit/memory/ScopedPtr.h"
 
+#include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/pmem/DataPoolManager.h"
 #include "fdb5/pmem/PBranchingNode.h"
 #include "fdb5/pmem/PDataNode.h"
+#include "fdb5/pmem/PMemIndex.h"
+#include "fdb5/pmem/PMemFieldLocation.h"
 #include "fdb5/pmem/PRoot.h"
+#include "fdb5/rules/Schema.h"
 
 #include <unistd.h>
 
@@ -279,6 +284,100 @@ void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNod
     // And then append the data node to that one.
 
     dataParent.nodes_.push_back_elem(dataNode.as<PBaseNode>());
+}
+
+
+void PBranchingNode::visitLeaves(EntryVisitor &visitor,
+                                 DataPoolManager& mgr,
+                                 std::vector<Key>& keys,
+                                 size_t depth,
+                                 const Index* index) {
+
+    // Get a list of sub-nodes in memory before starting to visit them, so that we can
+    // release the lock for further writers.
+    // Use this opportunity to de-deplicate the entries.
+
+    ScopedPtr<PMemIndex> thisIndex;
+
+    if (!(key().empty() && value().empty())) {
+        keys.back().push(key(), value());
+        if (isIndex()) {
+            ASSERT(index == 0);
+
+            thisIndex.reset(new PMemIndex(keys.back(), *this, mgr));
+            index = thisIndex.get();
+
+            keys.push_back(Key());
+            depth++;
+        }
+    }
+
+    std::map<std::string, PBranchingNode*> subtrees;
+    std::map<std::string, PersistentPtr<PDataNode> > leaves;
+
+    {
+        AutoLock<PersistentMutex> lock(mutex_);
+
+        int i = nodes_.size() - 1;
+        for (; i >= 0; --i) {
+
+            PersistentPtr<PBaseNode> subnode = nodes_[i];
+
+            // This breaks a bit of the encapsulation, but hook in here to check that the relevant
+            // pools are loaded. We can't do this earlier, as the data is allowed to be changing
+            // up to this point...
+
+            mgr.ensurePoolLoaded(subnode.uuid());
+
+            std::string kv = subnode->key() + ":" + subnode->value();
+
+            if (subnode->isDataNode()) {
+
+                if (leaves.find(kv) == leaves.end())
+                    leaves[kv] = subnode.as<PDataNode>();
+
+            } else {
+
+                // n.b. Should be no masked subtrees, and no mixed data/trees
+                ASSERT(subnode->isBranchingNode());
+                ASSERT(subtrees.find(kv) == subtrees.end());
+                ASSERT(leaves.find(kv) == leaves.end());
+                subtrees[kv] = &(subnode->asBranchingNode());
+            }
+        }
+    }
+
+    // Visit the leaves
+    std::map<std::string, PersistentPtr<PDataNode> >::const_iterator it_dt = leaves.begin();
+    for (; it_dt != leaves.end(); ++it_dt) {
+        ASSERT(index != 0);
+
+        // we do the visitation from here, not from PDataNode::visit, as the PMemFieldLocation needs
+        // the PersistentPtr, not the "this" pointer.
+        keys.back().push(it_dt->second->key(), it_dt->second->value());
+        Field field(PMemFieldLocation(it_dt->second));
+        visitor.visit(*index, "Index fingerprint unused", keys.back().valuesToString(), field);
+        keys.back().pop(it_dt->second->key());
+    }
+
+    // Recurse down the trees
+    std::map<std::string, PBranchingNode*>::const_iterator it_br = subtrees.begin();
+    for (; it_br != subtrees.end(); ++it_br) {
+        it_br->second->visitLeaves(visitor, mgr, keys, depth, index);
+    }
+
+    if (!(key().empty() && value().empty())) {
+        if (isIndex())
+            keys.pop_back();
+        keys.back().pop(key());
+    }
+}
+
+
+bool PBranchingNode::isIndex() const {
+
+    // An index will have an axis object. Couple these concepts
+    return !axis_.null();
 }
 
 

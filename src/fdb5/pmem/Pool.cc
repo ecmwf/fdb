@@ -73,7 +73,7 @@ Pool::~Pool() {}
 /// If open/create fail for other reasons, then the appropriate error is thrown.
 ///
 /// @arg path - Specifies the directory to open, rather than the pool size itself.
-Pool* Pool::obtain(const PathName &poolDir, const size_t size) {
+Pool* Pool::obtain(const PathName &poolDir, const size_t size, const Key& dbKey) {
 
     // The pool must exist as a file within a directory.
     // n.b. PathName::mkdir uses mkdir_if_not_exists internally, so works OK if another process gets ahead.
@@ -90,7 +90,7 @@ Pool* Pool::obtain(const PathName &poolDir, const size_t size) {
 
     } catch (PersistentOpenError& e) {
         if (e.errno_ == ENOENT)
-            pool = new Pool(poolMaster(poolDir), size, "pmem-pool", PRoot::Constructor(PRoot::IndexClass));
+            pool = new Pool(poolMaster(poolDir), size, "pmem-pool", PRoot::ConstructorKey(PRoot::IndexClass, dbKey));
         else
             throw;
     }

@@ -27,6 +27,9 @@ namespace pmem {
 // -------------------------------------------------------------------------------------------------
 
 namespace fdb5 {
+
+class Key;
+
 namespace pmem {
 
 class PRoot;
@@ -57,7 +60,7 @@ public: // methods
 
     static bool exists(const eckit::PathName& poolDir);
 
-    static Pool* obtain(const eckit::PathName& poolDir, const size_t size);
+    static Pool* obtain(const eckit::PathName& poolDir, const size_t size, const Key& dbKey);
 
     ::pmem::PersistentPtr<PRoot> baseRoot() const;
     PIndexRoot& root() const;

@@ -12,6 +12,7 @@
 
 #include "eckit/log/Log.h"
 
+#include "fdb5/database/Key.h"
 #include "fdb5/pmem/PRoot.h"
 #include "fdb5/pmem/PIndexRoot.h"
 #include "fdb5/pmem/PDataRoot.h"
@@ -39,7 +40,27 @@ PRoot::PRoot(RootClass cls) :
     dataRoot_() {
 
     if (class_ == IndexClass) {
-        indexRoot_.allocate();
+        // MUST supply the dbKey to create an index root
+        ASSERT(false);
+    } else {
+        ASSERT(class_ == DataClass);
+        dataRoot_.allocate();
+    }
+}
+
+
+PRoot::PRoot(RootClass cls, const Key& dbKey) :
+    tag_(PRootTag),
+    version_(PRootVersion),
+    rootSize_(sizeof(PRoot)),
+    created_(time(0)),
+    createdBy_(getuid()),
+    class_(cls),
+    indexRoot_(),
+    dataRoot_() {
+
+    if (class_ == IndexClass) {
+        indexRoot_.allocate(dbKey);
     } else {
         ASSERT(class_ == DataClass);
         dataRoot_.allocate();

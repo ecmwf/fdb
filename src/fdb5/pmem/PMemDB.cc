@@ -53,7 +53,7 @@ void PMemDB::initialisePool() {
     ASSERT(currentIndex_ == 0);
 
     // Get (or create) the pool
-    pool_.reset(Pool::obtain(poolDir_, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024)));
+    pool_.reset(Pool::obtain(poolDir_, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024), dbKey_));
 
     root_ = &pool_->root();
 
@@ -65,6 +65,9 @@ void PMemDB::initialisePool() {
     std::string s(schemaBuf.c_str(), schemaBuf.length());
     std::istringstream iss(s);
     schema_.load(iss);
+
+    if (dbKey_.empty())
+        dbKey_ = root_->databaseKey();
 }
 
 
@@ -88,8 +91,12 @@ void PMemDB::archive(const Key &key, const void *data, Length length) {
 }
 
 void PMemDB::visitEntries(EntryVisitor& visitor) {
-    Log::error() << "visitEntries not implemented for " << *this << std::endl;
-    NOTIMP;
+
+    Log::error() << dbKey_ << std::endl;
+
+
+    ASSERT(pool_ && root_);
+    root_->visitLeaves(visitor, *dataPoolMgr_, schema());
 }
 
 eckit::DataHandle * PMemDB::retrieve(const Key &key) const {

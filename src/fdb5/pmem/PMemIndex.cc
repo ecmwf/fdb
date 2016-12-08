@@ -10,104 +10,17 @@
 
 #include "eckit/io/Buffer.h"
 #include "eckit/serialisation/MemoryStream.h"
-#include "eckit/serialisation/Stream.h"
 
 #include "fdb5/pmem/PMemIndex.h"
 #include "fdb5/pmem/PBranchingNode.h"
 #include "fdb5/pmem/PMemFieldLocation.h"
+#include "fdb5/pmem/MemoryBufferStream.h"
 
 using namespace eckit;
 
 
 namespace fdb5 {
 namespace pmem {
-
-//-----------------------------------------------------------------------------
-
-// A little helper class that might end up somewhere else
-
-class MemoryBufferStream : public Stream {
-
-public: // methods
-
-    MemoryBufferStream();
-    ~MemoryBufferStream();
-
-    virtual long read(void*,long);
-    virtual long write(const void*,long);
-    virtual void rewind();
-    virtual std::string name() const;
-
-    size_t position() const;
-    const Buffer& buffer() const;
-
-private: // members
-
-    Length size_;
-    Offset position_;
-
-    Buffer buffer_;
-};
-
-
-MemoryBufferStream::MemoryBufferStream() :
-    size_(4096),
-    position_(0),
-    buffer_(size_) {}
-
-
-MemoryBufferStream::~MemoryBufferStream() {}
-
-
-long MemoryBufferStream::read(void* buffer, long length) {
-
-    // Intentionally not implemented. This is a write buffer.
-    NOTIMP;
-
-    (void) buffer;
-    (void) length;
-}
-
-
-long MemoryBufferStream::write(const void* buffer, long length) {
-
-    // If the buffer is full, then reallocate it to be bigger.
-
-    Length remaining = size_ - position_;
-    if (remaining < Length(length)) {
-        Buffer tmp(size_ * 2);
-        ::memcpy(tmp, buffer_, size_);
-        buffer_.swap(tmp);
-        size_ = size_ * 2;
-    }
-
-    ::memcpy(buffer_ + position_, buffer, length);
-    position_ += length;
-
-    return length;
-}
-
-
-void MemoryBufferStream::rewind()
-{
-    position_ = 0;
-}
-
-
-std::string MemoryBufferStream::name() const {
-    return "MemoryBufferStream";
-}
-
-
-size_t MemoryBufferStream::position() const {
-    return position_;
-}
-
-
-const Buffer& MemoryBufferStream::buffer() const {
-    return buffer_;
-}
-
 
 //-----------------------------------------------------------------------------
 
