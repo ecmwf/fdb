@@ -8,11 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+
+#include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBInspect.h"
-#include "fdb5/database/DB.h"
 
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -90,7 +92,7 @@ void FDBList::process(const eckit::PathName &path, const eckit::option::CmdArgs 
 
     eckit::Log::info() << "Listing " << path << std::endl;
 
-    fdb5::DB* db = fdb5::DBFactory::build_read(path);
+    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::build_read(path));
     ASSERT(db->open());
 
     ListVisitor visitor(db->key(), db->schema(), location_);
