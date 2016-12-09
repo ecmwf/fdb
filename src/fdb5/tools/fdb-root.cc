@@ -8,15 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/config/Resource.h"
+#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+
+#include "fdb5/config/MasterConfig.h"
+#include "fdb5/config/UMask.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/rules/Schema.h"
+#include "fdb5/toc/TocDB.h"
+#include "fdb5/toc/TocDBWriter.h"
 #include "fdb5/tools/FDBTool.h"
 #include "fdb5/tools/ToolRequest.h"
-#include "fdb5/toc/TocDBWriter.h"
-#include "fdb5/toc/TocDB.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/config/UMask.h"
-#include "fdb5/rules/Schema.h"
-#include "fdb5/config/MasterConfig.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -24,7 +27,10 @@ class FdbRoot : public fdb5::FDBTool {
 
 public: // methods
 
-    FdbRoot(int argc, char **argv) : fdb5::FDBTool(argc, argv) {
+    FdbRoot(int argc, char **argv) :
+        fdb5::FDBTool(argc, argv) {
+
+        fdbWriterDB_ = eckit::Resource<std::string>("fdbWriterDB", "toc.writer");
     }
 
 private: // methods
@@ -33,6 +39,7 @@ private: // methods
     virtual void usage(const std::string &tool) const;
 
     bool doit_;
+    std::string fdbWriterDB_;
 };
 
 void FdbRoot::usage(const std::string &tool) const {
@@ -63,7 +70,8 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
         eckit::Log::info() << result << std::endl;
 
-        fdb5::TocDBWriter db(result); // this 'touches' the database
+        // 'Touch' the database (which will create it if it doesn't exist)
+        eckit::ScopedPtr<fdb5::DB> db( fdb5::DBFactory::build(fdbWriterDB_, result) );
     }
 }
 
