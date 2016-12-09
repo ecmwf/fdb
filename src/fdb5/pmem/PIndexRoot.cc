@@ -103,6 +103,14 @@ const time_t& PIndexRoot::created() const {
     return created_;
 }
 
+unsigned short int PIndexRoot::version() const {
+    return version_;
+}
+
+long PIndexRoot::uid() const {
+    return createdBy_;
+}
+
 ::pmem::PersistentPtr<PBranchingNode> PIndexRoot::getBranchingNode(const Key& key) const {
 
     // Get the relevant index.

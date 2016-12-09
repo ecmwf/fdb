@@ -65,6 +65,9 @@ public: // methods
     /// it. If it is unavailable, then throw an error.
     void ensurePoolLoaded(uint64_t uuid);
 
+    /// For output/debugging purposes
+    eckit::PathName dataPoolPath(uint64_t uuid);
+
 protected: // methods
 
     /// Obtain the current pool for writing. If no pool is opened, then open/create the latest one.

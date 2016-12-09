@@ -50,6 +50,8 @@ public: // methods
     bool valid() const;
 
     const time_t& created() const;
+    unsigned short int version() const;
+    long uid() const;
 
     ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key) const;
     PBranchingNode& getCreateBranchingNode(const Key& key);
