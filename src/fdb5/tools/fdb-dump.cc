@@ -8,7 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocHandler.h"
@@ -48,8 +50,10 @@ void FDBDump::process(const eckit::PathName &path, const eckit::option::CmdArgs 
 
     eckit::Log::info() << "Dumping " << path << std::endl << std::endl;
 
-    fdb5::TocHandler handler(path);
-    handler.dump(eckit::Log::info(), simple_);
+    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::build_read(path));
+    ASSERT(db->open());
+
+    db->dump(eckit::Log::info(), simple_);
 
     // eckit::Log::info() << std::endl;
 }

@@ -72,6 +72,8 @@ public: // methods
 
     virtual void visitEntries(EntryVisitor& visitor) = 0;
 
+    virtual void dump(std::ostream& out, bool simple=false) = 0;
+
     virtual const Schema& schema() const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const DB &x);

@@ -71,6 +71,10 @@ void TocDB::close() {
     NOTIMP;
 }
 
+void TocDB::dump(std::ostream &out, bool simple) {
+    TocHandler::dump(out, simple);
+}
+
 const Schema& TocDB::schema() const {
     return schema_;
 }

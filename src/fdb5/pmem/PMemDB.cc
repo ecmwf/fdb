@@ -135,6 +135,10 @@ bool PMemDB::selectIndex(const Key &key) {
     NOTIMP;
 }
 
+void PMemDB::dump(std::ostream& out, bool simple) {
+    Log::error() << "dump not implemented for " << *this << std::endl;
+    NOTIMP;
+}
 
 const Schema& PMemDB::schema() const {
 

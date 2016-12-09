@@ -51,6 +51,7 @@ protected: // methods
     virtual void flush();
     virtual bool exists() const;
     virtual void visitEntries(EntryVisitor& visitor);
+    virtual void dump(std::ostream& out, bool simple=false);
     virtual const Schema& schema() const;
 
     virtual eckit::DataHandle *retrieve(const Key &key) const;
