@@ -23,6 +23,7 @@
 
 #include "eckit/filesystem/PathName.h"
 
+#include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/toc/TocHandler.h"
@@ -37,7 +38,7 @@ namespace fdb5 {
 class ReportVisitor : public EntryVisitor {
 public:
 
-    ReportVisitor(const eckit::PathName &directory);
+    ReportVisitor(DB& db);
     ~ReportVisitor();
 
     IndexStatistics indexStatistics() const;
@@ -54,6 +55,8 @@ private: // methods
 
 
 protected: // members
+
+    DB& db_;
 
     eckit::PathName directory_;
 

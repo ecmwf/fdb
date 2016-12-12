@@ -35,6 +35,7 @@ namespace fdb5 {
 
 class Key;
 class EntryVisitor;
+class DBVisitor;
 class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -72,7 +73,11 @@ public: // methods
 
     virtual void visitEntries(EntryVisitor& visitor) = 0;
 
+    virtual void visit(DBVisitor& visitor) = 0;
+
     virtual void dump(std::ostream& out, bool simple=false) = 0;
+
+    virtual eckit::PathName basePath() const = 0;
 
     virtual const Schema& schema() const = 0;
 
@@ -141,6 +146,20 @@ class DBBuilder : public DBFactory {
 public:
     DBBuilder(const std::string &name, bool read, bool write) : DBFactory(name, read, write) {}
 };
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class TocDB;
+class PMemDB;
+
+class DBVisitor {
+public:
+    virtual void operator() (DB& db)           { NOTIMP; }
+    virtual void operator() (TocDB& db)        { NOTIMP; }
+    virtual void operator() (PMemDB& db)       { NOTIMP; }
+};
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

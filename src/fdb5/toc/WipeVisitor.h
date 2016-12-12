@@ -34,7 +34,7 @@ class WipeVisitor : public ReportVisitor {
 
 public:
 
-    WipeVisitor(const eckit::PathName &directory);
+    WipeVisitor(DB& db);
     void report(std::ostream &out) const;
     void wipe(std::ostream &out) const;
 

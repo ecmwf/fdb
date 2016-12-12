@@ -14,7 +14,7 @@
 #include "eckit/log/Plural.h"
 
 #include "fdb5/toc/TocIndex.h"
-#include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/TocDB.h"
 #include "fdb5/toc/TocFieldLocation.h"
 
 namespace fdb5 {
@@ -22,14 +22,36 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
+class DBStatsInitVisitor : public DBVisitor {
+
+public: // methods
+
+    DBStatsInitVisitor(DbStatistics& dbStats) :
+        dbStats_(dbStats) {}
+
+    virtual void operator() (TocDB& db) {
+        dbStats_.update(db);
+    }
+
+    virtual void operator() (PMemDB& db) {
+        NOTIMP;
+    }
+
+private: // members
+
+    DbStatistics& dbStats_;
+};
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ReportVisitor::ReportVisitor(const eckit::PathName &directory) :
-    directory_(directory) {
+ReportVisitor::ReportVisitor(DB& db) :
+    db_(db),
+    directory_(db.basePath()) {
 
-    TocHandler handler(directory_);
-    dbStats_.update(handler);
+    // Provide the initial conditions for the stats
+    DBStatsInitVisitor initVisitor(dbStats_);
+    db.visit(initVisitor);
 }
 
 ReportVisitor::~ReportVisitor() {

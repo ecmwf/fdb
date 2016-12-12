@@ -215,6 +215,10 @@ void PMemDB::dump(std::ostream& out, bool simple) {
     visitEntries(visitor);
 }
 
+void PMemDB::visit(DBVisitor &visitor) {
+    visitor(*this);
+}
+
 const Schema& PMemDB::schema() const {
 
     // We must have opened the DB for the schema to have been loaded.
@@ -226,6 +230,10 @@ void PMemDB::deselectIndex() {
 
     // This is essentially a NOP, as we don't have any files to open, etc.
     currentIndex_ = 0;
+}
+
+eckit::PathName PMemDB::basePath() const {
+    return poolDir_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

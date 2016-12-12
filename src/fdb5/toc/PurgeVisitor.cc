@@ -24,8 +24,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-PurgeVisitor::PurgeVisitor(const eckit::PathName &directory) :
-    ReportVisitor(directory) {
+PurgeVisitor::PurgeVisitor(DB& db) :
+    ReportVisitor(db) {
 }
 
 void PurgeVisitor::report(std::ostream &out) const {

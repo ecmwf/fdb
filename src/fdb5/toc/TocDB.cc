@@ -79,6 +79,10 @@ const Schema& TocDB::schema() const {
     return schema_;
 }
 
+eckit::PathName TocDB::basePath() const {
+    return directory_;
+}
+
 void TocDB::visitEntries(EntryVisitor& visitor) {
 
     std::vector<Index*> indexes = loadIndexes();
@@ -99,6 +103,10 @@ void TocDB::checkSchema(const Key &key) const {
     Timer timer("TocDB::checkSchema()");
     ASSERT(key.rule());
     schema_.compareTo(key.rule()->schema());
+}
+
+void TocDB::visit(DBVisitor &visitor) {
+    visitor(*this);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

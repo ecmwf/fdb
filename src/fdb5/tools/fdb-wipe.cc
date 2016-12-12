@@ -8,10 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/option/CmdArgs.h"
 #include "eckit/config/Resource.h"
-#include "fdb5/toc/WipeVisitor.h"
+#include "eckit/memory/ScopedPtr.h"
+#include "eckit/option/CmdArgs.h"
+
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/WipeVisitor.h"
 #include "fdb5/tools/FDBInspect.h"
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -55,26 +57,18 @@ void FDBWipe::process(const eckit::PathName &path, const eckit::option::CmdArgs 
 
     eckit::Log::info() << "Scanning " << path << std::endl;
 
-    fdb5::TocHandler handler(path);
-    eckit::Log::info() << "Database key " << handler.databaseKey() << std::endl;
+    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::build_read(path));
+    ASSERT(db->open());
 
-    fdb5::WipeVisitor visitor(path);
+    fdb5::WipeVisitor visitor(*db);
 
-    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
-
-
-    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-        (*i)->entries(visitor);
-    }
+    db->visitEntries(visitor);
 
     visitor.report(eckit::Log::info());
 
     if (doit_) {
         visitor.wipe(eckit::Log::info());
     }
-
-    handler.freeIndexes(indexes);
-
 }
 
 

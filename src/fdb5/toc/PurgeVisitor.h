@@ -27,7 +27,7 @@ namespace fdb5 {
 class PurgeVisitor : public ReportVisitor {
 public:
 
-    PurgeVisitor(const eckit::PathName &directory);
+    PurgeVisitor(DB& db);
     void report(std::ostream &out) const;
     void purge(std::ostream &out) const;
 

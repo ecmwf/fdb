@@ -47,8 +47,8 @@ class StdDir {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeVisitor::WipeVisitor(const eckit::PathName &directory) :
-    ReportVisitor(directory) {
+WipeVisitor::WipeVisitor(DB& db) :
+    ReportVisitor(db) {
 
     eckit::Log::info() << "Scanning "
                        << directory_
