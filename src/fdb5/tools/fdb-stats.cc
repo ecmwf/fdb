@@ -8,13 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
-#include "fdb5/toc/TocHandler.h"
-#include "fdb5/tools/FDBInspect.h"
+
+#include "eckit/log/BigNum.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/toc/IndexStatistics.h"
 #include "fdb5/toc/ReportVisitor.h"
-#include "eckit/log/BigNum.h"
+#include "fdb5/toc/TocHandler.h"
+#include "fdb5/tools/FDBInspect.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -59,23 +61,12 @@ void FDBStats::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     eckit::Log::info() << "Scanning " << path << std::endl;
 
-    fdb5::TocHandler handler(path);
-    eckit::Log::info() << "Database key: " << handler.databaseKey() << ", owner: " << handler.dbOwner() << std::endl;
+
+    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::build_read(path));
+    ASSERT(db->open());
 
     fdb5::ReportVisitor visitor(path);
-    // handler.visitor(visitor);
-
-    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
-
-
-    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-        (*i)->entries(visitor);
-    }
-
-    // if(details)
-    // visitor.report(eckit::Log::info());
-
-    handler.freeIndexes(indexes);
+    db->visitEntries(visitor);
 
     if (details_) {
         eckit::Log::info() << std::endl;

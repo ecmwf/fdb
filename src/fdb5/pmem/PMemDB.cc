@@ -159,7 +159,8 @@ void PMemDB::dump(std::ostream& out, bool simple) {
     class DumpVisitor : public fdb5::EntryVisitor {
 
     public:
-        DumpVisitor(std::ostream& out, DataPoolManager& poolMgr) : out_(out), poolMgr_(poolMgr) {}
+        DumpVisitor(std::ostream& out, DataPoolManager& poolMgr, Schema& schema, Key& dbKey) :
+            out_(out), poolMgr_(poolMgr), schema_(schema), dbKey_(dbKey) {}
 
     private:
         virtual void visit(const fdb5::Index &index,
@@ -176,13 +177,14 @@ void PMemDB::dump(std::ostream& out, bool simple) {
             PMemLocationPrinter locPrinter(out_, poolMgr_);
             field.location().visit(locPrinter);
 
-
             out_ << std::endl;
         }
 
     private: // members
         std::ostream& out_;
         DataPoolManager& poolMgr_;
+        Schema& schema_;
+        Key& dbKey_;
     };
 
     // ----------------------------------------------------------------------
@@ -208,7 +210,7 @@ void PMemDB::dump(std::ostream& out, bool simple) {
 
     // And dump the rest of the stuff
 
-    DumpVisitor visitor(out, *dataPoolMgr_);
+    DumpVisitor visitor(out, *dataPoolMgr_, schema_, dbKey_);
 
     visitEntries(visitor);
 }
