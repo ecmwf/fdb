@@ -16,6 +16,8 @@
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocDB.h"
 #include "fdb5/toc/TocFieldLocation.h"
+#include "fdb5/pmem/PMemFieldLocation.h"
+#include "fdb5/pmem/PMemIndexLocation.h"
 
 namespace fdb5 {
 
@@ -33,8 +35,8 @@ public: // methods
         dbStats_.update(db);
     }
 
-    virtual void operator() (PMemDB& db) {
-        NOTIMP;
+    virtual void operator() (pmem::PMemDB& db) {
+        dbStats_.update(db);
     }
 
 private: // members
@@ -42,6 +44,124 @@ private: // members
     DbStatistics& dbStats_;
 };
 
+//----------------------------------------------------------------------------------------------------------------------
+
+
+class ReportLocationVisitor : public FieldLocationVisitor {
+
+public:
+
+    ReportLocationVisitor(const eckit::PathName& directory,
+                          DbStatistics& dbStats,
+                          IndexStatistics& idxStats,
+                          std::set<eckit::PathName>& allDataFiles,
+                          std::set<eckit::PathName>& activeDataFiles,
+                          std::map<eckit::PathName, size_t>& dataUsage,
+                          bool unique) :
+        directory_(directory),
+        dbStats_(dbStats),
+        idxStats_(idxStats),
+        allDataFiles_(allDataFiles),
+        activeDataFiles_(activeDataFiles),
+        dataUsage_(dataUsage),
+        unique_(unique) {}
+
+    virtual void operator() (const TocFieldLocation& location) {
+
+        common(location.length(), location.path());
+    }
+
+    virtual void operator() (const pmem::PMemFieldLocation& location) {
+
+        // TODO: Pathname of data file
+        common(location.length(), location.pool().path());
+    }
+
+private:
+
+    void common(size_t length, const eckit::PathName& path) {
+
+        ++idxStats_.fieldsCount_;
+        idxStats_.fieldsSize_ += length;
+
+        if (allDataFiles_.find(path) == allDataFiles_.end()) {
+            if (path.dirName().sameAs(directory_)) {
+                dbStats_.ownedFilesSize_ += path.size();
+                dbStats_.ownedFilesCount_++;
+
+            } else {
+                dbStats_.adoptedFilesSize_ += path.size();
+                dbStats_.adoptedFilesCount_++;
+
+            }
+
+            allDataFiles_.insert(path);
+        }
+
+        if (unique_) {
+            activeDataFiles_.insert(path);
+            dataUsage_[path]++;
+        } else {
+            idxStats_.duplicatesSize_ += length;
+            ++idxStats_.duplicatesCount_;
+        }
+    }
+
+    const eckit::PathName& directory_;
+    DbStatistics& dbStats_;
+    IndexStatistics& idxStats_;
+    std::set<eckit::PathName>& allDataFiles_;
+    std::set<eckit::PathName>& activeDataFiles_;
+    std::map<eckit::PathName, size_t> dataUsage_;
+    bool unique_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ReportIndexVisitor : public IndexLocationVisitor {
+
+public:
+
+    ReportIndexVisitor(DbStatistics& dbStats,
+                       IndexStatistics& idxStats,
+                       std::set<eckit::PathName>& allIndexFiles,
+                       std::map<eckit::PathName, size_t>& indexUsage,
+                       bool unique) :
+        dbStats_(dbStats),
+        idxStats_(idxStats),
+        allIndexFiles_(allIndexFiles),
+        indexUsage_(indexUsage),
+        unique_(unique) {}
+
+    virtual void operator() (const TocIndexLocation& location) {
+        common(location.path());
+    }
+
+    virtual void operator() (const pmem::PMemIndexLocation& location) {
+        common(eckit::PathName());
+    }
+
+private:
+
+    void common(const eckit::PathName& path) {
+
+        if (allIndexFiles_.find(path) == allIndexFiles_.end()) {
+            dbStats_.indexFilesSize_ += path.size();
+            allIndexFiles_.insert(path);
+            dbStats_.indexFilesCount_++;
+        }
+
+        if (unique_) {
+            indexUsage_[path]++;
+        }
+    }
+
+    DbStatistics& dbStats_;
+    IndexStatistics& idxStats_;
+    std::set<eckit::PathName>& allIndexFiles_;
+    std::map<eckit::PathName, size_t> indexUsage_;
+    bool unique_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -63,61 +183,17 @@ void ReportVisitor::visit(const Index &index,
                           const Field &field) {
 
     IndexStatistics &stats = indexStats_[&index];
+    std::string unique_id = indexFingerprint + "+" + fieldFingerprint;
 
-    /// Quick hack to get everything working. Potentially needs adaptation to non-toc fields
-    TocFieldLocationGetter flGetter;
-    field.location().visit(flGetter);
+    bool unique = (active_.find(unique_id) == active_.end());
+    if (unique)
+        active_.insert(unique_id);
 
-    ++stats.fieldsCount_;
-    stats.fieldsSize_ += flGetter.length();
+    ReportLocationVisitor locVisitor(directory_, dbStats_, stats, allDataFiles_, activeDataFiles_, dataUsage_, unique);
+    field.location().visit(locVisitor);
 
-    // n.b. We use an IndexPathgetter visitor to get the index location out of the Index. This code
-    //      should probably be refactored to be a bit more general. I.e. the different types of
-    //      IndexLocation should possibly know how to present themselves. Needs to work with other
-    //      types of index.
-    // TODO: Fix properly.
-
-
-    IndexPathOffsetGetter poGetter;
-    index.visitLocation(poGetter);
-
-    const eckit::PathName &dataPath = flGetter.path();
-    const eckit::PathName &indexPath = poGetter.path();
-
-    if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
-        if (dataPath.dirName().sameAs(directory_)) {
-            dbStats_.ownedFilesSize_ += dataPath.size();
-            dbStats_.ownedFilesCount_++;
-
-        } else {
-            dbStats_.adoptedFilesSize_ += dataPath.size();
-            dbStats_.adoptedFilesCount_++;
-
-        }
-        allDataFiles_.insert(dataPath);
-    }
-
-    if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
-        dbStats_.indexFilesSize_ += indexPath.size();
-        allIndexFiles_.insert(indexPath);
-        dbStats_.indexFilesCount_++;
-    }
-
-
-    indexUsage_[indexPath]++;
-    dataUsage_[dataPath]++;
-
-    std::string unique = indexFingerprint + "+" + fieldFingerprint;
-
-    if (active_.find(unique) == active_.end()) {
-        active_.insert(unique);
-        activeDataFiles_.insert(dataPath);
-    } else {
-        ++stats.duplicatesCount_;
-        stats.duplicatesSize_ += flGetter.length();
-        indexUsage_[indexPath]--;
-        dataUsage_[dataPath]--;
-    }
+    ReportIndexVisitor idxVisitor(dbStats_, stats, allIndexFiles_, indexUsage_, unique);
+    index.visitLocation(idxVisitor);
 }
 
 DbStatistics ReportVisitor::dbStatistics() const {

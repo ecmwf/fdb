@@ -42,6 +42,8 @@ public: // methods
 
     virtual ~PMemDB();
 
+    size_t schemaSize() const;
+
 protected: // methods
 
     virtual bool open();

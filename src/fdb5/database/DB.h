@@ -151,13 +151,15 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 class TocDB;
-class PMemDB;
+namespace pmem {
+    class PMemDB;
+}
 
 class DBVisitor {
 public:
     virtual void operator() (DB& db)           { NOTIMP; }
     virtual void operator() (TocDB& db)        { NOTIMP; }
-    virtual void operator() (PMemDB& db)       { NOTIMP; }
+    virtual void operator() (pmem::PMemDB& db) { NOTIMP; }
 };
 
 

@@ -77,7 +77,7 @@ void PMemDBWriter::archive(const Key &key, const void *data, Length length) {
     ::pmem::PersistentPtr<PDataNode> ptr;
     dataPoolMgr_->allocate(ptr, PDataNode::Constructor(data_key, data_value, data, length));
 
-    Field field( (PMemFieldLocation(ptr)) );
+    Field field( (PMemFieldLocation(ptr, dataPoolMgr_->getPool(ptr.uuid()))) );
 
     currentIndex_->put(key, field);
 }

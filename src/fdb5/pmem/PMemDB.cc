@@ -236,6 +236,11 @@ eckit::PathName PMemDB::basePath() const {
     return poolDir_;
 }
 
+size_t PMemDB::schemaSize() const {
+    ASSERT(pool_);
+    return root_->schema().length();
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace pmem

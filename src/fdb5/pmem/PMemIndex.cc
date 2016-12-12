@@ -53,7 +53,7 @@ bool PMemIndex::get(const Key &key, Field &field) const {
     ::pmem::PersistentPtr<PDataNode> node = location_.node().getDataNode(key, location_.pool_manager());
 
     if (!node.null()) {
-        field = Field(PMemFieldLocation(node));
+        field = Field(PMemFieldLocation(node, location_.pool_manager().getPool(node.uuid())));
         return true;
     }
 

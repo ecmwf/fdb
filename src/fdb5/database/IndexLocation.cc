@@ -37,7 +37,7 @@ void IndexLocationVisitor::operator() (const TocIndexLocation& location) {
 }
 
 
-void IndexLocationVisitor::operator() (const PMemIndexLocation& location) {
+void IndexLocationVisitor::operator() (const pmem::PMemIndexLocation& location) {
 
     throw SeriousBug("Should never hit the default case visitor (PMemIndexLocation)", Here());
 

@@ -15,6 +15,7 @@
 
 // #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/pmem/PMemDB.h"
 
 namespace fdb5 {
 
@@ -39,6 +40,15 @@ void DbStatistics::update(TocHandler& handler) {
     schemaFileSize_ += handler.schemaPath().size();
 }
 
+
+void DbStatistics::update(pmem::PMemDB& db) {
+
+    // There is no TOC, so there are zero toc records...
+    tocRecordsCount_ += 0;
+    tocFileSize_ += 0;
+
+    schemaFileSize_ += db.schemaSize();
+}
 
 
 DbStatistics &DbStatistics::operator+=(const DbStatistics &rhs) {

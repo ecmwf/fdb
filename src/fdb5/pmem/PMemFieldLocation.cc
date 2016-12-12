@@ -18,16 +18,18 @@ namespace pmem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-PMemFieldLocation::PMemFieldLocation() {}
+//PMemFieldLocation::PMemFieldLocation() {}
 
 
 PMemFieldLocation::PMemFieldLocation(const PMemFieldLocation& rhs) :
     FieldLocation(rhs.length()),
-    dataNode_(rhs.dataNode_) {}
+    dataNode_(rhs.dataNode_),
+    dataPool_(rhs.dataPool_) {}
 
 
-PMemFieldLocation::PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode) :
-    dataNode_(dataNode) {}
+PMemFieldLocation::PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode, DataPool& pool) :
+    dataNode_(dataNode),
+    dataPool_(pool) {}
 
 
 eckit::SharedPtr<FieldLocation> PMemFieldLocation::make_shared() const {
@@ -51,6 +53,10 @@ void PMemFieldLocation::visit(FieldLocationVisitor& visitor) const {
 
 ::pmem::PersistentPtr<PDataNode> PMemFieldLocation::node() const {
     return dataNode_;
+}
+
+DataPool& PMemFieldLocation::pool() const {
+    return dataPool_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

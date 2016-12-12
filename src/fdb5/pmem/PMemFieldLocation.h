@@ -26,15 +26,16 @@ namespace fdb5 {
 namespace pmem {
 
 class PDataNode;
+class DataPool;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class PMemFieldLocation : public FieldLocation {
 public:
 
-    PMemFieldLocation();
+//    PMemFieldLocation();
     PMemFieldLocation(const PMemFieldLocation& rhs);
-    PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode);
+    PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode, DataPool& pool);
 
     ::pmem::PersistentPtr<PDataNode> node() const;
 
@@ -44,6 +45,8 @@ public:
 
     virtual void visit(FieldLocationVisitor& visitor) const;
 
+    DataPool& pool() const;
+
 private: // methods
 
     void print(std::ostream &out) const;
@@ -52,6 +55,7 @@ private: // members
 
     ::pmem::PersistentPtr<PDataNode> dataNode_;
 
+    DataPool& dataPool_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

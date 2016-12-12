@@ -139,6 +139,18 @@ PathName DataPoolManager::dataPoolPath(uint64_t uuid) {
 }
 
 
+DataPool& DataPoolManager::getPool(uint64_t uuid) {
+
+    ensurePoolLoaded(uuid);
+
+    if (uuid == masterUUID_) {
+        NOTIMP;
+    }
+
+    return *pools_[uuid];
+}
+
+
 void DataPoolManager::ensurePoolLoaded(uint64_t uuid) {
 
     if (uuid != masterUUID_ && pools_.find(uuid) == pools_.end()) {
