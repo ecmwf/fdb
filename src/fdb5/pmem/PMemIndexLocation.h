@@ -37,6 +37,8 @@ public: // methods
     PBranchingNode& node() const;
     DataPoolManager& pool_manager() const;
 
+    virtual eckit::PathName location() const;
+
 private: // friends
 
     PBranchingNode& node_;

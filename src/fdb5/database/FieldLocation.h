@@ -20,6 +20,7 @@
 
 #include "eckit/io/Length.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/memory/SharedPtr.h"
 #include "eckit/memory/Owned.h"
 
@@ -27,6 +28,8 @@ namespace fdb5 {
 
 
 //----------------------------------------------------------------------------------------------------------------------
+
+
 
 class FieldLocationVisitor;
 
@@ -38,6 +41,8 @@ public: // methods
     FieldLocation();
     FieldLocation(eckit::Length length );
     FieldLocation(const FieldLocation& rhs);
+
+    virtual eckit::PathName url() const = 0;
 
     const eckit::Length &length() const { return length_; }
 
@@ -65,17 +70,16 @@ private: // friends
 };
 
 
-class TocFieldLocation;
-namespace pmem {
-    class PMemFieldLocation;
-}
+//----------------------------------------------------------------------------------------------------------------------
 
-class FieldLocationVisitor {
+
+class FieldLocationVisitor : private eckit::NonCopyable {
 
 public: // methods
 
-    virtual void operator() (const TocFieldLocation& location);
-    virtual void operator() (const pmem::PMemFieldLocation& location);
+    virtual ~FieldLocationVisitor();
+
+    virtual void operator() (const FieldLocation& location) = 0;
 
 };
 

@@ -8,8 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/FieldRef.h"
+#include "fdb5/toc/FieldRef.h"
+
 #include "eckit/serialisation/Stream.h"
+
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FileStore.h"
 
@@ -18,7 +20,10 @@
 
 namespace fdb5 {
 
+
 //----------------------------------------------------------------------------------------------------------------------
+
+
 FieldRefLocation::FieldRefLocation() {
 }
 
@@ -35,8 +40,6 @@ FieldRefLocation::FieldRefLocation(FileStore &store, const Field& field) {
     length_ = getter.length();
 }
 
-
-//-----------------------------------------------------------------------------
 FieldRefReduced::FieldRefReduced() {
 
 }
@@ -45,7 +48,6 @@ FieldRefReduced::FieldRefReduced(const FieldRef &other):
     location_(other.location()) {
 }
 
-//-----------------------------------------------------------------------------
 FieldRef::FieldRef() {
 }
 
@@ -56,6 +58,10 @@ FieldRef::FieldRef(FileStore &store, const Field &field):
 
 FieldRef::FieldRef(const FieldRefReduced& other):
     location_(other.location()) {
-    }
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
 
 } // namespace fdb5

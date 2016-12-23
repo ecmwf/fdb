@@ -8,11 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
-
 #include "fdb5/database/IndexLocation.h"
-#include "fdb5/toc/TocIndexLocation.h"
-#include "fdb5/pmem/PMemIndexLocation.h"
 
 using namespace eckit;
 
@@ -20,27 +16,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-/// These are base methods (with default behaviour) for a visitor-pattern dispatch
-
-void IndexLocationVisitor::operator() (const IndexLocation& location) {
-
-    throw SeriousBug("Should never hit the default case visitor (base IndexLocation)", Here());
-
+IndexLocationVisitor::~IndexLocationVisitor() {
 }
 
-
-void IndexLocationVisitor::operator() (const TocIndexLocation& location) {
-
-    throw SeriousBug("Should never hit the default case visitor (TocIndexLocation)", Here());
-
-}
-
-
-void IndexLocationVisitor::operator() (const pmem::PMemIndexLocation& location) {
-
-    throw SeriousBug("Should never hit the default case visitor (PMemIndexLocation)", Here());
-
+IndexLocation::~IndexLocation(){
 }
 
 //----------------------------------------------------------------------------------------------------------------------

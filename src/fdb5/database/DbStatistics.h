@@ -22,16 +22,11 @@
 
 namespace fdb5 {
 
-class TocHandler;
-
-namespace pmem {
-    class PMemDB;
-}
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class DbStatistics : public eckit::Statistics {
-  public:
+public:
+
     DbStatistics() ;
 
     size_t tocRecordsCount_;
@@ -47,11 +42,7 @@ class DbStatistics : public eckit::Statistics {
 
     DbStatistics &operator+=(const DbStatistics &rhs) ;
 
-    void update(TocHandler&);
-    void update(pmem::PMemDB&);
     void report(std::ostream &out, const char* indent = "") const;
-
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

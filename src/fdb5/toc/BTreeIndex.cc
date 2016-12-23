@@ -13,7 +13,7 @@
 
 #include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/toc/TocIndex.h"
-#include "fdb5/database/FieldRef.h"
+#include "fdb5/toc/FieldRef.h"
 
 namespace fdb5 {
 

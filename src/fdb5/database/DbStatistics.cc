@@ -8,14 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/toc/DbStatistics.h"
-
-// #include "eckit/log/Bytes.h"
-// #include "eckit/log/Plural.h"
-
-// #include "fdb5/toc/TocIndex.h"
-#include "fdb5/toc/TocHandler.h"
-#include "fdb5/pmem/PMemDB.h"
+#include "fdb5/database/DbStatistics.h"
 
 namespace fdb5 {
 
@@ -31,25 +24,8 @@ DbStatistics::DbStatistics():
     ownedFilesCount_(0),
     adoptedFilesCount_(0),
     indexFilesCount_(0)
-{}
-
-
-void DbStatistics::update(TocHandler& handler) {
-    tocRecordsCount_ += handler.numberOfRecords();
-    tocFileSize_ += handler.tocPath().size();
-    schemaFileSize_ += handler.schemaPath().size();
+{
 }
-
-
-void DbStatistics::update(pmem::PMemDB& db) {
-
-    // There is no TOC, so there are zero toc records...
-    tocRecordsCount_ += 0;
-    tocFileSize_ += 0;
-
-    schemaFileSize_ += db.schemaSize();
-}
-
 
 DbStatistics &DbStatistics::operator+=(const DbStatistics &rhs) {
     tocRecordsCount_ += rhs.tocRecordsCount_;
@@ -85,8 +61,6 @@ void DbStatistics::report(std::ostream &out, const char *indent) const {
     reportBytes(out, "Total size", tocFileSize_ + schemaFileSize_ +  indexFilesSize_ + ownedFilesSize_ + adoptedFilesSize_, indent);
 
 }
-
-//----------------------------------------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------------------------------------
 

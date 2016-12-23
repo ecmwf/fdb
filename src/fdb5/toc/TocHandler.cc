@@ -107,7 +107,7 @@ void TocHandler::openForAppend() {
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode, (mode_t)0777 )), tocPath_);
 }
 
-void TocHandler::openForRead() {
+void TocHandler::openForRead() const {
 
     ASSERT(fd_ == -1);
 
@@ -158,7 +158,7 @@ bool TocHandler::readNext( TocRecord &r ) {
     return true;
 }
 
-void TocHandler::close() {
+void TocHandler::close() const {
     if ( fd_ >= 0 ) {
         // eckit::Log::info() << "Closing TOC " << tocPath_ << std::endl;
         SYSCALL2( ::close(fd_), tocPath_ );
@@ -328,7 +328,7 @@ Key TocHandler::databaseKey() {
     throw eckit::SeriousBug("Cannot find a TOC_INIT record");
 }
 
-size_t TocHandler::numberOfRecords() {
+size_t TocHandler::numberOfRecords() const {
 
     if (count_ == 0) {
         openForRead();

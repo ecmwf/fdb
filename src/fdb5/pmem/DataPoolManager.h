@@ -16,16 +16,18 @@
 #ifndef fdb5_pmem_DataPoolManager_H
 #define fdb5_pmem_DataPoolManager_H
 
+#include <stdint.h>
+#include <iosfwd>
+#include <map>
+
 #include "eckit/memory/NonCopyable.h"
+#include "eckit/filesystem/PathName.h"
 
 #include "pmem/AtomicConstructor.h"
 #include "pmem/PersistentPtr.h"
 
 #include "fdb5/pmem/DataPool.h"
 
-#include <stdint.h>
-#include <iosfwd>
-#include <map>
 
 
 namespace eckit {
@@ -55,6 +57,7 @@ class DataPoolManager : private eckit::NonCopyable {
 public: // methods
 
     DataPoolManager(const eckit::PathName& poolDir, PIndexRoot& masterRoot, uint64_t rootUUID);
+
     ~DataPoolManager();
 
     /// Allocate data into the currently active pool

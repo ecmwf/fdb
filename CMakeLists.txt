@@ -87,17 +87,24 @@ ecbuild_add_option( FEATURE ODB
                     DESCRIPTION "Support for ODB handlers"
                     REQUIRED_PACKAGES "PROJECT odb_api  VERSION 0.10" )
 
-## pmem (NVRAM) support
+if( HAVE_ODB )
+  set( odblib Odb )
+  set( odbtoolslib odbtools )
+endif()
+
+### FDB backend in persistent memory, i.e. pmem (NVRAM)
 
 ecbuild_add_option( FEATURE PMEMFDB
-                    DEFAULT ON
+                    DEFAULT OFF
                     DESCRIPTION "Persistent memory (NVRAM) support for FDB"
                     REQUIRED_PACKAGES "PROJECT pmem" )
 
-if( HAVE_ODB )
-    set( odblib Odb )
-    set( odbtoolslib odbtools )
-endif()
+### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
+### Supports Lustre parallel filesystem stripping control
+
+ecbuild_add_option( FEATURE TOCFDB
+                    DEFAULT ON
+                    DESCRIPTION "Filesystem TOC support for FDB" )
 
 ########################################################################################################################
 # project vars & options

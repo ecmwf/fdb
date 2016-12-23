@@ -12,11 +12,13 @@
 #include "eckit/log/Timer.h"
 
 #include "fdb5/config/MasterConfig.h"
+#include "fdb5/database/DbStatistics.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/rules/Rule.h"
+
 #include "fdb5/pmem/PMemDB.h"
 #include "fdb5/pmem/PMemFieldLocation.h"
-#include "fdb5/rules/Rule.h"
-#include "fdb5/toc/RootManager.h"
+#include "fdb5/pmem/PoolManager.h"
 
 #include "pmem/PersistentString.h"
 
@@ -34,7 +36,7 @@ PMemDB::PMemDB(const Key& key) :
     DB(key),
     // Utilise the RootManager from the TocDB to get a sensible location. Note that we are NOT
     // using this as a directory, but rather as a pool file.
-    poolDir_(RootManager::directory(key)),
+    poolDir_(PoolManager::pool(key)),
     currentIndex_(0) {
 
     // If opened with a key in this manner, it is for write, so should open up fully.
@@ -73,7 +75,6 @@ void PMemDB::initialisePool() {
     if (dbKey_.empty())
         dbKey_ = root_->databaseKey();
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -230,6 +231,15 @@ void PMemDB::deselectIndex() {
 
     // This is essentially a NOP, as we don't have any files to open, etc.
     currentIndex_ = 0;
+}
+
+void PMemDB::update(DbStatistics& stats) const
+{
+    // There is no TOC, so there are zero toc records...
+    stats.tocRecordsCount_ += 0;
+    stats.tocFileSize_ += 0;
+
+    stats.schemaFileSize_ += db.schemaSize();
 }
 
 eckit::PathName PMemDB::basePath() const {

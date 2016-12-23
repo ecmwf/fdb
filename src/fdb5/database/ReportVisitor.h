@@ -26,9 +26,8 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Field.h"
-#include "fdb5/toc/TocHandler.h"
-#include "fdb5/toc/IndexStatistics.h"
-#include "fdb5/toc/DbStatistics.h"
+#include "fdb5/database/IndexStatistics.h"
+#include "fdb5/database/DbStatistics.h"
 
 namespace fdb5 {
 

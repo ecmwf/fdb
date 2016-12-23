@@ -8,46 +8,35 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Root.h
+/// @file   IndexStatistics.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   Mar 2016
+/// @date   April 2016
 
-#ifndef fdb5_Root_H
-#define fdb5_Root_H
+#ifndef fdb5_IndexStatistics_H
+#define fdb5_IndexStatistics_H
 
-#include "eckit/filesystem/PathName.h"
+#include <iosfwd>
+
+#include "eckit/log/Statistics.h"
 
 namespace fdb5 {
 
-class Key;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class Root  {
+class IndexStatistics : public eckit::Statistics {
+public:
+    IndexStatistics() ;
 
-public: // methods
+    size_t fieldsCount_;
+    size_t duplicatesCount_;
+    unsigned long long fieldsSize_;
+    unsigned long long duplicatesSize_;
 
-    Root(const std::string& path,
-         const std::string& filespace,
-         bool writable = true,
-         bool visit  = true);
+    IndexStatistics &operator+=(const IndexStatistics &rhs) ;
 
-    const eckit::PathName &path() const;
+    void report(std::ostream &out, const char* indent = "") const;
 
-    bool writable() const; ///< Root is in use, when archiving
-    bool visit() const;    ///< Root is visited, when retrievind
-
-    const std::string& filespace() const;
-
-private: // members
-
-    eckit::PathName path_;
-
-    std::string filespace_;
-
-    bool writable_;
-    bool visit_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

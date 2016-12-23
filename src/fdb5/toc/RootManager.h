@@ -41,13 +41,6 @@ public: // methods
     /// Lists the roots where a DB key would be able to be written
     static std::vector<eckit::PathName> writableRoots(const Key& key);
 
-private: // members
-
-    eckit::Regex re_;
-    eckit::PathName path_;
-
-    bool active_;
-    bool visit_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

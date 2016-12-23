@@ -35,8 +35,17 @@ const PathName& TocIndexLocation::path() const {
     return path_;
 }
 
+PathName TocIndexLocation::location() const
+{
+    return path_;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
+
+IndexPathOffsetGetter::~IndexPathOffsetGetter()
+{
+}
 
 void IndexPathOffsetGetter::operator() (const TocIndexLocation& idx) {
     path_ = &idx.path();

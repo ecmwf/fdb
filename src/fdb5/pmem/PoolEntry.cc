@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2013 ECMWF.
+ * (C) Copyright 1996-2016 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -8,28 +8,37 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/FieldLocation.h"
+#include "fdb5/pmem/PoolEntry.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FieldLocation::FieldLocation() {
+PoolEntry::PoolEntry(const std::string &path, const std::string& poolgroup, bool active, bool visit):
+    path_(path),
+    poolgroup_(poolgroup),
+    writable_(active),
+    visit_(visit) {
+
 }
 
-FieldLocation::FieldLocation(eckit::Length length) :
-    length_(length) {
-
+const eckit::PathName& PoolEntry::path() const {
+    return path_;
 }
 
-void FieldLocation::print(std::ostream &out) const {
-    out << "FileLocation(" << length_ << ")";
+bool PoolEntry::writable() const {
+    return writable_;
 }
 
-FieldLocationVisitor::~FieldLocationVisitor()
+bool PoolEntry::visit() const {
+    return visit_;
+}
+
+const std::string& PoolEntry::poolgroup() const
 {
+    return poolgroup_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

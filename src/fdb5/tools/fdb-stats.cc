@@ -13,8 +13,8 @@
 
 #include "eckit/log/BigNum.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/toc/IndexStatistics.h"
-#include "fdb5/toc/ReportVisitor.h"
+#include "fdb5/database/IndexStatistics.h"
+#include "fdb5/database/ReportVisitor.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBInspect.h"
 

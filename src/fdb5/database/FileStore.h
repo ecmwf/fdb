@@ -15,19 +15,22 @@
 #ifndef fdb5_FileStore_H
 #define fdb5_FileStore_H
 
-#include "eckit/eckit.h"
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/Length.h"
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/io/Offset.h"
-#include "eckit/filesystem/PathName.h"
+#include "eckit/memory/NonCopyable.h"
 
 namespace eckit {
 class Stream;
 }
 
 namespace fdb5 {
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
 
 class FileStore : private eckit::NonCopyable {
 
@@ -77,6 +80,10 @@ private: // members
 
 
 };
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
 
 } // namespace fdb5
 

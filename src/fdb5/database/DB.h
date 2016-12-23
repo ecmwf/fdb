@@ -35,8 +35,10 @@ namespace fdb5 {
 
 class Key;
 class EntryVisitor;
-class DBVisitor;
 class Schema;
+
+class DBVisitor;
+class DbStatistics;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -81,9 +83,12 @@ public: // methods
 
     virtual const Schema& schema() const = 0;
 
+    virtual void update(DbStatistics&) const = 0;
+
     friend std::ostream &operator<<(std::ostream &s, const DB &x);
 
     time_t lastAccess() const;
+
     void touch();
 
 protected: // methods
@@ -102,7 +107,7 @@ protected: // members
 
 /// A self-registering factory for producing DB instances.
 
-class DBFactory {
+class DBFactory : private eckit::NonCopyable {
 
     std::string name_;
     bool read_;
@@ -150,18 +155,12 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TocDB;
-namespace pmem {
-    class PMemDB;
-}
-
-class DBVisitor {
+class DBVisitor : private eckit::NonCopyable {
 public:
-    virtual void operator() (DB& db)           { NOTIMP; }
-    virtual void operator() (TocDB& db)        { NOTIMP; }
-    virtual void operator() (pmem::PMemDB& db) { NOTIMP; }
-};
 
+    virtual ~DBVisitor();
+    virtual void operator() (DB& db) = 0;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

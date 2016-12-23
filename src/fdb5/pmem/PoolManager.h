@@ -8,14 +8,16 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Root.h
+/// @file   PoolManager.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   Mar 2016
+/// @author Simon Smart
+/// @date   Dec 2016
 
-#ifndef fdb5_Root_H
-#define fdb5_Root_H
+#ifndef fdb5_PoolManager_H
+#define fdb5_PoolManager_H
 
+#include "eckit/utils/Regex.h"
 #include "eckit/filesystem/PathName.h"
 
 namespace fdb5 {
@@ -24,30 +26,21 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Root  {
+class PoolManager  {
 
 public: // methods
 
-    Root(const std::string& path,
-         const std::string& filespace,
-         bool writable = true,
-         bool visit  = true);
+    /// Uniquely selects a pool where the Key will be put or already exists
+    static eckit::PathName pool(const Key &key);
 
-    const eckit::PathName &path() const;
+    /// Lists the roots that can be visited given a DB key
+    static std::vector<eckit::PathName> allPools(const Key& key);
 
-    bool writable() const; ///< Root is in use, when archiving
-    bool visit() const;    ///< Root is visited, when retrievind
+    /// Lists the roots that can be visited given a DB key
+    static std::vector<eckit::PathName> visitablePools(const Key& key);
 
-    const std::string& filespace() const;
-
-private: // members
-
-    eckit::PathName path_;
-
-    std::string filespace_;
-
-    bool writable_;
-    bool visit_;
+    /// Lists the roots where a DB key would be able to be written
+    static std::vector<eckit::PathName> writablePools(const Key& key);
 };
 
 //----------------------------------------------------------------------------------------------------------------------

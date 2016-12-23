@@ -154,6 +154,9 @@ std::ostream &operator<<(std::ostream &s, const DB &x) {
     return s;
 }
 
+DBVisitor::~DBVisitor() {
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

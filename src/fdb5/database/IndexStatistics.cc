@@ -8,13 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/toc/IndexStatistics.h"
-
-// #include "eckit/log/Bytes.h"
-// #include "eckit/log/Plural.h"
-
-// #include "fdb5/toc/TocIndex.h"
-// #include "fdb5/toc/TocHandler.h"
+#include "fdb5/database/IndexStatistics.h"
 
 namespace fdb5 {
 
@@ -45,8 +39,6 @@ void IndexStatistics::report(std::ostream &out, const char *indent) const {
     reportCount(out, "Reacheable fields ", fieldsCount_ - duplicatesCount_, indent);
     reportBytes(out, "Reachable size", fieldsSize_ - duplicatesSize_, indent);
 }
-
-//----------------------------------------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------------------------------------
 

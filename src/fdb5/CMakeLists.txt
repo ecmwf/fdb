@@ -24,9 +24,6 @@
 #  * delete a index
 
 # MAYBE:
-#  * fdbRoot is a list of paths to visit ---> speak to Hodge
-#  * Rules for data files (eg {type,levtype} )
-#
 # Confluence documentation on how to install
 # -- dont forget the ~/mars/wind
 #
@@ -58,14 +55,14 @@ list( APPEND fdb5_srcs
     database/BaseArchiveVisitor.h
     database/DB.cc
     database/DB.h
+    database/DbStatistics.cc
+    database/DbStatistics.h
     database/Field.cc
     database/Field.h
     database/FieldDetails.cc
     database/FieldDetails.h
     database/FieldLocation.cc
     database/FieldLocation.h
-    database/FieldRef.cc
-    database/FieldRef.h
     database/FileStore.cc
     database/FileStore.h
     database/Indexer.cc
@@ -74,6 +71,8 @@ list( APPEND fdb5_srcs
     database/Index.h
     database/IndexLocation.cc
     database/IndexLocation.h
+    database/IndexStatistics.cc
+    database/IndexStatistics.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc
@@ -82,6 +81,8 @@ list( APPEND fdb5_srcs
     database/Key.h
     database/ReadVisitor.cc
     database/ReadVisitor.h
+    database/ReportVisitor.cc
+    database/ReportVisitor.h
     database/Retriever.cc
     database/Retriever.h
     database/RetrieveVisitor.cc
@@ -133,46 +134,6 @@ list( APPEND fdb5_srcs
     rules/Schema.h
     rules/SchemaParser.cc
     rules/SchemaParser.h
-    toc/AdoptVisitor.cc
-    toc/AdoptVisitor.h
-    toc/WipeVisitor.cc
-    toc/WipeVisitor.h
-    toc/PurgeVisitor.cc
-    toc/PurgeVisitor.h
-    toc/BTreeIndex.cc
-    toc/BTreeIndex.h
-    toc/DbStatistics.cc
-    toc/DbStatistics.h
-    toc/IndexStatistics.cc
-    toc/IndexStatistics.h
-    toc/ReportVisitor.cc
-    toc/ReportVisitor.h
-    toc/TocDB.cc
-    toc/TocDB.h
-    toc/Root.cc
-    toc/Root.h
-    toc/FileSpaceHandler.cc
-    toc/FileSpaceHandler.h
-    toc/FileSpace.cc
-    toc/FileSpace.h
-    toc/ExpverFileSpaceHandler.cc
-    toc/ExpverFileSpaceHandler.h
-    toc/RootManager.cc
-    toc/RootManager.h
-    toc/TocDBReader.cc
-    toc/TocDBReader.h
-    toc/TocDBWriter.cc
-    toc/TocDBWriter.h
-    toc/TocFieldLocation.cc
-    toc/TocFieldLocation.h
-    toc/TocHandler.cc
-    toc/TocHandler.h
-    toc/TocIndex.cc
-    toc/TocIndex.h
-    toc/TocIndexLocation.cc
-    toc/TocIndexLocation.h
-    toc/TocRecord.cc
-    toc/TocRecord.h
     tools/FDBAccess.cc
     tools/FDBAccess.h
     tools/FDBInspect.cc
@@ -221,6 +182,47 @@ list( APPEND fdb5_srcs
     types/TypeTime.h
 )
 
+if( HAVE_TOCFDB )
+    list( APPEND fdb5_srcs
+        toc/AdoptVisitor.cc
+        toc/AdoptVisitor.h
+        toc/WipeVisitor.cc
+        toc/WipeVisitor.h
+        toc/PurgeVisitor.cc
+        toc/PurgeVisitor.h
+        toc/BTreeIndex.cc
+        toc/BTreeIndex.h
+        toc/TocDB.cc
+        toc/TocDB.h
+        toc/Root.cc
+        toc/Root.h
+        toc/FieldRef.cc
+        toc/FieldRef.h
+        toc/FileSpaceHandler.cc
+        toc/FileSpaceHandler.h
+        toc/FileSpace.cc
+        toc/FileSpace.h
+        toc/ExpverFileSpaceHandler.cc
+        toc/ExpverFileSpaceHandler.h
+        toc/RootManager.cc
+        toc/RootManager.h
+        toc/TocDBReader.cc
+        toc/TocDBReader.h
+        toc/TocDBWriter.cc
+        toc/TocDBWriter.h
+        toc/TocFieldLocation.cc
+        toc/TocFieldLocation.h
+        toc/TocHandler.cc
+        toc/TocHandler.h
+        toc/TocIndex.cc
+        toc/TocIndex.h
+        toc/TocIndexLocation.cc
+        toc/TocIndexLocation.h
+        toc/TocRecord.cc
+        toc/TocRecord.h
+        )
+endif()
+
 if( HAVE_PMEMFDB )
     list( APPEND fdb5_srcs
         pmem/DataPool.cc
@@ -255,6 +257,12 @@ if( HAVE_PMEMFDB )
         pmem/PRoot.h
         pmem/Pool.cc
         pmem/Pool.h
+        pmem/PoolEntry.cc
+        pmem/PoolEntry.h
+        pmem/PoolGroup.cc
+        pmem/PoolGroup.h
+        pmem/PoolManager.cc
+        pmem/PoolManager.h
     )
 else()
     set( PMEM_LIBRARIES "" )

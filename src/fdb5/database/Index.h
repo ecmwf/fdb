@@ -43,7 +43,10 @@ class IndexLocationVisitor;
 //----------------------------------------------------------------------------------------------------------------------
 
 class EntryVisitor : private eckit::NonCopyable {
-  public:
+public:
+
+    virtual ~EntryVisitor();
+
     virtual void visit(const Index &index,
                        const std::string &indexFingerprint,
                        const std::string &fieldFingerprint,

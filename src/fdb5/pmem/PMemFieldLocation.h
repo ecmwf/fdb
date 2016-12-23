@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+/// @author Tiago Quintino
 /// @author Simon Smart
 /// @date Nov 2016
 
@@ -19,8 +20,6 @@
 #include "eckit/memory/SharedPtr.h"
 
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/database/FileStore.h"
-#include "fdb5/database/FieldRef.h"
 
 namespace fdb5 {
 namespace pmem {
@@ -33,11 +32,12 @@ class DataPool;
 class PMemFieldLocation : public FieldLocation {
 public:
 
-//    PMemFieldLocation();
     PMemFieldLocation(const PMemFieldLocation& rhs);
     PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode, DataPool& pool);
 
     ::pmem::PersistentPtr<PDataNode> node() const;
+
+    virtual eckit::PathName url() const;
 
     virtual eckit::DataHandle *dataHandle() const;
 

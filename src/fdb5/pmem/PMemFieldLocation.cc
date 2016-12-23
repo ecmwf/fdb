@@ -18,8 +18,6 @@ namespace pmem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//PMemFieldLocation::PMemFieldLocation() {}
-
 
 PMemFieldLocation::PMemFieldLocation(const PMemFieldLocation& rhs) :
     FieldLocation(rhs.length()),
@@ -57,6 +55,11 @@ void PMemFieldLocation::visit(FieldLocationVisitor& visitor) const {
 
 DataPool& PMemFieldLocation::pool() const {
     return dataPool_;
+}
+
+eckit::PathName fdb5::pmem::PMemFieldLocation::url() const
+{
+    return dataPool_.path();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

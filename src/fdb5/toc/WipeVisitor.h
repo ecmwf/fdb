@@ -17,7 +17,7 @@
 #define fdb5_WipeVisitor_H
 
 
-#include "fdb5/toc/ReportVisitor.h"
+#include "fdb5/database/ReportVisitor.h"
 
 namespace fdb5 {
 

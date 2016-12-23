@@ -20,7 +20,7 @@
 
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/FileStore.h"
-#include "fdb5/database/FieldRef.h"
+#include "fdb5/toc/FieldRef.h"
 
 namespace fdb5 {
 
@@ -35,10 +35,12 @@ public:
     TocFieldLocation(const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
     TocFieldLocation(const FileStore& store, const FieldRef& ref);
 
-    const eckit::PathName &path() const { return path_; }
-    const eckit::Offset &offset() const { return offset_; }
+    const eckit::PathName& path() const { return path_; }
+    const eckit::Offset&   offset() const { return offset_; }
 
     virtual eckit::DataHandle *dataHandle() const;
+
+    virtual eckit::PathName url() const;
 
     virtual eckit::SharedPtr<FieldLocation> make_shared() const;
 

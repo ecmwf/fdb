@@ -34,6 +34,8 @@ public: // methods
 
     const eckit::PathName& path() const;
 
+    virtual eckit::PathName location() const;
+
 private: // members
 
     const eckit::PathName path_;
@@ -54,6 +56,8 @@ private: // friends
 class IndexPathOffsetGetter : public IndexLocationVisitor {
 
 public: // methods
+
+    virtual ~IndexPathOffsetGetter();
 
     virtual void operator() (const TocIndexLocation& idx);
 

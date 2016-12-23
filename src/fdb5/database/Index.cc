@@ -15,10 +15,12 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 Index::Index(const Key& key, const std::string& type) :
+    type_(type),
     axes_(),
     key_(key),
-    prefix_(key.valuesToString()),
-    type_(type) {}
+    prefix_(key.valuesToString())
+{
+}
 
 
 Index::Index(eckit::Stream& s) :
@@ -54,7 +56,7 @@ const IndexAxis &Index::axes() const {
     return axes_;
 }
 
-
+EntryVisitor::~EntryVisitor() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 

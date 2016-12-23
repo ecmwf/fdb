@@ -9,7 +9,6 @@
  */
 
 #include "fdb5/database/Field.h"
-#include "fdb5/database/FieldRef.h"
 #include "fdb5/database/FileStore.h"
 
 
@@ -26,9 +25,9 @@ Field::Field(const FieldLocation& location, const FieldDetails& details):
 }
 
 void Field::print(std::ostream& out) const {
-    out << "Field(location=" << location_
-//        << ",details=" << details_
-        << ")";
+    out << "Field(location=" << location_;
+    if(details_) { out << ",details=" << details_; }
+    out << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

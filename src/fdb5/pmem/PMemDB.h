@@ -66,6 +66,8 @@ protected: // methods
     virtual bool selectIndex(const Key &key);
     virtual void deselectIndex();
 
+    virtual void update(DbStatistics&) const;
+
 private: // methods
 
     /// Initialise or open the peristent pool. Worker function for the construtor

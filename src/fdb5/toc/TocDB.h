@@ -63,6 +63,8 @@ protected: // methods
     void loadSchema();
     void checkSchema(const Key &key) const;
 
+    virtual void update(DbStatistics&) const;
+
 private: // members
 
     Schema schema_;

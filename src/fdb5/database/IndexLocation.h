@@ -9,6 +9,9 @@
  */
 
 
+#include "eckit/memory/NonCopyable.h"
+#include "eckit/filesystem/PathName.h"
+
 #ifndef fdb5_IndexLocation_H
 #define fdb5_IndexLocation_H
 
@@ -16,29 +19,25 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// A base class to support the various visitors
-/// TODO: Do we (strictly) even need to have a base class?
+class IndexLocation : private eckit::NonCopyable {
 
-class IndexLocation {
+public: // methods
+
+    virtual ~IndexLocation();
+
+    virtual eckit::PathName location() const = 0;
 
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TocIndexLocation;
-namespace pmem {
-    class PMemIndexLocation;
-}
-
 class IndexLocationVisitor {
 
 public: // methods
 
-    /// These are base methods (with default behaviour) for a visitor-pattern dispatch
-    virtual void operator() (const IndexLocation& location);
-    virtual void operator() (const TocIndexLocation& location);
-    virtual void operator() (const pmem::PMemIndexLocation& location);
+    virtual ~IndexLocationVisitor();
 
+    virtual void operator() (const IndexLocation&) = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

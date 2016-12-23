@@ -8,16 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/toc/ReportVisitor.h"
+#include "fdb5/database/ReportVisitor.h"
 
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 
-#include "fdb5/toc/TocIndex.h"
-#include "fdb5/toc/TocDB.h"
-#include "fdb5/toc/TocFieldLocation.h"
-#include "fdb5/pmem/PMemFieldLocation.h"
-#include "fdb5/pmem/PMemIndexLocation.h"
+#include "fdb5/database/IndexLocation.h"
 
 namespace fdb5 {
 
@@ -29,14 +25,11 @@ class DBStatsInitVisitor : public DBVisitor {
 public: // methods
 
     DBStatsInitVisitor(DbStatistics& dbStats) :
-        dbStats_(dbStats) {}
-
-    virtual void operator() (TocDB& db) {
-        dbStats_.update(db);
+        dbStats_(dbStats) {
     }
 
-    virtual void operator() (pmem::PMemDB& db) {
-        dbStats_.update(db);
+    virtual void operator() (DB& db) {
+        db.update(dbStats_);
     }
 
 private: // members
@@ -66,15 +59,8 @@ public:
         dataUsage_(dataUsage),
         unique_(unique) {}
 
-    virtual void operator() (const TocFieldLocation& location) {
-
-        common(location.length(), location.path());
-    }
-
-    virtual void operator() (const pmem::PMemFieldLocation& location) {
-
-        // TODO: Pathname of data file
-        common(location.length(), location.pool().path());
+    virtual void operator() (const FieldLocation& floc) {
+        common(floc.length(), floc.url());
     }
 
 private:
@@ -128,23 +114,15 @@ public:
                        std::map<eckit::PathName, size_t>& indexUsage,
                        bool unique) :
         dbStats_(dbStats),
-        idxStats_(idxStats),
+//        idxStats_(idxStats),
         allIndexFiles_(allIndexFiles),
         indexUsage_(indexUsage),
-        unique_(unique) {}
-
-    virtual void operator() (const TocIndexLocation& location) {
-        common(location.path());
+        unique_(unique)
+    {
     }
 
-    virtual void operator() (const pmem::PMemIndexLocation& location) {
-        common(eckit::PathName());
-    }
-
-private:
-
-    void common(const eckit::PathName& path) {
-
+    virtual void operator() (const IndexLocation& idxloc) {
+        const eckit::PathName path = idxloc.location();
         if (allIndexFiles_.find(path) == allIndexFiles_.end()) {
             dbStats_.indexFilesSize_ += path.size();
             allIndexFiles_.insert(path);
@@ -156,8 +134,10 @@ private:
         }
     }
 
+private:
+
     DbStatistics& dbStats_;
-    IndexStatistics& idxStats_;
+//    IndexStatistics& idxStats_;
     std::set<eckit::PathName>& allIndexFiles_;
     std::map<eckit::PathName, size_t> indexUsage_;
     bool unique_;

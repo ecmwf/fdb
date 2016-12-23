@@ -39,7 +39,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FieldRef;
 class FileStore;
 
 class Field {
@@ -47,9 +46,8 @@ class Field {
 public: // methods
 
     Field();
-//    Field(const FileStore &, const FieldRef &);
-    Field(const FieldLocation& location, const FieldDetails& details=FieldDetails());
 
+    Field(const FieldLocation& location, const FieldDetails& details = FieldDetails());
 
     eckit::DataHandle *dataHandle() const { return location_->dataHandle(); }
 
