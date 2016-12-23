@@ -28,17 +28,15 @@
 
 namespace fdb5 {
 
-
 //----------------------------------------------------------------------------------------------------------------------
 
 static eckit::Mutex local_mutex;
 
-//----------------------------------------------------------------------------------------------------------------------
 
 class TocHandlerCloser {
-    TocHandler &handler_;
+    const TocHandler& handler_;
   public:
-    TocHandlerCloser(TocHandler &handler): handler_(handler) {}
+    TocHandlerCloser(const TocHandler &handler): handler_(handler) {}
     ~TocHandlerCloser() {
         handler_.close();
     }
@@ -216,14 +214,17 @@ void TocHandler::writeInitRecord(const Key &key) {
 }
 
 void TocHandler::writeClearRecord(const Index &index) {
+
     openForAppend();
     TocHandlerCloser closer(*this);
 
-
     struct WriteToStream : public IndexLocationVisitor {
+
         WriteToStream(TocHandler& handler) : handler_(handler) {}
 
-        virtual void operator() (const TocIndexLocation& location) {
+        virtual void operator() (const IndexLocation& l) {
+
+            const TocIndexLocation& location = reinterpret_cast<const TocIndexLocation&>(l);
 
             TocRecord r( TocRecord::TOC_CLEAR );
             eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
@@ -250,7 +251,9 @@ void TocHandler::writeIndexRecord(const Index &index) {
     struct WriteToStream : public IndexLocationVisitor {
         WriteToStream(const Index& index, TocHandler& handler) : index_(index), handler_(handler) {}
 
-        virtual void operator() (const TocIndexLocation& location) {
+        virtual void operator() (const IndexLocation& l) {
+
+            const TocIndexLocation& location = reinterpret_cast<const TocIndexLocation&>(l);
 
             TocRecord r( TocRecord::TOC_INDEX );
             eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);

@@ -59,7 +59,7 @@ public: // methods
 
     virtual ~IndexPathOffsetGetter();
 
-    virtual void operator() (const TocIndexLocation& idx);
+    virtual void operator() (const IndexLocation&);
 
     const eckit::PathName& path() const;
     off_t offset() const;

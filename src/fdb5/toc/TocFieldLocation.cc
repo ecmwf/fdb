@@ -57,11 +57,6 @@ void TocFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
 }
 
-eckit::PathName TocFieldLocationGetter::location() const
-{
-    return path();
-}
-
 void TocFieldLocationGetter::operator() (const TocFieldLocation& location) {
     path_   = &location.path();
     offset_ = location.offset();

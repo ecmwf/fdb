@@ -47,7 +47,7 @@ IndexPathOffsetGetter::~IndexPathOffsetGetter()
 {
 }
 
-void IndexPathOffsetGetter::operator() (const TocIndexLocation& idx) {
+void IndexPathOffsetGetter::operator() (const IndexLocation& idx) {
     path_ = &idx.path();
     offset_ = idx.offset();
 }
