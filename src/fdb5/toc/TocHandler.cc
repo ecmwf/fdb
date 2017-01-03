@@ -17,7 +17,7 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/log/BigNum.h"
 #include "eckit/thread/AutoLock.h"
-#include "eckit/thread/Mutex.h"
+#include "eckit/thread/StaticMutex.h"
 #include "eckit/maths/Functions.h"
 
 #include "fdb5/database/Index.h"
@@ -30,7 +30,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static eckit::Mutex local_mutex;
+static eckit::StaticMutex local_mutex;
 
 
 class TocHandlerCloser {
@@ -132,7 +132,7 @@ void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
 }
 
-bool TocHandler::readNext( TocRecord &r ) {
+bool TocHandler::readNext( TocRecord &r ) const {
 
     int len;
 
@@ -166,7 +166,7 @@ void TocHandler::close() const {
 
 void TocHandler::writeInitRecord(const Key &key) {
 
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+    eckit::AutoLock<eckit::StaticMutex> lock(local_mutex);
 
     if ( !directory_.exists() ) {
         directory_.mkdir();
@@ -285,11 +285,15 @@ class HasPath {
   public:
     HasPath(const eckit::PathName &path, off_t offset): path_(path), offset_(offset) {}
     bool operator()(const Index *index) const {
+        const TocIndex* tocidx = dynamic_cast<const TocIndex*>(index);
 
-        IndexPathOffsetGetter getter;
-        index->visitLocation(getter);
+        if(!tocidx) {
+            throw eckit::NotImplemented("Index is not of TocIndex type -- referencing unknown Index types isn't supported", Here());
+        }
 
-        return (getter.path() == path_) && (getter.offset() == offset_);
+        const TocIndexLocation& loc = tocidx->location();
+
+        return (loc.path() == path_) && (loc.offset() == offset_);
     }
 };
 

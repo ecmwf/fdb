@@ -100,18 +100,18 @@ void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::visit(BTreeIndexVisitor &visitor) c
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
 #define BTREE(KEYSIZE, RECSIZE, PAYLOAD)                                                                   \
 struct BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD : public TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD> {                  \
     BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD (const eckit::PathName& path, bool readOnly, off_t offset): \
         TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>(path, readOnly, offset){};                                  \
 }; \
-static IndexBuilder<BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD> \
+static BTreeIndexBuilder<BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD> \
 maker_BTreeIndex_##KEYSIZE##_##RECSIZE##_##PAYLOAD("BTreeIndex_" #KEYSIZE "_" #RECSIZE "_" #PAYLOAD)
 
 BTREE(32, 65536, FieldRefReduced);
 BTREE(32, 65536, FieldRefFull);
 BTREE(32, 4194304, FieldRefReduced);
-
 
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -125,9 +125,9 @@ const std::string& BTreeIndex::defaulType() {
     return fdbIndexType;
 }
 
-static IndexBuilder<BTreeIndex_32_65536_FieldRefReduced> defaultIndex("BTreeIndex");
-static IndexBuilder<BTreeIndex_32_65536_FieldRefFull> pointDBIndex("PointDBIndex");
-static IndexBuilder<BTreeIndex_32_4194304_FieldRefReduced> index4MB("BTreeIndex4MB");
+static BTreeIndexBuilder<BTreeIndex_32_65536_FieldRefReduced>   defaultIndex("BTreeIndex");
+static BTreeIndexBuilder<BTreeIndex_32_65536_FieldRefFull>      PointDBIndex("PointDBIndex");
+static BTreeIndexBuilder<BTreeIndex_32_4194304_FieldRefReduced> BTreeIndex4MB("BTreeIndex4MB");
 
 //----------------------------------------------------------------------------------------------------------------------
 

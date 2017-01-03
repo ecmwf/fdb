@@ -30,14 +30,18 @@ FieldRefLocation::FieldRefLocation() {
 
 FieldRefLocation::FieldRefLocation(FileStore &store, const Field& field) {
 
-    /// Quick hack to get everything working. Potentially needs adaptation to non-toc fields
+    const FieldLocation& loc = field.location();
 
-    TocFieldLocationGetter getter;
-    field.location().visit(getter);
+    pathId_ = store.insert(loc.url());
+    length_ = loc.length();
 
-    pathId_ = store.insert(getter.path());
-    offset_ = getter.offset();
-    length_ = getter.length();
+    const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
+    if(tocfloc) {
+        offset_ = tocfloc->offset();
+    }
+    else {
+        throw eckit::NotImplemented("Field location is not of TocFieldLocation type -- indexing other locations is not supported", Here());
+    }
 }
 
 FieldRefReduced::FieldRefReduced() {

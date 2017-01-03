@@ -42,25 +42,4 @@ PathName TocIndexLocation::location() const
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-IndexPathOffsetGetter::~IndexPathOffsetGetter()
-{
-}
-
-void IndexPathOffsetGetter::operator() (const IndexLocation& idx) {
-    path_ = &idx.path();
-    offset_ = idx.offset();
-}
-
-
-const PathName& IndexPathOffsetGetter::path() const {
-    return *path_;
-}
-
-off_t IndexPathOffsetGetter::offset() const {
-    return offset_;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
 } // namespace fdb5

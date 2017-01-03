@@ -47,30 +47,6 @@ private: // friends
     friend class TocIndex;
 };
 
-
-//----------------------------------------------------------------------------------------------------------------------
-
-
-/// For rapid adaptation of exising functionality. Needs proper tweaking...
-
-class IndexPathOffsetGetter : public IndexLocationVisitor {
-
-public: // methods
-
-    virtual ~IndexPathOffsetGetter();
-
-    virtual void operator() (const IndexLocation&);
-
-    const eckit::PathName& path() const;
-    off_t offset() const;
-
-private: // members
-
-    const eckit::PathName* path_;
-    off_t offset_;
-};
-
-
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

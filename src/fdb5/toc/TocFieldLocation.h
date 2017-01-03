@@ -48,7 +48,9 @@ public:
 
 private: // methods
 
-    void print(std::ostream &out) const;
+    virtual void dump(std::ostream &out) const;
+
+    virtual void print(std::ostream &out) const;
 
 private: // members
 
@@ -56,25 +58,6 @@ private: // members
     eckit::Offset offset_;
 };
 
-
-/// A utility visitor to simplify conversion of existing code. Will probably need better extending
-
-class TocFieldLocationGetter : public FieldLocationVisitor {
-
-public: // methods
-
-    virtual void operator() (const TocFieldLocation& location);
-
-    const eckit::PathName& path() const;
-    eckit::Offset offset() const;
-    eckit::Length length() const;
-
-private: // members
-
-    const eckit::PathName* path_;
-    eckit::Offset offset_;
-    eckit::Length length_;
-};
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -39,6 +39,7 @@ namespace fdb5 {
 class Key;
 class Index;
 class IndexLocationVisitor;
+class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -51,6 +52,24 @@ public:
                        const std::string &indexFingerprint,
                        const std::string &fieldFingerprint,
                        const Field& field) = 0;
+};
+
+class DumpVisitor : public fdb5::EntryVisitor {
+
+public:
+    DumpVisitor(std::ostream& out, Schema& schema, Key& dbKey) :
+        out_(out), schema_(schema), dbKey_(dbKey) {}
+
+private:
+    virtual void visit(const fdb5::Index &index,
+                       const std::string &indexFingerprint,
+                       const std::string &fieldFingerprint,
+                       const fdb5::Field &field);
+
+private: // members
+    std::ostream& out_;
+    Schema& schema_;
+    Key& dbKey_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -70,8 +89,6 @@ class Index : private eckit::NonCopyable {
 
     virtual void visitLocation(IndexLocationVisitor& visitor) const = 0;
 
-//    const eckit::PathName &path() const ;
-//    off_t offset() const ;
     const std::string &type() const ;
 
     const IndexAxis &axes() const ;

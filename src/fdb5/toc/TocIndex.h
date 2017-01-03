@@ -48,9 +48,12 @@ struct FileStoreWrapper {
     FileStore files_;
 };
 
-// --
+//----------------------------------------------------------------------------------------------------------------------
 
-class TocIndex : private FileStoreWrapper, public Index {
+
+class TocIndex :
+        private FileStoreWrapper,
+        public Index {
 
 public: // types
 
@@ -70,6 +73,8 @@ public: // methods
 
     static std::string defaulType();
 
+    const TocIndexLocation& location() const { return location_; }
+
 private: // methods
 
     virtual void open();
@@ -86,7 +91,6 @@ private: // methods
 
     virtual void print( std::ostream &out ) const;
     virtual void dump(std::ostream& out, const char* indent, bool simple = false) const;
-
 
 private: // members
 

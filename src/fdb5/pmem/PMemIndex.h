@@ -31,9 +31,6 @@ class PBranchingNode;
 
 class PMemIndex : public Index {
 
-//public: // types
-//
-//
 public: // methods
 
     PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type=defaulType());

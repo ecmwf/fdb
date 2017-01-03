@@ -49,7 +49,9 @@ public:
 
 private: // methods
 
-    void print(std::ostream &out) const;
+    virtual void dump(std::ostream &out) const;
+
+    virtual void print(std::ostream &out) const;
 
 private: // members
 

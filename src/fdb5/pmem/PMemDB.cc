@@ -142,54 +142,6 @@ bool PMemDB::selectIndex(const Key &key) {
 
 void PMemDB::dump(std::ostream& out, bool simple) {
 
-    class PMemLocationPrinter : public FieldLocationVisitor {
-    public:
-        PMemLocationPrinter(std::ostream& out, DataPoolManager& poolMgr) : out_(out), poolMgr_(poolMgr) {}
-        virtual void operator() (const PMemFieldLocation& location) {
-            out_ << "  pool_uuid: " << location.node().uuid() << std::endl;
-            out_ << "  data_pool: " << poolMgr_.dataPoolPath(location.node().uuid()) << std::endl;
-            out_ << "  offset: " << location.node().offset() << std::endl;
-        }
-    private:
-        std::ostream& out_;
-        DataPoolManager& poolMgr_;
-    };
-
-    // ----------------------------------------------------------------------
-
-    class DumpVisitor : public fdb5::EntryVisitor {
-
-    public:
-        DumpVisitor(std::ostream& out, DataPoolManager& poolMgr, Schema& schema, Key& dbKey) :
-            out_(out), poolMgr_(poolMgr), schema_(schema), dbKey_(dbKey) {}
-
-    private:
-        virtual void visit(const fdb5::Index &index,
-                           const std::string &indexFingerprint,
-                           const std::string &fieldFingerprint,
-                           const fdb5::Field &field) {
-
-
-            out_ << "PMEM_ENTRY" << std::endl;
-
-            fdb5::Key key(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
-            out_ << "  Key: " << dbKey_ << index.key() << key;
-
-            PMemLocationPrinter locPrinter(out_, poolMgr_);
-            field.location().visit(locPrinter);
-
-            out_ << std::endl;
-        }
-
-    private: // members
-        std::ostream& out_;
-        DataPoolManager& poolMgr_;
-        Schema& schema_;
-        Key& dbKey_;
-    };
-
-    // ----------------------------------------------------------------------
-
     // Check that things are open
     ASSERT(pool_);
 
@@ -211,7 +163,7 @@ void PMemDB::dump(std::ostream& out, bool simple) {
 
     // And dump the rest of the stuff
 
-    DumpVisitor visitor(out, *dataPoolMgr_, schema_, dbKey_);
+    DumpVisitor visitor(out, schema_, dbKey_);
 
     visitEntries(visitor);
 }
@@ -239,7 +191,7 @@ void PMemDB::update(DbStatistics& stats) const
     stats.tocRecordsCount_ += 0;
     stats.tocFileSize_ += 0;
 
-    stats.schemaFileSize_ += db.schemaSize();
+    stats.schemaFileSize_ += schemaSize();
 }
 
 eckit::PathName PMemDB::basePath() const {

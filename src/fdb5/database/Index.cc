@@ -9,6 +9,7 @@
  */
 
 #include "fdb5/database/Index.h"
+#include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
 
@@ -52,11 +53,30 @@ const std::string &Index::type() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
 const IndexAxis &Index::axes() const {
     return axes_;
 }
 
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
 EntryVisitor::~EntryVisitor() {}
+
+void DumpVisitor::visit(const Index& index, const std::string& indexFingerprint, const std::string& fieldFingerprint, const Field& field) {
+
+
+    out_ << "ENTRY" << std::endl;
+
+    fdb5::Key key(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
+    out_ << "  Key: " << dbKey_ << index.key() << key;
+
+    FieldLocationPrinter printer(out_);
+    field.location().visit(printer);
+
+    out_ << std::endl;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

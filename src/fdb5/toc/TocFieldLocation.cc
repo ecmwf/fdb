@@ -57,23 +57,10 @@ void TocFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
 }
 
-void TocFieldLocationGetter::operator() (const TocFieldLocation& location) {
-    path_   = &location.path();
-    offset_ = location.offset();
-    length_ = location.length();
-}
-
-
-const eckit::PathName& TocFieldLocationGetter::path() const {
-    return *path_;
-}
-
-eckit::Offset TocFieldLocationGetter::offset() const {
-    return offset_;
-}
-
-eckit::Length TocFieldLocationGetter::length() const {
-    return length_;
+void TocFieldLocation::dump(std::ostream& out) const
+{
+    out << "  path: " << path_ << std::endl;
+    out << "  offset: " << offset_ << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

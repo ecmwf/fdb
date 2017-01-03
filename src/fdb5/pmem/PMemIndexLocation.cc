@@ -38,7 +38,7 @@ DataPoolManager& PMemIndexLocation::pool_manager() const {
 
 PathName PMemIndexLocation::location() const
 {
-    return poolManager_.dataPoolPath();
+    return node_.path();
 }
 
 

@@ -89,7 +89,7 @@ bool TocIndex::get(const Key &key, Field &field) const {
 
 void TocIndex::open() {
     if (!btree_) {
-        btree_.reset(IndexFactory::build(type_, location_.path_, mode_ == TocIndex::READ, location_.offset_));
+        btree_.reset(BTreeIndexFactory::build(type_, location_.path_, mode_ == TocIndex::READ, location_.offset_));
     }
 }
 
@@ -181,7 +181,6 @@ void TocIndex::dump(std::ostream &out, const char* indent, bool simple) const {
         axes_.dump(out, indent);
     }
 }
-
 
 //-----------------------------------------------------------------------------
 

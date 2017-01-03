@@ -76,7 +76,7 @@ private: // methods
     void close() const;
 
     void append(TocRecord &r, size_t payloadSize);
-    bool readNext(TocRecord &r);
+    bool readNext(TocRecord &r) const;
 
     std::string userName(long) const;
 

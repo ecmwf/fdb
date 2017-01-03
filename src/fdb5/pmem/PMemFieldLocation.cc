@@ -12,6 +12,7 @@
 
 #include "fdb5/pmem/PMemFieldLocation.h"
 #include "fdb5/pmem/PDataNode.h"
+#include "fdb5/pmem/DataPool.h"
 
 namespace fdb5 {
 namespace pmem {
@@ -42,7 +43,8 @@ eckit::DataHandle *PMemFieldLocation::dataHandle() const {
 }
 
 void PMemFieldLocation::print(std::ostream &out) const {
-    out << "(" << length_ << ")";
+
+    out << "PMemFieldLocation(" << length_ << ")";
 }
 
 void PMemFieldLocation::visit(FieldLocationVisitor& visitor) const {
@@ -55,6 +57,14 @@ void PMemFieldLocation::visit(FieldLocationVisitor& visitor) const {
 
 DataPool& PMemFieldLocation::pool() const {
     return dataPool_;
+}
+
+void PMemFieldLocation::dump(std::ostream& out) const
+{
+    out << "  pool_uuid: " << node().uuid() << std::endl;
+    out << "  data_pool: " << dataPool_.path() << std::endl;
+    out << "  offset: "    << node().offset() << std::endl;
+
 }
 
 eckit::PathName fdb5::pmem::PMemFieldLocation::url() const

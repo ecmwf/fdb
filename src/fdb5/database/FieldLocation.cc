@@ -22,12 +22,12 @@ FieldLocation::FieldLocation(eckit::Length length) :
 
 }
 
-void FieldLocation::print(std::ostream &out) const {
-    out << "FileLocation(" << length_ << ")";
-}
-
 FieldLocationVisitor::~FieldLocationVisitor()
 {
+}
+
+void FieldLocationPrinter::operator()(const FieldLocation& location) {
+    location.dump(out_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

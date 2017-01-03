@@ -53,9 +53,11 @@ public: // methods
 
     virtual void visit(FieldLocationVisitor& visitor) const = 0;
 
+    virtual void dump(std::ostream &out) const = 0;
+
 private: // methods
 
-    void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const = 0;
 
 protected: // members
 
@@ -81,6 +83,14 @@ public: // methods
 
     virtual void operator() (const FieldLocation& location) = 0;
 
+};
+
+class FieldLocationPrinter : public FieldLocationVisitor {
+public:
+    FieldLocationPrinter(std::ostream& out) : out_(out) {}
+    virtual void operator() (const FieldLocation& location);
+private:
+    std::ostream& out_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
