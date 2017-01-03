@@ -13,12 +13,11 @@
 
 #include "eckit/log/BigNum.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/database/IndexStatistics.h"
+#include "fdb5/database/Report.h"
 #include "fdb5/database/ReportVisitor.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBInspect.h"
 
-//----------------------------------------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -39,8 +38,8 @@ class FDBStats : public fdb5::FDBInspect {
     virtual void usage(const std::string &tool) const;
     virtual void init(const eckit::option::CmdArgs &args);
     virtual void finish(const eckit::option::CmdArgs &args);
-    fdb5::IndexStatistics indexStats_;
-    fdb5::DbStatistics dbStats_;
+
+    fdb5::Report report_;
 
     size_t count_;
     bool details_;
@@ -69,10 +68,11 @@ void FDBStats::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     if (details_) {
         eckit::Log::info() << std::endl;
-        visitor.indexStatistics().report(eckit::Log::info());
-        visitor.dbStatistics().report(eckit::Log::info());
+        visitor.report().report(eckit::Log::info());
         eckit::Log::info() << std::endl;
     }
+
+    report_ += visitor.report();
 
     indexStats_ += visitor.indexStatistics();
     dbStats_ += visitor.dbStatistics();

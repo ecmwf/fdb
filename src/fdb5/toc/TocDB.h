@@ -46,6 +46,8 @@ public: // methods
 
 protected: // methods
 
+    virtual std::string dbType() const { return "toc"; }
+
     virtual bool open();
     virtual void close();
     virtual void flush();
@@ -63,7 +65,7 @@ protected: // methods
     void loadSchema();
     void checkSchema(const Key &key) const;
 
-    virtual void update(DbStatistics&) const;
+    virtual DbStatistics* update() const;
 
 private: // members
 

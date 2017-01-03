@@ -24,26 +24,17 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
 class DbStatistics : public eckit::Statistics {
 public:
 
-    DbStatistics() ;
+    virtual ~DbStatistics();
 
-    size_t tocRecordsCount_;
-    unsigned long long tocFileSize_;
-    unsigned long long schemaFileSize_;
-    unsigned long long ownedFilesSize_;
-    unsigned long long adoptedFilesSize_;
-    unsigned long long indexFilesSize_;
+    virtual void add(const DbStatistics&) = 0;
 
-    size_t ownedFilesCount_;
-    size_t adoptedFilesCount_;
-    size_t indexFilesCount_;
-
-    DbStatistics &operator+=(const DbStatistics &rhs) ;
-
-    void report(std::ostream &out, const char* indent = "") const;
+    virtual void report(std::ostream& out, const char* indent = "") const = 0;
 };
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

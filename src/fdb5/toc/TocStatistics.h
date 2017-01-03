@@ -8,37 +8,43 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   IndexStatistics.h
+/// @file   TocStatistics.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_IndexStatistics_H
-#define fdb5_IndexStatistics_H
+#ifndef fdb5_TocStatistics_H
+#define fdb5_TocStatistics_H
 
 #include <iosfwd>
 
-#include "eckit/log/Statistics.h"
+#include "fdb5/database/DbStatistics.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IndexStatistics : public eckit::Statistics {
+class TocStatistics : public DbStatistics {
 public:
 
-    IndexStatistics();
+    TocStatistics();
 
-    size_t fieldsCount_;
-    size_t duplicatesCount_;
+    size_t tocRecordsCount_;
 
-    unsigned long long fieldsSize_;
-    unsigned long long duplicatesSize_;
+    unsigned long long tocFileSize_;
+    unsigned long long schemaFileSize_;
+    unsigned long long ownedFilesSize_;
+    unsigned long long adoptedFilesSize_;
+    unsigned long long indexFilesSize_;
 
-    IndexStatistics& operator+=(const IndexStatistics &rhs);
+    size_t ownedFilesCount_;
+    size_t adoptedFilesCount_;
+    size_t indexFilesCount_;
 
-    void report(std::ostream &out, const char* indent = "") const;
+    TocStatistics& operator+= (const TocStatistics& rhs);
 
+    virtual void add(const DbStatistics&);
+    virtual void report(std::ostream &out, const char* indent = "") const;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

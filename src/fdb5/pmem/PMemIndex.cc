@@ -81,8 +81,10 @@ void PMemIndex::add(const Key &key, const Field &field) {
             key_(key),
             poolManager_(poolManager) {}
 
-        virtual void operator() (const PMemFieldLocation& location) {
-            indexNode_.insertDataNode(key_, location.node(), poolManager_);
+        virtual void operator() (const FieldLocation& location) {
+
+            const PMemFieldLocation& ploc = dynamic_cast<const PMemFieldLocation& >( location);
+            indexNode_.insertDataNode(key_, ploc.node(), poolManager_);
         }
 
     private:

@@ -83,6 +83,8 @@ list( APPEND fdb5_srcs
     database/ReadVisitor.h
     database/ReportVisitor.cc
     database/ReportVisitor.h
+    database/Report.cc
+    database/Report.h
     database/Retriever.cc
     database/Retriever.h
     database/RetrieveVisitor.cc
@@ -220,6 +222,8 @@ if( HAVE_TOCFDB )
         toc/TocIndexLocation.h
         toc/TocRecord.cc
         toc/TocRecord.h
+        toc/TocStatistics.cc
+        toc/TocStatistics.h
         )
 endif()
 
@@ -263,6 +267,8 @@ if( HAVE_PMEMFDB )
         pmem/PoolGroup.h
         pmem/PoolManager.cc
         pmem/PoolManager.h
+        pmem/PMemStatistics.cc
+        pmem/PMemStatistics.h
     )
 else()
     set( PMEM_LIBRARIES "" )

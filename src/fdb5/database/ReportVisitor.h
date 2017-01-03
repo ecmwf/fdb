@@ -26,8 +26,8 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Field.h"
-#include "fdb5/database/IndexStatistics.h"
-#include "fdb5/database/DbStatistics.h"
+#include "fdb5/database/Report.h"
+
 
 namespace fdb5 {
 
@@ -38,10 +38,10 @@ class ReportVisitor : public EntryVisitor {
 public:
 
     ReportVisitor(DB& db);
+
     ~ReportVisitor();
 
-    IndexStatistics indexStatistics() const;
-    DbStatistics dbStatistics() const;
+    fdb5::Report& report() const { return report_; }
 
 private: // methods
 
@@ -68,8 +68,11 @@ protected: // members
     std::set<std::string> active_;
 
     std::map<const Index*, IndexStatistics> indexStats_;
-    DbStatistics dbStats_;
+
+    fdb5::Report report_;
+
 };
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

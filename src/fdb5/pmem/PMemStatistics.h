@@ -8,37 +8,37 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   IndexStatistics.h
+/// @file   PMemStatistics.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_IndexStatistics_H
-#define fdb5_IndexStatistics_H
+#ifndef fdb5_PMemStatistics_H
+#define fdb5_PMemStatistics_H
 
 #include <iosfwd>
 
-#include "eckit/log/Statistics.h"
+#include "fdb5/database/DbStatistics.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IndexStatistics : public eckit::Statistics {
+class PMemStatistics : public DbStatistics {
 public:
 
-    IndexStatistics();
+    PMemStatistics() ;
 
-    size_t fieldsCount_;
-    size_t duplicatesCount_;
+    unsigned long long poolsSize_;
+    unsigned long long schemaSize_;
 
-    unsigned long long fieldsSize_;
-    unsigned long long duplicatesSize_;
+    size_t poolsCount_;
+    size_t indexesCount_;
 
-    IndexStatistics& operator+=(const IndexStatistics &rhs);
+    PMemStatistics& operator+= (const PMemStatistics &rhs) ;
 
-    void report(std::ostream &out, const char* indent = "") const;
-
+    virtual void add(const DbStatistics&);
+    virtual void report(std::ostream &out, const char* indent = "") const;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

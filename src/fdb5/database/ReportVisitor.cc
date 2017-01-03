@@ -17,25 +17,6 @@
 
 namespace fdb5 {
 
-//----------------------------------------------------------------------------------------------------------------------
-
-
-class DBStatsInitVisitor : public DBVisitor {
-
-public: // methods
-
-    DBStatsInitVisitor(DbStatistics& dbStats) :
-        dbStats_(dbStats) {
-    }
-
-    virtual void operator() (DB& db) {
-        db.update(dbStats_);
-    }
-
-private: // members
-
-    DbStatistics& dbStats_;
-};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -122,6 +103,9 @@ public:
     }
 
     virtual void operator() (const IndexLocation& idxloc) {
+
+        idxloc.report(dbStats_);
+
         const eckit::PathName path = idxloc.location();
         if (allIndexFiles_.find(path) == allIndexFiles_.end()) {
             dbStats_.indexFilesSize_ += path.size();
@@ -139,7 +123,7 @@ private:
     DbStatistics& dbStats_;
 //    IndexStatistics& idxStats_;
     std::set<eckit::PathName>& allIndexFiles_;
-    std::map<eckit::PathName, size_t> indexUsage_;
+    std::map<eckit::PathName, size_t>& indexUsage_;
     bool unique_;
 };
 
@@ -149,9 +133,7 @@ ReportVisitor::ReportVisitor(DB& db) :
     db_(db),
     directory_(db.basePath()) {
 
-    // Provide the initial conditions for the stats
-    DBStatsInitVisitor initVisitor(dbStats_);
-    db.visit(initVisitor);
+    report_.append(db.dbType(), db.statistics());
 }
 
 ReportVisitor::~ReportVisitor() {
@@ -174,10 +156,6 @@ void ReportVisitor::visit(const Index &index,
 
     ReportIndexVisitor idxVisitor(dbStats_, stats, allIndexFiles_, indexUsage_, unique);
     index.visitLocation(idxVisitor);
-}
-
-DbStatistics ReportVisitor::dbStatistics() const {
-    return dbStats_;
 }
 
 IndexStatistics ReportVisitor::indexStatistics() const {

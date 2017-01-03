@@ -12,13 +12,13 @@
 #include "eckit/log/Timer.h"
 
 #include "fdb5/config/MasterConfig.h"
-#include "fdb5/database/DbStatistics.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Rule.h"
 
 #include "fdb5/pmem/PMemDB.h"
 #include "fdb5/pmem/PMemFieldLocation.h"
 #include "fdb5/pmem/PoolManager.h"
+#include "fdb5/pmem/PMemStatistics.h"
 
 #include "pmem/PersistentString.h"
 
@@ -185,13 +185,11 @@ void PMemDB::deselectIndex() {
     currentIndex_ = 0;
 }
 
-void PMemDB::update(DbStatistics& stats) const
+void PMemDB::update(DbStatistics& s) const
 {
-    // There is no TOC, so there are zero toc records...
-    stats.tocRecordsCount_ += 0;
-    stats.tocFileSize_ += 0;
+    PMemStatistics& stats = dynamic_cast<PMemStatistics&>(s);
 
-    stats.schemaFileSize_ += schemaSize();
+    stats.schemaSize_ += schemaSize();
 }
 
 eckit::PathName PMemDB::basePath() const {

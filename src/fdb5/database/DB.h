@@ -50,9 +50,9 @@ public: // methods
 
     virtual ~DB();
 
-    const Key& key() const {
-        return dbKey_;
-    }
+    const Key& key() const { return dbKey_; }
+
+    virtual std::string dbType() const = 0;
 
     virtual bool selectIndex(const Key &key) = 0;
     virtual void deselectIndex() = 0;
@@ -83,7 +83,7 @@ public: // methods
 
     virtual const Schema& schema() const = 0;
 
-    virtual void update(DbStatistics&) const = 0;
+    virtual DbStatistics* statistics() const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const DB &x);
 

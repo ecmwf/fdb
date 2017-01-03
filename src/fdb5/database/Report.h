@@ -8,38 +8,45 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   IndexStatistics.h
+/// @file   Report.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_IndexStatistics_H
-#define fdb5_IndexStatistics_H
+#ifndef fdb5_Report_H
+#define fdb5_Report_H
 
-#include <iosfwd>
+#include <map>
 
-#include "eckit/log/Statistics.h"
+#include "eckit/memory/NonCopyable.h"
+
+#include "fdb5/database/IndexStatistics.h"
+#include "fdb5/database/DbStatistics.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IndexStatistics : public eckit::Statistics {
+
+class Report : private eckit::NonCopyable {
 public:
 
-    IndexStatistics();
+    typedef std::string dbtype_t;
 
-    size_t fieldsCount_;
-    size_t duplicatesCount_;
+    ~Report();
 
-    unsigned long long fieldsSize_;
-    unsigned long long duplicatesSize_;
+    void append(const dbtype_t& dbtype, DbStatistics* stats);
 
-    IndexStatistics& operator+=(const IndexStatistics &rhs);
+    Report& operator+= (const Report& rhs);
 
-    void report(std::ostream &out, const char* indent = "") const;
+protected:
+
+    fdb5::IndexStatistics indexStats_;
+
+    std::map<dbtype_t, DbStatistics*> dbStats_;
 
 };
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

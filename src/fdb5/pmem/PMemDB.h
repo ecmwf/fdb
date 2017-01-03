@@ -46,6 +46,8 @@ public: // methods
 
 protected: // methods
 
+    virtual std::string dbType() const { return "pmem"; }
+
     virtual bool open();
     virtual void close();
     virtual void flush();
