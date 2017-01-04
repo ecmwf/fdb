@@ -35,7 +35,7 @@ const PathName& TocIndexLocation::path() const {
     return path_;
 }
 
-PathName TocIndexLocation::location() const
+PathName TocIndexLocation::url() const
 {
     return path_;
 }

@@ -34,7 +34,7 @@ public: // methods
 
     const eckit::PathName& path() const;
 
-    virtual eckit::PathName location() const;
+    virtual eckit::PathName url() const;
 
 private: // members
 

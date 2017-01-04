@@ -26,8 +26,8 @@ class ReportLocationVisitor : public FieldLocationVisitor {
 public:
 
     ReportLocationVisitor(const eckit::PathName& directory,
-                          DbStatistics& dbStats,
-                          IndexStatistics& idxStats,
+                          DbStats& dbStats,
+                          IndexStats& idxStats,
                           std::set<eckit::PathName>& allDataFiles,
                           std::set<eckit::PathName>& activeDataFiles,
                           std::map<eckit::PathName, size_t>& dataUsage,
@@ -75,11 +75,8 @@ private:
     }
 
     const eckit::PathName& directory_;
-    DbStatistics& dbStats_;
-    IndexStatistics& idxStats_;
-    std::set<eckit::PathName>& allDataFiles_;
-    std::set<eckit::PathName>& activeDataFiles_;
-    std::map<eckit::PathName, size_t> dataUsage_;
+    DbStats& dbStats_;
+    IndexStats& idxStats_;
     bool unique_;
 };
 
@@ -89,8 +86,8 @@ class ReportIndexVisitor : public IndexLocationVisitor {
 
 public:
 
-    ReportIndexVisitor(DbStatistics& dbStats,
-                       IndexStatistics& idxStats,
+    ReportIndexVisitor(DbStats& dbStats,
+                       IndexStats& idxStats,
                        std::set<eckit::PathName>& allIndexFiles,
                        std::map<eckit::PathName, size_t>& indexUsage,
                        bool unique) :
@@ -104,9 +101,7 @@ public:
 
     virtual void operator() (const IndexLocation& idxloc) {
 
-        idxloc.report(dbStats_);
-
-        const eckit::PathName path = idxloc.location();
+        const eckit::PathName path = idxloc.url();
         if (allIndexFiles_.find(path) == allIndexFiles_.end()) {
             dbStats_.indexFilesSize_ += path.size();
             allIndexFiles_.insert(path);
@@ -120,8 +115,8 @@ public:
 
 private:
 
-    DbStatistics& dbStats_;
-//    IndexStatistics& idxStats_;
+    DbStats& dbStats_;
+//    IndexStats& idxStats_;
     std::set<eckit::PathName>& allIndexFiles_;
     std::map<eckit::PathName, size_t>& indexUsage_;
     bool unique_;
@@ -144,26 +139,17 @@ void ReportVisitor::visit(const Index &index,
                           const std::string &fieldFingerprint,
                           const Field &field) {
 
-    IndexStatistics &stats = indexStats_[&index];
     std::string unique_id = indexFingerprint + "+" + fieldFingerprint;
 
     bool unique = (active_.find(unique_id) == active_.end());
     if (unique)
         active_.insert(unique_id);
 
-    ReportLocationVisitor locVisitor(directory_, dbStats_, stats, allDataFiles_, activeDataFiles_, dataUsage_, unique);
+    ReportLocationVisitor locVisitor(directory_, report_, allDataFiles_, activeDataFiles_, dataUsage_, unique);
     field.location().visit(locVisitor);
 
     ReportIndexVisitor idxVisitor(dbStats_, stats, allIndexFiles_, indexUsage_, unique);
-    index.visitLocation(idxVisitor);
-}
-
-IndexStatistics ReportVisitor::indexStatistics() const {
-    IndexStatistics total;
-    for (std::map<const Index *, IndexStatistics>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-        total += i->second;
-    }
-    return total;
+    index.visit(idxVisitor);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

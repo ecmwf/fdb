@@ -14,7 +14,7 @@
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocDB.h"
-#include "fdb5/toc/TocStatistics.h"
+#include "fdb5/toc/TocStats.h"
 
 using namespace eckit;
 
@@ -106,15 +106,15 @@ void TocDB::checkSchema(const Key &key) const {
     schema_.compareTo(key.rule()->schema());
 }
 
-DbStatistics* TocDB::update() const
+DbStats TocDB::statistics() const
 {
-    TocStatistics* stats = new TocStatistics();
+    TocDbStats* stats = new TocDbStats();
 
     stats->tocRecordsCount_ += numberOfRecords();
     stats->tocFileSize_     += tocPath().size();
     stats->schemaFileSize_  += schemaPath().size();
 
-    return stats;
+    return DbStats(stats);
 }
 
 void TocDB::visit(DBVisitor &visitor) {

@@ -27,11 +27,11 @@ PurgeVisitor::PurgeVisitor(DB& db) :
 
 void PurgeVisitor::report(std::ostream &out) const {
 
-    IndexStatistics total = indexStatistics();
+    IndexStats total = IndexStats();
 
     out << std::endl;
     out << "Index Report:" << std::endl;
-    for (std::map<const Index *, IndexStatistics>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+    for (std::map<const Index *, IndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
         out << "    Index " << *(i->first) << std::endl;
         i->second.report(out, "          ");
     }
@@ -104,10 +104,10 @@ void PurgeVisitor::report(std::ostream &out) const {
 
 void PurgeVisitor::purge(std::ostream& out) const {
 
-    for (std::map<const fdb5::Index *, fdb5::IndexStatistics>::const_iterator i = indexStats_.begin();
+    for (std::map<const fdb5::Index *, fdb5::IndexStats>::const_iterator i = indexStats_.begin();
             i != indexStats_.end(); ++i) {
 
-        const fdb5::IndexStatistics &stats = i->second;
+        const fdb5::IndexStats &stats = i->second;
 
         if (stats.fieldsCount_ == stats.duplicatesCount_) {
             out << "Removing: " << *(i->first) << std::endl;

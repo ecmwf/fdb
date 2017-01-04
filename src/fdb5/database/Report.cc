@@ -17,19 +17,13 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 Report::~Report() {
-    for(std::map<dbtype_t, DbStatistics*>::iterator i = dbStats_.begin(); i != dbStats_.end(); ++i) {
-        delete i->second;
-    }
 }
 
-void Report::append(const dbtype_t& dbtype, DbStatistics* stats)
+void Report::append(const dbtype_t& dbtype, DbStats stats)
 {
-    ASSERT(stats);
-
-    std::map<dbtype_t, DbStatistics*>::iterator itr = dbStats_.find(dbtype);
+    std::map<dbtype_t, DbStats>::iterator itr = dbStats_.find(dbtype);
     if(itr != dbStats_.end()) {
-        itr->second->add(*stats);
-        delete stats;
+        itr->second.add(stats);
     }
     else {
         dbStats_[dbtype] = stats;
@@ -38,16 +32,39 @@ void Report::append(const dbtype_t& dbtype, DbStatistics* stats)
 
 Report& Report::operator+=(const Report& rhs) {
 
-    indexStats_ += rhs.indexStats_;
+    // collate DB stats
 
-    for(std::map<dbtype_t, DbStatistics*>::iterator i = dbStats_.begin(); i != dbStats_.end(); ++i) {
-        std::map<dbtype_t, DbStatistics*>::const_iterator j = rhs.dbStats_.find(i->first);
+    for(std::map<dbtype_t, DbStats>::iterator i = dbStats_.begin(); i != dbStats_.end(); ++i) {
+        std::map<dbtype_t, DbStats>::const_iterator j = rhs.dbStats_.find(i->first);
         if(j != rhs.dbStats_.end()) {
-            i->second->add(*(j->second));
+            i->second.add(j->second);
+        }
+    }
+
+    // collate Index stats
+
+    for(std::map<dbtype_t, IndexStats>::iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+        std::map<dbtype_t, IndexStats>::const_iterator j = rhs.indexStats_.find(i->first);
+        if(j != rhs.indexStats_.end()) {
+            i->second.add(j->second);
+        }
+    }
+
+    // collate Data stats
+
+    for(std::map<dbtype_t, DataStats>::iterator i = dataStats_.begin(); i != dataStats_.end(); ++i) {
+        std::map<dbtype_t, DataStats>::const_iterator j = rhs.dataStats_.find(i->first);
+        if(j != rhs.dataStats_.end()) {
+            i->second.add(j->second);
         }
     }
 
     return *this;
+}
+
+void Report::print(std::ostream&) const
+{
+    NOTIMP;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -81,7 +81,7 @@ private: // methods
     virtual void close();
     virtual void reopen();
 
-    virtual void visitLocation(IndexLocationVisitor& visitor) const;
+    virtual void visit(IndexLocationVisitor& visitor) const;
 
     virtual bool get( const Key &key, Field &field ) const;
     virtual void add( const Key &key, const Field &field );

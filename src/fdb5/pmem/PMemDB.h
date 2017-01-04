@@ -43,6 +43,7 @@ public: // methods
     virtual ~PMemDB();
 
     size_t schemaSize() const;
+    size_t poolsSize() const;
 
 protected: // methods
 
@@ -68,7 +69,7 @@ protected: // methods
     virtual bool selectIndex(const Key &key);
     virtual void deselectIndex();
 
-    virtual void update(DbStatistics&) const;
+    virtual DbStats statistics() const;
 
 private: // methods
 

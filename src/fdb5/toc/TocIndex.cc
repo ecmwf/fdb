@@ -131,7 +131,7 @@ void TocIndex::flush() {
 }
 
 
-void TocIndex::visitLocation(IndexLocationVisitor &visitor) const {
+void TocIndex::visit(IndexLocationVisitor &visitor) const {
     visitor(location_);
 }
 

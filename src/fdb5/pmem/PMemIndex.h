@@ -36,7 +36,7 @@ public: // methods
     PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type=defaulType());
     virtual ~PMemIndex();
 
-    virtual void visitLocation(IndexLocationVisitor& visitor) const;
+    virtual void visit(IndexLocationVisitor& visitor) const;
 
     static std::string defaulType();
 

@@ -38,7 +38,7 @@ class EntryVisitor;
 class Schema;
 
 class DBVisitor;
-class DbStatistics;
+class DbStats;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -83,7 +83,7 @@ public: // methods
 
     virtual const Schema& schema() const = 0;
 
-    virtual DbStatistics* statistics() const = 0;
+    virtual DbStats statistics() const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const DB &x);
 

@@ -43,7 +43,7 @@ PMemIndex::PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr,
 PMemIndex::~PMemIndex() {}
 
 
-void PMemIndex::visitLocation(IndexLocationVisitor& visitor) const {
+void PMemIndex::visit(IndexLocationVisitor& visitor) const {
     visitor(location_);
 }
 

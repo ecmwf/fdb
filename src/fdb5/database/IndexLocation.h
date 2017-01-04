@@ -25,7 +25,7 @@ public: // methods
 
     virtual ~IndexLocation();
 
-    virtual eckit::PathName location() const = 0;
+    virtual eckit::PathName url() const = 0;
 
 };
 

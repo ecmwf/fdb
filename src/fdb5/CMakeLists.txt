@@ -55,8 +55,10 @@ list( APPEND fdb5_srcs
     database/BaseArchiveVisitor.h
     database/DB.cc
     database/DB.h
-    database/DbStatistics.cc
-    database/DbStatistics.h
+    database/DataStats.cc
+    database/DataStats.h
+    database/DbStats.cc
+    database/DbStats.h
     database/Field.cc
     database/Field.h
     database/FieldDetails.cc
@@ -71,8 +73,8 @@ list( APPEND fdb5_srcs
     database/Index.h
     database/IndexLocation.cc
     database/IndexLocation.h
-    database/IndexStatistics.cc
-    database/IndexStatistics.h
+    database/IndexStats.cc
+    database/IndexStats.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc
@@ -222,8 +224,8 @@ if( HAVE_TOCFDB )
         toc/TocIndexLocation.h
         toc/TocRecord.cc
         toc/TocRecord.h
-        toc/TocStatistics.cc
-        toc/TocStatistics.h
+        toc/TocStats.cc
+        toc/TocStats.h
         )
 endif()
 
@@ -267,8 +269,8 @@ if( HAVE_PMEMFDB )
         pmem/PoolGroup.h
         pmem/PoolManager.cc
         pmem/PoolManager.h
-        pmem/PMemStatistics.cc
-        pmem/PMemStatistics.h
+        pmem/PMemStats.cc
+        pmem/PMemStats.h
     )
 else()
     set( PMEM_LIBRARIES "" )

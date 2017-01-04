@@ -65,7 +65,7 @@ protected: // methods
     void loadSchema();
     void checkSchema(const Key &key) const;
 
-    virtual DbStatistics* update() const;
+    virtual DbStats statistics() const;
 
 private: // members
 

@@ -41,7 +41,7 @@ public:
 
     ~ReportVisitor();
 
-    fdb5::Report& report() const { return report_; }
+    fdb5::Report& report() { return report_; }
 
 private: // methods
 
@@ -66,8 +66,6 @@ protected: // members
     std::map<eckit::PathName, size_t> dataUsage_;
 
     std::set<std::string> active_;
-
-    std::map<const Index*, IndexStatistics> indexStats_;
 
     fdb5::Report report_;
 

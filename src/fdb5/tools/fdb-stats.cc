@@ -68,14 +68,11 @@ void FDBStats::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     if (details_) {
         eckit::Log::info() << std::endl;
-        visitor.report().report(eckit::Log::info());
+        eckit::Log::info() << visitor.report();
         eckit::Log::info() << std::endl;
     }
 
     report_ += visitor.report();
-
-    indexStats_ += visitor.indexStatistics();
-    dbStats_ += visitor.dbStatistics();
 
     count_ ++;
 }
@@ -88,10 +85,8 @@ void FDBStats::finish(const eckit::option::CmdArgs &args) {
 
     eckit::Log::info() << std::endl;
     eckit::Statistics::reportCount(eckit::Log::info(), "Number of databases", count_);
-    indexStats_.report(eckit::Log::info());
-    dbStats_.report(eckit::Log::info());
-    eckit::Log::info() << std::endl;
 
+    eckit::Log::info() << report_ << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

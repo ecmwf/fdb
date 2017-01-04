@@ -18,7 +18,7 @@
 #include "fdb5/pmem/PMemDB.h"
 #include "fdb5/pmem/PMemFieldLocation.h"
 #include "fdb5/pmem/PoolManager.h"
-#include "fdb5/pmem/PMemStatistics.h"
+#include "fdb5/pmem/PMemStats.h"
 
 #include "pmem/PersistentString.h"
 
@@ -185,15 +185,25 @@ void PMemDB::deselectIndex() {
     currentIndex_ = 0;
 }
 
-void PMemDB::update(DbStatistics& s) const
+DbStats PMemDB::statistics() const
 {
-    PMemStatistics& stats = dynamic_cast<PMemStatistics&>(s);
+    PMemDbStats* stats = new PMemDbStats();
 
-    stats.schemaSize_ += schemaSize();
+    stats->poolsCount_   += 1; // FTM we use a single pool, but we may support overspill in the future
+    stats->indexesCount_ += 1; // FTM we use a single index, but we may support overspill in the future
+
+    stats->schemaSize_ += schemaSize();
+    stats->poolsSize_  += poolsSize();
+
+    return DbStats(stats);
 }
 
 eckit::PathName PMemDB::basePath() const {
     return poolDir_;
+}
+
+size_t PMemDB::poolsSize() const {
+    NOTIMP;
 }
 
 size_t PMemDB::schemaSize() const {

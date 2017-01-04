@@ -87,7 +87,7 @@ class Index : private eckit::NonCopyable {
     virtual void close() = 0;
     virtual void flush() = 0;
 
-    virtual void visitLocation(IndexLocationVisitor& visitor) const = 0;
+    virtual void visit(IndexLocationVisitor& visitor) const = 0;
 
     const std::string &type() const ;
 

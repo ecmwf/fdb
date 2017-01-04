@@ -241,7 +241,7 @@ void TocHandler::writeClearRecord(const Index &index) {
     };
 
     WriteToStream writeVisitor(*this);
-    index.visitLocation(writeVisitor);
+    index.visit(writeVisitor);
 }
 
 void TocHandler::writeIndexRecord(const Index &index) {
@@ -274,7 +274,7 @@ void TocHandler::writeIndexRecord(const Index &index) {
     };
 
     WriteToStream writeVisitor(index, *this);
-    index.visitLocation(writeVisitor);
+    index.visit(writeVisitor);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
