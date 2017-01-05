@@ -3,7 +3,11 @@
 shopt -s nullglob
 
 export FDB_ASYNC_WRITE=1
-export FDB_HOME=${FDB_HOME:=@FDB_HOME@}
+
+BINDIR=$(dirname $0)
+PROC=$1
+
+### built-ins
 
 function usage {
     echo "Usage $(basename $0): command [options] ..."
@@ -20,23 +24,24 @@ function usage {
 }
 
 function fdb_builtin_roots {
+    FDB_HOME=$($BINDIR/fdb-info --home)
     cat $FDB_HOME/etc/fdb/roots
 }
 
 function fdb_builtin_spaces {
+    FDB_HOME=$($BINDIR/fdb-info --home)
     cat $FDB_HOME/etc/fdb/spaces
 }
 
 function fdb_builtin_home {
-    echo $FDB_HOME
+    echo $($BINDIR/fdb-info --home)
 }
 
 function fdb_builtin_help {
     usage
 }
 
-BINDIR=$(dirname $0)
-PROC=$1
+###
 
 declare -f "fdb_builtin_$PROC" > /dev/null
 if [[ $? -eq 0  ]]

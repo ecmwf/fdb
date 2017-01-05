@@ -332,6 +332,7 @@ list( APPEND fdb5_tools
     fdb-where
     fdb-wipe
     fdb-root
+    fdb-info
 )
 
 foreach( _tool ${fdb5_tools} )
