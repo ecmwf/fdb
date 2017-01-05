@@ -83,10 +83,7 @@ void FDBStats::finish(const eckit::option::CmdArgs &args) {
     eckit::Log::info() << "Summary:" << std::endl;
     eckit::Log::info() << "========" << std::endl;
 
-    eckit::Log::info() << std::endl;
-    eckit::Statistics::reportCount(eckit::Log::info(), "Number of databases", count_);
-
-    eckit::Log::info() << report_ << std::endl;
+    eckit::Log::info() << std::endl << report_ << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

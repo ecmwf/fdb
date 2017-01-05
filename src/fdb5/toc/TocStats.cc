@@ -22,6 +22,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocDbStats::TocDbStats():
+    dbCount_(0),
     tocRecordsCount_(0),
     tocFileSize_(0),
     schemaFileSize_(0),
@@ -37,6 +38,7 @@ TocDbStats::TocDbStats():
 
 TocDbStats& TocDbStats::operator+=(const TocDbStats &rhs) {
 
+    dbCount_ += rhs.dbCount_;
     tocRecordsCount_ += rhs.tocRecordsCount_;
     tocFileSize_ += rhs.tocFileSize_;
     schemaFileSize_ += rhs.schemaFileSize_;
@@ -52,17 +54,13 @@ TocDbStats& TocDbStats::operator+=(const TocDbStats &rhs) {
 
 void TocDbStats::add(const DbStatsContent& rhs)
 {
-    std::ostream& out = Log::debug<LibFdb>();
-
-    out << Here() <<  std::endl;
-    rhs.report(out, "");
-
     const TocDbStats& stats = dynamic_cast<const TocDbStats&>(rhs);
     *this += stats;
 }
 
 void TocDbStats::report(std::ostream &out, const char *indent) const {
 
+    reportCount(out, "Databases", dbCount_, indent);
     reportCount(out, "TOC records", tocRecordsCount_, indent);
     reportBytes(out, "Size of TOC files", tocFileSize_, indent);
     reportBytes(out, "Size of schemas files", schemaFileSize_, indent);

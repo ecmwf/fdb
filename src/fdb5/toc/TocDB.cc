@@ -110,6 +110,7 @@ DbStats TocDB::statistics() const
 {
     TocDbStats* stats = new TocDbStats();
 
+    stats->dbCount_         += 1;
     stats->tocRecordsCount_ += numberOfRecords();
     stats->tocFileSize_     += tocPath().size();
     stats->schemaFileSize_  += schemaPath().size();

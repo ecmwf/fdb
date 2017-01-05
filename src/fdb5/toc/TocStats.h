@@ -34,6 +34,7 @@ public:
 
     TocDbStats();
 
+    size_t dbCount_;
     size_t tocRecordsCount_;
 
     unsigned long long tocFileSize_;

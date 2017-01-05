@@ -101,11 +101,12 @@ Report& Report::operator+=(const Report& rhs) {
 
 void Report::print(std::ostream& out) const
 {
+    const char* sep = "";
     for(std::set<dbtype_t>::const_iterator i = dbtypes_.begin(); i != dbtypes_.end(); ++i) {
 
         dbtype_t dbtype = *i;
 
-        out << "Type of Database: " << dbtype << std::endl;
+        out << sep << "Database Type \'" << dbtype << "\'" << std::endl;
 
         std::map<dbtype_t, DbStats>::const_iterator db = dbStats_.find(dbtype);
         if(db != dbStats_.end())
@@ -118,6 +119,8 @@ void Report::print(std::ostream& out) const
         std::map<dbtype_t, DataStats>::const_iterator data = dataStats_.find(dbtype);
         if(data != dataStats_.end())
             data->second.report(out);
+
+        sep = "\n";
     }
 }
 
