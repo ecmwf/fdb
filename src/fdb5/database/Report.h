@@ -52,6 +52,8 @@ private: // methods
 
 private: // members
 
+    std::set<dbtype_t> dbtypes_;
+
     std::map<dbtype_t, fdb5::DbStats>    dbStats_;
     std::map<dbtype_t, fdb5::IndexStats> indexStats_;
     std::map<dbtype_t, fdb5::DataStats>  dataStats_;

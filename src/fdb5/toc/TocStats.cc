@@ -10,7 +10,12 @@
 
 #include <algorithm>
 
+#include "eckit/log/Log.h"
+#include "fdb5/LibFdb.h"
+
 #include "fdb5/toc/TocStats.h"
+
+using eckit::Log;
 
 namespace fdb5 {
 
@@ -27,6 +32,7 @@ TocDbStats::TocDbStats():
     adoptedFilesCount_(0),
     indexFilesCount_(0)
 {
+    Log::debug<LibFdb>() << Here() << std::endl;
 }
 
 TocDbStats& TocDbStats::operator+=(const TocDbStats &rhs) {
@@ -46,6 +52,11 @@ TocDbStats& TocDbStats::operator+=(const TocDbStats &rhs) {
 
 void TocDbStats::add(const DbStatsContent& rhs)
 {
+    std::ostream& out = Log::debug<LibFdb>();
+
+    out << Here() <<  std::endl;
+    rhs.report(out, "");
+
     const TocDbStats& stats = dynamic_cast<const TocDbStats&>(rhs);
     *this += stats;
 }
@@ -112,20 +123,20 @@ TocDataStats::TocDataStats() {
 TocDataStats& TocDataStats::operator+=(const TocDataStats& rhs) {
 
     std::set<eckit::PathName> intersect;
-    std::set_intersection(allDataFiles_.begin(),
-                          allDataFiles_.end(),
-                          rhs.allDataFiles_.begin(),
-                          rhs.allDataFiles_.end(),
-                          std::insert_iterator< std::set<eckit::PathName> >(intersect, intersect.begin()));
+    std::set_union(allDataFiles_.begin(),
+                   allDataFiles_.end(),
+                   rhs.allDataFiles_.begin(),
+                   rhs.allDataFiles_.end(),
+                   std::insert_iterator< std::set<eckit::PathName> >(intersect, intersect.begin()));
 
     std::swap(allDataFiles_, intersect);
 
     intersect.clear();
-    std::set_intersection(activeDataFiles_.begin(),
-                          activeDataFiles_.end(),
-                          rhs.activeDataFiles_.begin(),
-                          rhs.activeDataFiles_.end(),
-                          std::insert_iterator< std::set<eckit::PathName> >(intersect, intersect.begin()));
+    std::set_union(activeDataFiles_.begin(),
+                   activeDataFiles_.end(),
+                   rhs.activeDataFiles_.begin(),
+                   rhs.activeDataFiles_.end(),
+                   std::insert_iterator< std::set<eckit::PathName> >(intersect, intersect.begin()));
 
     std::swap(activeDataFiles_, intersect);
 

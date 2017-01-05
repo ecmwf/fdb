@@ -12,8 +12,13 @@
 
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
+#include "eckit/log/Log.h"
 
 #include "fdb5/database/IndexLocation.h"
+#include "fdb5/LibFdb.h"
+
+
+using eckit::Log;
 
 namespace fdb5 {
 
@@ -129,6 +134,8 @@ private:
 ReportVisitor::ReportVisitor(DB& db) :
     db_(db),
     directory_(db.basePath()) {
+
+    Log::debug<LibFdb>() << "Opening DB " << directory_ << std::endl;
 
     report_.append(db.dbType(), db.statistics());
 }
