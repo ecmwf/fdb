@@ -138,8 +138,8 @@ ReportVisitor::~ReportVisitor() {
 
 void ReportVisitor::visit(const Index& index,
                           const Field& field,
-                          const std::string &indexFingerprint,
-                          const std::string &fieldFingerprint) {
+                          const std::string& indexFingerprint,
+                          const std::string& fieldFingerprint) {
 
     std::string unique_id = indexFingerprint + "+" + fieldFingerprint;
 

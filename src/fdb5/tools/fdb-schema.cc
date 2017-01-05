@@ -15,6 +15,7 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBAccess.h"
 
+//----------------------------------------------------------------------------------------------------------------------
 
 class FdbSchema : public fdb5::FDBAccess {
     virtual void execute(const eckit::option::CmdArgs &args);
@@ -33,7 +34,7 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
 
     fdb5::Schema schema;
 
-    // With no arguments, provide the current master configuration schema (i.e. that selected by DHSHOME)
+    // With no arguments, provide the current master configuration schema (i.e. that selected by FDB_HOME)
 
     if (args.count() == 0) {
         schema.load(fdb5::MasterConfig::instance().schemaPath());
@@ -58,6 +59,7 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
     }
 }
 
+//----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv) {
     FdbSchema app(argc, argv);

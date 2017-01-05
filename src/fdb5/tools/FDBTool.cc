@@ -26,7 +26,7 @@ namespace fdb5 {
 static FDBTool* instance_ = 0;
 
 FDBTool::FDBTool(int argc, char **argv):
-    eckit::Tool(argc, argv, "DHSHOME") {
+    eckit::Tool(argc, argv, "FDB_HOME") {
     ASSERT(instance_ == 0);
     instance_ = this;
 

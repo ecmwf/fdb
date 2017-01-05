@@ -30,20 +30,20 @@ class ListVisitor : public fdb5::EntryVisitor {
     }
 
   private:
-    virtual void visit(const fdb5::Index &index,
-                       const fdb5::Field &field,
-                       const std::string &indexFingerprint,
-                       const std::string &fieldFingerprint);
+    virtual void visit(const fdb5::Index& index,
+                       const fdb5::Field& field,
+                       const std::string& indexFingerprint,
+                       const std::string& fieldFingerprint);
 
     const fdb5::Key &dbKey_;
     const fdb5::Schema &schema_;
     bool location_;
 };
 
-void ListVisitor::visit(const fdb5::Index &index,
-                        const fdb5::Field &field,
-                        const std::string &indexFingerprint,
-                        const std::string &fieldFingerprint) {
+void ListVisitor::visit(const fdb5::Index& index,
+                        const fdb5::Field& field,
+                        const std::string&,
+                        const std::string& fieldFingerprint) {
 
     fdb5::Key key(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
 

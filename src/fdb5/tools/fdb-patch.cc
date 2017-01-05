@@ -176,12 +176,12 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
     fdb5::HandleGatherer gatherer(false);
 
     for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+
         PatchVisitor visitor(gatherer, count_, total_);
 
-        eckit::Log::info() << "Sanning" << *(*i) << std::endl;
+        eckit::Log::info() << "Scanning" << *(*i) << std::endl;
 
         (*i)->entries(visitor);
-
 
         eckit::ScopedPtr<eckit::DataHandle> handle(gatherer.dataHandle());
 
