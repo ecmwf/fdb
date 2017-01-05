@@ -20,7 +20,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
+#if 0
 class ReportLocationVisitor : public FieldLocationVisitor {
 
 public:
@@ -102,6 +102,7 @@ public:
     virtual void operator() (const IndexLocation& idxloc) {
 
         const eckit::PathName path = idxloc.url();
+
         if (allIndexFiles_.find(path) == allIndexFiles_.end()) {
             dbStats_.indexFilesSize_ += path.size();
             allIndexFiles_.insert(path);
@@ -121,6 +122,7 @@ private:
     std::map<eckit::PathName, size_t>& indexUsage_;
     bool unique_;
 };
+#endif
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -134,10 +136,10 @@ ReportVisitor::ReportVisitor(DB& db) :
 ReportVisitor::~ReportVisitor() {
 }
 
-void ReportVisitor::visit(const Index &index,
+void ReportVisitor::visit(const Index& index,
+                          const Field& field,
                           const std::string &indexFingerprint,
-                          const std::string &fieldFingerprint,
-                          const Field &field) {
+                          const std::string &fieldFingerprint) {
 
     std::string unique_id = indexFingerprint + "+" + fieldFingerprint;
 
@@ -145,11 +147,13 @@ void ReportVisitor::visit(const Index &index,
     if (unique)
         active_.insert(unique_id);
 
+#if 0
     ReportLocationVisitor locVisitor(directory_, report_, allDataFiles_, activeDataFiles_, dataUsage_, unique);
     field.location().visit(locVisitor);
 
     ReportIndexVisitor idxVisitor(dbStats_, stats, allIndexFiles_, indexUsage_, unique);
     index.visit(idxVisitor);
+#endif
 }
 
 //----------------------------------------------------------------------------------------------------------------------

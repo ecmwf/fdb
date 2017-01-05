@@ -31,6 +31,9 @@ public:
 
     virtual ~IndexStatsContent();
 
+    virtual size_t fieldsCount() const = 0;
+    virtual size_t duplicatesCount() const = 0;
+
     virtual void add(const IndexStatsContent&) = 0;
 
     virtual void report(std::ostream& out, const char* indent) const = 0;
@@ -53,6 +56,9 @@ public: // methods
     IndexStats(const IndexStats&);
 
     IndexStats& operator=(const IndexStats&);
+
+    size_t fieldsCount() const { return content_->fieldsCount(); }
+    size_t duplicatesCount() const { return content_->duplicatesCount(); }
 
     void add(const IndexStats&);
 

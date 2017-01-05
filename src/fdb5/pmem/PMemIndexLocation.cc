@@ -12,6 +12,7 @@
 /// @date Nov 2016
 
 #include "fdb5/pmem/PMemIndexLocation.h"
+#include "fdb5/pmem/PBranchingNode.h"
 
 using namespace eckit;
 
@@ -38,9 +39,8 @@ DataPoolManager& PMemIndexLocation::pool_manager() const {
 
 PathName PMemIndexLocation::url() const
 {
-    return node_.path();
+    NOTIMP;
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

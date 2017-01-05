@@ -48,10 +48,10 @@ public:
 
     virtual ~EntryVisitor();
 
-    virtual void visit(const Index &index,
-                       const std::string &indexFingerprint,
-                       const std::string &fieldFingerprint,
-                       const Field& field) = 0;
+    virtual void visit(const Index& index,
+                       const Field& field,
+                       const std::string& indexFingerprint,
+                       const std::string& fieldFingerprint) = 0;
 };
 
 class DumpVisitor : public fdb5::EntryVisitor {
@@ -61,10 +61,11 @@ public:
         out_(out), schema_(schema), dbKey_(dbKey) {}
 
 private:
-    virtual void visit(const fdb5::Index &index,
-                       const std::string &indexFingerprint,
-                       const std::string &fieldFingerprint,
-                       const fdb5::Field &field);
+
+    virtual void visit(const Index& index,
+                       const Field& field,
+                       const std::string& indexFingerprint,
+                       const std::string& fieldFingerprint);
 
 private: // members
     std::ostream& out_;

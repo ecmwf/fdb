@@ -46,11 +46,10 @@ public:
 private: // methods
 
 
-
     virtual void visit(const Index& index,
-                       const std::string &indexFingerprint,
-                       const std::string &fieldFingerprint,
-                       const Field& field);
+                       const Field& field,
+                       const std::string& indexFingerprint,
+                       const std::string& fieldFingerprint);
 
 
 protected: // members
@@ -66,6 +65,8 @@ protected: // members
     std::map<eckit::PathName, size_t> dataUsage_;
 
     std::set<std::string> active_;
+
+    std::map<const Index*, IndexStats> indexStats_;
 
     fdb5::Report report_;
 

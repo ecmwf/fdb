@@ -363,7 +363,7 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
         // the PersistentPtr, not the "this" pointer.
         keys.back().push(it_dt->second->key(), it_dt->second->value());
         Field field(PMemFieldLocation(it_dt->second, mgr.getPool(it_dt->second.uuid())));
-        visitor.visit(*index, "Index fingerprint unused", keys.back().valuesToString(), field);
+        visitor.visit(*index, field,"Index fingerprint unused", keys.back().valuesToString());
         keys.back().pop(it_dt->second->key());
     }
 

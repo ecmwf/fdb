@@ -64,7 +64,10 @@ const IndexAxis &Index::axes() const {
 
 EntryVisitor::~EntryVisitor() {}
 
-void DumpVisitor::visit(const Index& index, const std::string& indexFingerprint, const std::string& fieldFingerprint, const Field& field) {
+void DumpVisitor::visit(const Index& index,
+                        const Field& field,
+                        const std::string&,
+                        const std::string& fieldFingerprint) {
 
 
     out_ << "ENTRY" << std::endl;

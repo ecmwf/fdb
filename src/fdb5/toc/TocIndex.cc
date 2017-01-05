@@ -150,10 +150,7 @@ public:
 
     void visit(const std::string& key, const FieldRef& ref) {
         Field field(TocFieldLocation(files_, ref), ref.details());
-        visitor_.visit(index_,
-                       prefix_,
-                       key,
-                       field);
+        visitor_.visit(index_, field, prefix_, key);
     }
 };
 

@@ -57,8 +57,10 @@ public:
     unsigned long long fieldsSize_;
     unsigned long long duplicatesSize_;
 
-
     PMemIndexStats& operator+= (const PMemIndexStats& rhs);
+
+    virtual size_t fieldsCount() const { return fieldsCount_; }
+    virtual size_t duplicatesCount() const { return duplicatesCount_; }
 
     virtual void add(const IndexStatsContent&);
 

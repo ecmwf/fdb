@@ -68,6 +68,8 @@ public:
     unsigned long long fieldsSize_;
     unsigned long long duplicatesSize_;
 
+    virtual size_t fieldsCount() const { return fieldsCount_; }
+    virtual size_t duplicatesCount() const { return duplicatesCount_; }
 
     TocIndexStats& operator+= (const TocIndexStats& rhs);
 

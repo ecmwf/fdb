@@ -39,9 +39,9 @@ class PatchVisitor : public fdb5::EntryVisitor {
 
   private:
     virtual void visit(const fdb5::Index &index,
+                       const fdb5::Field &field,
                        const std::string &indexFingerprint,
-                       const std::string &fieldFingerprint,
-                       const fdb5::Field &field);
+                       const std::string &fieldFingerprint);
 
     fdb5::HandleGatherer &gatherer_;
     size_t &count_;
@@ -51,9 +51,9 @@ class PatchVisitor : public fdb5::EntryVisitor {
 };
 
 void PatchVisitor::visit(const fdb5::Index &index,
+                         const fdb5::Field &field,
                          const std::string &indexFingerprint,
-                         const std::string &fieldFingerprint,
-                         const fdb5::Field &field) {
+                         const std::string &fieldFingerprint) {
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
 

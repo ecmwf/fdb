@@ -13,7 +13,6 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 
-#include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocHandler.h"
 
 namespace fdb5 {
@@ -26,8 +25,6 @@ PurgeVisitor::PurgeVisitor(DB& db) :
 }
 
 void PurgeVisitor::report(std::ostream &out) const {
-
-    IndexStats total = IndexStats();
 
     out << std::endl;
     out << "Index Report:" << std::endl;
@@ -109,7 +106,7 @@ void PurgeVisitor::purge(std::ostream& out) const {
 
         const fdb5::IndexStats &stats = i->second;
 
-        if (stats.fieldsCount_ == stats.duplicatesCount_) {
+        if (stats.fieldsCount() == stats.duplicatesCount()) {
             out << "Removing: " << *(i->first) << std::endl;
             fdb5::TocHandler handler(directory_);
             handler.writeClearRecord(*(*i).first);
