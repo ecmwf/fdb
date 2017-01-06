@@ -20,10 +20,11 @@
 #include "eckit/config/Resource.h"
 
 #include "fdb5/config/UMask.h"
+#include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
-#include "fdb5/toc/TocHandler.h"
+
 #include "fdb5/tools/FDBInspect.h"
 
 
@@ -162,13 +163,13 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     eckit::Log::info() << "Listing " << path << std::endl;
 
-    fdb5::TocHandler handler(path);
-    fdb5::Key key = handler.databaseKey();
-    eckit::Log::info() << "Database key " << key << std::endl;
+    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::build_read(path));
+
+    eckit::Log::info() << "Database key " << db->key() << std::endl;
 
     PatchArchiver archiver(key_);
 
-    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
+    const std::vector<fdb5::Index*> indexes = db->indexes();
 
     size_t count = count_;
     eckit::Length total = total_;
@@ -197,8 +198,6 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
         archiver.archive(*handle);
     }
-
-    handler.freeIndexes(indexes);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

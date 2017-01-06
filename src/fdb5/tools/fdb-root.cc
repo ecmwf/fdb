@@ -16,8 +16,7 @@
 #include "fdb5/config/UMask.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/toc/TocDB.h"
-#include "fdb5/toc/TocDBWriter.h"
+
 #include "fdb5/tools/FDBTool.h"
 #include "fdb5/tools/ToolRequest.h"
 
@@ -38,7 +37,6 @@ private: // methods
     virtual void execute(const eckit::option::CmdArgs& args);
     virtual void usage(const std::string &tool) const;
 
-    bool doit_;
     std::string fdbWriterDB_;
 };
 

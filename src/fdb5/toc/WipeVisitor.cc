@@ -8,14 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <limits.h>
-// #include <stdlib.h>
-
 #include <sys/stat.h>
 #include <dirent.h>
 
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
+
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/WipeVisitor.h"

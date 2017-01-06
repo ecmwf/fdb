@@ -8,44 +8,38 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   PMemDBWriter.h
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
 /// @author Simon Smart
-/// @date   Mar 2016
+/// @date   Jan 2017
 
-#ifndef fdb5_PMemDBWriter_H
-#define fdb5_PMemDBWriter_H
+#ifndef fdb5_toc_TocEngine_H
+#define fdb5_toc_TocEngine_H
 
-#include "fdb5/pmem/PMemDB.h"
+#include "fdb5/database/Engine.h"
 
 namespace fdb5 {
-namespace pmem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// DB that implements the FDB bases on persistent memory devices
+class TocEngine : public fdb5::Engine {
+public:
 
-class PMemDBWriter : public PMemDB {
+    static const char* typeName() { return "toc"; }
 
-public: // methods
+protected: // methods
 
-    PMemDBWriter(const Key &key);
-    PMemDBWriter(const eckit::PathName& directory);
+    virtual std::string name() const;
 
-    virtual ~PMemDBWriter();
-
-    virtual bool selectIndex(const Key &key);
-    virtual void close();
-    virtual void deselectIndex();
-    virtual void archive(const Key &key, const void *data, eckit::Length length);
-
-private: // methods
+    virtual std::string dbType() const;
 
     virtual void print( std::ostream &out ) const;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace pmem
+
 } // namespace fdb5
 
 #endif

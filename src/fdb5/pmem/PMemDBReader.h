@@ -22,7 +22,7 @@ namespace pmem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// DB that implements the FDB on POSIX filesystems
+/// DB that implements the FDB bases on persistent memory devices
 
 class PMemDBReader : public PMemDB {
 

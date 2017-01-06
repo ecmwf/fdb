@@ -11,9 +11,10 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+
+#include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/tools/FDBAccess.h"
-#include "fdb5/config/UMask.h"
 
 class Grib2Fdb5 : public fdb5::FDBAccess {
     virtual void execute(const eckit::option::CmdArgs &args);

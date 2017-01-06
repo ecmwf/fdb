@@ -38,7 +38,7 @@ public: // methods
 
     /// Selects the pool where this Key will be inserted
     /// @note This method must be idempotent -- it returns always the same value after the first call
-    eckit::PathName filesystem(const Key& key) const;
+    eckit::PathName pool(const Key& key) const;
 
     void all(eckit::StringSet&) const;
     void writable(eckit::StringSet&) const;

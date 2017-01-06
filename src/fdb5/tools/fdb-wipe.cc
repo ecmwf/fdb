@@ -74,8 +74,6 @@ void FDBWipe::process(const eckit::PathName &path, const eckit::option::CmdArgs 
 
 void FDBWipe::finish(const eckit::option::CmdArgs &args) {
 
-
-
     if (!doit_) {
         eckit::Log::info() << std::endl
                            << "Rerun command with --doit flag to delete unused files"

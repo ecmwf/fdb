@@ -8,33 +8,29 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/option/CmdArgs.h"
-#include "eckit/types/Date.h"
+#include <ostream>
 
-#include "fdb5/config/MasterConfig.h"
-#include "fdb5/rules/Schema.h"
-
-#include "fdb5/tools/FDBAccess.h"
-
-using eckit::Log;
+#include "fdb5/toc/TocEngine.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-FDBAccess::FDBAccess(int argc, char **argv):
-    FDBTool(argc, argv) {
+std::string TocEngine::name() const {
+    return TocEngine::typeName();
 }
 
-
-
-void FDBAccess::usage(const std::string &tool) const {
-    FDBTool::usage(tool);
+std::string TocEngine::dbType() const {
+    return TocEngine::typeName();
 }
 
+void TocEngine::print(std::ostream& out) const
+{
+    out << "TocEngine()";
+}
+
+static EngineBuilder<TocEngine> builder(TocEngine::typeName());
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-

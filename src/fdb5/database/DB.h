@@ -34,6 +34,7 @@ class MarsTask;
 namespace fdb5 {
 
 class Key;
+class Index;
 class EntryVisitor;
 class Schema;
 
@@ -90,6 +91,10 @@ public: // methods
     time_t lastAccess() const;
 
     void touch();
+
+    /// @returns all the indexes in this DB
+    /// @invariant DB retains ownership of indexes
+    virtual const std::vector<fdb5::Index*> indexes() const = 0;
 
 protected: // methods
 

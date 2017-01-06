@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   PoolManager.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @author Simon Smart

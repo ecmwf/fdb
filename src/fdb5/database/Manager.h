@@ -10,12 +10,14 @@
 
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   Mar 2016
+/// @author Simon Smart
+/// @date   Jan 2017
 
-#ifndef fdb5_RootManager_H
-#define fdb5_RootManager_H
+#ifndef fdb5_Manager_H
+#define fdb5_Manager_H
 
-#include "eckit/utils/Regex.h"
+#include <string>
+
 #include "eckit/filesystem/PathName.h"
 
 namespace fdb5 {
@@ -24,21 +26,24 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class RootManager  {
+class Manager  {
 
 public: // methods
 
-    /// Uniquely selects a directory where the Key will be put or already exists
-    static eckit::PathName directory(const Key &key);
+    /// Uniquely selects the engine location that will handle this Key on insertion or if already exists
+    static const std::string& engine(const Key &key);
+
+    /// Uniquely selects a location where the Key will be put or already exists
+    static eckit::PathName location(const Key &key);
 
     /// Lists the roots that can be visited given a DB key
-    static std::vector<eckit::PathName> allRoots(const Key& key);
+    static std::vector<eckit::PathName> allLocations(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    static std::vector<eckit::PathName> visitableRoots(const Key& key);
+    static std::vector<eckit::PathName> visitableLocations(const Key& key);
 
     /// Lists the roots where a DB key would be able to be written
-    static std::vector<eckit::PathName> writableRoots(const Key& key);
+    static std::vector<eckit::PathName> writableLocations(const Key& key);
 
 };
 

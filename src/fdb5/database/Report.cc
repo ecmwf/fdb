@@ -31,13 +31,9 @@ void Report::append(const dbtype_t& dbtype, DbStats stats)
 
     std::map<dbtype_t, DbStats>::iterator itr = dbStats_.find(dbtype);
     if(itr != dbStats_.end()) {
-        Log::debug<LibFdb>() << "Appending DbStats" << std::endl;
-
         itr->second.add(stats);
     }
     else {
-        Log::debug<LibFdb>() << "Initial DbStats" << std::endl;
-
         dbStats_[dbtype] = stats;
     }
 }

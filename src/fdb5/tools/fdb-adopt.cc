@@ -9,10 +9,11 @@
  */
 
 #include "eckit/option/CmdArgs.h"
-#include "fdb5/legacy/FDBIndexScanner.h"
-#include "fdb5/tools/FDBAccess.h"
+
 #include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribIndexer.h"
+#include "fdb5/legacy/FDBIndexScanner.h"
+#include "fdb5/tools/FDBAccess.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 

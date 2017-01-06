@@ -33,7 +33,7 @@ public: // methods
 
     virtual ~TocDBReader();
 
-    const std::vector<Index*>& indexes() const;
+    virtual const std::vector<Index*> indexes() const;
 
 private: // methods
 
@@ -52,8 +52,8 @@ private: // methods
 private: // members
 
     Key currentIndexKey_;
-    std::vector<Index *> matching_; // Indexes matching current key
-    std::vector<Index *> indexes_;  // All indexes
+    std::vector<Index *> matching_; //< Indexes matching current key
+    std::vector<Index *> indexes_;  //< All indexes
 
 };
 

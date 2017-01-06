@@ -59,6 +59,8 @@ list( APPEND fdb5_srcs
     database/DataStats.h
     database/DbStats.cc
     database/DbStats.h
+    database/Engine.cc
+    database/Engine.h
     database/Field.cc
     database/Field.h
     database/FieldDetails.cc
@@ -97,6 +99,8 @@ list( APPEND fdb5_srcs
     database/WriteVisitor.h
     database/NotifyWind.cc
     database/NotifyWind.h
+    database/Manager.cc
+    database/Manager.h
     grib/GribArchiver.cc
     grib/GribArchiver.h
     grib/GribDecoder.cc
@@ -226,10 +230,13 @@ if( HAVE_TOCFDB )
         toc/TocRecord.h
         toc/TocStats.cc
         toc/TocStats.h
+        toc/TocEngine.cc
+        toc/TocEngine.h
         )
 endif()
 
 if( HAVE_PMEMFDB )
+
     list( APPEND fdb5_srcs
         pmem/DataPool.cc
         pmem/DataPool.h
@@ -271,7 +278,15 @@ if( HAVE_PMEMFDB )
         pmem/PoolManager.h
         pmem/PMemStats.cc
         pmem/PMemStats.h
+        pmem/PMemEngine.cc
+        pmem/PMemEngine.h
     )
+
+    list( APPEND fdb5_tools
+        fdb-purge
+        fdb-wipe
+    )
+
 else()
     set( PMEM_LIBRARIES "" )
     set( PMEM_INCLUDE_DIRS "" )
@@ -325,12 +340,10 @@ list( APPEND fdb5_tools
     fdb-dump
     fdb-list
     fdb-patch
-    fdb-purge
     fdb-stats
     fdb-read
     fdb-schema
     fdb-where
-    fdb-wipe
     fdb-root
     fdb-info
 )

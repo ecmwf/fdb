@@ -43,6 +43,7 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
 class EntryVisitor : private eckit::NonCopyable {
 public:
 
@@ -53,6 +54,10 @@ public:
                        const std::string& indexFingerprint,
                        const std::string& fieldFingerprint) = 0;
 };
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
 
 class DumpVisitor : public fdb5::EntryVisitor {
 
@@ -74,6 +79,10 @@ private: // members
 };
 
 //----------------------------------------------------------------------------------------------------------------------
+
+/// Base class for Indexing fields in the FDB
+///
+/// Each concrete type of DB can implement a specific type of Index
 
 class Index : private eckit::NonCopyable {
 
@@ -110,10 +119,10 @@ class Index : private eckit::NonCopyable {
 
     std::string type_;
 
-    // Order is important here...
-    IndexAxis   axes_;
-    const Key key_;             ///< key that selected this index
-    std::string prefix_;
+    /// @note Order of members is important here ...
+    IndexAxis     axes_;   ///< This Index spans along these axis
+    const Key     key_;    ///< key that selected this index
+    std::string   prefix_;
 
     Indexer indexer_;
 

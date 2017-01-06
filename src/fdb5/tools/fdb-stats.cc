@@ -8,14 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/log/BigNum.h"
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "eckit/log/BigNum.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Report.h"
 #include "fdb5/database/ReportVisitor.h"
-#include "fdb5/toc/TocHandler.h"
+
 #include "fdb5/tools/FDBInspect.h"
 
 

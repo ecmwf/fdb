@@ -8,10 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
+
 #include "fdb5/tools/FDBInspect.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/tools/ToolRequest.h"
+
+using eckit::Log;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -33,15 +37,15 @@ class FDBWhere : public fdb5::FDBInspect {
 
 void FDBWhere::usage(const std::string &tool) const {
 
-    eckit::Log::info() << std::endl
-                       << "Usage: " << tool << std::endl
-                       << "       " << tool << "--request <request>" << std::endl
-                       << "       " << tool << "path1|request1 [path2|request2] ..." << std::endl;
+    Log::info() << std::endl
+                << "Usage: " << tool << std::endl
+                << "       " << tool << "--request <request>" << std::endl
+                << "       " << tool << "path1|request1 [path2|request2] ..." << std::endl;
     FDBInspect::usage(tool);
 }
 
 void FDBWhere::process(const eckit::PathName& path, const eckit::option::CmdArgs& args)  {
-    std::cout << path << std::endl;
+    Log::info() << path << std::endl;
 }
 
 void FDBWhere::finish(const eckit::option::CmdArgs& args) {
@@ -55,11 +59,11 @@ void FDBWhere::finish(const eckit::option::CmdArgs& args) {
         std::vector<eckit::PathName> roots = fdb5::RootManager::visitableRoots(req.key());
 
         if(!roots.size()) {
-            std::cout << "No roots found for request with key " << req.key() << std::endl;
+            Log::info() << "No roots found for request with key " << req.key() << std::endl;
         }
 
         for (std::vector<eckit::PathName>::const_iterator i = roots.begin(); i != roots.end(); ++i) {
-            std::cout << *i << std::endl;
+            Log::info() << *i << std::endl;
         }
     }
 }
