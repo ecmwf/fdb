@@ -11,6 +11,7 @@
 #include <ostream>
 
 #include "fdb5/toc/TocEngine.h"
+#include "fdb5/toc/RootManager.h"
 
 namespace fdb5 {
 
@@ -22,6 +23,26 @@ std::string TocEngine::name() const {
 
 std::string TocEngine::dbType() const {
     return TocEngine::typeName();
+}
+
+eckit::PathName TocEngine::location(const Key& key) const
+{
+    return RootManager::directory(key);
+}
+
+std::vector<eckit::PathName> TocEngine::allLocations(const Key& key) const
+{
+    return RootManager::allRoots(key);
+}
+
+std::vector<eckit::PathName> TocEngine::visitableLocations(const Key& key) const
+{
+    return RootManager::visitableRoots(key);
+}
+
+std::vector<eckit::PathName> TocEngine::writableLocations(const Key& key) const
+{
+    return RootManager::writableRoots(key);
 }
 
 void TocEngine::print(std::ostream& out) const

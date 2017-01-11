@@ -118,6 +118,11 @@ DbStats TocDB::statistics() const
     return DbStats(stats);
 }
 
+const std::vector<Index*> TocDB::indexes() const {
+    throw eckit::NotImplemented("TocDB::indexes() isn't implemented for this DB type "
+                                "-- perhaps this is a writer?", Here());
+}
+
 void TocDB::visit(DBVisitor &visitor) {
     visitor(*this);
 }
