@@ -26,10 +26,6 @@ namespace pmem {
 
 class PMemDBReader : public PMemDB {
 
-protected: // types
-
-    typedef std::vector<Index*> IndexVector;
-
 public: // methods
 
     PMemDBReader(const Key &key);
@@ -42,6 +38,8 @@ public: // methods
 
     virtual bool selectIndex(const Key &key);
     virtual eckit::DataHandle* retrieve(const Key &key) const;
+
+    std::vector<Index*> indexes() const;
 
 private: // methods
 

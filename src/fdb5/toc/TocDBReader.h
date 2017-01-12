@@ -33,7 +33,7 @@ public: // methods
 
     virtual ~TocDBReader();
 
-    virtual const std::vector<Index*> indexes() const;
+    virtual std::vector<Index*> indexes() const;
 
 private: // methods
 

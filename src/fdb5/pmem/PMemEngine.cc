@@ -11,6 +11,7 @@
 #include <ostream>
 
 #include "fdb5/pmem/PMemEngine.h"
+#include "fdb5/pmem/PoolManager.h"
 
 namespace fdb5 {
 
@@ -22,6 +23,26 @@ std::string PMemEngine::name() const {
 
 std::string PMemEngine::dbType() const {
     return PMemEngine::typeName();
+}
+
+eckit::PathName PMemEngine::location(const Key& key) const
+{
+    return PoolManager::pool(key);
+}
+
+std::vector<eckit::PathName> PMemEngine::allLocations(const Key& key) const
+{
+    return PoolManager::allPools(key);
+}
+
+std::vector<eckit::PathName> PMemEngine::visitableLocations(const Key& key) const
+{
+    return PoolManager::visitablePools(key);
+}
+
+std::vector<eckit::PathName> PMemEngine::writableLocations(const Key& key) const
+{
+    return PoolManager::writablePools(key);
 }
 
 void PMemEngine::print(std::ostream& out) const

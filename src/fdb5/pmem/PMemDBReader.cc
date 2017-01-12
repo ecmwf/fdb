@@ -81,6 +81,10 @@ eckit::DataHandle* PMemDBReader::retrieve(const Key &key) const {
     return 0;
 }
 
+std::vector<Index*> PMemDBReader::indexes() const {
+    NOTIMP;
+}
+
 
 void PMemDBReader::print(std::ostream &out) const {
     out << "PMemDBReader["

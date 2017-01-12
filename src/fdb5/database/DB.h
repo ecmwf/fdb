@@ -94,7 +94,7 @@ public: // methods
 
     /// @returns all the indexes in this DB
     /// @invariant DB retains ownership of indexes
-    virtual const std::vector<fdb5::Index*> indexes() const = 0;
+    virtual std::vector<fdb5::Index*> indexes() const = 0;
 
 protected: // methods
 

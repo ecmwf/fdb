@@ -67,7 +67,7 @@ protected: // methods
 
     virtual DbStats statistics() const;
 
-    const std::vector<Index*> indexes() const;
+    std::vector<Index*> indexes() const;
 
 private: // members
 

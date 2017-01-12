@@ -174,7 +174,7 @@ eckit::PathName PoolManager::pool(const Key& key) {
 
     for (PoolGroupTable::const_iterator i = poolgroupsTable.begin(); i != poolgroupsTable.end() ; ++i) {
         if(i->match(name)) {
-            PathName path = i->filesystem(key);
+            PathName path = i->pool(key);
             return path / name;
         }
     }

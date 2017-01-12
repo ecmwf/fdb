@@ -71,6 +71,8 @@ protected: // methods
 
     virtual DbStats statistics() const;
 
+    std::vector<Index*> indexes() const;
+
 private: // methods
 
     /// Initialise or open the peristent pool. Worker function for the construtor

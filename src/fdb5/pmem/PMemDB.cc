@@ -34,8 +34,6 @@ namespace pmem {
 
 PMemDB::PMemDB(const Key& key) :
     DB(key),
-    // Utilise the RootManager from the TocDB to get a sensible location. Note that we are NOT
-    // using this as a directory, but rather as a pool file.
     poolDir_(PoolManager::pool(key)),
     currentIndex_(0) {
 
@@ -196,6 +194,11 @@ DbStats PMemDB::statistics() const
     stats->poolsSize_  += poolsSize();
 
     return DbStats(stats);
+}
+
+std::vector<Index*> PMemDB::indexes() const {
+    throw eckit::NotImplemented("TocDB::indexes() isn't implemented for this DB type "
+                                "-- perhaps this is a writer?", Here());
 }
 
 eckit::PathName PMemDB::basePath() const {
