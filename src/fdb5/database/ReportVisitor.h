@@ -70,6 +70,7 @@ protected: // members
 
     fdb5::Report report_;
 
+    DbStats dbStats_;
 };
 
 

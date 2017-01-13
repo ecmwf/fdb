@@ -84,7 +84,7 @@ private:
     IndexStats& idxStats_;
     bool unique_;
 };
-
+#endif
 //----------------------------------------------------------------------------------------------------------------------
 
 class ReportIndexVisitor : public IndexLocationVisitor {
@@ -92,14 +92,14 @@ class ReportIndexVisitor : public IndexLocationVisitor {
 public:
 
     ReportIndexVisitor(DbStats& dbStats,
-                       IndexStats& idxStats,
-                       std::set<eckit::PathName>& allIndexFiles,
-                       std::map<eckit::PathName, size_t>& indexUsage,
+//                       IndexStats& idxStats,
+//                       std::set<eckit::PathName>& allIndexFiles,
+//                       std::map<eckit::PathName, size_t>& indexUsage,
                        bool unique) :
         dbStats_(dbStats),
 //        idxStats_(idxStats),
-        allIndexFiles_(allIndexFiles),
-        indexUsage_(indexUsage),
+//        allIndexFiles_(allIndexFiles),
+//        indexUsage_(indexUsage),
         unique_(unique)
     {
     }
@@ -108,36 +108,38 @@ public:
 
         const eckit::PathName path = idxloc.url();
 
-        if (allIndexFiles_.find(path) == allIndexFiles_.end()) {
-            dbStats_.indexFilesSize_ += path.size();
-            allIndexFiles_.insert(path);
-            dbStats_.indexFilesCount_++;
-        }
+        Log::debug<LibFdb>() << "Visting Index @ " << path << std::endl;
 
-        if (unique_) {
-            indexUsage_[path]++;
-        }
+//        if (allIndexFiles_.find(path) == allIndexFiles_.end()) {
+//            dbStats_.indexFilesSize_ += path.size();
+//            allIndexFiles_.insert(path);
+//            dbStats_.indexFilesCount_++;
+//        }
+//
+//        if (unique_) {
+//            indexUsage_[path]++;
+//        }
     }
 
 private:
 
     DbStats& dbStats_;
 //    IndexStats& idxStats_;
-    std::set<eckit::PathName>& allIndexFiles_;
-    std::map<eckit::PathName, size_t>& indexUsage_;
+//    std::set<eckit::PathName>& allIndexFiles_;
+//    std::map<eckit::PathName, size_t>& indexUsage_;
     bool unique_;
 };
-#endif
 
 //----------------------------------------------------------------------------------------------------------------------
 
 ReportVisitor::ReportVisitor(DB& db) :
     db_(db),
+    dbStats_(db.statistics()),
     directory_(db.basePath()) {
 
     Log::debug<LibFdb>() << "Opening DB " << directory_ << std::endl;
 
-    report_.append(db.dbType(), db.statistics());
+    report_.append(db.dbType(), dbStats_);
 }
 
 ReportVisitor::~ReportVisitor() {
@@ -157,10 +159,9 @@ void ReportVisitor::visit(const Index& index,
 #if 0
     ReportLocationVisitor locVisitor(directory_, report_, allDataFiles_, activeDataFiles_, dataUsage_, unique);
     field.location().visit(locVisitor);
-
-    ReportIndexVisitor idxVisitor(dbStats_, stats, allIndexFiles_, indexUsage_, unique);
-    index.visit(idxVisitor);
 #endif
+    ReportIndexVisitor idxVisitor(dbStats_, unique);
+    index.visit(idxVisitor);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
