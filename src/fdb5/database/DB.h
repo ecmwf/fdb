@@ -129,8 +129,9 @@ protected:
 public:
 
     static void list(std::ostream &);
-    static DB *build(const std::string &, const Key &key);
-    static DB *build_read(const eckit::PathName& path);
+    static DB* buildWriter(const Key &key);
+    static DB* buildReader(const Key &key);
+    static DB* buildReader(const eckit::PathName& path);
 
 private: // methods
 

@@ -49,7 +49,7 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
         eckit::PathName path(args(i));
 
         if (path.isDir()) {
-            eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::build_read(path));
+            eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
             ASSERT(db->open());
             db->schema().dump(std::cout);
         } else {

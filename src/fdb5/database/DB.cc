@@ -12,6 +12,7 @@
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/database/DB.h"
+#include "fdb5/database/Manager.h"
 
 namespace fdb5 {
 
@@ -83,18 +84,30 @@ const DBFactory &DBFactory::findFactory(const std::string &name) {
 }
 
 
-DB *DBFactory::build(const std::string &name, const Key &key) {
+DB* DBFactory::buildWriter(const Key& key) {
+
+    std::string name = Manager::engine(key);
+    name += ".writer";
 
     const DBFactory &factory( findFactory(name) );
 
     return factory.make(key);
 }
 
+DB*DBFactory::buildReader(const Key& key) {
+
+    std::string name = Manager::engine(key);
+    name += ".reader";
+
+    const DBFactory& factory( findFactory(name) );
+
+    return factory.make(key);
+}
 
 /// If we have been supplied a path to a DB, but don't know what type it is, then we
 /// need to try and open it with the different DBs, and see how they cope.
 ///
-DB *DBFactory::build_read(const eckit::PathName& path) {
+DB *DBFactory::buildReader(const eckit::PathName& path) {
 
     pthread_once(&once, init);
 

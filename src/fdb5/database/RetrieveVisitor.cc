@@ -27,7 +27,6 @@ namespace fdb5 {
 RetrieveVisitor::RetrieveVisitor(const NotifyWind &wind, HandleGatherer &gatherer):
     wind_(wind),
     gatherer_(gatherer) {
-    fdbReaderDB_ = eckit::Resource<std::string>("fdbReaderDB", "toc.reader");
 }
 
 RetrieveVisitor::~RetrieveVisitor() {
@@ -44,7 +43,7 @@ bool RetrieveVisitor::selectDatabase(const Key &key, const Key &full) {
     }
 
     eckit::Log::info() << "selectDatabase " << key << std::endl;
-    db_.reset(DBFactory::build(fdbReaderDB_, key));
+    db_.reset(DBFactory::buildReader(key));
 
     if (!db_->open()) {
         eckit::Log::info() << "Database does not exists " << key << std::endl;

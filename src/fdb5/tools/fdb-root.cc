@@ -28,16 +28,12 @@ public: // methods
 
     FdbRoot(int argc, char **argv) :
         fdb5::FDBTool(argc, argv) {
-
-        fdbWriterDB_ = eckit::Resource<std::string>("fdbWriterDB", "toc.writer");
     }
 
 private: // methods
 
     virtual void execute(const eckit::option::CmdArgs& args);
     virtual void usage(const std::string &tool) const;
-
-    std::string fdbWriterDB_;
 };
 
 void FdbRoot::usage(const std::string &tool) const {
@@ -69,7 +65,7 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
         eckit::Log::info() << result << std::endl;
 
         // 'Touch' the database (which will create it if it doesn't exist)
-        eckit::ScopedPtr<fdb5::DB> db( fdb5::DBFactory::build(fdbWriterDB_, result) );
+        eckit::ScopedPtr<fdb5::DB> db( fdb5::DBFactory::buildWriter(result) );
     }
 }
 

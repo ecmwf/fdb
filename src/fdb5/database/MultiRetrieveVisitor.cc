@@ -30,9 +30,6 @@ MultiRetrieveVisitor::MultiRetrieveVisitor(const NotifyWind& wind, HandleGathere
     wind_(wind),
     databases_(databases),
     gatherer_(gatherer) {
-    fdbReaderDB_ = eckit::Resource<std::string>("fdbReaderDB", "toc.reader");
-
-    eckit::Log::info() << "Initialised multiretrievevisitor with " << fdbReaderDB_ << std::endl;
 }
 
 MultiRetrieveVisitor::~MultiRetrieveVisitor() {
@@ -62,9 +59,9 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     /* DB not yet open */
 
     eckit::Log::info() << "selectDatabase opening database " << key << std::endl;
-    eckit::Log::info() << "Type: " << fdbReaderDB_ << std::endl;
+    eckit::Log::info() << "DB Type: " << db_->dbType() << std::endl;
 
-    eckit::ScopedPtr<DB> newDB( DBFactory::build(fdbReaderDB_, key) );
+    eckit::ScopedPtr<DB> newDB( DBFactory::buildReader(key) );
 
     if (!newDB->open()) {
         eckit::Log::info() << "Database does not exists " << key << std::endl;

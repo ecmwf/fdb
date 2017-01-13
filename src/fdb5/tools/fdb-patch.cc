@@ -163,7 +163,7 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     eckit::Log::info() << "Listing " << path << std::endl;
 
-    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::build_read(path));
+    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
 
     eckit::Log::info() << "Database key " << db->key() << std::endl;
 

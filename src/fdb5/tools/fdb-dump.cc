@@ -49,7 +49,7 @@ void FDBDump::process(const eckit::PathName &path, const eckit::option::CmdArgs 
 
     eckit::Log::info() << "Dumping " << path << std::endl << std::endl;
 
-    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::build_read(path));
+    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
     ASSERT(db->open());
 
     db->dump(eckit::Log::info(), simple_);

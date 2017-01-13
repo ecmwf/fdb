@@ -70,14 +70,10 @@ private: // members
 
     store_t databases_;
 
-    std::string fdbWriterDB_;
-
     std::vector<Key> prev_;
 
     DB *current_;
     std::vector<Schema*> schemas_;
-
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
