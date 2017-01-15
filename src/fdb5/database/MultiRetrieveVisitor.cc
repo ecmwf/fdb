@@ -59,9 +59,9 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     /* DB not yet open */
 
     eckit::Log::info() << "selectDatabase opening database " << key << std::endl;
-    eckit::Log::info() << "DB Type: " << db_->dbType() << std::endl;
-
     eckit::ScopedPtr<DB> newDB( DBFactory::buildReader(key) );
+
+    eckit::Log::info() << "DB Type: " << newDB->dbType() << std::endl;
 
     if (!newDB->open()) {
         eckit::Log::info() << "Database does not exists " << key << std::endl;
