@@ -41,31 +41,28 @@ static bool iswave(const Key &key) {
 }
 #endif
 
-static StringDict::value_type integer(const Key &key, const std::string &keyword, const std::string &value ) {
+static StringDict::value_type integer(const Key&, const std::string& keyword, const std::string& value) {
     static Translator<std::string, long> s2l;
     static Translator<long, std::string> l2s;
 
     return StringDict::value_type(keyword, l2s(s2l(value)));
-
 }
 
-static StringDict::value_type real(const Key &key, const std::string &keyword, const std::string &value ) {
+static StringDict::value_type real(const Key&, const std::string& keyword, const std::string& value) {
     static Translator<std::string, double> s2r;
     static Translator<double, std::string> r2s;
 
     return StringDict::value_type(keyword, r2s(s2r(value)));
-
 }
 
-static StringDict::value_type levelist(const Key &key, const std::string &keyword, const std::string &value ) {
+static StringDict::value_type levelist(const Key&, const std::string&, const std::string& value) {
     static Translator<std::string, double> s2r;
     static Translator<double, std::string> r2s;
 
     return StringDict::value_type("levelist", r2s(s2r(value)));
-
 }
 
-static StringDict::value_type step(const Key &key, const std::string &keyword, const std::string &value ) {
+static StringDict::value_type step(const Key&, const std::string& keyword, const std::string& value) {
 
     static Translator<std::string, long> s2l;
     static Translator<long, std::string> l2s;
@@ -84,7 +81,7 @@ static StringDict::value_type step(const Key &key, const std::string &keyword, c
     }
 }
 
-static StringDict::value_type levtype(const Key &key, const std::string &keyword, const std::string &value ) {
+static StringDict::value_type levtype(const Key&, const std::string&, const std::string& value) {
     static const char *levtype_ = "levtype";
 
     if ( value == "s" )
@@ -105,11 +102,11 @@ static StringDict::value_type levtype(const Key &key, const std::string &keyword
     return StringDict::value_type( levtype_ , value );
 }
 
-static StringDict::value_type repres(const Key &key, const std::string &keyword, const std::string &value ) {
+static StringDict::value_type repres(const Key&, const std::string&, const std::string& value) {
     return StringDict::value_type( "repres" , value );
 }
 
-static StringDict::value_type param(const Key &key, const std::string &keyword, const std::string &value ) {
+static StringDict::value_type param(const Key&, const std::string&, const std::string& value) {
     Param p(value);
 
     // if(p.table() == 0) {
@@ -126,7 +123,7 @@ static StringDict::value_type param(const Key &key, const std::string &keyword, 
     return StringDict::value_type( "param" , std::string(p) );
 }
 
-static StringDict::value_type time(const Key &key, const std::string &keyword, const std::string &value ) {
+static StringDict::value_type time(const Key&, const std::string&, const std::string& value) {
     static const char *time_ = "time";
 
     if ( value.size() == 2 )
