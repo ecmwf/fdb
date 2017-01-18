@@ -35,6 +35,7 @@ class FieldRef;
 
 class BTreeIndexVisitor {
 public:
+    virtual ~BTreeIndexVisitor();
     virtual void visit(const std::string& key, const FieldRef&) = 0;
 };
 
