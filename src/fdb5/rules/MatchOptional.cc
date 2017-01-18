@@ -29,7 +29,7 @@ MatchOptional::MatchOptional(const std::string &def) :
 MatchOptional::~MatchOptional() {
 }
 
-bool MatchOptional::match(const std::string &keyword, const Key &key) const {
+bool MatchOptional::match(const std::string&, const Key&) const {
     return true;
 }
 
