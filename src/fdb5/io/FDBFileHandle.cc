@@ -33,11 +33,11 @@ Length FDBFileHandle::openForRead() {
     NOTIMP;
 }
 
-void FDBFileHandle::openForWrite(const Length &length) {
+void FDBFileHandle::openForWrite(const Length&) {
     NOTIMP;
 }
 
-void FDBFileHandle::openForAppend(const Length &) {
+void FDBFileHandle::openForAppend(const Length&) {
     file_ = ::fopen(path_.c_str(), "a");
     if (!file_) {
         throw eckit::CantOpenFile(path_);
@@ -46,7 +46,7 @@ void FDBFileHandle::openForAppend(const Length &) {
     SYSCALL(::setvbuf(file_, buffer_, _IOFBF, buffer_.size()));
 }
 
-long FDBFileHandle::read(void *buffer, long length) {
+long FDBFileHandle::read(void*, long) {
     NOTIMP;
 }
 
