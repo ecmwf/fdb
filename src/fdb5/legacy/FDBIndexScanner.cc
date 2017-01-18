@@ -72,7 +72,7 @@ void FDBIndexScanner::execute() {
     }
 
     // if all else fails, lets try to run the old tool 'lsfdb' (must be in path)
-    {
+    if (path_.size() != 0) {
         static std::string fdbLegacyLsfdb = eckit::Resource<std::string>("fdbLegacyLsfdb",
                                             "/usr/local/apps/fdb/current/bin/lsfdb");
 
