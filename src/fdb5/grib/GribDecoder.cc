@@ -33,6 +33,8 @@ GribDecoder::GribDecoder(bool checkDuplicates):
     checkDuplicates_(checkDuplicates) {
 }
 
+GribDecoder::~GribDecoder() {}
+
 class HandleDeleter {
     grib_handle *h_;
 public:

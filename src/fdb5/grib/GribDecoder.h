@@ -40,6 +40,8 @@ public:
 
     GribDecoder(bool checkDuplicates = false);
 
+    virtual ~GribDecoder();
+
     size_t gribToKey(EmosFile &file, Key &key);
     MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
 
