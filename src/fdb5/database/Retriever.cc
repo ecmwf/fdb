@@ -38,17 +38,17 @@ Retriever::Retriever() :
 Retriever::~Retriever() {
 }
 
-eckit::DataHandle *Retriever::retrieve(const MarsTask &task,
-                                       const Schema &schema,
+eckit::DataHandle *Retriever::retrieve(const MarsTask& task,
+                                       const Schema&,
                                        bool sorted,
-                                       const fdb5::NotifyWind &notifyee) const {
+                                       const fdb5::NotifyWind& notifyee) const {
 
 	HandleGatherer result(sorted);
     MultiRetrieveVisitor visitor(notifyee, result, databases_);
     Log::info() << "Schema: " << schema_ << std::endl;
     schema_.expand(task.request(), visitor);
 
-    eckit::Log::userInfo() << "Retrieving " << eckit::Plural(result.count(), "field") << std::endl;
+    eckit::Log::userInfo() << "Retrieving " << eckit::Plural(int(result.count()), "field") << std::endl;
 
     return result.dataHandle();
 }
