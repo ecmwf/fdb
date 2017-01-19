@@ -43,6 +43,9 @@ public: // methods
     virtual std::string name() const = 0;
     virtual std::string dbType() const = 0;
 
+    /// @returns if an Engine is capable of opening this path
+    virtual bool canHandle(const eckit::PathName& path) const = 0;
+
     /// Uniquely selects a location where the Key will be put or already exists
     virtual eckit::PathName location(const Key &key) const = 0;
 
@@ -65,43 +68,47 @@ protected: // methods
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// A self-registering factory for producing Engine instances.
+/// A self-registering registry for Engine instances
 
-class EngineFactory : private eckit::NonCopyable {
+class EngineRegistry : private eckit::NonCopyable {
+
+public: // methods
+
+    static Engine& engine(const std::string& name);
+
+    static std::vector<Engine*> engines();
+
+    static std::vector<std::string> list();
+
+    static void list(std::ostream &);
+
+protected: // methods
+
+    static void add(Engine*);
+    static void remove(const std::string&);
+
+};
+
+
+/// Templated for self-registering engines that does the self-registration into the registry
+
+template< class T>
+class EngineBuilder : public EngineRegistry {
+public:
+
+    EngineBuilder() {
+        Engine* e = new T();
+        name_ = e->name();
+        EngineRegistry::add(e);
+    }
+
+    ~EngineBuilder() {
+        EngineRegistry::remove(name_);
+    }
 
     std::string name_;
 
-    virtual Engine *make() const = 0 ;
-
-protected:
-
-    EngineFactory(const std::string& name);
-    virtual ~EngineFactory();
-
-public:
-
-    static std::vector<std::string> list();
-    static void list(std::ostream &);
-    static Engine* build(const std::string&);
-
-private: // methods
-
-    static const EngineFactory& findFactory(const std::string&);
 };
-
-/// Templated for self-registering factory that does the self-registration, and the construction of each object.
-
-template< class T>
-class EngineBuilder : public EngineFactory {
-
-    virtual Engine *make() const {
-        return new T();
-    }
-
-public:
-    EngineBuilder(const std::string &name) : EngineFactory(name) {}
-};
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

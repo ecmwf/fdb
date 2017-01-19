@@ -30,6 +30,11 @@ eckit::PathName TocEngine::location(const Key& key) const
     return RootManager::directory(key);
 }
 
+bool TocEngine::canHandle(const eckit::PathName& path) const
+{
+    NOTIMP;
+}
+
 std::vector<eckit::PathName> TocEngine::allLocations(const Key& key) const
 {
     return RootManager::allRoots(key);
@@ -50,7 +55,7 @@ void TocEngine::print(std::ostream& out) const
     out << "TocEngine()";
 }
 
-static EngineBuilder<TocEngine> builder(TocEngine::typeName());
+static EngineBuilder<TocEngine> toc_builder;
 
 //----------------------------------------------------------------------------------------------------------------------
 

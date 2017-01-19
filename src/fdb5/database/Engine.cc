@@ -21,121 +21,93 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static std::map<std::string, EngineFactory *> *m = 0;
-
-class EngineRegistry {
-public:
-
-    typedef std::map<std::string, Engine*> Map;
-
-    Engine& backend(const std::string& name) {
-
-        AutoLock<Mutex> lock(mutex_);
-
-        Map::iterator itr = map_.find(name);
-        if(itr != map_.end())
-            return *(itr->second);
-
-        Engine* e = EngineFactory::build(name);
-
-        map_[name] = e;
-
-        return *e;
-    }
-
-private: // members
-
-    Map map_;
-    mutable Mutex mutex_;
-};
-
-static EngineRegistry* engines = 0;
-
 eckit::Mutex *local_mutex = 0;
 pthread_once_t once = PTHREAD_ONCE_INIT;
+
+static std::map<std::string, Engine*>* m;
+
 void init() {
     local_mutex = new eckit::Mutex();
-    m = new std::map<std::string, EngineFactory *>();
-    engines = new EngineRegistry();
+    m = new std::map<std::string, Engine*>();
 }
 
-//----------------------------------------------------------------------------------------------------------------------
-
-/// When a concrete instance of a EngineFactory is instantiated (in practice a EngineBuilder<>)
-/// add it to the list of available factories.
-
-EngineFactory::EngineFactory(const std::string& name) :
-    name_(name) {
+Engine& EngineRegistry::engine(const std::string& name) {
 
     pthread_once(&once, init);
+    AutoLock<Mutex> lock(*local_mutex);
 
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+    std::map<std::string, Engine*>::iterator i = m->find(name);
+    if(i != m->end()) {
+        return *(i->second);
+    }
+
+    std::ostringstream oss;
+    oss << "No FDB Engine registered with name " << name;
+
+    throw eckit::BadParameter(oss.str(), Here());
+}
+
+std::vector<Engine*> EngineRegistry::engines()
+{
+    pthread_once(&once, init);
+    AutoLock<Mutex> lock(*local_mutex);
+
+    std::vector<Engine*> res;
+    for (std::map<std::string, Engine*>::const_iterator j = m->begin(); j != m->end(); ++j) {
+        res.push_back(j->second);
+    }
+    return res;
+}
+
+void EngineRegistry::add(Engine* e)
+{
+    pthread_once(&once, init);
+    eckit::AutoLock<eckit::Mutex> lock(*local_mutex);
+
+    std::string name = e->name();
 
     ASSERT(m->find(name) == m->end());
-    (*m)[name] = this;
+    (*m)[name] = e;
 }
 
-EngineFactory::~EngineFactory() {
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
-    m->erase(name_);
-}
-
-std::vector<std::string> EngineFactory::list()
+void EngineRegistry::remove(const std::string& name)
 {
+    pthread_once(&once, init);
+    eckit::AutoLock<eckit::Mutex> lock(*local_mutex);
+
+    m->erase(name);
+}
+
+
+std::vector<std::string> EngineRegistry::list()
+{
+    pthread_once(&once, init);
+    eckit::AutoLock<eckit::Mutex> lock(*local_mutex);
+
     std::vector<std::string> res;
-    for (std::map<std::string, EngineFactory *>::const_iterator j = m->begin(); j != m->end(); ++j) {
+    for (std::map<std::string, Engine*>::const_iterator j = m->begin(); j != m->end(); ++j) {
         res.push_back(j->first);
     }
     return res;
 }
 
-void EngineFactory::list(std::ostream &out) {
+void EngineRegistry::list(std::ostream &out) {
 
     pthread_once(&once, init);
-
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
     const char *sep = "";
-    for (std::map<std::string, EngineFactory *>::const_iterator j = m->begin(); j != m->end(); ++j) {
+    for (std::map<std::string, Engine*>::const_iterator j = m->begin(); j != m->end(); ++j) {
         out << sep << (*j).first;
         sep = ", ";
     }
-}
-
-
-const EngineFactory &EngineFactory::findFactory(const std::string &name) {
-
-    pthread_once(&once, init);
-
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
-
-    eckit::Log::info() << "Looking for FDB EngineFactory [" << name << "]" << std::endl;
-
-    std::map<std::string, EngineFactory *>::const_iterator j = m->find(name);
-    if (j == m->end()) {
-        eckit::Log::error() << "No FDB EngineFactory for [" << name << "]" << std::endl;
-        eckit::Log::error() << "DBFactories are:" << std::endl;
-        for (j = m->begin() ; j != m->end() ; ++j)
-            eckit::Log::error() << "   " << (*j).first << std::endl;
-        throw eckit::SeriousBug(std::string("No EngineFactory called ") + name);
-    }
-
-    return *(*j).second;
-}
-
-
-Engine *EngineFactory::build(const std::string& name) {
-    const EngineFactory& factory( findFactory(name) );
-    return factory.make();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 Engine& Engine::backend(const std::string& name)
 {
-    pthread_once(&once, init);
-
-    return engines->backend(name);
+    return EngineRegistry::engine(name);
 }
 
 Engine::~Engine() {

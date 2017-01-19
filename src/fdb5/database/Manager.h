@@ -30,8 +30,11 @@ class Manager  {
 
 public: // methods
 
-    /// Uniquely selects the engine location that will handle this Key on insertion or if already exists
+    /// Uniquely selects the engine that will handle this Key on insertion or if already exists
     static const std::string& engine(const Key &key);
+
+    /// Uniquely selects the engine that will handle this Path by checking possible handlers
+    static const std::string& engine(const eckit::PathName& path);
 
     /// Uniquely selects a location where the Key will be put or already exists
     static eckit::PathName location(const Key &key);

@@ -118,6 +118,19 @@ const std::string& Manager::engine(const Key& key)
     throw eckit::SeriousBug(oss.str());
 }
 
+const std::string& Manager::engine(const PathName& path)
+{
+    std::vector<Engine*> engines = Engine::list();
+
+    for(std::vector<Engine*>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
+        ASSERT(*i);
+        const Engine& e = **i;
+        if(e.canHandle(path)) {
+            return e.dbType();
+        }
+    }
+}
+
 eckit::PathName Manager::location(const Key& key) {
 
     const std::string& name = Manager::engine(key);
