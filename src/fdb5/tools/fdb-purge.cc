@@ -54,7 +54,7 @@ void FDBPurge::init(const eckit::option::CmdArgs &args) {
     args.get("doit", doit_);
 }
 
-void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
+void FDBPurge::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {
 
     eckit::Log::info() << "Scanning " << path << std::endl;
 
@@ -82,7 +82,7 @@ void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs
 }
 
 
-void FDBPurge::finish(const eckit::option::CmdArgs &args) {
+void FDBPurge::finish(const eckit::option::CmdArgs&) {
 
 
 
