@@ -26,11 +26,11 @@ TypeInteger::TypeInteger(const std::string &name, const std::string &type) :
 TypeInteger::~TypeInteger() {
 }
 
-void TypeInteger::getValues(const MarsRequest &request,
-                            const std::string &keyword,
-                            eckit::StringList &values,
-                            const NotifyWind &wind,
-                            const DB *db) const {
+void TypeInteger::getValues(const MarsRequest& request,
+                            const std::string& keyword,
+                            eckit::StringList& values,
+                            const NotifyWind&,
+                            const DB*) const {
     std::vector<long> intValues;
 
     request.getValues(keyword, intValues);
