@@ -120,7 +120,7 @@ const std::string& Manager::engine(const Key& key)
 
 const std::string& Manager::engine(const PathName& path)
 {
-    std::vector<Engine*> engines = Engine::list();
+    std::vector<Engine*> engines = EngineRegistry::engines();
 
     for(std::vector<Engine*>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
         ASSERT(*i);
