@@ -30,6 +30,11 @@ eckit::PathName PMemEngine::location(const Key& key) const
     return PoolManager::pool(key);
 }
 
+bool PMemEngine::canHandle(const eckit::PathName& path) const
+{
+    NOTIMP;
+}
+
 std::vector<eckit::PathName> PMemEngine::allLocations(const Key& key) const
 {
     return PoolManager::allPools(key);
@@ -50,7 +55,7 @@ void PMemEngine::print(std::ostream& out) const
     out << "PMemEngine()";
 }
 
-static EngineBuilder<PMemEngine> builder(PMemEngine::typeName());
+static EngineBuilder<PMemEngine> pmem_builder;
 
 //----------------------------------------------------------------------------------------------------------------------
 

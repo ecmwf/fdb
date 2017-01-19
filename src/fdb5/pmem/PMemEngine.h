@@ -35,6 +35,8 @@ protected: // methods
 
     virtual eckit::PathName location(const Key &key) const;
 
+    virtual bool canHandle(const eckit::PathName& path) const;
+
     virtual std::vector<eckit::PathName> allLocations(const Key& key) const;
 
     virtual std::vector<eckit::PathName> visitableLocations(const Key& key) const;
