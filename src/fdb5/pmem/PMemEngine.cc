@@ -32,7 +32,8 @@ eckit::PathName PMemEngine::location(const Key& key) const
 
 bool PMemEngine::canHandle(const eckit::PathName& path) const
 {
-    NOTIMP;
+	eckit::PathName master = path / "master";
+	return path.isDir() && master.exists();
 }
 
 std::vector<eckit::PathName> PMemEngine::allLocations(const Key& key) const

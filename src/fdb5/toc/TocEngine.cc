@@ -32,7 +32,8 @@ eckit::PathName TocEngine::location(const Key& key) const
 
 bool TocEngine::canHandle(const eckit::PathName& path) const
 {
-    NOTIMP;
+    eckit::PathName toc = path / "toc";
+    return path.isDir() && toc.exists();
 }
 
 std::vector<eckit::PathName> TocEngine::allLocations(const Key& key) const
