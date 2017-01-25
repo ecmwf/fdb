@@ -39,6 +39,8 @@ MultiRetrieveVisitor::~MultiRetrieveVisitor() {
 // From Visitor
 
 bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
+    
+	eckit::Log::debug() << "FDB5 selectDatabase " << key  << std::endl;
 
     /* is it the current DB ? */
 
@@ -51,19 +53,19 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     /* is the DB already open ? */
 
     if(databases_.exists(key)) {
-//        eckit::Log::info() << "Reusing database " << key << std::endl;
+        eckit::Log::debug() << "FDB5 Reusing database " << key << std::endl;
         db_ = databases_.access(key);
         return true;
     }
 
     /* DB not yet open */
 
-//    eckit::Log::info() << "selectDatabase opening database " << key << std::endl;
+    eckit::Log::debug() << "selectDatabase opening database " << key << std::endl;
 
     eckit::ScopedPtr<DB> newDB( DBFactory::build(fdbReaderDB_, key) );
 
     if (!newDB->open()) {
-        eckit::Log::info() << "Database does not exists " << key << std::endl;
+        eckit::Log::debug() << "Database does not exists " << key << std::endl;
         return false;
     } else {
         newDB->checkSchema(key);
@@ -75,13 +77,13 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
 bool MultiRetrieveVisitor::selectIndex(const Key& key, const Key&) {
     ASSERT(db_);
-    // eckit::Log::info() << "selectIndex " << key << std::endl;
+    eckit::Log::debug() << "selectIndex " << key << std::endl;
     return db_->selectIndex(key);
 }
 
-bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key&) {
+bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
     ASSERT(db_);
-    // eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
+    eckit::Log::debug() << "selectDatum " << key << ", " << full << std::endl;
 
     eckit::DataHandle *dh = db_->retrieve(key);
 

@@ -59,7 +59,9 @@ void Schema::expand(const MarsRequest &request, ReadVisitor &visitor) const {
     std::vector<Key> keys(3);
 
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->expand(request, visitor, 0, keys, full);
+		// eckit::Log::info() << "Rule " << **i <<  std::endl;
+		// (*i)->dump(eckit::Log::info());
+		(*i)->expand(request, visitor, 0, keys, full);
     }
 }
 
@@ -95,7 +97,7 @@ void Schema::load(const eckit::PathName &path, bool replace) {
 
     path_ = path;
 
-    eckit::Log::debug() << "Loading FDB rules from " << path << std::endl;
+    eckit::Log::info() << "Loading FDB rules from " << path << std::endl;
 
     std::ifstream in(path.localPath());
     if (!in) {

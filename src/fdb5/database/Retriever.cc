@@ -43,7 +43,7 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task,
                                        bool sorted,
                                        const fdb5::NotifyWind &notifyee) const {
 
-    HandleGatherer result(sorted);
+	HandleGatherer result(sorted);
     MultiRetrieveVisitor visitor(notifyee, result, databases_);
     schema_.expand(task.request(), visitor);
 

@@ -166,6 +166,8 @@ static void readFileSpaces() {
 eckit::PathName RootManager::directory(const Key& key) {
 
     pthread_once(&once, readFileSpaces);
+            
+	eckit::Log::info() << "Choosing directory for key " << key << std::endl;
 
     std::string name(key.valuesToString());
 
@@ -174,6 +176,7 @@ eckit::PathName RootManager::directory(const Key& key) {
     for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
         if(i->match(name)) {
             PathName path = i->filesystem(key);
+			eckit::Log::info() << "Directory is " << path / name <<  std::endl;
             return path / name;
         }
     }

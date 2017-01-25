@@ -51,7 +51,7 @@ void Rule::expand( const MarsRequest &request,
                    Key &full,
                    ReadVisitor &visitor) const {
 
-    ASSERT(depth < 3);
+	ASSERT(depth < 3);
 
     if (cur == predicates_.end()) {
 
@@ -96,8 +96,9 @@ void Rule::expand( const MarsRequest &request,
     const std::string &keyword = (*cur)->keyword();
 
     eckit::StringList values;
-
     visitor.values(request, keyword, registry_, values);
+
+	// eckit::Log::info() << "keyword " << keyword << " values " << values << std::endl;
 
     Key &k = keys[depth];
 
