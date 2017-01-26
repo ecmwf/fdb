@@ -38,7 +38,7 @@ void FDBFileHandle::openForWrite(const Length &length) {
 }
 
 void FDBFileHandle::openForAppend(const Length &) {
-    file_ = fopen(path_.c_str(), "a");
+    file_ = ::fopen(path_.c_str(), "a");
     if (!file_) {
         throw eckit::CantOpenFile(path_);
     }
