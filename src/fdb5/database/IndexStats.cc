@@ -20,6 +20,15 @@ public:
     virtual size_t fieldsCount() const {  return 0; }
     virtual size_t duplicatesCount() const { return 0; }
 
+    virtual size_t fieldsSize() const {  return 0; }
+    virtual size_t duplicatesSize() const {  return 0; }
+
+    virtual size_t addFieldsCount(size_t i) { return i; }
+    virtual size_t addDuplicatesCount(size_t i) { return i; }
+
+    virtual size_t addFieldsSize(size_t i) { return i; }
+    virtual size_t addDuplicatesSize(size_t i) { return i; }
+
     virtual void add(const IndexStatsContent&) {
         NOTIMP;
     }

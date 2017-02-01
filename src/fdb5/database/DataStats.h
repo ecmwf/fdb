@@ -26,7 +26,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 class DataStatsContent : public eckit::Counted,
-                       public eckit::Statistics {
+                         public eckit::Statistics {
 public:
 
     virtual ~DataStatsContent();

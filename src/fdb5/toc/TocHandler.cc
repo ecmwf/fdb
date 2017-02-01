@@ -280,20 +280,21 @@ void TocHandler::writeIndexRecord(const Index &index) {
 //----------------------------------------------------------------------------------------------------------------------
 
 class HasPath {
+
     eckit::PathName path_;
     off_t offset_;
-  public:
+
+public:
     HasPath(const eckit::PathName &path, off_t offset): path_(path), offset_(offset) {}
     bool operator()(const Index *index) const {
+
         const TocIndex* tocidx = dynamic_cast<const TocIndex*>(index);
 
         if(!tocidx) {
             throw eckit::NotImplemented("Index is not of TocIndex type -- referencing unknown Index types isn't supported", Here());
         }
 
-        const TocIndexLocation& loc = tocidx->location();
-
-        return (loc.path() == path_) && (loc.offset() == offset_);
+        return (tocidx->path() == path_) && (tocidx->offset() == offset_);
     }
 };
 
@@ -349,6 +350,11 @@ size_t TocHandler::numberOfRecords() const {
     }
 
     return count_;
+}
+
+const eckit::PathName& TocHandler::directory() const
+{
+    return directory_;
 }
 
 std::vector<Index *> TocHandler::loadIndexes() {

@@ -145,7 +145,7 @@ TocDataStats& TocDataStats::operator+=(const TocDataStats& rhs) {
     return *this;
 }
 
-void TocDataStats::add(const IndexStatsContent& rhs)
+void TocDataStats::add(const DataStatsContent& rhs)
 {
     const TocDataStats& stats = dynamic_cast<const TocDataStats&>(rhs);
     *this += stats;

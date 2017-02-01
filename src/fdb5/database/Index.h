@@ -17,18 +17,18 @@
 
 #include "eckit/eckit.h"
 
-#include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/types/Types.h"
 #include "eckit/types/FixedString.h"
+#include "eckit/types/Types.h"
 
+#include "fdb5/database/Field.h"
 #include "fdb5/database/FileStore.h"
 #include "fdb5/database/IndexAxis.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/database/Field.h"
+#include "fdb5/database/IndexLocation.h"
 #include "fdb5/database/Indexer.h"
+#include "fdb5/database/Key.h"
 
 namespace eckit {
 class Stream;
@@ -90,7 +90,10 @@ class Index : private eckit::NonCopyable {
 
     Index(const Key& key, const std::string& type);
     Index(eckit::Stream& s);
+
     virtual ~Index();
+
+    virtual const IndexLocation& location() const = 0;
 
     virtual void open() = 0;
     virtual void reopen() = 0;
@@ -99,10 +102,10 @@ class Index : private eckit::NonCopyable {
 
     virtual void visit(IndexLocationVisitor& visitor) const = 0;
 
-    const std::string &type() const ;
+    const std::string& type() const;
 
-    const IndexAxis &axes() const ;
-    const Key &key() const;
+    const IndexAxis& axes() const;
+    const Key& key() const;
 
     virtual bool get(const Key &key, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);

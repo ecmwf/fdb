@@ -34,6 +34,15 @@ public:
     virtual size_t fieldsCount() const = 0;
     virtual size_t duplicatesCount() const = 0;
 
+    virtual size_t fieldsSize() const = 0;
+    virtual size_t duplicatesSize() const = 0;
+
+    virtual size_t addFieldsCount(size_t) = 0;
+    virtual size_t addDuplicatesCount(size_t) = 0;
+
+    virtual size_t addFieldsSize(size_t i) = 0;
+    virtual size_t addDuplicatesSize(size_t i) = 0;
+
     virtual void add(const IndexStatsContent&) = 0;
 
     virtual void report(std::ostream& out, const char* indent) const = 0;
@@ -59,6 +68,9 @@ public: // methods
 
     size_t fieldsCount() const { return content_->fieldsCount(); }
     size_t duplicatesCount() const { return content_->duplicatesCount(); }
+
+    virtual size_t addFieldsCount(size_t i) { return content_->addFieldsCount(i); }
+    virtual size_t addDuplicatesCount(size_t i) { return content_->addDuplicatesCount(i); }
 
     void add(const IndexStats&);
 

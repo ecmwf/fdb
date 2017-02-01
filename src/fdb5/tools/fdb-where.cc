@@ -11,8 +11,8 @@
 #include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
 
+#include "fdb5/database/Manager.h"
 #include "fdb5/tools/FDBInspect.h"
-#include "fdb5/toc/RootManager.h"
 #include "fdb5/tools/ToolRequest.h"
 
 using eckit::Log;
@@ -56,7 +56,7 @@ void FDBWhere::finish(const eckit::option::CmdArgs& args) {
 
         fdb5::ToolRequest req(s);
 
-        std::vector<eckit::PathName> roots = fdb5::RootManager::visitableRoots(req.key());
+        std::vector<eckit::PathName> roots = fdb5::Manager::visitableLocations(req.key());
 
         if(!roots.size()) {
             Log::info() << "No roots found for request with key " << req.key() << std::endl;

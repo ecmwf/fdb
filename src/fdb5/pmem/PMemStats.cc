@@ -94,7 +94,7 @@ PMemDataStats &PMemDataStats::operator+=(const PMemDataStats &rhs) {
     return *this;
 }
 
-void PMemDataStats::add(const IndexStatsContent& rhs)
+void PMemDataStats::add(const DataStatsContent& rhs)
 {
     const PMemDataStats& stats = dynamic_cast<const PMemDataStats&>(rhs);
     *this += stats;

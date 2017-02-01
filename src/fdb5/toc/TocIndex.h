@@ -73,9 +73,12 @@ public: // methods
 
     static std::string defaulType();
 
-    const TocIndexLocation& location() const { return location_; }
+    const eckit::PathName& path() const { return location_.path(); }
+    off_t offset() const { return location_.offset(); }
 
 private: // methods
+
+    virtual const IndexLocation& location() const { return location_; }
 
     virtual void open();
     virtual void close();

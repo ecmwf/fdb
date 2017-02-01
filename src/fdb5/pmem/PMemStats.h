@@ -19,6 +19,7 @@
 
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/IndexStats.h"
+#include "fdb5/database/DataStats.h"
 
 namespace fdb5 {
 
@@ -62,6 +63,15 @@ public:
     virtual size_t fieldsCount() const { return fieldsCount_; }
     virtual size_t duplicatesCount() const { return duplicatesCount_; }
 
+    virtual size_t fieldsSize() const { return fieldsSize_; }
+    virtual size_t duplicatesSize() const { return duplicatesSize_; }
+
+    virtual size_t addFieldsCount(size_t i) { fieldsCount_ += i; return fieldsCount_; }
+    virtual size_t addDuplicatesCount(size_t i) { duplicatesCount_ += i; return duplicatesCount_; }
+
+    virtual size_t addFieldsSize(size_t i) { fieldsSize_ += i; return fieldsSize_; }
+    virtual size_t addDuplicatesSize(size_t i) { duplicatesSize_ += i; return duplicatesSize_; }
+
     virtual void add(const IndexStatsContent&);
 
     virtual void report(std::ostream &out, const char* indent) const;
@@ -71,14 +81,14 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class PMemDataStats : public IndexStatsContent {
+class PMemDataStats : public DataStatsContent {
 public:
 
     PMemDataStats();
 
     PMemDataStats& operator+= (const PMemDataStats& rhs);
 
-    virtual void add(const IndexStatsContent&);
+    virtual void add(const DataStatsContent&);
 
     virtual void report(std::ostream &out, const char* indent) const;
 };

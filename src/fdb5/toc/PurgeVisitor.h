@@ -17,17 +17,17 @@
 #define fdb5_PurgeVisitor_H
 
 
-#include "fdb5/database/ReportVisitor.h"
+#include "fdb5/toc/TocReportVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class PurgeVisitor : public ReportVisitor {
+class PurgeVisitor : public TocReportVisitor {
 public:
 
-    PurgeVisitor(DB& db);
+    PurgeVisitor(TocDB& db);
     void report(std::ostream &out) const;
     void purge(std::ostream &out) const;
 

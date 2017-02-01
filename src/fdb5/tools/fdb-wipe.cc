@@ -12,7 +12,7 @@
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/TocDB.h"
 #include "fdb5/toc/WipeVisitor.h"
 #include "fdb5/tools/FDBInspect.h"
 
@@ -60,7 +60,16 @@ void FDBWipe::process(const eckit::PathName &path, const eckit::option::CmdArgs 
     eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
     ASSERT(db->open());
 
-    fdb5::WipeVisitor visitor(*db);
+    fdb5::TocDB* tocdb = dynamic_cast<fdb5::TocDB*>(db.get());
+    if(!tocdb) {
+        std::ostringstream oss;
+        oss << "Database in " << path
+            << ", expected type " << fdb5::TocDB::dbTypeName()
+            << " but got type " << db->dbType();
+        throw eckit::BadParameter(oss.str(), Here());
+    }
+
+    fdb5::WipeVisitor visitor(*tocdb);
 
     db->visitEntries(visitor);
 

@@ -51,6 +51,7 @@ public: // methods
     Key databaseKey();
     size_t numberOfRecords() const;
 
+    const eckit::PathName& directory() const;
     const eckit::PathName& tocPath() const;
     const eckit::PathName& schemaPath() const;
 

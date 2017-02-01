@@ -16,7 +16,7 @@
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/rules/Schema.h"
 
-#include "fdb5/toc/TocDB.h"
+#include "fdb5/database/Manager.h"
 
 #include "fdb5/tools/FDBInspect.h"
 #include "fdb5/tools/ToolRequest.h"
@@ -52,7 +52,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
     if (all) {
         Key dbKey;
         Log::debug<LibFdb>() << "KEY =====> " << dbKey << std::endl;
-        std::vector<eckit::PathName> dbs = TocDB::visitableDatabases(dbKey);
+        std::vector<eckit::PathName> dbs = Manager::visitableLocations(dbKey);
         for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
             paths.push_back(*j);
         }
@@ -80,7 +80,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeySet_);
 
             Log::info() << "KEY =====> " << req.key() << std::endl;
-            std::vector<eckit::PathName> dbs = TocDB::visitableDatabases(req.key());
+            std::vector<eckit::PathName> dbs = Manager::visitableLocations(req.key());
             for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
                 paths.push_back(*j);
             }

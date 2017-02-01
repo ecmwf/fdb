@@ -38,6 +38,11 @@ TocDB::TocDB(const eckit::PathName& directory) :
 TocDB::~TocDB() {
 }
 
+char* TocDB::dbTypeName()
+{
+    return "toc";
+}
+
 void TocDB::axis(const std::string &keyword, eckit::StringSet &s) const {
     Log::error() << "axis() not implemented for " << *this << std::endl;
     NOTIMP;
@@ -188,7 +193,12 @@ std::vector<eckit::PathName> TocDB::writableDatabases(const Key &key) {
 }
 
 std::vector<eckit::PathName> TocDB::visitableDatabases(const Key &key) {
-   return databases(key, RootManager::visitableRoots(key));
+    return databases(key, RootManager::visitableRoots(key));
+}
+
+std::string TocDB::dbType() const
+{
+    return TocDB::dbTypeName();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

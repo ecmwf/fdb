@@ -17,14 +17,15 @@
 
 namespace fdb5 {
 
-
 //----------------------------------------------------------------------------------------------------------------------
 
-PurgeVisitor::PurgeVisitor(DB& db) :
-    ReportVisitor(db) {
+PurgeVisitor::PurgeVisitor(TocDB& db) :
+    TocReportVisitor(db) {
 }
 
 void PurgeVisitor::report(std::ostream &out) const {
+
+    const eckit::PathName& directory = db_.directory();
 
     out << std::endl;
     out << "Index Report:" << std::endl;
@@ -58,7 +59,7 @@ void PurgeVisitor::report(std::ostream &out) const {
     out << "Unreferenced owned data files:" << std::endl;
     for (std::map<eckit::PathName, size_t>::const_iterator i = dataUsage_.begin(); i != dataUsage_.end(); ++i) {
         if (i->second == 0) {
-            if (i->first.dirName().sameAs(directory_)) {
+            if (i->first.dirName().sameAs(directory)) {
                 out << "    " << i->first << std::endl;
                 cnt++;
             }
@@ -73,7 +74,7 @@ void PurgeVisitor::report(std::ostream &out) const {
     out << "Unreferenced adopted data files:" << std::endl;
     for (std::map<eckit::PathName, size_t>::const_iterator i = dataUsage_.begin(); i != dataUsage_.end(); ++i) {
         if (i->second == 0) {
-            if (!i->first.dirName().sameAs(directory_)) {
+            if (!i->first.dirName().sameAs(directory)) {
                 out << "    " << i->first << std::endl;
                 cnt++;
             }
@@ -101,14 +102,16 @@ void PurgeVisitor::report(std::ostream &out) const {
 
 void PurgeVisitor::purge(std::ostream& out) const {
 
-    for (std::map<const fdb5::Index *, fdb5::IndexStats>::const_iterator i = indexStats_.begin();
+    const eckit::PathName& directory = db_.directory();
+
+    for (std::map<const fdb5::Index *, IndexStats>::const_iterator i = indexStats_.begin();
             i != indexStats_.end(); ++i) {
 
-        const fdb5::IndexStats &stats = i->second;
+        const fdb5::IndexStats& stats = i->second;
 
         if (stats.fieldsCount() == stats.duplicatesCount()) {
             out << "Removing: " << *(i->first) << std::endl;
-            fdb5::TocHandler handler(directory_);
+            fdb5::TocHandler handler(directory);
             handler.writeClearRecord(*(*i).first);
         }
     }
@@ -116,7 +119,7 @@ void PurgeVisitor::purge(std::ostream& out) const {
 
     for (std::map<eckit::PathName, size_t>::const_iterator i = dataUsage_.begin(); i != dataUsage_.end(); ++i) {
         if (i->second == 0) {
-            if (i->first.dirName().sameAs(directory_)) {
+            if (i->first.dirName().sameAs(directory)) {
                 i->first.unlink();
             }
         }
@@ -124,7 +127,7 @@ void PurgeVisitor::purge(std::ostream& out) const {
 
     for (std::map<eckit::PathName, size_t>::const_iterator i = indexUsage_.begin(); i != indexUsage_.end(); ++i) {
         if (i->second == 0) {
-            if (i->first.dirName().sameAs(directory_)) {
+            if (i->first.dirName().sameAs(directory)) {
                 i->first.unlink();
             }
         }
