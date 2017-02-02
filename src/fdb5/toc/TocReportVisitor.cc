@@ -39,25 +39,29 @@ void TocReportVisitor::visit(const Index& index,
     const eckit::PathName &dataPath  = field.location().url();
     const eckit::PathName &indexPath = index.location().url();
 
+
+    TocDbStats* s = new TocDbStats();
+
     if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
         if (dataPath.dirName().sameAs(directory)) {
-            dbStats_.ownedFilesSize_ += dataPath.size();
-            dbStats_.ownedFilesCount_++;
+            (*s).ownedFilesSize_ += dataPath.size();
+            (*s).ownedFilesCount_++;
 
         } else {
-            dbStats_.adoptedFilesSize_ += dataPath.size();
-            dbStats_.adoptedFilesCount_++;
+            (*s).adoptedFilesSize_ += dataPath.size();
+            (*s).adoptedFilesCount_++;
 
         }
         allDataFiles_.insert(dataPath);
     }
 
     if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
-        dbStats_.indexFilesSize_ += indexPath.size();
+        (*s).indexFilesSize_ += indexPath.size();
         allIndexFiles_.insert(indexPath);
-        dbStats_.indexFilesCount_++;
+        (*s).indexFilesCount_++;
     }
 
+    dbStats_ += DbStats(s);
 
     indexUsage_[indexPath]++;
     dataUsage_[dataPath]++;
@@ -75,9 +79,9 @@ void TocReportVisitor::visit(const Index& index,
     }
 }
 
-DbStats TocReportVisitor::dbStatistics() const {
-    return dbStats_;
-}
+//DbStats TocReportVisitor::dbStatistics() const {
+//    return dbStats_;
+//}
 
 // IndexStats TocReportVisitor::indexStatistics() const {
 //     TocIndexStats total;

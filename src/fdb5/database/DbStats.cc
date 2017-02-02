@@ -53,6 +53,11 @@ DbStats& DbStats::operator=(const DbStats& s) {
     return *this;
 }
 
+DbStats& DbStats::operator+=(const DbStats& s) {
+    add(s);
+    return *this;
+}
+
 void DbStats::add(const DbStats& s)
 {
     content_->add(*s.content_);

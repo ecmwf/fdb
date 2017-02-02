@@ -61,7 +61,16 @@ void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs
     eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
     ASSERT(db->open());
 
-    fdb5::PurgeVisitor visitor(*db);
+    fdb5::TocDB* tocdb = dynamic_cast<fdb5::TocDB*>(db.get());
+    if(!tocdb) {
+        std::ostringstream oss;
+        oss << "Database in " << path
+            << ", expected type " << fdb5::TocDB::dbTypeName()
+            << " but got type " << db->dbType();
+        throw eckit::BadParameter(oss.str(), Here());
+    }
+
+    fdb5::PurgeVisitor visitor(*tocdb);
 
     db->visitEntries(visitor);
 

@@ -54,6 +54,8 @@ public: // methods
 
     DbStats& operator=(const DbStats&);
 
+    DbStats& operator+= (const DbStats& rhs);
+
     void add(const DbStats&);
 
     void report(std::ostream& out, const char* indent = "") const;
