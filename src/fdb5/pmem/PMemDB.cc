@@ -206,7 +206,8 @@ eckit::PathName PMemDB::basePath() const {
 }
 
 size_t PMemDB::poolsSize() const {
-    NOTIMP;
+
+    return pool_->size() + dataPoolMgr_->dataSize();
 }
 
 size_t PMemDB::schemaSize() const {

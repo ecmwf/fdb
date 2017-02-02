@@ -181,6 +181,21 @@ const std::map<uint64_t, DataPool*>& DataPoolManager::pools() const {
 }
 
 
+size_t DataPoolManager::dataSize() {
+
+    // Don't need to lock access to master pools list, as it is append only and always valid for read.
+
+    size_t data_size = 0;
+
+    for (size_t idx = 0; idx < masterRoot_.dataPoolUUIDs().size(); idx++) {
+
+        data_size += getPool(masterRoot_.dataPoolUUIDs()[idx]).size();
+    }
+
+    return data_size;
+}
+
+
 void DataPoolManager::print(std::ostream& s) const {
     s << "PMemDataPoolManager(" << poolDir_ << ")";
 }

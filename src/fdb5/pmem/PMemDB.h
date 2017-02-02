@@ -43,6 +43,8 @@ public: // methods
     virtual ~PMemDB();
 
     size_t schemaSize() const;
+
+    /// The total size of all of the pools involved in this database
     size_t poolsSize() const;
 
 protected: // methods

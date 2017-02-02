@@ -73,6 +73,9 @@ public: // methods
 
     DataPool& getPool(uint64_t uuid);
 
+    /// The total size of the data pools (does not include the master pool).
+    size_t dataSize();
+
 protected: // methods
 
     /// Obtain the current pool for writing. If no pool is opened, then open/create the latest one.
