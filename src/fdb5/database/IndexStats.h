@@ -72,6 +72,12 @@ public: // methods
     virtual size_t addFieldsCount(size_t i) { return content_->addFieldsCount(i); }
     virtual size_t addDuplicatesCount(size_t i) { return content_->addDuplicatesCount(i); }
 
+    size_t fieldsSize() const { return content_->fieldsSize(); }
+    size_t duplicatesSize() const { return content_->duplicatesSize(); }
+
+    virtual size_t addFieldsSize(size_t i) { return content_->addFieldsSize(i); }
+    virtual size_t addDuplicatesSize(size_t i) { return content_->addDuplicatesSize(i); }
+
     void add(const IndexStats&);
 
     void report(std::ostream& out, const char* indent = "") const;

@@ -40,7 +40,7 @@ public:
 
     TocReportVisitor(TocDB& db);
 
-    IndexStats indexStatistics() const;
+    // IndexStats indexStatistics() const;
     DbStats dbStatistics() const;
 
 private: // methods

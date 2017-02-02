@@ -75,17 +75,17 @@ void TocReportVisitor::visit(const Index& index,
     }
 }
 
-TocDbStats TocReportVisitor::dbStatistics() const {
+DbStats TocReportVisitor::dbStatistics() const {
     return dbStats_;
 }
 
-TocIndexStats TocReportVisitor::indexStatistics() const {
-    TocIndexStats total;
-    for (std::map<const Index *, TocIndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-        total += i->second;
-    }
-    return total;
-}
+// IndexStats TocReportVisitor::indexStatistics() const {
+//     TocIndexStats total;
+//     for (std::map<const Index *, TocIndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+//         total += i->second;
+//     }
+//     return total;
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 
