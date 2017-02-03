@@ -13,6 +13,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/memory/ScopedPtr.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -60,7 +61,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     eckit::ScopedPtr<DB> newDB( DBFactory::buildReader(key) );
 
-    eckit::Log::info() << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")" << std::endl;
+    eckit::Log::debug<LibFdb>() << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")" << std::endl;
 
     if (!newDB->open()) {
         eckit::Log::info() << "Database does not exists " << key << std::endl;

@@ -66,7 +66,7 @@ protected: // members
 
     std::set<std::string> active_;
 
-    std::map<const Index*, IndexStats> indexStats_;
+    std::map<Index, IndexStats> indexStats_;
 
     fdb5::Report report_;
 

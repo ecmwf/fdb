@@ -31,7 +31,6 @@ namespace fdb5 {
 
 TocDBWriter::TocDBWriter(const Key &key) :
     TocDB(key),
-    current_(0),
     dirty_(false) {
     writeInitRecord(key);
     loadSchema();
@@ -40,7 +39,6 @@ TocDBWriter::TocDBWriter(const Key &key) :
 
 TocDBWriter::TocDBWriter(const eckit::PathName &directory) :
     TocDB(directory),
-    current_(0),
     dirty_(false) {
 
     NOTIMP; // TODO: Not clear what should occur here for writeInitRecord.
@@ -67,7 +65,7 @@ bool TocDBWriter::selectIndex(const Key& key) {
 }
 
 void TocDBWriter::deselectIndex() {
-    current_ = 0;
+    current_ = Index();
     currentIndexKey_ = Key();
 }
 

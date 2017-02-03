@@ -93,8 +93,8 @@ void TocDBReader::close() {
 
 eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
 
-    eckit::Log::info() << "Trying to retrieve key " << key << std::endl;
-    eckit::Log::info() << "Scanning indexes " << matching_.size() << std::endl;
+    eckit::Log::debug<LibFdb>() << "Trying to retrieve key " << key << std::endl;
+    eckit::Log::debug<LibFdb>() << "Scanning indexes " << matching_.size() << std::endl;
 
     Field field;
     for (std::vector<Index>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {

@@ -99,7 +99,7 @@ void TocDB::loadSchema() {
 }
 
 void TocDB::checkSchema(const Key &key) const {
-    Timer timer("TocDB::checkSchema()");
+    Timer timer("TocDB::checkSchema()", Log::debug<LibFdb>());
     ASSERT(key.rule());
     schema_.compareTo(key.rule()->schema());
 }

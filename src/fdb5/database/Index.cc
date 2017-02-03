@@ -119,6 +119,7 @@ Index::Index() :
 Index::Index(IndexBase* p) :
     content_(p),
     null_(false) {
+    ASSERT(p);
     content_->attach();
 }
 
