@@ -53,7 +53,9 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
     btree_( 0 ),
     dirty_(false),
     mode_(mode),
-    location_(path, offset) {}
+    location_(path, offset) {
+    eckit::Log::debug<LibFdb>() << "Opening " << *this << std::endl;
+}
 
 TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
     FileStoreWrapper(directory, s),
@@ -61,10 +63,12 @@ TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eck
     btree_(0),
     dirty_(false),
     mode_(TocIndex::READ),
-    location_(path, offset) {}
+    location_(path, offset) {
+    eckit::Log::debug<LibFdb>() << "Opening " << *this << std::endl;
+}
 
 TocIndex::~TocIndex() {
-    eckit::Log::debug<LibFdb>() << "Closing TocIndex " << *this << std::endl;
+    eckit::Log::debug<LibFdb>() << "Closing " << *this << std::endl;
 }
 
 void TocIndex::encode(eckit::Stream &s) const {
@@ -166,7 +170,7 @@ void TocIndex::entries(EntryVisitor &visitor) const {
 }
 
 void TocIndex::print(std::ostream &out) const {
-    out << "TocIndex[path=" << location_.path_ << ",offset="<< location_.offset_ << "]";
+    out << "TocIndex(path=" << location_.path_ << ",offset="<< location_.offset_ << ")";
 }
 
 
@@ -186,9 +190,6 @@ void TocIndex::dump(std::ostream &out, const char* indent, bool simple) const {
 IndexStats TocIndex::statistics() const
 {
     IndexStats s(new TocIndexStats());
-
-    NOTIMP;
-
     return s;
 }
 

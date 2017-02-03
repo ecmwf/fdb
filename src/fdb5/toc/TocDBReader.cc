@@ -109,7 +109,7 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
 
 
 void TocDBReader::print(std::ostream &out) const {
-    out << "TocDBReader[]";
+    out << "TocDBReader(" << directory() << ")";
 }
 
 std::vector<Index> TocDBReader::indexes() const

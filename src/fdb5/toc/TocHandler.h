@@ -39,13 +39,13 @@ public: // methods
     ~TocHandler();
 
     bool exists() const;
-    void checkUID();
+    void checkUID() const;
 
     void writeInitRecord(const Key &tocKey);
     void writeClearRecord(const Index &);
     void writeIndexRecord(const Index &);
 
-    std::vector<Index> loadIndexes();
+    std::vector<Index> loadIndexes() const;
 
     Key databaseKey();
     size_t numberOfRecords() const;
@@ -61,11 +61,11 @@ public: // methods
 protected: // members
 
     const eckit::PathName directory_;
-    long dbUID_;
+    mutable long dbUID_;
     long userUID_;
 
 
-    long dbUID();
+    long dbUID() const;
 
 private: // methods
 

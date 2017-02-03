@@ -86,9 +86,9 @@ eckit::PathName TocDB::basePath() const {
 
 void TocDB::visitEntries(EntryVisitor& visitor) {
 
-    std::vector<Index> indexes = loadIndexes();
+    std::vector<Index> all = indexes();
 
-    for (std::vector<Index>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+    for (std::vector<Index>::const_iterator i = all.begin(); i != all.end(); ++i) {
         i->entries(visitor);
     }
 }
@@ -117,8 +117,7 @@ DbStats TocDB::statistics() const
 }
 
 std::vector<Index> TocDB::indexes() const {
-    throw eckit::NotImplemented("TocDB::indexes() isn't implemented for this DB type "
-                                "-- perhaps this is a writer?", Here());
+    return loadIndexes();
 }
 
 void TocDB::visit(DBVisitor &visitor) {

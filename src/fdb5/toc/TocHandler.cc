@@ -64,7 +64,7 @@ bool TocHandler::exists() const {
     return tocPath_.exists();
 }
 
-void TocHandler::checkUID() {
+void TocHandler::checkUID() const {
 
     static bool fdbOnlyCreatorCanWrite = eckit::Resource<bool>("fdbOnlyCreatorCanWrite", true);
     if (!fdbOnlyCreatorCanWrite) {
@@ -146,7 +146,7 @@ bool TocHandler::readNext( TocRecord &r ) const {
     ASSERT(len == sizeof(TocRecord::Header));
 
     SYSCALL2( len = ::read(fd_, &r.payload_, r.header_.size_ - sizeof(TocRecord::Header)), tocPath_ );
-    ASSERT(len == r.header_.size_ - sizeof(TocRecord::Header));
+    ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
 
     if ( TocRecord::currentVersion() != r.header_.version_ ) {
         std::ostringstream oss;
@@ -301,7 +301,7 @@ public:
     }
 };
 
-long TocHandler::dbUID() {
+long TocHandler::dbUID() const {
 
     if (dbUID_ != -1) {
         return dbUID_;
@@ -360,7 +360,7 @@ const eckit::PathName& TocHandler::directory() const
     return directory_;
 }
 
-std::vector<Index> TocHandler::loadIndexes() {
+std::vector<Index> TocHandler::loadIndexes() const {
 
     std::vector<Index> indexes;
 

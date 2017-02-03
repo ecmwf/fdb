@@ -43,8 +43,8 @@ TocDBWriter::TocDBWriter(const eckit::PathName &directory) :
     current_(0),
     dirty_(false) {
 
-    // TODO: Not clear what should occur here for writeInitRecord.
-    NOTIMP;
+    NOTIMP; // TODO: Not clear what should occur here for writeInitRecord.
+
     loadSchema();
     checkUID();
 }
@@ -277,9 +277,7 @@ void TocDBWriter::flushDataHandles() {
 
 
 void TocDBWriter::print(std::ostream &out) const {
-    out << "TocDBWriter["
-        /// @todo should print more here
-        << "]";
+    out << "TocDBWriter(" << directory() << ")";
 }
 
 static DBBuilder<TocDBWriter> builder("toc.writer", false, true);
