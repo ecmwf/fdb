@@ -15,8 +15,8 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
-
 #include "fdb5/pmem/PoolEntry.h"
 #include "fdb5/pmem/PoolGroup.h"
 
@@ -215,6 +215,8 @@ std::vector<eckit::PathName> PoolManager::visitablePools(const Key& key) {
             i->visitable(pools);
         }
     }
+
+    Log::debug<LibFdb>() << "Visitable Pools " << pools << std::endl;
 
     return std::vector<eckit::PathName>(pools.begin(), pools.end());
 }

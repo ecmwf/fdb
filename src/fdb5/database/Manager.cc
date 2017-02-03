@@ -11,11 +11,13 @@
 
 #include "fdb5/database/Manager.h"
 
+#include "eckit/log/Log.h"
 #include "eckit/utils/Regex.h"
 #include "eckit/config/Resource.h"
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Engine.h"
 
@@ -118,6 +120,29 @@ std::string Manager::engine(const Key& key)
     throw eckit::SeriousBug(oss.str());
 }
 
+std::vector<std::string> Manager::engines(const Key& key)
+{
+    pthread_once(&once, readEngineTypes);
+
+    std::string expanded(key.valuesToString());
+
+    std::vector<std::string> r;
+
+    for (EngineTable::const_iterator i = engineTypes.begin(); i != engineTypes.end() ; ++i) {
+        if(i->match(expanded)) {
+            r.push_back(i->engine());
+        }
+    }
+
+    if(r.empty()) {
+        std::ostringstream oss;
+        oss << "No FDB Engine type found for " << key << " (" << expanded << ")";
+        throw eckit::SeriousBug(oss.str());
+    }
+
+    return r;
+}
+
 std::string Manager::engine(const PathName& path)
 {
     std::vector<Engine*> engines = EngineRegistry::engines();
@@ -144,30 +169,55 @@ eckit::PathName Manager::location(const Key& key) {
 
 std::vector<PathName> Manager::allLocations(const Key& key)
 {
-    /// @todo this needs to be a set_union for all the engines that match the key
-    ///
-    const std::string& name = Manager::engine(key);
+    std::vector<std::string> engines = Manager::engines(key);
 
-    return Engine::backend(name).allLocations(key);
+    Log::debug<LibFdb>() << "Matching engines for key " << key << " -> " << engines << std::endl;
+
+    std::vector<PathName> r; // union of all locations
+
+    for(std::vector<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
+        Log::debug<LibFdb>() << "Engine ===> " << *i << std::endl;
+        std::vector<PathName> p = Engine::backend(*i).allLocations(key);
+        r.insert(r.end(), p.begin(), p.end());
+    }
+
+    return r;
 }
 
 
 std::vector<eckit::PathName> Manager::visitableLocations(const Key& key) {
 
-    /// @todo this needs to be a set_union for all the engines that match the key
-    ///
-    const std::string& name = Manager::engine(key);
+    std::vector<std::string> engines = Manager::engines(key);
 
-    return Engine::backend(name).visitableLocations(key);
+    Log::debug<LibFdb>() << "Matching engines for key " << key << " -> " << engines << std::endl;
+
+    std::vector<PathName> r; // union of all locations
+
+    for(std::vector<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
+        Log::debug<LibFdb>() << "Engine ===> " << *i << std::endl;
+        std::vector<PathName> p = Engine::backend(*i).visitableLocations(key);
+        r.insert(r.end(), p.begin(), p.end());
+    }
+
+    return r;
+
 }
 
 std::vector<eckit::PathName> Manager::writableLocations(const Key& key) {
 
-    /// @todo this needs to be a set_union for all the engines that match the key
-    ///
-    const std::string& name = Manager::engine(key);
+    std::vector<std::string> engines = Manager::engines(key);
 
-    return Engine::backend(name).writableLocations(key);
+    Log::debug<LibFdb>() << "Matching engines for key " << key << " -> " << engines << std::endl;
+
+    std::vector<PathName> r; // union of all locations
+
+    for(std::vector<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
+        Log::debug<LibFdb>() << "Engine ===> " << *i << std::endl;
+        std::vector<PathName> p = Engine::backend(*i).writableLocations(key);
+        r.insert(r.end(), p.begin(), p.end());
+    }
+
+    return r;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

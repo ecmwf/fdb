@@ -23,9 +23,12 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 class TocEngine : public fdb5::Engine {
-public:
+
+public: // methods
 
     static const char* typeName() { return "toc"; }
+
+    static std::vector<eckit::PathName> databases(const Key& key, const std::vector<eckit::PathName>& dirs);
 
 protected: // methods
 

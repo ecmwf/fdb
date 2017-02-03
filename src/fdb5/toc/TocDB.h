@@ -39,14 +39,6 @@ public: // methods
 
     static const char* dbTypeName() { return TocEngine::typeName(); }
 
-    static void matchKeyToDB(const Key& key, std::set<Key>& keys);
-
-    static std::vector<eckit::PathName> databases(const Key& key, const std::vector<eckit::PathName>& dirs);
-
-    static std::vector<eckit::PathName> allDatabases(const Key& key);
-    static std::vector<eckit::PathName> writableDatabases(const Key& key);
-    static std::vector<eckit::PathName> visitableDatabases(const Key& key);
-
 protected: // methods
 
     virtual std::string dbType() const;

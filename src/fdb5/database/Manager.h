@@ -33,6 +33,9 @@ public: // methods
     /// Uniquely selects the engine that will handle this Key on insertion or if already exists
     static std::string engine(const Key &key);
 
+    /// set union of all the engines that can possibly handle this key
+    static std::vector<std::string> engines(const Key &key);
+
     /// Uniquely selects the engine that will handle this Path by checking possible handlers
     static std::string engine(const eckit::PathName& path);
 

@@ -27,6 +27,8 @@ public:
 
     static const char* typeName() { return "pmem"; }
 
+    static std::vector<eckit::PathName> databases(const Key& key, const std::vector<eckit::PathName>& dirs);
+
 protected: // methods
 
     virtual std::string name() const;

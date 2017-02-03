@@ -73,7 +73,7 @@ const DBFactory &DBFactory::findFactory(const std::string &name) {
 
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    Log::info() << "Looking for DBFactory [" << name << "]" << std::endl;
+    Log::debug<LibFdb>() << "Looking for DBFactory [" << name << "]" << std::endl;
 
     std::map<std::string, DBFactory *>::const_iterator j = m->find(name);
     if (j == m->end()) {

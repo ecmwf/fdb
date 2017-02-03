@@ -11,31 +11,32 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/types/Date.h"
 #include "eckit/log/Log.h"
+#include "eckit/config/Resource.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
-#include "fdb5/rules/Schema.h"
-
 #include "fdb5/database/Manager.h"
-
+#include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBInspect.h"
 #include "fdb5/tools/ToolRequest.h"
 
 using eckit::Log;
+using eckit::Resource;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FDBInspect::FDBInspect(int argc, char **argv, const std::vector<std::string>& minimumKeySet):
-    FDBTool(argc, argv),
-    minimumKeySet_(minimumKeySet) {
-    if (minimumKeySet_.size() == 0) {
+FDBInspect::FDBInspect(int argc, char **argv, std::string defaultMinimunKeySet) :
+    FDBTool(argc, argv) {
+
+    minimumKeySet_ = Resource<std::vector<std::string> >("wipeMinimumKeySet", defaultMinimunKeySet, true);
+
+    if(minimumKeySet_.size() == 0) {
         options_.push_back(new eckit::option::SimpleOption<bool>("all", "Visit all FDB databases"));
     }
 }
-
 
 void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
@@ -54,6 +55,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
         Log::debug<LibFdb>() << "KEY =====> " << dbKey << std::endl;
         std::vector<eckit::PathName> dbs = Manager::visitableLocations(dbKey);
         for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
+            Log::debug<LibFdb>() << "Visitable FDB DB location " << *j << std::endl;
             paths.push_back(*j);
         }
 

@@ -49,10 +49,6 @@ WipeVisitor::WipeVisitor(TocDB& db) : TocReportVisitor(db) {
 
     const eckit::PathName& directory = db_.directory();
 
-    eckit::Log::info() << "Scanning "
-                       << directory
-                       << std::endl;
-
     scan(directory.realName());
 
     eckit::Log::info() << "Found "

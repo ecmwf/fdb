@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
@@ -16,15 +15,14 @@
 #include "fdb5/toc/WipeVisitor.h"
 #include "fdb5/tools/FDBInspect.h"
 
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBWipe : public fdb5::FDBInspect {
 
   public: // methods
 
-    FDBWipe(int argc, char **argv) :
-        fdb5::FDBInspect(argc, argv,
-            eckit::Resource<std::vector<std::string> >("wipeMinimumKeySet", "class,expver,stream,date,time", true)),
+    FDBWipe(int argc, char **argv) : fdb5::FDBInspect(argc, argv, "class,expver,stream,date,time"),
         doit_(false) {
 
         options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));

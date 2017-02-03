@@ -10,7 +10,7 @@
 
 #include "eckit/log/Timer.h"
 
-#include "fdb5/config/MasterConfig.h"
+#include "fdb5/LibFdb.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocDB.h"
@@ -94,7 +94,7 @@ void TocDB::visitEntries(EntryVisitor& visitor) {
 }
 
 void TocDB::loadSchema() {
-    Timer timer("TocDB::loadSchema()");
+    Timer timer("TocDB::loadSchema()", Log::debug<LibFdb>());
     schema_.load( schemaPath() );
 }
 
@@ -122,70 +122,6 @@ std::vector<Index> TocDB::indexes() const {
 
 void TocDB::visit(DBVisitor &visitor) {
     visitor(*this);
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-void TocDB::matchKeyToDB(const Key& key, std::set<Key>& keys)
-{
-    const Schema& schema = MasterConfig::instance().schema();
-    schema.matchFirstLevel(key, keys);
-}
-
-std::vector<eckit::PathName> TocDB::databases(const Key &key, const std::vector<eckit::PathName>& dirs) {
-
-    std::set<Key> keys;
-
-    matchKeyToDB(key,keys);
-
-    std::vector<eckit::PathName> result;
-    std::set<eckit::PathName> seen;
-
-    for (std::vector<eckit::PathName>::const_iterator j = dirs.begin(); j != dirs.end(); ++j) {
-
-        std::vector<eckit::PathName> subdirs;
-        eckit::PathName::match((*j) / "*:*", subdirs, false);
-
-        for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
-
-            Regex re("^" + (*i).valuesToString() + "$");
-
-            for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
-
-                if(seen.find(*k) != seen.end()) {
-                    continue;
-                }
-
-                if (re.match((*k).baseName())) {
-                    try {
-                        TocHandler toc(*k);
-                        if (toc.databaseKey().match(key)) {
-                            result.push_back(*k);
-                        }
-                    } catch (eckit::Exception& e) {
-                        eckit::Log::error() <<  "Error loading FDB database from " << *k << std::endl;
-                        eckit::Log::error() << e.what() << std::endl;
-                    }
-                    seen.insert(*k);;
-                }
-
-            }
-        }
-    }
-
-    return result;
-}
-
-std::vector<eckit::PathName> TocDB::allDatabases(const Key &key) {
-   return databases(key, RootManager::allRoots(key));
-}
-
-std::vector<eckit::PathName> TocDB::writableDatabases(const Key &key) {
-   return databases(key, RootManager::writableRoots(key));
-}
-
-std::vector<eckit::PathName> TocDB::visitableDatabases(const Key &key) {
-    return databases(key, RootManager::visitableRoots(key));
 }
 
 std::string TocDB::dbType() const
