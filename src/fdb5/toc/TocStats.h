@@ -35,6 +35,8 @@ public:
 
     TocDbStats();
 
+    static DbStats make() { return DbStats(new TocDbStats()); }
+
     size_t dbCount_;
     size_t tocRecordsCount_;
 

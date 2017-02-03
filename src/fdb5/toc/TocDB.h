@@ -20,6 +20,7 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/TocEngine.h"
 
 namespace fdb5 {
 
@@ -36,7 +37,7 @@ public: // methods
 
     virtual ~TocDB();
 
-    static char* dbTypeName();
+    static const char* dbTypeName() { return TocEngine::typeName(); }
 
     static void matchKeyToDB(const Key& key, std::set<Key>& keys);
 
@@ -69,7 +70,7 @@ protected: // methods
 
     virtual DbStats statistics() const;
 
-    std::vector<Index*> indexes() const;
+    std::vector<Index> indexes() const;
 
 private: // members
 

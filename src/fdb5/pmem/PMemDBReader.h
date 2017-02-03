@@ -39,7 +39,7 @@ public: // methods
     virtual bool selectIndex(const Key &key);
     virtual eckit::DataHandle* retrieve(const Key &key) const;
 
-    std::vector<Index*> indexes() const;
+    std::vector<Index> indexes() const;
 
 private: // methods
 

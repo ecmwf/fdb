@@ -14,12 +14,14 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/FileHandle.h"
-#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/log/BigNum.h"
+#include "eckit/log/Log.h"
+#include "eckit/maths/Functions.h"
+#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
-#include "eckit/maths/Functions.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/toc/TocHandler.h"
@@ -233,7 +235,7 @@ void TocHandler::writeClearRecord(const Index &index) {
             s << location.offset();
             handler_.append(r, s.position());
 
-            eckit::Log::info() << "TOC_CLEAR " << location.path().baseName() << " - " << location.offset() << std::endl;
+            eckit::Log::debug<LibFdb>() << "TOC_CLEAR " << location.path().baseName() << " - " << location.offset() << std::endl;
         }
 
     private:
@@ -244,7 +246,8 @@ void TocHandler::writeClearRecord(const Index &index) {
     index.visit(writeVisitor);
 }
 
-void TocHandler::writeIndexRecord(const Index &index) {
+void TocHandler::writeIndexRecord(const Index& index) {
+
     openForAppend();
     TocHandlerCloser closer(*this);
 
@@ -265,7 +268,7 @@ void TocHandler::writeIndexRecord(const Index &index) {
             index_.encode(s);
             handler_.append(r, s.position());
 
-            eckit::Log::info() << "TOC_INDEX " << location.path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
+            eckit::Log::debug<LibFdb>() << "TOC_INDEX " << location.path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
         }
 
     private:
@@ -286,9 +289,9 @@ class HasPath {
 
 public:
     HasPath(const eckit::PathName &path, off_t offset): path_(path), offset_(offset) {}
-    bool operator()(const Index *index) const {
+    bool operator()(const Index index) const {
 
-        const TocIndex* tocidx = dynamic_cast<const TocIndex*>(index);
+        const TocIndex* tocidx = dynamic_cast<const TocIndex*>(index.content());
 
         if(!tocidx) {
             throw eckit::NotImplemented("Index is not of TocIndex type -- referencing unknown Index types isn't supported", Here());
@@ -357,9 +360,9 @@ const eckit::PathName& TocHandler::directory() const
     return directory_;
 }
 
-std::vector<Index *> TocHandler::loadIndexes() {
+std::vector<Index> TocHandler::loadIndexes() {
 
-    std::vector<Index *> indexes;
+    std::vector<Index> indexes;
 
     if (!tocPath_.exists()) {
         return indexes;
@@ -379,7 +382,7 @@ std::vector<Index *> TocHandler::loadIndexes() {
         std::string type;
 
         off_t offset;
-        std::vector<Index *>::iterator j;
+        std::vector<Index>::iterator j;
 
         count_++;
 
@@ -403,9 +406,8 @@ std::vector<Index *> TocHandler::loadIndexes() {
             s >> path;
             s >> offset;
             // eckit::Log::info() << "TOC_CLEAR " << path << " - " << offset << std::endl;
-            j = std::find_if (indexes.begin(), indexes.end(), HasPath(directory_ / path, offset));
+            j = std::find_if(indexes.begin(), indexes.end(), HasPath(directory_ / path, offset));
             if (j != indexes.end()) {
-                delete (*j);
                 indexes.erase(j);
             }
             break;
@@ -422,13 +424,6 @@ std::vector<Index *> TocHandler::loadIndexes() {
 
     return indexes;
 
-}
-
-void TocHandler::freeIndexes(std::vector<Index *> &indexes) {
-    for (std::vector<Index *>::iterator j = indexes.begin(); j != indexes.end(); ++j) {
-        delete (*j);
-    }
-    indexes.clear();
 }
 
 const eckit::PathName &TocHandler::tocPath() const {
@@ -454,39 +449,41 @@ void TocHandler::dump(std::ostream& out, bool simple) {
         std::string type;
 
         off_t offset;
-        std::vector<Index *>::iterator j;
-        Index *index = 0;
+        std::vector<Index>::iterator j;
+        Index index = 0;
 
         r.dump(out, simple);
 
         switch (r.header_.tag_) {
 
-        case TocRecord::TOC_INIT:
-            out << "  Key: " << Key(s);
-            if(!simple) { out << std::endl; }
-            break;
+            case TocRecord::TOC_INIT: {
+                out << "  Key: " << Key(s);
+                if(!simple) { out << std::endl; }
+                break;
+            }
 
-        case TocRecord::TOC_INDEX:
-            s >> path;
-            s >> offset;
-            s >> type;
-            out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
-            if(!simple) { out << std::endl; }
-            index = new TocIndex(s, directory_, directory_ / path, offset);
-            index->dump(out, "  ", simple);
-            delete index;
-            break;
+            case TocRecord::TOC_INDEX: {
+                s >> path;
+                s >> offset;
+                s >> type;
+                out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
+                if(!simple) { out << std::endl; }
+                Index index(new TocIndex(s, directory_, directory_ / path, offset));
+                index.dump(out, "  ", simple);
+                break;
+            }
 
-        case TocRecord::TOC_CLEAR:
-            s >> path;
-            s >> offset;
-            out << "  Path: " << path << ", offset: " << offset << std::endl;
-            break;
+            case TocRecord::TOC_CLEAR: {
+                s >> path;
+                s >> offset;
+                out << "  Path: " << path << ", offset: " << offset << std::endl;
+                break;
+            }
 
-        default:
-            out << "   Unknown TOC entry" << std::endl;
-            break;
-
+            default: {
+                out << "   Unknown TOC entry" << std::endl;
+                break;
+            }
         }
         out << std::endl;
 

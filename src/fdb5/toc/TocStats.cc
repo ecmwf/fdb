@@ -33,7 +33,6 @@ TocDbStats::TocDbStats():
     adoptedFilesCount_(0),
     indexFilesCount_(0)
 {
-    Log::debug<LibFdb>() << Here() << std::endl;
 }
 
 TocDbStats& TocDbStats::operator+=(const TocDbStats &rhs) {

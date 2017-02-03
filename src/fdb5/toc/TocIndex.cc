@@ -9,6 +9,9 @@
  */
 
 #include "eckit/log/BigNum.h"
+
+#include "fdb5/LibFdb.h"
+#include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/toc/FieldRef.h"
@@ -24,7 +27,7 @@ class TocIndexCloser {
     bool opened_;
 
 public:
-    TocIndexCloser(const TocIndex &index): opened_(index.btree_), index_(index) {
+    TocIndexCloser(const TocIndex &index): index_(index), opened_(index.btree_) {
         if (!opened_) {
             const_cast<TocIndex&>(index_).open();
         }
@@ -46,7 +49,7 @@ public:
 
 TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
     FileStoreWrapper(path.dirName()),
-    Index(key, type),
+    IndexBase(key, type),
     btree_( 0 ),
     dirty_(false),
     mode_(mode),
@@ -54,13 +57,14 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
 
 TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
     FileStoreWrapper(directory, s),
-    Index(s),
+    IndexBase(s),
     btree_(0),
     dirty_(false),
     mode_(TocIndex::READ),
     location_(path, offset) {}
 
 TocIndex::~TocIndex() {
+    eckit::Log::debug<LibFdb>() << "Closing TocIndex " << *this << std::endl;
 }
 
 void TocIndex::encode(eckit::Stream &s) const {
@@ -157,7 +161,7 @@ public:
 void TocIndex::entries(EntryVisitor &visitor) const {
     TocIndexCloser closer(*this);
 
-    TocIndexVisitor v(*this, prefix_, files_, visitor);
+    TocIndexVisitor v( Index(const_cast<TocIndex*>(this)), prefix_, files_, visitor);
     btree_->visit(v);
 }
 
@@ -177,6 +181,15 @@ void TocIndex::dump(std::ostream &out, const char* indent, bool simple) const {
         files_.dump(out, indent);
         axes_.dump(out, indent);
     }
+}
+
+IndexStats TocIndex::statistics() const
+{
+    IndexStats s(new TocIndexStats());
+
+    NOTIMP;
+
+    return s;
 }
 
 //-----------------------------------------------------------------------------

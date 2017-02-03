@@ -169,20 +169,20 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     PatchArchiver archiver(key_);
 
-    const std::vector<fdb5::Index*> indexes = db->indexes();
+    const std::vector<fdb5::Index> indexes = db->indexes();
 
     size_t count = count_;
     eckit::Length total = total_;
 
     fdb5::HandleGatherer gatherer(false);
 
-    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+    for (std::vector<fdb5::Index>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
 
         PatchVisitor visitor(gatherer, count_, total_);
 
-        eckit::Log::info() << "Scanning" << *(*i) << std::endl;
+        eckit::Log::info() << "Scanning" << *i << std::endl;
 
-        (*i)->entries(visitor);
+        i->entries(visitor);
 
         eckit::ScopedPtr<eckit::DataHandle> handle(gatherer.dataHandle());
 
@@ -192,7 +192,7 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
                            << ") to copy to "
                            << key_
                            << " from "
-                           << *(*i)
+                           << *i
                            << std::endl;
 
 

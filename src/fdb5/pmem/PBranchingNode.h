@@ -32,7 +32,7 @@ namespace fdb5 {
 
 class EntryVisitor;
 class Schema;
-class Index;
+class IndexBase;
 
 namespace pmem {
 
@@ -90,7 +90,7 @@ public: // methods
                      DataPoolManager& mgr,
                      std::vector<Key>& keys,
                      size_t depth,
-                     const Index* index=0);
+                     const fdb5::IndexBase* index=0);
 
     /// Returns true if this node is (or at least has been used as) an Index.
     bool isIndex() const;

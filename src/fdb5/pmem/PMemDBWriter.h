@@ -35,7 +35,6 @@ public: // methods
 
     virtual bool selectIndex(const Key &key);
     virtual void close();
-    virtual void deselectIndex();
     virtual void archive(const Key &key, const void *data, eckit::Length length);
 
 private: // methods

@@ -63,9 +63,7 @@ bool PMemDBReader::selectIndex(const Key &key) {
 
 
 void PMemDBReader::axis(const std::string& keyword, eckit::StringSet& s) const {
-
-    ASSERT(currentIndex_);
-    s = currentIndex_->axes().values(keyword);
+    s = currentIndex_.axes().values(keyword);
 }
 
 
@@ -75,16 +73,15 @@ eckit::DataHandle* PMemDBReader::retrieve(const Key &key) const {
     eckit::Log::info() << "From index " << currentIndex_ << std::endl;
 
     Field field;
-    if (currentIndex_->get(key, field))
+    if (currentIndex_.get(key, field))
         return field.dataHandle();
 
     return 0;
 }
 
-std::vector<Index*> PMemDBReader::indexes() const {
+std::vector<Index> PMemDBReader::indexes() const {
     NOTIMP;
 }
-
 
 void PMemDBReader::print(std::ostream &out) const {
     out << "PMemDBReader["

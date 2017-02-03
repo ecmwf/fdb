@@ -15,13 +15,15 @@
 
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/TocStats.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 TocReportVisitor::TocReportVisitor(TocDB& db) :
-    db_(db) {
+    db_(db),
+    dbStats_(TocDbStats::make()){
 }
 
 void TocReportVisitor::visit(const Index& index,
@@ -29,15 +31,17 @@ void TocReportVisitor::visit(const Index& index,
                    const std::string& indexFingerprint,
                    const std::string& fieldFingerprint) {
 
-    IndexStats& stats = indexStats_[&index];
+    IndexStats stats = index.statistics();
+
+    indexStats_[index] = stats;
 
     const eckit::PathName& directory = db_.directory();
 
     stats.addFieldsCount(1);
     stats.addFieldsSize( field.location().length() );
 
-    const eckit::PathName &dataPath  = field.location().url();
-    const eckit::PathName &indexPath = index.location().url();
+    const eckit::PathName& dataPath  = field.location().url();
+    const eckit::PathName& indexPath = index.location().url();
 
 
     TocDbStats* s = new TocDbStats();
@@ -78,18 +82,6 @@ void TocReportVisitor::visit(const Index& index,
         dataUsage_[dataPath]--;
     }
 }
-
-//DbStats TocReportVisitor::dbStatistics() const {
-//    return dbStats_;
-//}
-
-// IndexStats TocReportVisitor::indexStatistics() const {
-//     TocIndexStats total;
-//     for (std::map<const Index *, TocIndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-//         total += i->second;
-//     }
-//     return total;
-// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

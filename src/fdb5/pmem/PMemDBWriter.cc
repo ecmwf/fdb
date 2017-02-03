@@ -35,13 +35,12 @@ PMemDBWriter::~PMemDBWriter() {
 bool PMemDBWriter::selectIndex(const Key &key) {
 
     if (indexes_.find(key) == indexes_.end()) {
-        indexes_[key] = new PMemIndex(key, root_->getCreateBranchingNode(key), *dataPoolMgr_);
+        indexes_[key] = Index(new PMemIndex(key, root_->getCreateBranchingNode(key), *dataPoolMgr_));
     }
 
     currentIndex_ = indexes_[key];
 
-    eckit::Log::info() << "PMemDBWriter::selectIndex " << key
-                       << ", found match" << std::endl;
+    eckit::Log::info() << "PMemDBWriter::selectIndex " << key << ", found match" << std::endl;
 
     return true;
 }
@@ -51,20 +50,13 @@ void PMemDBWriter::close() {
     // Close any open indices
 
     for (IndexStore::iterator it = indexes_.begin(); it != indexes_.end(); ++it) {
-        Index* idx = it->second;
-        idx->close();
-        delete idx;
+        Index& idx = it->second;
+        idx.close();
     }
-}
-
-void PMemDBWriter::deselectIndex() {
-    // This is essentially a NOP, as we don't have any files to open, etc.
-    currentIndex_ = 0;
+    indexes_.clear();
 }
 
 void PMemDBWriter::archive(const Key &key, const void *data, Length length) {
-
-    ASSERT(currentIndex_ != 0);
 
     // Get the key:value identifier associated with this key
 
@@ -79,7 +71,7 @@ void PMemDBWriter::archive(const Key &key, const void *data, Length length) {
 
     Field field( (PMemFieldLocation(ptr, dataPoolMgr_->getPool(ptr.uuid()))) );
 
-    currentIndex_->put(key, field);
+    currentIndex_.put(key, field);
 }
 
 void PMemDBWriter::print(std::ostream &out) const {

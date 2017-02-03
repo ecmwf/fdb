@@ -11,6 +11,7 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/serialisation/MemoryStream.h"
 
+#include "fdb5/pmem/PMemStats.h"
 #include "fdb5/pmem/PMemIndex.h"
 #include "fdb5/pmem/PBranchingNode.h"
 #include "fdb5/pmem/PMemFieldLocation.h"
@@ -26,7 +27,7 @@ namespace pmem {
 
 
 PMemIndex::PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type) :
-    Index(key, type),
+    IndexBase(key, type),
     location_(node, mgr) {
 
     if (!location_.node().axis_.null()) {
@@ -136,6 +137,15 @@ std::string PMemIndex::defaulType() {
 
 void PMemIndex::dump(std::ostream& out, const char* indent, bool simple) const {
     NOTIMP;
+}
+
+IndexStats PMemIndex::statistics() const
+{
+    IndexStats s(new PMemIndexStats());
+
+    NOTIMP;
+
+    return s;
 }
 
 

@@ -38,11 +38,6 @@ TocDB::TocDB(const eckit::PathName& directory) :
 TocDB::~TocDB() {
 }
 
-char* TocDB::dbTypeName()
-{
-    return "toc";
-}
-
 void TocDB::axis(const std::string &keyword, eckit::StringSet &s) const {
     Log::error() << "axis() not implemented for " << *this << std::endl;
     NOTIMP;
@@ -91,13 +86,11 @@ eckit::PathName TocDB::basePath() const {
 
 void TocDB::visitEntries(EntryVisitor& visitor) {
 
-    std::vector<Index*> indexes = loadIndexes();
+    std::vector<Index> indexes = loadIndexes();
 
-    for (std::vector<Index*>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-        (*i)->entries(visitor);
+    for (std::vector<Index>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+        i->entries(visitor);
     }
-
-    freeIndexes(indexes);
 }
 
 void TocDB::loadSchema() {
@@ -123,7 +116,7 @@ DbStats TocDB::statistics() const
     return DbStats(stats);
 }
 
-std::vector<Index*> TocDB::indexes() const {
+std::vector<Index> TocDB::indexes() const {
     throw eckit::NotImplemented("TocDB::indexes() isn't implemented for this DB type "
                                 "-- perhaps this is a writer?", Here());
 }

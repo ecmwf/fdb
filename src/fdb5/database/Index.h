@@ -22,9 +22,11 @@
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/FixedString.h"
 #include "eckit/types/Types.h"
+#include "eckit/memory/Counted.h"
 
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FileStore.h"
+#include "fdb5/database/IndexStats.h"
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexLocation.h"
 #include "fdb5/database/Indexer.h"
@@ -84,14 +86,14 @@ private: // members
 ///
 /// Each concrete type of DB can implement a specific type of Index
 
-class Index : private eckit::NonCopyable {
+class IndexBase : public eckit::Counted {
 
-  public: // methods
+public: // methods
 
-    Index(const Key& key, const std::string& type);
-    Index(eckit::Stream& s);
+    IndexBase(const Key& key, const std::string& type);
+    IndexBase(eckit::Stream& s);
 
-    virtual ~Index();
+    virtual ~IndexBase();
 
     virtual const IndexLocation& location() const = 0;
 
@@ -109,16 +111,20 @@ class Index : private eckit::NonCopyable {
 
     virtual bool get(const Key &key, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);
+
     virtual void encode(eckit::Stream &s) const = 0;
     virtual void entries(EntryVisitor &visitor) const = 0;
     virtual void dump(std::ostream &out, const char* indent, bool simple = false) const = 0;
 
-  private: // methods
+    virtual IndexStats statistics() const = 0;
 
-    virtual void add(const Key &key, const Field &field) = 0;
     virtual void print( std::ostream &out ) const = 0;
 
-  protected: // members
+private: // methods
+
+    virtual void add(const Key &key, const Field &field) = 0;
+
+protected: // members
 
     std::string type_;
 
@@ -129,11 +135,68 @@ class Index : private eckit::NonCopyable {
 
     Indexer indexer_;
 
-    friend std::ostream &operator<<(std::ostream &s, const Index &x) {
-        x.print(s);
-        return s;
+    friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
+        o.print(s); return s;
+    }
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class Index {
+
+public: // methods
+
+    Index();
+    Index(IndexBase* i);
+
+    ~Index();
+
+    Index(const Index&);
+    Index& operator=(const Index&);
+
+    const IndexLocation& location() const { return content_->location(); }
+
+    void open()   { return content_->open();   }
+    void reopen() { return content_->reopen(); }
+    void close()  { return content_->close();  }
+    void flush()  { return content_->flush();  }
+
+    void visit(IndexLocationVisitor& visitor) const { content_->visit(visitor); }
+
+    const std::string& type() const { return content_->type(); }
+
+    const IndexAxis& axes() const { return content_->axes(); }
+    const Key& key() const { return content_->key(); }
+
+    bool get(const Key& key, Field& field) const { return content_->get(key, field); }
+    void put(const Key& key, const Field& field) { content_->put(key, field); }
+
+    void encode(eckit::Stream& s) const { content_->encode(s); }
+    void entries(EntryVisitor& v) const { content_->entries(v); }
+    void dump(std::ostream &out, const char* indent, bool simple = false) const { content_->dump(out, indent, simple); }
+
+    IndexStats statistics() const { return content_->statistics(); }
+
+    IndexBase* content() { return content_; }
+    const IndexBase* content() const { return content_; }
+
+    operator bool() { return null_; }
+
+    friend bool operator<  (const Index& i1, const Index& i2) { return i1.content_ <  i2.content_; }
+    friend bool operator== (const Index& i1, const Index& i2) { return i1.content_ == i2.content_; }
+
+private: // methods
+
+    void print(std::ostream& s) const { content_->print(s); }
+
+    friend std::ostream& operator<<(std::ostream& s, const Index& o) {
+        o.print(s); return s;
     }
 
+private: // members
+
+    IndexBase* content_;
+    bool null_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

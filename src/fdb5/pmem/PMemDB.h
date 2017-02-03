@@ -22,9 +22,10 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 
-#include "fdb5/pmem/Pool.h"
-#include "fdb5/pmem/PIndexRoot.h"
 #include "fdb5/pmem/DataPoolManager.h"
+#include "fdb5/pmem/PIndexRoot.h"
+#include "fdb5/pmem/PMemEngine.h"
+#include "fdb5/pmem/Pool.h"
 
 namespace fdb5 {
 namespace pmem {
@@ -42,6 +43,8 @@ public: // methods
 
     virtual ~PMemDB();
 
+    static const char* dbTypeName() { return PMemEngine::typeName(); }
+
     size_t schemaSize() const;
 
     /// The total size of all of the pools involved in this database
@@ -49,7 +52,7 @@ public: // methods
 
 protected: // methods
 
-    virtual std::string dbType() const { return "pmem"; }
+    virtual std::string dbType() const;
 
     virtual bool open();
     virtual void close();
@@ -73,7 +76,7 @@ protected: // methods
 
     virtual DbStats statistics() const;
 
-    std::vector<Index*> indexes() const;
+    std::vector<Index> indexes() const;
 
 private: // methods
 
@@ -82,7 +85,7 @@ private: // methods
 
 protected: // types
 
-    typedef std::map<Key, Index*> IndexStore;
+    typedef std::map<Key, Index> IndexStore;
 
 protected: // members
 
@@ -97,9 +100,11 @@ protected: // members
     eckit::ScopedPtr<DataPoolManager> dataPoolMgr_;
 
     IndexStore  indexes_;
-    Index* currentIndex_;
+    Index currentIndex_;
 
     Schema schema_;
+
+    bool init_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

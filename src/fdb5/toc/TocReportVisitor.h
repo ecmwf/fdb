@@ -40,9 +40,6 @@ public:
 
     TocReportVisitor(TocDB& db);
 
-    // IndexStats indexStatistics() const;
-//    DbStats dbStatistics() const;
-
 private: // methods
 
     virtual void visit(const Index& index,
@@ -62,7 +59,7 @@ protected: // members
 
     std::set<std::string> active_;
 
-    std::map<const Index*, IndexStats> indexStats_;
+    std::map<Index, IndexStats> indexStats_;
 
     DbStats dbStats_;
 };

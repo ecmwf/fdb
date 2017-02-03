@@ -29,8 +29,8 @@ void PurgeVisitor::report(std::ostream &out) const {
 
     out << std::endl;
     out << "Index Report:" << std::endl;
-    for (std::map<const Index *, IndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-        out << "    Index " << *(i->first) << std::endl;
+    for (std::map<Index, IndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+        out << "    Index " << i->first << std::endl;
         i->second.report(out, "          ");
     }
 
@@ -104,15 +104,15 @@ void PurgeVisitor::purge(std::ostream& out) const {
 
     const eckit::PathName& directory = db_.directory();
 
-    for (std::map<const fdb5::Index *, IndexStats>::const_iterator i = indexStats_.begin();
+    for (std::map<Index, IndexStats>::const_iterator i = indexStats_.begin();
             i != indexStats_.end(); ++i) {
 
         const fdb5::IndexStats& stats = i->second;
 
         if (stats.fieldsCount() == stats.duplicatesCount()) {
-            out << "Removing: " << *(i->first) << std::endl;
+            out << "Removing: " << i->first << std::endl;
             fdb5::TocHandler handler(directory);
-            handler.writeClearRecord(*(*i).first);
+            handler.writeClearRecord(i->first);
         }
     }
 

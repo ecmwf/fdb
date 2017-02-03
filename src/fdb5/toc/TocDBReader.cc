@@ -8,9 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/log/Log.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/toc/TocDBReader.h"
-
 
 namespace fdb5 {
 
@@ -18,17 +19,17 @@ namespace fdb5 {
 
 TocDBReader::TocDBReader(const Key& key) :
     TocDB(key),
-    indexes_(loadIndexes())
-{
+    indexes_(loadIndexes()) {
 }
 
 TocDBReader::TocDBReader(const eckit::PathName& directory) :
     TocDB(directory),
-    indexes_(loadIndexes()) {}
+    indexes_(loadIndexes()) {
+}
 
 
 TocDBReader::~TocDBReader() {
-    freeIndexes(indexes_);
+    eckit::Log::debug<LibFdb>() << "Closing DB " << *this << std::endl;
 }
 
 bool TocDBReader::selectIndex(const Key &key) {
@@ -39,21 +40,21 @@ bool TocDBReader::selectIndex(const Key &key) {
 
     currentIndexKey_ = key;
 
-    for (std::vector<Index *>::iterator j = matching_.begin(); j != matching_.end(); ++j) {
-        (*j)->close();
+    for (std::vector<Index>::iterator j = matching_.begin(); j != matching_.end(); ++j) {
+        j->close();
     }
 
     matching_.clear();
 
 
-    for (std::vector<Index *>::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
-        if ((*j)->key() == key) {
-//            eckit::Log::info() << "Matching " << (*j)->key() << std::endl;
+    for (std::vector<Index>::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
+        if (j->key() == key) {
+//            eckit::Log::debug<LibFdb>() << "Matching " << j->key() << std::endl;
             matching_.push_back(*j);
-            (*j)->open();
+            j->open();
         }
 //        else {
-//           eckit::Log::info() << "Not matching " << (*j)->key() << std::endl;
+//           eckit::Log::info() << "Not matching " << j->key() << std::endl;
 //        }
     }
 
@@ -78,15 +79,15 @@ bool TocDBReader::open() {
 }
 
 void TocDBReader::axis(const std::string &keyword, eckit::StringSet &s) const {
-    for (std::vector<Index *>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
-        const eckit::StringSet &a = (*j)->axes().values(keyword);
+    for (std::vector<Index>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
+        const eckit::StringSet& a = j->axes().values(keyword);
         s.insert(a.begin(), a.end());
     }
 }
 
 void TocDBReader::close() {
-    for (std::vector<Index *>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
-        (*j)->close();
+    for (std::vector<Index>::iterator j = matching_.begin(); j != matching_.end(); ++j) {
+        j->close();
     }
 }
 
@@ -96,9 +97,9 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
     eckit::Log::info() << "Scanning indexes " << matching_.size() << std::endl;
 
     Field field;
-    for (std::vector<Index *>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
-        if ((*j)->get(key, field)) {
-            eckit::Log::info() << "FOUND KEY " << key << " -> " << **j << " " << field << std::endl;
+    for (std::vector<Index>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
+        if (j->get(key, field)) {
+            eckit::Log::debug<LibFdb>() << "FOUND KEY " << key << " -> " << *j << " " << field << std::endl;
             return field.dataHandle();
         }
     }
@@ -111,7 +112,7 @@ void TocDBReader::print(std::ostream &out) const {
     out << "TocDBReader[]";
 }
 
-std::vector<Index*> TocDBReader::indexes() const
+std::vector<Index> TocDBReader::indexes() const
 {
     return indexes_;
 }

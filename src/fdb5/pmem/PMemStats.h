@@ -31,6 +31,8 @@ public:
 
     PMemDbStats() ;
 
+    static DbStats make() { return DbStats(new PMemDbStats()); }
+
     unsigned long long poolsSize_;
     unsigned long long schemaSize_;
 

@@ -45,8 +45,7 @@ public: // methods
     void writeClearRecord(const Index &);
     void writeIndexRecord(const Index &);
 
-    std::vector<Index *> loadIndexes();
-    void freeIndexes(std::vector<Index *> &);
+    std::vector<Index> loadIndexes();
 
     Key databaseKey();
     size_t numberOfRecords() const;

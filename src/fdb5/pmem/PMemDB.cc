@@ -11,6 +11,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/log/Timer.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Rule.h"
@@ -35,7 +36,8 @@ namespace pmem {
 PMemDB::PMemDB(const Key& key) :
     DB(key),
     poolDir_(PoolManager::pool(key)),
-    currentIndex_(0) {
+    init_(false)
+{
 
     // If opened with a key in this manner, it is for write, so should open up fully.
     initialisePool();
@@ -44,17 +46,17 @@ PMemDB::PMemDB(const Key& key) :
 
 PMemDB::PMemDB(const PathName& poolDir) :
     DB(Key()),
-    poolDir_(poolDir),
-    currentIndex_(0) {}
+    poolDir_(poolDir)
+{
+}
 
 PMemDB::~PMemDB() {
     close();
 }
 
-
 void PMemDB::initialisePool() {
 
-    ASSERT(currentIndex_ == 0);
+    ASSERT(init_ == false);
 
     // Get (or create) the pool
     pool_.reset(Pool::obtain(poolDir_, Resource<size_t>("fdbPMemPoolSize", 1024 * 1024 * 1024), dbKey_));
@@ -95,8 +97,7 @@ void PMemDB::archive(const Key &key, const void *data, Length length) {
 
 void PMemDB::visitEntries(EntryVisitor& visitor) {
 
-    Log::error() << dbKey_ << std::endl;
-
+    Log::debug<LibFdb>() << "Visiting entries in DB with key " << dbKey_ << std::endl;
 
     ASSERT(pool_ && root_);
     root_->visitLeaves(visitor, *dataPoolMgr_, schema());
@@ -117,10 +118,10 @@ void PMemDB::close() {
     // Close any open indices
 
     for (IndexStore::iterator it = indexes_.begin(); it != indexes_.end(); ++it) {
-        Index* idx = it->second;
-        idx->close();
-        delete idx;
+        Index& idx = it->second;
+        idx.close();
     }
+    indexes_.clear();
 }
 
 void PMemDB::checkSchema(const Key &key) const {
@@ -150,7 +151,7 @@ void PMemDB::dump(std::ostream& out, bool simple) {
     out << "  Created: " << root_->created() << std::endl;
 
     out << "  uid: ";
-    struct passwd* p = getpwuid(root_->uid());
+    struct passwd* p = ::getpwuid(root_->uid());
     if (p)
         out << p->pw_name;
     else
@@ -178,9 +179,7 @@ const Schema& PMemDB::schema() const {
 }
 
 void PMemDB::deselectIndex() {
-
-    // This is essentially a NOP, as we don't have any files to open, etc.
-    currentIndex_ = 0;
+    currentIndex_ = Index(); // essentially a no-op, as we don't have any files to open, etc.
 }
 
 DbStats PMemDB::statistics() const
@@ -196,7 +195,7 @@ DbStats PMemDB::statistics() const
     return DbStats(stats);
 }
 
-std::vector<Index*> PMemDB::indexes() const {
+std::vector<Index> PMemDB::indexes() const {
     throw eckit::NotImplemented("TocDB::indexes() isn't implemented for this DB type "
                                 "-- perhaps this is a writer?", Here());
 }
@@ -208,6 +207,11 @@ eckit::PathName PMemDB::basePath() const {
 size_t PMemDB::poolsSize() const {
 
     return pool_->size() + dataPoolMgr_->dataSize();
+}
+
+std::string PMemDB::dbType() const
+{
+    return PMemDB::dbTypeName();
 }
 
 size_t PMemDB::schemaSize() const {

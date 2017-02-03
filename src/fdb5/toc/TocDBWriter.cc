@@ -53,15 +53,15 @@ TocDBWriter::~TocDBWriter() {
     close();
 }
 
-bool TocDBWriter::selectIndex(const Key &key) {
+bool TocDBWriter::selectIndex(const Key& key) {
     currentIndexKey_ = key;
 
     if (indexes_.find(key) == indexes_.end()) {
-        indexes_[key] = new TocIndex(key, generateIndexPath(key), 0, TocIndex::WRITE);
+        indexes_[key] = Index(new TocIndex(key, generateIndexPath(key), 0, TocIndex::WRITE));
     }
 
     current_ = indexes_[key];
-    current_->open();
+    current_.open();
 
     return true;
 }
@@ -77,7 +77,7 @@ bool TocDBWriter::open() {
 
 void TocDBWriter::close() {
 
-    // eckit::Log::info() << "Closing path " << directory_ << std::endl;
+    eckit::Log::debug<LibFdb>() << "Closing path " << directory_ << std::endl;
 
     flush(); // closes the TOC entries & indexes but not data files
 
@@ -99,7 +99,7 @@ void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offs
 
     Field field(TocFieldLocation(path, offset, length));
 
-    current_->put(key, field);
+    current_.put(key, field);
 }
 
 void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length) {
@@ -110,7 +110,7 @@ void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length
         selectIndex(currentIndexKey_);
     }
 
-    eckit::PathName dataPath = getDataPath(current_->key());
+    eckit::PathName dataPath = getDataPath(current_.key());
 
     eckit::DataHandle &dh = getDataHandle(dataPath);
 
@@ -120,7 +120,7 @@ void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length
 
     Field field (TocFieldLocation(dataPath, position, length));
 
-    current_->put(key, field);
+    current_.put(key, field);
 }
 
 void TocDBWriter::flush() {
@@ -134,7 +134,7 @@ void TocDBWriter::flush() {
     flushIndexes();
 
     dirty_ = false;
-    current_ = 0;
+    current_ = Index();
 }
 
 
@@ -249,23 +249,22 @@ eckit::PathName TocDBWriter::getDataPath(const Key &key) {
 
 void TocDBWriter::flushIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
-        Index *idx = j->second;
-        idx->flush();
-        writeIndexRecord(*idx);
-        idx->reopen(); // Create a new btree
+        Index& idx = j->second;
+        idx.flush();
+        writeIndexRecord(idx);
+        idx.reopen(); // Create a new btree
     }
 }
 
 
 void TocDBWriter::closeIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
-        Index *idx = j->second;
-        idx->close();
+        Index& idx = j->second;
+        idx.close();
         // writeIndexRecord(*idx);
-        delete idx;
     }
 
-    indexes_.clear();
+    indexes_.clear(); // all indexes instances destroyed
 }
 
 void TocDBWriter::flushDataHandles() {

@@ -9,7 +9,10 @@
  */
 
 /// @author Simon Smart
+/// @author Tiago Quintino
 /// @date Nov 2016
+
+#include <typeinfo>
 
 #include "fdb5/toc/TocIndexLocation.h"
 

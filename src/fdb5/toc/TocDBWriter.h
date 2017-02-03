@@ -76,7 +76,7 @@ private: // methods
 private: // types
 
     typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
-    typedef std::map< Key, Index * > IndexStore;
+    typedef std::map< Key, Index> IndexStore;
     typedef std::map< Key, std::string > PathStore;
 
 private: // members
@@ -85,7 +85,7 @@ private: // members
     IndexStore  indexes_;
     PathStore   dataPaths_;
 
-    Index *current_;
+    Index current_;
     Key currentIndexKey_;
 
     bool dirty_;

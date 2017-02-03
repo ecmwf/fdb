@@ -6,9 +6,11 @@
  * nor does it submit to any jurisdiction.
  */
 
-
 /// @author Simon Smart
+/// @author Tiago Quintino
 /// @date   Sept 2016
+
+#include <unistd.h>
 
 #include "eckit/log/Log.h"
 #include "eckit/memory/ScopedPtr.h"
@@ -18,8 +20,6 @@
 #include "fdb5/pmem/PIndexRoot.h"
 #include "fdb5/pmem/MemoryBufferStream.h"
 
-#include <unistd.h>
-
 using namespace eckit;
 using namespace pmem;
 
@@ -27,8 +27,7 @@ using namespace pmem;
 namespace fdb5 {
 namespace pmem {
 
-// -------------------------------------------------------------------------------------------------
-
+//----------------------------------------------------------------------------------------------------------------------
 
 PIndexRoot::PIndexRoot(const Key& dbKey) :
     tag_(PIndexRootTag),
@@ -57,7 +56,7 @@ PIndexRoot::PIndexRoot(const Key& dbKey) :
     dbKey_.allocate(key_data, s.position());
 }
 
-// -------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 /*
  * We can use whatever knowledge we have to test the validity of the structure.
@@ -157,7 +156,7 @@ void PIndexRoot::print(std::ostream& s) const {
 }
 
 
-// -------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace pmem
 } // namespace fdb5

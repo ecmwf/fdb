@@ -99,7 +99,7 @@ static void readEngineTypes() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-const std::string& Manager::engine(const Key& key)
+std::string Manager::engine(const Key& key)
 {
     pthread_once(&once, readEngineTypes);
 
@@ -118,7 +118,7 @@ const std::string& Manager::engine(const Key& key)
     throw eckit::SeriousBug(oss.str());
 }
 
-const std::string& Manager::engine(const PathName& path)
+std::string Manager::engine(const PathName& path)
 {
     std::vector<Engine*> engines = EngineRegistry::engines();
 
@@ -129,6 +129,10 @@ const std::string& Manager::engine(const PathName& path)
             return e.dbType();
         }
     }
+
+    std::ostringstream oss;
+    oss << "No FDB engine can recognise path " << path;
+    throw eckit::BadParameter(oss.str(), Here());
 }
 
 eckit::PathName Manager::location(const Key& key) {

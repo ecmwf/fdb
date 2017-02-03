@@ -53,7 +53,7 @@ struct FileStoreWrapper {
 
 class TocIndex :
         private FileStoreWrapper,
-        public Index {
+        public IndexBase {
 
 public: // types
 
@@ -94,6 +94,8 @@ private: // methods
 
     virtual void print( std::ostream &out ) const;
     virtual void dump(std::ostream& out, const char* indent, bool simple = false) const;
+
+    virtual IndexStats statistics() const;
 
 private: // members
 
