@@ -11,6 +11,7 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/serialisation/MemoryStream.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/pmem/PMemStats.h"
 #include "fdb5/pmem/PMemIndex.h"
 #include "fdb5/pmem/PBranchingNode.h"
@@ -32,11 +33,11 @@ PMemIndex::PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr,
 
     if (!location_.node().axis_.null()) {
 
-        Log::error() << "** Loading axes from buffer" << std::endl;
+        Log::debug<LibFdb>() << "PMemIndex Loading axes from buffer" << std::endl;
         const ::pmem::PersistentBuffer& buf(*location_.node().axis_);
         MemoryStream s(buf.data(), buf.size());
         axes_.decode(s);
-        Log::error() << "axes_ " << axes_ << std::endl;
+        Log::debug<LibFdb>() << "PMemIndex axes = " << axes_ << std::endl;
     }
 }
 

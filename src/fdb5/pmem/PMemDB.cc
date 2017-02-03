@@ -46,7 +46,8 @@ PMemDB::PMemDB(const Key& key) :
 
 PMemDB::PMemDB(const PathName& poolDir) :
     DB(Key()),
-    poolDir_(poolDir)
+    poolDir_(poolDir),
+    init_(false)
 {
 }
 

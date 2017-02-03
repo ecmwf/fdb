@@ -24,8 +24,9 @@
 #include "pmem/PersistentMutex.h"
 #include "pmem/PersistentBuffer.h"
 
-#include "fdb5/pmem/PBaseNode.h"
+#include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/pmem/PBaseNode.h"
 
 
 namespace fdb5 {
@@ -90,7 +91,7 @@ public: // methods
                      DataPoolManager& mgr,
                      std::vector<Key>& keys,
                      size_t depth,
-                     const fdb5::IndexBase* index=0);
+                     Index index = Index());
 
     /// Returns true if this node is (or at least has been used as) an Index.
     bool isIndex() const;

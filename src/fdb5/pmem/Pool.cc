@@ -83,16 +83,14 @@ Pool* Pool::obtain(const PathName &poolDir, const size_t size, const Key& dbKey)
 
     Pool* pool = 0;
 
-    try {
 
-        Log::error() << "Opening.. " << std::endl;
+    if(exists(poolDir)) {
+        Log::info() << "Opening FDB PMem master pool  " << poolDir << std::endl;
         pool = new Pool(poolMaster(poolDir), "pmem-pool");
-
-    } catch (PersistentOpenError& e) {
-        if (e.errno_ == ENOENT)
-            pool = new Pool(poolMaster(poolDir), size, "pmem-pool", PRoot::ConstructorKey(PRoot::IndexClass, dbKey));
-        else
-            throw;
+    }
+    else {
+        Log::info() << "Creating FDB PMem master pool " << poolDir << std::endl;
+        pool = new Pool(poolMaster(poolDir), size, "pmem-pool", PRoot::ConstructorKey(PRoot::IndexClass, dbKey));
     }
 
     ASSERT(pool != 0);

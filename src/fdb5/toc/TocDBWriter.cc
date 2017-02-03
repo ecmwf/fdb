@@ -92,7 +92,7 @@ void TocDBWriter::close() {
 void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
     dirty_ = true;
 
-    if (!current_) {
+    if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
         selectIndex(currentIndexKey_);
     }
@@ -105,7 +105,7 @@ void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offs
 void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length) {
     dirty_ = true;
 
-    if (!current_) {
+    if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
         selectIndex(currentIndexKey_);
     }

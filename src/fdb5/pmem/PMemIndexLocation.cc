@@ -39,7 +39,15 @@ DataPoolManager& PMemIndexLocation::pool_manager() const {
 
 PathName PMemIndexLocation::url() const
 {
-    NOTIMP;
+    /// @TODO FIXME Simon to put here the access to the path of pool from the node pointer
+
+
+    PBranchingNode* pnode = &node_;
+
+    std::ostringstream oss;
+    oss << pnode;
+
+    return PathName(oss.str());
 }
 
 //----------------------------------------------------------------------------------------------------------------------

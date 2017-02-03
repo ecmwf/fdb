@@ -180,7 +180,7 @@ public: // methods
     IndexBase* content() { return content_; }
     const IndexBase* content() const { return content_; }
 
-    operator bool() { return null_; }
+    bool null() const { return null_; }
 
     friend bool operator<  (const Index& i1, const Index& i2) { return i1.content_ <  i2.content_; }
     friend bool operator== (const Index& i1, const Index& i2) { return i1.content_ == i2.content_; }

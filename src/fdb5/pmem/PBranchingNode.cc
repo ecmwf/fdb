@@ -298,22 +298,17 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
                                  DataPoolManager& mgr,
                                  std::vector<Key>& keys,
                                  size_t depth,
-                                 const IndexBase* index) {
+                                 Index index) {
 
     // Get a list of sub-nodes in memory before starting to visit them, so that we can
     // release the lock for further writers.
     // Use this opportunity to de-deplicate the entries.
 
-    ScopedPtr<PMemIndex> thisIndex;
-
     if (!(key().empty() && value().empty())) {
         keys.back().push(key(), value());
         if (isIndex()) {
-            ASSERT(index == 0);
 
-            thisIndex.reset(new PMemIndex(keys.back(), *this, mgr));
-            index = thisIndex.get();
-
+            index = Index(new PMemIndex(keys.back(), *this, mgr));
             keys.push_back(Key());
             depth++;
         }
@@ -357,13 +352,16 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
     // Visit the leaves
     std::map<std::string, PersistentPtr<PDataNode> >::const_iterator it_dt = leaves.begin();
     for (; it_dt != leaves.end(); ++it_dt) {
-        ASSERT(index != 0);
+
+        ASSERT(!index.null());
 
         // we do the visitation from here, not from PDataNode::visit, as the PMemFieldLocation needs
         // the PersistentPtr, not the "this" pointer.
         keys.back().push(it_dt->second->key(), it_dt->second->value());
         Field field(PMemFieldLocation(it_dt->second, mgr.getPool(it_dt->second.uuid())));
-        visitor.visit(Index(const_cast<IndexBase*>(index)), field,"Index fingerprint unused", keys.back().valuesToString());
+
+        visitor.visit(index, field,"Index fingerprint unused", keys.back().valuesToString());
+
         keys.back().pop(it_dt->second->key());
     }
 
