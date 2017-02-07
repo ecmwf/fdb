@@ -75,8 +75,13 @@ endif()
 
 ### third party archive support
 
+set(mars_2_mars_default OFF)
+if(METKIT_FOUND)
+  set(mars_2_mars_default ON)
+endif()
+
 ecbuild_add_option( FEATURE MARS2MARS
-                    DEFAULT OFF
+                    DEFAULT ${mars_2_mars_default}
                     DESCRIPTION "Support direct archiving from another mars instance"
                     REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
 
