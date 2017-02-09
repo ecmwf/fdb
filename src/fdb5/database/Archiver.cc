@@ -15,6 +15,7 @@
 #include "fdb5/database/BaseArchiveVisitor.h"
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/rules/Rule.h"
 
 namespace fdb5 {
 
@@ -23,7 +24,6 @@ namespace fdb5 {
 
 Archiver::Archiver() :
     current_(0) {
-    fdbWriterDB_ = eckit::Resource<std::string>("fdbWriterDB", "toc.writer");
 }
 
 Archiver::~Archiver() {
@@ -67,11 +67,12 @@ void Archiver::flush() {
 }
 
 
-DB &Archiver::database(const Key &key) {
+DB& Archiver::database(const Key &key) {
+
     store_t::iterator i = databases_.find(key);
 
     if (i != databases_.end() ) {
-        DB &db = *(i->second.get());
+        DB& db = *(i->second.get());
         db.touch();
         return db;
     }
@@ -96,7 +97,7 @@ DB &Archiver::database(const Key &key) {
         }
     }
 
-    eckit::SharedPtr<DB> db ( DBFactory::build(fdbWriterDB_, key) );
+    eckit::SharedPtr<DB> db ( DBFactory::buildWriter(key) );
     ASSERT(db);
     databases_[key] = db;
     return *db;

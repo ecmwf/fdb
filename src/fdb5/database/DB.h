@@ -26,6 +26,7 @@
 
 namespace eckit {
 class DataHandle;
+class PathName;
 }
 
 class MarsTask;
@@ -33,6 +34,12 @@ class MarsTask;
 namespace fdb5 {
 
 class Key;
+class Index;
+class EntryVisitor;
+class Schema;
+
+class DBVisitor;
+class DbStats;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -44,9 +51,9 @@ public: // methods
 
     virtual ~DB();
 
-    const Key& key() const {
-        return dbKey_;
-    }
+    const Key& key() const { return dbKey_; }
+
+    virtual std::string dbType() const = 0;
 
     virtual bool selectIndex(const Key &key) = 0;
     virtual void deselectIndex() = 0;
@@ -65,10 +72,28 @@ public: // methods
 
     virtual void checkSchema(const Key &key) const = 0;
 
+    virtual bool exists() const = 0;
+
+    virtual void visitEntries(EntryVisitor& visitor) = 0;
+
+    virtual void visit(DBVisitor& visitor) = 0;
+
+    virtual void dump(std::ostream& out, bool simple=false) = 0;
+
+    virtual eckit::PathName basePath() const = 0;
+
+    virtual const Schema& schema() const = 0;
+
+    virtual DbStats statistics() const = 0;
+
     friend std::ostream &operator<<(std::ostream &s, const DB &x);
 
     time_t lastAccess() const;
+
     void touch();
+
+    /// @returns all the indexes in this DB
+    virtual std::vector<fdb5::Index> indexes() const = 0;
 
 protected: // methods
 
@@ -86,25 +111,33 @@ protected: // members
 
 /// A self-registering factory for producing DB instances.
 
-class DBFactory {
+class DBFactory : private eckit::NonCopyable {
 
     std::string name_;
+    bool read_;
+    bool write_;
 
     virtual DB *make(const Key &key) const = 0 ;
+    virtual DB *make(const eckit::PathName& path) const = 0 ;
 
 protected:
 
-    DBFactory(const std::string &);
+    DBFactory(const std::string &, bool read, bool write);
     virtual ~DBFactory();
 
 public:
 
     static void list(std::ostream &);
-    static DB *build(const std::string &, const Key &key);
+    static DB* buildWriter(const Key &key);
+    static DB* buildReader(const Key &key);
+    static DB* buildReader(const eckit::PathName& path);
 
 private: // methods
 
     static const DBFactory &findFactory(const std::string &);
+
+    bool read() const;
+    bool write() const;
 };
 
 /// Templated specialisation of the self-registering factory,
@@ -116,9 +149,22 @@ class DBBuilder : public DBFactory {
     virtual DB *make(const Key &key) const {
         return new T(key);
     }
+    virtual DB *make(const eckit::PathName& path) const {
+        return new T(path);
+    }
 
 public:
-    DBBuilder(const std::string &name) : DBFactory(name) {}
+    DBBuilder(const std::string &name, bool read, bool write) : DBFactory(name, read, write) {}
+};
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class DBVisitor : private eckit::NonCopyable {
+public:
+
+    virtual ~DBVisitor();
+    virtual void operator() (DB& db) = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

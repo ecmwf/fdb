@@ -11,11 +11,13 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+
 #include "fdb5/database/Retriever.h"
+#include "fdb5/grib/GribDecoder.h"
 #include "fdb5/tools/FDBAccess.h"
 #include "fdb5/tools/RequestParser.h"
+
 #include "marslib/MarsTask.h"
-#include "fdb5/grib/GribDecoder.h"
 
 
 class FDBRead : public fdb5::FDBAccess {

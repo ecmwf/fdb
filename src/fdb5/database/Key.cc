@@ -198,6 +198,18 @@ std::string Key::valuesToString() const {
     return oss.str();
 }
 
+
+const eckit::StringList& Key::names() const {
+    return names_;
+}
+
+std::string Key::value(const std::string& key) const {
+
+    eckit::StringDict::const_iterator it = keys_.find(key);
+    ASSERT(it != keys_.end());
+    return it->second;
+}
+
 void Key::validateKeysOf(const Key& other, bool checkAlsoValues) const
 {
     eckit::StringSet missing;

@@ -15,6 +15,7 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/Root.h"
 #include "fdb5/toc/FileSpace.h"
@@ -217,6 +218,8 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
             i->visitable(roots);
         }
     }
+
+    Log::debug<LibFdb>() << "Visitable Roots " << roots << std::endl;
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }

@@ -13,8 +13,7 @@
 
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/toc/TocDB.h"
-#include "fdb5/toc/TocHandler.h"
+
 #include "fdb5/tools/FDBAccess.h"
 
 using eckit::Log;
@@ -33,7 +32,6 @@ FDBAccess::FDBAccess(int argc, char **argv):
 void FDBAccess::usage(const std::string &tool) const {
     FDBTool::usage(tool);
 }
-
 
 
 //----------------------------------------------------------------------------------------------------------------------

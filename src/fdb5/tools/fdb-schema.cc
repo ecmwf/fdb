@@ -8,12 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-
-#include "fdb5/rules/Schema.h"
-#include "fdb5/config/MasterConfig.h"
+#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+
+#include "fdb5/config/MasterConfig.h"
+#include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBAccess.h"
 
+//----------------------------------------------------------------------------------------------------------------------
 
 class FdbSchema : public fdb5::FDBAccess {
     virtual void execute(const eckit::option::CmdArgs &args);
@@ -32,17 +34,32 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
 
     fdb5::Schema schema;
 
+    // With no arguments, provide the current master configuration schema (i.e. that selected by FDB_HOME)
+
     if (args.count() == 0) {
         schema.load(fdb5::MasterConfig::instance().schemaPath());
         schema.dump(std::cout);
     }
 
+    // If the argument specifies a schema file, then examine that. Otherwise load the DB which is
+    // pointed to, and return the schema presented by that.
+
     for (size_t i = 0; i < args.count(); i++) {
-        schema.load(args(i));
-        schema.dump(std::cout);
+
+        eckit::PathName path(args(i));
+
+        if (path.isDir()) {
+            eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
+            ASSERT(db->open());
+            db->schema().dump(std::cout);
+        } else {
+            schema.load(args(i));
+            schema.dump(std::cout);
+        }
     }
 }
 
+//----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv) {
     FdbSchema app(argc, argv);

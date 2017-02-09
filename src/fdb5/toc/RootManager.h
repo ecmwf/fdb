@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   RootManager.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
@@ -41,13 +40,6 @@ public: // methods
     /// Lists the roots where a DB key would be able to be written
     static std::vector<eckit::PathName> writableRoots(const Key& key);
 
-private: // members
-
-    eckit::Regex re_;
-    eckit::PathName path_;
-
-    bool active_;
-    bool visit_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -10,10 +10,11 @@
 
 #include "eckit/log/Timer.h"
 
-#include "fdb5/config/MasterConfig.h"
+#include "fdb5/LibFdb.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocDB.h"
+#include "fdb5/toc/TocStats.h"
 
 using namespace eckit;
 
@@ -29,6 +30,9 @@ TocDB::TocDB(const Key& key) :
 TocDB::TocDB(const eckit::PathName& directory) :
     DB(Key()),
     TocHandler(directory) {
+
+    // Read the real DB key into the DB base object
+    dbKey_ = databaseKey();
 }
 
 TocDB::~TocDB() {
@@ -42,6 +46,10 @@ void TocDB::axis(const std::string &keyword, eckit::StringSet &s) const {
 bool TocDB::open() {
     Log::error() << "Open not implemented for " << *this << std::endl;
     NOTIMP;
+}
+
+bool TocDB::exists() const {
+    return TocHandler::exists();
 }
 
 void TocDB::archive(const Key &key, const void *data, Length length) {
@@ -64,83 +72,61 @@ void TocDB::close() {
     NOTIMP;
 }
 
-void TocDB::loadSchema() {
-    Timer timer("TocDB::loadSchema()");
-    schema_.load( schemaPath() );
-}
-
-void TocDB::checkSchema(const Key &key) const {
-    Timer timer("TocDB::checkSchema()");
-    ASSERT(key.rule());
-    schema_.compareTo(key.rule()->schema());
+void TocDB::dump(std::ostream &out, bool simple) {
+    TocHandler::dump(out, simple);
 }
 
 const Schema& TocDB::schema() const {
     return schema_;
 }
 
-//----------------------------------------------------------------------------------------------------------------------
-
-void TocDB::matchKeyToDB(const Key& key, std::set<Key>& keys)
-{
-    const Schema& schema = MasterConfig::instance().schema();
-    schema.matchFirstLevel(key, keys);
+eckit::PathName TocDB::basePath() const {
+    return directory_;
 }
 
-std::vector<eckit::PathName> TocDB::databases(const Key &key, const std::vector<eckit::PathName>& dirs) {
+void TocDB::visitEntries(EntryVisitor& visitor) {
 
-    std::set<Key> keys;
+    std::vector<Index> all = indexes();
 
-    matchKeyToDB(key,keys);
-
-    std::vector<eckit::PathName> result;
-    std::set<eckit::PathName> seen;
-
-    for (std::vector<eckit::PathName>::const_iterator j = dirs.begin(); j != dirs.end(); ++j) {
-
-        std::vector<eckit::PathName> subdirs;
-        eckit::PathName::match((*j) / "*:*", subdirs, false);
-
-        for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
-
-            Regex re("^" + (*i).valuesToString() + "$");
-
-            for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
-
-                if(seen.find(*k) != seen.end()) {
-                    continue;
-                }
-
-                if (re.match((*k).baseName())) {
-                    try {
-                        TocHandler toc(*k);
-                        if (toc.databaseKey().match(key)) {
-                            result.push_back(*k);
-                        }
-                    } catch (eckit::Exception& e) {
-                        eckit::Log::error() <<  "Error loading FDB database from " << *k << std::endl;
-                        eckit::Log::error() << e.what() << std::endl;
-                    }
-                    seen.insert(*k);;
-                }
-
-            }
-        }
+    for (std::vector<Index>::const_iterator i = all.begin(); i != all.end(); ++i) {
+        i->entries(visitor);
     }
-
-    return result;
 }
 
-std::vector<eckit::PathName> TocDB::allDatabases(const Key &key) {
-   return databases(key, RootManager::allRoots(key));
+void TocDB::loadSchema() {
+    Timer timer("TocDB::loadSchema()", Log::debug<LibFdb>());
+    schema_.load( schemaPath() );
 }
 
-std::vector<eckit::PathName> TocDB::writableDatabases(const Key &key) {
-   return databases(key, RootManager::writableRoots(key));
+void TocDB::checkSchema(const Key &key) const {
+    Timer timer("TocDB::checkSchema()", Log::debug<LibFdb>());
+    ASSERT(key.rule());
+    schema_.compareTo(key.rule()->schema());
 }
 
-std::vector<eckit::PathName> TocDB::visitableDatabases(const Key &key) {
-   return databases(key, RootManager::visitableRoots(key));
+DbStats TocDB::statistics() const
+{
+    TocDbStats* stats = new TocDbStats();
+
+    stats->dbCount_         += 1;
+    stats->tocRecordsCount_ += numberOfRecords();
+    stats->tocFileSize_     += tocPath().size();
+    stats->schemaFileSize_  += schemaPath().size();
+
+    return DbStats(stats);
+}
+
+std::vector<Index> TocDB::indexes() const {
+    return loadIndexes();
+}
+
+void TocDB::visit(DBVisitor &visitor) {
+    visitor(*this);
+}
+
+std::string TocDB::dbType() const
+{
+    return TocDB::dbTypeName();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

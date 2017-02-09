@@ -9,46 +9,32 @@
  */
 
 #include "fdb5/database/Index.h"
+#include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Index::Index(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset) :
-    mode_(Index::READ),
-    path_(path),
-    offset_(offset),
-    files_(directory, s),
+IndexBase::IndexBase(const Key& key, const std::string& type) :
+    type_(type),
+    axes_(),
+    key_(key),
+    prefix_(key.valuesToString())
+{
+}
+
+
+IndexBase::IndexBase(eckit::Stream& s) :
     axes_(s),
     key_(s) {
     s >> prefix_;
     s >> type_;
 }
 
-void Index::encode(eckit::Stream &s) const {
-    files_.encode(s);
-    axes_.encode(s);
-    s << key_;
-    s << prefix_;
-    s << type_;
+IndexBase::~IndexBase() {
 }
 
-Index::Index(const Key &key, const eckit::PathName &path, off_t offset, Index::Mode mode, const std::string &type ) :
-    mode_(mode),
-    path_(path),
-    offset_(offset),
-    type_(type),
-    files_(path.dirName()),
-    axes_(),
-    key_(key),
-    prefix_(key.valuesToString()) {
-}
-
-Index::~Index() {
-}
-
-
-void Index::put(const Key &key, const Field &field) {    
+void IndexBase::put(const Key &key, const Field &field) {
 
     eckit::Log::info() << "FDB Index " << indexer_ << " " << key << " -> " << field << std::endl;
 
@@ -56,36 +42,101 @@ void Index::put(const Key &key, const Field &field) {
     add(key, field);
 }
 
-const Key &Index::key() const {
+const Key &IndexBase::key() const {
     return key_;
 }
 
-const std::string &Index::type() const {
+const std::string &IndexBase::type() const {
     return type_;
 }
 
-//----------------------------------------------------------------------------------------------------------------------
-
-const eckit::PathName &Index::path() const {
-    return path_;
-}
-
-off_t Index::offset() const {
-    return offset_;
-}
-
-const IndexAxis &Index::axes() const {
+const IndexAxis &IndexBase::axes() const {
     return axes_;
 }
 
 
-void Index::dump(std::ostream &out, const char* indent, bool simple) const {
-    out << indent << "Prefix: " << prefix_ << ", key: " << key_;
-    if(!simple) {
-        out << std::endl;
-        files_.dump(out, indent);
-        axes_.dump(out, indent);
-    }
+//----------------------------------------------------------------------------------------------------------------------
+
+
+EntryVisitor::~EntryVisitor() {}
+
+void DumpVisitor::visit(const Index& index,
+                        const Field& field,
+                        const std::string&,
+                        const std::string& fieldFingerprint) {
+
+
+    out_ << "ENTRY" << std::endl;
+
+    fdb5::Key key(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
+    out_ << "  Key: " << dbKey_ << index.key() << key;
+
+    FieldLocationPrinter printer(out_);
+    field.location().visit(printer);
+
+    out_ << std::endl;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class NullIndex : public IndexBase {
+
+public: // methods
+
+    NullIndex() : IndexBase(Key(), "null") {}
+
+private: // methods
+
+    virtual const IndexLocation& location() const { NOTIMP; }
+
+    virtual void open()  { NOTIMP; }
+    virtual void close() { NOTIMP; }
+    virtual void reopen() { NOTIMP; }
+
+    virtual void visit(IndexLocationVisitor&) const  { NOTIMP; }
+
+    virtual bool get( const Key&, Field&) const  { NOTIMP; }
+    virtual void add( const Key&, const Field&)  { NOTIMP; }
+    virtual void flush()  { NOTIMP; }
+    virtual void encode(eckit::Stream&) const { NOTIMP; }
+    virtual void entries(EntryVisitor&) const { NOTIMP; }
+
+    virtual void print( std::ostream& s) const  { s << "NullIndex()"; }
+    virtual void dump(std::ostream&, const char*, bool ) const  { NOTIMP; }
+
+    virtual IndexStats statistics() const { NOTIMP; }
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+Index::Index() :
+    content_(new NullIndex()),
+    null_(true) {
+    content_->attach();
+}
+
+Index::Index(IndexBase* p) :
+    content_(p),
+    null_(false) {
+    ASSERT(p);
+    content_->attach();
+}
+
+Index::~Index() {
+   content_->detach();
+}
+
+Index::Index(const Index& s) : content_(s.content_), null_(s.null_) {
+    content_->attach();
+}
+
+Index& Index::operator=(const Index& s) {
+    content_->detach();
+    content_ = s.content_;
+    null_    = s.null_;
+    content_->attach();
+    return *this;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

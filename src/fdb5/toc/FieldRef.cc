@@ -8,27 +8,42 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/FieldRef.h"
+#include "fdb5/toc/FieldRef.h"
+
 #include "eckit/serialisation/Stream.h"
+
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FileStore.h"
+
+#include "fdb5/toc/TocFieldLocation.h"
 
 
 namespace fdb5 {
 
+
 //----------------------------------------------------------------------------------------------------------------------
+
+
 FieldRefLocation::FieldRefLocation() {
 }
 
-FieldRefLocation::FieldRefLocation(FileStore &store, const Field  &field):
-    pathId_(store.insert(field.path())),
-    offset_(field.offset()),
-    length_(field.length()) {
 
+FieldRefLocation::FieldRefLocation(FileStore &store, const Field& field) {
+
+    const FieldLocation& loc = field.location();
+
+    pathId_ = store.insert(loc.url());
+    length_ = loc.length();
+
+    const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
+    if(tocfloc) {
+        offset_ = tocfloc->offset();
+    }
+    else {
+        throw eckit::NotImplemented("Field location is not of TocFieldLocation type -- indexing other locations is not supported", Here());
+    }
 }
 
-
-//-----------------------------------------------------------------------------
 FieldRefReduced::FieldRefReduced() {
 
 }
@@ -37,7 +52,6 @@ FieldRefReduced::FieldRefReduced(const FieldRef &other):
     location_(other.location()) {
 }
 
-//-----------------------------------------------------------------------------
 FieldRef::FieldRef() {
 }
 
@@ -48,6 +62,10 @@ FieldRef::FieldRef(FileStore &store, const Field &field):
 
 FieldRef::FieldRef(const FieldRefReduced& other):
     location_(other.location()) {
-    }
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
 
 } // namespace fdb5

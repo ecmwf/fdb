@@ -8,14 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <limits.h>
-// #include <stdlib.h>
-
 #include <sys/stat.h>
 #include <dirent.h>
 
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
+
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/WipeVisitor.h"
@@ -47,14 +45,11 @@ class StdDir {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeVisitor::WipeVisitor(const eckit::PathName &directory) :
-    ReportVisitor(directory) {
+WipeVisitor::WipeVisitor(TocDB& db) : TocReportVisitor(db) {
 
-    eckit::Log::info() << "Scanning "
-                       << directory_
-                       << std::endl;
+    const eckit::PathName& directory = db_.directory();
 
-    scan(directory_.realName());
+    scan(directory.realName());
 
     eckit::Log::info() << "Found "
                        << eckit::Plural(files_.size(), "file")
@@ -112,7 +107,9 @@ const eckit::PathName &WipeVisitor::mark(const eckit::PathName &path) const {
 
 void WipeVisitor::report(std::ostream &out) const {
 
-    TocHandler handler(directory_);
+    const eckit::PathName& directory = db_.directory();
+
+    TocHandler handler(directory);
     out << "FDB owner: " << handler.dbOwner() << std::endl;
     out << std::endl;
 
@@ -125,7 +122,7 @@ void WipeVisitor::report(std::ostream &out) const {
     size_t cnt = 0;
     out << "Data files to delete:" << std::endl;
     for (std::map<eckit::PathName, size_t>::const_iterator i = dataUsage_.begin(); i != dataUsage_.end(); ++i) {
-        if (i->first.dirName().sameAs(directory_)) {
+        if (i->first.dirName().sameAs(directory)) {
             out << "    " << mark(i->first) << std::endl;
             cnt++;
         }
@@ -160,15 +157,17 @@ void WipeVisitor::report(std::ostream &out) const {
 }
 
 
-void WipeVisitor::wipe(std::ostream &out) const {
-    TocHandler handler(directory_);
-    handler.checkUID();
+void WipeVisitor::wipe(std::ostream& out) const {
 
-    handler.tocPath().unlink();
-    handler.schemaPath().unlink();
+    const eckit::PathName& directory = db_.directory();
+
+    db_.checkUID();
+
+    db_.tocPath().unlink();
+    db_.schemaPath().unlink();
 
     for (std::map<eckit::PathName, size_t>::const_iterator i = dataUsage_.begin(); i != dataUsage_.end(); ++i) {
-        if (i->first.dirName().sameAs(directory_)) {
+        if (i->first.dirName().sameAs(directory)) {
             i->first.unlink();
         }
     }
@@ -185,7 +184,7 @@ void WipeVisitor::wipe(std::ostream &out) const {
         }
     }
 
-    directory_.rmdir();
+    directory.rmdir();
 }
 
 

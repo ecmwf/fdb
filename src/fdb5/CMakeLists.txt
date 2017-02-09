@@ -24,9 +24,6 @@
 #  * delete a index
 
 # MAYBE:
-#  * fdbRoot is a list of paths to visit ---> speak to Hodge
-#  * Rules for data files (eg {type,levtype} )
-#
 # Confluence documentation on how to install
 # -- dont forget the ~/mars/wind
 #
@@ -58,20 +55,28 @@ list( APPEND fdb5_srcs
     database/BaseArchiveVisitor.h
     database/DB.cc
     database/DB.h
+    database/DataStats.cc
+    database/DataStats.h
+    database/DbStats.cc
+    database/DbStats.h
+    database/Engine.cc
+    database/Engine.h
     database/Field.cc
     database/Field.h
     database/FieldDetails.cc
     database/FieldDetails.h
     database/FieldLocation.cc
     database/FieldLocation.h
-    database/FieldRef.cc
-    database/FieldRef.h
     database/FileStore.cc
     database/FileStore.h
     database/Indexer.cc
     database/Indexer.h
     database/Index.cc
     database/Index.h
+    database/IndexLocation.cc
+    database/IndexLocation.h
+    database/IndexStats.cc
+    database/IndexStats.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc
@@ -80,6 +85,10 @@ list( APPEND fdb5_srcs
     database/Key.h
     database/ReadVisitor.cc
     database/ReadVisitor.h
+    database/ReportVisitor.cc
+    database/ReportVisitor.h
+    database/Report.cc
+    database/Report.h
     database/Retriever.cc
     database/Retriever.h
     database/RetrieveVisitor.cc
@@ -90,6 +99,8 @@ list( APPEND fdb5_srcs
     database/WriteVisitor.h
     database/NotifyWind.cc
     database/NotifyWind.h
+    database/Manager.cc
+    database/Manager.h
     grib/GribArchiver.cc
     grib/GribArchiver.h
     grib/GribDecoder.cc
@@ -131,42 +142,6 @@ list( APPEND fdb5_srcs
     rules/Schema.h
     rules/SchemaParser.cc
     rules/SchemaParser.h
-    toc/AdoptVisitor.cc
-    toc/AdoptVisitor.h
-    toc/WipeVisitor.cc
-    toc/WipeVisitor.h
-    toc/PurgeVisitor.cc
-    toc/PurgeVisitor.h
-    toc/BTreeIndex.cc
-    toc/BTreeIndex.h
-    toc/DbStatistics.cc
-    toc/DbStatistics.h
-    toc/IndexStatistics.cc
-    toc/IndexStatistics.h
-    toc/ReportVisitor.cc
-    toc/ReportVisitor.h
-    toc/TocDB.cc
-    toc/TocDB.h
-    toc/Root.cc
-    toc/Root.h
-    toc/FileSpaceHandler.cc
-    toc/FileSpaceHandler.h
-    toc/FileSpace.cc
-    toc/FileSpace.h
-    toc/ExpverFileSpaceHandler.cc
-    toc/ExpverFileSpaceHandler.h
-    toc/RootManager.cc
-    toc/RootManager.h
-    toc/TocDBReader.cc
-    toc/TocDBReader.h
-    toc/TocDBWriter.cc
-    toc/TocDBWriter.h
-    toc/TocHandler.cc
-    toc/TocHandler.h
-    toc/TocIndex.cc
-    toc/TocIndex.h
-    toc/TocRecord.cc
-    toc/TocRecord.h
     tools/FDBAccess.cc
     tools/FDBAccess.h
     tools/FDBInspect.cc
@@ -215,6 +190,114 @@ list( APPEND fdb5_srcs
     types/TypeTime.h
 )
 
+if( HAVE_TOCFDB )
+    list( APPEND fdb5_srcs
+        toc/AdoptVisitor.cc
+        toc/AdoptVisitor.h
+        toc/WipeVisitor.cc
+        toc/WipeVisitor.h
+        toc/PurgeVisitor.cc
+        toc/PurgeVisitor.h
+        toc/BTreeIndex.cc
+        toc/BTreeIndex.h
+        toc/TocDB.cc
+        toc/TocDB.h
+        toc/Root.cc
+        toc/Root.h
+        toc/FieldRef.cc
+        toc/FieldRef.h
+        toc/FileSpaceHandler.cc
+        toc/FileSpaceHandler.h
+        toc/FileSpace.cc
+        toc/FileSpace.h
+        toc/ExpverFileSpaceHandler.cc
+        toc/ExpverFileSpaceHandler.h
+        toc/RootManager.cc
+        toc/RootManager.h
+        toc/TocDBReader.cc
+        toc/TocDBReader.h
+        toc/TocDBWriter.cc
+        toc/TocDBWriter.h
+        toc/TocFieldLocation.cc
+        toc/TocFieldLocation.h
+        toc/TocHandler.cc
+        toc/TocHandler.h
+        toc/TocIndex.cc
+        toc/TocIndex.h
+        toc/TocIndexLocation.cc
+        toc/TocIndexLocation.h
+        toc/TocRecord.cc
+        toc/TocRecord.h
+        toc/TocStats.cc
+        toc/TocStats.h
+        toc/TocEngine.cc
+        toc/TocEngine.h
+        toc/TocReportVisitor.cc
+        toc/TocReportVisitor.h
+        )
+endif()
+
+if( HAVE_PMEMFDB )
+
+    list( APPEND fdb5_srcs
+        pmem/DataPool.cc
+        pmem/DataPool.h
+        pmem/DataPoolManager.cc
+        pmem/DataPoolManager.h
+        pmem/MemoryBufferStream.h
+        pmem/MemoryBufferStream.cc
+        pmem/PBaseNode.cc
+        pmem/PBaseNode.h
+        pmem/PBranchingNode.cc
+        pmem/PBranchingNode.h
+        pmem/PDataNode.cc
+        pmem/PDataNode.h
+        pmem/PDataRoot.cc
+        pmem/PDataRoot.h
+        pmem/PIndexRoot.cc
+        pmem/PIndexRoot.h
+        pmem/PMemDB.cc
+        pmem/PMemDB.h
+        pmem/PMemDBReader.cc
+        pmem/PMemDBReader.h
+        pmem/PMemDBWriter.cc
+        pmem/PMemDBWriter.h
+        pmem/PMemFieldLocation.cc
+        pmem/PMemFieldLocation.h
+        pmem/PMemIndex.cc
+        pmem/PMemIndex.h
+        pmem/PMemIndexLocation.cc
+        pmem/PMemIndexLocation.h
+        pmem/PRoot.cc
+        pmem/PRoot.h
+        pmem/Pool.cc
+        pmem/Pool.h
+        pmem/PoolEntry.cc
+        pmem/PoolEntry.h
+        pmem/PoolGroup.cc
+        pmem/PoolGroup.h
+        pmem/PoolManager.cc
+        pmem/PoolManager.h
+        pmem/PMemStats.cc
+        pmem/PMemStats.h
+        pmem/PMemEngine.cc
+        pmem/PMemEngine.h
+    )
+
+    list( APPEND fdb5_tools
+        fdb-purge
+        fdb-wipe
+    )
+
+else()
+    set( PMEM_LIBRARIES "" )
+    set( PMEM_INCLUDE_DIRS "" )
+endif()
+
+if(LUSTREAPI_FOUND)
+    list( APPEND fdb5_srcs io/LustreFileHandle.h io/LustreFileHandle.c )
+endif()
+
 ecbuild_add_library(
 
     TARGET  mars-fdb5
@@ -229,6 +312,7 @@ ecbuild_add_library(
 
     PRIVATE_INCLUDES
         "${GRIB_API_INCLUDE_DIRS}"
+        "${PMEM_INCLUDE_DIRS}"
         "${LUSTREAPI_INCLUDE_DIRS}"
 
     LIBS
@@ -237,7 +321,8 @@ ecbuild_add_library(
         eckit
         eckit_option
         ${grib_handling_pkg}
-		${LUSTREAPI_LIBRARIES}
+        ${PMEM_LIBRARIES}
+        ${LUSTREAPI_LIBRARIES}
 )
 
 list( APPEND fdb5_scripts fdb grib2fdb fdb-which )
@@ -257,13 +342,12 @@ list( APPEND fdb5_tools
     fdb-dump
     fdb-list
     fdb-patch
-    fdb-purge
     fdb-stats
     fdb-read
     fdb-schema
     fdb-where
-    fdb-wipe
     fdb-root
+    fdb-info
 )
 
 foreach( _tool ${fdb5_tools} )

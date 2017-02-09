@@ -39,18 +39,18 @@ public: // methods
     ~TocHandler();
 
     bool exists() const;
-    void checkUID();
+    void checkUID() const;
 
     void writeInitRecord(const Key &tocKey);
     void writeClearRecord(const Index &);
     void writeIndexRecord(const Index &);
 
-    std::vector<Index *> loadIndexes();
-    void freeIndexes(std::vector<Index *> &);
+    std::vector<Index> loadIndexes() const;
 
     Key databaseKey();
-    size_t numberOfRecords();
+    size_t numberOfRecords() const;
 
+    const eckit::PathName& directory() const;
     const eckit::PathName& tocPath() const;
     const eckit::PathName& schemaPath() const;
 
@@ -61,30 +61,30 @@ public: // methods
 protected: // members
 
     const eckit::PathName directory_;
-    long dbUID_;
+    mutable long dbUID_;
     long userUID_;
 
 
-    long dbUID();
+    long dbUID() const;
 
 private: // methods
 
     friend class TocHandlerCloser;
 
     void openForAppend();
-    void openForRead();
-    void close();
+    void openForRead() const;
+    void close() const;
 
     void append(TocRecord &r, size_t payloadSize);
-    bool readNext(TocRecord &r);
+    bool readNext(TocRecord &r) const;
 
     std::string userName(long) const;
 
     eckit::PathName tocPath_;
     eckit::PathName schemaPath_;
 
-    int fd_;      ///< file descriptor, if zero file is not yet open.
-    size_t count_;
+    mutable int fd_;      ///< file descriptor, if zero file is not yet open.
+    mutable size_t count_;
 };
 
 //-----------------------------------------------------------------------------

@@ -8,11 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
-#include "eckit/config/Resource.h"
+
+#include "fdb5/toc/TocDB.h"
 #include "fdb5/toc/WipeVisitor.h"
-#include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBInspect.h"
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -20,9 +22,7 @@ class FDBWipe : public fdb5::FDBInspect {
 
   public: // methods
 
-    FDBWipe(int argc, char **argv) :
-        fdb5::FDBInspect(argc, argv,
-            eckit::Resource<std::vector<std::string> >("wipeMinimumKeySet", "class,expver,stream,date,time", true)),
+    FDBWipe(int argc, char **argv) : fdb5::FDBInspect(argc, argv, "class,expver,stream,date,time"),
         doit_(false) {
 
         options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
@@ -55,32 +55,31 @@ void FDBWipe::process(const eckit::PathName &path, const eckit::option::CmdArgs 
 
     eckit::Log::info() << "Scanning " << path << std::endl;
 
-    fdb5::TocHandler handler(path);
-    eckit::Log::info() << "Database key " << handler.databaseKey() << std::endl;
+    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
+    ASSERT(db->open());
 
-    fdb5::WipeVisitor visitor(path);
-
-    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
-
-
-    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-        (*i)->entries(visitor);
+    fdb5::TocDB* tocdb = dynamic_cast<fdb5::TocDB*>(db.get());
+    if(!tocdb) {
+        std::ostringstream oss;
+        oss << "Database in " << path
+            << ", expected type " << fdb5::TocDB::dbTypeName()
+            << " but got type " << db->dbType();
+        throw eckit::BadParameter(oss.str(), Here());
     }
+
+    fdb5::WipeVisitor visitor(*tocdb);
+
+    db->visitEntries(visitor);
 
     visitor.report(eckit::Log::info());
 
     if (doit_) {
         visitor.wipe(eckit::Log::info());
     }
-
-    handler.freeIndexes(indexes);
-
 }
 
 
 void FDBWipe::finish(const eckit::option::CmdArgs &args) {
-
-
 
     if (!doit_) {
         eckit::Log::info() << std::endl

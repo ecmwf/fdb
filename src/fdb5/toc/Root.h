@@ -33,8 +33,6 @@ public: // methods
          bool writable = true,
          bool visit  = true);
 
-    bool match(const std::string &s) const;
-
     const eckit::PathName &path() const;
 
     bool writable() const; ///< Root is in use, when archiving

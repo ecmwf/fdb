@@ -59,6 +59,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
 
             // flush();
         }
+
     } catch (...) {
 
         if (completeTransfers_) {

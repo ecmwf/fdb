@@ -10,54 +10,87 @@
 
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date Sep 2012
+/// @author Simon Smart
+/// @date Nov 2016
 
 #ifndef fdb5_FieldLocation_H
 #define fdb5_FieldLocation_H
 
 #include "eckit/eckit.h"
 
-#include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
-#include "eckit/io/Offset.h"
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/types/Types.h"
-#include "eckit/types/FixedString.h"
-
-#include "fdb5/database/FileStore.h"
-#include "fdb5/database/IndexAxis.h"
-#include "fdb5/database/Key.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/memory/SharedPtr.h"
+#include "eckit/memory/Owned.h"
 
 namespace fdb5 {
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FieldLocation {
-public:
+
+
+class FieldLocationVisitor;
+
+
+class FieldLocation : public eckit::OwnedLock {
+
+public: // methods
 
     FieldLocation();
+    FieldLocation(eckit::Length length );
+    FieldLocation(const FieldLocation& rhs);
 
-    FieldLocation(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ) ;
+    virtual eckit::PathName url() const = 0;
 
-    const eckit::PathName &path() const { return path_; }
-    const eckit::Offset &offset() const { return offset_; }
     const eckit::Length &length() const { return length_; }
 
-    eckit::DataHandle *dataHandle() const ;
+    virtual eckit::DataHandle *dataHandle() const = 0;
 
-private:
+    /// Create a (shared) copy of the current object, for storage in a general container.
+    virtual eckit::SharedPtr<FieldLocation> make_shared() const = 0;
 
-    eckit::PathName path_;
-    eckit::Offset   offset_;
-    eckit::Length   length_;
+    virtual void visit(FieldLocationVisitor& visitor) const = 0;
 
-    void print( std::ostream &out ) const;
+    virtual void dump(std::ostream &out) const = 0;
+
+private: // methods
+
+    virtual void print( std::ostream &out ) const = 0;
+
+protected: // members
+
+    eckit::Length length_;
+
+private: // friends
 
     friend std::ostream &operator<<(std::ostream &s, const FieldLocation &x) {
         x.print(s);
         return s;
     }
+};
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+class FieldLocationVisitor : private eckit::NonCopyable {
+
+public: // methods
+
+    virtual ~FieldLocationVisitor();
+
+    virtual void operator() (const FieldLocation& location) = 0;
+
+};
+
+class FieldLocationPrinter : public FieldLocationVisitor {
+public:
+    FieldLocationPrinter(std::ostream& out) : out_(out) {}
+    virtual void operator() (const FieldLocation& location);
+private:
+    std::ostream& out_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

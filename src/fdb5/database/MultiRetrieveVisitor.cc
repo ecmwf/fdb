@@ -13,6 +13,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/memory/ScopedPtr.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -30,7 +31,6 @@ MultiRetrieveVisitor::MultiRetrieveVisitor(const NotifyWind& wind, HandleGathere
     wind_(wind),
     databases_(databases),
     gatherer_(gatherer) {
-    fdbReaderDB_ = eckit::Resource<std::string>("fdbReaderDB", "toc.reader");
 }
 
 MultiRetrieveVisitor::~MultiRetrieveVisitor() {
@@ -39,13 +39,14 @@ MultiRetrieveVisitor::~MultiRetrieveVisitor() {
 // From Visitor
 
 bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
-    
+
 	eckit::Log::debug() << "FDB5 selectDatabase " << key  << std::endl;
 
     /* is it the current DB ? */
 
     if(db_) {
         if(key == db_->key()) {
+            eckit::Log::info() << "This is the current db" << std::endl;
             return true;
         }
     }
@@ -53,16 +54,16 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     /* is the DB already open ? */
 
     if(databases_.exists(key)) {
-        eckit::Log::debug() << "FDB5 Reusing database " << key << std::endl;
+        eckit::Log::debug<LibFdb>() << "FDB5 Reusing database " << key << std::endl;
         db_ = databases_.access(key);
         return true;
     }
 
     /* DB not yet open */
 
-    eckit::Log::debug() << "selectDatabase opening database " << key << std::endl;
+    eckit::ScopedPtr<DB> newDB( DBFactory::buildReader(key) );
 
-    eckit::ScopedPtr<DB> newDB( DBFactory::build(fdbReaderDB_, key) );
+    eckit::Log::debug<LibFdb>() << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")" << std::endl;
 
     if (!newDB->open()) {
         eckit::Log::debug() << "Database does not exists " << key << std::endl;

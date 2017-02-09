@@ -29,6 +29,8 @@
 
 namespace fdb5 {
 
+class FieldRef;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class BTreeIndexVisitor {
@@ -51,14 +53,14 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IndexFactory {
+class BTreeIndexFactory {
 
     virtual BTreeIndex *make(const eckit::PathName& path, bool readOnly, off_t offset) const = 0 ;
 
 protected:
 
-    IndexFactory(const std::string &);
-    virtual ~IndexFactory();
+    BTreeIndexFactory(const std::string &);
+    virtual ~BTreeIndexFactory();
 
     std::string name_;
 
@@ -73,14 +75,14 @@ public:
 /// that does the self-registration, and the construction of each object.
 
 template< class T>
-class IndexBuilder : public IndexFactory {
+class BTreeIndexBuilder : public BTreeIndexFactory {
 
     virtual BTreeIndex *make(const eckit::PathName& path, bool readOnly, off_t offset) const {
         return new T(path, readOnly, offset);
     }
 
 public:
-    IndexBuilder(const std::string &name) : IndexFactory(name) {}
+    BTreeIndexBuilder(const std::string &name) : BTreeIndexFactory(name) {}
 };
 
 

@@ -17,14 +17,14 @@
 #define fdb5_WipeVisitor_H
 
 
-#include "fdb5/toc/ReportVisitor.h"
+#include "fdb5/toc/TocReportVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class WipeVisitor : public ReportVisitor {
+class WipeVisitor : public TocReportVisitor {
 
     mutable std::set<eckit::PathName> files_;
     eckit::Length total_;
@@ -34,7 +34,7 @@ class WipeVisitor : public ReportVisitor {
 
 public:
 
-    WipeVisitor(const eckit::PathName &directory);
+    WipeVisitor(TocDB& db);
     void report(std::ostream &out) const;
     void wipe(std::ostream &out) const;
 

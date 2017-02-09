@@ -20,10 +20,11 @@
 #include "eckit/config/Resource.h"
 
 #include "fdb5/config/UMask.h"
+#include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
-#include "fdb5/toc/TocHandler.h"
+
 #include "fdb5/tools/FDBInspect.h"
 
 
@@ -39,9 +40,9 @@ class PatchVisitor : public fdb5::EntryVisitor {
 
   private:
     virtual void visit(const fdb5::Index &index,
+                       const fdb5::Field &field,
                        const std::string &indexFingerprint,
-                       const std::string &fieldFingerprint,
-                       const fdb5::Field &field);
+                       const std::string &fieldFingerprint);
 
     fdb5::HandleGatherer &gatherer_;
     size_t &count_;
@@ -51,9 +52,9 @@ class PatchVisitor : public fdb5::EntryVisitor {
 };
 
 void PatchVisitor::visit(const fdb5::Index &index,
+                         const fdb5::Field &field,
                          const std::string &indexFingerprint,
-                         const std::string &fieldFingerprint,
-                         const fdb5::Field &field) {
+                         const std::string &fieldFingerprint) {
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
 
@@ -62,7 +63,7 @@ void PatchVisitor::visit(const fdb5::Index &index,
 
         gatherer_.add(field.dataHandle());
         count_++;
-        total_ += field.length();
+        total_ += field.location().length();
     }
 }
 
@@ -162,26 +163,26 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     eckit::Log::info() << "Listing " << path << std::endl;
 
-    fdb5::TocHandler handler(path);
-    fdb5::Key key = handler.databaseKey();
-    eckit::Log::info() << "Database key " << key << std::endl;
+    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
+
+    eckit::Log::info() << "Database key " << db->key() << std::endl;
 
     PatchArchiver archiver(key_);
 
-    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
+    const std::vector<fdb5::Index> indexes = db->indexes();
 
     size_t count = count_;
     eckit::Length total = total_;
 
     fdb5::HandleGatherer gatherer(false);
 
-    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+    for (std::vector<fdb5::Index>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
+
         PatchVisitor visitor(gatherer, count_, total_);
 
-        eckit::Log::info() << "Sanning" << *(*i) << std::endl;
+        eckit::Log::info() << "Scanning" << *i << std::endl;
 
-        (*i)->entries(visitor);
-
+        i->entries(visitor);
 
         eckit::ScopedPtr<eckit::DataHandle> handle(gatherer.dataHandle());
 
@@ -191,14 +192,12 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
                            << ") to copy to "
                            << key_
                            << " from "
-                           << *(*i)
+                           << *i
                            << std::endl;
 
 
         archiver.archive(*handle);
     }
-
-    handler.freeIndexes(indexes);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

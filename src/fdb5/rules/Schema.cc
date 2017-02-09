@@ -36,6 +36,10 @@ Schema::Schema(const eckit::PathName &path) {
     load(path);
 }
 
+Schema::Schema(std::istream& s) {
+    load(s);
+}
+
 Schema::~Schema() {
     clear();
 }
@@ -91,20 +95,25 @@ void Schema::matchFirstLevel(const Key &dbKey,  std::set<Key> &result) const {
 }
 
 void Schema::load(const eckit::PathName &path, bool replace) {
-    if (replace) {
-        clear();
-    }
 
     path_ = path;
 
     eckit::Log::info() << "Loading FDB rules from " << path << std::endl;
 
     std::ifstream in(path.localPath());
-    if (!in) {
+    if (!in)
         throw eckit::CantOpenFile(path);
+
+    load(in, replace);
+}
+
+void Schema::load(std::istream& s, bool replace) {
+
+    if (replace) {
+        clear();
     }
 
-    SchemaParser parser(in);
+    SchemaParser parser(s);
 
     parser.parse(*this, rules_, registry_);
 

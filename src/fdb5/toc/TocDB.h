@@ -20,6 +20,7 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/TocEngine.h"
 
 namespace fdb5 {
 
@@ -36,21 +37,21 @@ public: // methods
 
     virtual ~TocDB();
 
-    const Schema& schema() const;
-
-    static void matchKeyToDB(const Key& key, std::set<Key>& keys);
-
-    static std::vector<eckit::PathName> databases(const Key& key, const std::vector<eckit::PathName>& dirs);
-
-    static std::vector<eckit::PathName> allDatabases(const Key& key);
-    static std::vector<eckit::PathName> writableDatabases(const Key& key);
-    static std::vector<eckit::PathName> visitableDatabases(const Key& key);
+    static const char* dbTypeName() { return TocEngine::typeName(); }
 
 protected: // methods
+
+    virtual std::string dbType() const;
 
     virtual bool open();
     virtual void close();
     virtual void flush();
+    virtual bool exists() const;
+    virtual void visitEntries(EntryVisitor& visitor);
+    virtual void visit(DBVisitor& visitor);
+    virtual void dump(std::ostream& out, bool simple=false);
+    virtual eckit::PathName basePath() const;
+    virtual const Schema& schema() const;
 
     virtual eckit::DataHandle *retrieve(const Key &key) const;
     virtual void archive(const Key &key, const void *data, eckit::Length length);
@@ -58,6 +59,10 @@ protected: // methods
 
     void loadSchema();
     void checkSchema(const Key &key) const;
+
+    virtual DbStats statistics() const;
+
+    std::vector<Index> indexes() const;
 
 private: // members
 

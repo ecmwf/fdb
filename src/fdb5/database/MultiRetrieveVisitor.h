@@ -64,8 +64,6 @@ private:
 
     eckit::CacheLRU< Key,DB*>& databases_;
 
-    std::string fdbReaderDB_;
-
     HandleGatherer &gatherer_;
 };
 

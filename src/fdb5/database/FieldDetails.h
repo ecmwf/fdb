@@ -33,6 +33,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 struct FieldDetails {
+
     FieldDetails():
         referenceValue_(0),
         binaryScaleFactor_(0),
@@ -42,7 +43,11 @@ struct FieldDetails {
         offsetBeforeBitmap_(0),
         numberOfValues_(0),
         numberOfDataPoints_(0),
-        sphericalHarmonics_(0) {}
+        sphericalHarmonics_(0)
+    {
+    }
+
+    operator bool() const { return bitsPerValue_ && !gridMD5_.empty(); }
 
     double        referenceValue_;
     long          binaryScaleFactor_;

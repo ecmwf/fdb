@@ -21,6 +21,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/types/TypesRegistry.h"
@@ -55,6 +56,7 @@ public: // methods
 
     Schema();
     Schema(const eckit::PathName &path);
+    Schema(std::istream& s);
 
     ~Schema();
 
@@ -67,6 +69,7 @@ public: // methods
     const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
 
     void load(const eckit::PathName &path, bool replace = false);
+    void load(std::istream& s, bool replace = false);
 
     void dump(std::ostream &s) const;
 

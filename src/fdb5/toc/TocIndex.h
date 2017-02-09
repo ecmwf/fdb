@@ -26,6 +26,7 @@
 #include "eckit/types/FixedString.h"
 
 #include "fdb5/database/Index.h"
+#include "fdb5/toc/TocIndexLocation.h"
 
 namespace fdb5 {
 
@@ -33,17 +34,37 @@ namespace fdb5 {
 
 class BTreeIndex;
 
-class TocIndex : public Index {
+
+/// FileStoreWrapper exists _only_ so that the files_ member can be initialised from the stream
+/// before the Index base class is initialised, for the TocIndex class. This order is required
+/// to preserve the order that data is stored/read from streams from before the files_ object
+/// was moved into the TocIndex class.
+
+struct FileStoreWrapper {
+
+    FileStoreWrapper(const eckit::PathName& directory) : files_(directory) {}
+    FileStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : files_(directory, s) {}
+
+    FileStore files_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+class TocIndex :
+        private FileStoreWrapper,
+        public IndexBase {
 
 public: // types
 
+    enum Mode { WRITE, READ };
 
 public: // methods
 
     TocIndex(const Key &key,
              const eckit::PathName &path,
              off_t offset,
-             Index::Mode mode,
+             Mode mode,
              const std::string& type = defaulType());
 
     TocIndex(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
@@ -52,20 +73,29 @@ public: // methods
 
     static std::string defaulType();
 
+    const eckit::PathName& path() const { return location_.path(); }
+    off_t offset() const { return location_.offset(); }
+
 private: // methods
+
+    virtual const IndexLocation& location() const { return location_; }
 
     virtual void open();
     virtual void close();
     virtual void reopen();
 
+    virtual void visit(IndexLocationVisitor& visitor) const;
+
     virtual bool get( const Key &key, Field &field ) const;
     virtual void add( const Key &key, const Field &field );
     virtual void flush();
+    virtual void encode(eckit::Stream &s) const;
     virtual void entries(EntryVisitor &visitor) const;
 
     virtual void print( std::ostream &out ) const;
     virtual void dump(std::ostream& out, const char* indent, bool simple = false) const;
 
+    virtual IndexStats statistics() const;
 
 private: // members
 
@@ -75,6 +105,9 @@ private: // members
 
     friend class TocIndexCloser;
 
+    const TocIndex::Mode mode_;
+
+    TocIndexLocation location_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

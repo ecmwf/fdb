@@ -111,9 +111,8 @@ void Rule::expand( const MarsRequest &request,
         k.push(keyword, *i);
         full.push(keyword, *i);
 
-        if ((*cur)->match(k)) {
+        if ((*cur)->match(k))
             expand(request, next, depth, keys, full, visitor);
-        }
 
         full.pop(keyword);
         k.pop(keyword);

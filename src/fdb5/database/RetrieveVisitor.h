@@ -21,7 +21,6 @@
 #include "eckit/memory/ScopedPtr.h"
 
 
-
 namespace fdb5 {
 
 class HandleGatherer;
@@ -63,10 +62,7 @@ private:
 
     eckit::ScopedPtr<DB> db_;
 
-    std::string fdbReaderDB_;
     HandleGatherer &gatherer_;
-
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

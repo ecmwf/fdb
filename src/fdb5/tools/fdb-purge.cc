@@ -8,7 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+
 #include "fdb5/toc/PurgeVisitor.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBInspect.h"
@@ -56,26 +58,27 @@ void FDBPurge::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     eckit::Log::info() << "Scanning " << path << std::endl;
 
-    fdb5::TocHandler handler(path);
-    eckit::Log::info() << "Database key " << handler.databaseKey() << std::endl;
+    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
+    ASSERT(db->open());
 
-    fdb5::PurgeVisitor visitor(path);
-
-    std::vector<fdb5::Index *> indexes = handler.loadIndexes();
-
-
-    for (std::vector<fdb5::Index *>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-        (*i)->entries(visitor);
+    fdb5::TocDB* tocdb = dynamic_cast<fdb5::TocDB*>(db.get());
+    if(!tocdb) {
+        std::ostringstream oss;
+        oss << "Database in " << path
+            << ", expected type " << fdb5::TocDB::dbTypeName()
+            << " but got type " << db->dbType();
+        throw eckit::BadParameter(oss.str(), Here());
     }
+
+    fdb5::PurgeVisitor visitor(*tocdb);
+
+    db->visitEntries(visitor);
 
     visitor.report(eckit::Log::info());
 
     if (doit_) {
         visitor.purge(eckit::Log::info());
     }
-
-    handler.freeIndexes(indexes);
-
 }
 
 

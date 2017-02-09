@@ -8,34 +8,46 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   IndexStatistics.h
+/// @file   PoolEntry.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   April 2016
+/// @date   Mar 2016
 
-#ifndef fdb5_IndexStatistics_H
-#define fdb5_IndexStatistics_H
+#ifndef fdb5_PoolEntry_H
+#define fdb5_PoolEntry_H
 
-#include <iosfwd>
-#include "eckit/log/Statistics.h"
+#include "eckit/filesystem/PathName.h"
 
 namespace fdb5 {
 
+class Key;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class IndexStatistics : public eckit::Statistics {
-public:
-    IndexStatistics() ;
+class PoolEntry  {
 
-    size_t fieldsCount_;
-    size_t duplicatesCount_;
-    unsigned long long fieldsSize_;
-    unsigned long long duplicatesSize_;
+public: // methods
 
-    IndexStatistics &operator+=(const IndexStatistics &rhs) ;
+    PoolEntry(const std::string& path,
+         const std::string& poolgroup,
+         bool writable = true,
+         bool visit  = true);
 
-    void report(std::ostream &out, const char* indent = "") const;
+    const eckit::PathName &path() const;
 
+    bool writable() const; ///< PoolEntry is in use, when archiving
+    bool visit() const;    ///< PoolEntry is visited, when retrievind
+
+    const std::string& poolgroup() const;
+
+private: // members
+
+    eckit::PathName path_;
+
+    std::string poolgroup_;
+
+    bool writable_;
+    bool visit_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

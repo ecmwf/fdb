@@ -13,8 +13,7 @@
 
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/toc/TocDB.h"
-#include "fdb5/toc/TocHandler.h"
+
 #include "fdb5/tools/FDBTool.h"
 
 using eckit::Log;
@@ -26,7 +25,7 @@ namespace fdb5 {
 static FDBTool* instance_ = 0;
 
 FDBTool::FDBTool(int argc, char **argv):
-    eckit::Tool(argc, argv, "DHSHOME") {
+    eckit::Tool(argc, argv, "FDB_HOME") {
     ASSERT(instance_ == 0);
     instance_ = this;
 

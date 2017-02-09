@@ -102,7 +102,7 @@ bool FileSpace::match(const std::string& s) const {
 
 bool FileSpace::existsDB(const Key& key, eckit::PathName& path) const
 {
-    std::vector<eckit::PathName> dbs = TocDB::databases(key, visitable());
+    std::vector<eckit::PathName> dbs = TocEngine::databases(key, visitable());
 
     if(dbs.empty()) return false;
 

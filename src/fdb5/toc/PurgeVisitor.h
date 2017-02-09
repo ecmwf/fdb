@@ -17,17 +17,17 @@
 #define fdb5_PurgeVisitor_H
 
 
-#include "fdb5/toc/ReportVisitor.h"
+#include "fdb5/toc/TocReportVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class PurgeVisitor : public ReportVisitor {
+class PurgeVisitor : public TocReportVisitor {
 public:
 
-    PurgeVisitor(const eckit::PathName &directory);
+    PurgeVisitor(TocDB& db);
     void report(std::ostream &out) const;
     void purge(std::ostream &out) const;
 

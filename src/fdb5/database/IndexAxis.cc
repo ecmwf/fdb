@@ -17,14 +17,34 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 IndexAxis::IndexAxis() :
-    readOnly_(false) {
+    readOnly_(false),
+    dirty_(false) {
 }
 
 IndexAxis::~IndexAxis() {
 }
 
 IndexAxis::IndexAxis(eckit::Stream &s) :
-    readOnly_(true) {
+    readOnly_(true),
+    dirty_(false) {
+
+    decode(s);
+}
+
+void IndexAxis::encode(eckit::Stream &s) const {
+    s << axis_.size();
+    for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
+        s << (*i).first;
+        const std::set<std::string> &values = (*i).second;
+        s << values.size();
+        for (std::set<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
+            s << (*j);
+        }
+    }
+}
+
+void IndexAxis::decode(eckit::Stream &s) {
+
     size_t n;
     s >> n;
 
@@ -39,18 +59,6 @@ IndexAxis::IndexAxis(eckit::Stream &s) :
         for (size_t j = 0; j < m; j++) {
             s >> v;
             values.insert(v);
-        }
-    }
-}
-
-void IndexAxis::encode(eckit::Stream &s) const {
-    s << axis_.size();
-    for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
-        s << (*i).first;
-        const std::set<std::string> &values = (*i).second;
-        s << values.size();
-        for (std::set<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
-            s << (*j);
         }
     }
 }
@@ -81,9 +89,23 @@ void IndexAxis::insert(const Key &key) {
     for (Key::const_iterator i = key.begin(); i  != key.end(); ++i) {
         const std::string &keyword = i->first;
         const std::string &value   = i->second;
-        axis_[keyword].insert(value);
+
+        std::pair<eckit::StringSet::iterator, bool> result = axis_[keyword].insert(value);
+        if (result.second)
+            dirty_ = true;
     }
 }
+
+
+bool IndexAxis::dirty() const {
+    return dirty_;
+}
+
+
+void IndexAxis::clean() {
+    dirty_ = false;
+}
+
 
 const eckit::StringSet &IndexAxis::values(const std::string &keyword) const {
     AxisMap::const_iterator i = axis_.find(keyword);

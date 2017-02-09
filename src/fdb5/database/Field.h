@@ -21,6 +21,7 @@
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 #include "eckit/memory/NonCopyable.h"
+#include "eckit/memory/SharedPtr.h"
 #include "eckit/types/Types.h"
 #include "eckit/types/FixedString.h"
 
@@ -38,7 +39,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FieldRef;
 class FileStore;
 
 class Field {
@@ -46,22 +46,17 @@ class Field {
 public: // methods
 
     Field();
-    Field(const FileStore &, const FieldRef &);
-    Field(const eckit::PathName &path, eckit::Offset offset, eckit::Length length );
 
+    Field(const FieldLocation& location, const FieldDetails& details = FieldDetails());
 
-    eckit::DataHandle *dataHandle() const { return location_.dataHandle(); }
+    eckit::DataHandle *dataHandle() const { return location_->dataHandle(); }
 
-    const eckit::PathName &path() const { return location_.path(); }
-    const eckit::Offset &offset() const { return location_.offset(); }
-    const eckit::Length &length() const { return location_.length(); }
-
-    const FieldLocation& location() const { return location_; }
+    const FieldLocation& location() const { return *location_; }
     const FieldDetails& details() const { return details_; }
 
 private: // members
 
-    FieldLocation location_;
+    eckit::SharedPtr<FieldLocation> location_;
 
     FieldDetails details_;
 
