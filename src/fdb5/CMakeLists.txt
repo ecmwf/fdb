@@ -295,7 +295,7 @@ else()
 endif()
 
 if(LUSTREAPI_FOUND)
-    list( APPEND fdb5_srcs io/LustreFileHandle.h io/LustreFileHandle.c )
+    list( APPEND fdb5_srcs io/LustreFileHandle.h io/LustreFileHandle.cc )
 endif()
 
 ecbuild_add_library(
