@@ -74,6 +74,8 @@ class EngineRegistry : private eckit::NonCopyable {
 
 public: // methods
 
+    static bool has(const std::string& name);
+
     static Engine& engine(const std::string& name);
 
     static std::vector<Engine*> engines();
@@ -85,7 +87,7 @@ public: // methods
 protected: // methods
 
     static void add(Engine*);
-    static void remove(const std::string&);
+    static Engine* remove(const std::string&);
 
 };
 
@@ -103,7 +105,8 @@ public:
     }
 
     ~EngineBuilder() {
-        EngineRegistry::remove(name_);
+        Engine* e = EngineRegistry::remove(name_);
+        delete e;
     }
 
     std::string name_;

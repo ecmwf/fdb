@@ -111,12 +111,19 @@ std::string Manager::engine(const Key& key)
 
     for (EngineTable::const_iterator i = engineTypes.begin(); i != engineTypes.end() ; ++i) {
         if(i->match(expanded)) {
-            return i->engine();
+            const std::string& engine = i->engine();
+            if (EngineRegistry::has(engine)) {
+                return engine;
+            }
+            else {
+                Log::warning() << "Configured FDB engine " << engine << " is not registered" << std::endl;
+            }
         }
     }
 
     std::ostringstream oss;
     oss << "No FDB Engine type found for " << key << " (" << expanded << ")";
+    Log::error() << oss.str() << std::endl;
     throw eckit::SeriousBug(oss.str());
 }
 
@@ -176,7 +183,7 @@ std::vector<PathName> Manager::allLocations(const Key& key)
     std::vector<PathName> r; // union of all locations
 
     for(std::vector<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
-        Log::debug<LibFdb>() << "Engine ===> " << *i << std::endl;
+        Log::debug<LibFdb>() << "Selected FDB engine " << *i << std::endl;
         std::vector<PathName> p = Engine::backend(*i).allLocations(key);
         r.insert(r.end(), p.begin(), p.end());
     }
@@ -194,7 +201,7 @@ std::vector<eckit::PathName> Manager::visitableLocations(const Key& key) {
     std::vector<PathName> r; // union of all locations
 
     for(std::vector<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
-        Log::debug<LibFdb>() << "Engine ===> " << *i << std::endl;
+        Log::debug<LibFdb>() << "Selected FDB engine " << *i << std::endl;
         std::vector<PathName> p = Engine::backend(*i).visitableLocations(key);
         r.insert(r.end(), p.begin(), p.end());
     }
@@ -212,7 +219,7 @@ std::vector<eckit::PathName> Manager::writableLocations(const Key& key) {
     std::vector<PathName> r; // union of all locations
 
     for(std::vector<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
-        Log::debug<LibFdb>() << "Engine ===> " << *i << std::endl;
+        Log::debug<LibFdb>() << "Selected FDB engine " << *i << std::endl;
         std::vector<PathName> p = Engine::backend(*i).writableLocations(key);
         r.insert(r.end(), p.begin(), p.end());
     }

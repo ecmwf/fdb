@@ -31,6 +31,14 @@ void init() {
     m = new std::map<std::string, Engine*>();
 }
 
+bool EngineRegistry::has(const std::string& name)
+{
+    pthread_once(&once, init);
+    AutoLock<Mutex> lock(*local_mutex);
+
+    return (m->find(name) != m->end());
+}
+
 Engine& EngineRegistry::engine(const std::string& name) {
 
     pthread_once(&once, init);
@@ -70,12 +78,16 @@ void EngineRegistry::add(Engine* e)
     (*m)[name] = e;
 }
 
-void EngineRegistry::remove(const std::string& name)
+Engine* EngineRegistry::remove(const std::string& name)
 {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(*local_mutex);
 
+    Engine* e = (*m)[name];
+
     m->erase(name);
+
+    return e;
 }
 
 
