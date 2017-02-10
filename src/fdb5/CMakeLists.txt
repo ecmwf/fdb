@@ -235,6 +235,11 @@ if( HAVE_TOCFDB )
         toc/TocReportVisitor.cc
         toc/TocReportVisitor.h
         )
+
+    list( APPEND fdb5_tools
+        fdb-wipe
+        fdb-purge )
+
 endif()
 
 if( HAVE_PMEMFDB )
@@ -284,10 +289,6 @@ if( HAVE_PMEMFDB )
         pmem/PMemEngine.h
     )
 
-    list( APPEND fdb5_tools
-        fdb-purge
-        fdb-wipe
-    )
 
 else()
     set( PMEM_LIBRARIES "" )
