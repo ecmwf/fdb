@@ -95,6 +95,7 @@ DataPool& DataPoolManager::currentWritePool() {
 
             Log::info() << "[" << *this << "]: " << "Creating a new data pool with index: " << idx << std::endl;
             currentPool_ = new DataPool(poolDir_, idx, Resource<size_t>("fdbPMemDataPoolSize;$fdbPMemDataPoolSize", 1024 * 1024 * 1024));
+            currentPool_->buildRoot();
 
             // Add pool to the list of opened pools
 

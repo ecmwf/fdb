@@ -27,6 +27,8 @@
 #include "fdb5/pmem/PRoot.h"
 #include "fdb5/rules/Schema.h"
 
+#include "pmem/PoolRegistry.h"
+
 #include <unistd.h>
 
 using namespace eckit;
@@ -41,27 +43,6 @@ namespace pmem {
 
 PBranchingNode::PBranchingNode(const KeyType &key, const ValueType &value) :
     PBaseNode(BRANCHING_NODE, key, value) {}
-
-
-/// This is the constructor for building a chain of nodes
-
-PBranchingNode::PBranchingNode(KeyValueVector::const_iterator start,
-                               KeyValueVector::const_iterator end,
-                               PBranchingNode** const tailNode) :
-    PBaseNode(BRANCHING_NODE, start->first, start->second) {
-
-    // Store this node as the tailNode. If further contained nodes are created, the pointer will
-    // be (correctly) replaced with the deepest node.
-
-    *tailNode = this;
-
-    // Instantiate nodes recursively until they are all filled.
-    // We use an explicit constructor so we can cast it to the PBaseNode type
-
-    ++start;
-    if (start != end)
-        nodes_.push_back_ctr(BaseConstructor(IndexConstructor(start, end, tailNode)));
-}
 
 
 // -------------------------------------------------------------------------------------------------
@@ -114,8 +95,18 @@ PBranchingNode& PBranchingNode::getCreateBranchingNode(const KeyValueVector& ide
 
         // Create the node (and all contained sub-nodes) if it hasn't been found. Note that we
         // start at the first
+
         if (i < 0) {
-            current->nodes_.push_back_ctr(BaseConstructor(PBranchingNode::IndexConstructor(it, identifier.end(), &current)));
+
+            PersistentPool& pool(::pmem::PoolRegistry::instance().poolFromPointer(this));
+
+            for (; it != identifier.end(); it++) {
+                PersistentPtr<PBaseNode> newNode;
+                newNode.allocate_ctr(pool, BaseConstructor(PBranchingNode::NodeConstructor(it->first, it->second)));
+                current->nodes_.push_back_elem(newNode);
+                current = &newNode->asBranchingNode();
+            }
+
             break;
         }
     }

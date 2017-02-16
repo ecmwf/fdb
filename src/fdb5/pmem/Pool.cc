@@ -69,6 +69,14 @@ Pool::Pool(const PathName& path, const size_t size, const std::string& name,
 Pool::~Pool() {}
 
 
+void Pool::buildRoot(const Key& dbKey) {
+    // n.b. cannot use baseRoot yet, as not yet valid...
+    PersistentPtr<PRoot> rt = getRoot<PRoot>();
+    ASSERT(rt.valid());
+    rt->buildRoot(dbKey);
+}
+
+
 /// Open an existing persistent pool, if it exists. If it does _not_ exist, then create it.
 /// If open/create fail for other reasons, then the appropriate error is thrown.
 ///
@@ -90,7 +98,8 @@ Pool* Pool::obtain(const PathName &poolDir, const size_t size, const Key& dbKey)
     }
     else {
         Log::info() << "Creating FDB PMem master pool " << poolDir << std::endl;
-        pool = new Pool(poolMaster(poolDir), size, "pmem-pool", PRoot::ConstructorKey(PRoot::IndexClass, dbKey));
+        pool = new Pool(poolMaster(poolDir), size, "pmem-pool", PRoot::Constructor(PRoot::IndexClass));
+        pool->buildRoot(dbKey);
     }
 
     ASSERT(pool != 0);

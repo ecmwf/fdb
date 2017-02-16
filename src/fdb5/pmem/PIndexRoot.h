@@ -45,7 +45,11 @@ class PIndexRoot : public eckit::NonCopyable {
 
 public: // methods
 
-    PIndexRoot(const Key& dbKey);
+    PIndexRoot(const ::pmem::PersistentPtr< ::pmem::PersistentBuffer>& key,
+               const ::pmem::PersistentPtr< ::pmem::PersistentString>& schema,
+               const ::pmem::PersistentPtr<PBranchingNode>& rootNode);
+
+    static void build(::pmem::PersistentPtr<PIndexRoot>& ptr, const Key& dbKey);
 
     bool valid() const;
 

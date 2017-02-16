@@ -20,6 +20,8 @@
 #include "fdb5/pmem/PIndexRoot.h"
 #include "fdb5/pmem/MemoryBufferStream.h"
 
+#include "pmem/PoolRegistry.h"
+
 using namespace eckit;
 using namespace pmem;
 
@@ -29,15 +31,29 @@ namespace pmem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-PIndexRoot::PIndexRoot(const Key& dbKey) :
+PIndexRoot::PIndexRoot(const PersistentPtr<PersistentBuffer>& key,
+                       const PersistentPtr<PersistentString>& schema,
+                       const PersistentPtr<PBranchingNode>& rootNode) :
     tag_(PIndexRootTag),
     version_(PIndexRootVersion),
     rootSize_(sizeof(PIndexRoot)),
     created_(time(0)),
-    createdBy_(getuid()) {
+    createdBy_(getuid()),
+    rootNode_(rootNode),
+    schema_(schema),
+    dbKey_(key) {
+
+    dataPoolUUIDs_.nullify();
+}
+
+
+void PIndexRoot::build(PersistentPtr<PIndexRoot>& ptr, const Key& dbKey) {
+
+    PersistentPool& pool(PoolRegistry::instance().poolFromPointer(&ptr));
 
     // The root node of the tree does not have an associated key/value.
-    rootNode_.allocate(std::string(), std::string());
+
+    PersistentPtr<PBranchingNode> rootNode = pool.allocate<PBranchingNode>(std::string(), std::string());
 
     // Store the currently loaded master schema, so it can be recovered later
 
@@ -46,14 +62,17 @@ PIndexRoot::PIndexRoot(const Key& dbKey) :
     std::string buf(static_cast<size_t>(schemaFile->openForRead()), '\0');
     schemaFile->read(&buf[0], buf.size());
 
-    schema_.allocate(buf);
+    PersistentPtr<PersistentString> schema = pool.allocate<PersistentString>(buf);
 
     // Store the current DB key
 
     MemoryBufferStream s;
     s << dbKey;
     const void* key_data = s.buffer();
-    dbKey_.allocate(key_data, s.position());
+
+    PersistentPtr<PersistentBuffer> key = pool.allocate<PersistentBuffer>(key_data, s.position());
+
+    ptr.allocate(key, schema, rootNode);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
