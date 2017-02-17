@@ -182,6 +182,13 @@ const std::map<uint64_t, DataPool*>& DataPoolManager::pools() const {
 }
 
 
+size_t DataPoolManager::dataPoolsCount() const {
+
+    return masterRoot_.dataPoolUUIDs().size();
+}
+
+
+
 size_t DataPoolManager::dataSize() {
 
     // Don't need to lock access to master pools list, as it is append only and always valid for read.

@@ -33,10 +33,12 @@ public:
 
     static DbStats make() { return DbStats(new PMemDbStats()); }
 
-    unsigned long long poolsSize_;
+    unsigned long long dataPoolsSize_;
+    unsigned long long indexPoolsSize_;
     unsigned long long schemaSize_;
 
-    size_t poolsCount_;
+    size_t dataPoolsCount_;
+    size_t indexPoolsCount_;
     size_t indexesCount_;
 
     PMemDbStats& operator+= (const PMemDbStats &rhs) ;
