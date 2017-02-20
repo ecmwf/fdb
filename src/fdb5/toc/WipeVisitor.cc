@@ -52,7 +52,7 @@ WipeVisitor::WipeVisitor(TocDB& db) : TocReportVisitor(db) {
     scan(directory.realName());
 
     eckit::Log::info() << "Found "
-                       << eckit::Plural(files_.size(), "file")
+                       << eckit::Plural(int(files_.size()), "file")
                        << ", size: "
                        << eckit::Bytes(total_)
                        << std::endl;
@@ -157,7 +157,7 @@ void WipeVisitor::report(std::ostream &out) const {
 }
 
 
-void WipeVisitor::wipe(std::ostream& out) const {
+void WipeVisitor::wipe(std::ostream&) const {
 
     const eckit::PathName& directory = db_.directory();
 

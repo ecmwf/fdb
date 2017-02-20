@@ -27,7 +27,7 @@ TypeAbbreviation::~TypeAbbreviation() {
 }
 
 void TypeAbbreviation::toKey(std::ostream &out,
-                             const std::string &keyword,
+                             const std::string&,
                              const std::string &value) const {
 
     out << value.substr(0, count_);
@@ -36,8 +36,8 @@ void TypeAbbreviation::toKey(std::ostream &out,
 void TypeAbbreviation::getValues(const MarsRequest &request,
                                  const std::string &keyword,
                                  eckit::StringList &values,
-                                 const NotifyWind &wind,
-                                 const DB *db) const {
+                                 const NotifyWind&,
+                                 const DB*) const {
     std::vector<std::string> vals;
 
     request.getValues(keyword, vals);

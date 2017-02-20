@@ -26,19 +26,19 @@ TypeGrid::~TypeGrid() {
 }
 
 void TypeGrid::toKey(std::ostream &out,
-                     const std::string &keyword,
-                     const std::string &value) const {
+                     const std::string&,
+                     const std::string& value) const {
 
     std::string s(value);
     std::replace( s.begin(), s.end(), '/', '+');
     out << s;
 }
 
-void TypeGrid::getValues(const MarsRequest &request,
-                         const std::string &keyword,
-                         eckit::StringList &values,
-                         const NotifyWind &wind,
-                         const DB *db) const {
+void TypeGrid::getValues(const MarsRequest& request,
+                         const std::string& keyword,
+                         eckit::StringList& values,
+                         const NotifyWind&,
+                         const DB*) const {
     std::vector<std::string> v;
     request.getValues(keyword, v);
     values.push_back(eckit::StringTools::join("+", v));

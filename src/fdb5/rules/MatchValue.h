@@ -17,6 +17,7 @@
 #define fdb5_MatchValue_H
 
 #include <iosfwd>
+#include <string>
 
 #include "fdb5/rules/Matcher.h"
 

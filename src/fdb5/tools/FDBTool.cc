@@ -49,15 +49,15 @@ void FDBTool::run() {
 }
 
 
-void FDBTool::usage(const std::string &tool) const {
+void FDBTool::usage(const std::string&) const {
 
 }
 
-void FDBTool::init(const eckit::option::CmdArgs& args) {
+void FDBTool::init(const eckit::option::CmdArgs&) {
 
 }
 
-void FDBTool::finish(const eckit::option::CmdArgs& args) {
+void FDBTool::finish(const eckit::option::CmdArgs&) {
 
 }
 

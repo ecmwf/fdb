@@ -44,7 +44,7 @@ void FDBWhere::usage(const std::string &tool) const {
     FDBInspect::usage(tool);
 }
 
-void FDBWhere::process(const eckit::PathName& path, const eckit::option::CmdArgs& args)  {
+void FDBWhere::process(const eckit::PathName& path, const eckit::option::CmdArgs&)  {
     Log::info() << path << std::endl;
 }
 

@@ -26,8 +26,8 @@ Type::~Type() {
 void Type::getValues(const MarsRequest &request,
                      const std::string &keyword,
                      eckit::StringList &values,
-                     const NotifyWind &wind,
-                     const DB *db) const {
+                     const NotifyWind&,
+                     const DB*) const {
     request.getValues(keyword, values);
 }
 
@@ -35,13 +35,13 @@ const std::string &Type::type() const {
     return type_;
 }
 
-std::string Type::tidy(const std::string &keyword,
+std::string Type::tidy(const std::string&,
                        const std::string &value) const  {
     return value;
 }
 
 void Type::toKey(std::ostream &out,
-                 const std::string &keyword,
+                 const std::string&,
                  const std::string &value) const {
     out << value;
 }

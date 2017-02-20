@@ -49,7 +49,7 @@ static int month(const std::string &value) {
 }
 
 void TypeClimateMonthly::toKey(std::ostream &out,
-                               const std::string &keyword,
+                               const std::string&,
                                const std::string &value) const {
 
     out << month(value);
@@ -58,8 +58,8 @@ void TypeClimateMonthly::toKey(std::ostream &out,
 void TypeClimateMonthly::getValues(const MarsRequest &request,
                                    const std::string &keyword,
                                    eckit::StringList &values,
-                                   const NotifyWind &wind,
-                                   const DB *db) const {
+                                   const NotifyWind&,
+                                   const DB*) const {
     std::vector<std::string> dates;
 
     request.getValues(keyword, dates);

@@ -45,7 +45,7 @@ void FDBDump::usage(const std::string &tool) const {
     fdb5::FDBInspect::usage(tool);
 }
 
-void FDBDump::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
+void FDBDump::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {
 
     eckit::Log::info() << "Dumping " << path << std::endl << std::endl;
 

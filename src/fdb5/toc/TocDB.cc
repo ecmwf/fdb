@@ -38,7 +38,7 @@ TocDB::TocDB(const eckit::PathName& directory) :
 TocDB::~TocDB() {
 }
 
-void TocDB::axis(const std::string &keyword, eckit::StringSet &s) const {
+void TocDB::axis(const std::string&, eckit::StringSet&) const {
     Log::error() << "axis() not implemented for " << *this << std::endl;
     NOTIMP;
 }
@@ -52,7 +52,7 @@ bool TocDB::exists() const {
     return TocHandler::exists();
 }
 
-void TocDB::archive(const Key &key, const void *data, Length length) {
+void TocDB::archive(const Key&, const void*, Length) {
     Log::error() << "Archive not implemented for " << *this << std::endl;
     NOTIMP;
 }
@@ -62,7 +62,7 @@ void TocDB::flush() {
     NOTIMP;
 }
 
-eckit::DataHandle *TocDB::retrieve(const Key &key) const {
+eckit::DataHandle *TocDB::retrieve(const Key&) const {
     Log::error() << "Retrieve not implemented for " << *this << std::endl;
     NOTIMP;
 }

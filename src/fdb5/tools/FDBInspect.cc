@@ -91,7 +91,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
                 Log::warning() << "No FDB matches " << req.key() << std::endl;
             }
 
-        } catch (eckit::UserError& e) {
+        } catch (eckit::UserError&) {
             throw;
         } catch (eckit::Exception &e) {
             Log::warning() << e.what() << std::endl;

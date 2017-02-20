@@ -51,7 +51,7 @@ void FDBWipe::init(const eckit::option::CmdArgs &args) {
     args.get("doit", doit_);
 }
 
-void FDBWipe::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
+void FDBWipe::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {
 
     eckit::Log::info() << "Scanning " << path << std::endl;
 
@@ -79,7 +79,7 @@ void FDBWipe::process(const eckit::PathName &path, const eckit::option::CmdArgs 
 }
 
 
-void FDBWipe::finish(const eckit::option::CmdArgs &args) {
+void FDBWipe::finish(const eckit::option::CmdArgs&) {
 
     if (!doit_) {
         eckit::Log::info() << std::endl
