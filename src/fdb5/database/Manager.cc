@@ -51,7 +51,7 @@ static EngineTable engineTypes;
 
 static void readEngineTypes() {
 
-    eckit::PathName path("~/etc/fdb/engines");
+    eckit::PathName path("~fdb/etc/fdb/engines");
     std::ifstream in(path.localPath());
 
     eckit::Log::debug() << "Loading FDB engines from " << path << std::endl;

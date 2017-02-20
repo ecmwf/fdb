@@ -35,7 +35,7 @@ static std::vector<PoolEntry> readPools() {
 
     std::vector<PoolEntry> result;
 
-    eckit::PathName path("~/etc/fdb/pools");
+    eckit::PathName path("~fdb/etc/fdb/pools");
     std::ifstream in(path.localPath());
 
     eckit::Log::debug() << "Loading FDB pools from " << path << std::endl;
@@ -105,7 +105,7 @@ static void readPoolGroups() {
 
     std::vector<PoolEntry> allPools = readPools();
 
-    eckit::PathName path("~/etc/fdb/poolgroups");
+    eckit::PathName path("~fdb/etc/fdb/poolgroups");
     std::ifstream in(path.localPath());
 
     eckit::Log::debug() << "Loading FDB file poolgroups from " << path << std::endl;
