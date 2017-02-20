@@ -35,7 +35,7 @@ static std::vector<Root> readRoots() {
 
     std::vector<Root> result;
 
-    eckit::PathName path("~/etc/fdb/roots");
+    eckit::PathName path("~fdb/etc/fdb/roots");
     std::ifstream in(path.localPath());
 
     eckit::Log::debug() << "Loading FDB roots from " << path << std::endl;
@@ -105,7 +105,7 @@ static void readFileSpaces() {
 
     std::vector<Root> allRoots = readRoots();
 
-    eckit::PathName path("~/etc/fdb/spaces");
+    eckit::PathName path("~fdb/etc/fdb/spaces");
     std::ifstream in(path.localPath());
 
     eckit::Log::debug() << "Loading FDB file spaces from " << path << std::endl;
