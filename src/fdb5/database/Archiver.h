@@ -43,7 +43,7 @@ public: // methods
 
     Archiver();
 
-    ~Archiver();
+    virtual ~Archiver();
 
     void archive(const Key &key, BaseArchiveVisitor &visitor);
 

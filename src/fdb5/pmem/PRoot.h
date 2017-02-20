@@ -20,6 +20,9 @@
 #include "eckit/types/FixedString.h"
 
 #include "pmem/PersistentPtr.h"
+#include "pmem/PersistentMutex.h"
+
+#include "fdb5/database/Key.h"
 
 #include <ctime>
 
@@ -51,12 +54,16 @@ public: // types
     };
 
     typedef ::pmem::AtomicConstructor1<PRoot, RootClass> Constructor;
-    typedef ::pmem::AtomicConstructor2<PRoot, RootClass, Key> ConstructorKey;
 
 public: // methods
 
     PRoot(RootClass cls);
-    PRoot(RootClass cls, const Key& dbKey);
+
+    /// Normally we allocate persistent objects by passing in their subcomponents. We cannot do
+    /// that with a root object, as it is allocated at pool creation time.
+    ///
+    /// --> buildRoot() should be called immediately after pool creation to initialise the root.
+    void buildRoot(const Key& dbKey);
 
     bool valid() const;
 
@@ -89,6 +96,9 @@ private: // members
 
     ::pmem::PersistentPtr<PIndexRoot> indexRoot_;
     ::pmem::PersistentPtr<PDataRoot> dataRoot_;
+
+    /// Ensure that only one thread at a time tries to allocate a root!
+    ::pmem::PersistentMutex rootMutex_;
 
 private: // friends
 

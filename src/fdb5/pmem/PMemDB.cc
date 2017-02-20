@@ -187,11 +187,13 @@ DbStats PMemDB::statistics() const
 {
     PMemDbStats* stats = new PMemDbStats();
 
-    stats->poolsCount_   += 1; // FTM we use a single pool, but we may support overspill in the future
-    stats->indexesCount_ += 1; // FTM we use a single index, but we may support overspill in the future
+    stats->dataPoolsCount_ += dataPoolsCount();
+    stats->indexPoolsCount_ += 1; // FTM we use a single pool, but we may support overspill in the future
+    stats->indexesCount_ += 1;    // FTM we use a single index, but we may support overspill in the future
 
     stats->schemaSize_ += schemaSize();
-    stats->poolsSize_  += poolsSize();
+    stats->indexPoolsSize_ += pool_->size();
+    stats->dataPoolsSize_  += dataPoolsSize();
 
     return DbStats(stats);
 }
@@ -205,9 +207,14 @@ eckit::PathName PMemDB::basePath() const {
     return poolDir_;
 }
 
-size_t PMemDB::poolsSize() const {
 
-    return pool_->size() + dataPoolMgr_->dataSize();
+size_t PMemDB::dataPoolsCount() const {
+    return dataPoolMgr_->dataPoolsCount();
+}
+
+size_t PMemDB::dataPoolsSize() const {
+
+    return dataPoolMgr_->dataSize();
 }
 
 std::string PMemDB::dbType() const

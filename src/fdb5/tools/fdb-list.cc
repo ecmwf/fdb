@@ -88,7 +88,7 @@ void FDBList::init(const eckit::option::CmdArgs &args) {
     args.get("location", location_);
 }
 
-void FDBList::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
+void FDBList::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {
 
     eckit::Log::info() << "Listing " << path << std::endl;
 

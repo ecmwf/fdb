@@ -27,8 +27,8 @@ TypeTime::TypeTime(const std::string &name, const std::string &type) :
 TypeTime::~TypeTime() {
 }
 
-std::string TypeTime::tidy(const std::string &keyword,
-                           const std::string &value) const {
+std::string TypeTime::tidy(const std::string&,
+                           const std::string& value) const {
     eckit::Translator<std::string, long> t;
 
     long n = t(value);

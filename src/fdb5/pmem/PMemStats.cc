@@ -16,20 +16,24 @@ namespace fdb5 {
 
 
 PMemDbStats::PMemDbStats():
-    poolsSize_(0),
+    dataPoolsSize_(0),
+    indexPoolsSize_(0),
     schemaSize_(0),
-    poolsCount_(0),
-    indexesCount_(0)
-{
-}
+    dataPoolsCount_(0),
+    indexPoolsCount_(0),
+    indexesCount_(0) {}
+
 
 PMemDbStats& PMemDbStats::operator+=(const PMemDbStats &rhs) {
-    poolsSize_ += rhs.poolsSize_;
+    dataPoolsSize_ += rhs.dataPoolsSize_;
+    indexPoolsSize_ += rhs.indexPoolsSize_;
     schemaSize_ += rhs.schemaSize_;
-    poolsCount_ += rhs.poolsCount_;
+    dataPoolsCount_ += rhs.dataPoolsCount_;
+    indexPoolsCount_ += rhs.indexPoolsCount_;
     indexesCount_ += rhs.indexesCount_;
     return *this;
 }
+
 
 void PMemDbStats::add(const DbStatsContent& rhs)
 {
@@ -38,8 +42,10 @@ void PMemDbStats::add(const DbStatsContent& rhs)
 }
 
 void PMemDbStats::report(std::ostream &out, const char *indent) const {
-    reportCount(out, "Pools ", poolsCount_, indent);
-    reportBytes(out, "Size of pools", poolsSize_, indent);
+    reportCount(out, "Data Pools ", dataPoolsCount_, indent);
+    reportBytes(out, "Size of data pools", dataPoolsSize_, indent);
+    reportCount(out, "Index Pools ", indexPoolsCount_, indent);
+    reportBytes(out, "Size of index pools", indexPoolsSize_, indent);
     reportCount(out, "Indexes", indexesCount_, indent);
     reportBytes(out, "Size of schemas", schemaSize_, indent);
 }

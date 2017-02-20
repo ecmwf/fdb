@@ -47,8 +47,11 @@ public: // methods
 
     size_t schemaSize() const;
 
+    /// How many data pools are under management?
+    size_t dataPoolsCount() const;
+
     /// The total size of all of the pools involved in this database
-    size_t poolsSize() const;
+    size_t dataPoolsSize() const;
 
 protected: // methods
 

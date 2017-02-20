@@ -94,70 +94,70 @@ namespace detail {
 
 struct First : public FileSpaceHandler {
     First() {}
-    eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const {
+    eckit::PathName selectFileSystem(const Key&, const FileSpace& fs) const {
         std::vector<eckit::PathName> roots = fs.writable();
         ASSERT(roots.size());
         return roots[0];
     }
 };
 
-FileSpaceHandlerRegister<First> def("Default");
-FileSpaceHandlerRegister<First> first("First");
+static FileSpaceHandlerRegister<First> def("Default");
+static FileSpaceHandlerRegister<First> first("First");
 
 struct LeastUsed : public FileSpaceHandler {
     LeastUsed() {}
-    eckit::PathName  selectFileSystem(const Key& key, const FileSpace& fs) const {
+    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::leastUsed(fs.writable());
     }
 };
 
-FileSpaceHandlerRegister<LeastUsed> leastUsed("LeastUsed");
+static FileSpaceHandlerRegister<LeastUsed> leastUsed("LeastUsed");
 
 struct LeastUsedPercent : public FileSpaceHandler {
     LeastUsedPercent() {}
-    eckit::PathName  selectFileSystem(const Key& key, const FileSpace& fs) const {
+    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::leastUsedPercent(fs.writable());
     }
 };
 
-FileSpaceHandlerRegister<LeastUsedPercent> leastUsedPercent("LeastUsedPercent");
+static FileSpaceHandlerRegister<LeastUsedPercent> leastUsedPercent("LeastUsedPercent");
 
 struct RoundRobin : public FileSpaceHandler {
     RoundRobin() {}
-    eckit::PathName  selectFileSystem(const Key& key, const FileSpace& fs) const {
+    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::roundRobin(fs.writable());
     }
 };
 
-FileSpaceHandlerRegister<RoundRobin> roundRobin("RoundRobin");
+static FileSpaceHandlerRegister<RoundRobin> roundRobin("RoundRobin");
 
 struct Random : public FileSpaceHandler {
     Random() {}
-    eckit::PathName  selectFileSystem(const Key& key, const FileSpace& fs) const {
+    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::pureRandom(fs.writable());
     }
 };
 
-FileSpaceHandlerRegister<Random> pureRandom("PureRandom"); /* alias to match name in MARS server */
-FileSpaceHandlerRegister<Random> random("Random");
+static FileSpaceHandlerRegister<Random> pureRandom("PureRandom"); /* alias to match name in MARS server */
+static FileSpaceHandlerRegister<Random> random("Random");
 
 struct WeightedRandom : public FileSpaceHandler {
     WeightedRandom() {}
-    eckit::PathName  selectFileSystem(const Key& key, const FileSpace& fs) const {
+    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::weightedRandom(fs.writable());
     }
 };
 
-FileSpaceHandlerRegister<WeightedRandom> weightedRandom("WeightedRandom");
+static FileSpaceHandlerRegister<WeightedRandom> weightedRandom("WeightedRandom");
 
 struct WeightedRandomPercent : public FileSpaceHandler {
     WeightedRandomPercent() {}
-    eckit::PathName  selectFileSystem(const Key& key, const FileSpace& fs) const {
+    eckit::PathName  selectFileSystem(const Key&, const FileSpace& fs) const {
         return eckit::FileSpaceStrategies::weightedRandomPercent(fs.writable());
     }
 };
 
-FileSpaceHandlerRegister<WeightedRandomPercent> weightedRandomPercent("WeightedRandomPercent");
+static FileSpaceHandlerRegister<WeightedRandomPercent> weightedRandomPercent("WeightedRandomPercent");
 
 }
 

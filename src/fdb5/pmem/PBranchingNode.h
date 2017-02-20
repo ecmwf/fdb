@@ -54,10 +54,7 @@ public: // Construction objects
     /// The Index constructor creates a BranchingNode, and then recursively creates required
     /// subnodes until the key is exhausted with a BranchingNode.
 
-    typedef ::pmem::AtomicConstructor3<PBranchingNode,
-                                       KeyValueVector::const_iterator,
-                                       KeyValueVector::const_iterator,
-                                       PBranchingNode** const> IndexConstructor;
+    typedef ::pmem::AtomicConstructor2<PBranchingNode, KeyType, ValueType> NodeConstructor;
 
     typedef ::pmem::AtomicConstructorCast<PBranchingNode, PBaseNode> BaseConstructor;
 

@@ -73,6 +73,9 @@ public: // methods
 
     DataPool& getPool(uint64_t uuid);
 
+    /// How many data pools are under management?
+    size_t dataPoolsCount() const;
+
     /// The total size of the data pools (does not include the master pool).
     size_t dataSize();
 

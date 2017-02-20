@@ -60,6 +60,15 @@ DataPool::DataPool(const PathName& poolDir, size_t index, const size_t size) :
 
 DataPool::~DataPool() {}
 
+
+void DataPool::buildRoot() {
+    // n.b. cannot use baseRoot yet, as not yet valid...
+    PersistentPtr<PRoot> rt = getRoot<PRoot>();
+    ASSERT(rt.valid());
+    rt->buildRoot(Key());
+}
+
+
 bool DataPool::finalised() const {
     return root().finalised();
 }

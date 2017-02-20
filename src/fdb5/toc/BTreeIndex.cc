@@ -19,6 +19,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+BTreeIndexVisitor::~BTreeIndexVisitor() {}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
 class TBTreeIndex : public BTreeIndex {
 

@@ -16,6 +16,8 @@
 
 #include "pmem/PersistentPool.h"
 
+#include "fdb5/database/Key.h"
+
 
 // -------------------------------------------------------------------------------------------------
 
@@ -27,8 +29,6 @@ namespace pmem {
 // -------------------------------------------------------------------------------------------------
 
 namespace fdb5 {
-
-class Key;
 
 namespace pmem {
 
@@ -57,6 +57,12 @@ public: // methods
              const ::pmem::AtomicConstructor<PRoot>& constructor);
 
     ~Pool();
+
+    /// Normally we allocate persistent objects by passing in their subcomponents. We cannot do
+    /// that with a root object, as it is allocated at pool creation time.
+    ///
+    /// --> buildRoot() should be called immediately after pool creation to initialise the root.
+    void buildRoot(const Key& dbKey = Key());
 
     static bool exists(const eckit::PathName& poolDir);
 

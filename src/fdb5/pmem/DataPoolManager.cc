@@ -95,6 +95,7 @@ DataPool& DataPoolManager::currentWritePool() {
 
             Log::info() << "[" << *this << "]: " << "Creating a new data pool with index: " << idx << std::endl;
             currentPool_ = new DataPool(poolDir_, idx, Resource<size_t>("fdbPMemDataPoolSize;$fdbPMemDataPoolSize", 1024 * 1024 * 1024));
+            currentPool_->buildRoot();
 
             // Add pool to the list of opened pools
 
@@ -179,6 +180,13 @@ void DataPoolManager::ensurePoolLoaded(uint64_t uuid) {
 const std::map<uint64_t, DataPool*>& DataPoolManager::pools() const {
     return pools_;
 }
+
+
+size_t DataPoolManager::dataPoolsCount() const {
+
+    return masterRoot_.dataPoolUUIDs().size();
+}
+
 
 
 size_t DataPoolManager::dataSize() {

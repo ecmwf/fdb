@@ -192,7 +192,7 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
     return selected;
 }
 
-FileSpaceHandlerRegister<ExpverFileSpaceHandler> expver("expver");
+static FileSpaceHandlerRegister<ExpverFileSpaceHandler> expver("expver");
 
 //----------------------------------------------------------------------------------------------------------------------
 

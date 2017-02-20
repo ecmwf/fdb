@@ -54,6 +54,12 @@ public: // methods
 
     ~DataPool();
 
+    /// Normally we allocate persistent objects by passing in their subcomponents. We cannot do
+    /// that with a root object, as it is allocated at pool creation time.
+    ///
+    /// --> buildRoot() should be called immediately after pool creation to initialise the root.
+    void buildRoot();
+
     bool finalised() const;
     void finalise();
 

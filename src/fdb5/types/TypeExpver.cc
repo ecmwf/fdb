@@ -28,15 +28,12 @@ TypeExpver::~TypeExpver() {
 }
 
 
-std::string TypeExpver::tidy(const std::string &keyword,
-                             const std::string &value) const {
-
+std::string TypeExpver::tidy(const std::string&,
+                             const std::string& value) const {
     std::stringstream oss;
     oss << std::setfill('0') << std::setw(4) << value;
     return oss.str();
-
 }
-
 
 
 void TypeExpver::print(std::ostream &out) const {

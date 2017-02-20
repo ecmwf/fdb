@@ -39,10 +39,10 @@ class PatchVisitor : public fdb5::EntryVisitor {
     }
 
   private:
-    virtual void visit(const fdb5::Index &index,
-                       const fdb5::Field &field,
-                       const std::string &indexFingerprint,
-                       const std::string &fieldFingerprint);
+    virtual void visit(const fdb5::Index&,
+                       const fdb5::Field&,
+                       const std::string&,
+                       const std::string&);
 
     fdb5::HandleGatherer &gatherer_;
     size_t &count_;
@@ -51,10 +51,10 @@ class PatchVisitor : public fdb5::EntryVisitor {
 
 };
 
-void PatchVisitor::visit(const fdb5::Index &index,
-                         const fdb5::Field &field,
-                         const std::string &indexFingerprint,
-                         const std::string &fieldFingerprint) {
+void PatchVisitor::visit(const fdb5::Index&,
+                         const fdb5::Field& field,
+                         const std::string& indexFingerprint,
+                         const std::string& fieldFingerprint) {
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
 
@@ -124,7 +124,7 @@ void FDBPatch::execute(const eckit::option::CmdArgs &args) {
     fdb5::UMask umask(fdb5::UMask::defaultUMask());
     fdb5::FDBInspect::execute(args);
 
-    eckit::Log::info() << eckit::Plural(count_, "field")
+    eckit::Log::info() << eckit::Plural(int(count_), "field")
                        << " ("
                        << eckit::Bytes(total_)
                        << ") copied to "
@@ -159,7 +159,7 @@ void FDBPatch::init(const eckit::option::CmdArgs &args) {
     }
 }
 
-void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
+void FDBPatch::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {
 
     eckit::Log::info() << "Listing " << path << std::endl;
 
@@ -186,7 +186,7 @@ void FDBPatch::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
         eckit::ScopedPtr<eckit::DataHandle> handle(gatherer.dataHandle());
 
-        eckit::Log::info() << eckit::Plural(count_ - count, "field")
+        eckit::Log::info() << eckit::Plural(int(count_ - count), "field")
                            << " ("
                            << eckit::Bytes(total_ - total)
                            << ") to copy to "

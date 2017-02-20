@@ -11,6 +11,7 @@
 /// @date   Sept 2016
 
 #include "eckit/log/Log.h"
+#include "eckit/thread/AutoLock.h"
 
 #include "fdb5/database/Key.h"
 #include "fdb5/pmem/PRoot.h"
@@ -37,35 +38,24 @@ PRoot::PRoot(RootClass cls) :
     createdBy_(getuid()),
     class_(cls),
     indexRoot_(),
-    dataRoot_() {
+    dataRoot_() {}
+
+
+void PRoot::buildRoot(const Key& dbKey) {
+
+    AutoLock<PersistentMutex> lock(rootMutex_);
+
+    ASSERT(indexRoot_.null());
+    ASSERT(dataRoot_.null());
 
     if (class_ == IndexClass) {
-        // MUST supply the dbKey to create an index root
-        ASSERT(false);
+        PIndexRoot::build(indexRoot_, dbKey);
     } else {
         ASSERT(class_ == DataClass);
         dataRoot_.allocate();
     }
 }
 
-
-PRoot::PRoot(RootClass cls, const Key& dbKey) :
-    tag_(PRootTag),
-    version_(PRootVersion),
-    rootSize_(sizeof(PRoot)),
-    created_(time(0)),
-    createdBy_(getuid()),
-    class_(cls),
-    indexRoot_(),
-    dataRoot_() {
-
-    if (class_ == IndexClass) {
-        indexRoot_.allocate(dbKey);
-    } else {
-        ASSERT(class_ == DataClass);
-        dataRoot_.allocate();
-    }
-}
 
 /*
  * We can use whatever knowledge we have to test the validity of the structure.
