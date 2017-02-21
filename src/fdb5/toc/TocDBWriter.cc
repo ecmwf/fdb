@@ -18,7 +18,6 @@
 #include "fdb5/LibFdb.h"
 
 #include "fdb5/io/FDBFileHandle.h"
-#include "fdb5/io/LustreFileHandle.h"
 
 #include "fdb5/toc/TocDBWriter.h"
 #include "fdb5/toc/TocIndex.h"
@@ -55,6 +54,14 @@ bool TocDBWriter::selectIndex(const Key& key) {
     currentIndexKey_ = key;
 
     if (indexes_.find(key) == indexes_.end()) {
+        PathName indexPath(generateIndexPath(key));
+
+        // Enforce lustre striping if requested
+        if (stripeLustre()) {
+            LustreStripe stripe = stripeIndexLustreSettings();
+            fdb5LustreapiFileCreate(indexPath.localPath(), stripe.size_, stripe.count_);
+        }
+
         indexes_[key] = Index(new TocIndex(key, generateIndexPath(key), 0, TocIndex::WRITE));
     }
 
@@ -153,19 +160,6 @@ void TocDBWriter::closeDataHandles() {
     handles_.clear();
 }
 
-static bool stripeLustre() {
-    static bool dataLustreStripeHandle = eckit::Resource<bool>("fdbHandleLustreStripe;$FDB_HANDLE_LUSTRE_STRIPE", false);
-    return dataLustreStripeHandle;
-}
-
-static LustreStripe stripeLustreSettings() {
-
-    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB_DATA_LUSTRE_STRIPE_COUNT", 8);
-    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
-
-    return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
-}
-
 
 eckit::DataHandle *TocDBWriter::createFileHandle(const eckit::PathName &path) {
 
@@ -177,7 +171,7 @@ eckit::DataHandle *TocDBWriter::createFileHandle(const eckit::PathName &path) {
                                     << " buffer size " << sizeBuffer
                                     << std::endl;
 
-        return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeLustreSettings());
+        return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeDataLustreSettings());
     }
 
     eckit::Log::debug<LibFdb>() << "Creating FDBFileHandle to " << path
@@ -199,7 +193,7 @@ eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
                                     << " buffer each with " << eckit::Bytes(sizeBuffer)
                                     << std::endl;
 
-        return new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeLustreSettings());
+        return new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeDataLustreSettings());
     }
 
     return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
