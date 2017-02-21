@@ -154,14 +154,14 @@ void TocDBWriter::closeDataHandles() {
 }
 
 static bool stripeLustre() {
-    static bool dataLustreStripeHandle = eckit::Resource<bool>("fdbDataLustreStripeHandle;$FDB5_DATA_LUSTRE_STRIPE_HANDLE", false);
+    static bool dataLustreStripeHandle = eckit::Resource<bool>("fdbHandleLustreStripe;$FDB_HANDLE_LUSTRE_STRIPE", false);
     return dataLustreStripeHandle;
 }
 
 static LustreStripe stripeLustreSettings() {
 
-    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB5_DATA_LUSTRE_STRIPE_COUNT", 8);
-    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB5_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
+    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB_DATA_LUSTRE_STRIPE_COUNT", 8);
+    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
 
     return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
 }
