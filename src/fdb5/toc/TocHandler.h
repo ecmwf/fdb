@@ -17,6 +17,7 @@
 #include "eckit/io/Length.h"
 #include "eckit/filesystem/PathName.h"
 
+#include "fdb5/io/LustreFileHandle.h"
 #include "fdb5/toc/TocRecord.h"
 
 namespace fdb5 {
@@ -57,7 +58,6 @@ public: // methods
     void dump(std::ostream& out, bool simple = false);
     std::string dbOwner();
 
-
 protected: // members
 
     const eckit::PathName directory_;
@@ -66,6 +66,14 @@ protected: // members
 
 
     long dbUID() const;
+
+protected: // methods
+
+    static bool stripeLustre();
+
+    static LustreStripe stripeIndexLustreSettings();
+
+    static LustreStripe stripeDataLustreSettings();
 
 private: // methods
 
@@ -86,6 +94,7 @@ private: // methods
     mutable int fd_;      ///< file descriptor, if zero file is not yet open.
     mutable size_t count_;
 };
+
 
 //-----------------------------------------------------------------------------
 

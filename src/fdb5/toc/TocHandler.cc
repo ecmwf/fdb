@@ -22,8 +22,8 @@
 #include "eckit/thread/StaticMutex.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/database/Index.h"
 #include "fdb5/config/MasterConfig.h"
+#include "fdb5/database/Index.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 
@@ -43,6 +43,7 @@ class TocHandlerCloser {
         handler_.close();
     }
 };
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -174,6 +175,12 @@ void TocHandler::writeInitRecord(const Key &key) {
         directory_.mkdir();
     }
 
+    // Enforce lustre striping if requested
+    if (stripeLustre()) {
+        LustreStripe stripe = stripeIndexLustreSettings();
+        fdb5LustreapiFileCreate(tocPath_.localPath(), stripe.size_, stripe.count_);
+    }
+
     int iomode = O_CREAT | O_RDWR;
     SYSCALL2(fd_ = ::open( tocPath_.localPath(), iomode, mode_t(0777) ), tocPath_);
 
@@ -196,6 +203,17 @@ void TocHandler::writeInitRecord(const Key &key) {
         eckit::PathName tmp = eckit::PathName::unique(schemaPath_);
 
         eckit::FileHandle in(MasterConfig::instance().schemaPath());
+
+        // Enforce lustre striping if requested
+
+        // SDS: Would be nicer to do this, but FileHandle doesn't have a path_ member, let alone an exposed one
+        //      so would need some tinkering to work with LustreFileHandle.
+        // LustreFileHandle<eckit::FileHandle> out(tmp, stripeIndexLustreSettings());
+
+        if (stripeLustre()) {
+            LustreStripe stripe = stripeIndexLustreSettings();
+            fdb5LustreapiFileCreate(tmp.localPath(), stripe.size_, stripe.count_);
+        }
         eckit::FileHandle out(tmp);
         in.saveInto(out);
 
@@ -505,6 +523,32 @@ std::string TocHandler::userName(long id) const {
     return eckit::Translator<long, std::string>()(id);
   }
 }
+
+
+bool TocHandler::stripeLustre() {
+
+    static bool handleLustreStripe = eckit::Resource<bool>("fdbHandleLustreStripe;$FDB_HANDLE_LUSTRE_STRIPE", false);
+    return handleLustreStripe;
+}
+
+
+LustreStripe TocHandler::stripeIndexLustreSettings() {
+
+    static unsigned int fdbIndexLustreStripeCount = eckit::Resource<unsigned int>("fdbIndexLustreStripeCount;$FDB_INDEX_LUSTRE_STRIPE_COUNT", 1);
+    static size_t fdbIndexLustreStripeSize = eckit::Resource<size_t>("fdbIndexLustreStripeSize;$FDB_INDEX_LUSTRE_STRIPE_SIZE", 8*1024*1024);
+
+    return LustreStripe(fdbIndexLustreStripeCount, fdbIndexLustreStripeSize);
+}
+
+
+LustreStripe TocHandler::stripeDataLustreSettings() {
+
+    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB_DATA_LUSTRE_STRIPE_COUNT", 8);
+    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
+
+    return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
