@@ -10,7 +10,7 @@ do
 
     if [[ "$sink" == "fdb5" ]]
     then
-        echo "fdbdev"
+        echo "fdb5 $MARS_FDB_DTAP"
         exit
     else
         echo "$SCHOST fdb"
