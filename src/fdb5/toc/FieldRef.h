@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2013 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -30,6 +30,10 @@ namespace fdb5 {
 class Field;
 class FileStore;
 
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
 class FieldRefLocation {
 
 public:
@@ -56,8 +60,12 @@ protected:
     }
 };
 
-// ==============================================================================
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
 class FieldRef;
+
 
 class FieldRefReduced {
     FieldRefLocation location_;
@@ -83,12 +91,12 @@ public:
 
     const FieldRefLocation& location() const { return location_; }
     const FieldDetails& details() const { return details_; }
-    // FieldRef& operator=(const FieldRef&);
 
 };
 
 typedef FieldRef FieldRefFull;
 
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 

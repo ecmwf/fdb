@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -119,7 +119,7 @@ void TypeParam::getValues(const MarsRequest &request,
     }
 }
 
-bool TypeParam::match(const std::string& keyword,
+bool TypeParam::match(const std::string&,
                        const std::string& value1,
                        const std::string& value2) const {
     if(value1 == value2) {

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -35,6 +35,7 @@ class TocDBWriter : public TocDB {
 public: // methods
 
     TocDBWriter(const Key &key);
+    TocDBWriter(const eckit::PathName& directory);
 
     virtual ~TocDBWriter();
 
@@ -75,7 +76,7 @@ private: // methods
 private: // types
 
     typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
-    typedef std::map< Key, Index * > IndexStore;
+    typedef std::map< Key, Index> IndexStore;
     typedef std::map< Key, std::string > PathStore;
 
 private: // members
@@ -84,7 +85,7 @@ private: // members
     IndexStore  indexes_;
     PathStore   dataPaths_;
 
-    Index *current_;
+    Index current_;
     Key currentIndexKey_;
 
     bool dirty_;

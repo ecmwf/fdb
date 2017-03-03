@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -17,17 +17,17 @@
 #define fdb5_PurgeVisitor_H
 
 
-#include "fdb5/toc/ReportVisitor.h"
+#include "fdb5/toc/TocReportVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class PurgeVisitor : public ReportVisitor {
+class PurgeVisitor : public TocReportVisitor {
 public:
 
-    PurgeVisitor(const eckit::PathName &directory);
+    PurgeVisitor(TocDB& db);
     void report(std::ostream &out) const;
     void purge(std::ostream &out) const;
 

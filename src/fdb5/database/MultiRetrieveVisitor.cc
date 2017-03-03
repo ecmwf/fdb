@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -13,6 +13,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/memory/ScopedPtr.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -30,7 +31,6 @@ MultiRetrieveVisitor::MultiRetrieveVisitor(const NotifyWind& wind, HandleGathere
     wind_(wind),
     databases_(databases),
     gatherer_(gatherer) {
-    fdbReaderDB_ = eckit::Resource<std::string>("fdbReaderDB", "toc.reader");
 }
 
 MultiRetrieveVisitor::~MultiRetrieveVisitor() {
@@ -40,10 +40,13 @@ MultiRetrieveVisitor::~MultiRetrieveVisitor() {
 
 bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
+	eckit::Log::debug() << "FDB5 selectDatabase " << key  << std::endl;
+
     /* is it the current DB ? */
 
     if(db_) {
         if(key == db_->key()) {
+            eckit::Log::info() << "This is the current db" << std::endl;
             return true;
         }
     }
@@ -51,19 +54,19 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     /* is the DB already open ? */
 
     if(databases_.exists(key)) {
-//        eckit::Log::info() << "Reusing database " << key << std::endl;
+        eckit::Log::debug<LibFdb>() << "FDB5 Reusing database " << key << std::endl;
         db_ = databases_.access(key);
         return true;
     }
 
     /* DB not yet open */
 
-//    eckit::Log::info() << "selectDatabase opening database " << key << std::endl;
+    eckit::ScopedPtr<DB> newDB( DBFactory::buildReader(key) );
 
-    eckit::ScopedPtr<DB> newDB( DBFactory::build(fdbReaderDB_, key) );
+    eckit::Log::debug<LibFdb>() << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")" << std::endl;
 
     if (!newDB->open()) {
-        eckit::Log::info() << "Database does not exists " << key << std::endl;
+        eckit::Log::debug() << "Database does not exists " << key << std::endl;
         return false;
     } else {
         newDB->checkSchema(key);
@@ -75,13 +78,13 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
 bool MultiRetrieveVisitor::selectIndex(const Key& key, const Key&) {
     ASSERT(db_);
-    // eckit::Log::info() << "selectIndex " << key << std::endl;
+    eckit::Log::debug() << "selectIndex " << key << std::endl;
     return db_->selectIndex(key);
 }
 
-bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key&) {
+bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
     ASSERT(db_);
-    // eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
+    eckit::Log::debug() << "selectDatum " << key << ", " << full << std::endl;
 
     eckit::DataHandle *dh = db_->retrieve(key);
 

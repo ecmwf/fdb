@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -29,7 +29,7 @@ MatchHidden::MatchHidden(const std::string &def) :
 MatchHidden::~MatchHidden() {
 }
 
-bool MatchHidden::match(const std::string &keyword, const Key &key) const {
+bool MatchHidden::match(const std::string&, const Key&) const {
     return true;
 }
 
@@ -37,7 +37,7 @@ bool MatchHidden::optional() const {
     return true;
 }
 
-const std::string &MatchHidden::value(const Key &key, const std::string &keyword) const {
+const std::string &MatchHidden::value(const Key&, const std::string&) const {
     return default_;
 }
 

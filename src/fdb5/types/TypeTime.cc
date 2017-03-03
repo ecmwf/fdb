@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -27,8 +27,8 @@ TypeTime::TypeTime(const std::string &name, const std::string &type) :
 TypeTime::~TypeTime() {
 }
 
-std::string TypeTime::tidy(const std::string &keyword,
-                           const std::string &value) const {
+std::string TypeTime::tidy(const std::string&,
+                           const std::string& value) const {
     eckit::Translator<std::string, long> t;
 
     long n = t(value);

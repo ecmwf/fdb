@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2013 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -29,10 +29,13 @@
 
 namespace fdb5 {
 
+class FieldRef;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class BTreeIndexVisitor {
 public:
+    virtual ~BTreeIndexVisitor();
     virtual void visit(const std::string& key, const FieldRef&) = 0;
 };
 
@@ -51,14 +54,14 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IndexFactory {
+class BTreeIndexFactory {
 
     virtual BTreeIndex *make(const eckit::PathName& path, bool readOnly, off_t offset) const = 0 ;
 
 protected:
 
-    IndexFactory(const std::string &);
-    virtual ~IndexFactory();
+    BTreeIndexFactory(const std::string &);
+    virtual ~BTreeIndexFactory();
 
     std::string name_;
 
@@ -73,14 +76,14 @@ public:
 /// that does the self-registration, and the construction of each object.
 
 template< class T>
-class IndexBuilder : public IndexFactory {
+class BTreeIndexBuilder : public BTreeIndexFactory {
 
     virtual BTreeIndex *make(const eckit::PathName& path, bool readOnly, off_t offset) const {
         return new T(path, readOnly, offset);
     }
 
 public:
-    IndexBuilder(const std::string &name) : IndexFactory(name) {}
+    BTreeIndexBuilder(const std::string &name) : BTreeIndexFactory(name) {}
 };
 
 

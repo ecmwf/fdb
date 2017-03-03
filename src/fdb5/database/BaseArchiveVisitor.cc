@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -10,6 +10,7 @@
 
 #include "eckit/config/Resource.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
 #include "fdb5/rules/Rule.h"
@@ -23,8 +24,8 @@ BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key &field) :
     checkMissingKeysOnWrite_ = eckit::Resource<bool>("checkMissingKeysOnWrite", true);
 }
 
-bool BaseArchiveVisitor::selectDatabase(const Key &key, const Key &full) {
-    eckit::Log::info() << "selectDatabase " << key << std::endl;
+bool BaseArchiveVisitor::selectDatabase(const Key &key, const Key&) {
+    eckit::Log::debug<LibFdb>() << "selectDatabase " << key << std::endl;
     owner_.current_ = &owner_.database(key);
     owner_.current_->checkSchema(key);
 
@@ -33,7 +34,7 @@ bool BaseArchiveVisitor::selectDatabase(const Key &key, const Key &full) {
     return true;
 }
 
-bool BaseArchiveVisitor::selectIndex(const Key &key, const Key &full) {
+bool BaseArchiveVisitor::selectIndex(const Key &key, const Key&) {
     // eckit::Log::info() << "selectIndex " << key << std::endl;
     ASSERT(owner_.current_);
     return owner_.current_->selectIndex(key);

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -29,7 +29,7 @@ TypeDate::~TypeDate() {
 
 
 std::string TypeDate::tidy(
-                     const std::string &keyword,
+                     const std::string&,
                      const std::string &value) const {
     if (!value.empty() && (value[0] == '0' || value[0] == '-')) {
         eckit::Translator<std::string, long> t;
@@ -47,8 +47,8 @@ std::string TypeDate::tidy(
 void TypeDate::getValues(const MarsRequest & request,
                          const std::string & keyword,
                          eckit::StringList & values,
-                         const NotifyWind & wind,
-                         const DB * db) const {
+                         const NotifyWind&,
+                         const DB*) const {
     std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates);

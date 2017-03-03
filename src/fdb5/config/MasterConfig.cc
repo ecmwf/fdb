@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -33,7 +33,7 @@ MasterConfig::~MasterConfig() {
 
 std::string MasterConfig::schemaPath() const {
     // eckit::AutoLock<eckit::Mutex> lock(local_mutex);
-    static eckit::PathName fdbRules = eckit::Resource<eckit::PathName>("fdbRules", "~/etc/fdb/schema");
+    static eckit::PathName fdbRules = eckit::Resource<eckit::PathName>("fdbRules", "~fdb/etc/fdb/schema");
     return fdbRules;
 }
 

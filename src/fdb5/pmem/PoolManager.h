@@ -8,45 +8,38 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   DbStatistics.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
-/// @date   April 2016
+/// @author Simon Smart
+/// @date   Dec 2016
 
-#ifndef fdb5_DbStatistics_H
-#define fdb5_DbStatistics_H
+#ifndef fdb5_PoolManager_H
+#define fdb5_PoolManager_H
 
-#include <iosfwd>
-
-#include "eckit/log/Statistics.h"
+#include "eckit/utils/Regex.h"
+#include "eckit/filesystem/PathName.h"
 
 namespace fdb5 {
 
-class TocHandler;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DbStatistics : public eckit::Statistics {
-  public:
-    DbStatistics() ;
+class PoolManager  {
 
-    size_t tocRecordsCount_;
-    unsigned long long tocFileSize_;
-    unsigned long long schemaFileSize_;
-    unsigned long long ownedFilesSize_;
-    unsigned long long adoptedFilesSize_;
-    unsigned long long indexFilesSize_;
+public: // methods
 
-    size_t ownedFilesCount_;
-    size_t adoptedFilesCount_;
-    size_t indexFilesCount_;
+    /// Uniquely selects a pool where the Key will be put or already exists
+    static eckit::PathName pool(const Key &key);
 
-    DbStatistics &operator+=(const DbStatistics &rhs) ;
+    /// Lists the roots that can be visited given a DB key
+    static std::vector<eckit::PathName> allPools(const Key& key);
 
-    void update(TocHandler&);
-    void report(std::ostream &out, const char* indent = "") const;
+    /// Lists the roots that can be visited given a DB key
+    static std::vector<eckit::PathName> visitablePools(const Key& key);
 
-
+    /// Lists the roots where a DB key would be able to be written
+    static std::vector<eckit::PathName> writablePools(const Key& key);
 };
 
 //----------------------------------------------------------------------------------------------------------------------

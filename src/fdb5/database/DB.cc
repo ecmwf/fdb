@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -9,8 +9,14 @@
  */
 
 #include "eckit/thread/AutoLock.h"
+#include "eckit/filesystem/PathName.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/DB.h"
+#include "fdb5/database/Engine.h"
+#include "fdb5/database/Manager.h"
+
+using eckit::Log;
 
 namespace fdb5 {
 
@@ -29,8 +35,10 @@ void init() {
 /// When a concrete instance of a DBFactory is instantiated (in practice
 /// a DBBuilder<>) add it to the list of available factories.
 
-DBFactory::DBFactory(const std::string &name) :
-    name_(name) {
+DBFactory::DBFactory(const std::string &name, bool read, bool write) :
+    name_(name),
+    read_(read),
+    write_(write) {
 
     pthread_once(&once, init);
 
@@ -65,14 +73,14 @@ const DBFactory &DBFactory::findFactory(const std::string &name) {
 
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    eckit::Log::info() << "Looking for DBFactory [" << name << "]" << std::endl;
+    Log::debug<LibFdb>() << "Looking for DBFactory [" << name << "]" << std::endl;
 
     std::map<std::string, DBFactory *>::const_iterator j = m->find(name);
     if (j == m->end()) {
-        eckit::Log::error() << "No DBFactory for [" << name << "]" << std::endl;
-        eckit::Log::error() << "DBFactories are:" << std::endl;
+        Log::error() << "No DBFactory for [" << name << "]" << std::endl;
+        Log::error() << "DBFactories are:" << std::endl;
         for (j = m->begin() ; j != m->end() ; ++j)
-            eckit::Log::error() << "   " << (*j).first << std::endl;
+            Log::error() << "   " << (*j).first << std::endl;
         throw eckit::SeriousBug(std::string("No DBFactory called ") + name);
     }
 
@@ -80,11 +88,58 @@ const DBFactory &DBFactory::findFactory(const std::string &name) {
 }
 
 
-DB *DBFactory::build(const std::string &name, const Key &key) {
+DB* DBFactory::buildWriter(const Key& key) {
+
+    pthread_once(&once, init);
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+
+    std::string name = Manager::engine(key);
+    name += ".writer";
+
+    Log::debug<LibFdb>() << "Building FDB DB writer for key " << key << " = " << name << std::endl;
 
     const DBFactory &factory( findFactory(name) );
 
     return factory.make(key);
+}
+
+DB* DBFactory::buildReader(const Key& key) {
+
+    pthread_once(&once, init);
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+
+    std::string name = Manager::engine(key);
+    name += ".reader";
+
+    Log::debug<LibFdb>() << "Building FDB DB reader for key " << key << " = " << name << std::endl;
+
+    const DBFactory& factory( findFactory(name) );
+
+    return factory.make(key);
+}
+
+DB* DBFactory::buildReader(const eckit::PathName& path) {
+
+    pthread_once(&once, init);
+    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+
+    std::string name = Manager::engine(path);
+    name += ".reader";
+
+    Log::debug<LibFdb>() << "Building FDB DB reader for path " << path << " = " << name << std::endl;
+
+    const DBFactory& factory( findFactory(name) );
+
+    return factory.make(path);
+}
+
+
+bool DBFactory::read() const {
+    return read_;
+}
+
+bool DBFactory::write() const {
+    return write_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -108,6 +163,9 @@ void DB::touch() {
 std::ostream &operator<<(std::ostream &s, const DB &x) {
     x.print(s);
     return s;
+}
+
+DBVisitor::~DBVisitor() {
 }
 
 //----------------------------------------------------------------------------------------------------------------------

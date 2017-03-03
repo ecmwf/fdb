@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -46,9 +46,17 @@ public: // methods
     void insert(const Key &key);
     void encode(eckit::Stream &s) const;
 
+    // Decode can be used for two-stage initialisation (IndexAxis a; a.decode(s);)
+    void decode(eckit::Stream& s);
+
     const eckit::StringSet &values(const std::string &keyword) const;
 
     void dump(std::ostream &out, const char* indent) const;
+
+    /// Provide a means to test if the index has changed since it was last written out, and to
+    /// mark that it has been written out.
+    bool dirty() const;
+    void clean();
 
     friend std::ostream &operator<<(std::ostream &s, const IndexAxis &x) {
         x.print(s);
@@ -66,6 +74,7 @@ private: // members
     AxisMap axis_;
 
     bool readOnly_;
+    bool dirty_;
 
 };
 

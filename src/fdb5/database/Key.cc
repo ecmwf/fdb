@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -196,6 +196,18 @@ std::string Key::valuesToString() const {
     }
 
     return oss.str();
+}
+
+
+const eckit::StringList& Key::names() const {
+    return names_;
+}
+
+std::string Key::value(const std::string& key) const {
+
+    eckit::StringDict::const_iterator it = keys_.find(key);
+    ASSERT(it != keys_.end());
+    return it->second;
 }
 
 void Key::validateKeysOf(const Key& other, bool checkAlsoValues) const

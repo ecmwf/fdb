@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -13,8 +13,7 @@
 
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/toc/TocDB.h"
-#include "fdb5/toc/TocHandler.h"
+
 #include "fdb5/tools/FDBTool.h"
 
 using eckit::Log;
@@ -26,7 +25,7 @@ namespace fdb5 {
 static FDBTool* instance_ = 0;
 
 FDBTool::FDBTool(int argc, char **argv):
-    eckit::Tool(argc, argv, "DHSHOME") {
+    eckit::Tool(argc, argv, "FDB_HOME") {
     ASSERT(instance_ == 0);
     instance_ = this;
 
@@ -50,15 +49,15 @@ void FDBTool::run() {
 }
 
 
-void FDBTool::usage(const std::string &tool) const {
+void FDBTool::usage(const std::string&) const {
 
 }
 
-void FDBTool::init(const eckit::option::CmdArgs& args) {
+void FDBTool::init(const eckit::option::CmdArgs&) {
 
 }
 
-void FDBTool::finish(const eckit::option::CmdArgs& args) {
+void FDBTool::finish(const eckit::option::CmdArgs&) {
 
 }
 

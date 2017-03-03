@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -192,7 +192,7 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
     return selected;
 }
 
-FileSpaceHandlerRegister<ExpverFileSpaceHandler> expver("expver");
+static FileSpaceHandlerRegister<ExpverFileSpaceHandler> expver("expver");
 
 //----------------------------------------------------------------------------------------------------------------------
 

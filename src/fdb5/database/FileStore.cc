@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2013 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -9,14 +9,14 @@
  */
 
 #include "fdb5/database/FileStore.h"
-#include "eckit/serialisation/Stream.h"
 
+#include "eckit/serialisation/Stream.h"
 
 namespace fdb5 {
 
-//----------------------------------------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------------------------------------
+
 
 FileStore::FileStore(const eckit::PathName &directory) :
     next_(0),
@@ -100,6 +100,7 @@ void FileStore::dump(std::ostream &out, const char* indent) const {
     }
 }
 
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+
 
 } // namespace fdb5

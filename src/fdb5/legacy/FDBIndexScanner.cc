@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2013 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -72,7 +72,7 @@ void FDBIndexScanner::execute() {
     }
 
     // if all else fails, lets try to run the old tool 'lsfdb' (must be in path)
-    {
+    if (path_.size() != 0) {
         static std::string fdbLegacyLsfdb = eckit::Resource<std::string>("fdbLegacyLsfdb",
                                             "/usr/local/apps/fdb/current/bin/lsfdb");
 

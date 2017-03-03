@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -28,15 +28,12 @@ TypeExpver::~TypeExpver() {
 }
 
 
-std::string TypeExpver::tidy(const std::string &keyword,
-                             const std::string &value) const {
-
+std::string TypeExpver::tidy(const std::string&,
+                             const std::string& value) const {
     std::stringstream oss;
     oss << std::setfill('0') << std::setw(4) << value;
     return oss.str();
-
 }
-
 
 
 void TypeExpver::print(std::ostream &out) const {

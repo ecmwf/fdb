@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   ReportVisitor.h
+/// @file   TocReportVisitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_ReportVisitor_H
-#define fdb5_ReportVisitor_H
+#ifndef fdb5_toc_TocReportVisitor_H
+#define fdb5_toc_TocReportVisitor_H
 
 #include <iosfwd>
 #include <set>
@@ -25,37 +25,31 @@
 
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Field.h"
+
+#include "fdb5/toc/TocDB.h"
 #include "fdb5/toc/TocHandler.h"
-#include "fdb5/toc/IndexStatistics.h"
-#include "fdb5/toc/DbStatistics.h"
+#include "fdb5/toc/TocStats.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class ReportVisitor : public EntryVisitor {
+class TocReportVisitor : public EntryVisitor {
 public:
 
-    ReportVisitor(const eckit::PathName &directory);
-    ~ReportVisitor();
-
-    IndexStatistics indexStatistics() const;
-    DbStatistics dbStatistics() const;
+    TocReportVisitor(TocDB& db);
 
 private: // methods
 
-
-
     virtual void visit(const Index& index,
-                       const std::string &indexFingerprint,
-                       const std::string &fieldFingerprint,
-                       const Field& field);
-
+                       const Field& field,
+                       const std::string& indexFingerprint,
+                       const std::string& fieldFingerprint);
 
 protected: // members
 
-    eckit::PathName directory_;
+    TocDB& db_;
 
     std::set<eckit::PathName> activeDataFiles_;
     std::set<eckit::PathName> allDataFiles_;
@@ -65,8 +59,9 @@ protected: // members
 
     std::set<std::string> active_;
 
-    std::map<const Index*, IndexStatistics> indexStats_;
-    DbStatistics dbStats_;
+    std::map<Index, IndexStats> indexStats_;
+
+    DbStats dbStats_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

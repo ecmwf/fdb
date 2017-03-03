@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -27,8 +27,8 @@ TypeDouble::~TypeDouble() {
 }
 
 void TypeDouble::toKey(std::ostream &out,
-                       const std::string &keyword,
-                       const std::string &value) const {
+                       const std::string&,
+                       const std::string& value) const {
   double v = eckit::Translator<std::string, double>()(value);
   long long ll = static_cast<long long>(v);
 
@@ -39,11 +39,11 @@ void TypeDouble::toKey(std::ostream &out,
   }
 }
 
-void TypeDouble::getValues(const MarsRequest &request,
-                           const std::string &keyword,
-                           eckit::StringList &values,
-                           const NotifyWind &wind,
-                           const DB *db) const {
+void TypeDouble::getValues(const MarsRequest& request,
+                           const std::string& keyword,
+                           eckit::StringList& values,
+                           const NotifyWind&,
+                           const DB*) const {
   std::vector<double> dblValues;
 
   request.getValues(keyword, dblValues);

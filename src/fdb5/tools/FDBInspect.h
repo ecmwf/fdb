@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -26,7 +26,7 @@ class FDBInspect : public FDBTool {
 
 protected: // methods
 
-    FDBInspect(int argc, char **argv, const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
+    FDBInspect(int argc, char **argv, std::string defaultMinimunKeySet = std::string());
 
     virtual void usage(const std::string &tool) const = 0;
 
@@ -36,8 +36,7 @@ private: // methods
 
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
 
-     std::vector<std::string> minimumKeySet_;
-
+    std::vector<std::string> minimumKeySet_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
