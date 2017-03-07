@@ -13,6 +13,7 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/exception/Exceptions.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/legacy/LegacyRetriever.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
@@ -51,7 +52,7 @@ size_t LegacyRetriever::retrieve(void* buffer, size_t length)
 
     long len = dh->read(buffer, length);
 
-    Log::info() << "FDB5 read " << Bytes(len) << std::endl;
+    Log::debug<LibFdb>() << "FDB5 read " << Bytes(len) << std::endl;
 
     if(len < 0)
         throw eckit::ReadError("LegacyRetriever error reading from FDB5");
