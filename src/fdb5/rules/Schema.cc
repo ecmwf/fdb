@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/database/Key.h"
@@ -98,7 +99,7 @@ void Schema::load(const eckit::PathName &path, bool replace) {
 
     path_ = path;
 
-    eckit::Log::info() << "Loading FDB rules from " << path << std::endl;
+    eckit::Log::debug<LibFdb>() << "Loading FDB rules from " << path << std::endl;
 
     std::ifstream in(path.localPath());
     if (!in)
