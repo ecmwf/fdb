@@ -59,10 +59,10 @@ void FDBInfo::usage(const std::string &tool) const {
                 << std::endl
                 << "Examples:" << std::endl
                 << "=========" << std::endl << std::endl
-                << tool << " --all"
-                << tool << " --version"
-                << tool << " --home"
-                << tool << " --schema"
+                << tool << " --all" << std::endl
+                << tool << " --version" << std::endl
+                << tool << " --home" << std::endl
+                << tool << " --schema" << std::endl
                 << std::endl;
     FDBTool::usage(tool);
 }
