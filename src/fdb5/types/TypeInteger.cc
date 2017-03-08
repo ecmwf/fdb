@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -26,11 +26,11 @@ TypeInteger::TypeInteger(const std::string &name, const std::string &type) :
 TypeInteger::~TypeInteger() {
 }
 
-void TypeInteger::getValues(const MarsRequest &request,
-                            const std::string &keyword,
-                            eckit::StringList &values,
-                            const NotifyWind &wind,
-                            const DB *db) const {
+void TypeInteger::getValues(const MarsRequest& request,
+                            const std::string& keyword,
+                            eckit::StringList& values,
+                            const NotifyWind&,
+                            const DB*) const {
     std::vector<long> intValues;
 
     request.getValues(keyword, intValues);

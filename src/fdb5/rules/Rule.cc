@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -51,7 +51,7 @@ void Rule::expand( const MarsRequest &request,
                    Key &full,
                    ReadVisitor &visitor) const {
 
-    ASSERT(depth < 3);
+	ASSERT(depth < 3);
 
     if (cur == predicates_.end()) {
 
@@ -96,8 +96,9 @@ void Rule::expand( const MarsRequest &request,
     const std::string &keyword = (*cur)->keyword();
 
     eckit::StringList values;
-
     visitor.values(request, keyword, registry_, values);
+
+	// eckit::Log::info() << "keyword " << keyword << " values " << values << std::endl;
 
     Key &k = keys[depth];
 
@@ -110,9 +111,8 @@ void Rule::expand( const MarsRequest &request,
         k.push(keyword, *i);
         full.push(keyword, *i);
 
-        if ((*cur)->match(k)) {
+        if ((*cur)->match(k))
             expand(request, next, depth, keys, full, visitor);
-        }
 
         full.pop(keyword);
         k.pop(keyword);

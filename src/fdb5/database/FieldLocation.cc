@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2013 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -17,19 +17,17 @@ namespace fdb5 {
 FieldLocation::FieldLocation() {
 }
 
-FieldLocation::FieldLocation(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ) :
-    path_(path),
-    offset_(offset),
+FieldLocation::FieldLocation(eckit::Length length) :
     length_(length) {
 
 }
 
-eckit::DataHandle *FieldLocation::dataHandle() const {
-    return path_.partHandle(offset_, length_);
+FieldLocationVisitor::~FieldLocationVisitor()
+{
 }
 
-void FieldLocation::print(std::ostream &out) const {
-    out << "(" << path_ << "," << offset_ << "," << length_ << ")";
+void FieldLocationPrinter::operator()(const FieldLocation& location) {
+    location.dump(out_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

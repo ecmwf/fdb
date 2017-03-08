@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -29,10 +29,11 @@ class TocDBReader : public TocDB {
 public: // methods
 
     TocDBReader(const Key& key);
+    TocDBReader(const eckit::PathName& directory);
 
     virtual ~TocDBReader();
 
-    const std::vector<Index*>& indexes() const;
+    virtual std::vector<Index> indexes() const;
 
 private: // methods
 
@@ -51,8 +52,8 @@ private: // methods
 private: // members
 
     Key currentIndexKey_;
-    std::vector<Index *> matching_; // Indexes matching current key
-    std::vector<Index *> indexes_;  // All indexes
+    std::vector<Index> matching_; //< Indexes matching current key
+    std::vector<Index> indexes_;  //< All indexes
 
 };
 

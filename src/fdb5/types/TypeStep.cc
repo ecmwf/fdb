@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -31,8 +31,8 @@ TypeStep::~TypeStep() {
 
 
 void TypeStep::toKey(std::ostream &out,
-                     const std::string &keyword,
-                     const std::string &value) const {
+                     const std::string&,
+                     const std::string& value) const {
     out << StepRange(value);
 }
 
@@ -49,10 +49,10 @@ bool TypeStep::match(const std::string&, const std::string& value1, const std::s
     return false;
 }
 
-void TypeStep::getValues(const MarsRequest &request,
-                         const std::string &keyword,
-                         eckit::StringList &values,
-                         const NotifyWind &wind,
+void TypeStep::getValues(const MarsRequest& request,
+                         const std::string& keyword,
+                         eckit::StringList& values,
+                         const NotifyWind&,
                          const DB *db) const {
     std::vector<std::string> steps;
 

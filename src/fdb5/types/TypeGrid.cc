@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -26,19 +26,19 @@ TypeGrid::~TypeGrid() {
 }
 
 void TypeGrid::toKey(std::ostream &out,
-                     const std::string &keyword,
-                     const std::string &value) const {
+                     const std::string&,
+                     const std::string& value) const {
 
     std::string s(value);
     std::replace( s.begin(), s.end(), '/', '+');
     out << s;
 }
 
-void TypeGrid::getValues(const MarsRequest &request,
-                         const std::string &keyword,
-                         eckit::StringList &values,
-                         const NotifyWind &wind,
-                         const DB *db) const {
+void TypeGrid::getValues(const MarsRequest& request,
+                         const std::string& keyword,
+                         eckit::StringList& values,
+                         const NotifyWind&,
+                         const DB*) const {
     std::vector<std::string> v;
     request.getValues(keyword, v);
     values.push_back(eckit::StringTools::join("+", v));

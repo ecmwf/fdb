@@ -52,7 +52,8 @@ endif()
 
 ### eckit
 
-set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" )
+set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
+
 ecbuild_use_package( PROJECT eckit    VERSION 0.13.2  REQUIRED )
 
 ### GRIB support
@@ -74,8 +75,13 @@ endif()
 
 ### third party archive support
 
+set(mars_2_mars_default OFF)
+if(METKIT_FOUND)
+  set(mars_2_mars_default ON)
+endif()
+
 ecbuild_add_option( FEATURE MARS2MARS
-                    DEFAULT OFF
+                    DEFAULT ${mars_2_mars_default}
                     DESCRIPTION "Support direct archiving from another mars instance"
                     REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
 
@@ -87,9 +93,23 @@ ecbuild_add_option( FEATURE ODB
                     REQUIRED_PACKAGES "PROJECT odb_api  VERSION 0.10" )
 
 if( HAVE_ODB )
-    set( odblib Odb )
-    set( odbtoolslib odbtools )
+  set( odblib Odb )
+  set( odbtoolslib odbtools )
 endif()
+
+### FDB backend in persistent memory, i.e. pmem (NVRAM)
+
+ecbuild_add_option( FEATURE PMEMFDB
+                    DEFAULT OFF
+                    DESCRIPTION "Persistent memory (NVRAM) support for FDB"
+                    REQUIRED_PACKAGES "PROJECT pmem" )
+
+### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
+### Supports Lustre parallel filesystem stripping control
+
+ecbuild_add_option( FEATURE TOCFDB
+                    DEFAULT ON
+                    DESCRIPTION "Filesystem TOC support for FDB" )
 
 ########################################################################################################################
 # project vars & options

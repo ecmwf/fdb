@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -17,16 +17,16 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 static eckit::Mutex *local_mutex = 0;
-static std::map<std::string, IndexFactory *> *m = 0;
+static std::map<std::string, BTreeIndexFactory *> *m = 0;
 static pthread_once_t once = PTHREAD_ONCE_INIT;
 static void init() {
     local_mutex = new eckit::Mutex();
-    m = new std::map<std::string, IndexFactory *>();
+    m = new std::map<std::string, BTreeIndexFactory *>();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-IndexFactory::IndexFactory(const std::string &name) :
+BTreeIndexFactory::BTreeIndexFactory(const std::string &name) :
     name_(name) {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
@@ -35,16 +35,16 @@ IndexFactory::IndexFactory(const std::string &name) :
     (*m)[name] = this;
 }
 
-IndexFactory::~IndexFactory() {
+BTreeIndexFactory::~BTreeIndexFactory() {
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
     m->erase(name_);
 }
 
-BTreeIndex* IndexFactory::build(const std::string &name, const eckit::PathName &path, bool readOnly, off_t offset) {
+BTreeIndex* BTreeIndexFactory::build(const std::string &name, const eckit::PathName &path, bool readOnly, off_t offset) {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    std::map<std::string, IndexFactory *>::const_iterator j = m->find(name);
+    std::map<std::string, BTreeIndexFactory *>::const_iterator j = m->find(name);
 
     if (j == m->end()) {
         eckit::Log::error() << "No IndexFactory for [" << name << "]" << std::endl;

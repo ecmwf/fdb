@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -33,12 +33,12 @@ Length FDBFileHandle::openForRead() {
     NOTIMP;
 }
 
-void FDBFileHandle::openForWrite(const Length &length) {
+void FDBFileHandle::openForWrite(const Length&) {
     NOTIMP;
 }
 
-void FDBFileHandle::openForAppend(const Length &) {
-    file_ = fopen(path_.c_str(), "a");
+void FDBFileHandle::openForAppend(const Length&) {
+    file_ = ::fopen(path_.c_str(), "a");
     if (!file_) {
         throw eckit::CantOpenFile(path_);
     }
@@ -46,7 +46,7 @@ void FDBFileHandle::openForAppend(const Length &) {
     SYSCALL(::setvbuf(file_, buffer_, _IOFBF, buffer_.size()));
 }
 
-long FDBFileHandle::read(void *buffer, long length) {
+long FDBFileHandle::read(void*, long) {
     NOTIMP;
 }
 

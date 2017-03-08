@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/database/Key.h"
@@ -36,6 +37,10 @@ Schema::Schema(const eckit::PathName &path) {
     load(path);
 }
 
+Schema::Schema(std::istream& s) {
+    load(s);
+}
+
 Schema::~Schema() {
     clear();
 }
@@ -59,7 +64,9 @@ void Schema::expand(const MarsRequest &request, ReadVisitor &visitor) const {
     std::vector<Key> keys(3);
 
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->expand(request, visitor, 0, keys, full);
+		// eckit::Log::info() << "Rule " << **i <<  std::endl;
+		// (*i)->dump(eckit::Log::info());
+		(*i)->expand(request, visitor, 0, keys, full);
     }
 }
 
@@ -89,20 +96,25 @@ void Schema::matchFirstLevel(const Key &dbKey,  std::set<Key> &result) const {
 }
 
 void Schema::load(const eckit::PathName &path, bool replace) {
+
+    path_ = path;
+
+    eckit::Log::debug<LibFdb>() << "Loading FDB rules from " << path << std::endl;
+
+    std::ifstream in(path.localPath());
+    if (!in)
+        throw eckit::CantOpenFile(path);
+
+    load(in, replace);
+}
+
+void Schema::load(std::istream& s, bool replace) {
+
     if (replace) {
         clear();
     }
 
-    path_ = path;
-
-    eckit::Log::debug() << "Loading FDB rules from " << path << std::endl;
-
-    std::ifstream in(path.localPath());
-    if (!in) {
-        throw eckit::CantOpenFile(path);
-    }
-
-    SchemaParser parser(in);
+    SchemaParser parser(s);
 
     parser.parse(*this, rules_, registry_);
 

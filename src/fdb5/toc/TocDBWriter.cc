@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -18,10 +18,10 @@
 #include "fdb5/LibFdb.h"
 
 #include "fdb5/io/FDBFileHandle.h"
-#include "fdb5/io/LustreFileHandle.h"
 
 #include "fdb5/toc/TocDBWriter.h"
 #include "fdb5/toc/TocIndex.h"
+#include "fdb5/toc/TocFieldLocation.h"
 
 namespace fdb5 {
 
@@ -30,9 +30,18 @@ namespace fdb5 {
 
 TocDBWriter::TocDBWriter(const Key &key) :
     TocDB(key),
-    current_(0),
     dirty_(false) {
     writeInitRecord(key);
+    loadSchema();
+    checkUID();
+}
+
+TocDBWriter::TocDBWriter(const eckit::PathName &directory) :
+    TocDB(directory),
+    dirty_(false) {
+
+    NOTIMP; // TODO: Not clear what should occur here for writeInitRecord.
+
     loadSchema();
     checkUID();
 }
@@ -41,21 +50,29 @@ TocDBWriter::~TocDBWriter() {
     close();
 }
 
-bool TocDBWriter::selectIndex(const Key &key) {
+bool TocDBWriter::selectIndex(const Key& key) {
     currentIndexKey_ = key;
 
     if (indexes_.find(key) == indexes_.end()) {
-        indexes_[key] = new TocIndex(key, generateIndexPath(key), 0, Index::WRITE);
+        PathName indexPath(generateIndexPath(key));
+
+        // Enforce lustre striping if requested
+        if (stripeLustre()) {
+            LustreStripe stripe = stripeIndexLustreSettings();
+            fdb5LustreapiFileCreate(indexPath.localPath(), stripe.size_, stripe.count_);
+        }
+
+        indexes_[key] = Index(new TocIndex(key, generateIndexPath(key), 0, TocIndex::WRITE));
     }
 
     current_ = indexes_[key];
-    current_->open();
+    current_.open();
 
     return true;
 }
 
 void TocDBWriter::deselectIndex() {
-    current_ = 0;
+    current_ = Index();
     currentIndexKey_ = Key();
 }
 
@@ -65,7 +82,7 @@ bool TocDBWriter::open() {
 
 void TocDBWriter::close() {
 
-    // eckit::Log::info() << "Closing path " << directory_ << std::endl;
+    eckit::Log::debug<LibFdb>() << "Closing path " << directory_ << std::endl;
 
     flush(); // closes the TOC entries & indexes but not data files
 
@@ -80,25 +97,25 @@ void TocDBWriter::close() {
 void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
     dirty_ = true;
 
-    if (!current_) {
+    if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
         selectIndex(currentIndexKey_);
     }
 
-    Field field(path, offset, length);
+    Field field(TocFieldLocation(path, offset, length));
 
-    current_->put(key, field);
+    current_.put(key, field);
 }
 
 void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length) {
     dirty_ = true;
 
-    if (!current_) {
+    if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
         selectIndex(currentIndexKey_);
     }
 
-    eckit::PathName dataPath = getDataPath(current_->key());
+    eckit::PathName dataPath = getDataPath(current_.key());
 
     eckit::DataHandle &dh = getDataHandle(dataPath);
 
@@ -106,9 +123,9 @@ void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length
 
     dh.write( data, length );
 
-    Field field (dataPath, position, length);
+    Field field (TocFieldLocation(dataPath, position, length));
 
-    current_->put(key, field);
+    current_.put(key, field);
 }
 
 void TocDBWriter::flush() {
@@ -122,7 +139,7 @@ void TocDBWriter::flush() {
     flushIndexes();
 
     dirty_ = false;
-    current_ = 0;
+    current_ = Index();
 }
 
 
@@ -143,19 +160,6 @@ void TocDBWriter::closeDataHandles() {
     handles_.clear();
 }
 
-static bool stripeLustre() {
-    static bool dataLustreStripeHandle = eckit::Resource<bool>("fdbDataLustreStripeHandle;$FDB5_DATA_LUSTRE_STRIPE_HANDLE", false);
-    return dataLustreStripeHandle;
-}
-
-static LustreStripe stripeLustreSettings() {
-
-    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB5_DATA_LUSTRE_STRIPE_COUNT", 8);
-    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB5_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
-
-    return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
-}
-
 
 eckit::DataHandle *TocDBWriter::createFileHandle(const eckit::PathName &path) {
 
@@ -167,7 +171,7 @@ eckit::DataHandle *TocDBWriter::createFileHandle(const eckit::PathName &path) {
                                     << " buffer size " << sizeBuffer
                                     << std::endl;
 
-        return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeLustreSettings());
+        return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeDataLustreSettings());
     }
 
     eckit::Log::debug<LibFdb>() << "Creating FDBFileHandle to " << path
@@ -189,7 +193,7 @@ eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
                                     << " buffer each with " << eckit::Bytes(sizeBuffer)
                                     << std::endl;
 
-        return new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeLustreSettings());
+        return new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeDataLustreSettings());
     }
 
     return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
@@ -237,23 +241,22 @@ eckit::PathName TocDBWriter::getDataPath(const Key &key) {
 
 void TocDBWriter::flushIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
-        Index *idx = j->second;
-        idx->flush();
-        writeIndexRecord(*idx);
-        idx->reopen(); // Create a new btree
+        Index& idx = j->second;
+        idx.flush();
+        writeIndexRecord(idx);
+        idx.reopen(); // Create a new btree
     }
 }
 
 
 void TocDBWriter::closeIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
-        Index *idx = j->second;
-        idx->close();
+        Index& idx = j->second;
+        idx.close();
         // writeIndexRecord(*idx);
-        delete idx;
     }
 
-    indexes_.clear();
+    indexes_.clear(); // all indexes instances destroyed
 }
 
 void TocDBWriter::flushDataHandles() {
@@ -266,12 +269,10 @@ void TocDBWriter::flushDataHandles() {
 
 
 void TocDBWriter::print(std::ostream &out) const {
-    out << "TocDBWriter["
-        /// @todo should print more here
-        << "]";
+    out << "TocDBWriter(" << directory() << ")";
 }
 
-static DBBuilder<TocDBWriter> builder("toc.writer");
+static DBBuilder<TocDBWriter> builder("toc.writer", false, true);
 
 //----------------------------------------------------------------------------------------------------------------------
 

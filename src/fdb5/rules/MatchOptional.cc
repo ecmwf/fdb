@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -29,7 +29,7 @@ MatchOptional::MatchOptional(const std::string &def) :
 MatchOptional::~MatchOptional() {
 }
 
-bool MatchOptional::match(const std::string &keyword, const Key &key) const {
+bool MatchOptional::match(const std::string&, const Key&) const {
     return true;
 }
 

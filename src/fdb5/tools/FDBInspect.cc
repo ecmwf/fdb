@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -10,29 +10,33 @@
 
 #include "eckit/option/CmdArgs.h"
 #include "eckit/types/Date.h"
+#include "eckit/log/Log.h"
+#include "eckit/config/Resource.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
+#include "fdb5/database/Manager.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/toc/TocDB.h"
-#include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBInspect.h"
 #include "fdb5/tools/ToolRequest.h"
 
 using eckit::Log;
+using eckit::Resource;
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FDBInspect::FDBInspect(int argc, char **argv, const std::vector<std::string>& minimumKeySet):
-    FDBTool(argc, argv),
-    minimumKeySet_(minimumKeySet) {
-    if (minimumKeySet_.size() == 0) {
+FDBInspect::FDBInspect(int argc, char **argv, std::string defaultMinimunKeySet) :
+    FDBTool(argc, argv) {
+
+    minimumKeySet_ = Resource<std::vector<std::string> >("wipeMinimumKeySet", defaultMinimunKeySet, true);
+
+    if(minimumKeySet_.size() == 0) {
         options_.push_back(new eckit::option::SimpleOption<bool>("all", "Visit all FDB databases"));
     }
 }
-
 
 void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
@@ -48,14 +52,15 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
     if (all) {
         Key dbKey;
-        eckit::Log::info() << "KEY =====> " << dbKey << std::endl;
-        std::vector<eckit::PathName> dbs = TocDB::visitableDatabases(dbKey);
+        Log::debug<LibFdb>() << "KEY =====> " << dbKey << std::endl;
+        std::vector<eckit::PathName> dbs = Manager::visitableLocations(dbKey);
         for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
+            Log::debug<LibFdb>() << "Visitable FDB DB location " << *j << std::endl;
             paths.push_back(*j);
         }
 
         if (dbs.size() == 0) {
-            eckit::Log::warning() << "No FDB matches " << dbKey << std::endl;
+            Log::warning() << "No FDB matches " << dbKey << std::endl;
         }
     }
 
@@ -76,20 +81,20 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
             ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeySet_);
 
-            eckit::Log::info() << "KEY =====> " << req.key() << std::endl;
-            std::vector<eckit::PathName> dbs = TocDB::visitableDatabases(req.key());
+            Log::info() << "KEY =====> " << req.key() << std::endl;
+            std::vector<eckit::PathName> dbs = Manager::visitableLocations(req.key());
             for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
                 paths.push_back(*j);
             }
 
             if (dbs.size() == 0) {
-                eckit::Log::warning() << "No FDB matches " << req.key() << std::endl;
+                Log::warning() << "No FDB matches " << req.key() << std::endl;
             }
 
-        } catch (eckit::UserError& e) {
+        } catch (eckit::UserError&) {
             throw;
         } catch (eckit::Exception &e) {
-            eckit::Log::warning() << e.what() << std::endl;
+            Log::warning() << e.what() << std::endl;
             paths.push_back(path);
         }
 
@@ -109,15 +114,15 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
         }
 
-        // eckit::Log::info() << "PATH =====> " << path << std::endl;
-        process( path , args);
+        // Log::debug<LibFdb>() << "PATH =====> " << path << std::endl;
+        process(path , args);
 
     }
 }
 
 
 void FDBInspect::usage(const std::string &tool) const {
-    eckit::Log::info() << std::endl
+    Log::info() << std::endl
                        << "Usage: " << tool << " [options] [path1|request1] [path2|request2] ..." << std::endl
                        << std::endl
                        << std::endl

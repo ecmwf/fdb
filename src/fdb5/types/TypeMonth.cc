@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -30,18 +30,18 @@ TypeMonth::~TypeMonth() {
 }
 
 void TypeMonth::toKey(std::ostream &out,
-                      const std::string &keyword,
-                      const std::string &value) const {
+                      const std::string&,
+                      const std::string& value) const {
 
     eckit::Date date(value);
     out << date.year() * 100 + date.month();
 }
 
-void TypeMonth::getValues(const MarsRequest &request,
-                          const std::string &keyword,
-                          eckit::StringList &values,
-                          const NotifyWind &wind,
-                          const DB *db) const {
+void TypeMonth::getValues(const MarsRequest& request,
+                          const std::string& keyword,
+                          eckit::StringList& values,
+                          const NotifyWind&,
+                          const DB*) const {
     std::vector<eckit::Date> dates;
 
     request.getValues(keyword, dates);

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -15,6 +15,7 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/Root.h"
 #include "fdb5/toc/FileSpace.h"
@@ -34,7 +35,7 @@ static std::vector<Root> readRoots() {
 
     std::vector<Root> result;
 
-    eckit::PathName path("~/etc/fdb/roots");
+    eckit::PathName path("~fdb/etc/fdb/roots");
     std::ifstream in(path.localPath());
 
     eckit::Log::debug() << "Loading FDB roots from " << path << std::endl;
@@ -104,7 +105,7 @@ static void readFileSpaces() {
 
     std::vector<Root> allRoots = readRoots();
 
-    eckit::PathName path("~/etc/fdb/spaces");
+    eckit::PathName path("~fdb/etc/fdb/spaces");
     std::ifstream in(path.localPath());
 
     eckit::Log::debug() << "Loading FDB file spaces from " << path << std::endl;
@@ -166,6 +167,8 @@ static void readFileSpaces() {
 eckit::PathName RootManager::directory(const Key& key) {
 
     pthread_once(&once, readFileSpaces);
+            
+	eckit::Log::info() << "Choosing directory for key " << key << std::endl;
 
     std::string name(key.valuesToString());
 
@@ -174,6 +177,7 @@ eckit::PathName RootManager::directory(const Key& key) {
     for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
         if(i->match(name)) {
             PathName path = i->filesystem(key);
+			eckit::Log::info() << "Directory is " << path / name <<  std::endl;
             return path / name;
         }
     }
@@ -214,6 +218,8 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
             i->visitable(roots);
         }
     }
+
+    Log::debug<LibFdb>() << "Visitable Roots " << roots << std::endl;
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }

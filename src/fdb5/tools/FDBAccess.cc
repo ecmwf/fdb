@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -13,8 +13,7 @@
 
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/toc/TocDB.h"
-#include "fdb5/toc/TocHandler.h"
+
 #include "fdb5/tools/FDBAccess.h"
 
 using eckit::Log;
@@ -33,7 +32,6 @@ FDBAccess::FDBAccess(int argc, char **argv):
 void FDBAccess::usage(const std::string &tool) const {
     FDBTool::usage(tool);
 }
-
 
 
 //----------------------------------------------------------------------------------------------------------------------

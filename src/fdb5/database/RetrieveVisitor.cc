@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -12,6 +12,7 @@
 
 #include "eckit/config/Resource.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -27,7 +28,6 @@ namespace fdb5 {
 RetrieveVisitor::RetrieveVisitor(const NotifyWind &wind, HandleGatherer &gatherer):
     wind_(wind),
     gatherer_(gatherer) {
-    fdbReaderDB_ = eckit::Resource<std::string>("fdbReaderDB", "toc.reader");
 }
 
 RetrieveVisitor::~RetrieveVisitor() {
@@ -35,7 +35,7 @@ RetrieveVisitor::~RetrieveVisitor() {
 
 // From Visitor
 
-bool RetrieveVisitor::selectDatabase(const Key &key, const Key &full) {
+bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     if(db_) {
         if(key == db_->key()) {
@@ -43,8 +43,8 @@ bool RetrieveVisitor::selectDatabase(const Key &key, const Key &full) {
         }
     }
 
-    eckit::Log::info() << "selectDatabase " << key << std::endl;
-    db_.reset(DBFactory::build(fdbReaderDB_, key));
+    eckit::Log::debug<LibFdb>() << "selectDatabase " << key << std::endl;
+    db_.reset(DBFactory::buildReader(key));
 
     if (!db_->open()) {
         eckit::Log::info() << "Database does not exists " << key << std::endl;
@@ -55,13 +55,13 @@ bool RetrieveVisitor::selectDatabase(const Key &key, const Key &full) {
     }
 }
 
-bool RetrieveVisitor::selectIndex(const Key &key, const Key &full) {
+bool RetrieveVisitor::selectIndex(const Key& key, const Key&) {
     ASSERT(db_);
     // eckit::Log::info() << "selectIndex " << key << std::endl;
     return db_->selectIndex(key);
 }
 
-bool RetrieveVisitor::selectDatum(const Key &key, const Key &full) {
+bool RetrieveVisitor::selectDatum(const Key& key, const Key&) {
     ASSERT(db_);
     // eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
 

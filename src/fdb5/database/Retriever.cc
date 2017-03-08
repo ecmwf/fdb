@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -38,16 +38,17 @@ Retriever::Retriever() :
 Retriever::~Retriever() {
 }
 
-eckit::DataHandle *Retriever::retrieve(const MarsTask &task,
-                                       const Schema &schema,
+eckit::DataHandle *Retriever::retrieve(const MarsTask& task,
+                                       const Schema&,
                                        bool sorted,
-                                       const fdb5::NotifyWind &notifyee) const {
+                                       const fdb5::NotifyWind& notifyee) const {
 
-    HandleGatherer result(sorted);
+	HandleGatherer result(sorted);
     MultiRetrieveVisitor visitor(notifyee, result, databases_);
+    Log::info() << "Schema: " << schema_ << std::endl;
     schema_.expand(task.request(), visitor);
 
-    eckit::Log::userInfo() << "Retrieving " << eckit::Plural(result.count(), "field") << std::endl;
+    eckit::Log::userInfo() << "Retrieving " << eckit::Plural(int(result.count()), "field") << std::endl;
 
     return result.dataHandle();
 }
@@ -62,6 +63,8 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task) const {
         NotifyClient(const MarsTask &task) : task_(task) {}
     };
 
+    Log::error() << "In simple retrieve" << std::endl;
+
     NotifyClient wind(task);
     return retrieve(task, wind);
 }
@@ -71,6 +74,8 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const NotifyWind& n
     bool sorted = false;
     std::vector<std::string> sort;
     task.request().getValues("optimise", sort);
+
+    Log::error() << "Sorted? " << sorted << std::endl;
 
     if (sort.size() == 1 && sort[0] == "on") {
         sorted = true;

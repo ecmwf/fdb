@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2013 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -9,7 +9,6 @@
  */
 
 #include "fdb5/database/Field.h"
-#include "fdb5/database/FieldRef.h"
 #include "fdb5/database/FileStore.h"
 
 
@@ -20,19 +19,15 @@ namespace fdb5 {
 Field::Field() {
 }
 
-Field::Field(const FileStore &store, const FieldRef &ref):
-    location_(store.get(ref.pathId()), ref.offset(), ref.length()),
-    details_(ref.details()) {
-}
-
-Field::Field(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ):
-    location_(path, offset, length) {
+Field::Field(const FieldLocation& location, const FieldDetails& details):
+    location_(location.make_shared()),
+    details_(details) {
 }
 
 void Field::print(std::ostream& out) const {
-    out << "Field(location=" << location_
-//        << ",details=" << details_
-        << ")";
+    out << "Field(location=" << location_;
+    if(details_) { out << ",details=" << details_; }
+    out << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

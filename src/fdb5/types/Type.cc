@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2016 ECMWF.
+ * (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -26,8 +26,8 @@ Type::~Type() {
 void Type::getValues(const MarsRequest &request,
                      const std::string &keyword,
                      eckit::StringList &values,
-                     const NotifyWind &wind,
-                     const DB *db) const {
+                     const NotifyWind&,
+                     const DB*) const {
     request.getValues(keyword, values);
 }
 
@@ -35,13 +35,13 @@ const std::string &Type::type() const {
     return type_;
 }
 
-std::string Type::tidy(const std::string &keyword,
+std::string Type::tidy(const std::string&,
                        const std::string &value) const  {
     return value;
 }
 
 void Type::toKey(std::ostream &out,
-                 const std::string &keyword,
+                 const std::string&,
                  const std::string &value) const {
     out << value;
 }
