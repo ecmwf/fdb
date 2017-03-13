@@ -51,13 +51,20 @@ static EngineTable engineTypes;
 
 static void readEngineTypes() {
 
-    eckit::PathName path("~fdb/etc/fdb/engines");
-    std::ifstream in(path.localPath());
+    static eckit::PathName fdbEnginesFile = eckit::Resource<eckit::PathName>("fdbEnginesFile;$FDB_ENGINES_FILE", "~fdb/etc/fdb/engines");
 
-    eckit::Log::debug() << "Loading FDB engines from " << path << std::endl;
+    if(!fdbEnginesFile.exists()) {
+        eckit::Log::debug<LibFdb>() << "FDB Engines file not found: assuming Engine 'toc' Regex '*'" << std::endl;
+        engineTypes.push_back(EngineType("toc", ".*"));
+        return;
+    }
+
+    std::ifstream in(fdbEnginesFile.localPath());
+
+    eckit::Log::debug<LibFdb>() << "Loading FDB engines from " << fdbEnginesFile << std::endl;
 
     if (!in) {
-        eckit::Log::error() << path << eckit::Log::syserr << std::endl;
+        eckit::Log::error() << fdbEnginesFile << eckit::Log::syserr << std::endl;
         return;
     }
 
