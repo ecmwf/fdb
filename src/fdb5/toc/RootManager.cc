@@ -35,13 +35,14 @@ static std::vector<Root> readRoots() {
 
     std::vector<Root> result;
 
-    eckit::PathName path("~fdb/etc/fdb/roots");
-    std::ifstream in(path.localPath());
+    static eckit::PathName fdbRootsFile = eckit::Resource<eckit::PathName>("fdbRootsFile;$FDB_ROOTS_FILE", "~fdb/etc/fdb/roots");
 
-    eckit::Log::debug() << "Loading FDB roots from " << path << std::endl;
+    std::ifstream in(fdbRootsFile.localPath());
+
+    eckit::Log::debug<LibFdb>() << "Loading FDB roots from " << fdbRootsFile << std::endl;
 
     if (!in) {
-        eckit::Log::error() << path << eckit::Log::syserr << std::endl;
+        eckit::Log::error() << fdbRootsFile << eckit::Log::syserr << std::endl;
         return result;
     }
 
@@ -105,13 +106,14 @@ static void readFileSpaces() {
 
     std::vector<Root> allRoots = readRoots();
 
-    eckit::PathName path("~fdb/etc/fdb/spaces");
-    std::ifstream in(path.localPath());
+    static eckit::PathName fdbSpacesFile = eckit::Resource<eckit::PathName>("fdbSpacesFile;$FDB_SPACES_FILE", "~fdb/etc/fdb/spaces");
 
-    eckit::Log::debug() << "Loading FDB file spaces from " << path << std::endl;
+    std::ifstream in(fdbSpacesFile.localPath());
+
+    eckit::Log::debug<LibFdb>() << "Loading FDB file spaces from " << fdbSpacesFile << std::endl;
 
     if (!in) {
-        eckit::Log::error() << path << eckit::Log::syserr << std::endl;
+        eckit::Log::error() << fdbSpacesFile << eckit::Log::syserr << std::endl;
         return;
     }
 
@@ -168,7 +170,7 @@ eckit::PathName RootManager::directory(const Key& key) {
 
     pthread_once(&once, readFileSpaces);
             
-	eckit::Log::info() << "Choosing directory for key " << key << std::endl;
+    eckit::Log::debug<LibFdb>() << "Choosing directory for key " << key << std::endl;
 
     std::string name(key.valuesToString());
 
@@ -177,7 +179,7 @@ eckit::PathName RootManager::directory(const Key& key) {
     for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
         if(i->match(name)) {
             PathName path = i->filesystem(key);
-			eckit::Log::info() << "Directory is " << path / name <<  std::endl;
+            eckit::Log::debug<LibFdb>() << "Directory is " << path / name <<  std::endl;
             return path / name;
         }
     }
