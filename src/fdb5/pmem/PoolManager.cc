@@ -35,13 +35,14 @@ static std::vector<PoolEntry> readPools() {
 
     std::vector<PoolEntry> result;
 
-    eckit::PathName path("~fdb/etc/fdb/pools");
-    std::ifstream in(path.localPath());
+    static eckit::PathName fdbPMemPoolsFile = eckit::Resource<eckit::PathName>("fdbPMemPoolsFile;$FDB_PMEM_POOLS_FILE", "~fdb/etc/fdb/pools");
 
-    eckit::Log::debug() << "Loading FDB pools from " << path << std::endl;
+    std::ifstream in(fdbPMemPoolsFile.localPath());
+
+    eckit::Log::debug() << "Loading FDB pools from " << fdbPMemPoolsFile << std::endl;
 
     if (!in) {
-        eckit::Log::error() << path << eckit::Log::syserr << std::endl;
+        eckit::Log::error() << fdbPMemPoolsFile << eckit::Log::syserr << std::endl;
         return result;
     }
 
@@ -105,13 +106,14 @@ static void readPoolGroups() {
 
     std::vector<PoolEntry> allPools = readPools();
 
-    eckit::PathName path("~fdb/etc/fdb/poolgroups");
-    std::ifstream in(path.localPath());
+    static eckit::PathName fdbPMemPoolGroupsFile = eckit::Resource<eckit::PathName>("fdbPMemPoolGroupsFile;$FDB_PMEM_POOLGROUPS_FILE", "~fdb/etc/fdb/poolgroups");
 
-    eckit::Log::debug() << "Loading FDB file poolgroups from " << path << std::endl;
+    std::ifstream in(fdbPMemPoolGroupsFile.localPath());
+
+    eckit::Log::debug() << "Loading FDB file poolgroups from " << fdbPMemPoolGroupsFile << std::endl;
 
     if (!in) {
-        eckit::Log::error() << path << eckit::Log::syserr << std::endl;
+        eckit::Log::error() << fdbPMemPoolGroupsFile << eckit::Log::syserr << std::endl;
         return;
     }
 
