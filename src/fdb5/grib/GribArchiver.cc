@@ -16,6 +16,7 @@
 
 #include "marslib/EmosFile.h"
 
+#include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
@@ -31,6 +32,9 @@ GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers) :
 }
 
 eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
+
+    fdb5::UMask umask(fdb5::UMask::defaultUMask());
+
     eckit::Timer timer("fdb::service::archive");
 
     EmosFile file(source);

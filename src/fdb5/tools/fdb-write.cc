@@ -32,8 +32,6 @@ void FDBWrite::usage(const std::string &tool) const {
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::UMask umask(fdb5::UMask::defaultUMask());
-
     fdb5::GribArchiver archiver;
 
     for (size_t i = 0; i < args.count(); i++) {
