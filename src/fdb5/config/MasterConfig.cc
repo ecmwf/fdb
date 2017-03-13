@@ -33,8 +33,8 @@ MasterConfig::~MasterConfig() {
 
 std::string MasterConfig::schemaPath() const {
     // eckit::AutoLock<eckit::Mutex> lock(local_mutex);
-    static eckit::PathName fdbRules = eckit::Resource<eckit::PathName>("fdbRules", "~fdb/etc/fdb/schema");
-    return fdbRules;
+    static eckit::PathName fdbSchemaFile = eckit::Resource<eckit::PathName>("fdbSchemaFile;$FDB_SCHEMA_FILE", "~fdb/etc/fdb/schema");
+    return fdbSchemaFile;
 }
 
 const Schema &MasterConfig::schema() const {
