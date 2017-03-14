@@ -13,6 +13,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/log/Plural.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/database/NotifyWind.h"
 #include "fdb5/database/MultiRetrieveVisitor.h"
@@ -63,8 +64,6 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task) const {
         NotifyClient(const MarsTask &task) : task_(task) {}
     };
 
-    Log::error() << "In simple retrieve" << std::endl;
-
     NotifyClient wind(task);
     return retrieve(task, wind);
 }
@@ -75,7 +74,7 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const NotifyWind& n
     std::vector<std::string> sort;
     task.request().getValues("optimise", sort);
 
-    Log::error() << "Sorted? " << sorted << std::endl;
+    Log::debug<LibFdb>() << "fdb5::Retriever::retrieve() Sorted? " << sorted << std::endl;
 
     if (sort.size() == 1 && sort[0] == "on") {
         sorted = true;
