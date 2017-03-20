@@ -21,12 +21,16 @@ class FDBWrite : public fdb5::FDBAccess {
     virtual int minimumPositionalArguments() const { return 1; }
 
 public:
-    FDBWrite(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
+    FDBWrite(int argc, char **argv): fdb5::FDBAccess(argc, argv) {
+
+        options_.push_back(new eckit::option::SimpleOption<bool>("all", "Print all information"));
+
+    }
 };
 
 void FDBWrite::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " gribfile1 [gribfile2] ..." << std::endl;
+                       << "Usage: " << tool << "[--directory=/path/to/root] gribfile1 [gribfile2] ..." << std::endl;
     fdb5::FDBAccess::usage(tool);
 }
 
