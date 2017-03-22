@@ -81,7 +81,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
             ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeySet_);
 
-            Log::info() << "KEY =====> " << req.key() << std::endl;
+            Log::debug<LibFdb>() << "KEY =====> " << req.key() << std::endl;
             std::vector<eckit::PathName> dbs = Manager::visitableLocations(req.key());
             for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
                 paths.push_back(*j);

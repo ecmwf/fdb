@@ -203,7 +203,7 @@ void FDBIndexScanner::process(FILE *f) {
                 StringList v;
                 in >> s;
 
-                //                Log::info() << "s -> [" << s << "]" << std::endl;
+                //  Log::info() << "s -> [" << s << "]" << std::endl;
 
                 if (isdigit(s[0])) { // when we hit digits, parse length and offset, e.g.   3281188 (61798740)
                     length = Translator<std::string, unsigned long long>()(s);

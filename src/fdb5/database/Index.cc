@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 
@@ -36,7 +37,7 @@ IndexBase::~IndexBase() {
 
 void IndexBase::put(const Key &key, const Field &field) {
 
-    eckit::Log::info() << "FDB Index " << indexer_ << " " << key << " -> " << field << std::endl;
+    eckit::Log::debug<LibFdb>() << "FDB Index " << indexer_ << " " << key << " -> " << field << std::endl;
 
     axes_.insert(key);
     add(key, field);
