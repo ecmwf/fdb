@@ -468,7 +468,6 @@ void TocHandler::dump(std::ostream& out, bool simple) {
 
         off_t offset;
         std::vector<Index>::iterator j;
-        Index index = 0;
 
         r.dump(out, simple);
 
@@ -504,10 +503,7 @@ void TocHandler::dump(std::ostream& out, bool simple) {
             }
         }
         out << std::endl;
-
     }
-
-
 }
 
 std::string TocHandler::dbOwner() {
