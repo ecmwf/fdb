@@ -27,7 +27,7 @@ static LibFdb libfdb;
 
 LibFdb::LibFdb() : Library("fdb") {}
 
-const LibFdb& LibFdb::instance()
+LibFdb& LibFdb::instance()
 {
     return libfdb;
 }
