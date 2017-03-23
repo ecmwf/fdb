@@ -26,6 +26,7 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
+#include "fdb5/toc/TocStats.h"
 
 
 namespace fdb5 {
@@ -508,6 +509,18 @@ void TocHandler::dump(std::ostream& out, bool simple) {
 
 std::string TocHandler::dbOwner() {
     return userName(dbUID());
+}
+
+DbStats TocHandler::stats() const
+{
+    TocDbStats* stats = new TocDbStats();
+
+    stats->dbCount_         += 1;
+    stats->tocRecordsCount_ += numberOfRecords();
+    stats->tocFileSize_     += tocPath().size();
+    stats->schemaFileSize_  += schemaPath().size();
+
+    return DbStats(stats);
 }
 
 std::string TocHandler::userName(long id) const {

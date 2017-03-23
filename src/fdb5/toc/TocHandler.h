@@ -18,6 +18,7 @@
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/io/LustreFileHandle.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/toc/TocRecord.h"
 
 namespace fdb5 {
@@ -58,12 +59,13 @@ public: // methods
     void dump(std::ostream& out, bool simple = false);
     std::string dbOwner();
 
+    DbStats stats() const;
+
 protected: // members
 
     const eckit::PathName directory_;
     mutable long dbUID_;
     long userUID_;
-
 
     long dbUID() const;
 
