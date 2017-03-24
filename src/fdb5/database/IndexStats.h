@@ -66,6 +66,8 @@ public: // methods
 
     IndexStats& operator=(const IndexStats&);
 
+    IndexStats& operator+= (const IndexStats& rhs);
+
     size_t fieldsCount() const { return content_->fieldsCount(); }
     size_t duplicatesCount() const { return content_->duplicatesCount(); }
 

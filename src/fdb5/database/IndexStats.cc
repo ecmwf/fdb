@@ -66,6 +66,11 @@ IndexStats& IndexStats::operator=(const IndexStats& s) {
     return *this;
 }
 
+IndexStats& IndexStats::operator+=(const IndexStats& s) {
+    add(s);
+    return *this;
+}
+
 void IndexStats::add(const IndexStats& s)
 {
     content_->add(*s.content_);
