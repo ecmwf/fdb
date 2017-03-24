@@ -174,7 +174,15 @@ eckit::PathName RootManager::directory(const Key& key) {
 
     std::string name(key.valuesToString());
 
-    /// @note returns the first filespace that matches
+    // override root location for testting purposes only
+
+    static std::string fdbRootDirectory = eckit::Resource<std::string>("fdbRootDirectory;$FDB_ROOT_DIRECTORY", "");
+
+    if(!fdbRootDirectory.empty()) {
+        return fdbRootDirectory + "/" + name;
+    }
+
+    // returns the first filespace that matches
 
     for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
         if(i->match(name)) {

@@ -88,7 +88,7 @@ public:
 
     virtual void add(const IndexStatsContent&);
 
-    virtual void report(std::ostream &out, const char* indent) const;
+    virtual void report(std::ostream &out, const char* indent = "") const;
 };
 
 
