@@ -21,13 +21,19 @@ using namespace fdb5;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
+class IndexStatsAdaptor : public IndexStats {
+public:
+    IndexStatsAdaptor() : IndexStats(new TocIndexStats()) {}
+};
+
 class ReportVisitor : public EntryVisitor {
 public:
 
     ReportVisitor(const eckit::PathName &directory);
     ~ReportVisitor();
 
-    TocIndexStats* indexStatistics() const;
+    IndexStatsAdaptor indexStatistics() const;
     DbStats    dbStatistics() const;
 
 private: // methods
@@ -52,7 +58,7 @@ protected: // members
 
     std::set<std::string> active_;
 
-    std::map<Index, TocIndexStats> indexStats_;
+    std::map<Index, IndexStatsAdaptor> indexStats_;
 
     DbStats dbStats_;
 };
@@ -77,12 +83,12 @@ void ReportVisitor::visit(const Index &index,
 
     TocDbStats* dbStats = new TocDbStats();
 
-    TocIndexStats& stats = indexStats_[index];
+    IndexStatsAdaptor& stats = indexStats_[index];
 
     eckit::Length len = field.location().length();
 
-    ++stats.fieldsCount_;
-    stats.fieldsSize_ += len;
+    stats.addFieldsCount(1);
+    stats.addFieldsSize(len);
 
     const eckit::PathName& dataPath  = field.location().url();
     const eckit::PathName& indexPath = index.location().url();
@@ -115,8 +121,8 @@ void ReportVisitor::visit(const Index &index,
         active_.insert(unique);
         activeDataFiles_.insert(dataPath);
     } else {
-        ++stats.duplicatesCount_;
-        stats.duplicatesSize_ += len;
+        stats.addDuplicatesCount(1);
+        stats.addDuplicatesSize(len);
         indexUsage_[indexPath]--;
         dataUsage_[dataPath]--;
     }
@@ -128,10 +134,10 @@ DbStats ReportVisitor::dbStatistics() const {
     return dbStats_;
 }
 
-TocIndexStats* ReportVisitor::indexStatistics() const {
-    TocIndexStats* total = new TocIndexStats();
-    for (std::map<Index, TocIndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-        *total += i->second;
+IndexStatsAdaptor ReportVisitor::indexStatistics() const {
+    IndexStatsAdaptor total;
+    for (std::map<Index, IndexStatsAdaptor>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+        total += i->second;
     }
     return total;
 }
@@ -144,14 +150,13 @@ class FDBStats : public fdb5::FDBInspect {
 
     FDBStats(int argc, char **argv) :
         fdb5::FDBInspect(argc, argv),
-        totalIndexStats_(new TocIndexStats()),
         totaldbStats_(new TocDbStats()),
         count_(0),
         details_(false) {
         options_.push_back(new eckit::option::SimpleOption<bool>("details", "Print report for each database visited"));
     }
 
-    ~FDBStats() { delete totalIndexStats_; }
+    ~FDBStats() {}
 
   private: // methods
 
@@ -161,8 +166,8 @@ class FDBStats : public fdb5::FDBInspect {
     virtual void finish(const eckit::option::CmdArgs &args);
 
 
-    TocIndexStats*  totalIndexStats_;
-    DbStats         totaldbStats_;
+    IndexStatsAdaptor totalIndexStats_;
+    DbStats           totaldbStats_;
 
     size_t count_;
     bool details_;
@@ -195,21 +200,19 @@ void FDBStats::process(const eckit::PathName &path, const eckit::option::CmdArgs
         i->entries(visitor);
     }
 
-    TocIndexStats* indexStats = visitor.indexStatistics();
+    IndexStatsAdaptor indexStats = visitor.indexStatistics();
 
     if (details_) {
         eckit::Log::info() << std::endl;
-        indexStats->report(eckit::Log::info());
+        indexStats.report(eckit::Log::info());
         visitor.dbStatistics().report(eckit::Log::info());
         eckit::Log::info() << std::endl;
     }
 
-    totalIndexStats_->add(*indexStats);
+    totalIndexStats_ += indexStats;
     totaldbStats_ += visitor.dbStatistics();
 
     count_ ++;
-
-    delete indexStats;
 }
 
 
@@ -220,7 +223,7 @@ void FDBStats::finish(const eckit::option::CmdArgs &args) {
 
     eckit::Log::info() << std::endl;
     eckit::Statistics::reportCount(eckit::Log::info(), "Number of databases", count_);
-    totalIndexStats_->report(eckit::Log::info());
+    totalIndexStats_.report(eckit::Log::info());
     totaldbStats_.report(eckit::Log::info());
     eckit::Log::info() << std::endl;
 
