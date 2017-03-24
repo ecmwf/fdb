@@ -16,6 +16,7 @@
 
 #include "marslib/EmosFile.h"
 
+#include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
@@ -31,6 +32,9 @@ GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers) :
 }
 
 eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
+
+    fdb5::UMask umask(fdb5::UMask::defaultUMask());
+
     eckit::Timer timer("fdb::service::archive");
 
     EmosFile file(source);
@@ -63,7 +67,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
     } catch (...) {
 
         if (completeTransfers_) {
-            eckit::Log::error() << "Exception recieved. Completing transfer." << std::endl;
+            eckit::Log::error() << "Exception received. Completing transfer." << std::endl;
             // Consume rest of datahandle otherwise client retries for ever
             eckit::Buffer buffer(80 * 1024 * 1024);
             while ( (len = size_t( file.readSome(buffer)) ) ) { /* empty */ }

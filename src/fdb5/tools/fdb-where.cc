@@ -39,8 +39,7 @@ void FDBWhere::usage(const std::string &tool) const {
 
     Log::info() << std::endl
                 << "Usage: " << tool << std::endl
-                << "       " << tool << "--request <request>" << std::endl
-                << "       " << tool << "path1|request1 [path2|request2] ..." << std::endl;
+                << "       " << tool << " --request <request>" << std::endl;
     FDBInspect::usage(tool);
 }
 

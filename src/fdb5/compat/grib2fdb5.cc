@@ -35,8 +35,6 @@ void Grib2Fdb5::usage(const std::string &tool) const {
 
 void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::UMask umask(fdb5::UMask::defaultUMask());
-
     fdb5::GribArchiver archiver;
     fdb5::Key check;
 

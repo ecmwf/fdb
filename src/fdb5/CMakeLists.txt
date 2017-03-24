@@ -238,6 +238,7 @@ if( HAVE_TOCFDB )
 
     list( APPEND fdb5_tools
         fdb-wipe
+        fdb-stats
         fdb-purge )
 
 endif()
@@ -343,7 +344,6 @@ list( APPEND fdb5_tools
     fdb-dump
     fdb-list
     fdb-patch
-    fdb-stats
     fdb-read
     fdb-schema
     fdb-where

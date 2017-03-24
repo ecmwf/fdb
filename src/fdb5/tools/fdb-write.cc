@@ -11,6 +11,8 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
+
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/tools/FDBAccess.h"
 #include "fdb5/config/UMask.h"
@@ -21,18 +23,21 @@ class FDBWrite : public fdb5::FDBAccess {
     virtual int minimumPositionalArguments() const { return 1; }
 
 public:
-    FDBWrite(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
+    FDBWrite(int argc, char **argv) : fdb5::FDBAccess(argc, argv) {
+
+//        options_.push_back(new eckit::option::SimpleOption<bool>("directory", "Override FDB5 root directory (only for TOC)"));
+//                           ->linkToResource("fdbRootDirectory"));
+
+    }
 };
 
 void FDBWrite::usage(const std::string &tool) const {
-    eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " gribfile1 [gribfile2] ..." << std::endl;
+//    eckit::Log::info() << std::endl
+//                       << "Usage: " << tool << "[--directory=/path/to/root] gribfile1 [gribfile2] ..." << std::endl;
     fdb5::FDBAccess::usage(tool);
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
-
-    fdb5::UMask umask(fdb5::UMask::defaultUMask());
 
     fdb5::GribArchiver archiver;
 

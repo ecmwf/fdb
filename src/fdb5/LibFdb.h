@@ -26,7 +26,7 @@ public:
 
     LibFdb();
 
-    static const LibFdb& instance();
+    static LibFdb& instance();
 
 protected:
 

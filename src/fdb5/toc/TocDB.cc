@@ -106,14 +106,7 @@ void TocDB::checkSchema(const Key &key) const {
 
 DbStats TocDB::statistics() const
 {
-    TocDbStats* stats = new TocDbStats();
-
-    stats->dbCount_         += 1;
-    stats->tocRecordsCount_ += numberOfRecords();
-    stats->tocFileSize_     += tocPath().size();
-    stats->schemaFileSize_  += schemaPath().size();
-
-    return DbStats(stats);
+    return TocHandler::stats();
 }
 
 std::vector<Index> TocDB::indexes() const {
