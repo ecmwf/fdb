@@ -327,7 +327,7 @@ ecbuild_add_library(
         ${LUSTREAPI_LIBRARIES}
 )
 
-list( APPEND fdb5_scripts fdb grib2fdb fdb-which )
+list( APPEND fdb5_scripts fdb fdb-which )
 
 foreach( _script ${fdb5_scripts} )
 
