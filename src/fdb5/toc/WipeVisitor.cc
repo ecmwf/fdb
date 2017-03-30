@@ -184,7 +184,10 @@ void WipeVisitor::wipe(std::ostream&) const {
         }
     }
 
-    directory.rmdir();
+    if(directory.exists()) {
+        directory.rmdir();
+    }
+
 }
 
 

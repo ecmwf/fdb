@@ -25,6 +25,8 @@ include( ecbuild_system NO_POLICY_SCOPE )
 
 ecbuild_requires_macro_version( 1.9 )
 
+ecbuild_declare_project()
+
 ########################################################################################################################
 # sanity checks
 
@@ -113,10 +115,6 @@ ecbuild_add_option( FEATURE TOCFDB
 
 ########################################################################################################################
 # project vars & options
-
-ecbuild_declare_project()
-
-# some variables
 
 set( MARS_TAPE_MANAGERS  "" CACHE INTERNAL "" )
 
