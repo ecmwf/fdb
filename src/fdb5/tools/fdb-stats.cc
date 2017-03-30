@@ -10,6 +10,7 @@
 
 #include "eckit/option/CmdArgs.h"
 #include "eckit/log/BigNum.h"
+#include "eckit/container/TrieSet.h"
 
 #include "fdb5/database/Index.h"
 #include "fdb5/tools/FDBInspect.h"
@@ -50,13 +51,13 @@ protected: // members
 
     eckit::PathName directory_;
 
-    std::set<eckit::PathName> activeDataFiles_;
-    std::set<eckit::PathName> allDataFiles_;
-    std::set<eckit::PathName> allIndexFiles_;
+    eckit::TrieSet activeDataFiles_;
+    eckit::TrieSet allDataFiles_;
+    eckit::TrieSet allIndexFiles_;
     std::map<eckit::PathName, size_t> indexUsage_;
     std::map<eckit::PathName, size_t> dataUsage_;
 
-    std::set<std::string> active_;
+    eckit::TrieSet active_;
 
     std::map<Index, IndexStatsAdaptor> indexStats_;
 
@@ -93,7 +94,7 @@ void ReportVisitor::visit(const Index &index,
     const eckit::PathName& dataPath  = field.location().url();
     const eckit::PathName& indexPath = index.location().url();
 
-    if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
+    if (!allDataFiles_.exists(dataPath)) {
         if (dataPath.dirName().sameAs(directory_)) {
             dbStats->ownedFilesSize_ += dataPath.size();
             dbStats->ownedFilesCount_++;
@@ -106,7 +107,7 @@ void ReportVisitor::visit(const Index &index,
         allDataFiles_.insert(dataPath);
     }
 
-    if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
+    if (!allIndexFiles_.exists(indexPath)) {
         dbStats->indexFilesSize_ += indexPath.size();
         allIndexFiles_.insert(indexPath);
         dbStats->indexFilesCount_++;
@@ -117,14 +118,14 @@ void ReportVisitor::visit(const Index &index,
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
 
-    if (active_.find(unique) == active_.end()) {
-        active_.insert(unique);
-        activeDataFiles_.insert(dataPath);
-    } else {
+    if (active_.exists(unique)) {
         stats.addDuplicatesCount(1);
         stats.addDuplicatesSize(len);
         indexUsage_[indexPath]--;
         dataUsage_[dataPath]--;
+    } else {
+        active_.insert(unique);
+        activeDataFiles_.insert(dataPath);
     }
 
     dbStats_ += DbStats(dbStats); // append to the global dbStats
