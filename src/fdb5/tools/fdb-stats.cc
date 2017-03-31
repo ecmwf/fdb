@@ -10,7 +10,7 @@
 
 #include "eckit/option/CmdArgs.h"
 #include "eckit/log/BigNum.h"
-#include "eckit/container/TrieSet.h"
+#include "eckit/container/Trie.h"
 
 #include "fdb5/database/Index.h"
 #include "fdb5/tools/FDBInspect.h"
@@ -51,13 +51,13 @@ protected: // members
 
     eckit::PathName directory_;
 
-    eckit::TrieSet activeDataFiles_;
-    eckit::TrieSet allDataFiles_;
-    eckit::TrieSet allIndexFiles_;
+    eckit::Trie<bool> activeDataFiles_;
+    eckit::Trie<bool> allDataFiles_;
+    eckit::Trie<bool> allIndexFiles_;
     std::map<eckit::PathName, size_t> indexUsage_;
     std::map<eckit::PathName, size_t> dataUsage_;
 
-    eckit::TrieSet active_;
+    eckit::Trie<bool> active_;
 
     std::map<Index, IndexStatsAdaptor> indexStats_;
 
@@ -94,7 +94,7 @@ void ReportVisitor::visit(const Index &index,
     const eckit::PathName& dataPath  = field.location().url();
     const eckit::PathName& indexPath = index.location().url();
 
-    if (!allDataFiles_.exists(dataPath)) {
+    if (!allDataFiles_.contains(dataPath)) {
         if (dataPath.dirName().sameAs(directory_)) {
             dbStats->ownedFilesSize_ += dataPath.size();
             dbStats->ownedFilesCount_++;
@@ -104,12 +104,12 @@ void ReportVisitor::visit(const Index &index,
             dbStats->adoptedFilesCount_++;
 
         }
-        allDataFiles_.insert(dataPath);
+        allDataFiles_.insert(dataPath, true);
     }
 
-    if (!allIndexFiles_.exists(indexPath)) {
+    if (!allIndexFiles_.contains(indexPath)) {
         dbStats->indexFilesSize_ += indexPath.size();
-        allIndexFiles_.insert(indexPath);
+        allIndexFiles_.insert(indexPath, true);
         dbStats->indexFilesCount_++;
     }
 
@@ -118,14 +118,14 @@ void ReportVisitor::visit(const Index &index,
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
 
-    if (active_.exists(unique)) {
+    if (active_.contains(unique)) {
         stats.addDuplicatesCount(1);
         stats.addDuplicatesSize(len);
         indexUsage_[indexPath]--;
         dataUsage_[dataPath]--;
     } else {
-        active_.insert(unique);
-        activeDataFiles_.insert(dataPath);
+        active_.insert(unique, true);
+        activeDataFiles_.insert(dataPath, true);
     }
 
     dbStats_ += DbStats(dbStats); // append to the global dbStats
