@@ -10,7 +10,6 @@
 
 #include "eckit/option/CmdArgs.h"
 #include "eckit/log/BigNum.h"
-#include "eckit/container/Trie.h"
 #include "eckit/container/BloomFilter.h"
 
 #include "fdb5/database/Index.h"
@@ -53,9 +52,9 @@ protected: // members
     eckit::PathName directory_;
     size_t bloomFilterSize_;
 
-//    eckit::Trie<bool> activeDataFiles_;
-    eckit::Trie<bool> allDataFiles_;
-    eckit::Trie<bool> allIndexFiles_;
+//    std::set<eckit::PathName> activeDataFiles_;
+    std::set<eckit::PathName> allDataFiles_;
+    std::set<eckit::PathName> allIndexFiles_;
 
 //    eckit::BloomFilter<std::string> activeDataFilesBloom_;
     eckit::BloomFilter<std::string> allDataFilesBloom_;
@@ -64,7 +63,7 @@ protected: // members
     std::map<eckit::PathName, size_t> indexUsage_;
     std::map<eckit::PathName, size_t> dataUsage_;
 
-    eckit::Trie<bool> active_;
+    std::set<std::string> active_;
     eckit::BloomFilter<std::string> activeBloom_;
 
     std::map<Index, IndexStatsAdaptor> indexStats_;
@@ -105,7 +104,8 @@ void ReportVisitor::visit(const Index &index,
     const eckit::PathName& dataPath  = field.location().url();
     const eckit::PathName& indexPath = index.location().url();
 
-    if (!allDataFilesBloom_.contains(dataPath) || !allDataFiles_.contains(dataPath)) {
+    if (!allDataFilesBloom_.contains(dataPath) || allDataFiles_.find(dataPath) == allDataFiles_.end()) {
+
         if (dataPath.dirName().sameAs(directory_)) {
             dbStats->ownedFilesSize_ += dataPath.size();
             dbStats->ownedFilesCount_++;
@@ -115,13 +115,13 @@ void ReportVisitor::visit(const Index &index,
             dbStats->adoptedFilesCount_++;
 
         }
-        allDataFiles_.insert(dataPath, true);
+        allDataFiles_.insert(dataPath);
         allDataFilesBloom_.insert(dataPath);
     }
 
-    if (!allIndexFilesBloom_.contains(indexPath) || !allIndexFiles_.contains(indexPath)) {
+    if (!allIndexFilesBloom_.contains(indexPath) || allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
         dbStats->indexFilesSize_ += indexPath.size();
-        allIndexFiles_.insert(indexPath, true);
+        allIndexFiles_.insert(indexPath);
         allIndexFilesBloom_.insert(indexPath);
         dbStats->indexFilesCount_++;
     }
@@ -131,13 +131,13 @@ void ReportVisitor::visit(const Index &index,
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
 
-    if (active_.contains(unique) && active_.contains(unique)) {
+    if (activeBloom_.contains(unique) && active_.find(unique) != active_.end()) {
         stats.addDuplicatesCount(1);
         stats.addDuplicatesSize(len);
         indexUsage_[indexPath]--;
         dataUsage_[dataPath]--;
     } else {
-        active_.insert(unique, true);
+        active_.insert(unique);
         activeBloom_.insert(unique);
 //        activeDataFiles_.insert(dataPath, true);
     }
