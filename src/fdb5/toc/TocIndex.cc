@@ -54,7 +54,6 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
     dirty_(false),
     mode_(mode),
     location_(path, offset) {
-    eckit::Log::debug<LibFdb>() << "Opening " << *this << std::endl;
 }
 
 TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
@@ -64,11 +63,10 @@ TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eck
     dirty_(false),
     mode_(TocIndex::READ),
     location_(path, offset) {
-    eckit::Log::debug<LibFdb>() << "Opening " << *this << std::endl;
 }
 
 TocIndex::~TocIndex() {
-    eckit::Log::debug<LibFdb>() << "Closing " << *this << std::endl;
+    close();
 }
 
 void TocIndex::encode(eckit::Stream &s) const {
@@ -97,6 +95,7 @@ bool TocIndex::get(const Key &key, Field &field) const {
 
 void TocIndex::open() {
     if (!btree_) {
+        eckit::Log::debug<LibFdb>() << "Opening " << *this << std::endl;
         btree_.reset(BTreeIndexFactory::build(type_, location_.path_, mode_ == TocIndex::READ, location_.offset_));
     }
 }
@@ -112,7 +111,10 @@ void TocIndex::reopen() {
 }
 
 void TocIndex::close() {
-    btree_.reset(0);
+    if (btree_) {
+        eckit::Log::debug<LibFdb>() << "Closing " << *this << std::endl;
+        btree_.reset(0);
+    }
 }
 
 void TocIndex::add(const Key &key, const Field &field) {
