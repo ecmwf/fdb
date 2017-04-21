@@ -101,7 +101,7 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
         if (j->mayContain(key)) {
             const_cast<Index*>(&(*j))->open();
             if (j->get(key, field)) {
-                eckit::Log::info() << "FOUND KEY " << key << " -> " << *j << " " << field << std::endl;
+                eckit::Log::debug<LibFdb>() << "FOUND KEY " << key << " -> " << *j << " " << field << std::endl;
                 return field.dataHandle();
             }
         }
