@@ -43,6 +43,10 @@ void IndexBase::put(const Key &key, const Field &field) {
     add(key, field);
 }
 
+bool IndexBase::mayContain(const Key &key) const {
+    return axes_.contains(key);
+}
+
 const Key &IndexBase::key() const {
     return key_;
 }

@@ -53,6 +53,8 @@ public: // methods
 
     void dump(std::ostream &out, const char* indent) const;
 
+    bool contains(const Key& key) const;
+
     /// Provide a means to test if the index has changed since it was last written out, and to
     /// mark that it has been written out.
     bool dirty() const;

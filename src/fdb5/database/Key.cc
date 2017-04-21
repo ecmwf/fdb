@@ -170,6 +170,16 @@ bool Key::match(const Key& other) const {
     return true;
 }
 
+bool Key::match(const std::string &key, const std::set<std::string> &values) const {
+
+    eckit::StringDict::const_iterator i = find(key);
+    if (i == end()) {
+        return false;
+    }
+
+    return values.find(i->second) != values.end();
+}
+
 
 const TypesRegistry& Key::registry() const {
     return rule_ ? rule_->registry() : MasterConfig::instance().schema().registry();

@@ -79,7 +79,20 @@ void IndexAxis::dump(std::ostream &out, const char* indent) const {
             out  << std::endl;
         }
     }
-    // out << std::endl;
+   // out << std::endl;
+}
+
+bool IndexAxis::contains(const Key &key) const {
+
+    std::cout << "IndexAxis::contains: " << key << ", " << *this << ", ";
+    for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
+        if (!key.match(i->first, i->second)) {
+            std::cout << "False: " << i->first << std::endl;
+            return false;
+        }
+    }
+    std::cout << "True" << std::endl;
+    return true;
 }
 
 void IndexAxis::insert(const Key &key) {
