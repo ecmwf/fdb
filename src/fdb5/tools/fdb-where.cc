@@ -62,7 +62,7 @@ void FDBWhere::finish(const eckit::option::CmdArgs& args) {
             ss << "No roots found for request with key " << req.key();
             Log::info() << ss.str() << std::endl;
             if (fail())
-                throw fdb5::InspectFailException(ss.str(), Here());
+                throw fdb5::FDBToolException(ss.str(), Here());
         }
 
         for (std::vector<eckit::PathName>::const_iterator i = roots.begin(); i != roots.end(); ++i) {

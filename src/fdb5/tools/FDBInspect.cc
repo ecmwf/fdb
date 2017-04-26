@@ -30,23 +30,15 @@ namespace fdb5 {
 
 
 FDBInspect::FDBInspect(int argc, char **argv, std::string defaultMinimunKeySet) :
-    FDBTool(argc, argv),
-    fail_(false) {
+    FDBTool(argc, argv) {
 
     minimumKeySet_ = Resource<std::vector<std::string> >("wipeMinimumKeySet", defaultMinimunKeySet, true);
 
     if(minimumKeySet_.size() == 0) {
         options_.push_back(new eckit::option::SimpleOption<bool>("all", "Visit all FDB databases"));
     }
-
-    // Add a failure mode
-    options_.push_back(new eckit::option::SimpleOption<bool>("fail", "On failure, bail out and set return code"));
 }
 
-
-void FDBInspect::init(const eckit::option::CmdArgs &args) {
-    args.get("fail", fail_);
-}
 
 void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
@@ -73,8 +65,8 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             std::stringstream ss;
             ss << "No FDB matches " << dbKey;
             Log::warning() << ss.str() << std::endl;
-            if (fail_)
-                throw InspectFailException(ss.str(), Here());
+            if (fail())
+                throw FDBToolException(ss.str(), Here());
         }
     }
 
@@ -105,8 +97,8 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
                 std::stringstream ss;
                 ss << "No FDB matches " << req.key();
                 Log::warning() << ss.str() << std::endl;
-                if (fail_)
-                    throw InspectFailException(ss.str(), Here());
+                if (fail())
+                    throw FDBToolException(ss.str(), Here());
             }
 
         } catch (eckit::UserError&) {
@@ -114,7 +106,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
         } catch (eckit::Exception &e) {
             Log::warning() << e.what() << std::endl;
             paths.push_back(path);
-            if (fail_) // Possibly we want a separate catch block like eckit::UserError above
+            if (fail()) // Possibly we want a separate catch block like eckit::UserError above
                 throw;
         }
 
@@ -140,10 +132,6 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
     }
 }
 
-bool FDBInspect::fail() const {
-    return fail_;
-}
-
 
 void FDBInspect::usage(const std::string &tool) const {
     Log::info() << std::endl
@@ -161,17 +149,6 @@ void FDBInspect::usage(const std::string &tool) const {
                        << std::endl;
     FDBTool::usage(tool);
 }
-
-InspectFailException::InspectFailException(const std::string& w) :
-    Exception(w) {
-
-}
-
-InspectFailException::InspectFailException(const std::string& w, const eckit::CodeLocation& l) :
-    Exception(w, l) {
-
-}
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

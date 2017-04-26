@@ -33,11 +33,7 @@ protected: // methods
 
     virtual void usage(const std::string &tool) const = 0;
 
-    virtual void init(const eckit::option::CmdArgs& args);
-
     virtual void execute(const eckit::option::CmdArgs& args);
-
-    bool fail() const;
 
 private: // methods
 
@@ -46,17 +42,6 @@ private: // methods
 private: // members
 
     std::vector<std::string> minimumKeySet_;
-
-    bool fail_;
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-
-class InspectFailException : public eckit::Exception {
-public:
-    InspectFailException(const std::string&);
-    InspectFailException(const std::string&, const eckit::CodeLocation&);
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -39,12 +39,17 @@ protected: // methods
 
     FDBTool(int argc, char **argv);
 
+    bool fail() const;
+
 public:
     virtual void usage(const std::string &tool) const = 0;
 
 protected: // members
 
     std::vector<eckit::option::Option *> options_;
+
+    // Fail on error, and return appropriate status code.
+    bool fail_;
 
 private: // methods
 
@@ -58,6 +63,16 @@ private: // methods
     virtual void run();
 
 };
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+class FDBToolException : public eckit::Exception {
+public:
+    FDBToolException(const std::string&);
+    FDBToolException(const std::string&, const eckit::CodeLocation&);
+};
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
