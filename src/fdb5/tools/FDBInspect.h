@@ -35,6 +35,8 @@ protected: // methods
 
     virtual void execute(const eckit::option::CmdArgs& args);
 
+    bool fail() const;
+
 private: // methods
 
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
@@ -42,6 +44,9 @@ private: // methods
 private: // members
 
     std::vector<std::string> minimumKeySet_;
+
+    // When processing elements, do we fail on error, or report warning and continue?
+    bool fail_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

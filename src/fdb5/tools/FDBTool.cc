@@ -25,13 +25,9 @@ namespace fdb5 {
 static FDBTool* instance_ = 0;
 
 FDBTool::FDBTool(int argc, char **argv):
-    eckit::Tool(argc, argv, "FDB_HOME"),
-    fail_(false) {
+    eckit::Tool(argc, argv, "FDB_HOME") {
     ASSERT(instance_ == 0);
     instance_ = this;
-
-    // Add a failure mode
-    options_.push_back(new eckit::option::SimpleOption<bool>("fail", "On failure, bail out and set return code"));
 
     MasterConfig::instance(); // ensure we initialize the configuration
 }
