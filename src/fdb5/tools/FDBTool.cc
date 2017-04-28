@@ -43,8 +43,6 @@ void FDBTool::run() {
         numberOfPositionalArguments(),
         minimumPositionalArguments());
 
-    args.get("fail", fail_);
-
     init(args);
     execute(args);
     finish(args);
@@ -61,10 +59,6 @@ void FDBTool::init(const eckit::option::CmdArgs&) {
 
 void FDBTool::finish(const eckit::option::CmdArgs&) {
 
-}
-
-bool FDBTool::fail() const {
-    return fail_;
 }
 
 
