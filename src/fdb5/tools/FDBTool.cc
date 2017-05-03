@@ -62,6 +62,16 @@ void FDBTool::finish(const eckit::option::CmdArgs&) {
 }
 
 
+FDBToolException::FDBToolException(const std::string& w) :
+    Exception(w) {
+
+}
+
+FDBToolException::FDBToolException(const std::string& w, const eckit::CodeLocation& l) :
+    Exception(w, l) {
+
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
