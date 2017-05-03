@@ -11,8 +11,10 @@
 
 #include "fdb5/toc/RootManager.h"
 
+#include "eckit/types/Types.h"
 #include "eckit/config/Resource.h"
 #include "eckit/parser/Tokenizer.h"
+#include "eckit/parser/StringTools.h"
 #include "eckit/utils/Translator.h"
 
 #include "fdb5/LibFdb.h"
@@ -23,12 +25,120 @@
 using namespace eckit;
 
 namespace fdb5 {
+    class DbPathNamer;
+}
+namespace eckit {
+    template <> struct VectorPrintSelector<fdb5::DbPathNamer> { typedef VectorPrintSimple selector; };
+}
+
+namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class DbPathNamer {
+public:
+
+    DbPathNamer(const std::string& regex, const std::string& format) :
+        re_(regex),
+        format_(format){
+        eckit::Log::info() << "Building " << *this << std::endl;
+    }
+
+    bool match(const std::string& s) const {
+        return re_.match(s);
+    }
+
+    std::string name(const Key& key, const std::string& keystr) const {
+
+        if(format_ == "*") {
+            return keystr;
+        }
+
+        eckit::StringDict tidy = key;
+
+        return StringTools::substitute(format_, tidy);
+    }
+
+    friend std::ostream& operator<<(std::ostream &s, const DbPathNamer& x) {
+        x.print(s);
+        return s;
+    }
+
+private:
+
+    void print( std::ostream &out ) const {
+        out << "DbPathNamer(regex=" << re_ << ", format=" << format_ << ")";
+    }
+
+    eckit::Regex re_;
+
+    std::string format_;
+
+};
+
+typedef std::vector<fdb5::DbPathNamer> DbPathNamerTable;
+static DbPathNamerTable dbPathNamers;
+
+static void readDbNamers() {
+
+    static eckit::PathName fdbDbNamesFile = eckit::Resource<eckit::PathName>("fdbDbNamesFile;$FDB_DBNAMES_FILE", "~fdb/etc/fdb/dbnames");
+
+    eckit::Log::info() << "Loading FDB DBPathNames from " << fdbDbNamesFile << std::endl;
+
+    if(fdbDbNamesFile.exists()) {
+
+        eckit::Log::debug<LibFdb>() << "Loading FDB DBPathNames from " << fdbDbNamesFile << std::endl;
+
+        std::ifstream in(fdbDbNamesFile.localPath());
+
+        if (!in) {
+            eckit::Log::error() << fdbDbNamesFile << eckit::Log::syserr << std::endl;
+            return;
+        }
+
+        eckit::Tokenizer parse(" ");
+
+        char line[1024];
+        while (in.getline(line, sizeof(line))) {
+
+            std::vector<std::string> s;
+            parse(line, s);
+
+            size_t i = 0;
+            while (i < s.size()) {
+                if (s[i].length() == 0) {
+                    s.erase(s.begin() + i);
+                } else {
+                    i++;
+                }
+            }
+
+            if (s.size() == 0 || s[0][0] == '#') {
+                continue;
+            }
+
+            switch (s.size()) {
+                case 2: {
+                    const std::string& regex     = s[0];
+                    const std::string& format    = s[1];
+
+                    dbPathNamers.push_back(DbPathNamer(regex, format));
+                    break;
+                }
+
+                default:
+                    eckit::Log::warning() << "FDB DBPathNames invalid line ignored: " << line << std::endl;
+                break;
+            }
+        }
+    }
+
+    dbPathNamers.push_back(DbPathNamer(".*", "*")); // always fallback to generic namer that matches all
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 typedef std::vector<fdb5::FileSpace> FileSpaceTable;
-
-static pthread_once_t once = PTHREAD_ONCE_INIT;
 static FileSpaceTable spacesTable;
 
 static std::vector<Root> readRoots() {
@@ -101,7 +211,6 @@ static std::vector<Root> fileSpaceRoots(const std::vector<Root>& all, const std:
     return roots;
 }
 
-
 static void readFileSpaces() {
 
     std::vector<Root> allRoots = readRoots();
@@ -166,34 +275,61 @@ static void readFileSpaces() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+static pthread_once_t once = PTHREAD_ONCE_INIT;
+
+static void init() {
+    readFileSpaces();
+    readDbNamers();
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+PathName RootManager::dbPathName(const Key& key, const std::string& keystr)
+{
+    PathName dbpath;
+    for (DbPathNamerTable::const_iterator i = dbPathNamers.begin(); i != dbPathNamers.end() ; ++i) {
+        if(i->match(keystr)) {
+            dbpath = i->name(key, keystr);
+            eckit::Log::debug<LibFdb>() << "DbName is " << dbpath << " for key " << key <<  std::endl;
+            return dbpath;
+        }
+    }
+
+    std::ostringstream msg;
+    msg << "No dbNamer matches key " << key << " from list of dbNamers " << dbPathNamers;
+    throw UserError(msg.str());
+}
+
 eckit::PathName RootManager::directory(const Key& key) {
 
-    pthread_once(&once, readFileSpaces);
-            
+    pthread_once(&once, init);
+
     eckit::Log::debug<LibFdb>() << "Choosing directory for key " << key << std::endl;
 
-    std::string name(key.valuesToString());
+    std::string keystr(key.valuesToString());
 
-    // override root location for testting purposes only
+    PathName dbpath = dbPathName(key, keystr);
+
+    // override root location for testing purposes only
 
     static std::string fdbRootDirectory = eckit::Resource<std::string>("fdbRootDirectory;$FDB_ROOT_DIRECTORY", "");
 
     if(!fdbRootDirectory.empty()) {
-        return fdbRootDirectory + "/" + name;
+        return fdbRootDirectory + "/" + dbpath;
     }
 
     // returns the first filespace that matches
 
     for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
-        if(i->match(name)) {
-            PathName path = i->filesystem(key);
-            eckit::Log::debug<LibFdb>() << "Directory is " << path / name <<  std::endl;
-            return path / name;
+        if(i->match(keystr)) {
+            PathName root = i->filesystem(key);
+            eckit::Log::debug<LibFdb>() << "Directory is " << root / dbpath <<  std::endl;
+            return root / dbpath;
         }
     }
 
     std::ostringstream oss;
-    oss << "No FDB file space for " << key << " (" << name << ")";
+    oss << "No FDB file space for " << key << " (" << keystr << ")";
     throw eckit::SeriousBug(oss.str());
 }
 
@@ -201,7 +337,7 @@ std::vector<PathName> RootManager::allRoots(const Key& key)
 {
     eckit::StringSet roots;
 
-    pthread_once(&once, readFileSpaces);
+    pthread_once(&once, init);
 
     std::string k = key.valuesToString();
 
@@ -219,7 +355,7 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
 
     eckit::StringSet roots;
 
-    pthread_once(&once, readFileSpaces);
+    pthread_once(&once, init);
 
     std::string k = key.valuesToString();
 
@@ -238,7 +374,7 @@ std::vector<eckit::PathName> RootManager::writableRoots(const Key& key) {
 
     eckit::StringSet roots;
 
-    pthread_once(&once, readFileSpaces);
+    pthread_once(&once, init);
 
     std::string k = key.valuesToString();
 

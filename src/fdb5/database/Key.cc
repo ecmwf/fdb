@@ -261,6 +261,27 @@ void Key::validateKeysOf(const Key& other, bool checkAlsoValues) const
     }
 }
 
+fdb5::Key::operator eckit::StringDict() const
+{
+    eckit::StringDict res;
+
+    ASSERT(names_.size() == keys_.size());
+
+    const TypesRegistry &registry = this->registry();
+
+    for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
+
+        eckit::StringDict::const_iterator i = keys_.find(*j);
+
+        ASSERT(i != keys_.end());
+        ASSERT(!(*i).second.empty());
+
+        res[*j] = registry.lookupType(*j).tidy(*j, (*i).second);
+    }
+
+    return res;
+}
+
 void Key::print(std::ostream &out) const {
     if (names_.size() == keys_.size()) {
         const char *sep = "";

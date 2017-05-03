@@ -40,6 +40,9 @@ public: // methods
     /// Lists the roots where a DB key would be able to be written
     static std::vector<eckit::PathName> writableRoots(const Key& key);
 
+private:
+
+    static eckit::PathName dbPathName(const Key& key, const std::string& keystr);
 };
 
 //----------------------------------------------------------------------------------------------------------------------
