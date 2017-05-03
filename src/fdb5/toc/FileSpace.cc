@@ -115,7 +115,7 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, eckit::PathN
         }
     }
 
-    if(count >= 1) {
+    if(count > 1) {
         std::ostringstream msg;
         msg << "Found multiple FDB roots matching key " << key << ", roots -> " << visitables;
         throw eckit::UserError(msg.str(), Here());
