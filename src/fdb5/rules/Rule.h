@@ -111,10 +111,12 @@ private: // methods
 
 private: // members
 
-    const Schema &schema_;
-    const Rule *parent_;
+    const Schema& schema_;
+    const Rule* parent_;
+
     std::vector<Predicate *> predicates_;
     std::vector<Rule *>      rules_;
+
     TypesRegistry registry_;
 
     friend class Schema;
