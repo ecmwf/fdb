@@ -102,7 +102,7 @@ bool FileSpace::match(const std::string& s) const {
 
 bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& path) const
 {
-    size_t count = 0;
+    unsigned count = 0;
 
     std::vector<eckit::PathName> visitables = visitable();
     for (std::vector<eckit::PathName>::const_iterator j = visitables.begin(); j != visitables.end(); ++j) {
@@ -115,13 +115,11 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, eckit::PathN
         }
     }
 
-    if(count > 1) {
-        std::ostringstream msg;
-        msg << "Found multiple FDB roots matching key " << key << ", roots -> " << visitables;
-        throw eckit::UserError(msg.str(), Here());
-    }
+    if(count <= 1) return count;
 
-    return count;
+    std::ostringstream msg;
+    msg << "Found multiple FDB roots matching key " << key << ", roots -> " << visitables;
+    throw eckit::UserError(msg.str(), Here());
 }
 
 //----------------------------------------------------------------------------------------------------------------------
