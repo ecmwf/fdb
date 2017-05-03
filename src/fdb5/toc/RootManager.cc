@@ -306,7 +306,7 @@ eckit::PathName RootManager::directory(const Key& key) {
 
     eckit::Log::debug<LibFdb>() << "Choosing directory for key " << key << std::endl;
 
-    std::string keystr(key.valuesToString());
+    std::string keystr = key.valuesToString();
 
     PathName dbpath = dbPathName(key, keystr);
 
@@ -322,7 +322,7 @@ eckit::PathName RootManager::directory(const Key& key) {
 
     for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
         if(i->match(keystr)) {
-            PathName root = i->filesystem(key);
+            PathName root = i->filesystem(key, dbpath);
             eckit::Log::debug<LibFdb>() << "Directory is " << root / dbpath <<  std::endl;
             return root / dbpath;
         }
@@ -335,9 +335,9 @@ eckit::PathName RootManager::directory(const Key& key) {
 
 std::vector<PathName> RootManager::allRoots(const Key& key)
 {
-    eckit::StringSet roots;
-
     pthread_once(&once, init);
+
+    eckit::StringSet roots;
 
     std::string k = key.valuesToString();
 
@@ -353,9 +353,9 @@ std::vector<PathName> RootManager::allRoots(const Key& key)
 
 std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
 
-    eckit::StringSet roots;
-
     pthread_once(&once, init);
+
+    eckit::StringSet roots;
 
     std::string k = key.valuesToString();
 
@@ -372,9 +372,9 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
 
 std::vector<eckit::PathName> RootManager::writableRoots(const Key& key) {
 
-    eckit::StringSet roots;
-
     pthread_once(&once, init);
+
+    eckit::StringSet roots;
 
     std::string k = key.valuesToString();
 

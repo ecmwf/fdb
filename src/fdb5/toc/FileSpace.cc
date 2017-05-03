@@ -33,13 +33,13 @@ FileSpace::FileSpace(const std::string& name,
     roots_(roots) {
 }
 
-eckit::PathName FileSpace::filesystem(const Key& key) const
+eckit::PathName FileSpace::filesystem(const Key& key, const eckit::PathName& db) const
 {
     // check that the database isn't present already
     // if it is, then return that path
 
     eckit::PathName path;
-    if(existsDB(key, path)) {
+    if(existsDB(key, db, path)) {
         Log::debug<LibFdb>() << "Found FDB for key " << key << " -> " << path << std::endl;
         return path.dirName();
     }
@@ -100,20 +100,28 @@ bool FileSpace::match(const std::string& s) const {
     return re_.match(s);
 }
 
-bool FileSpace::existsDB(const Key& key, eckit::PathName& path) const
+bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& path) const
 {
-    std::vector<eckit::PathName> dbs = TocEngine::databases(key, visitable());
+    size_t count = 0;
 
-    if(dbs.empty()) return false;
-
-    if(dbs.size() == 1) {
-        path = dbs[0];
-        return true;
+    std::vector<eckit::PathName> visitables = visitable();
+    for (std::vector<eckit::PathName>::const_iterator j = visitables.begin(); j != visitables.end(); ++j) {
+        eckit::PathName fullDB = *j / db;
+        if(fullDB.exists()) {
+            if(!count) {
+                path = fullDB;
+            }
+            ++count;;
+        }
     }
 
-    std::ostringstream msg;
-    msg << "Found multiple FDB roots matching key " << key << ", roots -> " << dbs;
-    throw eckit::UserError(msg.str(), Here());
+    if(count >= 1) {
+        std::ostringstream msg;
+        msg << "Found multiple FDB roots matching key " << key << ", roots -> " << visitables;
+        throw eckit::UserError(msg.str(), Here());
+    }
+
+    return count;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

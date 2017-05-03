@@ -40,7 +40,9 @@ public: // methods
 
     /// Selects the filesystem from where this Key will be inserted
     /// @note This method must be idempotent -- it returns always the same value after the first call
-    eckit::PathName filesystem(const Key& key) const;
+    /// @param key is a complete identifier for the first level of the schema
+    /// @param db part of the full path
+    eckit::PathName filesystem(const Key& key, const eckit::PathName& db) const;
 
     void all(eckit::StringSet&) const;
     void writable(eckit::StringSet&) const;
@@ -53,7 +55,7 @@ public: // methods
 
 private: // methods
 
-    bool existsDB(const Key& key, eckit::PathName& path) const;
+    bool existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& path) const;
 
 private: // members
 
