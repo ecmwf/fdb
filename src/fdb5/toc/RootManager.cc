@@ -41,7 +41,7 @@ public:
     DbPathNamer(const std::string& keyregex, const std::string& format) :
         format_(format){
         crack(keyregex);
-        eckit::Log::info() << "Building " << *this << std::endl;
+        eckit::Log::debug<LibFdb>() << "Building " << *this << std::endl;
     }
 
     /// Full match of the incomming key with the key regex
@@ -204,8 +204,6 @@ static DbPathNamerTable dbPathNamers;
 static void readDbNamers() {
 
     static eckit::PathName fdbDbNamesFile = eckit::Resource<eckit::PathName>("fdbDbNamesFile;$FDB_DBNAMES_FILE", "~fdb/etc/fdb/dbnames");
-
-    eckit::Log::info() << "Loading FDB DBPathNames from " << fdbDbNamesFile << std::endl;
 
     if(fdbDbNamesFile.exists()) {
 

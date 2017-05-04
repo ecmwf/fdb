@@ -13,6 +13,7 @@
 
 #include "eckit/log/Log.h"
 #include "eckit/utils/Regex.h"
+#include "eckit/os/BackTrace.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
@@ -93,7 +94,7 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vec
         std::vector<eckit::PathName> subdirs;
         leaves(*j, subdirs);
 
-        Log::debug<LibFdb>() << "Subdirs " << subdirs << std::endl;
+        Log::debug<LibFdb>() << "Total root subdirs " << subdirs << std::endl;
 
         for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 
@@ -132,6 +133,8 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vec
             }
         }
     }
+
+    Log::debug<LibFdb>() << "TocEngine::databases() results " << result << std::endl;
 
     return result;
 }

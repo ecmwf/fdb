@@ -84,8 +84,6 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
         }
     }
 
-
-
     for (size_t i = 0; i < args.count(); ++i) {
 
         eckit::PathName path(args(i));
@@ -93,6 +91,8 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             paths.push_back(path);
             continue;
         }
+
+        std::cout << "args " << args(i) << std::endl;
 
         try {
 
