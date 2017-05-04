@@ -98,8 +98,8 @@ private: // methods
     void expandFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& done) const;
     void expandFirstLevel(const Key &dbKey,  Key &result, bool& done) const ;
 
-    void matchFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result) const;
-    void matchFirstLevel(const Key &dbKey, std::set<Key>& result) const ;
+    void matchFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
+    void matchFirstLevel(const Key &dbKey, std::set<Key>& result, const char* missing) const ;
 
 
     void keys(size_t level, size_t depth, eckit::StringList &result, eckit::StringSet &seen) const;

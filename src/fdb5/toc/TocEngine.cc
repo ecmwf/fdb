@@ -69,17 +69,19 @@ bool TocEngine::canHandle(const eckit::PathName& path) const
     return path.isDir() && toc.exists();
 }
 
-static void matchKeyToDB(const Key& key, std::set<Key>& keys)
+static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing)
 {
     const Schema& schema = MasterConfig::instance().schema();
-    schema.matchFirstLevel(key, keys);
+    schema.matchFirstLevel(key, keys, missing);
 }
 
 std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vector<eckit::PathName>& dirs) {
 
     std::set<Key> keys;
 
-    matchKeyToDB(key, keys);
+    const char* regexForMissingValues = "[^:/]*";
+
+    matchKeyToDB(key, keys, regexForMissingValues);
 
     Log::debug<LibFdb>() << "Matched DB schemas for key " << key << " -> keys " << keys << std::endl;
 
@@ -95,37 +97,38 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vec
 
         for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 
-            std::string keystr = (*i).valuesToString();
+            std::vector<std::string> dbpaths = RootManager::possibleDbPathNames(*i, regexForMissingValues);
 
-            std::string dbpath = RootManager::dbPathName(*i, "*");
+            for(std::vector<std::string>::const_iterator dbpath = dbpaths.begin(); dbpath != dbpaths.end(); ++dbpath) {
 
-            Regex re("^" + *j + "/" + dbpath + "$");
+                Regex re("^" + *j + "/" + *dbpath + "$");
 
-            Log::debug<LibFdb>() << " -> key i " << *i
-                                 << " keystr " << keystr
-                                 << " dbpath " << dbpath
-                                 << " regex " << re << std::endl;
+                Log::debug<LibFdb>() << " -> key i " << *i
+                                     << " dbpath " << *dbpath
+                                     << " pathregex " << re << std::endl;
 
-            for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
+                for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
 
-                if(seen.find(*k) != seen.end()) {
-                    continue;
-                }
+                    Log::debug<LibFdb>() << "    -> path " << *k << std::endl;
 
-                if (re.match(*k)) {
-                    try {
-                        TocHandler toc(*k);
-                        if (toc.databaseKey().match(key)) {
-                            Log::debug<LibFdb>() << " found match with " << *k << std::endl;
-                            result.push_back(*k);
-                        }
-                    } catch (eckit::Exception& e) {
-                        eckit::Log::error() <<  "Error loading FDB database from " << *k << std::endl;
-                        eckit::Log::error() << e.what() << std::endl;
+                    if(seen.find(*k) != seen.end()) {
+                        continue;
                     }
-                    seen.insert(*k);;
-                }
 
+                    if (re.match(*k)) {
+                        try {
+                            TocHandler toc(*k);
+                            if (toc.databaseKey().match(key)) {
+                                Log::debug<LibFdb>() << " found match with " << *k << std::endl;
+                                result.push_back(*k);
+                            }
+                        } catch (eckit::Exception& e) {
+                            eckit::Log::error() <<  "Error loading FDB database from " << *k << std::endl;
+                            eckit::Log::error() << e.what() << std::endl;
+                        }
+                        seen.insert(*k);
+                    }
+                }
             }
         }
     }

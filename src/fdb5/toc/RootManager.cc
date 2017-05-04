@@ -35,70 +35,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static std::string substituteVars(const std::string& s, const Key& k, const char* missing)
-{
-    std::string result;
-    size_t len = s.length();
-    bool var = false;
-    std::string word;
-    std::map<std::string,std::string>::const_iterator j;
-
-    for(size_t i = 0; i < len; i++)
-    {
-        switch(s[i])
-        {
-            case '{':
-                if(var) {
-                    std::ostringstream os;
-                    os << "FDB RootManager substituteVars: unexpected { found in " <<s << " at position " << i;
-                    throw UserError(os.str());
-                }
-                var = true;
-                word = "";
-                break;
-
-            case '}':
-                if(!var) {
-                    std::ostringstream os;
-                    os << "FDB RootManager substituteVars: unexpected } found in " <<s << " at position " << i;
-                    throw UserError(os.str());
-                }
-                var = false;
-
-                j = k.find(word);
-                if(j != k.end()) {
-                    result += (*j).second;
-                }
-                else {
-                    if(missing) {
-                        result += missing;
-                    }
-                    else {
-                        std::ostringstream os;
-                        os << "FDB RootManager substituteVars: cannot find a value for '" << word << "' in " <<s << " at position " << i;
-                        throw UserError(os.str());
-                    }
-                }
-                break;
-
-            default:
-                if(var)
-                    word += s[i];
-                else
-                    result += s[i];
-                break;
-        }
-    }
-    if(var) {
-        std::ostringstream os;
-        os << "FDB RootManager substituteVars: missing } in " << s;
-        throw UserError(os.str());
-    }
-    return result;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
 class DbPathNamer {
 public:
 
@@ -109,15 +45,16 @@ public:
     }
 
     /// Full match of the incomming key with the key regex
-    bool match(const Key& k) const {
+    /// but partial match for values
+    bool match(const Key& k, const char* missing = 0) const {
 
-        std::cout << " Trying to key matching " << *this << " with key " << k << std::endl;
+//        std::cout << " Trying to key matching " << *this << " with key " << k << std::endl;
 
         if(k.size() != keyregex_.size()) return false;
 
         for(Key::const_iterator i = k.begin(); i != k.end(); ++i) {
 
-            std::cout << "     Match " << i->first << " " << i->second << std::endl;
+//            std::cout << "     Match " << i->first << " " << i->second << std::endl;
 
             std::map<std::string, Regex>::const_iterator j = keyregex_.find(i->first);
 
@@ -125,19 +62,25 @@ public:
                 return false;
             }
 
-            std::cout << "     Found " << j->first << " " << j->second << std::endl;
+//            std::cout << "     Found " << j->first << " " << j->second << std::endl;
 
-            if(!j->second.match(i->second)) {
-                return false;
+            if(!missing || i->second != missing) {
+                if(!j->second.match(i->second)) {
+                    return false;
+                }
             }
         }
 
-        std::cout << " Match successfull " << *this << " with key " << k << std::endl;
+//        std::cout << " Match successfull " << *this << " with key " << k << std::endl;
 
         return true;
     }
 
-    std::string name(const Key& key, const char* missing) const {
+    std::string name(const Key& key) const {
+        return substituteVars(format_, key);
+    }
+
+    std::string namePartial(const Key& key, const char* missing) const {
         return substituteVars(format_, key, missing);
     }
 
@@ -145,6 +88,8 @@ public:
         x.print(s);
         return s;
     }
+
+private: // methods
 
     void crack(const std::string& regexstr) {
 
@@ -175,8 +120,73 @@ public:
         }
     }
 
+    std::string substituteVars(const std::string& s, const Key& k, const char * missing = 0) const
+    {
+        std::string result;
+        size_t len = s.length();
+        bool var = false;
+        std::string word;
+        std::map<std::string,std::string>::const_iterator j;
 
-private:
+        for(size_t i = 0; i < len; i++)
+        {
+            switch(s[i])
+            {
+                case '{':
+                    if(var) {
+                        std::ostringstream os;
+                        os << "FDB RootManager substituteVars: unexpected { found in " <<s << " at position " << i;
+                        throw UserError(os.str());
+                    }
+                    var = true;
+                    word = "";
+                    break;
+
+                case '}':
+                    if(!var) {
+                        std::ostringstream os;
+                        os << "FDB RootManager substituteVars: unexpected } found in " <<s << " at position " << i;
+                        throw UserError(os.str());
+                    }
+                    var = false;
+
+                    j = k.find(word);
+                    if(j != k.end()) {
+                        if(!missing) {
+                            result += (*j).second;
+                        }
+                        else {
+                            if((*j).second == missing) {
+                                result += keyregex_.find(word)->second; // we know it exists because it is ensured in match()
+                            }
+                            else
+                            {
+                                result += (*j).second;
+                            }
+                        }
+                    }
+                    else {
+                        std::ostringstream os;
+                        os << "FDB RootManager substituteVars: cannot find a value for '" << word << "' in " <<s << " at position " << i;
+                        throw UserError(os.str());
+                    }
+                    break;
+
+                default:
+                    if(var)
+                        word += s[i];
+                    else
+                        result += s[i];
+                    break;
+            }
+        }
+        if(var) {
+            std::ostringstream os;
+            os << "FDB RootManager substituteVars: missing } in " << s;
+            throw UserError(os.str());
+        }
+        return result;
+    }
 
     void print( std::ostream &out ) const {
         out << "DbPathNamer(keyregex=" << keyregex_ << ", format=" << format_ << ")";
@@ -394,12 +404,12 @@ static void init() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::string RootManager::dbPathName(const Key& key, const char* missing)
+std::string RootManager::dbPathName(const Key& key)
 {
     std::string dbpath;
     for (DbPathNamerTable::const_iterator i = dbPathNamers.begin(); i != dbPathNamers.end() ; ++i) {
         if(i->match(key)) {
-            dbpath = i->name(key, missing);
+            dbpath = i->name(key);
             eckit::Log::debug<LibFdb>() << "DbName is " << dbpath << " for key " << key <<  std::endl;
             return dbpath;
         }
@@ -410,6 +420,26 @@ std::string RootManager::dbPathName(const Key& key, const char* missing)
     eckit::Log::debug<LibFdb>() << "Using default naming convention for key " << key << " -> " << dbpath <<  std::endl;
     return dbpath;
 }
+
+std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const char* missing)
+{
+    std::vector<std::string> result;
+    for (DbPathNamerTable::const_iterator i = dbPathNamers.begin(); i != dbPathNamers.end() ; ++i) {
+        if(i->match(key, missing)) {
+            std::string dbpath = i->namePartial(key, missing);
+            eckit::Log::debug<LibFdb>() << "Matched " << *i << " with key " << key << " resulting in dbpath " << dbpath << std::endl;
+            result.push_back(dbpath);
+        }
+    }
+
+    // default naming convention for DB's
+    result.push_back(key.valuesToString());
+
+    eckit::Log::debug<LibFdb>() << "Using default naming convention for key " << key << " -> " << result.back() <<  std::endl;
+
+    return result;
+}
+
 
 eckit::PathName RootManager::directory(const Key& key) {
 

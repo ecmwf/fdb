@@ -245,7 +245,7 @@ void Rule::expandFirstLevel(const Key &dbKey,  Key &result, bool& found) const {
 }
 
 
-void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result) const {
+void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
 
     if (cur == predicates_.end()) {
         if (tmp.match(dbKey)) {
@@ -260,15 +260,15 @@ void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_it
     const std::string &keyword = (*cur)->keyword();
 
     if (dbKey.find(keyword) == dbKey.end()) {
-        tmp.push(keyword, "[^:]*");
-        matchFirstLevel(dbKey, next, tmp, result);
+        tmp.push(keyword, missing);
+        matchFirstLevel(dbKey, next, tmp, result, missing);
     } else {
         const std::string &value = (*cur)->value(dbKey);
 
         tmp.push(keyword, value);
 
         if ((*cur)->match(tmp)) {
-            matchFirstLevel(dbKey, next, tmp, result);
+            matchFirstLevel(dbKey, next, tmp, result, missing);
         }
     }
 
@@ -276,9 +276,9 @@ void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_it
 
 }
 
-void Rule::matchFirstLevel(const Key &dbKey,  std::set<Key>& result) const {
+void Rule::matchFirstLevel(const Key &dbKey,  std::set<Key>& result, const char* missing) const {
     Key tmp;
-    matchFirstLevel(dbKey, predicates_.begin(), tmp, result);
+    matchFirstLevel(dbKey, predicates_.begin(), tmp, result, missing);
 }
 
 
