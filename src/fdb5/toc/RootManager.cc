@@ -35,28 +35,110 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+static std::string substituteVars(const std::string& s, const Key& k, const char* missing)
+{
+    std::string result;
+    size_t len = s.length();
+    bool var = false;
+    std::string word;
+    std::map<std::string,std::string>::const_iterator j;
+
+    for(size_t i = 0; i < len; i++)
+    {
+        switch(s[i])
+        {
+            case '{':
+                if(var) {
+                    std::ostringstream os;
+                    os << "FDB RootManager substituteVars: unexpected { found in " <<s << " at position " << i;
+                    throw UserError(os.str());
+                }
+                var = true;
+                word = "";
+                break;
+
+            case '}':
+                if(!var) {
+                    std::ostringstream os;
+                    os << "FDB RootManager substituteVars: unexpected } found in " <<s << " at position " << i;
+                    throw UserError(os.str());
+                }
+                var = false;
+
+                j = k.find(word);
+                if(j != k.end()) {
+                    result += (*j).second;
+                }
+                else {
+                    if(missing) {
+                        result += missing;
+                    }
+                    else {
+                        std::ostringstream os;
+                        os << "FDB RootManager substituteVars: cannot find a value for '" << word << "' in " <<s << " at position " << i;
+                        throw UserError(os.str());
+                    }
+                }
+                break;
+
+            default:
+                if(var)
+                    word += s[i];
+                else
+                    result += s[i];
+                break;
+        }
+    }
+    if(var) {
+        std::ostringstream os;
+        os << "FDB RootManager substituteVars: missing } in " << s;
+        throw UserError(os.str());
+    }
+    return result;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class DbPathNamer {
 public:
 
-    DbPathNamer(const std::string& regex, const std::string& format) :
-        re_(regex),
+    DbPathNamer(const std::string& keyregex, const std::string& format) :
         format_(format){
+        crack(keyregex);
         eckit::Log::info() << "Building " << *this << std::endl;
     }
 
-    bool match(const std::string& s) const {
-        return re_.match(s);
-    }
+    /// Full match of the incomming key with the key regex
+    bool match(const Key& k) const {
 
-    std::string name(const Key& key, const std::string& keystr) const {
+        std::cout << " Trying to key matching " << *this << " with key " << k << std::endl;
 
-        if(format_ == "*") {
-            return keystr;
+        if(k.size() != keyregex_.size()) return false;
+
+        for(Key::const_iterator i = k.begin(); i != k.end(); ++i) {
+
+            std::cout << "     Match " << i->first << " " << i->second << std::endl;
+
+            std::map<std::string, Regex>::const_iterator j = keyregex_.find(i->first);
+
+            if(j == keyregex_.end()) {
+                return false;
+            }
+
+            std::cout << "     Found " << j->first << " " << j->second << std::endl;
+
+            if(!j->second.match(i->second)) {
+                return false;
+            }
         }
 
-        eckit::StringDict tidy = key;
+        std::cout << " Match successfull " << *this << " with key " << k << std::endl;
 
-        return StringTools::substitute(format_, tidy);
+        return true;
+    }
+
+    std::string name(const Key& key, const char* missing) const {
+        return substituteVars(format_, key, missing);
     }
 
     friend std::ostream& operator<<(std::ostream &s, const DbPathNamer& x) {
@@ -64,13 +146,43 @@ public:
         return s;
     }
 
+    void crack(const std::string& regexstr) {
+
+        eckit::Tokenizer parse1(",");
+        eckit::StringList v;
+
+        parse1(regexstr, v);
+
+        eckit::Tokenizer parse2("=");
+        for (eckit::StringList::const_iterator i = v.begin(); i != v.end(); ++i) {
+
+            eckit::StringList kv;
+            parse2(*i, kv);
+
+            if(kv.size() == 2) {
+                keyregex_[kv[0]] = kv[1];
+            }
+            else {
+                if(kv.size() == 1) {
+                    keyregex_[kv[0]] = std::string(".*");
+                }
+                else {
+                    std::ostringstream msg;
+                    msg << "Malformed regex in DbNamer " << regexstr;
+                    throw BadValue(msg.str(), Here());
+                }
+            }
+        }
+    }
+
+
 private:
 
     void print( std::ostream &out ) const {
-        out << "DbPathNamer(regex=" << re_ << ", format=" << format_ << ")";
+        out << "DbPathNamer(keyregex=" << keyregex_ << ", format=" << format_ << ")";
     }
 
-    eckit::Regex re_;
+    std::map<std::string, Regex> keyregex_;
 
     std::string format_;
 
@@ -132,8 +244,6 @@ static void readDbNamers() {
             }
         }
     }
-
-    dbPathNamers.push_back(DbPathNamer(".*", "*")); // always fallback to generic namer that matches all
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -284,20 +394,21 @@ static void init() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-PathName RootManager::dbPathName(const Key& key, const std::string& keystr)
+std::string RootManager::dbPathName(const Key& key, const char* missing)
 {
-    PathName dbpath;
+    std::string dbpath;
     for (DbPathNamerTable::const_iterator i = dbPathNamers.begin(); i != dbPathNamers.end() ; ++i) {
-        if(i->match(keystr)) {
-            dbpath = i->name(key, keystr);
+        if(i->match(key)) {
+            dbpath = i->name(key, missing);
             eckit::Log::debug<LibFdb>() << "DbName is " << dbpath << " for key " << key <<  std::endl;
             return dbpath;
         }
     }
 
-    std::ostringstream msg;
-    msg << "No dbNamer matches key " << key << " from list of dbNamers " << dbPathNamers;
-    throw UserError(msg.str());
+    // default naming convention for DB's
+    dbpath = key.valuesToString();
+    eckit::Log::debug<LibFdb>() << "Using default naming convention for key " << key << " -> " << dbpath <<  std::endl;
+    return dbpath;
 }
 
 eckit::PathName RootManager::directory(const Key& key) {
@@ -306,9 +417,7 @@ eckit::PathName RootManager::directory(const Key& key) {
 
     eckit::Log::debug<LibFdb>() << "Choosing directory for key " << key << std::endl;
 
-    std::string keystr = key.valuesToString();
-
-    PathName dbpath = dbPathName(key, keystr);
+    PathName dbpath = dbPathName(key);
 
     // override root location for testing purposes only
 
@@ -320,10 +429,11 @@ eckit::PathName RootManager::directory(const Key& key) {
 
     // returns the first filespace that matches
 
+    std::string keystr = key.valuesToString();
     for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
         if(i->match(keystr)) {
             PathName root = i->filesystem(key, dbpath);
-            eckit::Log::debug<LibFdb>() << "Directory is " << root / dbpath <<  std::endl;
+            eckit::Log::debug<LibFdb>() << "Directory root " << root << " dbpath " << dbpath <<  std::endl;
             return root / dbpath;
         }
     }

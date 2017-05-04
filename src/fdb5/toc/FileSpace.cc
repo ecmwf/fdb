@@ -38,10 +38,10 @@ eckit::PathName FileSpace::filesystem(const Key& key, const eckit::PathName& db)
     // check that the database isn't present already
     // if it is, then return that path
 
-    eckit::PathName path;
-    if(existsDB(key, db, path)) {
-        Log::debug<LibFdb>() << "Found FDB for key " << key << " -> " << path << std::endl;
-        return path.dirName();
+    eckit::PathName root;
+    if(existsDB(key, db, root)) {
+        Log::debug<LibFdb>() << "Found FDB root for key " << key << " -> " << root << std::endl;
+        return root;
     }
 
     Log::debug<LibFdb>() << "FDB for key " << key << " not found, selecting a root" << std::endl;
@@ -100,7 +100,7 @@ bool FileSpace::match(const std::string& s) const {
     return re_.match(s);
 }
 
-bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& path) const
+bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& root) const
 {
     unsigned count = 0;
 
@@ -109,9 +109,9 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, eckit::PathN
         eckit::PathName fullDB = *j / db;
         if(fullDB.exists()) {
             if(!count) {
-                path = fullDB;
+                root = *j;
             }
-            ++count;;
+            ++count;
         }
     }
 

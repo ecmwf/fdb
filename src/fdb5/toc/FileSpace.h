@@ -55,7 +55,7 @@ public: // methods
 
 private: // methods
 
-    bool existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& path) const;
+    bool existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& root) const;
 
 private: // members
 

@@ -186,6 +186,7 @@ const TypesRegistry& Key::registry() const {
 }
 
 std::string Key::valuesToString() const {
+
     ASSERT(names_.size() == keys_.size());
 
     std::ostringstream oss;

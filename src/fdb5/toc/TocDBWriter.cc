@@ -253,7 +253,6 @@ void TocDBWriter::closeIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
         Index& idx = j->second;
         idx.close();
-        // writeIndexRecord(*idx);
     }
 
     indexes_.clear(); // all indexes instances destroyed

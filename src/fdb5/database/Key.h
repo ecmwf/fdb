@@ -95,6 +95,8 @@ public: // methods
     const_reverse_iterator rbegin() const { return keys_.rbegin(); }
     const_reverse_iterator rend() const { return keys_.rend(); }
     const_iterator find(const std::string& s) const { return keys_.find(s); }
+
+    size_t size() const { return keys_.size(); }
     bool empty() const { return keys_.empty(); }
 
     /// @throws When "other" doesn't contain all the keys of "this"
