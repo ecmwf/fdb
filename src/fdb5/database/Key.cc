@@ -157,6 +157,25 @@ const std::string &Key::get( const std::string &k ) const {
 
 bool Key::match(const Key& other) const {
     for (const_iterator i = other.begin(); i != other.end(); ++i) {
+
+        const_iterator j = find(i->first);
+        if (j == end()) {
+            return false;
+        }
+
+        if (j->second != i->second) {
+            return false;
+        }
+
+    }
+    return true;
+}
+
+bool Key::match(const Key& other, const eckit::StringList& ignore) const {
+    for (const_iterator i = other.begin(); i != other.end(); ++i) {
+        if (std::find(ignore.begin(), ignore.end(), i->first) != ignore.end())
+            continue;
+
         const_iterator j = find(i->first);
         if (j == end()) {
             return false;

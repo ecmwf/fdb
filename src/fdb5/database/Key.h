@@ -56,6 +56,7 @@ public: // methods
     void clear();
 
     bool match(const Key& other) const;
+    bool match(const Key& other, const eckit::StringList& ignore) const;
 
     bool operator< (const Key &other) const {
         return keys_ < other.keys_;
