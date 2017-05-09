@@ -21,6 +21,7 @@
 #include "eckit/memory/Owned.h"
 #include "eckit/io/Length.h"
 #include "eckit/types/Types.h"
+#include "eckit/config/LocalConfiguration.h"
 
 #include "fdb5/database/Key.h"
 
@@ -146,11 +147,17 @@ private: // methods
 template< class T>
 class DBBuilder : public DBFactory {
 
+    virtual DB *make(const Key &key, const eckit::Configuration& config) const {
+        return new T(key, config);
+    }
+    virtual DB *make(const eckit::PathName& path, const eckit::Configuration& config) const {
+        return new T(path, config);
+    }
     virtual DB *make(const Key &key) const {
-        return new T(key);
+        return make(key, eckit::LocalConfiguration());
     }
     virtual DB *make(const eckit::PathName& path) const {
-        return new T(path);
+        return make(path, eckit::LocalConfiguration());
     }
 
 public:

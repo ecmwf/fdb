@@ -17,13 +17,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDBReader::TocDBReader(const Key& key) :
-    TocDB(key),
+TocDBReader::TocDBReader(const Key& key, const eckit::Configuration& config) :
+    TocDB(key, config),
     indexes_(loadIndexes()) {
 }
 
-TocDBReader::TocDBReader(const eckit::PathName& directory) :
-    TocDB(directory),
+TocDBReader::TocDBReader(const eckit::PathName& directory, const eckit::Configuration& config) :
+    TocDB(directory, config),
     indexes_(loadIndexes()) {
 }
 

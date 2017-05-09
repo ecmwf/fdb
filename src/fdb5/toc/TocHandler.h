@@ -14,12 +14,18 @@
 #ifndef fdb5_TocHandler_H
 #define fdb5_TocHandler_H
 
-#include "eckit/io/Length.h"
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/io/Length.h"
+#include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/io/LustreFileHandle.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/toc/TocRecord.h"
+
+namespace eckit {
+class Configuration;
+}
 
 namespace fdb5 {
 
@@ -37,7 +43,7 @@ public: // typedefs
 
 public: // methods
 
-    TocHandler( const eckit::PathName &dir );
+    TocHandler( const eckit::PathName &dir, const eckit::Configuration& config=eckit::LocalConfiguration());
     ~TocHandler();
 
     bool exists() const;
@@ -45,6 +51,7 @@ public: // methods
 
     void writeInitRecord(const Key &tocKey);
     void writeClearRecord(const Index &);
+    void writeSubTocRecord(const TocHandler& subToc);
     void writeIndexRecord(const Index &);
 
     std::vector<Index> loadIndexes() const;
@@ -79,6 +86,11 @@ protected: // methods
 
 private: // methods
 
+    /// For initialising sub tocs. Bool just for identification.
+    TocHandler(const eckit::PathName& path, bool);
+
+private: // members
+
     friend class TocHandlerCloser;
 
     void openForAppend();
@@ -93,7 +105,13 @@ private: // methods
     eckit::PathName tocPath_;
     eckit::PathName schemaPath_;
 
+    bool useSubToc_;
+    bool isSubToc_;
+
     mutable int fd_;      ///< file descriptor, if zero file is not yet open.
+
+    /// The sub toc is initialised in the read or write pathways for maintaining state.
+    mutable eckit::ScopedPtr<TocHandler> subToc_;
     mutable size_t count_;
 };
 

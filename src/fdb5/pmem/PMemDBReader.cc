@@ -20,12 +20,12 @@ namespace pmem {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemDBReader::PMemDBReader(const Key &key) :
-    PMemDB(key) {}
+PMemDBReader::PMemDBReader(const Key &key, const eckit::Configuration& config) :
+    PMemDB(key, config) {}
 
 
-PMemDBReader::PMemDBReader(const eckit::PathName& directory) :
-    PMemDB(directory) {}
+PMemDBReader::PMemDBReader(const eckit::PathName& directory, const eckit::Configuration& config) :
+    PMemDB(directory, config) {}
 
 
 PMemDBReader::~PMemDBReader() {

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2017 ECMWF.
+ i (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 
+#include "eckit/config/Configuration.h"
 #include "eckit/config/Resource.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/log/BigNum.h"
@@ -20,6 +21,7 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
+#include "eckit/filesystem/PathName.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
@@ -48,15 +50,28 @@ class TocHandlerCloser {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocHandler::TocHandler(const eckit::PathName &directory) :
+TocHandler::TocHandler(const eckit::PathName &directory, const eckit::Configuration& config) :
     directory_(directory),
     dbUID_(-1),
     userUID_(::getuid()),
     tocPath_(directory / "toc"),
     schemaPath_(directory / "schema"),
     fd_(-1),
-    count_(0) {
-}
+    count_(0),
+    useSubToc_(config.getBool("useSubToc", false)),
+    isSubToc_(false) {}
+
+TocHandler::TocHandler(const eckit::PathName& path, bool) :
+    directory_(path.dirName()),
+    dbUID_(-1),
+    userUID_(::getuid()),
+    tocPath_(path),
+    schemaPath_(path.dirName() / "schema"),
+    fd_(-1),
+    count_(0),
+    useSubToc_(false),
+    isSubToc_(true) {}
+
 
 TocHandler::~TocHandler() {
     close();
@@ -194,31 +209,33 @@ void TocHandler::writeInitRecord(const Key &key) {
 
         /* Copy rules first */
 
+        if (!isSubToc_) {
 
-        eckit::Log::info() << "Copy schema from "
-                           << MasterConfig::instance().schemaPath()
-                           << " to "
-                           << schemaPath_
-                           << std::endl;
+            eckit::Log::info() << "Copy schema from "
+                               << MasterConfig::instance().schemaPath()
+                               << " to "
+                               << schemaPath_
+                               << std::endl;
 
-        eckit::PathName tmp = eckit::PathName::unique(schemaPath_);
+            eckit::PathName tmp = eckit::PathName::unique(schemaPath_);
 
-        eckit::FileHandle in(MasterConfig::instance().schemaPath());
+            eckit::FileHandle in(MasterConfig::instance().schemaPath());
 
-        // Enforce lustre striping if requested
+            // Enforce lustre striping if requested
 
-        // SDS: Would be nicer to do this, but FileHandle doesn't have a path_ member, let alone an exposed one
-        //      so would need some tinkering to work with LustreFileHandle.
-        // LustreFileHandle<eckit::FileHandle> out(tmp, stripeIndexLustreSettings());
+            // SDS: Would be nicer to do this, but FileHandle doesn't have a path_ member, let alone an exposed one
+            //      so would need some tinkering to work with LustreFileHandle.
+            // LustreFileHandle<eckit::FileHandle> out(tmp, stripeIndexLustreSettings());
 
-        if (stripeLustre()) {
-            LustreStripe stripe = stripeIndexLustreSettings();
-            fdb5LustreapiFileCreate(tmp.localPath(), stripe.size_, stripe.count_);
+            if (stripeLustre()) {
+                LustreStripe stripe = stripeIndexLustreSettings();
+                fdb5LustreapiFileCreate(tmp.localPath(), stripe.size_, stripe.count_);
+            }
+            eckit::FileHandle out(tmp);
+            in.saveInto(out);
+
+            eckit::PathName::rename(tmp, schemaPath_);
         }
-        eckit::FileHandle out(tmp);
-        in.saveInto(out);
-
-        eckit::PathName::rename(tmp, schemaPath_);
 
         TocRecord r( TocRecord::TOC_INIT );
         eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
@@ -265,10 +282,21 @@ void TocHandler::writeClearRecord(const Index &index) {
     index.visit(writeVisitor);
 }
 
-void TocHandler::writeIndexRecord(const Index& index) {
+void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
 
     openForAppend();
     TocHandlerCloser closer(*this);
+
+    TocRecord r( TocRecord::TOC_SUB_TOC );
+    eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+    s << subToc.tocPath();
+    append(r, s.position());
+}
+
+
+void TocHandler::writeIndexRecord(const Index& index) {
+
+    // Toc index writer
 
     struct WriteToStream : public IndexLocationVisitor {
         WriteToStream(const Index& index, TocHandler& handler) : index_(index), handler_(handler) {}
@@ -294,6 +322,30 @@ void TocHandler::writeIndexRecord(const Index& index) {
         const Index& index_;
         TocHandler& handler_;
     };
+
+    // If we are using a sub toc, delegate there
+
+    if (useSubToc_) {
+
+        // Create the sub toc, and insert the redirection record into the the master toc.
+
+        if (!subToc_) {
+
+            subToc_.reset(new TocHandler(eckit::PathName::unique(tocPath_), true));
+
+            subToc_->writeInitRecord(databaseKey());
+
+            writeSubTocRecord(*subToc_);
+        }
+
+        subToc_->writeIndexRecord(index);
+        return;
+    }
+
+    // Otherwise, we actually do the writing!
+
+    openForAppend();
+    TocHandlerCloser closer(*this);
 
     WriteToStream writeVisitor(index, *this);
     index.visit(writeVisitor);
