@@ -99,6 +99,7 @@ private: // members
 
     void append(TocRecord &r, size_t payloadSize);
     bool readNext(TocRecord &r) const;
+    bool readNextInternal(TocRecord &r) const;
 
     std::string userName(long) const;
 

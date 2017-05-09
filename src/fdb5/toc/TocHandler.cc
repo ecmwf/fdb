@@ -151,7 +151,48 @@ void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
 }
 
+// readNext wraps readNextInternal.
+// readNext reads the next TOC entry from this toc, or from an appropriate subtoc if necessary.
 bool TocHandler::readNext( TocRecord &r ) const {
+
+    int len;
+
+    while (true) {
+
+        if (subToc_) {
+            len = subToc_->readNext(r);
+            if (len == 0) {
+                subToc_.reset();
+            } else {
+                ASSERT(r.header_.tag_ != TocRecord::TOC_SUB_TOC);
+                return true;
+            }
+        } else {
+
+            if (!readNextInternal(r)) {
+
+                return false;
+
+            } else if (r.header_.tag_ == TocRecord::TOC_SUB_TOC) {
+
+                eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+                eckit::PathName path;
+                s >> path;
+
+                subToc_.reset(new TocHandler(path, true));
+
+            } else {
+
+                // A normal read operation
+                return true;
+            }
+        }
+    }
+}
+
+// readNext wraps readNextInternal.
+// readNextInternal reads the next TOC entry from this toc.
+bool TocHandler::readNextInternal( TocRecord &r ) const {
 
     int len;
 
