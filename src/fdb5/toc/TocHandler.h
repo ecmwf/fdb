@@ -112,7 +112,8 @@ private: // members
     mutable int fd_;      ///< file descriptor, if zero file is not yet open.
 
     /// The sub toc is initialised in the read or write pathways for maintaining state.
-    mutable eckit::ScopedPtr<TocHandler> subToc_;
+    mutable eckit::ScopedPtr<TocHandler> subTocRead_;
+    mutable eckit::ScopedPtr<TocHandler> subTocWrite_;
     mutable size_t count_;
 };
 

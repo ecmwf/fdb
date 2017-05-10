@@ -167,10 +167,10 @@ bool TocHandler::readNext( TocRecord &r ) const {
 
     while (true) {
 
-        if (subToc_) {
-            len = subToc_->readNext(r);
+        if (subTocRead_) {
+            len = subTocRead_->readNext(r);
             if (len == 0) {
-                subToc_.reset();
+                subTocRead_.reset();
             } else {
                 ASSERT(r.header_.tag_ != TocRecord::TOC_SUB_TOC);
                 return true;
@@ -187,11 +187,11 @@ bool TocHandler::readNext( TocRecord &r ) const {
                 eckit::PathName path;
                 s >> path;
 
-                subToc_.reset(new TocHandler(path, true));
-                subToc_->openForRead();
+                subTocRead_.reset(new TocHandler(path, true));
+                subTocRead_->openForRead();
 
                 // The first entry in a subtoc must be the init record. Check that
-                subToc_->readNext(r);
+                subTocRead_->readNext(r);
                 ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
 
             } else {
@@ -235,8 +235,14 @@ void TocHandler::close() const {
         SYSCALL2( ::close(fd_), tocPath_ );
         fd_ = -1;
     }
-    if (subToc_) {
-        subToc_->close();
+    if (subTocRead_) {
+        subTocRead_->close();
+        subTocRead_.reset();
+    }
+    if (subTocWrite_) {
+        // We keep track of the sub toc we are writing to until the process is closed, so don't reset
+        // the pointer here (or we will create a proliferation of sub tocs)
+        subTocWrite_->close();
     }
 }
 
@@ -388,21 +394,16 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
         // Create the sub toc, and insert the redirection record into the the master toc.
 
-        if (!subToc_) {
+        if (!subTocWrite_) {
 
-            // Get the database key before we create the subtoc, otherwise we will try and get the
-            // key with subToc_ being non-null, but not pointed to by the master TOC, which causes
-            // confusion.
-            Key dbKey(databaseKey());
+            subTocWrite_.reset(new TocHandler(eckit::PathName::unique(tocPath_), true));
 
-            subToc_.reset(new TocHandler(eckit::PathName::unique(tocPath_), true));
+            subTocWrite_->writeInitRecord(databaseKey());
 
-            subToc_->writeInitRecord(dbKey);
-
-            writeSubTocRecord(*subToc_);
+            writeSubTocRecord(*subTocWrite_);
         }
 
-        subToc_->writeIndexRecord(index);
+        subTocWrite_->writeIndexRecord(index);
         return;
     }
 
