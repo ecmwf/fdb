@@ -59,7 +59,15 @@ TocHandler::TocHandler(const eckit::PathName &directory, const eckit::Configurat
     fd_(-1),
     count_(0),
     useSubToc_(config.getBool("useSubToc", false)),
-    isSubToc_(false) {}
+    isSubToc_(false) {
+
+    // An override to enable using sub tocs without configurations being passed in, for ease
+    // of debugging
+    const char* subTocOverride = ::getenv("FDB5_SUB_TOCS");
+    if (subTocOverride) {
+        useSubToc_ = true;
+    }
+}
 
 TocHandler::TocHandler(const eckit::PathName& path, bool) :
     directory_(path.dirName()),
@@ -180,6 +188,11 @@ bool TocHandler::readNext( TocRecord &r ) const {
                 s >> path;
 
                 subToc_.reset(new TocHandler(path, true));
+                subToc_->openForRead();
+
+                // The first entry in a subtoc must be the init record. Check that
+                subToc_->readNext(r);
+                ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
 
             } else {
 
@@ -221,6 +234,9 @@ void TocHandler::close() const {
         // eckit::Log::info() << "Closing TOC " << tocPath_ << std::endl;
         SYSCALL2( ::close(fd_), tocPath_ );
         fd_ = -1;
+    }
+    if (subToc_) {
+        subToc_->close();
     }
 }
 
@@ -332,6 +348,8 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
     s << subToc.tocPath();
     append(r, s.position());
+
+    eckit::Log::debug<LibFdb>() << "TOC_SUB_TOC " << subToc.tocPath() << std::endl;
 }
 
 
@@ -372,9 +390,14 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
         if (!subToc_) {
 
+            // Get the database key before we create the subtoc, otherwise we will try and get the
+            // key with subToc_ being non-null, but not pointed to by the master TOC, which causes
+            // confusion.
+            Key dbKey(databaseKey());
+
             subToc_.reset(new TocHandler(eckit::PathName::unique(tocPath_), true));
 
-            subToc_->writeInitRecord(databaseKey());
+            subToc_->writeInitRecord(dbKey);
 
             writeSubTocRecord(*subToc_);
         }
