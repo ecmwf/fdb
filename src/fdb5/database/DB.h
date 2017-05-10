@@ -118,8 +118,8 @@ class DBFactory : private eckit::NonCopyable {
     bool read_;
     bool write_;
 
-    virtual DB *make(const Key &key) const = 0 ;
-    virtual DB *make(const eckit::PathName& path) const = 0 ;
+    virtual DB *make(const Key &key, const eckit::Configuration& config) const = 0 ;
+    virtual DB *make(const eckit::PathName& path, const eckit::Configuration& config) const = 0 ;
 
 protected:
 
@@ -129,9 +129,9 @@ protected:
 public:
 
     static void list(std::ostream &);
-    static DB* buildWriter(const Key &key);
-    static DB* buildReader(const Key &key);
-    static DB* buildReader(const eckit::PathName& path);
+    static DB* buildWriter(const Key &key, const eckit::Configuration& config=eckit::LocalConfiguration());
+    static DB* buildReader(const Key &key, const eckit::Configuration& config=eckit::LocalConfiguration());
+    static DB* buildReader(const eckit::PathName& path, const eckit::Configuration& config=eckit::LocalConfiguration());
 
 private: // methods
 
@@ -152,12 +152,6 @@ class DBBuilder : public DBFactory {
     }
     virtual DB *make(const eckit::PathName& path, const eckit::Configuration& config) const {
         return new T(path, config);
-    }
-    virtual DB *make(const Key &key) const {
-        return make(key, eckit::LocalConfiguration());
-    }
-    virtual DB *make(const eckit::PathName& path) const {
-        return make(path, eckit::LocalConfiguration());
     }
 
 public:

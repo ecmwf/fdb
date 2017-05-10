@@ -19,8 +19,8 @@ namespace legacy {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-LegacyArchiver::LegacyArchiver() :
-    Archiver(),
+LegacyArchiver::LegacyArchiver(const eckit::Configuration& dbConfig) :
+    Archiver(dbConfig),
     translator_(),
     legacy_() {
 }

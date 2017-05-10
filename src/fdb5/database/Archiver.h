@@ -41,7 +41,7 @@ class Archiver : public eckit::NonCopyable {
 
 public: // methods
 
-    Archiver();
+    Archiver(const eckit::Configuration& dbConfig=eckit::LocalConfiguration());
 
     virtual ~Archiver();
 
@@ -67,6 +67,8 @@ private: // members
     friend class BaseArchiveVisitor;
 
     typedef std::map< Key, eckit::SharedPtr<DB> > store_t;
+
+    eckit::LocalConfiguration dbConfig_;
 
     store_t databases_;
 

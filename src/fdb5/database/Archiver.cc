@@ -22,7 +22,8 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-Archiver::Archiver() :
+Archiver::Archiver(const eckit::Configuration& dbConfig) :
+    dbConfig_(dbConfig),
     current_(0) {
 }
 
@@ -97,7 +98,7 @@ DB& Archiver::database(const Key &key) {
         }
     }
 
-    eckit::SharedPtr<DB> db ( DBFactory::buildWriter(key) );
+    eckit::SharedPtr<DB> db ( DBFactory::buildWriter(key, dbConfig_) );
     ASSERT(db);
     databases_[key] = db;
     return *db;
