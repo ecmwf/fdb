@@ -16,6 +16,12 @@
 
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocStats.h"
+#include "fdb5/toc/TocDBReader.h"
+
+#if __cplusplus > 199711L
+#include <unordered_set>
+#include <unordered_map>
+#endif
 
 using namespace fdb5;
 
@@ -45,12 +51,24 @@ private: // methods
                        const std::string &indexFingerprint,
                        const std::string &fieldFingerprint);
 
+    void setIndex(const Index& idx);
 
 protected: // members
 
     eckit::PathName directory_;
 
-//    std::set<eckit::PathName> activeDataFiles_;
+// SDS: This is a significant performance optimisation. Use the std::unordered_set/map if they
+//      are available (i.e. if c++11 is supported). Otherwise use std::set/map. These have the
+//      same interface, so no code changes are required except in the class definition.
+#if __cplusplus > 199711L
+    std::unordered_set<std::string> allDataFiles_;
+    std::unordered_set<std::string> allIndexFiles_;
+
+    std::unordered_map<std::string, size_t> indexUsage_;
+    std::unordered_map<std::string, size_t> dataUsage_;
+
+    std::unordered_set<std::string> active_;
+#else
     std::set<eckit::PathName> allDataFiles_;
     std::set<eckit::PathName> allIndexFiles_;
 
@@ -58,21 +76,28 @@ protected: // members
     std::map<eckit::PathName, size_t> dataUsage_;
 
     std::set<std::string> active_;
+#endif
 
     std::map<Index, IndexStatsAdaptor> indexStats_;
 
     DbStats dbStats_;
+
+    TocDBReader reader_;
 };
 
 ReportVisitor::ReportVisitor(const eckit::PathName& directory) :
     directory_(directory),
-    dbStats_(new TocDbStats()) {
+    dbStats_(new TocDbStats()),
+    reader_(directory_, LocalConfiguration()) {
 
-    TocHandler handler(directory_);
-    dbStats_ = handler.stats();
+    dbStats_ = reader_.stats();
 }
 
 ReportVisitor::~ReportVisitor() {
+}
+
+void ReportVisitor::setIndex(const Index& idx) {
+//    currIndex_ = &idx;
 }
 
 void ReportVisitor::visit(const Index &index,
@@ -80,6 +105,7 @@ void ReportVisitor::visit(const Index &index,
                           const std::string &indexFingerprint,
                           const std::string &fieldFingerprint) {
 
+//    ASSERT(currIndex_ != 0);
 
     TocDbStats* dbStats = new TocDbStats();
 
@@ -94,6 +120,7 @@ void ReportVisitor::visit(const Index &index,
     const eckit::PathName& indexPath = index.location().url();
 
     if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
+
         if (dataPath.dirName().sameAs(directory_)) {
             dbStats->ownedFilesSize_ += dataPath.size();
             dbStats->ownedFilesCount_++;
@@ -117,10 +144,7 @@ void ReportVisitor::visit(const Index &index,
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
 
-    if (active_.find(unique) == active_.end()) {
-        active_.insert(unique);
-        // activeDataFiles_.insert(dataPath);
-    } else {
+    if (!active_.insert(unique).second) {
         stats.addDuplicatesCount(1);
         stats.addDuplicatesSize(len);
         indexUsage_[indexPath]--;
