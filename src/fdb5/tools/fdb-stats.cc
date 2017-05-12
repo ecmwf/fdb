@@ -51,8 +51,6 @@ private: // methods
                        const std::string &indexFingerprint,
                        const std::string &fieldFingerprint);
 
-    void setIndex(const Index& idx);
-
 protected: // members
 
     eckit::PathName directory_;
@@ -83,21 +81,21 @@ protected: // members
     DbStats dbStats_;
 
     TocDBReader reader_;
+
+    const Index* lastIndex_;
+    eckit::PathName lastDataPath_;
 };
 
 ReportVisitor::ReportVisitor(const eckit::PathName& directory) :
     directory_(directory),
     dbStats_(new TocDbStats()),
+    lastIndex_(0),
     reader_(directory_, LocalConfiguration()) {
 
     dbStats_ = reader_.stats();
 }
 
 ReportVisitor::~ReportVisitor() {
-}
-
-void ReportVisitor::setIndex(const Index& idx) {
-//    currIndex_ = &idx;
 }
 
 void ReportVisitor::visit(const Index &index,
@@ -119,36 +117,40 @@ void ReportVisitor::visit(const Index &index,
     const eckit::PathName& dataPath  = field.location().url();
     const eckit::PathName& indexPath = index.location().url();
 
-    if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
+    if (dataPath != lastDataPath_) {
 
-        if (dataPath.dirName().sameAs(directory_)) {
-            dbStats->ownedFilesSize_ += dataPath.size();
-            dbStats->ownedFilesCount_++;
+        if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
 
-        } else {
-            dbStats->adoptedFilesSize_ += dataPath.size();
-            dbStats->adoptedFilesCount_++;
-
+            if (dataPath.dirName().sameAs(directory_)) {
+                dbStats->ownedFilesSize_ += dataPath.size();
+                dbStats->ownedFilesCount_++;
+            } else {
+                dbStats->adoptedFilesSize_ += dataPath.size();
+                dbStats->adoptedFilesCount_++;
+            }
+            allDataFiles_.insert(dataPath);
         }
-        allDataFiles_.insert(dataPath);
+
+        lastDataPath_ = dataPath;
     }
 
-    if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
-        dbStats->indexFilesSize_ += indexPath.size();
-        allIndexFiles_.insert(indexPath);
-        dbStats->indexFilesCount_++;
+    if (&index != lastIndex_) {
+        if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
+            dbStats->indexFilesSize_ += indexPath.size();
+            allIndexFiles_.insert(indexPath);
+            dbStats->indexFilesCount_++;
+        }
+        lastIndex_ = &index;
     }
-
-    indexUsage_[indexPath]++;
-    dataUsage_[dataPath]++;
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
 
-    if (!active_.insert(unique).second) {
+    if (active_.insert(unique).second) {
+        indexUsage_[indexPath]++;
+        dataUsage_[dataPath]++;
+    } else {
         stats.addDuplicatesCount(1);
         stats.addDuplicatesSize(len);
-        indexUsage_[indexPath]--;
-        dataUsage_[dataPath]--;
     }
 
     dbStats_ += DbStats(dbStats); // append to the global dbStats
