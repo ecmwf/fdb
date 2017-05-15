@@ -28,6 +28,7 @@ Archiver::Archiver(const eckit::Configuration& dbConfig) :
 }
 
 Archiver::~Archiver() {
+
     flush(); // certify that all sessions are flushed before closing them
 
     for(std::vector<Schema*>::iterator j = schemas_.begin(); j != schemas_.end(); ++j) {

@@ -270,11 +270,13 @@ void TocHandler::writeInitRecord(const Key &key) {
     size_t len = readNext(r);
     if (len == 0) {
 
-        /* Copy rules first */
+        eckit::Log::info() << "Initializing FDB TOC in " << tocPath_ << std::endl;
 
         if (!isSubToc_) {
 
-            eckit::Log::info() << "Copy schema from "
+            /* Copy schema first */
+
+            eckit::Log::debug<LibFdb>() << "Copy schema from "
                                << MasterConfig::instance().schemaPath()
                                << " to "
                                << schemaPath_

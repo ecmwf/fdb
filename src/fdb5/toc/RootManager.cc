@@ -443,9 +443,9 @@ eckit::PathName RootManager::directory(const Key& key) {
 
     pthread_once(&once, init);
 
-    eckit::Log::debug<LibFdb>() << "Choosing directory for key " << key << std::endl;
-
     PathName dbpath = dbPathName(key);
+
+    eckit::Log::debug<LibFdb>() << "Choosing directory for key " << key << " dbpath " << dbpath << std::endl;
 
     // override root location for testing purposes only
 
