@@ -625,6 +625,11 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
                 break;
             }
 
+            case TocRecord::TOC_SUB_TOC: {
+                s >> path;
+                out << "  Path: " << path << std::endl;
+            }
+
             default: {
                 out << "   Unknown TOC entry" << std::endl;
                 break;
