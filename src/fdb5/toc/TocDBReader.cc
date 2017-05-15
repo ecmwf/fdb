@@ -58,8 +58,8 @@ bool TocDBReader::selectIndex(const Key &key) {
 //        }
     }
 
-    eckit::Log::info() << "TocDBReader::selectIndex " << key
-                       << ", found " << matching_.size() << " matche(s)" << std::endl;
+    eckit::Log::debug<LibFdb>() << "TocDBReader::selectIndex " << key << ", found "
+                                << matching_.size() << " matche(s)" << std::endl;
 
     return (matching_.size() != 0);
 }
