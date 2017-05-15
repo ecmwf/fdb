@@ -593,6 +593,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
         eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
         std::string path;
         std::string type;
+        bool isSubToc;
 
         off_t offset;
         std::vector<Index>::iterator j;
@@ -602,7 +603,11 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
         switch (r.header_.tag_) {
 
             case TocRecord::TOC_INIT: {
-                out << "  Key: " << Key(s);
+                isSubToc = false;
+                if (r.header_.version_ > 1) {
+                    s >> isSubToc;
+                }
+                out << "  Key: " << Key(s) << ", sub-toc: " << (isSubToc ? "yes" : "no");
                 if(!simple) { out << std::endl; }
                 break;
             }
