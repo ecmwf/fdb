@@ -305,6 +305,7 @@ void TocHandler::writeInitRecord(const Key &key) {
         TocRecord r( TocRecord::TOC_INIT );
         eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
         s << key;
+        s << isSubToc_;
         append(r, s.position());
         dbUID_ = r.header_.uid_;
 
@@ -625,6 +626,17 @@ void TocHandler::dump(std::ostream& out, bool simple) {
         out << std::endl;
     }
 }
+
+
+/// This is heavily related to dump(), but intended to give simple diagnostics
+/// output ONLY for a TOC (rather than for analysing the data, which is the
+/// purpose of dump()).
+void TocHandler::listToc(std::ostream& out) {
+
+    openForRead();
+
+}
+
 
 std::string TocHandler::dbOwner() {
     return userName(dbUID());

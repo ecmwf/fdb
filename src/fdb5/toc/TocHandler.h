@@ -44,6 +44,10 @@ public: // typedefs
 public: // methods
 
     TocHandler( const eckit::PathName &dir, const eckit::Configuration& config=eckit::LocalConfiguration());
+
+    /// For initialising sub tocs or diagnostic interrogation. Bool just for identification.
+    TocHandler(const eckit::PathName& path, bool);
+
     ~TocHandler();
 
     bool exists() const;
@@ -64,6 +68,7 @@ public: // methods
     const eckit::PathName& schemaPath() const;
 
     void dump(std::ostream& out, bool simple = false);
+    void listToc(std::ostream& out);
     std::string dbOwner();
 
     DbStats stats() const;
@@ -83,11 +88,6 @@ protected: // methods
     static LustreStripe stripeIndexLustreSettings();
 
     static LustreStripe stripeDataLustreSettings();
-
-private: // methods
-
-    /// For initialising sub tocs. Bool just for identification.
-    TocHandler(const eckit::PathName& path, bool);
 
 private: // members
 
