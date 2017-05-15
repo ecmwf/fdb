@@ -117,7 +117,7 @@ void TocRecord::print(std::ostream & out) const {
 }
 
 unsigned int TocRecord::currentVersion() {
-    return 1;
+    return 2;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

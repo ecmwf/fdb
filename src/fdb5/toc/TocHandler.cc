@@ -226,9 +226,9 @@ bool TocHandler::readNextInternal( TocRecord &r ) const {
     SYSCALL2( len = ::read(fd_, &r.payload_, r.header_.size_ - sizeof(TocRecord::Header)), tocPath_ );
     ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
 
-    if ( TocRecord::currentVersion() != r.header_.version_ ) {
+    if ( TocRecord::currentVersion() < r.header_.version_ ) {
         std::ostringstream oss;
-        oss << "Record version mistach, expected " << TocRecord::currentVersion()
+        oss << "Record version mistach, software handles version <= " << TocRecord::currentVersion()
             << ", got " << r.header_.version_;
         throw eckit::SeriousBug(oss.str());
     }
@@ -628,6 +628,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
             case TocRecord::TOC_SUB_TOC: {
                 s >> path;
                 out << "  Path: " << path << std::endl;
+                break;
             }
 
             default: {
