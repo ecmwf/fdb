@@ -67,7 +67,7 @@ public: // methods
     const eckit::PathName& tocPath() const;
     const eckit::PathName& schemaPath() const;
 
-    void dump(std::ostream& out, bool simple = false);
+    void dump(std::ostream& out, bool simple = false, bool walkSubTocs = true);
     void listToc(std::ostream& out);
     std::string dbOwner();
 
@@ -98,7 +98,7 @@ private: // members
     void close() const;
 
     void append(TocRecord &r, size_t payloadSize);
-    bool readNext(TocRecord &r) const;
+    bool readNext(TocRecord &r, bool walkSubTocs = true) const;
     bool readNextInternal(TocRecord &r) const;
 
     std::string userName(long) const;

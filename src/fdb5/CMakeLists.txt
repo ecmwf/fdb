@@ -240,7 +240,7 @@ if( HAVE_TOCFDB )
         fdb-wipe
         fdb-stats
         fdb-purge
-        fdb-ls-toc )
+        fdb-dump-toc )
 
 endif()
 

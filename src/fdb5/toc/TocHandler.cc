@@ -161,9 +161,16 @@ void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
 // readNext wraps readNextInternal.
 // readNext reads the next TOC entry from this toc, or from an appropriate subtoc if necessary.
-bool TocHandler::readNext( TocRecord &r ) const {
+bool TocHandler::readNext( TocRecord &r, bool walkSubTocs ) const {
 
     int len;
+
+    // For some tools (mainly diagnostic) it makes sense to be able to switch the
+    // walking behaviour here.
+
+    if (!walkSubTocs)
+        return readNextInternal(r);
+
 
     while (true) {
 
@@ -574,14 +581,14 @@ const eckit::PathName &TocHandler::schemaPath() const {
 }
 
 
-void TocHandler::dump(std::ostream& out, bool simple) {
+void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
 
     openForRead();
     TocHandlerCloser close(*this);
 
     TocRecord r;
 
-    while ( readNext(r) ) {
+    while ( readNext(r, walkSubTocs) ) {
 
         eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
         std::string path;
@@ -625,16 +632,6 @@ void TocHandler::dump(std::ostream& out, bool simple) {
         }
         out << std::endl;
     }
-}
-
-
-/// This is heavily related to dump(), but intended to give simple diagnostics
-/// output ONLY for a TOC (rather than for analysing the data, which is the
-/// purpose of dump()).
-void TocHandler::listToc(std::ostream& out) {
-
-    openForRead();
-
 }
 
 

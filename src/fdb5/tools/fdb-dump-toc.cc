@@ -18,51 +18,42 @@ using namespace eckit;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBLsToc : public fdb5::FDBTool {
+class FDBDumpToc : public fdb5::FDBTool {
 
   public: // methods
 
-    FDBLsToc(int argc, char **argv) :
+    FDBDumpToc(int argc, char **argv) :
         fdb5::FDBTool(argc, argv) {}
 
   private: // methods
 
     virtual void usage(const std::string &tool) const;
     virtual void execute(const eckit::option::CmdArgs& args);
-
-    void process(const eckit::PathName& path) const;
 };
 
-void FDBLsToc::usage(const std::string &tool) const {
+void FDBDumpToc::usage(const std::string &tool) const {
     Log::info() << std::endl
                 << "Usage: " << tool << " [path1] [path2] ..." << std::endl;
     fdb5::FDBTool::usage(tool);
 }
 
 
-void FDBLsToc::execute(const eckit::option::CmdArgs& args) {
+void FDBDumpToc::execute(const eckit::option::CmdArgs& args) {
 
     for (size_t i = 0; i < args.count(); i++) {
 
         eckit::PathName path(args(i));
 
-        process(path);
+        fdb5::TocHandler handler(path, true);
+
+        handler.dump(eckit::Log::info(), true, false);
     }
-}
-
-void FDBLsToc::process(const eckit::PathName& path) const {
-
-    eckit::Log::info() << "Listing " << path << std::endl;
-
-    fdb5::TocHandler handler(path, true);
-
-    handler.dump(eckit::Log::info());
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv) {
-    FDBLsToc app(argc, argv);
+    FDBDumpToc app(argc, argv);
     return app.start();
 }
 
