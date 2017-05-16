@@ -60,6 +60,9 @@ public: // methods
     bool dirty() const;
     void clean();
 
+    /// Reset the axis to a default state.
+    void wipe();
+
     friend std::ostream &operator<<(std::ostream &s, const IndexAxis &x) {
         x.print(s);
         return s;

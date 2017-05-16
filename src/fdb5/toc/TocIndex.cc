@@ -107,6 +107,12 @@ void TocIndex::reopen() {
 
     location_.offset_ = location_.path_.size();
 
+    // The axes object must be reset at this point, as the TocIndex object is no longer referring
+    // to the same region in memory. (i.e. the index is still associated with the same metadata
+    // at the second level of the schema, but is a NEW index).
+
+    axes_.wipe();
+
     open();
 }
 

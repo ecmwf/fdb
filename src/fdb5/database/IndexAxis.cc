@@ -116,6 +116,14 @@ void IndexAxis::clean() {
     dirty_ = false;
 }
 
+void IndexAxis::wipe() {
+
+    ASSERT(!readOnly_);
+
+    axis_.clear();
+    clean();
+}
+
 
 const eckit::StringSet &IndexAxis::values(const std::string &keyword) const {
     AxisMap::const_iterator i = axis_.find(keyword);
