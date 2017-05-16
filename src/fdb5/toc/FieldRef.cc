@@ -44,12 +44,20 @@ FieldRefLocation::FieldRefLocation(FileStore &store, const Field& field) {
     }
 }
 
+void FieldRefLocation::print(std::ostream &s) const {
+    s << "FieldRefLocation(pathid=" << pathId_ << ",offset=" << offset_ << ")";
+}
+
 FieldRefReduced::FieldRefReduced() {
 
 }
 
 FieldRefReduced::FieldRefReduced(const FieldRef &other):
     location_(other.location()) {
+}
+
+void FieldRefReduced::print(std::ostream &s) const {
+    s << location_;
 }
 
 FieldRef::FieldRef() {
@@ -62,6 +70,10 @@ FieldRef::FieldRef(FileStore &store, const Field &field):
 
 FieldRef::FieldRef(const FieldRefReduced& other):
     location_(other.location()) {
+}
+
+void FieldRef::print(std::ostream &s) const {
+    s << location_;
 }
 
 

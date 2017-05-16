@@ -107,7 +107,7 @@ private: // methods
     virtual void entries(EntryVisitor&) const { NOTIMP; }
 
     virtual void print( std::ostream& s) const  { s << "NullIndex()"; }
-    virtual void dump(std::ostream&, const char*, bool ) const  { NOTIMP; }
+    virtual void dump(std::ostream&, const char*, bool, bool) const  { NOTIMP; }
 
     virtual IndexStats statistics() const { NOTIMP; }
 

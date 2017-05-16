@@ -646,6 +646,51 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
 }
 
 
+void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFile) const {
+
+    openForRead();
+    TocHandlerCloser close(*this);
+
+    TocRecord r;
+
+    while ( readNext(r) ) {
+
+        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        std::string path;
+        std::string type;
+        off_t offset;
+
+        switch (r.header_.tag_) {
+
+            case TocRecord::TOC_INDEX: {
+                s >> path;
+                s >> offset;
+                s >> type;
+
+                if (directory_ / path == indexFile) {
+                    out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
+                    Index index(new TocIndex(s, directory_, directory_ / path, offset));
+                    index.dump(out, "  ", false, true);
+                }
+                break;
+            }
+
+            case TocRecord::TOC_CLEAR:
+            case TocRecord::TOC_INIT:
+            case TocRecord::TOC_SUB_TOC:
+                break;
+
+            default: {
+                out << "   Unknown TOC entry" << std::endl;
+                break;
+            }
+        }
+        out << std::endl;
+    }
+
+}
+
+
 std::string TocHandler::dbOwner() {
     return userName(dbUID());
 }

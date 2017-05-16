@@ -68,7 +68,7 @@ public: // methods
     const eckit::PathName& schemaPath() const;
 
     void dump(std::ostream& out, bool simple = false, bool walkSubTocs = true);
-    void listToc(std::ostream& out);
+    void dumpIndexFile(std::ostream& out, const eckit::PathName& indexFile) const;
     std::string dbOwner();
 
     DbStats stats() const;

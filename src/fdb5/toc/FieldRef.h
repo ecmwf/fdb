@@ -73,6 +73,15 @@ public:
     FieldRefReduced();
     FieldRefReduced(const FieldRef&);
     const FieldRefLocation& location() const { return location_; }
+
+private: // methods
+
+    void print(std::ostream &s) const;
+
+    friend std::ostream &operator<<(std::ostream &s, const FieldRefReduced &x) {
+        x.print(s);
+        return s;
+    }
 };
 
 class FieldRef  {
@@ -92,6 +101,14 @@ public:
     const FieldRefLocation& location() const { return location_; }
     const FieldDetails& details() const { return details_; }
 
+private: // methods
+
+    void print(std::ostream &s) const;
+
+    friend std::ostream &operator<<(std::ostream &s, const FieldRef &x) {
+        x.print(s);
+        return s;
+    }
 };
 
 typedef FieldRef FieldRefFull;

@@ -180,12 +180,39 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-void TocIndex::dump(std::ostream &out, const char* indent, bool simple) const {
+
+class DumpBTreeVisitor : public BTreeIndexVisitor {
+    std::ostream& out_;
+    std::string indent_;
+public:
+
+    DumpBTreeVisitor(std::ostream& out, const std::string& indent) : out_(out), indent_(indent) {}
+    virtual ~DumpBTreeVisitor() {}
+
+    void visit(const std::string& key, const FieldRef& ref) {
+
+        out_ << indent_ << "Fingerprint: " << key << ", location: " << ref << std::endl;
+    }
+};
+
+
+void TocIndex::dump(std::ostream &out, const char* indent, bool simple, bool dumpFields) const {
     out << indent << "Prefix: " << prefix_ << ", key: " << key_;
+
     if(!simple) {
         out << std::endl;
         files_.dump(out, indent);
         axes_.dump(out, indent);
+    }
+
+    if (dumpFields) {
+        DumpBTreeVisitor v(out, std::string(indent) + std::string("  "));
+
+        out << std::endl;
+        out << indent << "Contents of index: " << std::endl;
+
+        TocIndexCloser closer(*this);
+        btree_->visit(v);
     }
 }
 

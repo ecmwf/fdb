@@ -136,7 +136,7 @@ std::string PMemIndex::defaulType() {
     return "PMemIndex";
 }
 
-void PMemIndex::dump(std::ostream& out, const char* indent, bool simple) const {
+void PMemIndex::dump(std::ostream& out, const char* indent, bool simple, bool dumpFields) const {
     NOTIMP;
 }
 
