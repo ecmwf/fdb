@@ -667,7 +667,7 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
                 s >> offset;
                 s >> type;
 
-                if (directory_ / path == indexFile) {
+                if ((directory_ / path).fullName() == indexFile.fullName()) {
                     out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
                     Index index(new TocIndex(s, directory_, directory_ / path, offset));
                     index.dump(out, "  ", false, true);
@@ -685,7 +685,6 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
                 break;
             }
         }
-        out << std::endl;
     }
 
 }
