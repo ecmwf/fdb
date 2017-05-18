@@ -27,6 +27,18 @@ ecbuild_requires_macro_version( 1.9 )
 
 ecbuild_declare_project()
 
+# Enable C++11 if it is available. We should have alternative code paths for where it is not.
+# This is used for performance in fdb-stats (checking for duplicates in a large set).
+#
+# Use the test:
+# #if __cplusplus > 199711L
+#    c++11 code
+# #else
+#    c++03 code
+# #endif
+
+ecbuild_add_cxx11_flags()
+
 ########################################################################################################################
 # sanity checks
 

@@ -16,6 +16,12 @@
 
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocStats.h"
+#include "fdb5/toc/TocDBReader.h"
+
+#if __cplusplus > 199711L
+#include <unordered_set>
+#include <unordered_map>
+#endif
 
 using namespace fdb5;
 
@@ -45,31 +51,48 @@ private: // methods
                        const std::string &indexFingerprint,
                        const std::string &fieldFingerprint);
 
-
 protected: // members
 
     eckit::PathName directory_;
 
-    std::set<eckit::PathName> activeDataFiles_;
+// SDS: This is a significant performance optimisation. Use the std::unordered_set/map if they
+//      are available (i.e. if c++11 is supported). Otherwise use std::set/map. These have the
+//      same interface, so no code changes are required except in the class definition.
+#if __cplusplus > 199711L
+    std::unordered_set<std::string> allDataFiles_;
+    std::unordered_set<std::string> allIndexFiles_;
+
+    std::unordered_map<std::string, size_t> indexUsage_;
+    std::unordered_map<std::string, size_t> dataUsage_;
+
+    std::unordered_set<std::string> active_;
+#else
     std::set<eckit::PathName> allDataFiles_;
     std::set<eckit::PathName> allIndexFiles_;
+
     std::map<eckit::PathName, size_t> indexUsage_;
     std::map<eckit::PathName, size_t> dataUsage_;
 
     std::set<std::string> active_;
+#endif
 
     std::map<Index, IndexStatsAdaptor> indexStats_;
 
     DbStats dbStats_;
+
+    TocDBReader reader_;
+
+    const Index* lastIndex_;
+    eckit::PathName lastDataPath_;
 };
 
 ReportVisitor::ReportVisitor(const eckit::PathName& directory) :
     directory_(directory),
-    dbStats_(new TocDbStats())
-{
+    dbStats_(new TocDbStats()),
+    lastIndex_(0),
+    reader_(directory_, LocalConfiguration()) {
 
-    TocHandler handler(directory_);
-    dbStats_ = handler.stats();
+    dbStats_ = reader_.stats();
 }
 
 ReportVisitor::~ReportVisitor() {
@@ -80,6 +103,7 @@ void ReportVisitor::visit(const Index &index,
                           const std::string &indexFingerprint,
                           const std::string &fieldFingerprint) {
 
+//    ASSERT(currIndex_ != 0);
 
     TocDbStats* dbStats = new TocDbStats();
 
@@ -93,38 +117,40 @@ void ReportVisitor::visit(const Index &index,
     const eckit::PathName& dataPath  = field.location().url();
     const eckit::PathName& indexPath = index.location().url();
 
-    if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
-        if (dataPath.dirName().sameAs(directory_)) {
-            dbStats->ownedFilesSize_ += dataPath.size();
-            dbStats->ownedFilesCount_++;
+    if (dataPath != lastDataPath_) {
 
-        } else {
-            dbStats->adoptedFilesSize_ += dataPath.size();
-            dbStats->adoptedFilesCount_++;
+        if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
 
+            if (dataPath.dirName().sameAs(directory_)) {
+                dbStats->ownedFilesSize_ += dataPath.size();
+                dbStats->ownedFilesCount_++;
+            } else {
+                dbStats->adoptedFilesSize_ += dataPath.size();
+                dbStats->adoptedFilesCount_++;
+            }
+            allDataFiles_.insert(dataPath);
         }
-        allDataFiles_.insert(dataPath);
+
+        lastDataPath_ = dataPath;
     }
 
-    if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
-        dbStats->indexFilesSize_ += indexPath.size();
-        allIndexFiles_.insert(indexPath);
-        dbStats->indexFilesCount_++;
+    if (&index != lastIndex_) {
+        if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
+            dbStats->indexFilesSize_ += indexPath.size();
+            allIndexFiles_.insert(indexPath);
+            dbStats->indexFilesCount_++;
+        }
+        lastIndex_ = &index;
     }
-
-    indexUsage_[indexPath]++;
-    dataUsage_[dataPath]++;
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
 
-    if (active_.find(unique) == active_.end()) {
-        active_.insert(unique);
-        activeDataFiles_.insert(dataPath);
+    if (active_.insert(unique).second) {
+        indexUsage_[indexPath]++;
+        dataUsage_[dataPath]++;
     } else {
         stats.addDuplicatesCount(1);
         stats.addDuplicatesSize(len);
-        indexUsage_[indexPath]--;
-        dataUsage_[dataPath]--;
     }
 
     dbStats_ += DbStats(dbStats); // append to the global dbStats

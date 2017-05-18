@@ -28,8 +28,8 @@ class PMemDBReader : public PMemDB {
 
 public: // methods
 
-    PMemDBReader(const Key &key);
-    PMemDBReader(const eckit::PathName& directory);
+    PMemDBReader(const Key &key, const eckit::Configuration& config);
+    PMemDBReader(const eckit::PathName& directory, const eckit::Configuration& config);
 
     virtual bool open();
     virtual void axis(const std::string& keyword, eckit::StringSet& s) const;

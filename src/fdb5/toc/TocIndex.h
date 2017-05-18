@@ -93,7 +93,7 @@ private: // methods
     virtual void entries(EntryVisitor &visitor) const;
 
     virtual void print( std::ostream &out ) const;
-    virtual void dump(std::ostream& out, const char* indent, bool simple = false) const;
+    virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const;
 
     virtual IndexStats statistics() const;
 

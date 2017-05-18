@@ -239,7 +239,9 @@ if( HAVE_TOCFDB )
     list( APPEND fdb5_tools
         fdb-wipe
         fdb-stats
-        fdb-purge )
+        fdb-purge
+        fdb-dump-toc
+        fdb-dump-index )
 
 endif()
 

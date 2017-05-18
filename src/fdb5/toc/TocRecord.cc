@@ -61,6 +61,10 @@ void TocRecord::dump(std::ostream& out, bool simple) const {
             out << "TOC_CLEAR";
             break;
 
+        case TocRecord::TOC_SUB_TOC:
+            out << "TOC_SUB_TOC";
+            break;
+
         default:
             out << "TOC_???? ";
             break;
@@ -113,7 +117,7 @@ void TocRecord::print(std::ostream & out) const {
 }
 
 unsigned int TocRecord::currentVersion() {
-    return 1;
+    return 2;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

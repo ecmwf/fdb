@@ -17,6 +17,8 @@
 #define fdb5_Manager_H
 
 #include <string>
+#include <set>
+#include <vector>
 
 #include "eckit/filesystem/PathName.h"
 
@@ -34,7 +36,7 @@ public: // methods
     static std::string engine(const Key &key);
 
     /// set union of all the engines that can possibly handle this key
-    static std::vector<std::string> engines(const Key &key);
+    static std::set<std::string> engines(const Key &key);
 
     /// Uniquely selects the engine that will handle this Path by checking possible handlers
     static std::string engine(const eckit::PathName& path);

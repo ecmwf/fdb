@@ -33,7 +33,7 @@ namespace pmem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-PMemDB::PMemDB(const Key& key) :
+PMemDB::PMemDB(const Key& key, const eckit::Configuration& config) :
     DB(key),
     poolDir_(PoolManager::pool(key)),
     init_(false)
@@ -44,7 +44,7 @@ PMemDB::PMemDB(const Key& key) :
 }
 
 
-PMemDB::PMemDB(const PathName& poolDir) :
+PMemDB::PMemDB(const PathName& poolDir, const eckit::Configuration& config) :
     DB(Key()),
     poolDir_(poolDir),
     init_(false)

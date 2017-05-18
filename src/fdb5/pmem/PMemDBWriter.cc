@@ -22,12 +22,12 @@ namespace pmem {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemDBWriter::PMemDBWriter(const Key &key) :
-    PMemDB(key) {}
+PMemDBWriter::PMemDBWriter(const Key &key, const eckit::Configuration& config) :
+    PMemDB(key, config) {}
 
 
-PMemDBWriter::PMemDBWriter(const PathName &directory) :
-    PMemDB(directory) {}
+PMemDBWriter::PMemDBWriter(const PathName &directory, const eckit::Configuration& config) :
+    PMemDB(directory, config) {}
 
 PMemDBWriter::~PMemDBWriter() {
 }

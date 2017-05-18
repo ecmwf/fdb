@@ -21,6 +21,7 @@
 #include "eckit/memory/Owned.h"
 #include "eckit/io/Length.h"
 #include "eckit/types/Types.h"
+#include "eckit/config/LocalConfiguration.h"
 
 #include "fdb5/database/Key.h"
 
@@ -117,8 +118,8 @@ class DBFactory : private eckit::NonCopyable {
     bool read_;
     bool write_;
 
-    virtual DB *make(const Key &key) const = 0 ;
-    virtual DB *make(const eckit::PathName& path) const = 0 ;
+    virtual DB *make(const Key &key, const eckit::Configuration& config) const = 0 ;
+    virtual DB *make(const eckit::PathName& path, const eckit::Configuration& config) const = 0 ;
 
 protected:
 
@@ -128,9 +129,9 @@ protected:
 public:
 
     static void list(std::ostream &);
-    static DB* buildWriter(const Key &key);
-    static DB* buildReader(const Key &key);
-    static DB* buildReader(const eckit::PathName& path);
+    static DB* buildWriter(const Key &key, const eckit::Configuration& config=eckit::LocalConfiguration());
+    static DB* buildReader(const Key &key, const eckit::Configuration& config=eckit::LocalConfiguration());
+    static DB* buildReader(const eckit::PathName& path, const eckit::Configuration& config=eckit::LocalConfiguration());
 
 private: // methods
 
@@ -146,11 +147,11 @@ private: // methods
 template< class T>
 class DBBuilder : public DBFactory {
 
-    virtual DB *make(const Key &key) const {
-        return new T(key);
+    virtual DB *make(const Key &key, const eckit::Configuration& config) const {
+        return new T(key, config);
     }
-    virtual DB *make(const eckit::PathName& path) const {
-        return new T(path);
+    virtual DB *make(const eckit::PathName& path, const eckit::Configuration& config) const {
+        return new T(path, config);
     }
 
 public:

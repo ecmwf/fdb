@@ -22,11 +22,13 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-Archiver::Archiver() :
+Archiver::Archiver(const eckit::Configuration& dbConfig) :
+    dbConfig_(dbConfig),
     current_(0) {
 }
 
 Archiver::~Archiver() {
+
     flush(); // certify that all sessions are flushed before closing them
 
     for(std::vector<Schema*>::iterator j = schemas_.begin(); j != schemas_.end(); ++j) {
@@ -97,7 +99,7 @@ DB& Archiver::database(const Key &key) {
         }
     }
 
-    eckit::SharedPtr<DB> db ( DBFactory::buildWriter(key) );
+    eckit::SharedPtr<DB> db ( DBFactory::buildWriter(key, dbConfig_) );
     ASSERT(db);
     databases_[key] = db;
     return *db;

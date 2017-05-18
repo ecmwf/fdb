@@ -71,8 +71,6 @@ private: // methods
 
 private: // data
 
-    const Schema& schema_;
-
     mutable eckit::CacheLRU<Key,DB*> databases_;
 
 };

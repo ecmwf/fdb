@@ -38,8 +38,8 @@ class PMemDB : public DB {
 
 public: // methods
 
-    PMemDB(const Key& key);
-    PMemDB(const eckit::PathName& directory);
+    PMemDB(const Key& key, const eckit::Configuration& config);
+    PMemDB(const eckit::PathName& directory, const eckit::Configuration& config);
 
     virtual ~PMemDB();
 

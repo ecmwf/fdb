@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2017 ECMWF.
+ i (C) Copyright 1996-2017 ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 
+#include "eckit/config/Configuration.h"
 #include "eckit/config/Resource.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/log/BigNum.h"
@@ -20,6 +21,7 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
+#include "eckit/filesystem/PathName.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
@@ -48,15 +50,36 @@ class TocHandlerCloser {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocHandler::TocHandler(const eckit::PathName &directory) :
+TocHandler::TocHandler(const eckit::PathName &directory, const eckit::Configuration& config) :
     directory_(directory),
     dbUID_(-1),
     userUID_(::getuid()),
     tocPath_(directory / "toc"),
     schemaPath_(directory / "schema"),
     fd_(-1),
-    count_(0) {
+    count_(0),
+    useSubToc_(config.getBool("useSubToc", false)),
+    isSubToc_(false) {
+
+    // An override to enable using sub tocs without configurations being passed in, for ease
+    // of debugging
+    const char* subTocOverride = ::getenv("FDB5_SUB_TOCS");
+    if (subTocOverride) {
+        useSubToc_ = true;
+    }
 }
+
+TocHandler::TocHandler(const eckit::PathName& path, bool) :
+    directory_(path.dirName()),
+    dbUID_(-1),
+    userUID_(::getuid()),
+    tocPath_(path),
+    schemaPath_(path.dirName() / "schema"),
+    fd_(-1),
+    count_(0),
+    useSubToc_(false),
+    isSubToc_(true) {}
+
 
 TocHandler::~TocHandler() {
     close();
@@ -136,7 +159,60 @@ void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
 }
 
-bool TocHandler::readNext( TocRecord &r ) const {
+// readNext wraps readNextInternal.
+// readNext reads the next TOC entry from this toc, or from an appropriate subtoc if necessary.
+bool TocHandler::readNext( TocRecord &r, bool walkSubTocs ) const {
+
+    int len;
+
+    // For some tools (mainly diagnostic) it makes sense to be able to switch the
+    // walking behaviour here.
+
+    if (!walkSubTocs)
+        return readNextInternal(r);
+
+
+    while (true) {
+
+        if (subTocRead_) {
+            len = subTocRead_->readNext(r);
+            if (len == 0) {
+                subTocRead_.reset();
+            } else {
+                ASSERT(r.header_.tag_ != TocRecord::TOC_SUB_TOC);
+                return true;
+            }
+        } else {
+
+            if (!readNextInternal(r)) {
+
+                return false;
+
+            } else if (r.header_.tag_ == TocRecord::TOC_SUB_TOC) {
+
+                eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+                eckit::PathName path;
+                s >> path;
+
+                subTocRead_.reset(new TocHandler(path, true));
+                subTocRead_->openForRead();
+
+                // The first entry in a subtoc must be the init record. Check that
+                subTocRead_->readNext(r);
+                ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
+
+            } else {
+
+                // A normal read operation
+                return true;
+            }
+        }
+    }
+}
+
+// readNext wraps readNextInternal.
+// readNextInternal reads the next TOC entry from this toc.
+bool TocHandler::readNextInternal( TocRecord &r ) const {
 
     int len;
 
@@ -150,9 +226,9 @@ bool TocHandler::readNext( TocRecord &r ) const {
     SYSCALL2( len = ::read(fd_, &r.payload_, r.header_.size_ - sizeof(TocRecord::Header)), tocPath_ );
     ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
 
-    if ( TocRecord::currentVersion() != r.header_.version_ ) {
+    if ( TocRecord::currentVersion() < r.header_.version_ ) {
         std::ostringstream oss;
-        oss << "Record version mistach, expected " << TocRecord::currentVersion()
+        oss << "Record version mistach, software handles version <= " << TocRecord::currentVersion()
             << ", got " << r.header_.version_;
         throw eckit::SeriousBug(oss.str());
     }
@@ -165,6 +241,15 @@ void TocHandler::close() const {
         // eckit::Log::info() << "Closing TOC " << tocPath_ << std::endl;
         SYSCALL2( ::close(fd_), tocPath_ );
         fd_ = -1;
+    }
+    if (subTocRead_) {
+        subTocRead_->close();
+        subTocRead_.reset();
+    }
+    if (subTocWrite_) {
+        // We keep track of the sub toc we are writing to until the process is closed, so don't reset
+        // the pointer here (or we will create a proliferation of sub tocs)
+        subTocWrite_->close();
     }
 }
 
@@ -192,37 +277,42 @@ void TocHandler::writeInitRecord(const Key &key) {
     size_t len = readNext(r);
     if (len == 0) {
 
-        /* Copy rules first */
+        eckit::Log::info() << "Initializing FDB TOC in " << tocPath_ << std::endl;
 
+        if (!isSubToc_) {
 
-        eckit::Log::info() << "Copy schema from "
-                           << MasterConfig::instance().schemaPath()
-                           << " to "
-                           << schemaPath_
-                           << std::endl;
+            /* Copy schema first */
 
-        eckit::PathName tmp = eckit::PathName::unique(schemaPath_);
+            eckit::Log::debug<LibFdb>() << "Copy schema from "
+                               << MasterConfig::instance().schemaPath()
+                               << " to "
+                               << schemaPath_
+                               << std::endl;
 
-        eckit::FileHandle in(MasterConfig::instance().schemaPath());
+            eckit::PathName tmp = eckit::PathName::unique(schemaPath_);
 
-        // Enforce lustre striping if requested
+            eckit::FileHandle in(MasterConfig::instance().schemaPath());
 
-        // SDS: Would be nicer to do this, but FileHandle doesn't have a path_ member, let alone an exposed one
-        //      so would need some tinkering to work with LustreFileHandle.
-        // LustreFileHandle<eckit::FileHandle> out(tmp, stripeIndexLustreSettings());
+            // Enforce lustre striping if requested
 
-        if (stripeLustre()) {
-            LustreStripe stripe = stripeIndexLustreSettings();
-            fdb5LustreapiFileCreate(tmp.localPath(), stripe.size_, stripe.count_);
+            // SDS: Would be nicer to do this, but FileHandle doesn't have a path_ member, let alone an exposed one
+            //      so would need some tinkering to work with LustreFileHandle.
+            // LustreFileHandle<eckit::FileHandle> out(tmp, stripeIndexLustreSettings());
+
+            if (stripeLustre()) {
+                LustreStripe stripe = stripeIndexLustreSettings();
+                fdb5LustreapiFileCreate(tmp.localPath(), stripe.size_, stripe.count_);
+            }
+            eckit::FileHandle out(tmp);
+            in.saveInto(out);
+
+            eckit::PathName::rename(tmp, schemaPath_);
         }
-        eckit::FileHandle out(tmp);
-        in.saveInto(out);
-
-        eckit::PathName::rename(tmp, schemaPath_);
 
         TocRecord r( TocRecord::TOC_INIT );
         eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
         s << key;
+        s << isSubToc_;
         append(r, s.position());
         dbUID_ = r.header_.uid_;
 
@@ -265,10 +355,23 @@ void TocHandler::writeClearRecord(const Index &index) {
     index.visit(writeVisitor);
 }
 
-void TocHandler::writeIndexRecord(const Index& index) {
+void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
 
     openForAppend();
     TocHandlerCloser closer(*this);
+
+    TocRecord r( TocRecord::TOC_SUB_TOC );
+    eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+    s << subToc.tocPath();
+    append(r, s.position());
+
+    eckit::Log::debug<LibFdb>() << "TOC_SUB_TOC " << subToc.tocPath() << std::endl;
+}
+
+
+void TocHandler::writeIndexRecord(const Index& index) {
+
+    // Toc index writer
 
     struct WriteToStream : public IndexLocationVisitor {
         WriteToStream(const Index& index, TocHandler& handler) : index_(index), handler_(handler) {}
@@ -294,6 +397,30 @@ void TocHandler::writeIndexRecord(const Index& index) {
         const Index& index_;
         TocHandler& handler_;
     };
+
+    // If we are using a sub toc, delegate there
+
+    if (useSubToc_) {
+
+        // Create the sub toc, and insert the redirection record into the the master toc.
+
+        if (!subTocWrite_) {
+
+            subTocWrite_.reset(new TocHandler(eckit::PathName::unique(tocPath_), true));
+
+            subTocWrite_->writeInitRecord(databaseKey());
+
+            writeSubTocRecord(*subTocWrite_);
+        }
+
+        subTocWrite_->writeIndexRecord(index);
+        return;
+    }
+
+    // Otherwise, we actually do the writing!
+
+    openForAppend();
+    TocHandlerCloser closer(*this);
 
     WriteToStream writeVisitor(index, *this);
     index.visit(writeVisitor);
@@ -454,18 +581,19 @@ const eckit::PathName &TocHandler::schemaPath() const {
 }
 
 
-void TocHandler::dump(std::ostream& out, bool simple) {
+void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
 
     openForRead();
     TocHandlerCloser close(*this);
 
     TocRecord r;
 
-    while ( readNext(r) ) {
+    while ( readNext(r, walkSubTocs) ) {
 
         eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
         std::string path;
         std::string type;
+        bool isSubToc;
 
         off_t offset;
         std::vector<Index>::iterator j;
@@ -475,7 +603,11 @@ void TocHandler::dump(std::ostream& out, bool simple) {
         switch (r.header_.tag_) {
 
             case TocRecord::TOC_INIT: {
-                out << "  Key: " << Key(s);
+                isSubToc = false;
+                if (r.header_.version_ > 1) {
+                    s >> isSubToc;
+                }
+                out << "  Key: " << Key(s) << ", sub-toc: " << (isSubToc ? "yes" : "no");
                 if(!simple) { out << std::endl; }
                 break;
             }
@@ -498,6 +630,12 @@ void TocHandler::dump(std::ostream& out, bool simple) {
                 break;
             }
 
+            case TocRecord::TOC_SUB_TOC: {
+                s >> path;
+                out << "  Path: " << path << std::endl;
+                break;
+            }
+
             default: {
                 out << "   Unknown TOC entry" << std::endl;
                 break;
@@ -506,6 +644,51 @@ void TocHandler::dump(std::ostream& out, bool simple) {
         out << std::endl;
     }
 }
+
+
+void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFile) const {
+
+    openForRead();
+    TocHandlerCloser close(*this);
+
+    TocRecord r;
+
+    while ( readNext(r) ) {
+
+        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        std::string path;
+        std::string type;
+        off_t offset;
+
+        switch (r.header_.tag_) {
+
+            case TocRecord::TOC_INDEX: {
+                s >> path;
+                s >> offset;
+                s >> type;
+
+                if ((directory_ / path).fullName() == indexFile.fullName()) {
+                    out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
+                    Index index(new TocIndex(s, directory_, directory_ / path, offset));
+                    index.dump(out, "  ", false, true);
+                }
+                break;
+            }
+
+            case TocRecord::TOC_CLEAR:
+            case TocRecord::TOC_INIT:
+            case TocRecord::TOC_SUB_TOC:
+                break;
+
+            default: {
+                out << "   Unknown TOC entry" << std::endl;
+                break;
+            }
+        }
+    }
+
+}
+
 
 std::string TocHandler::dbOwner() {
     return userName(dbUID());

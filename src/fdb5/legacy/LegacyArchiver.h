@@ -35,7 +35,7 @@ class LegacyArchiver :  public Archiver {
 
 public: // methods
 
-    LegacyArchiver();
+    LegacyArchiver(const eckit::Configuration& config=eckit::LocalConfiguration());
 
     void archive(const eckit::DataBlobPtr blob);
 

@@ -56,7 +56,10 @@ public: // methods
     void clear();
 
     bool match(const Key& other) const;
+
     bool match(const Key& other, const eckit::StringList& ignore) const;
+
+    bool match(const std::string& key, const std::set<std::string>& values) const;
 
     bool operator< (const Key &other) const {
         return keys_ < other.keys_;
@@ -95,10 +98,14 @@ public: // methods
     const_reverse_iterator rbegin() const { return keys_.rbegin(); }
     const_reverse_iterator rend() const { return keys_.rend(); }
     const_iterator find(const std::string& s) const { return keys_.find(s); }
+
+    size_t size() const { return keys_.size(); }
     bool empty() const { return keys_.empty(); }
 
     /// @throws When "other" doesn't contain all the keys of "this"
     void validateKeysOf(const Key& other, bool checkAlsoValues = false) const;
+
+    operator eckit::StringDict() const;
 
 private: // members
 

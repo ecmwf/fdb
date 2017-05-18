@@ -28,16 +28,16 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-TocDBWriter::TocDBWriter(const Key &key) :
-    TocDB(key),
+TocDBWriter::TocDBWriter(const Key &key, const eckit::Configuration& config) :
+    TocDB(key, config),
     dirty_(false) {
     writeInitRecord(key);
     loadSchema();
     checkUID();
 }
 
-TocDBWriter::TocDBWriter(const eckit::PathName &directory) :
-    TocDB(directory),
+TocDBWriter::TocDBWriter(const eckit::PathName &directory, const eckit::Configuration& config) :
+    TocDB(directory, config),
     dirty_(false) {
 
     NOTIMP; // TODO: Not clear what should occur here for writeInitRecord.
@@ -253,7 +253,6 @@ void TocDBWriter::closeIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
         Index& idx = j->second;
         idx.close();
-        // writeIndexRecord(*idx);
     }
 
     indexes_.clear(); // all indexes instances destroyed

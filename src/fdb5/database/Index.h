@@ -114,7 +114,9 @@ public: // methods
 
     virtual void encode(eckit::Stream &s) const = 0;
     virtual void entries(EntryVisitor &visitor) const = 0;
-    virtual void dump(std::ostream &out, const char* indent, bool simple = false) const = 0;
+    virtual void dump(std::ostream &out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
+
+    virtual bool mayContain(const Key& key) const;
 
     virtual IndexStats statistics() const = 0;
 
@@ -173,12 +175,16 @@ public: // methods
 
     void encode(eckit::Stream& s) const { content_->encode(s); }
     void entries(EntryVisitor& v) const { content_->entries(v); }
-    void dump(std::ostream &out, const char* indent, bool simple = false) const { content_->dump(out, indent, simple); }
+    void dump(std::ostream &out, const char* indent, bool simple = false, bool dumpFields = false) const {
+        content_->dump(out, indent, simple, dumpFields);
+    }
 
     IndexStats statistics() const { return content_->statistics(); }
 
     IndexBase* content() { return content_; }
     const IndexBase* content() const { return content_; }
+
+    bool mayContain(const Key& key) const { return content_->mayContain(key); }
 
     bool null() const { return null_; }
 
