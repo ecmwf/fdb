@@ -58,7 +58,7 @@ public: // methods
     void writeSubTocRecord(const TocHandler& subToc);
     void writeIndexRecord(const Index &);
 
-    std::vector<Index> loadIndexes() const;
+    std::vector<Index> loadIndexes(bool sorted=false) const;
 
     Key databaseKey();
     size_t numberOfRecords() const;

@@ -220,7 +220,7 @@ void FDBStats::process(const eckit::PathName &path, const eckit::option::CmdArgs
 
     ReportVisitor visitor(path);
 
-    std::vector<fdb5::Index> indexes = handler.loadIndexes();
+    std::vector<fdb5::Index> indexes = handler.loadIndexes(true);
 
     for (std::vector<fdb5::Index>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
         i->entries(visitor);

@@ -506,7 +506,7 @@ const eckit::PathName& TocHandler::directory() const
     return directory_;
 }
 
-std::vector<Index> TocHandler::loadIndexes() const {
+std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
 
     std::vector<Index> indexes;
 
@@ -566,7 +566,41 @@ std::vector<Index> TocHandler::loadIndexes() const {
 
     }
 
-    std::reverse(indexes.begin(), indexes.end()); // the entries of the last index takes precedence
+    // For some purposes, it is useful to have the indexes sorted by their location, as this is is faster for
+    // iterating through the data.
+
+    if (sorted) {
+
+        struct IndexFileSort {
+
+            // Return true if first argument is earlier than the second, and false otherwise.
+            bool operator() (const Index& lhs, const Index& rhs) {
+
+                const TocIndex* idx1 = dynamic_cast<const TocIndex*>(lhs.content());
+                const TocIndex* idx2 = dynamic_cast<const TocIndex*>(rhs.content());
+
+                ASSERT(idx1);
+                ASSERT(idx2);
+
+                const eckit::PathName& pth1(idx1->path());
+                const eckit::PathName& pth2(idx2->path());
+
+                if (pth1 == pth2) {
+                    return idx1->offset() < idx2->offset();
+                } else {
+                    return pth1 < pth2;
+                }
+            }
+        };
+
+        std::sort(indexes.begin(), indexes.end(), IndexFileSort());
+
+    } else {
+
+        // In the normal case, the entries are sorted into reverse order. The last index takes precedence
+        std::reverse(indexes.begin(), indexes.end());
+
+    }
 
     return indexes;
 
