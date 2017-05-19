@@ -70,13 +70,13 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     fdb5::HandleGatherer handles(false);
 
+    fdb5::Retriever retriever;
+
     for (std::vector<MarsRequest>::const_iterator rit = requests.begin(); rit != requests.end(); ++rit) {
 
         eckit::Log::info() << (*rit) << std::endl;
 
         MarsTask task(*rit, e);
-
-        fdb5::Retriever retriever;
 
         handles.add(retriever.retrieve(task));
     }
