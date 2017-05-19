@@ -82,14 +82,13 @@ protected: // members
 
     TocDBReader reader_;
 
-    const Index* lastIndex_;
     eckit::PathName lastDataPath_;
+    eckit::PathName lastIndexPath_;
 };
 
 ReportVisitor::ReportVisitor(const eckit::PathName& directory) :
     directory_(directory),
     dbStats_(new TocDbStats()),
-    lastIndex_(0),
     reader_(directory_, LocalConfiguration()) {
 
     dbStats_ = reader_.stats();
@@ -134,13 +133,14 @@ void ReportVisitor::visit(const Index &index,
         lastDataPath_ = dataPath;
     }
 
-    if (&index != lastIndex_) {
+    if (indexPath != lastIndexPath_) {
+
         if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
             dbStats->indexFilesSize_ += indexPath.size();
             allIndexFiles_.insert(indexPath);
             dbStats->indexFilesCount_++;
         }
-        lastIndex_ = &index;
+        lastIndexPath_ = indexPath;
     }
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
