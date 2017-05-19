@@ -14,6 +14,7 @@
 
 #include "fdb5/database/Retriever.h"
 #include "fdb5/grib/GribDecoder.h"
+#include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBAccess.h"
 #include "fdb5/tools/RequestParser.h"
 
@@ -44,31 +45,45 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
     bool extract = false;
     args.get("extract", extract);
 
-    MarsRequest r;
+    std::vector<MarsRequest> requests;
+    MarsRequest e("environ");
+
+    // Build request(s) from input
+
+    eckit::FileHandle out(args(1));
 
     if (extract) {
+
         fdb5::GribDecoder decoder;
-        r = decoder.gribToRequest(args(0));
+        requests = decoder.gribToRequests(args(0));
+
     } else {
         std::ifstream in(args(0).c_str());
         if (in.bad()) {
             throw eckit::ReadError(args(0));
         }
         fdb5::RequestParser parser(in);
-        r = parser.parse();
+        requests.push_back(parser.parse());
     }
 
-    std::cout << r << std::endl;
+    // Evaluate the requests to obtain data handles
 
-    MarsRequest e("environ");
+    fdb5::HandleGatherer handles(false);
 
-    MarsTask task(r, e);
+    for (std::vector<MarsRequest>::const_iterator rit = requests.begin(); rit != requests.end(); ++rit) {
 
-    fdb5::Retriever retriever;
+        eckit::Log::info() << (*rit) << std::endl;
 
-    eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve(task) );
+        MarsTask task(*rit, e);
 
-    eckit::FileHandle out( args(1));
+        fdb5::Retriever retriever;
+
+        handles.add(retriever.retrieve(task));
+    }
+
+    // And get the data
+
+    eckit::ScopedPtr<DataHandle> dh(handles.dataHandle());
 
     dh->saveInto(out);
 }

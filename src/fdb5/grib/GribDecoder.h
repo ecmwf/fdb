@@ -19,6 +19,7 @@
 
 #include "eckit/io/Buffer.h"
 #include "marslib/MarsRequest.h"
+#include <vector>
 
 struct grib_handle;
 
@@ -44,6 +45,7 @@ public:
 
     size_t gribToKey(EmosFile &file, Key &key);
     MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
+    std::vector<MarsRequest> gribToRequests(const eckit::PathName &path, const char *verb = "retrieve");
 
     const eckit::Buffer &buffer() const {
         return buffer_;
