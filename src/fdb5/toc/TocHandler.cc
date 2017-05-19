@@ -161,7 +161,7 @@ void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
 // readNext wraps readNextInternal.
 // readNext reads the next TOC entry from this toc, or from an appropriate subtoc if necessary.
-bool TocHandler::readNext( TocRecord &r, bool walkSubTocs ) const {
+bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntries) const {
 
     int len;
 
@@ -197,9 +197,14 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs ) const {
                 subTocRead_.reset(new TocHandler(path, true));
                 subTocRead_->openForRead();
 
-                // The first entry in a subtoc must be the init record. Check that
-                subTocRead_->readNext(r);
-                ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
+                if (hideSubTocEntries) {
+                    // The first entry in a subtoc must be the init record. Check that
+                    subTocRead_->readNext(r);
+                    ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
+                } else {
+                    // If not hiding the subtoc entries, return them as normal entries!
+                    return true;
+                }
 
             } else {
 
@@ -234,6 +239,45 @@ bool TocHandler::readNextInternal( TocRecord &r ) const {
     }
 
     return true;
+}
+
+std::vector<PathName> TocHandler::subTocPaths() const {
+
+    openForRead();
+    TocHandlerCloser close(*this);
+
+    TocRecord r;
+
+    std::vector<eckit::PathName> paths;
+
+    while ( readNext(r, true, false) ) {
+
+        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        std::string path;
+
+        switch (r.header_.tag_) {
+
+            case TocRecord::TOC_SUB_TOC: {
+                s >> path;
+                paths.push_back(path);
+                break;
+            }
+
+            case TocRecord::TOC_INIT:
+            case TocRecord::TOC_INDEX:
+            case TocRecord::TOC_CLEAR:
+                break;
+
+            default: {
+                // This is only a warning, as it is legal for later versions of software to add stuff
+                // that is just meaningless in a backwards-compatible sense.
+                Log::warning() << "Unknown TOC entry" << std::endl;
+                break;
+            }
+        }
+    }
+
+    return paths;
 }
 
 void TocHandler::close() const {
@@ -734,10 +778,27 @@ DbStats TocHandler::stats() const
 
     stats->dbCount_         += 1;
     stats->tocRecordsCount_ += numberOfRecords();
-    stats->tocFileSize_     += tocPath().size();
+    stats->tocFileSize_     += tocFilesSize();
     stats->schemaFileSize_  += schemaPath().size();
 
     return DbStats(stats);
+}
+
+size_t TocHandler::tocFilesSize() const {
+
+    // Get the size of the master toc
+
+    size_t size =  tocPath().size();
+
+    // If we have subtocs, we need to get those too!
+
+    std::vector<eckit::PathName> subtocs = subTocPaths();
+
+    for (std::vector<eckit::PathName>::const_iterator i = subtocs.begin(); i != subtocs.end(); ++i) {
+        size += i->size();
+    }
+
+    return size;
 }
 
 std::string TocHandler::userName(long id) const {
