@@ -58,7 +58,7 @@ public: // methods
     void writeSubTocRecord(const TocHandler& subToc);
     void writeIndexRecord(const Index &);
 
-    std::vector<Index> loadIndexes() const;
+    std::vector<Index> loadIndexes(bool sorted=false) const;
 
     Key databaseKey();
     size_t numberOfRecords() const;
@@ -72,6 +72,12 @@ public: // methods
     std::string dbOwner();
 
     DbStats stats() const;
+
+protected: // methods
+
+    size_t tocFilesSize() const;
+
+    std::vector<eckit::PathName> subTocPaths() const;
 
 protected: // members
 
@@ -98,7 +104,9 @@ private: // members
     void close() const;
 
     void append(TocRecord &r, size_t payloadSize);
-    bool readNext(TocRecord &r, bool walkSubTocs = true) const;
+    // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
+    // the mechanism of subtocs).
+    bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true) const;
     bool readNextInternal(TocRecord &r) const;
 
     std::string userName(long) const;
