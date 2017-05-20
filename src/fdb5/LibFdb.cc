@@ -23,12 +23,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static LibFdb libfdb;
+REGISTER_LIBRARY(LibFdb);
 
 LibFdb::LibFdb() : Library("fdb") {}
 
 LibFdb& LibFdb::instance()
 {
+    static LibFdb libfdb;
     return libfdb;
 }
 
