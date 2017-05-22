@@ -367,6 +367,8 @@ void TocHandler::populateMaskedSubTocsList() const {
 
     off_t ret = lseek(fd_, startPosition, SEEK_SET);
     ASSERT(ret == startPosition);
+
+    enumeratedMaskedSubTocs_ = true;
 }
 
 void TocHandler::writeInitRecord(const Key &key) {
