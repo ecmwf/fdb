@@ -59,7 +59,8 @@ TocHandler::TocHandler(const eckit::PathName &directory, const eckit::Configurat
     fd_(-1),
     count_(0),
     useSubToc_(config.getBool("useSubToc", false)),
-    isSubToc_(false) {
+    isSubToc_(false),
+    enumeratedMaskedSubTocs_(false) {
 
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
@@ -78,7 +79,8 @@ TocHandler::TocHandler(const eckit::PathName& path, bool) :
     fd_(-1),
     count_(0),
     useSubToc_(false),
-    isSubToc_(true) {}
+    isSubToc_(true),
+    enumeratedMaskedSubTocs_(false) {}
 
 
 TocHandler::~TocHandler() {
@@ -143,20 +145,31 @@ void TocHandler::openForRead() const {
     //  iomode |= O_NOATIME;
     //#endif
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
+
+    // The masked sub tocs could be updated each time, so reset this.
+    enumeratedMaskedSubTocs_ = false;
+    maskedSubTocs_.clear();
 }
 
 void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
     ASSERT(fd_ != -1);
 
+    // Obtain the rounded size, and set it in the record header.
+    size_t roundedSize = roundRecord(r, payloadSize);
+
+    size_t len;
+    SYSCALL2( len = ::write(fd_, &r, roundedSize), tocPath_ );
+    ASSERT( len == roundedSize);
+}
+
+size_t TocHandler::roundRecord(TocRecord &r, size_t payloadSize) {
+
     static size_t fdbRoundTocRecords = eckit::Resource<size_t>("fdbRoundTocRecords", 1024);
 
     r.header_.size_ = eckit::round(sizeof(TocRecord::Header) + payloadSize, fdbRoundTocRecords);
 
-    size_t len;
-    SYSCALL2( len = ::write(fd_, &r, r.header_.size_), tocPath_ );
-    ASSERT( len == r.header_.size_ );
-
+    return r.header_.size_;
 }
 
 // readNext wraps readNextInternal.
@@ -190,9 +203,21 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
             } else if (r.header_.tag_ == TocRecord::TOC_SUB_TOC) {
 
+                // Now that we have hit a subtoc, we need the list of masked subtocs to be
+                // populated
+                if (!enumeratedMaskedSubTocs_) {
+                    populateMaskedSubTocsList();
+                }
+
                 eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
                 eckit::PathName path;
                 s >> path;
+
+                // If this subtoc has a masking entry, then skip it, and go on to the next entry.
+                if (std::find(maskedSubTocs_.begin(), maskedSubTocs_.end(), path) != maskedSubTocs_.end()) {
+//                    Log::debug<LibFdb>() << "SubToc ignored by mask: " << path << std::endl;
+                    continue;
+                }
 
                 subTocRead_.reset(new TocHandler(path, true));
                 subTocRead_->openForRead();
@@ -263,6 +288,7 @@ std::vector<PathName> TocHandler::subTocPaths() const {
                 break;
             }
 
+            case TocRecord::TOC_MASK_SUB_TOC:
             case TocRecord::TOC_INIT:
             case TocRecord::TOC_INDEX:
             case TocRecord::TOC_CLEAR:
@@ -281,6 +307,7 @@ std::vector<PathName> TocHandler::subTocPaths() const {
 }
 
 void TocHandler::close() const {
+
     if ( fd_ >= 0 ) {
         // eckit::Log::info() << "Closing TOC " << tocPath_ << std::endl;
         SYSCALL2( ::close(fd_), tocPath_ );
@@ -295,6 +322,51 @@ void TocHandler::close() const {
         // the pointer here (or we will create a proliferation of sub tocs)
         subTocWrite_->close();
     }
+}
+
+void TocHandler::populateMaskedSubTocsList() const {
+
+    ASSERT(fd_ != 0 && fd_ != -1);
+
+    // Get the current position of the file descriptor.
+    off_t startPosition = lseek(fd_, 0, SEEK_CUR);
+
+    maskedSubTocs_.clear();
+
+    TocRecord r;
+
+    while ( readNextInternal(r) ) {
+
+        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        std::string path;
+
+        switch (r.header_.tag_) {
+
+            case TocRecord::TOC_MASK_SUB_TOC: {
+                s >> path;
+                maskedSubTocs_.push_back(path);
+                break;
+            }
+
+            case TocRecord::TOC_SUB_TOC:
+            case TocRecord::TOC_INIT:
+            case TocRecord::TOC_INDEX:
+            case TocRecord::TOC_CLEAR:
+                break;
+
+            default: {
+                // This is only a warning, as it is legal for later versions of software to add stuff
+                // that is just meaningless in a backwards-compatible sense.
+                Log::warning() << "Unknown TOC entry" << std::endl;
+                break;
+            }
+        }
+    }
+
+    // And reset back to where we were.
+
+    off_t ret = lseek(fd_, startPosition, SEEK_SET);
+    ASSERT(ret == startPosition);
 }
 
 void TocHandler::writeInitRecord(const Key &key) {
@@ -470,6 +542,65 @@ void TocHandler::writeIndexRecord(const Index& index) {
     index.visit(writeVisitor);
 }
 
+void TocHandler::rationaliseSubToc() {
+
+    // If we aren't using subtocs, don't do anything here
+
+    if (!useSubToc_ || !subTocWrite_)
+        return;
+
+    // First, do the same thing recursively, just in case we use multiple levels in the future.
+
+    subTocWrite_->rationaliseSubToc();
+
+    // Read all of the entries (excluding the init record)
+
+    PathName subToc(subTocWrite_->tocPath());
+    size_t combinedSize = subToc.size();
+
+    Buffer buf(sizeof(TocRecord) + subToc.size());
+
+    {
+        subTocWrite_->openForRead();
+        TocHandlerCloser closerSubToc(*subTocWrite_);
+
+        TocRecord rinit;
+        subTocWrite_->readNext(rinit);
+        ASSERT(rinit.header_.tag_ == TocRecord::TOC_INIT);
+
+        size_t initSize = rinit.header_.size_;
+
+        // Read everything into the buffer (excluding the INIT record)
+
+        combinedSize -= Length(initSize);
+
+        size_t len;
+        SYSCALL2( len = ::read(subTocWrite_->fd_, buf, combinedSize), subTocWrite_->tocPath() );
+        ASSERT(len == combinedSize);
+    }
+
+    // Now append a masking record
+
+    TocRecord* r = new (&buf[combinedSize]) TocRecord( TocRecord::TOC_MASK_SUB_TOC );
+
+    eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
+    s << subTocWrite_->tocPath();
+
+    combinedSize += roundRecord(*r, s.position()); // Obtain the rounded size, and set it in the record header.
+
+    // Append the acquired entries to self
+
+    {
+        openForAppend();
+        TocHandlerCloser closer(*this);
+
+        Log::debug<LibFdb>() << "Writing: " << combinedSize << std::endl;
+        size_t len;
+        SYSCALL2( len = ::write(fd_, buf, combinedSize), tocPath());
+        ASSERT( len == combinedSize );
+    }
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class HasPath {
@@ -602,6 +733,13 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
             }
             break;
 
+        case TocRecord::TOC_MASK_SUB_TOC: // This is only interesting internally to readNext
+            break;
+
+        case TocRecord::TOC_SUB_TOC:
+            throw eckit::SeriousBug("TOC_SUB_TOC entry should be handled insude readNext");
+            break;
+
         default:
             throw eckit::SeriousBug("Unknown tag in TocRecord", Here());
             break;
@@ -682,10 +820,11 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
 
             case TocRecord::TOC_INIT: {
                 isSubToc = false;
+                fdb5::Key key(s);
                 if (r.header_.version_ > 1) {
                     s >> isSubToc;
                 }
-                out << "  Key: " << Key(s) << ", sub-toc: " << (isSubToc ? "yes" : "no");
+                out << "  Key: " << key << ", sub-toc: " << (isSubToc ? "yes" : "no");
                 if(!simple) { out << std::endl; }
                 break;
             }
@@ -704,18 +843,24 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
             case TocRecord::TOC_CLEAR: {
                 s >> path;
                 s >> offset;
-                out << "  Path: " << path << ", offset: " << offset << std::endl;
+                out << "  Path: " << path << ", offset: " << offset;
                 break;
             }
 
             case TocRecord::TOC_SUB_TOC: {
                 s >> path;
-                out << "  Path: " << path << std::endl;
+                out << "  Path: " << path;
+                break;
+            }
+
+            case TocRecord::TOC_MASK_SUB_TOC: {
+                s >> path;
+                out << "  Path: " << path;
                 break;
             }
 
             default: {
-                out << "   Unknown TOC entry" << std::endl;
+                out << "   Unknown TOC entry";
                 break;
             }
         }
@@ -756,6 +901,7 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
             case TocRecord::TOC_CLEAR:
             case TocRecord::TOC_INIT:
             case TocRecord::TOC_SUB_TOC:
+            case TocRecord::TOC_MASK_SUB_TOC:
                 break;
 
             default: {

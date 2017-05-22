@@ -86,6 +86,10 @@ void TocDBWriter::close() {
 
     flush(); // closes the TOC entries & indexes but not data files
 
+    // If we are using a subToc, this is the last point it can be used. If appropriate,
+    // merge its entries back into the master toc, and mask the subtoc out (for read performance)
+    rationaliseSubToc();
+
     deselectIndex();
 
     closeDataHandles();

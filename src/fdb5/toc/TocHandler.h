@@ -58,6 +58,9 @@ public: // methods
     void writeSubTocRecord(const TocHandler& subToc);
     void writeIndexRecord(const Index &);
 
+    /// If we have a subTocWrite, append its entries to the master.
+    void rationaliseSubToc();
+
     std::vector<Index> loadIndexes(bool sorted=false) const;
 
     Key databaseKey();
@@ -103,7 +106,13 @@ private: // members
     void openForRead() const;
     void close() const;
 
+    /// Populate the masked sub toc list, starting from the _current_position_ in the
+    /// file (opened for read). It resets back to the same place when done. This is
+    /// to allow searching only from the first subtoc.
+    void populateMaskedSubTocsList() const;
+
     void append(TocRecord &r, size_t payloadSize);
+    static size_t roundRecord(TocRecord &r, size_t payloadSize);
     // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
     // the mechanism of subtocs).
     bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true) const;
@@ -123,6 +132,8 @@ private: // members
     mutable eckit::ScopedPtr<TocHandler> subTocRead_;
     mutable eckit::ScopedPtr<TocHandler> subTocWrite_;
     mutable size_t count_;
+    mutable bool enumeratedMaskedSubTocs_;
+    mutable std::vector<eckit::PathName> maskedSubTocs_;
 };
 
 
