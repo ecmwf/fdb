@@ -34,6 +34,8 @@ TocDBWriter::TocDBWriter(const Key &key, const eckit::Configuration& config) :
     writeInitRecord(key);
     loadSchema();
     checkUID();
+
+    rationaliseSubToc_ = config.getBool("rationaliseSubToc", true);
 }
 
 TocDBWriter::TocDBWriter(const eckit::PathName &directory, const eckit::Configuration& config) :
@@ -44,6 +46,8 @@ TocDBWriter::TocDBWriter(const eckit::PathName &directory, const eckit::Configur
 
     loadSchema();
     checkUID();
+
+    rationaliseSubToc_ = config.getBool("rationaliseSubToc", true);
 }
 
 TocDBWriter::~TocDBWriter() {
@@ -88,7 +92,8 @@ void TocDBWriter::close() {
 
     // If we are using a subToc, this is the last point it can be used. If appropriate,
     // merge its entries back into the master toc, and mask the subtoc out (for read performance)
-    rationaliseSubToc();
+    if (rationaliseSubToc_)
+        rationaliseSubToc();
 
     deselectIndex();
 
