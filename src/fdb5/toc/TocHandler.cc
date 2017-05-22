@@ -549,6 +549,8 @@ void TocHandler::rationaliseSubToc() {
     if (!useSubToc_ || !subTocWrite_)
         return;
 
+    eckit::Timer t("SubToc Rationalisation");
+
     // First, do the same thing recursively, just in case we use multiple levels in the future.
 
     subTocWrite_->rationaliseSubToc();
