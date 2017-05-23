@@ -13,7 +13,7 @@ do
         echo "fdb5 $MARS_FDB_DTAP"
         exit
     else
-        echo "$SCHOST fdb"
+        echo "fdb"
         exit
     fi
 

@@ -8,21 +8,46 @@
  * does it submit to any jurisdiction.
  */
 
+#include <algorithm>
 #include <ostream>
 
 #include "eckit/log/Log.h"
 #include "eckit/utils/Regex.h"
+#include "eckit/os/BackTrace.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
-#include "fdb5/toc/TocEngine.h"
 #include "fdb5/toc/RootManager.h"
+#include "fdb5/toc/TocEngine.h"
 #include "fdb5/toc/TocHandler.h"
 
 using eckit::Regex;
 using eckit::Log;
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+static void leaves(const eckit::PathName& path, std::vector<eckit::PathName>& result) {
+
+    std::vector<eckit::PathName> subfiles;
+    std::vector<eckit::PathName> subdirs;
+
+    path.children(subfiles, subdirs); /// @todo this can be optimised if we create a PathName::subdirs() function just to return subdirs
+
+//    Log::debug<LibFdb>() << "Path --> "  << path << std::endl
+//                         << "    subdirs "  << subdirs << std::endl
+//                         << "    subfiles " << subfiles << std::endl;
+
+    if(!subdirs.size()) {
+        result.push_back(path);
+        return;
+    }
+
+    for(std::vector<eckit::PathName>::const_iterator i = subdirs.begin(); i != subdirs.end(); ++i) {
+        leaves(*i, result);
+    }
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -45,19 +70,21 @@ bool TocEngine::canHandle(const eckit::PathName& path) const
     return path.isDir() && toc.exists();
 }
 
-static void matchKeyToDB(const Key& key, std::set<Key>& keys)
+static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing)
 {
     const Schema& schema = MasterConfig::instance().schema();
-    schema.matchFirstLevel(key, keys);
+    schema.matchFirstLevel(key, keys, missing);
 }
 
-std::vector<eckit::PathName> TocEngine::databases(const Key &key, const std::vector<eckit::PathName>& dirs) {
+std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vector<eckit::PathName>& dirs) {
 
     std::set<Key> keys;
 
-    matchKeyToDB(key,keys);
+    const char* regexForMissingValues = "[^:/]*";
 
-    Log::debug<LibFdb>() << "Matched DB keys " << keys << std::endl;
+    matchKeyToDB(key, keys, regexForMissingValues);
+
+    Log::debug<LibFdb>() << "Matched DB schemas for key " << key << " -> keys " << keys << std::endl;
 
     std::vector<eckit::PathName> result;
     std::set<eckit::PathName> seen;
@@ -65,36 +92,49 @@ std::vector<eckit::PathName> TocEngine::databases(const Key &key, const std::vec
     for (std::vector<eckit::PathName>::const_iterator j = dirs.begin(); j != dirs.end(); ++j) {
 
         std::vector<eckit::PathName> subdirs;
-        eckit::PathName::match((*j) / "*:*", subdirs, false);
+        leaves(*j, subdirs);
 
-        Log::debug<LibFdb>() << "Subdirs " << subdirs << std::endl;
+        Log::debug<LibFdb>() << "Total root subdirs " << subdirs << std::endl;
 
         for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 
-            Regex re("^" + (*i).valuesToString() + "$");
+            std::vector<std::string> dbpaths = RootManager::possibleDbPathNames(*i, regexForMissingValues);
 
-            for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
+            for(std::vector<std::string>::const_iterator dbpath = dbpaths.begin(); dbpath != dbpaths.end(); ++dbpath) {
 
-                if(seen.find(*k) != seen.end()) {
-                    continue;
-                }
+                Regex re("^" + *j + "/" + *dbpath + "$");
 
-                if (re.match((*k).baseName())) {
-                    try {
-                        TocHandler toc(*k);
-                        if (toc.databaseKey().match(key)) {
-                            result.push_back(*k);
-                        }
-                    } catch (eckit::Exception& e) {
-                        eckit::Log::error() <<  "Error loading FDB database from " << *k << std::endl;
-                        eckit::Log::error() << e.what() << std::endl;
+                Log::debug<LibFdb>() << " -> key i " << *i
+                                     << " dbpath " << *dbpath
+                                     << " pathregex " << re << std::endl;
+
+                for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
+
+                    Log::debug<LibFdb>() << "    -> path " << *k << std::endl;
+
+                    if(seen.find(*k) != seen.end()) {
+                        continue;
                     }
-                    seen.insert(*k);;
-                }
 
+                    if (re.match(*k)) {
+                        try {
+                            TocHandler toc(*k);
+                            if (toc.databaseKey().match(key)) {
+                                Log::debug<LibFdb>() << " found match with " << *k << std::endl;
+                                result.push_back(*k);
+                            }
+                        } catch (eckit::Exception& e) {
+                            eckit::Log::error() <<  "Error loading FDB database from " << *k << std::endl;
+                            eckit::Log::error() << e.what() << std::endl;
+                        }
+                        seen.insert(*k);
+                    }
+                }
             }
         }
     }
+
+    Log::debug<LibFdb>() << "TocEngine::databases() results " << result << std::endl;
 
     return result;
 }

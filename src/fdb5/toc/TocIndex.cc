@@ -54,7 +54,6 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
     dirty_(false),
     mode_(mode),
     location_(path, offset) {
-    eckit::Log::debug<LibFdb>() << "Opening " << *this << std::endl;
 }
 
 TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
@@ -64,11 +63,10 @@ TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eck
     dirty_(false),
     mode_(TocIndex::READ),
     location_(path, offset) {
-    eckit::Log::debug<LibFdb>() << "Opening " << *this << std::endl;
 }
 
 TocIndex::~TocIndex() {
-    eckit::Log::debug<LibFdb>() << "Closing " << *this << std::endl;
+    close();
 }
 
 void TocIndex::encode(eckit::Stream &s) const {
@@ -97,6 +95,7 @@ bool TocIndex::get(const Key &key, Field &field) const {
 
 void TocIndex::open() {
     if (!btree_) {
+        eckit::Log::debug<LibFdb>() << "Opening " << *this << std::endl;
         btree_.reset(BTreeIndexFactory::build(type_, location_.path_, mode_ == TocIndex::READ, location_.offset_));
     }
 }
@@ -108,11 +107,20 @@ void TocIndex::reopen() {
 
     location_.offset_ = location_.path_.size();
 
+    // The axes object must be reset at this point, as the TocIndex object is no longer referring
+    // to the same region in memory. (i.e. the index is still associated with the same metadata
+    // at the second level of the schema, but is a NEW index).
+
+    axes_.wipe();
+
     open();
 }
 
 void TocIndex::close() {
-    btree_.reset(0);
+    if (btree_) {
+        eckit::Log::debug<LibFdb>() << "Closing " << *this << std::endl;
+        btree_.reset(0);
+    }
 }
 
 void TocIndex::add(const Key &key, const Field &field) {
@@ -178,12 +186,39 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-void TocIndex::dump(std::ostream &out, const char* indent, bool simple) const {
+
+class DumpBTreeVisitor : public BTreeIndexVisitor {
+    std::ostream& out_;
+    std::string indent_;
+public:
+
+    DumpBTreeVisitor(std::ostream& out, const std::string& indent) : out_(out), indent_(indent) {}
+    virtual ~DumpBTreeVisitor() {}
+
+    void visit(const std::string& key, const FieldRef& ref) {
+
+        out_ << indent_ << "Fingerprint: " << key << ", location: " << ref << std::endl;
+    }
+};
+
+
+void TocIndex::dump(std::ostream &out, const char* indent, bool simple, bool dumpFields) const {
     out << indent << "Prefix: " << prefix_ << ", key: " << key_;
+
     if(!simple) {
         out << std::endl;
         files_.dump(out, indent);
         axes_.dump(out, indent);
+    }
+
+    if (dumpFields) {
+        DumpBTreeVisitor v(out, std::string(indent) + std::string("  "));
+
+        out << std::endl;
+        out << indent << "Contents of index: " << std::endl;
+
+        TocIndexCloser closer(*this);
+        btree_->visit(v);
     }
 }
 

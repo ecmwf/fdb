@@ -8,10 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/types/Date.h"
-#include "eckit/log/Log.h"
-#include "eckit/config/Resource.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
@@ -29,14 +30,22 @@ namespace fdb5 {
 
 
 FDBInspect::FDBInspect(int argc, char **argv, std::string defaultMinimunKeySet) :
-    FDBTool(argc, argv) {
+    FDBTool(argc, argv),
+    fail_(true) {
 
     minimumKeySet_ = Resource<std::vector<std::string> >("wipeMinimumKeySet", defaultMinimunKeySet, true);
 
     if(minimumKeySet_.size() == 0) {
         options_.push_back(new eckit::option::SimpleOption<bool>("all", "Visit all FDB databases"));
     }
+
+    // Be able to turn fail-on-error off
+    options_.push_back(
+                new eckit::option::SimpleOption<bool>(
+                    "ignore-errors",
+                    "Ignore errors (report them as warnings) and continue processing wherever possible"));
 }
+
 
 void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
@@ -46,6 +55,13 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
     if (all && args.count()) {
         usage(args.tool());
         exit(1);
+    }
+
+    bool ignoreErrors;
+    args.get("ignore-errors", ignoreErrors);
+    if (ignoreErrors) {
+        Log::info() << "Errors ignored where possible" << std::endl;
+        fail_ = false;
     }
 
     std::vector<eckit::PathName> paths;
@@ -60,11 +76,13 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
         }
 
         if (dbs.size() == 0) {
-            Log::warning() << "No FDB matches " << dbKey << std::endl;
+            std::stringstream ss;
+            ss << "No FDB matches " << dbKey;
+            Log::warning() << ss.str() << std::endl;
+            if (fail_)
+                throw FDBToolException(ss.str(), Here());
         }
     }
-
-
 
     for (size_t i = 0; i < args.count(); ++i) {
 
@@ -73,6 +91,8 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             paths.push_back(path);
             continue;
         }
+
+        std::cout << "args " << args(i) << std::endl;
 
         try {
 
@@ -88,7 +108,11 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             }
 
             if (dbs.size() == 0) {
-                Log::warning() << "No FDB matches " << req.key() << std::endl;
+                std::stringstream ss;
+                ss << "No FDB matches " << req.key();
+                Log::warning() << ss.str() << std::endl;
+                if (fail_)
+                    throw FDBToolException(ss.str(), Here());
             }
 
         } catch (eckit::UserError&) {
@@ -96,6 +120,8 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
         } catch (eckit::Exception &e) {
             Log::warning() << e.what() << std::endl;
             paths.push_back(path);
+            if (fail_) // Possibly we want a separate catch block like eckit::UserError above
+                throw;
         }
 
     }
@@ -120,6 +146,10 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
     }
 }
 
+bool FDBInspect::fail() const {
+    return fail_;
+}
+
 
 void FDBInspect::usage(const std::string &tool) const {
     Log::info() << std::endl
@@ -137,9 +167,6 @@ void FDBInspect::usage(const std::string &tool) const {
                        << std::endl;
     FDBTool::usage(tool);
 }
-
-
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

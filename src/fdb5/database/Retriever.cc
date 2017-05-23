@@ -32,7 +32,6 @@ static void purgeDB(Key& key, DB*& db) {
 }
 
 Retriever::Retriever() :
-    schema_(MasterConfig::instance().schema()),
     databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeDB) {
 }
 
@@ -40,18 +39,30 @@ Retriever::~Retriever() {
 }
 
 eckit::DataHandle *Retriever::retrieve(const MarsTask& task,
-                                       const Schema&,
+                                       const Schema& schema,
                                        bool sorted,
                                        const fdb5::NotifyWind& notifyee) const {
 
-	HandleGatherer result(sorted);
-    MultiRetrieveVisitor visitor(notifyee, result, databases_);
-    Log::info() << "Schema: " << schema_ << std::endl;
-    schema_.expand(task.request(), visitor);
+    try {
 
-    eckit::Log::userInfo() << "Retrieving " << eckit::Plural(int(result.count()), "field") << std::endl;
+        HandleGatherer result(sorted);
+        MultiRetrieveVisitor visitor(notifyee, result, databases_);
 
-    return result.dataHandle();
+        Log::debug<LibFdb>() << "Using schema: " << schema << std::endl;
+
+        schema.expand(task.request(), visitor);
+
+        eckit::Log::userInfo() << "Retrieving " << eckit::Plural(int(result.count()), "field") << std::endl;
+
+        return result.dataHandle();
+
+    } catch (SchemaHasChanged& e) {
+
+        eckit::Log::warning() << e.what() << std::endl;
+        eckit::Log::warning() << "Trying with old schema: " << e.path() << std::endl;
+
+        return retrieve(task, Schema(e.path()), sorted, notifyee); // recurse down with the schema from the exception
+    }
 }
 
 eckit::DataHandle *Retriever::retrieve(const MarsTask &task) const {
@@ -81,20 +92,7 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const NotifyWind& n
         eckit::Log::userInfo() << "Using optimise" << std::endl;
     }
 
-    // TODO: this logic does not work if a retrieval spans several
-    // databases with different schemas. Another SchemaHasChanged will be thrown.
-    try {
-
-        return retrieve(task, schema_, sorted, notifyee);
-
-    } catch (SchemaHasChanged &e) {
-
-        eckit::Log::error() << e.what() << std::endl;
-        eckit::Log::error() << "Trying with old schema: " << e.path() << std::endl;
-
-        return retrieve(task, Schema(e.path()), sorted, notifyee);
-    }
-
+    return retrieve(task, MasterConfig::instance().schema(), sorted, notifyee);
 }
 
 void Retriever::print(std::ostream &out) const {

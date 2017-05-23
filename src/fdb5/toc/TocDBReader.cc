@@ -17,13 +17,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDBReader::TocDBReader(const Key& key) :
-    TocDB(key),
+TocDBReader::TocDBReader(const Key& key, const eckit::Configuration& config) :
+    TocDB(key, config),
     indexes_(loadIndexes()) {
 }
 
-TocDBReader::TocDBReader(const eckit::PathName& directory) :
-    TocDB(directory),
+TocDBReader::TocDBReader(const eckit::PathName& directory, const eckit::Configuration& config) :
+    TocDB(directory, config),
     indexes_(loadIndexes()) {
 }
 
@@ -51,15 +51,15 @@ bool TocDBReader::selectIndex(const Key &key) {
         if (j->key() == key) {
 //            eckit::Log::debug<LibFdb>() << "Matching " << j->key() << std::endl;
             matching_.push_back(*j);
-            j->open();
+//            j->open();
         }
 //        else {
 //           eckit::Log::info() << "Not matching " << j->key() << std::endl;
 //        }
     }
 
-    eckit::Log::info() << "TocDBReader::selectIndex " << key
-                       << ", found " << matching_.size() << " matche(s)" << std::endl;
+    eckit::Log::debug<LibFdb>() << "TocDBReader::selectIndex " << key << ", found "
+                                << matching_.size() << " matche(s)" << std::endl;
 
     return (matching_.size() != 0);
 }
@@ -98,9 +98,12 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
 
     Field field;
     for (std::vector<Index>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
-        if (j->get(key, field)) {
-            eckit::Log::debug<LibFdb>() << "FOUND KEY " << key << " -> " << *j << " " << field << std::endl;
-            return field.dataHandle();
+        if (j->mayContain(key)) {
+            const_cast<Index*>(&(*j))->open();
+            if (j->get(key, field)) {
+                eckit::Log::debug<LibFdb>() << "FOUND KEY " << key << " -> " << *j << " " << field << std::endl;
+                return field.dataHandle();
+            }
         }
     }
 

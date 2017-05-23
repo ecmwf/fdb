@@ -14,12 +14,18 @@
 #ifndef fdb5_TocHandler_H
 #define fdb5_TocHandler_H
 
-#include "eckit/io/Length.h"
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/io/Length.h"
+#include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/io/LustreFileHandle.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/toc/TocRecord.h"
+
+namespace eckit {
+class Configuration;
+}
 
 namespace fdb5 {
 
@@ -37,7 +43,11 @@ public: // typedefs
 
 public: // methods
 
-    TocHandler( const eckit::PathName &dir );
+    TocHandler( const eckit::PathName &dir, const eckit::Configuration& config=eckit::LocalConfiguration());
+
+    /// For initialising sub tocs or diagnostic interrogation. Bool just for identification.
+    TocHandler(const eckit::PathName& path, bool);
+
     ~TocHandler();
 
     bool exists() const;
@@ -45,9 +55,10 @@ public: // methods
 
     void writeInitRecord(const Key &tocKey);
     void writeClearRecord(const Index &);
+    void writeSubTocRecord(const TocHandler& subToc);
     void writeIndexRecord(const Index &);
 
-    std::vector<Index> loadIndexes() const;
+    std::vector<Index> loadIndexes(bool sorted=false) const;
 
     Key databaseKey();
     size_t numberOfRecords() const;
@@ -56,10 +67,17 @@ public: // methods
     const eckit::PathName& tocPath() const;
     const eckit::PathName& schemaPath() const;
 
-    void dump(std::ostream& out, bool simple = false);
+    void dump(std::ostream& out, bool simple = false, bool walkSubTocs = true);
+    void dumpIndexFile(std::ostream& out, const eckit::PathName& indexFile) const;
     std::string dbOwner();
 
     DbStats stats() const;
+
+protected: // methods
+
+    size_t tocFilesSize() const;
+
+    std::vector<eckit::PathName> subTocPaths() const;
 
 protected: // members
 
@@ -77,7 +95,7 @@ protected: // methods
 
     static LustreStripe stripeDataLustreSettings();
 
-private: // methods
+private: // members
 
     friend class TocHandlerCloser;
 
@@ -86,14 +104,24 @@ private: // methods
     void close() const;
 
     void append(TocRecord &r, size_t payloadSize);
-    bool readNext(TocRecord &r) const;
+    // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
+    // the mechanism of subtocs).
+    bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true) const;
+    bool readNextInternal(TocRecord &r) const;
 
     std::string userName(long) const;
 
     eckit::PathName tocPath_;
     eckit::PathName schemaPath_;
 
+    bool useSubToc_;
+    bool isSubToc_;
+
     mutable int fd_;      ///< file descriptor, if zero file is not yet open.
+
+    /// The sub toc is initialised in the read or write pathways for maintaining state.
+    mutable eckit::ScopedPtr<TocHandler> subTocRead_;
+    mutable eckit::ScopedPtr<TocHandler> subTocWrite_;
     mutable size_t count_;
 };
 

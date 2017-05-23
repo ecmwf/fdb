@@ -58,7 +58,11 @@ void FDBWhere::finish(const eckit::option::CmdArgs& args) {
         std::vector<eckit::PathName> roots = fdb5::Manager::visitableLocations(req.key());
 
         if(!roots.size()) {
-            Log::info() << "No roots found for request with key " << req.key() << std::endl;
+            std::stringstream ss;
+            ss << "No roots found for request with key " << req.key();
+            Log::info() << ss.str() << std::endl;
+            if (fail())
+                throw fdb5::FDBToolException(ss.str(), Here());
         }
 
         for (std::vector<eckit::PathName>::const_iterator i = roots.begin(); i != roots.end(); ++i) {

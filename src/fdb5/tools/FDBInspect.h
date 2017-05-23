@@ -11,12 +11,15 @@
 /// @file   FDBInspect.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
+/// @author Simon Smart
 /// @date   Mar 2016
 
 #ifndef fdb5_FDBInspect_H
 #define fdb5_FDBInspect_H
 
 #include "fdb5/tools/FDBTool.h"
+
+#include "eckit/exception/Exceptions.h"
 
 namespace fdb5 {
 
@@ -32,11 +35,18 @@ protected: // methods
 
     virtual void execute(const eckit::option::CmdArgs& args);
 
+    bool fail() const;
+
 private: // methods
 
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
 
+private: // members
+
     std::vector<std::string> minimumKeySet_;
+
+    // When processing elements, do we fail on error, or report warning and continue?
+    bool fail_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

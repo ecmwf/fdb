@@ -157,6 +157,7 @@ const std::string &Key::get( const std::string &k ) const {
 
 bool Key::match(const Key& other) const {
     for (const_iterator i = other.begin(); i != other.end(); ++i) {
+
         const_iterator j = find(i->first);
         if (j == end()) {
             return false;
@@ -170,12 +171,41 @@ bool Key::match(const Key& other) const {
     return true;
 }
 
+bool Key::match(const Key& other, const eckit::StringList& ignore) const {
+    for (const_iterator i = other.begin(); i != other.end(); ++i) {
+        if (std::find(ignore.begin(), ignore.end(), i->first) != ignore.end())
+            continue;
+
+        const_iterator j = find(i->first);
+        if (j == end()) {
+            return false;
+        }
+
+        if (j->second != i->second) {
+            return false;
+        }
+
+    }
+    return true;
+}
+
+bool Key::match(const std::string &key, const std::set<std::string> &values) const {
+
+    eckit::StringDict::const_iterator i = find(key);
+    if (i == end()) {
+        return false;
+    }
+
+    return values.find(i->second) != values.end();
+}
+
 
 const TypesRegistry& Key::registry() const {
     return rule_ ? rule_->registry() : MasterConfig::instance().schema().registry();
 }
 
 std::string Key::valuesToString() const {
+
     ASSERT(names_.size() == keys_.size());
 
     std::ostringstream oss;
@@ -249,6 +279,27 @@ void Key::validateKeysOf(const Key& other, bool checkAlsoValues) const
 
         throw eckit::SeriousBug(oss.str());
     }
+}
+
+fdb5::Key::operator eckit::StringDict() const
+{
+    eckit::StringDict res;
+
+    ASSERT(names_.size() == keys_.size());
+
+    const TypesRegistry &registry = this->registry();
+
+    for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
+
+        eckit::StringDict::const_iterator i = keys_.find(*j);
+
+        ASSERT(i != keys_.end());
+        ASSERT(!(*i).second.empty());
+
+        res[*j] = registry.lookupType(*j).tidy(*j, (*i).second);
+    }
+
+    return res;
 }
 
 void Key::print(std::ostream &out) const {

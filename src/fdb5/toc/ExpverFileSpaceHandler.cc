@@ -169,6 +169,10 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     AutoLock<Mutex> lock(mutex_);
 
+    // Has the user specified a root to use already?
+
+    static std::string fdbRootDirectory = eckit::Resource<std::string>("fdb5Root;$FDB5_ROOT", "");
+
     // check if key is mapped already to a filesystem
 
     if(table_.empty()) load();
@@ -178,16 +182,37 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
     PathTable::const_iterator itr = table_.find(expver);
     if(itr != table_.end()) {
         Log::debug<LibFdb>() << "Found expver " << expver << " " << itr->second << " in " << fdbExpverFileSystems_ << std::endl;
+
+        if (!fdbRootDirectory.empty() && itr->second != fdbRootDirectory) {
+            Log::warning() << "Existing root directory " << itr->second << " does not match FDB5_ROOT. Using existing" << std::endl;
+        }
+
         return itr->second;
     }
 
-    // if not, assign a filesystem
+    // if not, assign a filesystem. Use the algorithm in select by default, unless overridden.
 
-    PathName maybe = select(key, fs);
+    PathName maybe;
+    if (fdbRootDirectory.empty()) {
+        maybe = select(key, fs);
+    } else {
+        // Before we allow an override, ensure that it is one of the available filesystems.
+        std::vector<PathName> writable(fs.writable());
+        ASSERT(std::find(writable.begin(), writable.end(), fdbRootDirectory) != writable.end());
+        Log::debug<LibFdb>() << "Using root directory specified by FDB5_ROOT: " << fdbRootDirectory << std::endl;
+        maybe = fdbRootDirectory;
+    }
+
+    // Append will add the value of maybe to the table file, unless another process beats us there. If it
+    // does, the value from the other process will be returned (and used).
 
     PathName selected = append(expver, maybe);
 
     table_[expver] = selected;
+
+    if (!fdbRootDirectory.empty() && selected != fdbRootDirectory) {
+        Log::warning() << "Selected root directory " << itr->second << " does not match FDB5_ROOT. Using existing" << std::endl;
+    }
 
     return selected;
 }

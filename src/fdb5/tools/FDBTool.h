@@ -61,6 +61,16 @@ private: // methods
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
+class FDBToolException : public eckit::Exception {
+public:
+    FDBToolException(const std::string&);
+    FDBToolException(const std::string&, const eckit::CodeLocation&);
+};
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
 } // namespace fdb5
 
 #endif

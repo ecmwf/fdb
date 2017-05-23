@@ -22,14 +22,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDB::TocDB(const Key& key) :
+TocDB::TocDB(const Key& key, const eckit::Configuration& config) :
     DB(key),
-    TocHandler(RootManager::directory(key)) {
+    TocHandler(RootManager::directory(key), config) {
 }
 
-TocDB::TocDB(const eckit::PathName& directory) :
+TocDB::TocDB(const eckit::PathName& directory, const eckit::Configuration& config) :
     DB(Key()),
-    TocHandler(directory) {
+    TocHandler(directory, config) {
 
     // Read the real DB key into the DB base object
     dbKey_ = databaseKey();

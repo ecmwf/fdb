@@ -88,7 +88,7 @@ const DBFactory &DBFactory::findFactory(const std::string &name) {
 }
 
 
-DB* DBFactory::buildWriter(const Key& key) {
+DB* DBFactory::buildWriter(const Key& key, const eckit::Configuration& config) {
 
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
@@ -100,10 +100,10 @@ DB* DBFactory::buildWriter(const Key& key) {
 
     const DBFactory &factory( findFactory(name) );
 
-    return factory.make(key);
+    return factory.make(key, config);
 }
 
-DB* DBFactory::buildReader(const Key& key) {
+DB* DBFactory::buildReader(const Key& key, const eckit::Configuration& config) {
 
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
@@ -115,10 +115,10 @@ DB* DBFactory::buildReader(const Key& key) {
 
     const DBFactory& factory( findFactory(name) );
 
-    return factory.make(key);
+    return factory.make(key, config);
 }
 
-DB* DBFactory::buildReader(const eckit::PathName& path) {
+DB* DBFactory::buildReader(const eckit::PathName& path, const eckit::Configuration& config) {
 
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
@@ -130,7 +130,7 @@ DB* DBFactory::buildReader(const eckit::PathName& path) {
 
     const DBFactory& factory( findFactory(name) );
 
-    return factory.make(path);
+    return factory.make(path, config);
 }
 
 
