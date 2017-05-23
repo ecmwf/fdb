@@ -172,6 +172,33 @@ MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *
 }
 
 
+std::vector<MarsRequest> GribDecoder::gribToRequests(const eckit::PathName &path, const char *verb) {
+
+    std::vector<MarsRequest> requests;
+    EmosFile file(path);
+    size_t len = 0;
+
+    Key key;
+
+    std::map<std::string, std::set<std::string> > s;
+
+    while ( (len = gribToKey(file, key))  ) {
+
+        MarsRequest r(verb);
+        for (Key::const_iterator j = key.begin(); j != key.end(); ++j) {
+            eckit::StringList s;
+            s.push_back(j->second);
+            r.setValues(j->first, s);
+        }
+
+        requests.push_back(r);
+    }
+
+    return requests;
+}
+
+
+
 void GribDecoder::patch(grib_handle*) {
     // Give a chance to subclasses to modify the grib
 }
