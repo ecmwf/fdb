@@ -251,9 +251,12 @@ eckit::PathName TocDBWriter::getDataPath(const Key &key) {
 void TocDBWriter::flushIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
         Index& idx = j->second;
-        idx.flush();
-        writeIndexRecord(idx);
-        idx.reopen(); // Create a new btree
+
+        if (idx.dirty()) {
+            idx.flush();
+            writeIndexRecord(idx);
+            idx.reopen(); // Create a new btree
+        }
     }
 }
 

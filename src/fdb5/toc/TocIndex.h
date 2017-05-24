@@ -80,6 +80,8 @@ private: // methods
 
     virtual const IndexLocation& location() const { return location_; }
 
+    virtual bool dirty() const;
+
     virtual void open();
     virtual void close();
     virtual void reopen();
