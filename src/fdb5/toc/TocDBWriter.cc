@@ -92,8 +92,10 @@ void TocDBWriter::close() {
 
     // If we are using a subToc, this is the last point it can be used. If appropriate,
     // merge its entries back into the master toc, and mask the subtoc out (for read performance)
-    if (rationaliseSubToc_)
-        rationaliseSubToc();
+    if (rationaliseSubToc_) {
+//        rationaliseSubToc();
+        rationaliseSubToc2(key(), schema());
+    }
 
     deselectIndex();
 
@@ -101,7 +103,6 @@ void TocDBWriter::close() {
 
     closeIndexes();
 }
-
 
 void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
     dirty_ = true;

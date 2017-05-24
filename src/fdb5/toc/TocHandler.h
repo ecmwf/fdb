@@ -23,6 +23,8 @@
 #include "fdb5/database/DbStats.h"
 #include "fdb5/toc/TocRecord.h"
 
+#include <map>
+
 namespace eckit {
 class Configuration;
 }
@@ -60,6 +62,7 @@ public: // methods
 
     /// If we have a subTocWrite, append its entries to the master.
     void rationaliseSubToc();
+    void rationaliseSubToc2(const Key& dbKey, const Schema& schema);
 
     std::vector<Index> loadIndexes(bool sorted=false) const;
 

@@ -26,6 +26,7 @@
 #include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
@@ -604,6 +605,132 @@ void TocHandler::rationaliseSubToc() {
         ASSERT( len == combinedSize );
     }
 }
+
+void TocHandler::rationaliseSubToc2(const Key& dbKey, const Schema& schema) {
+
+    // If we aren't using subtocs, don't do anything here
+
+    if (!useSubToc_ || !subTocWrite_)
+        return;
+
+    eckit::Timer t("SubToc Rationalisation");
+
+    // Check that we don't have any conflicting elements...
+
+    class ReIndexer : public EntryVisitor {
+
+    public:
+        ReIndexer(const PathName& directory, const Key& dbKey, const Schema& schema, std::map<Key, Index>& newIndexes) :
+            directory_(directory),
+            dbKey_(dbKey),
+            newIndexes_(newIndexes),
+            schema_(schema) {}
+        virtual ~ReIndexer() {}
+
+        virtual void visit(const Index& index,
+                           const Field& field,
+                           const std::string& indexFingerprint,
+                           const std::string& fieldFingerprint) {
+
+            Key key(fieldFingerprint, schema_.ruleFor(dbKey_, index.key()));
+
+            Key idxKey(index.key());
+
+            const FieldLocation& location(field.location());
+            const TocFieldLocation& tocLocation(static_cast<const TocFieldLocation&>(location));
+
+            if (newIndexes_.find(idxKey) == newIndexes_.end()) {
+                PathName path(directory_);
+                path /= idxKey.valuesToString();
+                path = PathName::unique(path) + ".index";
+                Index idx = Index(new TocIndex(idxKey, path, 0, TocIndex::WRITE));
+                idx.open();
+                Log::debug<LibFdb>() << "Creating new index" << std::endl;
+
+                newIndexes_[idxKey] = idx;
+            }
+
+            Index idx = newIndexes_[idxKey];
+
+            idx.put(key, field);
+
+            // ASSERT that there is not conflict...
+        }
+
+    private:
+        const PathName& directory_;
+        const Key& dbKey_;
+        const Schema& schema_;
+        std::map<Key, Index>& newIndexes_;
+    };
+
+    // Iterate over all of the available indexes, and write them out to entirely new indexes
+
+    std::vector<Index> subIndexes = subTocWrite_->loadIndexes(true);
+
+    std::map<Key, Index> newIndexes;
+
+    ReIndexer visitor(directory_, dbKey, schema, newIndexes);
+
+    for (std::vector<Index>::const_iterator it = subIndexes.begin(); it != subIndexes.end(); ++it) {
+        it->entries(visitor);
+    }
+
+    // Flush these neww indexes out
+
+    for (std::map<Key, Index>::iterator it = newIndexes.begin(); it != newIndexes.end(); it++) {
+        Log::debug<LibFdb>() << "Flushing new index" << std::endl;
+        it->second.flush();
+        it->second.close();
+    }
+
+    // Write all of the TOC entries, and the masking entry into a buffer.
+
+    Buffer buf((newIndexes.size() + 1) * sizeof(TocRecord));
+    size_t combinedSize = 0;
+
+    for (std::map<Key, Index>::const_iterator it = newIndexes.begin(); it != newIndexes.end(); it++) {
+
+        const IndexLocation& location(it->second.location());
+        const TocIndexLocation& tocLoc(reinterpret_cast<const TocIndexLocation&>(location));
+
+        TocRecord* r = new (&buf[combinedSize]) TocRecord( TocRecord::TOC_INDEX );
+
+        eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
+        s << tocLoc.path().baseName();
+        s << tocLoc.offset();
+        s << it->second.type();
+        it->second.encode(s);
+
+        combinedSize += roundRecord(*r, s.position());
+
+        Log::debug<LibFdb>() << "NEW IDX: " << combinedSize << tocLoc.path() << tocLoc.offset() << std::endl;
+    }
+
+    // Now append a masking record
+
+    TocRecord* r = new (&buf[combinedSize]) TocRecord( TocRecord::TOC_MASK_SUB_TOC );
+
+    eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
+    s << subTocWrite_->tocPath();
+
+    combinedSize += roundRecord(*r, s.position()); // Obtain the rounded size, and set it in the record header.
+
+    Log::debug<LibFdb>() << "NEW MASK: " << subTocWrite_->tocPath() << std::endl;
+
+    // Append the acquired entries to self
+
+    {
+        openForAppend();
+        TocHandlerCloser closer(*this);
+
+        Log::debug<LibFdb>() << "Writing: " << combinedSize << std::endl;
+        size_t len;
+        SYSCALL2( len = ::write(fd_, buf, combinedSize), tocPath());
+        ASSERT( len == combinedSize );
+    }
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
