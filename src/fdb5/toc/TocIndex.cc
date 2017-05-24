@@ -186,6 +186,10 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
+bool TocIndex::dirty() const {
+    return dirty_;
+}
+
 
 class DumpBTreeVisitor : public BTreeIndexVisitor {
     std::ostream& out_;
