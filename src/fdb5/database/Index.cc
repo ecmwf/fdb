@@ -94,6 +94,8 @@ private: // methods
 
     virtual const IndexLocation& location() const { NOTIMP; }
 
+    virtual bool dirty() const { NOTIMP; }
+
     virtual void open()  { NOTIMP; }
     virtual void close() { NOTIMP; }
     virtual void reopen() { NOTIMP; }
