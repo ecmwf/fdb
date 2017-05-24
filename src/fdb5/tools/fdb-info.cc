@@ -35,7 +35,7 @@ class FDBInfo : public fdb5::FDBTool {
         schema_(false)
     {
         options_.push_back(new eckit::option::SimpleOption<bool>("all", "Print all information"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("version", "Print the location of the FDB configuration files"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("version", "Print the version of the FDB/Mars server being used"));
         options_.push_back(new eckit::option::SimpleOption<bool>("home", "Print the location of the FDB configuration files"));
         options_.push_back(new eckit::option::SimpleOption<bool>("schema", "Print the location of the FDB schema file"));
     }
