@@ -97,7 +97,7 @@ public: // methods
 
     virtual const IndexLocation& location() const = 0;
 
-    virtual bool dirty() = 0;
+    virtual bool dirty() const = 0;
 
     virtual void open() = 0;
     virtual void reopen() = 0;
