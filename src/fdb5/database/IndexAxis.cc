@@ -126,6 +126,16 @@ void IndexAxis::wipe() {
 
 
 const eckit::StringSet &IndexAxis::values(const std::string &keyword) const {
+
+    // If an Index is empty, this is bad, but is not strictly an error. Nothing will
+    // be found...
+
+    if (axis_.empty()) {
+        eckit::Log::warning() << "Querying axis of empty Index: " << keyword << std::endl;
+        const static eckit::StringSet nullStringSet;
+        return nullStringSet;
+    }
+
     AxisMap::const_iterator i = axis_.find(keyword);
     if (i == axis_.end()) {
         throw eckit::SeriousBug("Cannot find Axis: " + keyword);
