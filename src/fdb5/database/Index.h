@@ -160,7 +160,7 @@ public: // methods
 
     const IndexLocation& location() const { return content_->location(); }
 
-    bool dirty() const { content_->dirty(); }
+    bool dirty() const { return content_->dirty(); }
 
     void open()   { return content_->open();   }
     void reopen() { return content_->reopen(); }
