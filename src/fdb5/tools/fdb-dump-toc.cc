@@ -23,7 +23,10 @@ class FDBDumpToc : public fdb5::FDBTool {
   public: // methods
 
     FDBDumpToc(int argc, char **argv) :
-        fdb5::FDBTool(argc, argv) {}
+        fdb5::FDBTool(argc, argv) {
+
+        options_.push_back(new eckit::option::SimpleOption<bool>("walk", "Walk subtocs rather than show simple entries"));
+    }
 
   private: // methods
 
@@ -40,13 +43,16 @@ void FDBDumpToc::usage(const std::string &tool) const {
 
 void FDBDumpToc::execute(const eckit::option::CmdArgs& args) {
 
+    bool walkSubTocs;
+    args.get("walk", walkSubTocs);
+
     for (size_t i = 0; i < args.count(); i++) {
 
         eckit::PathName path(args(i));
 
         fdb5::TocHandler handler(path, true);
 
-        handler.dump(eckit::Log::info(), true, false);
+        handler.dump(eckit::Log::info(), true, walkSubTocs);
     }
 }
 
