@@ -60,9 +60,7 @@ public: // methods
     void writeSubTocRecord(const TocHandler& subToc);
     void writeIndexRecord(const Index &);
 
-    /// If we have a subTocWrite, append its entries to the master.
-    void rationaliseSubToc();
-    void rationaliseSubToc2(const Key& dbKey, const Schema& schema);
+    bool useSubToc() const;
 
     std::vector<Index> loadIndexes(bool sorted=false) const;
 
@@ -101,6 +99,17 @@ protected: // methods
 
     static LustreStripe stripeDataLustreSettings();
 
+    // Build the record, and return the payload size
+
+    static size_t buildIndexRecord(TocRecord& r, const Index& index);
+    size_t buildSubTocMaskRecord(TocRecord& r);
+
+    // Given the payload size, returns the record size
+
+    static size_t roundRecord(TocRecord &r, size_t payloadSize);
+
+    void appendBlock(const void* data, size_t size);
+
 private: // members
 
     friend class TocHandlerCloser;
@@ -115,13 +124,14 @@ private: // members
     void populateMaskedSubTocsList() const;
 
     void append(TocRecord &r, size_t payloadSize);
-    static size_t roundRecord(TocRecord &r, size_t payloadSize);
     // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
     // the mechanism of subtocs).
     bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true) const;
     bool readNextInternal(TocRecord &r) const;
 
     std::string userName(long) const;
+
+    static size_t recordRoundSize();
 
     eckit::PathName tocPath_;
     eckit::PathName schemaPath_;
