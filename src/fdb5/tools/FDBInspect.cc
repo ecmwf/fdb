@@ -92,8 +92,6 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             continue;
         }
 
-        std::cout << "args " << args(i) << std::endl;
-
         try {
 
             bool force = false;
