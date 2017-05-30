@@ -22,53 +22,24 @@ using eckit::Log;
 class FDBWhere : public fdb5::FDBInspect {
   public: // methods
 
-    FDBWhere(int argc, char **argv) : fdb5::FDBInspect(argc, argv) {
-        options_.push_back(new eckit::option::SimpleOption<std::string>("request", "Provide a request to match 'class:stream:expver', e.g. --request=class=od,expver=0001"));
-
-    }
+    FDBWhere(int argc, char **argv) : fdb5::FDBInspect(argc, argv) {}
 
   private: // methods
 
     virtual void usage(const std::string &tool) const;
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args);
-    virtual void finish(const eckit::option::CmdArgs& args);
 
 };
 
 void FDBWhere::usage(const std::string &tool) const {
 
     Log::info() << std::endl
-                << "Usage: " << tool << std::endl
-                << "       " << tool << " --request <request>" << std::endl;
+                << "Usage: " << tool << std::endl;
     FDBInspect::usage(tool);
 }
 
 void FDBWhere::process(const eckit::PathName& path, const eckit::option::CmdArgs&)  {
     Log::info() << path << std::endl;
-}
-
-void FDBWhere::finish(const eckit::option::CmdArgs& args) {
-
-    if (args.count() == 0) {
-        std::string s;
-        args.get("request", s);
-
-        fdb5::ToolRequest req(s);
-
-        std::vector<eckit::PathName> roots = fdb5::Manager::visitableLocations(req.key());
-
-        if(!roots.size()) {
-            std::stringstream ss;
-            ss << "No roots found for request with key " << req.key();
-            Log::info() << ss.str() << std::endl;
-            if (fail())
-                throw fdb5::FDBToolException(ss.str(), Here());
-        }
-
-        for (std::vector<eckit::PathName>::const_iterator i = roots.begin(); i != roots.end(); ++i) {
-            Log::info() << *i << std::endl;
-        }
-    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
