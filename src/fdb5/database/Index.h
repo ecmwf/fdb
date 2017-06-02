@@ -97,6 +97,8 @@ public: // methods
 
     virtual const IndexLocation& location() const = 0;
 
+    virtual bool dirty() const = 0;
+
     virtual void open() = 0;
     virtual void reopen() = 0;
     virtual void close() = 0;
@@ -157,6 +159,8 @@ public: // methods
     Index& operator=(const Index&);
 
     const IndexLocation& location() const { return content_->location(); }
+
+    bool dirty() const { return content_->dirty(); }
 
     void open()   { return content_->open();   }
     void reopen() { return content_->reopen(); }
