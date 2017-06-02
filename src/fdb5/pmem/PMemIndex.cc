@@ -149,6 +149,11 @@ IndexStats PMemIndex::statistics() const
     return s;
 }
 
+bool PMemIndex::dirty() const {
+    // data is always kept in sync. never dirty.
+    return false;
+}
+
 
 //-----------------------------------------------------------------------------
 
