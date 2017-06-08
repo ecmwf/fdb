@@ -18,6 +18,7 @@
 
 #include <string>
 #include <vector>
+#include <iosfwd>
 
 #include "eckit/utils/Regex.h"
 #include "eckit/types/Types.h"
@@ -53,9 +54,16 @@ public: // methods
     std::vector<eckit::PathName> writable() const;
     std::vector<eckit::PathName> visitable() const;
 
+    friend std::ostream& operator<<(std::ostream &s, const FileSpace& x) {
+        x.print(s);
+        return s;
+    }
+
 private: // methods
 
     bool existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& root) const;
+
+    void print( std::ostream &out ) const;
 
 private: // members
 

@@ -16,6 +16,9 @@
 #ifndef fdb5_Root_H
 #define fdb5_Root_H
 
+#include <string>
+#include <iosfwd>
+
 #include "eckit/filesystem/PathName.h"
 
 namespace fdb5 {
@@ -39,6 +42,15 @@ public: // methods
     bool visit() const;    ///< Root is visited, when retrievind
 
     const std::string& filespace() const;
+
+    friend std::ostream& operator<<(std::ostream &s, const Root& x) {
+        x.print(s);
+        return s;
+    }
+
+private: // methods
+
+    void print( std::ostream &out ) const;
 
 private: // members
 
