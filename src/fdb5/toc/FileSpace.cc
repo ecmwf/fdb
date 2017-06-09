@@ -19,6 +19,10 @@
 
 using eckit::Log;
 
+namespace eckit {
+template <> struct VectorPrintSelector<fdb5::Root> { typedef VectorPrintSimple selector; };
+}
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -120,6 +124,16 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, eckit::PathN
     std::ostringstream msg;
     msg << "Found multiple FDB roots matching key " << key << ", roots -> " << visitables;
     throw eckit::UserError(msg.str(), Here());
+}
+
+void FileSpace::print( std::ostream &out ) const  {
+
+    out << "FileSpace("
+        << "name=" << name_
+        << ",handler=" << handler_
+        << ",regex=" << re_
+        << ",roots=" << roots_
+        <<")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
