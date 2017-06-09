@@ -8,12 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
+#include <dirent.h>
+
 #include <algorithm>
+#include <cstring>
+#include <list>
 #include <ostream>
 
+#include "mars_server_ecbuild_config.h"
+
 #include "eckit/log/Log.h"
+#include "eckit/filesystem/LocalPathName.h"
 #include "eckit/utils/Regex.h"
 #include "eckit/os/BackTrace.h"
+#include "eckit/os/Stat.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
@@ -28,24 +36,68 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static void leaves(const eckit::PathName& path, std::vector<eckit::PathName>& result) {
+class StdDir {
+    DIR *d_;
+public:
+    StdDir(const char* d) { d_ = ::opendir(d);}
+    ~StdDir()             { if(d_) ::closedir(d_); }
+    operator DIR*()       { return d_; }
+};
 
-    std::vector<eckit::PathName> subfiles;
-    std::vector<eckit::PathName> subdirs;
+static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
+{
+    StdDir d(path.c_str());
 
-    path.children(subfiles, subdirs); /// @todo this can be optimised if we create a PathName::subdirs() function just to return subdirs
-
-//    Log::debug<LibFdb>() << "Path --> "  << path << std::endl
-//                         << "    subdirs "  << subdirs << std::endl
-//                         << "    subfiles " << subfiles << std::endl;
-
-    if(!subdirs.size()) {
-        result.push_back(path);
-        return;
+    if(d == 0)
+    {
+        Log::error() << "opendir(" << path << ")" << Log::syserr << std::endl;
+        throw FailedSystemCall("opendir");
     }
 
-    for(std::vector<eckit::PathName>::const_iterator i = subdirs.begin(); i != subdirs.end(); ++i) {
-        leaves(*i, result);
+    struct dirent buf;
+
+    for(;;)
+    {
+        struct dirent *e;
+#ifdef EC_HAVE_READDIR_R
+        errno = 0;
+        if(::readdir_r(d,&buf,&e) != 0)
+        {
+            if(errno)
+                throw FailedSystemCall("readdir_r");
+            else
+                e = 0;
+        }
+#else
+        e = ::readdir(d);
+#endif
+
+        if(e == 0)
+            break;
+
+        if(e->d_name[0] == '.')
+            if(e->d_name[1] == 0 || (e->d_name[1] =='.' && e->d_name[2] == 0))
+                continue;
+
+        if(::strcmp(e->d_name, "toc") == 0) {
+            dbs.push_back(path);
+        }
+
+        std::string full = path + "/" + e->d_name;
+
+#if defined(EC_HAVE_DIRENT_D_TYPE) || defined(DT_DIR)
+        if(e->d_type == DT_DIR) {
+            scan_dbs(full.c_str(), dbs);
+        }
+#else
+        eckit::Stat::Struct info;
+        if(eckit::Stat::stat(full.c_str(), &info) == 0)
+        {
+            if(S_ISDIR(info.st_mode))
+                scan_dbs(full.c_str(), dbs);
+        }
+        else Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
+#endif
     }
 }
 
@@ -76,7 +128,7 @@ static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missin
     schema.matchFirstLevel(key, keys, missing);
 }
 
-std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vector<eckit::PathName>& dirs) {
+std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vector<eckit::PathName>& roots) {
 
     std::set<Key> keys;
 
@@ -89,12 +141,12 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vec
     std::vector<eckit::PathName> result;
     std::set<eckit::PathName> seen;
 
-    for (std::vector<eckit::PathName>::const_iterator j = dirs.begin(); j != dirs.end(); ++j) {
+    for (std::vector<eckit::PathName>::const_iterator j = roots.begin(); j != roots.end(); ++j) {
 
-        std::vector<eckit::PathName> subdirs;
-        leaves(*j, subdirs);
+        Log::debug<LibFdb>() << "Scanning for TOC FDBs in root " << *j << std::endl;
 
-        Log::debug<LibFdb>() << "Total root subdirs " << subdirs << std::endl;
+        std::list<std::string> dbs;
+        scan_dbs(*j, dbs);
 
         for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 
@@ -108,9 +160,9 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vec
                                      << " dbpath " << *dbpath
                                      << " pathregex " << re << std::endl;
 
-                for (std::vector<eckit::PathName>::const_iterator k = subdirs.begin(); k != subdirs.end(); ++k) {
+                for (std::list<std::string>::const_iterator k = dbs.begin(); k != dbs.end(); ++k) {
 
-                    Log::debug<LibFdb>() << "    -> path " << *k << std::endl;
+                    Log::debug<LibFdb>() << "    -> db " << *k << std::endl;
 
                     if(seen.find(*k) != seen.end()) {
                         continue;

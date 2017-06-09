@@ -39,6 +39,15 @@ const std::string& Root::filespace() const
     return filespace_;
 }
 
+void Root::print( std::ostream &out ) const  {
+
+    out << "Root("
+        << "path=" << path_
+        << ",writable=" << writable_
+        << ",visit=" << visit_
+        <<")";
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
