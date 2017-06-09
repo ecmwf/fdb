@@ -15,6 +15,8 @@
 #include <list>
 #include <ostream>
 
+#include "mars_server_ecbuild_config.h"
+
 #include "eckit/log/Log.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/utils/Regex.h"
@@ -79,11 +81,15 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
 
         if(::strcmp(e->d_name, "toc") == 0) {
             dbs.push_back(path);
-            continue;
         }
 
         std::string full = path + "/" + e->d_name;
 
+#if defined(EC_HAVE_DIRENT_D_TYPE) || defined(DT_DIR)
+        if(e->d_type == DT_DIR) {
+            scan_dbs(full.c_str(), dbs);
+        }
+#else
         eckit::Stat::Struct info;
         if(eckit::Stat::stat(full.c_str(), &info) == 0)
         {
@@ -91,6 +97,7 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
                 scan_dbs(full.c_str(), dbs);
         }
         else Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
+#endif
     }
 }
 
