@@ -29,7 +29,8 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 ExpverFileSpaceHandler::ExpverFileSpaceHandler() :
-    fdbExpverFileSystems_(Resource<PathName>("fdbExpverFileSystems;$FDB_EXPVER_FILE", "~fdb/etc/fdb/expver_filesystems")) {
+    fdbExpverFileSystems_(LibResource<PathName, LibFdb>("fdbExpverFileSystems;$FDB_EXPVER_FILE", "~fdb/etc/fdb/expver_to_fdb_root.map"))
+{
 }
 
 ExpverFileSpaceHandler::~ExpverFileSpaceHandler() {
