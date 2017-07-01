@@ -39,7 +39,7 @@ protected: // methods
 
     virtual bool selectIndex(const Key &key, const Key &full);
 
-    void checkMissingKeys(const Key &full);
+    virtual void checkMissingKeys(const Key &full);
 
     fdb5::DB *current() const;
 
