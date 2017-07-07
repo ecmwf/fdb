@@ -8,7 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/log/Log.h"
+#include "eckit/os/Stat.h"
+
 #include "fdb5/toc/Root.h"
+#include "fdb5/LibFdb.h"
+
+using eckit::Log;
+using eckit::Stat;
 
 namespace fdb5 {
 
@@ -18,20 +25,22 @@ Root::Root(const std::string &path, const std::string& filespace, bool active, b
     path_(path),
     filespace_(filespace),
     writable_(active),
-    visit_(visit) {
-
+    visit_(visit)
+{
+    errno = 0;
+    Stat::Struct info;
+    int err = Stat::stat(path_.asString().c_str(),&info);
+    if(not err) {
+        exists_ = S_ISDIR(info.st_mode);
+    }
+    else {
+        Log::warning() << "FDB root " << path_ << " " << Log::syserr << std::endl;
+        exists_ = false;
+    }
 }
 
 const eckit::PathName& Root::path() const {
     return path_;
-}
-
-bool Root::writable() const {
-    return writable_;
-}
-
-bool Root::visit() const {
-    return visit_;
 }
 
 const std::string& Root::filespace() const

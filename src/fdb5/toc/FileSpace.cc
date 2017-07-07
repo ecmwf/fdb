@@ -57,7 +57,7 @@ std::vector<eckit::PathName> FileSpace::writable() const
 {
     std::vector<eckit::PathName> result;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
-        if(i->writable()) {
+        if(i->exists() and i->writable()) {
             result.push_back(i->path());
         }
     }
@@ -68,7 +68,7 @@ std::vector<eckit::PathName> FileSpace::visitable() const
 {
     std::vector<eckit::PathName> result;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
-        if(i->visit()) {
+        if(i->exists() and i->visit()) {
             result.push_back(i->path());
         }
     }
@@ -78,14 +78,16 @@ std::vector<eckit::PathName> FileSpace::visitable() const
 void FileSpace::all(eckit::StringSet& roots) const
 {
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
-        roots.insert(i->path());
+        if(i->exists()) {
+            roots.insert(i->path());
+        }
     }
 }
 
 void FileSpace::writable(eckit::StringSet& roots) const
 {
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
-        if(i->writable()) {
+        if(i->exists() and i->writable()) {
             roots.insert(i->path());
         }
     }
@@ -94,7 +96,7 @@ void FileSpace::writable(eckit::StringSet& roots) const
 void FileSpace::visitable(eckit::StringSet& roots) const
 {
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
-        if(i->visit()) {
+        if(i->exists() and i->visit()) {
             roots.insert(i->path());
         }
     }
