@@ -16,6 +16,7 @@
 
 #include "marslib/EmosFile.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
@@ -52,6 +53,8 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
         while ( (len = gribToKey(file, key)) ) {
 
             ASSERT(key.match(key_));
+
+            eckit::Log::debug<LibFdb>() << "Archiving " << key << std::endl;
 
             ArchiveVisitor visitor(*this, key, static_cast<const void *>(buffer()), len);
 
