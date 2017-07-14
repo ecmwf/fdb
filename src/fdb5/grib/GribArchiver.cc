@@ -75,6 +75,8 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
         throw;
     }
 
+    eckit::Log::userInfo() << "Archived " << eckit::Plural(count, "field") << std::endl;
+
     eckit::Log::info() << "FDB archive " << eckit::Plural(count, "field") << ","
                        << " size " << eckit::Bytes(total_size) << ","
                        << " in " << eckit::Seconds(timer.elapsed())
