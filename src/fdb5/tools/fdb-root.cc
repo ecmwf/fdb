@@ -71,12 +71,13 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
         // 'Touch' the database (which will create it if it doesn't exist)
         eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(result));
 
-        if (db->exists()) {
-            eckit::Log::info() << (*db) << std::endl;
-        } else if (create_db) {
-            eckit::ScopedPtr<fdb5::DB> dbNew(fdb5::DBFactory::buildWriter(result));
+        if (!db->exists() && create_db) {
+            db.reset(fdb5::DBFactory::buildWriter(result));
         }
 
+        if (db->exists()) {
+            eckit::Log::info() << (*db) << std::endl;
+        }
     }
 }
 

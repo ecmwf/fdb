@@ -320,7 +320,9 @@ void TocDBWriter::compactSubTocIndexes() {
     Buffer buf(sizeof(TocRecord) * (fullIndexes_.size() + 1));
     size_t combinedSize = 0;
 
-    if (useSubToc()) {
+    // n.b. we only need to compact the subtocs if we are actually writing something...
+
+    if (useSubToc() && anythingWrittenToSubToc()) {
         Log::info() << "compacting sub tocs" << std::endl;
 
         for (IndexStore::iterator j = fullIndexes_.begin(); j != fullIndexes_.end(); ++j) {

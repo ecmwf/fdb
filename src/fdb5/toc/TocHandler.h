@@ -61,6 +61,7 @@ public: // methods
     void writeIndexRecord(const Index &);
 
     bool useSubToc() const;
+    bool anythingWrittenToSubToc() const;
 
     std::vector<Index> loadIndexes(bool sorted=false) const;
 

@@ -579,6 +579,10 @@ bool TocHandler::useSubToc() const {
     return useSubToc_;
 }
 
+bool TocHandler::anythingWrittenToSubToc() const {
+    return !!subTocWrite_;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class HasPath {
