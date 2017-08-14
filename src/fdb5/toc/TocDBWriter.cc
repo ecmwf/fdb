@@ -62,17 +62,41 @@ bool TocDBWriter::selectIndex(const Key& key) {
             fdb5LustreapiFileCreate(indexPath.localPath(), stripe.size_, stripe.count_);
         }
 
-        indexes_[key] = Index(new TocIndex(key, generateIndexPath(key), 0, TocIndex::WRITE));
+        indexes_[key] = Index(new TocIndex(key, indexPath, 0, TocIndex::WRITE));
     }
 
     current_ = indexes_[key];
     current_.open();
+
+    // If we are using subtocs, then we need to maintain a duplicate index that doesn't get flushed
+    // each step.
+
+    if (useSubToc()) {
+
+        if (fullIndexes_.find(key) == fullIndexes_.end()) {
+
+            // TODO TODO TODO .master.index
+            PathName indexPath(generateIndexPath(key));
+
+            // Enforce lustre striping if requested
+            if (stripeLustre()) {
+                LustreStripe stripe = stripeIndexLustreSettings();
+                fdb5LustreapiFileCreate(indexPath.localPath(), stripe.size_, stripe.count_);
+            }
+
+            fullIndexes_[key] = Index(new TocIndex(key, indexPath, 0, TocIndex::WRITE));
+        }
+
+        currentFull_ = fullIndexes_[key];
+        currentFull_.open();
+    }
 
     return true;
 }
 
 void TocDBWriter::deselectIndex() {
     current_ = Index();
+    currentFull_ = Index();
     currentIndexKey_ = Key();
 }
 
@@ -86,13 +110,14 @@ void TocDBWriter::close() {
 
     flush(); // closes the TOC entries & indexes but not data files
 
+    compactSubTocIndexes();
+
     deselectIndex();
 
     closeDataHandles();
 
     closeIndexes();
 }
-
 
 void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
     dirty_ = true;
@@ -105,6 +130,9 @@ void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offs
     Field field(TocFieldLocation(path, offset, length));
 
     current_.put(key, field);
+
+    if (useSubToc())
+        currentFull_.put(key, field);
 }
 
 void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length) {
@@ -126,6 +154,9 @@ void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length
     Field field (TocFieldLocation(dataPath, position, length));
 
     current_.put(key, field);
+
+    if (useSubToc())
+        currentFull_.put(key, field);
 }
 
 void TocDBWriter::flush() {
@@ -140,6 +171,7 @@ void TocDBWriter::flush() {
 
     dirty_ = false;
     current_ = Index();
+    currentFull_ = Index();
 }
 
 
@@ -239,6 +271,11 @@ eckit::PathName TocDBWriter::getDataPath(const Key &key) {
     return dataPath;
 }
 
+// n.b. We do _not_ flush the fullIndexes_ set of indexes.
+// The indexes pointed to in the indexes_ list get written out each time there is
+// a flush (i.e. every step). The indexes stored in fullIndexes then contain _all_
+// the data that is indexes thorughout the lifetime of the DBWriter, which can be
+// compacted later for read performance.
 void TocDBWriter::flushIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
         Index& idx = j->second;
@@ -258,7 +295,13 @@ void TocDBWriter::closeIndexes() {
         idx.close();
     }
 
+    for (IndexStore::iterator j = fullIndexes_.begin(); j != fullIndexes_.end(); ++j ) {
+        Index& idx = j->second;
+        idx.close();
+    }
+
     indexes_.clear(); // all indexes instances destroyed
+    fullIndexes_.clear(); // all indexes instances destroyed
 }
 
 void TocDBWriter::flushDataHandles() {
@@ -266,6 +309,39 @@ void TocDBWriter::flushDataHandles() {
     for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
         eckit::DataHandle *dh = j->second;
         dh->flush();
+    }
+}
+
+void TocDBWriter::compactSubTocIndexes() {
+
+    // In this routine, we write out indexes that correspond to all of the data in the
+    // subtoc, written by this process. Then we append a masking entry.
+
+    Buffer buf(sizeof(TocRecord) * (fullIndexes_.size() + 1));
+    size_t combinedSize = 0;
+
+    if (useSubToc()) {
+        Log::info() << "compacting sub tocs" << std::endl;
+
+        for (IndexStore::iterator j = fullIndexes_.begin(); j != fullIndexes_.end(); ++j) {
+            Index& idx = j->second;
+
+            if (idx.dirty()) {
+
+                idx.flush();
+                TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_INDEX);
+                combinedSize += roundRecord(*r, buildIndexRecord(*r, idx));
+            }
+        }
+
+        // And add the masking record for the subtoc
+
+        TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_MASK_SUB_TOC);
+        combinedSize += roundRecord(*r, buildSubTocMaskRecord(*r));
+
+        // Write all of these  records to the toc in one go.
+
+        appendBlock(buf, combinedSize);
     }
 }
 
