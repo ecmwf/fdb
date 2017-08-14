@@ -28,6 +28,7 @@ public: // methods
 
     FdbRoot(int argc, char **argv) :
         fdb5::FDBTool(argc, argv) {
+        options_.push_back(new eckit::option::SimpleOption<bool>("create", "If a DB does not exist for the provided key, create it"));
     }
 
 private: // methods
@@ -52,6 +53,9 @@ void FdbRoot::usage(const std::string &tool) const {
 
 void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
+    bool create_db;
+    args.get("create", create_db);
+
     fdb5::UMask umask(fdb5::UMask::defaultUMask());
 
     for (size_t i = 0; i < args.count(); ++i) {
@@ -65,7 +69,14 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
         eckit::Log::info() << result << std::endl;
 
         // 'Touch' the database (which will create it if it doesn't exist)
-        eckit::ScopedPtr<fdb5::DB> db( fdb5::DBFactory::buildWriter(result) );
+        eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(result));
+
+        if (db->exists()) {
+            eckit::Log::info() << (*db) << std::endl;
+        } else if (create_db) {
+            eckit::ScopedPtr<fdb5::DB> dbNew(fdb5::DBFactory::buildWriter(result));
+        }
+
     }
 }
 
