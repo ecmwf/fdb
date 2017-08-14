@@ -27,13 +27,21 @@ namespace fdb5 {
 
 struct TocRecord {
 
+    /// We use TOC_CLEAR for two purposes.
+    ///
+    ///  i) Indicating that an index should no longer be visited
+    /// ii) Indicating that a sub-toc should no longer be visited
+    ///
+    /// If an older version of the software is used that does not recognise sub toc masking,
+    /// then this use of TOC_CLEAR will have no impact. Therefore this is backward compatible
+    /// and does not require bumping the format version (making roll-out more straightforward).
+
     enum {
         TOC_NULL = 0,
         TOC_INIT = 't',
         TOC_INDEX = 'i',
         TOC_CLEAR = 'c',
-        TOC_SUB_TOC = 's',
-        TOC_MASK_SUB_TOC = 'm'
+        TOC_SUB_TOC = 's'
     };
 
     static const size_t maxPayloadSize = 1024 * 1024;

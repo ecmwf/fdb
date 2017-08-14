@@ -309,7 +309,6 @@ std::vector<PathName> TocHandler::subTocPaths() const {
                 break;
             }
 
-            case TocRecord::TOC_MASK_SUB_TOC:
             case TocRecord::TOC_INIT:
             case TocRecord::TOC_INDEX:
             case TocRecord::TOC_CLEAR:
@@ -360,19 +359,30 @@ void TocHandler::populateMaskedSubTocsList() const {
 
         eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
         std::string path;
+        off_t offset;
 
         switch (r.header_.tag_) {
 
-            case TocRecord::TOC_MASK_SUB_TOC: {
+            /// The TOC_CLEAR record is used both for clearing indexes and subtocs. If the offset is
+            /// non-zero it is definitely an index, so we can skip it.
+            ///
+            /// HOWEVER, without opening it, we cannot know if something is a subtoc at this point, so
+            /// some indexes will get added to the maskedSubTocs list. This is not a problem, as we
+            /// will never do a lookup in this list for something that is not a subtoc.
+
+            case TocRecord::TOC_CLEAR: {
                 s >> path;
-                maskedSubTocs_.push_back(path);
+                s >> offset;
+
+                if (offset == 0) {
+                    maskedSubTocs_.push_back(path);
+                }
                 break;
             }
 
             case TocRecord::TOC_SUB_TOC:
             case TocRecord::TOC_INIT:
             case TocRecord::TOC_INDEX:
-            case TocRecord::TOC_CLEAR:
                 break;
 
             default: {
@@ -713,6 +723,10 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
             indexes.push_back( new TocIndex(s, directory_, directory_ / path, offset) );
             break;
 
+        // n.b. TOC_CLEAR may refer to an index (in this case we erase the index from the indexes list).
+        //      or it may refer to a sub toc. In the latter case, this just won't be in the indexes
+        //      list, so no matter.
+
         case TocRecord::TOC_CLEAR:
             s >> path;
             s >> offset;
@@ -721,9 +735,6 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
             if (j != indexes.end()) {
                 indexes.erase(j);
             }
-            break;
-
-        case TocRecord::TOC_MASK_SUB_TOC: // This is only interesting internally to readNext
             break;
 
         case TocRecord::TOC_SUB_TOC:
@@ -821,12 +832,6 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
                 break;
             }
 
-            case TocRecord::TOC_MASK_SUB_TOC: {
-                s >> path;
-                out << "  Path: " << path;
-                break;
-            }
-
             default: {
                 out << "   Unknown TOC entry";
                 break;
@@ -869,7 +874,6 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
             case TocRecord::TOC_CLEAR:
             case TocRecord::TOC_INIT:
             case TocRecord::TOC_SUB_TOC:
-            case TocRecord::TOC_MASK_SUB_TOC:
                 break;
 
             default: {
@@ -968,13 +972,16 @@ size_t TocHandler::buildIndexRecord(TocRecord& r, const Index &index) {
 
 size_t TocHandler::buildSubTocMaskRecord(TocRecord &r) {
 
+    /// n.b. We construct a subtoc masking record using TOC_CLEAR for backward compatibility.
+
     ASSERT(useSubToc_);
     ASSERT(subTocWrite_);
-    ASSERT(r.header_.tag_ == TocRecord::TOC_MASK_SUB_TOC);
+    ASSERT(r.header_.tag_ == TocRecord::TOC_CLEAR);
 
     eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
 
     s << subTocWrite_->tocPath();
+    s << static_cast<off_t>(0);    // Always use an offset of zero for subtocs
 
     return s.position();
 }

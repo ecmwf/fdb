@@ -336,7 +336,7 @@ void TocDBWriter::compactSubTocIndexes() {
 
         // And add the masking record for the subtoc
 
-        TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_MASK_SUB_TOC);
+        TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_CLEAR);
         combinedSize += roundRecord(*r, buildSubTocMaskRecord(*r));
 
         // Write all of these  records to the toc in one go.

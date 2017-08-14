@@ -65,10 +65,6 @@ void TocRecord::dump(std::ostream& out, bool simple) const {
             out << "TOC_SUB_TOC";
             break;
 
-        case TocRecord::TOC_MASK_SUB_TOC:
-            out << "TOC_MASK_SUB_TOC";
-            break;
-
         default:
             out << "TOC_???? ";
             break;
