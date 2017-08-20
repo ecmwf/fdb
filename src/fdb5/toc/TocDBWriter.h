@@ -67,6 +67,7 @@ private: // methods
     void closeDataHandles();
     void flushIndexes();
     void flushDataHandles();
+    void compactSubTocIndexes();
 
     eckit::DataHandle &getDataHandle( const eckit::PathName & );
     eckit::PathName getDataPath(const Key &key);
@@ -82,10 +83,17 @@ private: // types
 private: // members
 
     HandleStore handles_;    ///< stores the DataHandles being used by the Session
+
+    // If we have multiple flush statements, then the indexes get repeatedly reset. Build and maintain
+    // a full copy of the indexes associated with the process as well, for use when masking out
+    // subtocs. See compactSubTocIndexes.
     IndexStore  indexes_;
+    IndexStore  fullIndexes_;
+
     PathStore   dataPaths_;
 
     Index current_;
+    Index currentFull_;
     Key currentIndexKey_;
 
     bool dirty_;

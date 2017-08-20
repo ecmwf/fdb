@@ -23,6 +23,8 @@
 #include "fdb5/database/DbStats.h"
 #include "fdb5/toc/TocRecord.h"
 
+#include <map>
+
 namespace eckit {
 class Configuration;
 }
@@ -57,6 +59,9 @@ public: // methods
     void writeClearRecord(const Index &);
     void writeSubTocRecord(const TocHandler& subToc);
     void writeIndexRecord(const Index &);
+
+    bool useSubToc() const;
+    bool anythingWrittenToSubToc() const;
 
     std::vector<Index> loadIndexes(bool sorted=false) const;
 
@@ -95,6 +100,17 @@ protected: // methods
 
     static LustreStripe stripeDataLustreSettings();
 
+    // Build the record, and return the payload size
+
+    static size_t buildIndexRecord(TocRecord& r, const Index& index);
+    size_t buildSubTocMaskRecord(TocRecord& r);
+
+    // Given the payload size, returns the record size
+
+    static size_t roundRecord(TocRecord &r, size_t payloadSize);
+
+    void appendBlock(const void* data, size_t size);
+
 private: // members
 
     friend class TocHandlerCloser;
@@ -103,6 +119,11 @@ private: // members
     void openForRead() const;
     void close() const;
 
+    /// Populate the masked sub toc list, starting from the _current_position_ in the
+    /// file (opened for read). It resets back to the same place when done. This is
+    /// to allow searching only from the first subtoc.
+    void populateMaskedSubTocsList() const;
+
     void append(TocRecord &r, size_t payloadSize);
     // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
     // the mechanism of subtocs).
@@ -110,6 +131,8 @@ private: // members
     bool readNextInternal(TocRecord &r) const;
 
     std::string userName(long) const;
+
+    static size_t recordRoundSize();
 
     eckit::PathName tocPath_;
     eckit::PathName schemaPath_;
@@ -123,6 +146,8 @@ private: // members
     mutable eckit::ScopedPtr<TocHandler> subTocRead_;
     mutable eckit::ScopedPtr<TocHandler> subTocWrite_;
     mutable size_t count_;
+    mutable bool enumeratedMaskedSubTocs_;
+    mutable std::vector<eckit::PathName> maskedSubTocs_;
 };
 
 
