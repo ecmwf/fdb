@@ -89,15 +89,24 @@ endif()
 
 ### third party archive support
 
-set(mars_2_mars_default OFF)
-if(METKIT_FOUND)
-  set(mars_2_mars_default ON)
-endif()
+# set(mars_2_mars_default OFF)
+# if(METKIT_FOUND)
+#   set(mars_2_mars_default ON)
+# endif()
 
-ecbuild_add_option( FEATURE MARS2MARS
-                    DEFAULT ${mars_2_mars_default}
-                    DESCRIPTION "Support direct archiving from another mars instance"
-                    REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
+# ecbuild_add_option( FEATURE MARS2MARS
+#                     DEFAULT ${mars_2_mars_default}
+#                     DESCRIPTION "Support direct archiving from another mars instance"
+#                     REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
+
+# ecbuild_add_option( FEATURE WEBAPI
+#                     DEFAULT ON
+#                     DESCRIPTION "Add webapi"
+#                     REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
+
+# if( HAVE_WEBAPI )
+ecbuild_use_package( PROJECT metkit VERSION 0.2 REQUIRED )
+# endif()
 
 ### ODB support
 
