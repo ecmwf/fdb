@@ -284,6 +284,9 @@ void PBranchingNode::insertDataNode(const Key& key, const PersistentPtr<PDataNod
     dataParent.nodes_.push_back_elem(dataNode.as<PBaseNode>());
 }
 
+#if 0
+
+/// visitLeaves should NOT skip out masked data. It is used for enumerating fdb-list, and listing dupliactes, etc.
 
 void PBranchingNode::visitLeaves(EntryVisitor &visitor,
                                  DataPoolManager& mgr,
@@ -360,6 +363,95 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
     std::map<std::string, PBranchingNode*>::const_iterator it_br = subtrees.begin();
     for (; it_br != subtrees.end(); ++it_br) {
         it_br->second->visitLeaves(visitor, mgr, keys, depth, index);
+    }
+
+    if (!(key().empty() && value().empty())) {
+        if (isIndex())
+            keys.pop_back();
+        keys.back().pop(key());
+    }
+}
+#endif
+
+
+void PBranchingNode::visitLeaves(EntryVisitor &visitor,
+                                 DataPoolManager& mgr,
+                                 std::vector<Key>& keys,
+                                 size_t depth,
+                                 Index index) {
+
+    // Get a list of sub-nodes in memory before starting to visit them, so that we can
+    // release the lock for further writers.
+    // Use this opportunity to de-deplicate the entries.
+
+    if (!(key().empty() && value().empty())) {
+        keys.back().push(key(), value());
+        if (isIndex()) {
+
+            index = Index(new PMemIndex(keys.back(), *this, mgr));
+            keys.push_back(Key());
+            depth++;
+        }
+    }
+
+    std::vector<PBranchingNode*> subtrees;
+    std::vector<PersistentPtr<PDataNode> > leaves;
+
+    {
+        AutoLock<PersistentMutex> lock(mutex_);
+
+        int i = nodes_.size() - 1;
+        for (; i >= 0; --i) {
+
+            PersistentPtr<PBaseNode> subnode = nodes_[i];
+
+            // This breaks a bit of the encapsulation, but hook in here to check that the relevant
+            // pools are loaded. We can't do this earlier, as the data is allowed to be changing
+            // up to this point...
+
+            mgr.ensurePoolLoaded(subnode.uuid());
+
+            std::string kv = subnode->key() + ":" + subnode->value();
+
+            if (subnode->isDataNode()) {
+
+                // This would do masking...
+                //if (leaves.find(kv) == leaves.end())
+                //    leaves[kv] = subnode.as<PDataNode>();
+                leaves.push_back(subnode.as<PDataNode>());
+
+            } else {
+
+                // n.b. Should be no masked subtrees, and no mixed data/trees
+                ASSERT(subnode->isBranchingNode());
+//                ASSERT(subtrees.find(kv) == subtrees.end());
+//                ASSERT(leaves.find(kv) == leaves.end());
+                subtrees.push_back(&subnode->asBranchingNode());
+//                subtrees[kv] = &(subnode->asBranchingNode());
+            }
+        }
+    }
+
+    // Visit the leaves
+    std::vector<PersistentPtr<PDataNode> >::const_iterator it_dt = leaves.begin();
+    for (; it_dt != leaves.end(); ++it_dt) {
+
+        ASSERT(!index.null());
+
+        // we do the visitation from here, not from PDataNode::visit, as the PMemFieldLocation needs
+        // the PersistentPtr, not the "this" pointer.
+        keys.back().push((*it_dt)->key(), (*it_dt)->value());
+        Field field(PMemFieldLocation(*it_dt, mgr.getPool(it_dt->uuid())));
+
+        visitor.visit(index, field,"Index fingerprint unused", keys.back().valuesToString());
+
+        keys.back().pop((*it_dt)->key());
+    }
+
+    // Recurse down the trees
+    std::vector<PBranchingNode*>::const_iterator it_br = subtrees.begin();
+    for (; it_br != subtrees.end(); ++it_br) {
+        (*it_br)->visitLeaves(visitor, mgr, keys, depth, index);
     }
 
     if (!(key().empty() && value().empty())) {
