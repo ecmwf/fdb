@@ -72,7 +72,11 @@ void TocDBReader::deselectIndex() {
 
 bool TocDBReader::open() {
 
-    if (indexes_.empty()) {
+    // This used to test if indexes_.empty(), but it is perfectly valid to have a DB with no indexes
+    // if it has been created with fdb-root --create.
+    // See MARS-
+
+    if (!exists()) {
         return false;
     }
 
