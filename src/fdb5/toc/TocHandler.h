@@ -74,7 +74,7 @@ public: // methods
 
     void dump(std::ostream& out, bool simple = false, bool walkSubTocs = true);
     void dumpIndexFile(std::ostream& out, const eckit::PathName& indexFile) const;
-    std::string dbOwner();
+    std::string dbOwner() const;
 
     DbStats stats() const;
 

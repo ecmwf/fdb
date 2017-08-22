@@ -9,8 +9,10 @@
  */
 
 #include "fdb5/pmem/PMemStats.h"
+#include "fdb5/pmem/PMemDBReader.h"
 
 namespace fdb5 {
+namespace pmem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -113,4 +115,104 @@ void PMemDataStats::report(std::ostream &out, const char *indent) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
+PMemStatsReportVisitor::PMemStatsReportVisitor(pmem::PMemDBReader& reader) :
+//    directory_(reader.directory()),
+    dbStats_(new PMemDbStats()),
+    reader_(reader) {
+
+    dbStats_ = static_cast<DB&>(reader_).statistics();
+}
+
+PMemStatsReportVisitor::~PMemStatsReportVisitor() {
+}
+
+void PMemStatsReportVisitor::visit(const Index &index,
+                          const Field& field,
+                          const std::string &indexFingerprint,
+                          const std::string &fieldFingerprint) {
+
+//    ASSERT(currIndex_ != 0);
+
+    PMemDbStats* dbStats = new PMemDbStats();
+
+    // If this index is not yet in the map, then create an entry
+
+    std::map<Index, IndexStats>::iterator stats_it = indexStats_.find(index);
+
+    if (stats_it == indexStats_.end()) {
+        stats_it = indexStats_.insert(std::make_pair(index, IndexStats(new PMemIndexStats()))).first;
+    }
+
+    IndexStats& stats(stats_it->second);
+
+    eckit::Length len = field.location().length();
+
+    stats.addFieldsCount(1);
+    stats.addFieldsSize(len);
+
+    const eckit::PathName& dataPath  = field.location().url();
+    const eckit::PathName& indexPath = index.location().url();
+
+    eckit::Log::info() << "DP: " << dataPath << std::endl;
+    eckit::Log::info() << "IP: " << dataPath << std::endl;
+
+//    if (dataPath != lastDataPath_) {
+//
+//        if (allDataPools_.find(dataPath) == allDataPools_.end()) {
+//
+//            if (dataPath.dirName().sameAs(directory_)) {
+//                dbStats->ownedFilesSize_ += dataPath.size();
+//                dbStats->ownedFilesCount_++;
+//            } else {
+//                dbStats->adoptedFilesSize_ += dataPath.size();
+//                dbStats->adoptedFilesCount_++;
+//            }
+//            allDataPools_.insert(dataPath);
+//        }
+//
+//        lastDataPath_ = dataPath;
+//    }
+//
+//    if (indexPath != lastIndexPath_) {
+//
+//        if (allIndexPools_.find(indexPath) == allIndexPools_.end()) {
+//            dbStats->indexFilesSize_ += indexPath.size();
+//            allIndexFiles_.insert(indexPath);
+//            dbStats->indexFilesCount_++;
+//        }
+//        lastIndexPath_ = indexPath;
+//    }
+
+    std::string unique = indexFingerprint + "+" + fieldFingerprint;
+
+    if (active_.insert(unique).second) {
+        indexUsage_[indexPath]++;
+        dataUsage_[dataPath]++;
+    } else {
+        stats.addDuplicatesCount(1);
+        stats.addDuplicatesSize(len);
+    }
+
+    dbStats_ += DbStats(dbStats); // append to the global dbStats
+}
+
+DbStats PMemStatsReportVisitor::dbStatistics() const {
+    return dbStats_;
+}
+
+IndexStats PMemStatsReportVisitor::indexStatistics() const {
+
+    IndexStats total(new PMemIndexStats());
+    for (std::map<Index, IndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+        total += i->second;
+    }
+    return total;
+}
+
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+} // namespace pmem
 } // namespace fdb5

@@ -11,6 +11,7 @@
 
 #include "fdb5/pmem/PMemDBReader.h"
 #include "fdb5/pmem/PMemIndex.h"
+#include "fdb5/pmem/PMemStats.h"
 
 using namespace eckit;
 
@@ -79,8 +80,12 @@ eckit::DataHandle* PMemDBReader::retrieve(const Key &key) const {
     return 0;
 }
 
-std::vector<Index> PMemDBReader::indexes() const {
+std::vector<Index> PMemDBReader::indexes(bool sorted) const {
     NOTIMP;
+}
+
+StatsReportVisitor *PMemDBReader::statsReportVisitor() {
+    return new PMemStatsReportVisitor(*this);
 }
 
 void PMemDBReader::print(std::ostream &out) const {

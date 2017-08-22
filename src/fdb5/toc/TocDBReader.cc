@@ -12,6 +12,8 @@
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/toc/TocDBReader.h"
+#include "fdb5/toc/TocIndex.h"
+#include "fdb5/toc/TocStats.h"
 
 namespace fdb5 {
 
@@ -115,9 +117,19 @@ void TocDBReader::print(std::ostream &out) const {
     out << "TocDBReader(" << directory() << ")";
 }
 
-std::vector<Index> TocDBReader::indexes() const
-{
+std::vector<Index> TocDBReader::indexes(bool sorted) const {
+
+    // If required, sort the indexes by file, and location within the file, for efficient iteration.
+    if (sorted) {
+        std::vector<Index> returnedIndexes(indexes_);
+        std::sort(returnedIndexes.begin(), returnedIndexes.end(), TocIndexFileSort());
+    }
+
     return indexes_;
+}
+
+StatsReportVisitor *TocDBReader::statsReportVisitor() {
+    return new TocStatsReportVisitor(*this);
 }
 
 static DBBuilder<TocDBReader> builder("toc.reader", true, false);

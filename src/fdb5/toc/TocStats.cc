@@ -13,6 +13,7 @@
 #include "eckit/log/Log.h"
 #include "fdb5/LibFdb.h"
 
+#include "fdb5/toc/TocDBReader.h"
 #include "fdb5/toc/TocStats.h"
 
 using eckit::Log;
@@ -152,6 +153,99 @@ void TocDataStats::add(const DataStatsContent& rhs)
 
 void TocDataStats::report(std::ostream &out, const char *indent) const {
     NOTIMP;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+TocStatsReportVisitor::TocStatsReportVisitor(TocDBReader& reader) :
+    directory_(reader.directory()),
+    dbStats_(new TocDbStats()),
+    reader_(reader) {
+
+    dbStats_ = reader_.stats();
+}
+
+TocStatsReportVisitor::~TocStatsReportVisitor() {
+}
+
+void TocStatsReportVisitor::visit(const Index &index,
+                          const Field& field,
+                          const std::string &indexFingerprint,
+                          const std::string &fieldFingerprint) {
+
+//    ASSERT(currIndex_ != 0);
+
+    TocDbStats* dbStats = new TocDbStats();
+
+    // If this index is not yet in the map, then create an entry
+
+    std::map<Index, IndexStats>::iterator stats_it = indexStats_.find(index);
+
+    if (stats_it == indexStats_.end()) {
+        stats_it = indexStats_.insert(std::make_pair(index, IndexStats(new TocIndexStats()))).first;
+    }
+
+    IndexStats& stats(stats_it->second);
+
+    eckit::Length len = field.location().length();
+
+    stats.addFieldsCount(1);
+    stats.addFieldsSize(len);
+
+    const eckit::PathName& dataPath  = field.location().url();
+    const eckit::PathName& indexPath = index.location().url();
+
+    if (dataPath != lastDataPath_) {
+
+        if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
+
+            if (dataPath.dirName().sameAs(directory_)) {
+                dbStats->ownedFilesSize_ += dataPath.size();
+                dbStats->ownedFilesCount_++;
+            } else {
+                dbStats->adoptedFilesSize_ += dataPath.size();
+                dbStats->adoptedFilesCount_++;
+            }
+            allDataFiles_.insert(dataPath);
+        }
+
+        lastDataPath_ = dataPath;
+    }
+
+    if (indexPath != lastIndexPath_) {
+
+        if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
+            dbStats->indexFilesSize_ += indexPath.size();
+            allIndexFiles_.insert(indexPath);
+            dbStats->indexFilesCount_++;
+        }
+        lastIndexPath_ = indexPath;
+    }
+
+    std::string unique = indexFingerprint + "+" + fieldFingerprint;
+
+    if (active_.insert(unique).second) {
+        indexUsage_[indexPath]++;
+        dataUsage_[dataPath]++;
+    } else {
+        stats.addDuplicatesCount(1);
+        stats.addDuplicatesSize(len);
+    }
+
+    dbStats_ += DbStats(dbStats); // append to the global dbStats
+}
+
+DbStats TocStatsReportVisitor::dbStatistics() const {
+    return dbStats_;
+}
+
+IndexStats TocStatsReportVisitor::indexStatistics() const {
+
+    IndexStats total(new TocIndexStats());
+    for (std::map<Index, IndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+        total += i->second;
+    }
+    return total;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
