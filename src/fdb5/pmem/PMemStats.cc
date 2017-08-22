@@ -154,9 +154,6 @@ void PMemStatsReportVisitor::visit(const Index &index,
     const eckit::PathName& dataPath  = field.location().url();
     const eckit::PathName& indexPath = index.location().url();
 
-    eckit::Log::info() << "DP: " << dataPath << std::endl;
-    eckit::Log::info() << "IP: " << dataPath << std::endl;
-
 //    if (dataPath != lastDataPath_) {
 //
 //        if (allDataPools_.find(dataPath) == allDataPools_.end()) {
