@@ -37,6 +37,7 @@ namespace fdb5 {
 class Key;
 class Index;
 class EntryVisitor;
+class StatsReportVisitor;
 class Schema;
 
 class DBVisitor;
@@ -75,11 +76,18 @@ public: // methods
 
     virtual bool exists() const = 0;
 
-    virtual void visitEntries(EntryVisitor& visitor) = 0;
+    /// If sorted is specified, the entries may be visited in the most efficient order, rather than
+    /// in the logical read order implied by the appends
+    /// (i.e. for Toc, visit indexes in the order they are stored, file by file).
+    virtual void visitEntries(EntryVisitor& visitor, bool sorted=false) = 0;
 
     virtual void visit(DBVisitor& visitor) = 0;
 
     virtual void dump(std::ostream& out, bool simple=false) = 0;
+
+    virtual StatsReportVisitor* statsReportVisitor();
+
+    virtual std::string owner() const = 0;
 
     virtual eckit::PathName basePath() const = 0;
 
@@ -94,7 +102,7 @@ public: // methods
     void touch();
 
     /// @returns all the indexes in this DB
-    virtual std::vector<fdb5::Index> indexes() const = 0;
+    virtual std::vector<fdb5::Index> indexes(bool sorted=false) const = 0;
 
 protected: // methods
 

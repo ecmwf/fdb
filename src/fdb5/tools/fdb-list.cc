@@ -97,7 +97,8 @@ void FDBList::process(const eckit::PathName& path, const eckit::option::CmdArgs&
 
     ListVisitor visitor(db->key(), db->schema(), location_);
 
-    db->visitEntries(visitor);
+    // Not currently sorting for efficient visiting, but visiting in logical (masking) order.
+    db->visitEntries(visitor, false);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

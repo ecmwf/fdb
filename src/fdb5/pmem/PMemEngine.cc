@@ -50,17 +50,19 @@ bool PMemEngine::canHandle(const eckit::PathName& path) const
 }
 
 
-static void matchKeyToDB(const Key& key, std::set<Key>& keys)
+static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing)
 {
     const Schema& schema = MasterConfig::instance().schema();
-    schema.matchFirstLevel(key, keys);
+    schema.matchFirstLevel(key, keys, missing);
 }
 
 std::vector<eckit::PathName> PMemEngine::databases(const Key &key, const std::vector<eckit::PathName>& dirs) {
 
     std::set<Key> keys;
 
-    matchKeyToDB(key,keys);
+    const char* regexForMissingValues = "[^:/]*";
+
+    matchKeyToDB(key, keys, regexForMissingValues);
 
     Log::debug<LibFdb>() << "Matched DB keys " << keys << std::endl;
 

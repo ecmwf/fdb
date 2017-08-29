@@ -76,6 +76,10 @@ void TocDB::dump(std::ostream &out, bool simple) {
     TocHandler::dump(out, simple);
 }
 
+std::string TocDB::owner() const {
+    return dbOwner();
+}
+
 const Schema& TocDB::schema() const {
     return schema_;
 }
@@ -84,9 +88,9 @@ eckit::PathName TocDB::basePath() const {
     return directory_;
 }
 
-void TocDB::visitEntries(EntryVisitor& visitor) {
+void TocDB::visitEntries(EntryVisitor& visitor, bool sorted) {
 
-    std::vector<Index> all = indexes();
+    std::vector<Index> all = indexes(sorted);
 
     for (std::vector<Index>::const_iterator i = all.begin(); i != all.end(); ++i) {
         i->entries(visitor);
@@ -109,8 +113,8 @@ DbStats TocDB::statistics() const
     return TocHandler::stats();
 }
 
-std::vector<Index> TocDB::indexes() const {
-    return loadIndexes();
+std::vector<Index> TocDB::indexes(bool sorted) const {
+    return loadIndexes(sorted);
 }
 
 void TocDB::visit(DBVisitor &visitor) {

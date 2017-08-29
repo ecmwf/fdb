@@ -152,6 +152,10 @@ DB::DB(const Key &key) :
 DB::~DB() {
 }
 
+StatsReportVisitor *DB::statsReportVisitor() {
+    NOTIMP;
+}
+
 time_t DB::lastAccess() const {
     return lastAccess_;
 }
