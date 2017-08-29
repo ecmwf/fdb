@@ -38,8 +38,15 @@ public: // methods
 
     const eckit::PathName &path() const;
 
-    bool writable() const; ///< Root is in use, when archiving
-    bool visit() const;    ///< Root is visited, when retrievind
+    /// Root exists in the filesystem, use this check to avoid errors when accessing
+    /// This result is cached at construction
+    bool exists() const {  return exists_; }
+
+    /// Root is in use, when archiving
+    bool writable() const { return writable_; }
+
+    /// Root is visited, when retrieving
+    bool visit() const { return visit_; }
 
     const std::string& filespace() const;
 
@@ -60,6 +67,7 @@ private: // members
 
     bool writable_;
     bool visit_;
+    bool exists_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
