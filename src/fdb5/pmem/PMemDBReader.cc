@@ -12,6 +12,7 @@
 #include "fdb5/pmem/PMemDBReader.h"
 #include "fdb5/pmem/PMemIndex.h"
 #include "fdb5/pmem/PMemStats.h"
+#include "fdb5/LibFdb.h"
 
 using namespace eckit;
 
@@ -56,8 +57,8 @@ bool PMemDBReader::selectIndex(const Key &key) {
 
     currentIndex_ = indexes_[key];
 
-    eckit::Log::info() << "PMemDBReader::selectIndex " << key
-                       << ", found match" << std::endl;
+    eckit::Log::debug<LibFdb>() << "PMemDBReader::selectIndex " << key
+                                << ", found match" << std::endl;
 
     return true;
 }
@@ -70,8 +71,8 @@ void PMemDBReader::axis(const std::string& keyword, eckit::StringSet& s) const {
 
 eckit::DataHandle* PMemDBReader::retrieve(const Key &key) const {
 
-    eckit::Log::info() << "Trying to retrieve key " << key << std::endl;
-    eckit::Log::info() << "From index " << currentIndex_ << std::endl;
+    eckit::Log::debug<LibFdb>() << "Trying to retrieve key " << key << std::endl;
+    eckit::Log::debug<LibFdb>() << "From index " << currentIndex_ << std::endl;
 
     Field field;
     if (currentIndex_.get(key, field))

@@ -13,6 +13,7 @@
 #include "fdb5/pmem/PMemIndex.h"
 #include "fdb5/pmem/PMemFieldLocation.h"
 #include "fdb5/pmem/PDataNode.h"
+#include "fdb5/LibFdb.h"
 
 using namespace eckit;
 
@@ -40,7 +41,7 @@ bool PMemDBWriter::selectIndex(const Key &key) {
 
     currentIndex_ = indexes_[key];
 
-    eckit::Log::info() << "PMemDBWriter::selectIndex " << key << ", found match" << std::endl;
+    eckit::Log::debug<LibFdb>() << "PMemDBWriter::selectIndex " << key << ", found match" << std::endl;
 
     return true;
 }
