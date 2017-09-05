@@ -16,7 +16,7 @@
 #define fdb5_pmem_MemoryBufferStream_H
 
 #include "eckit/serialisation/Stream.h"
-#include "eckit/io/Buffer.h"
+#include "eckit/memory/MemoryBuffer.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 
@@ -43,14 +43,14 @@ public: // methods
     virtual std::string name() const;
 
     size_t position() const;
-    const eckit::Buffer& buffer() const;
+    const eckit::MemoryBuffer& buffer() const;
 
 private: // members
 
     eckit::Length size_;
     eckit::Offset position_;
 
-    eckit::Buffer buffer_;
+    eckit::MemoryBuffer buffer_;
 };
 
 

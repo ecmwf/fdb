@@ -46,7 +46,7 @@ long MemoryBufferStream::write(const void* buffer, long length) {
 
     Length remaining = size_ - position_;
     if (remaining < Length(length)) {
-        Buffer tmp(size_ * 2);
+        MemoryBuffer tmp(size_ * 2);
         ::memcpy(tmp, buffer_, size_);
         buffer_.swap(tmp);
         size_ = size_ * 2;
@@ -75,7 +75,7 @@ size_t MemoryBufferStream::position() const {
 }
 
 
-const Buffer& MemoryBufferStream::buffer() const {
+const MemoryBuffer& MemoryBufferStream::buffer() const {
     return buffer_;
 }
 
