@@ -134,8 +134,6 @@ void PMemStatsReportVisitor::visit(const Index &index,
 
 //    ASSERT(currIndex_ != 0);
 
-    PMemDbStats* dbStats = new PMemDbStats();
-
     // If this index is not yet in the map, then create an entry
 
     std::map<Index, IndexStats>::iterator stats_it = indexStats_.find(index);
@@ -154,35 +152,9 @@ void PMemStatsReportVisitor::visit(const Index &index,
     const eckit::PathName& dataPath  = field.location().url();
     const eckit::PathName& indexPath = index.location().url();
 
-    eckit::Log::info() << "DP: " << dataPath << std::endl;
-    eckit::Log::info() << "IP: " << dataPath << std::endl;
-
-//    if (dataPath != lastDataPath_) {
-//
-//        if (allDataPools_.find(dataPath) == allDataPools_.end()) {
-//
-//            if (dataPath.dirName().sameAs(directory_)) {
-//                dbStats->ownedFilesSize_ += dataPath.size();
-//                dbStats->ownedFilesCount_++;
-//            } else {
-//                dbStats->adoptedFilesSize_ += dataPath.size();
-//                dbStats->adoptedFilesCount_++;
-//            }
-//            allDataPools_.insert(dataPath);
-//        }
-//
-//        lastDataPath_ = dataPath;
-//    }
-//
-//    if (indexPath != lastIndexPath_) {
-//
-//        if (allIndexPools_.find(indexPath) == allIndexPools_.end()) {
-//            dbStats->indexFilesSize_ += indexPath.size();
-//            allIndexFiles_.insert(indexPath);
-//            dbStats->indexFilesCount_++;
-//        }
-//        lastIndexPath_ = indexPath;
-//    }
+    // n.b. Unlike in the Toc case, we don't need to track the index and data pools here. They are stored and
+    //      referenced centrally in the master pool, so the data about them is ALREADY located in the global
+    //      dbStats!
 
     std::string unique = indexFingerprint + "+" + fieldFingerprint;
 
@@ -193,8 +165,6 @@ void PMemStatsReportVisitor::visit(const Index &index,
         stats.addDuplicatesCount(1);
         stats.addDuplicatesSize(len);
     }
-
-    dbStats_ += DbStats(dbStats); // append to the global dbStats
 }
 
 DbStats PMemStatsReportVisitor::dbStatistics() const {

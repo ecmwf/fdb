@@ -23,6 +23,7 @@
 #include "fdb5/pmem/PIndexRoot.h"
 #include "fdb5/pmem/PRoot.h"
 #include "fdb5/pmem/Pool.h"
+#include "fdb5/LibFdb.h"
 
 using namespace eckit;
 using namespace pmem;
@@ -55,7 +56,7 @@ Pool::Pool(const PathName& path, const std::string& name) :
     ASSERT(baseRoot()->valid());
     ASSERT(root().valid());
 
-    Log::info() << "Opened persistent pool created at: " << TimeStamp(root().created()) << std::endl;
+    Log::debug<LibFdb>() << "Opened persistent pool created at: " << TimeStamp(root().created()) << std::endl;
 }
 
 
@@ -93,11 +94,11 @@ Pool* Pool::obtain(const PathName &poolDir, const size_t size, const Key& dbKey)
 
 
     if(exists(poolDir)) {
-        Log::info() << "Opening FDB PMem master pool  " << poolDir << std::endl;
+        Log::debug<LibFdb>() << "Opening FDB PMem master pool  " << poolDir << std::endl;
         pool = new Pool(poolMaster(poolDir), "pmem-pool");
     }
     else {
-        Log::info() << "Creating FDB PMem master pool " << poolDir << std::endl;
+        Log::debug<LibFdb>() << "Creating FDB PMem master pool " << poolDir << std::endl;
         pool = new Pool(poolMaster(poolDir), size, "pmem-pool", PRoot::Constructor(PRoot::IndexClass));
         pool->buildRoot(dbKey);
     }
