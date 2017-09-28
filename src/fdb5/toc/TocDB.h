@@ -47,9 +47,10 @@ protected: // methods
     virtual void close();
     virtual void flush();
     virtual bool exists() const;
-    virtual void visitEntries(EntryVisitor& visitor);
+    virtual void visitEntries(EntryVisitor& visitor, bool sorted=false);
     virtual void visit(DBVisitor& visitor);
     virtual void dump(std::ostream& out, bool simple=false);
+    virtual std::string owner() const;
     virtual eckit::PathName basePath() const;
     virtual const Schema& schema() const;
 
@@ -62,7 +63,7 @@ protected: // methods
 
     virtual DbStats statistics() const;
 
-    std::vector<Index> indexes() const;
+    virtual std::vector<Index> indexes(bool sorted=false) const;
 
 private: // members
 

@@ -21,6 +21,7 @@
 #include "fdb5/pmem/DataPool.h"
 #include "fdb5/pmem/Pool.h"
 #include "fdb5/pmem/PIndexRoot.h"
+#include "fdb5/LibFdb.h"
 
 using namespace eckit;
 using namespace pmem;
@@ -52,7 +53,7 @@ DataPoolManager::~DataPoolManager() {
 
 DataPool& DataPoolManager::currentWritePool() {
 
-    Log::error() << "[" << *this << "]: " << "Requesting current pool" << std::endl;
+    Log::debug<LibFdb>() << "[" << *this << "]: " << "Requesting current pool" << std::endl;
 
     if (currentPool_ == 0) {
 
@@ -75,7 +76,7 @@ DataPool& DataPoolManager::currentWritePool() {
 
             if (pools_.find(uuid) == pools_.end()) {
 
-                Log::error() << "[" << *this << "]: " << "Opening pool index: " << idx << std::endl;
+                Log::debug<LibFdb>() << "[" << *this << "]: " << "Opening pool index: " << idx << std::endl;
                 pool = new DataPool(poolDir_, idx);
 
                 uuid = pool->uuid();
@@ -93,7 +94,7 @@ DataPool& DataPoolManager::currentWritePool() {
 
             size_t idx = pool_count;
 
-            Log::info() << "[" << *this << "]: " << "Creating a new data pool with index: " << idx << std::endl;
+            Log::debug<LibFdb>() << "[" << *this << "]: " << "Creating a new data pool with index: " << idx << std::endl;
             currentPool_ = new DataPool(poolDir_, idx, Resource<size_t>("fdbPMemDataPoolSize;$fdbPMemDataPoolSize", 1024 * 1024 * 1024));
             currentPool_->buildRoot();
 
@@ -120,7 +121,7 @@ void DataPoolManager::invalidateCurrentPool(DataPool& pool) {
     // We don't worry too much about other threads/processors. They will also hit out-of-space allocation errors.
     // This finalisation is only for informational purposes.
 
-    Log::info() << "[" << *this << "]: " << "Finalising current pool" << std::endl;
+    Log::debug<LibFdb>() << "[" << *this << "]: " << "Finalising current pool" << std::endl;
 
     currentPool_->finalise();
     currentPool_ = 0;
@@ -156,13 +157,13 @@ void DataPoolManager::ensurePoolLoaded(uint64_t uuid) {
 
     if (uuid != masterUUID_ && pools_.find(uuid) == pools_.end()) {
 
-        Log::info() << "Data pool with UUID=" << uuid << " not yet opened" << std::endl;
+        Log::debug<LibFdb>() << "Data pool with UUID=" << uuid << " not yet opened" << std::endl;
 
         size_t pool_count = masterRoot_.dataPoolUUIDs_.size();
 
         for (size_t idx = 0; idx < pool_count; idx++) {
             if (uuid == masterRoot_.dataPoolUUIDs_[idx]) {
-                Log::info() << "Opening data pool, UUID=" << uuid << ", index=" << idx << std::endl;
+                Log::debug<LibFdb>() << "Opening data pool, UUID=" << uuid << ", index=" << idx << std::endl;
                 pools_[uuid] = new DataPool(poolDir_, idx);
                 return;
             }

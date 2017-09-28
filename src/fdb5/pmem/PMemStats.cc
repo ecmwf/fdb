@@ -9,8 +9,10 @@
  */
 
 #include "fdb5/pmem/PMemStats.h"
+#include "fdb5/pmem/PMemDBReader.h"
 
 namespace fdb5 {
+namespace pmem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -113,4 +115,74 @@ void PMemDataStats::report(std::ostream &out, const char *indent) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
+PMemStatsReportVisitor::PMemStatsReportVisitor(pmem::PMemDBReader& reader) :
+//    directory_(reader.directory()),
+    dbStats_(new PMemDbStats()),
+    reader_(reader) {
+
+    dbStats_ = static_cast<DB&>(reader_).statistics();
+}
+
+PMemStatsReportVisitor::~PMemStatsReportVisitor() {
+}
+
+void PMemStatsReportVisitor::visit(const Index &index,
+                          const Field& field,
+                          const std::string &indexFingerprint,
+                          const std::string &fieldFingerprint) {
+
+//    ASSERT(currIndex_ != 0);
+
+    // If this index is not yet in the map, then create an entry
+
+    std::map<Index, IndexStats>::iterator stats_it = indexStats_.find(index);
+
+    if (stats_it == indexStats_.end()) {
+        stats_it = indexStats_.insert(std::make_pair(index, IndexStats(new PMemIndexStats()))).first;
+    }
+
+    IndexStats& stats(stats_it->second);
+
+    eckit::Length len = field.location().length();
+
+    stats.addFieldsCount(1);
+    stats.addFieldsSize(len);
+
+    const eckit::PathName& dataPath  = field.location().url();
+    const eckit::PathName& indexPath = index.location().url();
+
+    // n.b. Unlike in the Toc case, we don't need to track the index and data pools here. They are stored and
+    //      referenced centrally in the master pool, so the data about them is ALREADY located in the global
+    //      dbStats!
+
+    std::string unique = indexFingerprint + "+" + fieldFingerprint;
+
+    if (active_.insert(unique).second) {
+        indexUsage_[indexPath]++;
+        dataUsage_[dataPath]++;
+    } else {
+        stats.addDuplicatesCount(1);
+        stats.addDuplicatesSize(len);
+    }
+}
+
+DbStats PMemStatsReportVisitor::dbStatistics() const {
+    return dbStats_;
+}
+
+IndexStats PMemStatsReportVisitor::indexStatistics() const {
+
+    IndexStats total(new PMemIndexStats());
+    for (std::map<Index, IndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
+        total += i->second;
+    }
+    return total;
+}
+
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+} // namespace pmem
 } // namespace fdb5

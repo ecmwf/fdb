@@ -281,6 +281,11 @@ void Key::validateKeysOf(const Key& other, bool checkAlsoValues) const
     }
 }
 
+fdb5::Key::operator std::string() const {
+    ASSERT(names_.size() == keys_.size());
+    return toString();
+}
+
 fdb5::Key::operator eckit::StringDict() const
 {
     eckit::StringDict res;
@@ -304,17 +309,7 @@ fdb5::Key::operator eckit::StringDict() const
 
 void Key::print(std::ostream &out) const {
     if (names_.size() == keys_.size()) {
-        const char *sep = "";
-        out << "{";
-        for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
-            eckit::StringDict::const_iterator i = keys_.find(*j);
-            ASSERT(i != keys_.end());
-            out << sep << *j << '=' << i->second;
-            sep = ",";
-
-        }
-        out << "}";
-
+        out << "{" << toString() << "}";
         if (rule_) {
             out << " (" << *rule_ << ")";
         }
@@ -324,6 +319,18 @@ void Key::print(std::ostream &out) const {
             out << " (" << *rule_ << ")";
         }
     }
+}
+
+std::string Key::toString() const {
+    std::string res;
+    const char *sep = "";
+    for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
+        eckit::StringDict::const_iterator i = keys_.find(*j);
+        ASSERT(i != keys_.end());
+        res += sep + *j + '=' + i->second;
+        sep = ",";
+    }
+    return res;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

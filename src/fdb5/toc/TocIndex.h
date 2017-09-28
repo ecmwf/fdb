@@ -114,6 +114,34 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// Useful for specifying order within the TocHandler/TocDBReader
+/// It can be helpful to iterate through indexes sequentially according to how they are on disk (i.e. all the indexes
+/// in one file sequentially in the order written).
+
+struct TocIndexFileSort {
+
+    // Return true if first argument is earlier than the second, and false otherwise.
+    bool operator() (const Index& lhs, const Index& rhs) {
+
+        const TocIndex* idx1 = dynamic_cast<const TocIndex*>(lhs.content());
+        const TocIndex* idx2 = dynamic_cast<const TocIndex*>(rhs.content());
+
+        ASSERT(idx1);
+        ASSERT(idx2);
+
+        const eckit::PathName& pth1(idx1->path());
+        const eckit::PathName& pth2(idx2->path());
+
+        if (pth1 == pth2) {
+            return idx1->offset() < idx2->offset();
+        } else {
+            return pth1 < pth2;
+        }
+    }
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 } // namespace fdb5
 
 #endif

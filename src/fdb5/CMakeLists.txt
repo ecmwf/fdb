@@ -77,6 +77,8 @@ list( APPEND fdb5_srcs
     database/IndexLocation.h
     database/IndexStats.cc
     database/IndexStats.h
+    database/StatsVisitor.cc
+    database/StatsVisitor.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc

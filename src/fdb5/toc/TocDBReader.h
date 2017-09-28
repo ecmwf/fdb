@@ -33,7 +33,9 @@ public: // methods
 
     virtual ~TocDBReader();
 
-    virtual std::vector<Index> indexes() const;
+    virtual std::vector<Index> indexes(bool sorted) const;
+
+    virtual StatsReportVisitor* statsReportVisitor();
 
 private: // methods
 

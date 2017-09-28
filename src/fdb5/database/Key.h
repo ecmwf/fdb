@@ -105,12 +105,14 @@ public: // methods
     /// @throws When "other" doesn't contain all the keys of "this"
     void validateKeysOf(const Key& other, bool checkAlsoValues = false) const;
 
+    operator std::string() const;
     operator eckit::StringDict() const;
 
 private: // members
 
     void print( std::ostream &out ) const;
     void encode(eckit::Stream &s) const;
+    std::string toString() const;
 
     eckit::StringDict keys_;
     eckit::StringList names_;

@@ -26,6 +26,7 @@
 #include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
@@ -59,7 +60,8 @@ TocHandler::TocHandler(const eckit::PathName &directory, const eckit::Configurat
     fd_(-1),
     count_(0),
     useSubToc_(config.getBool("useSubToc", false)),
-    isSubToc_(false) {
+    isSubToc_(false),
+    enumeratedMaskedSubTocs_(false) {
 
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
@@ -78,7 +80,8 @@ TocHandler::TocHandler(const eckit::PathName& path, bool) :
     fd_(-1),
     count_(0),
     useSubToc_(false),
-    isSubToc_(true) {}
+    isSubToc_(true),
+    enumeratedMaskedSubTocs_(false) {}
 
 
 TocHandler::~TocHandler() {
@@ -143,20 +146,51 @@ void TocHandler::openForRead() const {
     //  iomode |= O_NOATIME;
     //#endif
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
+
+    // The masked sub tocs could be updated each time, so reset this.
+    enumeratedMaskedSubTocs_ = false;
+    maskedSubTocs_.clear();
 }
 
 void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
     ASSERT(fd_ != -1);
 
-    static size_t fdbRoundTocRecords = eckit::Resource<size_t>("fdbRoundTocRecords", 1024);
-
-    r.header_.size_ = eckit::round(sizeof(TocRecord::Header) + payloadSize, fdbRoundTocRecords);
+    // Obtain the rounded size, and set it in the record header.
+    size_t roundedSize = roundRecord(r, payloadSize);
 
     size_t len;
-    SYSCALL2( len = ::write(fd_, &r, r.header_.size_), tocPath_ );
-    ASSERT( len == r.header_.size_ );
+    SYSCALL2( len = ::write(fd_, &r, roundedSize), tocPath_ );
+    ASSERT( len == roundedSize);
+}
 
+void TocHandler::appendBlock(const void *data, size_t size) {
+
+    openForAppend();
+    TocHandlerCloser close(*this);
+
+    ASSERT(fd_ != -1);
+
+    // Ensure that this block is appropriately rounded.
+
+    ASSERT(size % recordRoundSize() == 0);
+
+    size_t len;
+    SYSCALL2( len = ::write(fd_, data, size), tocPath_ );
+    ASSERT( len == size );
+}
+
+size_t TocHandler::recordRoundSize() {
+
+    static size_t fdbRoundTocRecords = eckit::Resource<size_t>("fdbRoundTocRecords", 1024);
+    return fdbRoundTocRecords;
+}
+
+size_t TocHandler::roundRecord(TocRecord &r, size_t payloadSize) {
+
+    r.header_.size_ = eckit::round(sizeof(TocRecord::Header) + payloadSize, recordRoundSize());
+
+    return r.header_.size_;
 }
 
 // readNext wraps readNextInternal.
@@ -190,9 +224,21 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
             } else if (r.header_.tag_ == TocRecord::TOC_SUB_TOC) {
 
+                // Now that we have hit a subtoc, we need the list of masked subtocs to be
+                // populated
+                if (!enumeratedMaskedSubTocs_) {
+                    populateMaskedSubTocsList();
+                }
+
                 eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
                 eckit::PathName path;
                 s >> path;
+
+                // If this subtoc has a masking entry, then skip it, and go on to the next entry.
+                if (std::find(maskedSubTocs_.begin(), maskedSubTocs_.end(), path) != maskedSubTocs_.end()) {
+//                    Log::debug<LibFdb>() << "SubToc ignored by mask: " << path << std::endl;
+                    continue;
+                }
 
                 subTocRead_.reset(new TocHandler(path, true));
                 subTocRead_->openForRead();
@@ -281,6 +327,7 @@ std::vector<PathName> TocHandler::subTocPaths() const {
 }
 
 void TocHandler::close() const {
+
     if ( fd_ >= 0 ) {
         // eckit::Log::info() << "Closing TOC " << tocPath_ << std::endl;
         SYSCALL2( ::close(fd_), tocPath_ );
@@ -295,6 +342,64 @@ void TocHandler::close() const {
         // the pointer here (or we will create a proliferation of sub tocs)
         subTocWrite_->close();
     }
+}
+
+void TocHandler::populateMaskedSubTocsList() const {
+
+    ASSERT(fd_ != 0 && fd_ != -1);
+
+    // Get the current position of the file descriptor.
+    off_t startPosition = lseek(fd_, 0, SEEK_CUR);
+
+    maskedSubTocs_.clear();
+
+    TocRecord r;
+
+    while ( readNextInternal(r) ) {
+
+        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        std::string path;
+        off_t offset;
+
+        switch (r.header_.tag_) {
+
+            /// The TOC_CLEAR record is used both for clearing indexes and subtocs. If the offset is
+            /// non-zero it is definitely an index, so we can skip it.
+            ///
+            /// HOWEVER, without opening it, we cannot know if something is a subtoc at this point, so
+            /// some indexes will get added to the maskedSubTocs list. This is not a problem, as we
+            /// will never do a lookup in this list for something that is not a subtoc.
+
+            case TocRecord::TOC_CLEAR: {
+                s >> path;
+                s >> offset;
+
+                if (offset == 0) {
+                    maskedSubTocs_.push_back(path);
+                }
+                break;
+            }
+
+            case TocRecord::TOC_SUB_TOC:
+            case TocRecord::TOC_INIT:
+            case TocRecord::TOC_INDEX:
+                break;
+
+            default: {
+                // This is only a warning, as it is legal for later versions of software to add stuff
+                // that is just meaningless in a backwards-compatible sense.
+                Log::warning() << "Unknown TOC entry" << std::endl;
+                break;
+            }
+        }
+    }
+
+    // And reset back to where we were.
+
+    off_t ret = lseek(fd_, startPosition, SEEK_SET);
+    ASSERT(ret == startPosition);
+
+    enumeratedMaskedSubTocs_ = true;
 }
 
 void TocHandler::writeInitRecord(const Key &key) {
@@ -470,6 +575,14 @@ void TocHandler::writeIndexRecord(const Index& index) {
     index.visit(writeVisitor);
 }
 
+bool TocHandler::useSubToc() const {
+    return useSubToc_;
+}
+
+bool TocHandler::anythingWrittenToSubToc() const {
+    return !!subTocWrite_;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class HasPath {
@@ -550,28 +663,6 @@ const eckit::PathName& TocHandler::directory() const
     return directory_;
 }
 
-struct IndexFileSort {
-
-    // Return true if first argument is earlier than the second, and false otherwise.
-    bool operator() (const Index& lhs, const Index& rhs) {
-
-        const TocIndex* idx1 = dynamic_cast<const TocIndex*>(lhs.content());
-        const TocIndex* idx2 = dynamic_cast<const TocIndex*>(rhs.content());
-
-        ASSERT(idx1);
-        ASSERT(idx2);
-
-        const eckit::PathName& pth1(idx1->path());
-        const eckit::PathName& pth2(idx2->path());
-
-        if (pth1 == pth2) {
-            return idx1->offset() < idx2->offset();
-        } else {
-            return pth1 < pth2;
-        }
-    }
-};
-
 std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
 
     std::vector<Index> indexes;
@@ -614,6 +705,10 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
             indexes.push_back( new TocIndex(s, directory_, directory_ / path, offset) );
             break;
 
+        // n.b. TOC_CLEAR may refer to an index (in this case we erase the index from the indexes list).
+        //      or it may refer to a sub toc. In the latter case, this just won't be in the indexes
+        //      list, so no matter.
+
         case TocRecord::TOC_CLEAR:
             s >> path;
             s >> offset;
@@ -622,6 +717,10 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
             if (j != indexes.end()) {
                 indexes.erase(j);
             }
+            break;
+
+        case TocRecord::TOC_SUB_TOC:
+            throw eckit::SeriousBug("TOC_SUB_TOC entry should be handled insude readNext");
             break;
 
         default:
@@ -637,7 +736,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
 
     if (sorted) {
 
-        std::sort(indexes.begin(), indexes.end(), IndexFileSort());
+        std::sort(indexes.begin(), indexes.end(), TocIndexFileSort());
 
     } else {
 
@@ -682,10 +781,11 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
 
             case TocRecord::TOC_INIT: {
                 isSubToc = false;
+                fdb5::Key key(s);
                 if (r.header_.version_ > 1) {
                     s >> isSubToc;
                 }
-                out << "  Key: " << Key(s) << ", sub-toc: " << (isSubToc ? "yes" : "no");
+                out << "  Key: " << key << ", sub-toc: " << (isSubToc ? "yes" : "no");
                 if(!simple) { out << std::endl; }
                 break;
             }
@@ -704,18 +804,18 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
             case TocRecord::TOC_CLEAR: {
                 s >> path;
                 s >> offset;
-                out << "  Path: " << path << ", offset: " << offset << std::endl;
+                out << "  Path: " << path << ", offset: " << offset;
                 break;
             }
 
             case TocRecord::TOC_SUB_TOC: {
                 s >> path;
-                out << "  Path: " << path << std::endl;
+                out << "  Path: " << path;
                 break;
             }
 
             default: {
-                out << "   Unknown TOC entry" << std::endl;
+                out << "   Unknown TOC entry";
                 break;
             }
         }
@@ -768,7 +868,7 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
 }
 
 
-std::string TocHandler::dbOwner() {
+std::string TocHandler::dbOwner() const {
     return userName(dbUID());
 }
 
@@ -811,7 +911,6 @@ std::string TocHandler::userName(long id) const {
   }
 }
 
-
 bool TocHandler::stripeLustre() {
 
     static bool handleLustreStripe = eckit::Resource<bool>("fdbHandleLustreStripe;$FDB_HANDLE_LUSTRE_STRIPE", false);
@@ -834,6 +933,39 @@ LustreStripe TocHandler::stripeDataLustreSettings() {
     static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
 
     return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
+}
+
+size_t TocHandler::buildIndexRecord(TocRecord& r, const Index &index) {
+
+    const IndexLocation& location(index.location());
+    const TocIndexLocation& tocLoc(reinterpret_cast<const TocIndexLocation&>(location));
+
+    ASSERT(r.header_.tag_ == TocRecord::TOC_INDEX);
+
+    eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+
+    s << tocLoc.path().baseName();
+    s << tocLoc.offset();
+    s << index.type();
+    index.encode(s);
+
+    return s.position();
+}
+
+size_t TocHandler::buildSubTocMaskRecord(TocRecord &r) {
+
+    /// n.b. We construct a subtoc masking record using TOC_CLEAR for backward compatibility.
+
+    ASSERT(useSubToc_);
+    ASSERT(subTocWrite_);
+    ASSERT(r.header_.tag_ == TocRecord::TOC_CLEAR);
+
+    eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+
+    s << subTocWrite_->tocPath();
+    s << static_cast<off_t>(0);    // Always use an offset of zero for subtocs
+
+    return s.position();
 }
 
 

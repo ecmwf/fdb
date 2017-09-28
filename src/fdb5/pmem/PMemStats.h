@@ -17,11 +17,26 @@
 
 #include <iosfwd>
 
+#include "fdb5/database/DataStats.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/IndexStats.h"
-#include "fdb5/database/DataStats.h"
+#include "fdb5/database/StatsVisitor.h"
+
+#include "eckit/filesystem/PathName.h"
+
+#if __cplusplus > 199711L
+#include <unordered_set>
+#include <unordered_map>
+#endif
 
 namespace fdb5 {
+
+class Index;
+class Field;
+
+namespace pmem {
+
+class PMemDBReader;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -101,6 +116,60 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 
+class PMemStatsReportVisitor : public StatsReportVisitor {
+public:
+
+    PMemStatsReportVisitor(PMemDBReader& reader);
+    virtual ~PMemStatsReportVisitor();
+
+    virtual IndexStats indexStatistics() const;
+    virtual DbStats    dbStatistics() const;
+
+private: // methods
+
+
+
+    virtual void visit(const Index& index,
+                       const Field& field,
+                       const std::string &indexFingerprint,
+                       const std::string &fieldFingerprint);
+
+protected: // members
+
+// SDS: This is a significant performance optimisation. Use the std::unordered_set/map if they
+//      are available (i.e. if c++11 is supported). Otherwise use std::set/map. These have the
+//      same interface, so no code changes are required except in the class definition.
+#if __cplusplus > 199711L
+    std::unordered_set<std::string> allDataPools_;
+    std::unordered_set<std::string> allIndexPools_;
+
+    std::unordered_map<std::string, size_t> indexUsage_;
+    std::unordered_map<std::string, size_t> dataUsage_;
+
+    std::unordered_set<std::string> active_;
+#else
+    std::set<eckit::PathName> allDataPools_;
+    std::set<eckit::PathName> allIndexPools_;
+
+    std::map<eckit::PathName, size_t> indexUsage_;
+    std::map<eckit::PathName, size_t> dataUsage_;
+
+    std::set<std::string> active_;
+#endif
+
+    std::map<Index, IndexStats> indexStats_;
+
+    DbStats dbStats_;
+
+    PMemDBReader& reader_;
+
+    eckit::PathName lastDataPath_;
+    eckit::PathName lastIndexPath_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+} // namespace pmem
 } // namespace fdb5
 
 #endif

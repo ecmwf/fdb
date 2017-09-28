@@ -96,7 +96,10 @@ void PMemDB::archive(const Key &key, const void *data, Length length) {
     NOTIMP;
 }
 
-void PMemDB::visitEntries(EntryVisitor& visitor) {
+void PMemDB::visitEntries(EntryVisitor& visitor, bool sorted) {
+
+    // There is no meaningfully more-efficient way or sorting the indexes!
+    (void) sorted;
 
     Log::debug<LibFdb>() << "Visiting entries in DB with key " << dbKey_ << std::endl;
 
@@ -168,6 +171,21 @@ void PMemDB::dump(std::ostream& out, bool simple) {
     visitEntries(visitor);
 }
 
+std::string PMemDB::owner() const {
+
+    ASSERT(pool_);
+    ASSERT(root_);
+
+    long id = root_->uid();
+    struct passwd *p = getpwuid(id);
+
+    if (p) {
+      return p->pw_name;
+    } else {
+      return eckit::Translator<long, std::string>()(id);
+    }
+}
+
 void PMemDB::visit(DBVisitor &visitor) {
     visitor(*this);
 }
@@ -198,7 +216,7 @@ DbStats PMemDB::statistics() const
     return DbStats(stats);
 }
 
-std::vector<Index> PMemDB::indexes() const {
+std::vector<Index> PMemDB::indexes(bool sorted) const {
     throw eckit::NotImplemented("TocDB::indexes() isn't implemented for this DB type "
                                 "-- perhaps this is a writer?", Here());
 }
