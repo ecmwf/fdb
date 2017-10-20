@@ -54,11 +54,14 @@ protected: // members
 
     bool verbose_;
 
-private: // methods
+protected: // methods
 
     virtual void init(const eckit::option::CmdArgs& args);
-    virtual void execute(const eckit::option::CmdArgs& args) = 0;
     virtual void finish(const eckit::option::CmdArgs& args);
+
+private: // methods
+
+    virtual void execute(const eckit::option::CmdArgs& args) = 0;
 
     virtual int numberOfPositionalArguments() const { return -1; }
     virtual int minimumPositionalArguments() const { return -1; }

@@ -52,6 +52,7 @@ void FDBWrite::usage(const std::string &tool) const {
 
 void FDBWrite::init(const eckit::option::CmdArgs& args)
 {
+    FDBAccess::init(args);
     args.get("include-filter", filterInclude_);
     args.get("exclude-filter", filterExclude_);
 }
