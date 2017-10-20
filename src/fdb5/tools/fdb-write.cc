@@ -58,7 +58,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::GribArchiver archiver;
+    fdb5::GribArchiver archiver(fdb5::Key(), false, verbose_);
 
     archiver.filters(filterInclude_, filterExclude_);
 

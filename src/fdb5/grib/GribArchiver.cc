@@ -27,28 +27,40 @@ using eckit::Log;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers) :
+GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose) :
     Archiver(),
     GribDecoder(),
     key_(key),
-    completeTransfers_(completeTransfers) {
+    completeTransfers_(completeTransfers),
+    verbose_(verbose)
+{
+}
+
+void GribArchiver::filters(const std::string& include, const std::string& exclude) {
+    include_ = Key(include);
+    exclude_ = Key(exclude);
 }
 
 bool GribArchiver::filter(const Key& k) const {
 
     if(!k.match(include_)) {
-        Log::debug<LibFdb>() << "Include key " << include_ << " filtered out datum " << k << std::endl;
+        logVerbose() << "Include key " << include_ << " filtered out datum " << k << std::endl;
         return true;
     }
 
     if(exclude_.size() and k.match(exclude_)) {
-        Log::debug<LibFdb>() << "Exclude key " << exclude_ << " filtered out datum " << k << std::endl;
+        logVerbose() << "Exclude key " << exclude_ << " filtered out datum " << k << std::endl;
         return true;
     }
 
     return false; // datum wasn't filtered out
 }
 
+eckit::Channel& GribArchiver::logVerbose() const {
+
+    return verbose_ ? Log::info() : Log::debug<LibFdb>();
+
+}
 
 eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
 
@@ -74,7 +86,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
 
             if( filter(key) ) continue;
 
-            Log::debug<LibFdb>() << "Archiving " << key << std::endl;
+            logVerbose() << "Archiving " << key << std::endl;
 
             ArchiveVisitor visitor(*this, key, static_cast<const void *>(buffer()), len);
 
