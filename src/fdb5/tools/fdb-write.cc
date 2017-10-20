@@ -34,11 +34,11 @@ public:
 
         options_.push_back(
                     new eckit::option::SimpleOption<std::string>("include-filter",
-                    "List of comma separated key-values of what to include from the input data"));
+                    "List of comma separated key-values of what to include from the input data, e.g --include-filter=stream=enfo,date=10102017"));
 
         options_.push_back(
                     new eckit::option::SimpleOption<std::string>("exclude-filter",
-                    "List of comma separated key-values of what to exclude from the input data"));
+                    "List of comma separated key-values of what to exclude from the input data, e.g --exclude-filter=time=0000"));
     }
 
     std::string filterInclude_;
@@ -46,7 +46,7 @@ public:
 };
 
 void FDBWrite::usage(const std::string &tool) const {
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--filter-include=...] [path1] [path2] ..." << std::endl;
+    eckit::Log::info() << std::endl << "Usage: " << tool << " [--filter-include=...] [--filter-exclude=...] <path1> [path2] ..." << std::endl;
     fdb5::FDBAccess::usage(tool);
 }
 
