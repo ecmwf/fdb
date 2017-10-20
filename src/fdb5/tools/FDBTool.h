@@ -33,18 +33,26 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// Base class for FDB tools
+/// Must derive to instanciate
+
 class FDBTool : public eckit::Tool {
 
 protected: // methods
 
     FDBTool(int argc, char **argv);
 
-public:
+public: // methods
+
     virtual void usage(const std::string &tool) const = 0;
+
+    eckit::Channel& logVerbose() const;
 
 protected: // members
 
     std::vector<eckit::option::Option *> options_;
+
+    bool verbose_;
 
 private: // methods
 
