@@ -10,6 +10,7 @@
 
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/toc/TocDB.h"
 #include "fdb5/toc/WipeVisitor.h"
@@ -26,8 +27,6 @@ class FDBWipe : public fdb5::FDBInspect {
         doit_(false) {
 
         options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("force", "Ignore minimun set of keys"));
-
     }
 
   private: // methods
@@ -43,12 +42,16 @@ class FDBWipe : public fdb5::FDBInspect {
 
 void FDBWipe::usage(const std::string &tool) const {
 
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [path1|request1] [path2|request2] ..." << std::endl;
+    eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [--minimum-keys=...] [path1|request1] [path2|request2] ..." << std::endl;
     FDBInspect::usage(tool);
+
 }
 
 void FDBWipe::init(const eckit::option::CmdArgs &args) {
+
+    FDBInspect::init(args);
     args.get("doit", doit_);
+
 }
 
 void FDBWipe::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {
