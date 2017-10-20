@@ -23,6 +23,8 @@
 
 namespace fdb5 {
 
+using eckit::Log;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers) :
@@ -31,6 +33,22 @@ GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers) :
     key_(key),
     completeTransfers_(completeTransfers) {
 }
+
+bool GribArchiver::filter(const Key& k) const {
+
+    if(!k.match(include_)) {
+        Log::debug<LibFdb>() << "Include key " << include_ << " filtered out datum " << k << std::endl;
+        return true;
+    }
+
+    if(exclude_.size() and k.match(exclude_)) {
+        Log::debug<LibFdb>() << "Exclude key " << exclude_ << " filtered out datum " << k << std::endl;
+        return true;
+    }
+
+    return false; // datum wasn't filtered out
+}
+
 
 eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
 
@@ -54,7 +72,9 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
 
             ASSERT(key.match(key_));
 
-            eckit::Log::debug<LibFdb>() << "Archiving " << key << std::endl;
+            if( filter(key) ) continue;
+
+            Log::debug<LibFdb>() << "Archiving " << key << std::endl;
 
             ArchiveVisitor visitor(*this, key, static_cast<const void *>(buffer()), len);
 

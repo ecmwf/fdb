@@ -38,11 +38,24 @@ public: // methods
 
     GribArchiver(const fdb5::Key& key = Key(), bool completeTransfers = false);
 
+    void filters(const std::string& include, const std::string& exclude) {
+        include_ = Key(include);
+        exclude_ = Key(exclude);
+    }
+
     eckit::Length archive(eckit::DataHandle &source);
+
+private: // protected
+
+    bool filter(const Key& k) const;
 
 private: // members
 
     fdb5::Key key_;
+
+    fdb5::Key include_;
+    fdb5::Key exclude_;
+
     bool completeTransfers_;
 
 };
