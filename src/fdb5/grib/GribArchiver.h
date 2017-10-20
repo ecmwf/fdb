@@ -36,16 +36,15 @@ class GribArchiver :
 
 public: // methods
 
-    GribArchiver(const fdb5::Key& key = Key(), bool completeTransfers = false);
+    GribArchiver(const fdb5::Key& key = Key(), bool completeTransfers = false, bool verbose = false);
 
-    void filters(const std::string& include, const std::string& exclude) {
-        include_ = Key(include);
-        exclude_ = Key(exclude);
-    }
+    void filters(const std::string& include, const std::string& exclude);
 
     eckit::Length archive(eckit::DataHandle &source);
 
 private: // protected
+
+    eckit::Channel& logVerbose() const;
 
     bool filter(const Key& k) const;
 
@@ -58,6 +57,7 @@ private: // members
 
     bool completeTransfers_;
 
+    bool verbose_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
