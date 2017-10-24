@@ -346,7 +346,7 @@ void TocHandler::close() const {
 
 void TocHandler::populateMaskedSubTocsList() const {
 
-    ASSERT(fd_ != 0 && fd_ != -1);
+    ASSERT(fd_ != -1);
 
     // Get the current position of the file descriptor.
     off_t startPosition = lseek(fd_, 0, SEEK_CUR);
