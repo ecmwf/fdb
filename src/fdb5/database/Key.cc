@@ -111,6 +111,18 @@ void Key::encode(eckit::Stream &s) const {
     }
 }
 
+std::set<std::string> Key::keys() const {
+
+    std::set<std::string> k;
+
+    for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
+        k.insert(i->first);
+    }
+
+    return k;
+}
+
+
 void Key::rule(const Rule *rule) {
     rule_ = rule;
 }
