@@ -105,8 +105,9 @@ endif()
 #                     REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
 
 # if( HAVE_WEBAPI )
-ecbuild_use_package( PROJECT metkit VERSION 0.2 REQUIRED )
 # endif()
+
+ecbuild_use_package( PROJECT metkit VERSION 0.7 REQUIRED ) ## metkit is now always needed
 
 ### ODB support
 

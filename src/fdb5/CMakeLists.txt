@@ -318,12 +318,14 @@ ecbuild_add_library(
 
     PRIVATE_INCLUDES
         "${GRIB_API_INCLUDE_DIRS}"
+        "${METKIT_INCLUDE_DIRS}"
         "${PMEM_INCLUDE_DIRS}"
         "${LUSTREAPI_INCLUDE_DIRS}"
 
     LIBS
         Mars
         Common
+        metkit
         eckit
         eckit_option
         ${grib_handling_pkg}
