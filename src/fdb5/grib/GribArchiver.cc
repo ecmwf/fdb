@@ -71,7 +71,7 @@ static std::vector<metkit::MarsRequest> str_to_request(const std::string& str) {
 
     Log::debug<LibFdb>() << "Expanded requests:" << std::endl;
     for (std::vector<metkit::MarsRequest>::const_iterator j = v.begin(); j != v.end(); ++j) {
-        (*j).dump(std::cout);
+        (*j).dump(Log::debug<LibFdb>());
     }
 
     // filter out the keys from that request
