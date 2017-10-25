@@ -8,11 +8,17 @@
  * does it submit to any jurisdiction.
  */
 
+#include <vector>
+
 #include "eckit/log/Timer.h"
 #include "eckit/log/Plural.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
+
+#include "metkit/MarsParser.h"
+#include "metkit/MarsExpension.h"
+#include "metkit/MarsRequest.h"
 
 #include "marslib/EmosFile.h"
 
@@ -36,12 +42,36 @@ GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers, bool ve
 {
 }
 
+static std::vector<metkit::MarsRequest> str_to_request(const std::string& str) {
+
+    if(str.empty()) return std::vector<metkit::MarsRequest>();
+
+    Log::debug<LibFdb>() << "Parsing request string : " << str << std::endl;
+
+    std::ifstream in(str.c_str());
+    metkit::MarsParser parser(in);
+    bool inherit = true;
+    metkit::MarsExpension expand(inherit);
+
+    std::vector<metkit::MarsRequest> p = parser.parse();
+
+
+    // filter out the keys from that request
+
+
+//    for (std::vector<MarsRequest>::iterator j = p.begin(); j != p.end(); ++j) {
+//        (*j).removeKeys()
+//    }
+
+}
+
 void GribArchiver::filters(const std::string& include, const std::string& exclude) {
+
     include_ = Key(include);
     exclude_ = Key(exclude);
 }
 
-bool GribArchiver::filter(const Key& k) const {
+bool GribArchiver::filterOut(const Key& k) const {
 
     if(!k.match(include_)) {
         logVerbose() << "Include key " << include_ << " filtered out datum " << k << std::endl;
@@ -84,7 +114,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
 
             ASSERT(key.match(key_));
 
-            if( filter(key) ) continue;
+            if( filterOut(key) ) continue;
 
             logVerbose() << "Archiving " << key << std::endl;
 

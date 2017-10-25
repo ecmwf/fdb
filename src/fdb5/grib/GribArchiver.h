@@ -46,7 +46,7 @@ private: // protected
 
     eckit::Channel& logVerbose() const;
 
-    bool filter(const Key& k) const;
+    bool filterOut(const Key& k) const;
 
 private: // members
 
