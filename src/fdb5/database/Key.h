@@ -19,6 +19,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <set>
 
 #include "eckit/types/Types.h"
 
@@ -44,6 +45,8 @@ public: // methods
     explicit Key(const std::string &keys, const Rule* rule);
 
     explicit Key(const eckit::StringDict &keys);
+
+    std::set<std::string> keys() const;
 
     void set(const std::string &k, const std::string &v);
     void unset(const std::string &k);
