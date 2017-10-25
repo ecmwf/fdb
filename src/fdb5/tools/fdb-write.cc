@@ -76,6 +76,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
 }
 
+//----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv) {
     FDBWrite app(argc, argv);
