@@ -24,7 +24,7 @@
 #include "eckit/types/Types.h"
 
 namespace eckit {
-class JSON;
+    class JSON;
 }
 
 namespace fdb5 {
@@ -54,7 +54,7 @@ public: // methods
     void push(const std::string &k, const std::string &v);
     void pop(const std::string &k);
 
-    const std::string &get( const std::string &k ) const;
+    const std::string& get( const std::string &k ) const;
 
     void clear();
 
@@ -91,34 +91,43 @@ public: // methods
     const TypesRegistry& registry() const;
 
     std::string valuesToString() const;
+
     const eckit::StringList& names() const;
+
     std::string value(const std::string& key) const;
 
     typedef eckit::StringDict::const_iterator const_iterator;
     typedef eckit::StringDict::const_reverse_iterator const_reverse_iterator;
+
     const_iterator begin() const { return keys_.begin(); }
     const_iterator end() const { return keys_.end(); }
+
     const_reverse_iterator rbegin() const { return keys_.rbegin(); }
     const_reverse_iterator rend() const { return keys_.rend(); }
+
     const_iterator find(const std::string& s) const { return keys_.find(s); }
 
     size_t size() const { return keys_.size(); }
+
     bool empty() const { return keys_.empty(); }
 
     /// @throws When "other" doesn't contain all the keys of "this"
     void validateKeysOf(const Key& other, bool checkAlsoValues = false) const;
 
     operator std::string() const;
+
     operator eckit::StringDict() const;
 
 private: // members
 
     void print( std::ostream &out ) const;
     void encode(eckit::Stream &s) const;
+
     std::string toString() const;
 
     eckit::StringDict keys_;
     eckit::StringList names_;
+
     const Rule *rule_;
 
 };
