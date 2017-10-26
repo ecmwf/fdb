@@ -102,6 +102,8 @@ void PurgeVisitor::report(std::ostream &out) const {
 
 void PurgeVisitor::purge(std::ostream& out) const {
 
+    db_.checkUID();
+
     const eckit::PathName& directory = db_.directory();
 
     for (std::map<Index, IndexStats>::const_iterator i = indexStats_.begin();
