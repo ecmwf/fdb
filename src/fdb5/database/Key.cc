@@ -155,7 +155,6 @@ void Key::pop(const std::string &k) {
     names_.pop_back();
 }
 
-
 const std::string &Key::get( const std::string &k ) const {
     eckit::StringDict::const_iterator i = keys_.find(k);
     if ( i == keys_.end() ) {

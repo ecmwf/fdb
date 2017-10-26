@@ -16,11 +16,13 @@
 #ifndef fdb5_GribArchiver_H
 #define fdb5_GribArchiver_H
 
+#include "eckit/io/Length.h"
+
+#include "metkit/MarsRequest.h"
+
 #include "fdb5/database/Archiver.h"
 #include "fdb5/grib/GribDecoder.h"
 #include "fdb5/database/Key.h"
-
-#include "eckit/io/Length.h"
 
 namespace eckit {
 class DataHandle;
@@ -52,8 +54,8 @@ private: // members
 
     fdb5::Key key_;
 
-    fdb5::Key include_;
-    fdb5::Key exclude_;
+    std::vector<metkit::MarsRequest> include_;
+    std::vector<metkit::MarsRequest> exclude_;
 
     bool completeTransfers_;
 

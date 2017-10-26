@@ -42,17 +42,16 @@ GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers, bool ve
 {
 }
 
-static std::vector<metkit::MarsRequest> str_to_request(const std::string& str) {
 
-    fdb5::Key filter(str);
-
-    if(str.empty()) return std::vector<metkit::MarsRequest>();
+static std::vector<metkit::MarsRequest> str_to_requests(const std::string& str) {
 
     // parse requests
 
-    Log::debug<LibFdb>() << "Parsing request string : " << str << std::endl;
+    std::string rs = std::string("retrieve,")  + str;
 
-    std::ifstream in(str.c_str());
+    Log::debug<LibFdb>() << "Parsing request string : " << rs << std::endl;
+
+    std::istringstream in(rs);
     metkit::MarsParser parser(in);
 
     std::vector<metkit::MarsRequest> p = parser.parse();
@@ -74,13 +73,21 @@ static std::vector<metkit::MarsRequest> str_to_request(const std::string& str) {
         (*j).dump(Log::debug<LibFdb>());
     }
 
-    // filter out the keys from that request
+    return v;
+}
 
-    std::set<std::string> keys = filter.keys();
+static std::vector<metkit::MarsRequest> make_filter_requests(const std::string& str) {
+
+    if(str.empty()) return std::vector<metkit::MarsRequest>();
+
+    std::set<std::string> keys = fdb5::Key(str).keys(); //< keys to filter from that request
+
+    std::vector<metkit::MarsRequest> v = str_to_requests(str);
 
     std::vector<metkit::MarsRequest> r;
     for (std::vector<metkit::MarsRequest>::const_iterator j = v.begin(); j != v.end(); ++j) {
         r.push_back(j->subset(keys));
+        r.back().dump(Log::debug<LibFdb>());
     }
 
     return r;
@@ -88,20 +95,35 @@ static std::vector<metkit::MarsRequest> str_to_request(const std::string& str) {
 
 void GribArchiver::filters(const std::string& include, const std::string& exclude) {
 
-    include_ = Key(include);
-    exclude_ = Key(exclude);
+    include_ = make_filter_requests(include);
+    exclude_ = make_filter_requests(exclude);
+
 }
 
 bool GribArchiver::filterOut(const Key& k) const {
 
-    if(!k.match(include_)) {
-        logVerbose() << "Include key " << include_ << " filtered out datum " << k << std::endl;
-        return true;
+    metkit::MarsRequest field;
+    for (Key::const_iterator j = k.begin(); j != k.end(); ++j) {
+        eckit::StringList s;
+        s.push_back(j->second);
+        field.values(j->first, s);
     }
 
-    if(exclude_.size() and k.match(exclude_)) {
-        logVerbose() << "Exclude key " << exclude_ << " filtered out datum " << k << std::endl;
-        return true;
+    // filter includes
+
+    for (std::vector<metkit::MarsRequest>::const_iterator r = include_.begin(); r != include_.end(); ++r) {
+        if(!field.matches((*r))) {
+            return true;
+        }
+    }
+
+
+    // filter excludes
+
+    for (std::vector<metkit::MarsRequest>::const_iterator r = exclude_.begin(); r != exclude_.end(); ++r) {
+        if(field.matches((*r))) {
+            return true;
+        }
     }
 
     return false; // datum wasn't filtered out
