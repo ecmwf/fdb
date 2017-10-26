@@ -100,7 +100,16 @@ void GribArchiver::filters(const std::string& include, const std::string& exclud
 
 }
 
+static bool matchAny(const metkit::MarsRequest& f, const std::vector<metkit::MarsRequest>& v) {
+    for (std::vector<metkit::MarsRequest>::const_iterator r = v.begin(); r != v.end(); ++r) {
+        if(f.matches(*r)) return true;
+    }
+    return false;
+}
+
 bool GribArchiver::filterOut(const Key& k) const {
+
+    const bool out = true;
 
     metkit::MarsRequest field;
     for (Key::const_iterator j = k.begin(); j != k.end(); ++j) {
@@ -111,22 +120,15 @@ bool GribArchiver::filterOut(const Key& k) const {
 
     // filter includes
 
-    for (std::vector<metkit::MarsRequest>::const_iterator r = include_.begin(); r != include_.end(); ++r) {
-        if(!field.matches((*r))) {
-            return true;
-        }
-    }
-
+    if(include_.size() && not matchAny(field, include_)) return out;
 
     // filter excludes
 
-    for (std::vector<metkit::MarsRequest>::const_iterator r = exclude_.begin(); r != exclude_.end(); ++r) {
-        if(field.matches((*r))) {
-            return true;
-        }
-    }
+    if(exclude_.size() && matchAny(field, exclude_)) return out;
 
-    return false; // datum wasn't filtered out
+    // datum wasn't filtered out
+
+    return !out;
 }
 
 eckit::Channel& GribArchiver::logVerbose() const {
