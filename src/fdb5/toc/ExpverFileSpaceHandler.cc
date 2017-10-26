@@ -200,7 +200,7 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
         // Before we allow an override, ensure that it is one of the available filesystems.
         std::vector<PathName> writable(fs.writable());
 
-        if(std::find(writable.begin(), writable.end(), fdbRootDirectory) != writable.end()) {
+        if(std::find(writable.begin(), writable.end(), fdbRootDirectory) == writable.end()) {
             std::ostringstream msg;
             msg << "FDB root directory " << fdbRootDirectory << " was not in the list of writable roots " << writable;
             throw BadParameter(msg.str());
