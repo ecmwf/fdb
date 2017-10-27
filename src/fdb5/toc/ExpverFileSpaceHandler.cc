@@ -180,6 +180,8 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     std::string expver = key.get("expver");
 
+    Log::debug<LibFdb>() << "Selecting file system for expver [" << expver << "]" << std::endl;
+
     PathTable::const_iterator itr = table_.find(expver);
     if(itr != table_.end()) {
         Log::debug<LibFdb>() << "Found expver " << expver << " " << itr->second << " in " << fdbExpverFileSystems_ << std::endl;
