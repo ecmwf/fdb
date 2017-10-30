@@ -500,7 +500,7 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
     Log::debug<LibFdb>() << "RootManager::visitableRoots() trying to match key " << k << std::endl;
 
     for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
-        if(key.empty() || i->match(k)) {
+        if(i->match(k) || key.empty()) {
             Log::debug<LibFdb>() << "MATCH space " << *i << std::endl;
             i->visitable(roots);
         }
