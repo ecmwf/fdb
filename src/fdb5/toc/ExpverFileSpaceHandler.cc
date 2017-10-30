@@ -180,6 +180,8 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     std::string expver = key.get("expver");
 
+    Log::debug<LibFdb>() << "Selecting file system for expver [" << expver << "]" << std::endl;
+
     PathTable::const_iterator itr = table_.find(expver);
     if(itr != table_.end()) {
         Log::debug<LibFdb>() << "Found expver " << expver << " " << itr->second << " in " << fdbExpverFileSystems_ << std::endl;
@@ -200,7 +202,7 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
         // Before we allow an override, ensure that it is one of the available filesystems.
         std::vector<PathName> writable(fs.writable());
 
-        if(std::find(writable.begin(), writable.end(), fdbRootDirectory) != writable.end()) {
+        if(std::find(writable.begin(), writable.end(), fdbRootDirectory) == writable.end()) {
             std::ostringstream msg;
             msg << "FDB root directory " << fdbRootDirectory << " was not in the list of writable roots " << writable;
             throw BadParameter(msg.str());

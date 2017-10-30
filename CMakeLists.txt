@@ -105,8 +105,9 @@ endif()
 #                     REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
 
 # if( HAVE_WEBAPI )
-ecbuild_use_package( PROJECT metkit VERSION 0.2 REQUIRED )
 # endif()
+
+ecbuild_use_package( PROJECT metkit VERSION 0.7 REQUIRED ) ## metkit is now always needed
 
 ### ODB support
 
@@ -211,6 +212,7 @@ set( MARS_SERVER_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_B
 
 include_directories( ${MARS_SERVER_INCLUDE_DIRS} )
 include_directories( ${ECKIT_INCLUDE_DIRS} )
+include_directories( ${METKIT_INCLUDE_DIRS} )
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${GRIB_API_DEFINITIONS};${ODB_API_DEFINITIONS}" )
 

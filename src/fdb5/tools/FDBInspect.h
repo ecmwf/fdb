@@ -29,9 +29,11 @@ class FDBInspect : public FDBTool {
 
 protected: // methods
 
-    FDBInspect(int argc, char **argv, std::string defaultMinimunKeySet = std::string());
+    FDBInspect(int argc, char **argv, std::string minimunKeys = std::string());
 
-    virtual void usage(const std::string &tool) const = 0;
+    virtual void usage(const std::string &tool) const;
+
+    virtual void init(const eckit::option::CmdArgs &args);
 
     virtual void execute(const eckit::option::CmdArgs& args);
 
@@ -41,9 +43,11 @@ private: // methods
 
     virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args) = 0;
 
-private: // members
+protected: // members
 
-    std::vector<std::string> minimumKeySet_;
+    // minimum set of keys needed to execute a query
+    // these are used for safety to restrict the search space for the visitors
+    std::vector<std::string> minimumKeys_;
 
     // When processing elements, do we fail on error, or report warning and continue?
     bool fail_;

@@ -12,6 +12,8 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
+#include "eckit/option/VectorOption.h"
 #include "eckit/types/Date.h"
 
 #include "fdb5/LibFdb.h"
@@ -29,25 +31,38 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FDBInspect::FDBInspect(int argc, char **argv, std::string defaultMinimunKeySet) :
+FDBInspect::FDBInspect(int argc, char **argv, std::string minimumKeys) :
     FDBTool(argc, argv),
     fail_(true) {
 
-    minimumKeySet_ = Resource<std::vector<std::string> >("wipeMinimumKeySet", defaultMinimunKeySet, true);
+    minimumKeys_ = Resource<std::vector<std::string> >("FDBInspectMinimumKeys", minimumKeys, true);
 
-    if(minimumKeySet_.size() == 0) {
+    if(minimumKeys_.size() == 0) {
         options_.push_back(new eckit::option::SimpleOption<bool>("all", "Visit all FDB databases"));
     }
+    else {
+        options_.push_back(
+                    new eckit::option::VectorOption<std::string>("minimum-keys",
+                                                                 "Use these keywords as a minimun set which *must* be specified",
+                                                                 0,
+                                                                 ","));
+    }
 
-    // Be able to turn fail-on-error off
+    // Be able to turn ignore-errors off
     options_.push_back(
                 new eckit::option::SimpleOption<bool>(
                     "ignore-errors",
                     "Ignore errors (report them as warnings) and continue processing wherever possible"));
 }
 
+void FDBInspect::init(const eckit::option::CmdArgs &args) {
+
+    args.get("minimum-keys", minimumKeys_);
+}
 
 void FDBInspect::execute(const eckit::option::CmdArgs &args) {
+
+    eckit::Log::debug<LibFdb>() << " FDBInspect minimum-keys " << minimumKeys_ << " @ " << Here() << std::endl;
 
     bool all = false;
     args.get("all", all);
@@ -57,10 +72,10 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
         exit(1);
     }
 
-    bool ignoreErrors;
+    bool ignoreErrors = true;
     args.get("ignore-errors", ignoreErrors);
     if (ignoreErrors) {
-        Log::info() << "Errors ignored where possible" << std::endl;
+        Log::debug<LibFdb>() << "Errors ignored where possible" << std::endl;
         fail_ = false;
     }
 
@@ -97,7 +112,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             bool force = false;
             args.get("force", force); //< bypass the check for minimum key set
 
-            ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeySet_);
+            ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeys_);
 
             Log::debug<LibFdb>() << "KEY =====> " << req.key() << std::endl;
             std::vector<eckit::PathName> dbs = Manager::visitableLocations(req.key());
@@ -150,19 +165,24 @@ bool FDBInspect::fail() const {
 
 
 void FDBInspect::usage(const std::string &tool) const {
+
+               // derived classes should provide this type of usage information ...
+
+                //                       << "Usage: " << tool << " [options] [path1|request1] [path2|request2] ..." << std::endl
+                //                       << std::endl
+                //                       << std::endl
+
     Log::info() << std::endl
-                       << "Usage: " << tool << " [options] [path1|request1] [path2|request2] ..." << std::endl
-                       << std::endl
-                       << std::endl
-                       << "Examples:" << std::endl
-                       << "=========" << std::endl << std::endl
-                       << tool << " ."
-                       << std::endl
-                       << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g"
-                       << std::endl
-                       << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200,domain=g"
-                       << std::endl
-                       << std::endl;
+                << "Examples:" << std::endl
+                << "=========" << std::endl << std::endl
+                << tool << " ."
+                << std::endl
+                << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g"
+                << std::endl
+                << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200,domain=g"
+                << std::endl
+                << std::endl;
+
     FDBTool::usage(tool);
 }
 

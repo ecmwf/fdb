@@ -11,9 +11,9 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/types/Date.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/config/MasterConfig.h"
 #include "fdb5/rules/Schema.h"
-
 #include "fdb5/tools/FDBTool.h"
 
 using eckit::Log;
@@ -24,12 +24,16 @@ namespace fdb5 {
 
 static FDBTool* instance_ = 0;
 
-FDBTool::FDBTool(int argc, char **argv):
-    eckit::Tool(argc, argv, "FDB_HOME") {
-    ASSERT(instance_ == 0);
+FDBTool::FDBTool(int argc, char **argv) :
+    eckit::Tool(argc, argv, "FDB_HOME"),
+    verbose_(false) {
+
+    ASSERT(instance_ == 0);    
     instance_ = this;
 
     MasterConfig::instance(); // ensure we initialize the configuration
+
+    options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
 }
 
 static void usage(const std::string &tool) {
@@ -50,11 +54,10 @@ void FDBTool::run() {
 
 
 void FDBTool::usage(const std::string&) const {
-
 }
 
-void FDBTool::init(const eckit::option::CmdArgs&) {
-
+void FDBTool::init(const eckit::option::CmdArgs& args) {
+    args.get("verbose", verbose_);
 }
 
 void FDBTool::finish(const eckit::option::CmdArgs&) {

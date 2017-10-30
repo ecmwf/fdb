@@ -111,6 +111,18 @@ void Key::encode(eckit::Stream &s) const {
     }
 }
 
+std::set<std::string> Key::keys() const {
+
+    std::set<std::string> k;
+
+    for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
+        k.insert(i->first);
+    }
+
+    return k;
+}
+
+
 void Key::rule(const Rule *rule) {
     rule_ = rule;
 }
@@ -143,7 +155,6 @@ void Key::pop(const std::string &k) {
     names_.pop_back();
 }
 
-
 const std::string &Key::get( const std::string &k ) const {
     eckit::StringDict::const_iterator i = keys_.find(k);
     if ( i == keys_.end() ) {
@@ -156,6 +167,7 @@ const std::string &Key::get( const std::string &k ) const {
 }
 
 bool Key::match(const Key& other) const {
+
     for (const_iterator i = other.begin(); i != other.end(); ++i) {
 
         const_iterator j = find(i->first);
@@ -172,6 +184,7 @@ bool Key::match(const Key& other) const {
 }
 
 bool Key::match(const Key& other, const eckit::StringList& ignore) const {
+
     for (const_iterator i = other.begin(); i != other.end(); ++i) {
         if (std::find(ignore.begin(), ignore.end(), i->first) != ignore.end())
             continue;

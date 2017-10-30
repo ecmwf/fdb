@@ -324,6 +324,7 @@ ecbuild_add_library(
     LIBS
         Mars
         Common
+        metkit
         eckit
         eckit_option
         ${grib_handling_pkg}
