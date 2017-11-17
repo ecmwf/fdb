@@ -31,9 +31,13 @@ Archiver::~Archiver() {
 
     flush(); // certify that all sessions are flushed before closing them
 
+    databases_.clear(); //< explicitly delete the DBs before schemas are destroyed
+
+    /// schemas need to exist after the DB's -- see MARS-687
     for(std::vector<Schema*>::iterator j = schemas_.begin(); j != schemas_.end(); ++j) {
         delete (*j);
     }
+    schemas_.clear();
 }
 
 void Archiver::archive(const Key &key, BaseArchiveVisitor &visitor) {
