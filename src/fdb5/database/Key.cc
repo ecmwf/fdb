@@ -10,10 +10,10 @@
 
 #include "eckit/parser/Tokenizer.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/types/Type.h"
-#include "fdb5/config/MasterConfig.h"
 
 namespace fdb5 {
 
@@ -214,7 +214,7 @@ bool Key::match(const std::string &key, const std::set<std::string> &values) con
 
 
 const TypesRegistry& Key::registry() const {
-    return rule_ ? rule_->registry() : MasterConfig::instance().schema().registry();
+    return rule_ ? rule_->registry() : LibFdb::instance().schema().registry();
 }
 
 std::string Key::valuesToString() const {

@@ -43,8 +43,6 @@ endif()
 list( APPEND fdb5_srcs
 	LibFdb.h
 	LibFdb.cc
-	config/MasterConfig.cc
-    config/MasterConfig.h
     config/UMask.cc
     config/UMask.h
     database/Archiver.cc

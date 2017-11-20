@@ -11,7 +11,7 @@
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "fdb5/config/MasterConfig.h"
+#include "fdb5/LibFdb.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBAccess.h"
 
@@ -37,7 +37,7 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
     // With no arguments, provide the current master configuration schema (i.e. that selected by FDB_HOME)
 
     if (args.count() == 0) {
-        schema.load(fdb5::MasterConfig::instance().schemaPath());
+        schema.load(fdb5::LibFdb::instance().schemaPath());
         schema.dump(std::cout);
     }
 

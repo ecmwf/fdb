@@ -11,7 +11,6 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/types/Date.h"
 
-#include "fdb5/config/MasterConfig.h"
 #include "fdb5/rules/Schema.h"
 
 #include "fdb5/tools/FDBAccess.h"

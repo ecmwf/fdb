@@ -32,6 +32,10 @@ public:
 
     static LibFdb& instance();
 
+    const Schema& schema() const;
+
+    std::string schemaPath() const;
+
 protected:
 
     const void* addr() const;
@@ -39,10 +43,6 @@ protected:
     virtual std::string version() const;
 
     virtual std::string gitsha1(unsigned int count) const;
-
-    const Schema& schema() const;
-
-    std::string schemaPath() const;
 
 private: // members
 
