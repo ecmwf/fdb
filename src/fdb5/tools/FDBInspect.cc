@@ -17,7 +17,6 @@
 #include "eckit/types/Date.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/config/MasterConfig.h"
 #include "fdb5/database/Manager.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBInspect.h"

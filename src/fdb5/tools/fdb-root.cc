@@ -12,7 +12,7 @@
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "fdb5/config/MasterConfig.h"
+#include "fdb5/LibFdb.h"
 #include "fdb5/config/UMask.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Schema.h"
@@ -62,7 +62,7 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
         fdb5::ToolRequest req("domain=g," + args(i)); // domain add here as default
 
-        const fdb5::Schema& schema = fdb5::MasterConfig::instance().schema();
+        const fdb5::Schema& schema = fdb5::LibFdb::instance().schema();
         fdb5::Key result;
         ASSERT( schema.expandFirstLevel(req.key(), result) );
 

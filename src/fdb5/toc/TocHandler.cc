@@ -24,7 +24,6 @@
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/config/MasterConfig.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
@@ -433,14 +432,14 @@ void TocHandler::writeInitRecord(const Key &key) {
             /* Copy schema first */
 
             eckit::Log::debug<LibFdb>() << "Copy schema from "
-                               << MasterConfig::instance().schemaPath()
+                               << LibFdb::instance().schemaPath()
                                << " to "
                                << schemaPath_
                                << std::endl;
 
             eckit::PathName tmp = eckit::PathName::unique(schemaPath_);
 
-            eckit::FileHandle in(MasterConfig::instance().schemaPath());
+            eckit::FileHandle in(LibFdb::instance().schemaPath());
 
             // Enforce lustre striping if requested
 

@@ -14,7 +14,6 @@
 #include "eckit/log/Plural.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/config/MasterConfig.h"
 #include "fdb5/database/NotifyWind.h"
 #include "fdb5/database/MultiRetrieveVisitor.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -92,7 +91,7 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const NotifyWind& n
         eckit::Log::userInfo() << "Using optimise" << std::endl;
     }
 
-    return retrieve(task, MasterConfig::instance().schema(), sorted, notifyee);
+    return retrieve(task, LibFdb::instance().schema(), sorted, notifyee);
 }
 
 void Retriever::print(std::ostream &out) const {

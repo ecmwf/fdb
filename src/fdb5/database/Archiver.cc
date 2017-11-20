@@ -12,8 +12,8 @@
 
 #include "eckit/config/Resource.h"
 
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
-#include "fdb5/config/MasterConfig.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/rules/Rule.h"
 
@@ -42,7 +42,7 @@ Archiver::~Archiver() {
 
 void Archiver::archive(const Key &key, BaseArchiveVisitor &visitor) {
 
-    const Schema &schema = MasterConfig::instance().schema();
+    const Schema &schema = LibFdb::instance().schema();
 
     visitor.rule(0);
 
