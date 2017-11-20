@@ -17,6 +17,10 @@
 
 #include "eckit/system/Library.h"
 
+#include "fdb5/rules/Schema.h"
+#include "fdb5/database/DB.h"
+#include "fdb5/types/TypesRegistry.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -35,6 +39,14 @@ protected:
     virtual std::string version() const;
 
     virtual std::string gitsha1(unsigned int count) const;
+
+    const Schema& schema() const;
+
+    std::string schemaPath() const;
+
+private: // members
+
+    mutable Schema* schema_;
 
 };
 
