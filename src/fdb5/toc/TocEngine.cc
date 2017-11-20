@@ -24,7 +24,6 @@
 #include "eckit/os/Stat.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/config/MasterConfig.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocEngine.h"
 #include "fdb5/toc/TocHandler.h"
@@ -124,7 +123,7 @@ bool TocEngine::canHandle(const eckit::PathName& path) const
 
 static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing)
 {
-    const Schema& schema = MasterConfig::instance().schema();
+    const Schema& schema = LibFdb::instance().schema();
     schema.matchFirstLevel(key, keys, missing);
 }
 

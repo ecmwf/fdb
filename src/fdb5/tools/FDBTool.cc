@@ -12,7 +12,6 @@
 #include "eckit/types/Date.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/config/MasterConfig.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBTool.h"
 
@@ -30,8 +29,6 @@ FDBTool::FDBTool(int argc, char **argv) :
 
     ASSERT(instance_ == 0);    
     instance_ = this;
-
-    MasterConfig::instance(); // ensure we initialize the configuration
 
     options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
 }
