@@ -52,6 +52,9 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
 
     size_t len;
 
+    // The key must be clean at this point, as it is being returned (MARS-689)
+    key.clear();
+
     /// @todo this code should be factored out into metkit
 
     if((len = file.readSome(buffer_))) {
