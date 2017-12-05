@@ -24,7 +24,7 @@
 
 #include "eckit/filesystem/PathName.h"
 
-#if __cplusplus > 199711L
+#if __cplusplus >= 201103L
 #include <unordered_set>
 #include <unordered_map>
 #endif
@@ -136,10 +136,10 @@ private: // methods
 
 protected: // members
 
-// SDS: This is a significant performance optimisation. Use the std::unordered_set/map if they
-//      are available (i.e. if c++11 is supported). Otherwise use std::set/map. These have the
-//      same interface, so no code changes are required except in the class definition.
-#if __cplusplus > 199711L
+// This is a significant performance optimisation. Use the std::unordered_set/map if they
+// are available (i.e. if c++11 is supported). Otherwise use std::set/map. These have the
+// same interface, so no code changes are required except in the class definition.
+#if __cplusplus >= 201103L
     std::unordered_set<std::string> allDataPools_;
     std::unordered_set<std::string> allIndexPools_;
 
