@@ -911,9 +911,8 @@ std::string TocHandler::userName(long id) const {
 }
 
 bool TocHandler::stripeLustre() {
-
     static bool handleLustreStripe = eckit::Resource<bool>("fdbHandleLustreStripe;$FDB_HANDLE_LUSTRE_STRIPE", false);
-    return handleLustreStripe;
+    return fdb5LustreapiSupported() && handleLustreStripe;
 }
 
 
