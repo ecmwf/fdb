@@ -30,6 +30,8 @@ namespace fdb5 {
 
 int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripecount);
 
+bool fdb5LustreapiSupported();
+
 //----------------------------------------------------------------------------------------------------------------------
 
 struct LustreStripe {

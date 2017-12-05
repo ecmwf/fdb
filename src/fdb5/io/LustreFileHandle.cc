@@ -20,6 +20,14 @@ int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t strip
 
 namespace fdb5 {
 
+bool bool fdb5LustreapiSupported() {
+#if defined(LUSTREAPI_FOUND)
+    return true;
+#else
+    return false;
+#endif
+}
+
 int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripecount) {
 
 #if defined(LUSTREAPI_FOUND)
