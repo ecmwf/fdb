@@ -15,6 +15,7 @@
 
 #include "fdb5/toc/TocRecord.h"
 #include "eckit/log/TimeStamp.h"
+#include "eckit/runtime/Main.h"
 
 namespace fdb5 {
 
@@ -35,8 +36,9 @@ TocRecord::Header::Header(unsigned char tag):
         pid_       = ::getpid();
         uid_       = ::getuid();
 
-        //TODO: cache hostname
-        SYSCALL( ::gethostname( hostname_.data(), hostname_.static_size() ) );
+        std::string host = eckit::Main::hostname();
+        host = host.substr(0, host.find(".")); // guaranteed to be less than 64 chars -- seee RFC 1035
+        hostname_ = host;
     }
 }
 
