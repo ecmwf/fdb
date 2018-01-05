@@ -45,6 +45,7 @@ public:
     virtual bool get(const std::string& key, FieldRef& data) const = 0;
     virtual bool set(const std::string& key, const FieldRef& data)= 0;
     virtual void flush() = 0;
+    virtual void sync() = 0;
     virtual void visit(BTreeIndexVisitor& visitor) const = 0;
 
 
