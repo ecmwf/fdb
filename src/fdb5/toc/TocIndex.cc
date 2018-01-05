@@ -142,6 +142,7 @@ void TocIndex::flush() {
     if (dirty_) {
         ASSERT(btree_);
         btree_->flush();
+        btree_->sync();
         dirty_ = false;
     }
 }

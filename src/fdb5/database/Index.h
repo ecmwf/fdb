@@ -102,6 +102,8 @@ public: // methods
     virtual void open() = 0;
     virtual void reopen() = 0;
     virtual void close() = 0;
+
+    /// Flush and Sync data (for mediums where sync() is required)
     virtual void flush() = 0;
 
     virtual void visit(IndexLocationVisitor& visitor) const = 0;
