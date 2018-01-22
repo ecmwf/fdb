@@ -463,7 +463,7 @@ void TocHandler::writeInitRecord(const Key &key) {
                 fdb5LustreapiFileCreate(tmp.localPath(), stripe.size_, stripe.count_);
             }
             eckit::FileHandle out(tmp);
-            in.saveInto(out);
+            in.copyTo(out);
 
             eckit::PathName::rename(tmp, schemaPath_);
         }
