@@ -8,6 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
+#include <stdio.h>
+#include <unistd.h>
+
+#include "eckit/config/Resource.h"
+#include "eckit/log/Log.h"
+
+#include "fdb5/LibFdb.h"
 #include "fdb5/io/FDBFileHandle.h"
 
 using namespace eckit;
@@ -63,9 +70,24 @@ long FDBFileHandle::write(const void *buffer, long length) {
 }
 
 void FDBFileHandle::flush() {
+
+    static bool fdbDataSyncOnFlush = eckit::LibResource<bool,LibFdb>("$FDB_DATA_SYNC_ON_FLUSH;fdbDataSyncOnFlush", true);
+
     if (file_) {
-        if (::fflush(file_))
-            throw WriteError(std::string("FDBFileHandle::~FDBFileHandle(fflush(") + path_ + "))");
+
+        if(::fflush(file_)) throw WriteError(std::string("FDBFileHandle::~FDBFileHandle(fflush(") + path_ + "))", Here());
+
+        if(fdbDataSyncOnFlush) {
+
+            int ret = ::fdatasync(::fileno(file_));
+
+            while (ret < 0 && errno == EINTR) {
+                ret = ::fdatasync(::fileno(file_));
+            }
+            if (ret < 0) {
+                Log::error() << "Cannot fdatasync(" << path_ << ") " << ::fileno(file_) <<  Log::syserr << std::endl;
+            }
+        }
     }
 }
 

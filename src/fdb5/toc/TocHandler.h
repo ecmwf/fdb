@@ -111,12 +111,14 @@ protected: // methods
 
     void appendBlock(const void* data, size_t size);
 
-private: // members
+private: // methods
 
     friend class TocHandlerCloser;
 
     void openForAppend();
+
     void openForRead() const;
+
     void close() const;
 
     /// Populate the masked sub toc list, starting from the _current_position_ in the
@@ -125,14 +127,18 @@ private: // members
     void populateMaskedSubTocsList() const;
 
     void append(TocRecord &r, size_t payloadSize);
+
     // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
     // the mechanism of subtocs).
     bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true) const;
+
     bool readNextInternal(TocRecord &r) const;
 
     std::string userName(long) const;
 
     static size_t recordRoundSize();
+
+private: // members
 
     eckit::PathName tocPath_;
     eckit::PathName schemaPath_;
@@ -146,8 +152,11 @@ private: // members
     mutable eckit::ScopedPtr<TocHandler> subTocRead_;
     mutable eckit::ScopedPtr<TocHandler> subTocWrite_;
     mutable size_t count_;
-    mutable bool enumeratedMaskedSubTocs_;
+
     mutable std::vector<eckit::PathName> maskedSubTocs_;
+
+    mutable bool enumeratedMaskedSubTocs_;
+    mutable bool writeMode_;
 };
 
 

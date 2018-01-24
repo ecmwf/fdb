@@ -60,7 +60,8 @@ TocHandler::TocHandler(const eckit::PathName &directory, const eckit::Configurat
     count_(0),
     useSubToc_(config.getBool("useSubToc", false)),
     isSubToc_(false),
-    enumeratedMaskedSubTocs_(false) {
+    enumeratedMaskedSubTocs_(false),
+    writeMode_(false) {
 
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
@@ -80,7 +81,9 @@ TocHandler::TocHandler(const eckit::PathName& path, bool) :
     count_(0),
     useSubToc_(false),
     isSubToc_(true),
-    enumeratedMaskedSubTocs_(false) {}
+    enumeratedMaskedSubTocs_(false),
+    writeMode_(false) {
+}
 
 
 TocHandler::~TocHandler() {
@@ -123,6 +126,8 @@ void TocHandler::openForAppend() {
 
     checkUID();
 
+    writeMode_ = true;
+
     ASSERT(fd_ == -1);
 
     // eckit::Log::info() << "Opening for append TOC " << tocPath_ << std::endl;
@@ -137,6 +142,8 @@ void TocHandler::openForAppend() {
 void TocHandler::openForRead() const {
 
     ASSERT(fd_ == -1);
+
+    writeMode_ = false;
 
     // eckit::Log::info() << "Opening for read TOC " << tocPath_ << std::endl;
 
@@ -327,19 +334,23 @@ std::vector<PathName> TocHandler::subTocPaths() const {
 
 void TocHandler::close() const {
 
-    if ( fd_ >= 0 ) {
-        // eckit::Log::info() << "Closing TOC " << tocPath_ << std::endl;
-        SYSCALL2( ::close(fd_), tocPath_ );
-        fd_ = -1;
-    }
     if (subTocRead_) {
         subTocRead_->close();
         subTocRead_.reset();
     }
+
     if (subTocWrite_) {
         // We keep track of the sub toc we are writing to until the process is closed, so don't reset
         // the pointer here (or we will create a proliferation of sub tocs)
         subTocWrite_->close();
+    }
+
+    if ( fd_ >= 0 ) {
+        // eckit::Log::info() << "Closing TOC " << tocPath_ << std::endl;
+        SYSCALL2( ::fdatasync(fd_), tocPath_ );
+        SYSCALL2( ::close(fd_), tocPath_ );
+        fd_ = -1;
+        writeMode_ = false;
     }
 }
 
@@ -452,7 +463,7 @@ void TocHandler::writeInitRecord(const Key &key) {
                 fdb5LustreapiFileCreate(tmp.localPath(), stripe.size_, stripe.count_);
             }
             eckit::FileHandle out(tmp);
-            in.saveInto(out);
+            in.copyTo(out);
 
             eckit::PathName::rename(tmp, schemaPath_);
         }

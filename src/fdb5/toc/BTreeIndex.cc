@@ -40,6 +40,7 @@ private: // methods
     virtual bool get(const std::string& key, FieldRef& data) const;
     virtual bool set(const std::string& key, const FieldRef& data);
     virtual void flush();
+    virtual void sync();
     virtual void visit(BTreeIndexVisitor& visitor) const;
 
 private: // members
@@ -76,6 +77,11 @@ bool TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::set(const std::string& key, const F
 template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
 void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::flush() {
     btree_.flush();
+}
+
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
+void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::sync() {
+    btree_.sync();
 }
 
 template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
