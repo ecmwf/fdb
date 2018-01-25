@@ -235,6 +235,7 @@ add_subdirectory( scripts )
 # source files
 
 add_subdirectory( src )
+add_subdirectory( tests )
 add_subdirectory( regressions )
 
 ############################################################################################

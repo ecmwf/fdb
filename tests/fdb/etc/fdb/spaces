@@ -1,0 +1,7 @@
+# regex   filespace    handler
+
+# od:.*     od           Default
+
+# rd:.*     rd           Default
+
+.*          all          Default
