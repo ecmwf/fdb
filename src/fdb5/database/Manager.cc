@@ -143,7 +143,7 @@ std::set<std::string> Manager::engines(const Key& key)
     std::set<std::string> s;
 
     for (EngineTable::const_iterator i = engineTypes.begin(); i != engineTypes.end() ; ++i) {
-        if(i->match(expanded)) {
+        if(key.empty() || i->match(expanded)) {
             s.insert(i->engine());
         }
     }

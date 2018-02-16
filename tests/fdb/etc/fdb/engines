@@ -1,0 +1,10 @@
+# regex     engine
+
+od:.*       toc
+# rd:.*       pmem
+
+# ensures that empty key queries (e.g. fdb-stat --all) match this engine
+# yet toc still has priority on archive
+
+.*          toc
+# .*          pmem

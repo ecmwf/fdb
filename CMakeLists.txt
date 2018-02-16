@@ -172,12 +172,6 @@ ecbuild_add_option( FEATURE DUMMY_TAPES
                     DESCRIPTION "use dummy tape management libraries for testing"
                     DEFAULT OFF )
 
-#set( NETCDF_CXX TRUE )
-#ecbuild_add_option( FEATURE NETCDF
-#	DEFAULT ON
-#	DESCRIPTION "support for NetCDF"
-#	REQUIRED_PACKAGES NetCDF )
-
 ecbuild_add_option( FEATURE SANDBOX
                     DESCRIPTION "build the sandbox stuff"
                     DEFAULT OFF	 )
@@ -235,6 +229,7 @@ add_subdirectory( scripts )
 # source files
 
 add_subdirectory( src )
+add_subdirectory( tests )
 add_subdirectory( regressions )
 
 ############################################################################################

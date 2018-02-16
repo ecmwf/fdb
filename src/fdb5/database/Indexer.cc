@@ -13,6 +13,8 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#include "eckit/runtime/Main.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -21,7 +23,7 @@ Indexer::Indexer() :
     pid_(::getpid()),
     thread_(::pthread_self())
 {
-    SYSCALL( ::gethostname( hostname_.data(), hostname_.static_size() ) );
+    hostname_ = eckit::Main::hostname();
 }
 
 void Indexer::print(std::ostream& out) const
