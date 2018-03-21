@@ -16,12 +16,13 @@
 #include "eckit/config/Resource.h"
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/utils/Translator.h"
+#include "eckit/thread/Mutex.h"
+#include "eckit/thread/AutoLock.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Engine.h"
 
-#include <mutex>
 
 using namespace eckit;
 
@@ -47,19 +48,20 @@ struct EngineType {
 //----------------------------------------------------------------------------------------------------------------------
 
 typedef std::vector<EngineType> EngineTable;
+typedef std::map<eckit::PathName, EngineTable> EngineTableMap;
 
 /// We can have multiple engine configurations, so track them.
-static std::mutex engineTypesMutex;
-static std::map<eckit::PathName, EngineTable> engineTypes;
+static eckit::Mutex engineTypesMutex;
+static EngineTableMap engineTypes;
 
 
 static const EngineTable& readEngineTypes(const eckit::PathName enginesFile) {
 
-    std::lock_guard<std::mutex> lock(engineTypesMutex);
+    eckit::AutoLock<eckit::Mutex> lock(engineTypesMutex);
 
     // Table is memoised, so we only read it once. Check if we have it.
 
-    auto it = engineTypes.find(enginesFile);
+    EngineTableMap::const_iterator it = engineTypes.find(enginesFile);
     if (it != engineTypes.end()) {
         return it->second;
     }

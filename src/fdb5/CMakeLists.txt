@@ -305,6 +305,8 @@ if( HAVE_DISTFDB )
     list( APPEND fdb5_srcs
         dist/DistDB.cc
         dist/DistDB.h
+        dist/DistManager.cc
+        dist/DistManager.h
         dist/DistDBReader.cc
         dist/DistDBReader.h
         dist/DistDBWriter.cc

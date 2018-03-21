@@ -1,0 +1,44 @@
+/*
+ * (C) Copyright 1996- ECMWF.
+ *
+ * This software is licensed under the terms of the Apache Licence Version 2.0
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
+ * granted to it by virtue of its status as an intergovernmental organisation nor
+ * does it submit to any jurisdiction.
+ */
+
+/// @author Simon Smart
+/// @date   Mar 2018
+
+#ifndef fdb5_config_FDBConfig_H
+#define fdb5_config_FDBConfig_H
+
+
+#include "eckit/config/LocalConfiguration.h"
+
+
+namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class FDBConfig : public eckit::LocalConfiguration {
+
+public: // methods
+
+    FDBConfig();
+    FDBConfig(const eckit::Configuration& config);
+    virtual ~FDBConfig();
+
+    FDBConfig(const FDBConfig&) = delete;
+
+    /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration
+    /// then do the expansion in here.
+    eckit::PathName expandPath(const std::string& path) const;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+} // namespace fdb5
+
+#endif // fdb5_config_FDBConfig_H
