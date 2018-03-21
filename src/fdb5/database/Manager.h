@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "eckit/filesystem/PathName.h"
+#include "fdb5/config/FDBConfig.h"
 
 namespace fdb5 {
 
@@ -32,27 +33,33 @@ class Manager  {
 
 public: // methods
 
+    Manager(const FDBConfig& config=FDBConfig());
+    ~Manager();
+
     /// Uniquely selects the engine that will handle this Key on insertion or if already exists
-    static std::string engine(const Key &key);
+    std::string engine(const Key &key);
 
     /// set union of all the engines that can possibly handle this key
-    static std::set<std::string> engines(const Key &key);
+    std::set<std::string> engines(const Key &key);
 
     /// Uniquely selects the engine that will handle this Path by checking possible handlers
-    static std::string engine(const eckit::PathName& path);
+    std::string engine(const eckit::PathName& path);
 
     /// Uniquely selects a location where the Key will be put or already exists
-    static eckit::PathName location(const Key &key);
+    eckit::PathName location(const Key &key);
 
     /// Lists the roots that can be visited given a DB key
-    static std::vector<eckit::PathName> allLocations(const Key& key);
+    std::vector<eckit::PathName> allLocations(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    static std::vector<eckit::PathName> visitableLocations(const Key& key);
+    std::vector<eckit::PathName> visitableLocations(const Key& key);
 
     /// Lists the roots where a DB key would be able to be written
-    static std::vector<eckit::PathName> writableLocations(const Key& key);
+    std::vector<eckit::PathName> writableLocations(const Key& key);
 
+private: // members
+
+    eckit::PathName enginesFile_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

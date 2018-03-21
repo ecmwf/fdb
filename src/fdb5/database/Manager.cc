@@ -21,6 +21,8 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Engine.h"
 
+#include <mutex>
+
 using namespace eckit;
 
 namespace fdb5 {
@@ -45,27 +47,42 @@ struct EngineType {
 //----------------------------------------------------------------------------------------------------------------------
 
 typedef std::vector<EngineType> EngineTable;
-static pthread_once_t once = PTHREAD_ONCE_INIT;
-static EngineTable engineTypes;
+
+/// We can have multiple engine configurations, so track them.
+static std::mutex engineTypesMutex;
+static std::map<eckit::PathName, EngineTable> engineTypes;
 
 
-static void readEngineTypes() {
+static const EngineTable& readEngineTypes(const eckit::PathName enginesFile) {
 
-    static eckit::PathName fdbEnginesFile = eckit::Resource<eckit::PathName>("fdbEnginesFile;$FDB_ENGINES_FILE", "~fdb/etc/fdb/engines");
+    std::lock_guard<std::mutex> lock(engineTypesMutex);
 
-    if(!fdbEnginesFile.exists()) {
-        eckit::Log::debug<LibFdb>() << "FDB Engines file not found: assuming Engine 'toc' Regex '.*'" << std::endl;
-        engineTypes.push_back(EngineType("toc", ".*"));
-        return;
+    // Table is memoised, so we only read it once. Check if we have it.
+
+    auto it = engineTypes.find(enginesFile);
+    if (it != engineTypes.end()) {
+        return it->second;
     }
 
-    std::ifstream in(fdbEnginesFile.localPath());
+    EngineTable& table(engineTypes[enginesFile]);
 
-    eckit::Log::debug<LibFdb>() << "Loading FDB engines from " << fdbEnginesFile << std::endl;
+    // Sensible defaults if not configured
+
+    if(!enginesFile.exists()) {
+        eckit::Log::debug<LibFdb>() << "FDB Engines file not found: assuming Engine 'toc' Regex '.*'" << std::endl;
+        table.push_back(EngineType("toc", ".*"));
+        return table;
+    }
+
+    // Parse engines file
+
+    std::ifstream in(enginesFile.localPath());
+
+    eckit::Log::debug<LibFdb>() << "Loading FDB engines from " << enginesFile << std::endl;
 
     if (!in) {
-        eckit::Log::error() << fdbEnginesFile << eckit::Log::syserr << std::endl;
-        return;
+        eckit::Log::error() << enginesFile << eckit::Log::syserr << std::endl;
+        return table;
     }
 
     eckit::Tokenizer parse(" ");
@@ -94,7 +111,7 @@ static void readEngineTypes() {
                 const std::string& regex  = s[0];
                 const std::string& engine = s[1];
 
-                engineTypes.push_back(EngineType(engine, regex));
+                table.push_back(EngineType(engine, regex));
                 break;
             }
 
@@ -108,13 +125,23 @@ static void readEngineTypes() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+Manager::Manager(const FDBConfig &config) {
+
+    static std::string baseEnginesFile = eckit::Resource<std::string>("fdbEnginesFile;$FDB_ENGINES_FILE", "~fdb/etc/fdb/engines");
+
+    enginesFile_ = config.expandPath(baseEnginesFile);
+}
+
+Manager::~Manager() {}
+
+
 std::string Manager::engine(const Key& key)
 {
-    pthread_once(&once, readEngineTypes);
-
     std::string expanded(key.valuesToString());
 
     /// @note returns the first engine that matches
+
+    const EngineTable& engineTypes(readEngineTypes(enginesFile_));
 
     for (EngineTable::const_iterator i = engineTypes.begin(); i != engineTypes.end() ; ++i) {
         if(i->match(expanded)) {
@@ -136,9 +163,8 @@ std::string Manager::engine(const Key& key)
 
 std::set<std::string> Manager::engines(const Key& key)
 {
-    pthread_once(&once, readEngineTypes);
-
     std::string expanded(key.valuesToString());
+    const EngineTable& engineTypes(readEngineTypes(enginesFile_));
 
     std::set<std::string> s;
 

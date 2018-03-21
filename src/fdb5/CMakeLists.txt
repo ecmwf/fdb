@@ -45,6 +45,8 @@ list( APPEND fdb5_srcs
 	LibFdb.cc
     config/UMask.cc
     config/UMask.h
+    config/FDBConfig.cc
+    config/FDBConfig.h
     database/Archiver.cc
     database/Archiver.h
     database/ArchiveVisitor.cc
@@ -296,6 +298,20 @@ if( HAVE_PMEMFDB )
 else()
     set( PMEM_LIBRARIES "" )
     set( PMEM_INCLUDE_DIRS "" )
+endif()
+
+
+if( HAVE_DISTFDB )
+    list( APPEND fdb5_srcs
+        dist/DistDB.cc
+        dist/DistDB.h
+        dist/DistDBReader.cc
+        dist/DistDBReader.h
+        dist/DistDBWriter.cc
+        dist/DistDBWriter.h
+        dist/DistEngine.cc
+        dist/DistEngine.h
+    )
 endif()
 
 if(LUSTREAPI_FOUND)

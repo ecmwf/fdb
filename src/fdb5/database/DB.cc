@@ -93,7 +93,7 @@ DB* DBFactory::buildWriter(const Key& key, const eckit::Configuration& config) {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    std::string name = Manager::engine(key);
+    std::string name = Manager(config).engine(key);
     name += ".writer";
 
     Log::debug<LibFdb>() << "Building FDB DB writer for key " << key << " = " << name << std::endl;
@@ -108,7 +108,7 @@ DB* DBFactory::buildReader(const Key& key, const eckit::Configuration& config) {
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    std::string name = Manager::engine(key);
+    std::string name = Manager(config).engine(key);
     name += ".reader";
 
     Log::debug<LibFdb>() << "Building FDB DB reader for key " << key << " = " << name << std::endl;
@@ -123,7 +123,7 @@ DB* DBFactory::buildReader(const eckit::PathName& path, const eckit::Configurati
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    std::string name = Manager::engine(path);
+    std::string name = Manager(config).engine(path);
     name += ".reader";
 
     Log::debug<LibFdb>() << "Building FDB DB reader for path " << path << " = " << name << std::endl;

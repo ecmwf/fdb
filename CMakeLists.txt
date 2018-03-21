@@ -135,6 +135,12 @@ ecbuild_add_option( FEATURE TOCFDB
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
 
+### Distributed FDB backend
+
+ecbuild_add_option( FEATURE DISTFDB
+                    DEFAULT ON
+                    DESCRIPTION "Distributed FDB support" )
+
 ########################################################################################################################
 # project vars & options
 

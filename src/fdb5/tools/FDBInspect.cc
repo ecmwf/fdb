@@ -83,7 +83,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
     if (all) {
         Key dbKey;
         Log::debug<LibFdb>() << "KEY =====> " << dbKey << std::endl;
-        std::vector<eckit::PathName> dbs = Manager::visitableLocations(dbKey);
+        std::vector<eckit::PathName> dbs = Manager().visitableLocations(dbKey);
         for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
             Log::debug<LibFdb>() << "Visitable FDB DB location " << *j << std::endl;
             paths.push_back(*j);
@@ -114,7 +114,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeys_);
 
             Log::debug<LibFdb>() << "KEY =====> " << req.key() << std::endl;
-            std::vector<eckit::PathName> dbs = Manager::visitableLocations(req.key());
+            std::vector<eckit::PathName> dbs = Manager().visitableLocations(req.key());
             for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
                 paths.push_back(*j);
             }
