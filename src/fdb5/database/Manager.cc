@@ -121,6 +121,8 @@ static const EngineTable& readEngineTypes(const eckit::PathName enginesFile) {
 
         }
     }
+
+    return table;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
