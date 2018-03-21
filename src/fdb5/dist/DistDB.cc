@@ -28,18 +28,15 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DistDB::DistDB(const Key& key, const eckit::Configuration& config) :
-    DB(key) {
+    DB(key),
+    manager_(config) {
 
     eckit::Log::info() << "Constructed DistDB; key=" << key << std::endl;
-
-    DistManager mgr(config);
-
-    mgr.pool(key);
-
 }
 
 DistDB::DistDB(const eckit::PathName& directory, const eckit::Configuration& config) :
-    DB(Key()) {
+    DB(Key()),
+    manager_(config) {
 
     throw eckit::SeriousBug("Opening by directory has no meaning for dist FDB", Here());
 }

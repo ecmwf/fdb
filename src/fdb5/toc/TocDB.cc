@@ -24,7 +24,7 @@ namespace fdb5 {
 
 TocDB::TocDB(const Key& key, const eckit::Configuration& config) :
     DB(key),
-    TocHandler(RootManager::directory(key), config) {
+    TocHandler(RootManager(config).directory(key), config) {
 }
 
 TocDB::TocDB(const eckit::PathName& directory, const eckit::Configuration& config) :

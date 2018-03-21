@@ -16,6 +16,7 @@
 
 #include "fdb5/database/DB.h"
 #include "fdb5/dist/DistEngine.h"
+#include "fdb5/dist/DistManager.h"
 
 namespace fdb5 {
 
@@ -57,6 +58,10 @@ protected: // methods
     virtual DbStats statistics() const;
 
     virtual std::vector<Index> indexes(bool sorted=false) const;
+
+protected: // members
+
+    DistManager manager_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

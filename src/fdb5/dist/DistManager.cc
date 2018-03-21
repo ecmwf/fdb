@@ -21,6 +21,14 @@
 
 
 namespace fdb5 {
+    class FDBDistLane;
+}
+namespace eckit {
+    template <> struct VectorPrintSelector<fdb5::FDBDistLane> { typedef VectorPrintSimple selector; };
+}
+
+
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -31,6 +39,10 @@ class FDBDistLane {
 public: // methods
 
     FDBDistLane(const eckit::PathName& home, bool writable, bool visit);
+
+    const eckit::PathName& home() const;
+    bool writable() const;
+    bool visit() const;
 
     friend std::ostream& operator<<(std::ostream& s, const FDBDistLane& l) {
         l.print(s);
@@ -50,16 +62,6 @@ private: // members
     bool visit_;
 };
 
-} // namespace fdb5
-
-// For ostream specialisation
-namespace eckit {
-    template <> struct VectorPrintSelector<fdb5::FDBDistLane> { typedef VectorPrintSimple selector; };
-}
-
-namespace fdb5 {
-
-//----------------------------------------------------------------------------------------------------------------------
 
 class FDBDistPool {
 
@@ -138,9 +140,23 @@ void FDBDistLane::print(std::ostream& s) const {
 }
 
 
+const eckit::PathName& FDBDistLane::home() const {
+    return home_;
+}
+
+bool FDBDistLane::writable() const {
+    return writable_;
+}
+
+bool FDBDistLane::visit() const {
+    return visit_;
+}
+
+
 //----------------------------------------------------------------------------------------------------------------------
 
 
+typedef std::vector<FDBDistLane> LaneList;
 typedef std::vector<FDBDistPool> PoolTable;
 typedef std::map<eckit::PathName, PoolTable> PoolTableMap;
 
@@ -158,6 +174,10 @@ static void parsePoolsFile(PoolTable& table, const eckit::PathName& poolsFile) {
 
     eckit::Log::debug<LibFdb>() << "Loading dist pools from " << poolsFile << std::endl;
     std::ifstream in(poolsFile.localPath());
+
+    if (!in) {
+        throw eckit::ReadError(poolsFile, Here());
+    }
 
     eckit::Tokenizer parse(" ");
 
@@ -186,7 +206,6 @@ static void parsePoolsFile(PoolTable& table, const eckit::PathName& poolsFile) {
                 const std::string& poolname = s[1];
 
                 table.push_back(FDBDistPool(poolname, regex));
-                std::cout << "New table: " << table.back() << std::endl;
                 break;
             }
 
@@ -209,6 +228,10 @@ static void parseLanesFile(PoolTable& table, const eckit::PathName& lanesFile) {
 
     eckit::Log::debug<LibFdb>() << "Loading dist lanes from " << lanesFile << std::endl;
     std::ifstream in(lanesFile.localPath());
+
+    if (!in) {
+        throw eckit::ReadError(lanesFile, Here());
+    }
 
     eckit::Tokenizer parse(" ");
     eckit::Translator<std::string, bool> str2bool;
@@ -244,7 +267,6 @@ static void parseLanesFile(PoolTable& table, const eckit::PathName& lanesFile) {
                 for (; it != end; ++it) {
                     if (it->name() == poolname) {
                         it->appendLane(FDBDistLane(home, writable, visit));
-                        std::cout << "New lane: " << it->lanes().back() << std::endl;
                         break;
                     }
                 }
@@ -304,9 +326,25 @@ DistManager::DistManager(const FDBConfig& config) :
 DistManager::~DistManager() {}
 
 
-void DistManager::pool(const Key& key) {
+void DistManager::writableLanes(const Key& key, std::vector<eckit::PathName>& lanes) const {
 
-    std::cout << "Getting pool for key: " << key << std::endl;
+    std::string k = key.valuesToString();
+
+    PoolTable::const_iterator it = poolTable_.begin();
+    PoolTable::const_iterator end = poolTable_.end();
+    for (; it != end; ++it) {
+        if (it->match(k)) {
+
+            const LaneList& laneList(it->lanes());
+            LaneList::const_iterator lane_it = laneList.begin();
+            LaneList::const_iterator lane_end = laneList.end();
+            for (; lane_it != lane_end; ++lane_it) {
+                if (lane_it->visit() && lane_it->writable()) {
+                    lanes.push_back(lane_it->home());
+                }
+            }
+        }
+    }
 
 }
 

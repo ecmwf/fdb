@@ -16,19 +16,24 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/parser/StringTools.h"
 #include "eckit/utils/Translator.h"
+#include "eckit/thread/Mutex.h"
+#include "eckit/thread/AutoLock.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/Root.h"
 #include "fdb5/toc/FileSpace.h"
+#include "fdb5/config/FDBConfig.h"
 
 using namespace eckit;
 
 namespace fdb5 {
     class DbPathNamer;
+    class FileSpace;
 }
 namespace eckit {
     template <> struct VectorPrintSelector<fdb5::DbPathNamer> { typedef VectorPrintSimple selector; };
+    template <> struct VectorPrintSelector<fdb5::FileSpace> { typedef VectorPrintSimple selector; };
 }
 
 namespace fdb5 {
@@ -257,13 +262,14 @@ static void readDbNamers() {
 //----------------------------------------------------------------------------------------------------------------------
 
 typedef std::vector<fdb5::FileSpace> FileSpaceTable;
-static FileSpaceTable spacesTable;
+typedef std::map<eckit::PathName, FileSpaceTable> FileSpaceMap;
 
-static std::vector<Root> readRoots() {
+eckit::Mutex fileSpacesMutex;
+static FileSpaceMap spacesTables;
+
+static std::vector<Root> readRoots(const eckit::PathName& fdbRootsFile) {
 
     std::vector<Root> result;
-
-    static eckit::PathName fdbRootsFile = eckit::Resource<eckit::PathName>("fdbRootsFile;$FDB_ROOTS_FILE", "~fdb/etc/fdb/roots");
 
     std::ifstream in(fdbRootsFile.localPath());
 
@@ -329,20 +335,30 @@ static std::vector<Root> fileSpaceRoots(const std::vector<Root>& all, const std:
     return roots;
 }
 
-static void readFileSpaces() {
+static const FileSpaceTable& readFileSpaces(const eckit::PathName& fdbHome) {
 
-    std::vector<Root> allRoots = readRoots();
+    eckit::AutoLock<eckit::Mutex> lock(fileSpacesMutex);
 
-    static eckit::PathName fdbSpacesFile = eckit::Resource<eckit::PathName>("fdbSpacesFile;$FDB_SPACES_FILE", "~fdb/etc/fdb/spaces");
+    // File spaces are memoised, so only read it once
 
+    FileSpaceMap::const_iterator it = spacesTables.find(fdbHome);
+    if (it != spacesTables.end()) {
+        return it->second;
+    }
+
+    eckit::PathName fdbRootsFile = eckit::Resource<eckit::PathName>("fdbRootsFile;$FDB_ROOTS_FILE", fdbHome / "etc/fdb/roots");
+    std::vector<Root> allRoots = readRoots(fdbRootsFile);
+
+    eckit::PathName fdbSpacesFile = eckit::Resource<eckit::PathName>("fdbSpacesFile;$FDB_SPACES_FILE", fdbHome / "etc/fdb/spaces");
     std::ifstream in(fdbSpacesFile.localPath());
 
     eckit::Log::debug<LibFdb>() << "Loading FDB file spaces from " << fdbSpacesFile << std::endl;
 
     if (!in) {
-        eckit::Log::error() << fdbSpacesFile << eckit::Log::syserr << std::endl;
-        return;
+        throw eckit::ReadError(fdbSpacesFile, Here());
     }
+
+    FileSpaceTable& table(spacesTables[fdbHome]);
 
     eckit::Tokenizer parse(" ");
 
@@ -379,7 +395,7 @@ static void readFileSpaces() {
                     throw UserError(oss.str(), Here());
                 }
 
-                spacesTable.push_back(FileSpace(filespace, regex, handler, roots));
+                table.push_back(FileSpace(filespace, regex, handler, roots));
                 break;
             }
 
@@ -389,6 +405,8 @@ static void readFileSpaces() {
 
         }
     }
+
+    return table;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -396,11 +414,18 @@ static void readFileSpaces() {
 static pthread_once_t once = PTHREAD_ONCE_INIT;
 
 static void init() {
-    readFileSpaces();
+    /// TODO: DB namers
     readDbNamers();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+
+RootManager::RootManager(const FDBConfig& config) :
+    spacesTable_(readFileSpaces(config.expandPath("~fdb/"))) {
+
+    eckit::Log::info() << "Root manager: " << spacesTable_ << std::endl;
+}
+
 
 std::string RootManager::dbPathName(const Key& key)
 {
@@ -441,8 +466,6 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
 
 eckit::PathName RootManager::directory(const Key& key) {
 
-    pthread_once(&once, init);
-
     PathName dbpath = dbPathName(key);
 
     eckit::Log::debug<LibFdb>() << "Choosing directory for key " << key << " dbpath " << dbpath << std::endl;
@@ -458,7 +481,7 @@ eckit::PathName RootManager::directory(const Key& key) {
     // returns the first filespace that matches
 
     std::string keystr = key.valuesToString();
-    for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
+    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(keystr)) {
             PathName root = i->filesystem(key, dbpath);
             eckit::Log::debug<LibFdb>() << "Directory root " << root << " dbpath " << dbpath <<  std::endl;
@@ -479,7 +502,7 @@ std::vector<PathName> RootManager::allRoots(const Key& key)
 
     std::string k = key.valuesToString();
 
-    for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
+    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(k)) {
             i->all(roots);
         }
@@ -499,7 +522,7 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
 
     Log::debug<LibFdb>() << "RootManager::visitableRoots() trying to match key " << k << std::endl;
 
-    for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
+    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(k) || key.empty()) {
             Log::debug<LibFdb>() << "MATCH space " << *i << std::endl;
             i->visitable(roots);
@@ -522,7 +545,7 @@ std::vector<eckit::PathName> RootManager::writableRoots(const Key& key) {
 
     std::string k = key.valuesToString();
 
-    for (FileSpaceTable::const_iterator i = spacesTable.begin(); i != spacesTable.end() ; ++i) {
+    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(k)) {
             i->writable(roots);
         }

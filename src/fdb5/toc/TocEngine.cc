@@ -112,7 +112,7 @@ std::string TocEngine::dbType() const {
 
 eckit::PathName TocEngine::location(const Key& key) const
 {
-    return RootManager::directory(key);
+    return RootManager().directory(key);
 }
 
 bool TocEngine::canHandle(const eckit::PathName& path) const
@@ -149,7 +149,7 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vec
 
         for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 
-            std::vector<std::string> dbpaths = RootManager::possibleDbPathNames(*i, regexForMissingValues);
+            std::vector<std::string> dbpaths = RootManager().possibleDbPathNames(*i, regexForMissingValues);
 
             for(std::vector<std::string>::const_iterator dbpath = dbpaths.begin(); dbpath != dbpaths.end(); ++dbpath) {
 
@@ -193,17 +193,17 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vec
 
 std::vector<eckit::PathName> TocEngine::allLocations(const Key& key) const
 {
-    return databases(key, RootManager::allRoots(key));
+    return databases(key, RootManager().allRoots(key));
 }
 
 std::vector<eckit::PathName> TocEngine::visitableLocations(const Key& key) const
 {
-    return databases(key, RootManager::visitableRoots(key));
+    return databases(key, RootManager().visitableRoots(key));
 }
 
 std::vector<eckit::PathName> TocEngine::writableLocations(const Key& key) const
 {
-    return databases(key, RootManager::writableRoots(key));
+    return databases(key, RootManager().writableRoots(key));
 }
 
 void TocEngine::print(std::ostream& out) const

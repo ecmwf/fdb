@@ -36,7 +36,7 @@ public: // methods
     DistManager(const FDBConfig& config);
     ~DistManager();
 
-    void pool(const Key& key);
+    void writableLanes(const Key& key, std::vector<eckit::PathName>& lanes) const;
 
 private: // members
 

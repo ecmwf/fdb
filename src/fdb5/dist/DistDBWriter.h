@@ -15,9 +15,11 @@
 #define fdb5_dist_DistDBWriter_H
 
 #include "fdb5/dist/DistDB.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
+class Archiver;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -38,6 +40,16 @@ private: // methods
 
     virtual bool selectIndex(const Key &key);
     virtual void deselectIndex();
+
+    void checkSchema(const Key &key) const;
+    virtual void archive(const Key &key, const void *data, eckit::Length length);
+    virtual void flush();
+
+private: // members
+
+    std::vector<Archiver*> archivers_;
+
+    Key indexKey_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
