@@ -25,7 +25,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RetrieveVisitor::RetrieveVisitor(const NotifyWind &wind, HandleGatherer &gatherer):
+RetrieveVisitor::RetrieveVisitor(const Notifier &wind, HandleGatherer &gatherer):
     wind_(wind),
     gatherer_(gatherer) {
 }

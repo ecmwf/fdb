@@ -33,7 +33,7 @@ void TypeIgnore::toKey(std::ostream&,
 void TypeIgnore::getValues(const MarsRequest&,
                            const std::string&,
                            eckit::StringList&,
-                           const NotifyWind&,
+                           const Notifier&,
                            const DB*) const {
 }
 

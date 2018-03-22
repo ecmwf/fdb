@@ -24,7 +24,7 @@
 namespace fdb5 {
 
 class HandleGatherer;
-class NotifyWind;
+class Notifier;
 
 class DB;
 
@@ -34,7 +34,7 @@ class RetrieveVisitor : public ReadVisitor {
 
 public: // methods
 
-    RetrieveVisitor(const NotifyWind &wind, HandleGatherer &gatherer);
+    RetrieveVisitor(const Notifier &wind, HandleGatherer &gatherer);
 
     ~RetrieveVisitor();
 
@@ -58,7 +58,7 @@ private:  // methods
 
 private:
 
-    const NotifyWind &wind_;
+    const Notifier &wind_;
 
     eckit::ScopedPtr<DB> db_;
 

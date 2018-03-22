@@ -9,16 +9,16 @@
  */
 
 
-#include "fdb5/database/NotifyWind.h"
+#include "fdb5/database/Notifier.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-NotifyWind::NotifyWind() {
+Notifier::Notifier() {
 }
 
-NotifyWind::~NotifyWind() {
+Notifier::~Notifier() {
 }
 
 //----------------------------------------------------------------------------------------------------------------------

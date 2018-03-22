@@ -46,7 +46,7 @@ std::string TypeDate::tidy(const std::string&, const std::string &value) const {
 void TypeDate::getValues(const MarsRequest & request,
                          const std::string & keyword,
                          eckit::StringList & values,
-                         const NotifyWind&,
+                         const Notifier&,
                          const DB*) const {
     std::vector<eckit::Date> dates;
 

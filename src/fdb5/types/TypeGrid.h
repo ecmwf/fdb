@@ -39,7 +39,7 @@ private: // methods
     virtual void getValues(const MarsRequest &request,
                            const std::string &keyword,
                            eckit::StringList &values,
-                           const NotifyWind &wind,
+                           const Notifier &wind,
                            const DB *db) const;
 
     virtual void print( std::ostream &out ) const;

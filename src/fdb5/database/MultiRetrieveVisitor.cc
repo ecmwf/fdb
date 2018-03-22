@@ -26,7 +26,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MultiRetrieveVisitor::MultiRetrieveVisitor(const NotifyWind& wind, HandleGatherer& gatherer, eckit::CacheLRU<Key,DB*>& databases) :
+MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind, HandleGatherer& gatherer, eckit::CacheLRU<Key,DB*>& databases) :
     db_(0),
     wind_(wind),
     databases_(databases),

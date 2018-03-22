@@ -26,7 +26,7 @@ Type::~Type() {
 void Type::getValues(const MarsRequest &request,
                      const std::string &keyword,
                      eckit::StringList &values,
-                     const NotifyWind&,
+                     const Notifier&,
                      const DB*) const {
     request.getValues(keyword, values);
 }

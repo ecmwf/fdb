@@ -58,7 +58,7 @@ void TypeClimateMonthly::toKey(std::ostream &out,
 void TypeClimateMonthly::getValues(const MarsRequest &request,
                                    const std::string &keyword,
                                    eckit::StringList &values,
-                                   const NotifyWind&,
+                                   const Notifier&,
                                    const DB*) const {
     std::vector<std::string> dates;
 

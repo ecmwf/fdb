@@ -35,7 +35,7 @@ class Key;
 class Op;
 class DB;
 class Schema;
-class NotifyWind;
+class Notifier;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ public: // methods
     /// @param notifyee is an object that handles notifications for the client, e.g. wind conversion
     /// @returns  data handle to read from
 
-    eckit::DataHandle* retrieve(const MarsTask& task, const NotifyWind& notifyee) const;
+    eckit::DataHandle* retrieve(const MarsTask& task, const Notifier& notifyee) const;
 
     friend std::ostream &operator<<(std::ostream &s, const Retriever &x) {
         x.print(s);
@@ -67,7 +67,7 @@ private: // methods
 
     void print(std::ostream &out) const;
 
-    eckit::DataHandle* retrieve(const MarsTask &task, const Schema &schema, bool sorted, const NotifyWind& notifyee) const;
+    eckit::DataHandle* retrieve(const MarsTask &task, const Schema &schema, bool sorted, const Notifier& notifyee) const;
 
 private: // data
 

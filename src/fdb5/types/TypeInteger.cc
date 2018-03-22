@@ -29,7 +29,7 @@ TypeInteger::~TypeInteger() {
 void TypeInteger::getValues(const MarsRequest& request,
                             const std::string& keyword,
                             eckit::StringList& values,
-                            const NotifyWind&,
+                            const Notifier&,
                             const DB*) const {
     std::vector<long> intValues;
 

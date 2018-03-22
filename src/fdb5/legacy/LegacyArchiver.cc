@@ -45,9 +45,7 @@ void LegacyArchiver::archive(const eckit::DataBlobPtr blob) {
 
     // archive
 
-    ArchiveVisitor visitor(*this, key, blob->buffer(), blob->length());
-
-    this->Archiver::archive(key, visitor);
+    this->Archiver::archive(key, blob->buffer(), blob->length());
 }
 
 void LegacyArchiver::legacy(const std::string &keyword, const std::string &value) {

@@ -13,7 +13,7 @@
 #include "eckit/config/Resource.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/database/BaseArchiveVisitor.h"
+#include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/rules/Rule.h"
 
@@ -40,10 +40,11 @@ Archiver::~Archiver() {
     schemas_.clear();
 }
 
-void Archiver::archive(const Key &key, BaseArchiveVisitor &visitor) {
+void Archiver::archive(const Key &key, const void* data, size_t len) {
 
     const Schema &schema = LibFdb::instance().schema();
 
+    ArchiveVisitor visitor(*this, key, data, len);
     visitor.rule(0);
 
     try {

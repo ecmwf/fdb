@@ -14,7 +14,7 @@
 #include "eckit/log/Plural.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/database/NotifyWind.h"
+#include "fdb5/database/Notifier.h"
 #include "fdb5/database/MultiRetrieveVisitor.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/rules/Schema.h"
@@ -40,7 +40,7 @@ Retriever::~Retriever() {
 eckit::DataHandle *Retriever::retrieve(const MarsTask& task,
                                        const Schema& schema,
                                        bool sorted,
-                                       const fdb5::NotifyWind& notifyee) const {
+                                       const fdb5::Notifier& notifyee) const {
 
     try {
 
@@ -66,7 +66,7 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask& task,
 
 eckit::DataHandle *Retriever::retrieve(const MarsTask &task) const {
 
-    class NotifyClient : public NotifyWind {
+    class NotifyClient : public Notifier {
         const MarsTask &task_;
         virtual void notifyWind() const { task_.notifyWinds(); }
 
@@ -78,7 +78,7 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task) const {
     return retrieve(task, wind);
 }
 
-eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const NotifyWind& notifyee) const {
+eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const Notifier& notifyee) const {
 
     bool sorted = false;
     std::vector<std::string> sort;

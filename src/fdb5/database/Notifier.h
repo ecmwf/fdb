@@ -23,13 +23,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class NotifyWind {
+class Notifier {
 
 public: // methods
 
-    NotifyWind();
+    Notifier();
 
-    virtual ~NotifyWind();
+    virtual ~Notifier();
 
     virtual void notifyWind() const = 0;
 };

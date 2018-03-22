@@ -40,7 +40,7 @@ void TypeMonth::toKey(std::ostream &out,
 void TypeMonth::getValues(const MarsRequest& request,
                           const std::string& keyword,
                           eckit::StringList& values,
-                          const NotifyWind&,
+                          const Notifier&,
                           const DB*) const {
     std::vector<eckit::Date> dates;
 

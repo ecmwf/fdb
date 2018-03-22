@@ -27,7 +27,7 @@ class MarsRequest;
 namespace fdb5 {
 
 class DB;
-class NotifyWind;
+class Notifier;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -49,7 +49,7 @@ public: // methods
     virtual void getValues(const MarsRequest &request,
                            const std::string &keyword,
                            eckit::StringList &values,
-                           const NotifyWind &wind,
+                           const Notifier &wind,
                            const DB *db) const;
 
     virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const;

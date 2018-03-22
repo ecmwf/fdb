@@ -163,9 +163,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
 
             logVerbose() << "Archiving " << key << std::endl;
 
-            ArchiveVisitor visitor(*this, key, static_cast<const void *>(buffer()), len);
-
-            this->Archiver::archive(key, visitor);
+            this->Archiver::archive(key, static_cast<const void *>(buffer()), len);
 
             total_size += len;
             count++;

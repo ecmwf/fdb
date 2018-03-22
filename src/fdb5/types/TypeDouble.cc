@@ -42,7 +42,7 @@ void TypeDouble::toKey(std::ostream &out,
 void TypeDouble::getValues(const MarsRequest& request,
                            const std::string& keyword,
                            eckit::StringList& values,
-                           const NotifyWind&,
+                           const Notifier&,
                            const DB*) const {
   std::vector<double> dblValues;
 

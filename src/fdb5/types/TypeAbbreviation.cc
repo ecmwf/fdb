@@ -36,7 +36,7 @@ void TypeAbbreviation::toKey(std::ostream &out,
 void TypeAbbreviation::getValues(const MarsRequest &request,
                                  const std::string &keyword,
                                  eckit::StringList &values,
-                                 const NotifyWind&,
+                                 const Notifier&,
                                  const DB*) const {
     std::vector<std::string> vals;
 
