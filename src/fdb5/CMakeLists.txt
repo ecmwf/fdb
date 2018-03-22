@@ -118,8 +118,6 @@ list( APPEND fdb5_srcs
     io/HandleGatherer.h
     legacy/FDBIndexScanner.cc
     legacy/FDBIndexScanner.h
-    legacy/LegacyRetriever.cc
-    legacy/LegacyRetriever.h
     legacy/LegacyArchiver.cc
     legacy/LegacyArchiver.h
     legacy/LegacyTranslator.cc
