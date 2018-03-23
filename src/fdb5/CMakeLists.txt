@@ -48,10 +48,10 @@ list( APPEND fdb5_srcs
     api/FDB.h
     api/FDBFactory.cc
     api/FDBFactory.h
-#    api/DistFDB.cc
-#    api/DistFDB.h
     api/LocalFDB.cc
     api/LocalFDB.h
+    api/SelectFDB.cc
+    api/SelectFDB.h
 
     config/UMask.cc
     config/UMask.h
@@ -311,16 +311,8 @@ endif()
 
 if( HAVE_DISTFDB )
     list( APPEND fdb5_srcs
-        dist/DistDB.cc
-        dist/DistDB.h
-        dist/DistManager.cc
-        dist/DistManager.h
-        dist/DistDBReader.cc
-        dist/DistDBReader.h
-        dist/DistDBWriter.cc
-        dist/DistDBWriter.h
-        dist/DistEngine.cc
-        dist/DistEngine.h
+        dist/DistFDB.cc
+        dist/DistFDB.h
     )
 endif()
 

@@ -15,7 +15,8 @@
 #define fdb5_api_FDBFactory_H
 
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Key.h"
+
+#include "eckit/utils/Regex.h"
 
 #include <memory>
 
@@ -23,6 +24,8 @@ class MarsRequest;
 
 
 namespace fdb5 {
+
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 

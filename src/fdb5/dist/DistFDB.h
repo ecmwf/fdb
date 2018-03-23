@@ -8,40 +8,49 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
+/// @author Simon Smart
+/// @date   Mar 2018
 
-#include "fdb5/LibFdb.h"
-#include "fdb5/dist/DistDBReader.h"
+#ifndef fdb5_api_DistFDB_H
+#define fdb5_api_DistFDB_H
+
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/FDBFactory.h"
+
+#include "eckit/utils/Regex.h"
+
 
 namespace fdb5 {
 
+class FDB;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-DistDBReader::DistDBReader(const Key& key, const eckit::Configuration& config) :
-    DistDB(key, config) {}
 
-DistDBReader::DistDBReader(const eckit::PathName& directory, const eckit::Configuration& config) :
-    DistDB(directory, config) {}
+class DistFDB : public FDBBase {
 
+public: // method
 
-DistDBReader::~DistDBReader() {}
+    DistFDB(const eckit::Configuration& config);
+    ~DistFDB();
 
+    virtual void archive(const Key& key, const void* data, size_t length);
 
-void DistDBReader::print(std::ostream& out) const {
-    out << "DistDBReader()";
-}
+    virtual eckit::DataHandle* retrieve(const MarsRequest& request);
 
-bool DistDBReader::selectIndex(const Key &key) {
-    NOTIMP;
-}
+    virtual void flush();
 
-void DistDBReader::deselectIndex() {
-    NOTIMP;
-}
+private: // methods
 
+    virtual void print(std::ostream& s) const;
 
-static DBBuilder<DistDBReader> builder("dist.reader", true, false);
+private:
+
+    std::vector<FDB> lanes_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
+
+#endif // fdb5_api_DistFDB_H

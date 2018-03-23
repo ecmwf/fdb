@@ -9,9 +9,10 @@
  */
 
 
-#include "eckit/thread/Mutex.h"
-#include "eckit/thread/AutoLock.h"
 #include "eckit/log/Log.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
+#include "eckit/config/YAMLConfiguration.h"
 
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/LibFdb.h"
@@ -23,7 +24,9 @@ namespace fdb5 {
 
 
 FDBBase::FDBBase(const Config &config) :
-    config_(config) {}
+    config_(config) {
+
+}
 
 
 FDBBase::~FDBBase() {}
@@ -72,9 +75,22 @@ FDBFactory::~FDBFactory() {
 
 std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
 
+    // If we haven't specified the type, then look for config.json
+
+    eckit::LocalConfiguration actualConfig(config);
+
+    if (!config.has("type")) {
+        eckit::PathName config_json = config.expandPath("~fdb/etc/fdb/config.json");
+        if (config_json.exists()) {
+            eckit::Log::debug<LibFdb>() << "Using FDB configuration file: " << config_json << std::endl;
+            eckit::YAMLConfiguration cfg(config_json);
+            actualConfig = cfg;
+        }
+    }
+
     /// We use "local" as a default type if not otherwise configured.
 
-    std::string key = config.getString("type", "local");
+    std::string key = actualConfig.getString("type", "local");
 
     eckit::Log::debug<LibFdb>() << "Selecting FDB implementation: " << key << std::endl;
 
@@ -91,7 +107,7 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
         throw eckit::SeriousBug(ss.str(), Here());
     }
 
-    std::unique_ptr<FDBBase> ret = it->second->make(config);
+    std::unique_ptr<FDBBase> ret = it->second->make(actualConfig);
     eckit::Log::debug<LibFdb>() << "Constructed FDB implementation: " << *ret << std::endl;
     return ret;
 }

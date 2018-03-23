@@ -16,6 +16,8 @@
 
 #include "fdb5/config/Config.h"
 
+#include "eckit/utils/Regex.h"
+
 #include <memory>
 
 class MarsRequest;
@@ -37,6 +39,12 @@ public: // methods
     FDB(const Config& config=Config());
     ~FDB();
 
+    FDB(const FDB&) = delete;
+    FDB(FDB&&) = default;
+
+    FDB& operator=(const FDB&) = delete;
+    FDB& operator=(FDB&&) = default;
+
     void archive(const Key& key, const void* data, size_t length);
     eckit::DataHandle* retrieve(const MarsRequest& request);
 
@@ -44,9 +52,15 @@ public: // methods
     /// @note always safe to call
     void flush();
 
+    bool matches(const Key& key);
+
 private: // members
 
+    std::map<std::string, eckit::Regex> select_;
+
     std::unique_ptr<FDBBase> internal_;
+
+    bool dirty_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
