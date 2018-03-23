@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "eckit/filesystem/PathName.h"
-#include "fdb5/config/FDBConfig.h"
+#include "fdb5/config/Config.h"
 
 namespace fdb5 {
 
@@ -33,7 +33,7 @@ class Manager  {
 
 public: // methods
 
-    Manager(const FDBConfig& config=FDBConfig());
+    Manager(const Config& config=Config());
     ~Manager();
 
     /// Uniquely selects the engine that will handle this Key on insertion or if already exists

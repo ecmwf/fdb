@@ -21,7 +21,7 @@
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
 
-class NotifyWind;
+class Notifier;
 class MarsRequest;
 
 namespace fdb5 {

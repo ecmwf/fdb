@@ -11,40 +11,32 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_dist_DistManager_H
-#define fdb5_dist_DistManager_H
+#ifndef fdb5_config_FDBConfig_H
+#define fdb5_config_FDBConfig_H
 
-#include "eckit/utils/Regex.h"
-#include "eckit/filesystem/PathName.h"
 
-#include <vector>
+#include "eckit/config/LocalConfiguration.h"
+
 
 namespace fdb5 {
 
-class Config;
-class Key;
-class FDBDistPool;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Keep track of the available pools/lanes given different fdb_home variables.
-
-class DistManager  {
+class Config : public eckit::LocalConfiguration {
 
 public: // methods
 
-    DistManager(const Config& config);
-    ~DistManager();
+    Config();
+    Config(const eckit::Configuration& config);
+    virtual ~Config();
 
-    void writableLanes(const Key& key, std::vector<eckit::PathName>& lanes) const;
-
-private: // members
-
-    const std::vector<FDBDistPool>& poolTable_;
+    /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration
+    /// then do the expansion in here.
+    eckit::PathName expandPath(const std::string& path) const;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
-#endif // fb5_dist_DistManager_H
+#endif // fdb5_config_FDBConfig_H

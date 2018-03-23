@@ -17,7 +17,7 @@
 
 #include "eckit/utils/Regex.h"
 #include "eckit/filesystem/PathName.h"
-#include "fdb5/config/FDBConfig.h"
+#include "fdb5/config/Config.h"
 
 namespace fdb5 {
 
@@ -30,7 +30,7 @@ class RootManager  {
 
 public: // methods
 
-    RootManager(const FDBConfig& config=FDBConfig());
+    RootManager(const Config& config=Config());
 
     /// Uniquely selects a directory where the Key will be put or already exists
     eckit::PathName directory(const Key &key);

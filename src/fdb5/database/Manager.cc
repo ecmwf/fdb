@@ -129,7 +129,7 @@ static const EngineTable& readEngineTypes(const eckit::PathName enginesFile) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Manager::Manager(const FDBConfig &config) {
+Manager::Manager(const Config &config) {
 
     static std::string baseEnginesFile = eckit::Resource<std::string>("fdbEnginesFile;$FDB_ENGINES_FILE", "~fdb/etc/fdb/engines");
 

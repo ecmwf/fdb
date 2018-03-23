@@ -30,7 +30,8 @@ static void purgeDB(Key& key, DB*& db) {
     delete db;
 }
 
-Retriever::Retriever() :
+Retriever::Retriever(const eckit::Configuration& dbConfig) :
+    dbConfig_(dbConfig),
     databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeDB) {
 }
 

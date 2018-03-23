@@ -8,37 +8,25 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Simon Smart
-/// @date   Mar 2018
-
-#ifndef fdb5_config_FDBConfig_H
-#define fdb5_config_FDBConfig_H
-
-
-#include "eckit/config/LocalConfiguration.h"
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/FDBFactory.h"
 
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBConfig : public eckit::LocalConfiguration {
+FDB::FDB(const Config &config) :
+    internal_(FDBFactory::build(config)) {}
 
-public: // methods
 
-    FDBConfig();
-    FDBConfig(const eckit::Configuration& config);
-    virtual ~FDBConfig();
+FDB::~FDB() {}
 
-    FDBConfig(const FDBConfig&) = delete;
 
-    /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration
-    /// then do the expansion in here.
-    eckit::PathName expandPath(const std::string& path) const;
-};
+eckit::DataHandle *FDB::retrieve(const MarsRequest& request) {
+    return internal_->retrieve(request);
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif // fdb5_config_FDBConfig_H

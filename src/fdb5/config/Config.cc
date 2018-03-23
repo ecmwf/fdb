@@ -8,26 +8,26 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/config/FDBConfig.h"
+#include "fdb5/config/Config.h"
 
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDBConfig::FDBConfig() {}
+Config::Config() {}
 
 
-FDBConfig::FDBConfig(const eckit::Configuration& config) :
+Config::Config(const eckit::Configuration& config) :
     LocalConfiguration(config) {}
 
 
-FDBConfig::~FDBConfig() {}
+Config::~Config() {}
 
 
 // TODO: We could add this to expandTilde.
 
-eckit::PathName FDBConfig::expandPath(const std::string &path) const {
+eckit::PathName Config::expandPath(const std::string &path) const {
 
     // If path starts with ~, split off the first component. If that is supplied in
     // the configuration, then use that instead!
@@ -36,14 +36,15 @@ eckit::PathName FDBConfig::expandPath(const std::string &path) const {
     if (path[0] == '~') {
         if (path.length() > 1 && path[1] != '/') {
             size_t slashpos = path.find('/');
-            if (slashpos != std::string::npos) {
-                std::string key = path.substr(1, slashpos-1) + "_home";
-                std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+            if (slashpos == std::string::npos)
+                path.length();
 
-                if (has(key)) {
-                    std::string newpath = getString(key) + path.substr(slashpos);
-                    return eckit::PathName(newpath);
-                }
+            std::string key = path.substr(1, slashpos-1) + "_home";
+            std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+
+            if (has(key)) {
+                std::string newpath = getString(key) + path.substr(slashpos);
+                return eckit::PathName(newpath);
             }
         }
 

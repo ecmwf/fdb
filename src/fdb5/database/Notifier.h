@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   NotifyWind.h
+/// @file   Notifier.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_NotifyWind_H
-#define fdb5_NotifyWind_H
+#ifndef fdb5_Notifier_H
+#define fdb5_Notifier_H
 
 
 

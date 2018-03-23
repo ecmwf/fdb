@@ -23,7 +23,7 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/Root.h"
 #include "fdb5/toc/FileSpace.h"
-#include "fdb5/config/FDBConfig.h"
+#include "fdb5/config/Config.h"
 
 using namespace eckit;
 
@@ -420,7 +420,7 @@ static void init() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RootManager::RootManager(const FDBConfig& config) :
+RootManager::RootManager(const Config& config) :
     spacesTable_(readFileSpaces(config.expandPath("~fdb/"))) {
 
     eckit::Log::info() << "Root manager: " << spacesTable_ << std::endl;

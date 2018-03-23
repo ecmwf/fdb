@@ -16,7 +16,7 @@
 #include "eckit/types/Types.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/config/FDBConfig.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/dist/DistManager.h"
 
 
@@ -319,7 +319,7 @@ static const PoolTable& readPoolTable(const eckit::PathName& fdbHome) {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-DistManager::DistManager(const FDBConfig& config) :
+DistManager::DistManager(const Config& config) :
     poolTable_(readPoolTable(config.expandPath("~fdb/"))) {}
 
 

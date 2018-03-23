@@ -11,40 +11,40 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_dist_DistManager_H
-#define fdb5_dist_DistManager_H
+#ifndef fdb5_api_FDB_H
+#define fdb5_api_FDB_H
 
-#include "eckit/utils/Regex.h"
-#include "eckit/filesystem/PathName.h"
+#include "fdb5/config/Config.h"
 
-#include <vector>
+#include <memory>
+
+class MarsRequest;
+
 
 namespace fdb5 {
 
-class Config;
-class Key;
-class FDBDistPool;
+class FDBBase;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Keep track of the available pools/lanes given different fdb_home variables.
+/// A handle to a general FDB
 
-class DistManager  {
+class FDB {
 
 public: // methods
 
-    DistManager(const Config& config);
-    ~DistManager();
+    FDB(const Config& config=Config());
+    ~FDB();
 
-    void writableLanes(const Key& key, std::vector<eckit::PathName>& lanes) const;
+    eckit::DataHandle* retrieve(const MarsRequest& request);
 
 private: // members
 
-    const std::vector<FDBDistPool>& poolTable_;
+    std::unique_ptr<FDBBase> internal_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
-#endif // fb5_dist_DistManager_H
+#endif // fdb5_api_FDB_H

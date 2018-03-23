@@ -43,10 +43,20 @@ endif()
 list( APPEND fdb5_srcs
 	LibFdb.h
 	LibFdb.cc
+
+    api/FDB.cc
+    api/FDB.h
+    api/FDBFactory.cc
+    api/FDBFactory.h
+#    api/DistFDB.cc
+#    api/DistFDB.h
+    api/LocalFDB.cc
+    api/LocalFDB.h
+
     config/UMask.cc
     config/UMask.h
-    config/FDBConfig.cc
-    config/FDBConfig.h
+    config/Config.cc
+    config/Config.h
     database/Archiver.cc
     database/Archiver.h
     database/ArchiveVisitor.cc

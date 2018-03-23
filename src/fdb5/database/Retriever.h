@@ -22,6 +22,7 @@
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/container/CacheLRU.h"
+#include "eckit/config/LocalConfiguration.h"
 
 namespace eckit {
 class DataHandle;
@@ -43,7 +44,7 @@ class Retriever : public eckit::NonCopyable {
 
 public: // methods
 
-    Retriever();
+    Retriever(const eckit::Configuration& dbConfig=eckit::LocalConfiguration());
 
     ~Retriever();
 
@@ -73,6 +74,7 @@ private: // data
 
     mutable eckit::CacheLRU<Key,DB*> databases_;
 
+    eckit::LocalConfiguration dbConfig_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
