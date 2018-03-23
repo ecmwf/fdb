@@ -22,9 +22,17 @@ FDB::FDB(const Config &config) :
 
 FDB::~FDB() {}
 
+void FDB::archive(const Key& key, const void* data, size_t length) {
+    internal_->archive(key, data, length);
+
+}
 
 eckit::DataHandle *FDB::retrieve(const MarsRequest& request) {
     return internal_->retrieve(request);
+}
+
+void FDB::flush() {
+    internal_->flush();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

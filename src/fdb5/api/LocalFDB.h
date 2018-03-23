@@ -20,6 +20,7 @@
 namespace fdb5 {
 
 class Retriever;
+class Archiver;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -33,12 +34,15 @@ public: // methods
 
     virtual eckit::DataHandle* retrieve(const MarsRequest& request);
 
+    virtual void flush();
+
 private: // methods
 
     virtual void print(std::ostream& s) const;
 
 private: // members
 
+    std::unique_ptr<Archiver> archiver_;
     std::unique_ptr<Retriever> retriever_;
 };
 

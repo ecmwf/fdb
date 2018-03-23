@@ -10,9 +10,10 @@
 
 #include "eckit/log/Log.h"
 
-#include "fdb5/api/LocalFDB.h"
-#include "fdb5/database/Retriever.h"
 #include "fdb5/LibFdb.h"
+#include "fdb5/api/LocalFDB.h"
+#include "fdb5/database/Archiver.h"
+#include "fdb5/database/Retriever.h"
 
 #include "marslib/MarsTask.h"
 
@@ -24,8 +25,14 @@ static FDBBuilder<LocalFDB> localFdbBuilder("local");
 //----------------------------------------------------------------------------------------------------------------------
 
 
-void LocalFDB::archive(const Key &key, const void *data, size_t length) {
-    NOTIMP;
+void LocalFDB::archive(const Key& key, const void* data, size_t length) {
+
+    if (!archiver_) {
+        eckit::Log::debug<LibFdb>() << *this << ": Constructing new archiver" << std::endl;
+        archiver_.reset(new Archiver(config_));
+    }
+
+    archiver_->archive(key, data, length);
 }
 
 
@@ -40,6 +47,13 @@ eckit::DataHandle *LocalFDB::retrieve(const MarsRequest &request) {
     MarsTask task(request, e);
 
     return retriever_->retrieve(task);
+}
+
+
+void LocalFDB::flush() {
+    if (archiver_) {
+        archiver_->flush();
+    }
 }
 
 

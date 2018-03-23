@@ -33,9 +33,9 @@ using eckit::Log;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose) :
-    Archiver(),
+GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
     GribDecoder(),
+    fdb_(config),
     key_(key),
     completeTransfers_(completeTransfers),
     verbose_(verbose)
@@ -163,7 +163,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
 
             logVerbose() << "Archiving " << key << std::endl;
 
-            this->Archiver::archive(key, static_cast<const void *>(buffer()), len);
+            fdb_.archive(key, static_cast<const void *>(buffer()), len);
 
             total_size += len;
             count++;
@@ -191,6 +191,10 @@ eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
                        << " (" << eckit::Bytes(total_size, timer) << ")" <<  std::endl;
 
     return total_size;
+}
+
+void GribArchiver::flush() {
+    fdb_.flush();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

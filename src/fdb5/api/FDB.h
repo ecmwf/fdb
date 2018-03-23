@@ -24,6 +24,7 @@ class MarsRequest;
 namespace fdb5 {
 
 class FDBBase;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -36,7 +37,12 @@ public: // methods
     FDB(const Config& config=Config());
     ~FDB();
 
+    void archive(const Key& key, const void* data, size_t length);
     eckit::DataHandle* retrieve(const MarsRequest& request);
+
+    /// Flushes all buffers and closes all data handles into a consistent DB state
+    /// @note always safe to call
+    void flush();
 
 private: // members
 

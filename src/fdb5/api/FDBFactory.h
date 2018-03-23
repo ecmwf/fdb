@@ -39,6 +39,8 @@ public: // methods
 
     virtual eckit::DataHandle* retrieve(const MarsRequest& request) = 0;
 
+    virtual void flush() = 0;
+
 private: // methods
 
     virtual void print(std::ostream& s) const = 0;
