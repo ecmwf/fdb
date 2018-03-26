@@ -31,9 +31,8 @@ static void purgeDB(Key& key, DB*& db) {
 }
 
 Retriever::Retriever(const eckit::Configuration& dbConfig) :
-    dbConfig_(dbConfig),
-    databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeDB) {
-}
+    databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeDB),
+    dbConfig_(dbConfig) {}
 
 Retriever::~Retriever() {
 }
@@ -46,7 +45,7 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask& task,
     try {
 
         HandleGatherer result(sorted);
-        MultiRetrieveVisitor visitor(notifyee, result, databases_);
+        MultiRetrieveVisitor visitor(notifyee, result, databases_, dbConfig_);
 
         Log::debug<LibFdb>() << "Using schema: " << schema << std::endl;
 

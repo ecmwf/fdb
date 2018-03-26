@@ -12,6 +12,7 @@
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/api/SelectFDB.h"
+#include "fdb5/io/HandleGatherer.h"
 
 #include "marslib/MarsTask.h"
 
@@ -57,8 +58,20 @@ void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 }
 
 
-eckit::DataHandle *SelectFDB::retrieve(const MarsRequest &request) {
-    NOTIMP;
+eckit::DataHandle *SelectFDB::retrieve(const MarsRequest& request) {
+
+    // TODO: Select within the SubFDBs
+
+//    HandleGatherer result(true); // Sorted
+    HandleGatherer result(false);
+
+    for (FDB& fdb : subFdbs_) {
+//        if (subFdbs_.matches()) {
+        result.add(fdb.retrieve(request));
+//        }
+    }
+
+    return result.dataHandle();
 }
 
 

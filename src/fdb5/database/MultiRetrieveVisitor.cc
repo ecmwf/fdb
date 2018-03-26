@@ -14,8 +14,8 @@
 #include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/database/DB.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/types/Type.h"
 #include "fdb5/types/TypesRegistry.h"
@@ -26,11 +26,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind, HandleGatherer& gatherer, eckit::CacheLRU<Key,DB*>& databases) :
+MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind,
+                                           HandleGatherer& gatherer,
+                                           eckit::CacheLRU<Key,DB*>& databases,
+                                           const Config& config) :
     db_(0),
     wind_(wind),
     databases_(databases),
-    gatherer_(gatherer) {
+    gatherer_(gatherer),
+    config_(config) {
 }
 
 MultiRetrieveVisitor::~MultiRetrieveVisitor() {
@@ -61,7 +65,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     /* DB not yet open */
 
-    eckit::ScopedPtr<DB> newDB( DBFactory::buildReader(key) );
+    eckit::ScopedPtr<DB> newDB( DBFactory::buildReader(key, config_) );
 
     eckit::Log::debug<LibFdb>() << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")" << std::endl;
 

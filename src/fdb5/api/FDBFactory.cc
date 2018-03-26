@@ -23,8 +23,10 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FDBBase::FDBBase(const Config &config) :
+FDBBase::FDBBase(const Config& config) :
     config_(config) {
+
+    eckit::Log::debug<LibFdb>() << "FDBBase: " << config << std::endl;
 
 }
 

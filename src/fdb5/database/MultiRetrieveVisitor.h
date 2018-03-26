@@ -19,6 +19,7 @@
 #include <string>
 
 #include "fdb5/database/ReadVisitor.h"
+#include "fdb5/config/Config.h"
 
 #include "eckit/container/CacheLRU.h"
 
@@ -35,7 +36,10 @@ class MultiRetrieveVisitor : public ReadVisitor {
 
 public: // methods
 
-    MultiRetrieveVisitor(const Notifier& wind, HandleGatherer& gatherer, eckit::CacheLRU<Key,DB*>& databases);
+    MultiRetrieveVisitor(const Notifier& wind,
+                         HandleGatherer& gatherer,
+                         eckit::CacheLRU<Key,DB*>& databases,
+                         const Config& config);
 
     ~MultiRetrieveVisitor();
 
@@ -65,6 +69,8 @@ private:
     eckit::CacheLRU< Key,DB*>& databases_;
 
     HandleGatherer &gatherer_;
+
+    Config config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

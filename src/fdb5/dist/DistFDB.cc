@@ -15,6 +15,7 @@
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/dist/DistFDB.h"
+#include "fdb5/io/HandleGatherer.h"
 
 
 namespace fdb5 {
@@ -33,7 +34,7 @@ DistFDB::DistFDB(const eckit::Configuration& config) :
     if (!config.has("lanes")) throw eckit::UserError("No lanes configured for pool", Here());
 
     std::vector<eckit::LocalConfiguration> laneConfigs;
-    laneConfigs = config.getSubConfigurations();
+    laneConfigs = config.getSubConfigurations("lanes");
 
     for(const eckit::LocalConfiguration laneCfg : laneConfigs) {
         lanes_.push_back(FDB(laneCfg));
@@ -46,7 +47,6 @@ DistFDB::~DistFDB() {}
 void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     // TODO: Distributed Hash table
-
     for (FDB& lane : lanes_) {
         lane.archive(key, data, length);
     }
@@ -54,7 +54,17 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
 
 eckit::DataHandle *DistFDB::retrieve(const MarsRequest &request) {
-    NOTIMP;
+
+    // TODO: Deduplication. Currently no masking.
+
+//    HandleGatherer result(true); // Sorted
+    HandleGatherer result(false);
+
+    for (FDB& lane : lanes_) {
+        result.add(lane.retrieve(request));
+    }
+
+    return result.dataHandle();
 }
 
 

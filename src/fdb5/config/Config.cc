@@ -27,7 +27,7 @@ Config::~Config() {}
 
 // TODO: We could add this to expandTilde.
 
-eckit::PathName Config::expandPath(const std::string &path) const {
+eckit::PathName Config::expandPath(const std::string& path) const {
 
     // If path starts with ~, split off the first component. If that is supplied in
     // the configuration, then use that instead!
@@ -37,7 +37,7 @@ eckit::PathName Config::expandPath(const std::string &path) const {
         if (path.length() > 1 && path[1] != '/') {
             size_t slashpos = path.find('/');
             if (slashpos == std::string::npos)
-                path.length();
+                slashpos = path.length();
 
             std::string key = path.substr(1, slashpos-1) + "_home";
             std::transform(key.begin(), key.end(), key.begin(), ::tolower);
