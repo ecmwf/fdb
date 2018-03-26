@@ -50,13 +50,17 @@ FDB::~FDB() {}
 
 void FDB::archive(const Key& key, const void* data, size_t length) {
     ASSERT(matches(key));
-    dirty_ = true;
     internal_->archive(key, data, length);
+    dirty_ = true;
 }
 
 eckit::DataHandle *FDB::retrieve(const MarsRequest& request) {
     // TODO: Match?
     return internal_->retrieve(request);
+}
+
+const std::string FDB::id() const {
+    return internal_->id();
 }
 
 bool FDB::matches(const Key& key) {
@@ -72,13 +76,31 @@ bool FDB::matches(const Key& key) {
     return true;
 }
 
-
+void FDB::print(std::ostream& s) const {
+    s << *internal_;
+}
 
 void FDB::flush() {
     if (dirty_) {
         internal_->flush();
         dirty_ = false;
     }
+}
+
+bool FDB::dirty() const {
+    return dirty_;
+}
+
+void FDB::setNonWritable() {
+    return internal_->setNonWritable();
+}
+
+bool FDB::writable() const {
+    return internal_->writable();
+}
+
+bool FDB::visitable() const {
+    return internal_->visitable();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

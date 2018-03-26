@@ -114,6 +114,8 @@ public: // methods
     /// @throws When "other" doesn't contain all the keys of "this"
     void validateKeysOf(const Key& other, bool checkAlsoValues = false) const;
 
+    const eckit::StringDict& keyDict() const;
+
     operator std::string() const;
 
     operator eckit::StringDict() const;

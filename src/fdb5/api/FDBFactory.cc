@@ -24,14 +24,28 @@ namespace fdb5 {
 
 
 FDBBase::FDBBase(const Config& config) :
-    config_(config) {
+    config_(config),
+    writable_(config.getBool("writable", true)),
+    visitable_(config.getBool("visitable", true)) {
 
     eckit::Log::debug<LibFdb>() << "FDBBase: " << config << std::endl;
-
 }
 
 
 FDBBase::~FDBBase() {}
+
+bool FDBBase::writable() {
+    return writable_;
+}
+
+bool FDBBase::visitable() {
+    return visitable_;
+}
+
+void FDBBase::setNonWritable() {
+    eckit::Log::info() << "WARNING: Setting lane " << *this << " to non-writable" << std::endl;
+    writable_ = false;
+}
 
 
 static eckit::Mutex& factoryMutex() {

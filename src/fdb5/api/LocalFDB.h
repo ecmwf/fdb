@@ -34,6 +34,8 @@ public: // methods
 
     virtual eckit::DataHandle* retrieve(const MarsRequest& request);
 
+    virtual std::string id() const;
+
     virtual void flush();
 
 private: // methods
@@ -41,6 +43,8 @@ private: // methods
     virtual void print(std::ostream& s) const;
 
 private: // members
+
+    std::string home_;
 
     std::unique_ptr<Archiver> archiver_;
     std::unique_ptr<Retriever> retriever_;

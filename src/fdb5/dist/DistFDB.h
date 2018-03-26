@@ -18,6 +18,7 @@
 #include "fdb5/api/FDBFactory.h"
 
 #include "eckit/utils/Regex.h"
+#include "eckit/utils/RendezvousHash.h"
 
 
 namespace fdb5 {
@@ -38,6 +39,8 @@ public: // method
 
     virtual eckit::DataHandle* retrieve(const MarsRequest& request);
 
+    virtual std::string id() const;
+
     virtual void flush();
 
 private: // methods
@@ -45,6 +48,8 @@ private: // methods
     virtual void print(std::ostream& s) const;
 
 private:
+
+    eckit::RendezvousHash hash_;
 
     std::vector<FDB> lanes_;
 };

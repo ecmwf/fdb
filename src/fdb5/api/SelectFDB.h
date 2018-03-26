@@ -38,6 +38,8 @@ public: // methods
 
     virtual eckit::DataHandle* retrieve(const MarsRequest& request);
 
+    virtual std::string id() const;
+
     virtual void flush();
 
 private: // methods

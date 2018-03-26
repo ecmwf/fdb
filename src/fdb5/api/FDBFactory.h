@@ -42,7 +42,16 @@ public: // methods
 
     virtual eckit::DataHandle* retrieve(const MarsRequest& request) = 0;
 
+    /// ID used for hashing in the Rendezvous hash. Should be unique amongst those used
+    /// within a DistFDB (i.e. within one Rendezvous hash).
+    virtual std::string id() const = 0;
+
     virtual void flush() = 0;
+
+    bool writable();
+    bool visitable();
+
+    void setNonWritable();
 
 private: // methods
 
@@ -56,6 +65,9 @@ private: // methods
 protected: // members
 
     Config config_;
+
+    bool writable_;
+    bool visitable_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

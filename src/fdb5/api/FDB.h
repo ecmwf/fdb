@@ -48,11 +48,30 @@ public: // methods
     void archive(const Key& key, const void* data, size_t length);
     eckit::DataHandle* retrieve(const MarsRequest& request);
 
+    /// ID used for hashing in the Rendezvous hash. Should be unique.
+    const std::string id() const;
+
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
     void flush();
 
+    bool dirty() const;
+
+    bool writable() const;
+    bool visitable() const;
+
+    void setNonWritable();
+
     bool matches(const Key& key);
+
+private: // methods
+
+    void print(std::ostream&) const;
+
+    friend std::ostream& operator<<(std::ostream& s, const FDB& f) {
+        f.print(s);
+        return s;
+    }
 
 private: // members
 

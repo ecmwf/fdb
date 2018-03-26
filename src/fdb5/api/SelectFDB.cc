@@ -74,6 +74,10 @@ eckit::DataHandle *SelectFDB::retrieve(const MarsRequest& request) {
     return result.dataHandle();
 }
 
+std::string SelectFDB::id() const {
+    NOTIMP;
+}
+
 
 void SelectFDB::flush() {
     for (FDB& fdb : subFdbs_) {

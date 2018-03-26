@@ -21,8 +21,7 @@ namespace fdb5 {
 
 Key::Key() :
     keys_(),
-    rule_(0) {
-}
+    rule_(0) {}
 
 Key::Key(const std::string &s, const Rule *rule) :
     keys_(),
@@ -68,6 +67,10 @@ Key::Key(const std::string &s) :
 Key::Key(const eckit::StringDict &keys) :
     keys_(keys),
     rule_(0) {
+
+    for (auto& kv : keys) {
+        names_.emplace_back(kv.first);
+    }
 }
 
 Key::Key(eckit::Stream &s) :
@@ -137,7 +140,15 @@ void Key::clear() {
 }
 
 void Key::set(const std::string &k, const std::string &v) {
-    keys_[k] = v;
+
+    eckit::StringDict::iterator it = keys_.find(k);
+    if (it == keys_.end()) {
+        names_.push_back(k);
+        keys_[k] = v;
+    } else {
+        it->second = v;
+    }
+
 }
 
 void Key::unset(const std::string &k) {
@@ -292,6 +303,10 @@ void Key::validateKeysOf(const Key& other, bool checkAlsoValues) const
 
         throw eckit::SeriousBug(oss.str());
     }
+}
+
+const eckit::StringDict &Key::keyDict() const {
+    return keys_;
 }
 
 fdb5::Key::operator std::string() const {

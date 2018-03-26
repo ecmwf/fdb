@@ -49,6 +49,10 @@ eckit::DataHandle *LocalFDB::retrieve(const MarsRequest &request) {
     return retriever_->retrieve(task);
 }
 
+std::string LocalFDB::id() const {
+    return config_.expandPath("~fdb");
+}
+
 
 void LocalFDB::flush() {
     if (archiver_) {
