@@ -44,6 +44,8 @@ list( APPEND fdb5_srcs
 	LibFdb.h
 	LibFdb.cc
 
+    api/DistFDB.cc
+    api/DistFDB.h
     api/FDB.cc
     api/FDB.h
     api/FDBFactory.cc
@@ -306,14 +308,6 @@ if( HAVE_PMEMFDB )
 else()
     set( PMEM_LIBRARIES "" )
     set( PMEM_INCLUDE_DIRS "" )
-endif()
-
-
-if( HAVE_DISTFDB )
-    list( APPEND fdb5_srcs
-        dist/DistFDB.cc
-        dist/DistFDB.h
-    )
 endif()
 
 if(LUSTREAPI_FOUND)
