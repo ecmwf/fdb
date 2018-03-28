@@ -60,6 +60,12 @@ void FdbServer::run() {
         Log::info() << "Received connection" << std::endl;
         Log::status() << "Received connection" << std::endl;
 
+        while (true) {
+            uint32_t tmp;
+            in >> tmp;
+            Log::info() << "Read: " << tmp << std::endl;
+            if (tmp == 12) break;
+        }
     }
 
     Log::status() << "done" << std::endl;

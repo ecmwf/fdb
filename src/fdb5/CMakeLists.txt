@@ -55,6 +55,9 @@ list( APPEND fdb5_srcs
     api/SelectFDB.cc
     api/SelectFDB.h
 
+    remote/RemoteFDB.cc
+    remote/RemoteFDB.h
+
     config/UMask.cc
     config/UMask.h
     config/Config.cc

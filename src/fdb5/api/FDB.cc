@@ -46,7 +46,9 @@ FDB::FDB(const Config &config) :
 }
 
 
-FDB::~FDB() {}
+FDB::~FDB() {
+    flush();
+}
 
 void FDB::archive(const Key& key, const void* data, size_t length) {
     ASSERT(matches(key));

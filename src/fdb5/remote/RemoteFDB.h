@@ -11,13 +11,14 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_DistFDB_H
-#define fdb5_api_DistFDB_H
+#ifndef fdb5_api_RemoteFDB_H
+#define fdb5_api_RemoteFDB_H
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 
-#include "eckit/utils/RendezvousHash.h"
+#include "eckit/net/TCPClient.h"
+#include "eckit/net/TCPStream.h"
 
 
 namespace fdb5 {
@@ -27,12 +28,12 @@ class FDB;
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class DistFDB : public FDBBase {
+class RemoteFDB : public FDBBase {
 
 public: // method
 
-    DistFDB(const eckit::Configuration& config);
-    ~DistFDB();
+    RemoteFDB(const eckit::Configuration& config);
+    ~RemoteFDB();
 
     virtual void archive(const Key& key, const void* data, size_t length);
 
@@ -44,17 +45,24 @@ public: // method
 
 private: // methods
 
+    void connect();
+
     virtual void print(std::ostream& s) const;
 
-private:
+private: // members
 
-    eckit::RendezvousHash hash_;
+    std::string hostname_;
+    int port_;
 
-    std::vector<FDB> lanes_;
+    eckit::TCPClient client_;
+    std::unique_ptr<eckit::TCPStream> stream_;
+    bool connected_;
+
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
-#endif // fdb5_api_DistFDB_H
+#endif // fdb5_api_RemoteFDB_H
