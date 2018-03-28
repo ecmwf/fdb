@@ -14,7 +14,7 @@
 #include "eckit/parser/Tokenizer.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/dist/DistFDB.h"
+#include "fdb5/api/DistFDB.h"
 #include "fdb5/io/HandleGatherer.h"
 
 

@@ -384,4 +384,13 @@ ecbuild_add_executable( TARGET    grib2fdb5
                           LIBS
                           mars-fdb5 )
 
+ecbuild_add_executable(
+    TARGET fdb-monitor
+    SOURCES remote/fdb-monitor.cc
+    LIBS eckit eckit_cmd )
+
+ecbuild_add_executable(
+    TARGET fdb-server
+    SOURCES remote/fdb-server.cc
+    LIBS mars-fdb5 )
 
