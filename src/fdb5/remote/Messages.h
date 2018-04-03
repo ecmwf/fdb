@@ -35,10 +35,11 @@ const static eckit::FixedString<4> EndMarker {"EFDB"};
 constexpr uint16_t CurrentVersion = 1;
 
 
-enum class Message : uint8_t {
+enum class Message : uint16_t {
     None = 0,
     Exit,
-    Flush
+    Flush,
+    Archive
 };
 
 
@@ -50,7 +51,7 @@ public: // methods
 
     MessageHeader() {}
 
-    MessageHeader(Message message, uint16_t payloadSize=0) :
+    MessageHeader(Message message, uint32_t payloadSize=0) :
         marker(StartMarker),
         version(CurrentVersion),
         message(message),
@@ -58,11 +59,11 @@ public: // methods
 
     eckit::FixedString<4> marker;
 
-    uint8_t version;
+    uint16_t version;
 
     Message message;
 
-    uint16_t payloadSize;
+    uint32_t payloadSize;
 };
 
 

@@ -9,6 +9,8 @@
  */
 
 #include "eckit/log/Log.h"
+#include "eckit/log/Bytes.h"
+#include "eckit/io/Buffer.h"
 
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
@@ -37,6 +39,7 @@ void RemoteHandler::handle() {
     Log::info() << "... started" << std::endl;
 
     MessageHeader hdr;
+    eckit::FixedString<4> tail;
 
     while (socket_.read(&hdr, sizeof(hdr))) {
 
@@ -53,6 +56,18 @@ void RemoteHandler::handle() {
             Log::status() << "Flush message recieved" << std::endl;
             Log::info() << "Flush message recieved" << std::endl;
         }
+
+        if (hdr.message == Message::Archive) {
+            Log::status() << "Archive message recieved" << std::endl;
+            Log::info() << "Archive message recieved" << std::endl;
+            Log::info() << "Payload: " << hdr.payloadSize << ", " << Bytes(hdr.payloadSize) << std::endl;
+
+            Buffer buf(1024 * 1024 * 20);
+            socket_.read(buf, hdr.payloadSize);
+        }
+
+        ASSERT(socket_.read(&tail, 4));
+        ASSERT(tail == EndMarker);
 
         Log::info() << "Sleeping" << std::endl;
         usleep(4000000);

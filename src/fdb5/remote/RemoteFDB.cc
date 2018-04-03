@@ -17,6 +17,11 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/io/HandleGatherer.h"
 
+#include "eckit/io/Buffer.h"
+#include "eckit/serialisation/MemoryStream.h"
+
+// TODO: Write things as one chunk?
+
 using namespace eckit;
 
 
@@ -54,6 +59,7 @@ void RemoteFDB::disconnect() {
     if (connected_) {
         MessageHeader msg(Message::Exit);
         socket_.write(&msg, sizeof(msg));
+        socket_.write(&EndMarker, sizeof(EndMarker));
         socket_.close();
 //        msg.encode(*stream_);
 //        stream_.reset();
@@ -64,11 +70,22 @@ void RemoteFDB::disconnect() {
 
 void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
+    eckit::Log::info() << "Archiving..." << std::endl;
+
     connect();
 
-    eckit::Log::info() << "Archiving..." << std::endl;
-//    uint32_t tmp = 666;
-//    *stream_ << tmp;
+    Buffer keyBuffer(4096);
+    MemoryStream keyStream(keyBuffer);
+    keyStream << key;
+
+    MessageHeader msg(Message::Archive, length + keyStream.position());
+
+    Log::info() << "Sizes: "<< keyStream.position() << ", " << length << std::endl;
+
+    socket_.write(&msg, sizeof(msg));
+    socket_.write(keyBuffer, keyStream.position());
+    socket_.write(data, length);
+    socket_.write(&EndMarker, sizeof(EndMarker));
 }
 
 
@@ -88,6 +105,7 @@ std::string RemoteFDB::id() const {
 void RemoteFDB::flush() {
     MessageHeader msg(Message::Flush);
     socket_.write(&msg, sizeof(msg));
+    socket_.write(&EndMarker, sizeof(EndMarker));
 }
 
 
