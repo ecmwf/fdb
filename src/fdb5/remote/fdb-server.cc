@@ -11,21 +11,32 @@
 #include "eckit/runtime/Monitorable.h"
 #include "eckit/runtime/Application.h"
 #include "eckit/net/TCPServer.h"
-#include "eckit/net/TCPStream.h"
+#include "eckit/net/TCPSocket.h"
 #include "eckit/net/Port.h"
+#include "eckit/runtime/ProcessControler.h"
+#include "eckit/thread/ThreadControler.h"
+
+#include "fdb5/remote/Messages.h"
+#include "fdb5/remote/Handler.h"
 
 #include <unistd.h>
 
 
+using namespace eckit;
+
+namespace fdb5 {
+namespace remote {
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class FdbServer : public eckit::Application,
-                  public eckit::Monitorable {
+class FdbServer : public Application,
+                  public Monitorable {
 
 public: // methods
 
     FdbServer(int argc, char** argv) :
-        Application(argc, argv, "FDB_HOME") {}
+        Application(argc, argv, "FDB_HOME"),
+        subProcesses_(false) {}
 
 private: // methods
 
@@ -36,9 +47,11 @@ private: // methods
     // From monitorable
 
     virtual void status(std::ostream&) const;
-    virtual void json(eckit::JSON&) const;
+    virtual void json(JSON&) const;
 
 private: // members
+
+    bool subProcesses_;
 
     size_t port_;
 };
@@ -46,25 +59,56 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using namespace eckit;
+
+class FdbServerThread : public Thread {
+    TCPSocket socket_;
+    bool subProcess_;
+
+    virtual void run() {
+        if (subProcess_) {
+            Log::info() << "Starting handler process ..." << std::endl;
+            RemoteHandlerProcessController h(socket_);
+            h.start();
+        } else {
+            RemoteHandler h(socket_);
+            h.handle();
+        }
+    }
+
+public:
+    FdbServerThread(eckit::TCPSocket& socket, bool launchSubProcess) :
+        socket_(socket),
+        subProcess_(launchSubProcess) {}
+};
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
 
 void FdbServer::run() {
 
     Log::status() << "Starting server ..." << port_ << std::endl;
 
     TCPServer server(Port("fdb", 7654));
+    server.closeExec(false);
 
     while (true) {
 
-        TCPStream in(server.accept());
+//        TCPStream in(server.accept());
+        TCPSocket in(server.accept());
+
         Log::info() << "Received connection" << std::endl;
         Log::status() << "Received connection" << std::endl;
 
-        while (true) {
-            uint32_t tmp;
-            in >> tmp;
-            Log::info() << "Read: " << tmp << std::endl;
-            if (tmp == 12) break;
+        // Fork a process, or spawn a thread, to deal with this connection
+
+        try {
+            Log::info() << "Starting handler thread ..." << std::endl;
+            ThreadControler t(new FdbServerThread(in, subProcesses_));
+            t.start();
+        } catch (std::exception& e) {
+            Log::error() << "** " << e.what() << " Caught in FdbServer::run()" << std::endl;
+            Log::error() << "** Exception is ignored" << std::endl;
         }
     }
 
@@ -82,8 +126,12 @@ void FdbServer::json(JSON& j) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace remote
+} // namespace fdb5
+
+
 int main(int argc, char** argv) {
-    FdbServer app(argc, argv);
+    fdb5::remote::FdbServer app(argc, argv);
     app.start();
     return 0;
 }

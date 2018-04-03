@@ -14,12 +14,14 @@
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/remote/RemoteFDB.h"
+#include "fdb5/remote/Messages.h"
 #include "fdb5/io/HandleGatherer.h"
 
 using namespace eckit;
 
 
 namespace fdb5 {
+namespace remote {
 
 static FDBBuilder<RemoteFDB> remoteFdbBuilder("remote");
 
@@ -34,13 +36,28 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config) :
     ASSERT(config.getString("type", "") == "remote");
 }
 
-RemoteFDB::~RemoteFDB() {}
+RemoteFDB::~RemoteFDB() {
+    disconnect();
+}
 
 
 void RemoteFDB::connect() {
     if (!connected_) {
-        stream_.reset(new TCPStream(client_.connect(hostname_, port_)));
+        socket_ = client_.connect(hostname_, port_);
+//        stream_.reset(new TCPStream(client_.connect(hostname_, port_)));
         connected_ = true;
+    }
+}
+
+
+void RemoteFDB::disconnect() {
+    if (connected_) {
+        MessageHeader msg(Message::Exit);
+        socket_.write(&msg, sizeof(msg));
+        socket_.close();
+//        msg.encode(*stream_);
+//        stream_.reset();
+        connected_ = false;
     }
 }
 
@@ -50,8 +67,8 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
     connect();
 
     eckit::Log::info() << "Archiving..." << std::endl;
-    uint32_t tmp = 666;
-    *stream_ << tmp;
+//    uint32_t tmp = 666;
+//    *stream_ << tmp;
 }
 
 
@@ -69,11 +86,8 @@ std::string RemoteFDB::id() const {
 
 
 void RemoteFDB::flush() {
-    eckit::Log::info() << "Flushing..." << std::endl;
-    if (stream_) {
-        uint32_t tmp = 12;
-        *stream_ << tmp;
-    }
+    MessageHeader msg(Message::Flush);
+    socket_.write(&msg, sizeof(msg));
 }
 
 
@@ -83,4 +97,5 @@ void RemoteFDB::print(std::ostream &s) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace remote
 } // namespace fdb5

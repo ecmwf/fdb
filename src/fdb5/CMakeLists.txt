@@ -394,6 +394,11 @@ ecbuild_add_executable(
 
 ecbuild_add_executable(
     TARGET fdb-server
-    SOURCES remote/fdb-server.cc
+    SOURCES
+        remote/fdb-server.cc
+        remote/Messages.h
+        remote/Messages.cc
+        remote/Handler.h
+        remote/Handler.cc
     LIBS mars-fdb5 )
 

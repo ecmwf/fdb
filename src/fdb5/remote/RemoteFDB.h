@@ -11,8 +11,8 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_RemoteFDB_H
-#define fdb5_api_RemoteFDB_H
+#ifndef fdb5_remote_RemoteFDB_H
+#define fdb5_remote_RemoteFDB_H
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
@@ -22,6 +22,7 @@
 
 
 namespace fdb5 {
+namespace remote {
 
 class FDB;
 
@@ -46,6 +47,7 @@ public: // method
 private: // methods
 
     void connect();
+    void disconnect();
 
     virtual void print(std::ostream& s) const;
 
@@ -55,14 +57,14 @@ private: // members
     int port_;
 
     eckit::TCPClient client_;
-    std::unique_ptr<eckit::TCPStream> stream_;
+    eckit::TCPSocket socket_;
+//    std::unique_ptr<eckit::TCPStream> stream_;
     bool connected_;
-
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace remote
 } // namespace fdb5
 
-#endif // fdb5_api_RemoteFDB_H
+#endif // fdb5_remote_RemoteFDB_H
