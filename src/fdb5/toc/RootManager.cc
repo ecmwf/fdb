@@ -423,7 +423,7 @@ static void init() {
 RootManager::RootManager(const Config& config) :
     spacesTable_(readFileSpaces(config.expandPath("~fdb/"))) {
 
-    eckit::Log::info() << "Root manager: " << spacesTable_ << std::endl;
+//    eckit::Log::info() << "Root manager: " << spacesTable_ << std::endl;
 }
 
 
