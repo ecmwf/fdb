@@ -55,6 +55,7 @@ private: // members
     eckit::TCPSocket socket_;
 
     eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
+    eckit::ScopedPtr<eckit::Buffer> retrieveBuffer_;
 
     FDB fdb_;
 };

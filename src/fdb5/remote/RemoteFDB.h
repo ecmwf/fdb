@@ -19,6 +19,7 @@
 
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
+#include "eckit/io/Buffer.h"
 
 
 namespace fdb5 {

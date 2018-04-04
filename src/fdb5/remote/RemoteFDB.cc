@@ -8,17 +8,19 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/LibFdb.h"
+#include "fdb5/io/HandleGatherer.h"
+#include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteFDB.h"
+
 #include "eckit/config/LocalConfiguration.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/log/Bytes.h"
 #include "eckit/log/Log.h"
+#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Translator.h"
 
-#include "fdb5/LibFdb.h"
-#include "fdb5/remote/RemoteFDB.h"
-#include "fdb5/remote/Messages.h"
-#include "fdb5/io/HandleGatherer.h"
-
-#include "eckit/io/Buffer.h"
-#include "eckit/serialisation/MemoryStream.h"
+#include "marslib/MarsRequest.h"
 
 // TODO: Write things as one chunk?
 
@@ -80,8 +82,6 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
     MessageHeader msg(Message::Archive, length + keyStream.position());
 
-    Log::info() << "Sizes: "<< keyStream.position() << ", " << length << std::endl;
-
     socket_.write(&msg, sizeof(msg));
     socket_.write(keyBuffer, keyStream.position());
     socket_.write(data, length);
@@ -89,10 +89,99 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 }
 
 
-eckit::DataHandle *RemoteFDB::retrieve(const MarsRequest &request) {
+/// A data handle that pulls the specified amount of data from a socket into a buffer,
+/// and then stores it there until requested.
+
+class RetrieveDataHandle : public DataHandle {
+
+public: // methods
+
+    RetrieveDataHandle(size_t length) :
+        length_(length),
+        pos_(0),
+        buffer_(length),
+        read_(false) {}
+
+    /// This is only not in the constructor to avoid the risk of exceptions being thrown
+    /// in the constructor. Not well supported until std::make_unique in c++14
+    void doRetrieve(TCPSocket& socket) {
+        ASSERT(socket.read(buffer_, length_) == length_);
+        read_ = true;
+    }
+
+    virtual void print(std::ostream& s) const { s << "RetrieveDataHandle(size=" << Bytes(length_) << ")";}
+
+    virtual Length openForRead() { return length_; }
+    virtual void close() {}
+
+    virtual long read(void* pos, long sz) {
+
+        ASSERT(read_);
+        ASSERT(length_ >= pos_);
+
+        if (sz >= (length_ - pos_)) {
+            sz = (length_ - pos_);
+        }
+
+        if (sz > 0) {
+            ::memcpy(pos, &buffer_[pos_], sz);
+            pos_ += sz;
+        }
+
+        ASSERT(length_ >= pos_);
+        return sz;
+    }
+
+
+    virtual void openForWrite(const Length&) { NOTIMP; }
+    virtual void openForAppend(const Length&) { NOTIMP; }
+
+    virtual long write(const void*,long) { NOTIMP; }
+
+private: // methods
+
+    size_t pos_;
+    size_t length_;
+    Buffer buffer_;
+    bool read_;
+};
+
+
+
+eckit::DataHandle* RemoteFDB::retrieve(const MarsRequest& request) {
+
+    eckit::Log::info() << "Retrieving ..." << std::endl;
 
     connect();
-    NOTIMP;
+
+    Buffer requestBuffer(4096);
+    MemoryStream requestStream(requestBuffer);
+    request.encode(requestStream);
+
+    MessageHeader msg(Message::Retrieve, requestStream.position());
+
+    socket_.write(&msg, sizeof(msg));
+    socket_.write(requestBuffer, requestStream.position());
+    socket_.write(&EndMarker, sizeof(EndMarker));
+
+    MessageHeader response;
+    eckit::FixedString<4> tail;
+
+    socket_.read(&response, sizeof(MessageHeader));
+
+    ASSERT(response.marker == StartMarker);
+    ASSERT(response.version == CurrentVersion);
+    ASSERT(response.message == Message::Blob);
+
+    eckit::ScopedPtr<RetrieveDataHandle> dh(new RetrieveDataHandle(response.payloadSize));
+    dh->doRetrieve(socket_);
+
+    ASSERT(socket_.read(&tail, 4));
+    ASSERT(tail == EndMarker);
+
+    eckit::Log::info() << "Retrieved " << response.payloadSize << " bytes!!!!" << std::endl;
+
+    return dh.release();
 }
 
 

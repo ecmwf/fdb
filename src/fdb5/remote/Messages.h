@@ -40,7 +40,8 @@ enum class Message : uint16_t {
     Exit,
     Flush,
     Archive,
-    Retrieve
+    Retrieve,
+    Blob
 };
 
 
