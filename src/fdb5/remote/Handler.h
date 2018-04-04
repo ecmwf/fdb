@@ -18,24 +18,45 @@
 #include "eckit/thread/Thread.h"
 #include "eckit/runtime/ProcessControler.h"
 #include "eckit/net/TCPSocket.h"
+#include "eckit/memory/ScopedPtr.h"
+
+#include "fdb5/api/FDB.h"
+
+namespace eckit { class Buffer; }
 
 
 namespace fdb5 {
+
+class Config;
+
 namespace remote {
 
+class MessageHeader;
+
 //----------------------------------------------------------------------------------------------------------------------
+
 
 class RemoteHandler : public eckit::NonCopyable {
 
 public: // methods
 
-    RemoteHandler(eckit::TCPSocket& socket);
+    RemoteHandler(eckit::TCPSocket& socket, const Config& config);
 
     void handle();
+
+private: // methods
+
+    void flush(const MessageHeader& hdr);
+    void archive(const MessageHeader& hdr);
+    void retrieve(const MessageHeader& hdr);
 
 private: // members
 
     eckit::TCPSocket socket_;
+
+    eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
+
+    FDB fdb_;
 };
 
 
@@ -68,7 +89,7 @@ class RemoteHandlerProcessController : public RemoteHandler
 
 public: // methods
 
-    RemoteHandlerProcessController(eckit::TCPSocket& socket);
+    RemoteHandlerProcessController(eckit::TCPSocket& socket, const Config& config);
 
 private: // methods
 

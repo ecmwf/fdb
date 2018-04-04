@@ -39,7 +39,8 @@ enum class Message : uint16_t {
     None = 0,
     Exit,
     Flush,
-    Archive
+    Archive,
+    Retrieve
 };
 
 

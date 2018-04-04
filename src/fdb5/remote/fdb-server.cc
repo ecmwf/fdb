@@ -18,6 +18,7 @@
 
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/Handler.h"
+#include "fdb5/config/Config.h"
 
 #include <unistd.h>
 
@@ -64,13 +65,15 @@ class FdbServerThread : public Thread {
     TCPSocket socket_;
     bool subProcess_;
 
+    // TODO: Use non-default configs
+
     virtual void run() {
         if (subProcess_) {
             Log::info() << "Starting handler process ..." << std::endl;
-            RemoteHandlerProcessController h(socket_);
+            RemoteHandlerProcessController h(socket_, fdb5::Config());
             h.start();
         } else {
-            RemoteHandler h(socket_);
+            RemoteHandler h(socket_, fdb5::Config());
             h.handle();
         }
     }

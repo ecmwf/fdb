@@ -11,9 +11,11 @@
 #include "eckit/log/Log.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/database/Key.h"
 
 #include <unistd.h>
 
@@ -27,9 +29,10 @@ namespace remote {
 
 // template <typename BaseClass>
 // RemoteHandler<BaseClass>::RemoteHandler(eckit::TCPSocket& socket) :
-RemoteHandler::RemoteHandler(eckit::TCPSocket& socket) :
+RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
 //    BaseClass(),
-    socket_(socket) {}
+    socket_(socket),
+    fdb_(config) {}
 
 
 //template<typename BaseClass>
@@ -46,38 +49,72 @@ void RemoteHandler::handle() {
         ASSERT(hdr.marker == StartMarker);
         ASSERT(hdr.version == CurrentVersion);
 
-        if (hdr.message == Message::Exit) {
-            Log::status() << "Exit message recieved" << std::endl;
-            Log::info() << "Exit message recieved" << std::endl;
+        switch (hdr.message) {
+
+        case Message::Exit:
+            Log::status() << "Exiting" << std::endl;
+            // TODO: Flush
+            return;
+
+        case Message::Flush:
+            flush(hdr);
             break;
-        }
 
-        if (hdr.message == Message::Flush) {
-            Log::status() << "Flush message recieved" << std::endl;
-            Log::info() << "Flush message recieved" << std::endl;
-        }
+        case Message::Archive:
+            archive(hdr);
+            break;
 
-        if (hdr.message == Message::Archive) {
-            Log::status() << "Archive message recieved" << std::endl;
-            Log::info() << "Archive message recieved" << std::endl;
-            Log::info() << "Payload: " << hdr.payloadSize << ", " << Bytes(hdr.payloadSize) << std::endl;
+        case Message::Retrieve:
+            retrieve(hdr);
+            break;
 
-            Buffer buf(1024 * 1024 * 20);
-            socket_.read(buf, hdr.payloadSize);
+        default: {
+            std::stringstream ss;
+            ss << "ERROR: Unexpected message recieved ("
+               << static_cast<int>(hdr.message)
+               << "). ABORTING";
+            Log::status() << ss.str() << std::endl;
+            throw SeriousBug(ss.str(), Here());
         }
+        };
 
         ASSERT(socket_.read(&tail, 4));
         ASSERT(tail == EndMarker);
-
-        Log::info() << "Sleeping" << std::endl;
-        usleep(4000000);
-        Log::info() << "Sleeped" << std::endl;
     }
 }
 
+void RemoteHandler::flush(const MessageHeader& hdr) {
+    Log::status() << "Flushing data" << std::endl;
+    fdb_.flush();
+}
 
-RemoteHandlerProcessController::RemoteHandlerProcessController(eckit::TCPSocket& socket) :
-    RemoteHandler(socket) {}
+void RemoteHandler::archive(const MessageHeader& hdr) {
+    Log::status() << "Archiving" << std::endl;
+
+    if (!archiveBuffer_ || archiveBuffer_->size() < hdr.payloadSize) {
+        archiveBuffer_.reset(new Buffer(hdr.payloadSize + 4096 - (((hdr.payloadSize - 1) % 4096) + 1)));
+    }
+
+    ASSERT(hdr.payloadSize > 0);
+    socket_.read(*archiveBuffer_, hdr.payloadSize);
+
+    MemoryStream keyStream(*archiveBuffer_);
+    fdb5::Key key(keyStream);
+
+    Log::status() << "Archiving: " << key << std::endl;
+
+    size_t pos = keyStream.position();
+    size_t len = hdr.payloadSize - pos;
+    fdb_.archive(key, &(*archiveBuffer_)[pos], len);
+}
+
+void RemoteHandler::retrieve(const MessageHeader& hdr) {
+    NOTIMP;
+}
+
+
+RemoteHandlerProcessController::RemoteHandlerProcessController(eckit::TCPSocket& socket, const Config& config) :
+    RemoteHandler(socket, config) {}
 
 
 void RemoteHandlerProcessController::run() {
