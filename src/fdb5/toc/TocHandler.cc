@@ -1,5 +1,5 @@
 /*
- i (C) Copyright 1996-2017 ECMWF.
+ i (C) Copyright 1996- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -922,7 +922,7 @@ std::string TocHandler::userName(long id) const {
 }
 
 bool TocHandler::stripeLustre() {
-    static bool handleLustreStripe = eckit::Resource<bool>("fdbHandleLustreStripe;$FDB_HANDLE_LUSTRE_STRIPE", false);
+    static bool handleLustreStripe = eckit::Resource<bool>("fdbHandleLustreStripe;$FDB_HANDLE_LUSTRE_STRIPE", true);
     return fdb5LustreapiSupported() && handleLustreStripe;
 }
 
