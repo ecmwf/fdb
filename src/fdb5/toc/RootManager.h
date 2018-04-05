@@ -23,6 +23,7 @@ namespace fdb5 {
 
 class Key;
 class FileSpace;
+class DbPathNamer;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -51,6 +52,7 @@ public: // methods
 private: // members
 
     const std::vector<FileSpace>& spacesTable_;
+    const std::vector<DbPathNamer>& dbPathNamers_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
