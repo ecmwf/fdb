@@ -63,10 +63,12 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     for (size_t idx : laneIndices) {
 
-        FDB& lane(lanes_[idx]);
+        FDB& lane = lanes_[idx];
 
-        if (!lane.writable()) {
-            eckit::Log::info() << lane << " Not writable" << std::endl;
+        if(not lane.writable()) continue;
+
+        if (lane.disabled()) {
+            eckit::Log::warning() << "FDB lane " << lane << " is disabled" << std::endl;
             continue;
         }
 
@@ -81,8 +83,8 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
             std::stringstream ss;
             ss << "Archive failure on lane: " << lane << " (" << idx << ")";
-            eckit::Log::info() << ss.str() << std::endl;
-            eckit::Log::info() << "with exception: " << e << std::endl;
+            eckit::Log::error() << ss.str() << std::endl;
+            eckit::Log::error() << "with exception: " << e << std::endl;
 
             // If we have written, but not flushed, data to a give lane, and an archive operation
             // fails, then this is a bit of an issue. Otherwise, just skip the lane.
@@ -93,7 +95,7 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
             }
 
             // Mark the lane as no longer writable
-            lane.setNonWritable();
+            lane.disable();
         }
     }
 

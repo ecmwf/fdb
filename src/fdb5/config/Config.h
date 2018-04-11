@@ -28,6 +28,7 @@ public: // methods
 
     Config();
     Config(const eckit::Configuration& config);
+
     virtual ~Config();
 
     /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration

@@ -50,8 +50,9 @@ public: // methods
 
     bool writable();
     bool visitable();
+    bool disabled();
 
-    void setNonWritable();
+    void disable();
 
 private: // methods
 
@@ -68,25 +69,43 @@ protected: // members
 
     bool writable_;
     bool visitable_;
+    bool disabled_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class FDBBuilderBase;
 
 class FDBFactory {
+public:
+
+    static FDBFactory& instance();
+
+    void add(const std::string& name, const FDBBuilderBase*);
+
+    std::unique_ptr<FDBBase> build(const Config& config);
+
+private:
+
+    FDBFactory() {} ///< private constructor only used by singleton
+
+    eckit::Mutex mutex_;
+
+    std::map<std::string, const FDBBuilderBase*> registry_;
+
+};
+
+
+class FDBBuilderBase {
+public: // methods
+
+    virtual std::unique_ptr<FDBBase> make(const Config& config) const = 0;
 
 protected: // methods
 
-    FDBFactory(const std::string& name);
-    ~FDBFactory();
+    FDBBuilderBase(const std::string& name);
 
-public: // methods
-
-    static std::unique_ptr<FDBBase> build(const Config& config);
-
-private: // methods
-
-    virtual std::unique_ptr<FDBBase> make(const Config& config) const = 0;
+    virtual ~FDBBuilderBase();
 
 private: // members
 
@@ -96,20 +115,17 @@ private: // members
 
 
 template <typename T>
-class FDBBuilder : public FDBFactory {
+class FDBBuilder : public FDBBuilderBase {
 
     static_assert(std::is_base_of<FDBBase, T>::value, "FDB Factorys can only build implementations of the FDB interface");
 
 public: // methods
 
-    FDBBuilder(const std::string& name) :
-        FDBFactory(name) {}
+    FDBBuilder(const std::string& name) : FDBBuilderBase(name) {}
 
 private: // methods
 
     virtual std::unique_ptr<FDBBase> make(const Config& config) const {
-        // TODO: C++14
-//        return std::make_unique<T>(config);
         return std::unique_ptr<T>(new T(config));
     }
 };

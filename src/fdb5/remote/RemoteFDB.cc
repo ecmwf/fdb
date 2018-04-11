@@ -50,7 +50,7 @@ RemoteFDB::~RemoteFDB() {
 
 void RemoteFDB::connect() {
     if (!connected_) {
-        socket_ = client_.connect(hostname_, port_);
+        client_.connect(hostname_, port_);
 //        stream_.reset(new TCPStream(client_.connect(hostname_, port_)));
         connected_ = true;
     }
@@ -60,9 +60,9 @@ void RemoteFDB::connect() {
 void RemoteFDB::disconnect() {
     if (connected_) {
         MessageHeader msg(Message::Exit);
-        socket_.write(&msg, sizeof(msg));
-        socket_.write(&EndMarker, sizeof(EndMarker));
-        socket_.close();
+        client_.write(&msg, sizeof(msg));
+        client_.write(&EndMarker, sizeof(EndMarker));
+        client_.close();
 //        msg.encode(*stream_);
 //        stream_.reset();
         connected_ = false;
@@ -82,10 +82,10 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
     MessageHeader msg(Message::Archive, length + keyStream.position());
 
-    socket_.write(&msg, sizeof(msg));
-    socket_.write(keyBuffer, keyStream.position());
-    socket_.write(data, length);
-    socket_.write(&EndMarker, sizeof(EndMarker));
+    client_.write(&msg, sizeof(msg));
+    client_.write(keyBuffer, keyStream.position());
+    client_.write(data, length);
+    client_.write(&EndMarker, sizeof(EndMarker));
 }
 
 
@@ -160,23 +160,23 @@ eckit::DataHandle* RemoteFDB::retrieve(const MarsRequest& request) {
 
     MessageHeader msg(Message::Retrieve, requestStream.position());
 
-    socket_.write(&msg, sizeof(msg));
-    socket_.write(requestBuffer, requestStream.position());
-    socket_.write(&EndMarker, sizeof(EndMarker));
+    client_.write(&msg, sizeof(msg));
+    client_.write(requestBuffer, requestStream.position());
+    client_.write(&EndMarker, sizeof(EndMarker));
 
     MessageHeader response;
     eckit::FixedString<4> tail;
 
-    socket_.read(&response, sizeof(MessageHeader));
+    client_.read(&response, sizeof(MessageHeader));
 
     ASSERT(response.marker == StartMarker);
     ASSERT(response.version == CurrentVersion);
     ASSERT(response.message == Message::Blob);
 
     eckit::ScopedPtr<RetrieveDataHandle> dh(new RetrieveDataHandle(response.payloadSize));
-    dh->doRetrieve(socket_);
+    dh->doRetrieve(client_);
 
-    ASSERT(socket_.read(&tail, 4));
+    ASSERT(client_.read(&tail, 4));
     ASSERT(tail == EndMarker);
 
     eckit::Log::info() << "Retrieved " << response.payloadSize << " bytes!!!!" << std::endl;
@@ -193,8 +193,8 @@ std::string RemoteFDB::id() const {
 
 void RemoteFDB::flush() {
     MessageHeader msg(Message::Flush);
-    socket_.write(&msg, sizeof(msg));
-    socket_.write(&EndMarker, sizeof(EndMarker));
+    client_.write(&msg, sizeof(msg));
+    client_.write(&EndMarker, sizeof(EndMarker));
 }
 
 

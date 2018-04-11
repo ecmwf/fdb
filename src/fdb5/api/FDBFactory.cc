@@ -26,7 +26,8 @@ namespace fdb5 {
 FDBBase::FDBBase(const Config& config) :
     config_(config),
     writable_(config.getBool("writable", true)),
-    visitable_(config.getBool("visitable", true)) {
+    visitable_(config.getBool("visitable", true)),
+    disabled_(false) {
 
     eckit::Log::debug<LibFdb>() << "FDBBase: " << config << std::endl;
 }
@@ -42,51 +43,28 @@ bool FDBBase::visitable() {
     return visitable_;
 }
 
-void FDBBase::setNonWritable() {
-    eckit::Log::info() << "WARNING: Setting lane " << *this << " to non-writable" << std::endl;
-    writable_ = false;
+void FDBBase::disable() {
+    eckit::Log::warning() << "Disabling FDB " << *this << std::endl;
+    disabled_ = true;
 }
 
-
-static eckit::Mutex& factoryMutex() {
-    static eckit::Mutex m;
-    return m;
+bool FDBBase::disabled() {
+    return disabled_;
 }
 
-
-static std::map<std::string, const FDBFactory*>& factoryRegistry() {
-    static std::map<std::string, const FDBFactory*> registry;
-    return registry;
+FDBFactory& FDBFactory::instance()
+{
+    static FDBFactory fdbfactory;
+    return fdbfactory;
 }
 
+void FDBFactory::add(const std::string& name, const FDBBuilderBase* b)
+{
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
+    ASSERT(registry_.find(name) == registry_.end());
 
-FDBFactory::FDBFactory(const std::string &name) :
-    name_(name) {
-
-    eckit::AutoLock<eckit::Mutex> lock(factoryMutex());
-
-    auto& registry = factoryRegistry();
-
-    auto it = registry.find(name);
-    if (it != registry.end()) {
-        std::stringstream ss;
-        ss << "FDB factory \"" << name << "\" already registered";
-        throw eckit::SeriousBug(ss.str(), Here());
-    }
-
-    registry[name] = this;
-}
-
-FDBFactory::~FDBFactory() {
-
-    eckit::AutoLock<eckit::Mutex> lock(factoryMutex());
-    auto& registry = factoryRegistry();
-
-    auto it = registry.find(name_);
-    ASSERT(it != registry.end());
-
-    registry.erase(it);
+    registry_[name] = b;
 }
 
 std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
@@ -112,12 +90,11 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
 
     const FDBFactory* factory = nullptr;
 
-    eckit::AutoLock<eckit::Mutex> lock(factoryMutex());
-    auto& registry = factoryRegistry();
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
-    auto it = registry.find(key);
+    auto it = registry_.find(key);
 
-    if (it == registry.end()) {
+    if (it == registry_.end()) {
         std::stringstream ss;
         ss << "FDB factory \"" << key << "\" not found";
         throw eckit::SeriousBug(ss.str(), Here());
@@ -126,6 +103,15 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
     std::unique_ptr<FDBBase> ret = it->second->make(actualConfig);
     eckit::Log::debug<LibFdb>() << "Constructed FDB implementation: " << *ret << std::endl;
     return ret;
+}
+
+FDBBuilderBase::FDBBuilderBase(const std::string &name) :
+    name_(name) {
+
+    FDBFactory::instance().add(name, this);
+}
+
+FDBBuilderBase::~FDBBuilderBase() {
 }
 
 //----------------------------------------------------------------------------------------------------------------------

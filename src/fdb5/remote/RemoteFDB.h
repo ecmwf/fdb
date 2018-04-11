@@ -58,8 +58,7 @@ private: // members
     int port_;
 
     eckit::TCPClient client_;
-    eckit::TCPSocket socket_;
-//    std::unique_ptr<eckit::TCPStream> stream_;
+
     bool connected_;
 };
 

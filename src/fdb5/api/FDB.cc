@@ -19,7 +19,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 FDB::FDB(const Config &config) :
-    internal_(FDBFactory::build(config)),
+    internal_(FDBFactory::instance().build(config)),
     dirty_(false) {
 
     // Select operates as constraints of the form: class=regex,key=regex,...
@@ -93,8 +93,12 @@ bool FDB::dirty() const {
     return dirty_;
 }
 
-void FDB::setNonWritable() {
-    return internal_->setNonWritable();
+void FDB::disable() {
+    internal_->disable();
+}
+
+bool FDB::disabled() const {
+    return internal_->disabled();
 }
 
 bool FDB::writable() const {

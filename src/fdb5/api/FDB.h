@@ -14,14 +14,13 @@
 #ifndef fdb5_api_FDB_H
 #define fdb5_api_FDB_H
 
-#include "fdb5/config/Config.h"
+#include <memory>
 
 #include "eckit/utils/Regex.h"
 
-#include <memory>
+#include "fdb5/config/Config.h"
 
 class MarsRequest;
-
 
 namespace fdb5 {
 
@@ -36,7 +35,7 @@ class FDB {
 
 public: // methods
 
-    FDB(const Config& config=Config());
+    FDB(const Config& config = Config());
     ~FDB();
 
     FDB(const FDB&) = delete;
@@ -46,6 +45,7 @@ public: // methods
     FDB& operator=(FDB&&) = default;
 
     void archive(const Key& key, const void* data, size_t length);
+
     eckit::DataHandle* retrieve(const MarsRequest& request);
 
     /// ID used for hashing in the Rendezvous hash. Should be unique.
@@ -59,8 +59,9 @@ public: // methods
 
     bool writable() const;
     bool visitable() const;
+    bool disabled() const;
 
-    void setNonWritable();
+    void disable();
 
     bool matches(const Key& key);
 
