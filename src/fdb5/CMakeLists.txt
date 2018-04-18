@@ -52,11 +52,10 @@ list( APPEND fdb5_srcs
     api/FDBFactory.h
     api/LocalFDB.cc
     api/LocalFDB.h
+    api/RemoteFDB.cc
+    api/RemoteFDB.h
     api/SelectFDB.cc
     api/SelectFDB.h
-
-    remote/RemoteFDB.cc
-    remote/RemoteFDB.h
 
     config/UMask.cc
     config/UMask.h

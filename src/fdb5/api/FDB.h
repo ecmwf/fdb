@@ -16,8 +16,6 @@
 
 #include <memory>
 
-#include "eckit/utils/Regex.h"
-
 #include "fdb5/config/Config.h"
 
 class MarsRequest;
@@ -63,8 +61,6 @@ public: // methods
 
     void disable();
 
-    bool matches(const Key& key);
-
 private: // methods
 
     void print(std::ostream&) const;
@@ -75,8 +71,6 @@ private: // methods
     }
 
 private: // members
-
-    std::map<std::string, eckit::Regex> select_;
 
     std::unique_ptr<FDBBase> internal_;
 

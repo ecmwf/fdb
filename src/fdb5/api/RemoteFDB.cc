@@ -11,7 +11,7 @@
 #include "fdb5/LibFdb.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/remote/Messages.h"
-#include "fdb5/remote/RemoteFDB.h"
+#include "fdb5/api/RemoteFDB.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/Buffer.h"

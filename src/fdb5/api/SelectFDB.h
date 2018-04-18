@@ -14,6 +14,12 @@
 #ifndef fdb5_api_SelectFDB_H
 #define fdb5_api_SelectFDB_H
 
+#include <vector>
+#include <map>
+#include <string>
+
+#include "eckit/utils/Regex.h"
+
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/FDB.h"
 
@@ -49,6 +55,8 @@ private: // methods
 private: // members
 
     std::vector<FDB> subFdbs_;
+
+    std::vector<std::map<std::string, eckit::Regex>> selects_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

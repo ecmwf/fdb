@@ -12,38 +12,13 @@
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/database/Key.h"
 
-#include "eckit/parser/Tokenizer.h"
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 FDB::FDB(const Config &config) :
     internal_(FDBFactory::instance().build(config)),
-    dirty_(false) {
-
-    // Select operates as constraints of the form: class=regex,key=regex,...
-    // By default, there is no select.
-
-    std::string select = config.getString("select", "");
-
-    std::vector<std::string> select_key_values;
-    eckit::Tokenizer(',')(select, select_key_values);
-
-    eckit::Tokenizer equalsTokenizer('=');
-    for (const std::string& key_value : select_key_values) {
-        std::vector<std::string> kv;
-        equalsTokenizer(key_value, kv);
-
-        if (kv.size() != 2 || select_.find(kv[0]) != select_.end()) {
-            std::stringstream ss;
-            ss << "Invalid select condition for pool: " << select << std::endl;
-            throw eckit::UserError(ss.str(), Here());
-        }
-
-        select_[kv[0]] = eckit::Regex(kv[1]);
-    }
-}
+    dirty_(false) {}
 
 
 FDB::~FDB() {
@@ -51,7 +26,6 @@ FDB::~FDB() {
 }
 
 void FDB::archive(const Key& key, const void* data, size_t length) {
-    ASSERT(matches(key));
     internal_->archive(key, data, length);
     dirty_ = true;
 }
@@ -63,19 +37,6 @@ eckit::DataHandle *FDB::retrieve(const MarsRequest& request) {
 
 const std::string FDB::id() const {
     return internal_->id();
-}
-
-bool FDB::matches(const Key& key) {
-
-    for (const auto& kv : select_) {
-        const std::string& k(kv.first);
-        const eckit::Regex& re(kv.second);
-
-        eckit::StringDict::const_iterator i = key.find(k);
-        if (i == key.end() || !re.match(i->second)) return false;
-    }
-
-    return true;
 }
 
 void FDB::print(std::ostream& s) const {
