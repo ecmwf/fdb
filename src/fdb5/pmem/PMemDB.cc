@@ -12,7 +12,6 @@
 #include "eckit/log/Timer.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/config/MasterConfig.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Rule.h"
 

@@ -13,7 +13,6 @@
 #include "eckit/utils/Regex.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/config/MasterConfig.h"
 
 #include "fdb5/pmem/PMemEngine.h"
 #include "fdb5/pmem/PoolManager.h"
@@ -52,7 +51,7 @@ bool PMemEngine::canHandle(const eckit::PathName& path) const
 
 static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing)
 {
-    const Schema& schema = MasterConfig::instance().schema();
+    const Schema& schema = LibFdb::instance().schema();
     schema.matchFirstLevel(key, keys, missing);
 }
 

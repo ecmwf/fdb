@@ -16,7 +16,7 @@
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/serialisation/MemoryStream.h"
 
-#include "fdb5/config/MasterConfig.h"
+#include "fdb5/LibFdb.h"
 #include "fdb5/pmem/PIndexRoot.h"
 #include "fdb5/pmem/MemoryBufferStream.h"
 
@@ -57,7 +57,7 @@ void PIndexRoot::build(PersistentPtr<PIndexRoot>& ptr, const Key& dbKey) {
 
     // Store the currently loaded master schema, so it can be recovered later
 
-    PathName schemaPath = MasterConfig::instance().schemaPath();
+    PathName schemaPath = LibFdb::instance().schemaPath();
     ScopedPtr<DataHandle> schemaFile(schemaPath.fileHandle());
     std::string buf(static_cast<size_t>(schemaFile->openForRead()), '\0');
     schemaFile->read(&buf[0], buf.size());
