@@ -17,6 +17,7 @@
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/LibFdb.h"
 
 #include "marslib/MarsRequest.h"
 
@@ -57,7 +58,6 @@ void RemoteHandler::handle() {
 
         case Message::Exit:
             Log::status() << "Exiting" << std::endl;
-            // TODO: Flush
             return;
 
         case Message::Flush:
@@ -78,6 +78,7 @@ void RemoteHandler::handle() {
                << static_cast<int>(hdr.message)
                << "). ABORTING";
             Log::status() << ss.str() << std::endl;
+            Log::error() << "Retrieving... " << ss.str() << std::endl;
             throw SeriousBug(ss.str(), Here());
         }
         };
@@ -89,6 +90,7 @@ void RemoteHandler::handle() {
 
 void RemoteHandler::flush(const MessageHeader&) {
     Log::status() << "Flushing data" << std::endl;
+    Log::debug<LibFdb>() << "Flushing data" << std::endl;
 
     try {
         fdb_.flush();
@@ -119,6 +121,7 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
     fdb5::Key key(keyStream);
 
     Log::status() << "Archiving: " << key << std::endl;
+    Log::debug<LibFdb>() << "Archiving: " << key << std::endl;
 
     size_t pos = keyStream.position();
     size_t len = hdr.payloadSize - pos;
@@ -142,6 +145,7 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
 void RemoteHandler::retrieve(const MessageHeader& hdr) {
 
     Log::status() << "Retrieving..." << std::endl;
+    Log::debug<LibFdb>() << "Retrieving... " << std::endl;
 
     size_t requiredBuffer = std::max(int(hdr.payloadSize), 64 * 1024 * 1024);
 
@@ -187,6 +191,7 @@ void RemoteHandler::retrieve(const MessageHeader& hdr) {
     socket_.write(&EndMarker, sizeof(EndMarker));
 
     Log::status() << "Done retrieve" << std::endl;
+    Log::debug<LibFdb>() << "Done retrieve" << std::endl;
 }
 
 
