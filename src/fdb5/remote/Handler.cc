@@ -89,7 +89,21 @@ void RemoteHandler::handle() {
 
 void RemoteHandler::flush(const MessageHeader&) {
     Log::status() << "Flushing data" << std::endl;
-    fdb_.flush();
+
+    try {
+        fdb_.flush();
+    } catch(const eckit::Exception& e) {
+        std::string what(e.what());
+        MessageHeader response(Message::Error, what.length());
+        socket_.write(&response, sizeof(response));
+        socket_.write(what.c_str(), what.length());
+        socket_.write(&EndMarker, sizeof(EndMarker));
+        throw;
+    }
+
+    MessageHeader response(Message::Complete);
+    socket_.write(&response, sizeof(response));
+    socket_.write(&EndMarker, sizeof(EndMarker));
 }
 
 void RemoteHandler::archive(const MessageHeader& hdr) {
@@ -108,7 +122,21 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
 
     size_t pos = keyStream.position();
     size_t len = hdr.payloadSize - pos;
-    fdb_.archive(key, &(*archiveBuffer_)[pos], len);
+
+    try {
+        fdb_.archive(key, &(*archiveBuffer_)[pos], len);
+    } catch(const eckit::Exception& e) {
+        std::string what(e.what());
+        MessageHeader response(Message::Error, what.length());
+        socket_.write(&response, sizeof(response));
+        socket_.write(what.c_str(), what.length());
+        socket_.write(&EndMarker, sizeof(EndMarker));
+        throw;
+    }
+
+    MessageHeader response(Message::Complete);
+    socket_.write(&response, sizeof(response));
+    socket_.write(&EndMarker, sizeof(EndMarker));
 }
 
 void RemoteHandler::retrieve(const MessageHeader& hdr) {
@@ -131,10 +159,21 @@ void RemoteHandler::retrieve(const MessageHeader& hdr) {
     // For now, we assume that we are dealing with one field, and that as such it will fit into
     // the buffer...
 
-    eckit::ScopedPtr<DataHandle> dh(fdb_.retrieve(request));
+    size_t bytesRead;
 
-    dh->openForRead();
-    size_t bytesRead = dh->read(*retrieveBuffer_, requiredBuffer);
+    try {
+        eckit::ScopedPtr<DataHandle> dh(fdb_.retrieve(request));
+
+        dh->openForRead();
+        bytesRead = dh->read(*retrieveBuffer_, requiredBuffer);
+    } catch(const eckit::Exception& e) {
+        std::string what(e.what());
+        MessageHeader response(Message::Error, what.length());
+        socket_.write(&response, sizeof(response));
+        socket_.write(what.c_str(), what.length());
+        socket_.write(&EndMarker, sizeof(EndMarker));
+        throw;
+    }
 
     eckit::Log::info() << "Got: " << bytesRead << " bytes" << std::endl;
 

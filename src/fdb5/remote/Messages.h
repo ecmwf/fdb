@@ -41,7 +41,9 @@ enum class Message : uint16_t {
     Flush,
     Archive,
     Retrieve,
-    Blob
+    Blob,
+    Complete,
+    Error
 };
 
 

@@ -60,6 +60,7 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     // Given an order supplied by the Rendezvous hash, try the FDB in order until
     // one works. n.b. Errors are unacceptable once the FDB is dirty.
+    eckit::Log::info() << "Attempting dist FDB archive" << std::endl;
 
     for (size_t idx : laneIndices) {
 
@@ -98,6 +99,8 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
             lane.disable();
         }
     }
+
+    eckit::Log::error() << "No writable lanes!!!!" << std::endl;
 
     throw DistributionError("No writable lanes available for archive", Here());
 }

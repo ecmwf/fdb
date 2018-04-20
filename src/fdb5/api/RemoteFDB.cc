@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <functional>
+
 #include "fdb5/LibFdb.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/remote/Messages.h"
@@ -31,6 +33,14 @@ namespace fdb5 {
 namespace remote {
 
 static FDBBuilder<RemoteFDB> remoteFdbBuilder("remote");
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class TCPException : public Exception {
+public:
+    TCPException(const std::string& msg, const CodeLocation& here) :
+        Exception(std::string("TCPException: ") + msg, here) {}
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -60,12 +70,51 @@ void RemoteFDB::connect() {
 void RemoteFDB::disconnect() {
     if (connected_) {
         MessageHeader msg(Message::Exit);
-        client_.write(&msg, sizeof(msg));
-        client_.write(&EndMarker, sizeof(EndMarker));
+        clientWrite(&msg, sizeof(msg));
+        clientWrite(&EndMarker, sizeof(EndMarker));
         client_.close();
 //        msg.encode(*stream_);
 //        stream_.reset();
         connected_ = false;
+    }
+}
+
+void RemoteFDB::clientWrite(const void *data, size_t length) {
+    size_t written = client_.write(data, length);
+    if (length != written) {
+        std::stringstream ss;
+        ss << "Write error. Expected " << length << " bytes, wrote " << written;
+        throw TCPException(ss.str(), Here());
+    }
+}
+
+void RemoteFDB::clientRead(void *data, size_t length) {
+    size_t read = client_.read(data, length);
+    if (length != read) {
+        std::stringstream ss;
+        ss << "Read error. Expected " << length << " bytes, read " << read;
+        throw TCPException(ss.str(), Here());
+    }
+}
+
+void RemoteFDB::handleError(const MessageHeader& hdr) {
+
+    ASSERT(hdr.marker == StartMarker);
+    ASSERT(hdr.version == CurrentVersion);
+
+    if (hdr.message == Message::Error) {
+        ASSERT(hdr.payloadSize > 9);
+
+        std::string what(hdr.payloadSize, ' ');
+        clientRead(&what[0], hdr.payloadSize);
+        what[hdr.payloadSize] = 0; // Just in case
+
+        try {
+            eckit::FixedString<4> tail;
+            clientRead(&tail, sizeof(tail));
+        } catch (...) {}
+
+        throw RemoteException(what, hostname_);
     }
 }
 
@@ -82,10 +131,26 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
     MessageHeader msg(Message::Archive, length + keyStream.position());
 
-    client_.write(&msg, sizeof(msg));
-    client_.write(keyBuffer, keyStream.position());
-    client_.write(data, length);
-    client_.write(&EndMarker, sizeof(EndMarker));
+    clientWrite(&msg, sizeof(msg));
+    clientWrite(keyBuffer, keyStream.position());
+    clientWrite(data, length);
+    clientWrite(&EndMarker, sizeof(EndMarker));
+
+    // And wait until done (this may be overkill...)
+
+    MessageHeader response;
+    eckit::FixedString<4> tail;
+
+    clientRead(&response, sizeof(MessageHeader));
+
+    handleError(response);
+
+    ASSERT(response.marker == StartMarker);
+    ASSERT(response.version == CurrentVersion);
+    ASSERT(response.message == Message::Complete);
+
+    clientRead(&tail, 4);
+    ASSERT(tail == EndMarker);
 }
 
 
@@ -104,8 +169,8 @@ public: // methods
 
     /// This is only not in the constructor to avoid the risk of exceptions being thrown
     /// in the constructor. Not well supported until std::make_unique in c++14
-    void doRetrieve(TCPSocket& socket) {
-        ASSERT(socket.read(buffer_, length_) == length_);
+    void doRetrieve(const std::function<void(void*, size_t)>& readfn) {
+        readfn(buffer_, length_);
         read_ = true;
     }
 
@@ -160,23 +225,25 @@ eckit::DataHandle* RemoteFDB::retrieve(const MarsRequest& request) {
 
     MessageHeader msg(Message::Retrieve, requestStream.position());
 
-    client_.write(&msg, sizeof(msg));
-    client_.write(requestBuffer, requestStream.position());
-    client_.write(&EndMarker, sizeof(EndMarker));
+    clientWrite(&msg, sizeof(msg));
+    clientWrite(requestBuffer, requestStream.position());
+    clientWrite(&EndMarker, sizeof(EndMarker));
 
     MessageHeader response;
     eckit::FixedString<4> tail;
 
-    client_.read(&response, sizeof(MessageHeader));
+    clientRead(&response, sizeof(MessageHeader));
+
+    handleError(response);
 
     ASSERT(response.marker == StartMarker);
     ASSERT(response.version == CurrentVersion);
     ASSERT(response.message == Message::Blob);
 
     eckit::ScopedPtr<RetrieveDataHandle> dh(new RetrieveDataHandle(response.payloadSize));
-    dh->doRetrieve(client_);
+    dh->doRetrieve([this](void* data, size_t len) { this->clientRead(data, len); });
 
-    ASSERT(client_.read(&tail, 4));
+    clientRead(&tail, 4);
     ASSERT(tail == EndMarker);
 
     eckit::Log::info() << "Retrieved " << response.payloadSize << " bytes!!!!" << std::endl;
@@ -193,8 +260,22 @@ std::string RemoteFDB::id() const {
 
 void RemoteFDB::flush() {
     MessageHeader msg(Message::Flush);
-    client_.write(&msg, sizeof(msg));
-    client_.write(&EndMarker, sizeof(EndMarker));
+    clientWrite(&msg, sizeof(msg));
+    clientWrite(&EndMarker, sizeof(EndMarker));
+
+    MessageHeader response;
+    eckit::FixedString<4> tail;
+
+    clientRead(&response, sizeof(MessageHeader));
+
+    handleError(response);
+
+    ASSERT(response.marker == StartMarker);
+    ASSERT(response.version == CurrentVersion);
+    ASSERT(response.message == Message::Complete);
+
+    clientRead(&tail, 4);
+    ASSERT(tail == EndMarker);
 }
 
 

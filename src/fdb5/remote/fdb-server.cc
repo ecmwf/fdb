@@ -16,7 +16,6 @@
 #include "eckit/runtime/ProcessControler.h"
 #include "eckit/thread/ThreadControler.h"
 
-#include "fdb5/remote/Messages.h"
 #include "fdb5/remote/Handler.h"
 #include "fdb5/config/Config.h"
 

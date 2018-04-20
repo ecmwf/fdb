@@ -26,6 +26,7 @@ namespace fdb5 {
 namespace remote {
 
 class FDB;
+class MessageHeader;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -49,6 +50,10 @@ private: // methods
 
     void connect();
     void disconnect();
+
+    void clientWrite(const void* data, size_t length);
+    void clientRead(void* data, size_t length);
+    void handleError(const MessageHeader& hdr);
 
     virtual void print(std::ostream& s) const;
 
