@@ -68,7 +68,7 @@ endif()
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit    VERSION 0.18.0  REQUIRED )
+ecbuild_use_package( PROJECT eckit    VERSION 0.20.0  REQUIRED )
 
 ### GRIB support
 
