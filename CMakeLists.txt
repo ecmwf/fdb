@@ -135,6 +135,13 @@ ecbuild_add_option( FEATURE TOCFDB
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
 
+### Experimental features
+
+ecbuild_add_option( FEATURE EXPERIMENTAL
+                    DEFAULT OFF
+                    DESCRIPTION "Experimental features" )
+
+
 ########################################################################################################################
 # project vars & options
 
