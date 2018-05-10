@@ -27,17 +27,8 @@ ecbuild_requires_macro_version( 1.9 )
 
 ecbuild_declare_project()
 
-# Enable C++11 if it is available. We should have alternative code paths for where it is not.
-# This is used for performance in fdb-stats (checking for duplicates in a large set).
-#
-# Use the test:
-# #if __cplusplus > 199711L
-#    c++11 code
-# #else
-#    c++03 code
-# #endif
-
-ecbuild_add_cxx11_flags()
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ########################################################################################################################
 # sanity checks
@@ -68,7 +59,7 @@ endif()
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit    VERSION 0.20.0  REQUIRED )
+ecbuild_use_package( PROJECT eckit  VERSION 0.21.0  REQUIRED )
 
 ### GRIB support
 
