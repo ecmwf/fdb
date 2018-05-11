@@ -15,7 +15,7 @@
 #include <list>
 #include <ostream>
 
-#include "mars_server_ecbuild_config.h"
+#include "eckit/eckit_config.h"
 
 #include "eckit/log/Log.h"
 #include "eckit/filesystem/LocalPathName.h"
@@ -58,7 +58,7 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
     for(;;)
     {
         struct dirent *e;
-#ifdef EC_HAVE_READDIR_R
+#ifdef ECKIT_HAVE_READDIR_R
         errno = 0;
         if(::readdir_r(d,&buf,&e) != 0)
         {
@@ -84,7 +84,7 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
 
         std::string full = path + "/" + e->d_name;
 
-#if defined(EC_HAVE_DIRENT_D_TYPE) || defined(DT_DIR)
+#if defined(ECKIT_HAVE_DIRENT_D_TYPE) || defined(DT_DIR)
         if(e->d_type == DT_DIR) {
             scan_dbs(full.c_str(), dbs);
         }
