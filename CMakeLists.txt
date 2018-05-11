@@ -1,21 +1,4 @@
-########################################################################################################################
-# cmake options:
-#
-#       -DCMAKE_BUILD_TYPE=Debug|RelWithDebInfo|Release|Production
-#       -DCMAKE_INSTALL_PREFIX=/path/to/install
-#
-#       -DCMAKE_MODULE_PATH=/path/to/ecbuild/cmake
-#
-#       -DCMAKE_C_COMPILER=gcc
-#       -DCMAKE_C_COMPILER=g++
-#
-#       -DCMAKE_PREFIX_PATH=/path/to/jasper:/path/to/any/package/out/of/place
-#       -DBUILD_SHARED_LIBS=OFF
-#
-#       -DHPSS_PATH=/path/to/hpss
-#       -DADSM_PATH=/path/to/adsm
-
-cmake_minimum_required( VERSION 2.8.11 FATAL_ERROR )
+cmake_minimum_required( VERSION 3.1 FATAL_ERROR )
 
 project( mars_server C CXX )
 
@@ -23,7 +6,7 @@ set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} 
 
 include( ecbuild_system NO_POLICY_SCOPE )
 
-ecbuild_requires_macro_version( 1.9 )
+ecbuild_requires_macro_version( 2.9 )
 
 ecbuild_declare_project()
 
@@ -31,7 +14,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ########################################################################################################################
-# sanity checks
+### sanity checks
 
 ### off_t must be 64 bits exactly
 
@@ -53,7 +36,7 @@ if( NOT EC_SIZEOF_OFF_T EQUAL "8" )
 endif()
 
 ########################################################################################################################
-# project dependencies
+### dependencies and options
 
 ### eckit
 
