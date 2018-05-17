@@ -58,7 +58,7 @@ void FDBIndexScanner::execute() {
     if ( lsfdb1.exists() ) {
         Log::info() << "scanning file " << lsfdb1 << std::endl;
 
-        StdFile f( lsfdb1, "r" );
+        AutoStdFile f( lsfdb1, "r" );
         process(f);
         return;
     }
@@ -66,7 +66,7 @@ void FDBIndexScanner::execute() {
     if ( lsfdb2.exists() ) {
         Log::info() << "scanning file " << lsfdb2 << std::endl;
 
-        StdFile f( lsfdb2, "r" );
+        AutoStdFile f( lsfdb2, "r" );
         process(f);
         return;
     }
@@ -80,8 +80,8 @@ void FDBIndexScanner::execute() {
         cmd << fdbLegacyLsfdb << " " << path_;
 
         Log::info() << "scanning with pipe to command: [" << cmd.str() << "]" << std::endl;
-        StdPipe f(cmd.str(), "r");
-        process(f);
+        StdPipe pipe(cmd.str(), "r");  AutoCloser<StdPipe> closer(pipe);
+        process(pipe);
     }
 }
 
