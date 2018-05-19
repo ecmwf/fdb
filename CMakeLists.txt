@@ -30,9 +30,10 @@ if( NOT cxx_check_off_t_final OR NOT __cxx_sizeof_off_t_final EQUAL "8" )
 		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${__sizeof_off_t_final}] -- off_t must be 64 bits exactly" )
 endif()
 
-# test by header define (done by ecbuild system)
-if( NOT EC_SIZEOF_OFF_T EQUAL "8" )
-		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${EC_SIZEOF_OFF_T}] -- off_t must be 64 bits exactly" )
+check_type_size( off_t  MARS_SERVER_SIZEOF_OFF_T )
+
+if( NOT MARS_SERVER_SIZEOF_OFF_T EQUAL "8" )
+		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${MARS_SERVER_SIZEOF_OFF_T}] -- off_t must be 64 bits exactly" )
 endif()
 
 ########################################################################################################################
