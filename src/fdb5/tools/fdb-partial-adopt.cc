@@ -27,6 +27,7 @@ extern "C" {
     #include "db.h"
 
     extern fdb_dic* parser_list;
+    extern fdb_base *fdbbase;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -37,19 +38,19 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBAdopt : public FDBTool {
+class FDBPartialAdopt : public FDBTool {
 
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
     virtual int minimumPositionalArguments() const { return 1; }
 
-    void adoptIndex(const eckit::PathName& indexPath, const Key& request) const;
+    void adoptIndex(const eckit::PathName& indexPath, const Key& request, int* fdb, fdb_base* base) const;
     Key knodeToKey(dic_grp* g, fdb_knode* knode) const;
     bool partialMatches(const Key& request, const Key& partialkey) const;
 
   public:
 
-    FDBAdopt(int argc, char **argv) :
+    FDBPartialAdopt(int argc, char **argv) :
         FDBTool(argc, argv),
         fdbName_("fdb") {
     }
@@ -59,12 +60,12 @@ class FDBAdopt : public FDBTool {
 };
 
 
-void FDBAdopt::usage(const std::string &tool) const {
+void FDBPartialAdopt::usage(const std::string &tool) const {
     FDBTool::usage(tool);
 }
 
 
-void FDBAdopt::execute(const eckit::option::CmdArgs &args) {
+void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
 
     UMask umask(UMask::defaultUMask());
 
@@ -96,6 +97,9 @@ void FDBAdopt::execute(const eckit::option::CmdArgs &args) {
         throw FDBToolException("Failed to open fdb", Here());
     }
 
+    fdb_base* base = find_fdbbase(fdbbase, &fdb, const_cast<char*>("FDBPartialAdopt::execute()"));
+    ASSERT(base);
+
     // Iterate over all the requests/keys provided
 
     for (size_t i = 0; i < args.count(); ++i) {
@@ -117,7 +121,9 @@ void FDBAdopt::execute(const eckit::option::CmdArgs &args) {
             throw FDBToolException("There is no available FDB database with the specified parameters", Here());
         }
 
-        adoptIndex(index_name, rq);
+        Log::info() << "IN: " << index_name << std::endl;
+        Log::info() << "DN: " << data_name << std::endl;
+        adoptIndex(index_name, rq, &fdb, base);
     }
 
     ::closefdb(&fdb);
@@ -145,7 +151,7 @@ void FDBAdopt::execute(const eckit::option::CmdArgs &args) {
 }
 
 
-void FDBAdopt::adoptIndex(const PathName &indexPath, const Key &request) const {
+void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, int* fdb, fdb_base* base) const {
 
     /*
      * This routine is a little bit ... opaque.
@@ -179,8 +185,26 @@ void FDBAdopt::adoptIndex(const PathName &indexPath, const Key &request) const {
 
                     Key partialFieldKey(knodeToKey(g, knode));
 
+                    Log::info() << "Partial: " << partialFieldKey << std::endl;
+
                     if (partialMatches(request, partialFieldKey)) {
-                        Log::info() << "partial " << partialFieldKey << std::endl;
+//                        Log::info() << "partial " << partialFieldKey << std::endl;
+//                        Log::info() << "details: " << knode->fsys << ", " << knode->rank << ", " << knode->thread << std::endl;
+
+//                        for (const auto& kv : request) {
+//                            ::setvalfdb(fdb, const_cast<char*>(kv.first.c_str()), const_cast<char*>(kv.second.c_str()));
+//                        }
+                        ::setvalfdb_i(fdb, const_cast<char*>("frank"), knode->rank);
+                        ::setvalfdb_i(fdb, const_cast<char*>("fthread"), knode->thread);
+
+
+                        base->proc->infnam(base);
+//                        FdbInFnamNoCache(base);
+
+                        Log::info() << "match: " << partialFieldKey << std::endl;
+                        Log::info() << "    file   = " << base->list->PthNode->name << std::endl;
+                        Log::info() << "    offset = " << knode->addr << std::endl;
+                        Log::info() << "    length = " << knode->length << std::endl;
                     }
                 }
             }
@@ -190,7 +214,7 @@ void FDBAdopt::adoptIndex(const PathName &indexPath, const Key &request) const {
 }
 
 
-Key FDBAdopt::knodeToKey(dic_grp* g, fdb_knode* knode) const {
+Key FDBPartialAdopt::knodeToKey(dic_grp* g, fdb_knode* knode) const {
 
     Key key;
 
@@ -203,20 +227,24 @@ Key FDBAdopt::knodeToKey(dic_grp* g, fdb_knode* knode) const {
             std::string value;
 
             switch (pattr->type) {
+
                 case FDB_VALUE_CHAR:
                     if (all_null(pvalue, (pattr->attrlen <= 0 ? 8 : pattr->attrlen))) break;
                     value = pvalue;
                     break;
+
                 case FDB_VALUE_INT:
                     if (all_null(pvalue, sizeof(long))) {
                         if (std::string("step") != pattr->name) break;
                     }
                     value = Translator<long, std::string>()(*reinterpret_cast<const long*>(pvalue));
                     break;
+
                 case FDB_VALUE_FLOAT:
                     if (all_null(pvalue, sizeof(double))) break;
                     value = Translator<double, std::string>()(*reinterpret_cast<const double*>(pvalue));
                     break;
+
                 default:
                     ASSERT(false);
             };
@@ -231,7 +259,7 @@ Key FDBAdopt::knodeToKey(dic_grp* g, fdb_knode* knode) const {
 }
 
 
-bool FDBAdopt::partialMatches(const Key& request, const Key& partialKey) const {
+bool FDBPartialAdopt::partialMatches(const Key& request, const Key& partialKey) const {
 
     for (Key::const_iterator pit = partialKey.begin(); pit != partialKey.end(); ++pit) {
 
@@ -250,7 +278,7 @@ bool FDBAdopt::partialMatches(const Key& request, const Key& partialKey) const {
 
 
 int main(int argc, char **argv) {
-    fdb5::FDBAdopt app(argc, argv);
+    fdb5::FDBPartialAdopt app(argc, argv);
     return app.start();
 }
 
