@@ -90,24 +90,26 @@ void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
         throw FDBToolException(ss.str(), Here());
     }
 
-    // Open the FDB
-
-    int fdb;
-    if (::openfdb(const_cast<char*>(fdbName_.c_str()), &fdb, const_cast<char*>("r")) != 0) {
-        throw FDBToolException("Failed to open fdb", Here());
-    }
-
-    fdb_base* base = find_fdbbase(fdbbase, &fdb, const_cast<char*>("FDBPartialAdopt::execute()"));
-    ASSERT(base);
-
     // Iterate over all the requests/keys provided
 
     for (size_t i = 0; i < args.count(); ++i) {
 
-        Key rq(args(i));
-        Log::info() << "Key: " << rq << std::endl;
+        // Open the FDB
+        // n.b. we do this _inside_ the loop to ensure that we are always operating on a
+        //      nice clean fdb4, without any preserved state.
+
+        int fdb;
+        if (::openfdb(const_cast<char*>(fdbName_.c_str()), &fdb, const_cast<char*>("r")) != 0) {
+            throw FDBToolException("Failed to open fdb", Here());
+        }
+
+        fdb_base* base = find_fdbbase(fdbbase, &fdb, const_cast<char*>("FDBPartialAdopt::execute()"));
+        ASSERT(base);
 
         // Iterate over key-value pairs in supplied request
+
+        Key rq(args(i));
+        Log::info() << "Key: " << rq << std::endl;
 
         for (const auto& kv : rq ) {
             // n.b. const_cast due to (incorrect) non-const arguments in fdb headers
@@ -124,9 +126,10 @@ void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
         Log::info() << "IN: " << index_name << std::endl;
         Log::info() << "DN: " << data_name << std::endl;
         adoptIndex(index_name, rq, &fdb, base);
+
+        ::closefdb(&fdb);
     }
 
-    ::closefdb(&fdb);
 
 
     //for (size_t i = 0; i < args.count(); i++) {
