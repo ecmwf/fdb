@@ -18,8 +18,10 @@
 #include "eckit/utils/Translator.h"
 
 #include "fdb5/config/UMask.h"
-#include "fdb5/tools/FDBTool.h"
+#include "fdb5/database/Archiver.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/toc/AdoptVisitor.h"
+#include "fdb5/tools/FDBTool.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -44,9 +46,11 @@ class FDBPartialAdopt : public FDBTool {
     virtual void usage(const std::string &tool) const;
     virtual int minimumPositionalArguments() const { return 1; }
 
-    void adoptIndex(const eckit::PathName& indexPath, const Key& request, int* fdb, fdb_base* base) const;
+    void adoptIndex(const eckit::PathName& indexPath, const Key& request, int* fdb, fdb_base* base);
     Key knodeToKey(dic_grp* g, fdb_knode* knode) const;
     bool partialMatches(const Key& request, const Key& partialkey) const;
+
+    void patchKey(Key& key) const;
 
   public:
 
@@ -57,6 +61,8 @@ class FDBPartialAdopt : public FDBTool {
 
   private:
     const std::string fdbName_;
+
+    Archiver archiver_;
 };
 
 
@@ -129,32 +135,10 @@ void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
 
         ::closefdb(&fdb);
     }
-
-
-
-    //for (size_t i = 0; i < args.count(); i++) {
-    //    eckit::PathName path(args(i));
-
-    //    if (path.isDir()) {
-
-    //        // Adopt FDB4
-
-    //        eckit::Log::info() << "Scanning FDB db " << path << std::endl;
-
-    //        std::vector<eckit::PathName> indexes;
-
-    //        eckit::PathName::match(path / pattern, indexes, true); // match checks that path is a directory
-
-    //        for (std::vector<eckit::PathName>::const_iterator j = indexes.begin(); j != indexes.end(); ++j) {
-    //            legacy::FDBIndexScanner scanner(*j, compareToGrib, checkValues);
-    //            scanner.execute();
-    //        }
-    //    }
-    //}
 }
 
 
-void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, int* fdb, fdb_base* base) const {
+void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, int* fdb, fdb_base* base) {
 
     /*
      * This routine is a little bit ... opaque.
@@ -188,15 +172,8 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
 
                     Key partialFieldKey(knodeToKey(g, knode));
 
-                    Log::info() << "Partial: " << partialFieldKey << std::endl;
-
                     if (partialMatches(request, partialFieldKey)) {
-//                        Log::info() << "partial " << partialFieldKey << std::endl;
-//                        Log::info() << "details: " << knode->fsys << ", " << knode->rank << ", " << knode->thread << std::endl;
 
-//                        for (const auto& kv : request) {
-//                            ::setvalfdb(fdb, const_cast<char*>(kv.first.c_str()), const_cast<char*>(kv.second.c_str()));
-//                        }
                         ::setvalfdb_i(fdb, const_cast<char*>("frank"), knode->rank);
                         ::setvalfdb_i(fdb, const_cast<char*>("fthread"), knode->thread);
 
@@ -208,6 +185,19 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
                         Log::info() << "    file   = " << base->list->PthNode->name << std::endl;
                         Log::info() << "    offset = " << knode->addr << std::endl;
                         Log::info() << "    length = " << knode->length << std::endl;
+
+                        eckit::PathName datapath(base->list->PthNode->name);
+                        size_t offset = knode->addr;
+                        size_t length = knode->length;
+
+                        Key fullKey(request);
+                        for (const auto& kv : partialFieldKey) {
+                            fullKey.set(kv.first, kv.second);
+                        }
+                        patchKey(fullKey);
+
+                        AdoptVisitor visitor(archiver_, fullKey, datapath, offset, length);
+                        archiver_.archive(fullKey, visitor);
                     }
                 }
             }
@@ -244,7 +234,9 @@ Key FDBPartialAdopt::knodeToKey(dic_grp* g, fdb_knode* knode) const {
                     break;
 
                 case FDB_VALUE_FLOAT:
-                    if (all_null(pvalue, sizeof(double))) break;
+                    if (all_null(pvalue, sizeof(double))) {
+                        if (std::string("step") != pattr->name) break;
+                    }
                     value = Translator<double, std::string>()(*reinterpret_cast<const double*>(pvalue));
                     break;
 
@@ -273,6 +265,15 @@ bool FDBPartialAdopt::partialMatches(const Key& request, const Key& partialKey) 
     }
 
     return true;
+}
+
+void FDBPartialAdopt::patchKey(Key& key) const {
+
+    if (key.find("parameter") != key.end()) {
+        key.set("param", key.get("parameter"));
+        key.unset("parameter");
+    }
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
