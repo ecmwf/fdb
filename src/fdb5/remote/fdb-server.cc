@@ -164,9 +164,9 @@ private:
     FDBSvrApp& operator=(const FDBSvrApp&) = delete;
 
     virtual void run() {
-        unique();
+//        unique();
 
-        TCPServer server(Port("fdb", 7654));
+        TCPServer server(Port("fdb", 7654), "", true);
         server.closeExec(false);
 
         port_ = server.localPort();
