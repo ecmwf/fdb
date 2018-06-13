@@ -16,12 +16,16 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/utils/Translator.h"
+#include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/config/UMask.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/grib/GribDecoder.h"
 #include "fdb5/toc/AdoptVisitor.h"
 #include "fdb5/tools/FDBTool.h"
+
+#include "marslib/EmosFile.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -623,6 +627,7 @@ class FDBPartialAdopt : public FDBTool {
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
     virtual int minimumPositionalArguments() const { return 1; }
+    virtual void init(const eckit::option::CmdArgs &args);
 
     void adoptIndex(const eckit::PathName& indexPath, const Key& request, int* fdb, fdb_base* base);
     Key knodeToKey(dic_grp* g, fdb_knode* knode) const;
@@ -634,13 +639,17 @@ class FDBPartialAdopt : public FDBTool {
 
     FDBPartialAdopt(int argc, char **argv) :
         FDBTool(argc, argv),
-        fdbName_("fdb") {
+        fdbName_("fdb"),
+        compareToGrib_(false) {
+        options_.push_back(new eckit::option::SimpleOption<bool>("verify", "Explicitly verify keys against GRIB headers"));
     }
 
   private:
     const std::string fdbName_;
 
     Archiver archiver_;
+
+    bool compareToGrib_;
 };
 
 
@@ -648,6 +657,10 @@ void FDBPartialAdopt::usage(const std::string &tool) const {
     Log::info() << std::endl
                 << "Usage: " << tool << " <request1> [<request2> ...]" << std::endl;
     FDBTool::usage(tool);
+}
+
+void FDBPartialAdopt::init(const eckit::option::CmdArgs &args) {
+    args.get("verify", compareToGrib_);
 }
 
 
@@ -695,7 +708,6 @@ void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
         // Iterate over key-value pairs in supplied request
 
         Key rq(args(i));
-        Log::info() << "Key: " << rq << std::endl;
 
         for (const auto& kv : rq ) {
             // n.b. const_cast due to (incorrect) non-const arguments in fdb headers
@@ -752,13 +764,21 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
 
                     if (partialMatches(request, partialFieldKey)) {
 
+                        // Construct the full key for the match
+
+                        Key fullKey(request);
+                        for (const auto& kv : partialFieldKey) {
+                            fullKey.set(kv.first, kv.second);
+                        }
+                        patchKey(fullKey);
+
+                        // Obtain filesystem location info for data
+
                         ::setvalfdb_i(fdb, const_cast<char*>("frank"), knode->rank);
                         ::setvalfdb_i(fdb, const_cast<char*>("fthread"), knode->thread);
 
-
                         base->proc->infnam(base);
-//                        FdbInFnamNoCache(base);
-
+//                      (alternative)  FdbInFnamNoCache(base);
 //                        Log::info() << "match: " << partialFieldKey << std::endl;
 //                        Log::info() << "    file   = " << base->list->PthNode->name << std::endl;
 //                        Log::info() << "    offset = " << knode->addr << std::endl;
@@ -768,11 +788,20 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
                         size_t offset = knode->addr;
                         size_t length = knode->length;
 
-                        Key fullKey(request);
-                        for (const auto& kv : partialFieldKey) {
-                            fullKey.set(kv.first, kv.second);
+                        // Validate if required
+
+                        if (compareToGrib_) {
+                            eckit::ScopedPtr<DataHandle> h(PathName(datapath).partHandle(offset, length));
+                            EmosFile file(*h);
+                            GribDecoder decoder;
+                            Key grib;
+                            decoder.gribToKey(file, grib);
+
+                            // Throws exception on failure
+                            grib.validateKeysOf(fullKey, true);
                         }
-                        patchKey(fullKey);
+
+                        // Adopt to FDB5
 
                         AdoptVisitor visitor(archiver_, fullKey, datapath, offset, length);
                         archiver_.archive(fullKey, visitor);
