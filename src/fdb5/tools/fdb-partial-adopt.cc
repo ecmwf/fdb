@@ -645,6 +645,8 @@ class FDBPartialAdopt : public FDBTool {
 
 
 void FDBPartialAdopt::usage(const std::string &tool) const {
+    Log::info() << std::endl
+                << "Usage: " << tool << " <request1> [<request2> ...]" << std::endl;
     FDBTool::usage(tool);
 }
 
