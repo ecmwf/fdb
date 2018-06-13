@@ -707,8 +707,6 @@ void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
             throw FDBToolException("There is no available FDB database with the specified parameters", Here());
         }
 
-        Log::info() << "IN: " << index_name << std::endl;
-        Log::info() << "DN: " << data_name << std::endl;
         adoptIndex(index_name, rq, &fdb, base);
 
         ::closefdb(&fdb);
@@ -759,10 +757,10 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
                         base->proc->infnam(base);
 //                        FdbInFnamNoCache(base);
 
-                        Log::info() << "match: " << partialFieldKey << std::endl;
-                        Log::info() << "    file   = " << base->list->PthNode->name << std::endl;
-                        Log::info() << "    offset = " << knode->addr << std::endl;
-                        Log::info() << "    length = " << knode->length << std::endl;
+//                        Log::info() << "match: " << partialFieldKey << std::endl;
+//                        Log::info() << "    file   = " << base->list->PthNode->name << std::endl;
+//                        Log::info() << "    offset = " << knode->addr << std::endl;
+//                        Log::info() << "    length = " << knode->length << std::endl;
 
                         eckit::PathName datapath(base->list->PthNode->name);
                         size_t offset = knode->addr;
@@ -866,6 +864,8 @@ void FDBPartialAdopt::patchKey(Key& key) const {
         if (lookup != PARAMETER_MAP.end()) {
             M::const_iterator new_param = lookup->second.find(param->second);
             if (new_param != lookup->second.end()) {
+                Log::warning() << "Patching FDB4 parameter value "
+                               << param->second << " --> " << new_param->second << std::endl;
                 key.set("param", new_param->second);
             }
         }
