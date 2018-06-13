@@ -901,6 +901,17 @@ void FDBPartialAdopt::patchKey(Key& key) const {
             }
         }
     }
+
+    // levtype is a single character in fdb4
+
+    Key::const_iterator levtype = key.find("levtype");
+    if (levtype != key.end()) {
+        if (levtype->second == "s") key.set("levtype", "sfc");
+        else if (levtype->second == "m") key.set("levtype", "ml");
+        else if (levtype->second == "p") key.set("levtype", "pl");
+        else if (levtype->second == "t") key.set("levtype", "pt");
+        else if (levtype->second == "v") key.set("levtype", "pv");
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
