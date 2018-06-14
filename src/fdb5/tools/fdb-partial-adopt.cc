@@ -911,6 +911,7 @@ void FDBPartialAdopt::patchKey(Key& key) const {
         else if (levtype->second == "p") key.set("levtype", "pl");
         else if (levtype->second == "t") key.set("levtype", "pt");
         else if (levtype->second == "v") key.set("levtype", "pv");
+        else throw SeriousBug(std::string("Unknown levtype: ") + levtype->second, Here());
     }
 }
 
