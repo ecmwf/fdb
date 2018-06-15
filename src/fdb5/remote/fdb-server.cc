@@ -130,7 +130,9 @@ class FDBForker : public RemoteHandler
 
 public: // methods
 
-    FDBForker(eckit::TCPSocket& socket, const Config& config = fdb5::Config()) : RemoteHandler(socket) {
+    FDBForker(eckit::TCPSocket& socket, const Config& config = fdb5::Config()) :
+        RemoteHandler(socket),
+        ProcessControler(true) {
     }
 
 private: // methods
