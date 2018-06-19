@@ -90,7 +90,8 @@ void RemoteHandler::handle() {
 
 void RemoteHandler::flush(const MessageHeader&) {
     Log::status() << "Flushing data" << std::endl;
-    Log::debug<LibFdb>() << "Flushing data" << std::endl;
+    //Log::debug<LibFdb>() << "Flushing data" << std::endl;
+    Log::info() << "Flushing data" << std::endl;
 
     try {
         fdb_.flush();
@@ -102,6 +103,10 @@ void RemoteHandler::flush(const MessageHeader&) {
         socket_.write(&EndMarker, sizeof(EndMarker));
         throw;
     }
+
+    Log::status() << "Flush complete" << std::endl;
+    //Log::debug<LibFdb>() << "Flushing data" << std::endl;
+    Log::info() << "Flush complete" << std::endl;
 
     MessageHeader response(Message::Complete);
     socket_.write(&response, sizeof(response));
