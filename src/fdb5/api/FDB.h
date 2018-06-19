@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "fdb5/config/Config.h"
+#include "fdb5/api/FDBStats.h"
 
 class MarsRequest;
 
@@ -61,6 +62,8 @@ public: // methods
 
     void disable();
 
+    void reportStats();
+
 private: // methods
 
     void print(std::ostream&) const;
@@ -75,6 +78,9 @@ private: // members
     std::unique_ptr<FDBBase> internal_;
 
     bool dirty_;
+
+    std::unique_ptr<eckit::Timer> timer_;
+    std::unique_ptr<FDBStats> stats_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

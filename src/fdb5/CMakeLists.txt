@@ -50,6 +50,8 @@ list( APPEND fdb5_srcs
     api/FDB.h
     api/FDBFactory.cc
     api/FDBFactory.h
+    api/FDBStats.cc
+    api/FDBStats.h
     api/LocalFDB.cc
     api/LocalFDB.h
     api/RemoteFDB.cc

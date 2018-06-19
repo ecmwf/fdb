@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/io/DataHandle.h"
+
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/database/Key.h"
@@ -18,7 +20,9 @@ namespace fdb5 {
 
 FDB::FDB(const Config &config) :
     internal_(FDBFactory::instance().build(config)),
-    dirty_(false) {}
+    dirty_(false),
+    timer_(new eckit::Timer),
+    stats_(new FDBStats) {}
 
 
 FDB::~FDB() {
@@ -26,13 +30,23 @@ FDB::~FDB() {
 }
 
 void FDB::archive(const Key& key, const void* data, size_t length) {
+    timer_->start();
+
     internal_->archive(key, data, length);
     dirty_ = true;
+
+    timer_->stop();
+    stats_->addArchive(length, *timer_);
 }
 
-eckit::DataHandle *FDB::retrieve(const MarsRequest& request) {
-    // TODO: Match?
-    return internal_->retrieve(request);
+eckit::DataHandle* FDB::retrieve(const MarsRequest& request) {
+
+    timer_->start();
+    eckit::DataHandle* dh = internal_->retrieve(request);
+    timer_->stop();
+    stats_->addRetrieve(dh->estimate(), *timer_);
+
+    return dh;
 }
 
 const std::string FDB::id() const {
@@ -45,8 +59,13 @@ void FDB::print(std::ostream& s) const {
 
 void FDB::flush() {
     if (dirty_) {
+        timer_->start();
+
         internal_->flush();
         dirty_ = false;
+
+        timer_->stop();
+        stats_->addFlush(*timer_);
     }
 }
 
