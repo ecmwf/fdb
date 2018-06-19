@@ -34,118 +34,29 @@ namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FdbServerThread : public Thread {
-    TCPSocket socket_;
-    bool subProcess_;
-
-    // TODO: Use non-default configs
-
-    virtual void run() {
-        if (subProcess_) {
-            Log::info() << "Starting handler process ..." << std::endl;
-            RemoteHandlerProcessController h(socket_);
-            h.start();
-        } else {
-            RemoteHandler h(socket_);
-            h.handle();
-        }
-    }
-
-public:
-    FdbServerThread(eckit::TCPSocket& socket, bool launchSubProcess) :
-        socket_(socket),
-        subProcess_(launchSubProcess) {
-    }
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class FdbServer : public MarsApplication,
-                  public Monitorable {
-
-public: // methods
-
-    FdbServer(int argc, char** argv) :
-        MarsApplication(argc, argv, "FDB_HOME"),
-        forkSubProcess_(eckit::Resource<bool>("-fork;forkSubProcess", 0)) {}
-
-private: // methods
-
-    // From Application
-
-    virtual void run();
-
-    // From monitorable
-
-    virtual void status(std::ostream&) const;
-    virtual void json(JSON&) const;
-
-private: // members
-
-    bool forkSubProcess_;
-
-    size_t port_;
-};
-
-
-void FdbServer::run() {
-
-    Log::status() << "Starting server ..." << port_ << std::endl;
-
-    TCPServer server(Port("fdb", 7654));
-    server.closeExec(false);
-
-    while (true) {
-
-        TCPSocket in(server.accept());
-
-        Log::info() << "Received connection" << std::endl;
-        Log::status() << "Received connection" << std::endl;
-
-        // Fork a process, or spawn a thread, to deal with this connection
-
-        try {
-            Log::info() << "Starting handler thread ..." << std::endl;
-            ThreadControler t(new FdbServerThread(in, forkSubProcess_));
-            t.start();
-        } catch (std::exception& e) {
-            Log::error() << "** " << e.what() << " Caught in FdbServer::run()" << std::endl;
-            Log::error() << "** Exception is ignored" << std::endl;
-        }
-    }
-}
-
-void FdbServer::status(std::ostream& s) const {
-    s << "Running";
-}
-
-void FdbServer::json(JSON&) const {
-
-}
-
-//--------------------------------------------------------------------------------------------------
-
-class FDBForker : public RemoteHandler
-                , public eckit::ProcessControler {
+class FDBForker : public eckit::ProcessControler {
 
 public: // methods
 
     FDBForker(eckit::TCPSocket& socket, const Config& config = fdb5::Config()) :
-        RemoteHandler(socket, config),
-        ProcessControler(true) {
-    }
+        ProcessControler(true),
+        socket_(socket),
+        config_(config) {}
 
 private: // methods
 
     virtual void run() {
 
-        Log::info() << "FDB forked pid " << ::getpid() << std::endl;
-
         Monitor::instance().reset(); // needed to the monitor to work on forked (but not execed process)
 
-        handle();
+        Log::info() << "FDB forked pid " << ::getpid() << std::endl;
+
+        RemoteHandler handler(socket_, config_);
+        handler.handle();
     }
 
+    eckit::TCPSocket socket_;
+    eckit::LocalConfiguration config_;
 };
 
 //--------------------------------------------------------------------------------------------------
