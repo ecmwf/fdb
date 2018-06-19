@@ -1,21 +1,4 @@
-########################################################################################################################
-# cmake options:
-#
-#       -DCMAKE_BUILD_TYPE=Debug|RelWithDebInfo|Release|Production
-#       -DCMAKE_INSTALL_PREFIX=/path/to/install
-#
-#       -DCMAKE_MODULE_PATH=/path/to/ecbuild/cmake
-#
-#       -DCMAKE_C_COMPILER=gcc
-#       -DCMAKE_C_COMPILER=g++
-#
-#       -DCMAKE_PREFIX_PATH=/path/to/jasper:/path/to/any/package/out/of/place
-#       -DBUILD_SHARED_LIBS=OFF
-#
-#       -DHPSS_PATH=/path/to/hpss
-#       -DADSM_PATH=/path/to/adsm
-
-cmake_minimum_required( VERSION 2.8.11 FATAL_ERROR )
+cmake_minimum_required( VERSION 3.1 FATAL_ERROR )
 
 project( mars_server C CXX )
 
@@ -23,24 +6,15 @@ set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} 
 
 include( ecbuild_system NO_POLICY_SCOPE )
 
-ecbuild_requires_macro_version( 1.9 )
+ecbuild_requires_macro_version( 2.9 )
 
 ecbuild_declare_project()
 
-# Enable C++11 if it is available. We should have alternative code paths for where it is not.
-# This is used for performance in fdb-stats (checking for duplicates in a large set).
-#
-# Use the test:
-# #if __cplusplus > 199711L
-#    c++11 code
-# #else
-#    c++03 code
-# #endif
-
-ecbuild_add_cxx11_flags()
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ########################################################################################################################
-# sanity checks
+### sanity checks
 
 ### off_t must be 64 bits exactly
 
@@ -56,19 +30,20 @@ if( NOT cxx_check_off_t_final OR NOT __cxx_sizeof_off_t_final EQUAL "8" )
 		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${__sizeof_off_t_final}] -- off_t must be 64 bits exactly" )
 endif()
 
-# test by header define (done by ecbuild system)
-if( NOT EC_SIZEOF_OFF_T EQUAL "8" )
-		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${EC_SIZEOF_OFF_T}] -- off_t must be 64 bits exactly" )
+check_type_size( off_t  MARS_SERVER_SIZEOF_OFF_T )
+
+if( NOT MARS_SERVER_SIZEOF_OFF_T EQUAL "8" )
+		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${MARS_SERVER_SIZEOF_OFF_T}] -- off_t must be 64 bits exactly" )
 endif()
 
 ########################################################################################################################
-# project dependencies
+### dependencies and options
 
 ### eckit
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit    VERSION 0.18.0  REQUIRED )
+ecbuild_use_package( PROJECT eckit  VERSION 0.21.0  REQUIRED )
 
 ### GRIB support
 
@@ -134,6 +109,13 @@ ecbuild_add_option( FEATURE PMEMFDB
 ecbuild_add_option( FEATURE TOCFDB
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
+
+### Experimental features
+
+ecbuild_add_option( FEATURE EXPERIMENTAL
+                    DEFAULT OFF
+                    DESCRIPTION "Experimental features" )
+
 
 ########################################################################################################################
 # project vars & options
