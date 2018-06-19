@@ -197,10 +197,6 @@ void GribArchiver::flush() {
     fdb_.flush();
 }
 
-void GribArchiver::reportStats(std::ostream& out) const {
-    fdb_.reportStats(out);
-}
-
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

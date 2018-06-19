@@ -136,26 +136,29 @@ std::string DistFDB::id() const {
 void DistFDB::flush() {
 
     std::vector<std::thread> threads;
-    std::vector<std::promise<void>> promises;
+    std::vector<std::promise<int>> promises(lanes_.size());
+    std::vector<std::future<int>> futures;
 
-    for (FDB& lane : lanes_) {
+    for (int i = 0; i < lanes_.size(); i++) {
 
-        promises.emplace_back(std::promise<void>());
-        std::promise<void>& prm(promises.back());
+        FDB& lane(lanes_[i]);
+        std::promise<int>& prm(promises[i]);
+        futures.emplace_back(prm.get_future());
 
         threads.emplace_back(std::thread([&lane, &prm]{
             try {
                 lane.flush();
-                prm.set_value();
+                prm.set_value(0);
             } catch (...) {
                 prm.set_exception(std::current_exception());
             }
         }));
     }
 
-    for (auto& prm : promises) {
-        prm.get_future();
+    for (auto& fut : futures) {
+        fut.get();
     }
+
     for (std::thread& thread : threads) {
         ASSERT(thread.joinable());
         thread.join();

@@ -52,8 +52,6 @@ public: // methods
 
     void flush();
 
-    void reportStats(std::ostream& out) const;
-
 private: // protected
 
     eckit::Channel& logVerbose() const;

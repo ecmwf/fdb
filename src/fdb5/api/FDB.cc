@@ -21,34 +21,34 @@ namespace fdb5 {
 FDB::FDB(const Config &config) :
     internal_(FDBFactory::instance().build(config)),
     dirty_(false),
-    reportStats_(config.getBool("statistics", false)),
-    timer_(new eckit::Timer),
-    stats_(new FDBStats) {}
+    reportStats_(config.getBool("statistics", false)) {}
 
 
 FDB::~FDB() {
     flush();
     if (reportStats_) {
-        reportStats(eckit::Log::info());
+        stats_.report(eckit::Log::info(), "");
     }
 }
 
 void FDB::archive(const Key& key, const void* data, size_t length) {
-    timer_->start();
+    eckit::Timer timer;
+    timer.start();
 
     internal_->archive(key, data, length);
     dirty_ = true;
 
-    timer_->stop();
-    stats_->addArchive(length, *timer_);
+    timer.stop();
+    stats_.addArchive(length, timer);
 }
 
 eckit::DataHandle* FDB::retrieve(const MarsRequest& request) {
 
-    timer_->start();
+    eckit::Timer timer;
+    timer.start();
     eckit::DataHandle* dh = internal_->retrieve(request);
-    timer_->stop();
-    stats_->addRetrieve(dh->estimate(), *timer_);
+    timer.stop();
+    stats_.addRetrieve(dh->estimate(), timer);
 
     return dh;
 }
@@ -63,13 +63,15 @@ void FDB::print(std::ostream& s) const {
 
 void FDB::flush() {
     if (dirty_) {
-        timer_->start();
+
+        eckit::Timer timer;
+        timer.start();
 
         internal_->flush();
         dirty_ = false;
 
-        timer_->stop();
-        stats_->addFlush(*timer_);
+        timer.stop();
+        stats_.addFlush(timer);
     }
 }
 
@@ -79,10 +81,6 @@ bool FDB::dirty() const {
 
 void FDB::disable() {
     internal_->disable();
-}
-
-void FDB::reportStats(std::ostream& out) const {
-    stats_->report(out, "");
 }
 
 bool FDB::disabled() const {

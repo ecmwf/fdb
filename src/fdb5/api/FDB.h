@@ -39,9 +39,9 @@ public: // methods
     ~FDB();
 
     FDB(const FDB&) = delete;
-    FDB(FDB&&) = default;
-
     FDB& operator=(const FDB&) = delete;
+
+    FDB(FDB&&) = default;
     FDB& operator=(FDB&&) = default;
 
     void archive(const Key& key, const void* data, size_t length);
@@ -63,8 +63,6 @@ public: // methods
 
     void disable();
 
-    void reportStats(std::ostream& out) const;
-
 private: // methods
 
     void print(std::ostream&) const;
@@ -81,8 +79,7 @@ private: // members
     bool dirty_;
     bool reportStats_;
 
-    std::unique_ptr<eckit::Timer> timer_;
-    std::unique_ptr<FDBStats> stats_;
+    FDBStats stats_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
