@@ -8,8 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   FDBStats.h
 /// @author Simon Smart
+/// @author Tiago Quintino
 /// @date   June 2018
 
 #ifndef fdb5_FDBStats_H
