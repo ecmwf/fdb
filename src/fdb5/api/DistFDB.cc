@@ -8,6 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include <vector>
+#include <thread>
+#include <future>
+
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
@@ -130,8 +134,31 @@ std::string DistFDB::id() const {
 
 
 void DistFDB::flush() {
+
+    std::vector<std::thread> threads;
+    std::vector<std::promise<void>> promises;
+
     for (FDB& lane : lanes_) {
-        lane.flush();
+
+        promises.emplace_back(std::promise<void>());
+        std::promise<void>& prm(promises.back());
+
+        threads.emplace_back(std::thread([&lane, &prm]{
+            try {
+                lane.flush();
+                prm.set_value();
+            } catch (...) {
+                prm.set_exception(std::current_exception());
+            }
+        }));
+    }
+
+    for (auto& prm : promises) {
+        prm.get_future();
+    }
+    for (std::thread& thread : threads) {
+        ASSERT(thread.joinable());
+        thread.join();
     }
 }
 
