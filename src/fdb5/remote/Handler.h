@@ -9,6 +9,7 @@
  */
 
 /// @author Simon Smart
+/// @author Tiago Quintino
 /// @date   Apr 2018
 
 #ifndef fdb5_remote_Handler_H
@@ -17,13 +18,11 @@
 
 #include "eckit/thread/Thread.h"
 #include "eckit/runtime/ProcessControler.h"
+#include "eckit/io/Buffer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/api/FDB.h"
-
-namespace eckit { class Buffer; }
-
 
 namespace fdb5 {
 
@@ -40,7 +39,7 @@ class RemoteHandler : public eckit::NonCopyable {
 
 public: // methods
 
-    RemoteHandler(eckit::TCPSocket& socket, const Config& config);
+    RemoteHandler(eckit::TCPSocket& socket, const Config& config = fdb5::Config());
 
     void handle();
 
@@ -61,28 +60,6 @@ private: // members
 };
 
 
-//template <typename BaseClass>
-//class RemoteHandler : public BaseClass {
-//
-//public: // methods
-//
-//    RemoteHandler(eckit::TCPSocket& socket);
-//
-//private: // Here we go!
-//
-//    virtual void run();
-//
-//private: // members
-//
-//    eckit::TCPSocket socket_;
-//};
-//
-//extern template class RemoteHandler<eckit::Thread>;
-//extern template class RemoteHandler<eckit::ProcessControler>;
-//
-//typedef RemoteHandler<eckit::Thread> RemoteHandlerThread;
-//typedef RemoteHandler<eckit::ProcessControler> RemoteHandlerProcessControler;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class RemoteHandlerProcessController : public RemoteHandler
@@ -90,7 +67,7 @@ class RemoteHandlerProcessController : public RemoteHandler
 
 public: // methods
 
-    RemoteHandlerProcessController(eckit::TCPSocket& socket, const Config& config);
+    RemoteHandlerProcessController(eckit::TCPSocket& socket, const Config& config = fdb5::Config());
 
 private: // methods
 

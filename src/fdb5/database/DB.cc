@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/eckit_config.h"
+
 #include "eckit/thread/AutoLock.h"
 #include "eckit/filesystem/PathName.h"
 

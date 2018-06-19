@@ -8,6 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include <unistd.h>
+#include <algorithm>
+
 #include "eckit/log/Log.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/io/Buffer.h"
@@ -21,10 +24,6 @@
 
 #include "marslib/MarsRequest.h"
 
-#include <unistd.h>
-#include <algorithm>
-
-
 using namespace eckit;
 
 namespace fdb5 {
@@ -32,16 +31,11 @@ namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// template <typename BaseClass>
-// RemoteHandler<BaseClass>::RemoteHandler(eckit::TCPSocket& socket) :
 RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
-//    BaseClass(),
     socket_(socket),
     fdb_(config) {}
 
 
-//template<typename BaseClass>
-//void RemoteHandler<BaseClass>::run() {
 void RemoteHandler::handle() {
 
     Log::info() << "... started" << std::endl;
@@ -95,7 +89,8 @@ void RemoteHandler::flush(const MessageHeader&) {
 
     try {
         fdb_.flush();
-    } catch(const eckit::Exception& e) {
+    }
+    catch(const eckit::Exception& e) {
         std::string what(e.what());
         MessageHeader response(Message::Error, what.length());
         socket_.write(&response, sizeof(response));
@@ -133,7 +128,8 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
 
     try {
         fdb_.archive(key, &(*archiveBuffer_)[pos], len);
-    } catch(const eckit::Exception& e) {
+    }
+    catch(const eckit::Exception& e) {
         std::string what(e.what());
         MessageHeader response(Message::Error, what.length());
         socket_.write(&response, sizeof(response));
@@ -175,7 +171,8 @@ void RemoteHandler::retrieve(const MessageHeader& hdr) {
 
         dh->openForRead();
         bytesRead = dh->read(*retrieveBuffer_, requiredBuffer);
-    } catch(const eckit::Exception& e) {
+    }
+    catch(const eckit::Exception& e) {
         std::string what(e.what());
         MessageHeader response(Message::Error, what.length());
         socket_.write(&response, sizeof(response));
@@ -201,19 +198,13 @@ void RemoteHandler::retrieve(const MessageHeader& hdr) {
 
 
 RemoteHandlerProcessController::RemoteHandlerProcessController(eckit::TCPSocket& socket, const Config& config) :
-    RemoteHandler(socket, config) {}
+    RemoteHandler(socket, config) {
+}
 
 
 void RemoteHandlerProcessController::run() {
     handle();
 }
-
-//----------------------------------------------------------------------------------------------------------------------
-
-// Explicit instantiations
-
-//template class RemoteHandler<eckit::Thread>;
-//template class RemoteHandler<eckit::ProcessControler>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
