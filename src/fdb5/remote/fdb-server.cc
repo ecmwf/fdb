@@ -131,7 +131,7 @@ class FDBForker : public RemoteHandler
 public: // methods
 
     FDBForker(eckit::TCPSocket& socket, const Config& config = fdb5::Config()) :
-        RemoteHandler(socket),
+        RemoteHandler(socket, config),
         ProcessControler(true) {
     }
 
@@ -168,6 +168,9 @@ private:
     virtual void run() {
 //        unique();
 
+        LocalConfiguration config;
+        config.set("statistics", true);
+
         TCPServer server(Port("fdb", 7654), "", true);
         server.closeExec(false);
 
@@ -175,7 +178,7 @@ private:
 
         while (true) {
             try {
-                FDBForker f(server.accept());
+                FDBForker f(server.accept(), config);
                 f.start();
             }
             catch (std::exception& e) {
