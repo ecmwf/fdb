@@ -30,7 +30,7 @@ class FDBRead : public fdb5::FDBAccess {
         options_.push_back(new eckit::option::SimpleOption<bool>("extract", "Extract request from a GRIB file"));
 
         options_.push_back(
-                    new eckit::option::SimpleOption<bool>("stats",
+                    new eckit::option::SimpleOption<bool>("statistics",
                                                           "Report timing statistics"));
     }
 };
@@ -46,9 +46,7 @@ void FDBRead::usage(const std::string &tool) const {
 void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     bool extract = false;
-    bool reportStats = false;
     args.get("extract", extract);
-    args.get("stats", reportStats);
 
     std::vector<MarsRequest> requests;
 
@@ -74,7 +72,7 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     fdb5::HandleGatherer handles(false);
 
-    fdb5::FDB fdb;
+    fdb5::FDB fdb(args);
 
     for (std::vector<MarsRequest>::const_iterator rit = requests.begin(); rit != requests.end(); ++rit) {
 
@@ -88,9 +86,6 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
     eckit::ScopedPtr<eckit::DataHandle> dh(handles.dataHandle());
 
     dh->saveInto(out);
-
-    if (reportStats) fdb.reportStats(eckit::Log::info());
-
 }
 
 

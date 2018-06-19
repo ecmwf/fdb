@@ -79,6 +79,7 @@ private: // members
     std::unique_ptr<FDBBase> internal_;
 
     bool dirty_;
+    bool reportStats_;
 
     std::unique_ptr<eckit::Timer> timer_;
     std::unique_ptr<FDBStats> stats_;

@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
@@ -17,6 +18,7 @@
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/tools/FDBAccess.h"
 #include "fdb5/config/UMask.h"
+
 
 class FDBWrite : public fdb5::FDBAccess {
 
@@ -41,13 +43,12 @@ public:
                     "List of comma separated key-values of what to exclude from the input data, e.g --exclude-filter=time=0000"));
 
         options_.push_back(
-                    new eckit::option::SimpleOption<bool>("stats",
+                    new eckit::option::SimpleOption<bool>("statistics",
                                                           "Report timing statistics"));
     }
 
     std::string filterInclude_;
     std::string filterExclude_;
-    bool reportStats_;
 };
 
 void FDBWrite::usage(const std::string &tool) const {
@@ -60,12 +61,11 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     FDBAccess::init(args);
     args.get("include-filter", filterInclude_);
     args.get("exclude-filter", filterExclude_);
-    args.get("stats", reportStats_);
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::GribArchiver archiver(fdb5::Key(), false, verbose_);
+    fdb5::GribArchiver archiver(fdb5::Key(), false, verbose_, args);
 
     archiver.filters(filterInclude_, filterExclude_);
 
@@ -79,8 +79,6 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
         archiver.archive( *dh );
     }
-
-    if (reportStats_) archiver.reportStats(eckit::Log::info());
 }
 
 //----------------------------------------------------------------------------------------------------------------------

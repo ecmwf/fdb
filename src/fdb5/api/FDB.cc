@@ -21,12 +21,16 @@ namespace fdb5 {
 FDB::FDB(const Config &config) :
     internal_(FDBFactory::instance().build(config)),
     dirty_(false),
+    reportStats_(config.getBool("statistics", false)),
     timer_(new eckit::Timer),
     stats_(new FDBStats) {}
 
 
 FDB::~FDB() {
     flush();
+    if (reportStats_) {
+        reportStats(eckit::Log::info());
+    }
 }
 
 void FDB::archive(const Key& key, const void* data, size_t length) {
