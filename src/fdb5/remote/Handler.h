@@ -40,6 +40,7 @@ class RemoteHandler : public eckit::NonCopyable {
 public: // methods
 
     RemoteHandler(eckit::TCPSocket& socket, const Config& config = fdb5::Config());
+    ~RemoteHandler();
 
     void handle();
 

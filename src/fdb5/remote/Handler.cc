@@ -36,6 +36,11 @@ RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
     fdb_(config) {}
 
 
+RemoteHandler::~RemoteHandler() {
+    fdb_.reportStats(eckit::Log::info());
+}
+
+
 void RemoteHandler::handle() {
 
     Log::info() << "... started" << std::endl;
