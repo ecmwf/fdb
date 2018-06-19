@@ -15,6 +15,7 @@
 #define fdb5_api_FDB_H
 
 #include <memory>
+#include <iosfwd>
 
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
@@ -62,7 +63,7 @@ public: // methods
 
     void disable();
 
-    void reportStats();
+    void reportStats(std::ostream& out) const;
 
 private: // methods
 

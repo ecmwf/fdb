@@ -77,6 +77,10 @@ void FDB::disable() {
     internal_->disable();
 }
 
+void FDB::reportStats(std::ostream& out) const {
+    stats_->report(out, "");
+}
+
 bool FDB::disabled() const {
     return internal_->disabled();
 }

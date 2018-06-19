@@ -29,6 +29,9 @@ class FDBRead : public fdb5::FDBAccess {
     FDBRead(int argc, char **argv): fdb5::FDBAccess(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("extract", "Extract request from a GRIB file"));
 
+        options_.push_back(
+                    new eckit::option::SimpleOption<bool>("stats",
+                                                          "Report timing statistics"));
     }
 };
 

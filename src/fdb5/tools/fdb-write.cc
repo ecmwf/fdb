@@ -39,10 +39,15 @@ public:
         options_.push_back(
                     new eckit::option::SimpleOption<std::string>("exclude-filter",
                     "List of comma separated key-values of what to exclude from the input data, e.g --exclude-filter=time=0000"));
+
+        options_.push_back(
+                    new eckit::option::SimpleOption<bool>("stats",
+                                                          "Report timing statistics"));
     }
 
     std::string filterInclude_;
     std::string filterExclude_;
+    bool reportStats_;
 };
 
 void FDBWrite::usage(const std::string &tool) const {
@@ -55,6 +60,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     FDBAccess::init(args);
     args.get("include-filter", filterInclude_);
     args.get("exclude-filter", filterExclude_);
+    args.get("stats", reportStats_);
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
@@ -74,6 +80,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
         archiver.archive( *dh );
     }
 
+    if (reportStats_) archiver.reportStats(eckit::Log::info());
 }
 
 //----------------------------------------------------------------------------------------------------------------------

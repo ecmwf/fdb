@@ -16,6 +16,8 @@
 #ifndef fdb5_GribArchiver_H
 #define fdb5_GribArchiver_H
 
+#include <iosfwd>
+
 #include "eckit/io/Length.h"
 
 #include "metkit/MarsRequest.h"
@@ -49,6 +51,8 @@ public: // methods
     eckit::Length archive(eckit::DataHandle &source);
 
     void flush();
+
+    void reportStats(std::ostream& out) const;
 
 private: // protected
 
