@@ -13,6 +13,7 @@
 /// @date   Apr 2018
 
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "eckit/runtime/Monitorable.h"
 #include "eckit/net/TCPServer.h"
@@ -48,6 +49,10 @@ private: // methods
     virtual void run() {
 
         Monitor::instance().reset(); // needed to the monitor to work on forked (but not execed process)
+
+        // Ensure random state is reset after fork
+        ::srand(::getpid() + ::time(0));
+        ::srandom(::getpid() + ::time(0));
 
         Log::info() << "FDB forked pid " << ::getpid() << std::endl;
 
