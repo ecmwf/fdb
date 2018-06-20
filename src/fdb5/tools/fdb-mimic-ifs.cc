@@ -64,7 +64,6 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     ASSERT(args.has("expver"));
     ASSERT(args.has("class"));
     ASSERT(args.has("nlevels"));
-    ASSERT(args.has("nensembles"));
     ASSERT(args.has("nsteps"));
 }
 
@@ -84,7 +83,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
     ASSERT(gh.hasKey("expver"));*/
 
     size_t nsteps = args.getLong("nsteps");
-    size_t nensembles = args.getLong("nensembles");
+    size_t nensembles = args.getLong("nensembles", 1);
     size_t nlevels = args.getLong("nlevels");
 
     const char* buffer = 0;
@@ -100,7 +99,9 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
     CODES_CHECK(codes_set_string(handle, "class", cls.c_str(), &size), 0);
 
     for (size_t member = 1; member <= nensembles; ++member) {
-        CODES_CHECK(codes_set_long(handle, "number", member), 0);
+        if (args.has("nensembles")) {
+            CODES_CHECK(codes_set_long(handle, "number", member), 0);
+        }
         for (size_t step = 0; step <= nsteps; ++step) {
             CODES_CHECK(codes_set_long(handle, "step", step), 0);
             for (size_t level = 1; level <= nlevels; ++level) {
