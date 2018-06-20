@@ -359,6 +359,7 @@ endforeach()
 
 list( APPEND fdb5_tools
     fdb-adopt
+    fdb-mimic-ifs
     fdb-write
     fdb-write-legacy
     fdb-dump
