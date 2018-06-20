@@ -15,6 +15,10 @@
 #ifndef fdb5_remote_Handler_H
 #define fdb5_remote_Handler_H
 
+#include <queue>
+#include <mutex>
+#include <thread>
+#include <future>
 
 #include "eckit/thread/Thread.h"
 #include "eckit/runtime/ProcessControler.h"
@@ -35,7 +39,40 @@ class MessageHeader;
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class RemoteHandler : public eckit::NonCopyable {
+class ArchiveWorker : private eckit::NonCopyable {
+
+public: // members
+
+    ArchiveWorker(FDB& fdb);
+    ~ArchiveWorker();
+
+    void enqueue(const Key& key, void* data, size_t length);
+
+    void flush();
+
+private: // methods
+
+    void ensureWorker();
+    void workerThreadLoop();
+
+private: // members
+
+    FDB& fdb_;
+
+    std::mutex mutex_;
+    std::condition_variable cv_;
+    std::queue<std::pair<Key, eckit::Buffer>> queue_;
+
+    std::thread thread_;
+    std::promise<void> promise_;
+    bool running_;
+};
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+class RemoteHandler : private eckit::NonCopyable {
 
 public: // methods
 
@@ -58,21 +95,8 @@ private: // members
     eckit::ScopedPtr<eckit::Buffer> retrieveBuffer_;
 
     FDB fdb_;
-};
 
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class RemoteHandlerProcessController : public RemoteHandler
-                                     , public eckit::ProcessControler {
-
-public: // methods
-
-    RemoteHandlerProcessController(eckit::TCPSocket& socket, const Config& config = fdb5::Config());
-
-private: // methods
-
-    virtual void run();
+    ArchiveWorker archiveWorker_;
 };
 
 

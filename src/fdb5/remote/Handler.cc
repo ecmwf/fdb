@@ -33,7 +33,8 @@ namespace remote {
 
 RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
     socket_(socket),
-    fdb_(config) {}
+    fdb_(config),
+    archiveWorker_(fdb_) {}
 
 
 RemoteHandler::~RemoteHandler() {}
@@ -86,12 +87,13 @@ void RemoteHandler::handle() {
 }
 
 void RemoteHandler::flush(const MessageHeader&) {
-    Log::status() << "Flushing data" << std::endl;
+    Log::status() << "Queueing data flush" << std::endl;
     //Log::debug<LibFdb>() << "Flushing data" << std::endl;
-    Log::info() << "Flushing data" << std::endl;
+    Log::info() << "Queueing data flush" << std::endl;
+
 
     try {
-        fdb_.flush();
+        archiveWorker_.flush();
     }
     catch(const eckit::Exception& e) {
         std::string what(e.what());
@@ -123,27 +125,13 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
     MemoryStream keyStream(*archiveBuffer_);
     fdb5::Key key(keyStream);
 
-    Log::status() << "Archiving: " << key << std::endl;
-    Log::debug<LibFdb>() << "Archiving: " << key << std::endl;
+    Log::status() << "Queueing: " << key << std::endl;
+    Log::debug<LibFdb>() << "Queueing: " << key << std::endl;
 
     size_t pos = keyStream.position();
     size_t len = hdr.payloadSize - pos;
 
-    try {
-        fdb_.archive(key, &(*archiveBuffer_)[pos], len);
-    }
-    catch(const eckit::Exception& e) {
-        std::string what(e.what());
-        MessageHeader response(Message::Error, what.length());
-        socket_.write(&response, sizeof(response));
-        socket_.write(what.c_str(), what.length());
-        socket_.write(&EndMarker, sizeof(EndMarker));
-        throw;
-    }
-
-    MessageHeader response(Message::Complete);
-    socket_.write(&response, sizeof(response));
-    socket_.write(&EndMarker, sizeof(EndMarker));
+    archiveWorker_.enqueue(key, &(*archiveBuffer_)[pos], len);
 }
 
 void RemoteHandler::retrieve(const MessageHeader& hdr) {
@@ -184,8 +172,6 @@ void RemoteHandler::retrieve(const MessageHeader& hdr) {
         throw;
     }
 
-    eckit::Log::info() << "Got: " << bytesRead << " bytes" << std::endl;
-
     // ASSERT(bytesRead > 0); // May be NO fields found. That is legit.
     ASSERT(bytesRead < requiredBuffer);
 
@@ -200,14 +186,129 @@ void RemoteHandler::retrieve(const MessageHeader& hdr) {
 }
 
 
-RemoteHandlerProcessController::RemoteHandlerProcessController(eckit::TCPSocket& socket, const Config& config) :
-    RemoteHandler(socket, config) {
+//----------------------------------------------------------------------------------------------------------------------
+
+
+ArchiveWorker::ArchiveWorker(FDB& fdb) :
+    fdb_(fdb),
+    running_(false) {}
+
+
+ArchiveWorker::~ArchiveWorker() {
+    ASSERT(!running_);
+}
+
+void ArchiveWorker::enqueue(const Key& key, void* data, size_t length) {
+
+    // Ensure a worker thread exists
+    ensureWorker();
+
+    Buffer buffer(length);
+    ::memcpy(buffer, data, length);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        queue_.push(std::make_pair(key, std::move(buffer)));
+    }
+    cv_.notify_one();
 }
 
 
-void RemoteHandlerProcessController::run() {
-    handle();
+void ArchiveWorker::ensureWorker() {
+
+    // n.b. mutex must be locked
+
+    if (!running_) {
+
+        promise_ = std::promise<void>();
+
+        // And set off the thread!
+
+        thread_ = std::move(std::thread([this]{
+
+            try {
+                workerThreadLoop();
+                promise_.set_value();
+            } catch (...) {
+                promise_.set_exception(std::current_exception());
+            }
+
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                running_ = false;
+            }
+        }));
+
+        running_ = true;
+    }
 }
+
+void ArchiveWorker::workerThreadLoop() {
+
+    Key key;
+    Buffer buffer(0, 0);
+
+    while (true) {
+
+        // Pop something off the queue
+
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
+            while (queue_.empty()) {
+                cv_.wait(lock);
+            }
+
+            key = queue_.front().first;
+            std::swap(buffer, queue_.front().second);
+            queue_.pop();
+        }
+
+        // If this is a null event, then we're done!
+
+        if (key.empty()) {
+            ASSERT(buffer.size() == 0);
+
+            Log::info() << "Flushing" << std::endl;
+            Log::status() << "Flushing" << std::endl;
+            fdb_.flush();
+            Log::status() << "Flush complete" << std::endl;
+            return;
+        }
+
+        // Otherwise archive the stuff!
+
+        Log::info() << "Archive: " << key << std::endl;
+        Log::status() << "Archive: " << key << std::endl;
+
+        fdb_.archive(key, &buffer[0], buffer.size());
+
+        Log::status() << "Archive done" << std::endl;
+    }
+}
+
+
+void ArchiveWorker::flush() {
+
+    // TODO: Chcek safety. We haven't locked the running_ check...
+
+    if (running_) {
+
+        // Enqueue a blank action to signal flushing
+
+        enqueue(Key(), 0, 0);
+
+        // Throws exception if things go pear shaped. Otherwise, returns when done!
+        // exceptions handled in calling flush() function
+
+        promise_.get_future().get();
+
+        ASSERT(thread_.joinable());
+        thread_.join();
+    }
+}
+
+
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

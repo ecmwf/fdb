@@ -19,6 +19,7 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Log.h"
+#include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Translator.h"
 
@@ -48,6 +49,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config) :
     FDBBase(config),
     hostname_(config.getString("host")),
     port_(config.getLong("port")),
+    archivePosition_(0),
     connected_(false) {
 
     ASSERT(config.getString("type", "") == "remote");
@@ -118,39 +120,63 @@ void RemoteFDB::handleError(const MessageHeader& hdr) {
     }
 }
 
+void RemoteFDB::sendArchiveBuffer() {
+
+    ASSERT(archivePosition_ > 0);
+    ASSERT(archiveBuffer_);
+
+    connect();
+
+    Log::info() << "Sending archive buffer" << std::endl;
+
+    clientWrite(*archiveBuffer_, archivePosition_);
+    archivePosition_ = 0;
+
+    // n.b. we do not need a response. If TCP is happy that it has gone, then it has
+    //      gone. We handle errors from the other end in flush();
+}
+
 
 void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
-    eckit::Log::info() << "Archiving..." << std::endl;
+    static size_t bufferSize = eckit::Resource<size_t>("fdbRemoteSendBufferSize;$FDB_REMOTE_SEND_BUFFER_SIZE", 64 * 1024 * 1024);
 
-    connect();
+    if (!archiveBuffer_) {
+        archiveBuffer_.reset(new Buffer(bufferSize));
+        archivePosition_ = 0;
+    }
 
     Buffer keyBuffer(4096);
     MemoryStream keyStream(keyBuffer);
     keyStream << key;
 
-    MessageHeader msg(Message::Archive, length + keyStream.position());
+    if (archivePosition_ + sizeof(MessageHeader) + keyStream.position() + length + sizeof(EndMarker) > bufferSize) {
+        sendArchiveBuffer();
+    }
 
-    clientWrite(&msg, sizeof(msg));
-    clientWrite(keyBuffer, keyStream.position());
-    clientWrite(data, length);
-    clientWrite(&EndMarker, sizeof(EndMarker));
+    ASSERT(archivePosition_ + sizeof(MessageHeader) + keyStream.position() + length + sizeof(EndMarker) <= bufferSize);
 
-    // And wait until done (this may be overkill...)
+    eckit::Log::info() << "Buffering " << key << std::endl;
 
-    MessageHeader response;
-    eckit::FixedString<4> tail;
+    // Construct message header in place
 
-    clientRead(&response, sizeof(MessageHeader));
+    new (&(*archiveBuffer_)[archivePosition_]) MessageHeader(Message::Archive, length + keyStream.position());
+    archivePosition_ += sizeof(MessageHeader);
 
-    handleError(response);
+    // Add the key to the stream
 
-    ASSERT(response.marker == StartMarker);
-    ASSERT(response.version == CurrentVersion);
-    ASSERT(response.message == Message::Complete);
+    ::memcpy(&(*archiveBuffer_)[archivePosition_], keyBuffer, keyStream.position());
+    archivePosition_ += keyStream.position();
 
-    clientRead(&tail, 4);
-    ASSERT(tail == EndMarker);
+    // And the data
+
+    ::memcpy(&(*archiveBuffer_)[archivePosition_], data, length);
+    archivePosition_ += length;
+
+    // And we are done
+
+    ::memcpy(&(*archiveBuffer_)[archivePosition_], &EndMarker, sizeof(EndMarker));
+    archivePosition_ += sizeof(EndMarker);
 }
 
 
@@ -259,6 +285,17 @@ std::string RemoteFDB::id() const {
 
 
 void RemoteFDB::flush() {
+
+    if (archivePosition_ != 0) {
+        sendArchiveBuffer();
+    }
+
+    Log::info() << "Flushing ..." << std::endl;
+
+    ASSERT(archivePosition_ == 0);
+
+    connect();
+
     MessageHeader msg(Message::Flush);
     clientWrite(&msg, sizeof(msg));
     clientWrite(&EndMarker, sizeof(EndMarker));

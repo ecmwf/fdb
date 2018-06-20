@@ -20,6 +20,7 @@
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/memory/ScopedPtr.h"
 
 
 namespace fdb5 {
@@ -38,6 +39,7 @@ public: // method
     RemoteFDB(const eckit::Configuration& config);
     ~RemoteFDB();
 
+    /// Archive writes data into aggregation buffer
     virtual void archive(const Key& key, const void* data, size_t length);
 
     virtual eckit::DataHandle* retrieve(const MarsRequest& request);
@@ -55,6 +57,9 @@ private: // methods
     void clientRead(void* data, size_t length);
     void handleError(const MessageHeader& hdr);
 
+    /// Send the data in the aggregation buffer to the server
+    void sendArchiveBuffer();
+
     virtual void print(std::ostream& s) const;
 
 private: // members
@@ -63,6 +68,9 @@ private: // members
     int port_;
 
     eckit::TCPClient client_;
+
+    eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
+    size_t archivePosition_;
 
     bool connected_;
 };

@@ -17,6 +17,7 @@
 #include "fdb5/config/Config.h"
 
 #include "eckit/utils/Regex.h"
+#include "eckit/memory/NonCopyable.h"
 
 #include <memory>
 
@@ -31,7 +32,7 @@ class Key;
 
 /// The base class that FDB implementations are derived from
 
-class FDBBase {
+class FDBBase : private eckit::NonCopyable {
 
 public: // methods
 
