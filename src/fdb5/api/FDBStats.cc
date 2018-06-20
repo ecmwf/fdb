@@ -97,21 +97,21 @@ void FDBStats::report(std::ostream& out, const char* prefix) const {
     // Archive statistics
 
     reportCount(out, "num archive", numArchive_, prefix);
-    reportBytes(out, "bytes archived", numArchive_, bytesArchive_, sumBytesArchiveSquared_, prefix);
-    reportTimes(out, "archive time", numArchive_, elapsedArchive_, sumArchiveTimingSquared_, prefix);
+    reportBytesStats(out, "bytes archived", numArchive_, bytesArchive_, sumBytesArchiveSquared_, prefix);
+    reportTimeStats(out, "archive time", numArchive_, elapsedArchive_, sumArchiveTimingSquared_, prefix);
     reportRate(out, "archive rate", bytesArchive_, elapsedArchive_);
 
     // Retrieve statistics
 
     reportCount(out, "num retrieve", numRetrieve_, prefix);
-    reportBytes(out, "bytes retrieved", numRetrieve_, bytesRetrieve_, sumBytesRetrieveSquared_, prefix);
-    reportTimes(out, "retrieve time", numRetrieve_, elapsedRetrieve_, sumRetrieveTimingSquared_, prefix);
+    reportBytesStats(out, "bytes retrieved", numRetrieve_, bytesRetrieve_, sumBytesRetrieveSquared_, prefix);
+    reportTimeStats(out, "retrieve time", numRetrieve_, elapsedRetrieve_, sumRetrieveTimingSquared_, prefix);
     reportRate(out, "retrieve rate", bytesRetrieve_, elapsedRetrieve_);
 
     // Flush statistics
 
     reportCount(out, "num flush", numFlush_, prefix);
-    reportTimes(out, "flush time", numFlush_, elapsedFlush_, sumFlushTimingSquared_, prefix);
+    reportTimeStats(out, "flush time", numFlush_, elapsedFlush_, sumFlushTimingSquared_, prefix);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
