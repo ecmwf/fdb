@@ -115,6 +115,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
                 MemoryHandle dh(buffer, size);
                 archiver.archive(dh);
             }
+            archiver.flush();
         }
     }
 
