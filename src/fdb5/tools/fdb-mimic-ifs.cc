@@ -44,6 +44,7 @@ public:
     FDBWrite(int argc, char **argv) : fdb5::FDBAccess(argc, argv) {
 
         options_.push_back(new eckit::option::SimpleOption<std::string>("expver", "Reset expver on data"));
+        options_.push_back(new eckit::option::SimpleOption<std::string>("class", "Reset class on data"));
         options_.push_back(new eckit::option::SimpleOption<bool>("statistics", "Report statistics after run"));
         options_.push_back(new eckit::option::SimpleOption<long>("nsteps", "Number of steps"));
         options_.push_back(new eckit::option::SimpleOption<long>("nensembles", "Number of ensemble members"));
@@ -61,6 +62,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     FDBAccess::init(args);
 
     ASSERT(args.has("expver"));
+    ASSERT(args.has("class"));
     ASSERT(args.has("nlevels"));
     ASSERT(args.has("nensembles"));
     ASSERT(args.has("nsteps"));
@@ -93,6 +95,9 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
     std::string expver = args.getString("expver");
     size = expver.length();
     CODES_CHECK(codes_set_string(handle, "expver", expver.c_str(), &size), 0);
+    std::string cls = args.getString("class");
+    size = cls.length();
+    CODES_CHECK(codes_set_string(handle, "class", cls.c_str(), &size), 0);
 
     for (size_t member = 1; member <= nensembles; ++member) {
         CODES_CHECK(codes_set_long(handle, "number", member), 0);
