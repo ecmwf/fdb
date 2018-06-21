@@ -27,6 +27,7 @@
 #include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/api/FDB.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
