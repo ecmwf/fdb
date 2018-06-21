@@ -16,6 +16,7 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/maths/Functions.h"
 
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
@@ -116,7 +117,7 @@ void RemoteHandler::flush(const MessageHeader&) {
 void RemoteHandler::archive(const MessageHeader& hdr) {
 
     if (!archiveBuffer_ || archiveBuffer_->size() < hdr.payloadSize) {
-        archiveBuffer_.reset(new Buffer(hdr.payloadSize + 4096 - (((hdr.payloadSize - 1) % 4096) + 1)));
+        archiveBuffer_.reset(new Buffer( eckit::round(hdr.payloadSize, 4*1024) ));
     }
 
     ASSERT(hdr.payloadSize > 0);
@@ -200,7 +201,6 @@ ArchiveWorker::~ArchiveWorker() {
 
 void ArchiveWorker::enqueue(const Key& key, void* data, size_t length) {
 
-    // Ensure a worker thread exists
     ensureWorker();
 
     Buffer buffer(length);
@@ -215,8 +215,6 @@ void ArchiveWorker::enqueue(const Key& key, void* data, size_t length) {
 
 
 void ArchiveWorker::ensureWorker() {
-
-    // n.b. mutex must be locked
 
     if (!running_) {
 
@@ -288,8 +286,6 @@ void ArchiveWorker::workerThreadLoop() {
 
 
 void ArchiveWorker::flush() {
-
-    // TODO: Chcek safety. We haven't locked the running_ check...
 
     if (running_) {
 

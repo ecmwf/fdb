@@ -19,6 +19,7 @@
 #include <mutex>
 #include <thread>
 #include <future>
+#include <atomic>
 
 #include "eckit/thread/Thread.h"
 #include "eckit/runtime/ProcessControler.h"
@@ -66,7 +67,7 @@ private: // members
 
     std::thread thread_;
     std::promise<void> promise_;
-    bool running_;
+    std::atomic<bool> running_;
 };
 
 
