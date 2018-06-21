@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <algorithm>
 
+#include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/io/Buffer.h"
@@ -201,15 +202,22 @@ ArchiveWorker::~ArchiveWorker() {
 
 void ArchiveWorker::enqueue(const Key& key, void* data, size_t length) {
 
+    size_t maxSize = eckit::Resource<size_t>("fdbServerMaxQueueSize", 32);
+
     ensureWorker();
 
     Buffer buffer(length);
     ::memcpy(buffer, data, length);
 
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
+        while (queue_.size() >= maxSize) {
+            cv_.wait(lock);
+        }
+
         queue_.push(std::make_pair(key, std::move(buffer)));
     }
+
     cv_.notify_one();
 }
 
@@ -260,6 +268,8 @@ void ArchiveWorker::workerThreadLoop() {
             std::swap(buffer, queue_.front().second);
             queue_.pop();
         }
+
+        cv_.notify_one();
 
         // If this is a null event, then we're done!
 
