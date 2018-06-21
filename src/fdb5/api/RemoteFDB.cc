@@ -177,22 +177,6 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
     ::memcpy(&(*archiveBuffer_)[archivePosition_], &EndMarker, sizeof(EndMarker));
     archivePosition_ += sizeof(EndMarker);
-
-    // Check for a successful response
-
-    MessageHeader response;
-    eckit::FixedString<4> tail;
-
-    clientRead(&response, sizeof(MessageHeader));
-
-    handleError(response);
-
-    ASSERT(response.marker == StartMarker);
-    ASSERT(response.version == CurrentVersion);
-    ASSERT(response.message == Message::Complete);
-
-    clientRead(&tail, 4);
-    ASSERT(tail == EndMarker);
 }
 
 

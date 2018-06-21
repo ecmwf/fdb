@@ -36,8 +36,7 @@ namespace remote {
 RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
     socket_(socket),
     fdb_(config),
-    archiveWorker_(fdb_),
-    useArchiveWorker_(eckit::Resource<bool>("fdbServerUseArchiveWorker", true)){}
+    archiveWorker_(fdb_) {}
 
 
 RemoteHandler::~RemoteHandler() {}
@@ -134,30 +133,7 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
     size_t pos = keyStream.position();
     size_t len = hdr.payloadSize - pos;
 
-
-    try {
-        if (useArchiveWorker_) {
-            archiveWorker_.enqueue(key, &(*archiveBuffer_)[pos], len);
-            Log::status() << "Enqueued" << std::endl;
-            Log::info() << "Enqueued" << std::endl;
-        } else {
-            fdb_.archive(key, &(*archiveBuffer_)[pos], len);
-            Log::status() << "Archive complete" << std::endl;
-            Log::info() << "Archive complete" << std::endl;
-        }
-    }
-    catch(const eckit::Exception& e) {
-        std::string what(e.what());
-        MessageHeader response(Message::Error, what.length());
-        socket_.write(&response, sizeof(response));
-        socket_.write(what.c_str(), what.length());
-        socket_.write(&EndMarker, sizeof(EndMarker));
-        throw;
-    }
-
-    MessageHeader response(Message::Complete);
-    socket_.write(&response, sizeof(response));
-    socket_.write(&EndMarker, sizeof(EndMarker));
+    archiveWorker_.enqueue(key, &(*archiveBuffer_)[pos], len);
 }
 
 void RemoteHandler::retrieve(const MessageHeader& hdr) {

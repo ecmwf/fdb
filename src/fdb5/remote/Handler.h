@@ -99,7 +99,6 @@ private: // members
     FDB fdb_;
 
     ArchiveWorker archiveWorker_;
-    bool useArchiveWorker_;
 };
 
 
