@@ -28,10 +28,10 @@
 // TODO: Write things as one chunk?
 
 using namespace eckit;
+using namespace fdb5::remote;
 
 
 namespace fdb5 {
-namespace remote {
 
 static FDBBuilder<RemoteFDB> remoteFdbBuilder("remote");
 
@@ -49,7 +49,8 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config) :
     FDBBase(config),
     hostname_(config.getString("host")),
     port_(config.getLong("port")),
-    archivePosition_(0),
+//    archivePosition_(0),
+    archiveQueue_(eckit::Resource<size_t>("queue-length", 15)),
     connected_(false) {
 
     ASSERT(config.getString("type", "") == "remote");
@@ -120,63 +121,55 @@ void RemoteFDB::handleError(const MessageHeader& hdr) {
     }
 }
 
-void RemoteFDB::sendArchiveBuffer() {
-
-    ASSERT(archivePosition_ > 0);
-    ASSERT(archiveBuffer_);
-
-    connect();
-
-    Log::info() << "Sending archive buffer" << std::endl;
-
-    clientWrite(*archiveBuffer_, archivePosition_);
-    archivePosition_ = 0;
-
-    // n.b. we do not need a response. If TCP is happy that it has gone, then it has
-    //      gone. We handle errors from the other end in flush();
-}
-
 
 void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
-    static size_t bufferSize = eckit::Resource<size_t>("fdbRemoteSendBufferSize;$FDB_REMOTE_SEND_BUFFER_SIZE", 64 * 1024 * 1024);
-
-    if (!archiveBuffer_) {
-        archiveBuffer_.reset(new Buffer(bufferSize));
-        archivePosition_ = 0;
+    // If we aren't running a worker task to shift the data, then do that.
+    if (!archiveFuture_.valid()) {
+        archiveFuture_ = std::async(std::launch::async, [this] { archiveThreadLoop(); });
     }
+
+    // n.b. copies the key, but moves the new buffer.
+    archiveQueue_.emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
+}
+
+
+void RemoteFDB::archiveThreadLoop() {
+
+    std::pair<Key, Buffer> element {{}, 0};
+
+    while (true) {
+
+        archiveQueue_.pop(element);
+
+        const Key& key(element.first);
+        const Buffer& buffer(element.second);
+
+        if (buffer.size() == 0) {
+            ASSERT(key.empty());
+            doBlockingFlush();
+            return;
+        }
+
+        doBlockingArchive(key, buffer);
+    }
+}
+
+
+void RemoteFDB::doBlockingArchive(const Key& key, const eckit::Buffer& buffer) {
+
+    connect();
 
     Buffer keyBuffer(4096);
     MemoryStream keyStream(keyBuffer);
     keyStream << key;
 
-    if (archivePosition_ + sizeof(MessageHeader) + keyStream.position() + length + sizeof(EndMarker) > bufferSize) {
-        sendArchiveBuffer();
-    }
+    MessageHeader msg(Message::Archive, buffer.size() + keyStream.position());
 
-    ASSERT(archivePosition_ + sizeof(MessageHeader) + keyStream.position() + length + sizeof(EndMarker) <= bufferSize);
-
-    eckit::Log::info() << "Buffering " << key << std::endl;
-
-    // Construct message header in place
-
-    new (&(*archiveBuffer_)[archivePosition_]) MessageHeader(Message::Archive, length + keyStream.position());
-    archivePosition_ += sizeof(MessageHeader);
-
-    // Add the key to the stream
-
-    ::memcpy(&(*archiveBuffer_)[archivePosition_], keyBuffer, keyStream.position());
-    archivePosition_ += keyStream.position();
-
-    // And the data
-
-    ::memcpy(&(*archiveBuffer_)[archivePosition_], data, length);
-    archivePosition_ += length;
-
-    // And we are done
-
-    ::memcpy(&(*archiveBuffer_)[archivePosition_], &EndMarker, sizeof(EndMarker));
-    archivePosition_ += sizeof(EndMarker);
+    clientWrite(&msg, sizeof(msg));
+    clientWrite(keyBuffer, keyStream.position());
+    clientWrite(buffer, buffer.size());
+    clientWrite(&EndMarker, sizeof(EndMarker));
 }
 
 
@@ -238,7 +231,6 @@ private: // methods
 };
 
 
-
 eckit::DataHandle* RemoteFDB::retrieve(const MarsRequest& request) {
 
     eckit::Log::info() << "Retrieving ..." << std::endl;
@@ -286,13 +278,18 @@ std::string RemoteFDB::id() const {
 
 void RemoteFDB::flush() {
 
-    if (archivePosition_ != 0) {
-        sendArchiveBuffer();
-    }
-
     Log::info() << "Flushing ..." << std::endl;
 
-    ASSERT(archivePosition_ == 0);
+    // If we have a worker thread running (i.e. data has been written), then signal
+    // a flush to it, and wait for it to be done.
+    if (archiveFuture_.valid()) {
+        archiveQueue_.emplace(std::pair<Key, Buffer> {{}, 0});
+        archiveFuture_.get();
+    }
+}
+
+
+void RemoteFDB::doBlockingFlush() {
 
     connect();
 
@@ -320,7 +317,7 @@ void RemoteFDB::print(std::ostream &s) const {
     s << "RemoteFDB(host=" << "port=" << ")";
 }
 
+
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
 } // namespace fdb5

@@ -26,6 +26,7 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/memory/ScopedPtr.h"
+#include "eckit/container/Queue.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/database/Key.h"
@@ -39,40 +40,6 @@ namespace remote {
 class MessageHeader;
 
 //----------------------------------------------------------------------------------------------------------------------
-
-
-class ArchiveWorker : private eckit::NonCopyable {
-
-public: // members
-
-    ArchiveWorker(FDB& fdb);
-    ~ArchiveWorker();
-
-    void enqueue(const Key& key, void* data, size_t length);
-
-    void flush();
-
-private: // methods
-
-    void ensureWorker();
-    void workerThreadLoop();
-
-private: // members
-
-    FDB& fdb_;
-
-    std::mutex mutex_;
-    std::condition_variable cv_;
-    std::queue<std::pair<Key, eckit::Buffer>> queue_;
-
-    std::thread thread_;
-    std::promise<void> promise_;
-    std::atomic<bool> running_;
-};
-
-
-//----------------------------------------------------------------------------------------------------------------------
-
 
 class RemoteHandler : private eckit::NonCopyable {
 
@@ -89,6 +56,8 @@ private: // methods
     void archive(const MessageHeader& hdr);
     void retrieve(const MessageHeader& hdr);
 
+    void archiveThreadLoop();
+
 private: // members
 
     eckit::TCPSocket socket_;
@@ -98,7 +67,8 @@ private: // members
 
     FDB fdb_;
 
-    ArchiveWorker archiveWorker_;
+    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
+    std::future<void> archiveFuture_;
 };
 
 

@@ -36,7 +36,7 @@ namespace remote {
 RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
     socket_(socket),
     fdb_(config),
-    archiveWorker_(fdb_) {}
+    archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32)) {}
 
 
 RemoteHandler::~RemoteHandler() {}
@@ -93,17 +93,23 @@ void RemoteHandler::flush(const MessageHeader&) {
     //Log::debug<LibFdb>() << "Flushing data" << std::endl;
     Log::info() << "Queueing data flush" << std::endl;
 
+    // If we have a worker thread running (i.e. data has been written), then signal
+    // a flush to it, and wait for it to be done.
 
-    try {
-        archiveWorker_.flush();
-    }
-    catch(const eckit::Exception& e) {
-        std::string what(e.what());
-        MessageHeader response(Message::Error, what.length());
-        socket_.write(&response, sizeof(response));
-        socket_.write(what.c_str(), what.length());
-        socket_.write(&EndMarker, sizeof(EndMarker));
-        throw;
+    if (archiveFuture_.valid()) {
+
+        try {
+            archiveQueue_.emplace(std::pair<Key, Buffer> {{}, 0});
+            archiveFuture_.get();
+        }
+        catch(const eckit::Exception& e) {
+            std::string what(e.what());
+            MessageHeader response(Message::Error, what.length());
+            socket_.write(&response, sizeof(response));
+            socket_.write(what.c_str(), what.length());
+            socket_.write(&EndMarker, sizeof(EndMarker));
+            throw;
+        }
     }
 
     Log::status() << "Flush complete" << std::endl;
@@ -117,9 +123,19 @@ void RemoteHandler::flush(const MessageHeader&) {
 
 void RemoteHandler::archive(const MessageHeader& hdr) {
 
+    // Ensure that we have a handling thread running
+
+    if (!archiveFuture_.valid()) {
+        archiveFuture_ = std::async(std::launch::async, [this] { archiveThreadLoop(); });
+    }
+
+    // Ensure we have somewhere to read the data from the socket
+
     if (!archiveBuffer_ || archiveBuffer_->size() < hdr.payloadSize) {
         archiveBuffer_.reset(new Buffer( eckit::round(hdr.payloadSize, 4*1024) ));
     }
+
+    // Extract the data
 
     ASSERT(hdr.payloadSize > 0);
     socket_.read(*archiveBuffer_, hdr.payloadSize);
@@ -133,7 +149,11 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
     size_t pos = keyStream.position();
     size_t len = hdr.payloadSize - pos;
 
-    archiveWorker_.enqueue(key, &(*archiveBuffer_)[pos], len);
+    // Queue the data for asynchronous handling
+
+    Buffer buffer(&(*archiveBuffer_)[pos], len);
+
+    archiveQueue_.emplace(std::make_pair(std::move(key), Buffer(&(*archiveBuffer_)[pos], len)));
 }
 
 void RemoteHandler::retrieve(const MessageHeader& hdr) {
@@ -188,93 +208,19 @@ void RemoteHandler::retrieve(const MessageHeader& hdr) {
 }
 
 
-//----------------------------------------------------------------------------------------------------------------------
+void RemoteHandler::archiveThreadLoop() {
 
-
-ArchiveWorker::ArchiveWorker(FDB& fdb) :
-    fdb_(fdb),
-    running_(false) {}
-
-
-ArchiveWorker::~ArchiveWorker() {
-    ASSERT(!running_);
-}
-
-void ArchiveWorker::enqueue(const Key& key, void* data, size_t length) {
-
-    size_t maxSize = eckit::Resource<size_t>("fdbServerMaxQueueSize", 32);
-
-    ensureWorker();
-
-    Buffer buffer(length);
-    ::memcpy(buffer, data, length);
-
-    {
-        std::unique_lock<std::mutex> lock(mutex_);
-        while (queue_.size() >= maxSize) {
-            cv_.wait(lock);
-        }
-
-        queue_.push(std::make_pair(key, std::move(buffer)));
-    }
-
-    cv_.notify_one();
-}
-
-
-void ArchiveWorker::ensureWorker() {
-
-    if (!running_) {
-
-        promise_ = std::promise<void>();
-
-        // And set off the thread!
-
-        thread_ = std::move(std::thread([this]{
-
-            try {
-                workerThreadLoop();
-                promise_.set_value();
-            } catch (...) {
-                promise_.set_exception(std::current_exception());
-            }
-
-            {
-                std::lock_guard<std::mutex> lock(mutex_);
-                running_ = false;
-            }
-        }));
-
-        running_ = true;
-    }
-}
-
-void ArchiveWorker::workerThreadLoop() {
-
-    Key key;
-    Buffer buffer(0, 0);
+    std::pair<Key, Buffer> element {{}, 0};
 
     while (true) {
 
-        // Pop something off the queue
+        archiveQueue_.pop(element);
 
-        {
-            std::unique_lock<std::mutex> lock(mutex_);
-            while (queue_.empty()) {
-                cv_.wait(lock);
-            }
+        const Key& key(element.first);
+        const Buffer& buffer(element.second);
 
-            key = queue_.front().first;
-            std::swap(buffer, queue_.front().second);
-            queue_.pop();
-        }
-
-        cv_.notify_one();
-
-        // If this is a null event, then we're done!
-
-        if (key.empty()) {
-            ASSERT(buffer.size() == 0);
+        if (buffer.size() == 0) {
+            ASSERT(key.empty());
 
             Log::info() << "Flushing" << std::endl;
             Log::status() << "Flushing" << std::endl;
@@ -283,37 +229,12 @@ void ArchiveWorker::workerThreadLoop() {
             return;
         }
 
-        // Otherwise archive the stuff!
-
         Log::info() << "Archive: " << key << std::endl;
         Log::status() << "Archive: " << key << std::endl;
-
-        fdb_.archive(key, &buffer[0], buffer.size());
-
+        fdb_.archive(key, buffer, buffer.size());
         Log::status() << "Archive done" << std::endl;
     }
 }
-
-
-void ArchiveWorker::flush() {
-
-    if (running_) {
-
-        // Enqueue a blank action to signal flushing
-
-        enqueue(Key(), 0, 0);
-
-        // Throws exception if things go pear shaped. Otherwise, returns when done!
-        // exceptions handled in calling flush() function
-
-        promise_.get_future().get();
-
-        ASSERT(thread_.joinable());
-        thread_.join();
-    }
-}
-
-
 
 
 //----------------------------------------------------------------------------------------------------------------------

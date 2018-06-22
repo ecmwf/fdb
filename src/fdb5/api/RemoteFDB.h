@@ -14,6 +14,9 @@
 #ifndef fdb5_remote_RemoteFDB_H
 #define fdb5_remote_RemoteFDB_H
 
+#include <future>
+#include <thread>
+
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 
@@ -21,13 +24,16 @@
 #include "eckit/net/TCPStream.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/memory/ScopedPtr.h"
+#include "eckit/container/Queue.h"
 
 
 namespace fdb5 {
-namespace remote {
 
 class FDB;
-class MessageHeader;
+
+namespace remote {
+    class MessageHeader;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -55,10 +61,14 @@ private: // methods
 
     void clientWrite(const void* data, size_t length);
     void clientRead(void* data, size_t length);
-    void handleError(const MessageHeader& hdr);
+    void handleError(const remote::MessageHeader& hdr);
 
-    /// Send the data in the aggregation buffer to the server
-    void sendArchiveBuffer();
+    /// Do the actual communication with the server
+
+    void doBlockingFlush();
+    void doBlockingArchive(const Key& key, const eckit::Buffer& data);
+    void archiveThreadLoop();
+//    void sendArchiveBuffer();
 
     virtual void print(std::ostream& s) const;
 
@@ -69,15 +79,20 @@ private: // members
 
     eckit::TCPClient client_;
 
+#if 0
     eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
     size_t archivePosition_;
+#endif
+
+    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
+
+    std::future<void> archiveFuture_;
 
     bool connected_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
 } // namespace fdb5
 
 #endif // fdb5_remote_RemoteFDB_H
