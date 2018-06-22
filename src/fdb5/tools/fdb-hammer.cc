@@ -109,8 +109,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
             CODES_CHECK(codes_set_long(handle, "step", step), 0);
             for (size_t level = 1; level <= nlevels; ++level) {
                 CODES_CHECK(codes_set_long(handle, "level", level), 0);
-                for (size_t param_offset = 0; param_offset < nparams; ++param_offset) {
-                    size_t param = 128130 + param_offset;
+                for (size_t param = 1; param <= nparams; ++param) {
                     CODES_CHECK(codes_set_long(handle, "param", param), 0);
 
                     Log::info() << "Member: " << member
