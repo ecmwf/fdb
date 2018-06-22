@@ -110,7 +110,8 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
             for (size_t level = 1; level <= nlevels; ++level) {
                 CODES_CHECK(codes_set_long(handle, "level", level), 0);
                 for (size_t param = 1; param <= nparams; ++param) {
-                    size_t real_param = (param <= 10) ? param : param + 6; // avoid u/v
+                    size_t real_param = (param <= 10) ? param : param + 6;
+                           real_param = (real_param <= 48) ? real_param : param + 1; // avoid u/v
                     CODES_CHECK(codes_set_long(handle, "param", real_param), 0);
 
                     Log::info() << "Member: " << member
