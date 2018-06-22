@@ -163,8 +163,10 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
     MemoryStream keyStream(*archiveBuffer_);
     fdb5::Key key(keyStream);
 
-    Log::status() << "Queueing: " << key << std::endl;
-    Log::debug<LibFdb>() << "Queueing: " << key << std::endl;
+    std::stringstream ss_key;
+    ss_key << key;
+    Log::status() << "Queueing: " << ss_key.str() << std::endl;
+    Log::debug<LibFdb>() << "Queueing: " << ss_key.str() << std::endl;
 
     size_t pos = keyStream.position();
     size_t len = hdr.payloadSize - pos;
@@ -174,8 +176,8 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
     Buffer buffer(&(*archiveBuffer_)[pos], len);
 
     size_t queuelen = archiveQueue_.emplace(std::make_pair(std::move(key), Buffer(&(*archiveBuffer_)[pos], len)));
-    Log::status() << "Queued(" << queuelen << "): " << key << std::endl;
-    Log::debug<LibFdb>() << "Queued(" << queuelen << "): " << key << std::endl;
+    Log::status() << "Queued(" << queuelen << "): " << ss_key.str() << std::endl;
+    Log::debug<LibFdb>() << "Queued(" << queuelen << "): " << ss_key.str() << std::endl;
 }
 
 void RemoteHandler::retrieve(const MessageHeader& hdr) {
