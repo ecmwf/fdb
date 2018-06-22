@@ -173,7 +173,9 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
 
     Buffer buffer(&(*archiveBuffer_)[pos], len);
 
-    archiveQueue_.emplace(std::make_pair(std::move(key), Buffer(&(*archiveBuffer_)[pos], len)));
+    size_t queuelen = archiveQueue_.emplace(std::make_pair(std::move(key), Buffer(&(*archiveBuffer_)[pos], len)));
+    Log::status() << "Queued(" << queuelen << "): " << key << std::endl;
+    Log::debug<LibFdb>() << "Queued(" << queuelen << "): " << key << std::endl;
 }
 
 void RemoteHandler::retrieve(const MessageHeader& hdr) {
@@ -234,7 +236,7 @@ void RemoteHandler::archiveThreadLoop() {
 
     while (true) {
 
-        archiveQueue_.pop(element);
+        size_t queuelen = archiveQueue_.pop(element);
 
         const Key& key(element.first);
         const Buffer& buffer(element.second);
@@ -249,10 +251,10 @@ void RemoteHandler::archiveThreadLoop() {
             return;
         }
 
-        Log::info() << "Archive: " << key << std::endl;
-        Log::status() << "Archive: " << key << std::endl;
+        Log::info() << "Archive(" << queuelen << "): " << key << std::endl;
+        Log::status() << "Archive(" << queuelen << "): " << key << std::endl;
         fdb_.archive(key, buffer, buffer.size());
-        Log::status() << "Archive done" << std::endl;
+        Log::status() << "Archive done(" << queuelen << ")" << std::endl;
     }
 }
 
