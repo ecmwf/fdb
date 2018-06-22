@@ -49,11 +49,12 @@ public:
         options_.push_back(new eckit::option::SimpleOption<long>("nsteps", "Number of steps"));
         options_.push_back(new eckit::option::SimpleOption<long>("nensembles", "Number of ensemble members"));
         options_.push_back(new eckit::option::SimpleOption<long>("nlevels", "Number of levels"));
+        options_.push_back(new eckit::option::SimpleOption<long>("nparams", "Number of parameters"));
     }
 };
 
 void FDBWrite::usage(const std::string &tool) const {
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--statistics] --nsteps=<nsteps> --nensembles=<nensembles> --nlevels=<nlevels> --expver=<expver> <grib_path>" << std::endl;
+    eckit::Log::info() << std::endl << "Usage: " << tool << " [--statistics] --nsteps=<nsteps> --nensembles=<nensembles> --nlevels=<nlevels> --nparams=<nparams> --expver=<expver> <grib_path>" << std::endl;
     fdb5::FDBAccess::usage(tool);
 }
 
@@ -65,6 +66,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     ASSERT(args.has("class"));
     ASSERT(args.has("nlevels"));
     ASSERT(args.has("nsteps"));
+    ASSERT(args.has("nparam"));
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
@@ -85,6 +87,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
     size_t nsteps = args.getLong("nsteps");
     size_t nensembles = args.getLong("nensembles", 1);
     size_t nlevels = args.getLong("nlevels");
+    size_t nparams = args.getLong("nparams");
 
     const char* buffer = 0;
     size_t size = 0;
@@ -106,15 +109,20 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
             CODES_CHECK(codes_set_long(handle, "step", step), 0);
             for (size_t level = 1; level <= nlevels; ++level) {
                 CODES_CHECK(codes_set_long(handle, "level", level), 0);
+                for (size_t param_offset = 0; param_offset < nparams; ++param_offset) {
+                    size_t param = 128130 + param_offset;
+                    CODES_CHECK(codes_set_long(handle, "param", param), 0);
 
-                Log::info() << "Member: " << member
-                            << ", step: " << step
-                            << ", level: " << level << std::endl;
+                    Log::info() << "Member: " << member
+                                << ", step: " << step
+                                << ", level: " << level
+                                << ", param: " << param << std::endl;
 
-                CODES_CHECK(codes_get_message(handle, reinterpret_cast<const void**>(&buffer), &size), 0);
+                    CODES_CHECK(codes_get_message(handle, reinterpret_cast<const void**>(&buffer), &size), 0);
 
-                MemoryHandle dh(buffer, size);
-                archiver.archive(dh);
+                    MemoryHandle dh(buffer, size);
+                    archiver.archive(dh);
+                }
             }
             archiver.flush();
         }
