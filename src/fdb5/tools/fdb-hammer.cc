@@ -66,7 +66,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     ASSERT(args.has("class"));
     ASSERT(args.has("nlevels"));
     ASSERT(args.has("nsteps"));
-    ASSERT(args.has("nparam"));
+    ASSERT(args.has("nparams"));
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
