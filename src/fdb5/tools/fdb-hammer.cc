@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <unordered_set>
+
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/StdFile.h"
@@ -24,6 +26,9 @@
 #include "metkit/grib/GribHandle.h"
 
 #include "eccodes.h"
+
+// This list is currently sufficient to get to nparams=200 of levtype=ml,type=fc
+const std::unordered_set<size_t> AWKWARD_PARAMS {11, 12, 13, 14, 15, 16, 49, 51, 52, 61, 121, 122, 146, 147, 169, 175, 176, 177, 179, 189, 201, 202};
 
 
 using namespace eckit;
@@ -109,15 +114,19 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
             CODES_CHECK(codes_set_long(handle, "step", step), 0);
             for (size_t level = 1; level <= nlevels; ++level) {
                 CODES_CHECK(codes_set_long(handle, "level", level), 0);
-                for (size_t param = 1; param <= nparams; ++param) {
-                    size_t real_param = (param <= 10) ? param : param + 6;
-                           real_param = (real_param <= 48) ? real_param : param + 1; // avoid u/v
-                    CODES_CHECK(codes_set_long(handle, "param", real_param), 0);
+                for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
+
+                    // GRIB API only allows us to use certain parameters
+                    while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
+                        real_param++;
+                    }
 
                     Log::info() << "Member: " << member
                                 << ", step: " << step
                                 << ", level: " << level
                                 << ", param: " << real_param << std::endl;
+
+                    CODES_CHECK(codes_set_long(handle, "param", real_param), 0);
 
                     CODES_CHECK(codes_get_message(handle, reinterpret_cast<const void**>(&buffer), &size), 0);
 
