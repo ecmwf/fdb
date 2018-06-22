@@ -52,7 +52,7 @@ public: // methods
 
 private: // methods
 
-    void flush(const MessageHeader& hdr);
+    void flush();
     void archive(const MessageHeader& hdr);
     void retrieve(const MessageHeader& hdr);
 

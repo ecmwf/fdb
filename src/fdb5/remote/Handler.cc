@@ -18,6 +18,7 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/maths/Functions.h"
+#include "eckit/runtime/Main.h"
 
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
@@ -39,7 +40,17 @@ RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
     archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32)) {}
 
 
-RemoteHandler::~RemoteHandler() {}
+RemoteHandler::~RemoteHandler() {
+
+    // If we have launched a thread with an async and we manage to get here, this is
+    // an error. n.b. if we don't do something, we will block in the destructor
+    // of std::future.
+
+    if (archiveFuture_.valid()) {
+        Log::error() << "Attempting to destruct RemoteHandler with active archive thread" << std::endl;
+        eckit::Main::instance().terminate();
+    }
+}
 
 
 void RemoteHandler::handle() {
@@ -61,7 +72,7 @@ void RemoteHandler::handle() {
             return;
 
         case Message::Flush:
-            flush(hdr);
+            flush();
             break;
 
         case Message::Archive:
@@ -86,9 +97,18 @@ void RemoteHandler::handle() {
         ASSERT(socket_.read(&tail, 4));
         ASSERT(tail == EndMarker);
     }
+
+    // If we have got here with the archive thread still running,
+    // it is due to an unclean disconnection from the client between writing fields.
+    // Try as hard as possible!
+
+    if (archiveFuture_.valid()) {
+        flush();
+        throw eckit::ReadError("Client connection unexpectedly lost. Archived fields may be incomplete", Here());
+    }
 }
 
-void RemoteHandler::flush(const MessageHeader&) {
+void RemoteHandler::flush() {
     Log::status() << "Queueing data flush" << std::endl;
     //Log::debug<LibFdb>() << "Flushing data" << std::endl;
     Log::info() << "Queueing data flush" << std::endl;

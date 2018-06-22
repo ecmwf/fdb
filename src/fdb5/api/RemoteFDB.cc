@@ -22,6 +22,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Translator.h"
+#include "eckit/runtime/Main.h"
 
 #include "marslib/MarsRequest.h"
 
@@ -57,6 +58,15 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config) :
 }
 
 RemoteFDB::~RemoteFDB() {
+
+    // If we have launched a thread with an async and we manage to get here, this is
+    // an error. n.b. if we don't do something, we will block in the destructor
+    // of std::future.
+
+    if (archiveFuture_.valid()) {
+        Log::error() << "Attempting to destruct RemoteFDB with active archive thread" << std::endl;
+        eckit::Main::instance().terminate();
+    }
     disconnect();
 }
 
