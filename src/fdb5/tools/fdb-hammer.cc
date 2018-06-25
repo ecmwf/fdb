@@ -106,6 +106,14 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
     size = cls.length();
     CODES_CHECK(codes_set_string(handle, "class", cls.c_str(), &size), 0);
 
+    eckit::Timer timer;
+    eckit::Timer gribTimer;
+    double elapsed_grib = 0;
+    size_t writeCount = 0;
+    size_t bytesWritten = 0;
+
+    timer.start();
+
     for (size_t member = 1; member <= nensembles; ++member) {
         if (args.has("nensembles")) {
             CODES_CHECK(codes_set_long(handle, "number", member), 0);
@@ -115,7 +123,6 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
             for (size_t level = 1; level <= nlevels; ++level) {
                 CODES_CHECK(codes_set_long(handle, "level", level), 0);
                 for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
-
                     // GRIB API only allows us to use certain parameters
                     while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
                         real_param++;
@@ -130,15 +137,39 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
                     CODES_CHECK(codes_get_message(handle, reinterpret_cast<const void**>(&buffer), &size), 0);
 
+                    gribTimer.stop();
+                    elapsed_grib += gribTimer.elapsed();
+
                     MemoryHandle dh(buffer, size);
                     archiver.archive(dh);
+                    writeCount++;
+                    bytesWritten += size;
+
+                    gribTimer.start();
                 }
             }
+
+            gribTimer.stop();
+            elapsed_grib += gribTimer.elapsed();
             archiver.flush();
+            gribTimer.start();
         }
     }
 
+    gribTimer.stop();
+    elapsed_grib += gribTimer.elapsed();
+
+    timer.stop();
+
     codes_handle_delete(handle);
+
+    Log::info() << "Fields written: " << writeCount << std::endl;
+    Log::info() << "Bytes written: " << bytesWritten << std::endl;
+    Log::info() << "Total duration: " << timer.elapsed() << std::endl;
+    Log::info() << "GRIB duration: " << elapsed_grib << std::endl;
+    Log::info() << "Writing duration: " << timer.elapsed() - elapsed_grib << std::endl;
+    Log::info() << "Total rate: " << double(bytesWritten) / timer.elapsed() << " bytes / s" << std::endl;
+    Log::info() << "Total rate: " << double(bytesWritten) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
