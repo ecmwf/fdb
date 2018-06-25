@@ -54,6 +54,8 @@ public: // method
 
     virtual void flush();
 
+    virtual FDBStats stats() const;
+
 private: // methods
 
     void connect();
@@ -67,7 +69,7 @@ private: // methods
 
     void doBlockingFlush();
     void doBlockingArchive(const Key& key, const eckit::Buffer& data);
-    void archiveThreadLoop();
+    FDBStats archiveThreadLoop();
 //    void sendArchiveBuffer();
 
     virtual void print(std::ostream& s) const;
@@ -86,7 +88,9 @@ private: // members
 
     eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
 
-    std::future<void> archiveFuture_;
+    std::future<FDBStats> archiveFuture_;
+
+    FDBStats internalStats_;
 
     bool connected_;
 };

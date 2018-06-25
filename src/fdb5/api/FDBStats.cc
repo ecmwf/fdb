@@ -41,6 +41,23 @@ FDBStats::FDBStats() :
 FDBStats::~FDBStats() {}
 
 
+FDBStats& FDBStats::operator+=(const FDBStats& rhs) {
+    numArchive_ += rhs.numArchive_;
+    numFlush_ += rhs.numFlush_;
+    numRetrieve_ += rhs.numRetrieve_;
+    bytesArchive_ += rhs.bytesArchive_;
+    bytesRetrieve_ += rhs.bytesRetrieve_;
+    sumBytesArchiveSquared_ += rhs.sumBytesArchiveSquared_;
+    sumBytesRetrieveSquared_ += rhs.sumBytesRetrieveSquared_;
+    elapsedArchive_ += rhs.elapsedArchive_;
+    elapsedFlush_ += rhs.elapsedFlush_;
+    elapsedRetrieve_ += rhs.elapsedRetrieve_;
+    sumArchiveTimingSquared_ += rhs.sumArchiveTimingSquared_;
+    sumRetrieveTimingSquared_ += rhs.sumRetrieveTimingSquared_;
+    sumFlushTimingSquared_ += rhs.sumFlushTimingSquared_;
+}
+
+
 void FDBStats::addArchive(size_t length, eckit::Timer& timer) {
 
     numArchive_++;

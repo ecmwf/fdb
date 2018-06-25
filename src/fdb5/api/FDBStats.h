@@ -36,6 +36,8 @@ public:
 
     void report(std::ostream& out, const char* indent) const;
 
+    FDBStats& operator+=(const FDBStats& rhs);
+
 private: // members
 
     size_t numArchive_;

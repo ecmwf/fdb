@@ -15,6 +15,7 @@
 #define fdb5_api_FDBFactory_H
 
 #include "fdb5/config/Config.h"
+#include "fdb5/api/FDBStats.h"
 
 #include "eckit/utils/Regex.h"
 #include "eckit/memory/NonCopyable.h"
@@ -48,6 +49,8 @@ public: // methods
     virtual std::string id() const = 0;
 
     virtual void flush() = 0;
+
+    virtual FDBStats stats() const;
 
     bool writable();
     bool visitable();

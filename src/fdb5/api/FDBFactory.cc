@@ -35,6 +35,11 @@ FDBBase::FDBBase(const Config& config) :
 
 FDBBase::~FDBBase() {}
 
+FDBStats FDBBase::stats() const {
+    /// By default we have no additional internal statistics
+    return FDBStats();
+}
+
 bool FDBBase::writable() {
     return writable_;
 }

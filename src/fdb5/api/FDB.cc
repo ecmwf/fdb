@@ -28,6 +28,7 @@ FDB::~FDB() {
     flush();
     if (reportStats_) {
         stats_.report(eckit::Log::info(), "");
+        internal_->stats().report(eckit::Log::info(), "Internal ");
     }
 }
 

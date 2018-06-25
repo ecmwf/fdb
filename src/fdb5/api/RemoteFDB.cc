@@ -136,7 +136,7 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
     // If we aren't running a worker task to shift the data, then do that.
     if (!archiveFuture_.valid()) {
-        archiveFuture_ = std::async(std::launch::async, [this] { archiveThreadLoop(); });
+        archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
     }
 
     // n.b. copies the key, but moves the new buffer.
@@ -144,7 +144,10 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 }
 
 
-void RemoteFDB::archiveThreadLoop() {
+FDBStats RemoteFDB::archiveThreadLoop() {
+
+    FDBStats localStats;
+    eckit::Timer timer;
 
     std::pair<Key, Buffer> element {{}, 0};
 
@@ -157,11 +160,17 @@ void RemoteFDB::archiveThreadLoop() {
 
         if (buffer.size() == 0) {
             ASSERT(key.empty());
+            timer.start();
             doBlockingFlush();
-            return;
+            timer.stop();
+            localStats.addFlush(timer);
+            return localStats;
         }
 
+        timer.start();
         doBlockingArchive(key, buffer);
+        timer.stop();
+        localStats.addArchive(buffer.size(), timer);
     }
 }
 
@@ -294,8 +303,13 @@ void RemoteFDB::flush() {
     // a flush to it, and wait for it to be done.
     if (archiveFuture_.valid()) {
         archiveQueue_.emplace(std::pair<Key, Buffer> {{}, 0});
-        archiveFuture_.get();
+
+        internalStats_ += archiveFuture_.get();
     }
+}
+
+FDBStats RemoteFDB::stats() const {
+    return internalStats_;
 }
 
 
