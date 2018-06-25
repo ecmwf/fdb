@@ -51,6 +51,9 @@ public: // methods
     /// ID used for hashing in the Rendezvous hash. Should be unique.
     const std::string id() const;
 
+    FDBStats stats() const;
+    FDBStats internalStats() const;
+
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
     void flush();

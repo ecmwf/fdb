@@ -36,8 +36,8 @@ struct DistributionError : public eckit::Exception {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DistFDB::DistFDB(const eckit::Configuration& config) :
-    FDBBase(config) {
+DistFDB::DistFDB(const eckit::Configuration& config, const std::string& name) :
+    FDBBase(config, name) {
 
     ASSERT(config.getString("type", "") == "dist");
 
@@ -163,6 +163,14 @@ void DistFDB::flush() {
         ASSERT(thread.joinable());
         thread.join();
     }
+}
+
+FDBStats DistFDB::stats() const {
+    FDBStats s;
+    for (const auto& lane : lanes_) {
+        s += lane.internalStats();
+    }
+    return s;
 }
 
 

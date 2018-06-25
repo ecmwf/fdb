@@ -46,8 +46,8 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RemoteFDB::RemoteFDB(const eckit::Configuration& config) :
-    FDBBase(config),
+RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name) :
+    FDBBase(config, name),
     hostname_(config.getString("host")),
     port_(config.getLong("port")),
 //    archivePosition_(0),

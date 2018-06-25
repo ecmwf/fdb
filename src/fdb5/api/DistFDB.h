@@ -31,7 +31,7 @@ class DistFDB : public FDBBase {
 
 public: // method
 
-    DistFDB(const eckit::Configuration& config);
+    DistFDB(const eckit::Configuration& config, const std::string& name);
     ~DistFDB();
 
     virtual void archive(const Key& key, const void* data, size_t length);
@@ -41,6 +41,8 @@ public: // method
     virtual std::string id() const;
 
     virtual void flush();
+
+    virtual FDBStats stats() const;
 
 private: // methods
 

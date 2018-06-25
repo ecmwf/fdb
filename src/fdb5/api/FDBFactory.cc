@@ -23,7 +23,8 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FDBBase::FDBBase(const Config& config) :
+FDBBase::FDBBase(const Config& config, const std::string& name) :
+    name_(name),
     config_(config),
     writable_(config.getBool("writable", true)),
     visitable_(config.getBool("visitable", true)),
@@ -38,6 +39,10 @@ FDBBase::~FDBBase() {}
 FDBStats FDBBase::stats() const {
     /// By default we have no additional internal statistics
     return FDBStats();
+}
+
+const std::string &FDBBase::name() const {
+    return name_;
 }
 
 bool FDBBase::writable() {

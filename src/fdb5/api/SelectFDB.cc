@@ -56,8 +56,8 @@ std::map<std::string, eckit::Regex> parseFDBSelect(const eckit::LocalConfigurati
 }
 
 
-SelectFDB::SelectFDB(const Config& config) :
-    FDBBase(config) {
+SelectFDB::SelectFDB(const Config& config, const std::string& name) :
+    FDBBase(config, name) {
 
     ASSERT(config.getString("type", "") == "select");
 

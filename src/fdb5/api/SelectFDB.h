@@ -37,7 +37,7 @@ class SelectFDB : public FDBBase {
 
 public: // methods
 
-    SelectFDB(const Config& config);
+    SelectFDB(const Config& config, const std::string& name);
     virtual ~SelectFDB();
 
     virtual void archive(const Key& key, const void* data, size_t length);

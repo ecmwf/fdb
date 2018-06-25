@@ -28,7 +28,7 @@ FDB::~FDB() {
     flush();
     if (reportStats_) {
         stats_.report(eckit::Log::info(), "");
-        internal_->stats().report(eckit::Log::info(), "Internal ");
+        internal_->stats().report(eckit::Log::info(), (internal_->name() + " ").c_str());
     }
 }
 
@@ -56,6 +56,14 @@ eckit::DataHandle* FDB::retrieve(const MarsRequest& request) {
 
 const std::string FDB::id() const {
     return internal_->id();
+}
+
+FDBStats FDB::stats() const {
+    return stats_;
+}
+
+FDBStats FDB::internalStats() const {
+    return internal_->stats();
 }
 
 void FDB::print(std::ostream& s) const {

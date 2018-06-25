@@ -37,7 +37,7 @@ class FDBBase : private eckit::NonCopyable {
 
 public: // methods
 
-    FDBBase(const Config& config);
+    FDBBase(const Config& config, const std::string& name);
     virtual ~FDBBase();
 
     virtual void archive(const Key& key, const void* data, size_t length) = 0;
@@ -51,6 +51,8 @@ public: // methods
     virtual void flush() = 0;
 
     virtual FDBStats stats() const;
+
+    const std::string& name() const;
 
     bool writable();
     bool visitable();
@@ -68,6 +70,8 @@ private: // methods
     }
 
 protected: // members
+
+    const std::string name_;
 
     Config config_;
 
@@ -111,7 +115,7 @@ protected: // methods
 
     virtual ~FDBBuilderBase();
 
-private: // members
+protected: // members
 
     std::string name_;
 };
@@ -130,7 +134,7 @@ public: // methods
 private: // methods
 
     virtual std::unique_ptr<FDBBase> make(const Config& config) const {
-        return std::unique_ptr<T>(new T(config));
+        return std::unique_ptr<T>(new T(config, name_));
     }
 };
 

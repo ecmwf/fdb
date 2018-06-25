@@ -42,7 +42,7 @@ class RemoteFDB : public FDBBase {
 
 public: // method
 
-    RemoteFDB(const eckit::Configuration& config);
+    RemoteFDB(const eckit::Configuration& config, const std::string& name);
     ~RemoteFDB();
 
     /// Archive writes data into aggregation buffer
