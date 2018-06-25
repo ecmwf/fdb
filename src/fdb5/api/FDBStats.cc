@@ -116,14 +116,14 @@ void FDBStats::report(std::ostream& out, const char* prefix) const {
     reportCount(out, "num archive", numArchive_, prefix);
     reportBytesStats(out, "bytes archived", numArchive_, bytesArchive_, sumBytesArchiveSquared_, prefix);
     reportTimeStats(out, "archive time", numArchive_, elapsedArchive_, sumArchiveTimingSquared_, prefix);
-    reportRate(out, "archive rate", bytesArchive_, elapsedArchive_);
+    reportRate(out, "archive rate", bytesArchive_, elapsedArchive_, prefix);
 
     // Retrieve statistics
 
     reportCount(out, "num retrieve", numRetrieve_, prefix);
     reportBytesStats(out, "bytes retrieved", numRetrieve_, bytesRetrieve_, sumBytesRetrieveSquared_, prefix);
     reportTimeStats(out, "retrieve time", numRetrieve_, elapsedRetrieve_, sumRetrieveTimingSquared_, prefix);
-    reportRate(out, "retrieve rate", bytesRetrieve_, elapsedRetrieve_);
+    reportRate(out, "retrieve rate", bytesRetrieve_, elapsedRetrieve_, prefix);
 
     // Flush statistics
 
