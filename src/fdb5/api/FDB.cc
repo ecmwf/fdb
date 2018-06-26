@@ -27,8 +27,8 @@ FDB::FDB(const Config &config) :
 FDB::~FDB() {
     flush();
     if (reportStats_ && internal_) {
-        stats_.report(eckit::Log::info(), "");
-        internal_->stats().report(eckit::Log::info(), (internal_->name() + " ").c_str());
+        stats_.report(eckit::Log::info(), (internal_->name() + " ").c_str());
+        internal_->stats().report(eckit::Log::info(), (internal_->name() + " internal ").c_str());
     }
 }
 
