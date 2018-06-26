@@ -51,8 +51,9 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     hostname_(config.getString("host")),
     port_(config.getLong("port")),
 //    archivePosition_(0),
-    archiveQueue_(eckit::Resource<size_t>("queue-length", 15)),
-    connected_(false) {
+    archiveQueue_(eckit::Resource<size_t>("queue-length", 200)),
+    connected_(false),
+    noThreadArchive_(eckit::Resource<bool>("fdbRemoteNoThreadArchive;$FDB_REMOTE_NO_THREAD_ARCHIVE", false)) {
 
     ASSERT(config.getString("type", "") == "remote");
 }
@@ -134,13 +135,23 @@ void RemoteFDB::handleError(const MessageHeader& hdr) {
 
 void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
-    // If we aren't running a worker task to shift the data, then do that.
-    if (!archiveFuture_.valid()) {
-        archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
-    }
+    if (noThreadArchive_) {
 
-    // n.b. copies the key, but moves the new buffer.
-    archiveQueue_.emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
+        timer_.start();
+        addToArchiveBuffer(key, data, length);
+        timer_.stop();
+        internalStats_.addArchive(length, timer_);
+
+    } else {
+
+        // If we aren't running a worker task to shift the data, then do that.
+        if (!archiveFuture_.valid()) {
+            archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
+        }
+
+        // n.b. copies the key, but moves the new buffer.
+        archiveQueue_.emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
+    }
 }
 
 
@@ -341,12 +352,22 @@ void RemoteFDB::flush() {
 
     Log::info() << "Flushing ..." << std::endl;
 
-    // If we have a worker thread running (i.e. data has been written), then signal
-    // a flush to it, and wait for it to be done.
-    if (archiveFuture_.valid()) {
-        archiveQueue_.emplace(std::pair<Key, Buffer> {{}, 0});
+    if (noThreadArchive_) {
 
-        internalStats_ += archiveFuture_.get();
+        timer_.start();
+        doBlockingFlush();
+        timer_.stop();
+        internalStats_.addFlush(timer_);
+
+    } else {
+
+        // If we have a worker thread running (i.e. data has been written), then signal
+        // a flush to it, and wait for it to be done.
+        if (archiveFuture_.valid()) {
+            archiveQueue_.emplace(std::pair<Key, Buffer> {{}, 0});
+
+            internalStats_ += archiveFuture_.get();
+        }
     }
 }
 

@@ -83,6 +83,7 @@ private: // members
     int port_;
 
     eckit::TCPClient client_;
+    eckit::Timer timer_;
 
     eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
     size_t archivePosition_;
@@ -94,6 +95,7 @@ private: // members
     FDBStats internalStats_;
 
     bool connected_;
+    bool noThreadArchive_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
