@@ -168,13 +168,14 @@ FDBStats RemoteFDB::archiveThreadLoop() {
         }
 
         timer.start();
-        doBlockingArchive(key, buffer);
+        addToArchiveBuffer(key, buffer, buffer.size());
         timer.stop();
         localStats.addArchive(buffer.size(), timer);
     }
 }
 
 
+#if 0
 void RemoteFDB::doBlockingArchive(const Key& key, const eckit::Buffer& buffer) {
 
     connect();
@@ -190,7 +191,48 @@ void RemoteFDB::doBlockingArchive(const Key& key, const eckit::Buffer& buffer) {
     clientWrite(buffer, buffer.size());
     clientWrite(&EndMarker, sizeof(EndMarker));
 }
+#endif
 
+
+void RemoteFDB::addToArchiveBuffer(const Key& key, const void* data, size_t length) {
+
+    static size_t bufferSize = eckit::Resource<size_t>("fdbRemoteSendBufferSize;$FDB_REMOTE_SEND_BUFFER_SIZE", 64 * 1024 * 1024);
+
+    if (!archiveBuffer_) {
+        archiveBuffer_.reset(new Buffer(bufferSize));
+        archivePosition_ = 0;
+    }
+
+    Buffer keyBuffer(4096);
+    MemoryStream keyStream(keyBuffer);
+    keyStream << key;
+
+    if (archivePosition_ + sizeof(MessageHeader) + keyStream.position() + length + sizeof(EndMarker) > bufferSize) {
+        sendArchiveBuffer();
+    }
+
+    ASSERT(archivePosition_ + sizeof(MessageHeader) + keyStream.position() + length + sizeof(EndMarker) <= bufferSize);
+
+    // Construct message header in place
+
+    new (&(*archiveBuffer_)[archivePosition_]) MessageHeader(Message::Archive, length + keyStream.position());
+    archivePosition_ += sizeof(MessageHeader);
+
+    // Add the key to the stream
+
+    ::memcpy(&(*archiveBuffer_)[archivePosition_], keyBuffer, keyStream.position());
+    archivePosition_ += keyStream.position();
+
+    // And the data
+
+    ::memcpy(&(*archiveBuffer_)[archivePosition_], data, length);
+    archivePosition_ += length;
+
+    // And we are done
+
+    ::memcpy(&(*archiveBuffer_)[archivePosition_], &EndMarker, sizeof(EndMarker));
+    archivePosition_ += sizeof(EndMarker);
+}
 
 /// A data handle that pulls the specified amount of data from a socket into a buffer,
 /// and then stores it there until requested.
@@ -313,6 +355,66 @@ FDBStats RemoteFDB::stats() const {
 }
 
 
+void RemoteFDB::sendArchiveBuffer() {
+
+    ASSERT(archivePosition_ > 0);
+    ASSERT(archiveBuffer_);
+
+    connect();
+
+    Log::info() << "Sending archive buffer" << std::endl;
+
+    clientWrite(*archiveBuffer_, archivePosition_);
+    archivePosition_ = 0;
+
+    // n.b. we do not need a response. If TCP is happy that it has gone, then it has
+    //      gone. We handle errors from the other end in flush();
+}
+
+
+void RemoteFDB::doBlockingFlush() {
+
+    /// If we have never written any data (i.e. not dirty) then we should never have
+    /// got here, so this should be allocated
+    ASSERT(archiveBuffer_);
+
+    if (archivePosition_ + sizeof(MessageHeader) + sizeof(EndMarker) > archiveBuffer_->size()) {
+        sendArchiveBuffer();
+    }
+
+    // Construct the flush message
+
+    ASSERT(archivePosition_ + sizeof(MessageHeader) + sizeof(EndMarker) <= archiveBuffer_->size());
+
+    new (&(*archiveBuffer_)[archivePosition_]) MessageHeader(Message::Flush);
+    archivePosition_ += sizeof(MessageHeader);
+
+    ::memcpy(&(*archiveBuffer_)[archivePosition_], &EndMarker, sizeof(EndMarker));
+    archivePosition_ += sizeof(EndMarker);
+
+    // Push all the data through, including any unsent fields
+
+    sendArchiveBuffer();
+
+    // Wait for the response
+
+    MessageHeader response;
+    eckit::FixedString<4> tail;
+
+    clientRead(&response, sizeof(MessageHeader));
+
+    handleError(response);
+
+    ASSERT(response.marker == StartMarker);
+    ASSERT(response.version == CurrentVersion);
+    ASSERT(response.message == Message::Complete);
+
+    clientRead(&tail, sizeof(tail));
+    ASSERT(tail == EndMarker);
+}
+
+
+#if 0
 void RemoteFDB::doBlockingFlush() {
 
     connect();
@@ -335,6 +437,7 @@ void RemoteFDB::doBlockingFlush() {
     clientRead(&tail, 4);
     ASSERT(tail == EndMarker);
 }
+#endif
 
 
 void RemoteFDB::print(std::ostream &s) const {

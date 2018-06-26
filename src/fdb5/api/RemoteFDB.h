@@ -68,9 +68,12 @@ private: // methods
     /// Do the actual communication with the server
 
     void doBlockingFlush();
-    void doBlockingArchive(const Key& key, const eckit::Buffer& data);
+    //void doBlockingArchive(const Key& key, const eckit::Buffer& data);
     FDBStats archiveThreadLoop();
-//    void sendArchiveBuffer();
+
+    void addToArchiveBuffer(const Key&, const void* data, size_t length);
+    void addFlushToArchiveBuffer();
+    void sendArchiveBuffer();
 
     virtual void print(std::ostream& s) const;
 
@@ -81,10 +84,8 @@ private: // members
 
     eckit::TCPClient client_;
 
-#if 0
     eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
     size_t archivePosition_;
-#endif
 
     eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
 
