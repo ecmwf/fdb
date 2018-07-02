@@ -119,7 +119,7 @@ void RemoteHandler::flush() {
     if (archiveFuture_.valid()) {
 
         try {
-            archiveQueue_.emplace(std::pair<Key, Buffer> {{}, 0});
+            archiveQueue_.emplace(std::pair<Key, Buffer>(Key{}, 0));
             archiveFuture_.get();
         }
         catch(const eckit::Exception& e) {
@@ -234,7 +234,7 @@ void RemoteHandler::retrieve(const MessageHeader& hdr) {
 
 void RemoteHandler::archiveThreadLoop() {
 
-    std::pair<Key, Buffer> element {{}, 0};
+    std::pair<Key, Buffer> element {Key{}, 0};
 
     while (true) {
 

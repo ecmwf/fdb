@@ -160,7 +160,7 @@ FDBStats RemoteFDB::archiveThreadLoop() {
     FDBStats localStats;
     eckit::Timer timer;
 
-    std::pair<Key, Buffer> element {{}, 0};
+    std::pair<Key, Buffer> element {Key{}, 0};
 
     while (true) {
 
@@ -364,8 +364,7 @@ void RemoteFDB::flush() {
         // If we have a worker thread running (i.e. data has been written), then signal
         // a flush to it, and wait for it to be done.
         if (archiveFuture_.valid()) {
-            archiveQueue_.emplace(std::pair<Key, Buffer> {{}, 0});
-
+            archiveQueue_.emplace(std::pair<Key, Buffer>{Key{}, 0});
             internalStats_ += archiveFuture_.get();
         }
     }
