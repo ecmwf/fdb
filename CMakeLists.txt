@@ -120,7 +120,7 @@ ecbuild_add_option( FEATURE EXPERIMENTAL
 ### FDB4 - 5 migration tools
 
 ecbuild_add_option( FEATURE FDB4_MIGRATION
-                    DEFAULT OFF
+                    DEFAULT ON
                     DESCRIPTION "FDB4 to 5 migration tools"
                     REQUIRED_PACKAGES "PROJECT fdb" )
 

@@ -268,7 +268,7 @@ const static LookupMap PARAMETER_MAP {
         }
     },
     { "oper=fc", M{
-            {"41", "3041"},
+//            {"41", "3041"},
         }
     },
     { "scwv=an", M{
@@ -642,6 +642,7 @@ class FDBPartialAdopt : public FDBTool {
         fdbName_("fdb"),
         compareToGrib_(false) {
         options_.push_back(new eckit::option::SimpleOption<bool>("verify", "Explicitly verify keys against GRIB headers"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("continue-on-verify-error", "If a verification error occurs, print but continue"));
     }
 
   private:
@@ -650,6 +651,7 @@ class FDBPartialAdopt : public FDBTool {
     Archiver archiver_;
 
     bool compareToGrib_;
+    bool continueOnVerificationError_;
 };
 
 
@@ -661,6 +663,7 @@ void FDBPartialAdopt::usage(const std::string &tool) const {
 
 void FDBPartialAdopt::init(const eckit::option::CmdArgs &args) {
     args.get("verify", compareToGrib_);
+    args.get("continue-on-verify-error", continueOnVerificationError_);
 }
 
 
@@ -707,21 +710,51 @@ void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
 
         // Iterate over key-value pairs in supplied request
 
-        Key rq(args(i));
+        Key request(args(i));
 
-        for (const auto& kv : rq ) {
-            // n.b. const_cast due to (incorrect) non-const arguments in fdb headers
-            ::setvalfdb(&fdb, const_cast<char*>(kv.first.c_str()), const_cast<char*>(kv.second.c_str()));
+        // Depending on the type/step, we may have to set the leg. Or iterate over it.
+
+        std::vector<Key> requests;
+        if (request.find("type") != request.end() && (request.get("type") == "pf" || request.get("type") == "cf")) {
+            if (request.find("step") != request.end()) {
+                long s = ::strtol(request.get("step").c_str(), NULL, 10);
+                ASSERT(s >= 0);
+                if (s < 360) {
+                    request.set("leg", "1");
+                } else {
+                    request.set("leg", "2");
+                }
+                requests.push_back(request);
+            } else {
+                for (const std::string& l : {"1", "2"}) {
+                    request.set("leg", l);
+                    requests.push_back(request);
+                }
+            }
+        } else {
+            requests.push_back(request);
         }
 
-        char index_name[FDB_PATH_MAX];
-        char data_name[FDB_PATH_MAX];
-        int parallelDB;
-        if (::IndexandDataStreamNames(&fdb, index_name, data_name, &parallelDB) != 0) {
-            throw FDBToolException("There is no available FDB database with the specified parameters", Here());
-        }
+        // Loop over the requests determined (normally just one).
 
-        adoptIndex(index_name, rq, &fdb, base);
+        for (const auto& rq : requests) {
+
+            Log::info() << "Rq: " << rq << std::endl;
+
+            for (const auto& kv : rq ) {
+                // n.b. const_cast due to (incorrect) non-const arguments in fdb headers
+                ::setvalfdb(&fdb, const_cast<char*>(kv.first.c_str()), const_cast<char*>(kv.second.c_str()));
+            }
+
+            char index_name[FDB_PATH_MAX];
+            char data_name[FDB_PATH_MAX];
+            int parallelDB;
+            if (::IndexandDataStreamNames(&fdb, index_name, data_name, &parallelDB) != 0) {
+                throw FDBToolException("There is no available FDB database with the specified parameters", Here());
+            }
+
+            adoptIndex(index_name, rq, &fdb, base);
+        }
 
         ::closefdb(&fdb);
     }
@@ -797,8 +830,16 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
                             Key grib;
                             decoder.gribToKey(file, grib);
 
+                            // Leg is a weird one
+                            if (fullKey.find("leg") != fullKey.end()) fullKey.unset("leg");
+
                             // Throws exception on failure
-                            grib.validateKeysOf(fullKey, true);
+                            try {
+                                grib.validateKeysOf(fullKey, true);
+                            } catch (Exception& e) {
+                                if (!continueOnVerificationError_) throw;
+                                Log::error() << e.what() << std::endl;
+                            }
                         }
 
                         // Adopt to FDB5
