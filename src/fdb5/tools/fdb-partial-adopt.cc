@@ -166,8 +166,6 @@ void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
 
         for (const auto& rq : requests) {
 
-            Log::info() << "Rq: " << rq << std::endl;
-
             for (const auto& kv : rq ) {
                 // n.b. const_cast due to (incorrect) non-const arguments in fdb headers
                 ::setvalfdb(&fdb, const_cast<char*>(kv.first.c_str()), const_cast<char*>(kv.second.c_str()));
@@ -244,7 +242,10 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
 
                         Key fullKey;
                         for (const auto& kv : request) translator.set(fullKey, kv.first, kv.second);
-                            for (const auto& kv : partialFieldKey) translator.set(fullKey, kv.first, kv.second);
+                        for (const auto& kv : partialFieldKey) translator.set(fullKey, kv.first, kv.second);
+
+                        // Leg is a weird one
+                        if (fullKey.find("leg") != fullKey.end()) fullKey.unset("leg");
 
                         // Convert the Key into a request to pass through the MARS expander
 
@@ -270,9 +271,6 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
                             archiveKey.set(p, values[0]);
                         }
 
-                        // Leg is a weird one
-                        if (archiveKey.find("leg") != archiveKey.end()) archiveKey.unset("leg");
-
                         // Validate if required
 
                         if (compareToGrib_) {
@@ -283,6 +281,8 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
                             try {
                                 gribKey.validateKeysOf(archiveKey, true);
                             } catch (Exception& e) {
+                                Log::info() << "MARS: " << archiveKey << std::endl;
+                                Log::info() << "GRIB: " << gribKey << std::endl;
                                 if (!continueOnVerificationError_) throw;
                                 Log::error() << e.what() << std::endl;
                             }
