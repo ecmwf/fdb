@@ -129,11 +129,24 @@ const static LookupMap PARAMETER_MAP {
         }
     },
     { "enfo=fcmean", M{
-            {"138", "171138"},
-            {"155", "171155"},
+            //{"138", "171138"},
+            //{"155", "171155"},
+            {"142", "172142"},
+            {"143", "172143"},
             {"144", "172144"},
+            {"146", "172146"},
+            {"147", "172147"},
+            {"178", "172178"},
+            {"179", "172179"},
+            {"180", "172180"},
+            {"181", "172181"},
+            {"182", "172182"},
             {"189", "172189"},
             {"228", "172228"},
+            {"175", "172175"},
+            {"176", "172176"},
+            {"177", "172177"},
+            {"169", "172169"},
         }
     },
     { "enfo=pd", M{
@@ -849,6 +862,7 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
 
                         // Adopt to FDB5
 
+                        Log::info() << "Adopting: " << fullKey << std::endl;
                         AdoptVisitor visitor(archiver_, fullKey, datapath, offset, length);
                         archiver_.archive(fullKey, visitor);
                     }
