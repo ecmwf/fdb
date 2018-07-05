@@ -21,11 +21,15 @@
 #include "fdb5/config/UMask.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/legacy/LegacyTranslator.h"
 #include "fdb5/grib/GribDecoder.h"
 #include "fdb5/toc/AdoptVisitor.h"
 #include "fdb5/tools/FDBTool.h"
 
 #include "marslib/EmosFile.h"
+
+#include "metkit/MarsLanguage.h"
+#include "metkit/MarsRequest.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -35,584 +39,6 @@ extern "C" {
     extern fdb_dic* parser_list;
     extern fdb_base *fdbbase;
 }
-
-//----------------------------------------------------------------------------------------------------------------------
-
-// Mapping between param <--> parameter for fdb4/5 for certain stream/type combinations
-//
-// This is the inverse mapping to the one in pgen/sources/FDB4Sourc..cc
-
-typedef std::map<std::string, std::string> M;
-typedef std::map<std::string, M> LookupMap;
-const static LookupMap PARAMETER_MAP {
-
-    { "efhs=taem", M{
-            {"144", "172144"},
-            {"189", "172189"},
-            {"228", "172228"},
-        }
-    },
-    { "enfh=fcmean", M{
-            {"144", "172144"},
-            {"189", "172189"},
-            {"228", "172228"},
-        }
-    },
-    { "enfo=efi", M{
-            {"44", "132044"},
-            {"49", "132049"},
-            {"59", "132059"},
-            {"144", "132144"},
-            {"165", "132165"},
-            {"167", "132167"},
-            {"201", "132201"},
-            {"202", "132202"},
-            {"228", "132228"},
-        }
-    },
-    { "enfo=efic", M{
-            {"44", "132044"},
-            {"49", "132049"},
-            {"59", "132059"},
-            {"144", "132144"},
-            {"165", "132165"},
-            {"167", "132167"},
-            {"201", "132201"},
-            {"202", "132202"},
-            {"228", "132228"},
-        }
-    },
-    { "enfo=ep", M{
-            {"1", "131001"},
-            {"2", "131002"},
-            {"3", "131003"},
-            {"4", "131004"},
-            {"5", "131005"},
-            {"6", "131006"},
-            {"7", "131007"},
-            {"8", "131008"},
-            {"10", "131010"},
-            {"20", "131020"},
-            {"21", "131021"},
-            {"22", "131022"},
-            {"23", "131023"},
-            {"24", "131024"},
-            {"25", "131025"},
-            {"60", "131060"},
-            {"61", "131061"},
-            {"62", "131062"},
-            {"63", "131063"},
-            {"64", "131064"},
-            {"65", "131065"},
-            {"66", "131066"},
-            {"67", "131067"},
-            {"68", "131068"},
-            {"69", "131069"},
-            {"70", "131070"},
-            {"71", "131071"},
-            {"72", "131072"},
-            {"73", "131073"},
-            {"89", "131089"},
-            {"90", "131090"},
-            {"91", "131091"},
-        }
-    },
-    { "enfo=fcmean", M{
-            {"138", "171138"},
-            {"155", "171155"},
-            {"144", "172144"},
-            {"189", "172189"},
-            {"228", "172228"},
-        }
-    },
-    { "enfo=pd", M{
-            {"129", "131129"},
-            {"167", "131167"},
-            {"228", "131228"},
-        }
-    },
-    { "enfo=sot", M{
-            {"44", "132044"},
-            {"49", "132049"},
-            {"59", "132059"},
-            {"144", "132144"},
-            {"165", "132165"},
-            {"167", "132167"},
-            {"201", "132201"},
-            {"202", "132202"},
-            {"228", "132228"},
-        }
-    },
-    { "enfo=taem", M{
-            {"144", "172144"},
-            {"189", "172189"},
-            {"228", "172228"},
-        }
-    },
-    { "enwh=pf", M{
-            {"220", "140220"},
-        }
-    },
-    { "esmm=em", M{
-            {"34", "171034"},
-            {"129", "171129"},
-            {"130", "171130"},
-            {"131", "171131"},
-            {"132", "171132"},
-            {"151", "171151"},
-            {"167", "171167"},
-            {"228", "171228"},
-        }
-    },
-    { "mmsa=em", M{
-            {"33", "171033"},
-            {"34", "171034"},
-            {"51", "171051"},
-            {"52", "171052"},
-            {"129", "171129"},
-            {"130", "171130"},
-            {"138", "171138"},
-            {"139", "171139"},
-            {"141", "171141"},
-            {"151", "171151"},
-            {"155", "171155"},
-            {"165", "171165"},
-            {"166", "171166"},
-            {"167", "171167"},
-            {"168", "171168"},
-            {"144", "173144"},
-            {"228", "173228"},
-        }
-    },
-    { "mmsa=fcmean", M{
-            {"33", "171033"},
-            {"34", "171034"},
-            {"39", "171039"},
-            {"40", "171040"},
-            {"41", "171041"},
-            {"42", "171042"},
-            {"49", "171049"},
-            {"51", "171051"},
-            {"52", "171052"},
-            {"60", "171060"},
-            {"129", "171129"},
-            {"130", "171130"},
-            {"133", "171133"},
-            {"138", "171138"},
-            {"139", "171139"},
-            {"141", "171141"},
-            {"151", "171151"},
-            {"155", "171155"},
-            {"164", "171164"},
-            {"165", "171165"},
-            {"166", "171166"},
-            {"167", "171167"},
-            {"168", "171168"},
-            {"169", "171169"},
-            {"170", "171170"},
-            {"186", "171186"},
-            {"207", "171207"},
-            {"142", "173142"},
-            {"143", "173143"},
-            {"144", "173144"},
-            {"146", "173146"},
-            {"178", "173178"},
-            {"179", "173179"},
-            {"180", "173180"},
-            {"181", "173181"},
-            {"182", "173182"},
-            {"189", "173189"},
-            {"228", "173228"},
-            {"147", "173147"},
-            {"175", "173175"},
-            {"176", "173176"},
-            {"177", "173177"},
-        }
-    },
-    { "msmm=em", M{
-            {"142", "172142"},
-            {"143", "172143"},
-            {"144", "172144"},
-            {"146", "172146"},
-            {"147", "172147"},
-            {"178", "172178"},
-            {"179", "172179"},
-            {"180", "172180"},
-            {"181", "172181"},
-            {"182", "172182"},
-            {"189", "172189"},
-            {"228", "172228"},
-            {"175", "172175"},
-            {"176", "172176"},
-            {"177", "172177"},
-        }
-    },
-    { "msmm=fcmean", M{
-            {"215", "172140215"}, // TODO: Is this really correct?
-            {"142", "172142"},
-            {"143", "172143"},
-            {"144", "172144"},
-            {"146", "172146"},
-            {"147", "172147"},
-            {"216", "17216"},
-            {"178", "172178"},
-            {"179", "172179"},
-            {"180", "172180"},
-            {"181", "172181"},
-            {"182", "172182"},
-            {"189", "172189"},
-            {"228", "172228"},
-            {"175", "172175"},
-            {"176", "172176"},
-            {"177", "172177"},
-        }
-    },
-    { "oper=fc", M{
-//            {"41", "3041"},
-        }
-    },
-    { "scwv=an", M{
-            {"112", "140112"},
-            {"113", "140113"},
-            {"114", "140114"},
-            {"115", "140115"},
-            {"116", "140116"},
-            {"117", "140117"},
-            {"118", "140118"},
-            {"119", "140119"},
-            {"220", "140220"},
-            {"121", "140121"},
-            {"122", "140122"},
-            {"123", "140123"},
-            {"124", "140124"},
-            {"125", "140125"},
-            {"126", "140126"},
-            {"127", "140127"},
-            {"128", "140128"},
-            {"129", "140129"},
-            {"214", "140214"},
-            {"215", "140215"},
-            {"216", "140216"},
-            {"217", "140217"},
-            {"218", "140218"},
-            {"219", "140219"},
-            {"220", "140220"},
-            {"220", "140225"},
-            {"221", "140221"},
-            {"223", "140223"},
-            {"224", "140224"},
-            {"225", "140225"},
-            {"226", "140226"},
-            {"227", "140227"},
-            {"229", "140229"},
-            {"230", "140230"},
-            {"231", "140231"},
-            {"232", "140232"},
-            {"233", "140233"},
-            {"234", "140234"},
-            {"235", "140235"},
-            {"236", "140236"},
-            {"237", "140237"},
-            {"238", "140238"},
-            {"239", "140239"},
-            {"244", "140244"},
-            {"245", "140245"},
-            {"249", "140249"},
-            {"251", "140251"},
-            {"253", "140253"},
-        }
-    },
-    { "scwv=fc", M{
-            {"112", "140112"},
-            {"113", "140113"},
-            {"114", "140114"},
-            {"115", "140115"},
-            {"116", "140116"},
-            {"117", "140117"},
-            {"118", "140118"},
-            {"119", "140119"},
-            {"220", "140220"},
-            {"121", "140121"},
-            {"122", "140122"},
-            {"123", "140123"},
-            {"124", "140124"},
-            {"125", "140125"},
-            {"126", "140126"},
-            {"127", "140127"},
-            {"128", "140128"},
-            {"129", "140129"},
-            {"214", "140214"},
-            {"215", "140215"},
-            {"216", "140216"},
-            {"217", "140217"},
-            {"218", "140218"},
-            {"219", "140219"},
-            {"220", "140220"},
-            {"220", "140225"},
-            {"221", "140221"},
-            {"223", "140223"},
-            {"224", "140224"},
-            {"225", "140225"},
-            {"226", "140226"},
-            {"227", "140227"},
-            {"229", "140229"},
-            {"230", "140230"},
-            {"231", "140231"},
-            {"232", "140232"},
-            {"233", "140233"},
-            {"234", "140234"},
-            {"235", "140235"},
-            {"236", "140236"},
-            {"237", "140237"},
-            {"238", "140238"},
-            {"239", "140239"},
-            {"244", "140244"},
-            {"245", "140245"},
-            {"249", "140249"},
-            {"251", "140251"},
-            {"253", "140253"},
-        }
-    },
-    { "waef=cf", M{
-            {"112", "140112"},
-            {"113", "140113"},
-            {"114", "140114"},
-            {"115", "140115"},
-            {"116", "140116"},
-            {"117", "140117"},
-            {"118", "140118"},
-            {"119", "140119"},
-            {"220", "140220"},
-            {"121", "140121"},
-            {"122", "140122"},
-            {"123", "140123"},
-            {"124", "140124"},
-            {"125", "140125"},
-            {"126", "140126"},
-            {"127", "140127"},
-            {"128", "140128"},
-            {"129", "140129"},
-            {"214", "140214"},
-            {"215", "140215"},
-            {"216", "140216"},
-            {"217", "140217"},
-            {"218", "140218"},
-            {"219", "140219"},
-            {"220", "140220"},
-            {"220", "140225"},
-            {"221", "140221"},
-            {"223", "140223"},
-            {"224", "140224"},
-            {"225", "140225"},
-            {"226", "140226"},
-            {"227", "140227"},
-            {"229", "140229"},
-            {"230", "140230"},
-            {"231", "140231"},
-            {"232", "140232"},
-            {"233", "140233"},
-            {"234", "140234"},
-            {"235", "140235"},
-            {"236", "140236"},
-            {"237", "140237"},
-            {"238", "140238"},
-            {"239", "140239"},
-            {"244", "140244"},
-            {"245", "140245"},
-            {"249", "140249"},
-            {"251", "140251"},
-        }
-    },
-    { "waef=ep", M{
-            {"74", "131074"},
-            {"75", "131075"},
-            {"76", "131076"},
-            {"77", "131077"},
-            {"78", "131078"},
-            {"79", "131079"},
-            {"80", "131080"},
-            {"81", "131081"},
-        }
-    },
-    { "waef=fc", M{
-            {"235", "140235"},
-        }
-    },
-    { "waef=pf", M{
-            {"112", "140112"},
-            {"113", "140113"},
-            {"114", "140114"},
-            {"115", "140115"},
-            {"116", "140116"},
-            {"117", "140117"},
-            {"118", "140118"},
-            {"119", "140119"},
-            {"120", "140120"},
-            {"121", "140121"},
-            {"122", "140122"},
-            {"123", "140123"},
-            {"124", "140124"},
-            {"125", "140125"},
-            {"126", "140126"},
-            {"127", "140127"},
-            {"128", "140128"},
-            {"129", "140129"},
-            {"211", "140211"},
-            {"212", "140212"},
-            {"214", "140214"},
-            {"215", "140215"},
-            {"216", "140216"},
-            {"217", "140217"},
-            {"218", "140218"},
-            {"219", "140219"},
-            {"220", "140220"},
-            {"221", "140221"},
-            {"223", "140223"},
-            {"224", "140224"},
-            {"225", "140225"},
-            {"226", "140226"},
-            {"227", "140227"},
-            {"229", "140229"},
-            {"230", "140230"},
-            {"231", "140231"},
-            {"232", "140232"},
-            {"233", "140233"},
-            {"234", "140234"},
-            {"235", "140235"},
-            {"236", "140236"},
-            {"237", "140237"},
-            {"238", "140238"},
-            {"239", "140239"},
-            {"244", "140244"},
-            {"245", "140245"},
-            {"246", "140246"},
-            {"247", "140247"},
-            {"249", "140249"},
-            {"251", "140251"},
-            {"253", "140253"},
-        }
-    },
-    { "waef=efi", M{
-            {"216", "132216"},
-        }
-    },
-    { "waef=sot", M{
-            {"216", "132216"},
-        }
-    },
-    { "wave=an", M{
-            {"112", "140112"},
-            {"113", "140113"},
-            {"114", "140114"},
-            {"115", "140115"},
-            {"116", "140116"},
-            {"117", "140117"},
-            {"118", "140118"},
-            {"119", "140119"},
-            {"120", "140120"},
-            {"121", "140121"},
-            {"122", "140122"},
-            {"123", "140123"},
-            {"124", "140124"},
-            {"125", "140125"},
-            {"126", "140126"},
-            {"127", "140127"},
-            {"128", "140128"},
-            {"129", "140129"},
-            {"207", "140207"},
-            {"211", "140211"},
-            {"212", "140212"},
-            {"214", "140214"},
-            {"215", "140215"},
-            {"216", "140216"},
-            {"217", "140217"},
-            {"218", "140218"},
-            {"219", "140219"},
-            {"220", "140220"},
-            {"221", "140221"},
-            {"223", "140223"},
-            {"224", "140224"},
-            {"225", "140225"},
-            {"226", "140226"},
-            {"227", "140227"},
-            {"229", "140229"},
-            {"230", "140230"},
-            {"231", "140231"},
-            {"232", "140232"},
-            {"233", "140233"},
-            {"234", "140234"},
-            {"235", "140235"},
-            {"236", "140236"},
-            {"237", "140237"},
-            {"238", "140238"},
-            {"239", "140239"},
-            {"244", "140244"},
-            {"245", "140245"},
-            {"246", "140246"},
-            {"247", "140247"},
-            {"249", "140249"},
-            {"251", "140251"},
-            {"253", "140253"},
-        }
-    },
-    {  "wave=fc", M{
-            {"112", "140112"},
-            {"113", "140113"},
-            {"114", "140114"},
-            {"115", "140115"},
-            {"116", "140116"},
-            {"117", "140117"},
-            {"118", "140118"},
-            {"119", "140119"},
-            {"120", "140120"},
-            {"121", "140121"},
-            {"122", "140122"},
-            {"123", "140123"},
-            {"124", "140124"},
-            {"125", "140125"},
-            {"126", "140126"},
-            {"127", "140127"},
-            {"128", "140128"},
-            {"129", "140129"},
-            {"207", "140207"},
-            {"211", "140211"},
-            {"212", "140212"},
-            {"214", "140214"},
-            {"215", "140215"},
-            {"216", "140216"},
-            {"217", "140217"},
-            {"218", "140218"},
-            {"219", "140219"},
-            {"220", "140220"},
-            {"221", "140221"},
-            {"222", "140222"},
-            {"223", "140223"},
-            {"224", "140224"},
-            {"225", "140225"},
-            {"226", "140226"},
-            {"227", "140227"},
-            {"228", "140228"},
-            {"229", "140229"},
-            {"230", "140230"},
-            {"231", "140231"},
-            {"232", "140232"},
-            {"233", "140233"},
-            {"234", "140234"},
-            {"235", "140235"},
-            {"236", "140236"},
-            {"237", "140237"},
-            {"238", "140238"},
-            {"239", "140239"},
-            {"244", "140244"},
-            {"245", "140245"},
-            {"249", "140249"},
-            {"251", "140251"},
-            {"252", "140252"},
-            {"253", "140253"},
-        }
-    },
-
-};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -633,16 +59,17 @@ class FDBPartialAdopt : public FDBTool {
     Key knodeToKey(dic_grp* g, fdb_knode* knode) const;
     bool partialMatches(const Key& request, const Key& partialkey) const;
 
-    void patchKey(Key& key) const;
+    Key gribToKey(const eckit::PathName& datapath, size_t offset, size_t length) const;
 
   public:
 
     FDBPartialAdopt(int argc, char **argv) :
         FDBTool(argc, argv),
         fdbName_("fdb"),
-        compareToGrib_(false) {
+        compareToGrib_(false),
+        continueOnVerificationError_(false) {
         options_.push_back(new eckit::option::SimpleOption<bool>("verify", "Explicitly verify keys against GRIB headers"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("continue-on-verify-error", "If a verification error occurs, print but continue"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("continue", "If a verification error occurs, print but continue"));
     }
 
   private:
@@ -663,7 +90,7 @@ void FDBPartialAdopt::usage(const std::string &tool) const {
 
 void FDBPartialAdopt::init(const eckit::option::CmdArgs &args) {
     args.get("verify", compareToGrib_);
-    args.get("continue-on-verify-error", continueOnVerificationError_);
+    args.get("continue", continueOnVerificationError_);
 }
 
 
@@ -768,6 +195,10 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
      * It is derived from the code of the lsfdb utility, which is equally opaque.
      */
 
+    legacy::LegacyTranslator translator;
+
+    metkit::MarsLanguage language("retrieve");
+
     /// Open the index file
 
     int idx_fd = ::open(indexPath.asString().c_str(), O_RDONLY);
@@ -797,14 +228,6 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
 
                     if (partialMatches(request, partialFieldKey)) {
 
-                        // Construct the full key for the match
-
-                        Key fullKey(request);
-                        for (const auto& kv : partialFieldKey) {
-                            fullKey.set(kv.first, kv.second);
-                        }
-                        patchKey(fullKey);
-
                         // Obtain filesystem location info for data
 
                         ::setvalfdb_i(fdb, const_cast<char*>("frank"), knode->rank);
@@ -812,30 +235,53 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
 
                         base->proc->infnam(base);
 //                      (alternative)  FdbInFnamNoCache(base);
-//                        Log::info() << "match: " << partialFieldKey << std::endl;
-//                        Log::info() << "    file   = " << base->list->PthNode->name << std::endl;
-//                        Log::info() << "    offset = " << knode->addr << std::endl;
-//                        Log::info() << "    length = " << knode->length << std::endl;
 
                         eckit::PathName datapath(base->list->PthNode->name);
                         size_t offset = knode->addr;
                         size_t length = knode->length;
 
+                        // Construct the full key for the match
+
+                        Key fullKey;
+                        for (const auto& kv : request) translator.set(fullKey, kv.first, kv.second);
+                            for (const auto& kv : partialFieldKey) translator.set(fullKey, kv.first, kv.second);
+
+                        // Convert the Key into a request to pass through the MARS expander
+
+                        metkit::MarsRequest mars_request("retrieve");
+                        for (const auto& kv : fullKey) mars_request.setValue(kv.first, kv.second);
+
+                        metkit::MarsRequest expanded_request;
+                        try {
+                            expanded_request = language.expand(mars_request, false);
+                        } catch (...) {
+                            Log::info() << "Request: " << mars_request << std::endl;
+                            Log::info() << "GRIB: " << gribToKey(datapath, offset, length) << std::endl;
+                            throw;
+                        }
+
+                        // And convert back into a Key for the FDB5
+
+                        Key archiveKey;
+                        for (const auto& p : expanded_request.params()) {
+                            std::vector<std::string> values;
+                            expanded_request.getValues(p, values);
+                            ASSERT(values.size() == 1);
+                            archiveKey.set(p, values[0]);
+                        }
+
+                        // Leg is a weird one
+                        if (archiveKey.find("leg") != archiveKey.end()) archiveKey.unset("leg");
+
                         // Validate if required
 
                         if (compareToGrib_) {
-                            eckit::ScopedPtr<DataHandle> h(PathName(datapath).partHandle(offset, length));
-                            EmosFile file(*h);
-                            GribDecoder decoder;
-                            Key grib;
-                            decoder.gribToKey(file, grib);
 
-                            // Leg is a weird one
-                            if (fullKey.find("leg") != fullKey.end()) fullKey.unset("leg");
+                            Key gribKey(gribToKey(datapath, offset, length));
 
                             // Throws exception on failure
                             try {
-                                grib.validateKeysOf(fullKey, true);
+                                gribKey.validateKeysOf(archiveKey, true);
                             } catch (Exception& e) {
                                 if (!continueOnVerificationError_) throw;
                                 Log::error() << e.what() << std::endl;
@@ -844,8 +290,8 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
 
                         // Adopt to FDB5
 
-                        AdoptVisitor visitor(archiver_, fullKey, datapath, offset, length);
-                        archiver_.archive(fullKey, visitor);
+                        AdoptVisitor visitor(archiver_, archiveKey, datapath, offset, length);
+                        archiver_.archive(archiveKey, visitor);
                     }
                 }
             }
@@ -885,7 +331,12 @@ Key FDBPartialAdopt::knodeToKey(dic_grp* g, fdb_knode* knode) const {
                     if (all_null(pvalue, sizeof(double))) {
                         if (std::string("step") != pattr->name) break;
                     }
-                    value = Translator<double, std::string>()(*reinterpret_cast<const double*>(pvalue));
+                    double intpart;
+                    if (std::modf(*reinterpret_cast<const double*>(pvalue), &intpart) == 0.0) {
+                        value = Translator<long, std::string>()(static_cast<long>(*reinterpret_cast<const double*>(pvalue)));
+                    } else {
+                        value = Translator<double, std::string>()(*reinterpret_cast<const double*>(pvalue));
+                    }
                     break;
 
                 default:
@@ -915,45 +366,17 @@ bool FDBPartialAdopt::partialMatches(const Key& request, const Key& partialKey) 
     return true;
 }
 
-void FDBPartialAdopt::patchKey(Key& key) const {
 
-    if (key.find("parameter") != key.end()) {
-        key.set("param", key.get("parameter"));
-        key.unset("parameter");
-    }
+Key FDBPartialAdopt::gribToKey(const eckit::PathName& datapath, size_t offset, size_t length) const {
 
-    // Some parameters are referred to with a 1,2 or 3 digit param, whereas they
-    // have (standardised, MARS) parameters in the fdb5. Do the interconversion.
+     eckit::ScopedPtr<DataHandle> h(PathName(datapath).partHandle(offset, length));
 
-    Key::const_iterator stream = key.find("stream");
-    Key::const_iterator type = key.find("type");
-    Key::const_iterator param = key.find("param");
-    if (stream != key.end() && type != key.end() && param != key.end()) {
+     EmosFile file(*h);
+     GribDecoder decoder;
+     Key gribKey;
 
-        std::string lookup_key = stream->second + "=" + type->second;
-        LookupMap::const_iterator lookup = PARAMETER_MAP.find(lookup_key);
-
-        if (lookup != PARAMETER_MAP.end()) {
-            M::const_iterator new_param = lookup->second.find(param->second);
-            if (new_param != lookup->second.end()) {
-                Log::warning() << "Patching FDB4 parameter value "
-                               << param->second << " --> " << new_param->second << std::endl;
-                key.set("param", new_param->second);
-            }
-        }
-    }
-
-    // levtype is a single character in fdb4
-
-    Key::const_iterator levtype = key.find("levtype");
-    if (levtype != key.end()) {
-        if (levtype->second == "s") key.set("levtype", "sfc");
-        else if (levtype->second == "m") key.set("levtype", "ml");
-        else if (levtype->second == "p") key.set("levtype", "pl");
-        else if (levtype->second == "t") key.set("levtype", "pt");
-        else if (levtype->second == "v") key.set("levtype", "pv");
-        else throw SeriousBug(std::string("Unknown levtype: ") + levtype->second, Here());
-    }
+     decoder.gribToKey(file, gribKey);
+     return gribKey;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
