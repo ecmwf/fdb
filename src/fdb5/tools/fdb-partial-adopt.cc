@@ -8,11 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-#include <stdlib.h>
-#include <sstream>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <algorithm>
 #include <cmath>
+#include <ctype.h>
+#include <fcntl.h>
+#include <sstream>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/option/CmdArgs.h"
@@ -731,7 +733,10 @@ void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
 
         // Iterate over key-value pairs in supplied request
 
-        Key request(args(i));
+        std::string rq_string(args(i));
+        std::transform(rq_string.begin(), rq_string.end(), rq_string.begin(), ::tolower);
+
+        Key request(rq_string);
 
         // Depending on the type/step, we may have to set the leg. Or iterate over it.
 
