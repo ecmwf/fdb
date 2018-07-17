@@ -649,7 +649,7 @@ class FDBPartialAdopt : public FDBTool {
     virtual int minimumPositionalArguments() const { return 1; }
     virtual void init(const eckit::option::CmdArgs &args);
 
-    void adoptIndex(const eckit::PathName& indexPath, const Key& request, int* fdb, fdb_base* base);
+    long adoptIndex(const eckit::PathName& indexPath, const Key& request, int* fdb, fdb_base* base);
     Key knodeToKey(dic_grp* g, fdb_knode* knode) const;
     bool partialMatches(const Key& request, const Key& partialkey) const;
 
@@ -718,6 +718,8 @@ void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
 
     // Iterate over all the requests/keys provided
 
+    size_t totalAdopted = 0;
+
     for (size_t i = 0; i < args.count(); ++i) {
 
         // Open the FDB
@@ -775,15 +777,21 @@ void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
                 throw FDBToolException("There is no available FDB database with the specified parameters", Here());
             }
 
-            adoptIndex(index_name, rq, &fdb, base);
+            totalAdopted += adoptIndex(index_name, rq, &fdb, base);
         }
 
         ::closefdb(&fdb);
     }
+
+    Log::info() << "Adopted " << totalAdopted << " field(s)" << std::endl;
+
+    if (totalAdopted == 0) {
+        throw eckit::UserError("No fields found matching supplied requests", Here());
+    }
 }
 
 
-void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, int* fdb, fdb_base* base) {
+long FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, int* fdb, fdb_base* base) {
 
     /*
      * This routine is a little bit ... opaque.
@@ -812,6 +820,8 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
     fdb_fnode* f = fdb_infnode_lsfdb(idx_fd, indexPath.size());
 
     ASSERT(f);
+
+    size_t fieldsAdopted = 0;
 
     if (fdb_getcache(f, fdb_r)) {
         while(g) {
@@ -868,12 +878,15 @@ void FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
                         Log::info() << "Adopting: " << fullKey << std::endl;
                         AdoptVisitor visitor(archiver_, fullKey, datapath, offset, length);
                         archiver_.archive(fullKey, visitor);
+                        fieldsAdopted++;
                     }
                 }
             }
             g = g->next;
         }
     }
+
+    return fieldsAdopted;
 }
 
 
