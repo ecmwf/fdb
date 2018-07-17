@@ -654,6 +654,7 @@ class FDBPartialAdopt : public FDBTool {
     bool partialMatches(const Key& request, const Key& partialkey) const;
 
     Key gribToKey(const eckit::PathName& datapath, size_t offset, size_t length) const;
+    Key stringToFDB4Key(const std::string& str_key);
 
     void patchParam(Key& key) const;
 
@@ -733,10 +734,7 @@ void FDBPartialAdopt::execute(const eckit::option::CmdArgs &args) {
 
         // Iterate over key-value pairs in supplied request
 
-        std::string rq_string(args(i));
-        std::transform(rq_string.begin(), rq_string.end(), rq_string.begin(), ::tolower);
-
-        Key request(rq_string);
+        Key request(stringToFDB4Key(args(i)));
 
         // Depending on the type/step, we may have to set the leg. Or iterate over it.
 
@@ -955,6 +953,32 @@ Key FDBPartialAdopt::gribToKey(const eckit::PathName& datapath, size_t offset, s
 
      decoder.gribToKey(file, gribKey);
      return gribKey;
+}
+
+Key FDBPartialAdopt::stringToFDB4Key(const std::string& str_key) {
+
+    // The FDB4 has requirements on how keys are presented. We put some
+    // effort in to canonicalisation
+    // --> When the tool is run with keys set in ECFLOW variables, it
+    //     should do what people expect
+
+    // Ensure that things that must be lower case, are.
+
+    std::string r(str_key);
+    std::transform(r.begin(), r.end(), r.begin(), ::tolower);
+
+    Key key(r);
+
+    eckit::Translator<std::string, long> s2l;
+    eckit::Translator<long, std::string> l2s;
+
+    for (const std::string& k : {"step", "levelist", "iteration"}) {
+        if (key.find(k) != key.end()) {
+            key.set(k, l2s(s2l(key.get(k))));
+        }
+    }
+
+    return key;
 }
 
 void FDBPartialAdopt::patchParam(Key& key) const {
