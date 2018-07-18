@@ -364,12 +364,17 @@ std::vector<Key> FDBPartialAdopt::expandRequest(Key rq) const {
     // Depending on the type/step, we may have to set the leg. Or iterate over it.
     // Also, expand any wildcards in the request
 
-    const static std::map<std::string, std::vector<std::string>> availableValues {
+    static std::map<std::string, std::vector<std::string>> availableValues {
         {"type", {"an", "cf", "cm", "cr", "cs", "cv", "efi", "efic", "em",
                   "ep", "es", "fc", "fcmax", "fcmean", "fcmin", "fcstdev",
                   "fp", "pb", "pd", "pf", "sot", "ssd", "taem", "taes",
                   "tf", "wp", }},
     };
+    if (availableValues.find("number") == availableValues.end()) {
+        for (size_t i = 1; i <= 50; i++) {
+            availableValues["number"].push_back(eckit::Translator<long, std::string>()(i));
+        }
+    }
 
     std::vector<Key> requests;
 
