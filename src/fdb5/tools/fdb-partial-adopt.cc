@@ -22,6 +22,7 @@
 #include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/config/UMask.h"
+#include "fdb5/LibFdb.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/legacy/LegacyTranslator.h"
@@ -279,7 +280,7 @@ long FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
 
                         // Adopt to FDB5
 
-                        Log::info() << "Adopting: " << fullKey << std::endl;
+                        Log::debug<LibFdb>() << "Adopting: " << fullKey << std::endl;
                         AdoptVisitor visitor(archiver_, fullKey, datapath, offset, length);
                         archiver_.archive(fullKey, visitor);
                         fieldsAdopted++;
