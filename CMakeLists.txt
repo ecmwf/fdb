@@ -117,6 +117,14 @@ ecbuild_add_option( FEATURE EXPERIMENTAL
                     DESCRIPTION "Experimental features" )
 
 
+### FDB4 - 5 migration tools
+
+ecbuild_add_option( FEATURE FDB4_MIGRATION
+                    DEFAULT ON
+                    DESCRIPTION "FDB4 to 5 migration tools"
+                    REQUIRED_PACKAGES "PROJECT fdb" )
+
+
 ########################################################################################################################
 # project vars & options
 
