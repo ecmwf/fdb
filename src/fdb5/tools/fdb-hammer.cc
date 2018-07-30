@@ -203,6 +203,9 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     size_t nlevels = args.getLong("nlevels");
     size_t nparams = args.getLong("nparams");
 
+    request.setValue("expver", args.getString("expver"));
+    request.setValue("class", args.getString("class"));
+
     eckit::Timer timer;
     timer.start();
 
