@@ -14,14 +14,16 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/StdFile.h"
 #include "eckit/io/MemoryHandle.h"
+#include "eckit/io/EmptyHandle.h"
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
 
-#include "fdb5/grib/GribArchiver.h"
-#include "fdb5/tools/FDBAccess.h"
 #include "fdb5/config/UMask.h"
+#include "fdb5/grib/GribArchiver.h"
+#include "fdb5/io/HandleGatherer.h"
+#include "fdb5/tools/FDBAccess.h"
 
 #include "metkit/grib/GribHandle.h"
 
@@ -44,6 +46,9 @@ class FDBWrite : public fdb5::FDBAccess {
 
     virtual void execute(const eckit::option::CmdArgs &args);
 
+    void executeRead(const eckit::option::CmdArgs& args);
+    void executeWrite(const eckit::option::CmdArgs& args);
+
 public:
 
     FDBWrite(int argc, char **argv) : fdb5::FDBAccess(argc, argv) {
@@ -51,6 +56,7 @@ public:
         options_.push_back(new eckit::option::SimpleOption<std::string>("expver", "Reset expver on data"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("class", "Reset class on data"));
         options_.push_back(new eckit::option::SimpleOption<bool>("statistics", "Report statistics after run"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("read", "Read rather than write the data"));
         options_.push_back(new eckit::option::SimpleOption<long>("nsteps", "Number of steps"));
         options_.push_back(new eckit::option::SimpleOption<long>("nensembles", "Number of ensemble members"));
         options_.push_back(new eckit::option::SimpleOption<long>("nlevels", "Number of levels"));
@@ -59,7 +65,7 @@ public:
 };
 
 void FDBWrite::usage(const std::string &tool) const {
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--statistics] --nsteps=<nsteps> --nensembles=<nensembles> --nlevels=<nlevels> --nparams=<nparams> --expver=<expver> <grib_path>" << std::endl;
+    eckit::Log::info() << std::endl << "Usage: " << tool << " [--statistics] [--read] --nsteps=<nsteps> --nensembles=<nensembles> --nlevels=<nlevels> --nparams=<nparams> --expver=<expver> <grib_path>" << std::endl;
     fdb5::FDBAccess::usage(tool);
 }
 
@@ -75,6 +81,15 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
+
+    if (args.getBool("read", false)) {
+        executeRead(args);
+    } else {
+        executeWrite(args);
+    }
+}
+
+void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
 
     eckit::AutoStdFile fin(args(0));
 
@@ -93,6 +108,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
     size_t nensembles = args.getLong("nensembles", 1);
     size_t nlevels = args.getLong("nlevels");
     size_t nparams = args.getLong("nparams");
+
 
     const char* buffer = 0;
     size_t size = 0;
@@ -170,6 +186,69 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
     Log::info() << "Writing duration: " << timer.elapsed() - elapsed_grib << std::endl;
     Log::info() << "Total rate: " << double(bytesWritten) / timer.elapsed() << " bytes / s" << std::endl;
     Log::info() << "Total rate: " << double(bytesWritten) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
+}
+
+
+void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
+
+
+    fdb5::GribDecoder decoder;
+    std::vector<MarsRequest> requests = decoder.gribToRequests(args(0));
+
+    ASSERT(requests.size() == 1);
+    MarsRequest request = requests[0];
+
+    size_t nsteps = args.getLong("nsteps");
+    size_t nensembles = args.getLong("nensembles", 1);
+    size_t nlevels = args.getLong("nlevels");
+    size_t nparams = args.getLong("nparams");
+
+    eckit::Timer timer;
+    timer.start();
+
+    fdb5::HandleGatherer handles(false);
+    fdb5::FDB fdb(args);
+    size_t fieldsRead = 0;
+
+    for (size_t member = 1; member <= nensembles; ++member) {
+        if (args.has("nensembles")) {
+            request.setValue("number", member);
+        }
+        for (size_t step = 0; step <= nsteps; ++step) {
+            request.setValue("step", step);
+            for (size_t level = 1; level <= nlevels; ++level) {
+                request.setValue("level", level);
+                for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
+                    // GRIB API only allows us to use certain parameters
+                    while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
+                        real_param++;
+                    }
+                    request.setValue("param", real_param);
+
+                    Log::info() << "Member: " << member
+                                << ", step: " << step
+                                << ", level: " << level
+                                << ", param: " << real_param << std::endl;
+
+                    handles.add(fdb.retrieve(request));
+                    fieldsRead++;
+                }
+            }
+        }
+    }
+
+    ScopedPtr<eckit::DataHandle> dh(handles.dataHandle());
+
+    EmptyHandle nullOutputHandle;
+    size_t total = dh->saveInto(nullOutputHandle);
+
+    timer.stop();
+
+    Log::info() << "Fields read: " << fieldsRead << std::endl;
+    Log::info() << "Bytes read: " << total << std::endl;
+    Log::info() << "Total duration: " << timer.elapsed() << std::endl;
+    Log::info() << "Total rate: " << double(total) / timer.elapsed() << " bytes / s" << std::endl;
+    Log::info() << "Total rate: " << double(total) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
