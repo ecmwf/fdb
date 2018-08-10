@@ -18,7 +18,7 @@
 
 int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount) {
 
-    return llapi_file_create(path, stripesize, 0, stripecount, LOV_PATTERN_RAID0);
+    return llapi_file_create(path, stripesize, -1, stripecount, LOV_PATTERN_RAID0);
 
 }
 

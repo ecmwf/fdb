@@ -48,13 +48,13 @@ public:
     /// but partial match for values
     bool match(const Key& k, const char* missing = 0) const {
 
-//        std::cout << " Trying to key matching " << *this << " with key " << k << std::endl;
+//        Log::debug<LibFDB>() << " Trying to key matching " << *this << " with key " << k << std::endl;
 
         if(k.size() != keyregex_.size()) return false;
 
         for(Key::const_iterator i = k.begin(); i != k.end(); ++i) {
 
-//            std::cout << "     Match " << i->first << " " << i->second << std::endl;
+//            Log::debug<LibFDB>() << "     Match " << i->first << " " << i->second << std::endl;
 
             std::map<std::string, Regex>::const_iterator j = keyregex_.find(i->first);
 
@@ -62,7 +62,7 @@ public:
                 return false;
             }
 
-//            std::cout << "     Found " << j->first << " " << j->second << std::endl;
+//            Log::debug<LibFDB>() << "     Found " << j->first << " " << j->second << std::endl;
 
             if(!missing || i->second != missing) {
                 if(!j->second.match(i->second)) {
@@ -71,7 +71,7 @@ public:
             }
         }
 
-//        std::cout << " Match successfull " << *this << " with key " << k << std::endl;
+//        Log::debug<LibFDB>() << " Match successfull " << *this << " with key " << k << std::endl;
 
         return true;
     }
