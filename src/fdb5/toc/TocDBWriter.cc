@@ -323,7 +323,8 @@ void TocDBWriter::compactSubTocIndexes() {
     // n.b. we only need to compact the subtocs if we are actually writing something...
 
     if (useSubToc() && anythingWrittenToSubToc()) {
-        Log::info() << "compacting sub tocs" << std::endl;
+
+        eckit::Log::debug<LibFdb>() << "compacting sub tocs" << std::endl;
 
         for (IndexStore::iterator j = fullIndexes_.begin(); j != fullIndexes_.end(); ++j) {
             Index& idx = j->second;
