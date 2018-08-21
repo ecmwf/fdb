@@ -722,7 +722,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
         case TocRecord::TOC_CLEAR:
             s >> path;
             s >> offset;
-            eckit::Log::debug<LibFdb>() << TocRecord "TocRecord TOC_CLEAR " << path << " - " << offset << std::endl;
+            eckit::Log::debug<LibFdb>() << "TocRecord TOC_CLEAR " << path << " - " << offset << std::endl;
             j = std::find_if(indexes.begin(), indexes.end(), HasPath(directory_ / path, offset));
             if (j != indexes.end()) {
                 indexes.erase(j);
