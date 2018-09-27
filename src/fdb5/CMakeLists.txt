@@ -376,12 +376,18 @@ foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   tools/${_tool}.cc
-                          INCLUDES  ${GRIB_API_INCLUDE_DIRS} # Please don't remove me, I am needed
+                          INCLUDES  ${GRIB_API_INCLUDE_DIRS}  # Please don't remove me, I am needed
                           LIBS
                           mars-fdb5 )
 
 endforeach()
 
+
+ecbuild_add_executable( TARGET    fdb-partial-adopt
+                            SOURCES   tools/fdb-partial-adopt.cc
+                            CONDITION HAVE_FDB4_MIGRATION
+                            INCLUDES  ${FDB_INCLUDE_DIRS}
+                            LIBS      mars-fdb5 fdb )
 
 ecbuild_add_executable( TARGET    grib2fdb5
                           SOURCES   compat/grib2fdb5.cc
