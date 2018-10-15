@@ -54,8 +54,6 @@ list( APPEND fdb5_srcs
     api/FDBStats.h
     api/LocalFDB.cc
     api/LocalFDB.h
-    api/RemoteFDB.cc
-    api/RemoteFDB.h
     api/SelectFDB.cc
     api/SelectFDB.h
 
@@ -308,6 +306,14 @@ if( HAVE_PMEMFDB )
         pmem/PMemEngine.h
     )
 
+# Currently RemoteFDB is experimental technology!
+if (HAVE_EXPERIMENTAL)
+    list( APPEND fdb5_srcs
+        api/RemoteFDB.cc
+        api/RemoteFDB.h
+        )
+endif()
+
 
 else()
     set( PMEM_LIBRARIES "" )
@@ -395,18 +401,23 @@ ecbuild_add_executable( TARGET    grib2fdb5
                           LIBS
                           mars-fdb5 )
 
-ecbuild_add_executable(
-    TARGET fdb-monitor
-    SOURCES remote/fdb-monitor.cc
-    LIBS eckit eckit_cmd )
+# Currently RemoteFDB is experimental technology!
+if (HAVE_EXPERIMENTAL)
 
-ecbuild_add_executable(
-    TARGET fdb-server
-    SOURCES
-        remote/fdb-server.cc
-        remote/Messages.h
-        remote/Messages.cc
-        remote/Handler.h
-        remote/Handler.cc
-    LIBS mars-fdb5 )
+    ecbuild_add_executable(
+        TARGET fdb-monitor
+        SOURCES remote/fdb-monitor.cc
+        LIBS eckit eckit_cmd )
+
+    ecbuild_add_executable(
+        TARGET fdb-server
+        SOURCES
+            remote/fdb-server.cc
+            remote/Messages.h
+            remote/Messages.cc
+            remote/Handler.h
+            remote/Handler.cc
+        LIBS mars-fdb5 )
+
+endif()
 
