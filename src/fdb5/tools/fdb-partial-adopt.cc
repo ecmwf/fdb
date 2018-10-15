@@ -259,31 +259,40 @@ long FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
                         // Leg is a weird one
                         if (fullKey.find("leg") != fullKey.end()) fullKey.unset("leg");
 
-                        patchParam(fullKey);
+                        try {
 
-                        // Validate if required
+                            patchParam(fullKey);
 
-                        if (compareToGrib_) {
+                            // Validate if required
 
-                            Key gribKey(gribToKey(datapath, offset, length));
+                            if (compareToGrib_) {
 
-                            // Throws exception on failure
-                            try {
-                                gribKey.validateKeysOf(fullKey, true);
-                            } catch (Exception& e) {
-                                Log::info() << "MARS: " << fullKey << std::endl;
-                                Log::info() << "GRIB: " << gribKey << std::endl;
-                                if (!continueOnVerificationError_) throw;
-                                Log::error() << e.what() << std::endl;
+                                Key gribKey(gribToKey(datapath, offset, length));
+
+                                // Throws exception on failure
+                                try {
+                                    gribKey.validateKeysOf(fullKey, true);
+                                } catch (Exception& e) {
+                                    Log::info() << "MARS: " << fullKey << std::endl;
+                                    Log::info() << "GRIB: " << gribKey << std::endl;
+                                    if (!continueOnVerificationError_) throw;
+                                    Log::error() << e.what() << std::endl;
+                                }
                             }
+
+                            // Adopt to FDB5
+
+                            Log::debug<LibFdb>() << "Adopting: " << fullKey << std::endl;
+                            AdoptVisitor visitor(archiver_, fullKey, datapath, offset, length);
+                            archiver_.archive(fullKey, visitor);
+                            fieldsAdopted++;
+
+                        } catch (eckit::Exception& e) {
+                            if (!continueOnVerificationError_) throw;
+                            Log::error() << "Issue handling key: " << fullKey << std::endl;
+                            Log::error() << e << std::endl;
+                            Log::error() << "Continuing..." << std::endl;
                         }
-
-                        // Adopt to FDB5
-
-                        Log::debug<LibFdb>() << "Adopting: " << fullKey << std::endl;
-                        AdoptVisitor visitor(archiver_, fullKey, datapath, offset, length);
-                        archiver_.archive(fullKey, visitor);
-                        fieldsAdopted++;
                     }
                 }
             }

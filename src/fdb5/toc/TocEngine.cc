@@ -49,6 +49,11 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
 
     if(d == 0)
     {
+        // If fdb-wipe is running in parallel, it is perfectly legit for a (non-matching)
+        // path to have disappeared
+        if (errno == ENOENT) {
+            return;
+        }
         Log::error() << "opendir(" << path << ")" << Log::syserr << std::endl;
         throw FailedSystemCall("opendir");
     }
