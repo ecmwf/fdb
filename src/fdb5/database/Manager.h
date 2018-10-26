@@ -60,6 +60,9 @@ public: // methods
 private: // members
 
     eckit::PathName enginesFile_;
+
+    // If the engine is specified explicitly in the
+    std::string explicitEngine_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

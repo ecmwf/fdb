@@ -134,6 +134,8 @@ Manager::Manager(const Config &config) {
     static std::string baseEnginesFile = eckit::Resource<std::string>("fdbEnginesFile;$FDB_ENGINES_FILE", "~fdb/etc/fdb/engines");
 
     enginesFile_ = config.expandPath(baseEnginesFile);
+
+    explicitEngine_ = config.getString("engine", "");
 }
 
 Manager::~Manager() {}
@@ -141,6 +143,9 @@ Manager::~Manager() {}
 
 std::string Manager::engine(const Key& key)
 {
+    // If we have set the engine in the config, use that
+    if (!explicitEngine_.empty()) return explicitEngine_;
+
     std::string expanded(key.valuesToString());
 
     /// @note returns the first engine that matches
@@ -167,14 +172,21 @@ std::string Manager::engine(const Key& key)
 
 std::set<std::string> Manager::engines(const Key& key)
 {
-    std::string expanded(key.valuesToString());
-    const EngineTable& engineTypes(readEngineTypes(enginesFile_));
-
     std::set<std::string> s;
 
-    for (EngineTable::const_iterator i = engineTypes.begin(); i != engineTypes.end() ; ++i) {
-        if(key.empty() || i->match(expanded)) {
-            s.insert(i->engine());
+    if (!explicitEngine_.empty()) {
+        s.insert(explicitEngine_);
+    } else {
+
+        // Determine matching engine types from the engines file
+
+        std::string expanded(key.valuesToString());
+        const EngineTable& engineTypes(readEngineTypes(enginesFile_));
+
+        for (EngineTable::const_iterator i = engineTypes.begin(); i != engineTypes.end() ; ++i) {
+            if(key.empty() || i->match(expanded)) {
+                s.insert(i->engine());
+            }
         }
     }
 
@@ -189,6 +201,11 @@ std::set<std::string> Manager::engines(const Key& key)
 
 std::string Manager::engine(const PathName& path)
 {
+    // If we have set the engine in the config, use that
+    if (!explicitEngine_.empty()) return explicitEngine_;
+
+    // Otherwise, check which engines can handle the given path.
+
     std::vector<Engine*> engines = EngineRegistry::engines();
 
     for(std::vector<Engine*>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
