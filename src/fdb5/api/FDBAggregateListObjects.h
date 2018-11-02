@@ -9,51 +9,40 @@
  */
 
 /// @author Simon Smart
-/// @date   Mar 2018
+/// @date   October 2018
 
-#ifndef fdb5_api_LocalFDB_H
-#define fdb5_api_LocalFDB_H
+#ifndef fdb5_FDBAggregateListObject_H
+#define fdb5_FDBAggregateListObject_H
 
-#include "fdb5/api/FDBFactory.h"
+#include "fdb5/api/FDBListObject.h"
 
+#include <queue>
+
+/*
+ * Define a standard object which can be used to iterate the results of a
+ * list() call on an arbitrary FDB object
+ */
 
 namespace fdb5 {
 
-class Retriever;
-class Archiver;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class LocalFDB : public FDBBase {
+class FDBAggregateListObjects : public FDBListImplBase {
 
 public: // methods
 
-    using FDBBase::FDBBase;
+    FDBAggregateListObjects(std::queue<FDBListObject>&& listObjects);
+    virtual ~FDBAggregateListObjects() override;
 
-    virtual void archive(const Key& key, const void* data, size_t length);
-
-    virtual eckit::DataHandle* retrieve(const MarsRequest& request);
-
-    virtual FDBListObject list(const FDBToolRequest& request) override;
-
-    virtual std::string id() const;
-
-    virtual void flush();
-
-private: // methods
-
-    virtual void print(std::ostream& s) const;
+    virtual bool next(FDBListElement& elem) override;
 
 private: // members
 
-    std::string home_;
-
-    std::unique_ptr<Archiver> archiver_;
-    std::unique_ptr<Retriever> retriever_;
+    std::queue<FDBListObject> listObjects_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
-#endif // fdb5_api_LocalFDB_H
+#endif

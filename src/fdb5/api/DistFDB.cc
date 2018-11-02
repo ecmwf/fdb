@@ -17,9 +17,10 @@
 #include "eckit/log/Log.h"
 #include "eckit/parser/Tokenizer.h"
 
-#include "fdb5/LibFdb.h"
 #include "fdb5/api/DistFDB.h"
+#include "fdb5/api/FDBAggregateListObjects.h"
 #include "fdb5/io/HandleGatherer.h"
+#include "fdb5/LibFdb.h"
 
 
 namespace fdb5 {
@@ -128,6 +129,20 @@ eckit::DataHandle *DistFDB::retrieve(const MarsRequest &request) {
 }
 
 
+FDBListObject DistFDB::list(const FDBToolRequest& request) {
+
+    std::queue<FDBListObject> lists;
+
+    for (FDB& lane : lanes_) {
+        if (lane.visitable()) {
+            lists.push(lane.list(request));
+        }
+    }
+
+    return FDBListObject(new FDBAggregateListObjects(std::move(lists)));
+}
+
+
 std::string DistFDB::id() const {
     NOTIMP;
 }
@@ -139,7 +154,7 @@ void DistFDB::flush() {
     std::vector<std::promise<int>> promises(lanes_.size());
     std::vector<std::future<int>> futures;
 
-    for (int i = 0; i < lanes_.size(); i++) {
+    for (size_t i = 0; i < lanes_.size(); i++) {
 
         FDB& lane(lanes_[i]);
         std::promise<int>& prm(promises[i]);

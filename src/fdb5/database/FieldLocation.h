@@ -49,7 +49,7 @@ public: // methods
     virtual eckit::DataHandle *dataHandle() const = 0;
 
     /// Create a (shared) copy of the current object, for storage in a general container.
-    virtual eckit::SharedPtr<FieldLocation> make_shared() const = 0;
+    virtual std::shared_ptr<FieldLocation> make_shared() const = 0;
 
     virtual void visit(FieldLocationVisitor& visitor) const = 0;
 

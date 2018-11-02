@@ -173,14 +173,16 @@ std::string Manager::engine(const Key& key)
 std::set<std::string> Manager::engines(const Key& key)
 {
     std::set<std::string> s;
+    std::string expanded;
 
     if (!explicitEngine_.empty()) {
+        expanded = explicitEngine_;
         s.insert(explicitEngine_);
     } else {
 
         // Determine matching engine types from the engines file
 
-        std::string expanded(key.valuesToString());
+        expanded = key.valuesToString();
         const EngineTable& engineTypes(readEngineTypes(enginesFile_));
 
         for (EngineTable::const_iterator i = engineTypes.begin(); i != engineTypes.end() ; ++i) {

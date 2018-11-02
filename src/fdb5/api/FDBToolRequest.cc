@@ -8,34 +8,37 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   StatsVisitor.h
-/// @author Simon Smart
-/// @date   August 2017
+#include "fdb5/api/FDBToolRequest.h"
 
-#ifndef fdb5_StatsVisitor_H
-#define fdb5_StatsVisitor_H
-
-#include "fdb5/database/DbStats.h"
-#include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/database/Index.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class StatsReportVisitor : public EntryVisitor {
 
-public: // methods
+FDBToolRequest::FDBToolRequest(const std::string& r,
+                               bool all,
+                               const std::vector<std::string>& minimumKeySet) :
+    key_(r),
+    all_(all) {
 
-    StatsReportVisitor();
-    virtual ~StatsReportVisitor();
+    for (std::vector<std::string>::const_iterator j = minimumKeySet.begin(); j != minimumKeySet.end(); ++j) {
+        if (key_.find(*j) == key_.end()) {
+            throw eckit::UserError("Please provide a value for '" + (*j) + "'");
+        }
+    }
+}
 
-    virtual IndexStats indexStatistics() const = 0;
-    virtual DbStats    dbStatistics() const = 0;
-};
+const Key& FDBToolRequest::key() const {
+    return key_;
+}
+
+bool FDBToolRequest::all() const {
+    return all_;
+
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
-#endif // fdb5_StatsVisitor_H

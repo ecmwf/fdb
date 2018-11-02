@@ -154,27 +154,26 @@ void TocIndex::visit(IndexLocationVisitor &visitor) const {
 
 
 class TocIndexVisitor : public BTreeIndexVisitor {
-    const Index& index_;
-    const std::string& prefix_;
     const FileStore &files_;
     EntryVisitor &visitor_;
 public:
-    TocIndexVisitor(const Index& index, const std::string &prefix, const FileStore &files, EntryVisitor &visitor):
-        index_(index),
-        prefix_(prefix),
+    TocIndexVisitor(const FileStore &files, EntryVisitor &visitor):
         files_(files),
         visitor_(visitor) {}
 
-    void visit(const std::string& key, const FieldRef& ref) {
+    void visit(const std::string& keyFingerprint, const FieldRef& ref) {
         Field field(TocFieldLocation(files_, ref), ref.details());
-        visitor_.visit(index_, field, prefix_, key);
+        visitor_.visitDatum(field, keyFingerprint);
     }
 };
 
 void TocIndex::entries(EntryVisitor &visitor) const {
     TocIndexCloser closer(*this);
 
-    TocIndexVisitor v( Index(const_cast<TocIndex*>(this)), prefix_, files_, visitor);
+    Index instantIndex(const_cast<TocIndex*>(this));
+    visitor.visitIndex(instantIndex);
+
+    TocIndexVisitor v(files_, visitor);
     btree_->visit(v);
 }
 

@@ -9,11 +9,17 @@
  */
 
 #include "eckit/log/Log.h"
+#include "eckit/container/Queue.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/api/FDBAsyncListObject.h"
+#include "fdb5/api/FDBListObject.h"
 #include "fdb5/api/LocalFDB.h"
+#include "fdb5/api/FDBToolRequest.h"
 #include "fdb5/database/Archiver.h"
+#include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Retriever.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/LibFdb.h"
 
 #include "marslib/MarsTask.h"
 
@@ -24,6 +30,30 @@ static FDBBuilder<LocalFDB> localFdbBuilder("local");
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace {
+
+class ListVisitor : public EntryVisitor {
+
+public:
+
+    ListVisitor(eckit::Queue<FDBListElement>& queue) :
+        queue_(queue) {}
+
+    void visitDatum(const Field& field, const Key& key) override {
+        ASSERT(currentDatabase_);
+        ASSERT(currentIndex_);
+
+        queue_.emplace(FDBListElement({currentDatabase_->key(), currentIndex_->key(), key},
+                                      field.sharedLocation()));
+    }
+
+private:
+    eckit::Queue<FDBListElement>& queue_;
+};
+
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 void LocalFDB::archive(const Key& key, const void* data, size_t length) {
 
@@ -47,6 +77,22 @@ eckit::DataHandle *LocalFDB::retrieve(const MarsRequest &request) {
     MarsTask task(request, e);
 
     return retriever_->retrieve(task);
+}
+
+
+FDBListObject LocalFDB::list(const FDBToolRequest& request) {
+
+    // Create a general mechanism to call an EntryVisitor on a local object
+    // Call the entry visitor
+    // See FDBInspect...
+
+    auto async_worker = [this, request] (eckit::Queue<FDBListElement>& queue) {
+        EntryVisitMechanism mechanism(config_);
+        ListVisitor visitor(queue);
+        mechanism.visit(request, visitor);
+    };
+
+    return FDBListObject(new FDBAsyncListObject(async_worker));
 }
 
 std::string LocalFDB::id() const {

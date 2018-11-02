@@ -19,12 +19,14 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
+#include "fdb5/api/FDBListObject.h"
 
 class MarsRequest;
 
 namespace fdb5 {
 
 class FDBBase;
+class FDBToolRequest;
 class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -44,21 +46,27 @@ public: // methods
     FDB(FDB&&) = default;
     FDB& operator=(FDB&&) = default;
 
+    // -------------- Primary API functions ----------------------------
+
     void archive(const Key& key, const void* data, size_t length);
 
+    /// Flushes all buffers and closes all data handles into a consistent DB state
+    /// @note always safe to call
+    void flush();
+
     eckit::DataHandle* retrieve(const MarsRequest& request);
+
+    FDBListObject list(const FDBToolRequest& request);
+
+    bool dirty() const;
+
+    // -------------- API management ----------------------------
 
     /// ID used for hashing in the Rendezvous hash. Should be unique.
     const std::string id() const;
 
     FDBStats stats() const;
     FDBStats internalStats() const;
-
-    /// Flushes all buffers and closes all data handles into a consistent DB state
-    /// @note always safe to call
-    void flush();
-
-    bool dirty() const;
 
     bool writable() const;
     bool visitable() const;

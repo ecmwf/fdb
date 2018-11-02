@@ -52,6 +52,14 @@ list( APPEND fdb5_srcs
     api/FDBFactory.h
     api/FDBStats.cc
     api/FDBStats.h
+    api/FDBToolRequest.cc
+    api/FDBToolRequest.h
+    api/FDBListObject.cc
+    api/FDBListObject.h
+    api/FDBAggregateListObjects.cc
+    api/FDBAggregateListObjects.h
+    api/FDBAsyncListObject.cc
+    api/FDBAsyncListObject.h
     api/LocalFDB.cc
     api/LocalFDB.h
     api/SelectFDB.cc
@@ -75,6 +83,8 @@ list( APPEND fdb5_srcs
     database/DbStats.h
     database/Engine.cc
     database/Engine.h
+    database/EntryVisitMechanism.cc
+    database/EntryVisitMechanism.h
     database/Field.cc
     database/Field.h
     database/FieldDetails.cc
@@ -162,8 +172,6 @@ list( APPEND fdb5_srcs
     tools/FDBInspect.h
     tools/FDBTool.cc
     tools/FDBTool.h
-    tools/ToolRequest.cc
-    tools/ToolRequest.h
     tools/RequestParser.cc
     tools/RequestParser.h
     types/Type.cc
@@ -364,19 +372,24 @@ endforeach()
 
 
 list( APPEND fdb5_tools
-    fdb-adopt
     fdb-hammer
     fdb-write
-    fdb-write-legacy
     fdb-dump
     fdb-list
     fdb-patch
     fdb-read
     fdb-schema
     fdb-where
-    fdb-root
     fdb-info
 )
+
+if ( HAVE_TOCFDB )
+    list(APPEND fdb5_tools
+        fdb-adopt
+        fdb-write-legacy
+        fdb-root
+    )
+endif()
 
 foreach( _tool ${fdb5_tools} )
 

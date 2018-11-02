@@ -135,12 +135,8 @@ public:
 
 private: // methods
 
-
-
-    virtual void visit(const Index& index,
-                       const Field& field,
-                       const std::string &indexFingerprint,
-                       const std::string &fieldFingerprint);
+    virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
+    virtual void visitDatum(const Field& field, const Key& key) { NOTIMP; }
 
 protected: // members
 

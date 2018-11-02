@@ -342,6 +342,11 @@ eckit::DataHandle* RemoteFDB::retrieve(const MarsRequest& request) {
 }
 
 
+FDBListObject fdb5::RemoteFDB::list(const fdb5::FDBToolRequest &request) {
+    NOTIMP;
+}
+
+
 std::string RemoteFDB::id() const {
     eckit::Translator<size_t, std::string> toStr;
     return std::string("remote=") + hostname_ + ":" + toStr(port_);

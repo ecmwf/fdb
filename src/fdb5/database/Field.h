@@ -52,11 +52,14 @@ public: // methods
     eckit::DataHandle *dataHandle() const { return location_->dataHandle(); }
 
     const FieldLocation& location() const { return *location_; }
+    std::shared_ptr<const FieldLocation> sharedLocation() const {
+        return std::const_pointer_cast<const FieldLocation>(location_);
+    }
     const FieldDetails& details() const { return details_; }
 
 private: // members
 
-    eckit::SharedPtr<FieldLocation> location_;
+    std::shared_ptr<FieldLocation> location_;
 
     FieldDetails details_;
 

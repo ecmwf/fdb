@@ -8,30 +8,43 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/tools/ToolRequest.h"
+/// @author Simon Smart
+/// @date   October 2018
 
-using eckit::Log;
+#ifndef fdb5_FDBAggregateListObject_H
+#define fdb5_FDBAggregateListObject_H
+
+#include "fdb5/api/FDBListObject.h"
+
+#include "eckit/container/Queue.h"
+
+/*
+ * Given a function which will push elements onto a queue, run it in
+ * the background.
+ */
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ToolRequest::ToolRequest(const std::string& r, const std::vector<std::string>& minimumKeySet) :
-    key_(r) {    
+class FDBAsyncListObject : public FDBListImplBase {
 
-    for (std::vector<std::string>::const_iterator j = minimumKeySet.begin(); j != minimumKeySet.end(); ++j) {
-        if (key_.find(*j) == key_.end()) {
-            throw eckit::UserError("Please provide a value for '" + (*j) + "'");
-        }
-    }
-}
+public: // methods
 
-const Key& ToolRequest::key() const
-{
-    return key_;
-}
+    FDBAsyncListObject(std::function<void(eckit::Queue<FDBListElement>&)> workerFn);
+    virtual ~FDBAsyncListObject() override;
+
+    virtual bool next(FDBListElement& elem) override;
+
+private: // members
+
+    eckit::Queue<FDBListElement> queue_;
+
+    std::thread workerThread_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
+#endif

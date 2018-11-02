@@ -32,21 +32,23 @@ class DistFDB : public FDBBase {
 public: // method
 
     DistFDB(const eckit::Configuration& config, const std::string& name);
-    ~DistFDB();
+    ~DistFDB() override;
 
-    virtual void archive(const Key& key, const void* data, size_t length);
+    virtual void archive(const Key& key, const void* data, size_t length) override;
 
-    virtual eckit::DataHandle* retrieve(const MarsRequest& request);
+    virtual eckit::DataHandle* retrieve(const MarsRequest& request) override;
 
-    virtual std::string id() const;
+    virtual FDBListObject list(const FDBToolRequest& request) override;
 
-    virtual void flush();
+    virtual std::string id() const override;
 
-    virtual FDBStats stats() const;
+    virtual void flush() override;
+
+    virtual FDBStats stats() const override;
 
 private: // methods
 
-    virtual void print(std::ostream& s) const;
+    virtual void print(std::ostream& s) const override;
 
 private:
 

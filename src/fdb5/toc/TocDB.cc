@@ -92,6 +92,8 @@ void TocDB::visitEntries(EntryVisitor& visitor, bool sorted) {
 
     std::vector<Index> all = indexes(sorted);
 
+    visitor.visitDatabase(*this);
+
     for (std::vector<Index>::const_iterator i = all.begin(); i != all.end(); ++i) {
         i->entries(visitor);
     }

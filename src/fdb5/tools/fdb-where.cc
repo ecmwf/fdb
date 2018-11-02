@@ -13,7 +13,6 @@
 
 #include "fdb5/database/Manager.h"
 #include "fdb5/tools/FDBInspect.h"
-#include "fdb5/tools/ToolRequest.h"
 
 using eckit::Log;
 

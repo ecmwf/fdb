@@ -8,38 +8,40 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   ToolRequest.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Mar 2016
+#include "fdb5/api/FDBAsyncListObject.h"
 
-#ifndef fdb5_ToolRequest_H
-#define fdb5_ToolRequest_H
-
-#include <string>
-#include <vector>
-
-#include "fdb5/database/Key.h"
+#include "eckit/config/Resource.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ToolRequest {
-public: // methods
+FDBAsyncListObject::FDBAsyncListObject(std::function<void (eckit::Queue<FDBListElement>&)> workerFn) :
+    queue_(eckit::Resource<size_t>("fdb5AsyncListObjectQueueLen", 100)) {
 
-    ToolRequest(const std::string& r, const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
+    auto fullWorker = [workerFn, this] {
+        workerFn(queue_);
+        queue_.set_done();
+    };
 
-    const Key& key() const;
+    workerThread_ = std::thread(fullWorker);
+}
 
-private: // methods
+FDBAsyncListObject::~FDBAsyncListObject() {}
 
-    Key key_;
+bool FDBAsyncListObject::next(FDBListElement& elem) {
 
-};
+    long nqueue = queue_.pop(elem);
+
+    if (nqueue == -1) {
+        workerThread_.join();
+        return false;
+    } else {
+        return true;
+    }
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
-#endif

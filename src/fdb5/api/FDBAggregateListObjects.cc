@@ -8,34 +8,32 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   StatsVisitor.h
-/// @author Simon Smart
-/// @date   August 2017
-
-#ifndef fdb5_StatsVisitor_H
-#define fdb5_StatsVisitor_H
-
-#include "fdb5/database/DbStats.h"
-#include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/database/Index.h"
+#include "fdb5/api/FDBAggregateListObjects.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class StatsReportVisitor : public EntryVisitor {
+FDBAggregateListObjects::FDBAggregateListObjects(std::queue<fdb5::FDBListObject>&& listObjects)
+    : listObjects_(std::move(listObjects)) {}
 
-public: // methods
+FDBAggregateListObjects::~FDBAggregateListObjects() {}
 
-    StatsReportVisitor();
-    virtual ~StatsReportVisitor();
+bool FDBAggregateListObjects::next(FDBListElement& elem) {
 
-    virtual IndexStats indexStatistics() const = 0;
-    virtual DbStats    dbStatistics() const = 0;
-};
+    while (!listObjects_.empty()) {
+
+        if (listObjects_.front().next(elem)) {
+            return true;
+        }
+
+        listObjects_.pop();
+    }
+
+    return false;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
-#endif // fdb5_StatsVisitor_H

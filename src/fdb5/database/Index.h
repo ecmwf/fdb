@@ -41,12 +41,12 @@ namespace fdb5 {
 class Key;
 class Index;
 class IndexLocationVisitor;
+class EntryVisitor;
 class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-class EntryVisitor : private eckit::NonCopyable {
+/*class EntryVisitor : private eckit::NonCopyable {
 public:
 
     virtual ~EntryVisitor();
@@ -78,7 +78,7 @@ private: // members
     std::ostream& out_;
     Schema& schema_;
     Key& dbKey_;
-};
+};*/
 
 //----------------------------------------------------------------------------------------------------------------------
 

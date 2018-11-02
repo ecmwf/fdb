@@ -94,6 +94,10 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const Notifier& not
     return retrieve(task, LibFdb::instance().schema(), sorted, notifyee);
 }
 
+void Retriever::visitEntries(const FDBToolRequest &request, EntryVisitor &visitor) const {
+
+}
+
 void Retriever::print(std::ostream &out) const {
     out << "Retriever[]";
 }

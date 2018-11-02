@@ -11,6 +11,7 @@
 #include "fdb5/LibFdb.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/database/EntryVisitMechanism.h"
 
 namespace fdb5 {
 
@@ -63,9 +64,8 @@ const IndexAxis &IndexBase::axes() const {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-EntryVisitor::~EntryVisitor() {}
-
-void DumpVisitor::visit(const Index& index,
+// TODO: Remove/convert to other visitor type
+/*void DumpVisitor::visit(const Index& index,
                         const Field& field,
                         const std::string&,
                         const std::string& fieldFingerprint) {
@@ -80,7 +80,7 @@ void DumpVisitor::visit(const Index& index,
     field.location().visit(printer);
 
     out_ << std::endl;
-}
+}*/
 
 //----------------------------------------------------------------------------------------------------------------------
 

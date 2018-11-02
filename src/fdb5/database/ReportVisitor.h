@@ -25,6 +25,7 @@
 
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/Report.h"
 

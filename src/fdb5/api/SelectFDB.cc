@@ -12,9 +12,10 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/types/Types.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/api/FDBAggregateListObjects.h"
 #include "fdb5/api/SelectFDB.h"
 #include "fdb5/io/HandleGatherer.h"
+#include "fdb5/LibFdb.h"
 
 #include "marslib/MarsTask.h"
 
@@ -80,7 +81,7 @@ void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 
     ASSERT(subFdbs_.size() == selects_.size());
 
-    for (int idx = 0; idx < subFdbs_.size(); idx++) {
+    for (size_t idx = 0; idx < subFdbs_.size(); idx++) {
 
         bool matches = true;
         for (const auto& kv : selects_[idx]) {
@@ -120,6 +121,19 @@ eckit::DataHandle *SelectFDB::retrieve(const MarsRequest& request) {
     }
 
     return result.dataHandle();
+}
+
+FDBListObject SelectFDB::list(const FDBToolRequest &request) {
+
+    // TODO: Matching FDBs?
+
+    std::queue<FDBListObject> lists;
+
+    for (FDB& fdb : subFdbs_) {
+        lists.push(fdb.list(request));
+    }
+
+    return FDBListObject(new FDBAggregateListObjects(std::move(lists)));
 }
 
 std::string SelectFDB::id() const {

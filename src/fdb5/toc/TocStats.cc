@@ -168,10 +168,7 @@ TocStatsReportVisitor::TocStatsReportVisitor(TocDBReader& reader) :
 TocStatsReportVisitor::~TocStatsReportVisitor() {
 }
 
-void TocStatsReportVisitor::visit(const Index &index,
-                          const Field& field,
-                          const std::string &indexFingerprint,
-                          const std::string &fieldFingerprint) {
+void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fieldFingerprint) {
 
 //    ASSERT(currIndex_ != 0);
 
@@ -179,10 +176,10 @@ void TocStatsReportVisitor::visit(const Index &index,
 
     // If this index is not yet in the map, then create an entry
 
-    std::map<Index, IndexStats>::iterator stats_it = indexStats_.find(index);
+    std::map<Index, IndexStats>::iterator stats_it = indexStats_.find(*currentIndex_);
 
     if (stats_it == indexStats_.end()) {
-        stats_it = indexStats_.insert(std::make_pair(index, IndexStats(new TocIndexStats()))).first;
+        stats_it = indexStats_.insert(std::make_pair(*currentIndex_, IndexStats(new TocIndexStats()))).first;
     }
 
     IndexStats& stats(stats_it->second);
@@ -193,7 +190,7 @@ void TocStatsReportVisitor::visit(const Index &index,
     stats.addFieldsSize(len);
 
     const eckit::PathName& dataPath  = field.location().url();
-    const eckit::PathName& indexPath = index.location().url();
+    const eckit::PathName& indexPath = currentIndex_->location().url();
 
     if (dataPath != lastDataPath_) {
 
@@ -222,7 +219,7 @@ void TocStatsReportVisitor::visit(const Index &index,
         lastIndexPath_ = indexPath;
     }
 
-    std::string unique = indexFingerprint + "+" + fieldFingerprint;
+    std::string unique = currentIndex_->key().valuesToString() + "+" + fieldFingerprint;
 
     if (active_.insert(unique).second) {
         indexUsage_[indexPath]++;

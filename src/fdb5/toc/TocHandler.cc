@@ -56,10 +56,10 @@ TocHandler::TocHandler(const eckit::PathName &directory, const eckit::Configurat
     userUID_(::getuid()),
     tocPath_(directory / "toc"),
     schemaPath_(directory / "schema"),
-    fd_(-1),
-    count_(0),
     useSubToc_(config.getBool("useSubToc", false)),
     isSubToc_(false),
+    fd_(-1),
+    count_(0),
     enumeratedMaskedSubTocs_(false),
     writeMode_(false) {
 
@@ -77,10 +77,10 @@ TocHandler::TocHandler(const eckit::PathName& path, bool) :
     userUID_(::getuid()),
     tocPath_(path),
     schemaPath_(path.dirName() / "schema"),
-    fd_(-1),
-    count_(0),
     useSubToc_(false),
     isSubToc_(true),
+    fd_(-1),
+    count_(0),
     enumeratedMaskedSubTocs_(false),
     writeMode_(false) {
 }

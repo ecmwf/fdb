@@ -8,34 +8,46 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   StatsVisitor.h
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
 /// @author Simon Smart
-/// @date   August 2017
+/// @date   Mar 2016
 
-#ifndef fdb5_StatsVisitor_H
-#define fdb5_StatsVisitor_H
+#ifndef fdb5_FDBToolRequest_H
+#define fdb5_FDBToolRequest_H
 
-#include "fdb5/database/DbStats.h"
-#include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/database/Index.h"
+#include <string>
+#include <vector>
+
+#include "fdb5/database/Key.h"
+
+
+namespace eckit { namespace option { class CmdArgs; }}
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class StatsReportVisitor : public EntryVisitor {
-
+class FDBToolRequest {
 public: // methods
 
-    StatsReportVisitor();
-    virtual ~StatsReportVisitor();
+    FDBToolRequest(const std::string& r,
+                   bool all=false,
+                   const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
 
-    virtual IndexStats indexStatistics() const = 0;
-    virtual DbStats    dbStatistics() const = 0;
+    const Key& key() const;
+
+    bool all() const;
+
+private: // methods
+
+    Key key_;
+
+    bool all_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
-#endif // fdb5_StatsVisitor_H
+#endif

@@ -19,6 +19,7 @@
 
 #include "eckit/utils/Regex.h"
 #include "eckit/memory/NonCopyable.h"
+#include "fdb5/api/FDBListObject.h"
 
 #include <memory>
 
@@ -28,6 +29,7 @@ class MarsRequest;
 namespace fdb5 {
 
 class Key;
+class FDBToolRequest;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -40,15 +42,21 @@ public: // methods
     FDBBase(const Config& config, const std::string& name);
     virtual ~FDBBase();
 
+    // -------------- Primary API functions ----------------------------
+
     virtual void archive(const Key& key, const void* data, size_t length) = 0;
 
+    virtual void flush() = 0;
+
     virtual eckit::DataHandle* retrieve(const MarsRequest& request) = 0;
+
+    virtual FDBListObject list(const FDBToolRequest& request) = 0;
+
+    // -------------- API management ----------------------------
 
     /// ID used for hashing in the Rendezvous hash. Should be unique amongst those used
     /// within a DistFDB (i.e. within one Rendezvous hash).
     virtual std::string id() const = 0;
-
-    virtual void flush() = 0;
 
     virtual FDBStats stats() const;
 

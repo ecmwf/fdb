@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#if 0
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
@@ -189,3 +190,5 @@ void FDBInspect::usage(const std::string &tool) const {
 
 } // namespace fdb5
 
+
+#endif

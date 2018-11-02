@@ -10,16 +10,33 @@
 
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/config/Resource.h"
+#include "eckit/option/SimpleOption.h"
+#include "eckit/option/VectorOption.h"
+#include "eckit/option/CmdArgs.h"
 
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBInspect.h"
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/FDBToolRequest.h"
 
+using namespace eckit;
+
+/*
+ * This is a test case
+ *
+ * TODO: Generalise to more cases
+ *
+ */
+
+namespace fdb5 {
+namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ListVisitor : public fdb5::EntryVisitor {
+/*class ListVisitor : public fdb5::EntryVisitor {
   public:
     ListVisitor(const fdb5::Key &dbKey,
                 const fdb5::Schema &schema,
@@ -55,56 +72,86 @@ void ListVisitor::visit(const fdb5::Index& index,
 
     std::cout << std::endl;
 
-}
+}*/
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBList : public fdb5::FDBInspect {
+class FDBList : public fdb5::FDBTool {
 
   public: // methods
 
     FDBList(int argc, char **argv) :
-        fdb5::FDBInspect(argc, argv),
-        location_(false) {
+        fdb5::FDBTool(argc, argv),
+        location_(false),
+        all_(false) {
+
         options_.push_back(new eckit::option::SimpleOption<bool>("location", "Also print the location of each field"));
+        options_.push_back(new option::SimpleOption<bool>("all", "Visit all FDB databases"));
     }
 
   private: // methods
 
     virtual void usage(const std::string &tool) const;
-    virtual void process(const eckit::PathName &path, const eckit::option::CmdArgs &args);
+    virtual void execute(const eckit::option::CmdArgs& args);
     // virtual int minimumPositionalArguments() const { return 1; }
     virtual void init(const eckit::option::CmdArgs &args);
 
     bool location_;
+    bool all_;
+    std::vector<std::string> requests_;
 
+    std::vector<std::string> minimumKeys_;
 };
 
 void FDBList::usage(const std::string &tool) const {
-    fdb5::FDBInspect::usage(tool);
+    fdb5::FDBTool::usage(tool);
 }
 
-void FDBList::init(const eckit::option::CmdArgs &args) {
+void FDBList::init(const option::CmdArgs& args) {
     args.get("location", location_);
+    args.get("all", all_);
+
+    if (all_ && args.count()) {
+        usage(args.tool());
+        exit(1);
+    }
+
+    // TODO: ignore-errors
+
+    for (size_t i = 0; i < args.count(); ++i) {
+        requests_.emplace_back(args(i));
+    }
 }
 
-void FDBList::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {
+void FDBList::execute(const option::CmdArgs& args) {
 
-    eckit::Log::info() << "Listing " << path << std::endl;
+    FDB fdb;
 
-    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
-    ASSERT(db->open());
+    if (all_) {
+        ASSERT(requests_.empty());
+        requests_.push_back("");
+    }
 
-    ListVisitor visitor(db->key(), db->schema(), location_);
+    for (const std::string& request : requests_) {
 
-    // Not currently sorting for efficient visiting, but visiting in logical (masking) order.
-    db->visitEntries(visitor, false);
+        FDBToolRequest tool_request(request, all_);
+        auto listObject = fdb.list(tool_request);
+
+        FDBListElement elem;
+        while (listObject.next(elem)) {
+            elem.print(Log::info(), location_);
+            Log::info() << std::endl;
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace tools
+} // namespace fdb5
+
 int main(int argc, char **argv) {
-    FDBList app(argc, argv);
+    fdb5::tools::FDBList app(argc, argv);
     return app.start();
 }
 

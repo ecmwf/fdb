@@ -35,8 +35,8 @@ TocFieldLocation::TocFieldLocation(const FileStore &store, const FieldRef &ref) 
     offset_(ref.offset()) {}
 
 
-eckit::SharedPtr<FieldLocation> TocFieldLocation::make_shared() const {
-    return eckit::SharedPtr<FieldLocation>(new TocFieldLocation(*this));
+std::shared_ptr<FieldLocation> TocFieldLocation::make_shared() const {
+    return std::make_shared<TocFieldLocation>(*this);
 }
 
 

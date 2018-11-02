@@ -37,6 +37,8 @@ class Op;
 class DB;
 class Schema;
 class Notifier;
+class FDBToolRequest;
+class EntryVisitor;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -58,6 +60,10 @@ public: // methods
     /// @returns  data handle to read from
 
     eckit::DataHandle* retrieve(const MarsTask& task, const Notifier& notifyee) const;
+
+    /// Give read access to a range of entries according to a request
+
+    void visitEntries(const FDBToolRequest& request, EntryVisitor& visitor) const;
 
     friend std::ostream &operator<<(std::ostream &s, const Retriever &x) {
         x.print(s);
