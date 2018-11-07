@@ -8,37 +8,34 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/api/FDBAsyncListObject.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 
-#include "eckit/config/Resource.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDBAsyncListObject::FDBAsyncListObject(std::function<void (eckit::Queue<FDBListElement>&)> workerFn) :
-    queue_(eckit::Resource<size_t>("fdb5AsyncListObjectQueueLen", 100)) {
 
-    auto fullWorker = [workerFn, this] {
-        workerFn(queue_);
-        queue_.set_done();
-    };
+FDBToolRequest::FDBToolRequest(const std::string& r,
+                               bool all,
+                               const std::vector<std::string>& minimumKeySet) :
+    key_(r),
+    all_(all) {
 
-    workerThread_ = std::thread(fullWorker);
+    for (std::vector<std::string>::const_iterator j = minimumKeySet.begin(); j != minimumKeySet.end(); ++j) {
+        if (key_.find(*j) == key_.end()) {
+            throw eckit::UserError("Please provide a value for '" + (*j) + "'");
+        }
+    }
 }
 
-FDBAsyncListObject::~FDBAsyncListObject() {}
+const Key& FDBToolRequest::key() const {
+    return key_;
+}
 
-bool FDBAsyncListObject::next(FDBListElement& elem) {
+bool FDBToolRequest::all() const {
+    return all_;
 
-    long nqueue = queue_.pop(elem);
-
-    if (nqueue == -1) {
-        workerThread_.join();
-        return false;
-    } else {
-        return true;
-    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

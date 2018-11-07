@@ -14,7 +14,7 @@
 #ifndef fdb5_FDBAggregateListObject_H
 #define fdb5_FDBAggregateListObject_H
 
-#include "fdb5/api/FDBListObject.h"
+#include "fdb5/api/helpers/FDBListObject.h"
 
 #include "eckit/container/Queue.h"
 

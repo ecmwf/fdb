@@ -20,7 +20,7 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBInspect.h"
 #include "fdb5/api/FDB.h"
-#include "fdb5/api/FDBToolRequest.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 
 using namespace eckit;
 

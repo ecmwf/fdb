@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/api/FDBListObject.h"
+#include "fdb5/api/helpers/FDBListObject.h"
 
 namespace fdb5 {
 

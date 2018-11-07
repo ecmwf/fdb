@@ -10,7 +10,7 @@
 
 #include "fdb5/database/EntryVisitMechanism.h"
 
-#include "fdb5/api/FDBToolRequest.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Manager.h"

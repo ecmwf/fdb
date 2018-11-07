@@ -52,18 +52,21 @@ list( APPEND fdb5_srcs
     api/FDBFactory.h
     api/FDBStats.cc
     api/FDBStats.h
-    api/FDBToolRequest.cc
-    api/FDBToolRequest.h
-    api/FDBListObject.cc
-    api/FDBListObject.h
-    api/FDBAggregateListObjects.cc
-    api/FDBAggregateListObjects.h
-    api/FDBAsyncListObject.cc
-    api/FDBAsyncListObject.h
     api/LocalFDB.cc
     api/LocalFDB.h
     api/SelectFDB.cc
     api/SelectFDB.h
+
+    api/helpers/FDBToolRequest.cc
+    api/helpers/FDBToolRequest.h
+    api/helpers/FDBDumpObject.cc
+    api/helpers/FDBDumpObject.h
+    api/helpers/FDBListObject.cc
+    api/helpers/FDBListObject.h
+    api/helpers/FDBAggregateListObjects.cc
+    api/helpers/FDBAggregateListObjects.h
+    api/helpers/FDBAsyncListObject.cc
+    api/helpers/FDBAsyncListObject.h
 
     config/UMask.cc
     config/UMask.h

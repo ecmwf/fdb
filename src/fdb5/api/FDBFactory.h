@@ -19,7 +19,7 @@
 
 #include "eckit/utils/Regex.h"
 #include "eckit/memory/NonCopyable.h"
-#include "fdb5/api/FDBListObject.h"
+#include "fdb5/api/helpers/FDBListObject.h"
 
 #include <memory>
 

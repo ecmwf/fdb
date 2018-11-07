@@ -8,37 +8,41 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/api/FDBToolRequest.h"
+/// @author Simon Smart
+/// @date   October 2018
 
+#ifndef fdb5_FDBAggregateListObject_H
+#define fdb5_FDBAggregateListObject_H
+
+#include "fdb5/api/helpers/FDBListObject.h"
+
+#include <queue>
+
+/*
+ * Define a standard object which can be used to iterate the results of a
+ * list() call on an arbitrary FDB object
+ */
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class FDBAggregateListObjects : public FDBListImplBase {
 
-FDBToolRequest::FDBToolRequest(const std::string& r,
-                               bool all,
-                               const std::vector<std::string>& minimumKeySet) :
-    key_(r),
-    all_(all) {
+public: // methods
 
-    for (std::vector<std::string>::const_iterator j = minimumKeySet.begin(); j != minimumKeySet.end(); ++j) {
-        if (key_.find(*j) == key_.end()) {
-            throw eckit::UserError("Please provide a value for '" + (*j) + "'");
-        }
-    }
-}
+    FDBAggregateListObjects(std::queue<FDBListObject>&& listObjects);
+    virtual ~FDBAggregateListObjects() override;
 
-const Key& FDBToolRequest::key() const {
-    return key_;
-}
+    virtual bool next(FDBListElement& elem) override;
 
-bool FDBToolRequest::all() const {
-    return all_;
+private: // members
 
-}
+    std::queue<FDBListObject> listObjects_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
+#endif

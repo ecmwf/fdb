@@ -33,9 +33,8 @@ public:  // methods
     EntryVisitor();
     virtual ~EntryVisitor();
 
-    // These are currently not virtual - but could easily be made so.
-    void visitDatabase(const DB& db);
-    void visitIndex(const Index& index);
+    virtual void visitDatabase(const DB& db);
+    virtual void visitIndex(const Index& index);
     void visitDatum(const Field& field, const std::string& keyFingerprint);
 
 private: // methods

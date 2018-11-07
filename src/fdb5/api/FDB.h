@@ -19,7 +19,8 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
-#include "fdb5/api/FDBListObject.h"
+#include "fdb5/api/helpers/FDBListObject.h"
+#include "fdb5/api/helpers/FDBDumpObject.h"
 
 class MarsRequest;
 
@@ -57,6 +58,8 @@ public: // methods
     eckit::DataHandle* retrieve(const MarsRequest& request);
 
     FDBListObject list(const FDBToolRequest& request);
+
+    FDBDumpObject dump(const FDBToolRequest& request);
 
     bool dirty() const;
 

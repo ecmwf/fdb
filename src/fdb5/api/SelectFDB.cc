@@ -12,7 +12,7 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/types/Types.h"
 
-#include "fdb5/api/FDBAggregateListObjects.h"
+#include "fdb5/api/helpers/FDBAggregateListObjects.h"
 #include "fdb5/api/SelectFDB.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/LibFdb.h"

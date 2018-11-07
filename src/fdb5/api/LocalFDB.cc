@@ -11,14 +11,14 @@
 #include "eckit/log/Log.h"
 #include "eckit/container/Queue.h"
 
-#include "fdb5/api/FDBAsyncListObject.h"
-#include "fdb5/api/FDBListObject.h"
+#include "fdb5/api/helpers/FDBAsyncListObject.h"
+#include "fdb5/api/helpers/FDBListObject.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/LocalFDB.h"
-#include "fdb5/api/FDBToolRequest.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/database/Retriever.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/database/Retriever.h"
 #include "fdb5/LibFdb.h"
 
 #include "marslib/MarsTask.h"
@@ -49,6 +49,21 @@ public:
 
 private:
     eckit::Queue<FDBListElement>& queue_;
+};
+
+
+class DumpVisitor : public EntryVisitor {
+
+private:
+
+    DumpVisitor(bool simple_);
+
+    void visitDatabase(const DB& db) override {
+        db.dump(bufferedOstream, simple_);
+    }
+
+    void visitIndex(const Index& index) override { NOTIMP; /* intentionally  */ }
+    void visitDatum(const Field& field, const Key& key) override { NOTIMP; /* intentionally */ }
 };
 
 }

@@ -8,29 +8,37 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/api/FDBAggregateListObjects.h"
+#include "fdb5/api/helpers/FDBAsyncListObject.h"
+
+#include "eckit/config/Resource.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDBAggregateListObjects::FDBAggregateListObjects(std::queue<fdb5::FDBListObject>&& listObjects)
-    : listObjects_(std::move(listObjects)) {}
+FDBAsyncListObject::FDBAsyncListObject(std::function<void (eckit::Queue<FDBListElement>&)> workerFn) :
+    queue_(eckit::Resource<size_t>("fdb5AsyncListObjectQueueLen", 100)) {
 
-FDBAggregateListObjects::~FDBAggregateListObjects() {}
+    auto fullWorker = [workerFn, this] {
+        workerFn(queue_);
+        queue_.set_done();
+    };
 
-bool FDBAggregateListObjects::next(FDBListElement& elem) {
+    workerThread_ = std::thread(fullWorker);
+}
 
-    while (!listObjects_.empty()) {
+FDBAsyncListObject::~FDBAsyncListObject() {}
 
-        if (listObjects_.front().next(elem)) {
-            return true;
-        }
+bool FDBAsyncListObject::next(FDBListElement& elem) {
 
-        listObjects_.pop();
+    long nqueue = queue_.pop(elem);
+
+    if (nqueue == -1) {
+        workerThread_.join();
+        return false;
+    } else {
+        return true;
     }
-
-    return false;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

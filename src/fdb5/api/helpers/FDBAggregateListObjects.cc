@@ -8,41 +8,32 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Simon Smart
-/// @date   October 2018
-
-#ifndef fdb5_FDBAggregateListObject_H
-#define fdb5_FDBAggregateListObject_H
-
-#include "fdb5/api/FDBListObject.h"
-
-#include <queue>
-
-/*
- * Define a standard object which can be used to iterate the results of a
- * list() call on an arbitrary FDB object
- */
+#include "fdb5/api/helpers/FDBAggregateListObjects.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBAggregateListObjects : public FDBListImplBase {
+FDBAggregateListObjects::FDBAggregateListObjects(std::queue<fdb5::FDBListObject>&& listObjects)
+    : listObjects_(std::move(listObjects)) {}
 
-public: // methods
+FDBAggregateListObjects::~FDBAggregateListObjects() {}
 
-    FDBAggregateListObjects(std::queue<FDBListObject>&& listObjects);
-    virtual ~FDBAggregateListObjects() override;
+bool FDBAggregateListObjects::next(FDBListElement& elem) {
 
-    virtual bool next(FDBListElement& elem) override;
+    while (!listObjects_.empty()) {
 
-private: // members
+        if (listObjects_.front().next(elem)) {
+            return true;
+        }
 
-    std::queue<FDBListObject> listObjects_;
-};
+        listObjects_.pop();
+    }
+
+    return false;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
-#endif
