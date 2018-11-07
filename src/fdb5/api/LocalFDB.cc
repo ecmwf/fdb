@@ -11,8 +11,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/container/Queue.h"
 
-#include "fdb5/api/helpers/FDBAsyncListObject.h"
-#include "fdb5/api/helpers/FDBListObject.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/LocalFDB.h"
 #include "fdb5/database/Archiver.h"
@@ -36,19 +35,19 @@ class ListVisitor : public EntryVisitor {
 
 public:
 
-    ListVisitor(eckit::Queue<FDBListElement>& queue) :
+    ListVisitor(eckit::Queue<ListElement>& queue) :
         queue_(queue) {}
 
     void visitDatum(const Field& field, const Key& key) override {
         ASSERT(currentDatabase_);
         ASSERT(currentIndex_);
 
-        queue_.emplace(FDBListElement({currentDatabase_->key(), currentIndex_->key(), key},
+        queue_.emplace(ListElement({currentDatabase_->key(), currentIndex_->key(), key},
                                       field.sharedLocation()));
     }
 
 private:
-    eckit::Queue<FDBListElement>& queue_;
+    eckit::Queue<ListElement>& queue_;
 };
 
 
@@ -95,19 +94,19 @@ eckit::DataHandle *LocalFDB::retrieve(const MarsRequest &request) {
 }
 
 
-FDBListObject LocalFDB::list(const FDBToolRequest& request) {
+ListIterator LocalFDB::list(const FDBToolRequest& request) {
 
     // Create a general mechanism to call an EntryVisitor on a local object
     // Call the entry visitor
     // See FDBInspect...
 
-    auto async_worker = [this, request] (eckit::Queue<FDBListElement>& queue) {
+    auto async_worker = [this, request] (eckit::Queue<ListElement>& queue) {
         EntryVisitMechanism mechanism(config_);
         ListVisitor visitor(queue);
         mechanism.visit(request, visitor);
     };
 
-    return FDBListObject(new FDBAsyncListObject(async_worker));
+    return ListIterator(new ListAsyncIterator(async_worker));
 }
 
 std::string LocalFDB::id() const {

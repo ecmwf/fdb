@@ -57,16 +57,12 @@ list( APPEND fdb5_srcs
     api/SelectFDB.cc
     api/SelectFDB.h
 
+    api/helpers/APIIterator.h
     api/helpers/FDBToolRequest.cc
     api/helpers/FDBToolRequest.h
-    api/helpers/FDBDumpObject.cc
-    api/helpers/FDBDumpObject.h
-    api/helpers/FDBListObject.cc
-    api/helpers/FDBListObject.h
-    api/helpers/FDBAggregateListObjects.cc
-    api/helpers/FDBAggregateListObjects.h
-    api/helpers/FDBAsyncListObject.cc
-    api/helpers/FDBAsyncListObject.h
+    api/helpers/DumpIterator.h
+    api/helpers/ListIterator.cc
+    api/helpers/ListIterator.h
 
     config/UMask.cc
     config/UMask.h

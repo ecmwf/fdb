@@ -8,42 +8,25 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/api/helpers/FDBListObject.h"
+#include "fdb5/api/helpers/ListIterator.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDBListElement::FDBListElement(const std::vector<Key>& keyParts,
+ListElement::ListElement(const std::vector<Key>& keyParts,
                                std::shared_ptr<const FieldLocation> location) :
     keyParts_(keyParts),
     location_(location) {}
 
 
-void FDBListElement::print(std::ostream &out, bool location) const {
+void ListElement::print(std::ostream &out, bool location) const {
     for (const auto& bit : keyParts_) {
         out << bit;
     }
     if (location && location_) {
         out << " " << *location_;
     }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-FDBListImplBase::FDBListImplBase() {}
-
-FDBListImplBase::~FDBListImplBase() {}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-FDBListObject::FDBListObject(FDBListImplBase* impl) :
-    impl_(impl) {}
-
-
-bool FDBListObject::next(FDBListElement& elem) {
-    if (!impl_) return false;
-    return impl_->next(elem);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

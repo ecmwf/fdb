@@ -54,7 +54,7 @@ eckit::DataHandle* FDB::retrieve(const MarsRequest& request) {
     return dh;
 }
 
-FDBListObject FDB::list(const FDBToolRequest& request) {
+ListIterator FDB::list(const FDBToolRequest& request) {
     return internal_->list(request);
 }
 

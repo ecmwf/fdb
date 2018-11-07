@@ -11,11 +11,12 @@
 /// @author Simon Smart
 /// @date   October 2018
 
-#ifndef fdb5_FDBListObject_H
-#define fdb5_FDBListObject_H
+#ifndef fdb5_ListIterator_H
+#define fdb5_ListIterator_H
 
 #include "fdb5/database/Key.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/api/helpers/APIIterator.h"
 
 #include <memory>
 #include <iosfwd>
@@ -29,17 +30,17 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBListElement {
+class ListElement {
 public: // methods
 
-    FDBListElement() = default;
-    FDBListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location);
+    ListElement() = default;
+    ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location);
 
     void print(std::ostream& out, bool location=false) const;
 
 private: // methods
 
-    friend std::ostream& operator<<(std::ostream& os, const FDBListElement& e) {
+    friend std::ostream& operator<<(std::ostream& os, const ListElement& e) {
         e.print(os);
         return os;
     }
@@ -52,31 +53,11 @@ public: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBListImplBase {
+using ListIterator = APIIterator<ListElement>;
 
-public:
+using ListAggregateIterator = APIAggregateIterator<ListElement>;
 
-    FDBListImplBase();
-    virtual ~FDBListImplBase();
-
-    virtual bool next(FDBListElement& elem) = 0;
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class FDBListObject {
-
-public: // methods
-
-    FDBListObject(FDBListImplBase* impl);
-
-    // Get the next element. Return false if at end.
-    bool next(FDBListElement& elem);
-
-private:
-
-    std::unique_ptr<FDBListImplBase> impl_;
-};
+using ListAsyncIterator = APIAsyncIterator<ListElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -12,7 +12,7 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/types/Types.h"
 
-#include "fdb5/api/helpers/FDBAggregateListObjects.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/SelectFDB.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/LibFdb.h"
@@ -123,17 +123,17 @@ eckit::DataHandle *SelectFDB::retrieve(const MarsRequest& request) {
     return result.dataHandle();
 }
 
-FDBListObject SelectFDB::list(const FDBToolRequest &request) {
+ListIterator SelectFDB::list(const FDBToolRequest &request) {
 
     // TODO: Matching FDBs?
 
-    std::queue<FDBListObject> lists;
+    std::queue<ListIterator> lists;
 
     for (FDB& fdb : subFdbs_) {
         lists.push(fdb.list(request));
     }
 
-    return FDBListObject(new FDBAggregateListObjects(std::move(lists)));
+    return ListIterator(new ListAggregateIterator(std::move(lists)));
 }
 
 std::string SelectFDB::id() const {

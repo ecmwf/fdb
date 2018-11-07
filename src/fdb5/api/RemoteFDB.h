@@ -50,7 +50,7 @@ public: // method
 
     virtual eckit::DataHandle* retrieve(const MarsRequest& request);
 
-    virtual FDBListObject list(const FDBToolRequest& request) override;
+    virtual ListIterator list(const FDBToolRequest& request) override;
 
     virtual std::string id() const;
 

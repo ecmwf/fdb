@@ -9,39 +9,29 @@
  */
 
 /// @author Simon Smart
-/// @date   October 2018
+/// @date   November 2018
 
-#ifndef fdb5_FDBAggregateListObject_H
-#define fdb5_FDBAggregateListObject_H
+#ifndef fdb5_api_DumpIterator_H
+#define fdb5_api_DumpIterator_H
 
-#include "fdb5/api/helpers/FDBListObject.h"
+#include "fdb5/api/helpers/APIIterator.h"
 
-#include "eckit/container/Queue.h"
+#include <string>
 
 /*
- * Given a function which will push elements onto a queue, run it in
- * the background.
+ * Define a standard object which can be used to iterate the results of a
+ * dump() call on an arbitrary FDB object
  */
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBAsyncListObject : public FDBListImplBase {
+using DumpIterator = APIIterator<std::string>;
 
-public: // methods
+using DumpAggregateIterator = APIAggregateIterator<std::string>;
 
-    FDBAsyncListObject(std::function<void(eckit::Queue<FDBListElement>&)> workerFn);
-    virtual ~FDBAsyncListObject() override;
-
-    virtual bool next(FDBListElement& elem) override;
-
-private: // members
-
-    eckit::Queue<FDBListElement> queue_;
-
-    std::thread workerThread_;
-};
+using DumpAsyncIterator = APIAsyncIterator<std::string>;
 
 //----------------------------------------------------------------------------------------------------------------------
 

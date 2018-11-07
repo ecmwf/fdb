@@ -18,7 +18,7 @@
 #include "eckit/parser/Tokenizer.h"
 
 #include "fdb5/api/DistFDB.h"
-#include "fdb5/api/helpers/FDBAggregateListObjects.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/LibFdb.h"
 
@@ -129,9 +129,9 @@ eckit::DataHandle *DistFDB::retrieve(const MarsRequest &request) {
 }
 
 
-FDBListObject DistFDB::list(const FDBToolRequest& request) {
+ListIterator DistFDB::list(const FDBToolRequest& request) {
 
-    std::queue<FDBListObject> lists;
+    std::queue<ListIterator> lists;
 
     for (FDB& lane : lanes_) {
         if (lane.visitable()) {
@@ -139,7 +139,7 @@ FDBListObject DistFDB::list(const FDBToolRequest& request) {
         }
     }
 
-    return FDBListObject(new FDBAggregateListObjects(std::move(lists)));
+    return ListIterator(new ListAggregateIterator(std::move(lists)));
 }
 
 

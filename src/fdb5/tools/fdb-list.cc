@@ -137,7 +137,7 @@ void FDBList::execute(const option::CmdArgs& args) {
         FDBToolRequest tool_request(request, all_);
         auto listObject = fdb.list(tool_request);
 
-        FDBListElement elem;
+        ListElement elem;
         while (listObject.next(elem)) {
             elem.print(Log::info(), location_);
             Log::info() << std::endl;
