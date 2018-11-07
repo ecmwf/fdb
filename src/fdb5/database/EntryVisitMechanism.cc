@@ -56,7 +56,6 @@ void EntryVisitor::visitDatum(const Field &field, const std::string& keyFingerpr
 EntryVisitMechanism::EntryVisitMechanism(const Config& config) :
     dbConfig_(config),
     fail_(true) {
-    Log::info() << "VisitMechanism config: " << dbConfig_ << std::endl;
 }
 
 void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& visitor) {
@@ -68,7 +67,6 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
     // TODO: Put minimim keys check into FDBToolRequest.
 
     Log::debug<LibFdb>() << "KEY ====> " << request.key() << std::endl;
-    Log::info() << "VisitMechanism config: " << dbConfig_ << std::endl;
 
     try {
 
