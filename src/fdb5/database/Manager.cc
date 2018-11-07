@@ -129,7 +129,8 @@ static const EngineTable& readEngineTypes(const eckit::PathName enginesFile) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Manager::Manager(const Config &config) {
+Manager::Manager(const Config& config) :
+    config_(config) {
 
     static std::string baseEnginesFile = eckit::Resource<std::string>("fdbEnginesFile;$FDB_ENGINES_FILE", "~fdb/etc/fdb/engines");
 
@@ -227,7 +228,7 @@ eckit::PathName Manager::location(const Key& key) {
 
     const std::string& name = Manager::engine(key);
 
-    return Engine::backend(name).location(key);
+    return Engine::backend(name).location(key, config_);
 }
 
 std::vector<PathName> Manager::allLocations(const Key& key)
@@ -240,7 +241,7 @@ std::vector<PathName> Manager::allLocations(const Key& key)
 
     for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
         Log::debug<LibFdb>() << "Selected FDB engine " << *i << std::endl;
-        std::vector<PathName> p = Engine::backend(*i).allLocations(key);
+        std::vector<PathName> p = Engine::backend(*i).allLocations(key, config_);
         r.insert(r.end(), p.begin(), p.end());
     }
 
@@ -258,7 +259,7 @@ std::vector<eckit::PathName> Manager::visitableLocations(const Key& key) {
 
     for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
         Log::debug<LibFdb>() << "Selected FDB engine " << *i << std::endl;
-        std::vector<PathName> p = Engine::backend(*i).visitableLocations(key);
+        std::vector<PathName> p = Engine::backend(*i).visitableLocations(key, config_);
         r.insert(r.end(), p.begin(), p.end());
     }
 
@@ -276,7 +277,7 @@ std::vector<eckit::PathName> Manager::writableLocations(const Key& key) {
 
     for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
         Log::debug<LibFdb>() << "Selected FDB engine " << *i << std::endl;
-        std::vector<PathName> p = Engine::backend(*i).writableLocations(key);
+        std::vector<PathName> p = Engine::backend(*i).writableLocations(key, config_);
         r.insert(r.end(), p.begin(), p.end());
     }
 

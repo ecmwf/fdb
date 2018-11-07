@@ -28,7 +28,9 @@ public: // methods
 
     static const char* typeName() { return "toc"; }
 
-    static std::vector<eckit::PathName> databases(const Key& key, const std::vector<eckit::PathName>& dirs);
+    static std::vector<eckit::PathName> databases(const Key& key,
+                                                  const std::vector<eckit::PathName>& dirs,
+                                                  const Config& config);
 
 protected: // methods
 
@@ -36,15 +38,15 @@ protected: // methods
 
     virtual std::string dbType() const;
 
-    virtual eckit::PathName location(const Key &key) const;
+    virtual eckit::PathName location(const Key &key, const Config& config) const;
 
     virtual bool canHandle(const eckit::PathName& path) const;
 
-    virtual std::vector<eckit::PathName> allLocations(const Key& key) const;
+    virtual std::vector<eckit::PathName> allLocations(const Key& key, const Config& config) const;
 
-    virtual std::vector<eckit::PathName> visitableLocations(const Key& key) const;
+    virtual std::vector<eckit::PathName> visitableLocations(const Key& key, const Config& config) const;
 
-    virtual std::vector<eckit::PathName> writableLocations(const Key& key) const;
+    virtual std::vector<eckit::PathName> writableLocations(const Key& key, const Config& config) const;
 
     virtual void print( std::ostream &out ) const;
 

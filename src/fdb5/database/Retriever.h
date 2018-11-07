@@ -20,6 +20,8 @@
 #include <cstdlib>
 #include <map>
 
+#include "fdb5/config/Config.h"
+
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/container/CacheLRU.h"
 #include "eckit/config/LocalConfiguration.h"
@@ -46,7 +48,7 @@ class Retriever : public eckit::NonCopyable {
 
 public: // methods
 
-    Retriever(const eckit::Configuration& dbConfig=eckit::LocalConfiguration());
+    Retriever(const Config& dbConfig=Config());
 
     ~Retriever();
 
@@ -80,7 +82,7 @@ private: // data
 
     mutable eckit::CacheLRU<Key,DB*> databases_;
 
-    eckit::LocalConfiguration dbConfig_;
+    Config dbConfig_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -355,7 +355,7 @@ static std::vector<Root> fileSpaceRoots(const std::vector<Root>& all, const std:
     return roots;
 }
 
-static const FileSpaceTable& readFileSpaces(const eckit::PathName& fdbHome) {
+static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
 
     eckit::AutoLock<eckit::Mutex> lock(fileSpacesMutex);
 
@@ -429,10 +429,46 @@ static const FileSpaceTable& readFileSpaces(const eckit::PathName& fdbHome) {
     return table;
 }
 
+
+static FileSpaceTable fileSpaces(const Config& config) {
+    if (config.has("spaces")) {
+        FileSpaceTable table;
+        std::vector<LocalConfiguration> spacesConfigs(config.getSubConfigurations("spaces"));
+        for (const auto& space : spacesConfigs) {
+
+            std::vector<Root> spaceRoots;
+            std::vector<LocalConfiguration> roots(space.getSubConfigurations("roots"));
+            for (const auto& root : roots) {
+                spaceRoots.emplace_back(
+                    Root(
+                        root.getString("path"),
+                        "",
+                        root.getBool("writable", true),
+                        root.getBool("visit", true)
+                    )
+                );
+            }
+
+            table.emplace_back(
+                FileSpace(
+                    space.getString("name", ""),
+                    space.getString("regex", ".*"),
+                    space.getString("handler", "Default"),
+                    spaceRoots
+                )
+            );
+        }
+        return table;
+    } else {
+        return parseFileSpacesFile(config.expandPath("~fdb/"));
+    }
+}
+
+
 //----------------------------------------------------------------------------------------------------------------------
 
 RootManager::RootManager(const Config& config) :
-    spacesTable_(readFileSpaces(config.expandPath("~fdb/"))),
+    spacesTable_(fileSpaces(config)),
     dbPathNamers_(readDbNamers(config)) {
 
 //    eckit::Log::info() << "Root manager: " << spacesTable_ << std::endl;

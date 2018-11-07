@@ -1,4 +1,4 @@
-/*
+﻿/*
  * (C) Copyright 1996- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
@@ -20,6 +20,8 @@
 
 namespace fdb5 {
 
+class Schema;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class Config : public eckit::LocalConfiguration {
@@ -34,6 +36,9 @@ public: // methods
     /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration
     /// then do the expansion in here.
     eckit::PathName expandPath(const std::string& path) const;
+
+    eckit::PathName schemaPath() const;
+    const Schema& schema() const;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

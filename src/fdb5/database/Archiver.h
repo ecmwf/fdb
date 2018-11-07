@@ -22,6 +22,7 @@
 #include "eckit/io/DataBlob.h"
 
 #include "fdb5/database/DB.h"
+#include "fdb5/config/Config.h"
 
 namespace eckit   {
 class DataHandle;
@@ -41,7 +42,7 @@ class Archiver : public eckit::NonCopyable {
 
 public: // methods
 
-    Archiver(const eckit::Configuration& dbConfig=eckit::LocalConfiguration());
+    Archiver(const Config& dbConfig=Config());
 
     virtual ~Archiver();
 
@@ -69,7 +70,7 @@ private: // members
 
     typedef std::map< Key, eckit::SharedPtr<DB> > store_t;
 
-    eckit::LocalConfiguration dbConfig_;
+    Config dbConfig_;
 
     store_t databases_;
 

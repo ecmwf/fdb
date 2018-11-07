@@ -30,7 +30,7 @@ static void purgeDB(Key& key, DB*& db) {
     delete db;
 }
 
-Retriever::Retriever(const eckit::Configuration& dbConfig) :
+Retriever::Retriever(const Config& dbConfig) :
     databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeDB),
     dbConfig_(dbConfig) {}
 
@@ -91,7 +91,7 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const Notifier& not
         eckit::Log::userInfo() << "Using optimise" << std::endl;
     }
 
-    return retrieve(task, LibFdb::instance().schema(), sorted, notifyee);
+    return retrieve(task, dbConfig_.schema(), sorted, notifyee);
 }
 
 void Retriever::visitEntries(const FDBToolRequest &request, EntryVisitor &visitor) const {

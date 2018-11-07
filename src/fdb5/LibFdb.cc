@@ -27,25 +27,7 @@ namespace fdb5 {
 
 REGISTER_LIBRARY(LibFdb);
 
-LibFdb::LibFdb() : Library("fdb"),
-   schema_(NULL)
-{
-}
-
-const Schema& LibFdb::schema() const
-{
-    if(schema_) return *schema_;
-
-    schema_ = new Schema(schemaPath());
-
-    return *schema_;
-}
-
-std::string LibFdb::schemaPath() const
-{
-    static eckit::PathName fdbSchemaFile = eckit::Resource<eckit::PathName>("fdbSchemaFile;$FDB_SCHEMA_FILE", "~fdb/etc/fdb/schema");
-    return fdbSchemaFile;
-}
+LibFdb::LibFdb() : Library("fdb") {}
 
 LibFdb& LibFdb::instance()
 {

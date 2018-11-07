@@ -24,6 +24,7 @@
 #include "eckit/os/Stat.h"
 
 #include "fdb5/LibFdb.h"
+#include "fdb5/rules/Schema.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocEngine.h"
 #include "fdb5/toc/TocHandler.h"
@@ -110,9 +111,9 @@ std::string TocEngine::dbType() const {
     return TocEngine::typeName();
 }
 
-eckit::PathName TocEngine::location(const Key& key) const
+eckit::PathName TocEngine::location(const Key& key, const Config& config) const
 {
-    return RootManager().directory(key);
+    return RootManager(config).directory(key);
 }
 
 bool TocEngine::canHandle(const eckit::PathName& path) const
@@ -121,19 +122,21 @@ bool TocEngine::canHandle(const eckit::PathName& path) const
     return path.isDir() && toc.exists();
 }
 
-static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing)
+static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing, const Config& config)
 {
-    const Schema& schema = LibFdb::instance().schema();
+    const Schema& schema = config.schema();
     schema.matchFirstLevel(key, keys, missing);
 }
 
-std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vector<eckit::PathName>& roots) {
+std::vector<eckit::PathName> TocEngine::databases(const Key& key,
+                                                  const std::vector<eckit::PathName>& roots,
+                                                  const Config& config) {
 
     std::set<Key> keys;
 
     const char* regexForMissingValues = "[^:/]*";
 
-    matchKeyToDB(key, keys, regexForMissingValues);
+    matchKeyToDB(key, keys, regexForMissingValues, config);
 
     Log::debug<LibFdb>() << "Matched DB schemas for key " << key << " -> keys " << keys << std::endl;
 
@@ -149,7 +152,7 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vec
 
         for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 
-            std::vector<std::string> dbpaths = RootManager().possibleDbPathNames(*i, regexForMissingValues);
+            std::vector<std::string> dbpaths = RootManager(config).possibleDbPathNames(*i, regexForMissingValues);
 
             for(std::vector<std::string>::const_iterator dbpath = dbpaths.begin(); dbpath != dbpaths.end(); ++dbpath) {
 
@@ -191,19 +194,19 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key, const std::vec
 }
 
 
-std::vector<eckit::PathName> TocEngine::allLocations(const Key& key) const
+std::vector<eckit::PathName> TocEngine::allLocations(const Key& key, const Config& config) const
 {
-    return databases(key, RootManager().allRoots(key));
+    return databases(key, RootManager(config).allRoots(key), config);
 }
 
-std::vector<eckit::PathName> TocEngine::visitableLocations(const Key& key) const
+std::vector<eckit::PathName> TocEngine::visitableLocations(const Key& key, const Config& config) const
 {
-    return databases(key, RootManager().visitableRoots(key));
+    return databases(key, RootManager(config).visitableRoots(key), config);
 }
 
-std::vector<eckit::PathName> TocEngine::writableLocations(const Key& key) const
+std::vector<eckit::PathName> TocEngine::writableLocations(const Key& key, const Config& config) const
 {
-    return databases(key, RootManager().writableRoots(key));
+    return databases(key, RootManager(config).writableRoots(key), config);
 }
 
 void TocEngine::print(std::ostream& out) const

@@ -23,9 +23,11 @@
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/PathName.h"
 
+
 namespace fdb5 {
 
 class Key;
+class Config;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -47,16 +49,16 @@ public: // methods
     virtual bool canHandle(const eckit::PathName& path) const = 0;
 
     /// Uniquely selects a location where the Key will be put or already exists
-    virtual eckit::PathName location(const Key &key) const = 0;
+    virtual eckit::PathName location(const Key &key, const Config& config) const = 0;
 
     /// Lists the roots that can be visited given a DB key
-    virtual std::vector<eckit::PathName> allLocations(const Key& key) const = 0;
+    virtual std::vector<eckit::PathName> allLocations(const Key& key, const Config& config) const = 0;
 
     /// Lists the roots that can be visited given a DB key
-    virtual std::vector<eckit::PathName> visitableLocations(const Key& key) const = 0;
+    virtual std::vector<eckit::PathName> visitableLocations(const Key& key, const Config& config) const = 0;
 
     /// Lists the roots where a DB key would be able to be written
-    virtual std::vector<eckit::PathName> writableLocations(const Key& key) const = 0;
+    virtual std::vector<eckit::PathName> writableLocations(const Key& key, const Config& config) const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const Engine& x);
 

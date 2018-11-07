@@ -12,7 +12,6 @@
 #include <sys/types.h>
 #include <pwd.h>
 
-#include "eckit/config/Configuration.h"
 #include "eckit/config/Resource.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/log/BigNum.h"
@@ -50,12 +49,13 @@ class TocHandlerCloser {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocHandler::TocHandler(const eckit::PathName &directory, const eckit::Configuration& config) :
+TocHandler::TocHandler(const eckit::PathName &directory, const Config& config) :
     directory_(directory),
     dbUID_(-1),
     userUID_(::getuid()),
     tocPath_(directory / "toc"),
     schemaPath_(directory / "schema"),
+    dbConfig_(config),
     useSubToc_(config.getBool("useSubToc", false)),
     isSubToc_(false),
     fd_(-1),
@@ -443,14 +443,14 @@ void TocHandler::writeInitRecord(const Key &key) {
             /* Copy schema first */
 
             eckit::Log::debug<LibFdb>() << "Copy schema from "
-                               << LibFdb::instance().schemaPath()
+                               << dbConfig_.schemaPath()
                                << " to "
                                << schemaPath_
                                << std::endl;
 
             eckit::PathName tmp = eckit::PathName::unique(schemaPath_);
 
-            eckit::FileHandle in(LibFdb::instance().schemaPath());
+            eckit::FileHandle in(dbConfig_.schemaPath());
 
             // Enforce lustre striping if requested
 

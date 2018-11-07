@@ -14,13 +14,13 @@
 #ifndef fdb5_TocHandler_H
 #define fdb5_TocHandler_H
 
-#include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
 #include "eckit/memory/ScopedPtr.h"
 
-#include "fdb5/io/LustreFileHandle.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
+#include "fdb5/io/LustreFileHandle.h"
 #include "fdb5/toc/TocRecord.h"
 
 #include <map>
@@ -45,7 +45,7 @@ public: // typedefs
 
 public: // methods
 
-    TocHandler( const eckit::PathName &dir, const eckit::Configuration& config=eckit::LocalConfiguration());
+    TocHandler( const eckit::PathName &dir, const Config& config=Config());
 
     /// For initialising sub tocs or diagnostic interrogation. Bool just for identification.
     TocHandler(const eckit::PathName& path, bool);
@@ -142,6 +142,7 @@ private: // members
 
     eckit::PathName tocPath_;
     eckit::PathName schemaPath_;
+    Config dbConfig_;
 
     bool useSubToc_;
     bool isSubToc_;

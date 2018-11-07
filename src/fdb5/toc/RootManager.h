@@ -17,7 +17,9 @@
 
 #include "eckit/utils/Regex.h"
 #include "eckit/filesystem/PathName.h"
+
 #include "fdb5/config/Config.h"
+#include "fdb5/toc/FileSpace.h"
 
 namespace fdb5 {
 
@@ -51,7 +53,7 @@ public: // methods
 
 private: // members
 
-    const std::vector<FileSpace>& spacesTable_;
+    const std::vector<FileSpace> spacesTable_;
     const std::vector<DbPathNamer>& dbPathNamers_;
 };
 

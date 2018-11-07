@@ -10,11 +10,12 @@
 
 #include "fdb5/database/EntryVisitMechanism.h"
 
+#include "fdb5/api/FDBToolRequest.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Manager.h"
 #include "fdb5/LibFdb.h"
-#include "fdb5/api/FDBToolRequest.h"
+#include "fdb5/rules/Schema.h"
 
 using namespace eckit;
 
@@ -54,7 +55,9 @@ void EntryVisitor::visitDatum(const Field &field, const std::string& keyFingerpr
 
 EntryVisitMechanism::EntryVisitMechanism(const Config& config) :
     dbConfig_(config),
-    fail_(true) {}
+    fail_(true) {
+    Log::info() << "VisitMechanism config: " << dbConfig_ << std::endl;
+}
 
 void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& visitor) {
 
@@ -65,10 +68,11 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
     // TODO: Put minimim keys check into FDBToolRequest.
 
     Log::debug<LibFdb>() << "KEY ====> " << request.key() << std::endl;
+    Log::info() << "VisitMechanism config: " << dbConfig_ << std::endl;
 
     try {
 
-        std::vector<PathName> paths(Manager().visitableLocations(request.key()));
+        std::vector<PathName> paths(Manager(dbConfig_).visitableLocations(request.key()));
 
         if (paths.size() == 0) {
             std::stringstream ss;

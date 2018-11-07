@@ -63,6 +63,8 @@ private: // members
 
     // If the engine is specified explicitly in the
     std::string explicitEngine_;
+
+    Config config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
