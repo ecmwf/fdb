@@ -212,6 +212,8 @@ if( HAVE_TOCFDB )
         toc/FileSpace.h
         toc/ExpverFileSpaceHandler.cc
         toc/ExpverFileSpaceHandler.h
+        toc/EnvVarFileSpaceHandler.cc
+        toc/EnvVarFileSpaceHandler.h
         toc/RootManager.cc
         toc/RootManager.h
         toc/TocDBReader.cc
@@ -377,5 +379,3 @@ ecbuild_add_executable( TARGET    grib2fdb5
                           INCLUDES  ${GRIB_API_INCLUDE_DIRS} # Please don't remove me, I am needed
                           LIBS
                           mars-fdb5 )
-
-
