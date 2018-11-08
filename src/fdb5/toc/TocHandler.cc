@@ -768,7 +768,7 @@ const eckit::PathName &TocHandler::schemaPath() const {
 }
 
 
-void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) {
+void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
 
     openForRead();
     TocHandlerCloser close(*this);

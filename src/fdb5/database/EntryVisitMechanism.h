@@ -54,7 +54,7 @@ class EntryVisitMechanism : public eckit::NonCopyable {
 
 public:  // methods
 
-    EntryVisitMechanism(const Config& config);
+    EntryVisitMechanism(const Config& config, bool visitIndexes=true, bool visitEntries=true);
 
     void visit(const FDBToolRequest& request, EntryVisitor& visitor);
 
@@ -64,6 +64,9 @@ private:  // members
 
     // Fail on error
     bool fail_;
+
+    bool visitIndexes_;
+    bool visitEntries_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

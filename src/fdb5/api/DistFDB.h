@@ -40,6 +40,8 @@ public: // method
 
     virtual ListIterator list(const FDBToolRequest& request) override;
 
+    virtual DumpIterator dump(const FDBToolRequest& request, bool simple) override;
+
     virtual std::string id() const override;
 
     virtual void flush() override;

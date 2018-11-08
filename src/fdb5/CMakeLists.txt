@@ -171,6 +171,8 @@ list( APPEND fdb5_srcs
     tools/FDBInspect.h
     tools/FDBTool.cc
     tools/FDBTool.h
+    tools/FDBVisitTool.cc
+    tools/FDBVisitTool.h
     tools/RequestParser.cc
     tools/RequestParser.h
     types/Type.cc

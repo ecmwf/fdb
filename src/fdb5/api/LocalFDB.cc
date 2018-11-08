@@ -10,6 +10,8 @@
 
 #include "eckit/log/Log.h"
 #include "eckit/container/Queue.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/LineBasedTarget.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -50,19 +52,40 @@ private:
     eckit::Queue<ListElement>& queue_;
 };
 
+//----------------------------------------------------------------------------------------------------------------------
+
+
+class QueueStringLogTarget : public eckit::LineBasedTarget {
+public:
+
+    QueueStringLogTarget(eckit::Queue<std::string>& queue) : queue_(queue) {}
+
+    void line(const char* line) override {
+        queue_.emplace(std::string(line));
+    }
+
+private: // members
+    eckit::Queue<std::string>& queue_;
+};
+
 
 class DumpVisitor : public EntryVisitor {
 
-private:
+public:
 
-    DumpVisitor(bool simple_);
+    DumpVisitor(eckit::Queue<std::string>& queue, bool simple) :
+        out_(new QueueStringLogTarget(queue)),
+        simple_(simple) {}
 
     void visitDatabase(const DB& db) override {
-        db.dump(bufferedOstream, simple_);
+        db.dump(out_, simple_);
     }
+    void visitIndex(const Index&) override { NOTIMP; }
+    void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
-    void visitIndex(const Index& index) override { NOTIMP; /* intentionally  */ }
-    void visitDatum(const Field& field, const Key& key) override { NOTIMP; /* intentionally */ }
+private:
+    eckit::Channel out_;
+    bool simple_;
 };
 
 }
@@ -96,10 +119,6 @@ eckit::DataHandle *LocalFDB::retrieve(const MarsRequest &request) {
 
 ListIterator LocalFDB::list(const FDBToolRequest& request) {
 
-    // Create a general mechanism to call an EntryVisitor on a local object
-    // Call the entry visitor
-    // See FDBInspect...
-
     auto async_worker = [this, request] (eckit::Queue<ListElement>& queue) {
         EntryVisitMechanism mechanism(config_);
         ListVisitor visitor(queue);
@@ -107,6 +126,17 @@ ListIterator LocalFDB::list(const FDBToolRequest& request) {
     };
 
     return ListIterator(new ListAsyncIterator(async_worker));
+}
+
+DumpIterator LocalFDB::dump(const FDBToolRequest &request, bool simple) {
+
+    auto async_worker = [this, request, simple] (eckit::Queue<std::string>& queue) {
+        EntryVisitMechanism mechanism(config_, false, false); // don't visit Indexes/entries
+        DumpVisitor visitor(queue, simple);
+        mechanism.visit(request, visitor);
+    };
+
+    return DumpIterator(new DumpAsyncIterator(async_worker));
 }
 
 std::string LocalFDB::id() const {

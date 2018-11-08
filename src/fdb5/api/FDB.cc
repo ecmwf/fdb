@@ -58,6 +58,10 @@ ListIterator FDB::list(const FDBToolRequest& request) {
     return internal_->list(request);
 }
 
+DumpIterator FDB::dump(const FDBToolRequest &request, bool simple) {
+    return internal_->dump(request, simple);
+}
+
 const std::string FDB::id() const {
     return internal_->id();
 }

@@ -10,57 +10,74 @@
 
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/tools/FDBInspect.h"
+#include "fdb5/tools/FDBVisitTool.h"
+
+using namespace eckit;
+using namespace eckit::option;
+
+namespace fdb5 {
+namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBDump : public fdb5::FDBInspect {
+class FDBDump : public FDBVisitTool {
 
-  public: // methods
+public: // methods
 
     FDBDump(int argc, char **argv) :
-        fdb5::FDBInspect(argc, argv),
+        FDBVisitTool(argc, argv),
         simple_(false) {
 
-        options_.push_back(new eckit::option::SimpleOption<bool>("simple", "Dump one (simpler) record per line"));
+        options_.push_back(new SimpleOption<bool>("simple", "Dump one (simpler) record per line"));
     }
 
-  private: // methods
+private: // methods
 
-    virtual void usage(const std::string &tool) const;
-    virtual void init(const eckit::option::CmdArgs &args);
-    virtual void process(const eckit::PathName &path, const eckit::option::CmdArgs &args);
+    virtual void execute(const CmdArgs& args) override;
+    virtual void init(const CmdArgs &args) override;
+
+private: // members
 
     bool simple_;
 };
 
-void FDBDump::init(const eckit::option::CmdArgs &args) {
+//----------------------------------------------------------------------------------------------------------------------
+
+void FDBDump::init(const CmdArgs& args) {
+    FDBVisitTool::init(args);
     args.get("simple", simple_);
 }
 
-void FDBDump::usage(const std::string &tool) const {
-    fdb5::FDBInspect::usage(tool);
-}
 
-void FDBDump::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {
+void FDBDump::execute(const CmdArgs&) {
 
-    eckit::Log::info() << "Dumping " << path << std::endl << std::endl;
+    FDB fdb;
 
-    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
-    ASSERT(db->open());
+    for (const std::string& request : requests_) {
 
-    db->dump(eckit::Log::info(), simple_);
+        FDBToolRequest tool_request(request, all_);
+        auto dumpIterator = fdb.dump(tool_request, simple_);
 
-    // eckit::Log::info() << std::endl;
+        std::string elem;
+        while (dumpIterator.next(elem)) {
+            Log::info() << elem << std::endl;
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace tools
+} // namespace fdb5
+
 int main(int argc, char **argv) {
-    FDBDump app(argc, argv);
+    fdb5::tools::FDBDump app(argc, argv);
     return app.start();
 }
 

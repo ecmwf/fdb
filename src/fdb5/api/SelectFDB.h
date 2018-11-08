@@ -1,4 +1,4 @@
-/*
+﻿/*
  * (C) Copyright 1996- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
@@ -35,6 +35,10 @@ class Archiver;
 
 class SelectFDB : public FDBBase {
 
+private: // types
+
+    using SelectMap = std::map<std::string, eckit::Regex>;
+
 public: // methods
 
     SelectFDB(const Config& config, const std::string& name);
@@ -46,6 +50,8 @@ public: // methods
 
     virtual ListIterator list(const FDBToolRequest& request) override;
 
+    virtual DumpIterator dump(const FDBToolRequest& request, bool simple) override;
+
     virtual std::string id() const;
 
     virtual void flush();
@@ -54,11 +60,12 @@ private: // methods
 
     virtual void print(std::ostream& s) const;
 
+    bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
+    bool matches(const MarsRequest& request, const SelectMap& select) const;
+
 private: // members
 
-    std::vector<FDB> subFdbs_;
-
-    std::vector<std::map<std::string, eckit::Regex>> selects_;
+    std::vector<std::pair<SelectMap, FDB>> subFdbs_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

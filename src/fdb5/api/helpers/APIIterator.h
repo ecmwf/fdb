@@ -107,7 +107,9 @@ class APIAsyncIterator : public APIIteratorBase<ValueType> {
 
 public: // methods
 
-    APIAsyncIterator(std::function<void(eckit::Queue<ValueType>&)> workerFn) {
+    APIAsyncIterator(std::function<void(eckit::Queue<ValueType>&)> workerFn,
+                     size_t queueSize=100) :
+        queue_(queueSize) {
 
         // Add a call to set_done() on the eckit::Queue.
         auto fullWorker = [workerFn, this] {

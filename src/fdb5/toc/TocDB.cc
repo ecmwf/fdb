@@ -72,7 +72,7 @@ void TocDB::close() {
     NOTIMP;
 }
 
-void TocDB::dump(std::ostream &out, bool simple) {
+void TocDB::dump(std::ostream &out, bool simple) const {
     TocHandler::dump(out, simple);
 }
 
@@ -88,14 +88,20 @@ eckit::PathName TocDB::basePath() const {
     return directory_;
 }
 
-void TocDB::visitEntries(EntryVisitor& visitor, bool sorted) {
+void TocDB::visitEntries(EntryVisitor& visitor, bool sorted, bool visitIndexes, bool visitEntries) {
 
     std::vector<Index> all = indexes(sorted);
 
     visitor.visitDatabase(*this);
 
-    for (std::vector<Index>::const_iterator i = all.begin(); i != all.end(); ++i) {
-        i->entries(visitor);
+    if (visitIndexes) {
+        for (std::vector<Index>::const_iterator i = all.begin(); i != all.end(); ++i) {
+            if (visitEntries) {
+                i->entries(visitor); // contains visitIndex
+            } else {
+                visitor.visitIndex(*i);
+            }
+        }
     }
 }
 

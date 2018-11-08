@@ -47,9 +47,9 @@ protected: // methods
     virtual void close();
     virtual void flush();
     virtual bool exists() const;
-    virtual void visitEntries(EntryVisitor& visitor, bool sorted=false);
+    virtual void visitEntries(EntryVisitor& visitor, bool sorted=false, bool visitIndexes=true, bool visitEntries=true);
     virtual void visit(DBVisitor& visitor);
-    virtual void dump(std::ostream& out, bool simple=false);
+    virtual void dump(std::ostream& out, bool simple=false) const;
     virtual std::string owner() const;
     virtual eckit::PathName basePath() const;
     virtual const Schema& schema() const;

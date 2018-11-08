@@ -55,6 +55,7 @@ FDBStats& FDBStats::operator+=(const FDBStats& rhs) {
     sumArchiveTimingSquared_ += rhs.sumArchiveTimingSquared_;
     sumRetrieveTimingSquared_ += rhs.sumRetrieveTimingSquared_;
     sumFlushTimingSquared_ += rhs.sumFlushTimingSquared_;
+    return *this;
 }
 
 

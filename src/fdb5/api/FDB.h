@@ -59,7 +59,7 @@ public: // methods
 
     ListIterator list(const FDBToolRequest& request);
 
-    DumpIterator dump(const FDBToolRequest& request);
+    DumpIterator dump(const FDBToolRequest& request, bool simple=false);
 
     bool dirty() const;
 

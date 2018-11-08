@@ -53,9 +53,15 @@ void EntryVisitor::visitDatum(const Field &field, const std::string& keyFingerpr
 
 //----------------------------------------------------------------------------------------------------------------------
 
-EntryVisitMechanism::EntryVisitMechanism(const Config& config) :
+EntryVisitMechanism::EntryVisitMechanism(const Config& config, bool visitIndexes, bool visitEntries) :
     dbConfig_(config),
-    fail_(true) {
+    fail_(true),
+    visitIndexes_(visitIndexes),
+    visitEntries_(visitEntries) {
+
+    if (visitEntries && !visitIndexes) {
+        throw FDBVisitException("Cannot visit entries without visiting indexes", Here());
+    }
 }
 
 void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& visitor) {
@@ -92,7 +98,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
                 std::unique_ptr<DB> db(DBFactory::buildReader(path));
                 ASSERT(db->open());
 
-                db->visitEntries(visitor, false);
+                db->visitEntries(visitor, false, visitIndexes_, visitEntries_);
             }
         }
 

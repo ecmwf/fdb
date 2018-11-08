@@ -20,6 +20,7 @@
 #include "eckit/utils/Regex.h"
 #include "eckit/memory/NonCopyable.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/DumpIterator.h"
 
 #include <memory>
 
@@ -51,6 +52,8 @@ public: // methods
     virtual eckit::DataHandle* retrieve(const MarsRequest& request) = 0;
 
     virtual ListIterator list(const FDBToolRequest& request) = 0;
+
+    virtual DumpIterator dump(const FDBToolRequest& request, bool simple) = 0;
 
     // -------------- API management ----------------------------
 

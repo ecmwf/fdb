@@ -14,6 +14,7 @@
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/SelectFDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/LibFdb.h"
 
@@ -68,8 +69,7 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) :
 
     std::vector<eckit::LocalConfiguration> fdbs(config.getSubConfigurations("fdbs"));
     for (const eckit::LocalConfiguration& c : fdbs) {
-        subFdbs_.push_back(FDB(c));
-        selects_.emplace_back(parseFDBSelect(c));
+        subFdbs_.emplace_back(std::make_pair(parseFDBSelect(c), FDB(c)));
     }
 }
 
@@ -79,24 +79,13 @@ SelectFDB::~SelectFDB() {}
 
 void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 
-    ASSERT(subFdbs_.size() == selects_.size());
+    for (auto& iter : subFdbs_) {
 
-    for (size_t idx = 0; idx < subFdbs_.size(); idx++) {
+        const SelectMap& select(iter.first);
+        FDB& fdb(iter.second);
 
-        bool matches = true;
-        for (const auto& kv : selects_[idx]) {
-            const std::string& k(kv.first);
-            const eckit::Regex& re(kv.second);
-
-            eckit::StringDict::const_iterator i = key.find(k);
-            if (i == key.end() || !re.match(i->second)) {
-                matches = false;
-                break;
-            }
-        }
-
-        if (matches) {
-            subFdbs_[idx].archive(key, data, length);
+        if (matches(key, select, true)) {
+            fdb.archive(key, data, length);
             return;
         }
     }
@@ -109,31 +98,55 @@ void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 
 eckit::DataHandle *SelectFDB::retrieve(const MarsRequest& request) {
 
-    // TODO: Select within the SubFDBs
-
 //    HandleGatherer result(true); // Sorted
     HandleGatherer result(false);
 
-    for (FDB& fdb : subFdbs_) {
-//        if (subFdbs_.matches()) {
-        result.add(fdb.retrieve(request));
-//        }
+    for (auto& iter : subFdbs_) {
+
+        const SelectMap& select(iter.first);
+        FDB& fdb(iter.second);
+
+        if (matches(request, select)) {
+            result.add(fdb.retrieve(request));
+        }
     }
 
     return result.dataHandle();
 }
 
-ListIterator SelectFDB::list(const FDBToolRequest &request) {
-
-    // TODO: Matching FDBs?
+ListIterator SelectFDB::list(const FDBToolRequest& request) {
 
     std::queue<ListIterator> lists;
 
-    for (FDB& fdb : subFdbs_) {
-        lists.push(fdb.list(request));
+    for (auto& iter : subFdbs_) {
+
+        const SelectMap& select(iter.first);
+        FDB& fdb(iter.second);
+
+        if (matches(request.key(), select, false) || request.all()) {
+            lists.push(fdb.list(request));
+        }
     }
 
     return ListIterator(new ListAggregateIterator(std::move(lists)));
+}
+
+DumpIterator SelectFDB::dump(const FDBToolRequest &request, bool simple) {
+
+    std::queue<DumpIterator> lists;
+
+    for (auto& iter : subFdbs_) {
+
+        const SelectMap& select(iter.first);
+        FDB& fdb(iter.second);
+
+        if (matches(request.key(), select, false) || request.all()) {
+            lists.push(fdb.dump(request, simple));
+        }
+    }
+
+    return DumpIterator(new DumpAggregateIterator(std::move(lists)));
+
 }
 
 std::string SelectFDB::id() const {
@@ -142,7 +155,8 @@ std::string SelectFDB::id() const {
 
 
 void SelectFDB::flush() {
-    for (FDB& fdb : subFdbs_) {
+    for (auto& iter : subFdbs_) {
+        FDB& fdb(iter.second);
         fdb.flush();
     }
 }
@@ -150,6 +164,47 @@ void SelectFDB::flush() {
 
 void SelectFDB::print(std::ostream &s) const {
     s << "SelectFDB()";
+}
+
+bool SelectFDB::matches(const Key &key, const SelectMap &select, bool requireMissing) const {
+
+    for (const auto& kv : select) {
+
+        const std::string& k(kv.first);
+        const eckit::Regex& re(kv.second);
+
+        eckit::StringDict::const_iterator i = key.find(k);
+        if (i == key.end()) {
+            if (requireMissing) return false;
+        } else if (!re.match(i->second)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool SelectFDB::matches(const MarsRequest &request, const SelectMap &select) const {
+
+    for (const auto& kv : select) {
+
+        const std::string& k(kv.first);
+        const eckit::Regex& re(kv.second);
+
+        std::vector<std::string> request_values;
+        long count = request.getValues(k, request_values);
+
+        if (count == 0) return false;
+
+        bool found = false;
+        for (const std::string& v : request_values) {
+            if (re.match(v)) found = true;
+        }
+        if (!found) return false;
+    }
+
+    return true;
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------

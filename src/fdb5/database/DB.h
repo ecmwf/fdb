@@ -79,11 +79,11 @@ public: // methods
     /// If sorted is specified, the entries may be visited in the most efficient order, rather than
     /// in the logical read order implied by the appends
     /// (i.e. for Toc, visit indexes in the order they are stored, file by file).
-    virtual void visitEntries(EntryVisitor& visitor, bool sorted=false) = 0;
+    virtual void visitEntries(EntryVisitor& visitor, bool sorted=false, bool visitIndexes=true, bool visitEntries=true) = 0;
 
     virtual void visit(DBVisitor& visitor) = 0;
 
-    virtual void dump(std::ostream& out, bool simple=false) = 0;
+    virtual void dump(std::ostream& out, bool simple=false) const = 0;
 
     virtual StatsReportVisitor* statsReportVisitor();
 

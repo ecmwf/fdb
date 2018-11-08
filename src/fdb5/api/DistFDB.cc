@@ -142,6 +142,10 @@ ListIterator DistFDB::list(const FDBToolRequest& request) {
     return ListIterator(new ListAggregateIterator(std::move(lists)));
 }
 
+DumpIterator DistFDB::dump(const FDBToolRequest &request, bool simple) {
+    NOTIMP;
+}
+
 
 std::string DistFDB::id() const {
     NOTIMP;

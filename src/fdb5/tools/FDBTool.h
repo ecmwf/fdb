@@ -41,6 +41,7 @@ class FDBTool : public eckit::Tool {
 protected: // methods
 
     FDBTool(int argc, char **argv);
+    virtual ~FDBTool() {}
 
 public: // methods
 

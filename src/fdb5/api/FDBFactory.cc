@@ -98,8 +98,6 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
 
     eckit::Log::debug<LibFdb>() << "Selecting FDB implementation: " << key << std::endl;
 
-    const FDBFactory* factory = nullptr;
-
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
     auto it = registry_.find(key);
