@@ -29,7 +29,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 EnvVarFileSpaceHandler::EnvVarFileSpaceHandler() :
-    fdbFileSpaceSHandlerEnvVarName_(LibResource<std::string, LibFdb>("fdbFileSpaceSHandlerEnvVarName;$FDB_FILESPACEHANDLER_ENVVARNAME", "SCHOST"))
+    fdbFileSpaceSHandlerEnvVarName_(LibResource<std::string, LibFdb>("fdbFileSpaceSHandlerEnvVarName;$FDB_FILESPACEHANDLER_ENVVARNAME", "STHOST"))
 {
 }
 
