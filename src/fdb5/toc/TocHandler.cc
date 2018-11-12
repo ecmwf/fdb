@@ -485,33 +485,9 @@ void TocHandler::writeInitRecord(const Key &key) {
 
 void TocHandler::writeClearRecord(const Index &index) {
 
-    openForAppend();
-    TocHandlerCloser closer(*this);
-
-    struct WriteToStream : public IndexLocationVisitor {
-
-        WriteToStream(TocHandler& handler) : handler_(handler) {}
-
-        virtual void operator() (const IndexLocation& l) {
-
-            const TocIndexLocation& location = reinterpret_cast<const TocIndexLocation&>(l);
-
-            TocRecord r( TocRecord::TOC_CLEAR );
-            eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
-
-            s << location.path().baseName();
-            s << location.offset();
-            handler_.append(r, s.position());
-
-            eckit::Log::debug<LibFdb>() << "Write TOC_CLEAR " << location.path().baseName() << " - " << location.offset() << std::endl;
-        }
-
-    private:
-        TocHandler& handler_;
-    };
-
-    WriteToStream writeVisitor(*this);
-    index.visit(writeVisitor);
+    TocRecord r(TocRecord::TOC_CLEAR);
+    size_t sz = roundRecord(r, buildClearRecord(r, index));
+    appendBlock(&r, sz);
 }
 
 void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
@@ -673,7 +649,9 @@ const eckit::PathName& TocHandler::directory() const
     return directory_;
 }
 
-std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
+std::vector<Index> TocHandler::loadIndexes(bool sorted,
+                                           std::set<std::string>* subTocs,
+                                           std::vector<bool>* indexInSubtoc) const {
 
     std::vector<Index> indexes;
 
@@ -713,6 +691,13 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
             s >> type;
             eckit::Log::debug<LibFdb>() << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
             indexes.push_back( new TocIndex(s, directory_, directory_ / path, offset) );
+
+            if (subTocs != 0 && subTocRead_) {
+                subTocs->insert(subTocRead_->tocPath());
+            }
+            if (indexInSubtoc) {
+                indexInSubtoc->push_back(!!subTocRead_);
+            }
             break;
 
         // n.b. TOC_CLEAR may refer to an index (in this case we erase the index from the indexes list).
@@ -725,6 +710,9 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted) const {
             eckit::Log::debug<LibFdb>() << "TocRecord TOC_CLEAR " << path << " - " << offset << std::endl;
             j = std::find_if(indexes.begin(), indexes.end(), HasPath(directory_ / path, offset));
             if (j != indexes.end()) {
+                if (indexInSubtoc) {
+                    indexInSubtoc->erase(indexInSubtoc->begin() + (j - indexes.begin()));
+                }
                 indexes.erase(j);
             }
             break;
@@ -961,17 +949,57 @@ size_t TocHandler::buildIndexRecord(TocRecord& r, const Index &index) {
     return s.position();
 }
 
-size_t TocHandler::buildSubTocMaskRecord(TocRecord &r) {
+size_t TocHandler::buildClearRecord(TocRecord &r, const Index &index) {
+
+    struct TocIndexLocationExtracter : public IndexLocationVisitor {
+
+        TocIndexLocationExtracter(TocRecord& r) : r_(r), sz_(0) {}
+
+        virtual void operator() (const IndexLocation& l) {
+
+            const TocIndexLocation& location = reinterpret_cast<const TocIndexLocation&>(l);
+
+            eckit::MemoryStream s(&r_.payload_[0], r_.maxPayloadSize);
+
+            s << location.path().baseName();
+            s << location.offset();
+            ASSERT(sz_ == 0);
+            sz_ = s.position();
+            eckit::Log::debug<LibFdb>() << "Write TOC_CLEAR " << location.path().baseName() << " - " << location.offset() << std::endl;
+        }
+
+        size_t size() const { return sz_; }
+
+    private:
+        TocRecord& r_;
+        size_t sz_;
+    };
+
+    ASSERT(r.header_.tag_ == TocRecord::TOC_CLEAR);
+    TocIndexLocationExtracter visitor(r);
+    index.visit(visitor);
+    return visitor.size();
+}
+
+size_t TocHandler::buildSubTocMaskRecord(TocRecord& r) {
 
     /// n.b. We construct a subtoc masking record using TOC_CLEAR for backward compatibility.
 
     ASSERT(useSubToc_);
     ASSERT(subTocWrite_);
+
+    buildSubTocMaskRecord(r, subTocWrite_->tocPath());
+}
+
+size_t TocHandler::buildSubTocMaskRecord(TocRecord& r, const eckit::PathName& path) {
+
+    /// n.b. We construct a subtoc masking record using TOC_CLEAR for backward compatibility.
+
     ASSERT(r.header_.tag_ == TocRecord::TOC_CLEAR);
 
     eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
 
-    s << subTocWrite_->tocPath();
+    s << path;
     s << static_cast<off_t>(0);    // Always use an offset of zero for subtocs
 
     return s.position();

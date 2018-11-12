@@ -60,10 +60,16 @@ public: // methods
     void writeSubTocRecord(const TocHandler& subToc);
     void writeIndexRecord(const Index &);
 
+    void reconsolidateIndexesAndTocs();
+
     bool useSubToc() const;
     bool anythingWrittenToSubToc() const;
 
-    std::vector<Index> loadIndexes(bool sorted=false) const;
+    /// Return a list of existent indexes. If supplied, also supply a list of associated
+    /// subTocs that were read to get these indexes
+    std::vector<Index> loadIndexes(bool sorted=false,
+                                   std::set<std::string>* subTocs=0,
+                                   std::vector<bool>* indexInSubtoc=0) const;
 
     Key databaseKey();
     size_t numberOfRecords() const;
@@ -103,7 +109,9 @@ protected: // methods
     // Build the record, and return the payload size
 
     static size_t buildIndexRecord(TocRecord& r, const Index& index);
+    static size_t buildClearRecord(TocRecord& r, const Index& index);
     size_t buildSubTocMaskRecord(TocRecord& r);
+    static size_t buildSubTocMaskRecord(TocRecord& r, const eckit::PathName& path);
 
     // Given the payload size, returns the record size
 

@@ -39,9 +39,7 @@ TocDBWriter::TocDBWriter(const Key &key, const eckit::Configuration& config) :
 TocDBWriter::TocDBWriter(const eckit::PathName &directory, const eckit::Configuration& config) :
     TocDB(directory, config),
     dirty_(false) {
-
-    NOTIMP; // TODO: Not clear what should occur here for writeInitRecord.
-
+    writeInitRecord(key());
     loadSchema();
     checkUID();
 }
@@ -134,6 +132,82 @@ void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offs
     if (useSubToc())
         currentFull_.put(key, field);
 }
+
+void TocDBWriter::reconsolidateIndexesAndTocs() {
+
+    // Visitor class for reindexing
+
+    class ConsolidateIndexVisitor : public EntryVisitor {
+    public:
+        ConsolidateIndexVisitor(TocDBWriter& writer) :
+            writer_(writer) {}
+        virtual ~ConsolidateIndexVisitor() {}
+    private:
+        virtual void visit(const Index& index,
+                           const Field& field,
+                           const std::string& indexFingerprint,
+                           const std::string& fieldFingerprint) {
+            Key key(fieldFingerprint, writer_.schema().ruleFor(writer_.key(), index.key()));
+            const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
+            writer_.index(key, location.path(), location.offset(), location.length());
+        }
+
+        TocDBWriter& writer_;
+    };
+
+    // Visit all tocs and indexes
+
+    std::set<std::string> subtocs;
+    std::vector<bool> indexInSubtoc;
+    std::vector<Index> readIndexes = loadIndexes(false, &subtocs, &indexInSubtoc);
+    size_t maskable_indexes = 0;
+
+    ConsolidateIndexVisitor visitor(*this);
+
+    ASSERT(readIndexes.size() == indexInSubtoc.size());
+
+    for (size_t i = 0; i < readIndexes.size(); i++) {
+        Index& idx(readIndexes[i]);
+        selectIndex(idx.key());
+        idx.entries(visitor);
+
+        Log::info() << "Visiting index: " << idx.location().url() << std::endl;
+
+        // We need to explicitly mask indexes in the master TOC
+        if (!indexInSubtoc[i]) maskable_indexes += 1;
+    }
+
+    // Flush the new indexes and add relevant entries!
+
+    close();
+
+    // Add masking entries for all the indexes and subtocs visited so far
+
+    Buffer buf(sizeof(TocRecord) * (subtocs.size() + maskable_indexes));
+    size_t combinedSize = 0;
+
+    for (size_t i = 0; i < readIndexes.size(); i++) {
+        // We need to explicitly mask indexes in the master TOC
+        if (!indexInSubtoc[i]) {
+            Index& idx(readIndexes[i]);
+            TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_CLEAR);
+            combinedSize += roundRecord(*r, buildClearRecord(*r, idx));
+            Log::info() << "Masking index: " << idx.location().url() << std::endl;
+        }
+    }
+
+    for (const std::string& subtoc_path : subtocs) {
+        TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_CLEAR);
+        combinedSize += roundRecord(*r, buildSubTocMaskRecord(*r, subtoc_path));
+        Log::info() << "Masking sub-toc: " << subtoc_path << std::endl;
+    }
+
+    // And write all the TOC records in one go!
+
+    appendBlock(buf, combinedSize);
+}
+
+
 
 void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length) {
     dirty_ = true;

@@ -243,7 +243,8 @@ if( HAVE_TOCFDB )
         fdb-stats
         fdb-purge
         fdb-dump-toc
-        fdb-dump-index )
+        fdb-dump-index
+        fdb-reconsolidate-toc )
 
 endif()
 
