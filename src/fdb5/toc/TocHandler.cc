@@ -734,6 +734,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
 
     if (sorted) {
 
+        ASSERT(!indexInSubtoc);
         std::sort(indexes.begin(), indexes.end(), TocIndexFileSort());
 
     } else {
@@ -741,6 +742,9 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
         // In the normal case, the entries are sorted into reverse order. The last index takes precedence
         std::reverse(indexes.begin(), indexes.end());
 
+        if (indexInSubtoc) {
+            std::reverse(indexInSubtoc->begin(), indexInSubtoc->end());
+        }
     }
 
     return indexes;
