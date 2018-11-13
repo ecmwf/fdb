@@ -14,9 +14,9 @@
 
 #include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
-#include "fdb5/tools/FDBAccess.h"
+#include "fdb5/tools/FDBTool.h"
 
-class Grib2Fdb5 : public fdb5::FDBAccess {
+class Grib2Fdb5 : public fdb5::FDBTool {
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
     virtual int minimumPositionalArguments() const {
@@ -24,13 +24,13 @@ class Grib2Fdb5 : public fdb5::FDBAccess {
     }
 
   public:
-    Grib2Fdb5(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
+    Grib2Fdb5(int argc, char **argv): fdb5::FDBTool(argc, argv) {}
 };
 
 void Grib2Fdb5::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " [-d database] [-c class] [-e expver] [-T type] [-s stream] [-f file]" << std::endl;
-    fdb5::FDBAccess::usage(tool);
+    fdb5::FDBTool::usage(tool);
 }
 
 void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {

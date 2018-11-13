@@ -16,11 +16,11 @@
 #include "eckit/option/VectorOption.h"
 
 #include "fdb5/grib/GribArchiver.h"
-#include "fdb5/tools/FDBAccess.h"
+#include "fdb5/tools/FDBTool.h"
 #include "fdb5/config/UMask.h"
 
 
-class FDBWrite : public fdb5::FDBAccess {
+class FDBWrite : public fdb5::FDBTool {
 
     virtual void usage(const std::string &tool) const;
 
@@ -32,7 +32,7 @@ class FDBWrite : public fdb5::FDBAccess {
 
 public:
 
-    FDBWrite(int argc, char **argv) : fdb5::FDBAccess(argc, argv) {
+    FDBWrite(int argc, char **argv) : fdb5::FDBTool(argc, argv) {
 
         options_.push_back(
                     new eckit::option::SimpleOption<std::string>("include-filter",
@@ -53,12 +53,12 @@ public:
 
 void FDBWrite::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl << "Usage: " << tool << " [--filter-include=...] [--filter-exclude=...] <path1> [path2] ..." << std::endl;
-    fdb5::FDBAccess::usage(tool);
+    fdb5::FDBTool::usage(tool);
 }
 
 void FDBWrite::init(const eckit::option::CmdArgs& args)
 {
-    FDBAccess::init(args);
+    FDBTool::init(args);
     args.get("include-filter", filterInclude_);
     args.get("exclude-filter", filterExclude_);
 }

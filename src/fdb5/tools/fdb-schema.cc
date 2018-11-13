@@ -13,21 +13,21 @@
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/tools/FDBAccess.h"
+#include "fdb5/tools/FDBTool.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FdbSchema : public fdb5::FDBAccess {
+class FdbSchema : public fdb5::FDBTool {
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
 public:
-    FdbSchema(int argc, char **argv): fdb5::FDBAccess(argc, argv) {}
+    FdbSchema(int argc, char **argv): fdb5::FDBTool(argc, argv) {}
 };
 
 void FdbSchema::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " [shema] ..." << std::endl;
-    fdb5::FDBAccess::usage(tool);
+    fdb5::FDBTool::usage(tool);
 }
 
 void FdbSchema:: execute(const eckit::option::CmdArgs &args) {

@@ -166,8 +166,6 @@ list( APPEND fdb5_srcs
     rules/Schema.h
     rules/SchemaParser.cc
     rules/SchemaParser.h
-    tools/FDBAccess.cc
-    tools/FDBAccess.h
     tools/FDBInspect.cc
     tools/FDBInspect.h
     tools/FDBTool.cc

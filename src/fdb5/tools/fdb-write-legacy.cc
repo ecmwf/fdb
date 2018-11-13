@@ -19,10 +19,10 @@
 #include "metkit/grib/GribDataBlob.h"
 
 #include "fdb5/legacy/LegacyArchiver.h"
-#include "fdb5/tools/FDBAccess.h"
+#include "fdb5/tools/FDBTool.h"
 #include "fdb5/config/UMask.h"
 
-class FDBWriteLegacy : public fdb5::FDBAccess {
+class FDBWriteLegacy : public fdb5::FDBTool {
 
     virtual void usage(const std::string &tool) const;
 
@@ -34,18 +34,18 @@ class FDBWriteLegacy : public fdb5::FDBAccess {
 
 public:
 
-    FDBWriteLegacy(int argc, char **argv) : fdb5::FDBAccess(argc, argv) {
+    FDBWriteLegacy(int argc, char **argv) : fdb5::FDBTool(argc, argv) {
     }
 };
 
 void FDBWriteLegacy::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl << "Usage: " << tool << " <path1> [path2] ..." << std::endl;
-    fdb5::FDBAccess::usage(tool);
+    fdb5::FDBTool::usage(tool);
 }
 
 void FDBWriteLegacy::init(const eckit::option::CmdArgs& args)
 {
-    FDBAccess::init(args);
+    FDBTool::init(args);
 }
 
 void FDBWriteLegacy::execute(const eckit::option::CmdArgs &args) {

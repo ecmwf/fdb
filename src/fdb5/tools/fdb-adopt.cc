@@ -13,11 +13,11 @@
 #include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribIndexer.h"
 #include "fdb5/legacy/FDBIndexScanner.h"
-#include "fdb5/tools/FDBAccess.h"
+#include "fdb5/tools/FDBTool.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBAdopt : public fdb5::FDBAccess {
+class FDBAdopt : public fdb5::FDBTool {
 
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
@@ -26,7 +26,7 @@ class FDBAdopt : public fdb5::FDBAccess {
   public:
 
     FDBAdopt(int argc, char **argv) :
-        fdb5::FDBAccess(argc, argv) {
+        fdb5::FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<std::string>("pattern", "Pattern matching the legacy fdb directory, e.g. /*[pcf][fc]:0000:*."));
         options_.push_back(new eckit::option::SimpleOption<bool>("check-keys", "Compare to metadata in GRIB message with lsfdb"));
         options_.push_back(new eckit::option::SimpleOption<bool>("check-values", "Check that values also match, implies '--check-keys'"));
@@ -37,7 +37,7 @@ void FDBAdopt::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " [--pattern=/*fc:0000:*.] fdb4-directory1 [fdb4-directory2] ..." << std::endl
                        << "       " << tool << " gribfile1 [gribfile2] ..." << std::endl;
-    fdb5::FDBAccess::usage(tool);
+    fdb5::FDBTool::usage(tool);
 }
 
 void FDBAdopt::execute(const eckit::option::CmdArgs &args) {

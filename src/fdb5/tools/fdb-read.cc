@@ -15,18 +15,18 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/grib/GribDecoder.h"
 #include "fdb5/io/HandleGatherer.h"
-#include "fdb5/tools/FDBAccess.h"
+#include "fdb5/tools/FDBTool.h"
 #include "fdb5/tools/RequestParser.h"
 
 #include "marslib/MarsRequest.h"
 
 
-class FDBRead : public fdb5::FDBAccess {
+class FDBRead : public fdb5::FDBTool {
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return 2; }
   public:
-    FDBRead(int argc, char **argv): fdb5::FDBAccess(argc, argv) {
+    FDBRead(int argc, char **argv): fdb5::FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("extract", "Extract request from a GRIB file"));
 
         options_.push_back(
@@ -40,7 +40,7 @@ void FDBRead::usage(const std::string &tool) const {
                        << "Usage: " << tool << " request.mars target.grib" << std::endl
                        << "       " << tool << " --extract source.grib target.grib" << std::endl;
 
-    fdb5::FDBAccess::usage(tool);
+    fdb5::FDBTool::usage(tool);
 }
 
 void FDBRead::execute(const eckit::option::CmdArgs &args) {

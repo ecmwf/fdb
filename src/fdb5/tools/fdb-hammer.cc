@@ -23,7 +23,7 @@
 #include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
-#include "fdb5/tools/FDBAccess.h"
+#include "fdb5/tools/FDBTool.h"
 
 #include "metkit/grib/GribHandle.h"
 
@@ -36,7 +36,7 @@ const std::unordered_set<size_t> AWKWARD_PARAMS {11, 12, 13, 14, 15, 16, 49, 51,
 using namespace eckit;
 
 
-class FDBWrite : public fdb5::FDBAccess {
+class FDBWrite : public fdb5::FDBTool {
 
     virtual void usage(const std::string &tool) const;
 
@@ -51,7 +51,7 @@ class FDBWrite : public fdb5::FDBAccess {
 
 public:
 
-    FDBWrite(int argc, char **argv) : fdb5::FDBAccess(argc, argv) {
+    FDBWrite(int argc, char **argv) : fdb5::FDBTool(argc, argv) {
 
         options_.push_back(new eckit::option::SimpleOption<std::string>("expver", "Reset expver on data"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("class", "Reset class on data"));
@@ -66,12 +66,12 @@ public:
 
 void FDBWrite::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl << "Usage: " << tool << " [--statistics] [--read] --nsteps=<nsteps> --nensembles=<nensembles> --nlevels=<nlevels> --nparams=<nparams> --expver=<expver> <grib_path>" << std::endl;
-    fdb5::FDBAccess::usage(tool);
+    fdb5::FDBTool::usage(tool);
 }
 
 void FDBWrite::init(const eckit::option::CmdArgs& args)
 {
-    FDBAccess::init(args);
+    FDBTool::init(args);
 
     ASSERT(args.has("expver"));
     ASSERT(args.has("class"));
