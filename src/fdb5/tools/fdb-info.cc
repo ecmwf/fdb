@@ -12,6 +12,7 @@
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/LibFdb.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/tools/FDBInspect.h"
@@ -88,7 +89,7 @@ void FDBInfo::execute(const eckit::option::CmdArgs&) {
     }
 
     if(all_ || schema_) {
-        Log::info() << (all_ ? "Schema: " : "") << fdb5::LibFdb::instance().schemaPath() << std::endl;
+        Log::info() << (all_ ? "Schema: " : "") << fdb5::Config().schemaPath() << std::endl;
         if(!all_) return;
     }
 }
