@@ -42,6 +42,8 @@ public: // method
 
     virtual DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
+    virtual WhereIterator where(const FDBToolRequest& request) override;
+
     virtual std::string id() const override;
 
     virtual void flush() override;
@@ -51,6 +53,9 @@ public: // method
 private: // methods
 
     virtual void print(std::ostream& s) const override;
+
+    template <typename QueryFN>
+    auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));
 
 private:
 

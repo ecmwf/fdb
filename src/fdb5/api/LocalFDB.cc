@@ -29,9 +29,10 @@ namespace fdb5 {
 
 static FDBBuilder<LocalFDB> localFdbBuilder("local");
 
-//----------------------------------------------------------------------------------------------------------------------
 
 namespace {
+
+//----------------------------------------------------------------------------------------------------------------------
 
 class ListVisitor : public EntryVisitor {
 
@@ -88,9 +89,27 @@ private:
     bool simple_;
 };
 
-}
+//----------------------------------------------------------------------------------------------------------------------
+
+
+class WhereVisitor : public EntryVisitor {
+
+public:
+
+    WhereVisitor(eckit::Queue<WhereElement>& queue) : queue_(queue) {}
+
+    void visitDatabase(const DB& db) override { queue_.emplace(db.basePath()); }
+    void visitIndex(const Index&) override { NOTIMP; }
+    void visitDatum(const Field&, const Key&) override { NOTIMP; }
+
+private:
+    eckit::Queue<WhereElement>& queue_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
+
+} // namespace
+
 
 void LocalFDB::archive(const Key& key, const void* data, size_t length) {
 
@@ -119,6 +138,8 @@ eckit::DataHandle *LocalFDB::retrieve(const MarsRequest &request) {
 
 ListIterator LocalFDB::list(const FDBToolRequest& request) {
 
+    Log::debug<LibFdb>() << "LocalFDB::list() : " << request << std::endl;
+
     auto async_worker = [this, request] (eckit::Queue<ListElement>& queue) {
         EntryVisitMechanism mechanism(config_);
         ListVisitor visitor(queue);
@@ -130,6 +151,8 @@ ListIterator LocalFDB::list(const FDBToolRequest& request) {
 
 DumpIterator LocalFDB::dump(const FDBToolRequest &request, bool simple) {
 
+    Log::debug<LibFdb>() << "LocalFDB::dump() : " << request << std::endl;
+
     auto async_worker = [this, request, simple] (eckit::Queue<std::string>& queue) {
         EntryVisitMechanism mechanism(config_, false, false); // don't visit Indexes/entries
         DumpVisitor visitor(queue, simple);
@@ -137,6 +160,19 @@ DumpIterator LocalFDB::dump(const FDBToolRequest &request, bool simple) {
     };
 
     return DumpIterator(new DumpAsyncIterator(async_worker));
+}
+
+WhereIterator LocalFDB::where(const FDBToolRequest &request) {
+
+    Log::debug<LibFdb>() << "LocalFDB::where() : " << request << std::endl;
+
+    auto async_worker = [this, request] (eckit::Queue<WhereElement>& queue) {
+        EntryVisitMechanism mechanism(config_, false, false); // don't visit Indexes/entries
+        WhereVisitor visitor(queue);
+        mechanism.visit(request, visitor);
+    };
+
+    return WhereIterator(new WhereAsyncIterator(async_worker));
 }
 
 std::string LocalFDB::id() const {

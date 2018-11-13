@@ -21,6 +21,7 @@
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
+#include "fdb5/api/helpers/WhereIterator.h"
 
 class MarsRequest;
 
@@ -60,6 +61,8 @@ public: // methods
     ListIterator list(const FDBToolRequest& request);
 
     DumpIterator dump(const FDBToolRequest& request, bool simple=false);
+
+    WhereIterator where(const FDBToolRequest& request);
 
     bool dirty() const;
 

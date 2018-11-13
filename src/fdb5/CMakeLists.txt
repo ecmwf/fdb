@@ -63,6 +63,7 @@ list( APPEND fdb5_srcs
     api/helpers/DumpIterator.h
     api/helpers/ListIterator.cc
     api/helpers/ListIterator.h
+    api/helpers/WhereIterator.h
 
     config/UMask.cc
     config/UMask.h

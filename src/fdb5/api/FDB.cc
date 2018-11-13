@@ -62,6 +62,10 @@ DumpIterator FDB::dump(const FDBToolRequest &request, bool simple) {
     return internal_->dump(request, simple);
 }
 
+WhereIterator FDB::where(const FDBToolRequest &request) {
+    return internal_->where(request);
+}
+
 const std::string FDB::id() const {
     return internal_->id();
 }

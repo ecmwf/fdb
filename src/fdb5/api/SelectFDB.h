@@ -52,6 +52,8 @@ public: // methods
 
     virtual DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
+    virtual WhereIterator where(const FDBToolRequest& request) override;
+
     virtual std::string id() const;
 
     virtual void flush();
@@ -62,6 +64,9 @@ private: // methods
 
     bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
     bool matches(const MarsRequest& request, const SelectMap& select) const;
+
+    template <typename QueryFN>
+    auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));
 
 private: // members
 

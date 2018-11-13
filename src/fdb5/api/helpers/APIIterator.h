@@ -44,6 +44,10 @@ public: // methods
 template <typename ValueType>
 class APIIterator {
 
+public: // types
+
+    using value_type = ValueType;
+
 public: // methods
 
     APIIterator(APIIteratorBase<ValueType>* impl) :

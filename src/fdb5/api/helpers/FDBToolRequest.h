@@ -39,6 +39,15 @@ public: // methods
 
     bool all() const;
 
+protected: // methods
+
+    void print(std::ostream& s) const;
+
+    friend std::ostream& operator<<(std::ostream& os, const FDBToolRequest& r) {
+        r.print(os);
+        return os;
+    }
+
 private: // methods
 
     Key key_;

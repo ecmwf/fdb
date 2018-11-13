@@ -114,9 +114,33 @@ eckit::DataHandle *SelectFDB::retrieve(const MarsRequest& request) {
     return result.dataHandle();
 }
 
-ListIterator SelectFDB::list(const FDBToolRequest& request) {
+/*
+ * This is the example structure for the template below
+ *
+ * ListIterator SelectFDB::list(const FDBToolRequest& request) {
+ *
+ *     std::queue<ListIterator> lists;
+ *
+ *     for (auto& iter : subFdbs_) {
+ *
+ *         const SelectMap& select(iter.first);
+ *         FDB& fdb(iter.second);
+ *
+ *         if (matches(request.key(), select, false) || request.all()) {
+ *             lists.push(fdb.list(request));
+ *         }
+ *     }
+ *
+ *     return ListIterator(new ListAggregateIterator(std::move(lists)));
+ * }
+ */
 
-    std::queue<ListIterator> lists;
+template <typename QueryFN>
+auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request)) {
+
+    using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
+
+    std::queue<QueryIterator> iterQueue;
 
     for (auto& iter : subFdbs_) {
 
@@ -124,29 +148,35 @@ ListIterator SelectFDB::list(const FDBToolRequest& request) {
         FDB& fdb(iter.second);
 
         if (matches(request.key(), select, false) || request.all()) {
-            lists.push(fdb.list(request));
+            iterQueue.push(fn(fdb, request));
         }
     }
 
-    return ListIterator(new ListAggregateIterator(std::move(lists)));
+    return QueryIterator(new APIAggregateIterator<typename QueryIterator::value_type>(std::move(iterQueue)));
 }
 
-DumpIterator SelectFDB::dump(const FDBToolRequest &request, bool simple) {
+ListIterator SelectFDB::list(const FDBToolRequest& request) {
+    Log::debug<LibFdb>() << "SelectFDB::list() >> " << request << std::endl;
+    return queryInternal(request,
+                         [](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.list(request);
+                         });
+}
 
-    std::queue<DumpIterator> lists;
+DumpIterator SelectFDB::dump(const FDBToolRequest& request, bool simple) {
+    Log::debug<LibFdb>() << "SelectFDB::dump() >> " << request << std::endl;
+    return queryInternal(request,
+                         [simple](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.dump(request, simple);
+                         });
+}
 
-    for (auto& iter : subFdbs_) {
-
-        const SelectMap& select(iter.first);
-        FDB& fdb(iter.second);
-
-        if (matches(request.key(), select, false) || request.all()) {
-            lists.push(fdb.dump(request, simple));
-        }
-    }
-
-    return DumpIterator(new DumpAggregateIterator(std::move(lists)));
-
+WhereIterator SelectFDB::where(const FDBToolRequest& request) {
+    Log::debug<LibFdb>() << "SelectFDB::where() >> " << request << std::endl;
+    return queryInternal(request,
+                         [](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.where(request);
+                         });
 }
 
 std::string SelectFDB::id() const {

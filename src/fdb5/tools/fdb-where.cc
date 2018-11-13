@@ -11,39 +11,60 @@
 #include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "fdb5/database/Manager.h"
-#include "fdb5/tools/FDBInspect.h"
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/tools/FDBVisitTool.h"
 
-using eckit::Log;
+using namespace eckit::option;
+using namespace eckit;
+
+
+namespace fdb5 {
+namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBWhere : public fdb5::FDBInspect {
+class FDBWhere : public FDBVisitTool {
   public: // methods
 
-    FDBWhere(int argc, char **argv) : fdb5::FDBInspect(argc, argv) {}
+    FDBWhere(int argc, char **argv) : FDBVisitTool(argc, argv) {}
 
   private: // methods
 
-    virtual void usage(const std::string &tool) const;
-    virtual void process(const eckit::PathName&, const eckit::option::CmdArgs& args);
-
+    virtual void execute(const CmdArgs& args) override;
 };
 
-void FDBWhere::usage(const std::string &tool) const {
 
-    Log::info() << std::endl
-                << "Usage: " << tool << std::endl;
-    FDBInspect::usage(tool);
-}
+void FDBWhere::execute(const CmdArgs&) {
 
-void FDBWhere::process(const eckit::PathName& path, const eckit::option::CmdArgs&)  {
-    Log::info() << path << std::endl;
+    FDB fdb;
+
+    for (const std::string& request : requests_) {
+        FDBToolRequest tool_request(request, all_);
+        auto whereIterator = fdb.where(tool_request);
+
+        size_t count = 0;
+        WhereElement elem;
+        while (whereIterator.next(elem)) {
+            Log::info() << elem << std::endl;
+            count++;
+        }
+
+        if (count == 0 && fail_) {
+            std::stringstream ss;
+            ss << "No FDB entries found for: " << tool_request << std::endl;
+            throw FDBToolException(ss.str());
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace tools
+} // namespace fdb5
+
+
 int main(int argc, char **argv) {
-    FDBWhere app(argc, argv);
+    fdb5::tools::FDBWhere app(argc, argv);
     return app.start();
 }

@@ -38,6 +38,8 @@ public: // methods
 
     virtual DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
+    virtual WhereIterator where(const FDBToolRequest& request) override;
+
     virtual std::string id() const;
 
     virtual void flush();

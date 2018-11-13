@@ -18,9 +18,12 @@
 #include "eckit/parser/Tokenizer.h"
 
 #include "fdb5/api/DistFDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/LibFdb.h"
+
+using eckit::Log;
 
 
 namespace fdb5 {
@@ -65,7 +68,7 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     // Given an order supplied by the Rendezvous hash, try the FDB in order until
     // one works. n.b. Errors are unacceptable once the FDB is dirty.
-    eckit::Log::info() << "Attempting dist FDB archive" << std::endl;
+    Log::debug<LibFdb>() << "Attempting dist FDB archive" << std::endl;
 
     for (size_t idx : laneIndices) {
 
@@ -105,13 +108,12 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
         }
     }
 
-    eckit::Log::error() << "No writable lanes!!!!" << std::endl;
+    Log::error() << "No writable lanes!!!!" << std::endl;
 
     throw DistributionError("No writable lanes available for archive", Here());
 }
 
-
-eckit::DataHandle *DistFDB::retrieve(const MarsRequest &request) {
+eckit::DataHandle* DistFDB::retrieve(const MarsRequest &request) {
 
     // TODO: Deduplication. Currently no masking.
     // TODO: Error handling on read.
@@ -128,22 +130,63 @@ eckit::DataHandle *DistFDB::retrieve(const MarsRequest &request) {
     return result.dataHandle();
 }
 
+/*
+ * Exemplar for templated query functionality:
+ *
+ * ListIterator DistFDB::list(const FDBToolRequest& request) {
+ *
+ *     std::queue<ListIterator> lists;
+ *
+ *     for (FDB& lane : lanes_) {
+ *         if (lane.visitable()) {
+ *             lists.push(lane.list(request));
+ *         }
+ *     }
+ *
+ *     return ListIterator(new ListAggregateIterator(std::move(lists)));
+ * }
+ */
 
-ListIterator DistFDB::list(const FDBToolRequest& request) {
 
-    std::queue<ListIterator> lists;
+template <typename QueryFN>
+auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request)) {
+
+    using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
+
+    std::queue<QueryIterator> iterQueue;
 
     for (FDB& lane : lanes_) {
         if (lane.visitable()) {
-            lists.push(lane.list(request));
+            iterQueue.push(fn(lane, request));
         }
     }
 
-    return ListIterator(new ListAggregateIterator(std::move(lists)));
+    return QueryIterator(new APIAggregateIterator<typename QueryIterator::value_type>(std::move(iterQueue)));
+}
+
+
+ListIterator DistFDB::list(const FDBToolRequest& request) {
+    Log::debug<LibFdb>() << "DistFDB::list() : " << request << std::endl;
+    return queryInternal(request,
+                         [](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.list(request);
+                         });
 }
 
 DumpIterator DistFDB::dump(const FDBToolRequest &request, bool simple) {
-    NOTIMP;
+    Log::debug<LibFdb>() << "DistFDB::dump() : " << request << std::endl;
+    return queryInternal(request,
+                         [simple](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.dump(request, simple);
+                         });
+}
+
+WhereIterator DistFDB::where(const FDBToolRequest &request) {
+    Log::debug<LibFdb>() << "DistFDB::where() : " << request << std::endl;
+    return queryInternal(request,
+                         [](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.where(request);
+                         });
 }
 
 

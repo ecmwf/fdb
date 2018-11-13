@@ -64,9 +64,17 @@ void FDBDump::execute(const CmdArgs&) {
         FDBToolRequest tool_request(request, all_);
         auto dumpIterator = fdb.dump(tool_request, simple_);
 
+        size_t count = 0;
         std::string elem;
         while (dumpIterator.next(elem)) {
             Log::info() << elem << std::endl;
+            count++;
+        }
+
+        if (count == 0 && fail_) {
+            std::stringstream ss;
+            ss << "No FDB entries found for: " << tool_request << std::endl;
+            throw FDBToolException(ss.str());
         }
     }
 }

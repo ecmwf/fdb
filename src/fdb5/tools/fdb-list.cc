@@ -74,10 +74,18 @@ void FDBList::execute(const option::CmdArgs& args) {
         FDBToolRequest tool_request(request, all_);
         auto listObject = fdb.list(tool_request);
 
+        size_t count = 0;
         ListElement elem;
         while (listObject.next(elem)) {
             elem.print(Log::info(), location_);
             Log::info() << std::endl;
+            count++;
+        }
+
+        if (count == 0 && fail_) {
+            std::stringstream ss;
+            ss << "No FDB entries found for: " << tool_request << std::endl;
+            throw FDBToolException(ss.str());
         }
     }
 }

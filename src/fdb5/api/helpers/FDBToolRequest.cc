@@ -38,6 +38,13 @@ bool FDBToolRequest::all() const {
 
 }
 
+void FDBToolRequest::print(std::ostream &s) const {
+    s << "FDBToolRequest(" << key_;
+    s << " : all=" << (all_ ? "true" : "false");
+    s << ")";
+
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

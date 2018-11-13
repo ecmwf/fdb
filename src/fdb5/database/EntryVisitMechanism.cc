@@ -78,12 +78,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
         std::vector<PathName> paths(Manager(dbConfig_).visitableLocations(request.key()));
 
-        if (paths.size() == 0) {
-            std::stringstream ss;
-            ss << "No FDB matches for all";
-            Log::warning() << ss.str() << std::endl;
-            if (fail_) throw FDBVisitException(ss.str(), Here());
-        }
+        // n.b. it is not an error if nothing is found (especially in a sub-fdb).
 
         // And do the visitation
 
