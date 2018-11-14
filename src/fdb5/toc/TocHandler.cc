@@ -60,7 +60,7 @@ TocHandler::TocHandler(const eckit::PathName &directory, const eckit::Configurat
     count_(0),
     useSubToc_(config.getBool("useSubToc", false)),
     isSubToc_(false),
-    enumeratedMaskedSubTocs_(false),
+    enumeratedMaskedEntries_(false),
     writeMode_(false) {
 
     // An override to enable using sub tocs without configurations being passed in, for ease
@@ -81,7 +81,7 @@ TocHandler::TocHandler(const eckit::PathName& path, bool) :
     count_(0),
     useSubToc_(false),
     isSubToc_(true),
-    enumeratedMaskedSubTocs_(false),
+    enumeratedMaskedEntries_(false),
     writeMode_(false) {
 }
 
@@ -153,9 +153,9 @@ void TocHandler::openForRead() const {
     //#endif
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
 
-    // The masked sub tocs could be updated each time, so reset this.
-    enumeratedMaskedSubTocs_ = false;
-    maskedSubTocs_.clear();
+    // The masked subtocs and indexes could be updated each time, so reset this.
+    enumeratedMaskedEntries_ = false;
+    maskedEntries_.clear();
 }
 
 void TocHandler::append(TocRecord &r, size_t payloadSize ) {
@@ -205,6 +205,12 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
     int len;
 
+    // Ensure we are able to skip masked entries as appropriate
+
+    if (!enumeratedMaskedEntries_) {
+        populateMaskedEntriesList();
+    }
+
     // For some tools (mainly diagnostic) it makes sense to be able to switch the
     // walking behaviour here.
 
@@ -230,18 +236,13 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
             } else if (r.header_.tag_ == TocRecord::TOC_SUB_TOC) {
 
-                // Now that we have hit a subtoc, we need the list of masked subtocs to be
-                // populated
-                if (!enumeratedMaskedSubTocs_) {
-                    populateMaskedSubTocsList();
-                }
-
                 eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
                 eckit::PathName path;
                 s >> path;
 
                 // If this subtoc has a masking entry, then skip it, and go on to the next entry.
-                if (std::find(maskedSubTocs_.begin(), maskedSubTocs_.end(), path) != maskedSubTocs_.end()) {
+                std::pair<eckit::PathName, size_t> key(path, 0);
+                if (maskedEntries_.find(key) != maskedEntries_.end()) {
                     Log::debug<LibFdb>() << "SubToc ignored by mask: " << path << std::endl;
                     continue;
                 }
@@ -258,8 +259,23 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                     return true;
                 }
 
-            } else {
+            } else if (r.header_.tag_ == TocRecord::TOC_INDEX) {
 
+                eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+                eckit::PathName path;
+                off_t offset;
+                s >> path;
+                s >> offset;
+
+                std::pair<eckit::PathName, size_t> key(path, offset);
+                if (maskedEntries_.find(key) != maskedEntries_.end()) {
+                    Log::debug<LibFdb>() << "Index ignored by mask: " << path << ":" << offset << std::endl;
+                    continue;
+                }
+
+                return true;
+
+            } else {
                 // A normal read operation
                 return true;
             }
@@ -354,14 +370,14 @@ void TocHandler::close() const {
     }
 }
 
-void TocHandler::populateMaskedSubTocsList() const {
+void TocHandler::populateMaskedEntriesList() const {
 
     ASSERT(fd_ != -1);
 
     // Get the current position of the file descriptor.
     off_t startPosition = lseek(fd_, 0, SEEK_CUR);
 
-    maskedSubTocs_.clear();
+    maskedEntries_.clear();
 
     TocRecord r;
 
@@ -385,7 +401,7 @@ void TocHandler::populateMaskedSubTocsList() const {
                 s >> offset;
 
                 if (offset == 0) {
-                    maskedSubTocs_.push_back(path);
+                    maskedEntries_.emplace(std::pair<eckit::PathName, size_t>(path, offset));
                 }
                 break;
             }
@@ -409,7 +425,7 @@ void TocHandler::populateMaskedSubTocsList() const {
     off_t ret = lseek(fd_, startPosition, SEEK_SET);
     ASSERT(ret == startPosition);
 
-    enumeratedMaskedSubTocs_ = true;
+    enumeratedMaskedEntries_ = true;
 }
 
 void TocHandler::writeInitRecord(const Key &key) {
@@ -992,7 +1008,7 @@ size_t TocHandler::buildSubTocMaskRecord(TocRecord& r) {
     ASSERT(useSubToc_);
     ASSERT(subTocWrite_);
 
-    buildSubTocMaskRecord(r, subTocWrite_->tocPath());
+    return buildSubTocMaskRecord(r, subTocWrite_->tocPath());
 }
 
 size_t TocHandler::buildSubTocMaskRecord(TocRecord& r, const eckit::PathName& path) {
