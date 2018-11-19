@@ -64,6 +64,12 @@ list( APPEND fdb5_srcs
     api/helpers/ListIterator.cc
     api/helpers/ListIterator.h
     api/helpers/WhereIterator.h
+    api/helpers/WipeIterator.h
+
+    api/visitors/QueryVisitor.h
+    api/visitors/ListVisitor.h
+    api/visitors/DumpVisitor.h
+    api/visitors/WhereVisitor.h
 
     config/UMask.cc
     config/UMask.h

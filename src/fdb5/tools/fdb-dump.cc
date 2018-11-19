@@ -59,10 +59,9 @@ void FDBDump::execute(const CmdArgs&) {
 
     FDB fdb;
 
-    for (const std::string& request : requests_) {
+    for (const FDBToolRequest& request : requests()) {
 
-        FDBToolRequest tool_request(request, all_);
-        auto dumpIterator = fdb.dump(tool_request, simple_);
+        auto dumpIterator = fdb.dump(request, simple_);
 
         size_t count = 0;
         std::string elem;
@@ -71,9 +70,9 @@ void FDBDump::execute(const CmdArgs&) {
             count++;
         }
 
-        if (count == 0 && fail_) {
+        if (count == 0 && fail()) {
             std::stringstream ss;
-            ss << "No FDB entries found for: " << tool_request << std::endl;
+            ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
         }
     }

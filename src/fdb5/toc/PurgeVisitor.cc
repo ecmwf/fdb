@@ -102,7 +102,7 @@ void PurgeVisitor::report(std::ostream &out) const {
 
 void PurgeVisitor::purge(std::ostream& out) const {
 
-    db_.checkUID();
+    static_cast<DB&>(db_).checkUID();
 
     const eckit::PathName& directory = db_.directory();
 

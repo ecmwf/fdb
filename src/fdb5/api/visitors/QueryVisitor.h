@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996- ECMWF.
+ * (C) Copyright 2018- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -11,32 +11,40 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_DumpIterator_H
-#define fdb5_api_DumpIterator_H
+#ifndef fdb5_api_visitor_QueryVisitor_H
+#define fdb5_api_visitor_QueryVisitor_H
 
-#include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/database/EntryVisitMechanism.h"
 
-#include <string>
-
-/*
- * Define a standard object which can be used to iterate the results of a
- * dump() call on an arbitrary FDB object
- */
+#include "eckit/container/Queue.h"
 
 namespace fdb5 {
+namespace api {
+namespace visitor {
+
+/// @note Helper classes for LocalFDB
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using DumpElement = std::string;
+template <typename T>
+class QueryVisitor : public EntryVisitor {
 
-using DumpIterator = APIIterator<std::string>;
+public: // methods
 
-using DumpAggregateIterator = APIAggregateIterator<std::string>;
+    using ValueType = T;
 
-using DumpAsyncIterator = APIAsyncIterator<std::string>;
+    QueryVisitor(eckit::Queue<ValueType>& queue) : queue_(queue) {}
+
+protected: // methods
+
+    eckit::Queue<ValueType>& queue_;
+};
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace visitor
+} // namespace api
 } // namespace fdb5
 
 #endif

@@ -81,6 +81,17 @@ bool FDBVisitTool::fail() const {
     return fail_;
 }
 
+std::vector<FDBToolRequest> FDBVisitTool::requests() const {
+
+    std::vector<FDBToolRequest> rqs;
+
+    for (const std::string& request_string : requests_) {
+        rqs.emplace_back(FDBToolRequest(request_string, all_, minimumKeys_));
+    }
+
+    return rqs;
+}
+
 void FDBVisitTool::usage(const std::string &tool) const {
 
                // derived classes should provide this type of usage information ...

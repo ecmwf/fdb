@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996- ECMWF.
+ * (C) Copyright 2018- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -11,32 +11,38 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_DumpIterator_H
-#define fdb5_api_DumpIterator_H
+#ifndef fdb5_api_visitor_ListVisitor_H
+#define fdb5_api_visitor_ListVisitor_H
 
-#include "fdb5/api/helpers/APIIterator.h"
-
-#include <string>
-
-/*
- * Define a standard object which can be used to iterate the results of a
- * dump() call on an arbitrary FDB object
- */
+#include "fdb5/api/visitors/QueryVisitor.h"
+#include "fdb5/api/helpers/ListIterator.h"
 
 namespace fdb5 {
+namespace api {
+namespace visitor {
+
+/// @note Helper classes for LocalFDB
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using DumpElement = std::string;
+struct ListVisitor : public QueryVisitor<ListElement> {
 
-using DumpIterator = APIIterator<std::string>;
+public:
+    using QueryVisitor::QueryVisitor;
 
-using DumpAggregateIterator = APIAggregateIterator<std::string>;
+    void visitDatum(const Field& field, const Key& key) override {
+        ASSERT(currentDatabase_);
+        ASSERT(currentIndex_);
 
-using DumpAsyncIterator = APIAsyncIterator<std::string>;
+        queue_.emplace(ListElement({currentDatabase_->key(), currentIndex_->key(), key},
+                                      field.sharedLocation()));
+    }
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace visitor
+} // namespace api
 } // namespace fdb5
 
 #endif

@@ -10,8 +10,6 @@
 
 #include "eckit/log/Log.h"
 #include "eckit/container/Queue.h"
-#include "eckit/log/Channel.h"
-#include "eckit/log/LineBasedTarget.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -22,7 +20,15 @@
 #include "fdb5/database/Retriever.h"
 #include "fdb5/LibFdb.h"
 
+#include "fdb5/api/visitors/QueryVisitor.h"
+#include "fdb5/api/visitors/ListVisitor.h"
+#include "fdb5/api/visitors/DumpVisitor.h"
+#include "fdb5/api/visitors/WhereVisitor.h"
+#include "fdb5/api/visitors/WipeVisitor.h"
+
 #include "marslib/MarsTask.h"
+
+using namespace fdb5::api::visitor;
 
 
 namespace fdb5 {
@@ -31,80 +37,6 @@ static FDBBuilder<LocalFDB> localFdbBuilder("local");
 
 
 namespace {
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class ListVisitor : public EntryVisitor {
-
-public:
-
-    ListVisitor(eckit::Queue<ListElement>& queue) :
-        queue_(queue) {}
-
-    void visitDatum(const Field& field, const Key& key) override {
-        ASSERT(currentDatabase_);
-        ASSERT(currentIndex_);
-
-        queue_.emplace(ListElement({currentDatabase_->key(), currentIndex_->key(), key},
-                                      field.sharedLocation()));
-    }
-
-private:
-    eckit::Queue<ListElement>& queue_;
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-
-class QueueStringLogTarget : public eckit::LineBasedTarget {
-public:
-
-    QueueStringLogTarget(eckit::Queue<std::string>& queue) : queue_(queue) {}
-
-    void line(const char* line) override {
-        queue_.emplace(std::string(line));
-    }
-
-private: // members
-    eckit::Queue<std::string>& queue_;
-};
-
-
-class DumpVisitor : public EntryVisitor {
-
-public:
-
-    DumpVisitor(eckit::Queue<std::string>& queue, bool simple) :
-        out_(new QueueStringLogTarget(queue)),
-        simple_(simple) {}
-
-    void visitDatabase(const DB& db) override {
-        db.dump(out_, simple_);
-    }
-    void visitIndex(const Index&) override { NOTIMP; }
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
-
-private:
-    eckit::Channel out_;
-    bool simple_;
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-
-class WhereVisitor : public EntryVisitor {
-
-public:
-
-    WhereVisitor(eckit::Queue<WhereElement>& queue) : queue_(queue) {}
-
-    void visitDatabase(const DB& db) override { queue_.emplace(db.basePath()); }
-    void visitIndex(const Index&) override { NOTIMP; }
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
-
-private:
-    eckit::Queue<WhereElement>& queue_;
-};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -135,44 +67,42 @@ eckit::DataHandle *LocalFDB::retrieve(const MarsRequest &request) {
     return retriever_->retrieve(task);
 }
 
+template<typename VisitorType, typename ... Ts>
+APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBToolRequest& request, Ts ... args) {
 
-ListIterator LocalFDB::list(const FDBToolRequest& request) {
+    using ValueType = typename VisitorType::ValueType;
+    using QueryIterator = APIIterator<ValueType>;
+    using AsyncIterator = APIAsyncIterator<ValueType>;
 
-    Log::debug<LibFdb>() << "LocalFDB::list() : " << request << std::endl;
 
-    auto async_worker = [this, request] (eckit::Queue<ListElement>& queue) {
+    auto async_worker = [this, request, args...] (eckit::Queue<ValueType>& queue) {
         EntryVisitMechanism mechanism(config_);
-        ListVisitor visitor(queue);
+        VisitorType visitor(queue, args...);
         mechanism.visit(request, visitor);
     };
 
-    return ListIterator(new ListAsyncIterator(async_worker));
+    return QueryIterator(new AsyncIterator(async_worker));
+}
+
+
+ListIterator LocalFDB::list(const FDBToolRequest& request) {
+    Log::debug<LibFdb>() << "LocalFDB::list() : " << request << std::endl;
+    return queryInternal<ListVisitor>(request);
 }
 
 DumpIterator LocalFDB::dump(const FDBToolRequest &request, bool simple) {
-
     Log::debug<LibFdb>() << "LocalFDB::dump() : " << request << std::endl;
-
-    auto async_worker = [this, request, simple] (eckit::Queue<std::string>& queue) {
-        EntryVisitMechanism mechanism(config_, false, false); // don't visit Indexes/entries
-        DumpVisitor visitor(queue, simple);
-        mechanism.visit(request, visitor);
-    };
-
-    return DumpIterator(new DumpAsyncIterator(async_worker));
+    return queryInternal<DumpVisitor>(request, simple);
 }
 
 WhereIterator LocalFDB::where(const FDBToolRequest &request) {
-
     Log::debug<LibFdb>() << "LocalFDB::where() : " << request << std::endl;
+    return queryInternal<WhereVisitor>(request);
+}
 
-    auto async_worker = [this, request] (eckit::Queue<WhereElement>& queue) {
-        EntryVisitMechanism mechanism(config_, false, false); // don't visit Indexes/entries
-        WhereVisitor visitor(queue);
-        mechanism.visit(request, visitor);
-    };
-
-    return WhereIterator(new WhereAsyncIterator(async_worker));
+WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit) {
+    Log::debug<LibFdb>() << "LocalFDB::wipe() : " << request << std::endl;
+    return queryInternal<WipeVisitor>(request, doit);
 }
 
 std::string LocalFDB::id() const {

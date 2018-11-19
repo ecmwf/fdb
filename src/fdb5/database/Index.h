@@ -97,6 +97,8 @@ public: // methods
 
     virtual const IndexLocation& location() const = 0;
 
+    virtual const std::vector<eckit::PathName> dataPaths() const = 0;
+
     virtual bool dirty() const = 0;
 
     virtual void open() = 0;
@@ -161,6 +163,8 @@ public: // methods
     Index& operator=(const Index&);
 
     const IndexLocation& location() const { return content_->location(); }
+
+    const std::vector<eckit::PathName> dataPaths() const { return content_->dataPaths(); }
 
     bool dirty() const { return content_->dirty(); }
 

@@ -44,6 +44,8 @@ public: // method
 
     virtual WhereIterator where(const FDBToolRequest& request) override;
 
+    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit) override;
+
     virtual std::string id() const override;
 
     virtual void flush() override;

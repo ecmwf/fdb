@@ -87,6 +87,18 @@ eckit::PathName FileStore::get(const FileStore::PathID id) const {
     return itr->second;
 }
 
+std::vector<eckit::PathName> FileStore::paths() const {
+    std::vector<eckit::PathName> p;
+
+    p.resize(paths_.size());
+
+    for (const auto& kv : paths_) {
+        p.emplace_back(kv.second);
+    }
+
+    return p;
+}
+
 void FileStore::print( std::ostream &out ) const {
     for ( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr ) {
         out << itr->first << " " << itr->second << std::endl;

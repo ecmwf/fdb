@@ -88,21 +88,33 @@ eckit::PathName TocDB::basePath() const {
     return directory_;
 }
 
-void TocDB::visitEntries(EntryVisitor& visitor, bool sorted, bool visitIndexes, bool visitEntries) {
+std::vector<PathName> TocDB::metadataPaths() const {
+
+    std::vector<PathName> paths(subTocPaths());
+
+    paths.emplace_back(schemaPath());
+    paths.emplace_back(tocPath());
+
+    return paths;
+}
+
+void TocDB::visitEntries(EntryVisitor& visitor, bool sorted) {
 
     std::vector<Index> all = indexes(sorted);
 
     visitor.visitDatabase(*this);
 
-    if (visitIndexes) {
+    if (visitor.visitIndexes()) {
         for (std::vector<Index>::const_iterator i = all.begin(); i != all.end(); ++i) {
-            if (visitEntries) {
+            if (visitor.visitEntries()) {
                 i->entries(visitor); // contains visitIndex
             } else {
                 visitor.visitIndex(*i);
             }
         }
     }
+
+    visitor.databaseComplete(*this);
 }
 
 void TocDB::loadSchema() {
@@ -132,6 +144,10 @@ void TocDB::visit(DBVisitor &visitor) {
 std::string TocDB::dbType() const
 {
     return TocDB::dbTypeName();
+}
+
+void TocDB::checkUID() const {
+    TocHandler::checkUID();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

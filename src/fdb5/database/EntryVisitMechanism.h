@@ -33,8 +33,13 @@ public:  // methods
     EntryVisitor();
     virtual ~EntryVisitor();
 
+    // defaults
+    virtual bool visitIndexes() { return true; }
+    virtual bool visitEntries() { return true; }
+
     virtual void visitDatabase(const DB& db);
     virtual void visitIndex(const Index& index);
+    virtual void databaseComplete(const DB& db);
     void visitDatum(const Field& field, const std::string& keyFingerprint);
 
 private: // methods
@@ -54,7 +59,7 @@ class EntryVisitMechanism : public eckit::NonCopyable {
 
 public:  // methods
 
-    EntryVisitMechanism(const Config& config, bool visitIndexes=true, bool visitEntries=true);
+    EntryVisitMechanism(const Config& config);
 
     void visit(const FDBToolRequest& request, EntryVisitor& visitor);
 
@@ -64,9 +69,6 @@ private:  // members
 
     // Fail on error
     bool fail_;
-
-    bool visitIndexes_;
-    bool visitEntries_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

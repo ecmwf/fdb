@@ -139,6 +139,7 @@ template <typename QueryFN>
 auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request)) {
 
     using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
+    using ValueType = typename QueryIterator::value_type;
 
     std::queue<QueryIterator> iterQueue;
 
@@ -152,7 +153,7 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) 
         }
     }
 
-    return QueryIterator(new APIAggregateIterator<typename QueryIterator::value_type>(std::move(iterQueue)));
+    return QueryIterator(new APIAggregateIterator<ValueType>(std::move(iterQueue)));
 }
 
 ListIterator SelectFDB::list(const FDBToolRequest& request) {
@@ -176,7 +177,15 @@ WhereIterator SelectFDB::where(const FDBToolRequest& request) {
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.where(request);
-                         });
+    });
+}
+
+WipeIterator SelectFDB::wipe(const FDBToolRequest &request, bool doit) {
+    Log::debug<LibFdb>() << "SelectFDB::wipe() >> " << request << std::endl;
+    return queryInternal(request,
+                         [doit](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.wipe(request, doit);
+    });
 }
 
 std::string SelectFDB::id() const {

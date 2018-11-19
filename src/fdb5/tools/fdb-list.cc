@@ -23,6 +23,7 @@
 #include "fdb5/tools/FDBVisitTool.h"
 
 using namespace eckit;
+using namespace eckit::option;
 
 /*
  * This is a test case
@@ -44,19 +45,19 @@ class FDBList : public FDBVisitTool {
         FDBVisitTool(argc, argv),
         location_(false) {
 
-        options_.push_back(new eckit::option::SimpleOption<bool>("location", "Also print the location of each field"));
+        options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
     }
 
   private: // methods
 
-    virtual void execute(const eckit::option::CmdArgs& args);
+    virtual void execute(const CmdArgs& args);
     // virtual int minimumPositionalArguments() const { return 1; }
-    virtual void init(const eckit::option::CmdArgs &args);
+    virtual void init(const CmdArgs &args);
 
     bool location_;
 };
 
-void FDBList::init(const option::CmdArgs& args) {
+void FDBList::init(const CmdArgs& args) {
 
     FDBVisitTool::init(args);
 
@@ -65,14 +66,13 @@ void FDBList::init(const option::CmdArgs& args) {
 
 }
 
-void FDBList::execute(const option::CmdArgs& args) {
+void FDBList::execute(const CmdArgs& args) {
 
     FDB fdb;
 
-    for (const std::string& request : requests_) {
+    for (const FDBToolRequest& request : requests()) {
 
-        FDBToolRequest tool_request(request, all_);
-        auto listObject = fdb.list(tool_request);
+        auto listObject = fdb.list(request);
 
         size_t count = 0;
         ListElement elem;
@@ -82,9 +82,9 @@ void FDBList::execute(const option::CmdArgs& args) {
             count++;
         }
 
-        if (count == 0 && fail_) {
+        if (count == 0 && fail()) {
             std::stringstream ss;
-            ss << "No FDB entries found for: " << tool_request << std::endl;
+            ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
         }
     }

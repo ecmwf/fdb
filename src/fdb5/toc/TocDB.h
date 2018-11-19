@@ -43,15 +43,17 @@ protected: // methods
 
     virtual std::string dbType() const;
 
+    virtual void checkUID() const;
     virtual bool open();
     virtual void close();
     virtual void flush();
     virtual bool exists() const;
-    virtual void visitEntries(EntryVisitor& visitor, bool sorted=false, bool visitIndexes=true, bool visitEntries=true);
+    virtual void visitEntries(EntryVisitor& visitor, bool sorted=false);
     virtual void visit(DBVisitor& visitor);
     virtual void dump(std::ostream& out, bool simple=false) const;
     virtual std::string owner() const;
     virtual eckit::PathName basePath() const;
+    virtual std::vector<eckit::PathName> metadataPaths() const;
     virtual const Schema& schema() const;
 
     virtual eckit::DataHandle *retrieve(const Key &key) const;

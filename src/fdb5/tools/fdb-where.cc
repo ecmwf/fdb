@@ -39,9 +39,9 @@ void FDBWhere::execute(const CmdArgs&) {
 
     FDB fdb;
 
-    for (const std::string& request : requests_) {
-        FDBToolRequest tool_request(request, all_);
-        auto whereIterator = fdb.where(tool_request);
+    for (const FDBToolRequest& request : requests()) {
+
+        auto whereIterator = fdb.where(request);
 
         size_t count = 0;
         WhereElement elem;
@@ -50,9 +50,9 @@ void FDBWhere::execute(const CmdArgs&) {
             count++;
         }
 
-        if (count == 0 && fail_) {
+        if (count == 0 && fail()) {
             std::stringstream ss;
-            ss << "No FDB entries found for: " << tool_request << std::endl;
+            ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
         }
     }

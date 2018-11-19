@@ -56,6 +56,9 @@ public: // methods
     /// @pre assumes that the eckit::filesystem/PathName.has already been inserted
     eckit::PathName get( const FileStore::PathID id ) const;
 
+    /// Return all of the paths used
+    std::vector<eckit::PathName> paths() const;
+
     void dump(std::ostream &out, const char* indent) const;
 
     void encode(eckit::Stream &s) const;

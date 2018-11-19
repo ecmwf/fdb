@@ -93,6 +93,7 @@ public: // methods
 private: // methods
 
     virtual const IndexLocation& location() const { NOTIMP; }
+    virtual const std::vector<eckit::PathName> dataPaths() const { NOTIMP; }
 
     virtual bool dirty() const { NOTIMP; }
 

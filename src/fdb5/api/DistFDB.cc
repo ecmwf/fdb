@@ -173,7 +173,7 @@ ListIterator DistFDB::list(const FDBToolRequest& request) {
                          });
 }
 
-DumpIterator DistFDB::dump(const FDBToolRequest &request, bool simple) {
+DumpIterator DistFDB::dump(const FDBToolRequest& request, bool simple) {
     Log::debug<LibFdb>() << "DistFDB::dump() : " << request << std::endl;
     return queryInternal(request,
                          [simple](FDB& fdb, const FDBToolRequest& request) {
@@ -181,12 +181,21 @@ DumpIterator DistFDB::dump(const FDBToolRequest &request, bool simple) {
                          });
 }
 
-WhereIterator DistFDB::where(const FDBToolRequest &request) {
+WhereIterator DistFDB::where(const FDBToolRequest& request) {
     Log::debug<LibFdb>() << "DistFDB::where() : " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.where(request);
-                         });
+    });
+}
+
+WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit) {
+    Log::debug<LibFdb>() << "DistFDB::wipe() : " << request << std::endl;
+    return queryInternal(request,
+                         [doit](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.wipe(request, doit);
+    });
+
 }
 
 

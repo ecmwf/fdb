@@ -21,6 +21,7 @@ namespace fdb5 {
 
 class Retriever;
 class Archiver;
+class FDB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -40,6 +41,8 @@ public: // methods
 
     virtual WhereIterator where(const FDBToolRequest& request) override;
 
+    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit) override;
+
     virtual std::string id() const;
 
     virtual void flush();
@@ -47,6 +50,9 @@ public: // methods
 private: // methods
 
     virtual void print(std::ostream& s) const;
+
+    template <typename VisitorType, typename ... Ts>
+    APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts ... args);
 
 private: // members
 

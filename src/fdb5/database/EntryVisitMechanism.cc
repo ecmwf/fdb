@@ -39,6 +39,14 @@ void EntryVisitor::visitDatabase(const DB& db) {
     currentDatabase_ = &db;
 }
 
+void EntryVisitor::databaseComplete(const DB& db) {
+    if (currentDatabase_ != 0) {
+        ASSERT(currentDatabase_ == &db);
+    }
+    currentDatabase_ = 0;
+    currentIndex_ = 0;
+}
+
 void EntryVisitor::visitIndex(const Index& index) {
     currentIndex_ = &index;
 }
@@ -53,18 +61,15 @@ void EntryVisitor::visitDatum(const Field &field, const std::string& keyFingerpr
 
 //----------------------------------------------------------------------------------------------------------------------
 
-EntryVisitMechanism::EntryVisitMechanism(const Config& config, bool visitIndexes, bool visitEntries) :
+EntryVisitMechanism::EntryVisitMechanism(const Config& config) :
     dbConfig_(config),
-    fail_(true),
-    visitIndexes_(visitIndexes),
-    visitEntries_(visitEntries) {
-
-    if (visitEntries && !visitIndexes) {
-        throw FDBVisitException("Cannot visit entries without visiting indexes", Here());
-    }
-}
+    fail_(true) {}
 
 void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& visitor) {
+
+    if (visitor.visitEntries() && !visitor.visitIndexes()) {
+        throw FDBVisitException("Cannot visit entries without visiting indexes", Here());
+    }
 
     // A request against all is the same as using an empty key in visitableLocations.
 
@@ -93,7 +98,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
                 std::unique_ptr<DB> db(DBFactory::buildReader(path));
                 ASSERT(db->open());
 
-                db->visitEntries(visitor, false, visitIndexes_, visitEntries_);
+                db->visitEntries(visitor, false);
             }
         }
 

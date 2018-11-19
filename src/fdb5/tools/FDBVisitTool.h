@@ -16,6 +16,7 @@
 #define fdb5_tools_FDBVisitTool_H
 
 #include "fdb5/tools/FDBTool.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 
 namespace fdb5 {
 namespace tools {
@@ -35,7 +36,9 @@ protected: // methods
 
     bool fail() const;
 
-protected: // members
+    std::vector<FDBToolRequest> requests() const;
+
+private: // members
 
     // minimum set of keys needed to execute a query
     // these are used for safety to restrict the search space for the visitors

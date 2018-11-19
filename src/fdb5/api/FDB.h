@@ -22,6 +22,7 @@
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/WhereIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 
 class MarsRequest;
 
@@ -63,6 +64,8 @@ public: // methods
     DumpIterator dump(const FDBToolRequest& request, bool simple=false);
 
     WhereIterator where(const FDBToolRequest& request);
+
+    WipeIterator wipe(const FDBToolRequest& request, bool doit=false);
 
     bool dirty() const;
 

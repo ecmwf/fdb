@@ -8,94 +8,114 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/memory/ScopedPtr.h"
+#include "fdb5/tools/FDBVisitTool.h"
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
-#include "fdb5/toc/TocDB.h"
-#include "fdb5/toc/WipeVisitor.h"
-#include "fdb5/tools/FDBInspect.h"
+using namespace eckit;
+using namespace eckit::option;
+
+namespace fdb5 {
+namespace tools {
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBWipe : public fdb5::FDBInspect {
+class FDBWipe : public FDBVisitTool {
 
-  public: // methods
+public: // methods
 
-    FDBWipe(int argc, char **argv) : fdb5::FDBInspect(argc, argv, "class,expver,stream,date,time"),
+    FDBWipe(int argc, char **argv) :
+        FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
         doit_(false) {
 
-        options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
+        options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
     }
 
-  private: // methods
+private: // methods
 
-    virtual void process(const eckit::PathName &, const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
-    virtual void init(const eckit::option::CmdArgs &args);
-    virtual void finish(const eckit::option::CmdArgs &args);
+    virtual void init(const CmdArgs &args);
+    virtual void execute(const CmdArgs& args);
+    virtual void finish(const CmdArgs &args);
 
+private: // members
     bool doit_;
-
 };
 
-void FDBWipe::usage(const std::string &tool) const {
 
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--doit] [--minimum-keys=...] [path1|request1] [path2|request2] ..." << std::endl;
-    FDBInspect::usage(tool);
+void FDBWipe::init(const CmdArgs &args) {
 
-}
+    FDBVisitTool::init(args);
 
-void FDBWipe::init(const eckit::option::CmdArgs &args) {
-
-    FDBInspect::init(args);
     args.get("doit", doit_);
-
 }
 
-void FDBWipe::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {
+void FDBWipe::execute(const CmdArgs& args) {
 
-    eckit::Log::info() << "Scanning " << path << std::endl;
+    FDB fdb;
 
-    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
-    ASSERT(db->open());
+    for (const FDBToolRequest& request : requests()) {
 
-    fdb5::TocDB* tocdb = dynamic_cast<fdb5::TocDB*>(db.get());
-    if(!tocdb) {
-        std::ostringstream oss;
-        oss << "Database in " << path
-            << ", expected type " << fdb5::TocDB::dbTypeName()
-            << " but got type " << db->dbType();
-        throw eckit::BadParameter(oss.str(), Here());
-    }
+        auto listObject = fdb.wipe(request, doit_);
 
-    fdb5::WipeVisitor visitor(*tocdb);
+        size_t count = 0;
+        WipeElement elem;
+        while (listObject.next(elem)) {
 
-    db->visitEntries(visitor);
+            Log::info() << "FDB owner: " << elem.owner << std::endl
+                        << std::endl;
 
-    visitor.report(eckit::Log::info());
+            Log::info() << "Metadata files to deleted:" << std::endl;
+            for (const auto& f : elem.metadataPaths) {
+                Log::info() << "    " << f << std::endl;
+            }
+            Log::info() << std::endl;
 
-    if (doit_) {
-        visitor.wipe(eckit::Log::info());
+            Log::info() << "Data files to delete: " << std::endl;
+            if (elem.dataPaths.empty()) Log::info() << " - NONE -" << std::endl;
+            for (const auto& f : elem.dataPaths) {
+                Log::info() << "    " << f << std::endl;
+            }
+            Log::info() << std::endl;
+
+            Log::info() << "Other files to delete: " << std::endl;
+            if (elem.otherPaths.empty()) Log::info() << " - NONE -" << std::endl;
+            for (const auto& f : elem.otherPaths) {
+                Log::info() << "    " << f << std::endl;
+            }
+            Log::info() << std::endl;
+
+            count++;
+        }
+
+        if (count == 0 && fail()) {
+            std::stringstream ss;
+            ss << "No FDB entries found for: " << request << std::endl;
+            throw FDBToolException(ss.str());
+        }
     }
 }
 
 
-void FDBWipe::finish(const eckit::option::CmdArgs&) {
+void FDBWipe::finish(const CmdArgs&) {
 
     if (!doit_) {
-        eckit::Log::info() << std::endl
-                           << "Rerun command with --doit flag to delete unused files"
-                           << std::endl
-                           << std::endl;
+        Log::info() << std::endl
+                    << "Rerun command with --doit flag to delete unused files"
+                    << std::endl
+                    << std::endl;
     }
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace tools
+} // namespace fdb5
+
 int main(int argc, char **argv) {
-    FDBWipe app(argc, argv);
+    fdb5::tools::FDBWipe app(argc, argv);
     return app.start();
 }

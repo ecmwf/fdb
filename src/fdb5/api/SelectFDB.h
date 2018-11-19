@@ -23,7 +23,6 @@
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/FDB.h"
 
-
 namespace fdb5 {
 
 class Retriever;
@@ -53,6 +52,8 @@ public: // methods
     virtual DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
     virtual WhereIterator where(const FDBToolRequest& request) override;
+
+    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit) override;
 
     virtual std::string id() const;
 

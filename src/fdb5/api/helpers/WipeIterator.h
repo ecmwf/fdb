@@ -11,29 +11,39 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_DumpIterator_H
-#define fdb5_api_DumpIterator_H
+#ifndef fdb5_api_WipeIterator_H
+#define fdb5_api_WipeIterator_H
 
 #include "fdb5/api/helpers/APIIterator.h"
+
+#include "eckit/filesystem/PathName.h"
 
 #include <string>
 
 /*
  * Define a standard object which can be used to iterate the results of a
- * dump() call on an arbitrary FDB object
+ * where() call on an arbitrary FDB object
  */
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using DumpElement = std::string;
+// TODO: We might expand this to include host, port, etc, in an explicit where object.
+//       Or to use eckit::URL, ...
 
-using DumpIterator = APIIterator<std::string>;
+struct WipeElement {
+    std::string owner;
+    std::set<eckit::PathName> metadataPaths;
+    std::set<eckit::PathName> dataPaths;
+    std::set<eckit::PathName> otherPaths;
+};
 
-using DumpAggregateIterator = APIAggregateIterator<std::string>;
+using WipeIterator = APIIterator<WipeElement>;
 
-using DumpAsyncIterator = APIAsyncIterator<std::string>;
+using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
+
+using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 

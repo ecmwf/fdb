@@ -58,12 +58,16 @@ ListIterator FDB::list(const FDBToolRequest& request) {
     return internal_->list(request);
 }
 
-DumpIterator FDB::dump(const FDBToolRequest &request, bool simple) {
+DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
     return internal_->dump(request, simple);
 }
 
-WhereIterator FDB::where(const FDBToolRequest &request) {
+WhereIterator FDB::where(const FDBToolRequest& request) {
     return internal_->where(request);
+}
+
+WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit) {
+    return internal_->wipe(request, doit);
 }
 
 const std::string FDB::id() const {
