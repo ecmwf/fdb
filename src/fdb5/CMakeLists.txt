@@ -70,6 +70,8 @@ list( APPEND fdb5_srcs
     api/visitors/ListVisitor.h
     api/visitors/DumpVisitor.h
     api/visitors/WhereVisitor.h
+    api/visitors/WipeVisitor.cc
+    api/visitors/WipeVisitor.h
 
     config/UMask.cc
     config/UMask.h
@@ -222,8 +224,6 @@ if( HAVE_TOCFDB )
     list( APPEND fdb5_srcs
         toc/AdoptVisitor.cc
         toc/AdoptVisitor.h
-        toc/WipeVisitor.cc
-        toc/WipeVisitor.h
         toc/PurgeVisitor.cc
         toc/PurgeVisitor.h
         toc/BTreeIndex.cc
