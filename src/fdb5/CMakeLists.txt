@@ -267,8 +267,6 @@ if( HAVE_TOCFDB )
         toc/TocStats.h
         toc/TocEngine.cc
         toc/TocEngine.h
-        toc/TocReportVisitor.cc
-        toc/TocReportVisitor.h
         )
 
     list( APPEND fdb5_tools
