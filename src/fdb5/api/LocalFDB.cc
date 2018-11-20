@@ -25,6 +25,8 @@
 #include "fdb5/api/visitors/DumpVisitor.h"
 #include "fdb5/api/visitors/WhereVisitor.h"
 #include "fdb5/api/visitors/WipeVisitor.h"
+#include "fdb5/api/visitors/PurgeVisitor.h"
+#include "fdb5/api/visitors/StatsVisitor.h"
 
 #include "marslib/MarsTask.h"
 
@@ -103,6 +105,17 @@ WhereIterator LocalFDB::where(const FDBToolRequest &request) {
 WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit) {
     Log::debug<LibFdb>() << "LocalFDB::wipe() : " << request << std::endl;
     return queryInternal<WipeVisitor>(request, doit);
+}
+
+PurgeIterator LocalFDB::purge(const FDBToolRequest &request, bool doit) {
+    Log::debug<LibFdb>() << "LocalFDB::purge() : " << request << std::endl;
+    return queryInternal<PurgeVisitor>(request, doit);
+}
+
+StatsIterator LocalFDB::stats(const FDBToolRequest &request) {
+    Log::debug<LibFdb>() << "LocalFDB::stats() : " << request << std::endl;
+    return queryInternal<StatsVisitor>(request);
+
 }
 
 std::string LocalFDB::id() const {

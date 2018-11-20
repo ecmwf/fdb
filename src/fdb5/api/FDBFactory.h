@@ -23,6 +23,8 @@
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/WhereIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/helpers/PurgeIterator.h"
+#include "fdb5/api/helpers/StatsIterator.h"
 
 #include <memory>
 
@@ -60,6 +62,10 @@ public: // methods
     virtual WhereIterator where(const FDBToolRequest& request) = 0;
 
     virtual WipeIterator wipe(const FDBToolRequest& request, bool doit) = 0;
+
+    virtual PurgeIterator purge(const FDBToolRequest& request, bool doit) = 0;
+
+    virtual StatsIterator stats(const FDBToolRequest& request) = 0;
 
     // -------------- API management ----------------------------
 

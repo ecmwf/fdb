@@ -195,7 +195,22 @@ WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit) {
                          [doit](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.wipe(request, doit);
     });
+}
 
+PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit) {
+    Log::debug<LibFdb>() << "DistFDB::purge() : " << request << std::endl;
+    return queryInternal(request,
+                         [doit](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.purge(request, doit);
+    });
+}
+
+StatsIterator DistFDB::stats(const FDBToolRequest &request) {
+    Log::debug<LibFdb>() << "DistFDB::stats() : " << request << std::endl;
+    return queryInternal(request,
+                         [](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.stats(request);
+    });
 }
 
 

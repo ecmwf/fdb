@@ -70,6 +70,14 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit) {
     return internal_->wipe(request, doit);
 }
 
+PurgeIterator FDB::purge(const FDBToolRequest &request, bool doit) {
+    return internal_->purge(request, doit);
+}
+
+StatsIterator FDB::stats(const FDBToolRequest &request) {
+    return internal_->stats(request);
+}
+
 const std::string FDB::id() const {
     return internal_->id();
 }

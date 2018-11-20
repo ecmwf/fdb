@@ -40,7 +40,7 @@ public:  // methods
     virtual void visitDatabase(const DB& db);
     virtual void visitIndex(const Index& index);
     virtual void databaseComplete(const DB& db);
-    void visitDatum(const Field& field, const std::string& keyFingerprint);
+    virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
 
 private: // methods
 

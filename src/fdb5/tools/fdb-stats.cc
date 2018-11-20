@@ -8,113 +8,110 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/tools/FDBVisitTool.h"
+#include "fdb5/database/DbStats.h"
+#include "fdb5/database/IndexStats.h"
+#include "fdb5/api/FDB.h"
+
 #include "eckit/option/CmdArgs.h"
-#include "eckit/log/BigNum.h"
+#include "eckit/option/SimpleOption.h"
 
-#include "fdb5/database/Index.h"
-#include "fdb5/tools/FDBInspect.h"
+using namespace eckit;
+using namespace eckit::option;
 
-#include "fdb5/toc/TocHandler.h"
-#include "fdb5/toc/TocStats.h"
-#include "fdb5/toc/TocDBReader.h"
 
-using namespace fdb5;
+namespace fdb5 {
+namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class FDBStats : public FDBVisitTool {
 
-//----------------------------------------------------------------------------------------------------------------------
-
-class FDBStats : public fdb5::FDBInspect {
-
-  public: // methods
+public: // methods
 
     FDBStats(int argc, char **argv) :
-        fdb5::FDBInspect(argc, argv),
-        totaldbStats_(new TocDbStats()),
-        count_(0),
+        FDBVisitTool(argc, argv),
         details_(false) {
-        options_.push_back(new eckit::option::SimpleOption<bool>("details", "Print report for each database visited"));
+
+        options_.push_back(new SimpleOption<bool>("details", "Print report for each database visited"));
     }
 
-    ~FDBStats() {}
+    ~FDBStats() override {}
 
-  private: // methods
+private: // methods
 
-    virtual void process(const eckit::PathName &, const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
-    virtual void init(const eckit::option::CmdArgs &args);
-    virtual void finish(const eckit::option::CmdArgs &args);
+    void execute(const CmdArgs& args) override;
+    void init(const CmdArgs &args) override;
 
+private: // members
 
-    IndexStats        totalIndexStats_;
-    DbStats           totaldbStats_;
-
-    size_t count_;
     bool details_;
 
 };
 
-void FDBStats::usage(const std::string &tool) const {
-
-    eckit::Log::info() << std::endl << "Usage: " << tool << " [--details] [path1|request1] [path2|request2] ..." << std::endl;
-    FDBInspect::usage(tool);
-}
-
 void FDBStats::init(const eckit::option::CmdArgs &args) {
+    FDBVisitTool::init(args);
     args.get("details", details_);
 }
 
-void FDBStats::process(const eckit::PathName &path, const eckit::option::CmdArgs &args) {
+void FDBStats::execute(const CmdArgs& args) {
 
-    eckit::Log::info() << "Scanning " << path << std::endl;
+    FDB fdb;
+    IndexStats totalIndexStats;
+    DbStats totaldbStats;
+    size_t count = 0;
 
-    eckit::ScopedPtr<DB> db(DBFactory::buildReader(path));
-    db->open();
+    for (const FDBToolRequest& request : requests()) {
 
-    eckit::Log::debug<LibFdb>() << "Database key: " << db->key() << ", owner: " << db->owner() << std::endl;
+        auto statsIterator = fdb.stats(request);
 
-    eckit::ScopedPtr<StatsReportVisitor> visitor(db->statsReportVisitor());
+        StatsElement elem;
+        while (statsIterator.next(elem)) {
 
-    db->visitEntries(*visitor, true);
+            if (details_) {
+                Log::info() << std::endl;
+                elem.indexStatistics.report(Log::info());
+                elem.dbStatistics.report(Log::info());
+                Log::info() << std::endl;
+            }
 
-    IndexStats indexStats = visitor->indexStatistics();
+            if (count == 0) {
+                totalIndexStats = elem.indexStatistics;
+                totaldbStats = elem.dbStatistics;
+            } else {
+                totalIndexStats += elem.indexStatistics;
+                totaldbStats += elem.dbStatistics;
+            }
 
-    if (details_) {
-        eckit::Log::info() << std::endl;
-        indexStats.report(eckit::Log::info());
-        visitor->dbStatistics().report(eckit::Log::info());
-        eckit::Log::info() << std::endl;
+            count++;
+        }
+
+        if (count == 0 && fail()) {
+            std::stringstream ss;
+            ss << "No FDB entries found for: " << request << std::endl;
+            throw FDBToolException(ss.str());
+        }
     }
 
-    if (count_ == 0) {
-        totalIndexStats_ = indexStats;
-        totaldbStats_ = visitor->dbStatistics();
-    } else {
-        totalIndexStats_ += indexStats;
-        totaldbStats_ += visitor->dbStatistics();
+    if (count > 0) {
+        Log::info() << std::endl;
+        Log::info() << "Summary:" << std::endl;
+        Log::info() << "========" << std::endl;
+
+        Log::info() << std::endl;
+        Statistics::reportCount(Log::info(), "Number of databases", count);
+        totalIndexStats.report(Log::info());
+        totaldbStats.report(Log::info());
+        Log::info() << std::endl;
     }
-
-    count_ ++;
-}
-
-
-void FDBStats::finish(const eckit::option::CmdArgs &args) {
-    eckit::Log::info() << std::endl;
-    eckit::Log::info() << "Summary:" << std::endl;
-    eckit::Log::info() << "========" << std::endl;
-
-    eckit::Log::info() << std::endl;
-    eckit::Statistics::reportCount(eckit::Log::info(), "Number of databases", count_);
-    totalIndexStats_.report(eckit::Log::info());
-    totaldbStats_.report(eckit::Log::info());
-    eckit::Log::info() << std::endl;
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace tools
+} // namespace fdb5
+
 int main(int argc, char **argv) {
-    FDBStats app(argc, argv);
+    fdb5::tools::FDBStats app(argc, argv);
     return app.start();
 }

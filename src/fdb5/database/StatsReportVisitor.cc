@@ -8,18 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/StatsVisitor.h"
+#include "fdb5/database/StatsReportVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-
-
-StatsReportVisitor::StatsReportVisitor() {}
-
-
-StatsReportVisitor::~StatsReportVisitor() {}
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -180,11 +180,27 @@ WhereIterator SelectFDB::where(const FDBToolRequest& request) {
     });
 }
 
-WipeIterator SelectFDB::wipe(const FDBToolRequest &request, bool doit) {
+WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit) {
     Log::debug<LibFdb>() << "SelectFDB::wipe() >> " << request << std::endl;
     return queryInternal(request,
                          [doit](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.wipe(request, doit);
+    });
+}
+
+PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit) {
+    Log::debug<LibFdb>() << "SelectFDB::purge() >> " << request << std::endl;
+    return queryInternal(request,
+                         [doit](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.purge(request, doit);
+    });
+}
+
+StatsIterator SelectFDB::stats(const FDBToolRequest &request) {
+    Log::debug<LibFdb>() << "SelectFDB::stats() >> " << request << std::endl;
+    return queryInternal(request,
+                         [](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.stats(request);
     });
 }
 

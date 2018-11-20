@@ -51,7 +51,6 @@ class FDBList : public FDBVisitTool {
   private: // methods
 
     virtual void execute(const CmdArgs& args);
-    // virtual int minimumPositionalArguments() const { return 1; }
     virtual void init(const CmdArgs &args);
 
     bool location_;

@@ -154,7 +154,7 @@ DB::DB(const Key &key) :
 DB::~DB() {
 }
 
-StatsReportVisitor *DB::statsReportVisitor() {
+StatsReportVisitor *DB::statsReportVisitor() const {
     NOTIMP;
 }
 

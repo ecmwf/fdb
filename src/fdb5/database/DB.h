@@ -87,7 +87,7 @@ public: // methods
 
     virtual void dump(std::ostream& out, bool simple=false) const = 0;
 
-    virtual StatsReportVisitor* statsReportVisitor();
+    virtual StatsReportVisitor* statsReportVisitor() const;
 
     virtual std::string owner() const = 0;
 

@@ -133,6 +133,10 @@ DbStats TocDB::statistics() const
     return TocHandler::stats();
 }
 
+StatsReportVisitor* TocDB::statsReportVisitor() const {
+    return new TocStatsReportVisitor(*this);
+}
+
 std::vector<Index> TocDB::indexes(bool sorted) const {
     return loadIndexes(sorted);
 }

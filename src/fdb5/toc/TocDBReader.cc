@@ -132,10 +132,6 @@ std::vector<Index> TocDBReader::indexes(bool sorted) const {
     return indexes_;
 }
 
-StatsReportVisitor *TocDBReader::statsReportVisitor() {
-    return new TocStatsReportVisitor(*this);
-}
-
 static DBBuilder<TocDBReader> builder("toc.reader", true, false);
 
 //----------------------------------------------------------------------------------------------------------------------

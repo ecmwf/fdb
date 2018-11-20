@@ -60,6 +60,8 @@ protected: // methods
     virtual void archive(const Key &key, const void *data, eckit::Length length);
     virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
 
+    virtual StatsReportVisitor* statsReportVisitor() const override;
+
     void loadSchema();
     void checkSchema(const Key &key) const;
 

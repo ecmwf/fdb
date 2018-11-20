@@ -35,8 +35,6 @@ public: // methods
 
     virtual std::vector<Index> indexes(bool sorted) const;
 
-    virtual StatsReportVisitor* statsReportVisitor();
-
 private: // methods
 
     virtual bool selectIndex(const Key &key);

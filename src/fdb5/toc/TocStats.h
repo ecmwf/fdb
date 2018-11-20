@@ -24,17 +24,15 @@
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/DataStats.h"
-#include "fdb5/database/StatsVisitor.h"
+#include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/Index.h"
 
-#if __cplusplus >= 201103L
 #include <unordered_set>
 #include <unordered_map>
-#endif
 
 namespace fdb5 {
 
-class TocDBReader;
+class TocDB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -127,25 +125,24 @@ public:
 class TocStatsReportVisitor : public StatsReportVisitor {
 public:
 
-    TocStatsReportVisitor(TocDBReader& reader);
-    virtual ~TocStatsReportVisitor();
+    TocStatsReportVisitor(const TocDB& reader);
+    virtual ~TocStatsReportVisitor() override;
 
-    virtual IndexStats indexStatistics() const;
-    virtual DbStats    dbStatistics() const;
+    IndexStats indexStatistics() const override;
+    DbStats    dbStatistics() const override;
 
 private: // methods
 
-    virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
-    virtual void visitDatum(const Field& field, const Key& key) { NOTIMP; }
+    void visitDatabase(const DB& db) override;
+    void visitDatum(const Field& field, const std::string& keyFingerprint) override;
+    void visitDatum(const Field& field, const Key& key) override { NOTIMP; }
 
 protected: // members
 
     eckit::PathName directory_;
 
-// This is a significant performance optimisation. Use the std::unordered_set/map if they
-// are available (i.e. if c++11 is supported). Otherwise use std::set/map. These have the
-// same interface, so no code changes are required except in the class definition.
-#if __cplusplus >= 201103L
+    // Use of unordered_set/unordered_map is significant here from a performance perspective
+
     std::unordered_set<std::string> allDataFiles_;
     std::unordered_set<std::string> allIndexFiles_;
 
@@ -153,21 +150,10 @@ protected: // members
     std::unordered_map<std::string, size_t> dataUsage_;
 
     std::unordered_set<std::string> active_;
-#else
-    std::set<eckit::PathName> allDataFiles_;
-    std::set<eckit::PathName> allIndexFiles_;
-
-    std::map<eckit::PathName, size_t> indexUsage_;
-    std::map<eckit::PathName, size_t> dataUsage_;
-
-    std::set<std::string> active_;
-#endif
 
     std::map<Index, IndexStats> indexStats_;
 
     DbStats dbStats_;
-
-    TocDBReader& reader_;
 
     eckit::PathName lastDataPath_;
     eckit::PathName lastIndexPath_;

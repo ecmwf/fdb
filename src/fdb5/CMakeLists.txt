@@ -65,6 +65,8 @@ list( APPEND fdb5_srcs
     api/helpers/ListIterator.h
     api/helpers/WhereIterator.h
     api/helpers/WipeIterator.h
+    api/helpers/PurgeIterator.h
+    api/helpers/StatsIterator.h
 
     api/visitors/QueryVisitor.h
     api/visitors/ListVisitor.h
@@ -72,6 +74,10 @@ list( APPEND fdb5_srcs
     api/visitors/WhereVisitor.h
     api/visitors/WipeVisitor.cc
     api/visitors/WipeVisitor.h
+    api/visitors/PurgeVisitor.cc
+    api/visitors/PurgeVisitor.h
+    api/visitors/StatsVisitor.cc
+    api/visitors/StatsVisitor.h
 
     config/UMask.cc
     config/UMask.h
@@ -109,8 +115,8 @@ list( APPEND fdb5_srcs
     database/IndexLocation.h
     database/IndexStats.cc
     database/IndexStats.h
-    database/StatsVisitor.cc
-    database/StatsVisitor.h
+    database/StatsReportVisitor.cc
+    database/StatsReportVisitor.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc
@@ -119,8 +125,6 @@ list( APPEND fdb5_srcs
     database/Key.h
     database/ReadVisitor.cc
     database/ReadVisitor.h
-    database/ReportVisitor.cc
-    database/ReportVisitor.h
     database/Report.cc
     database/Report.h
     database/Retriever.cc

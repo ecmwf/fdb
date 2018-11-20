@@ -8,34 +8,45 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   StatsVisitor.h
 /// @author Simon Smart
-/// @date   August 2017
+/// @date   November 2018
 
-#ifndef fdb5_StatsVisitor_H
-#define fdb5_StatsVisitor_H
+#ifndef fdb5_api_StatsIterator_H
+#define fdb5_api_StatsIterator_H
 
+#include "fdb5/api/helpers/APIIterator.h"
 #include "fdb5/database/DbStats.h"
-#include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Index.h"
+
+#include "eckit/filesystem/PathName.h"
+
+#include <string>
+
+/*
+ * Define a standard object which can be used to iterate the results of a
+ * where() call on an arbitrary FDB object
+ */
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class StatsReportVisitor : public EntryVisitor {
+// TODO: We might expand this to include host, port, etc, in an explicit where object.
+//       Or to use eckit::URL, ...
 
-public: // methods
-
-    StatsReportVisitor();
-    virtual ~StatsReportVisitor();
-
-    virtual IndexStats indexStatistics() const = 0;
-    virtual DbStats    dbStatistics() const = 0;
+struct StatsElement {
+    IndexStats indexStatistics;
+    DbStats dbStatistics;
 };
+
+using StatsIterator = APIIterator<StatsElement>;
+
+using StatsAggregateIterator = APIAggregateIterator<StatsElement>;
+
+using StatsAsyncIterator = APIAsyncIterator<StatsElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
-#endif // fdb5_StatsVisitor_H
+#endif

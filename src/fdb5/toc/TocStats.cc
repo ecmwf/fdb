@@ -13,7 +13,7 @@
 #include "eckit/log/Log.h"
 #include "fdb5/LibFdb.h"
 
-#include "fdb5/toc/TocDBReader.h"
+#include "fdb5/toc/TocDB.h"
 #include "fdb5/toc/TocStats.h"
 
 using eckit::Log;
@@ -157,16 +157,19 @@ void TocDataStats::report(std::ostream &out, const char *indent) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocStatsReportVisitor::TocStatsReportVisitor(TocDBReader& reader) :
-    directory_(reader.directory()),
-    dbStats_(new TocDbStats()),
-    reader_(reader) {
+TocStatsReportVisitor::TocStatsReportVisitor(const TocDB& db) :
+    directory_(static_cast<const DB&>(db).basePath()) {
 
-    dbStats_ = reader_.stats();
+    currentDatabase_ = &db;
+    dbStats_ = db.stats();
 }
 
-TocStatsReportVisitor::~TocStatsReportVisitor() {
+TocStatsReportVisitor::~TocStatsReportVisitor() {}
+
+void TocStatsReportVisitor::visitDatabase(const DB &db) {
+    ASSERT(&db == currentDatabase_);
 }
+
 
 void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fieldFingerprint) {
 
@@ -232,6 +235,7 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     dbStats_ += DbStats(dbStats); // append to the global dbStats
 }
 
+
 DbStats TocStatsReportVisitor::dbStatistics() const {
     return dbStats_;
 }
@@ -239,8 +243,8 @@ DbStats TocStatsReportVisitor::dbStatistics() const {
 IndexStats TocStatsReportVisitor::indexStatistics() const {
 
     IndexStats total(new TocIndexStats());
-    for (std::map<Index, IndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-        total += i->second;
+    for (const auto& it : indexStats_) {
+        total += it.second;
     }
     return total;
 }
