@@ -154,7 +154,11 @@ DB::DB(const Key &key) :
 DB::~DB() {
 }
 
-StatsReportVisitor *DB::statsReportVisitor() const {
+StatsReportVisitor* DB::statsReportVisitor() const {
+    NOTIMP;
+}
+
+PurgeVisitor* DB::purgeVisitor() const {
     NOTIMP;
 }
 

@@ -8,96 +8,92 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/memory/ScopedPtr.h"
-#include "eckit/option/CmdArgs.h"
+#include "fdb5/tools/FDBVisitTool.h"
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 
-#include "fdb5/toc/PurgeVisitor.h"
-#include "fdb5/toc/TocHandler.h"
-#include "fdb5/tools/FDBInspect.h"
+#include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
+
+
+using namespace eckit;
+using namespace eckit::option;
+
+namespace fdb5 {
+namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 /// Purges duplicate entries from the database and removes associated data (if owned, not adopted)
 
-class FDBPurge : public fdb5::FDBInspect {
+class FDBPurge : public FDBVisitTool {
 
-  public: // methods
+public: // methods
 
     FDBPurge(int argc, char **argv) :
-        fdb5::FDBInspect(argc, argv),
+        FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
         doit_(false) {
 
-        options_.push_back(new eckit::option::SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
+        options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
 
     }
 
-  private: // methods
+private: // methods
 
-    virtual void process(const eckit::PathName &, const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
-    virtual void init(const eckit::option::CmdArgs &args);
-    virtual void finish(const eckit::option::CmdArgs &args);
+    virtual void init(const CmdArgs &args);
+    virtual void execute(const CmdArgs& args);
+    virtual void finish(const CmdArgs &args);
 
     bool doit_;
-
 };
 
-void FDBPurge::usage(const std::string &tool) const {
 
-    eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " [--doit] [path1|request1] [path2|request2] ..."
-                       << std::endl;
-    FDBInspect::usage(tool);
-}
-
-void FDBPurge::init(const eckit::option::CmdArgs &args) {
+void FDBPurge::init(const CmdArgs& args) {
+    FDBVisitTool::init(args);
     args.get("doit", doit_);
 }
 
-void FDBPurge::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {
+void FDBPurge::execute(const CmdArgs& args) {
 
-    eckit::Log::info() << "Scanning " << path << std::endl;
+    FDB fdb;
 
-    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
-    ASSERT(db->open());
+    for (const FDBToolRequest& request : requests()) {
 
-    fdb5::TocDB* tocdb = dynamic_cast<fdb5::TocDB*>(db.get());
-    if(!tocdb) {
-        std::ostringstream oss;
-        oss << "Database in " << path
-            << ", expected type " << fdb5::TocDB::dbTypeName()
-            << " but got type " << db->dbType();
-        throw eckit::BadParameter(oss.str(), Here());
-    }
+        auto purgeIterator = fdb.purge(request, doit_);
 
-    fdb5::PurgeVisitor visitor(*tocdb);
+        size_t count = 0;
+        PurgeElement elem;
+        while (purgeIterator.next(elem)) {
+            Log::info() << elem << std::endl;
+            count++;
+        }
 
-    db->visitEntries(visitor);
-
-    visitor.report(eckit::Log::info());
-
-    if (doit_) {
-        visitor.purge(eckit::Log::info());
+        if (count == 0 && fail()) {
+            std::stringstream ss;
+            ss << "No FDB entries found for: " << request << std::endl;
+            throw FDBToolException(ss.str());
+        }
     }
 }
 
 
-void FDBPurge::finish(const eckit::option::CmdArgs&) {
-
-
+void FDBPurge::finish(const CmdArgs&) {
 
     if (!doit_) {
-        eckit::Log::info() << std::endl
-                           << "Rerun command with --doit flag to delete unused files"
-                           << std::endl
-                           << std::endl;
+        Log::info() << std::endl
+                    << "Rerun command with --doit flag to delete unused files"
+                    << std::endl
+                    << std::endl;
     }
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace tools
+} // namespace fdb5
+
+
 int main(int argc, char **argv) {
-    FDBPurge app(argc, argv);
+    fdb5::tools::FDBPurge app(argc, argv);
     return app.start();
 }

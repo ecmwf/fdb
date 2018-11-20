@@ -21,7 +21,6 @@ using namespace eckit::option;
 namespace fdb5 {
 namespace tools {
 
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBWipe : public FDBVisitTool {

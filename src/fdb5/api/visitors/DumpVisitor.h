@@ -15,32 +15,15 @@
 #define fdb5_api_visitor_DumpVisitor_H
 
 #include "fdb5/api/visitors/QueryVisitor.h"
+#include "fdb5/api/visitors/QueueStringLogTarget.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/database/DB.h"
-
-#include "eckit/log/Channel.h"
-#include "eckit/log/LineBasedTarget.h"
 
 namespace fdb5 {
 namespace api {
 namespace visitor {
 
 /// @note Helper classes for LocalFDB
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class QueueStringLogTarget : public eckit::LineBasedTarget {
-public:
-
-    QueueStringLogTarget(eckit::Queue<std::string>& queue) : queue_(queue) {}
-
-    void line(const char* line) override {
-        queue_.emplace(std::string(line));
-    }
-
-private: // members
-    eckit::Queue<std::string>& queue_;
-};
 
 //----------------------------------------------------------------------------------------------------------------------
 

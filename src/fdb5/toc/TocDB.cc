@@ -15,6 +15,7 @@
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocDB.h"
 #include "fdb5/toc/TocStats.h"
+#include "fdb5/toc/TocPurgeVisitor.h"
 
 using namespace eckit;
 
@@ -135,6 +136,10 @@ DbStats TocDB::statistics() const
 
 StatsReportVisitor* TocDB::statsReportVisitor() const {
     return new TocStatsReportVisitor(*this);
+}
+
+PurgeVisitor *TocDB::purgeVisitor() const {
+    return new TocPurgeVisitor(*this);
 }
 
 std::vector<Index> TocDB::indexes(bool sorted) const {

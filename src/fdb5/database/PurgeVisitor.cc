@@ -8,33 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   PurgeVisitor.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   April 2016
-
-#ifndef fdb5_PurgeVisitor_H
-#define fdb5_PurgeVisitor_H
-
-
-#include "fdb5/toc/TocReportVisitor.h"
+#include "fdb5/database/StatsReportVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-class PurgeVisitor : public TocReportVisitor {
-public:
-
-    PurgeVisitor(TocDB& db);
-    void report(std::ostream &out) const;
-    void purge(std::ostream &out) const;
-
-};
-
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

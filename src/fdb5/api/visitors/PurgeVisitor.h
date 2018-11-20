@@ -16,6 +16,7 @@
 
 #include "fdb5/api/visitors/QueryVisitor.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
+#include "fdb5/database/PurgeVisitor.h"
 
 #include "eckit/filesystem/PathName.h"
 
@@ -36,11 +37,15 @@ public:
     void visitDatabase(const DB& db) override;
     void visitIndex(const Index& index) override;
     void databaseComplete(const DB& db) override;
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
+    void visitDatum(const Field& field, const std::string& keyFingerprint) override;
+    void visitDatum(const Field&, const Key&) override;
 
 private: // members
 
+    eckit::Channel out_;
     bool doit_;
+
+    std::unique_ptr<fdb5::PurgeVisitor> internalVisitor_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -122,7 +122,7 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class TocStatsReportVisitor : public StatsReportVisitor {
+class TocStatsReportVisitor : public virtual StatsReportVisitor {
 public:
 
     TocStatsReportVisitor(const TocDB& reader);
@@ -136,6 +136,10 @@ private: // methods
     void visitDatabase(const DB& db) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(const Field& field, const Key& key) override { NOTIMP; }
+
+    // This visitor is only legit for one DB - so don't reset database
+    void databaseComplete(const DB& db) override;
+
 
 protected: // members
 

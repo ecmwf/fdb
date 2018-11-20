@@ -38,6 +38,7 @@ class Key;
 class Index;
 class EntryVisitor;
 class StatsReportVisitor;
+class PurgeVisitor;
 class Schema;
 
 class DBVisitor;
@@ -88,6 +89,7 @@ public: // methods
     virtual void dump(std::ostream& out, bool simple=false) const = 0;
 
     virtual StatsReportVisitor* statsReportVisitor() const;
+    virtual PurgeVisitor* purgeVisitor() const;
 
     virtual std::string owner() const = 0;
 

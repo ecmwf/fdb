@@ -9,39 +9,28 @@
  */
 
 /// @author Simon Smart
-/// @date   November 2018
+/// @date   August 2017
 
-#ifndef fdb5_api_PurgeIterator_H
-#define fdb5_api_PurgeIterator_H
+#ifndef fdb5_database_PurgeVisitor_H
+#define fdb5_database_PurgeVisitor_H
 
-#include "fdb5/api/helpers/APIIterator.h"
-
-#include "eckit/filesystem/PathName.h"
-
-#include <string>
-
-/*
- * Define a standard object which can be used to iterate the results of a
- * where() call on an arbitrary FDB object
- */
+#include "fdb5/database/StatsReportVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// TODO: We might expand this to include host, port, etc, in an explicit where object.
-//       Or to use eckit::URL, ...
+class PurgeVisitor : public virtual StatsReportVisitor {
 
-using PurgeElement = std::string;
+public: // methods
+    using StatsReportVisitor::StatsReportVisitor;
 
-using PurgeIterator = APIIterator<PurgeElement>;
-
-using PurgeAggregateIterator = APIAggregateIterator<PurgeElement>;
-
-using PurgeAsyncIterator = APIAsyncIterator<PurgeElement>;
+    virtual void report(std::ostream& out) const = 0;
+    virtual void purge(std::ostream& out) const = 0;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
 
-#endif
+#endif // fdb5_StatsReportVisitor_H

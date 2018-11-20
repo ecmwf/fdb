@@ -8,37 +8,32 @@
  * does it submit to any jurisdiction.
  */
 
+/// @author Baudouin Raoult
+/// @author Tiago Quintino
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_PurgeIterator_H
-#define fdb5_api_PurgeIterator_H
+#ifndef fdb5_TocPurgeVisitor_H
+#define fdb5_TocPurgeVisitor_H
 
-#include "fdb5/api/helpers/APIIterator.h"
 
-#include "eckit/filesystem/PathName.h"
-
-#include <string>
-
-/*
- * Define a standard object which can be used to iterate the results of a
- * where() call on an arbitrary FDB object
- */
+#include "fdb5/database/PurgeVisitor.h"
+#include "fdb5/toc/TocStats.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// TODO: We might expand this to include host, port, etc, in an explicit where object.
-//       Or to use eckit::URL, ...
 
-using PurgeElement = std::string;
+class TocPurgeVisitor : public PurgeVisitor, public TocStatsReportVisitor {
+public:
 
-using PurgeIterator = APIIterator<PurgeElement>;
+    TocPurgeVisitor(const TocDB& db);
+    ~TocPurgeVisitor() override;
 
-using PurgeAggregateIterator = APIAggregateIterator<PurgeElement>;
-
-using PurgeAsyncIterator = APIAsyncIterator<PurgeElement>;
+    void report(std::ostream &out) const override;
+    void purge(std::ostream &out) const override;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -11,13 +11,14 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_visitor_StatsVisitor_H
-#define fdb5_api_visitor_StatsVisitor_H
+#ifndef fdb5_api_visitor_QueueStringLogTarget_H
+#define fdb5_api_visitor_QueueStringLogTarget_H
 
-#include "fdb5/api/visitors/QueryVisitor.h"
-#include "fdb5/api/helpers/StatsIterator.h"
-#include "fdb5/database/StatsReportVisitor.h"
+#include "eckit/container/Queue.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/LineBasedTarget.h"
 
+#include <string>
 
 namespace fdb5 {
 namespace api {
@@ -27,20 +28,17 @@ namespace visitor {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class StatsVisitor : public QueryVisitor<StatsElement> {
+class QueueStringLogTarget : public eckit::LineBasedTarget {
 public:
 
-    using QueryVisitor::QueryVisitor;
+    QueueStringLogTarget(eckit::Queue<std::string>& queue) : queue_(queue) {}
 
-    void visitDatabase(const DB& db) override;
-    void visitIndex(const Index& index) override;
-    void databaseComplete(const DB& db) override;
-    void visitDatum(const Field& field, const std::string& keyFingerprint) override;
-    void visitDatum(const Field&, const Key&) override;
+    void line(const char* line) override {
+        queue_.emplace(std::string(line));
+    }
 
 private: // members
-
-    std::unique_ptr<StatsReportVisitor> internalVisitor_;
+    eckit::Queue<std::string>& queue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

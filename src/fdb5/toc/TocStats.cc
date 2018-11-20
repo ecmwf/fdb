@@ -230,10 +230,16 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     } else {
         stats.addDuplicatesCount(1);
         stats.addDuplicatesSize(len);
+
+        // Ensure these counts exist (as zero if otherwise unused).
+        indexUsage_[indexPath];
+        dataUsage_[dataPath];
     }
 
     dbStats_ += DbStats(dbStats); // append to the global dbStats
 }
+
+void TocStatsReportVisitor::databaseComplete(const DB &db) {}
 
 
 DbStats TocStatsReportVisitor::dbStatistics() const {

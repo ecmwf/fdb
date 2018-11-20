@@ -61,6 +61,7 @@ protected: // methods
     virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
 
     virtual StatsReportVisitor* statsReportVisitor() const override;
+    virtual PurgeVisitor* purgeVisitor() const override;
 
     void loadSchema();
     void checkSchema(const Key &key) const;

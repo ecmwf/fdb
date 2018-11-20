@@ -69,6 +69,7 @@ list( APPEND fdb5_srcs
     api/helpers/StatsIterator.h
 
     api/visitors/QueryVisitor.h
+    api/visitors/QueueStringLogTarget.h
     api/visitors/ListVisitor.h
     api/visitors/DumpVisitor.h
     api/visitors/WhereVisitor.h
@@ -117,6 +118,8 @@ list( APPEND fdb5_srcs
     database/IndexStats.h
     database/StatsReportVisitor.cc
     database/StatsReportVisitor.h
+    database/PurgeVisitor.cc
+    database/PurgeVisitor.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc
@@ -228,8 +231,6 @@ if( HAVE_TOCFDB )
     list( APPEND fdb5_srcs
         toc/AdoptVisitor.cc
         toc/AdoptVisitor.h
-        toc/PurgeVisitor.cc
-        toc/PurgeVisitor.h
         toc/BTreeIndex.cc
         toc/BTreeIndex.h
         toc/TocDB.cc
@@ -258,6 +259,8 @@ if( HAVE_TOCFDB )
         toc/TocIndex.h
         toc/TocIndexLocation.cc
         toc/TocIndexLocation.h
+        toc/TocPurgeVisitor.cc
+        toc/TocPurgeVisitor.h
         toc/TocRecord.cc
         toc/TocRecord.h
         toc/TocStats.cc

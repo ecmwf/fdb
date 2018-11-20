@@ -11,6 +11,11 @@
 
 #include "fdb5/api/visitors/PurgeVisitor.h"
 
+#include "fdb5/api/visitors/QueueStringLogTarget.h"
+
+#include "fdb5/database/DB.h"
+#include "fdb5/database/PurgeVisitor.h"
+
 namespace fdb5 {
 namespace api {
 namespace visitor {
@@ -18,20 +23,43 @@ namespace visitor {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement> &queue, bool doit) :
+PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue, bool doit) :
     QueryVisitor(queue),
+    out_(new QueueStringLogTarget(queue)),
     doit_(doit) {}
 
 void PurgeVisitor::visitDatabase(const DB& db) {
-    NOTIMP;
+
+    EntryVisitor::visitDatabase(db);
+
+    ASSERT(!internalVisitor_);
+    internalVisitor_.reset(db.purgeVisitor());
+
+    internalVisitor_->visitDatabase(db);
 }
 
 void PurgeVisitor::visitIndex(const Index& index) {
-    NOTIMP;
+    internalVisitor_->visitIndex(index);
 }
 
+void PurgeVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
+    internalVisitor_->visitDatum(field, keyFingerprint);
+}
+
+void PurgeVisitor::visitDatum(const Field&, const Key&) { NOTIMP; }
+
 void PurgeVisitor::databaseComplete(const DB& db) {
-    NOTIMP;
+    internalVisitor_->databaseComplete(db);
+
+    internalVisitor_->report(out_);
+
+    if (doit_) {
+        internalVisitor_->purge(out_);
+    }
+
+    // Cleanup
+
+    internalVisitor_.reset();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

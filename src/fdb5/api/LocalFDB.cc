@@ -107,9 +107,9 @@ WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit) {
     return queryInternal<WipeVisitor>(request, doit);
 }
 
-PurgeIterator LocalFDB::purge(const FDBToolRequest &request, bool doit) {
+PurgeIterator LocalFDB::purge(const FDBToolRequest& request, bool doit) {
     Log::debug<LibFdb>() << "LocalFDB::purge() : " << request << std::endl;
-    return queryInternal<PurgeVisitor>(request, doit);
+    return queryInternal<fdb5::api::visitor::PurgeVisitor>(request, doit);
 }
 
 StatsIterator LocalFDB::stats(const FDBToolRequest &request) {
