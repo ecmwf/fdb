@@ -71,7 +71,7 @@ public: // methods
 
     /// ID used for hashing in the Rendezvous hash. Should be unique amongst those used
     /// within a DistFDB (i.e. within one Rendezvous hash).
-    virtual std::string id() const = 0;
+    virtual std::string id() const;
 
     virtual FDBStats stats() const;
 

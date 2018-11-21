@@ -50,8 +50,6 @@ public: // method
 
     virtual StatsIterator stats(const FDBToolRequest& request) override;
 
-    virtual std::string id() const override;
-
     virtual void flush() override;
 
     virtual FDBStats stats() const override;

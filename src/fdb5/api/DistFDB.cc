@@ -54,7 +54,11 @@ DistFDB::DistFDB(const eckit::Configuration& config, const std::string& name) :
 
     for(const eckit::LocalConfiguration& laneCfg : laneConfigs) {
         lanes_.push_back(FDB(laneCfg));
-        hash_.addNode(lanes_.back().id());
+        if (!hash_.addNode(lanes_.back().id())) {
+            std::stringstream ss;
+            ss << "Failed to add node to hash : " << lanes_.back().id() << " -- may have non-unique ID";
+            throw eckit::SeriousBug(ss.str(), Here());
+        }
     }
 }
 
@@ -64,7 +68,18 @@ DistFDB::~DistFDB() {}
 void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     std::vector<size_t> laneIndices;
+
+    Log::debug<LibFdb>() << "Number of lanes: " << lanes_.size() << std::endl;
+    Log::debug<LibFdb>() << "Lane indices: ";
+    for (const auto& i : laneIndices) Log::debug<LibFdb>() << i << ", ";
+    Log::debug<LibFdb>() << std::endl;
+
     hash_.hashOrder(key.keyDict(), laneIndices);
+
+    Log::debug<LibFdb>() << "Number of lanes: " << lanes_.size() << std::endl;
+    Log::debug<LibFdb>() << "Lane indices: ";
+    for (const auto& i : laneIndices) Log::debug<LibFdb>() << i << ", ";
+    Log::debug<LibFdb>() << std::endl;
 
     // Given an order supplied by the Rendezvous hash, try the FDB in order until
     // one works. n.b. Errors are unacceptable once the FDB is dirty.
@@ -211,11 +226,6 @@ StatsIterator DistFDB::stats(const FDBToolRequest &request) {
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.stats(request);
     });
-}
-
-
-std::string DistFDB::id() const {
-    NOTIMP;
 }
 
 

@@ -204,11 +204,6 @@ StatsIterator SelectFDB::stats(const FDBToolRequest &request) {
     });
 }
 
-std::string SelectFDB::id() const {
-    NOTIMP;
-}
-
-
 void SelectFDB::flush() {
     for (auto& iter : subFdbs_) {
         FDB& fdb(iter.second);

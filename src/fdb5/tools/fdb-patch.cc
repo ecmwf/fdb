@@ -8,78 +8,45 @@
  * does it submit to any jurisdiction.
  */
 
-#include "grib_api.h"
-
-#include "eckit/memory/ScopedPtr.h"
-#include "eckit/option/CmdArgs.h"
-#include "eckit/log/BigNum.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/log/Timer.h"
-#include "eckit/log/Plural.h"
-
-#include "eckit/config/Resource.h"
-
-#include "fdb5/config/UMask.h"
-#include "fdb5/database/DB.h"
-#include "fdb5/database/Index.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
+#include "fdb5/tools/FDBVisitTool.h"
 
-#include "fdb5/tools/FDBInspect.h"
+#include "eckit/config/Resource.h"
+#include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
+#include "eckit/log/Bytes.h"
+#include "eckit/log/Plural.h"
+
+#include "grib_api.h"
+
+using namespace eckit;
+using namespace eckit::option;
 
 
-//----------------------------------------------------------------------------------------------------------------------
-
-class PatchVisitor : public fdb5::EntryVisitor {
-  public:
-    PatchVisitor(fdb5::HandleGatherer &gatherer, size_t &count, eckit::Length &total) :
-        gatherer_(gatherer),
-        count_(count),
-        total_(total) {
-    }
-
-  private:
-    virtual void visit(const fdb5::Index&,
-                       const fdb5::Field&,
-                       const std::string&,
-                       const std::string&);
-
-    fdb5::HandleGatherer &gatherer_;
-    size_t &count_;
-    eckit::Length &total_;
-    std::set<std::string> active_;
-
-};
-
-void PatchVisitor::visit(const fdb5::Index&,
-                         const fdb5::Field& field,
-                         const std::string& indexFingerprint,
-                         const std::string& fieldFingerprint) {
-
-    std::string unique = indexFingerprint + "+" + fieldFingerprint;
-
-    if (active_.find(unique) == active_.end()) {
-        active_.insert(unique);
-
-        gatherer_.add(field.dataHandle());
-        count_++;
-        total_ += field.location().length();
-    }
-}
+namespace fdb5 {
+namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class PatchArchiver : public fdb5::GribArchiver {
-    const fdb5::Key &key_;
-    virtual void patch(grib_handle *);
-  public:
-    PatchArchiver(const fdb5::Key &key): key_(key) {
+class PatchArchiver : public GribArchiver {
 
-    }
+public: // methods
+
+    PatchArchiver(const Key& key) : key_(key) {}
+
+private: // methods
+
+    void patch(grib_handle* h) override;
+
+private: // members
+
+    const Key& key_;
 };
 
-void PatchArchiver::patch(grib_handle *h) {
-    for (fdb5::Key::const_iterator j = key_.begin(); j != key_.end(); ++j) {
+void PatchArchiver::patch(grib_handle* h) {
+    for (Key::const_iterator j = key_.begin(); j != key_.end(); ++j) {
         size_t len = j->second.size();
         ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
     }
@@ -87,59 +54,36 @@ void PatchArchiver::patch(grib_handle *h) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBPatch : public fdb5::FDBInspect {
+class FDBPatch : public FDBVisitTool {
 
-  public: // methods
+public: // methods
 
     FDBPatch(int argc, char **argv) :
-        fdb5::FDBInspect(argc, argv),
-        count_(0),
-        total_(0) {
-        options_.push_back(new eckit::option::SimpleOption<std::string>("expver", "Set the expver"));
-        options_.push_back(new eckit::option::SimpleOption<std::string>("class", "Set the class"));
+        FDBVisitTool(argc, argv) {
+
+        options_.push_back(new SimpleOption<std::string>("expver", "Set the expver"));
+        options_.push_back(new SimpleOption<std::string>("class", "Set the class"));
     }
 
-  private: // methods
+private: // methods
 
-    virtual void usage(const std::string &tool) const;
-    virtual void process(const eckit::PathName &path, const eckit::option::CmdArgs &args);
-    virtual void init(const eckit::option::CmdArgs &args);
-    virtual void execute(const eckit::option::CmdArgs &args);
+    virtual void execute(const CmdArgs& args);
+    virtual void init(const CmdArgs &args);
+    virtual int minimumPositionalArguments() const;
 
-    virtual int minimumPositionalArguments() const {
-        return 1;
-    }
+private: // members
 
     fdb5::Key key_;
-    size_t count_;
-    eckit::Length total_;
 };
 
-void FDBPatch::usage(const std::string &tool) const {
-    fdb5::FDBInspect::usage(tool);
+
+int FDBPatch::minimumPositionalArguments() const {
+    return 1;
 }
 
-void FDBPatch::execute(const eckit::option::CmdArgs &args) {
-    eckit::Timer timer(args.tool());
-    fdb5::UMask umask(fdb5::UMask::defaultUMask());
-    fdb5::FDBInspect::execute(args);
+void FDBPatch::init(const CmdArgs& args) {
 
-    eckit::Log::info() << eckit::Plural(int(count_), "field")
-                       << " ("
-                       << eckit::Bytes(total_)
-                       << ") copied to "
-                       << key_
-                       << std::endl;
-
-    eckit::Log::info() << "Rates: "
-                       << eckit::Bytes(total_, timer)
-                       << ", "
-                       << count_  / timer.elapsed()
-                       << " fields/s"
-                       << std::endl;
-}
-
-void FDBPatch::init(const eckit::option::CmdArgs &args) {
+    FDBVisitTool::init(args);
 
     std::string s;
 
@@ -154,56 +98,96 @@ void FDBPatch::init(const eckit::option::CmdArgs &args) {
     }
 
     if (key_.empty()) {
-        eckit::Log::info() << "Please provide either --expver or --class" << std::endl;
+        Log::info() << "Please provide either --expver or --class" << std::endl;
         exit(1);
     }
 }
 
-void FDBPatch::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {
+void FDBPatch::execute(const CmdArgs& args) {
 
-    eckit::Log::info() << "Listing " << path << std::endl;
 
-    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
+    FDB fdb;
 
-    eckit::Log::info() << "Database key " << db->key() << std::endl;
+
+    Timer timer(args.tool());
+
+    std::set<Key> uniqueKeys;
+
+    for (const FDBToolRequest& request : requests()) {
+
+        // 1. List keys corresponding with the given FDB
+
+        ListIterator listIter = fdb.list(request);
+
+        size_t count = 0;
+        ListElement elem;
+        while (listIter.next(elem)) {
+
+            // 2. Get DataHandle to data to retrieve
+            //    (n.b. listed key is broken down as-per the schema)
+
+            Key key;
+            for (const Key& k : elem.keyParts_) {
+                for (const auto& kv : k) {
+                    key.set(kv.first, kv.second);
+                }
+            }
+
+            uniqueKeys.insert(key);
+            count++;
+        }
+
+        if (count == 0 && fail()) {
+            std::stringstream ss;
+            ss << "No FDB entries found for: " << request << std::endl;
+            throw FDBToolException(ss.str());
+        }
+    }
+
+    // Construct a retrieve data handle
+
+    HandleGatherer handles(false);
+    for (const Key& key : uniqueKeys) {
+        MarsRequest rq(key.keyDict());
+        rq.verb("retrieve");
+        handles.add(fdb.retrieve(rq));
+    }
+
+    // Do retrieve-patch-archive
+
+    std::unique_ptr<DataHandle> handle(handles.dataHandle());
 
     PatchArchiver archiver(key_);
 
-    const std::vector<fdb5::Index> indexes = db->indexes();
+    Length bytes = archiver.archive(*handle);
 
-    size_t count = count_;
-    eckit::Length total = total_;
+    // Status report
 
-    fdb5::HandleGatherer gatherer(false);
+    Log::info() << std::endl
+                << "Summary" << std::endl
+                << "=======" << std::endl << std::endl;
+    Log::info() << Plural(uniqueKeys.size(), "field")
+                       << " ("
+                       << Bytes(bytes)
+                       << ") copied to "
+                       << key_
+                       << std::endl;
 
-    for (std::vector<fdb5::Index>::const_iterator i = indexes.begin(); i != indexes.end(); ++i) {
-
-        PatchVisitor visitor(gatherer, count_, total_);
-
-        eckit::Log::info() << "Scanning" << *i << std::endl;
-
-        i->entries(visitor);
-
-        eckit::ScopedPtr<eckit::DataHandle> handle(gatherer.dataHandle());
-
-        eckit::Log::info() << eckit::Plural(int(count_ - count), "field")
-                           << " ("
-                           << eckit::Bytes(total_ - total)
-                           << ") to copy to "
-                           << key_
-                           << " from "
-                           << *i
-                           << std::endl;
-
-
-        archiver.archive(*handle);
-    }
+    Log::info() << "Rates: "
+                       << Bytes(bytes, timer)
+                       << ", "
+                       << uniqueKeys.size()  / timer.elapsed()
+                       << " fields/s"
+                       << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace tools
+} // namespace fdb5
+
 int main(int argc, char **argv) {
-    FDBPatch app(argc, argv);
+    fdb5::tools::FDBPatch app(argc, argv);
     return app.start();
 }
 

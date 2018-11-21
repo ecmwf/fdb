@@ -36,6 +36,12 @@ FDBBase::FDBBase(const Config& config, const std::string& name) :
 
 FDBBase::~FDBBase() {}
 
+std::string FDBBase::id() const {
+    std::stringstream ss;
+    ss << config_;
+    return ss.str();
+}
+
 FDBStats FDBBase::stats() const {
     /// By default we have no additional internal statistics
     return FDBStats();
