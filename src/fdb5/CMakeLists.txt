@@ -68,17 +68,17 @@ list( APPEND fdb5_srcs
     api/helpers/PurgeIterator.h
     api/helpers/StatsIterator.h
 
-    api/visitors/QueryVisitor.h
-    api/visitors/QueueStringLogTarget.h
-    api/visitors/ListVisitor.h
-    api/visitors/DumpVisitor.h
-    api/visitors/WhereVisitor.h
-    api/visitors/WipeVisitor.cc
-    api/visitors/WipeVisitor.h
-    api/visitors/PurgeVisitor.cc
-    api/visitors/PurgeVisitor.h
-    api/visitors/StatsVisitor.cc
-    api/visitors/StatsVisitor.h
+    api/local/QueryVisitor.h
+    api/local/QueueStringLogTarget.h
+    api/local/ListVisitor.h
+    api/local/DumpVisitor.h
+    api/local/WhereVisitor.h
+    api/local/WipeVisitor.cc
+    api/local/WipeVisitor.h
+    api/local/PurgeVisitor.cc
+    api/local/PurgeVisitor.h
+    api/local/StatsVisitor.cc
+    api/local/StatsVisitor.h
 
     config/UMask.cc
     config/UMask.h
