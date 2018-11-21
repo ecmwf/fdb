@@ -9,43 +9,53 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/api/visitors/StatsVisitor.h"
+#include "fdb5/api/visitors/PurgeVisitor.h"
+
+#include "fdb5/api/visitors/QueueStringLogTarget.h"
 
 #include "fdb5/database/DB.h"
-#include "fdb5/database/StatsReportVisitor.h"
+#include "fdb5/database/PurgeVisitor.h"
 
 namespace fdb5 {
 namespace api {
-namespace visitor {
+namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void StatsVisitor::visitDatabase(const DB& db) {
+
+PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue, bool doit) :
+    QueryVisitor(queue),
+    out_(new QueueStringLogTarget(queue)),
+    doit_(doit) {}
+
+void PurgeVisitor::visitDatabase(const DB& db) {
 
     EntryVisitor::visitDatabase(db);
 
     ASSERT(!internalVisitor_);
-    internalVisitor_.reset(db.statsReportVisitor());
+    internalVisitor_.reset(db.purgeVisitor());
 
     internalVisitor_->visitDatabase(db);
 }
 
-void StatsVisitor::visitIndex(const Index& index) {
+void PurgeVisitor::visitIndex(const Index& index) {
     internalVisitor_->visitIndex(index);
 }
 
-void StatsVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
+void PurgeVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
     internalVisitor_->visitDatum(field, keyFingerprint);
 }
 
-void StatsVisitor::visitDatum(const Field&, const Key&) { NOTIMP; }
+void PurgeVisitor::visitDatum(const Field&, const Key&) { NOTIMP; }
 
-void StatsVisitor::databaseComplete(const DB& db) {
+void PurgeVisitor::databaseComplete(const DB& db) {
     internalVisitor_->databaseComplete(db);
 
-    // Construct the object to push onto the queue
+    internalVisitor_->report(out_);
 
-    queue_.emplace(StatsElement { internalVisitor_->indexStatistics(), internalVisitor_->dbStatistics() });
+    if (doit_) {
+        internalVisitor_->purge(out_);
+    }
 
     // Cleanup
 
@@ -54,6 +64,6 @@ void StatsVisitor::databaseComplete(const DB& db) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace visitor
+} // namespace local
 } // namespace api
 } // namespace fdb5

@@ -20,17 +20,17 @@
 #include "fdb5/database/Retriever.h"
 #include "fdb5/LibFdb.h"
 
-#include "fdb5/api/visitors/QueryVisitor.h"
-#include "fdb5/api/visitors/ListVisitor.h"
-#include "fdb5/api/visitors/DumpVisitor.h"
-#include "fdb5/api/visitors/WhereVisitor.h"
-#include "fdb5/api/visitors/WipeVisitor.h"
-#include "fdb5/api/visitors/PurgeVisitor.h"
-#include "fdb5/api/visitors/StatsVisitor.h"
+#include "fdb5/api/local/QueryVisitor.h"
+#include "fdb5/api/local/ListVisitor.h"
+#include "fdb5/api/local/DumpVisitor.h"
+#include "fdb5/api/local/WhereVisitor.h"
+#include "fdb5/api/local/WipeVisitor.h"
+#include "fdb5/api/local/PurgeVisitor.h"
+#include "fdb5/api/local/StatsVisitor.h"
 
 #include "marslib/MarsTask.h"
 
-using namespace fdb5::api::visitor;
+using namespace fdb5::api::local;
 
 
 namespace fdb5 {

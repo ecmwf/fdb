@@ -11,41 +11,34 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_visitor_StatsVisitor_H
-#define fdb5_api_visitor_StatsVisitor_H
+#ifndef fdb5_api_visitor_WhereVisitor_H
+#define fdb5_api_visitor_WhereVisitor_H
 
 #include "fdb5/api/visitors/QueryVisitor.h"
-#include "fdb5/api/helpers/StatsIterator.h"
-#include "fdb5/database/StatsReportVisitor.h"
+#include "fdb5/api/helpers/WhereIterator.h"
 
 
 namespace fdb5 {
 namespace api {
-namespace visitor {
+namespace local {
 
 /// @note Helper classes for LocalFDB
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class StatsVisitor : public QueryVisitor<StatsElement> {
+class WhereVisitor : public QueryVisitor<WhereElement> {
 public:
-
     using QueryVisitor::QueryVisitor;
-
-    void visitDatabase(const DB& db) override;
-    void visitIndex(const Index& index) override;
-    void databaseComplete(const DB& db) override;
-    void visitDatum(const Field& field, const std::string& keyFingerprint) override;
-    void visitDatum(const Field&, const Key&) override;
-
-private: // members
-
-    std::unique_ptr<StatsReportVisitor> internalVisitor_;
+    bool visitIndexes() override { return false; }
+    bool visitEntries() override { return false; }
+    void visitDatabase(const DB& db) override { queue_.emplace(db.basePath()); }
+    void visitIndex(const Index&) override { NOTIMP; }
+    void visitDatum(const Field&, const Key&) override { NOTIMP; }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace visitor
+} // namespace local
 } // namespace api
 } // namespace fdb5
 

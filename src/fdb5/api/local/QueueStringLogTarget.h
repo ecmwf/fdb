@@ -22,7 +22,7 @@
 
 namespace fdb5 {
 namespace api {
-namespace visitor {
+namespace local {
 
 /// @note Helper classes for LocalFDB
 
@@ -43,7 +43,7 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace visitor
+} // namespace local
 } // namespace api
 } // namespace fdb5
 

@@ -21,7 +21,7 @@
 
 namespace fdb5 {
 namespace api {
-namespace visitor {
+namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -181,6 +181,6 @@ void WipeVisitor::databaseComplete(const DB& db) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace visitor
+} // namespace local
 } // namespace api
 } // namespace fdb5

@@ -11,46 +11,48 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_visitor_PurgeVisitor_H
-#define fdb5_api_visitor_PurgeVisitor_H
+#ifndef fdb5_api_visitor_DumpVisitor_H
+#define fdb5_api_visitor_DumpVisitor_H
 
 #include "fdb5/api/visitors/QueryVisitor.h"
-#include "fdb5/api/helpers/PurgeIterator.h"
-#include "fdb5/database/PurgeVisitor.h"
-
-#include "eckit/filesystem/PathName.h"
-
+#include "fdb5/api/visitors/QueueStringLogTarget.h"
+#include "fdb5/api/helpers/DumpIterator.h"
+#include "fdb5/database/DB.h"
 
 namespace fdb5 {
 namespace api {
-namespace visitor {
+namespace local {
 
 /// @note Helper classes for LocalFDB
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class PurgeVisitor : public QueryVisitor<PurgeElement> {
+class DumpVisitor : public QueryVisitor<DumpElement> {
+
 public:
 
-    PurgeVisitor(eckit::Queue<PurgeElement>& queue, bool doit);
+    DumpVisitor(eckit::Queue<std::string>& queue, bool simple) :
+        QueryVisitor(queue),
+        out_(new QueueStringLogTarget(queue)),
+        simple_(simple) {}
 
-    void visitDatabase(const DB& db) override;
-    void visitIndex(const Index& index) override;
-    void databaseComplete(const DB& db) override;
-    void visitDatum(const Field& field, const std::string& keyFingerprint) override;
-    void visitDatum(const Field&, const Key&) override;
+    bool visitIndexes() override { return false; }
+    bool visitEntries() override { return false; }
 
-private: // members
+    void visitDatabase(const DB& db) override {
+        db.dump(out_, simple_);
+    }
+    void visitIndex(const Index&) override { NOTIMP; }
+    void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
+private:
     eckit::Channel out_;
-    bool doit_;
-
-    std::unique_ptr<fdb5::PurgeVisitor> internalVisitor_;
+    bool simple_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace visitor
+} // namespace local
 } // namespace api
 } // namespace fdb5
 

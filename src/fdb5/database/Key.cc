@@ -227,7 +227,7 @@ bool Key::match(const std::string &key, const std::set<std::string> &values) con
 
 
 const TypesRegistry& Key::registry() const {
-    return rule_ ? rule_->registry() : Config().schema().registry();
+    return rule_ ? rule_->registry() : LibFdb::instance().defaultConfig().schema().registry();
 }
 
 std::string Key::valuesToString() const {

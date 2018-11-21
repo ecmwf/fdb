@@ -325,6 +325,12 @@ if( HAVE_PMEMFDB )
         pmem/PMemEngine.h
     )
 
+else()
+    set( PMEM_LIBRARIES "" )
+    set( PMEM_INCLUDE_DIRS "" )
+endif()
+
+
 # Currently RemoteFDB is experimental technology!
 if (HAVE_EXPERIMENTAL)
     list( APPEND fdb5_srcs
@@ -333,11 +339,6 @@ if (HAVE_EXPERIMENTAL)
         )
 endif()
 
-
-else()
-    set( PMEM_LIBRARIES "" )
-    set( PMEM_INCLUDE_DIRS "" )
-endif()
 
 if(LUSTREAPI_FOUND)
     list( APPEND fdb5_srcs io/LustreFileHandle.h io/LustreFileHandle.cc )

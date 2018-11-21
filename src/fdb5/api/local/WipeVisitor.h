@@ -11,48 +11,47 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_visitor_DumpVisitor_H
-#define fdb5_api_visitor_DumpVisitor_H
+#ifndef fdb5_api_visitor_WipeVisitor_H
+#define fdb5_api_visitor_WipeVisitor_H
 
 #include "fdb5/api/visitors/QueryVisitor.h"
-#include "fdb5/api/visitors/QueueStringLogTarget.h"
-#include "fdb5/api/helpers/DumpIterator.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/api/helpers/WipeIterator.h"
+
+#include "eckit/filesystem/PathName.h"
+
 
 namespace fdb5 {
 namespace api {
-namespace visitor {
+namespace local {
 
 /// @note Helper classes for LocalFDB
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DumpVisitor : public QueryVisitor<DumpElement> {
-
+class WipeVisitor : public QueryVisitor<WipeElement> {
 public:
 
-    DumpVisitor(eckit::Queue<std::string>& queue, bool simple) :
-        QueryVisitor(queue),
-        out_(new QueueStringLogTarget(queue)),
-        simple_(simple) {}
+    WipeVisitor(eckit::Queue<WipeElement>& queue, bool doit);
 
-    bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
 
-    void visitDatabase(const DB& db) override {
-        db.dump(out_, simple_);
-    }
-    void visitIndex(const Index&) override { NOTIMP; }
+    void visitDatabase(const DB& db) override;
+    void visitIndex(const Index& index) override;
+    void databaseComplete(const DB& db) override;
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
-private:
-    eckit::Channel out_;
-    bool simple_;
+private: // members
+
+    eckit::PathName basePath_;
+
+    WipeElement current_;
+
+    bool doit_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace visitor
+} // namespace local
 } // namespace api
 } // namespace fdb5
 
