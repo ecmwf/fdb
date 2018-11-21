@@ -9,7 +9,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/api/visitors/WipeVisitor.h"
+#include "fdb5/api/local/WipeVisitor.h"
 
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"

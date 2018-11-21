@@ -11,8 +11,8 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_visitor_QueryVisitor_H
-#define fdb5_api_visitor_QueryVisitor_H
+#ifndef fdb5_api_local_QueryVisitor_H
+#define fdb5_api_local_QueryVisitor_H
 
 #include "fdb5/database/EntryVisitMechanism.h"
 

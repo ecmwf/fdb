@@ -11,8 +11,8 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_visitor_QueueStringLogTarget_H
-#define fdb5_api_visitor_QueueStringLogTarget_H
+#ifndef fdb5_api_local_QueueStringLogTarget_H
+#define fdb5_api_local_QueueStringLogTarget_H
 
 #include "eckit/container/Queue.h"
 #include "eckit/log/Channel.h"

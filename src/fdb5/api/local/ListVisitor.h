@@ -11,10 +11,10 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_visitor_ListVisitor_H
-#define fdb5_api_visitor_ListVisitor_H
+#ifndef fdb5_api_local_ListVisitor_H
+#define fdb5_api_local_ListVisitor_H
 
-#include "fdb5/api/visitors/QueryVisitor.h"
+#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/ListIterator.h"
 
 namespace fdb5 {

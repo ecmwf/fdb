@@ -11,11 +11,11 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_visitor_DumpVisitor_H
-#define fdb5_api_visitor_DumpVisitor_H
+#ifndef fdb5_api_local_DumpVisitor_H
+#define fdb5_api_local_DumpVisitor_H
 
-#include "fdb5/api/visitors/QueryVisitor.h"
-#include "fdb5/api/visitors/QueueStringLogTarget.h"
+#include "fdb5/api/local/QueryVisitor.h"
+#include "fdb5/api/local/QueueStringLogTarget.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/database/DB.h"
 

@@ -11,10 +11,10 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_visitor_StatsVisitor_H
-#define fdb5_api_visitor_StatsVisitor_H
+#ifndef fdb5_api_local_StatsVisitor_H
+#define fdb5_api_local_StatsVisitor_H
 
-#include "fdb5/api/visitors/QueryVisitor.h"
+#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/database/StatsReportVisitor.h"
 

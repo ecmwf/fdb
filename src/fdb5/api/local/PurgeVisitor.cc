@@ -9,9 +9,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/api/visitors/PurgeVisitor.h"
+#include "fdb5/api/local/PurgeVisitor.h"
 
-#include "fdb5/api/visitors/QueueStringLogTarget.h"
+#include "fdb5/api/local/QueueStringLogTarget.h"
 
 #include "fdb5/database/DB.h"
 #include "fdb5/database/PurgeVisitor.h"
