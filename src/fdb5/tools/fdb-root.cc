@@ -12,22 +12,25 @@
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/config/UMask.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/LibFdb.h"
 #include "fdb5/rules/Schema.h"
-
 #include "fdb5/tools/FDBTool.h"
-#include "fdb5/tools/ToolRequest.h"
+
+namespace fdb5 {
+namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FdbRoot : public fdb5::FDBTool {
+class FdbRoot : public FDBTool {
 
 public: // methods
 
     FdbRoot(int argc, char **argv) :
-        fdb5::FDBTool(argc, argv) {
+        FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("create", "If a DB does not exist for the provided key, create it"));
     }
 
@@ -56,23 +59,24 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
     bool create_db;
     args.get("create", create_db);
 
-    fdb5::UMask umask(fdb5::UMask::defaultUMask());
+    UMask umask(UMask::defaultUMask());
 
     for (size_t i = 0; i < args.count(); ++i) {
 
-        fdb5::ToolRequest req("domain=g," + args(i)); // domain add here as default
+        FDBToolRequest req("domain=g," + args(i)); // domain add here as default
 
-        const fdb5::Schema& schema = fdb5::LibFdb::instance().schema();
-        fdb5::Key result;
+        const Config& config = LibFdb::instance().defaultConfig();
+        const Schema& schema = config.schema();
+        Key result;
         ASSERT( schema.expandFirstLevel(req.key(), result) );
 
         eckit::Log::info() << result << std::endl;
 
         // 'Touch' the database (which will create it if it doesn't exist)
-        eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(result));
+        eckit::ScopedPtr<DB> db(DBFactory::buildReader(result, config));
 
         if (!db->exists() && create_db) {
-            db.reset(fdb5::DBFactory::buildWriter(result));
+            db.reset(DBFactory::buildWriter(result, config));
         }
 
         if (db->exists()) {
@@ -83,7 +87,10 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace tools
+} // namespace fbb5
+
 int main(int argc, char **argv) {
-    FdbRoot app(argc, argv);
+    fdb5::tools::FdbRoot app(argc, argv);
     return app.start();
 }

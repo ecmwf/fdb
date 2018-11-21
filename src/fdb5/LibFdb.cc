@@ -16,8 +16,11 @@
 #include <string>
 
 #include "eckit/config/Resource.h"
+#include "eckit/config/YAMLConfiguration.h"
+#include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb.h"
+#include "fdb5/config/Config.h"
 
 #include "mars_server_version.h"
 
@@ -33,6 +36,26 @@ LibFdb& LibFdb::instance()
 {
     static LibFdb libfdb;
     return libfdb;
+}
+
+const Config& LibFdb::defaultConfig() {
+
+    static bool initted = false;
+    static Config config;
+
+    if (!initted) {
+        eckit::PathName config_json = config.expandPath("~fdb/etc/fdb/config.json");
+        if (config_json.exists()) {
+            eckit::Log::debug<LibFdb>() << "Using default FDB configuration: " << config_json << std::endl;
+            eckit::YAMLConfiguration cfg(config_json);
+            config = cfg;
+        }
+    }
+
+    eckit::Log::info() << "Config: " << config << std::endl;
+
+    initted = true;
+    return config;
 }
 
 const void* LibFdb::addr() const { return this; }

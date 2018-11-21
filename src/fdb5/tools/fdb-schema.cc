@@ -12,33 +12,35 @@
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/LibFdb.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBTool.h"
 
+namespace fdb5 {
+namespace tools {
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class FdbSchema : public fdb5::FDBTool {
+class FdbSchema : public FDBTool {
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
 public:
-    FdbSchema(int argc, char **argv): fdb5::FDBTool(argc, argv) {}
+    FdbSchema(int argc, char **argv): FDBTool(argc, argv) {}
 };
 
 void FdbSchema::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " [shema] ..." << std::endl;
-    fdb5::FDBTool::usage(tool);
+    FDBTool::usage(tool);
 }
 
 void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::Schema schema;
 
     // With no arguments, provide the current master configuration schema (i.e. that selected by FDB_HOME)
 
     if (args.count() == 0) {
-        schema.load(fdb5::LibFdb::instance().schemaPath());
-        schema.dump(std::cout);
+        LibFdb::instance().defaultConfig().schema().dump(std::cout);
     }
 
     // If the argument specifies a schema file, then examine that. Otherwise load the DB which is
@@ -49,10 +51,11 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
         eckit::PathName path(args(i));
 
         if (path.isDir()) {
-            eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
+            eckit::ScopedPtr<DB> db(DBFactory::buildReader(path));
             ASSERT(db->open());
             db->schema().dump(std::cout);
         } else {
+            Schema schema;
             schema.load(args(i));
             schema.dump(std::cout);
         }
@@ -61,8 +64,11 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace tools
+} // namespace fdb5
+
 int main(int argc, char **argv) {
-    FdbSchema app(argc, argv);
+    fdb5::tools::FdbSchema app(argc, argv);
     return app.start();
 }
 

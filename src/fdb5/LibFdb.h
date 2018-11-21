@@ -22,6 +22,8 @@
 
 namespace fdb5 {
 
+class Config;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class LibFdb : public eckit::system::Library {
@@ -30,6 +32,8 @@ public:
     LibFdb();
 
     static LibFdb& instance();
+
+    const Config& defaultConfig();
 
 protected:
 

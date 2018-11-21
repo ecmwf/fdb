@@ -22,14 +22,17 @@
 
 using eckit::Log;
 
+namespace fdb5 {
+namespace tools {
+
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBInfo : public fdb5::FDBTool {
+class FDBInfo : public FDBTool {
 
   public: // methods
 
     FDBInfo(int argc, char **argv) :
-        fdb5::FDBTool(argc, argv),
+        FDBTool(argc, argv),
         all_(false),
         version_(false),
         home_(false),
@@ -89,15 +92,18 @@ void FDBInfo::execute(const eckit::option::CmdArgs&) {
     }
 
     if(all_ || schema_) {
-        Log::info() << (all_ ? "Schema: " : "") << fdb5::Config().schemaPath() << std::endl;
+        Log::info() << (all_ ? "Schema: " : "") << LibFdb::instance().defaultConfig().schemaPath() << std::endl;
         if(!all_) return;
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace tools
+} // namespace fdb5
+
 int main(int argc, char **argv) {
-    FDBInfo app(argc, argv);
+    fdb5::tools::FDBInfo app(argc, argv);
     return app.start();
 }
 
