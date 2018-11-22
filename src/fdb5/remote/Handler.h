@@ -53,6 +53,9 @@ public: // methods
 
     void handle();
 
+    std::string host() const { return controlSocket_.localHost(); }
+    int port() const { return controlSocket_.localPort(); }
+
 private: // methods
 
     // Socket methods
@@ -73,6 +76,9 @@ private: // methods
     void waitForWorkers();
 
     // API functionality
+
+    template <typename HelperClass>
+    void forwardApiCall(const MessageHeader& hdr);
 
     void list(const MessageHeader& hdr);
     void dump(const MessageHeader& hdr);

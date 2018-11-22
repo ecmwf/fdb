@@ -38,6 +38,54 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+template <typename ValueType>
+struct BaseHelper {
+    static size_t encodeBufferSize() { return 4096; }
+    void extraDecode(eckit::Stream&) {}
+    ValueType apiCall(FDB& fdb, const FDBToolRequest&) const { NOTIMP; }
+
+    struct Encoded {
+        size_t position;
+        eckit::Buffer buf;
+    };
+
+    Encoded encode(const ValueType& elem, const RemoteHandler&) const {
+        eckit::Buffer encodeBuffer(encodeBufferSize());
+        MemoryStream s(encodeBuffer);
+        s << elem;
+        return {s.position(), std::move(encodeBuffer)};
+    }
+};
+
+struct ListHelper : public BaseHelper<ListElement> {
+
+    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.list(request);
+    }
+
+    // Create a derived RemoteFieldLocation which knows about this server
+    Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
+
+        ListElement updated(elem.keyParts_,
+                            std::make_shared<RemoteFieldLocation>(*elem.location_, handler.host(), handler.port()));
+
+        return BaseHelper<ListElement>::encode(updated, handler);
+    }
+};
+
+struct DumpHelper : public BaseHelper<DumpElement> {
+
+    void extraDecode(eckit::Stream& s) { s >> simple_; }
+
+    DumpIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.dump(request, simple_);
+    }
+
+private:
+    bool simple_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
 
 RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
     controlSocket_(socket),
@@ -96,12 +144,12 @@ void RemoteHandler::handle() {
 
         case Message::List:
             Log::info() << "List handler" << std::endl;
-            list(hdr);
+            forwardApiCall<ListHelper>(hdr);
             break;
 
         case Message::Dump:
             Log::info() << "Dump handler" << std::endl;
-            dump(hdr);
+            forwardApiCall<DumpHelper>(hdr);
             break;
 
 //        case Message::Flush:
@@ -232,37 +280,33 @@ void RemoteHandler::waitForWorkers() {
     }
 }
 
+
 // TODO: This can be an absolutely standard handler based on the ListElement type.
 
-void RemoteHandler::list(const MessageHeader& hdr) {
+template <typename HelperClass>
+void RemoteHandler::forwardApiCall(const MessageHeader& hdr) {
+
+    HelperClass helper;
 
     Buffer payload(receivePayload(hdr));
     MemoryStream s(payload);
 
     FDBToolRequest request(s);
+    helper.extraDecode(s);
 
-    // TODO: Request ID
+    // Construct worker thread to feed responses back to client
 
     ASSERT(workerThreads_.find(hdr.requestID) == workerThreads_.end());
 
     workerThreads_.emplace(hdr.requestID, std::async(std::launch::async,
-        [request, hdr, this]() {
+        [request, hdr, helper, this]() {
 
-            auto listIterator = fdb_.list(request);
+            auto iterator = helper.apiCall(fdb_, request);
 
-            ListElement elem;
-            while (listIterator.next(elem)) {
-
-                ListElement updated(elem.keyParts_,
-                                    std::make_shared<RemoteFieldLocation>(*elem.location_,
-                                                                          controlSocket_.localHost(),
-                                                                          controlSocket_.localPort()));
-                eckit::Buffer encodeBuffer(4096);
-                MemoryStream s(encodeBuffer);
-                s << updated;
-//                s << elem;
-
-                dataWrite(Message::Blob, hdr.requestID, encodeBuffer, s.position());
+            typename decltype(iterator)::value_type elem;
+            while (iterator.next(elem)) {
+                auto encoded(helper.encode(elem, *this));
+                dataWrite(Message::Blob, hdr.requestID, encoded.buf, encoded.position);
             }
 
             dataWrite(Message::Complete, hdr.requestID);
@@ -270,40 +314,6 @@ void RemoteHandler::list(const MessageHeader& hdr) {
     ));
 }
 
-
-void RemoteHandler::dump(const MessageHeader& hdr) {
-
-    Buffer payload(receivePayload(hdr));
-    MemoryStream s(payload);
-
-    FDBToolRequest request(s);
-
-    bool simple;      /***************** simple **************/
-    s >> simple;
-
-    // TODO: Request ID
-
-    ASSERT(workerThreads_.find(hdr.requestID) == workerThreads_.end());
-
-    workerThreads_.emplace(hdr.requestID, std::async(std::launch::async,
-        [request, hdr, simple, this]() {   /************** simple *********/
-
-            auto dumpIterator = fdb_.dump(request, simple);       /***** dump, simple ******/
-
-            DumpElement elem;                                     /****** DumpElement ******/
-            while (dumpIterator.next(elem)) {
-
-                eckit::Buffer encodeBuffer(4096);                 /***** buffer size *******/
-                MemoryStream s(encodeBuffer);
-                s << elem;
-
-                dataWrite(Message::Blob, hdr.requestID, encodeBuffer, s.position());
-            }
-
-            dataWrite(Message::Complete, hdr.requestID);
-        }
-    ));
-}
 
 #if 0
 
