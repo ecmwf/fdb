@@ -41,8 +41,10 @@ public: // methods
 
     FieldLocation();
     FieldLocation(eckit::Length length );
-    FieldLocation(const FieldLocation& rhs);
     FieldLocation(eckit::Stream&);
+
+    FieldLocation(const FieldLocation&) = delete;
+    FieldLocation& operator=(const FieldLocation&) = delete;
 
     virtual eckit::PathName url() const = 0;
 

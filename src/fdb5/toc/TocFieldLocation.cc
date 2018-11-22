@@ -38,8 +38,7 @@ TocFieldLocation::TocFieldLocation(const FileStore &store, const FieldRef &ref) 
     offset_(ref.offset()) {}
 
 TocFieldLocation::TocFieldLocation(eckit::Stream& s) :
-    FieldLocation(s)
-{
+    FieldLocation(s) {
     s >> path_;
     s >> offset_;
 }

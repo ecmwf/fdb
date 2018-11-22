@@ -336,7 +336,9 @@ if (HAVE_EXPERIMENTAL)
     list( APPEND fdb5_srcs
         api/RemoteFDB.cc
         api/RemoteFDB.h
-        )
+        remote/RemoteFieldLocation.h
+        remote/RemoteFieldLocation.cc
+    )
 endif()
 
 

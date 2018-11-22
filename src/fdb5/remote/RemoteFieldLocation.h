@@ -11,40 +11,28 @@
 /// @author Simon Smart
 /// @date Nov 2016
 
-#ifndef fdb5_TocFieldLocation_H
-#define fdb5_TocFieldLocation_H
+#ifndef fdb5_RemoteFieldLocation_H
+#define fdb5_RemoteFieldLocation_H
 
-#include "eckit/filesystem/PathName.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/Offset.h"
 
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/database/FileStore.h"
-#include "fdb5/toc/FieldRef.h"
 
 namespace fdb5 {
+namespace remote {
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TocFieldLocation : public FieldLocation {
+class RemoteFieldLocation : public FieldLocation {
 public:
 
-    TocFieldLocation();
-    TocFieldLocation(const TocFieldLocation& rhs);
-    TocFieldLocation(const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
-    TocFieldLocation(const FileStore& store, const FieldRef& ref);
-    TocFieldLocation(eckit::Stream&);
-
-    const eckit::PathName& path() const { return path_; }
-    const eckit::Offset&   offset() const { return offset_; }
+    RemoteFieldLocation(const FieldLocation& internal, const std::string& hostname, int port);
+    RemoteFieldLocation(eckit::Stream&);
+    RemoteFieldLocation(const RemoteFieldLocation&);
 
     virtual eckit::DataHandle *dataHandle() const;
-
     virtual eckit::PathName url() const;
-
     virtual std::shared_ptr<FieldLocation> make_shared() const;
-
     virtual void visit(FieldLocationVisitor& visitor) const;
 
 public: // For Streamable
@@ -57,7 +45,7 @@ protected: // For Streamable
     virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
 
     static eckit::ClassSpec                    classSpec_;
-    static eckit::Reanimator<TocFieldLocation> reanimator_;
+    static eckit::Reanimator<RemoteFieldLocation> reanimator_;
 
 private: // methods
 
@@ -67,15 +55,16 @@ private: // methods
 
 private: // members
 
-    eckit::PathName path_;
-    eckit::Offset offset_;
+    std::string hostname_;
+    int port_;
 
-    // For streamability
+    std::shared_ptr<FieldLocation> internal_;
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace remote
 } // namespace fdb5
 
-#endif // fdb5_TocFieldLocation_H
+#endif // fdb5_RemoteFieldLocation_H

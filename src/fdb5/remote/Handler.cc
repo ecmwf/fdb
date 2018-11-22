@@ -10,6 +10,7 @@
 
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/LibFdb.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -246,9 +247,15 @@ void RemoteHandler::list(const MessageHeader& hdr) {
 
             ListElement elem;
             while (listIterator.next(elem)) {
+
+                ListElement updated(elem.keyParts_,
+                                    std::make_shared<RemoteFieldLocation>(*elem.location_,
+                                                                          controlSocket_.localHost(),
+                                                                          controlSocket_.localPort()));
                 eckit::Buffer encodeBuffer(4096);
                 MemoryStream s(encodeBuffer);
-                s << elem;
+                s << updated;
+//                s << elem;
 
                 dataWrite(Message::Blob, hdr.requestID, encodeBuffer, s.position());
             }
