@@ -284,7 +284,61 @@ ListIterator RemoteFDB::list(const FDBToolRequest& request) {
             );
 }
 
-DumpIterator RemoteFDB::dump(const FDBToolRequest& request, bool simple) { NOTIMP; }
+DumpIterator RemoteFDB::dump(const FDBToolRequest& request, bool simple) {
+
+    connect();
+
+    // Ensure we have an entry in the message queue before we trigger anything that
+    // will result in return messages
+
+    // TODO: control over the queue size
+
+    uint32_t id = generateRequestID();
+    auto entry = messageQueues_.emplace(id, 100);;
+    ASSERT(entry.second);
+    MessageQueue& messageQueue(entry.first->second);
+
+    // Encode the request and send it to the server
+
+    Buffer encodeBuffer(4096);
+    MemoryStream s(encodeBuffer);
+    s << request;
+    s << simple;                     /******************* simple ***********/
+
+    controlWrite(Message::Dump, id, encodeBuffer, s.position()); /********** Dump *********/
+
+    // Wait for the receipt acknowledgement
+
+    MessageHeader response;
+    controlRead(&response, sizeof(MessageHeader));
+
+    handleError(response);
+
+    ASSERT(response.marker == StartMarker);
+    ASSERT(response.version == CurrentVersion);
+    ASSERT(response.message == Message::Received);
+
+    // Allow the messages to be retreived asynchronously
+
+    return DumpIterator(    /******* DumpIterator ********/
+                new DumpAsyncIterator(   /********* DumpAsyncIterator ********/
+                    [&messageQueue](eckit::Queue<DumpElement>& queue){ /******* DumpElement ******/
+
+                        StoredMessage msg(std::make_pair(MessageHeader(), Buffer(0)));
+                        while (true) {
+                            if (messageQueue.pop(msg) == -1) {
+                                break;
+                            } else {
+                                MemoryStream s(msg.second);
+                                DumpElement elem;
+                                s >> elem;
+                                queue.emplace(std::move(elem)); /********** DumpElement ***********/
+                            }
+                        }
+                    }
+                )
+            );
+}
 
 WhereIterator RemoteFDB::where(const FDBToolRequest& request) { NOTIMP; }
 

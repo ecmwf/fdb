@@ -99,6 +99,11 @@ void RemoteHandler::handle() {
             list(hdr);
             break;
 
+        case Message::Dump:
+            Log::info() << "Dump handler" << std::endl;
+            dump(hdr);
+            break;
+
 //        case Message::Flush:
 //            flush();
 //            break;
@@ -256,6 +261,41 @@ void RemoteHandler::list(const MessageHeader& hdr) {
                 MemoryStream s(encodeBuffer);
                 s << updated;
 //                s << elem;
+
+                dataWrite(Message::Blob, hdr.requestID, encodeBuffer, s.position());
+            }
+
+            dataWrite(Message::Complete, hdr.requestID);
+        }
+    ));
+}
+
+
+void RemoteHandler::dump(const MessageHeader& hdr) {
+
+    Buffer payload(receivePayload(hdr));
+    MemoryStream s(payload);
+
+    FDBToolRequest request(s);
+
+    bool simple;      /***************** simple **************/
+    s >> simple;
+
+    // TODO: Request ID
+
+    ASSERT(workerThreads_.find(hdr.requestID) == workerThreads_.end());
+
+    workerThreads_.emplace(hdr.requestID, std::async(std::launch::async,
+        [request, hdr, simple, this]() {   /************** simple *********/
+
+            auto dumpIterator = fdb_.dump(request, simple);       /***** dump, simple ******/
+
+            DumpElement elem;                                     /****** DumpElement ******/
+            while (dumpIterator.next(elem)) {
+
+                eckit::Buffer encodeBuffer(4096);                 /***** buffer size *******/
+                MemoryStream s(encodeBuffer);
+                s << elem;
 
                 dataWrite(Message::Blob, hdr.requestID, encodeBuffer, s.position());
             }

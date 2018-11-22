@@ -75,6 +75,7 @@ private: // methods
     // API functionality
 
     void list(const MessageHeader& hdr);
+    void dump(const MessageHeader& hdr);
 
 //    void flush();
 //    void archive(const MessageHeader& hdr);
