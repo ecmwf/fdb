@@ -269,6 +269,22 @@ private:
     bool simple_;
 };
 
+struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
+
+    typedef PurgeElement ValueType;
+
+    PurgeHelper(bool doit) : doit_(doit) {}
+    void encodeExtra(eckit::Stream& s) const { s << doit_; }
+    static PurgeElement valueFromStream(eckit::Stream& s) {
+        PurgeElement elem;
+        s >> elem;
+        return elem;
+    }
+
+private:
+    bool doit_;
+};
+
 
 // -----------------------------------------------------------------------------------------------------
 
@@ -316,6 +332,10 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     ASSERT(response.version == CurrentVersion);
     ASSERT(response.message == Message::Received);
 
+    eckit::FixedString<4> tail;
+    controlRead(&tail, sizeof(tail));
+    ASSERT(tail == EndMarker);
+
     // Return an AsyncIterator to allow the messages to be retrieved in the API
 
     return IteratorType(
@@ -351,7 +371,9 @@ WhereIterator RemoteFDB::where(const FDBToolRequest& request) {
 
 WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit) { NOTIMP; }
 
-PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit) { NOTIMP; }
+PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit) {
+    return forwardApiCall(PurgeHelper(doit), request);
+}
 
 StatsIterator RemoteFDB::stats(const FDBToolRequest& request) { NOTIMP; }
 

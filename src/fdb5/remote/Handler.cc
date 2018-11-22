@@ -85,6 +85,18 @@ private:
     bool simple_;
 };
 
+struct PurgeHelper : public BaseHelper<PurgeElement> {
+
+    void extraDecode(eckit::Stream& s) { s >> doit_; }
+
+    PurgeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.purge(request, doit_);
+    }
+
+private:
+    bool doit_;
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
@@ -150,6 +162,11 @@ void RemoteHandler::handle() {
         case Message::Dump:
             Log::info() << "Dump handler" << std::endl;
             forwardApiCall<DumpHelper>(hdr);
+            break;
+
+        case Message::Purge:
+            Log::info() << "Purge handler" << std::endl;
+            forwardApiCall<PurgeHelper>(hdr);
             break;
 
 //        case Message::Flush:
