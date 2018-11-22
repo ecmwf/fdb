@@ -231,58 +231,53 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) { NOTIM
 
 DataHandle* RemoteFDB::retrieve(const MarsRequest& request) { NOTIMP; }
 
-ListIterator RemoteFDB::list(const FDBToolRequest& request) {
 
-    connect();
+// -----------------------------------------------------------------------------------------------------
+// Helper classes describe the behaviour of the various API functions to be forwarded
+// -----------------------------------------------------------------------------------------------------
 
-    // Ensure we have an entry in the message queue before we trigger anything that
-    // will result in return messages
+template <typename T, Message msgID>
+struct BaseAPIHelper {
 
-    // TODO: control over the queue size
+    typedef T ValueType;
 
-    uint32_t id = generateRequestID();
-    auto entry = messageQueues_.emplace(id, 100);;
-    ASSERT(entry.second);
-    MessageQueue& messageQueue(entry.first->second);
+    static size_t bufferSize() { return 4096; }
+    static size_t queueSize() { return 100; }
+    static Message message() { return msgID; }
 
-    // Encode the request and send it to the server
+    void encodeExtra(eckit::Stream& s) const {}
+    static ValueType valueFromStream(eckit::Stream& s) { return ValueType(s); }
+};
 
-    Buffer encodeBuffer(4096);
-    MemoryStream s(encodeBuffer);
-    s << request;
+using ListHelper = BaseAPIHelper<ListElement, Message::List>;
 
-    controlWrite(Message::List, id, encodeBuffer, s.position());
+//using WhereHelper = BaseAPIHelper<WhereElement>;
 
-    // Wait for the receipt acknowledgement
+struct DumpHelper : BaseAPIHelper<DumpElement, Message::Dump> {
 
-    MessageHeader response;
-    controlRead(&response, sizeof(MessageHeader));
+    typedef DumpElement ValueType;
 
-    handleError(response);
+    DumpHelper(bool simple) : simple_(simple) {}
+    void encodeExtra(eckit::Stream& s) const { s << simple_; }
+    static DumpElement valueFromStream(eckit::Stream& s) {
+        DumpElement elem;
+        s >> elem;
+        return elem;
+    }
 
-    ASSERT(response.marker == StartMarker);
-    ASSERT(response.version == CurrentVersion);
-    ASSERT(response.message == Message::Received);
+private:
+    bool simple_;
+};
 
-    // Allow the messages to be retreived asynchronously
 
-    return ListIterator(
-                new ListAsyncIterator(
-                    [&messageQueue](eckit::Queue<ListElement>& queue){
+// -----------------------------------------------------------------------------------------------------
 
-                        StoredMessage msg(std::make_pair(MessageHeader(), Buffer(0)));
-                        while (true) {
-                            if (messageQueue.pop(msg) == -1) {
-                                break;
-                            } else {
-                                MemoryStream s(msg.second);
-                                queue.emplace(ListElement(s));
-                            }
-                        }
-                    }
-                )
-            );
-}
+// forwardApiCall captures the asynchronous behaviour:
+//
+// i) Set up a Queue to receive the messages as they come in
+// ii) Encode the request+arguments and send them to the server
+// iii) Return an AsyncIterator that pulls messages off the queue, and returns them to the caller.
+
 
 template <typename HelperClass>
 auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType> {
@@ -308,7 +303,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     s << request;
     helper.encodeExtra(s);
 
-    controlWrite(Message::Dump, id, encodeBuffer, s.position()); /********** Dump *********/
+    controlWrite(HelperClass::message(), id, encodeBuffer, s.position()); /********** Dump *********/
 
     // Wait for the receipt acknowledgement
 
@@ -340,31 +335,19 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
            );
 }
 
-
-struct DumpHelper {
-
-    static size_t bufferSize() { return 4096; }
-    static size_t queueSize() { return 100; }
-    typedef DumpElement ValueType;
-
-    DumpHelper(bool simple) : simple_(simple) {}
-    void encodeExtra(eckit::Stream& s) const { s << simple_; }
-    static DumpElement valueFromStream(eckit::Stream& s) {
-        DumpElement elem;
-        s >> elem;
-        return elem;
-    }
-
-private:
-    bool simple_;
-};
+ListIterator RemoteFDB::list(const FDBToolRequest& request) {
+    return forwardApiCall(ListHelper(), request);
+}
 
 
 DumpIterator RemoteFDB::dump(const FDBToolRequest& request, bool simple) {
     return forwardApiCall(DumpHelper(simple), request);
 }
 
-WhereIterator RemoteFDB::where(const FDBToolRequest& request) { NOTIMP; }
+WhereIterator RemoteFDB::where(const FDBToolRequest& request) {
+    NOTIMP;
+    //return forwardApiCall(WhereHelper(), request);
+}
 
 WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit) { NOTIMP; }
 
