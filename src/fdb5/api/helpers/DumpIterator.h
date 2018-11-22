@@ -23,17 +23,21 @@
  * dump() call on an arbitrary FDB object
  */
 
+namespace eckit {
+    class Stream;
+}
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 using DumpElement = std::string;
 
-using DumpIterator = APIIterator<std::string>;
+using DumpIterator = APIIterator<DumpElement>;
 
-using DumpAggregateIterator = APIAggregateIterator<std::string>;
+using DumpAggregateIterator = APIAggregateIterator<DumpElement>;
 
-using DumpAsyncIterator = APIAsyncIterator<std::string>;
+using DumpAsyncIterator = APIAsyncIterator<DumpElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 

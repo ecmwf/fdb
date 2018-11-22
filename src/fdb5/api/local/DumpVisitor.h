@@ -31,7 +31,7 @@ class DumpVisitor : public QueryVisitor<DumpElement> {
 
 public:
 
-    DumpVisitor(eckit::Queue<std::string>& queue, bool simple) :
+    DumpVisitor(eckit::Queue<DumpElement>& queue, bool simple) :
         QueryVisitor(queue),
         out_(new QueueStringLogTarget(queue)),
         simple_(simple) {}

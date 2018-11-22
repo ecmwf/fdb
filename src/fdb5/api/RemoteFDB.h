@@ -75,6 +75,12 @@ private: // methods
     void controlRead(void* data, size_t length);
     void dataRead(void* data, size_t length);
     void handleError(const remote::MessageHeader& hdr);
+
+    // Worker for the API functions
+
+    template <typename HelperClass>
+    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType>;
+
 //
 //    /// Do the actual communication with the server
 //

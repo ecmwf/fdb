@@ -284,26 +284,29 @@ ListIterator RemoteFDB::list(const FDBToolRequest& request) {
             );
 }
 
-DumpIterator RemoteFDB::dump(const FDBToolRequest& request, bool simple) {
+template <typename HelperClass>
+auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType> {
+
+    using ValueType = typename HelperClass::ValueType;
+    using IteratorType = APIIterator<ValueType>;
+    using AsyncIterator = APIAsyncIterator<ValueType>;
 
     connect();
 
     // Ensure we have an entry in the message queue before we trigger anything that
     // will result in return messages
 
-    // TODO: control over the queue size
-
     uint32_t id = generateRequestID();
-    auto entry = messageQueues_.emplace(id, 100);;
+    auto entry = messageQueues_.emplace(id, HelperClass::queueSize());
     ASSERT(entry.second);
     MessageQueue& messageQueue(entry.first->second);
 
     // Encode the request and send it to the server
 
-    Buffer encodeBuffer(4096);
+    Buffer encodeBuffer(HelperClass::bufferSize());
     MemoryStream s(encodeBuffer);
     s << request;
-    s << simple;                     /******************* simple ***********/
+    helper.encodeExtra(s);
 
     controlWrite(Message::Dump, id, encodeBuffer, s.position()); /********** Dump *********/
 
@@ -318,26 +321,47 @@ DumpIterator RemoteFDB::dump(const FDBToolRequest& request, bool simple) {
     ASSERT(response.version == CurrentVersion);
     ASSERT(response.message == Message::Received);
 
-    // Allow the messages to be retreived asynchronously
+    // Return an AsyncIterator to allow the messages to be retrieved in the API
 
-    return DumpIterator(    /******* DumpIterator ********/
-                new DumpAsyncIterator(   /********* DumpAsyncIterator ********/
-                    [&messageQueue](eckit::Queue<DumpElement>& queue){ /******* DumpElement ******/
-
+    return IteratorType(
+                new AsyncIterator (
+                    [&messageQueue](eckit::Queue<ValueType>& queue) {
                         StoredMessage msg(std::make_pair(MessageHeader(), Buffer(0)));
                         while (true) {
                             if (messageQueue.pop(msg) == -1) {
                                 break;
                             } else {
                                 MemoryStream s(msg.second);
-                                DumpElement elem;
-                                s >> elem;
-                                queue.emplace(std::move(elem)); /********** DumpElement ***********/
+                                queue.emplace(HelperClass::valueFromStream(s));
                             }
                         }
                     }
                 )
-            );
+           );
+}
+
+
+struct DumpHelper {
+
+    static size_t bufferSize() { return 4096; }
+    static size_t queueSize() { return 100; }
+    typedef DumpElement ValueType;
+
+    DumpHelper(bool simple) : simple_(simple) {}
+    void encodeExtra(eckit::Stream& s) const { s << simple_; }
+    static DumpElement valueFromStream(eckit::Stream& s) {
+        DumpElement elem;
+        s >> elem;
+        return elem;
+    }
+
+private:
+    bool simple_;
+};
+
+
+DumpIterator RemoteFDB::dump(const FDBToolRequest& request, bool simple) {
+    return forwardApiCall(DumpHelper(simple), request);
 }
 
 WhereIterator RemoteFDB::where(const FDBToolRequest& request) { NOTIMP; }

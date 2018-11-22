@@ -64,7 +64,7 @@ void FDBDump::execute(const CmdArgs&) {
         auto dumpIterator = fdb.dump(request, simple_);
 
         size_t count = 0;
-        std::string elem;
+        DumpElement elem;
         while (dumpIterator.next(elem)) {
             Log::info() << elem << std::endl;
             count++;
