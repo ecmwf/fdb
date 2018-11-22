@@ -8,31 +8,257 @@
  * does it submit to any jurisdiction.
  */
 
-#include <unistd.h>
-#include <algorithm>
-
-#include "eckit/config/Resource.h"
-#include "eckit/log/Log.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/io/Buffer.h"
-#include "eckit/serialisation/MemoryStream.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/maths/Functions.h"
-#include "eckit/runtime/Main.h"
-
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/LibFdb.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 
 #include "marslib/MarsRequest.h"
 
+#include "eckit/maths/Functions.h"
+#include "eckit/serialisation/MemoryStream.h"
+
+#include <chrono>
+
 using namespace eckit;
+
 
 namespace fdb5 {
 namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
+
+class TCPException : public Exception {
+public:
+    TCPException(const std::string& msg, const CodeLocation& here) :
+        Exception(std::string("TCPException: ") + msg, here) {}
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
+    controlSocket_(socket),
+    dataSocket_(),
+    fdb_(config) {}
+
+
+RemoteHandler::~RemoteHandler() {
+
+    // We don't want to die before the worker threads are cleaned up
+
+    waitForWorkers();
+
+    // And notify the client that we are done.
+
+    Log::info() << "Writing exit message" << std::endl;
+    dataWrite(Message::Exit, 0);
+    Log::info() << "Done" << std::endl;
+}
+
+void RemoteHandler::handle() {
+
+    // We want a data connection too. Send info to RemoteFDB, and wait for connection
+
+    int dataport = dataSocket_.localPort();
+
+    Log::info() << "Sending data port to client: " << dataport << std::endl;
+
+    controlWrite(&dataport, sizeof(dataport));
+
+    dataSocket_.accept();
+
+    // And go into the main loop
+
+    Log::info() << "Server started ..." << std::endl;
+
+    MessageHeader hdr;
+    eckit::FixedString<4> tail;
+
+    while (true) {
+
+        tidyWorkers();
+
+        controlRead(&hdr, sizeof(hdr));
+
+        ASSERT(hdr.marker == StartMarker);
+        ASSERT(hdr.version == CurrentVersion);
+        Log::info() << "Got header id: " << hdr.requestID << std::endl;
+
+        switch (hdr.message) {
+
+        case Message::Exit:
+            Log::status() << "Exiting" << std::endl;
+            Log::info() << "Exiting" << std::endl;
+            return;
+
+        case Message::List:
+            Log::info() << "List handler" << std::endl;
+            list(hdr);
+            break;
+
+//        case Message::Flush:
+//            flush();
+//            break;
+
+//        case Message::Archive:
+//            archive(hdr);
+//            break;
+
+//        case Message::Retrieve:
+//            retrieve(hdr);
+//            break;
+
+        default: {
+            std::stringstream ss;
+            ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message) << "). ABORTING";
+            Log::status() << ss.str() << std::endl;
+            Log::error() << "Retrieving... " << ss.str() << std::endl;
+            throw SeriousBug(ss.str(), Here());
+        }
+        };
+
+        // Ensure we have consumed exactly the correct amount from the socket.
+
+        controlRead(&tail, sizeof(tail));
+        ASSERT(tail == EndMarker);
+
+        // Acknowledge receipt of command
+
+        controlWrite(Message::Received, hdr.requestID);
+    }
+}
+
+void RemoteHandler::controlWrite(Message msg, uint32_t requestID, void* payload, uint32_t payloadLength) {
+
+    ASSERT((payload == nullptr) == (payloadLength == 0));
+
+    MessageHeader message(msg, requestID, payloadLength);
+    controlWrite(&message, sizeof(message));
+    if (payload) {
+        controlWrite(payload, payloadLength);
+    }
+    controlWrite(&EndMarker, sizeof(EndMarker));
+}
+
+void RemoteHandler::controlWrite(const void* data, size_t length) {
+
+    size_t written = controlSocket_.write(data, length);
+    if (length != written) {
+        std::stringstream ss;
+        ss << "Write error. Expected " << length << " bytes, wrote " << written;
+        throw TCPException(ss.str(), Here());
+    }
+}
+
+void RemoteHandler::controlRead(void* data, size_t length) {
+
+    size_t read = controlSocket_.read(data, length);
+    if (length != read) {
+        std::stringstream ss;
+        ss << "Read error. Expected " << length << " bytes, read " << read;
+        throw TCPException(ss.str(), Here());
+    }
+}
+
+void RemoteHandler::dataWrite(Message msg, uint32_t requestID, void* payload, uint32_t payloadLength) {
+
+    ASSERT((payload == nullptr) == (payloadLength == 0));
+
+    MessageHeader message(msg, requestID, payloadLength);
+
+    std::lock_guard<std::mutex> lock(dataWriteMutex_);
+
+    dataWriteUnsafe(&message, sizeof(message));
+    if (payload) {
+        dataWriteUnsafe(payload, payloadLength);
+    }
+    dataWriteUnsafe(&EndMarker, sizeof(EndMarker));
+}
+
+void RemoteHandler::dataWriteUnsafe(const void* data, size_t length) {
+    size_t written = dataSocket_.write(data, length);
+    if (length != written) {
+        std::stringstream ss;
+        ss << "Write error. Expected " << length << " bytes, wrote " << written;
+        throw TCPException(ss.str(), Here());
+    }
+}
+
+
+Buffer RemoteHandler::receivePayload(const MessageHeader &hdr) {
+
+    Buffer payload(eckit::round(hdr.payloadSize, 4*1024));
+
+    ASSERT(hdr.payloadSize > 0);
+    controlSocket_.read(payload, hdr.payloadSize);
+
+    return payload;
+}
+
+void RemoteHandler::tidyWorkers() {
+
+    std::map<uint32_t, std::future<void>>::iterator it = workerThreads_.begin();
+
+    for (; it != workerThreads_.end(); /* empty */) {
+
+        std::future_status stat = it->second.wait_for(std::chrono::milliseconds(0));
+
+        if (stat == std::future_status::ready) {
+            Log::info() << "Tidying up worker for request ID: " << it->first << std::endl;
+            workerThreads_.erase(it++);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void RemoteHandler::waitForWorkers() {
+
+    tidyWorkers();
+
+    for (auto& it : workerThreads_) {
+        Log::error() << "Worker thread still alive for request ID: " << it.first << std::endl;
+        Log::error() << "Joining ..." << std::endl;
+        it.second.get();
+        Log::error() << "Thread complete" << std::endl;
+    }
+}
+
+// TODO: This can be an absolutely standard handler based on the ListElement type.
+
+void RemoteHandler::list(const MessageHeader& hdr) {
+
+    Buffer payload(receivePayload(hdr));
+    MemoryStream s(payload);
+
+    FDBToolRequest request(s);
+
+    // TODO: Request ID
+
+    ASSERT(workerThreads_.find(hdr.requestID) == workerThreads_.end());
+
+    workerThreads_.emplace(hdr.requestID, std::async(std::launch::async,
+        [request, hdr, this]() {
+
+            auto listIterator = fdb_.list(request);
+
+            ListElement elem;
+            while (listIterator.next(elem)) {
+                eckit::Buffer encodeBuffer(4096);
+                MemoryStream s(encodeBuffer);
+                s << elem;
+
+                dataWrite(Message::Blob, hdr.requestID, encodeBuffer, s.position());
+            }
+
+            dataWrite(Message::Complete, hdr.requestID);
+        }
+    ));
+}
+
+#if 0
 
 RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
     socket_(socket),
@@ -261,6 +487,8 @@ void RemoteHandler::archiveThreadLoop() {
         Log::status() << "Archive done (" << queuelen << "): " << ss_key.str() << std::endl;
     }
 }
+
+#endif
 
 
 //----------------------------------------------------------------------------------------------------------------------

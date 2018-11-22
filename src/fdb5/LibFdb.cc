@@ -52,8 +52,6 @@ const Config& LibFdb::defaultConfig() {
         }
     }
 
-    eckit::Log::info() << "Config: " << config << std::endl;
-
     initted = true;
     return config;
 }

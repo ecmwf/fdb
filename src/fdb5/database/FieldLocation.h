@@ -18,11 +18,12 @@
 
 #include "eckit/eckit.h"
 
-#include "eckit/io/Length.h"
-#include "eckit/io/DataHandle.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/memory/SharedPtr.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/Length.h"
 #include "eckit/memory/Owned.h"
+#include "eckit/memory/SharedPtr.h"
+#include "eckit/serialisation/Streamable.h"
 
 namespace fdb5 {
 
@@ -34,13 +35,14 @@ namespace fdb5 {
 class FieldLocationVisitor;
 
 
-class FieldLocation : public eckit::OwnedLock {
+class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
 
 public: // methods
 
     FieldLocation();
     FieldLocation(eckit::Length length );
     FieldLocation(const FieldLocation& rhs);
+    FieldLocation(eckit::Stream&);
 
     virtual eckit::PathName url() const = 0;
 
@@ -58,6 +60,12 @@ public: // methods
 private: // methods
 
     virtual void print( std::ostream &out ) const = 0;
+
+protected: // For Streamable
+
+    virtual void encode(eckit::Stream&) const;
+
+    static eckit::ClassSpec                  classSpec_;
 
 protected: // members
 

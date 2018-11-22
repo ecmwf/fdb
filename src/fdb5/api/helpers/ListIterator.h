@@ -21,6 +21,10 @@
 #include <memory>
 #include <iosfwd>
 
+namespace eckit {
+    class Stream;
+}
+
 /*
  * Define a standard object which can be used to iterate the results of a
  * list() call on an arbitrary FDB object
@@ -35,14 +39,22 @@ public: // methods
 
     ListElement() = default;
     ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location);
+    ListElement(eckit::Stream& s);
 
     void print(std::ostream& out, bool location=false) const;
 
 private: // methods
 
+    void encode(eckit::Stream& s) const;
+
     friend std::ostream& operator<<(std::ostream& os, const ListElement& e) {
         e.print(os);
         return os;
+    }
+
+    friend eckit::Stream& operator<<(eckit::Stream& s, const ListElement& r) {
+        r.encode(s);
+        return s;
     }
 
 public: // members

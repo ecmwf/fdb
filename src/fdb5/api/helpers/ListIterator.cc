@@ -20,6 +20,12 @@ ListElement::ListElement(const std::vector<Key>& keyParts,
     location_(location) {}
 
 
+ListElement::ListElement(eckit::Stream &s) {
+    s >> keyParts_;
+    location_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
+}
+
+
 void ListElement::print(std::ostream &out, bool location) const {
     for (const auto& bit : keyParts_) {
         out << bit;
@@ -27,6 +33,11 @@ void ListElement::print(std::ostream &out, bool location) const {
     if (location && location_) {
         out << " " << *location_;
     }
+}
+
+void ListElement::encode(eckit::Stream &s) const {
+    s << keyParts_;
+    s << *location_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

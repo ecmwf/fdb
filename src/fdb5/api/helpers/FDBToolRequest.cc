@@ -29,6 +29,11 @@ FDBToolRequest::FDBToolRequest(const std::string& r,
     }
 }
 
+FDBToolRequest::FDBToolRequest(eckit::Stream& s) :
+    key_(s) {
+    s >> all_;
+}
+
 const Key& FDBToolRequest::key() const {
     return key_;
 }
@@ -43,6 +48,11 @@ void FDBToolRequest::print(std::ostream &s) const {
     s << " : all=" << (all_ ? "true" : "false");
     s << ")";
 
+}
+
+void FDBToolRequest::encode(eckit::Stream& s) const {
+    s << key_;
+    s << all_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

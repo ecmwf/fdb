@@ -19,6 +19,7 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
+#include "fdb5/remote/Messages.h"
 
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
@@ -31,10 +32,6 @@ namespace fdb5 {
 
 class FDB;
 
-namespace remote {
-    class MessageHeader;
-}
-
 //----------------------------------------------------------------------------------------------------------------------
 
 
@@ -43,61 +40,86 @@ class RemoteFDB : public FDBBase {
 public: // method
 
     RemoteFDB(const eckit::Configuration& config, const std::string& name);
-    ~RemoteFDB();
+    ~RemoteFDB() override;
 
     /// Archive writes data into aggregation buffer
-    virtual void archive(const Key& key, const void* data, size_t length);
+    void archive(const Key& key, const void* data, size_t length) override;
 
-    virtual eckit::DataHandle* retrieve(const MarsRequest& request);
+    eckit::DataHandle* retrieve(const MarsRequest& request) override;
 
-    virtual ListIterator list(const FDBToolRequest& request) override;
+    ListIterator list(const FDBToolRequest& request) override;
 
-    virtual std::string id() const;
+    DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
-    virtual void flush();
+    WhereIterator where(const FDBToolRequest& request) override;
 
-    virtual FDBStats stats() const;
+    WipeIterator wipe(const FDBToolRequest& request, bool doit) override;
+
+    PurgeIterator purge(const FDBToolRequest& request, bool doit) override;
+
+    StatsIterator stats(const FDBToolRequest& request) override;
+
+    void flush() override;
 
 private: // methods
 
     void connect();
     void disconnect();
 
-    void clientWrite(const void* data, size_t length);
-    void clientRead(void* data, size_t length);
+    // Listen to the dataClient for incoming messages, and push them onto
+    // appropriate queues.
+    void listeningThreadLoop();
+
+    void controlWrite(remote::Message msg, uint32_t requestID, void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWrite(const void* data, size_t length);
+    void controlRead(void* data, size_t length);
+    void dataRead(void* data, size_t length);
     void handleError(const remote::MessageHeader& hdr);
-
-    /// Do the actual communication with the server
-
-    void doBlockingFlush();
-    //void doBlockingArchive(const Key& key, const eckit::Buffer& data);
-    FDBStats archiveThreadLoop();
-
-    void addToArchiveBuffer(const Key&, const void* data, size_t length);
-    void addFlushToArchiveBuffer();
-    void sendArchiveBuffer();
-
+//
+//    /// Do the actual communication with the server
+//
+//    void doBlockingFlush();
+//    //void doBlockingArchive(const Key& key, const eckit::Buffer& data);
+//    FDBStats archiveThreadLoop();
+//
+//    void addToArchiveBuffer(const Key&, const void* data, size_t length);
+//    void addFlushToArchiveBuffer();
+//    void sendArchiveBuffer();
+//
     virtual void print(std::ostream& s) const;
 
 private: // members
 
     std::string hostname_;
     int port_;
+    int dataport_;
+//
+    eckit::TCPClient controlClient_;
+    eckit::TCPClient dataClient_;
 
-    eckit::TCPClient client_;
-    eckit::Timer timer_;
+    // Listen on the dataClient for incoming messages.
+    std::thread listeningThread_;
 
-    eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
-    size_t archivePosition_;
+    // Where do we put received messages
 
-    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
+    using StoredMessage = std::pair<remote::MessageHeader, eckit::Buffer>;
+    using MessageQueue = eckit::Queue<StoredMessage>;
 
-    std::future<FDBStats> archiveFuture_;
+    std::map<uint32_t, MessageQueue> messageQueues_;
 
-    FDBStats internalStats_;
-
+//    eckit::Timer timer_;
+//
+//    eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
+//    size_t archivePosition_;
+//
+//    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
+//
+//    std::future<FDBStats> archiveFuture_;
+//
+//    FDBStats internalStats_;
+//
     bool connected_;
-    bool noThreadArchive_;
+//    bool noThreadArchive_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

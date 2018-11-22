@@ -12,6 +12,8 @@
 
 namespace fdb5 {
 
+::eckit::ClassSpec FieldLocation::classSpec_ = {&Streamable::classSpec(), "FieldLocation",};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 FieldLocation::FieldLocation() {
@@ -20,6 +22,14 @@ FieldLocation::FieldLocation() {
 FieldLocation::FieldLocation(eckit::Length length) :
     length_(length) {
 
+}
+
+FieldLocation::FieldLocation(eckit::Stream& s) {
+    s >> length_;
+}
+
+void FieldLocation::encode(eckit::Stream& s) const {
+    s << length_;
 }
 
 FieldLocationVisitor::~FieldLocationVisitor()

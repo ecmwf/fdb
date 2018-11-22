@@ -22,7 +22,10 @@
 #include "fdb5/database/Key.h"
 
 
-namespace eckit { namespace option { class CmdArgs; }}
+namespace eckit {
+    class Stream;
+    namespace option { class CmdArgs; }
+}
 
 namespace fdb5 {
 
@@ -35,6 +38,8 @@ public: // methods
                    bool all=false,
                    const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
 
+    FDBToolRequest(eckit::Stream&);
+
     const Key& key() const;
 
     bool all() const;
@@ -42,10 +47,16 @@ public: // methods
 protected: // methods
 
     void print(std::ostream& s) const;
+    void encode(eckit::Stream& s) const;
 
     friend std::ostream& operator<<(std::ostream& os, const FDBToolRequest& r) {
         r.print(os);
         return os;
+    }
+
+    friend eckit::Stream& operator<<(eckit::Stream& s, const FDBToolRequest& r) {
+        r.encode(s);
+        return s;
     }
 
 private: // methods

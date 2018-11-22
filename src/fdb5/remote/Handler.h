@@ -15,21 +15,24 @@
 #ifndef fdb5_remote_Handler_H
 #define fdb5_remote_Handler_H
 
-#include <queue>
-#include <mutex>
-#include <thread>
-#include <future>
-#include <atomic>
+//#include <queue>
+//#include <atomic>
 
-#include "eckit/thread/Thread.h"
-#include "eckit/runtime/ProcessControler.h"
+//#include "eckit/thread/Thread.h"
+//#include "eckit/runtime/ProcessControler.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/net/TCPSocket.h"
-#include "eckit/memory/ScopedPtr.h"
-#include "eckit/container/Queue.h"
+#include "eckit/net/TCPServer.h"
+//#include "eckit/memory/ScopedPtr.h"
+//#include "eckit/container/Queue.h"
 
 #include "fdb5/api/FDB.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/remote/Messages.h"
+
+#include <future>
+#include <mutex>
 
 namespace fdb5 {
 
@@ -45,30 +48,57 @@ class RemoteHandler : private eckit::NonCopyable {
 
 public: // methods
 
-    RemoteHandler(eckit::TCPSocket& socket, const Config& config = fdb5::Config());
+    RemoteHandler(eckit::TCPSocket& socket, const Config& config = Config());
     ~RemoteHandler();
 
     void handle();
 
 private: // methods
 
-    void flush();
-    void archive(const MessageHeader& hdr);
-    void retrieve(const MessageHeader& hdr);
+    // Socket methods
 
-    void archiveThreadLoop();
+    void controlWrite(Message msg, uint32_t requestID, void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWrite(const void* data, size_t length);
+    void controlRead(void* data, size_t length);
+
+    // dataWrite is protected using a mutex, as we may have multiple workers.
+    void dataWrite(Message msg, uint32_t requestID, void* payload=nullptr, uint32_t payloadLength=0);
+    void dataWriteUnsafe(const void* data, size_t length);
+
+    eckit::Buffer receivePayload(const MessageHeader& hdr);
+
+    // Worker functionality
+
+    void tidyWorkers();
+    void waitForWorkers();
+
+    // API functionality
+
+    void list(const MessageHeader& hdr);
+
+//    void flush();
+//    void archive(const MessageHeader& hdr);
+//    void retrieve(const MessageHeader& hdr);
+//
+//    void archiveThreadLoop();
 
 private: // members
 
-    eckit::TCPSocket socket_;
+    eckit::TCPSocket controlSocket_;
+    eckit::TCPServer dataSocket_;
 
-    eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
-    eckit::ScopedPtr<eckit::Buffer> retrieveBuffer_;
+    std::map<uint32_t, std::future<void>> workerThreads_;
 
+//
+//    eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
+//    eckit::ScopedPtr<eckit::Buffer> retrieveBuffer_;
+//
     FDB fdb_;
+//
+//    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
+//    std::future<void> archiveFuture_;
 
-    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
-    std::future<void> archiveFuture_;
+    std::mutex dataWriteMutex_;
 };
 
 

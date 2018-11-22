@@ -32,15 +32,28 @@ namespace remote {
 const static eckit::FixedString<4> StartMarker {"SFDB"};
 const static eckit::FixedString<4> EndMarker {"EFDB"};
 
-constexpr uint16_t CurrentVersion = 1;
+constexpr uint16_t CurrentVersion = 2;
 
 
 enum class Message : uint16_t {
+
+    // Server instructions
     None = 0,
     Exit,
+
+    // API calls to forward
     Flush,
     Archive,
     Retrieve,
+    List,
+    Dump,
+    Where,
+    Wipe,
+    Purge,
+    Stats,
+
+    // Responses
+    Received,
     Blob,
     Complete,
     Error
@@ -55,10 +68,11 @@ public: // methods
 
     MessageHeader() {}
 
-    MessageHeader(Message message, uint32_t payloadSize=0) :
+    MessageHeader(Message message, uint32_t requestID, uint32_t payloadSize=0) :
         marker(StartMarker),
         version(CurrentVersion),
         message(message),
+        requestID(requestID),
         payloadSize(payloadSize) {}
 
     eckit::FixedString<4> marker;
@@ -66,6 +80,8 @@ public: // methods
     uint16_t version;
 
     Message message;
+
+    uint32_t requestID;
 
     uint32_t payloadSize;
 };

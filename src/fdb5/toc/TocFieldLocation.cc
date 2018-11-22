@@ -12,6 +12,9 @@
 
 namespace fdb5 {
 
+::eckit::ClassSpec TocFieldLocation::classSpec_ = {&FieldLocation::classSpec(), "TocFieldLocation",};
+::eckit::Reanimator<TocFieldLocation> TocFieldLocation::reanimator_;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 TocFieldLocation::TocFieldLocation() {
@@ -34,6 +37,13 @@ TocFieldLocation::TocFieldLocation(const FileStore &store, const FieldRef &ref) 
     path_(store.get(ref.pathId())),
     offset_(ref.offset()) {}
 
+TocFieldLocation::TocFieldLocation(eckit::Stream& s) :
+    FieldLocation(s)
+{
+    s >> path_;
+    s >> offset_;
+}
+
 
 std::shared_ptr<FieldLocation> TocFieldLocation::make_shared() const {
     return std::make_shared<TocFieldLocation>(*this);
@@ -55,6 +65,12 @@ void TocFieldLocation::print(std::ostream &out) const {
 
 void TocFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
+}
+
+void TocFieldLocation::encode(eckit::Stream& s) const {
+    FieldLocation::encode(s);
+    s << path_;
+    s << offset_;
 }
 
 void TocFieldLocation::dump(std::ostream& out) const

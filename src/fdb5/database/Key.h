@@ -76,13 +76,18 @@ public: // methods
         return keys_ == other.keys_;
     }
 
-    friend std::ostream &operator<<(std::ostream &s, const Key &x) {
+    friend std::ostream& operator<<(std::ostream &s, const Key &x) {
         x.print(s);
         return s;
     }
 
-    friend eckit::Stream &operator<<(eckit::Stream &s, const Key &x) {
+    friend eckit::Stream& operator<<(eckit::Stream &s, const Key &x) {
         x.encode(s);
+        return s;
+    }
+
+    friend eckit::Stream& operator>>(eckit::Stream& s, Key& x) {
+        x = Key(s);
         return s;
     }
 

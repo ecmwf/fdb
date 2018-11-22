@@ -14,6 +14,7 @@
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/api/RemoteFDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/Buffer.h"
@@ -46,6 +47,258 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+// n.b. if we get integer overflow, we reuse the IDs. This is not a
+//      big deal. The idea that we could be on the 2.1 billionth (successful)
+//      request, and still have an ongoing request 0 is ... laughable.
+
+static uint32_t generateRequestID() {
+
+    static std::mutex m;
+    static uint32_t id = 0;
+
+    std::lock_guard<std::mutex> lock(m);
+    return id++;
+}
+
+
+RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name) :
+    FDBBase(config, name),
+    hostname_(config.getString("host")),
+    port_(config.getLong("port")),
+    dataport_(0),
+    connected_(false) {}
+
+
+RemoteFDB::~RemoteFDB() {
+    disconnect();
+}
+
+// Functions for management of the connection
+
+void RemoteFDB::connect() {
+
+    if (!connected_) {
+        controlClient_.connect(hostname_, port_);
+
+        // Get data connection port, and connect to it too
+        controlRead(&dataport_, sizeof(dataport_));
+        Log::debug<LibFdb>() << "Recieved data port from host: " << hostname_ << ":" << dataport_ << std::endl;
+        dataClient_.connect(hostname_, dataport_);
+
+        listeningThread_ = std::thread([this] { listeningThreadLoop(); });
+
+        connected_ = true;
+    }
+}
+
+void RemoteFDB::disconnect() {
+    if (connected_) {
+
+        // Send termination message
+        controlWrite(Message::Exit, generateRequestID());
+
+        listeningThread_.join();
+
+        // Close both the control and data connections
+        controlClient_.close();
+        dataClient_.close();
+        connected_ = false;
+    }
+}
+
+void RemoteFDB::listeningThreadLoop() {
+
+    MessageHeader hdr;
+    eckit::FixedString<4> tail;
+
+//    Log::info() << "In listening thread loop" << std::endl;
+
+    while (true) {
+
+        dataRead(&hdr, sizeof(hdr));
+
+        ASSERT(hdr.marker == StartMarker);
+        ASSERT(hdr.version == CurrentVersion);
+//        Log::info() << "(data) Got header id: " << hdr.requestID << std::endl;
+
+        switch (hdr.message) {
+
+        case Message::Exit:
+//            Log::info() << "Exit message received from server" << std::endl;
+            return;
+
+        case Message::Blob: {
+//            Log::info() << "Received data blob from server" << std::endl;
+            Buffer payload(hdr.payloadSize);
+            if (hdr.payloadSize > 0) dataRead(payload, hdr.payloadSize);
+
+            auto it = messageQueues_.find(hdr.requestID);
+            ASSERT(it != messageQueues_.end());
+            it->second.emplace(std::make_pair(hdr, std::move(payload)));
+            break;
+        }
+
+        case Message::Complete: {
+//            Log::info() << "Complete message received from server" << std::endl;
+            auto it = messageQueues_.find(hdr.requestID);
+            ASSERT(it != messageQueues_.end());
+            it->second.set_done();
+            break;
+        }
+
+        default: {
+            std::stringstream ss;
+            ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message) << "). ABORTING";
+            Log::status() << ss.str() << std::endl;
+            Log::error() << "Retrieving... " << ss.str() << std::endl;
+            throw SeriousBug(ss.str(), Here());
+        }
+        };
+
+        // Ensure we have consumed exactly the correct amount from the socket.
+
+//        eckit::Log::info() << "Reading tail" << std::endl;
+        dataRead(&tail, sizeof(tail));
+        ASSERT(tail == EndMarker);
+    }
+}
+
+void RemoteFDB::controlWrite(Message msg, uint32_t requestID, void* payload, uint32_t payloadLength) {
+
+    ASSERT((payload == nullptr) == (payloadLength == 0));
+
+    MessageHeader message(msg, requestID, payloadLength);
+    controlWrite(&message, sizeof(message));
+    if (payload) {
+        controlWrite(payload, payloadLength);
+    }
+    controlWrite(&EndMarker, sizeof(EndMarker));
+}
+
+void RemoteFDB::controlWrite(const void* data, size_t length) {
+    size_t written = controlClient_.write(data, length);
+    if (length != written) {
+        std::stringstream ss;
+        ss << "Write error. Expected " << length << " bytes, wrote " << written;
+        throw TCPException(ss.str(), Here());
+    }
+}
+
+void RemoteFDB::controlRead(void* data, size_t length) {
+    size_t read = controlClient_.read(data, length);
+    if (length != read) {
+        std::stringstream ss;
+        ss << "Read error. Expected " << length << " bytes, read " << read;
+        throw TCPException(ss.str(), Here());
+    }
+}
+
+void RemoteFDB::dataRead(void *data, size_t length) {
+    size_t read = dataClient_.read(data, length);
+    if (length != read) {
+        std::stringstream ss;
+        ss << "Read error. Expected " << length << " bytes, read " << read;
+        throw TCPException(ss.str(), Here());
+    }
+}
+
+void RemoteFDB::handleError(const MessageHeader& hdr) {
+
+    ASSERT(hdr.marker == StartMarker);
+    ASSERT(hdr.version == CurrentVersion);
+
+    if (hdr.message == Message::Error) {
+        ASSERT(hdr.payloadSize > 9);
+
+        std::string what(hdr.payloadSize, ' ');
+        controlRead(&what[0], hdr.payloadSize);
+        what[hdr.payloadSize] = 0; // Just in case
+
+        try {
+            eckit::FixedString<4> tail;
+            controlRead(&tail, sizeof(tail));
+        } catch (...) {}
+
+        throw RemoteException(what, hostname_);
+    }
+}
+
+
+
+// Implement the primary FDB API
+
+void RemoteFDB::archive(const Key& key, const void* data, size_t length) { NOTIMP; }
+
+DataHandle* RemoteFDB::retrieve(const MarsRequest& request) { NOTIMP; }
+
+ListIterator RemoteFDB::list(const FDBToolRequest& request) {
+
+    connect();
+
+    // Ensure we have an entry in the message queue before we trigger anything that
+    // will result in return messages
+
+    // TODO: control over the queue size
+
+    uint32_t id = generateRequestID();
+    auto entry = messageQueues_.emplace(id, 100);;
+    ASSERT(entry.second);
+    MessageQueue& messageQueue(entry.first->second);
+
+    // Encode the request and send it to the server
+
+    Buffer encodeBuffer(4096);
+    MemoryStream s(encodeBuffer);
+    s << request;
+
+    controlWrite(Message::List, id, encodeBuffer, s.position());
+
+    // Wait for the receipt acknowledgement
+
+    MessageHeader response;
+    controlRead(&response, sizeof(MessageHeader));
+
+    handleError(response);
+
+    ASSERT(response.marker == StartMarker);
+    ASSERT(response.version == CurrentVersion);
+    ASSERT(response.message == Message::Received);
+
+    // Allow the messages to be retreived asynchronously
+
+    return ListIterator(
+                new ListAsyncIterator(
+                    [&messageQueue](eckit::Queue<ListElement>& queue){
+
+                        StoredMessage msg(std::make_pair(MessageHeader(), Buffer(0)));
+                        while (true) {
+                            if (messageQueue.pop(msg) == -1) {
+                                break;
+                            } else {
+                                MemoryStream s(msg.second);
+                                queue.emplace(ListElement(s));
+                            }
+                        }
+                    }
+                )
+            );
+}
+
+DumpIterator RemoteFDB::dump(const FDBToolRequest& request, bool simple) { NOTIMP; }
+
+WhereIterator RemoteFDB::where(const FDBToolRequest& request) { NOTIMP; }
+
+WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit) { NOTIMP; }
+
+PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit) { NOTIMP; }
+
+StatsIterator RemoteFDB::stats(const FDBToolRequest& request) { NOTIMP; }
+
+void RemoteFDB::flush() { NOTIMP; }
+
+
+
+#if 0
 RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name) :
     FDBBase(config, name),
     hostname_(config.getString("host")),
@@ -93,44 +346,6 @@ void RemoteFDB::disconnect() {
     }
 }
 
-void RemoteFDB::clientWrite(const void *data, size_t length) {
-    size_t written = client_.write(data, length);
-    if (length != written) {
-        std::stringstream ss;
-        ss << "Write error. Expected " << length << " bytes, wrote " << written;
-        throw TCPException(ss.str(), Here());
-    }
-}
-
-void RemoteFDB::clientRead(void *data, size_t length) {
-    size_t read = client_.read(data, length);
-    if (length != read) {
-        std::stringstream ss;
-        ss << "Read error. Expected " << length << " bytes, read " << read;
-        throw TCPException(ss.str(), Here());
-    }
-}
-
-void RemoteFDB::handleError(const MessageHeader& hdr) {
-
-    ASSERT(hdr.marker == StartMarker);
-    ASSERT(hdr.version == CurrentVersion);
-
-    if (hdr.message == Message::Error) {
-        ASSERT(hdr.payloadSize > 9);
-
-        std::string what(hdr.payloadSize, ' ');
-        clientRead(&what[0], hdr.payloadSize);
-        what[hdr.payloadSize] = 0; // Just in case
-
-        try {
-            eckit::FixedString<4> tail;
-            clientRead(&tail, sizeof(tail));
-        } catch (...) {}
-
-        throw RemoteException(what, hostname_);
-    }
-}
 
 
 void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
@@ -463,10 +678,11 @@ void RemoteFDB::doBlockingFlush() {
     ASSERT(tail == EndMarker);
 }
 #endif
+#endif
 
 
 void RemoteFDB::print(std::ostream &s) const {
-    s << "RemoteFDB(host=" << "port=" << ")";
+    s << "RemoteFDB(host=" << hostname_ << ", port=" << port_ << ", dataport=" << dataport_ << ")";
 }
 
 

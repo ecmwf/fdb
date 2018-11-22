@@ -34,6 +34,7 @@ public:
     TocFieldLocation(const TocFieldLocation& rhs);
     TocFieldLocation(const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
     TocFieldLocation(const FileStore& store, const FieldRef& ref);
+    TocFieldLocation(eckit::Stream&);
 
     const eckit::PathName& path() const { return path_; }
     const eckit::Offset&   offset() const { return offset_; }
@@ -46,6 +47,14 @@ public:
 
     virtual void visit(FieldLocationVisitor& visitor) const;
 
+protected: // For Streamable
+
+    virtual void encode(eckit::Stream&) const;
+    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
+
+    static eckit::ClassSpec                    classSpec_;
+    static eckit::Reanimator<TocFieldLocation> reanimator_;
+
 private: // methods
 
     virtual void dump(std::ostream &out) const;
@@ -56,6 +65,8 @@ private: // members
 
     eckit::PathName path_;
     eckit::Offset offset_;
+
+    // For streamability
 };
 
 
