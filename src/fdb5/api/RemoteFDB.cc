@@ -66,10 +66,21 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     hostname_(config.getString("host")),
     port_(config.getLong("port")),
     dataport_(0),
-    connected_(false) {}
+    archiveQueue_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)),
+connected_(false) {}
 
 
 RemoteFDB::~RemoteFDB() {
+
+    // If we have launched a thread with an async and we manage to get here, this is
+    // an error. n.b. if we don't do something, we will block in the destructor
+    // of std::future.
+
+    if (archiveFuture_.valid()) {
+        Log::error() << "Attempting to destruct RemoteFDB with active archive thread" << std::endl;
+        eckit::Main::instance().terminate();
+    }
+
     disconnect();
 }
 
@@ -189,7 +200,27 @@ void RemoteFDB::listeningThreadLoop() {
     }
 }
 
-void RemoteFDB::controlWrite(Message msg, uint32_t requestID, void* payload, uint32_t payloadLength) {
+void RemoteFDB::controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+
+    controlWrite(msg, requestID, payload, payloadLength);
+
+    // Wait for the receipt acknowledgement
+
+    MessageHeader response;
+    controlRead(&response, sizeof(MessageHeader));
+
+    handleError(response);
+
+    ASSERT(response.marker == StartMarker);
+    ASSERT(response.version == CurrentVersion);
+    ASSERT(response.message == Message::Received);
+
+    eckit::FixedString<4> tail;
+    controlRead(&tail, sizeof(tail));
+    ASSERT(tail == EndMarker);
+}
+
+void RemoteFDB::controlWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
@@ -219,7 +250,16 @@ void RemoteFDB::controlRead(void* data, size_t length) {
     }
 }
 
-void RemoteFDB::dataRead(void *data, size_t length) {
+void RemoteFDB::dataWrite(const void* data, size_t length) {
+    size_t written = dataClient_.write(data, length);
+    if (length != written) {
+        std::stringstream ss;
+        ss << "Write error. Expected " << length << " bytes, wrote " << written;
+        throw TCPException(ss.str(), Here());
+    }
+}
+
+void RemoteFDB::dataRead(void* data, size_t length) {
     size_t read = dataClient_.read(data, length);
     if (length != read) {
         std::stringstream ss;
@@ -252,11 +292,6 @@ void RemoteFDB::handleError(const MessageHeader& hdr) {
 
 
 // Implement the primary FDB API
-
-void RemoteFDB::archive(const Key& key, const void* data, size_t length) { NOTIMP; }
-
-DataHandle* RemoteFDB::retrieve(const MarsRequest& request) { NOTIMP; }
-
 
 // -----------------------------------------------------------------------------------------------------
 // Helper classes describe the behaviour of the various API functions to be forwarded
@@ -361,22 +396,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     s << request;
     helper.encodeExtra(s);
 
-    controlWrite(HelperClass::message(), id, encodeBuffer, s.position());
-
-    // Wait for the receipt acknowledgement
-
-    MessageHeader response;
-    controlRead(&response, sizeof(MessageHeader));
-
-    handleError(response);
-
-    ASSERT(response.marker == StartMarker);
-    ASSERT(response.version == CurrentVersion);
-    ASSERT(response.message == Message::Received);
-
-    eckit::FixedString<4> tail;
-    controlRead(&tail, sizeof(tail));
-    ASSERT(tail == EndMarker);
+    controlWriteCheckResponse(HelperClass::message(), id, encodeBuffer, s.position());
 
     // Return an AsyncIterator to allow the messages to be retrieved in the API
 
@@ -424,8 +444,121 @@ StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
 }
 
-void RemoteFDB::flush() { NOTIMP; }
+// -----------------------------------------------------------------------------------------------------
 
+void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
+
+    connect();
+
+    // if there is no archiving thread active, then start one.
+    // n.b. reset the archiveQueue_ after a potential flush() cycle.
+
+    if (!archiveFuture_.valid()) {
+
+        // Start the archival request on the remote side
+        uint32_t id = generateRequestID();
+        controlWriteCheckResponse(Message::Archive, id);
+
+        archiveFuture_ = std::async(std::launch::async, [this, id] { return archiveThreadLoop(id); });
+        archiveQueue_.reset();
+    }
+
+    archiveQueue_.emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
+}
+
+DataHandle* RemoteFDB::retrieve(const MarsRequest& request) { NOTIMP; }
+
+
+void RemoteFDB::flush() {
+
+    Timer timer;
+
+    timer.start();
+
+    // Flush only does anything if there is an ongoing archive();
+    if (archiveFuture_.valid()) {
+
+        archiveQueue_.set_done();
+        FDBStats stats = archiveFuture_.get();
+
+        ASSERT(stats.numFlush() == 0);
+        size_t numArchive = stats.numArchive();
+
+        Log::info() << "Num archived: " << numArchive << std::endl;
+
+        Buffer sendBuf(4096);
+        MemoryStream s(sendBuf);
+        s << numArchive;
+
+        // The flush call is blocking
+        controlWriteCheckResponse(Message::Flush, generateRequestID(), sendBuf, s.position());
+
+        internalStats_ += stats;
+    }
+
+    timer.stop();
+    internalStats_.addFlush(timer);
+}
+
+
+FDBStats RemoteFDB::archiveThreadLoop(uint32_t requestID) {
+
+    FDBStats localStats;
+    eckit::Timer timer;
+
+    std::pair<Key, Buffer> element {Key{}, 0};
+
+    Log::info() << "In archiveThreadLoop(). Waiting ... " << std::endl;
+
+    while (archiveQueue_.pop(element) != -1) {
+
+        const Key& key(element.first);
+        const Buffer& buffer(element.second);
+
+        Log::info() << "Got element: " << key << std::endl;
+
+        timer.start();
+        sendArchiveData(requestID, key, buffer.data(), buffer.size());
+        timer.stop();
+        localStats.addArchive(buffer.size(), timer);
+
+        Log::info() << "In archiveThreadLoop(). Waiting ... " << std::endl;
+    }
+
+    // And note that we are done. (don't time this, as already being blocked
+    // on by the ::flush() routine)
+
+    MessageHeader hdr(Message::Flush, requestID);
+    dataWrite(&hdr, sizeof(hdr));
+    dataWrite(&EndMarker, sizeof(EndMarker));
+
+    return localStats;
+
+    // We are inside an async, so don't need to worry about exceptions escaping.
+    // They will be released when flush() is called.
+}
+
+void RemoteFDB::sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length) {
+
+    ASSERT(data);
+    ASSERT(length != 0);
+
+    Buffer keyBuffer(4096);
+    MemoryStream keyStream(keyBuffer);
+    keyStream << key;
+
+    Log::info() << "Sending data" << std::endl;
+    MessageHeader message(Message::Blob, id, length + keyStream.position());
+    dataWrite(&message, sizeof(message));
+    dataWrite(keyBuffer, keyStream.position());
+    dataWrite(data, length);
+    dataWrite(&EndMarker, sizeof(EndMarker));
+    Log::info() << "Sent data" << std::endl;
+}
+
+FDBStats RemoteFDB::stats() const {
+    return internalStats_;
+}
 
 
 #if 0
@@ -718,10 +851,6 @@ void RemoteFDB::flush() {
             internalStats_ += archiveFuture_.get();
         }
     }
-}
-
-FDBStats RemoteFDB::stats() const {
-    return internalStats_;
 }
 
 

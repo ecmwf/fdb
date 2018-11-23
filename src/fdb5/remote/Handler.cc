@@ -19,6 +19,7 @@
 
 #include "eckit/maths/Functions.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/config/Resource.h"
 
 #include <chrono>
 
@@ -37,6 +38,21 @@ public:
 };
 
 //----------------------------------------------------------------------------------------------------------------------
+
+// ***************************************************************************************
+// All of the standard API functions behave in roughly the same manner. The Helper Classes
+// described here capture the manner in which their behaviours differ.
+//
+// See forwardApiCall() for how these helpers are used to forward an API call using a
+// worker thread.
+//
+// ***************************************************************************************
+//
+// Note that we use the "control" and "data" connections in a specific way, although these
+// may not be the optimal names for them. "control" is used for blocking requests,
+// and "data" is used for non-blocking activity.
+//
+// ***************************************************************************************
 
 namespace {
 
@@ -178,7 +194,7 @@ void RemoteHandler::handle() {
 
         tidyWorkers();
 
-        controlRead(&hdr, sizeof(hdr));
+        socketRead(&hdr, sizeof(hdr), controlSocket_);
 
         ASSERT(hdr.marker == StartMarker);
         ASSERT(hdr.version == CurrentVersion);
@@ -223,13 +239,13 @@ void RemoteHandler::handle() {
                 forwardApiCall<WipeHelper>(hdr);
                 break;
 
-//        case Message::Flush:
-//            flush();
-//            break;
+            case Message::Flush:
+                flush(hdr);
+                break;
 
-//        case Message::Archive:
-//            archive(hdr);
-//            break;
+            case Message::Archive:
+                archive(hdr);
+                break;
 
 //        case Message::Retrieve:
 //            retrieve(hdr);
@@ -246,7 +262,7 @@ void RemoteHandler::handle() {
 
             // Ensure we have consumed exactly the correct amount from the socket.
 
-            controlRead(&tail, sizeof(tail));
+            socketRead(&tail, sizeof(tail), controlSocket_);
             ASSERT(tail == EndMarker);
 
             // Acknowledge receipt of command
@@ -284,9 +300,9 @@ void RemoteHandler::controlWrite(const void* data, size_t length) {
     }
 }
 
-void RemoteHandler::controlRead(void* data, size_t length) {
+void RemoteHandler::socketRead(void* data, size_t length, eckit::TCPSocket& socket) {
 
-    size_t read = controlSocket_.read(data, length);
+    size_t read = socket.read(data, length);
     if (length != read) {
         std::stringstream ss;
         ss << "Read error. Expected " << length << " bytes, read " << read;
@@ -319,12 +335,12 @@ void RemoteHandler::dataWriteUnsafe(const void* data, size_t length) {
 }
 
 
-Buffer RemoteHandler::receivePayload(const MessageHeader &hdr) {
+Buffer RemoteHandler::receivePayload(const MessageHeader &hdr, TCPSocket& socket) {
 
     Buffer payload(eckit::round(hdr.payloadSize, 4*1024));
 
     ASSERT(hdr.payloadSize > 0);
-    controlSocket_.read(payload, hdr.payloadSize);
+    socketRead(payload, hdr.payloadSize, socket);
 
     return payload;
 }
@@ -366,7 +382,7 @@ void RemoteHandler::forwardApiCall(const MessageHeader& hdr) {
 
     HelperClass helper;
 
-    Buffer payload(receivePayload(hdr));
+    Buffer payload(receivePayload(hdr, controlSocket_));
     MemoryStream s(payload);
 
     FDBToolRequest request(s);
@@ -402,6 +418,142 @@ void RemoteHandler::forwardApiCall(const MessageHeader& hdr) {
             }
         }
     ));
+}
+
+
+void RemoteHandler::archive(const MessageHeader& hdr) {
+
+    ASSERT(hdr.payloadSize == 0);
+
+    // Ensure that we aren't already running an archive()
+
+    ASSERT(!archiveFuture_.valid());
+
+    // Start archive worker thread
+
+    uint32_t id = hdr.requestID;
+    archiveFuture_ = std::async(std::launch::async, [this, id] { return archiveThreadLoop(id); });
+}
+
+size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
+
+    size_t totalArchived = 0;
+
+    Log::info() << "Inside archiveThreadLoop. ID: " << id << std::endl;
+
+    // Create a worker that will do the actual archiving
+
+    static size_t queueSize(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32));
+    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> queue(queueSize);
+
+    std::future<void> worker = std::async(std::launch::async, [this, &queue] {
+
+        std::pair<fdb5::Key, eckit::Buffer> elem {{}, 0};
+
+        long queuelen;
+        while ((queuelen = queue.pop(elem)) != -1) {
+
+            const Key& key(elem.first);
+            const Buffer& buffer(elem.second);
+
+            std::stringstream ss_key;
+            ss_key << key;
+            Log::info() << "Archive (" << queuelen << "): " << ss_key.str() << std::endl;
+            Log::status() << "Archive (" << queuelen << "): " << ss_key.str() << std::endl;
+            fdb_.archive(key, buffer, buffer.size());
+            Log::status() << "Archive done (" << queuelen << "): " << ss_key.str() << std::endl;
+        }
+    });
+
+    // The archive loop is the only thing that can listen on the data socket,
+    // so we don't need to to anything clever here.
+
+    // n.b. we also don't need to lock on read. We are the only thing that reads.
+
+    while (true) {
+
+        MessageHeader hdr;
+        socketRead(&hdr, sizeof(hdr), dataSocket_);
+
+        ASSERT(hdr.marker == StartMarker);
+        ASSERT(hdr.version == CurrentVersion);
+        ASSERT(hdr.requestID == id);
+
+        // Have we been told that we are done yet?
+        if (hdr.message == Message::Flush) break;
+
+        ASSERT(hdr.message == Message::Blob);
+
+        Buffer payload(receivePayload(hdr, dataSocket_));
+        MemoryStream s(payload);
+
+        eckit::FixedString<4> tail;
+        socketRead(&tail, sizeof(tail), dataSocket_);
+        ASSERT(tail == EndMarker);
+
+        // Get the key and the data out
+
+        fdb5::Key key(s);
+
+        std::stringstream ss_key;
+        ss_key << key;
+        Log::status() << "Queueing: " << ss_key.str() << std::endl;
+        Log::debug<LibFdb>() << "Queueing: " << ss_key.str() << std::endl;
+        Log::info() << "Queueing: " << ss_key.str() << std::endl;     // TODO: Remove
+
+        // Queue the data for asynchronous handling
+
+        size_t pos = s.position();
+        size_t len = hdr.payloadSize - pos;
+
+        size_t queuelen = queue.emplace(std::make_pair(std::move(key), Buffer(&payload[pos], len)));
+
+        Log::status() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
+        Log::debug<LibFdb>() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
+        Log::info() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;     // TODO: Remove
+
+        totalArchived += 1;
+    }
+
+    // Trigger cleanup of the workers
+    queue.set_done();
+
+    // Complete reading the Flush instruction
+
+    eckit::FixedString<4> tail;
+    socketRead(&tail, sizeof(tail), dataSocket_);
+    ASSERT(tail == EndMarker);
+
+    // Ensure worker is done
+
+    ASSERT(worker.valid());
+    worker.get(); // n.b. use of async, get() propagates any exceptions.
+
+    Log::info() << "Recieved end marker. Exiting" << std::endl;
+
+    return totalArchived;
+}
+
+void RemoteHandler::flush(const MessageHeader& hdr) {
+
+    Log::info() << "In flush handler!" << std::endl;
+
+    Buffer payload(receivePayload(hdr, controlSocket_));
+    MemoryStream s(payload);
+
+    size_t numArchived;
+    s >> numArchived;
+
+    Log::info() << "Request: " << hdr.requestID << " : " << numArchived << std::endl;
+
+    ASSERT(numArchived == 0 || archiveFuture_.valid());
+
+    if (archiveFuture_.valid()) {
+        size_t n = archiveFuture_.get();
+        ASSERT(numArchived == n);
+        Log::info() << "flush completed: " << n << std::endl;
+    }
+    Log::info() << "flush complete" << std::endl;
 }
 
 

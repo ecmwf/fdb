@@ -70,9 +70,11 @@ private: // methods
     // appropriate queues.
     void listeningThreadLoop();
 
-    void controlWrite(remote::Message msg, uint32_t requestID, void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(const void* data, size_t length);
     void controlRead(void* data, size_t length);
+    void dataWrite(const void* data, size_t length);
     void dataRead(void* data, size_t length);
     void handleError(const remote::MessageHeader& hdr);
 
@@ -81,10 +83,15 @@ private: // methods
     template <typename HelperClass>
     auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType>;
 
+    // Workers for archiving
+
+    FDBStats archiveThreadLoop(uint32_t requestID);
+
+    void sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length);
+
 //
 //    /// Do the actual communication with the server
 //
-//    void doBlockingFlush();
 //    //void doBlockingArchive(const Key& key, const eckit::Buffer& data);
 //    FDBStats archiveThreadLoop();
 //
@@ -92,7 +99,9 @@ private: // methods
 //    void addFlushToArchiveBuffer();
 //    void sendArchiveBuffer();
 //
-    virtual void print(std::ostream& s) const;
+    virtual void print(std::ostream& s) const override;
+
+    virtual FDBStats stats() const override;
 
 private: // members
 
@@ -102,6 +111,8 @@ private: // members
 //
     eckit::TCPClient controlClient_;
     eckit::TCPClient dataClient_;
+
+    FDBStats internalStats_;
 
     // Listen on the dataClient for incoming messages.
     std::thread listeningThread_;
@@ -113,17 +124,20 @@ private: // members
 
     std::map<uint32_t, MessageQueue> messageQueues_;
 
+    // Asynchronised helpers for archiving
+
+    std::future<FDBStats> archiveFuture_;
+
+    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
+
 //    eckit::Timer timer_;
 //
 //    eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
 //    size_t archivePosition_;
 //
-//    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
 //
-//    std::future<FDBStats> archiveFuture_;
 //
-//    FDBStats internalStats_;
-//
+
     bool connected_;
 //    bool noThreadArchive_;
 };

@@ -30,6 +30,9 @@ public:
     FDBStats();
     ~FDBStats();
 
+    size_t numArchive() const { return numArchive_; }
+    size_t numFlush() const { return numFlush_; }
+
     void addArchive(size_t length, eckit::Timer& timer);
     void addRetrieve(size_t length, eckit::Timer& timer);
     void addFlush(eckit::Timer& timer);

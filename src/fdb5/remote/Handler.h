@@ -24,7 +24,6 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/net/TCPServer.h"
 //#include "eckit/memory/ScopedPtr.h"
-//#include "eckit/container/Queue.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/config/Config.h"
@@ -62,13 +61,13 @@ private: // methods
 
     void controlWrite(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(const void* data, size_t length);
-    void controlRead(void* data, size_t length);
+    void socketRead(void* data, size_t length, eckit::TCPSocket& socket);
 
     // dataWrite is protected using a mutex, as we may have multiple workers.
     void dataWrite(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void dataWriteUnsafe(const void* data, size_t length);
 
-    eckit::Buffer receivePayload(const MessageHeader& hdr);
+    eckit::Buffer receivePayload(const MessageHeader& hdr, eckit::TCPSocket& socket);
 
     // Worker functionality
 
@@ -83,29 +82,32 @@ private: // methods
     void list(const MessageHeader& hdr);
     void dump(const MessageHeader& hdr);
 
-//    void flush();
-//    void archive(const MessageHeader& hdr);
+    void flush(const MessageHeader& hdr);
+    void archive(const MessageHeader& hdr);
 //    void retrieve(const MessageHeader& hdr);
-//
-//    void archiveThreadLoop();
+
+    size_t archiveThreadLoop(uint32_t id);
 
 private: // members
 
     eckit::TCPSocket controlSocket_;
     eckit::TCPServer dataSocket_;
+    std::mutex dataWriteMutex_;
 
+    // API helpers
+
+    FDB fdb_;
     std::map<uint32_t, std::future<void>> workerThreads_;
+
+    // Archive helpers
+
+    std::future<size_t> archiveFuture_;
 
 //
 //    eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
 //    eckit::ScopedPtr<eckit::Buffer> retrieveBuffer_;
 //
-    FDB fdb_;
-//
-//    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
-//    std::future<void> archiveFuture_;
 
-    std::mutex dataWriteMutex_;
 };
 
 

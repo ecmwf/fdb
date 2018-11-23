@@ -78,6 +78,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
         eckit::ScopedPtr<eckit::DataHandle> dh ( path.fileHandle() );
 
         archiver.archive( *dh );
+        archiver.flush();
     }
 }
 
