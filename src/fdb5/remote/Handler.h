@@ -60,12 +60,12 @@ private: // methods
 
     // Socket methods
 
-    void controlWrite(Message msg, uint32_t requestID, void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWrite(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(const void* data, size_t length);
     void controlRead(void* data, size_t length);
 
     // dataWrite is protected using a mutex, as we may have multiple workers.
-    void dataWrite(Message msg, uint32_t requestID, void* payload=nullptr, uint32_t payloadLength=0);
+    void dataWrite(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void dataWriteUnsafe(const void* data, size_t length);
 
     eckit::Buffer receivePayload(const MessageHeader& hdr);

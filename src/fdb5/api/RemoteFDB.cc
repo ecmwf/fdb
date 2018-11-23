@@ -146,6 +146,20 @@ void RemoteFDB::listeningThreadLoop() {
             break;
         }
 
+        case Message::Error: {
+            auto it = messageQueues_.find(hdr.requestID);
+            ASSERT(it != messageQueues_.end());
+            std::string msg;
+            if (hdr.payloadSize > 0) {
+                msg.resize(hdr.payloadSize, ' ');
+                dataRead(&msg[0], hdr.payloadSize);
+            }
+            std::stringstream ss;
+            ss << "[" << controlClient_.remoteHost() << ":" << controlClient_.remotePort() << "]: ";
+            it->second.interrupt(ss.str() + msg);
+            break;
+        }
+
         default: {
             std::stringstream ss;
             ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message) << "). ABORTING";
@@ -236,6 +250,8 @@ DataHandle* RemoteFDB::retrieve(const MarsRequest& request) { NOTIMP; }
 // Helper classes describe the behaviour of the various API functions to be forwarded
 // -----------------------------------------------------------------------------------------------------
 
+namespace {
+
 template <typename T, Message msgID>
 struct BaseAPIHelper {
 
@@ -252,6 +268,8 @@ struct BaseAPIHelper {
 using ListHelper = BaseAPIHelper<ListElement, Message::List>;
 
 //using WhereHelper = BaseAPIHelper<WhereElement>;
+
+using StatsHelper = BaseAPIHelper<StatsElement, Message::Stats>;
 
 struct DumpHelper : BaseAPIHelper<DumpElement, Message::Dump> {
 
@@ -285,6 +303,7 @@ private:
     bool doit_;
 };
 
+} // namespace
 
 // -----------------------------------------------------------------------------------------------------
 
@@ -319,7 +338,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     s << request;
     helper.encodeExtra(s);
 
-    controlWrite(HelperClass::message(), id, encodeBuffer, s.position()); /********** Dump *********/
+    controlWrite(HelperClass::message(), id, encodeBuffer, s.position());
 
     // Wait for the receipt acknowledgement
 
@@ -339,6 +358,8 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     // Return an AsyncIterator to allow the messages to be retrieved in the API
 
     return IteratorType(
+                // n.b. Don't worry about catching exceptions in lambda, as
+                // this is handled in the AsyncIterator.
                 new AsyncIterator (
                     [&messageQueue](eckit::Queue<ValueType>& queue) {
                         StoredMessage msg(std::make_pair(MessageHeader(), Buffer(0)));
@@ -375,7 +396,9 @@ PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit) {
     return forwardApiCall(PurgeHelper(doit), request);
 }
 
-StatsIterator RemoteFDB::stats(const FDBToolRequest& request) { NOTIMP; }
+StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
+    return forwardApiCall(StatsHelper(), request);
+}
 
 void RemoteFDB::flush() { NOTIMP; }
 

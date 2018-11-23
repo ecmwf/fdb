@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <queue>
+#include <exception>
 
 /*
  * Given a standard, copyable, element, provide a mechanism for iterating over
@@ -117,14 +118,24 @@ public: // methods
 
         // Add a call to set_done() on the eckit::Queue.
         auto fullWorker = [workerFn, this] {
-            workerFn(queue_);
-            queue_.set_done();
+            try {
+                workerFn(queue_);
+                queue_.set_done();
+            } catch (const std::exception& e) {
+                queue_.interrupt(e.what());
+            } catch (...) {
+                // Really avoid calling std::terminate on worker thread.
+                queue_.interrupt("Unexpected exception occurred");
+            }
         };
 
         workerThread_ = std::thread(fullWorker);
     }
 
-    virtual ~APIAsyncIterator() {}
+    virtual ~APIAsyncIterator() {
+        queue_.interrupt();
+        workerThread_.join();
+    }
 
     virtual bool next(ValueType& elem) {
 

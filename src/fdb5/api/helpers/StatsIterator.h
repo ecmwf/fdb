@@ -35,8 +35,22 @@ namespace fdb5 {
 //       Or to use eckit::URL, ...
 
 struct StatsElement {
+
+    StatsElement() = default;
+    StatsElement(const IndexStats& iStats, const DbStats& dbStats);
+    StatsElement(eckit::Stream& s);
+
     IndexStats indexStatistics;
     DbStats dbStatistics;
+
+private: // methods
+
+    void encode(eckit::Stream& s) const;
+
+    friend eckit::Stream& operator<<(eckit::Stream& s, const StatsElement& r) {
+        r.encode(s);
+        return s;
+    }
 };
 
 using StatsIterator = APIIterator<StatsElement>;

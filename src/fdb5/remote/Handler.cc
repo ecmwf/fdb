@@ -38,6 +38,8 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace {
+
 template <typename ValueType>
 struct BaseHelper {
     static size_t encodeBufferSize() { return 4096; }
@@ -57,6 +59,7 @@ struct BaseHelper {
     }
 };
 
+
 struct ListHelper : public BaseHelper<ListElement> {
 
     ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
@@ -73,6 +76,7 @@ struct ListHelper : public BaseHelper<ListElement> {
     }
 };
 
+
 struct DumpHelper : public BaseHelper<DumpElement> {
 
     void extraDecode(eckit::Stream& s) { s >> simple_; }
@@ -85,6 +89,7 @@ private:
     bool simple_;
 };
 
+
 struct PurgeHelper : public BaseHelper<PurgeElement> {
 
     void extraDecode(eckit::Stream& s) { s >> doit_; }
@@ -96,6 +101,15 @@ struct PurgeHelper : public BaseHelper<PurgeElement> {
 private:
     bool doit_;
 };
+
+
+struct StatsHelper : public BaseHelper<StatsElement> {
+    StatsIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.stats(request);
+    }
+};
+
+} // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -147,27 +161,34 @@ void RemoteHandler::handle() {
         ASSERT(hdr.version == CurrentVersion);
         Log::info() << "Got header id: " << hdr.requestID << std::endl;
 
-        switch (hdr.message) {
+        try {
 
-        case Message::Exit:
-            Log::status() << "Exiting" << std::endl;
-            Log::info() << "Exiting" << std::endl;
-            return;
+            switch (hdr.message) {
 
-        case Message::List:
-            Log::info() << "List handler" << std::endl;
-            forwardApiCall<ListHelper>(hdr);
-            break;
+            case Message::Exit:
+                Log::status() << "Exiting" << std::endl;
+                Log::info() << "Exiting" << std::endl;
+                return;
 
-        case Message::Dump:
-            Log::info() << "Dump handler" << std::endl;
-            forwardApiCall<DumpHelper>(hdr);
-            break;
+            case Message::List:
+                Log::info() << "List handler" << std::endl;
+                forwardApiCall<ListHelper>(hdr);
+                break;
 
-        case Message::Purge:
-            Log::info() << "Purge handler" << std::endl;
-            forwardApiCall<PurgeHelper>(hdr);
-            break;
+            case Message::Dump:
+                Log::info() << "Dump handler" << std::endl;
+                forwardApiCall<DumpHelper>(hdr);
+                break;
+
+            case Message::Purge:
+                Log::info() << "Purge handler" << std::endl;
+                forwardApiCall<PurgeHelper>(hdr);
+                break;
+
+            case Message::Stats:
+                Log::info() << "Stats handler" << std::endl;
+                forwardApiCall<StatsHelper>(hdr);
+                break;
 
 //        case Message::Flush:
 //            flush();
@@ -181,27 +202,34 @@ void RemoteHandler::handle() {
 //            retrieve(hdr);
 //            break;
 
-        default: {
-            std::stringstream ss;
-            ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message) << "). ABORTING";
-            Log::status() << ss.str() << std::endl;
-            Log::error() << "Retrieving... " << ss.str() << std::endl;
-            throw SeriousBug(ss.str(), Here());
+            default: {
+                std::stringstream ss;
+                ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message) << "). ABORTING";
+                Log::status() << ss.str() << std::endl;
+                Log::error() << "Retrieving... " << ss.str() << std::endl;
+                throw SeriousBug(ss.str(), Here());
+            }
+            };
+
+            // Ensure we have consumed exactly the correct amount from the socket.
+
+            controlRead(&tail, sizeof(tail));
+            ASSERT(tail == EndMarker);
+
+            // Acknowledge receipt of command
+
+            controlWrite(Message::Received, hdr.requestID);
+
+        } catch (std::exception& e) {
+            // n.b. more general than eckit::Exception
+            eckit::Log::info() << "Handling error..." << std::endl;
+            std::string what(e.what());
+            controlWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
         }
-        };
-
-        // Ensure we have consumed exactly the correct amount from the socket.
-
-        controlRead(&tail, sizeof(tail));
-        ASSERT(tail == EndMarker);
-
-        // Acknowledge receipt of command
-
-        controlWrite(Message::Received, hdr.requestID);
     }
 }
 
-void RemoteHandler::controlWrite(Message msg, uint32_t requestID, void* payload, uint32_t payloadLength) {
+void RemoteHandler::controlWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
@@ -233,7 +261,7 @@ void RemoteHandler::controlRead(void* data, size_t length) {
     }
 }
 
-void RemoteHandler::dataWrite(Message msg, uint32_t requestID, void* payload, uint32_t payloadLength) {
+void RemoteHandler::dataWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
@@ -318,15 +346,28 @@ void RemoteHandler::forwardApiCall(const MessageHeader& hdr) {
     workerThreads_.emplace(hdr.requestID, std::async(std::launch::async,
         [request, hdr, helper, this]() {
 
-            auto iterator = helper.apiCall(fdb_, request);
+            try {
 
-            typename decltype(iterator)::value_type elem;
-            while (iterator.next(elem)) {
-                auto encoded(helper.encode(elem, *this));
-                dataWrite(Message::Blob, hdr.requestID, encoded.buf, encoded.position);
+                auto iterator = helper.apiCall(fdb_, request);
+
+                typename decltype(iterator)::value_type elem;
+                while (iterator.next(elem)) {
+                    auto encoded(helper.encode(elem, *this));
+                    dataWrite(Message::Blob, hdr.requestID, encoded.buf, encoded.position);
+                }
+
+                dataWrite(Message::Complete, hdr.requestID);
+
+            } catch (std::exception& e) {
+                // n.b. more general than eckit::Exception
+                eckit::Log::info() << "Handling error..." << std::endl;
+                std::string what(e.what());
+                dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+            } catch (...) {
+                // We really don't want to std::terminate the thread
+                std::string what("Caught unknown exception");
+                dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
             }
-
-            dataWrite(Message::Complete, hdr.requestID);
         }
     ));
 }
