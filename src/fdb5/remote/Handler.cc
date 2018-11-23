@@ -170,9 +170,9 @@ RemoteHandler::~RemoteHandler() {
 
     // And notify the client that we are done.
 
-    Log::info() << "Writing exit message" << std::endl;
+    Log::debug<LibFdb>() << "Sending exit message to client" << std::endl;
     dataWrite(Message::Exit, 0);
-    Log::info() << "Done" << std::endl;
+    Log::debug<LibFdb>() << "Done" << std::endl;
 }
 
 void RemoteHandler::handle() {
@@ -181,7 +181,7 @@ void RemoteHandler::handle() {
 
     int dataport = dataSocket_.localPort();
 
-    Log::info() << "Sending data port to client: " << dataport << std::endl;
+    Log::debug<LibFdb>() << "Sending data port to client: " << dataport << std::endl;
 
     controlWrite(&dataport, sizeof(dataport));
 
@@ -202,7 +202,7 @@ void RemoteHandler::handle() {
 
         ASSERT(hdr.marker == StartMarker);
         ASSERT(hdr.version == CurrentVersion);
-        Log::info() << "Got header id: " << hdr.requestID << std::endl;
+        Log::debug<LibFdb>() << "Got message with request ID: " << hdr.requestID << std::endl;
 
         try {
 
@@ -214,32 +214,26 @@ void RemoteHandler::handle() {
                 return;
 
             case Message::List:
-                Log::info() << "List handler" << std::endl;
                 forwardApiCall<ListHelper>(hdr);
                 break;
 
             case Message::Dump:
-                Log::info() << "Dump handler" << std::endl;
                 forwardApiCall<DumpHelper>(hdr);
                 break;
 
             case Message::Purge:
-                Log::info() << "Purge handler" << std::endl;
                 forwardApiCall<PurgeHelper>(hdr);
                 break;
 
             case Message::Stats:
-                Log::info() << "Stats handler" << std::endl;
                 forwardApiCall<StatsHelper>(hdr);
                 break;
 
             case Message::Where:
-                Log::info() << "Where handler" << std::endl;
                 forwardApiCall<WhereHelper>(hdr);
                 break;
 
             case Message::Wipe:
-                Log::info() << "Wipe handler" << std::endl;
                 forwardApiCall<WipeHelper>(hdr);
                 break;
 
@@ -275,7 +269,6 @@ void RemoteHandler::handle() {
 
         } catch (std::exception& e) {
             // n.b. more general than eckit::Exception
-            eckit::Log::info() << "Handling error..." << std::endl;
             std::string what(e.what());
             controlWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
         } catch (...) {
@@ -510,7 +503,6 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
         ss_key << key;
         Log::status() << "Queueing: " << ss_key.str() << std::endl;
         Log::debug<LibFdb>() << "Queueing: " << ss_key.str() << std::endl;
-        Log::info() << "Queueing: " << ss_key.str() << std::endl;     // TODO: Remove
 
         // Queue the data for asynchronous handling
 
@@ -521,7 +513,6 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
 
         Log::status() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
         Log::debug<LibFdb>() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
-        Log::info() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;     // TODO: Remove
 
         totalArchived += 1;
     }
@@ -566,6 +557,7 @@ void RemoteHandler::flush(const MessageHeader& hdr) {
         Log::info() << "Flushing" << std::endl;
         Log::status() << "Flushing" << std::endl;
         fdb_.flush();
+        Log::info() << "Flush complete" << std::endl;
         Log::status() << "Flush complete" << std::endl;
     }
 }
@@ -584,7 +576,6 @@ void RemoteHandler::retrieve(const MessageHeader& hdr) {
     MemoryStream s(payload);
 
     MarsRequest request(s);
-    Log::info() << "In the retrieve handler" << request << std::endl;
 
     retrieveQueue_.emplace(std::make_pair(hdr.requestID, std::move(request)));
 }
@@ -604,8 +595,12 @@ void RemoteHandler::retrieveThreadLoop() {
 
         try {
 
+            Log::status() << "Retrieving: " << requestID << std::endl;
+            Log::debug<LibFdb>() << "Retrieving (" << requestID << ")" << request << std::endl;
+
+            // Forward the API call
+
             std::unique_ptr<eckit::DataHandle> dh(fdb_.retrieve(request));
-            Log::info() << "Size: " << dh->estimate() << std::endl;
 
             // Write the data to the parent, in chunks if necessary.
 
@@ -614,22 +609,21 @@ void RemoteHandler::retrieveThreadLoop() {
 
             dh->openForRead();
             while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
-                Log::info() << "Read bytes: " << dataRead << std::endl;
                 dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
-                Log::info() << "Written blob: " << dataRead << std::endl;
-                ASSERT(false);
             }
 
             // And when we are done, add a complete message.
 
-            Log::info() << "Writing complete: " << requestID << std::endl;
+            Log::debug<LibFdb>() << "Writing retrieve complete message: " << requestID << std::endl;
+
             dataWrite(Message::Complete, requestID);
-            Log::info() << "Written complete: " << requestID << std::endl;
+
+            Log::status() << "Done retrieve: " << requestID << std::endl;
+            Log::debug<LibFdb>() << "Done retrieve: " << requestID << std::endl;
 
         } catch (std::exception& e) {
             // n.b. more general than eckit::Exception
             std::string what(e.what());
-            Log::info() << "Writing error ........" << std::endl;
             dataWrite(Message::Error, requestID, what.c_str(), what.length());
         } catch (...) {
             // We really don't want to std::terminate the thread
@@ -638,239 +632,6 @@ void RemoteHandler::retrieveThreadLoop() {
         }
     }
 }
-
-
-#if 0
-
-RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
-    socket_(socket),
-    fdb_(config),
-    archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32)) {}
-
-
-RemoteHandler::~RemoteHandler() {
-
-    // If we have launched a thread with an async and we manage to get here, this is
-    // an error. n.b. if we don't do something, we will block in the destructor
-    // of std::future.
-
-    if (archiveFuture_.valid()) {
-        Log::error() << "Attempting to destruct RemoteHandler with active archive thread" << std::endl;
-        eckit::Main::instance().terminate();
-    }
-}
-
-
-void RemoteHandler::handle() {
-
-    Log::info() << "... started" << std::endl;
-
-    MessageHeader hdr;
-    eckit::FixedString<4> tail;
-
-    while (socket_.read(&hdr, sizeof(hdr))) {
-
-        ASSERT(hdr.marker == StartMarker);
-        ASSERT(hdr.version == CurrentVersion);
-
-        switch (hdr.message) {
-
-        case Message::Exit:
-            Log::status() << "Exiting" << std::endl;
-            return;
-
-        case Message::Flush:
-            flush();
-            break;
-
-        case Message::Archive:
-            archive(hdr);
-            break;
-
-        case Message::Retrieve:
-            retrieve(hdr);
-            break;
-
-        default: {
-            std::stringstream ss;
-            ss << "ERROR: Unexpected message recieved ("
-               << static_cast<int>(hdr.message)
-               << "). ABORTING";
-            Log::status() << ss.str() << std::endl;
-            Log::error() << "Retrieving... " << ss.str() << std::endl;
-            throw SeriousBug(ss.str(), Here());
-        }
-        };
-
-        ASSERT(socket_.read(&tail, 4));
-        ASSERT(tail == EndMarker);
-    }
-
-    // If we have got here with the archive thread still running,
-    // it is due to an unclean disconnection from the client between writing fields.
-    // Try as hard as possible!
-
-    if (archiveFuture_.valid()) {
-        flush();
-        throw eckit::ReadError("Client connection unexpectedly lost. Archived fields may be incomplete", Here());
-    }
-}
-
-void RemoteHandler::flush() {
-    Log::status() << "Queueing data flush" << std::endl;
-    //Log::debug<LibFdb>() << "Flushing data" << std::endl;
-    Log::info() << "Queueing data flush" << std::endl;
-
-    // If we have a worker thread running (i.e. data has been written), then signal
-    // a flush to it, and wait for it to be done.
-
-    if (archiveFuture_.valid()) {
-
-        try {
-            archiveQueue_.emplace(std::pair<Key, Buffer>(Key{}, 0));
-            archiveFuture_.get();
-        }
-        catch(const eckit::Exception& e) {
-            std::string what(e.what());
-            MessageHeader response(Message::Error, what.length());
-            socket_.write(&response, sizeof(response));
-            socket_.write(what.c_str(), what.length());
-            socket_.write(&EndMarker, sizeof(EndMarker));
-            throw;
-        }
-    }
-
-    Log::status() << "Flush complete" << std::endl;
-    //Log::debug<LibFdb>() << "Flushing data" << std::endl;
-    Log::info() << "Flush complete" << std::endl;
-
-    MessageHeader response(Message::Complete);
-    socket_.write(&response, sizeof(response));
-    socket_.write(&EndMarker, sizeof(EndMarker));
-}
-
-void RemoteHandler::archive(const MessageHeader& hdr) {
-
-    // Ensure that we have a handling thread running
-
-    if (!archiveFuture_.valid()) {
-        archiveFuture_ = std::async(std::launch::async, [this] { archiveThreadLoop(); });
-    }
-
-    // Ensure we have somewhere to read the data from the socket
-
-    if (!archiveBuffer_ || archiveBuffer_->size() < hdr.payloadSize) {
-        archiveBuffer_.reset(new Buffer( eckit::round(hdr.payloadSize, 4*1024) ));
-    }
-
-    // Extract the data
-
-    ASSERT(hdr.payloadSize > 0);
-    socket_.read(*archiveBuffer_, hdr.payloadSize);
-
-    MemoryStream keyStream(*archiveBuffer_);
-    fdb5::Key key(keyStream);
-
-    std::stringstream ss_key;
-    ss_key << key;
-    Log::status() << "Queueing: " << ss_key.str() << std::endl;
-    Log::debug<LibFdb>() << "Queueing: " << ss_key.str() << std::endl;
-
-    size_t pos = keyStream.position();
-    size_t len = hdr.payloadSize - pos;
-
-    // Queue the data for asynchronous handling
-
-    Buffer buffer(&(*archiveBuffer_)[pos], len);
-
-    size_t queuelen = archiveQueue_.emplace(std::make_pair(std::move(key), Buffer(&(*archiveBuffer_)[pos], len)));
-    Log::status() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
-    Log::debug<LibFdb>() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
-}
-
-void RemoteHandler::retrieve(const MessageHeader& hdr) {
-
-    Log::status() << "Retrieving..." << std::endl;
-    Log::debug<LibFdb>() << "Retrieving... " << std::endl;
-
-    size_t requiredBuffer = std::max(int(hdr.payloadSize), 64 * 1024 * 1024);
-
-    if (!retrieveBuffer_ || retrieveBuffer_->size() < requiredBuffer) {
-        retrieveBuffer_.reset(new Buffer(requiredBuffer + 4096 - (((requiredBuffer - 1) % 4096) + 1)));
-    }
-
-    ASSERT(hdr.payloadSize > 0);
-    socket_.read(*retrieveBuffer_, hdr.payloadSize);
-
-    MemoryStream requestStream(*retrieveBuffer_);
-    MarsRequest request(requestStream);
-
-    // Read the data into a buffer, and then write it to the stream.
-    // For now, we assume that we are dealing with one field, and that as such it will fit into
-    // the buffer...
-
-    size_t bytesRead;
-
-    try {
-        eckit::ScopedPtr<DataHandle> dh(fdb_.retrieve(request));
-
-        dh->openForRead();
-        bytesRead = dh->read(*retrieveBuffer_, requiredBuffer);
-    }
-    catch(const eckit::Exception& e) {
-        std::string what(e.what());
-        MessageHeader response(Message::Error, what.length());
-        socket_.write(&response, sizeof(response));
-        socket_.write(what.c_str(), what.length());
-        socket_.write(&EndMarker, sizeof(EndMarker));
-        throw;
-    }
-
-    // ASSERT(bytesRead > 0); // May be NO fields found. That is legit.
-    ASSERT(bytesRead < requiredBuffer);
-
-    MessageHeader response(Message::Blob, bytesRead);
-
-    socket_.write(&response, sizeof(response));
-    socket_.write(*retrieveBuffer_, bytesRead);
-    socket_.write(&EndMarker, sizeof(EndMarker));
-
-    Log::status() << "Done retrieve" << std::endl;
-    Log::debug<LibFdb>() << "Done retrieve" << std::endl;
-}
-
-
-void RemoteHandler::archiveThreadLoop() {
-
-    std::pair<Key, Buffer> element {Key{}, 0};
-
-    while (true) {
-
-        size_t queuelen = archiveQueue_.pop(element);
-
-        const Key& key(element.first);
-        const Buffer& buffer(element.second);
-
-        if (buffer.size() == 0) {
-            ASSERT(key.empty());
-
-            Log::info() << "Flushing" << std::endl;
-            Log::status() << "Flushing" << std::endl;
-            fdb_.flush();
-            Log::status() << "Flush complete" << std::endl;
-            return;
-        }
-
-        std::stringstream ss_key;
-        ss_key << key;
-        Log::info() << "Archived (" << queuelen << "): " << ss_key.str() << std::endl;
-        Log::status() << "Archived (" << queuelen << "): " << ss_key.str() << std::endl;
-        fdb_.archive(key, buffer, buffer.size());
-        Log::status() << "Archive done (" << queuelen << "): " << ss_key.str() << std::endl;
-    }
-}
-
-#endif
 
 
 //----------------------------------------------------------------------------------------------------------------------
