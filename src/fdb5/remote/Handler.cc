@@ -42,7 +42,7 @@ namespace {
 
 template <typename ValueType>
 struct BaseHelper {
-    static size_t encodeBufferSize() { return 4096; }
+    static size_t encodeBufferSize(const ValueType&) { return 4096; }
     void extraDecode(eckit::Stream&) {}
     ValueType apiCall(FDB& fdb, const FDBToolRequest&) const { NOTIMP; }
 
@@ -52,7 +52,7 @@ struct BaseHelper {
     };
 
     Encoded encode(const ValueType& elem, const RemoteHandler&) const {
-        eckit::Buffer encodeBuffer(encodeBufferSize());
+        eckit::Buffer encodeBuffer(encodeBufferSize(elem));
         MemoryStream s(encodeBuffer);
         s << elem;
         return {s.position(), std::move(encodeBuffer)};
@@ -113,6 +113,23 @@ struct WhereHelper : public BaseHelper<WhereElement> {
     WhereIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
         return fdb.where(request);
     }
+};
+
+struct WipeHelper : public BaseHelper<WipeElement> {
+
+    void extraDecode(eckit::Stream& s) { s >> doit_; }
+
+    WipeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.wipe(request, doit_);
+    }
+
+    static size_t encodeBufferSize(const WipeElement& elem) {
+        size_t totalSize = elem.guessEncodedSize();
+        return eckit::round(totalSize, 4096);
+    }
+
+private:
+    bool doit_;
 };
 
 } // namespace
@@ -199,6 +216,11 @@ void RemoteHandler::handle() {
             case Message::Where:
                 Log::info() << "Where handler" << std::endl;
                 forwardApiCall<WhereHelper>(hdr);
+                break;
+
+            case Message::Wipe:
+                Log::info() << "Wipe handler" << std::endl;
+                forwardApiCall<WipeHelper>(hdr);
                 break;
 
 //        case Message::Flush:

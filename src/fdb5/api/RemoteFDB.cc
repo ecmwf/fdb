@@ -317,6 +317,15 @@ private:
     bool doit_;
 };
 
+struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
+
+    WipeHelper(bool doit) : doit_(doit) {};
+    void encodeExtra(eckit::Stream& s) const { s << doit_; }
+
+private:
+    bool doit_;
+};
+
 } // namespace
 
 // -----------------------------------------------------------------------------------------------------
@@ -403,7 +412,9 @@ WhereIterator RemoteFDB::where(const FDBToolRequest& request) {
     return forwardApiCall(WhereHelper(), request);
 }
 
-WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit) { NOTIMP; }
+WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit) {
+    return forwardApiCall(WipeHelper(doit), request);
+}
 
 PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit) {
     return forwardApiCall(PurgeHelper(doit), request);

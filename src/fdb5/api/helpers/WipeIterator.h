@@ -22,7 +22,7 @@
 
 /*
  * Define a standard object which can be used to iterate the results of a
- * where() call on an arbitrary FDB object
+ * wipe() call on an arbitrary FDB object
  */
 
 namespace fdb5 {
@@ -32,7 +32,26 @@ namespace fdb5 {
 // TODO: We might expand this to include host, port, etc, in an explicit where object.
 //       Or to use eckit::URL, ...
 
-struct WipeElement {
+class WipeElement {
+
+public: // methods
+
+    WipeElement() = default;
+    WipeElement(eckit::Stream& s);
+
+    size_t guessEncodedSize() const;
+
+private: // methods
+
+    void encode(eckit::Stream& s) const;
+
+    friend eckit::Stream& operator<<(eckit::Stream& s, const WipeElement& r) {
+        r.encode(s);
+        return s;
+    }
+
+public: // members
+
     std::string owner;
     std::set<eckit::PathName> metadataPaths;
     std::set<eckit::PathName> dataPaths;
