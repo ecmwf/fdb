@@ -15,20 +15,14 @@
 #ifndef fdb5_remote_Handler_H
 #define fdb5_remote_Handler_H
 
-//#include <queue>
-//#include <atomic>
-
-//#include "eckit/thread/Thread.h"
-//#include "eckit/runtime/ProcessControler.h"
-#include "eckit/io/Buffer.h"
-#include "eckit/net/TCPSocket.h"
-#include "eckit/net/TCPServer.h"
-//#include "eckit/memory/ScopedPtr.h"
-
 #include "fdb5/api/FDB.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/remote/Messages.h"
+
+#include "eckit/io/Buffer.h"
+#include "eckit/net/TCPSocket.h"
+#include "eckit/net/TCPServer.h"
 
 #include <future>
 #include <mutex>
@@ -108,17 +102,9 @@ private: // members
 
     std::thread retrieveWorker_;
     eckit::Queue<std::pair<uint32_t, MarsRequest>> retrieveQueue_;
-
-//
-//    eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;
-//    eckit::ScopedPtr<eckit::Buffer> retrieveBuffer_;
-//
-
 };
 
-
 //----------------------------------------------------------------------------------------------------------------------
-
 
 } // namespace remote
 } // namespace fdb5

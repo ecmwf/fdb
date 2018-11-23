@@ -31,11 +31,13 @@ namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace {
 class TCPException : public Exception {
 public:
     TCPException(const std::string& msg, const CodeLocation& here) :
         Exception(std::string("TCPException: ") + msg, here) {}
 };
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -170,9 +172,9 @@ RemoteHandler::~RemoteHandler() {
 
     // And notify the client that we are done.
 
-    Log::debug<LibFdb>() << "Sending exit message to client" << std::endl;
+    Log::info() << "Sending exit message to client" << std::endl;
     dataWrite(Message::Exit, 0);
-    Log::debug<LibFdb>() << "Done" << std::endl;
+    Log::info() << "Done" << std::endl;
 }
 
 void RemoteHandler::handle() {
@@ -375,7 +377,9 @@ void RemoteHandler::waitForWorkers() {
         Log::error() << "Thread complete" << std::endl;
     }
 
-    retrieveWorker_.join();
+    if (retrieveWorker_.joinable()) {
+        retrieveWorker_.join();
+    }
 }
 
 
