@@ -109,6 +109,12 @@ struct StatsHelper : public BaseHelper<StatsElement> {
     }
 };
 
+struct WhereHelper : public BaseHelper<WhereElement> {
+    WhereIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.where(request);
+    }
+};
+
 } // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -188,6 +194,11 @@ void RemoteHandler::handle() {
             case Message::Stats:
                 Log::info() << "Stats handler" << std::endl;
                 forwardApiCall<StatsHelper>(hdr);
+                break;
+
+            case Message::Where:
+                Log::info() << "Where handler" << std::endl;
+                forwardApiCall<WhereHelper>(hdr);
                 break;
 
 //        case Message::Flush:
@@ -355,23 +366,18 @@ void RemoteHandler::forwardApiCall(const MessageHeader& hdr) {
                     auto encoded(helper.encode(elem, *this));
                     dataWrite(Message::Blob, hdr.requestID, encoded.buf, encoded.position);
                 }
-                Log::info() << "Sending complete message" << std::endl;
 
                 dataWrite(Message::Complete, hdr.requestID);
 
-                Log::info() << "Worker thread complete" << std::endl;
-
             } catch (std::exception& e) {
                 // n.b. more general than eckit::Exception
-                eckit::Log::info() << "Handling error..." << std::endl;
                 std::string what(e.what());
                 dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
             } catch (...) {
                 // We really don't want to std::terminate the thread
-                std::string what("Caught unknown exception");
+                std::string what("Caught unexpected, unknown exception in worker");
                 dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
             }
-            Log::info() << "Exiting" << std::endl;
         }
     ));
 }

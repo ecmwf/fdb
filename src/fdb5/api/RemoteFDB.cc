@@ -279,13 +279,17 @@ struct BaseAPIHelper {
 
 using ListHelper = BaseAPIHelper<ListElement, Message::List>;
 
-//using WhereHelper = BaseAPIHelper<WhereElement>;
-
 using StatsHelper = BaseAPIHelper<StatsElement, Message::Stats>;
 
-struct DumpHelper : BaseAPIHelper<DumpElement, Message::Dump> {
+struct WhereHelper : public BaseAPIHelper<WhereElement, Message::Where> {
+    static WhereElement valueFromStream(eckit::Stream& s) {
+        WhereElement elem;
+        s >> elem;
+        return elem;
+    }
+};
 
-    typedef DumpElement ValueType;
+struct DumpHelper : BaseAPIHelper<DumpElement, Message::Dump> {
 
     DumpHelper(bool simple) : simple_(simple) {}
     void encodeExtra(eckit::Stream& s) const { s << simple_; }
@@ -300,8 +304,6 @@ private:
 };
 
 struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
-
-    typedef PurgeElement ValueType;
 
     PurgeHelper(bool doit) : doit_(doit) {}
     void encodeExtra(eckit::Stream& s) const { s << doit_; }
@@ -398,8 +400,7 @@ DumpIterator RemoteFDB::dump(const FDBToolRequest& request, bool simple) {
 }
 
 WhereIterator RemoteFDB::where(const FDBToolRequest& request) {
-    NOTIMP;
-    //return forwardApiCall(WhereHelper(), request);
+    return forwardApiCall(WhereHelper(), request);
 }
 
 WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit) { NOTIMP; }
