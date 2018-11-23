@@ -84,9 +84,10 @@ private: // methods
 
     void flush(const MessageHeader& hdr);
     void archive(const MessageHeader& hdr);
-//    void retrieve(const MessageHeader& hdr);
+    void retrieve(const MessageHeader& hdr);
 
     size_t archiveThreadLoop(uint32_t id);
+    void retrieveThreadLoop();
 
 private: // members
 
@@ -102,6 +103,11 @@ private: // members
     // Archive helpers
 
     std::future<size_t> archiveFuture_;
+
+    // Retrieve helpers
+
+    std::thread retrieveWorker_;
+    eckit::Queue<std::pair<uint32_t, MarsRequest>> retrieveQueue_;
 
 //
 //    eckit::ScopedPtr<eckit::Buffer> archiveBuffer_;

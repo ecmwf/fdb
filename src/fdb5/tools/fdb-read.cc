@@ -20,6 +20,8 @@
 
 #include "marslib/MarsRequest.h"
 
+#include <chrono>
+
 
 class FDBRead : public fdb5::FDBTool {
     virtual void execute(const eckit::option::CmdArgs &args);
@@ -84,6 +86,11 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
     // And get the data
 
     eckit::ScopedPtr<eckit::DataHandle> dh(handles.dataHandle());
+
+    eckit::Log::info() << "sleeping" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(4));
+    eckit::Log::info() << "and go!!!" << std::endl;
+
 
     dh->saveInto(out);
 }

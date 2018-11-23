@@ -152,11 +152,15 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+// n.b. by default the retrieve queue is big -- we are only queueing the requests, and it
+// is a common idiom to queue _many_ requests behind each other (and then aggregate the
+// results in a MultiHandle/HandleGatherer).
+
 RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
     controlSocket_(socket),
     dataSocket_(),
-    fdb_(config) {}
-
+    fdb_(config),
+    retrieveQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {}
 
 RemoteHandler::~RemoteHandler() {
 
@@ -247,9 +251,9 @@ void RemoteHandler::handle() {
                 archive(hdr);
                 break;
 
-//        case Message::Retrieve:
-//            retrieve(hdr);
-//            break;
+            case Message::Retrieve:
+                retrieve(hdr);
+                break;
 
             default: {
                 std::stringstream ss;
@@ -273,6 +277,9 @@ void RemoteHandler::handle() {
             // n.b. more general than eckit::Exception
             eckit::Log::info() << "Handling error..." << std::endl;
             std::string what(e.what());
+            controlWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+        } catch (...) {
+            std::string what("Caught unexpected and unknown error");
             controlWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
         }
     }
@@ -364,6 +371,8 @@ void RemoteHandler::tidyWorkers() {
 
 void RemoteHandler::waitForWorkers() {
 
+    retrieveQueue_.set_done();
+
     tidyWorkers();
 
     for (auto& it : workerThreads_) {
@@ -372,6 +381,8 @@ void RemoteHandler::waitForWorkers() {
         it.second.get();
         Log::error() << "Thread complete" << std::endl;
     }
+
+    retrieveWorker_.join();
 }
 
 
@@ -556,6 +567,75 @@ void RemoteHandler::flush(const MessageHeader& hdr) {
         Log::status() << "Flushing" << std::endl;
         fdb_.flush();
         Log::status() << "Flush complete" << std::endl;
+    }
+}
+
+
+void RemoteHandler::retrieve(const MessageHeader& hdr) {
+
+    // If we have never done any retrieving before, then start the appropriate
+    // worker thread.
+
+    if (!retrieveWorker_.joinable()) {
+        retrieveWorker_ = std::thread([this] { retrieveThreadLoop(); });
+    }
+
+    Buffer payload(receivePayload(hdr, controlSocket_));
+    MemoryStream s(payload);
+
+    MarsRequest request(s);
+    Log::info() << "In the retrieve handler" << request << std::endl;
+
+    retrieveQueue_.emplace(std::make_pair(hdr.requestID, std::move(request)));
+}
+
+
+void RemoteHandler::retrieveThreadLoop() {
+
+    std::pair<uint32_t, MarsRequest> elem;
+
+    while (retrieveQueue_.pop(elem) != -1) {
+
+        // Get the next MarsRequest in sequence to work on, do the retrieve, and
+        // send the data back to the client.
+
+        const uint32_t requestID(elem.first);
+        const MarsRequest& request(elem.second);
+
+        try {
+
+            std::unique_ptr<eckit::DataHandle> dh(fdb_.retrieve(request));
+            Log::info() << "Size: " << dh->estimate() << std::endl;
+
+            // Write the data to the parent, in chunks if necessary.
+
+            Buffer writeBuffer(10 * 1024 * 1024);
+            long dataRead;
+
+            dh->openForRead();
+            while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
+                Log::info() << "Read bytes: " << dataRead << std::endl;
+                dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
+                Log::info() << "Written blob: " << dataRead << std::endl;
+                ASSERT(false);
+            }
+
+            // And when we are done, add a complete message.
+
+            Log::info() << "Writing complete: " << requestID << std::endl;
+            dataWrite(Message::Complete, requestID);
+            Log::info() << "Written complete: " << requestID << std::endl;
+
+        } catch (std::exception& e) {
+            // n.b. more general than eckit::Exception
+            std::string what(e.what());
+            Log::info() << "Writing error ........" << std::endl;
+            dataWrite(Message::Error, requestID, what.c_str(), what.length());
+        } catch (...) {
+            // We really don't want to std::terminate the thread
+            std::string what("Caught unexpected, unknown exception in retrieve worker");
+            dataWrite(Message::Error, requestID, what.c_str(), what.length());
+        }
     }
 }
 

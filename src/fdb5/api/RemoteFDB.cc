@@ -67,7 +67,8 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     port_(config.getLong("port")),
     dataport_(0),
     archiveQueue_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)),
-connected_(false) {}
+    retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
+    connected_(false) {}
 
 
 RemoteFDB::~RemoteFDB() {
@@ -119,6 +120,11 @@ void RemoteFDB::disconnect() {
 
 void RemoteFDB::listeningThreadLoop() {
 
+    /// @note This routine retrieves BOTH normal API asynchronously returned data, AND
+    /// fields that are being returned by a retrieve() call. These need to go into different
+    /// queues
+    /// --> Test if the requestID is a known API request, otherwise push onto the retrieve queue
+
     try {
 
     MessageHeader hdr;
@@ -146,28 +152,43 @@ void RemoteFDB::listeningThreadLoop() {
             if (hdr.payloadSize > 0) dataRead(payload, hdr.payloadSize);
 
             auto it = messageQueues_.find(hdr.requestID);
-            ASSERT(it != messageQueues_.end());
-            it->second.emplace(std::make_pair(hdr, std::move(payload)));
+            if (it != messageQueues_.end()) {
+                it->second.emplace(std::make_pair(hdr, std::move(payload)));
+            } else {
+                Log::info() << "Pushing blob onto retrieve queue: " << hdr.requestID << std::endl;
+                retrieveMessageQueue_.emplace(std::make_pair(hdr, std::move(payload)));
+            }
             break;
         }
 
         case Message::Complete: {
 //            Log::info() << "Complete message received from server" << std::endl;
             auto it = messageQueues_.find(hdr.requestID);
-            ASSERT(it != messageQueues_.end());
-            it->second.set_done();
+            if (it != messageQueues_.end()) {
+                it->second.set_done();
+            } else {
+                Log::info() << "Pushing complete onto retrieve queue: " << hdr.requestID << std::endl;
+                retrieveMessageQueue_.emplace(std::make_pair(hdr, Buffer(0)));
+            }
             break;
         }
 
         case Message::Error: {
+
             auto it = messageQueues_.find(hdr.requestID);
-            ASSERT(it != messageQueues_.end());
-            std::string msg;
-            if (hdr.payloadSize > 0) {
-                msg.resize(hdr.payloadSize, ' ');
-                dataRead(&msg[0], hdr.payloadSize);
+            if (it != messageQueues_.end()) {
+                std::string msg;
+                if (hdr.payloadSize > 0) {
+                    msg.resize(hdr.payloadSize, ' ');
+                    dataRead(&msg[0], hdr.payloadSize);
+                }
+                it->second.interrupt(std::make_exception_ptr(RemoteException(msg, hostname_)));
+            } else {
+                Buffer payload(hdr.payloadSize);
+                if (hdr.payloadSize > 0) dataRead(payload, hdr.payloadSize);
+                Log::info() << "Pushing error onto retrieve queue: " << hdr.requestID << std::endl;
+                retrieveMessageQueue_.emplace(std::make_pair(hdr, std::move(payload)));
             }
-            it->second.interrupt(std::make_exception_ptr(RemoteException(msg, hostname_)));
             break;
         }
 
@@ -193,10 +214,12 @@ void RemoteFDB::listeningThreadLoop() {
         for (auto& it : messageQueues_) {
             it.second.interrupt(std::make_exception_ptr(RemoteException(e.what(), hostname_)));
         }
+        retrieveMessageQueue_.interrupt(std::make_exception_ptr(RemoteException(e.what(), hostname_)));
     } catch (...) {
         for (auto& it : messageQueues_) {
             it.second.interrupt(std::make_exception_ptr(RemoteException("Unknown exception in remote handler", hostname_)));
         }
+        retrieveMessageQueue_.interrupt(std::make_exception_ptr(RemoteException("Unknown exception in remote handler", hostname_)));
     }
 }
 
@@ -289,6 +312,9 @@ void RemoteFDB::handleError(const MessageHeader& hdr) {
     }
 }
 
+FDBStats RemoteFDB::stats() const {
+    return internalStats_;
+}
 
 
 // Implement the primary FDB API
@@ -405,7 +431,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
                 // this is handled in the AsyncIterator.
                 new AsyncIterator (
                     [&messageQueue](eckit::Queue<ValueType>& queue) {
-                        StoredMessage msg(std::make_pair(MessageHeader(), Buffer(0)));
+                        StoredMessage msg {{}, 0};
                         while (true) {
                             if (messageQueue.pop(msg) == -1) {
                                 break;
@@ -446,6 +472,8 @@ StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
 
 // -----------------------------------------------------------------------------------------------------
 
+// Here we do archive/flush related stuff
+
 void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
     connect();
@@ -465,8 +493,6 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
     archiveQueue_.emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
 }
-
-DataHandle* RemoteFDB::retrieve(const MarsRequest& request) { NOTIMP; }
 
 
 void RemoteFDB::flush() {
@@ -556,9 +582,144 @@ void RemoteFDB::sendArchiveData(uint32_t id, const Key& key, const void* data, s
     Log::info() << "Sent data" << std::endl;
 }
 
-FDBStats RemoteFDB::stats() const {
-    return internalStats_;
+// -----------------------------------------------------------------------------------------------------
+
+//
+/// @note The DataHandles returned by retrieve() MUST STRICTLY be read in order.
+///       We do not create multiple message queues, one for each requestID, even
+///       though that would be nice. This is because a commonly used retrieve
+///       pattern uses many retrieve() calls aggregated into a MultiHandle, and
+///       if we created lots of queues we would just run out of memory receiving
+///       from the stream. Further, if we curcumvented this by blocking, then we
+///       could get deadlocked if we try and read a message that is further back
+///       in the stream
+///
+/// --> Retrieve is a _streaming_ service.
+
+namespace {
+
+class FDBRemoteDataHandle : public DataHandle {
+
+public: // methods
+
+    FDBRemoteDataHandle(uint32_t requestID, RemoteFDB::MessageQueue& queue, const std::string& remoteHost) :
+        requestID_(requestID),
+        queue_(queue),
+        remoteHost_(remoteHost),
+        pos_(0),
+        currentBuffer_(0),
+        complete_(false) {}
+
+private: // methods
+
+    void print(std::ostream& s) const override {
+        s << "FDBRemoteDataHandle(id=" << requestID_ << ")";
+    }
+
+    Length openForRead() override { return 0; }
+    void openForWrite(const Length&) override { NOTIMP; }
+    void openForAppend(const Length&) override { NOTIMP; }
+    long write(const void*, long) override { NOTIMP; }
+    void close() override {}
+
+    long read(void* pos, long sz) override {
+
+        Log::info() << "read: " << requestID_ << std::endl;
+
+        if (complete_) return 0;
+
+        if (currentBuffer_.size() != 0) return bufferRead(pos, sz);
+
+        // If we are in the DataHandle, then there MUST be data to read
+
+        Log::info() << "Do a pull on the queue: " << requestID_ << std::endl;
+        RemoteFDB::StoredMessage msg {{}, 0};
+        ASSERT(queue_.pop(msg) != -1);
+
+        // TODO; Error handling in the retrieve pathway
+
+        MessageHeader& hdr(msg.first);
+
+        ASSERT(hdr.marker == StartMarker);
+        ASSERT(hdr.version == CurrentVersion);
+
+        // Handle any remote errors communicated from the server
+
+        if (hdr.message == Message::Error) {
+            std::string errmsg(static_cast<const char*>(msg.second), msg.second.size());
+            throw RemoteException(errmsg, remoteHost_);
+        }
+
+        // Are we now complete
+
+        if (hdr.message == Message::Complete) {
+            complete_ = 0;
+            return 0;
+        }
+
+        ASSERT(hdr.message == Message::Blob);
+
+        // Otherwise return the data!
+
+        std::swap(currentBuffer_, msg.second);
+
+        return bufferRead(pos, sz);
+    }
+
+    // A helper function that returns some, or all, of a buffer that has
+    // already been retrieved.
+
+    long bufferRead(void* pos, long sz) {
+
+        ASSERT(currentBuffer_.size() != 0);
+        ASSERT(pos_ < currentBuffer_.size());
+
+        long read = std::min(sz, long(currentBuffer_.size() - pos_));
+        Log::info() << "bufferRead: " << read << std::endl;
+
+        ::memcpy(pos, &currentBuffer_[pos_], read);
+        pos_ += read;
+
+        // If we have exhausted this buffer, free it up.
+
+        if (pos_ >= currentBuffer_.size()) {
+            Buffer nullBuffer(0);
+            std::swap(currentBuffer_, nullBuffer);
+            pos_ = 0;
+            ASSERT(currentBuffer_.size() == 0);
+        }
+
+        return read;
+    }
+
+private: // members
+
+    uint32_t requestID_;
+    RemoteFDB::MessageQueue& queue_;
+    std::string remoteHost_;
+    size_t pos_;
+    Buffer currentBuffer_;
+    bool complete_;
+};
+
 }
+
+// Here we do (asynchronous) retrieving related stuff
+
+DataHandle* RemoteFDB::retrieve(const MarsRequest& request) {
+
+    connect();
+
+    Buffer encodeBuffer(4096);
+    MemoryStream s(encodeBuffer);
+    request.encode(s);
+
+    uint32_t id = generateRequestID();
+    controlWriteCheckResponse(Message::Retrieve, id, encodeBuffer, s.position());
+
+    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, hostname_);
+}
+
 
 
 #if 0

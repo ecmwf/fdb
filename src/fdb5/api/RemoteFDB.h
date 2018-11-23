@@ -37,6 +37,11 @@ class FDB;
 
 class RemoteFDB : public FDBBase {
 
+public: // types
+
+    using StoredMessage = std::pair<remote::MessageHeader, eckit::Buffer>;
+    using MessageQueue = eckit::Queue<StoredMessage>;
+
 public: // method
 
     RemoteFDB(const eckit::Configuration& config, const std::string& name);
@@ -119,16 +124,18 @@ private: // members
 
     // Where do we put received messages
 
-    using StoredMessage = std::pair<remote::MessageHeader, eckit::Buffer>;
-    using MessageQueue = eckit::Queue<StoredMessage>;
-
     std::map<uint32_t, MessageQueue> messageQueues_;
 
     // Asynchronised helpers for archiving
 
+    friend class FDBRemoteDataHandle;
+
     std::future<FDBStats> archiveFuture_;
 
+    // Helpers for retrievals
+
     eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
+    MessageQueue retrieveMessageQueue_;
 
 //    eckit::Timer timer_;
 //
