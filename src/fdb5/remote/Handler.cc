@@ -536,24 +536,27 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
 
 void RemoteHandler::flush(const MessageHeader& hdr) {
 
-    Log::info() << "In flush handler!" << std::endl;
-
     Buffer payload(receivePayload(hdr, controlSocket_));
     MemoryStream s(payload);
 
     size_t numArchived;
     s >> numArchived;
 
-    Log::info() << "Request: " << hdr.requestID << " : " << numArchived << std::endl;
-
     ASSERT(numArchived == 0 || archiveFuture_.valid());
 
     if (archiveFuture_.valid()) {
+
+        // Ensure that the expected number of fields have been written, and that the
+        // archive worker processes have been cleanly wound up.
         size_t n = archiveFuture_.get();
         ASSERT(numArchived == n);
-        Log::info() << "flush completed: " << n << std::endl;
+
+        // Do the actual flush!
+        Log::info() << "Flushing" << std::endl;
+        Log::status() << "Flushing" << std::endl;
+        fdb_.flush();
+        Log::status() << "Flush complete" << std::endl;
     }
-    Log::info() << "flush complete" << std::endl;
 }
 
 
