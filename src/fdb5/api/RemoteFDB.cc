@@ -125,6 +125,12 @@ void RemoteFDB::listeningThreadLoop() {
     /// queues
     /// --> Test if the requestID is a known API request, otherwise push onto the retrieve queue
 
+
+    /// @note messageQueues_ is a map of requestID:MessageQueue. At the point that
+    /// a request is complete, errored or otherwise killed, it needs to be removed
+    /// from the map. The shared_ptr allows this removal to be asynchronous with
+    /// the actual task cleaning up and returning to the client.
+
     try {
 
     MessageHeader hdr;
@@ -148,7 +154,7 @@ void RemoteFDB::listeningThreadLoop() {
 
             auto it = messageQueues_.find(hdr.requestID);
             if (it != messageQueues_.end()) {
-                it->second.emplace(std::make_pair(hdr, std::move(payload)));
+                it->second->emplace(std::make_pair(hdr, std::move(payload)));
             } else {
                 retrieveMessageQueue_.emplace(std::make_pair(hdr, std::move(payload)));
             }
@@ -158,7 +164,12 @@ void RemoteFDB::listeningThreadLoop() {
         case Message::Complete: {
             auto it = messageQueues_.find(hdr.requestID);
             if (it != messageQueues_.end()) {
-                it->second.set_done();
+                it->second->set_done();
+
+                // Remove entry (shared_ptr --> message queue will be destroyed when it
+                // goes out of scope in the worker thread).
+                messageQueues_.erase(it);
+
             } else {
                 retrieveMessageQueue_.emplace(std::make_pair(hdr, Buffer(0)));
             }
@@ -174,7 +185,12 @@ void RemoteFDB::listeningThreadLoop() {
                     msg.resize(hdr.payloadSize, ' ');
                     dataRead(&msg[0], hdr.payloadSize);
                 }
-                it->second.interrupt(std::make_exception_ptr(RemoteException(msg, hostname_)));
+                it->second->interrupt(std::make_exception_ptr(RemoteException(msg, hostname_)));
+
+                // Remove entry (shared_ptr --> message queue will be destroyed when it
+                // goes out of scope in the worker thread).
+                messageQueues_.erase(it);
+
             } else {
                 Buffer payload(hdr.payloadSize);
                 if (hdr.payloadSize > 0) dataRead(payload, hdr.payloadSize);
@@ -202,13 +218,15 @@ void RemoteFDB::listeningThreadLoop() {
 
     } catch (const std::exception& e) {
         for (auto& it : messageQueues_) {
-            it.second.interrupt(std::make_exception_ptr(e));
+            it.second->interrupt(std::make_exception_ptr(e));
         }
+        messageQueues_.clear();
         retrieveMessageQueue_.interrupt(std::make_exception_ptr(e));
     } catch (...) {
         for (auto& it : messageQueues_) {
-            it.second.interrupt(std::current_exception());
+            it.second->interrupt(std::current_exception());
         }
+        messageQueues_.clear();
         retrieveMessageQueue_.interrupt(std::current_exception());
     }
 }
@@ -401,9 +419,9 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     // will result in return messages
 
     uint32_t id = generateRequestID();
-    auto entry = messageQueues_.emplace(id, HelperClass::queueSize());
+    auto entry = messageQueues_.emplace(id, std::make_shared<MessageQueue>(HelperClass::queueSize()));
     ASSERT(entry.second);
-    MessageQueue& messageQueue(entry.first->second);
+    std::shared_ptr<MessageQueue> messageQueue(entry.first->second);
 
     // Encode the request and send it to the server
 
@@ -420,16 +438,17 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
                 // n.b. Don't worry about catching exceptions in lambda, as
                 // this is handled in the AsyncIterator.
                 new AsyncIterator (
-                    [&messageQueue](eckit::Queue<ValueType>& queue) {
+                    [messageQueue](eckit::Queue<ValueType>& queue) {
                         StoredMessage msg {{}, 0};
                         while (true) {
-                            if (messageQueue.pop(msg) == -1) {
+                            if (messageQueue->pop(msg) == -1) {
                                 break;
                             } else {
                                 MemoryStream s(msg.second);
                                 queue.emplace(HelperClass::valueFromStream(s));
                             }
                         }
+                        // messageQueue goes out of scope --> destructed
                     }
                 )
            );

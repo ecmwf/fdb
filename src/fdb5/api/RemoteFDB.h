@@ -113,8 +113,12 @@ private: // members
     std::thread listeningThread_;
 
     // Where do we put received messages
+    // @note This is a map of requestID:MessageQueue. At the point that a request is
+    // complete, errored or otherwise killed, it needs to be removed from the map.
+    // The shared_ptr allows this removal to be asynchronous with the actual task
+    // cleaning up and returning to the client.
 
-    std::map<uint32_t, MessageQueue> messageQueues_;
+    std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
 
     // Asynchronised helpers for archiving
 
