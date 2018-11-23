@@ -108,6 +108,8 @@ void RemoteFDB::disconnect() {
 
 void RemoteFDB::listeningThreadLoop() {
 
+    try {
+
     MessageHeader hdr;
     eckit::FixedString<4> tail;
 
@@ -154,9 +156,7 @@ void RemoteFDB::listeningThreadLoop() {
                 msg.resize(hdr.payloadSize, ' ');
                 dataRead(&msg[0], hdr.payloadSize);
             }
-            std::stringstream ss;
-            ss << "[" << controlClient_.remoteHost() << ":" << controlClient_.remotePort() << "]: ";
-            it->second.interrupt(ss.str() + msg);
+            it->second.interrupt(std::make_exception_ptr(RemoteException(msg, hostname_)));
             break;
         }
 
@@ -174,6 +174,18 @@ void RemoteFDB::listeningThreadLoop() {
 //        eckit::Log::info() << "Reading tail" << std::endl;
         dataRead(&tail, sizeof(tail));
         ASSERT(tail == EndMarker);
+    }
+
+    // We don't want to let exceptions escape inside a worker thread.
+
+    } catch (const std::exception& e) {
+        for (auto& it : messageQueues_) {
+            it.second.interrupt(std::make_exception_ptr(RemoteException(e.what(), hostname_)));
+        }
+    } catch (...) {
+        for (auto& it : messageQueues_) {
+            it.second.interrupt(std::make_exception_ptr(RemoteException("Unknown exception in remote handler", hostname_)));
+        }
     }
 }
 

@@ -121,11 +121,9 @@ public: // methods
             try {
                 workerFn(queue_);
                 queue_.set_done();
-            } catch (const std::exception& e) {
-                queue_.interrupt(e.what());
             } catch (...) {
                 // Really avoid calling std::terminate on worker thread.
-                queue_.interrupt("Unexpected exception occurred");
+                queue_.interrupt(std::current_exception());
             }
         };
 
@@ -133,7 +131,9 @@ public: // methods
     }
 
     virtual ~APIAsyncIterator() {
-        queue_.interrupt();
+        if (!queue_.done()) {
+            queue_.interrupt(std::make_exception_ptr(eckit::SeriousBug("Destructing incomplete async queue", Here())));
+        }
         workerThread_.join();
     }
 
