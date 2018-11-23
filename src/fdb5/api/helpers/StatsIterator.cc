@@ -19,15 +19,14 @@ StatsElement::StatsElement(const IndexStats& iStats, const DbStats& dbStats) :
     dbStatistics(dbStats) {}
 
 
-StatsElement::StatsElement(eckit::Stream &s) {
-//    s >> keyParts_;
-//    location_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
-}
+StatsElement::StatsElement(eckit::Stream &s) :
+    indexStatistics(eckit::Reanimator<IndexStatsContent>::reanimate(s)),
+    dbStatistics(eckit::Reanimator<DbStatsContent>::reanimate(s)) {}
 
 
 void StatsElement::encode(eckit::Stream &s) const {
-//    s << keyParts_;
-//    s << *location_;
+    s << indexStatistics;
+    s << dbStatistics;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

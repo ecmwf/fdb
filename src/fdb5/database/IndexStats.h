@@ -20,13 +20,15 @@
 
 #include "eckit/log/Statistics.h"
 #include "eckit/memory/Counted.h"
+#include "eckit/serialisation/Streamable.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class IndexStatsContent : public eckit::Counted,
-                          public eckit::Statistics {
+                          public eckit::Statistics,
+                          public eckit::Streamable {
 public:
 
     virtual ~IndexStatsContent();
@@ -47,6 +49,13 @@ public:
 
     virtual void report(std::ostream& out, const char* indent) const = 0;
 
+public: // For Streamable
+
+    virtual void encode(eckit::Stream& s) const = 0;
+
+protected: // For Streamable
+
+    static eckit::ClassSpec                  classSpec_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -92,9 +101,15 @@ public: // methods
 private: // methods
 
     void print(std::ostream&) const;
+    void encode(eckit::Stream& s) const;
 
     friend std::ostream& operator<<(std::ostream& s, const IndexStats& o) {
         o.print(s); return s;
+    }
+
+    friend eckit::Stream& operator<<(eckit::Stream& s, const IndexStats& r) {
+        r.encode(s);
+        return s;
     }
 
 private: // members

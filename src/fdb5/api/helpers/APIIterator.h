@@ -134,17 +134,12 @@ public: // methods
         if (!queue_.done()) {
             queue_.interrupt(std::make_exception_ptr(eckit::SeriousBug("Destructing incomplete async queue", Here())));
         }
+        ASSERT(workerThread_.joinable());
         workerThread_.join();
     }
 
     virtual bool next(ValueType& elem) {
-
-        if (queue_.pop(elem) == -1) {
-            workerThread_.join();
-            return false;
-        } else {
-            return true;
-        }
+        return !(queue_.pop(elem) == -1);
     }
 
 private: // members

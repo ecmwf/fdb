@@ -12,6 +12,8 @@
 
 namespace fdb5 {
 
+::eckit::ClassSpec DbStatsContent::classSpec_ = {&Streamable::classSpec(), "DbStatsContent",};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class NullDbStats : public DbStatsContent {
@@ -22,6 +24,10 @@ public:
     }
 
     virtual void report(std::ostream& out, const char* indent) const {
+        NOTIMP;
+    }
+
+    virtual void encode(eckit::Stream& s) const {
         NOTIMP;
     }
 };
@@ -66,6 +72,10 @@ void DbStats::add(const DbStats& s)
 void DbStats::report(std::ostream& out, const char* indent) const
 {
     content_->report(out, indent);
+}
+
+void DbStats::encode(eckit::Stream& s) const {
+    s << *content_;
 }
 
 DbStatsContent::~DbStatsContent()

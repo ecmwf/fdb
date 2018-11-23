@@ -41,6 +41,7 @@ class TocDbStats : public DbStatsContent {
 public:
 
     TocDbStats();
+    TocDbStats(eckit::Stream& s);
 
     static DbStats make() { return DbStats(new TocDbStats()); }
 
@@ -62,6 +63,18 @@ public:
     virtual void add(const DbStatsContent&);
 
     virtual void report(std::ostream &out, const char* indent) const;
+
+public: // For Streamable
+
+    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+
+protected: // For Streamable
+
+    virtual void encode(eckit::Stream&) const;
+    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
+
+    static eckit::ClassSpec                 classSpec_;
+    static eckit::Reanimator<TocDbStats> reanimator_;
 };
 
 
@@ -72,6 +85,7 @@ class TocIndexStats : public IndexStatsContent {
 public:
 
     TocIndexStats();
+    TocIndexStats(eckit::Stream& s);
 
     size_t fieldsCount_;
     size_t duplicatesCount_;
@@ -96,6 +110,18 @@ public:
     virtual void add(const IndexStatsContent&);
 
     virtual void report(std::ostream &out, const char* indent = "") const;
+
+public: // For Streamable
+
+    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+
+protected: // For Streamable
+
+    virtual void encode(eckit::Stream&) const;
+    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
+
+    static eckit::ClassSpec                 classSpec_;
+    static eckit::Reanimator<TocIndexStats> reanimator_;
 };
 
 

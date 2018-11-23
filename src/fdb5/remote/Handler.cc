@@ -355,8 +355,11 @@ void RemoteHandler::forwardApiCall(const MessageHeader& hdr) {
                     auto encoded(helper.encode(elem, *this));
                     dataWrite(Message::Blob, hdr.requestID, encoded.buf, encoded.position);
                 }
+                Log::info() << "Sending complete message" << std::endl;
 
                 dataWrite(Message::Complete, hdr.requestID);
+
+                Log::info() << "Worker thread complete" << std::endl;
 
             } catch (std::exception& e) {
                 // n.b. more general than eckit::Exception
@@ -368,6 +371,7 @@ void RemoteHandler::forwardApiCall(const MessageHeader& hdr) {
                 std::string what("Caught unknown exception");
                 dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
             }
+            Log::info() << "Exiting" << std::endl;
         }
     ));
 }

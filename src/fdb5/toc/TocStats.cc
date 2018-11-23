@@ -20,6 +20,12 @@ using eckit::Log;
 
 namespace fdb5 {
 
+::eckit::ClassSpec TocDbStats::classSpec_ = {&FieldLocation::classSpec(), "TocDbStats",};
+::eckit::Reanimator<TocDbStats> TocDbStats::reanimator_;
+
+::eckit::ClassSpec TocIndexStats::classSpec_ = {&FieldLocation::classSpec(), "TocIndexStats",};
+::eckit::Reanimator<TocIndexStats> TocIndexStats::reanimator_;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 TocDbStats::TocDbStats():
@@ -34,6 +40,22 @@ TocDbStats::TocDbStats():
     adoptedFilesCount_(0),
     indexFilesCount_(0)
 {
+}
+
+TocDbStats::TocDbStats(Stream &s) {
+
+    s >> dbCount_;
+    s >> tocRecordsCount_;
+
+    s >> tocFileSize_;
+    s >> schemaFileSize_;
+    s >> ownedFilesSize_;
+    s >> adoptedFilesSize_;
+    s >> indexFilesSize_;
+
+    s >> ownedFilesCount_;
+    s >> adoptedFilesCount_;
+    s >> indexFilesCount_;
 }
 
 TocDbStats& TocDbStats::operator+=(const TocDbStats &rhs) {
@@ -80,6 +102,22 @@ void TocDbStats::report(std::ostream &out, const char *indent) const {
 
 }
 
+void TocDbStats::encode(Stream& s) const {
+
+    s << dbCount_;
+    s << tocRecordsCount_;
+
+    s << tocFileSize_;
+    s << schemaFileSize_;
+    s << ownedFilesSize_;
+    s << adoptedFilesSize_;
+    s << indexFilesSize_;
+
+    s << ownedFilesCount_;
+    s << adoptedFilesCount_;
+    s << indexFilesCount_;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 TocIndexStats::TocIndexStats():
@@ -87,6 +125,13 @@ TocIndexStats::TocIndexStats():
     duplicatesCount_(0),
     fieldsSize_(0),
     duplicatesSize_(0) {}
+
+TocIndexStats::TocIndexStats(Stream& s) {
+    s >> fieldsCount_;
+    s >> duplicatesCount_;
+    s >> fieldsSize_;
+    s >> duplicatesSize_;
+}
 
 
 TocIndexStats &TocIndexStats::operator+=(const TocIndexStats &rhs) {
@@ -111,6 +156,13 @@ void TocIndexStats::report(std::ostream &out, const char *indent) const {
     reportBytes(out, "Size of duplicates", duplicatesSize_, indent);
     reportCount(out, "Reacheable fields ", fieldsCount_ - duplicatesCount_, indent);
     reportBytes(out, "Reachable size", fieldsSize_ - duplicatesSize_, indent);
+}
+
+void TocIndexStats::encode(Stream& s) const {
+    s << fieldsCount_;
+    s << duplicatesCount_;
+    s << fieldsSize_;
+    s << duplicatesSize_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
