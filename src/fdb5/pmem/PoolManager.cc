@@ -182,8 +182,6 @@ static PoolGroupTable poolGroups(const Config& config) {
 
     static std::string poolGroupFile = eckit::Resource<std::string>("fdbPMemPoolsFile;$FDB_PMEM_POOLS_FILE", "~fdb/etc/fdb/pools");
 
-    Log::info() << "Config: " << config << std::endl;
-
     if (config.has("groups")) {
         PoolGroupTable table;
         std::vector<LocalConfiguration> groupsConfigs(config.getSubConfigurations("groups"));
