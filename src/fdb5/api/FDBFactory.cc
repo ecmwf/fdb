@@ -85,18 +85,10 @@ void FDBFactory::add(const std::string& name, const FDBBuilderBase* b)
 
 std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
 
-    // If we haven't specified the type, then look for config.json
+    // Allow expanding of the config to make use of fdb_home supplied in a previous
+    // configuration file, or to pick up the default configuration from ~fdb/etc/fdb/...
 
-    eckit::LocalConfiguration actualConfig(config);
-
-    if (!config.has("type")) {
-        eckit::PathName config_json = config.expandPath("~fdb/etc/fdb/config.json");
-        if (config_json.exists()) {
-            eckit::Log::debug<LibFdb>() << "Using FDB configuration file: " << config_json << std::endl;
-            eckit::YAMLConfiguration cfg(config_json);
-            actualConfig = cfg;
-        }
-    }
+    Config actualConfig = config.expandConfig();
 
     /// We use "local" as a default type if not otherwise configured.
 

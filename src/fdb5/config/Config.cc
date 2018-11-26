@@ -11,8 +11,10 @@
 #include "fdb5/config/Config.h"
 
 #include "fdb5/rules/Schema.h"
+#include "fdb5/LibFdb.h"
 
 #include "eckit/config/Resource.h"
+#include "eckit/config/YAMLConfiguration.h"
 
 #include <map>
 #include <mutex>
@@ -29,6 +31,30 @@ Config::Config() {}
 
 Config::Config(const Configuration& config) :
     LocalConfiguration(config) {}
+
+Config Config::expandConfig() const {
+
+    // If the config is already initialised, then use it directly.
+    if (has("type")) return *this;
+
+    const std::string default_config_path = "~fdb/etc/fdb/config.yaml";
+    std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", default_config_path);
+
+    // If fdb_home is explicitly set in the config then use that not from
+    // the Resource (as it has been overridden, or this is a _nested_ config).
+
+    if (has("fdb_home")) config_path = default_config_path;
+
+    eckit::PathName actual_path = expandPath(config_path);
+    if (actual_path.exists()) {
+        eckit::Log::debug<LibFdb>() << "Using FDB configuration file: " << actual_path << std::endl;
+        eckit::YAMLConfiguration cfg(actual_path);
+        return cfg;
+    }
+
+    // No expandable config available. Use the skeleton config.
+    return *this;
+}
 
 
 Config::~Config() {}

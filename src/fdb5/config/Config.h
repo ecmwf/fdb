@@ -31,6 +31,10 @@ public: // methods
     Config();
     Config(const eckit::Configuration& config);
 
+    /// Given a (potentially skeleton) configuration, expand it fully. This
+    /// may involve loading a specific config.json
+    Config expandConfig() const;
+
     virtual ~Config();
 
     /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration

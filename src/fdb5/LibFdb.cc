@@ -44,15 +44,10 @@ const Config& LibFdb::defaultConfig() {
     static Config config;
 
     if (!initted) {
-        eckit::PathName config_json = config.expandPath("~fdb/etc/fdb/config.json");
-        if (config_json.exists()) {
-            eckit::Log::debug<LibFdb>() << "Using default FDB configuration: " << config_json << std::endl;
-            eckit::YAMLConfiguration cfg(config_json);
-            config = cfg;
-        }
+        config = config.expandConfig();
+        initted = true;
     }
 
-    initted = true;
     return config;
 }
 
