@@ -247,6 +247,8 @@ if( HAVE_TOCFDB )
         toc/FileSpace.h
         toc/ExpverFileSpaceHandler.cc
         toc/ExpverFileSpaceHandler.h
+        toc/EnvVarFileSpaceHandler.cc
+        toc/EnvVarFileSpaceHandler.h
         toc/RootManager.cc
         toc/RootManager.h
         toc/TocDBReader.cc
@@ -276,7 +278,8 @@ if( HAVE_TOCFDB )
         fdb-stats
         fdb-purge
         fdb-dump-toc
-        fdb-dump-index )
+        fdb-dump-index
+        fdb-reconsolidate-toc )
 
 endif()
 
@@ -449,4 +452,3 @@ if (HAVE_EXPERIMENTAL)
         LIBS mars-fdb5 )
 
 endif()
-
