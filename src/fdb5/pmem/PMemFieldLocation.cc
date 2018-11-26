@@ -17,8 +17,16 @@
 namespace fdb5 {
 namespace pmem {
 
+::eckit::ClassSpec PMemFieldLocation::classSpec_ = {&FieldLocation::classSpec(), "PMemFieldLocation",};
+::eckit::Reanimator<PMemFieldLocation> PMemFieldLocation::reanimator_;
+
 //----------------------------------------------------------------------------------------------------------------------
 
+
+PMemFieldLocation::PMemFieldLocation() :
+    dataPool_(0) {
+    NOTIMP; // TODO streamable
+}
 
 PMemFieldLocation::PMemFieldLocation(const PMemFieldLocation& rhs) :
     FieldLocation(rhs.length()),
@@ -28,11 +36,18 @@ PMemFieldLocation::PMemFieldLocation(const PMemFieldLocation& rhs) :
 
 PMemFieldLocation::PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode, DataPool& pool) :
     dataNode_(dataNode),
-    dataPool_(pool) {}
+    dataPool_(&pool) {}
 
 
-eckit::SharedPtr<FieldLocation> PMemFieldLocation::make_shared() const {
-    return eckit::SharedPtr<FieldLocation>(new PMemFieldLocation(*this));
+PMemFieldLocation::PMemFieldLocation(eckit::Stream& s) :
+    FieldLocation(s),
+    dataPool_(0) {
+    // TODO streamable
+}
+
+
+std::shared_ptr<FieldLocation> PMemFieldLocation::make_shared() const {
+    return std::make_shared<PMemFieldLocation>(*this);
 }
 
 
@@ -43,8 +58,7 @@ eckit::DataHandle *PMemFieldLocation::dataHandle() const {
 }
 
 void PMemFieldLocation::print(std::ostream &out) const {
-
-    out << "PMemFieldLocation(" << length_ << ")";
+    out << "(" << "," << length_ << ")";
 }
 
 void PMemFieldLocation::visit(FieldLocationVisitor& visitor) const {
@@ -56,20 +70,39 @@ void PMemFieldLocation::visit(FieldLocationVisitor& visitor) const {
 }
 
 DataPool& PMemFieldLocation::pool() const {
-    return dataPool_;
+
+    // PMemFieldLocation is streamable to be able to display/store/reconstruct
+    // information across RemoteFDB instances. Clearly the location cannot be
+    // directly accessed on the other side.
+    //
+    // Without access to the DataPoolManager object, we have no way to actually
+    // get the DataPool here when reconstructed from a Streamed object. If it is
+    // necessary to do the reverse streaming, then this gets more complicated.
+
+    if (!dataPool_) {
+        throw eckit::SeriousBug("Attempting to access PMemFieldLocation with no pool set. Likely via Streamed object.",
+                                Here());
+    }
+    return *dataPool_;
+}
+
+void PMemFieldLocation::encode(eckit::Stream& s) const {
+    FieldLocation::encode(s);
+    // TODO: Streamable
 }
 
 void PMemFieldLocation::dump(std::ostream& out) const
 {
     out << "  pool_uuid: " << node().uuid() << std::endl;
-    out << "  data_pool: " << dataPool_.path() << std::endl;
+    if (dataPool_) out << "  data_pool: " << dataPool_->path() << std::endl;
     out << "  offset: "    << node().offset() << std::endl;
 
 }
 
 eckit::PathName fdb5::pmem::PMemFieldLocation::url() const
 {
-    return dataPool_.path();
+    ASSERT(dataPool_);
+    return dataPool_->path();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

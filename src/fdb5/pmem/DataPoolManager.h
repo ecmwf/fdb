@@ -79,6 +79,8 @@ public: // methods
     /// The total size of the data pools (does not include the master pool).
     size_t dataSize();
 
+    std::vector<eckit::PathName> dataPoolPaths();
+
 protected: // methods
 
     /// Obtain the current pool for writing. If no pool is opened, then open/create the latest one.

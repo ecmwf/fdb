@@ -104,6 +104,8 @@ void WipeVisitor::visitIndex(const Index& index) {
 
     eckit::PathName location(index.location().url());
 
+    eckit::Log::info() << "Loc: " << location << std::endl;
+
     ASSERT(location.dirName().sameAs(basePath_));
     current_.metadataPaths.insert(location);
 

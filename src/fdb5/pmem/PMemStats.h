@@ -20,14 +20,12 @@
 #include "fdb5/database/DataStats.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/IndexStats.h"
-#include "fdb5/database/StatsVisitor.h"
+#include "fdb5/database/StatsReportVisitor.h"
 
 #include "eckit/filesystem/PathName.h"
 
-#if __cplusplus >= 201103L
 #include <unordered_set>
 #include <unordered_map>
-#endif
 
 namespace fdb5 {
 
@@ -36,7 +34,7 @@ class Field;
 
 namespace pmem {
 
-class PMemDBReader;
+class PMemDB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -44,7 +42,8 @@ class PMemDBReader;
 class PMemDbStats : public DbStatsContent {
 public:
 
-    PMemDbStats() ;
+    PMemDbStats();
+    PMemDbStats(eckit::Stream& s);
 
     static DbStats make() { return DbStats(new PMemDbStats()); }
 
@@ -60,6 +59,18 @@ public:
 
     virtual void add(const DbStatsContent&);
     virtual void report(std::ostream &out, const char* indent = "") const;
+
+public: // For Streamable
+
+    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+
+protected: // For Streamable
+
+    virtual void encode(eckit::Stream&) const;
+    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
+
+    static eckit::ClassSpec                 classSpec_;
+    static eckit::Reanimator<PMemDbStats>   reanimator_;
 };
 
 
@@ -70,6 +81,7 @@ class PMemIndexStats : public IndexStatsContent {
 public:
 
     PMemIndexStats();
+    PMemIndexStats(eckit::Stream& s);
 
     size_t fieldsCount_;
     size_t duplicatesCount_;
@@ -94,6 +106,18 @@ public:
     virtual void add(const IndexStatsContent&);
 
     virtual void report(std::ostream &out, const char* indent) const;
+
+public: // For Streamable
+
+    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+
+protected: // For Streamable
+
+    virtual void encode(eckit::Stream&) const;
+    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
+
+    static eckit::ClassSpec                  classSpec_;
+    static eckit::Reanimator<PMemIndexStats> reanimator_;
 };
 
 
@@ -116,10 +140,10 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class PMemStatsReportVisitor : public StatsReportVisitor {
+class PMemStatsReportVisitor : public virtual StatsReportVisitor {
 public:
 
-    PMemStatsReportVisitor(PMemDBReader& reader);
+    PMemStatsReportVisitor(const PMemDB& db);
     virtual ~PMemStatsReportVisitor();
 
     virtual IndexStats indexStatistics() const;
@@ -128,18 +152,17 @@ public:
 private: // methods
 
 
+private: // methods
 
-    virtual void visit(const Index& index,
-                       const Field& field,
-                       const std::string &indexFingerprint,
-                       const std::string &fieldFingerprint);
+    void visitDatabase(const DB& db) override;
+    void visitDatum(const Field& field, const std::string& keyFingerprint) override;
+    void visitDatum(const Field& field, const Key& key) override { NOTIMP; }
+
+    // This visitor is only legit for one DB - so don't reset database
+    void databaseComplete(const DB& db) override;
 
 protected: // members
 
-// This is a significant performance optimisation. Use the std::unordered_set/map if they
-// are available (i.e. if c++11 is supported). Otherwise use std::set/map. These have the
-// same interface, so no code changes are required except in the class definition.
-#if __cplusplus >= 201103L
     std::unordered_set<std::string> allDataPools_;
     std::unordered_set<std::string> allIndexPools_;
 
@@ -147,21 +170,10 @@ protected: // members
     std::unordered_map<std::string, size_t> dataUsage_;
 
     std::unordered_set<std::string> active_;
-#else
-    std::set<eckit::PathName> allDataPools_;
-    std::set<eckit::PathName> allIndexPools_;
-
-    std::map<eckit::PathName, size_t> indexUsage_;
-    std::map<eckit::PathName, size_t> dataUsage_;
-
-    std::set<std::string> active_;
-#endif
 
     std::map<Index, IndexStats> indexStats_;
 
     DbStats dbStats_;
-
-    PMemDBReader& reader_;
 
     eckit::PathName lastDataPath_;
     eckit::PathName lastIndexPath_;

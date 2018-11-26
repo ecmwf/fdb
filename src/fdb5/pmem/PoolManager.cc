@@ -20,6 +20,8 @@
 #include "fdb5/pmem/PoolEntry.h"
 #include "fdb5/pmem/PoolGroup.h"
 
+#include <mutex>
+
 using namespace eckit;
 
 namespace fdb5 {
@@ -27,22 +29,22 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 typedef std::vector<fdb5::PoolGroup> PoolGroupTable;
+typedef std::map<eckit::PathName, PoolGroupTable> PoolGroupMap;
 
-static pthread_once_t once = PTHREAD_ONCE_INIT;
-static PoolGroupTable poolgroupsTable;
+std::mutex poolGroupMutex;
+static PoolGroupMap poolGroupTables;
 
-static std::vector<PoolEntry> readPools() {
+
+static std::vector<PoolEntry> readPools(const eckit::PathName& path) {
 
     std::vector<PoolEntry> result;
 
-    static eckit::PathName fdbPMemPoolsFile = eckit::Resource<eckit::PathName>("fdbPMemPoolsFile;$FDB_PMEM_POOLS_FILE", "~fdb/etc/fdb/pools");
+    std::ifstream in(path.localPath());
 
-    std::ifstream in(fdbPMemPoolsFile.localPath());
-
-    eckit::Log::debug() << "Loading FDB pools from " << fdbPMemPoolsFile << std::endl;
+    eckit::Log::debug() << "Loading FDB pools from " << path << std::endl;
 
     if (!in) {
-        eckit::Log::error() << fdbPMemPoolsFile << eckit::Log::syserr << std::endl;
+        eckit::Log::error() << path << eckit::Log::syserr << std::endl;
         return result;
     }
 
@@ -102,20 +104,30 @@ static std::vector<PoolEntry> poolsInGroup(const std::vector<PoolEntry>& all, co
 }
 
 
-static void readPoolGroups() {
+static PoolGroupTable readPoolGroups(const eckit::PathName& fdbHome) {
 
-    std::vector<PoolEntry> allPools = readPools();
+    std::lock_guard<std::mutex> lock(poolGroupMutex);
 
-    static eckit::PathName fdbPMemPoolGroupsFile = eckit::Resource<eckit::PathName>("fdbPMemPoolGroupsFile;$FDB_PMEM_POOLGROUPS_FILE", "~fdb/etc/fdb/poolgroups");
+    // Pool groups are memoised, so only read it once
 
+    PoolGroupMap::const_iterator it = poolGroupTables.find(fdbHome);
+    if (it != poolGroupTables.end()) {
+        return it->second;
+    }
+
+    eckit::PathName fdbPMemPoolsFile = eckit::Resource<eckit::PathName>("fdbPMemPoolsFile;$FDB_PMEM_POOLS_FILE", fdbHome / "pools");
+    std::vector<PoolEntry> allPools = readPools(fdbPMemPoolsFile);
+
+    eckit::PathName fdbPMemPoolGroupsFile = eckit::Resource<eckit::PathName>("fdbPMemPoolGroupsFile;$FDB_PMEM_POOLGROUPS_FILE", fdbHome / "poolgroups");
     std::ifstream in(fdbPMemPoolGroupsFile.localPath());
 
     eckit::Log::debug() << "Loading FDB file poolgroups from " << fdbPMemPoolGroupsFile << std::endl;
 
     if (!in) {
-        eckit::Log::error() << fdbPMemPoolGroupsFile << eckit::Log::syserr << std::endl;
-        return;
+        throw eckit::ReadError(fdbPMemPoolGroupsFile, Here());
     }
+
+    PoolGroupTable& poolgroupsTable(poolGroupTables[fdbHome]);
 
     eckit::Tokenizer parse(" ");
 
@@ -162,21 +174,65 @@ static void readPoolGroups() {
 
         }
     }
+
+    return poolgroupsTable;
 }
+
+static PoolGroupTable poolGroups(const Config& config) {
+
+    static std::string poolGroupFile = eckit::Resource<std::string>("fdbPMemPoolsFile;$FDB_PMEM_POOLS_FILE", "~fdb/etc/fdb/pools");
+
+    Log::info() << "Config: " << config << std::endl;
+
+    if (config.has("groups")) {
+        PoolGroupTable table;
+        std::vector<LocalConfiguration> groupsConfigs(config.getSubConfigurations("groups"));
+        for (const auto& group : groupsConfigs) {
+
+            std::vector<PoolEntry> poolEntries;
+            std::vector<LocalConfiguration> pools(group.getSubConfigurations("pools"));
+            for (const auto& pool : pools) {
+                poolEntries.emplace_back(
+                    PoolEntry(
+                        pool.getString("path"),
+                        "",
+                        pool.getBool("writable", true),
+                        pool.getBool("visit", true)
+                    )
+                );
+            }
+
+            table.emplace_back(
+                PoolGroup(
+                    group.getString("name", ""),
+                    group.getString("regex", ".*"),
+                    group.getString("handler", "Default"),
+                    poolEntries
+                )
+            );
+        }
+        return table;
+    } else {
+        return readPoolGroups(config.expandPath("~fdb/"));
+    }
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::PathName PoolManager::pool(const Key& key) {
+PoolManager::PoolManager(const Config& config) :
+    poolGroupTable_(poolGroups(config)) {}
 
-    pthread_once(&once, readPoolGroups);
+
+eckit::PathName PoolManager::pool(const Key& key) {
 
     std::string name(key.valuesToString());
 
     /// @note returns the first PoolGroup that matches
 
-    for (PoolGroupTable::const_iterator i = poolgroupsTable.begin(); i != poolgroupsTable.end() ; ++i) {
-        if(i->match(name)) {
-            PathName path = i->pool(key);
+    for (const PoolGroup& group : poolGroupTable_) {
+        if(group.match(name)) {
+            PathName path = group.pool(key);
             return path / name;
         }
     }
@@ -190,13 +246,11 @@ std::vector<PathName> PoolManager::allPools(const Key& key)
 {
     eckit::StringSet pools;
 
-    pthread_once(&once, readPoolGroups);
-
     std::string k = key.valuesToString();
 
-    for (PoolGroupTable::const_iterator i = poolgroupsTable.begin(); i != poolgroupsTable.end() ; ++i) {
-        if(i->match(k)) {
-            i->all(pools);
+    for (const PoolGroup& group : poolGroupTable_) {
+        if(group.match(k)) {
+            group.all(pools);
         }
     }
 
@@ -208,13 +262,11 @@ std::vector<eckit::PathName> PoolManager::visitablePools(const Key& key) {
 
     eckit::StringSet pools;
 
-    pthread_once(&once, readPoolGroups);
-
     std::string k = key.valuesToString();
 
-    for (PoolGroupTable::const_iterator i = poolgroupsTable.begin(); i != poolgroupsTable.end() ; ++i) {
-        if(i->match(k)) {
-            i->visitable(pools);
+    for (const PoolGroup& group : poolGroupTable_) {
+        if(group.match(k)) {
+            group.visitable(pools);
         }
     }
 
@@ -227,13 +279,11 @@ std::vector<eckit::PathName> PoolManager::writablePools(const Key& key) {
 
     eckit::StringSet pools;
 
-    pthread_once(&once, readPoolGroups);
-
     std::string k = key.valuesToString();
 
-    for (PoolGroupTable::const_iterator i = poolgroupsTable.begin(); i != poolgroupsTable.end() ; ++i) {
-        if(i->match(k)) {
-            i->writable(pools);
+    for (const PoolGroup& group : poolGroupTable_) {
+        if(group.match(k)) {
+            group.writable(pools);
         }
     }
 

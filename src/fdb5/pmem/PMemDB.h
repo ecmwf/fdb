@@ -18,6 +18,7 @@
 
 #include "eckit/memory/ScopedPtr.h"
 
+#include "fdb5/config/Config.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
@@ -38,8 +39,8 @@ class PMemDB : public DB {
 
 public: // methods
 
-    PMemDB(const Key& key, const eckit::Configuration& config);
-    PMemDB(const eckit::PathName& directory, const eckit::Configuration& config);
+    PMemDB(const Key& key, const Config& config);
+    PMemDB(const eckit::PathName& directory, const Config& config);
 
     virtual ~PMemDB();
 
@@ -57,20 +58,26 @@ protected: // methods
 
     virtual std::string dbType() const;
 
-    virtual bool open();
-    virtual void close();
-    virtual void flush();
-    virtual bool exists() const;
-    virtual void visitEntries(EntryVisitor& visitor, bool sorted=false);
-    virtual void visit(DBVisitor& visitor);
-    virtual void dump(std::ostream& out, bool simple=false);
-    virtual std::string owner() const;
-    virtual eckit::PathName basePath() const;
-    virtual const Schema& schema() const;
+    void checkUID() const override;
+
+    bool open() override;
+    void close() override;
+    void flush() override;
+    bool exists() const override;
+    void visitEntries(EntryVisitor& visitor, bool sorted=false) override;
+    void visit(DBVisitor& visitor) override;
+    void dump(std::ostream& out, bool simple=false) const override;
+    std::string owner() const override;
+    eckit::PathName basePath() const override;
+    std::vector<eckit::PathName> metadataPaths() const;
+    const Schema& schema() const override;
 
     virtual eckit::DataHandle *retrieve(const Key &key) const;
     virtual void archive(const Key &key, const void *data, eckit::Length length);
     virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
+
+    virtual StatsReportVisitor* statsReportVisitor() const override;
+    virtual PurgeVisitor* purgeVisitor() const override;
 
     // void loadSchema();
     virtual void checkSchema(const Key &key) const;
@@ -94,6 +101,7 @@ protected: // types
 protected: // members
 
     eckit::PathName poolDir_;
+    Config dbConfig_;
 
     eckit::ScopedPtr<Pool> pool_;
 

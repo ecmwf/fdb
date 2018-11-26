@@ -63,7 +63,7 @@ public: // methods
     /// that with a root object, as it is allocated at pool creation time.
     ///
     /// --> buildRoot() should be called immediately after pool creation to initialise the root.
-    void buildRoot(const Key& dbKey);
+    void buildRoot(const Key& dbKey, const eckit::PathName& schemaPath);
 
     bool valid() const;
 

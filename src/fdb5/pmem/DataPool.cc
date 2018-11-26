@@ -66,7 +66,9 @@ void DataPool::buildRoot() {
     // n.b. cannot use baseRoot yet, as not yet valid...
     PersistentPtr<PRoot> rt = getRoot<PRoot>();
     ASSERT(rt.valid());
-    rt->buildRoot(Key());
+
+    // n.b. null arguments. Arguments only apply for index root.
+    rt->buildRoot(Key(), "");
 }
 
 

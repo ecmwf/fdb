@@ -17,9 +17,9 @@
 
 #include "pmem/PersistentPtr.h"
 
-#include "eckit/memory/SharedPtr.h"
-
 #include "fdb5/database/FieldLocation.h"
+
+#include <memory>
 
 namespace fdb5 {
 namespace pmem {
@@ -32,8 +32,10 @@ class DataPool;
 class PMemFieldLocation : public FieldLocation {
 public:
 
+    PMemFieldLocation();
     PMemFieldLocation(const PMemFieldLocation& rhs);
     PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode, DataPool& pool);
+    PMemFieldLocation(eckit::Stream&);
 
     ::pmem::PersistentPtr<PDataNode> node() const;
 
@@ -41,11 +43,23 @@ public:
 
     virtual eckit::DataHandle *dataHandle() const;
 
-    virtual eckit::SharedPtr<FieldLocation> make_shared() const;
+    virtual std::shared_ptr<FieldLocation> make_shared() const;
 
     virtual void visit(FieldLocationVisitor& visitor) const;
 
     DataPool& pool() const;
+
+public: // For Streamable
+
+    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+
+protected: // For Streamable
+
+    virtual void encode(eckit::Stream&) const;
+    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
+
+    static eckit::ClassSpec                    classSpec_;
+    static eckit::Reanimator<PMemFieldLocation> reanimator_;
 
 private: // methods
 
@@ -57,7 +71,8 @@ private: // members
 
     ::pmem::PersistentPtr<PDataNode> dataNode_;
 
-    DataPool& dataPool_;
+    // This is a non-owning pointer. Acts as a nullable reference.
+    DataPool* dataPool_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -19,6 +19,9 @@
 #include "eckit/utils/Regex.h"
 #include "eckit/filesystem/PathName.h"
 
+#include "fdb5/config/Config.h"
+#include "fdb5/pmem/PoolGroup.h"
+
 namespace fdb5 {
 
 class Key;
@@ -29,17 +32,23 @@ class PoolManager  {
 
 public: // methods
 
+    PoolManager(const Config& config=Config());
+
     /// Uniquely selects a pool where the Key will be put or already exists
-    static eckit::PathName pool(const Key &key);
+    eckit::PathName pool(const Key &key);
 
     /// Lists the roots that can be visited given a DB key
-    static std::vector<eckit::PathName> allPools(const Key& key);
+    std::vector<eckit::PathName> allPools(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    static std::vector<eckit::PathName> visitablePools(const Key& key);
+    std::vector<eckit::PathName> visitablePools(const Key& key);
 
     /// Lists the roots where a DB key would be able to be written
-    static std::vector<eckit::PathName> writablePools(const Key& key);
+    std::vector<eckit::PathName> writablePools(const Key& key);
+
+private: // members
+
+    const std::vector<PoolGroup> poolGroupTable_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

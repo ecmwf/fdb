@@ -204,6 +204,17 @@ size_t DataPoolManager::dataSize() {
     return data_size;
 }
 
+std::vector<PathName> DataPoolManager::dataPoolPaths() {
+
+    std::vector<PathName> paths;
+
+    for (size_t idx = 0; idx < masterRoot_.dataPoolUUIDs().size(); idx++) {
+        paths.push_back(getPool(masterRoot_.dataPoolUUIDs()[idx]).path());
+    }
+
+    return paths;
+}
+
 
 void DataPoolManager::print(std::ostream& s) const {
     s << "PMemDataPoolManager(" << poolDir_ << ")";

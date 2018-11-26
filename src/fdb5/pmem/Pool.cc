@@ -70,11 +70,11 @@ Pool::Pool(const PathName& path, const size_t size, const std::string& name,
 Pool::~Pool() {}
 
 
-void Pool::buildRoot(const Key& dbKey) {
+void Pool::buildRoot(const Key& dbKey, const eckit::PathName& schemaPath) {
     // n.b. cannot use baseRoot yet, as not yet valid...
     PersistentPtr<PRoot> rt = getRoot<PRoot>();
     ASSERT(rt.valid());
-    rt->buildRoot(dbKey);
+    rt->buildRoot(dbKey, schemaPath);
 }
 
 
@@ -82,7 +82,7 @@ void Pool::buildRoot(const Key& dbKey) {
 /// If open/create fail for other reasons, then the appropriate error is thrown.
 ///
 /// @arg path - Specifies the directory to open, rather than the pool size itself.
-Pool* Pool::obtain(const PathName &poolDir, const size_t size, const Key& dbKey) {
+Pool* Pool::obtain(const PathName& poolDir, const size_t size, const Key& dbKey, const eckit::PathName& schemaPath) {
 
     // The pool must exist as a file within a directory.
     // n.b. PathName::mkdir uses mkdir_if_not_exists internally, so works OK if another process gets ahead.
@@ -100,7 +100,7 @@ Pool* Pool::obtain(const PathName &poolDir, const size_t size, const Key& dbKey)
     else {
         Log::debug<LibFdb>() << "Creating FDB PMem master pool " << poolDir << std::endl;
         pool = new Pool(poolMaster(poolDir), size, "pmem-pool", PRoot::Constructor(PRoot::IndexClass));
-        pool->buildRoot(dbKey);
+        pool->buildRoot(dbKey, schemaPath);
     }
 
     ASSERT(pool != 0);

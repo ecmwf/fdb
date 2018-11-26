@@ -19,6 +19,7 @@
 #include "fdb5/LibFdb.h"
 #include "fdb5/pmem/PIndexRoot.h"
 #include "fdb5/pmem/MemoryBufferStream.h"
+#include "fdb5/config/Config.h"
 
 #include "pmem/PoolRegistry.h"
 
@@ -47,7 +48,7 @@ PIndexRoot::PIndexRoot(const PersistentPtr<PersistentBuffer>& key,
 }
 
 
-void PIndexRoot::build(PersistentPtr<PIndexRoot>& ptr, const Key& dbKey) {
+void PIndexRoot::build(PersistentPtr<PIndexRoot>& ptr, const Key& dbKey, const eckit::PathName& schema) {
 
     PersistentPool& pool(PoolRegistry::instance().poolFromPointer(&ptr));
 
@@ -57,12 +58,12 @@ void PIndexRoot::build(PersistentPtr<PIndexRoot>& ptr, const Key& dbKey) {
 
     // Store the currently loaded master schema, so it can be recovered later
 
-    PathName schemaPath = LibFdb::instance().schemaPath();
+    eckit::PathName schemaPath(schema.exists() ? schema : LibFdb::instance().defaultConfig().schemaPath());
     ScopedPtr<DataHandle> schemaFile(schemaPath.fileHandle());
     std::string buf(static_cast<size_t>(schemaFile->openForRead()), '\0');
     schemaFile->read(&buf[0], buf.size());
 
-    PersistentPtr<PersistentString> schema = pool.allocate<PersistentString>(buf);
+    PersistentPtr<PersistentString> schemaObj = pool.allocate<PersistentString>(buf);
 
     // Store the current DB key
 
@@ -72,7 +73,7 @@ void PIndexRoot::build(PersistentPtr<PIndexRoot>& ptr, const Key& dbKey) {
 
     PersistentPtr<PersistentBuffer> key = pool.allocate<PersistentBuffer>(key_data, s.position());
 
-    ptr.allocate(key, schema, rootNode);
+    ptr.allocate(key, schemaObj, rootNode);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

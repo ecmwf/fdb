@@ -9,10 +9,16 @@
  */
 
 #include "fdb5/pmem/PMemStats.h"
-#include "fdb5/pmem/PMemDBReader.h"
+#include "fdb5/pmem/PMemDB.h"
 
 namespace fdb5 {
 namespace pmem {
+
+::eckit::ClassSpec PMemDbStats::classSpec_ = {&FieldLocation::classSpec(), "PMemDbStats",};
+::eckit::Reanimator<PMemDbStats> PMemDbStats::reanimator_;
+
+::eckit::ClassSpec PMemIndexStats::classSpec_ = {&FieldLocation::classSpec(), "PMemIndexStats",};
+::eckit::Reanimator<PMemIndexStats> PMemIndexStats::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -24,6 +30,16 @@ PMemDbStats::PMemDbStats():
     dataPoolsCount_(0),
     indexPoolsCount_(0),
     indexesCount_(0) {}
+
+PMemDbStats::PMemDbStats(eckit::Stream& s) {
+    s >> dataPoolsSize_;
+    s >> indexPoolsSize_;
+    s >> schemaSize_;
+
+    s >> dataPoolsCount_;
+    s >> indexPoolsCount_;
+    s >> indexesCount_;
+}
 
 
 PMemDbStats& PMemDbStats::operator+=(const PMemDbStats &rhs) {
@@ -52,6 +68,16 @@ void PMemDbStats::report(std::ostream &out, const char *indent) const {
     reportBytes(out, "Size of schemas", schemaSize_, indent);
 }
 
+void PMemDbStats::encode(eckit::Stream& s) const {
+    s << dataPoolsSize_;
+    s << indexPoolsSize_;
+    s << schemaSize_;
+
+    s << dataPoolsCount_;
+    s << indexPoolsCount_;
+    s << indexesCount_;
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -61,6 +87,13 @@ PMemIndexStats::PMemIndexStats():
     duplicatesCount_(0),
     fieldsSize_(0),
     duplicatesSize_(0) {}
+
+PMemIndexStats::PMemIndexStats(eckit::Stream& s) {
+    s >> fieldsCount_;
+    s >> duplicatesCount_;
+    s >> fieldsSize_;
+    s >> duplicatesSize_;
+}
 
 
 PMemIndexStats &PMemIndexStats::operator+=(const PMemIndexStats &rhs) {
@@ -85,6 +118,13 @@ void PMemIndexStats::report(std::ostream &out, const char *indent) const {
     reportBytes(out, "Size of duplicates", duplicatesSize_, indent);
     reportCount(out, "Reacheable fields ", fieldsCount_ - duplicatesCount_, indent);
     reportBytes(out, "Reachable size", fieldsSize_ - duplicatesSize_, indent);
+}
+
+void PMemIndexStats::encode(eckit::Stream& s) const {
+    s << fieldsCount_;
+    s << duplicatesCount_;
+    s << fieldsSize_;
+    s << duplicatesSize_;
 }
 
 
@@ -116,30 +156,31 @@ void PMemDataStats::report(std::ostream &out, const char *indent) const {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PMemStatsReportVisitor::PMemStatsReportVisitor(pmem::PMemDBReader& reader) :
+PMemStatsReportVisitor::PMemStatsReportVisitor(const PMemDB& db) :
 //    directory_(reader.directory()),
-    dbStats_(new PMemDbStats()),
-    reader_(reader) {
+    dbStats_(new PMemDbStats()) {
 
-    dbStats_ = static_cast<DB&>(reader_).statistics();
+    currentDatabase_ = &db;
+    dbStats_ = currentDatabase_->statistics();
 }
 
 PMemStatsReportVisitor::~PMemStatsReportVisitor() {
 }
 
-void PMemStatsReportVisitor::visit(const Index &index,
-                          const Field& field,
-                          const std::string &indexFingerprint,
-                          const std::string &fieldFingerprint) {
+void PMemStatsReportVisitor::visitDatabase(const DB& db) {
+    ASSERT(&db == currentDatabase_);
+}
+
+void PMemStatsReportVisitor::visitDatum(const Field& field, const std::string& fieldFingerprint) {
 
 //    ASSERT(currIndex_ != 0);
 
     // If this index is not yet in the map, then create an entry
 
-    std::map<Index, IndexStats>::iterator stats_it = indexStats_.find(index);
+    std::map<Index, IndexStats>::iterator stats_it = indexStats_.find(*currentIndex_);
 
     if (stats_it == indexStats_.end()) {
-        stats_it = indexStats_.insert(std::make_pair(index, IndexStats(new PMemIndexStats()))).first;
+        stats_it = indexStats_.insert(std::make_pair(*currentIndex_, IndexStats(new PMemIndexStats()))).first;
     }
 
     IndexStats& stats(stats_it->second);
@@ -150,13 +191,13 @@ void PMemStatsReportVisitor::visit(const Index &index,
     stats.addFieldsSize(len);
 
     const eckit::PathName& dataPath  = field.location().url();
-    const eckit::PathName& indexPath = index.location().url();
+    const eckit::PathName& indexPath = currentIndex_->location().url();
 
     // n.b. Unlike in the Toc case, we don't need to track the index and data pools here. They are stored and
     //      referenced centrally in the master pool, so the data about them is ALREADY located in the global
     //      dbStats!
 
-    std::string unique = indexFingerprint + "+" + fieldFingerprint;
+    std::string unique = currentIndex_->key().valuesToString() + "+" + fieldFingerprint;
 
     if (active_.insert(unique).second) {
         indexUsage_[indexPath]++;
@@ -167,6 +208,8 @@ void PMemStatsReportVisitor::visit(const Index &index,
     }
 }
 
+void PMemStatsReportVisitor::databaseComplete(const DB &db) {}
+
 DbStats PMemStatsReportVisitor::dbStatistics() const {
     return dbStats_;
 }
@@ -174,8 +217,8 @@ DbStats PMemStatsReportVisitor::dbStatistics() const {
 IndexStats PMemStatsReportVisitor::indexStatistics() const {
 
     IndexStats total(new PMemIndexStats());
-    for (std::map<Index, IndexStats>::const_iterator i = indexStats_.begin(); i != indexStats_.end(); ++i) {
-        total += i->second;
+    for (const auto& it : indexStats_) {
+        total += it.second;
     }
     return total;
 }

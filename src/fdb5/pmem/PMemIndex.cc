@@ -136,6 +136,12 @@ std::string PMemIndex::defaulType() {
     return "PMemIndex";
 }
 
+const std::vector<PathName> PMemIndex::dataPaths() const {
+    // n.b. this lists the pools that _could_ be referenced, not those that
+    // necessarily are. That would need proper enumeration of all contents.
+    return location_.pool_manager().dataPoolPaths();
+}
+
 void PMemIndex::dump(std::ostream& out, const char* indent, bool simple, bool dumpFields) const {
     NOTIMP;
 }

@@ -41,7 +41,7 @@ PRoot::PRoot(RootClass cls) :
     dataRoot_() {}
 
 
-void PRoot::buildRoot(const Key& dbKey) {
+void PRoot::buildRoot(const Key& dbKey, const eckit::PathName& schemaPath) {
 
     AutoLock<PersistentMutex> lock(rootMutex_);
 
@@ -49,7 +49,7 @@ void PRoot::buildRoot(const Key& dbKey) {
     ASSERT(dataRoot_.null());
 
     if (class_ == IndexClass) {
-        PIndexRoot::build(indexRoot_, dbKey);
+        PIndexRoot::build(indexRoot_, dbKey, schemaPath);
     } else {
         ASSERT(class_ == DataClass);
         dataRoot_.allocate();

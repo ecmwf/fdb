@@ -49,7 +49,7 @@ public: // methods
                const ::pmem::PersistentPtr< ::pmem::PersistentString>& schema,
                const ::pmem::PersistentPtr<PBranchingNode>& rootNode);
 
-    static void build(::pmem::PersistentPtr<PIndexRoot>& ptr, const Key& dbKey);
+    static void build(::pmem::PersistentPtr<PIndexRoot>& ptr, const Key& dbKey, const eckit::PathName& schema);
 
     bool valid() const;
 

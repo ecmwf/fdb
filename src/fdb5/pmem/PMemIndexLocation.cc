@@ -14,6 +14,8 @@
 #include "fdb5/pmem/PMemIndexLocation.h"
 #include "fdb5/pmem/PBranchingNode.h"
 
+#include "pmem/PoolRegistry.h"
+
 using namespace eckit;
 
 
@@ -39,15 +41,9 @@ DataPoolManager& PMemIndexLocation::pool_manager() const {
 
 PathName PMemIndexLocation::url() const
 {
-    /// @TODO FIXME Simon to put here the access to the path of pool from the node pointer
+    ::pmem::PersistentPool& pool(::pmem::PoolRegistry::instance().poolFromPointer(&node_));
 
-
-    PBranchingNode* pnode = &node_;
-
-    std::ostringstream oss;
-    oss << pnode;
-
-    return PathName(oss.str());
+    return pool.path();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

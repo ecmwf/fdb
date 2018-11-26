@@ -16,6 +16,7 @@
 
 #include "fdb5/pmem/PMemEngine.h"
 #include "fdb5/pmem/PoolManager.h"
+#include "fdb5/rules/Schema.h"
 
 using eckit::Regex;
 using eckit::Log;
@@ -32,9 +33,9 @@ std::string PMemEngine::dbType() const {
     return PMemEngine::typeName();
 }
 
-eckit::PathName PMemEngine::location(const Key& key) const
+eckit::PathName PMemEngine::location(const Key& key, const Config& config) const
 {
-    return PoolManager::pool(key);
+    return PoolManager(config).pool(key);
 }
 
 static bool isPMemDB(const eckit::PathName& path) {
@@ -49,19 +50,19 @@ bool PMemEngine::canHandle(const eckit::PathName& path) const
 }
 
 
-static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing)
+static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing, const Config& config)
 {
-    const Schema& schema = LibFdb::instance().schema();
+    const Schema& schema = config.schema();
     schema.matchFirstLevel(key, keys, missing);
 }
 
-std::vector<eckit::PathName> PMemEngine::databases(const Key &key, const std::vector<eckit::PathName>& dirs) {
+std::vector<eckit::PathName> PMemEngine::databases(const Key &key, const std::vector<eckit::PathName>& dirs, const Config& config) {
 
     std::set<Key> keys;
 
     const char* regexForMissingValues = "[^:/]*";
 
-    matchKeyToDB(key, keys, regexForMissingValues);
+    matchKeyToDB(key, keys, regexForMissingValues, config);
 
     Log::debug<LibFdb>() << "Matched DB keys " << keys << std::endl;
 
@@ -106,19 +107,19 @@ std::vector<eckit::PathName> PMemEngine::databases(const Key &key, const std::ve
     return result;
 }
 
-std::vector<eckit::PathName> PMemEngine::allLocations(const Key& key) const
+std::vector<eckit::PathName> PMemEngine::allLocations(const Key& key, const Config& config) const
 {
-    return databases(key, PoolManager::allPools(key));
+    return databases(key, PoolManager(config).allPools(key), config);
 }
 
-std::vector<eckit::PathName> PMemEngine::visitableLocations(const Key& key) const
+std::vector<eckit::PathName> PMemEngine::visitableLocations(const Key& key, const Config& config) const
 {
-    return databases(key, PoolManager::visitablePools(key));
+    return databases(key, PoolManager(config).visitablePools(key), config);
 }
 
-std::vector<eckit::PathName> PMemEngine::writableLocations(const Key& key) const
+std::vector<eckit::PathName> PMemEngine::writableLocations(const Key& key, const Config& config) const
 {
-    return databases(key, PoolManager::writablePools(key));
+    return databases(key, PoolManager(config).writablePools(key), config);
 }
 
 void PMemEngine::print(std::ostream& out) const

@@ -19,6 +19,7 @@
 
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/pmem/DataPoolManager.h"
 #include "fdb5/pmem/PBranchingNode.h"
 #include "fdb5/pmem/PDataNode.h"
@@ -389,6 +390,16 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
         if (isIndex()) {
 
             index = Index(new PMemIndex(keys.back(), *this, mgr));
+
+            visitor.visitIndex(index);
+
+            // If we are not visiting right to the leaves, there is no need to go
+            // any further
+            if (!visitor.visitEntries()) {
+                keys.back().pop(key());
+                return;
+            }
+
             keys.push_back(Key());
             depth++;
         }
@@ -443,7 +454,7 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
         keys.back().push((*it_dt)->key(), (*it_dt)->value());
         Field field(PMemFieldLocation(*it_dt, mgr.getPool(it_dt->uuid())));
 
-        visitor.visit(index, field,"Index fingerprint unused", keys.back().valuesToString());
+        visitor.visitDatum(field, keys.back().valuesToString());
 
         keys.back().pop((*it_dt)->key());
     }
@@ -455,8 +466,9 @@ void PBranchingNode::visitLeaves(EntryVisitor &visitor,
     }
 
     if (!(key().empty() && value().empty())) {
-        if (isIndex())
+        if (isIndex()) {
             keys.pop_back();
+        }
         keys.back().pop(key());
     }
 }
