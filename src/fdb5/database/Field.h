@@ -52,8 +52,11 @@ public: // methods
     eckit::DataHandle *dataHandle() const { return location_->dataHandle(); }
 
     const FieldLocation& location() const { return *location_; }
-    std::shared_ptr<const FieldLocation> sharedLocation() const {
-        return std::const_pointer_cast<const FieldLocation>(location_);
+
+    /// stableLocation is an object with validity that extends longer than that of the
+    /// owning DB. May need converting to a more static form --- or not.
+    std::shared_ptr<const FieldLocation> stableLocation() const {
+        return std::const_pointer_cast<const FieldLocation>(location_->stableLocation());
     }
     const FieldDetails& details() const { return details_; }
 

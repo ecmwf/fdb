@@ -32,10 +32,8 @@ class DataPool;
 class PMemFieldLocation : public FieldLocation {
 public:
 
-    PMemFieldLocation();
     PMemFieldLocation(const PMemFieldLocation& rhs);
     PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode, DataPool& pool);
-    PMemFieldLocation(eckit::Stream&);
 
     ::pmem::PersistentPtr<PDataNode> node() const;
 
@@ -45,21 +43,19 @@ public:
 
     virtual std::shared_ptr<FieldLocation> make_shared() const;
 
+    // The PMemFieldLocation only has validity equal to that of the PMemDB.
+    // This is a problem with any async API functions.
+    // --> For visibility purposes return something more stable (currently a
+    //     TocFieldLocation....)
+    virtual std::shared_ptr<FieldLocation> stableLocation() const;
+
     virtual void visit(FieldLocationVisitor& visitor) const;
 
     DataPool& pool() const;
 
-public: // For Streamable
-
-    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
-
-protected: // For Streamable
+protected: // For Streamable (see comments. This is a bit odd).
 
     virtual void encode(eckit::Stream&) const;
-    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
-
-    static eckit::ClassSpec                    classSpec_;
-    static eckit::Reanimator<PMemFieldLocation> reanimator_;
 
 private: // methods
 
@@ -71,8 +67,7 @@ private: // members
 
     ::pmem::PersistentPtr<PDataNode> dataNode_;
 
-    // This is a non-owning pointer. Acts as a nullable reference.
-    DataPool* dataPool_;
+    DataPool& dataPool_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

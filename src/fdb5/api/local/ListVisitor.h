@@ -35,7 +35,7 @@ public:
         ASSERT(currentIndex_);
 
         queue_.emplace(ListElement({currentDatabase_->key(), currentIndex_->key(), key},
-                                      field.sharedLocation()));
+                                      field.stableLocation()));
     }
 };
 

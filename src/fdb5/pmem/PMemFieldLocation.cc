@@ -13,20 +13,25 @@
 #include "fdb5/pmem/PMemFieldLocation.h"
 #include "fdb5/pmem/PDataNode.h"
 #include "fdb5/pmem/DataPool.h"
+#include "fdb5/toc/TocFieldLocation.h"
 
 namespace fdb5 {
 namespace pmem {
 
-::eckit::ClassSpec PMemFieldLocation::classSpec_ = {&FieldLocation::classSpec(), "PMemFieldLocation",};
-::eckit::Reanimator<PMemFieldLocation> PMemFieldLocation::reanimator_;
+// PMemFieldLocation cannot be sensibly reconstructed on a remote.
+// Create something that gives info without needing the pmem library, that
+// could be remapped into a PMemFieldLocation if we later so chose.
+
+// --> For info purposes we return a TocFieldLocation which has the required
+//     components.
+// --> Obviously, if this needs to be reconstructed, then we need to do
+//     something else magical.
+
+//::eckit::ClassSpec PMemFieldLocation::classSpec_ = {&FieldLocation::classSpec(), "PMemFieldLocation",};
+//::eckit::Reanimator<PMemFieldLocation> PMemFieldLocation::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-PMemFieldLocation::PMemFieldLocation() :
-    dataPool_(0) {
-    NOTIMP; // TODO streamable
-}
 
 PMemFieldLocation::PMemFieldLocation(const PMemFieldLocation& rhs) :
     FieldLocation(rhs.length()),
@@ -35,19 +40,17 @@ PMemFieldLocation::PMemFieldLocation(const PMemFieldLocation& rhs) :
 
 
 PMemFieldLocation::PMemFieldLocation(const ::pmem::PersistentPtr<PDataNode>& dataNode, DataPool& pool) :
+    FieldLocation(dataNode->length()),
     dataNode_(dataNode),
-    dataPool_(&pool) {}
-
-
-PMemFieldLocation::PMemFieldLocation(eckit::Stream& s) :
-    FieldLocation(s),
-    dataPool_(0) {
-    // TODO streamable
-}
+    dataPool_(pool) {}
 
 
 std::shared_ptr<FieldLocation> PMemFieldLocation::make_shared() const {
     return std::make_shared<PMemFieldLocation>(*this);
+}
+
+std::shared_ptr<FieldLocation> PMemFieldLocation::stableLocation() const {
+    return std::make_shared<TocFieldLocation>(url(), node().offset(), node()->length());
 }
 
 
@@ -57,8 +60,8 @@ eckit::DataHandle *PMemFieldLocation::dataHandle() const {
     return new eckit::MemoryHandle(node.data(), node.length());
 }
 
-void PMemFieldLocation::print(std::ostream &out) const {
-    out << "(" << "," << length_ << ")";
+void PMemFieldLocation::print(std::ostream& out) const {
+    out << "(" << node().uuid() << "," << node().offset() << "," << length_ << ")";
 }
 
 void PMemFieldLocation::visit(FieldLocationVisitor& visitor) const {
@@ -70,39 +73,23 @@ void PMemFieldLocation::visit(FieldLocationVisitor& visitor) const {
 }
 
 DataPool& PMemFieldLocation::pool() const {
-
-    // PMemFieldLocation is streamable to be able to display/store/reconstruct
-    // information across RemoteFDB instances. Clearly the location cannot be
-    // directly accessed on the other side.
-    //
-    // Without access to the DataPoolManager object, we have no way to actually
-    // get the DataPool here when reconstructed from a Streamed object. If it is
-    // necessary to do the reverse streaming, then this gets more complicated.
-
-    if (!dataPool_) {
-        throw eckit::SeriousBug("Attempting to access PMemFieldLocation with no pool set. Likely via Streamed object.",
-                                Here());
-    }
-    return *dataPool_;
+    return dataPool_;
 }
 
 void PMemFieldLocation::encode(eckit::Stream& s) const {
-    FieldLocation::encode(s);
-    // TODO: Streamable
+    NOTIMP; // See comment
 }
 
 void PMemFieldLocation::dump(std::ostream& out) const
 {
     out << "  pool_uuid: " << node().uuid() << std::endl;
-    if (dataPool_) out << "  data_pool: " << dataPool_->path() << std::endl;
+    out << "  data_pool: " << pool().path() << std::endl;
     out << "  offset: "    << node().offset() << std::endl;
 
 }
 
-eckit::PathName fdb5::pmem::PMemFieldLocation::url() const
-{
-    ASSERT(dataPool_);
-    return dataPool_->path();
+eckit::PathName fdb5::pmem::PMemFieldLocation::url() const {
+    return pool().path();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
