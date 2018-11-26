@@ -15,13 +15,12 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/io/AIOHandle.h"
 
-#include "fdb5/LibFdb.h"
-
+#include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/io/FDBFileHandle.h"
-
+#include "fdb5/LibFdb.h"
 #include "fdb5/toc/TocDBWriter.h"
-#include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocFieldLocation.h"
+#include "fdb5/toc/TocIndex.h"
 
 namespace fdb5 {
 
@@ -135,21 +134,24 @@ void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offs
 
 void TocDBWriter::reconsolidateIndexesAndTocs() {
 
+    // TODO: This tool needs to be rewritten to reindex properly using the schema.
+    //       Currently it results in incomplete indexes if data has been written
+    //       in a context that has optional values in the schema.
+
     // Visitor class for reindexing
 
     class ConsolidateIndexVisitor : public EntryVisitor {
     public:
         ConsolidateIndexVisitor(TocDBWriter& writer) :
             writer_(writer) {}
-        virtual ~ConsolidateIndexVisitor() {}
+        ~ConsolidateIndexVisitor() override {}
     private:
-        virtual void visit(const Index& index,
-                           const Field& field,
-                           const std::string& indexFingerprint,
-                           const std::string& fieldFingerprint) {
-            Key key(fieldFingerprint, writer_.schema().ruleFor(writer_.key(), index.key()));
+        void visitDatum(const Field& field, const Key& key) override {
+            // TODO: Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
+            //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
             writer_.index(key, location.path(), location.offset(), location.length());
+
         }
 
         TocDBWriter& writer_;
