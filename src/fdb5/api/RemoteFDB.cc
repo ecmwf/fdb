@@ -24,6 +24,7 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Translator.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/os/BackTrace.h"
 
 #include "marslib/MarsRequest.h"
 
@@ -41,7 +42,11 @@ namespace {
 class TCPException : public Exception {
 public:
     TCPException(const std::string& msg, const CodeLocation& here) :
-        Exception(std::string("TCPException: ") + msg, here) {}
+        Exception(std::string("TCPException: ") + msg, here) {
+
+        eckit::Log::error() << "TCP Exception; backtrace(): " << std::endl;
+        eckit::Log::error() << eckit::BackTrace::dump() << std::endl;
+    }
 };
 }
 
