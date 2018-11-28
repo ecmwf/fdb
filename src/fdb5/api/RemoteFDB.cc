@@ -501,8 +501,8 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
         uint32_t id = generateRequestID();
         controlWriteCheckResponse(Message::Archive, id);
 
-        archiveFuture_ = std::async(std::launch::async, [this, id] { return archiveThreadLoop(id); });
         archiveQueue_.reset();
+        archiveFuture_ = std::async(std::launch::async, [this, id] { return archiveThreadLoop(id); });
     }
 
     archiveQueue_.emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
