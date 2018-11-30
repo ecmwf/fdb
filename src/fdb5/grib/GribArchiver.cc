@@ -54,7 +54,7 @@ static std::vector<metkit::MarsRequest> str_to_requests(const std::string& str) 
     std::istringstream in(rs);
     metkit::MarsParser parser(in);
 
-    std::vector<metkit::MarsRequest> p = parser.parse();
+    std::vector<metkit::MarsParsedRequest> p = parser.parse();
 
     Log::debug<LibFdb>() << "Parsed requests:" << std::endl;
     for (std::vector<metkit::MarsRequest>::const_iterator j = p.begin(); j != p.end(); ++j) {
