@@ -24,7 +24,7 @@ SchemaHasChanged::SchemaHasChanged(const Schema &schema):
     path_(schema.path()) {
 }
 
-SchemaHasChanged::~SchemaHasChanged() throw() {
+SchemaHasChanged::~SchemaHasChanged() noexcept {
 
 }
 
