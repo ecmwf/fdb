@@ -62,26 +62,6 @@ else()
   set( grib_handling_pkg grib_api )
 endif()
 
-### third party archive support
-
-# set(mars_2_mars_default OFF)
-# if(METKIT_FOUND)
-#   set(mars_2_mars_default ON)
-# endif()
-
-# ecbuild_add_option( FEATURE MARS2MARS
-#                     DEFAULT ${mars_2_mars_default}
-#                     DESCRIPTION "Support direct archiving from another mars instance"
-#                     REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
-
-# ecbuild_add_option( FEATURE WEBAPI
-#                     DEFAULT ON
-#                     DESCRIPTION "Add webapi"
-#                     REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
-
-# if( HAVE_WEBAPI )
-# endif()
-
 ecbuild_use_package( PROJECT metkit VERSION 0.7 REQUIRED ) ## metkit is now always needed
 
 ### ODB support
@@ -119,10 +99,10 @@ ecbuild_add_option( FEATURE EXPERIMENTAL
 
 ### FDB4 - 5 migration tools
 
-ecbuild_add_option( FEATURE FDB4_MIGRATION
-                    DEFAULT ON
-                    DESCRIPTION "FDB4 to 5 migration tools"
-                    REQUIRED_PACKAGES "PROJECT fdb VERSION 4.8" )
+#ecbuild_add_option( FEATURE FDB4_MIGRATION
+#                    DEFAULT ON
+#                    DESCRIPTION "FDB4 to 5 migration tools"
+#                    REQUIRED_PACKAGES "PROJECT fdb VERSION 4.8" )
 
 
 ########################################################################################################################
