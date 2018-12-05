@@ -41,6 +41,7 @@ public: // types
 
     using StoredMessage = std::pair<remote::MessageHeader, eckit::Buffer>;
     using MessageQueue = eckit::Queue<StoredMessage>;
+    using ArchiveQueue = eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>>;
 
 public: // method
 
@@ -128,7 +129,8 @@ private: // members
 
     // Helpers for retrievals
 
-    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> archiveQueue_;
+    size_t maxArchiveQueueLength_;
+    std::unique_ptr<ArchiveQueue> archiveQueue_;
     MessageQueue retrieveMessageQueue_;
 
     bool connected_;

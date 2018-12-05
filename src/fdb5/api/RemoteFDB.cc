@@ -71,7 +71,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     hostname_(config.getString("host")),
     port_(config.getLong("port")),
     dataport_(0),
-    archiveQueue_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)),
+    maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
     connected_(false) {}
 
@@ -169,7 +169,7 @@ void RemoteFDB::listeningThreadLoop() {
         case Message::Complete: {
             auto it = messageQueues_.find(hdr.requestID);
             if (it != messageQueues_.end()) {
-                it->second->set_done();
+                it->second->close();
 
                 // Remove entry (shared_ptr --> message queue will be destroyed when it
                 // goes out of scope in the worker thread).
@@ -501,11 +501,15 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
         uint32_t id = generateRequestID();
         controlWriteCheckResponse(Message::Archive, id);
 
-        archiveQueue_.reset();
+        // Reset the queue after previous done/errors
+        ASSERT(!archiveQueue_);
+        archiveQueue_.reset(new ArchiveQueue(maxArchiveQueueLength_));
+
         archiveFuture_ = std::async(std::launch::async, [this, id] { return archiveThreadLoop(id); });
     }
 
-    archiveQueue_.emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
+    ASSERT(archiveQueue_);
+    archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
 }
 
 
@@ -518,8 +522,10 @@ void RemoteFDB::flush() {
     // Flush only does anything if there is an ongoing archive();
     if (archiveFuture_.valid()) {
 
-        archiveQueue_.set_done();
+        ASSERT(archiveQueue_);
+        archiveQueue_->close();
         FDBStats stats = archiveFuture_.get();
+        ASSERT(!archiveQueue_);
 
         ASSERT(stats.numFlush() == 0);
         size_t numArchive = stats.numArchive();
@@ -546,23 +552,34 @@ FDBStats RemoteFDB::archiveThreadLoop(uint32_t requestID) {
 
     std::pair<Key, Buffer> element {Key{}, 0};
 
-    while (archiveQueue_.pop(element) != -1) {
+    try {
 
-        const Key& key(element.first);
-        const Buffer& buffer(element.second);
+        ASSERT(archiveQueue_);
 
-        timer.start();
-        sendArchiveData(requestID, key, buffer.data(), buffer.size());
-        timer.stop();
-        localStats.addArchive(buffer.size(), timer);
+        while (archiveQueue_->pop(element) != -1) {
+
+            const Key& key(element.first);
+            const Buffer& buffer(element.second);
+
+            timer.start();
+            sendArchiveData(requestID, key, buffer.data(), buffer.size());
+            timer.stop();
+            localStats.addArchive(buffer.size(), timer);
+        }
+
+        // And note that we are done. (don't time this, as already being blocked
+        // on by the ::flush() routine)
+
+        MessageHeader hdr(Message::Flush, requestID);
+        dataWrite(&hdr, sizeof(hdr));
+        dataWrite(&EndMarker, sizeof(EndMarker));
+
+        archiveQueue_.reset();
+
+    } catch (...) {
+        archiveQueue_->interrupt(std::current_exception());
+        throw;
     }
-
-    // And note that we are done. (don't time this, as already being blocked
-    // on by the ::flush() routine)
-
-    MessageHeader hdr(Message::Flush, requestID);
-    dataWrite(&hdr, sizeof(hdr));
-    dataWrite(&EndMarker, sizeof(EndMarker));
 
     return localStats;
 

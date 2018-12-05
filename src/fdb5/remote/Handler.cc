@@ -366,7 +366,7 @@ void RemoteHandler::tidyWorkers() {
 
 void RemoteHandler::waitForWorkers() {
 
-    retrieveQueue_.set_done();
+    retrieveQueue_.close();
 
     tidyWorkers();
 
@@ -458,84 +458,99 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
 
         std::pair<fdb5::Key, eckit::Buffer> elem {{}, 0};
 
-        long queuelen;
-        while ((queuelen = queue.pop(elem)) != -1) {
+        try {
 
-            const Key& key(elem.first);
-            const Buffer& buffer(elem.second);
+            long queuelen;
+            while ((queuelen = queue.pop(elem)) != -1) {
 
-            std::stringstream ss_key;
-            ss_key << key;
-            Log::info() << "Archive (" << queuelen << "): " << ss_key.str() << std::endl;
-            Log::status() << "Archive (" << queuelen << "): " << ss_key.str() << std::endl;
-            fdb_.archive(key, buffer, buffer.size());
-            Log::status() << "Archive done (" << queuelen << "): " << ss_key.str() << std::endl;
+                const Key& key(elem.first);
+                const Buffer& buffer(elem.second);
+
+                std::stringstream ss_key;
+                ss_key << key;
+                Log::info() << "Archive (" << queuelen << "): " << ss_key.str() << std::endl;
+                Log::status() << "Archive (" << queuelen << "): " << ss_key.str() << std::endl;
+                fdb_.archive(key, buffer, buffer.size());
+                Log::status() << "Archive done (" << queuelen << "): " << ss_key.str() << std::endl;
+            }
+
+        } catch (...) {
+            // Ensure exception propagates across the queue back to the parent thread.
+            queue.interrupt(std::current_exception());
+            throw;
         }
     });
 
-    // The archive loop is the only thing that can listen on the data socket,
-    // so we don't need to to anything clever here.
+    try {
 
-    // n.b. we also don't need to lock on read. We are the only thing that reads.
+        // The archive loop is the only thing that can listen on the data socket,
+        // so we don't need to to anything clever here.
 
-    while (true) {
+        // n.b. we also don't need to lock on read. We are the only thing that reads.
 
-        MessageHeader hdr;
-        socketRead(&hdr, sizeof(hdr), dataSocket_);
+        while (true) {
 
-        ASSERT(hdr.marker == StartMarker);
-        ASSERT(hdr.version == CurrentVersion);
-        ASSERT(hdr.requestID == id);
+            MessageHeader hdr;
+            socketRead(&hdr, sizeof(hdr), dataSocket_);
 
-        // Have we been told that we are done yet?
-        if (hdr.message == Message::Flush) break;
+            ASSERT(hdr.marker == StartMarker);
+            ASSERT(hdr.version == CurrentVersion);
+            ASSERT(hdr.requestID == id);
 
-        ASSERT(hdr.message == Message::Blob);
+            // Have we been told that we are done yet?
+            if (hdr.message == Message::Flush) break;
 
-        Buffer payload(receivePayload(hdr, dataSocket_));
-        MemoryStream s(payload);
+            ASSERT(hdr.message == Message::Blob);
+
+            Buffer payload(receivePayload(hdr, dataSocket_));
+            MemoryStream s(payload);
+
+            eckit::FixedString<4> tail;
+            socketRead(&tail, sizeof(tail), dataSocket_);
+            ASSERT(tail == EndMarker);
+
+            // Get the key and the data out
+
+            fdb5::Key key(s);
+
+            std::stringstream ss_key;
+            ss_key << key;
+            Log::status() << "Queueing: " << ss_key.str() << std::endl;
+            Log::debug<LibFdb>() << "Queueing: " << ss_key.str() << std::endl;
+
+            // Queue the data for asynchronous handling
+
+            size_t pos = s.position();
+            size_t len = hdr.payloadSize - pos;
+
+            size_t queuelen = queue.emplace(std::make_pair(std::move(key), Buffer(&payload[pos], len)));
+
+            Log::status() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
+            Log::debug<LibFdb>() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
+
+            totalArchived += 1;
+        }
+
+        // Trigger cleanup of the workers
+        queue.close();
+
+        // Complete reading the Flush instruction
 
         eckit::FixedString<4> tail;
         socketRead(&tail, sizeof(tail), dataSocket_);
         ASSERT(tail == EndMarker);
 
-        // Get the key and the data out
+        // Ensure worker is done
 
-        fdb5::Key key(s);
+        ASSERT(worker.valid());
+        worker.get(); // n.b. use of async, get() propagates any exceptions.
 
-        std::stringstream ss_key;
-        ss_key << key;
-        Log::status() << "Queueing: " << ss_key.str() << std::endl;
-        Log::debug<LibFdb>() << "Queueing: " << ss_key.str() << std::endl;
+        Log::info() << "Recieved end marker. Exiting" << std::endl;
 
-        // Queue the data for asynchronous handling
-
-        size_t pos = s.position();
-        size_t len = hdr.payloadSize - pos;
-
-        size_t queuelen = queue.emplace(std::make_pair(std::move(key), Buffer(&payload[pos], len)));
-
-        Log::status() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
-        Log::debug<LibFdb>() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
-
-        totalArchived += 1;
+    } catch (...) {
+        queue.interrupt(std::current_exception());
+        throw;
     }
-
-    // Trigger cleanup of the workers
-    queue.set_done();
-
-    // Complete reading the Flush instruction
-
-    eckit::FixedString<4> tail;
-    socketRead(&tail, sizeof(tail), dataSocket_);
-    ASSERT(tail == EndMarker);
-
-    // Ensure worker is done
-
-    ASSERT(worker.valid());
-    worker.get(); // n.b. use of async, get() propagates any exceptions.
-
-    Log::info() << "Recieved end marker. Exiting" << std::endl;
 
     return totalArchived;
 }

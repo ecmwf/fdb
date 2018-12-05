@@ -16,6 +16,7 @@
 
 #include "eckit/container/Queue.h"
 
+#include <functional>
 #include <memory>
 #include <queue>
 #include <exception>
@@ -120,7 +121,7 @@ public: // methods
         auto fullWorker = [workerFn, this] {
             try {
                 workerFn(queue_);
-                queue_.set_done();
+                queue_.close();
             } catch (...) {
                 // Really avoid calling std::terminate on worker thread.
                 queue_.interrupt(std::current_exception());
@@ -131,7 +132,7 @@ public: // methods
     }
 
     virtual ~APIAsyncIterator() {
-        if (!queue_.done()) {
+        if (!queue_.closed()) {
             queue_.interrupt(std::make_exception_ptr(eckit::SeriousBug("Destructing incomplete async queue", Here())));
         }
         ASSERT(workerThread_.joinable());
