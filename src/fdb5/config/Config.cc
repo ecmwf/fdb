@@ -37,6 +37,17 @@ Config Config::expandConfig() const {
     // If the config is already initialised, then use it directly.
     if (has("type")) return *this;
 
+    // If we have explicitly specified a config as an environment variable, use that
+
+    char* config_str = ::getenv("FDB5_CONFIG");
+    if (config_str) {
+        eckit::YAMLConfiguration cfg(std::string(config_str));
+        return cfg;
+    }
+
+    // Otherwise, if we have specified a configuration path (including in the config
+    // being expanded) then read that and use it.
+
     const std::string default_config_path = "~fdb/etc/fdb/config.yaml";
     std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", default_config_path);
 

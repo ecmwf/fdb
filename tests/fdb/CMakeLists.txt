@@ -83,3 +83,4 @@ endforeach()
 # pmem tests make use of the test environment, so are added at the end
 
 add_subdirectory( pmem )
+add_subdirectory( api )
