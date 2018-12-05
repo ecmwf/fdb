@@ -40,8 +40,10 @@ Config Config::expandConfig() const {
     // If we have explicitly specified a config as an environment variable, use that
 
     char* config_str = ::getenv("FDB5_CONFIG");
+    Log::info() << "Config_str" << (void*)config_str << std::endl;
     if (config_str) {
-        eckit::YAMLConfiguration cfg(std::string(config_str));
+        std::string s(config_str);
+        eckit::YAMLConfiguration cfg(s);
         return cfg;
     }
 
