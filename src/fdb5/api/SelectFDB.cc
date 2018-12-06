@@ -244,6 +244,7 @@ bool SelectFDB::matches(const MarsRequest &request, const SelectMap &select) con
         std::vector<std::string> request_values;
         long count = request.getValues(k, request_values);
 
+        // TODO: If we want to allow non-fully-specified retrieves, this is the place to do it.
         if (count == 0) return false;
 
         bool found = false;
