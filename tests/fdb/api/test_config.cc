@@ -10,6 +10,11 @@
 
 #include <cstdlib>
 
+#include "eckit/config/Resource.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/TmpFile.h"
+#include "eckit/filesystem/TmpDir.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
 
 #include "fdb5/config/Config.h"
@@ -65,11 +70,8 @@ CASE( "config_expands_from_environment_variable_json" ) {
     )XX");
 
     SetenvCleanup env("FDB5_CONFIG", config_str);
-    Log::info() << "Config_str" << (void*)::getenv("FDB5_CONFIG") << std::endl;
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
-
-    Log::info() << "Expanded: " << expanded << std::endl;
 
     EXPECT(expanded.getString("type") == "local");
     EXPECT(expanded.getString("engine") == "pmem");
@@ -91,11 +93,8 @@ CASE( "config_expands_from_environment_variable_yaml" ) {
     )XX");
 
     SetenvCleanup env("FDB5_CONFIG", config_str);
-    Log::info() << "Config_str" << (void*)::getenv("FDB5_CONFIG") << std::endl;
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
-
-    Log::info() << "Expanded: " << expanded << std::endl;
 
     EXPECT(expanded.getString("type") == "local");
     EXPECT(expanded.getString("engine") == "toc");
@@ -103,6 +102,76 @@ CASE( "config_expands_from_environment_variable_yaml" ) {
     EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
     EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == "/a/path/is/something");
 }
+
+CASE( "config_expands_explicit_path" ) {
+
+    const std::string config_str(R"XX(
+        ---
+        type: local
+        engine: toc
+        spaces:
+        - roots:
+          - path: "/a/path/is/different"
+    )XX");
+
+    eckit::TmpFile tf;
+
+    {
+        std::unique_ptr<eckit::DataHandle> dh(tf.fileHandle());
+        eckit::AutoClose close(*dh);
+        eckit::Length estimate;
+        dh->openForWrite(estimate);
+        dh->write(config_str.c_str(), config_str.size());
+    }
+
+    SetenvCleanup env("FDB5_CONFIG_FILE", tf.asString());
+
+    fdb5::Config expanded = fdb5::Config().expandConfig();
+
+    EXPECT(expanded.getString("type") == "local");
+    EXPECT(expanded.getString("engine") == "toc");
+    EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == "/a/path/is/different");
+}
+
+CASE( "config_expands_override_fdb_home" ) {
+
+    const std::string config_str(R"XX(
+        ---
+        type: local
+        engine: toc
+        spaces:
+        - roots:
+          - path: /a/path/is/first
+          - path: /a/path/is/second
+    )XX");
+
+    eckit::TmpDir td;
+
+    (td / "etc/fdb").mkdir();
+
+    {
+        std::unique_ptr<eckit::DataHandle> dh((td / "etc/fdb/config.yaml").fileHandle());
+        eckit::AutoClose close(*dh);
+        eckit::Length estimate;
+        dh->openForWrite(estimate);
+        dh->write(config_str.c_str(), config_str.size());
+    }
+
+    fdb5::Config cfg;
+    cfg.set("fdb_home", td.asString());
+
+    fdb5::Config expanded = cfg.expandConfig();
+
+    EXPECT(expanded.getString("type") == "local");
+    EXPECT(expanded.getString("engine") == "toc");
+    EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 2);
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == "/a/path/is/first");
+    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[1].getString("path") == "/a/path/is/second");
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
