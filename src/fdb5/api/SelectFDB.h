@@ -25,12 +25,7 @@
 
 namespace fdb5 {
 
-class Retriever;
-class Archiver;
-
 //----------------------------------------------------------------------------------------------------------------------
-
-
 
 class SelectFDB : public FDBBase {
 

@@ -1,6 +1,7 @@
 
 list( APPEND api_tests
     config
+    select
 )
 
 foreach( _test ${api_tests} )
