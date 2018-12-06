@@ -2,6 +2,7 @@
 list( APPEND api_tests
     config
     select
+    dist
 )
 
 foreach( _test ${api_tests} )
