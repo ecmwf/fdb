@@ -84,3 +84,4 @@ endforeach()
 
 add_subdirectory( pmem )
 add_subdirectory( api )
+add_subdirectory( tools )

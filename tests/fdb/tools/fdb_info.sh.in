@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -eux
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+
+output=$(fdb-info)
+[ -z "${output}" ] || (echo "Unexpected output" && exit 1)
+
+output=$(fdb-info --version)
+[ "${output}" = "@MARS_SERVER_VERSION@" ] || (echo "Unexpected version output" && exit 1)
+
+# By default the build directory is used as home, as it has a default configuration
+# and is explored relative to the binary
+unset FDB_HOME
+
+output=$(fdb-info --home)
+[ "$(readlink -f ${output})" = "$(readlink -f @CMAKE_BINARY_DIR@)" ] || (echo "Unexpected default FDB home" && exit 1)
+
+output=$(fdb-info --schema)
+[ "$(readlink -f ${output})" = "$(readlink -f @CMAKE_BINARY_DIR@/etc/fdb/schema)" ] || (echo "Unexpected default FDB schema" && exit 1)
+
+export FDB_HOME="/an/imaginary/path"
+output=$(fdb-info --home)
+[ "$(readlink -m ${output})" = "$(readlink -m /an/imaginary/path)" ] || (echo "Overridden FDB_HOME not used" && exit 1)
+
+output=$(fdb-info --schema)
+[ "$(readlink -m ${output})" = "$(readlink -m /an/imaginary/path/etc/fdb/schema)" ] || (echo "Overridden FDB_HOME not used for schema path" && exit 1)
+unset FDB_HOME
+
+echo "OK"
