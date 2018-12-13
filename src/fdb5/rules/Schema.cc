@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <fstream>
+
 #include "fdb5/LibFdb.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/rules/Rule.h"

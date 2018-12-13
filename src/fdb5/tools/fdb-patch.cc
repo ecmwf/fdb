@@ -8,23 +8,23 @@
  * does it submit to any jurisdiction.
  */
 
+#include <iomanip>
+
 #include "grib_api.h"
 
-#include "eckit/memory/ScopedPtr.h"
-#include "eckit/option/CmdArgs.h"
+#include "eckit/config/Resource.h"
 #include "eckit/log/BigNum.h"
 #include "eckit/log/Bytes.h"
-#include "eckit/log/Timer.h"
 #include "eckit/log/Plural.h"
-
-#include "eckit/config/Resource.h"
+#include "eckit/log/Timer.h"
+#include "eckit/memory/ScopedPtr.h"
+#include "eckit/option/CmdArgs.h"
 
 #include "fdb5/config/UMask.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
-
 #include "fdb5/tools/FDBInspect.h"
 
 

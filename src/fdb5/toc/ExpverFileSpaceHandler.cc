@@ -8,9 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+#include "ExpverFileSpaceHandler.h"
+
 #include <sys/file.h>
 
-#include "fdb5/toc/ExpverFileSpaceHandler.h"
+#include <fstream>
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"

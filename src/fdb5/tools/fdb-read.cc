@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <fstream>
+
 #include "eckit/io/FileHandle.h"
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
