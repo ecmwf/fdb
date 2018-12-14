@@ -17,6 +17,7 @@
 
 #include "TocRecord.h"
 
+#include "eckit/memory/Zero.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
 

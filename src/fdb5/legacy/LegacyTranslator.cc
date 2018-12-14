@@ -9,6 +9,7 @@
  */
 
 #include <cctype>
+#include <algorithm>
 
 #include "eckit/utils/Translator.h"
 

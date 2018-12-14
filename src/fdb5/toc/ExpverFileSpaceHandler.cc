@@ -12,6 +12,7 @@
 
 #include <sys/file.h>
 
+#include <algorithm>
 #include <fstream>
 
 #include "eckit/config/Resource.h"

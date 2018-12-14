@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <algorithm>
+
 #include "eckit/parser/Tokenizer.h"
 
 #include "fdb5/LibFdb.h"
