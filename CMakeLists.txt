@@ -47,7 +47,7 @@ ecbuild_use_package( PROJECT eckit  VERSION 0.21.0  REQUIRED )
 
 ### GRIB support
 
-ecbuild_add_option( FEATURE ECCODES DESCRIPTION "" DEFAULT OFF )
+ecbuild_add_option( FEATURE ECCODES DESCRIPTION "" DEFAULT ON )
 
 if( HAVE_ECCODES )
   ecbuild_use_package( PROJECT eccodes VERSION 0.16 REQUIRED )
