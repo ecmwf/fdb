@@ -23,6 +23,12 @@ WriteVisitor::WriteVisitor(std::vector<Key> &prev) :
 WriteVisitor::~WriteVisitor() {
 }
 
+void WriteVisitor::resetPreviousVisitedKey() {
+    for (auto& k : prev_) {
+        k = Key();
+    }
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
