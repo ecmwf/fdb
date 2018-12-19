@@ -44,6 +44,8 @@ public: // methods
     virtual bool selectIndex(const Key &key, const Key &full) = 0;
     virtual bool selectDatum(const Key &key, const Key &full) = 0;
 
+    void resetPreviousVisitedKey();
+
     void rule(const Rule *r) {
         rule_ = r;
     }
