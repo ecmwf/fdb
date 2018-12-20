@@ -8,11 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/io/HandleGatherer.h"
+
 #include "eckit/io/MultiHandle.h"
 #include "eckit/log/Plural.h"
-
-
-#include "fdb5/io/HandleGatherer.h"
+#include "eckit/exception/Exceptions.h"
 
 namespace fdb5 {
 

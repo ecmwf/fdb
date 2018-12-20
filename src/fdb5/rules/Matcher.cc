@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/exception/Exceptions.h"
+
 #include "fdb5/rules/Matcher.h"
 #include "fdb5/database/Key.h"
 

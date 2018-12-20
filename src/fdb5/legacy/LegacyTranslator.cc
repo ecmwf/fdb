@@ -10,6 +10,7 @@
 
 #include <cctype>
 #include <algorithm>
+#include <sstream>
 
 #include "eckit/utils/Translator.h"
 

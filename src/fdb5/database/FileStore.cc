@@ -10,9 +10,9 @@
 
 #include "FileStore.h"
 
-
 #include <iomanip>
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/serialisation/Stream.h"
 
 namespace fdb5 {
