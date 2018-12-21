@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "eckit/eckit.h"
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 
