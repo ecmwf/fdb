@@ -10,5 +10,6 @@ module unload eccodes
 module unload emos
 module unload fftw
 module unload libemos
+module unload metview
 
 module switch gnu clang
