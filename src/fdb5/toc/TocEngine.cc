@@ -15,7 +15,7 @@
 #include <list>
 #include <ostream>
 
-#include "eckit/eckit_config.h"
+#include "eckit/eckit.h"
 
 #include "eckit/log/Log.h"
 #include "eckit/filesystem/LocalPathName.h"
