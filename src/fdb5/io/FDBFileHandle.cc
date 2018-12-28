@@ -8,12 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-#include <stdio.h>
 #include <unistd.h>
+#include <cstdio>
 
 #include "eckit/eckit.h"
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
+#include "eckit/io/FDataSync.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/io/FDBFileHandle.h"
@@ -80,10 +81,10 @@ void FDBFileHandle::flush() {
 
         if(fdbDataSyncOnFlush) {
 
-            int ret = ::fdatasync(::fileno(file_));
+            int ret = eckit::fdatasync(::fileno(file_));
 
             while (ret < 0 && errno == EINTR) {
-                ret = ::fdatasync(::fileno(file_));
+                ret = eckit::fdatasync(::fileno(file_));
             }
             if (ret < 0) {
                 Log::error() << "Cannot fdatasync(" << path_ << ") " << ::fileno(file_) <<  Log::syserr << std::endl;
