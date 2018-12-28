@@ -56,10 +56,10 @@ TocHandler::TocHandler(const eckit::PathName &directory, const eckit::Configurat
     userUID_(::getuid()),
     tocPath_(directory / "toc"),
     schemaPath_(directory / "schema"),
-    fd_(-1),
-    count_(0),
     useSubToc_(config.getBool("useSubToc", false)),
     isSubToc_(false),
+    fd_(-1),
+    count_(0),
     enumeratedMaskedSubTocs_(false),
     writeMode_(false) {
 
@@ -347,7 +347,7 @@ void TocHandler::close() const {
 
     if ( fd_ >= 0 ) {
         eckit::Log::debug<LibFdb>() << "Closing TOC " << tocPath_ << std::endl;
-        SYSCALL2( ::fdatasync(fd_), tocPath_ );
+        SYSCALL2( eckit::fdatasync(fd_), tocPath_ );
         SYSCALL2( ::close(fd_), tocPath_ );
         fd_ = -1;
         writeMode_ = false;
