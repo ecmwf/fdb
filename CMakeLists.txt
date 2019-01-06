@@ -13,7 +13,7 @@ ecbuild_declare_project()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-########################################################################################################################
+####################################################################################################
 ### sanity checks
 
 ### off_t must be 64 bits exactly
@@ -36,7 +36,7 @@ if( NOT MARS_SERVER_SIZEOF_OFF_T EQUAL "8" )
 		message( FATAL_ERROR "operating system ${CMAKE_SYSTEM} (${EC_OS_BITS} bits) and sizeof off_t [${MARS_SERVER_SIZEOF_OFF_T}] -- off_t must be 64 bits exactly" )
 endif()
 
-########################################################################################################################
+####################################################################################################
 ### dependencies and options
 
 ### eckit
@@ -100,7 +100,7 @@ ecbuild_add_option( FEATURE EXPERIMENTAL
 #                    REQUIRED_PACKAGES "PROJECT fdb VERSION 4.8" )
 
 
-########################################################################################################################
+####################################################################################################
 # project vars & options
 
 set( MARS_TAPE_MANAGERS  "" CACHE INTERNAL "" )
@@ -141,7 +141,7 @@ ecbuild_add_option( FEATURE SANDBOX
                     DESCRIPTION "build the sandbox stuff"
                     DEFAULT OFF	 )
 
-########################################################################################################################
+####################################################################################################
 # find extra packages
 
 find_package( HPSS QUIET )
@@ -155,7 +155,7 @@ find_package( LustreAPI QUIET )
 set( CMAKE_THREAD_PREFER_PTHREAD 1 )
 find_package(Threads REQUIRED)
 
-########################################################################################################################
+####################################################################################################
 # checks
 
 # check thread library is pthreads
@@ -164,7 +164,7 @@ if( NOT ${CMAKE_USE_PTHREADS_INIT} )
 	message( FATAL_ERROR "Only pthreads supported - thread library found is [${CMAKE_THREAD_LIBS_INIT}]" )
 endif()
 
-########################################################################################################################
+####################################################################################################
 # contents
 
 set( MARS_SERVER_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
@@ -177,19 +177,9 @@ set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};$
 
 get_directory_property( MARS_SERVER_DEFINITIONS COMPILE_DEFINITIONS )
 
-# scripts for administration
-
-if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/admin/CMakeLists.txt )
-	add_subdirectory( admin  )
-endif()
-
 ecbuild_add_resources( TARGET          server_resources
 					   SOURCES_PACK    INSTALL LICENSE
-					   DONT_PACK_DIRS  http perl src/pointdb src/sandbox )
-
-# scripts for deployment / installation / setup
-
-add_subdirectory( scripts )
+                       DONT_PACK_DIRS  src/sandbox dev )
 
 # source files
 
@@ -197,7 +187,7 @@ add_subdirectory( src )
 add_subdirectory( tests )
 add_subdirectory( regressions )
 
-############################################################################################
+####################################################################################################
 # finalize
 
 ecbuild_install_project( NAME mars-server )
