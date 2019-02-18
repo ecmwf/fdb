@@ -363,7 +363,7 @@ void TocHandler::close() const {
 
     if ( fd_ >= 0 ) {
         eckit::Log::debug<LibFdb>() << "Closing TOC " << tocPath_ << std::endl;
-        SYSCALL2( ::fdatasync(fd_), tocPath_ );
+        SYSCALL2( eckit::fdatasync(fd_), tocPath_ );
         SYSCALL2( ::close(fd_), tocPath_ );
         fd_ = -1;
         writeMode_ = false;

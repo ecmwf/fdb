@@ -8,10 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/grib/GribArchiver.h"
-#include "fdb5/io/HandleGatherer.h"
-#include "fdb5/tools/FDBVisitTool.h"
+#include "grib_api.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
@@ -19,7 +16,10 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 
-#include "grib_api.h"
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/grib/GribArchiver.h"
+#include "fdb5/io/HandleGatherer.h"
+#include "fdb5/tools/FDBVisitTool.h"
 
 using namespace eckit;
 using namespace eckit::option;

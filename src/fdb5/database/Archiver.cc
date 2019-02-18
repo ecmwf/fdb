@@ -63,6 +63,12 @@ void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
         // Ensure that the schema lives until the data is flushed
         schemas_.push_back(new Schema(e.path()));
         schemas_.back()->expand(key, visitor);
+
+        // Disable optimisations that rely on the previous visited key.
+        // (These iterations implicitly assume that the schema stays constant, but
+        // the next time this routine is called the try {} block will be explored
+        // first. We need to trigger the exception that ends up here again.
+        visitor.resetPreviousVisitedKey();
     }
 
     if (visitor.rule() == 0) { // Make sure we did find a rule that matched

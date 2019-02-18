@@ -8,8 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include "RootManager.h"
 
-#include "fdb5/toc/RootManager.h"
+#include <fstream>
 
 #include "eckit/types/Types.h"
 #include "eckit/config/Resource.h"

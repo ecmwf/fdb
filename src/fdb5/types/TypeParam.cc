@@ -8,14 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-
-#include "fdb5/types/TypesFactory.h"
-#include "fdb5/types/TypeParam.h"
-#include "fdb5/database/DB.h"
+#include <algorithm>
 
 #include "marslib/MarsParam.h"
-#include "fdb5/database/Notifier.h"
 
+#include "fdb5/database/DB.h"
+#include "fdb5/database/Notifier.h"
+#include "fdb5/types/TypeParam.h"
+#include "fdb5/types/TypesFactory.h"
 
 namespace fdb5 {
 

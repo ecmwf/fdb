@@ -13,6 +13,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <cstring>
 
 #include "eckit/io/StdFile.h"
 #include "eckit/io/StdPipe.h"

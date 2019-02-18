@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/exception/Exceptions.h"
 
 #include "fdb5/types/TypesRegistry.h"
 #include "fdb5/types/TypesFactory.h"

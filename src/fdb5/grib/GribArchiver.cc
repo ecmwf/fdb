@@ -57,8 +57,8 @@ static std::vector<metkit::MarsRequest> str_to_requests(const std::string& str) 
     std::vector<metkit::MarsParsedRequest> p = parser.parse();
 
     Log::debug<LibFdb>() << "Parsed requests:" << std::endl;
-    for (std::vector<metkit::MarsParsedRequest>::const_iterator j = p.begin(); j != p.end(); ++j) {
-      (*j).dump(Log::debug<LibFdb>());
+    for (auto j = p.begin(); j != p.end(); ++j) {
+        j->dump(Log::debug<LibFdb>());
     }
 
     // expand requests
@@ -69,8 +69,8 @@ static std::vector<metkit::MarsRequest> str_to_requests(const std::string& str) 
     std::vector<metkit::MarsRequest> v = expand.expand(p);
 
     Log::debug<LibFdb>() << "Expanded requests:" << std::endl;
-    for (std::vector<metkit::MarsRequest>::const_iterator j = v.begin(); j != v.end(); ++j) {
-        (*j).dump(Log::debug<LibFdb>());
+    for (auto j = v.begin(); j != v.end(); ++j) {
+        j->dump(Log::debug<LibFdb>());
     }
 
     return v;
@@ -85,7 +85,7 @@ static std::vector<metkit::MarsRequest> make_filter_requests(const std::string& 
     std::vector<metkit::MarsRequest> v = str_to_requests(str);
 
     std::vector<metkit::MarsRequest> r;
-    for (std::vector<metkit::MarsRequest>::const_iterator j = v.begin(); j != v.end(); ++j) {
+    for (auto j = v.begin(); j != v.end(); ++j) {
         r.push_back(j->subset(keys));
         r.back().dump(Log::debug<LibFdb>());
     }
@@ -101,7 +101,7 @@ void GribArchiver::filters(const std::string& include, const std::string& exclud
 }
 
 static bool matchAny(const metkit::MarsRequest& f, const std::vector<metkit::MarsRequest>& v) {
-    for (std::vector<metkit::MarsRequest>::const_iterator r = v.begin(); r != v.end(); ++r) {
+    for (auto r = v.begin(); r != v.end(); ++r) {
         if(f.matches(*r)) return true;
     }
     return false;

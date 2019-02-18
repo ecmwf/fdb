@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <algorithm>
+
 #include "eckit/parser/StringTools.h"
 #include "marslib/MarsRequest.h"
 

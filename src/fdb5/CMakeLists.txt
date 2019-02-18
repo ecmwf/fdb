@@ -421,11 +421,11 @@ foreach( _tool ${fdb5_tools} )
 endforeach()
 
 
-ecbuild_add_executable( TARGET    fdb-partial-adopt
-                            SOURCES   tools/fdb-partial-adopt.cc
-                            CONDITION HAVE_FDB4_MIGRATION
-                            INCLUDES  ${FDB_INCLUDE_DIRS}
-                            LIBS      mars-fdb5 fdb )
+#ecbuild_add_executable( TARGET    fdb-partial-adopt
+                            #SOURCES   tools/fdb-partial-adopt.cc
+                            #CONDITION HAVE_FDB4_MIGRATION
+                            ##INCLUDES  ${FDB_INCLUDE_DIRS}
+                            #LIBS      mars-fdb5 fdb )
 
 ecbuild_add_executable( TARGET    grib2fdb5
                           SOURCES   compat/grib2fdb5.cc

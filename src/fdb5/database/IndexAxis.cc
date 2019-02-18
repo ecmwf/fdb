@@ -9,6 +9,9 @@
  */
 
 
+#include "eckit/log/Log.h"
+#include "eckit/exception/Exceptions.h"
+
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
 

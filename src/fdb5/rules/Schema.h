@@ -42,7 +42,7 @@ class SchemaHasChanged: public eckit::Exception {
     std::string path_;
 public:
     SchemaHasChanged(const Schema &schema);
-    ~SchemaHasChanged() throw();
+    ~SchemaHasChanged() noexcept;
     const std::string &path() const {
         return path_;
     }

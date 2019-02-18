@@ -8,8 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/FileStore.h"
+#include "FileStore.h"
 
+#include <iomanip>
+
+#include "eckit/exception/Exceptions.h"
 #include "eckit/serialisation/Stream.h"
 
 namespace fdb5 {

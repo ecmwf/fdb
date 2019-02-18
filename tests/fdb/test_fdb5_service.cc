@@ -11,7 +11,7 @@
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#include "eckit/eckit.h"
+#include <cstring>
 
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/FileHandle.h"

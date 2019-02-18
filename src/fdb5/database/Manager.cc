@@ -11,6 +11,8 @@
 
 #include "fdb5/database/Manager.h"
 
+#include <fstream>
+
 #include "eckit/log/Log.h"
 #include "eckit/utils/Regex.h"
 #include "eckit/config/Resource.h"

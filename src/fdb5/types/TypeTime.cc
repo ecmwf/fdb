@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <iomanip>
+
 #include "eckit/utils/Translator.h"
 
 #include "eckit/types/Date.h"
