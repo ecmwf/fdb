@@ -10,6 +10,8 @@
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
+#include "eckit/exception/Exceptions.h"
+
 
 namespace fdb5 {
 

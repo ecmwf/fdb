@@ -16,21 +16,20 @@
 #ifndef fdb5_FieldLocation_H
 #define fdb5_FieldLocation_H
 
-#include "eckit/eckit.h"
+#include <memory>
 
 #include "eckit/filesystem/PathName.h"
-#include "eckit/io/DataHandle.h"
 #include "eckit/io/Length.h"
 #include "eckit/memory/Owned.h"
-#include "eckit/memory/SharedPtr.h"
 #include "eckit/serialisation/Streamable.h"
+
+namespace eckit {
+    class DataHandle;
+}
 
 namespace fdb5 {
 
-
 //----------------------------------------------------------------------------------------------------------------------
-
-
 
 class FieldLocationVisitor;
 

@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <iomanip>
+
 #include "grib_api.h"
 
 #include "eckit/config/Resource.h"

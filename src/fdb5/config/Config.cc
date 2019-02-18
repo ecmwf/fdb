@@ -10,14 +10,15 @@
 
 #include "fdb5/config/Config.h"
 
-#include "fdb5/rules/Schema.h"
-#include "fdb5/LibFdb.h"
+#include <map>
+#include <mutex>
+#include <algorithm>
 
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 
-#include <map>
-#include <mutex>
+#include "fdb5/rules/Schema.h"
+#include "fdb5/LibFdb.h"
 
 using namespace eckit;
 

@@ -14,6 +14,8 @@
 #ifndef fdb5_EntryVisitMechanism_H
 #define fdb5_EntryVisitMechanism_H
 
+#include "eckit/memory/NonCopyable.h"
+
 #include "fdb5/config/Config.h"
 
 namespace fdb5 {

@@ -8,11 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/types/Metadata.h"
+#include "fdb5/legacy/LegacyArchiver.h"
 
+#include "eckit/types/Metadata.h"
+#include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb.h"
-#include "fdb5/legacy/LegacyArchiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
 namespace fdb5 {
