@@ -88,7 +88,9 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
             dbs.push_back(path);
         }
 
-        std::string full = path + "/" + e->d_name;
+        std::string full = path;
+        if (path[path.length()-1] != '/') full += "/";
+        full += e->d_name;
 
 #if defined(ECKIT_HAVE_DIRENT_D_TYPE) || defined(DT_DIR)
         if(e->d_type == DT_DIR) {
