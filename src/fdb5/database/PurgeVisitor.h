@@ -26,7 +26,7 @@ public: // methods
     using StatsReportVisitor::StatsReportVisitor;
 
     virtual void report(std::ostream& out) const = 0;
-    virtual void purge(std::ostream& out) const = 0;
+    virtual void purge(std::ostream& out, bool verbose) const = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

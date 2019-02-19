@@ -55,7 +55,7 @@ void PurgeVisitor::databaseComplete(const DB& db) {
     internalVisitor_->report(out_);
 
     if (doit_) {
-        internalVisitor_->purge((verbose_ ? out_ : eckit::Log::debug<LibFdb>()));
+        internalVisitor_->purge(out_, verbose_);
     }
 
     // Cleanup

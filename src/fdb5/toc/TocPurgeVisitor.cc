@@ -103,7 +103,9 @@ void TocPurgeVisitor::report(std::ostream& out) const {
     out << std::endl;
 }
 
-void TocPurgeVisitor::purge(std::ostream& out) const {
+void TocPurgeVisitor::purge(std::ostream& out, bool verbose) const {
+
+    std::ostream& log(verbose ? out : eckit::Log::debug<LibFdb>());
 
     currentDatabase_->checkUID();
 
@@ -114,7 +116,7 @@ void TocPurgeVisitor::purge(std::ostream& out) const {
         const fdb5::IndexStats& stats = it.second;
 
         if (stats.fieldsCount() == stats.duplicatesCount()) {
-            out << "Removing: " << it.first << std::endl;
+            log << "Removing: " << it.first << std::endl;
             fdb5::TocHandler handler(directory);
             handler.writeClearRecord(it.first);
         }
@@ -124,8 +126,8 @@ void TocPurgeVisitor::purge(std::ostream& out) const {
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                out << "Unlinking: " << path << std::endl;
-                path.unlink();
+                log << "Unlinking: " << path << std::endl;
+                path.unlink(verbose);
             }
         }
     }
@@ -134,8 +136,8 @@ void TocPurgeVisitor::purge(std::ostream& out) const {
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                out << "Unlinking: " << path << std::endl;
-                path.unlink();
+                log << "Unlinking: " << path << std::endl;
+                path.unlink(verbose);
             }
        }
     }

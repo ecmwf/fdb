@@ -54,6 +54,8 @@ FDBVisitTool::~FDBVisitTool() {}
 
 void FDBVisitTool::init(const option::CmdArgs& args) {
 
+    FDBTool::init(args);
+
     args.get("minimum-keys", minimumKeys_);
 
     bool ignore = false;;

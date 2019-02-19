@@ -54,6 +54,7 @@ void FDBTool::usage(const std::string&) const {
 }
 
 void FDBTool::init(const eckit::option::CmdArgs& args) {
+    eckit::Log::info() << "Getting verbose?" << std::endl;
     args.get("verbose", verbose_);
 }
 

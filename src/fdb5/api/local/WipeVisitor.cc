@@ -13,6 +13,7 @@
 
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/LibFdb.h"
 
 #include "eckit/os/Stat.h"
 
@@ -140,35 +141,37 @@ void WipeVisitor::databaseComplete(const DB& db) {
 
     if (doit_) {
 
+        std::ostream& log(verbose_ ? eckit::Log::info() : eckit::Log::debug<LibFdb>());
+
         // Sanity check...
         db.checkUID();
 
         ASSERT(basePath_ == db.basePath());
 
         for (const eckit::PathName& path : current_.metadataPaths) {
-            eckit::Log::info() << "Unlinking: " << path << std::endl;
+            log << "Unlinking: " << path << std::endl;
             path.unlink(verbose_);
         }
 
         for (const eckit::PathName& path : current_.dataPaths) {
-            eckit::Log::info() << "Unlinking: " << path << std::endl;
+            log << "Unlinking: " << path << std::endl;
             path.unlink(verbose_);
         }
 
         for (const eckit::PathName& path : current_.otherPaths) {
             if (path.isDir() && !path.isLink()) {
-                eckit::Log::info() << "RMdir: " << path << std::endl;
+                log << "rmdir: " << path << std::endl;
                 path.rmdir(verbose_);
             } else {
-                eckit::Log::info() << "Unlinking: " << path << std::endl;
+                log << "Unlinking: " << path << std::endl;
                 path.unlink(verbose_);
             }
         }
 
         if (basePath_.exists()) {
             ASSERT(basePath_.isDir());
-            eckit::Log::info() << "rmdir: " << basePath_ << std::endl;
-            basePath_.rmdir();
+            log << "rmdir: " << basePath_ << std::endl;
+            basePath_.rmdir(verbose_);
         }
     }
 
