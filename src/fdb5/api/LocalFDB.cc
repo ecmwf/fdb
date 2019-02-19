@@ -102,9 +102,9 @@ WhereIterator LocalFDB::where(const FDBToolRequest &request) {
     return queryInternal<WhereVisitor>(request);
 }
 
-WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit) {
+WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit, bool verbose) {
     Log::debug<LibFdb>() << "LocalFDB::wipe() : " << request << std::endl;
-    return queryInternal<WipeVisitor>(request, doit);
+    return queryInternal<WipeVisitor>(request, doit, verbose);
 }
 
 PurgeIterator LocalFDB::purge(const FDBToolRequest& request, bool doit) {

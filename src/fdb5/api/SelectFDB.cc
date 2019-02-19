@@ -180,11 +180,11 @@ WhereIterator SelectFDB::where(const FDBToolRequest& request) {
     });
 }
 
-WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit) {
+WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool verbose) {
     Log::debug<LibFdb>() << "SelectFDB::wipe() >> " << request << std::endl;
     return queryInternal(request,
-                         [doit](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.wipe(request, doit);
+                         [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.wipe(request, doit, verbose);
     });
 }
 

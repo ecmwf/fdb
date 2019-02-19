@@ -32,6 +32,7 @@ public: // methods
         doit_(false) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
+        verbose_ = true;
     }
 
 private: // methods
@@ -58,7 +59,7 @@ void FDBWipe::execute(const CmdArgs& args) {
 
     for (const FDBToolRequest& request : requests()) {
 
-        auto listObject = fdb.wipe(request, doit_);
+        auto listObject = fdb.wipe(request, doit_, verbose_);
 
         size_t count = 0;
         WipeElement elem;

@@ -61,6 +61,10 @@ void FDBTool::finish(const eckit::option::CmdArgs&) {
 
 }
 
+eckit::Channel& FDBTool::logVerbose() const {
+    return verbose_ ? Log::info() : Log::debug<LibFdb>();
+}
+
 
 FDBToolException::FDBToolException(const std::string& w) :
     Exception(w) {

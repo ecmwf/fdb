@@ -393,11 +393,15 @@ private:
 
 struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
 
-    WipeHelper(bool doit) : doit_(doit) {};
-    void encodeExtra(eckit::Stream& s) const { s << doit_; }
+    WipeHelper(bool doit, bool verbose) : doit_(doit), verbose_(verbose) {};
+    void encodeExtra(eckit::Stream& s) const {
+        s << doit_;
+        s << verbose_;
+    }
 
 private:
     bool doit_;
+    bool verbose_;
 };
 
 } // namespace
@@ -472,8 +476,8 @@ WhereIterator RemoteFDB::where(const FDBToolRequest& request) {
     return forwardApiCall(WhereHelper(), request);
 }
 
-WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit) {
-    return forwardApiCall(WipeHelper(doit), request);
+WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool verbose) {
+    return forwardApiCall(WipeHelper(doit, verbose), request);
 }
 
 PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit) {

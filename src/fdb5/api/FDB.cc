@@ -66,8 +66,8 @@ WhereIterator FDB::where(const FDBToolRequest& request) {
     return internal_->where(request);
 }
 
-WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit) {
-    return internal_->wipe(request, doit);
+WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool verbose) {
+    return internal_->wipe(request, doit, verbose);
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest &request, bool doit) {

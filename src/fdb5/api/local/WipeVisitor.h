@@ -31,7 +31,7 @@ namespace local {
 class WipeVisitor : public QueryVisitor<WipeElement> {
 public:
 
-    WipeVisitor(eckit::Queue<WipeElement>& queue, bool doit);
+    WipeVisitor(eckit::Queue<WipeElement>& queue, bool doit, bool verbose);
 
     bool visitEntries() override { return false; }
 
@@ -47,6 +47,7 @@ private: // members
     WipeElement current_;
 
     bool doit_;
+    bool verbose_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

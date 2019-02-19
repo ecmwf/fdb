@@ -82,7 +82,7 @@ public: // methods
         return fdb5::WhereIterator(0);
     }
 
-    virtual fdb5::WipeIterator wipe(const fdb5::FDBToolRequest& request, bool doit) override {
+    virtual fdb5::WipeIterator wipe(const fdb5::FDBToolRequest& request, bool doit, bool verbose) override {
         counts_.wipe += 1;
         return fdb5::WipeIterator(0);
     }

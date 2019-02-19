@@ -48,7 +48,7 @@ public: // methods
 
     virtual WhereIterator where(const FDBToolRequest& request) override;
 
-    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit) override;
+    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) override;
 
     virtual PurgeIterator purge(const FDBToolRequest& request, bool doit) override;
 

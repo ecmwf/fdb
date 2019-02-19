@@ -73,9 +73,10 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeVisitor::WipeVisitor(eckit::Queue<WipeElement> &queue, bool doit) :
+WipeVisitor::WipeVisitor(eckit::Queue<WipeElement> &queue, bool doit, bool verbose) :
     QueryVisitor(queue),
-    doit_(doit) {}
+    doit_(doit),
+    verbose_(verbose) {}
 
 void WipeVisitor::visitDatabase(const DB& db) {
 
@@ -146,21 +147,21 @@ void WipeVisitor::databaseComplete(const DB& db) {
 
         for (const eckit::PathName& path : current_.metadataPaths) {
             eckit::Log::info() << "Unlinking: " << path << std::endl;
-            path.unlink();
+            path.unlink(verbose_);
         }
 
         for (const eckit::PathName& path : current_.dataPaths) {
             eckit::Log::info() << "Unlinking: " << path << std::endl;
-            path.unlink();
+            path.unlink(verbose_);
         }
 
         for (const eckit::PathName& path : current_.otherPaths) {
             if (path.isDir() && !path.isLink()) {
                 eckit::Log::info() << "RMdir: " << path << std::endl;
-                path.rmdir();
+                path.rmdir(verbose_);
             } else {
                 eckit::Log::info() << "Unlinking: " << path << std::endl;
-                path.unlink();
+                path.unlink(verbose_);
             }
         }
 

@@ -135,10 +135,13 @@ struct WhereHelper : public BaseHelper<WhereElement> {
 
 struct WipeHelper : public BaseHelper<WipeElement> {
 
-    void extraDecode(eckit::Stream& s) { s >> doit_; }
+    void extraDecode(eckit::Stream& s) {
+        s >> doit_;
+        s >> verbose_;
+    }
 
     WipeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.wipe(request, doit_);
+        return fdb.wipe(request, doit_, verbose_);
     }
 
     static size_t encodeBufferSize(const WipeElement& elem) {
@@ -148,6 +151,7 @@ struct WipeHelper : public BaseHelper<WipeElement> {
 
 private:
     bool doit_;
+    bool verbose_;
 };
 
 } // namespace

@@ -61,7 +61,7 @@ public: // methods
 
     virtual WhereIterator where(const FDBToolRequest& request) = 0;
 
-    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit) = 0;
+    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) = 0;
 
     virtual PurgeIterator purge(const FDBToolRequest& request, bool doit) = 0;
 
