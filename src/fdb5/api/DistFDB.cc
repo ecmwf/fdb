@@ -212,11 +212,11 @@ WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool verbos
     });
 }
 
-PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit) {
+PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool verbose) {
     Log::debug<LibFdb>() << "DistFDB::purge() : " << request << std::endl;
     return queryInternal(request,
-                         [doit](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.purge(request, doit);
+                         [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.purge(request, doit, verbose);
     });
 }
 

@@ -61,7 +61,7 @@ public: // method
 
     WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) override;
 
-    PurgeIterator purge(const FDBToolRequest& request, bool doit) override;
+    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool verbose) override;
 
     StatsIterator stats(const FDBToolRequest& request) override;
 

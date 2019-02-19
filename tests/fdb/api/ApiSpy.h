@@ -87,7 +87,7 @@ public: // methods
         return fdb5::WipeIterator(0);
     }
 
-    virtual fdb5::PurgeIterator purge(const fdb5::FDBToolRequest& request, bool doit) override {
+    virtual fdb5::PurgeIterator purge(const fdb5::FDBToolRequest& request, bool doit, bool verbose) override {
         counts_.purge += 1;
         return fdb5::PurgeIterator(0);
     }

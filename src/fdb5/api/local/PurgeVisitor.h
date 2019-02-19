@@ -32,7 +32,7 @@ namespace local {
 class PurgeVisitor : public QueryVisitor<PurgeElement> {
 public:
 
-    PurgeVisitor(eckit::Queue<PurgeElement>& queue, bool doit);
+    PurgeVisitor(eckit::Queue<PurgeElement>& queue, bool doit, bool verbose);
 
     void visitDatabase(const DB& db) override;
     void visitIndex(const Index& index) override;
@@ -44,6 +44,7 @@ private: // members
 
     eckit::Channel out_;
     bool doit_;
+    bool verbose_;
 
     std::unique_ptr<fdb5::PurgeVisitor> internalVisitor_;
 };

@@ -12,9 +12,9 @@
 #include "fdb5/api/local/PurgeVisitor.h"
 
 #include "fdb5/api/local/QueueStringLogTarget.h"
-
 #include "fdb5/database/DB.h"
 #include "fdb5/database/PurgeVisitor.h"
+#include "fdb5/LibFdb.h"
 
 namespace fdb5 {
 namespace api {
@@ -23,10 +23,11 @@ namespace local {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue, bool doit) :
+PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue, bool doit, bool verbose) :
     QueryVisitor(queue),
     out_(new QueueStringLogTarget(queue)),
-    doit_(doit) {}
+    doit_(doit),
+    verbose_(verbose) {}
 
 void PurgeVisitor::visitDatabase(const DB& db) {
 
@@ -54,7 +55,7 @@ void PurgeVisitor::databaseComplete(const DB& db) {
     internalVisitor_->report(out_);
 
     if (doit_) {
-        internalVisitor_->purge(out_);
+        internalVisitor_->purge((verbose_ ? out_ : eckit::Log::debug<LibFdb>()));
     }
 
     // Cleanup

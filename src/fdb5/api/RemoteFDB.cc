@@ -379,8 +379,11 @@ private:
 
 struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
 
-    PurgeHelper(bool doit) : doit_(doit) {}
-    void encodeExtra(eckit::Stream& s) const { s << doit_; }
+    PurgeHelper(bool doit, bool verbose) : doit_(doit), verbose_(verbose) {}
+    void encodeExtra(eckit::Stream& s) const {
+        s << doit_;
+        s << verbose_;
+    }
     static PurgeElement valueFromStream(eckit::Stream& s) {
         PurgeElement elem;
         s >> elem;
@@ -389,6 +392,7 @@ struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
 
 private:
     bool doit_;
+    bool verbose_;
 };
 
 struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
@@ -480,8 +484,8 @@ WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool verb
     return forwardApiCall(WipeHelper(doit, verbose), request);
 }
 
-PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit) {
-    return forwardApiCall(PurgeHelper(doit), request);
+PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit, bool verbose) {
+    return forwardApiCall(PurgeHelper(doit, verbose), request);
 }
 
 StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
