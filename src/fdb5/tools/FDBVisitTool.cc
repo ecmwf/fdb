@@ -14,6 +14,9 @@
 #include "eckit/option/VectorOption.h"
 #include "eckit/option/CmdArgs.h"
 
+#include "metkit/MarsParser.h"
+#include "metkit/MarsExpension.h"
+
 #include "fdb5/tools/FDBVisitTool.h"
 
 
@@ -75,7 +78,6 @@ void FDBVisitTool::init(const option::CmdArgs& args) {
 
     if (all_) {
         ASSERT(requests_.empty());
-        requests_.push_back("");
     }
 }
 
@@ -85,13 +87,20 @@ bool FDBVisitTool::fail() const {
 
 std::vector<FDBToolRequest> FDBVisitTool::requests() const {
 
-    std::vector<FDBToolRequest> rqs;
+    std::vector<FDBToolRequest> requests;
 
-    for (const std::string& request_string : requests_) {
-        rqs.emplace_back(FDBToolRequest(request_string, all_, minimumKeys_));
+    if (all_) {
+        ASSERT(requests_.empty());
+        requests.emplace_back(FDBToolRequest(metkit::MarsRequest{}, all_, minimumKeys_));
+    } else {
+
+        for (const std::string& request_string : requests_) {
+            auto parsed = FDBToolRequest::requestsFromString(request_string, minimumKeys_);
+            requests.insert(requests.end(), parsed.begin(), parsed.end());
+        }
     }
 
-    return rqs;
+    return requests;
 }
 
 void FDBVisitTool::usage(const std::string &tool) const {

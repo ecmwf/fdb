@@ -23,6 +23,8 @@
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/FDB.h"
 
+namespace metkit { class MarsRequest; }
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -62,6 +64,7 @@ private: // methods
 
     bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
     bool matches(const MarsRequest& request, const SelectMap& select) const;
+    bool matches(const metkit::MarsRequest& request, const SelectMap& select, bool requireMissing) const;
 
     template <typename QueryFN>
     auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));

@@ -193,13 +193,13 @@ CASE( "lists_distributed_according_to_dist" ) {
 
     // Do some archiving
 
-    fdb.list(fdb5::FDBToolRequest("class=od,expver=xxxx", false));
+    fdb.list(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().list == 1);
     EXPECT(spy2.counts().list == 1);
     EXPECT(spy3.counts().list == 1);
 
-    fdb.list(fdb5::FDBToolRequest("class=rd,expver=xxxx", false));
+    fdb.list(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().list == 2);
     EXPECT(spy2.counts().list == 2);
@@ -208,7 +208,7 @@ CASE( "lists_distributed_according_to_dist" ) {
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
 
-    fdb.list(fdb5::FDBToolRequest("class=rd,expver=zzzz", false));
+    fdb.list(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0]);
 
     EXPECT(spy1.counts().list == 3);
     EXPECT(spy2.counts().list == 3);
@@ -216,7 +216,7 @@ CASE( "lists_distributed_according_to_dist" ) {
 
     //// Now match all the rd lanes
 
-    fdb.list(fdb5::FDBToolRequest("class=rd", false));
+    fdb.list(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
 
     EXPECT(spy1.counts().list == 4);
     EXPECT(spy2.counts().list == 4);
@@ -224,7 +224,7 @@ CASE( "lists_distributed_according_to_dist" ) {
 
     // Explicitly match everything
 
-    fdb.list(fdb5::FDBToolRequest("", true));
+    fdb.list(fdb5::FDBToolRequest({}, true));
 
     EXPECT(spy1.counts().list == 5);
     EXPECT(spy2.counts().list == 5);
@@ -257,13 +257,13 @@ CASE( "dump_distributed_according_to_dist" ) {
 
     // Do some archiving
 
-    fdb.dump(fdb5::FDBToolRequest("class=od,expver=xxxx", false));
+    fdb.dump(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().dump == 1);
     EXPECT(spy2.counts().dump == 1);
     EXPECT(spy3.counts().dump == 1);
 
-    fdb.dump(fdb5::FDBToolRequest("class=rd,expver=xxxx", false));
+    fdb.dump(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().dump == 2);
     EXPECT(spy2.counts().dump == 2);
@@ -272,7 +272,7 @@ CASE( "dump_distributed_according_to_dist" ) {
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
 
-    fdb.dump(fdb5::FDBToolRequest("class=rd,expver=zzzz", false));
+    fdb.dump(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0]);
 
     EXPECT(spy1.counts().dump == 3);
     EXPECT(spy2.counts().dump == 3);
@@ -280,7 +280,7 @@ CASE( "dump_distributed_according_to_dist" ) {
 
     //// Now match all the rd lanes
 
-    fdb.dump(fdb5::FDBToolRequest("class=rd", false));
+    fdb.dump(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
 
     EXPECT(spy1.counts().dump == 4);
     EXPECT(spy2.counts().dump == 4);
@@ -288,7 +288,7 @@ CASE( "dump_distributed_according_to_dist" ) {
 
     // Explicitly match everything
 
-    fdb.dump(fdb5::FDBToolRequest("", true));
+    fdb.dump(fdb5::FDBToolRequest({}, true));
 
     EXPECT(spy1.counts().dump == 5);
     EXPECT(spy2.counts().dump == 5);
@@ -320,13 +320,13 @@ CASE( "where_distributed_according_to_dist" ) {
 
     // Do some archiving
 
-    fdb.where(fdb5::FDBToolRequest("class=od,expver=xxxx", false));
+    fdb.where(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().where == 1);
     EXPECT(spy2.counts().where == 1);
     EXPECT(spy3.counts().where == 1);
 
-    fdb.where(fdb5::FDBToolRequest("class=rd,expver=xxxx", false));
+    fdb.where(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().where == 2);
     EXPECT(spy2.counts().where == 2);
@@ -335,7 +335,7 @@ CASE( "where_distributed_according_to_dist" ) {
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
 
-    fdb.where(fdb5::FDBToolRequest("class=rd,expver=zzzz", false));
+    fdb.where(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0]);
 
     EXPECT(spy1.counts().where == 3);
     EXPECT(spy2.counts().where == 3);
@@ -343,7 +343,7 @@ CASE( "where_distributed_according_to_dist" ) {
 
     //// Now match all the rd lanes
 
-    fdb.where(fdb5::FDBToolRequest("class=rd", false));
+    fdb.where(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
 
     EXPECT(spy1.counts().where == 4);
     EXPECT(spy2.counts().where == 4);
@@ -351,7 +351,7 @@ CASE( "where_distributed_according_to_dist" ) {
 
     // Explicitly match everything
 
-    fdb.where(fdb5::FDBToolRequest("", true));
+    fdb.where(fdb5::FDBToolRequest({}, true));
 
     EXPECT(spy1.counts().where == 5);
     EXPECT(spy2.counts().where == 5);
@@ -384,13 +384,13 @@ CASE( "wipe_distributed_according_to_dist" ) {
 
     // Do some archiving
 
-    fdb.wipe(fdb5::FDBToolRequest("class=od,expver=xxxx", false));
+    fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().wipe == 1);
     EXPECT(spy2.counts().wipe == 1);
     EXPECT(spy3.counts().wipe == 1);
 
-    fdb.wipe(fdb5::FDBToolRequest("class=rd,expver=xxxx", false));
+    fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().wipe == 2);
     EXPECT(spy2.counts().wipe == 2);
@@ -399,7 +399,7 @@ CASE( "wipe_distributed_according_to_dist" ) {
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
 
-    fdb.wipe(fdb5::FDBToolRequest("class=rd,expver=zzzz", false));
+    fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0]);
 
     EXPECT(spy1.counts().wipe == 3);
     EXPECT(spy2.counts().wipe == 3);
@@ -407,7 +407,7 @@ CASE( "wipe_distributed_according_to_dist" ) {
 
     //// Now match all the rd lanes
 
-    fdb.wipe(fdb5::FDBToolRequest("class=rd", false));
+    fdb.wipe(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
 
     EXPECT(spy1.counts().wipe == 4);
     EXPECT(spy2.counts().wipe == 4);
@@ -415,7 +415,7 @@ CASE( "wipe_distributed_according_to_dist" ) {
 
     // Explicitly match everything
 
-    fdb.wipe(fdb5::FDBToolRequest("", true));
+    fdb.wipe(fdb5::FDBToolRequest({}, true));
 
     EXPECT(spy1.counts().wipe == 5);
     EXPECT(spy2.counts().wipe == 5);
@@ -448,13 +448,13 @@ CASE( "purge_distributed_according_to_dist" ) {
 
     // Do some archiving
 
-    fdb.purge(fdb5::FDBToolRequest("class=od,expver=xxxx", false));
+    fdb.purge(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().purge == 1);
     EXPECT(spy2.counts().purge == 1);
     EXPECT(spy3.counts().purge == 1);
 
-    fdb.purge(fdb5::FDBToolRequest("class=rd,expver=xxxx", false));
+    fdb.purge(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().purge == 2);
     EXPECT(spy2.counts().purge == 2);
@@ -463,7 +463,7 @@ CASE( "purge_distributed_according_to_dist" ) {
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
 
-    fdb.purge(fdb5::FDBToolRequest("class=rd,expver=zzzz", false));
+    fdb.purge(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0]);
 
     EXPECT(spy1.counts().purge == 3);
     EXPECT(spy2.counts().purge == 3);
@@ -471,7 +471,7 @@ CASE( "purge_distributed_according_to_dist" ) {
 
     //// Now match all the rd lanes
 
-    fdb.purge(fdb5::FDBToolRequest("class=rd", false));
+    fdb.purge(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
 
     EXPECT(spy1.counts().purge == 4);
     EXPECT(spy2.counts().purge == 4);
@@ -479,7 +479,7 @@ CASE( "purge_distributed_according_to_dist" ) {
 
     // Explicitly match everything
 
-    fdb.purge(fdb5::FDBToolRequest("", true));
+    fdb.purge(fdb5::FDBToolRequest({}, true));
 
     EXPECT(spy1.counts().purge == 5);
     EXPECT(spy2.counts().purge == 5);
@@ -512,13 +512,13 @@ CASE( "stats_distributed_according_to_dist" ) {
 
     // Do some archiving
 
-    fdb.stats(fdb5::FDBToolRequest("class=od,expver=xxxx", false));
+    fdb.stats(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().stats == 1);
     EXPECT(spy2.counts().stats == 1);
     EXPECT(spy3.counts().stats == 1);
 
-    fdb.stats(fdb5::FDBToolRequest("class=rd,expver=xxxx", false));
+    fdb.stats(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0]);
 
     EXPECT(spy1.counts().stats == 2);
     EXPECT(spy2.counts().stats == 2);
@@ -527,7 +527,7 @@ CASE( "stats_distributed_according_to_dist" ) {
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
 
-    fdb.stats(fdb5::FDBToolRequest("class=rd,expver=zzzz", false));
+    fdb.stats(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0]);
 
     EXPECT(spy1.counts().stats == 3);
     EXPECT(spy2.counts().stats == 3);
@@ -535,7 +535,7 @@ CASE( "stats_distributed_according_to_dist" ) {
 
     //// Now match all the rd lanes
 
-    fdb.stats(fdb5::FDBToolRequest("class=rd", false));
+    fdb.stats(fdb5::FDBToolRequest::requestsFromString("class=rd")[0]);
 
     EXPECT(spy1.counts().stats == 4);
     EXPECT(spy2.counts().stats == 4);
@@ -543,7 +543,7 @@ CASE( "stats_distributed_according_to_dist" ) {
 
     // Explicitly match everything
 
-    fdb.stats(fdb5::FDBToolRequest("", true));
+    fdb.stats(fdb5::FDBToolRequest({}, true));
 
     EXPECT(spy1.counts().stats == 5);
     EXPECT(spy2.counts().stats == 5);

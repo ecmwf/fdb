@@ -24,6 +24,7 @@
 #include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Engine.h"
+#include "fdb5/rules/Schema.h"
 
 
 using namespace eckit;
@@ -204,6 +205,42 @@ std::set<std::string> Manager::engines(const Key& key)
     return s;
 }
 
+std::set<std::string> Manager::engines(const metkit::MarsRequest& rq)
+{
+    std::set<std::string> s;
+    std::string expanded;
+
+    if (!explicitEngine_.empty()) {
+        expanded = explicitEngine_;
+        s.insert(explicitEngine_);
+    } else {
+
+        Key key;
+        if (!config_.schema().expandFirstLevel(rq, key)) {
+            std::stringstream ss;
+            ss << "Could not uniquely expand first level key of request: " << rq << std::endl;
+            throw eckit::SeriousBug(ss.str(), Here());
+        }
+
+        expanded = key.valuesToString();
+        const EngineTable& engineTypes(readEngineTypes(enginesFile_));
+
+        for (EngineTable::const_iterator i = engineTypes.begin(); i != engineTypes.end() ; ++i) {
+            if(key.empty() || i->match(expanded)) {
+                s.insert(i->engine());
+            }
+        }
+    }
+
+    if(s.empty()) {
+        std::ostringstream oss;
+        oss << "No FDB Engine type found for " << rq << " (" << expanded << ")";
+        throw eckit::SeriousBug(oss.str(), Here());
+    }
+
+    return s;
+}
+
 std::string Manager::engine(const PathName& path)
 {
     // If we have set the engine in the config, use that
@@ -251,17 +288,17 @@ std::vector<PathName> Manager::allLocations(const Key& key)
 }
 
 
-std::vector<eckit::PathName> Manager::visitableLocations(const Key& key) {
+std::vector<eckit::PathName> Manager::visitableLocations(const metkit::MarsRequest& rq) {
 
-    std::set<std::string> engines = Manager::engines(key);
+    std::set<std::string> engines = Manager::engines(rq);
 
-    Log::debug<LibFdb>() << "Matching engines for key " << key << " -> " << engines << std::endl;
+    Log::debug<LibFdb>() << "Matching engines for request " << rq << " -> " << engines << std::endl;
 
     std::vector<PathName> r; // union of all locations
 
     for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
         Log::debug<LibFdb>() << "Selected FDB engine " << *i << std::endl;
-        std::vector<PathName> p = Engine::backend(*i).visitableLocations(key, config_);
+        std::vector<PathName> p = Engine::backend(*i).visitableLocations(rq, config_);
         r.insert(r.end(), p.begin(), p.end());
     }
 

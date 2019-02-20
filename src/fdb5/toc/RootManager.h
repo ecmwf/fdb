@@ -21,6 +21,8 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/toc/FileSpace.h"
 
+namespace metkit { class MarsRequest; }
+
 namespace fdb5 {
 
 class Key;
@@ -43,6 +45,7 @@ public: // methods
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> visitableRoots(const Key& key);
+    std::vector<eckit::PathName> visitableRoots(const metkit::MarsRequest& request);
 
     /// Lists the roots where a DB key would be able to be written
     std::vector<eckit::PathName> writableRoots(const Key& key);
@@ -55,6 +58,7 @@ private: // members
 
     const std::vector<FileSpace> spacesTable_;
     const std::vector<DbPathNamer>& dbPathNamers_;
+    Config config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

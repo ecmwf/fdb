@@ -73,15 +73,15 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     // A request against all is the same as using an empty key in visitableLocations.
 
-    ASSERT(request.all() == request.key().empty());
+    ASSERT(request.all() == request.request().empty());
 
     // TODO: Put minimim keys check into FDBToolRequest.
 
-    Log::debug<LibFdb>() << "KEY ====> " << request.key() << std::endl;
+    Log::debug<LibFdb>() << "REQUEST ====> " << request.request() << std::endl;
 
     try {
 
-        std::vector<PathName> paths(Manager(dbConfig_).visitableLocations(request.key()));
+        std::vector<PathName> paths(Manager(dbConfig_).visitableLocations(request.request()));
 
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
 

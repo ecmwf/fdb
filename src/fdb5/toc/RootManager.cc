@@ -20,11 +20,14 @@
 #include "eckit/thread/Mutex.h"
 #include "eckit/thread/AutoLock.h"
 
-#include "fdb5/LibFdb.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/toc/Root.h"
-#include "fdb5/toc/FileSpace.h"
+#include "metkit/MarsRequest.h"
+
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/LibFdb.h"
+#include "fdb5/rules/Schema.h"
+#include "fdb5/toc/FileSpace.h"
+#include "fdb5/toc/Root.h"
 
 using namespace eckit;
 
@@ -470,7 +473,8 @@ static FileSpaceTable fileSpaces(const Config& config) {
 
 RootManager::RootManager(const Config& config) :
     spacesTable_(fileSpaces(config)),
-    dbPathNamers_(readDbNamers(config)) {
+    dbPathNamers_(readDbNamers(config)),
+    config_(config) {
 
 //    eckit::Log::info() << "Root manager: " << spacesTable_ << std::endl;
 }
@@ -581,6 +585,15 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
+
+
+std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::MarsRequest& request) {
+
+    Key key;
+    config_.schema().expandFirstLevel(request, key);
+    return visitableRoots(key);
+}
+
 
 std::vector<eckit::PathName> RootManager::writableRoots(const Key& key) {
 

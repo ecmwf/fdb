@@ -17,9 +17,12 @@
 #define fdb5_Predicate_H
 
 #include <iosfwd>
+#include <vector>
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/memory/ScopedPtr.h"
+
+namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
 
@@ -43,6 +46,7 @@ public: // methods
     void fill(Key &key, const std::string& value) const;
 
     const std::string &value(const Key &key) const;
+    const std::vector<std::string>& values(const metkit::MarsRequest& rq) const;
     const std::string &defaultValue() const;
 
     bool optional() const;

@@ -22,8 +22,8 @@ static std::string empty;
 //----------------------------------------------------------------------------------------------------------------------
 
 MatchHidden::MatchHidden(const std::string &def) :
-    Matcher(),
-    default_(def) {
+    Matcher() {
+    default_.push_back(def);
 }
 
 MatchHidden::~MatchHidden() {
@@ -38,20 +38,24 @@ bool MatchHidden::optional() const {
 }
 
 const std::string &MatchHidden::value(const Key&, const std::string&) const {
+    return default_[0];
+}
+
+const std::vector<std::string>& MatchHidden::values(const metkit::MarsRequest &rq, const std::string &keyword) const {
     return default_;
 }
 
 const std::string &MatchHidden::defaultValue() const {
-    return default_;
+    return default_[0];
 }
 
 void MatchHidden::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
     registry.dump(s, keyword);
-    s << '-' << default_;
+    s << '-' << default_[0];
 }
 
 void MatchHidden::print(std::ostream &out) const {
-    out << "MatchHidden[default" << default_ << "]";
+    out << "MatchHidden[default" << default_[0] << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

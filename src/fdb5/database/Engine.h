@@ -20,6 +20,8 @@
 #include <vector>
 #include <string>
 
+#include "metkit/MarsRequest.h"
+
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/PathName.h"
 
@@ -56,6 +58,7 @@ public: // methods
 
     /// Lists the roots that can be visited given a DB key
     virtual std::vector<eckit::PathName> visitableLocations(const Key& key, const Config& config) const = 0;
+    virtual std::vector<eckit::PathName> visitableLocations(const metkit::MarsRequest& rq, const Config& config) const = 0;
 
     /// Lists the roots where a DB key would be able to be written
     virtual std::vector<eckit::PathName> writableLocations(const Key& key, const Config& config) const = 0;

@@ -148,7 +148,7 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) 
         const SelectMap& select(iter.first);
         FDB& fdb(iter.second);
 
-        if (matches(request.key(), select, false) || request.all()) {
+        if (matches(request.request(), select, false) || request.all()) {
             iterQueue.push(fn(fdb, request));
         }
     }
@@ -228,6 +228,32 @@ bool SelectFDB::matches(const Key &key, const SelectMap &select, bool requireMis
             if (requireMissing) return false;
         } else if (!re.match(i->second)) {
             return false;
+        }
+    }
+
+    return true;
+}
+
+bool SelectFDB::matches(const metkit::MarsRequest& request, const SelectMap &select, bool requireMissing) const {
+
+    for (const auto& kv : select) {
+
+        const std::string& k(kv.first);
+        const eckit::Regex& re(kv.second);
+
+        if (request.has(k)) {
+
+            bool re_match = false;
+            for (const std::string& val : request.values(k)) {
+                if (re.match(val)) {
+                    re_match = true;
+                    break;
+                }
+            }
+            if (!re_match) return false;
+
+        } else {
+            if (requireMissing) return false;
         }
     }
 

@@ -10,6 +10,8 @@
 
 #include "eckit/exception/Exceptions.h"
 
+#include "metkit/MarsRequest.h"
+
 #include "fdb5/rules/Matcher.h"
 #include "fdb5/database/Key.h"
 
@@ -29,6 +31,10 @@ bool Matcher::optional() const {
 
 const std::string &Matcher::value(const Key &key, const std::string &keyword) const {
     return key.get(keyword);
+}
+
+const std::vector<std::string> &Matcher::values(const metkit::MarsRequest& rq, const std::string &keyword) const {
+    return rq.values(keyword);
 }
 
 void Matcher::fill(Key &key, const std::string &keyword, const std::string& value) const {

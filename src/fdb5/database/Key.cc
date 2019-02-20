@@ -12,6 +12,8 @@
 
 #include "eckit/parser/Tokenizer.h"
 
+#include "metkit/MarsRequest.h"
+
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/LibFdb.h"
@@ -195,6 +197,24 @@ bool Key::match(const Key& other) const {
         }
 
     }
+    return true;
+}
+
+bool Key::match(const metkit::MarsRequest& request) const {
+
+    for (const std::string& k : request.params()) {
+
+        const_iterator j = find(k);
+        if (j == end()) {
+            return false;
+        }
+
+        const auto& values = request.values(k);
+        if (std::find(values.begin(), values.end(), j->second) == values.end()) {
+            return false;
+        }
+    }
+
     return true;
 }
 

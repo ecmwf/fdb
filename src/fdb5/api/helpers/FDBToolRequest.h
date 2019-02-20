@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-#include "fdb5/database/Key.h"
+#include "metkit/MarsRequest.h"
 
 
 namespace eckit {
@@ -34,13 +34,16 @@ namespace fdb5 {
 class FDBToolRequest {
 public: // methods
 
-    FDBToolRequest(const std::string& r,
+    static std::vector<FDBToolRequest> requestsFromString(const std::string& request_str,
+                                                          const std::vector<std::string> minimumKeys = {});
+
+    FDBToolRequest(const metkit::MarsRequest& r,
                    bool all=false,
                    const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
 
     FDBToolRequest(eckit::Stream&);
 
-    const Key& key() const;
+    const metkit::MarsRequest& request() const;
 
     bool all() const;
 
@@ -61,7 +64,7 @@ protected: // methods
 
 private: // methods
 
-    Key key_;
+    metkit::MarsRequest request_;
 
     bool all_;
 };

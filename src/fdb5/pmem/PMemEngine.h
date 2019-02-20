@@ -23,11 +23,24 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 class PMemEngine : public fdb5::Engine {
-public:
+
+public: // methods
 
     static const char* typeName() { return "pmem"; }
 
-    static std::vector<eckit::PathName> databases(const Key& key, const std::vector<eckit::PathName>& dirs, const Config& config);
+    static std::vector<eckit::PathName> databases(const Key& key,
+                                                  const std::vector<eckit::PathName>& dirs,
+                                                  const Config& config);
+
+    static std::vector<eckit::PathName> databases(const metkit::MarsRequest& request,
+                                                  const std::vector<eckit::PathName>& dirs,
+                                                  const Config& config);
+
+private: // methods
+
+    static std::vector<eckit::PathName> databases(const std::set<Key>& keys,
+                                                  const std::vector<eckit::PathName>& dirs,
+                                                  const Config& config);
 
 protected: // methods
 
@@ -42,6 +55,7 @@ protected: // methods
     virtual std::vector<eckit::PathName> allLocations(const Key& key, const Config& config) const;
 
     virtual std::vector<eckit::PathName> visitableLocations(const Key& key, const Config& config) const;
+    virtual std::vector<eckit::PathName> visitableLocations(const metkit::MarsRequest& rq, const Config& config) const;
 
     virtual std::vector<eckit::PathName> writableLocations(const Key& key, const Config& config) const;
 

@@ -8,11 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
-
 #include "fdb5/rules/MatchOptional.h"
-#include "fdb5/database/Key.h"
+
+#include "eckit/log/Log.h"
 #include "eckit/types/Types.h"
+
+#include "metkit/MarsRequest.h"
+
+#include "fdb5/database/Key.h"
 #include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
@@ -22,8 +25,8 @@ static std::string empty;
 //----------------------------------------------------------------------------------------------------------------------
 
 MatchOptional::MatchOptional(const std::string &def) :
-    Matcher(),
-    default_(def) {
+    Matcher() {
+    default_.push_back(def);
 }
 
 MatchOptional::~MatchOptional() {
@@ -47,23 +50,31 @@ const std::string &MatchOptional::value(const Key &key, const std::string &keywo
     Key::const_iterator i = key.find(keyword);
 
     if (i == key.end()) {
-        return default_;
+        return default_[0];
     }
 
     return key.get(keyword);
 }
 
-const std::string &MatchOptional::defaultValue() const {
+const std::vector<std::string>& MatchOptional::values(const metkit::MarsRequest& rq, const std::string& keyword) const {
+
+    if (rq.has(keyword)) {
+        return rq.values(keyword);
+    }
     return default_;
+}
+
+const std::string &MatchOptional::defaultValue() const {
+    return default_[0];
 }
 
 void MatchOptional::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
     registry.dump(s, keyword);
-    s << '?' << default_;
+    s << '?' << default_[0];
 }
 
 void MatchOptional::print(std::ostream &out) const {
-    out << "MatchOptional[default=" << default_ << "]";
+    out << "MatchOptional[default=" << default_[0] << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

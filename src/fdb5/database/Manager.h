@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "eckit/filesystem/PathName.h"
+#include "metkit/MarsRequest.h"
 #include "fdb5/config/Config.h"
 
 namespace fdb5 {
@@ -41,6 +42,7 @@ public: // methods
 
     /// set union of all the engines that can possibly handle this key
     std::set<std::string> engines(const Key &key);
+    std::set<std::string> engines(const metkit::MarsRequest& rq);
 
     /// Uniquely selects the engine that will handle this Path by checking possible handlers
     std::string engine(const eckit::PathName& path);
@@ -52,7 +54,7 @@ public: // methods
     std::vector<eckit::PathName> allLocations(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::PathName> visitableLocations(const Key& key);
+    std::vector<eckit::PathName> visitableLocations(const metkit::MarsRequest& request);
 
     /// Lists the roots where a DB key would be able to be written
     std::vector<eckit::PathName> writableLocations(const Key& key);

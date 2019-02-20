@@ -12,6 +12,8 @@
 
 #include "eckit/config/Resource.h"
 
+#include "metkit/MarsRequest.h"
+
 #include "fdb5/rules/Predicate.h"
 #include "fdb5/database/ReadVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
@@ -244,6 +246,43 @@ void Rule::expandFirstLevel(const Key &dbKey,  Key &result, bool& found) const {
     expandFirstLevel(dbKey, predicates_.begin(), result, found);
 }
 
+void Rule::expandFirstLevel(const metkit::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, Key& result, bool& found) const {
+
+    if (cur == predicates_.end()) {
+        found = true;
+        result.rule(this);
+        return;
+    }
+
+    std::vector<Predicate *>::const_iterator next = cur;
+    ++next;
+
+    const std::string& keyword = (*cur)->keyword();
+    const std::vector<std::string>& values = (*cur)->values(rq);
+
+    // Gives a unique expansion --> only considers the first of the values suggested.
+    // TODO: Consider the broader case.
+
+    for (const std::string& value : values) {
+
+        result.push(keyword, value);
+
+        if ((*cur)->match(result)) {
+            expandFirstLevel(rq, next, result, found);
+        }
+
+        if (!found) {
+            result.pop(keyword);
+        } else {
+            return;
+        }
+    }
+}
+
+void Rule::expandFirstLevel(const metkit::MarsRequest& request, Key& result, bool& done) const {
+    expandFirstLevel(request, predicates_.begin(), result, done);
+}
+
 
 void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
 
@@ -279,6 +318,44 @@ void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_it
 void Rule::matchFirstLevel(const Key &dbKey,  std::set<Key>& result, const char* missing) const {
     Key tmp;
     matchFirstLevel(dbKey, predicates_.begin(), tmp, result, missing);
+}
+
+
+void Rule::matchFirstLevel(const metkit::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
+
+    if (cur == predicates_.end()) {
+        if (tmp.match(request)) {
+            result.insert(tmp);
+        }
+        return;
+    }
+
+    std::vector<Predicate *>::const_iterator next = cur;
+    ++next;
+
+    const std::string& keyword = (*cur)->keyword();
+
+    if (request.has(keyword)) {
+
+        const std::vector<std::string>& values = (*cur)->values(request);
+
+        for (const std::string& value : values) {
+            tmp.push(keyword, value);
+            if ((*cur)->match(tmp)) {
+                matchFirstLevel(request, next, tmp, result, missing);
+            }
+            tmp.pop(keyword);
+        }
+    } else {
+        tmp.push(keyword, missing);
+        matchFirstLevel(request, next, tmp, result, missing);
+        tmp.pop(keyword);
+    }
+}
+
+void Rule::matchFirstLevel(const metkit::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
+    Key tmp;
+    matchFirstLevel(request, predicates_.begin(), tmp, result, missing);
 }
 
 

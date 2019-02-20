@@ -56,7 +56,15 @@ static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missin
     schema.matchFirstLevel(key, keys, missing);
 }
 
-std::vector<eckit::PathName> PMemEngine::databases(const Key &key, const std::vector<eckit::PathName>& dirs, const Config& config) {
+static void matchRequestToDB(const metkit::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
+{
+    const Schema& schema = config.schema();
+    schema.matchFirstLevel(rq, keys, missing);
+}
+
+std::vector<eckit::PathName> PMemEngine::databases(const Key &key,
+                                                   const std::vector<eckit::PathName>& dirs,
+                                                   const Config& config) {
 
     std::set<Key> keys;
 
@@ -65,6 +73,28 @@ std::vector<eckit::PathName> PMemEngine::databases(const Key &key, const std::ve
     matchKeyToDB(key, keys, regexForMissingValues, config);
 
     Log::debug<LibFdb>() << "Matched DB keys " << keys << std::endl;
+
+    return databases(keys, dirs, config);
+}
+
+std::vector<eckit::PathName> PMemEngine::databases(const metkit::MarsRequest& request,
+                                                   const std::vector<eckit::PathName>& dirs,
+                                                   const Config& config) {
+
+    std::set<Key> keys;
+
+    const char* regexForMissingValues = "[^:/]*";
+
+    matchRequestToDB(request, keys, regexForMissingValues, config);
+
+    Log::debug<LibFdb>() << "Matched DB keys " << keys << std::endl;
+
+    return databases(keys, dirs, config);
+}
+
+std::vector<eckit::PathName> PMemEngine::databases(const std::set<Key>& keys,
+                                                   const std::vector<eckit::PathName>& dirs,
+                                                   const Config& config) {
 
     std::vector<eckit::PathName> result;
     std::set<eckit::PathName> seen;
@@ -115,6 +145,11 @@ std::vector<eckit::PathName> PMemEngine::allLocations(const Key& key, const Conf
 std::vector<eckit::PathName> PMemEngine::visitableLocations(const Key& key, const Config& config) const
 {
     return databases(key, PoolManager(config).visitablePools(key), config);
+}
+
+std::vector<eckit::PathName> PMemEngine::visitableLocations(const metkit::MarsRequest& rq, const Config& config) const
+{
+    return databases(rq, PoolManager(config).visitablePools(rq), config);
 }
 
 std::vector<eckit::PathName> PMemEngine::writableLocations(const Key& key, const Config& config) const

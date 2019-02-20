@@ -27,6 +27,7 @@
 #include "fdb5/types/TypesRegistry.h"
 
 class MarsRequest;
+namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
 
@@ -64,7 +65,9 @@ public: // methods
     void expand(const MarsRequest &request, ReadVisitor &visitor) const;
 
     bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
+    bool expandFirstLevel(const metkit::MarsRequest& request,  Key& result) const ;
     void matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const ;
+    void matchFirstLevel(const metkit::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
 
     const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
 

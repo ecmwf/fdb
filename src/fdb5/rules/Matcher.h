@@ -1,4 +1,4 @@
-/*
+﻿/*
  * (C) Copyright 1996- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
@@ -17,10 +17,12 @@
 #define fdb5_Matcher_H
 
 #include <iosfwd>
+#include <vector>
 
 #include "eckit/memory/NonCopyable.h"
 
 class MarsTask;
+namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
 
@@ -40,6 +42,7 @@ public: // methods
     virtual bool optional() const;
 
     virtual const std::string &value(const Key &, const std::string &keyword) const;
+    virtual const std::vector<std::string>& values(const metkit::MarsRequest& rq, const std::string& keyword) const;
     virtual const std::string &defaultValue() const;
 
     virtual bool match(const std::string &keyword, const Key &key) const = 0;

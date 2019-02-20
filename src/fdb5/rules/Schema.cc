@@ -91,9 +91,24 @@ bool Schema::expandFirstLevel(const Key &dbKey,  Key &result) const {
     return found;
 }
 
+bool Schema::expandFirstLevel(const metkit::MarsRequest& request, Key &result) const {
+    bool found = false;
+    for (const Rule* rule : rules_) {
+        rule->expandFirstLevel(request, result, found);
+        if (found) break;
+    }
+    return found;
+}
+
 void Schema::matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const {
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->matchFirstLevel(dbKey, result, missing);
+    }
+}
+
+void Schema::matchFirstLevel(const metkit::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
+    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+        (*i)->matchFirstLevel(request, result, missing);
     }
 }
 

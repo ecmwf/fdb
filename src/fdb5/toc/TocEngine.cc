@@ -135,20 +135,19 @@ static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missin
     schema.matchFirstLevel(key, keys, missing);
 }
 
-std::vector<eckit::PathName> TocEngine::databases(const Key& key,
+static void matchRequestToDB(const metkit::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
+{
+    const Schema& schema = config.schema();
+    schema.matchFirstLevel(rq, keys, missing);
+}
+
+static constexpr const char* regexForMissingValues = "[^:/]*";
+
+std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
                                                   const std::vector<eckit::PathName>& roots,
                                                   const Config& config) {
 
-    std::set<Key> keys;
-
-    const char* regexForMissingValues = "[^:/]*";
-
-    matchKeyToDB(key, keys, regexForMissingValues, config);
-
-    Log::debug<LibFdb>() << "Matched DB schemas for key " << key << " -> keys " << keys << std::endl;
-
-    std::vector<eckit::PathName> result;
-    std::set<eckit::PathName> seen;
+    std::set<eckit::PathName> result;
 
     for (std::vector<eckit::PathName>::const_iterator j = roots.begin(); j != roots.end(); ++j) {
 
@@ -173,22 +172,12 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key,
 
                     Log::debug<LibFdb>() << "    -> db " << *k << std::endl;
 
-                    if(seen.find(*k) != seen.end()) {
+                    if(result.find(*k) != result.end()) {
                         continue;
                     }
 
                     if (re.match(*k)) {
-                        try {
-                            TocHandler toc(*k);
-                            if (toc.databaseKey().match(key)) {
-                                Log::debug<LibFdb>() << " found match with " << *k << std::endl;
-                                result.push_back(*k);
-                            }
-                        } catch (eckit::Exception& e) {
-                            eckit::Log::error() <<  "Error loading FDB database from " << *k << std::endl;
-                            eckit::Log::error() << e.what() << std::endl;
-                        }
-                        seen.insert(*k);
+                        result.insert(*k);
                     }
                 }
             }
@@ -200,6 +189,63 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key,
     return result;
 }
 
+std::vector<eckit::PathName> TocEngine::databases(const Key& key,
+                                                  const std::vector<eckit::PathName>& roots,
+                                                  const Config& config) {
+
+    std::set<Key> keys;
+
+    matchKeyToDB(key, keys, regexForMissingValues, config);
+
+    Log::debug<LibFdb>() << "Matched DB schemas for key " << key << " -> keys " << keys << std::endl;
+
+    std::set<eckit::PathName> databasesMatchRegex(databases(keys, roots, config));
+
+    std::vector<eckit::PathName> result;
+    for (const auto& path : databasesMatchRegex) {
+        try {
+            TocHandler toc(path);
+            if (toc.databaseKey().match(key)) {
+                Log::debug<LibFdb>() << " found match with " << path << std::endl;
+                result.push_back(path);
+            }
+        } catch (eckit::Exception& e) {
+            eckit::Log::error() <<  "Error loading FDB database from " << path << std::endl;
+            eckit::Log::error() << e.what() << std::endl;
+        }
+    }
+
+    return result;
+}
+
+std::vector<eckit::PathName> TocEngine::databases(const metkit::MarsRequest& request,
+                                                  const std::vector<eckit::PathName>& roots,
+                                                  const Config& config) {
+
+    std::set<Key> keys;
+
+    matchRequestToDB(request, keys, regexForMissingValues, config);
+
+    Log::debug<LibFdb>() << "Matched DB schemas for request " << request << " -> keys " << keys << std::endl;
+
+    std::set<eckit::PathName> databasesMatchRegex(databases(keys, roots, config));
+
+    std::vector<eckit::PathName> result;
+    for (const auto& path : databasesMatchRegex) {
+        try {
+            TocHandler toc(path);
+            if (toc.databaseKey().match(request)) {
+                Log::debug<LibFdb>() << " found match with " << path << std::endl;
+                result.push_back(path);
+            }
+        } catch (eckit::Exception& e) {
+            eckit::Log::error() <<  "Error loading FDB database from " << path << std::endl;
+            eckit::Log::error() << e.what() << std::endl;
+        }
+    }
+
+    return result;
+}
 
 std::vector<eckit::PathName> TocEngine::allLocations(const Key& key, const Config& config) const
 {
@@ -209,6 +255,11 @@ std::vector<eckit::PathName> TocEngine::allLocations(const Key& key, const Confi
 std::vector<eckit::PathName> TocEngine::visitableLocations(const Key& key, const Config& config) const
 {
     return databases(key, RootManager(config).visitableRoots(key), config);
+}
+
+std::vector<PathName> TocEngine::visitableLocations(const metkit::MarsRequest& request, const Config& config) const
+{
+    return databases(request, RootManager(config).visitableRoots(request), config);
 }
 
 std::vector<eckit::PathName> TocEngine::writableLocations(const Key& key, const Config& config) const

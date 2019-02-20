@@ -27,6 +27,10 @@ namespace eckit {
     class JSON;
 }
 
+namespace metkit {
+    class MarsRequest;
+}
+
 namespace fdb5 {
 
 class TypesRegistry;
@@ -59,6 +63,7 @@ public: // methods
     void clear();
 
     bool match(const Key& other) const;
+    bool match(const metkit::MarsRequest& request) const;
 
     bool match(const Key& other, const eckit::StringList& ignore) const;
 
