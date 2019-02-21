@@ -179,9 +179,15 @@ void WipeVisitor::databaseComplete(const DB& db) {
     }
 
     // Add to the asynchronous queue _before_ doing anything (so output is fresh).
-    // n.b. use push not emplace so we don't destry the structure before using it.
+    // n.b. use push not emplace so we don't destroy the structure before using it.
 
-    queue_.push(current_);
+    if (!current_.dataPaths.empty() ||
+        !current_.metadataPaths.empty() ||
+        !current_.otherPaths.empty() ||
+        current_.safePaths.empty()) {    // n.b. if only this is true, the DB will be deleted.
+
+        queue_.push(current_);
+    }
 
     if (doit_) {
 
