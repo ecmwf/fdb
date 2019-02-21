@@ -1,4 +1,4 @@
-/*
+﻿/*
  * (C) Copyright 1996- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
@@ -22,6 +22,8 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/pmem/PoolGroup.h"
 
+namespace metkit { class MarsRequest; }
+
 namespace fdb5 {
 
 class Key;
@@ -42,6 +44,8 @@ public: // methods
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> visitablePools(const Key& key);
+    std::vector<eckit::PathName> visitablePools(const std::set<Key>& keys);
+    std::vector<eckit::PathName> visitablePools(const metkit::MarsRequest& request);
 
     /// Lists the roots where a DB key would be able to be written
     std::vector<eckit::PathName> writablePools(const Key& key);
@@ -49,6 +53,7 @@ public: // methods
 private: // members
 
     const std::vector<PoolGroup> poolGroupTable_;
+    Config config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

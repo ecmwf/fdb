@@ -15,12 +15,16 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 
+#include "metkit/MarsRequest.h"
+
 #include "fdb5/LibFdb.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/pmem/PoolEntry.h"
 #include "fdb5/pmem/PoolGroup.h"
+#include "fdb5/rules/Schema.h"
 
 #include <mutex>
+#include <fstream>
 
 using namespace eckit;
 
@@ -219,7 +223,8 @@ static PoolGroupTable poolGroups(const Config& config) {
 //----------------------------------------------------------------------------------------------------------------------
 
 PoolManager::PoolManager(const Config& config) :
-    poolGroupTable_(poolGroups(config)) {}
+    poolGroupTable_(poolGroups(config)),
+    config_(config) {}
 
 
 eckit::PathName PoolManager::pool(const Key& key) {
@@ -256,21 +261,36 @@ std::vector<PathName> PoolManager::allPools(const Key& key)
 }
 
 
-std::vector<eckit::PathName> PoolManager::visitablePools(const Key& key) {
+std::vector<eckit::PathName> PoolManager::visitablePools(const std::set<Key>& keys) {
 
     eckit::StringSet pools;
 
-    std::string k = key.valuesToString();
+    std::vector<std::string> keystrings;
+    keystrings.reserve(keys.size());
+    for (const Key& k : keys) keystrings.emplace_back(k.valuesToString());
 
     for (const PoolGroup& group : poolGroupTable_) {
-        if(group.match(k)) {
-            group.visitable(pools);
+        for (const std::string& k : keystrings) {
+            if(group.match(k) || k.empty()) {
+                group.visitable(pools);
+                break;
+            }
         }
     }
 
     Log::debug<LibFdb>() << "Visitable Pools " << pools << std::endl;
 
     return std::vector<eckit::PathName>(pools.begin(), pools.end());
+}
+
+std::vector<PathName> PoolManager::visitablePools(const Key& key) {
+    return visitablePools(std::set<Key> { key });
+}
+
+std::vector<PathName> PoolManager::visitablePools(const metkit::MarsRequest& request) {
+    std::set<Key> keys;
+    config_.schema().matchFirstLevel(request, keys, "");
+    return visitablePools(keys);
 }
 
 std::vector<eckit::PathName> PoolManager::writablePools(const Key& key) {

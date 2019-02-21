@@ -167,8 +167,9 @@ PMemStatsReportVisitor::PMemStatsReportVisitor(const PMemDB& db) :
 PMemStatsReportVisitor::~PMemStatsReportVisitor() {
 }
 
-void PMemStatsReportVisitor::visitDatabase(const DB& db) {
+bool PMemStatsReportVisitor::visitDatabase(const DB& db) {
     ASSERT(&db == currentDatabase_);
+    return true;
 }
 
 void PMemStatsReportVisitor::visitDatum(const Field& field, const std::string& fieldFingerprint) {

@@ -22,6 +22,7 @@
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/StatsReportVisitor.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 
 #include <unordered_set>
@@ -154,7 +155,7 @@ private: // methods
 
 private: // methods
 
-    void visitDatabase(const DB& db) override;
+    bool visitDatabase(const DB& db) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(const Field& field, const Key& key) override { NOTIMP; }
 

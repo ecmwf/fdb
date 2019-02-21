@@ -10,6 +10,9 @@
 /// @author Simon Smart
 /// @date   Dec 2016
 
+#include <cstring>
+
+#include "eckit/exception/Exceptions.h"
 
 #include "fdb5/pmem/MemoryBufferStream.h"
 
