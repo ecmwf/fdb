@@ -35,7 +35,11 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
     // or end up with defaults like date, ...
     // Also, we want to be able to test that keys are missing internally.
 
-    std::vector<FDBToolRequest> requests(parsedRequests.begin(), parsedRequests.end());
+    std::vector<FDBToolRequest> requests;
+    requests.reserve(parsedRequests.size());
+    for (const auto& rq : parsedRequests) {
+        requests.emplace_back(rq, false, minimumKeys);
+    }
 
 //    bool inherit = true;
 //    metkit::MarsExpension expand(inherit);

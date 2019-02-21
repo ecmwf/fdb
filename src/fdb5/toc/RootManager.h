@@ -45,6 +45,7 @@ public: // methods
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> visitableRoots(const Key& key);
+    std::vector<eckit::PathName> visitableRoots(const std::set<Key>& keys);
     std::vector<eckit::PathName> visitableRoots(const metkit::MarsRequest& request);
 
     /// Lists the roots where a DB key would be able to be written

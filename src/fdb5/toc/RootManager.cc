@@ -11,6 +11,7 @@
 #include "RootManager.h"
 
 #include <fstream>
+#include <algorithm>
 
 #include "eckit/types/Types.h"
 #include "eckit/config/Resource.h"
@@ -562,23 +563,29 @@ std::vector<PathName> RootManager::allRoots(const Key& key)
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
 
-
-std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
+std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
 
     eckit::StringSet roots;
 
-    std::string k = key.valuesToString();
+    std::vector<std::string> keystrings;
+    std::transform(keys.begin(), keys.end(), std::back_inserter(keystrings),
+                   [](const Key& k) { return k.valuesToString(); });
 
-    Log::debug<LibFdb>() << "RootManager::visitableRoots() trying to match key " << k << std::endl;
+    Log::debug<LibFdb>() << "RootManager::visitableRoots() trying to match keys " << keystrings << std::endl;
 
-    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
-        if(i->match(k) || key.empty()) {
-            Log::debug<LibFdb>() << "MATCH space " << *i << std::endl;
-            i->visitable(roots);
+    for (const auto& space : spacesTable_) {
+
+        bool matched = false;
+        for (const std::string& k : keystrings) {
+            if (space.match(k) || k.empty()) {
+                Log::debug<LibFdb>() << "MATCH space " << space << std::endl;
+                space.visitable(roots);
+                matched = true;
+                break;
+            }
         }
-        else {
-            Log::debug<LibFdb>() << "FAIL to match space " << *i << std::endl;
-        }
+
+        if (!matched) Log::debug<LibFdb>() << "FAIL to match space " << space << std::endl;
     }
 
     Log::debug<LibFdb>() << "Visitable Roots " << roots << std::endl;
@@ -587,11 +594,17 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
 }
 
 
+std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
+    return visitableRoots(std::set<Key>{ key });
+}
+
 std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::MarsRequest& request) {
 
-    Key key;
-    config_.schema().expandFirstLevel(request, key);
-    return visitableRoots(key);
+//    Key key;
+//    config_.schema().expandFirstLevel(request, key);
+    std::set<Key> keys;
+    config_.schema().matchFirstLevel(request, keys, "");
+    return visitableRoots(keys);
 }
 
 
