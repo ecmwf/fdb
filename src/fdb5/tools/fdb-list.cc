@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <unordered_set>
+
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/config/Resource.h"
@@ -46,6 +48,7 @@ class FDBList : public FDBVisitTool {
         location_(false) {
 
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
+        options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
     }
 
   private: // methods
@@ -54,6 +57,7 @@ class FDBList : public FDBVisitTool {
     virtual void init(const CmdArgs &args);
 
     bool location_;
+    bool full_;
 };
 
 void FDBList::init(const CmdArgs& args) {
@@ -61,13 +65,24 @@ void FDBList::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
 
     args.get("location", location_);
+    args.get("full", full_);
     // TODO: ignore-errors
 
 }
 
+
+struct KeyHasher {
+    size_t operator() (const Key& key) const {
+        return std::hash<std::string>()(key.valuesToString());
+    }
+};
+
+
 void FDBList::execute(const CmdArgs& args) {
 
     FDB fdb;
+
+    std::unordered_set<Key, KeyHasher> seenKeys_;
 
     for (const FDBToolRequest& request : requests()) {
 
@@ -76,9 +91,30 @@ void FDBList::execute(const CmdArgs& args) {
         size_t count = 0;
         ListElement elem;
         while (listObject.next(elem)) {
-            elem.print(Log::info(), location_);
-            Log::info() << std::endl;
-            count++;
+
+            // If --full is supplied, then include all entries including duplicates.
+            // If --full is not supplied, then test for duplicates
+            // @note we do this check here, not in the ListVisitor, as we may have multiple
+            //       list visitors (e.g. with DistFDB), and we need to deduplicate the
+            //       resultant stream.
+
+            bool include = false;
+            if (full_) {
+                include = true;
+            } else {
+                Key combinedKey = elem.combinedKey();
+
+                if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
+                    include = true;
+                    seenKeys_.emplace(std::move(combinedKey));
+                }
+            }
+
+            if (include) {
+                elem.print(Log::info(), location_);
+                Log::info() << std::endl;
+                count++;
+            }
         }
 
         if (count == 0 && fail()) {

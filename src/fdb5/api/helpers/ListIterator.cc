@@ -25,6 +25,18 @@ ListElement::ListElement(eckit::Stream &s) {
     location_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
 }
 
+Key ListElement::combinedKey() const {
+    Key combined;
+
+    for (const Key& partKey : keyParts_) {
+        for (const auto& kv : partKey) {
+            combined.set(kv.first, kv.second);
+        }
+    }
+
+    return combined;
+}
+
 
 void ListElement::print(std::ostream &out, bool location) const {
     for (const auto& bit : keyParts_) {

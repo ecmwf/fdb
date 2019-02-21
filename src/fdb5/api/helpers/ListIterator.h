@@ -41,6 +41,8 @@ public: // methods
     ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location);
     ListElement(eckit::Stream& s);
 
+    Key combinedKey() const;
+
     void print(std::ostream& out, bool location=false) const;
 
 private: // methods
