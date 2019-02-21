@@ -30,8 +30,27 @@ struct ListVisitor : public QueryVisitor<ListElement> {
 public:
     using QueryVisitor::QueryVisitor;
 
+    bool visitDatabase(const DB& db) {
+        bool ret = QueryVisitor::visitDatabase(db);
+
+        // Subselect the parts of the request
+        indexRequest_ = request_;
+        for (const auto& kv : db.key()) {
+            indexRequest_.unsetValues(kv.first);
+        }
+
+        return ret;
+    }
+
     bool visitIndex(const Index& index) override {
         QueryVisitor::visitIndex(index);
+
+        // Subselect the parts of the request
+        datumRequest_ = indexRequest_;
+        for (const auto& kv : index.key()) {
+            datumRequest_.unsetValues(kv.first);
+        }
+
         if (index.key().partialMatch(request_)) {
             return true; // Explore contained entries
         }
@@ -42,11 +61,15 @@ public:
         ASSERT(currentDatabase_);
         ASSERT(currentIndex_);
 
-        if (key.partialMatch(request_)) {
+        if (key.match(datumRequest_)) {
             queue_.emplace(ListElement({currentDatabase_->key(), currentIndex_->key(), key},
                                           field.stableLocation()));
         }
     }
+
+private: // methods
+    metkit::MarsRequest indexRequest_;
+    metkit::MarsRequest datumRequest_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
