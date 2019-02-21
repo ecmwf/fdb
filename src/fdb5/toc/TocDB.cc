@@ -143,6 +143,11 @@ PurgeVisitor *TocDB::purgeVisitor() const {
     return new TocPurgeVisitor(*this);
 }
 
+void TocDB::maskIndexEntry(const Index &index) const {
+    TocHandler handler(basePath());
+    handler.writeClearRecord(index);
+}
+
 std::vector<Index> TocDB::indexes(bool sorted) const {
     return loadIndexes(sorted);
 }

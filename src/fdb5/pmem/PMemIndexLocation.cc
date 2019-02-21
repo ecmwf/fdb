@@ -22,6 +22,18 @@ using namespace eckit;
 namespace fdb5 {
 namespace pmem {
 
+// PMemIndexLocation cannot be sensibly reconstructed on a remote.
+// Create something that gives info without needing the pmem library, that
+// could be remapped into a PMemIndexLocation if we later so chose.
+
+// --> For info purposes we return a TocIndexLocation which has the required
+//     components.
+// --> Obviously, if this needs to be reconstructed, then we need to do
+//     something else magical.
+
+//::eckit::ClassSpec PMemFieldLocation::classSpec_ = {&FieldLocation::classSpec(), "PMemFieldLocation",};
+//::eckit::Reanimator<PMemFieldLocation> PMemFieldLocation::reanimator_;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 
@@ -44,6 +56,20 @@ PathName PMemIndexLocation::url() const
     ::pmem::PersistentPool& pool(::pmem::PoolRegistry::instance().poolFromPointer(&node_));
 
     return pool.path();
+}
+
+IndexLocation* PMemIndexLocation::clone() const {
+    return new PMemIndexLocation(node_, poolManager_);
+}
+
+void PMemIndexLocation::encode(Stream &) const {
+    NOTIMP; // See comment at top of file
+}
+
+void PMemIndexLocation::print(std::ostream &out) const
+{
+    out << "(" << url() << ")";
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------

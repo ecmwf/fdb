@@ -49,6 +49,10 @@ private: // members
 
     WipeElement current_;
 
+    std::vector<Index> indexesToMask_;
+
+    metkit::MarsRequest indexRequest_;
+
     bool doit_;
     bool verbose_;
 };

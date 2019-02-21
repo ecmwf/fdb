@@ -21,13 +21,19 @@ using namespace eckit;
 
 namespace fdb5 {
 
-//----------------------------------------------------------------------------------------------------------------------
+::eckit::ClassSpec TocIndexLocation::classSpec_ = {&IndexLocation::classSpec(), "TocIndexLocation",};
+::eckit::Reanimator<TocIndexLocation> TocIndexLocation::reanimator_;
 
+//----------------------------------------------------------------------------------------------------------------------
 
 TocIndexLocation::TocIndexLocation(const eckit::PathName& path, off_t offset) :
     path_(path),
     offset_(offset) {}
 
+TocIndexLocation::TocIndexLocation(Stream& s) {
+    s >> path_;
+    s >> offset_;
+}
 
 off_t TocIndexLocation::offset() const {
     return offset_;
@@ -41,6 +47,20 @@ const PathName& TocIndexLocation::path() const {
 PathName TocIndexLocation::url() const
 {
     return path_;
+}
+
+IndexLocation* TocIndexLocation::clone() const {
+    return new TocIndexLocation(path_, offset_);
+}
+
+void TocIndexLocation::encode(Stream& s) const {
+    s << path_;
+    s << offset_;
+}
+
+void TocIndexLocation::print(std::ostream &out) const {
+    out << "(" << path_ << ":" << offset_ << ")";
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------

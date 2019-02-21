@@ -14,6 +14,8 @@
 #ifndef fdb5_TocIndexLocation_H
 #define fdb5_TocIndexLocation_H
 
+#include <sys/types.h>
+
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/database/IndexLocation.h"
@@ -29,16 +31,35 @@ class TocIndexLocation : public IndexLocation {
 public: // methods
 
     TocIndexLocation(const eckit::PathName& path, off_t offset);
+    TocIndexLocation(eckit::Stream&);
 
     off_t offset() const;
 
     const eckit::PathName& path() const;
 
-    virtual eckit::PathName url() const;
+    eckit::PathName url() const override;
+
+    IndexLocation* clone() const override;
+
+public: // For Streamable
+
+    static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+
+protected: // For Streamable
+
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    void encode(eckit::Stream&) const override;
+
+    static eckit::ClassSpec                    classSpec_;
+    static eckit::Reanimator<TocIndexLocation> reanimator_;
+
+private: // methods
+
+    virtual void print(std::ostream &out) const;
 
 private: // members
 
-    const eckit::PathName path_;
+    eckit::PathName path_;
 
     off_t offset_;
 

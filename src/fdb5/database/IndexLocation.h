@@ -11,6 +11,7 @@
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/serialisation/Streamable.h"
 
 #ifndef fdb5_IndexLocation_H
 #define fdb5_IndexLocation_H
@@ -19,14 +20,34 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class IndexLocation : private eckit::NonCopyable {
+class IndexLocation : public eckit::Streamable {
 
 public: // methods
 
+    IndexLocation();
     virtual ~IndexLocation();
 
     virtual eckit::PathName url() const = 0;
 
+    virtual IndexLocation* clone() const = 0;
+
+private: // methods
+
+    virtual void print(std::ostream& out) const = 0;
+
+
+protected: // For streamable
+
+    virtual void encode(eckit::Stream&) const = 0;
+
+    static eckit::ClassSpec classSpec_;
+
+private: // friends
+
+    friend std::ostream& operator<<(std::ostream& s, const IndexLocation& x) {
+        x.print(s);
+        return s;
+    }
 };
 
 //----------------------------------------------------------------------------------------------------------------------

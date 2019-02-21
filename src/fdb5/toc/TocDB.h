@@ -62,6 +62,7 @@ protected: // methods
 
     virtual StatsReportVisitor* statsReportVisitor() const override;
     virtual PurgeVisitor* purgeVisitor() const override;
+    virtual void maskIndexEntry(const Index& index) const override;
 
     void loadSchema();
     void checkSchema(const Key &key) const;

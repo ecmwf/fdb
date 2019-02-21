@@ -8,7 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/serialisation/Reanimator.h"
+
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/database/IndexLocation.h"
 
 namespace fdb5 {
 
@@ -19,6 +22,13 @@ WipeElement::WipeElement(eckit::Stream& s) {
     s >> metadataPaths;
     s >> dataPaths;
     s >> otherPaths;
+    s >> safePaths;
+
+    size_t nIndexes;
+    indexes.reserve(nIndexes);
+    for (size_t i = 0; i < nIndexes; i++) {
+        indexes.emplace_back(std::shared_ptr<IndexLocation>(eckit::Reanimator<IndexLocation>::reanimate(s)));
+    }
 }
 
 // This routine returns a very crude size (which will be rounded to page size)
@@ -56,6 +66,13 @@ void WipeElement::encode(eckit::Stream &s) const {
     s << metadataPaths;
     s << dataPaths;
     s << otherPaths;
+    s << safePaths;
+
+    size_t nIndexes = indexes.size();
+    s << nIndexes;
+    for (const std::shared_ptr<const IndexLocation>& loc : indexes) {
+        s << *loc;
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

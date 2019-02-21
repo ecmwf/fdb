@@ -88,6 +88,21 @@ void FDBWipe::execute(const CmdArgs& args) {
             }
             Log::info() << std::endl;
 
+            Log::info() << "Untouched files:" << std::endl;
+            if (elem.safePaths.empty()) Log::info() << " - NONE - " << std::endl;
+            for (const auto& f : elem.safePaths) {
+                Log::info() << "    " << f << std::endl;
+            }
+            Log::info() << std::endl;
+
+            if (!elem.safePaths.empty()) {
+                Log::info() << "Indexes to mask:" << std::endl;
+                if (elem.indexes.empty()) Log::info() << " - NONE - " << std::endl;
+                for (const auto& f : elem.indexes) {
+                    Log::info() << "    " << *f << std::endl;
+                }
+            }
+
             count++;
         }
 

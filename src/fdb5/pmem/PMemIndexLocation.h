@@ -37,7 +37,17 @@ public: // methods
     PBranchingNode& node() const;
     DataPoolManager& pool_manager() const;
 
-    virtual eckit::PathName url() const;
+    IndexLocation* clone() const override;
+
+    eckit::PathName url() const override;
+
+protected: // For Streamable (see comments. This is a bit odd).
+
+    virtual void encode(eckit::Stream&) const;
+
+private: // methods
+
+    virtual void print(std::ostream &out) const;
 
 private: // friends
 

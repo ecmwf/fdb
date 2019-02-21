@@ -14,13 +14,15 @@ using namespace eckit;
 
 namespace fdb5 {
 
+::eckit::ClassSpec IndexLocation::classSpec_ = {&Streamable::classSpec(), "IndexLocation",};
+
 //----------------------------------------------------------------------------------------------------------------------
 
-IndexLocationVisitor::~IndexLocationVisitor() {
-}
+IndexLocation::IndexLocation() {}
 
-IndexLocation::~IndexLocation(){
-}
+IndexLocationVisitor::~IndexLocationVisitor() {}
+
+IndexLocation::~IndexLocation(){}
 
 //----------------------------------------------------------------------------------------------------------------------
 

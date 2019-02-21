@@ -169,6 +169,8 @@ void DB::touch() {
     lastAccess_ = ::time(0);
 }
 
+void DB::maskIndexEntry(const Index &index) const { NOTIMP; }
+
 std::ostream &operator<<(std::ostream &s, const DB &x) {
     x.print(s);
     return s;

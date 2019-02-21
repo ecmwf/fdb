@@ -109,6 +109,9 @@ public: // methods
     /// @returns all the indexes in this DB
     virtual std::vector<fdb5::Index> indexes(bool sorted=false) const = 0;
 
+    /// For use by the WipeVisitor
+    virtual void maskIndexEntry(const Index& index) const = 0;
+
 protected: // methods
 
     virtual void print( std::ostream &out ) const = 0;

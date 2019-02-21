@@ -89,12 +89,22 @@ bool WipeVisitor::visitDatabase(const DB& db) {
     ASSERT(current_.metadataPaths.empty());
     ASSERT(current_.dataPaths.empty());
     ASSERT(current_.otherPaths.empty());
+    ASSERT(current_.safePaths.empty());
+    ASSERT(indexesToMask_.empty());
 
     basePath_ = db.basePath();
 
     // Who owns this DB
 
     current_.owner = db.owner();
+
+    // Does the request that has got us here entirely select the DB, or
+    // is there potential further subselection of Requests
+
+    indexRequest_ = request_;
+    for (const auto& kv : db.key()) {
+        indexRequest_.unsetValues(kv.first);
+    }
 
     // Enumerate metadata components
 
@@ -111,14 +121,32 @@ bool WipeVisitor::visitIndex(const Index& index) {
 
     eckit::PathName location(index.location().url());
 
+    // Is this index matched by the supplied request?
+
+    bool include = index.key().match(indexRequest_);
+
     ASSERT(location.dirName().sameAs(basePath_));
-    current_.metadataPaths.insert(location);
+    if (include) {
+        indexesToMask_.push_back(index);
+        current_.indexes.push_back(std::shared_ptr<IndexLocation>(index.location().clone()));
+        current_.metadataPaths.insert(location);
+    } else {
+        current_.safePaths.insert(basePath_);
+        for (const eckit::PathName& path : currentDatabase_->metadataPaths()) {
+            current_.safePaths.insert(path);
+        }
+        current_.safePaths.insert(location);
+    }
 
     // Enumerate data files.
 
     for (const eckit::PathName& path : index.dataPaths()) {
         if (path.dirName().sameAs(basePath_)) {
-            current_.dataPaths.insert(path);
+            if (include) {
+                current_.dataPaths.insert(path);
+            } else {
+                current_.safePaths.insert(path);
+            }
         }
     }
 
@@ -141,6 +169,14 @@ void WipeVisitor::databaseComplete(const DB& db) {
         }
     }
 
+    // Subtract the safe paths from the various options.
+
+    for (const eckit::PathName& path : current_.safePaths) {
+        current_.metadataPaths.erase(path);
+        current_.dataPaths.erase(path);
+        current_.otherPaths.erase(path);
+    }
+
     // Add to the asynchronous queue _before_ doing anything (so output is fresh).
     // n.b. use push not emplace so we don't destry the structure before using it.
 
@@ -154,6 +190,17 @@ void WipeVisitor::databaseComplete(const DB& db) {
         db.checkUID();
 
         ASSERT(basePath_ == db.basePath());
+
+        // Do masking first, as if things disappear this is a safety risk.
+
+        if (!current_.safePaths.empty() && !indexesToMask_.empty()) {
+            for (const auto& index : indexesToMask_) {
+                log << "Index to mask: " << index << std::endl;
+                db.maskIndexEntry(index);
+            }
+        }
+
+        // Now remove unused paths
 
         for (const eckit::PathName& path : current_.metadataPaths) {
             log << "Unlinking: " << path << std::endl;
@@ -175,7 +222,7 @@ void WipeVisitor::databaseComplete(const DB& db) {
             }
         }
 
-        if (basePath_.exists()) {
+        if (basePath_.exists() && current_.safePaths.empty()) {
             ASSERT(basePath_.isDir());
             log << "rmdir: " << basePath_ << std::endl;
             basePath_.rmdir(verbose_);
@@ -185,6 +232,7 @@ void WipeVisitor::databaseComplete(const DB& db) {
     // Cleanup counts for all the existant bits
 
     current_ = WipeElement();
+    indexesToMask_.clear();
 }
 
 

@@ -244,7 +244,11 @@ StatsReportVisitor* PMemDB::statsReportVisitor() const {
 
 PurgeVisitor *PMemDB::purgeVisitor() const {
     NOTIMP;
-//    return new TocPurgeVisitor(*this);
+    //    return new TocPurgeVisitor(*this);
+}
+
+void PMemDB::maskIndexEntry(const Index &index) const {
+    NOTIMP;
 }
 
 
