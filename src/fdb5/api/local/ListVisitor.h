@@ -30,8 +30,11 @@ struct ListVisitor : public QueryVisitor<ListElement> {
 public:
     using QueryVisitor::QueryVisitor;
 
+    /// Make a note of the current database. Subtract its key from the current
+    /// request so we can test request is used in its entirety
     bool visitDatabase(const DB& db) {
         bool ret = QueryVisitor::visitDatabase(db);
+        ASSERT(db.key().partialMatch(request_));
 
         // Subselect the parts of the request
         indexRequest_ = request_;
@@ -42,6 +45,11 @@ public:
         return ret;
     }
 
+    /// Make a note of the current database. Subtracts key from the current request
+    /// so we can test request is used in its entirety.
+    ///
+    /// Returns true/false depending on matching the request (avoids enumerating
+    /// entries if not matching).
     bool visitIndex(const Index& index) override {
         QueryVisitor::visitIndex(index);
 
@@ -57,6 +65,7 @@ public:
         return false; // Skip contained entries
     }
 
+    /// Test if entry matches the current request. If so, add to the output queue.
     void visitDatum(const Field& field, const Key& key) override {
         ASSERT(currentDatabase_);
         ASSERT(currentIndex_);
