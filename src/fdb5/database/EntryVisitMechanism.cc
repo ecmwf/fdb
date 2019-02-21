@@ -35,8 +35,9 @@ EntryVisitor::EntryVisitor() : currentDatabase_(0), currentIndex_(0) {}
 
 EntryVisitor::~EntryVisitor() {}
 
-void EntryVisitor::visitDatabase(const DB& db) {
+bool EntryVisitor::visitDatabase(const DB& db) {
     currentDatabase_ = &db;
+    return true;
 }
 
 void EntryVisitor::databaseComplete(const DB& db) {
@@ -47,8 +48,9 @@ void EntryVisitor::databaseComplete(const DB& db) {
     currentIndex_ = 0;
 }
 
-void EntryVisitor::visitIndex(const Index& index) {
+bool EntryVisitor::visitIndex(const Index& index) {
     currentIndex_ = &index;
+    return true;
 }
 
 void EntryVisitor::visitDatum(const Field &field, const std::string& keyFingerprint) {

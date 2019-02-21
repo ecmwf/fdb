@@ -69,6 +69,10 @@ public: // methods
 
     bool match(const std::string& key, const std::set<std::string>& values) const;
 
+    /// test that, if keys are present in the supplied request, they match the
+    /// keys present in the key. Essentially implements a reject-filter
+    bool partialMatch(const metkit::MarsRequest& request) const;
+
     bool operator< (const Key &other) const {
         return keys_ < other.keys_;
     }

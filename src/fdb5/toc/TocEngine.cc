@@ -144,8 +144,8 @@ static void matchRequestToDB(const metkit::MarsRequest& rq, std::set<Key>& keys,
 static constexpr const char* regexForMissingValues = "[^:/]*";
 
 std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
-                                                  const std::vector<eckit::PathName>& roots,
-                                                  const Config& config) {
+                                               const std::vector<eckit::PathName>& roots,
+                                               const Config& config) {
 
     std::set<eckit::PathName> result;
 
@@ -224,7 +224,8 @@ std::vector<eckit::PathName> TocEngine::databases(const metkit::MarsRequest& req
 
     std::set<Key> keys;
 
-    matchRequestToDB(request, keys, regexForMissingValues, config);
+//    matchRequestToDB(request, keys, regexForMissingValues, config);
+    matchRequestToDB(request, keys, "", config);
 
     Log::debug<LibFdb>() << "Matched DB schemas for request " << request << " -> keys " << keys << std::endl;
 
@@ -233,10 +234,16 @@ std::vector<eckit::PathName> TocEngine::databases(const metkit::MarsRequest& req
     std::vector<eckit::PathName> result;
     for (const auto& path : databasesMatchRegex) {
         try {
+            // n.b. test match on schema-expanded keys, not on request, as the request may
+            //      be overspecified for later processing (we only expand the first level
+            //      in matchRequestToDB)
             TocHandler toc(path);
-            if (toc.databaseKey().match(request)) {
-                Log::debug<LibFdb>() << " found match with " << path << std::endl;
-                result.push_back(path);
+            for (const Key& k : keys) {
+                if (toc.databaseKey().match(k)) {
+                    Log::debug<LibFdb>() << " found match with " << path << std::endl;
+                    result.push_back(path);
+                    break;
+                }
             }
         } catch (eckit::Exception& e) {
             eckit::Log::error() <<  "Error loading FDB database from " << path << std::endl;

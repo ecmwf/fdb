@@ -31,18 +31,19 @@ class DumpVisitor : public QueryVisitor<DumpElement> {
 
 public:
 
-    DumpVisitor(eckit::Queue<DumpElement>& queue, bool simple) :
-        QueryVisitor(queue),
+    DumpVisitor(eckit::Queue<DumpElement>& queue, const metkit::MarsRequest& request, bool simple) :
+        QueryVisitor(queue, request),
         out_(new QueueStringLogTarget(queue)),
         simple_(simple) {}
 
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
 
-    void visitDatabase(const DB& db) override {
+    bool visitDatabase(const DB& db) override {
         db.dump(out_, simple_);
+        return true;
     }
-    void visitIndex(const Index&) override { NOTIMP; }
+    bool visitIndex(const Index&) override { NOTIMP; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
 private:

@@ -32,8 +32,8 @@ public:
 
     using QueryVisitor::QueryVisitor;
 
-    void visitDatabase(const DB& db) override;
-    void visitIndex(const Index& index) override;
+    bool visitDatabase(const DB& db) override;
+    bool visitIndex(const Index& index) override;
     void databaseComplete(const DB& db) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(const Field&, const Key&) override;

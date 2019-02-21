@@ -30,12 +30,22 @@ struct ListVisitor : public QueryVisitor<ListElement> {
 public:
     using QueryVisitor::QueryVisitor;
 
+    bool visitIndex(const Index& index) override {
+        QueryVisitor::visitIndex(index);
+        if (index.key().partialMatch(request_)) {
+            return true; // Explore contained entries
+        }
+        return false; // Skip contained entries
+    }
+
     void visitDatum(const Field& field, const Key& key) override {
         ASSERT(currentDatabase_);
         ASSERT(currentIndex_);
 
-        queue_.emplace(ListElement({currentDatabase_->key(), currentIndex_->key(), key},
-                                      field.stableLocation()));
+        if (key.partialMatch(request_)) {
+            queue_.emplace(ListElement({currentDatabase_->key(), currentIndex_->key(), key},
+                                          field.stableLocation()));
+        }
     }
 };
 

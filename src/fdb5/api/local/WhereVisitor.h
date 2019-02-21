@@ -31,8 +31,8 @@ public:
     using QueryVisitor::QueryVisitor;
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
-    void visitDatabase(const DB& db) override { queue_.emplace(db.basePath()); }
-    void visitIndex(const Index&) override { NOTIMP; }
+    bool visitDatabase(const DB& db) override { queue_.emplace(db.basePath()); return true; }
+    bool visitIndex(const Index&) override { NOTIMP; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 };
 

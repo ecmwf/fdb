@@ -18,6 +18,8 @@
 
 #include "eckit/container/Queue.h"
 
+#include "metkit/MarsRequest.h"
+
 namespace fdb5 {
 namespace api {
 namespace local {
@@ -33,11 +35,13 @@ public: // methods
 
     using ValueType = T;
 
-    QueryVisitor(eckit::Queue<ValueType>& queue) : queue_(queue) {}
+    QueryVisitor(eckit::Queue<ValueType>& queue, const metkit::MarsRequest& request) :
+        queue_(queue), request_(request) {}
 
-protected: // methods
+protected: // members
 
     eckit::Queue<ValueType>& queue_;
+    metkit::MarsRequest request_;
 };
 
 

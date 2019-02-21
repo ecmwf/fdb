@@ -76,10 +76,9 @@ APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBTo
     using QueryIterator = APIIterator<ValueType>;
     using AsyncIterator = APIAsyncIterator<ValueType>;
 
-
     auto async_worker = [this, request, args...] (eckit::Queue<ValueType>& queue) {
         EntryVisitMechanism mechanism(config_);
-        VisitorType visitor(queue, args...);
+        VisitorType visitor(queue, request.request(), args...);
         mechanism.visit(request, visitor);
     };
 

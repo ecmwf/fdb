@@ -324,9 +324,9 @@ void Rule::matchFirstLevel(const Key &dbKey,  std::set<Key>& result, const char*
 void Rule::matchFirstLevel(const metkit::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
 
     if (cur == predicates_.end()) {
-        if (tmp.match(request)) {
+//        if (tmp.match(request)) {
             result.insert(tmp);
-        }
+//        }
         return;
     }
 

@@ -23,13 +23,16 @@ namespace local {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue, bool doit, bool verbose) :
-    QueryVisitor(queue),
+PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
+                           const metkit::MarsRequest& request,
+                           bool doit,
+                           bool verbose) :
+    QueryVisitor(queue, request),
     out_(new QueueStringLogTarget(queue)),
     doit_(doit),
     verbose_(verbose) {}
 
-void PurgeVisitor::visitDatabase(const DB& db) {
+bool PurgeVisitor::visitDatabase(const DB& db) {
 
     EntryVisitor::visitDatabase(db);
 
@@ -37,10 +40,14 @@ void PurgeVisitor::visitDatabase(const DB& db) {
     internalVisitor_.reset(db.purgeVisitor());
 
     internalVisitor_->visitDatabase(db);
+
+    return true; // Explore contained indexes
 }
 
-void PurgeVisitor::visitIndex(const Index& index) {
+bool PurgeVisitor::visitIndex(const Index& index) {
     internalVisitor_->visitIndex(index);
+
+    return true; // Explore contained entries
 }
 
 void PurgeVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {

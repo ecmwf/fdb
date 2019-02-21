@@ -218,8 +218,9 @@ TocStatsReportVisitor::TocStatsReportVisitor(const TocDB& db) :
 
 TocStatsReportVisitor::~TocStatsReportVisitor() {}
 
-void TocStatsReportVisitor::visitDatabase(const DB &db) {
+bool TocStatsReportVisitor::visitDatabase(const DB &db) {
     ASSERT(&db == currentDatabase_);
+    return true;
 }
 
 

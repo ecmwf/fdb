@@ -39,8 +39,8 @@ public:  // methods
     virtual bool visitIndexes() { return true; }
     virtual bool visitEntries() { return true; }
 
-    virtual void visitDatabase(const DB& db);
-    virtual void visitIndex(const Index& index);
+    virtual bool visitDatabase(const DB& db);    // return true if DB should be explored
+    virtual bool visitIndex(const Index& index); // return true if index should be explored
     virtual void databaseComplete(const DB& db);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
 

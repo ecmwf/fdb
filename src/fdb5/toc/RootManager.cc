@@ -119,7 +119,7 @@ private: // methods
             }
             else {
                 if(kv.size() == 1) {
-                    keyregex_[kv[0]] = std::string(".*");
+                    keyregex_[kv[0]] = std::string("[^:/]*");
                 }
                 else {
                     std::ostringstream msg;
@@ -166,7 +166,7 @@ private: // methods
                             result += (*j).second;
                         }
                         else {
-                            if((*j).second == missing) {
+                            if((*j).second == missing || (*j).second.empty()) {
                                 result += keyregex_.find(word)->second; // we know it exists because it is ensured in match()
                             }
                             else
@@ -510,7 +510,12 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
     }
 
     // default naming convention for DB's
-    result.push_back(key.valuesToString());
+
+    Key missingKey = key;
+    for (auto& kv : missingKey) {
+        if (kv.second.empty()) missingKey.set(kv.first, missing);
+    }
+    result.push_back(missingKey.valuesToString());
 
     eckit::Log::debug<LibFdb>() << "Using default naming convention for key " << key << " -> " << result.back() <<  std::endl;
 

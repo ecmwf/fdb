@@ -159,7 +159,7 @@ public:
 
 private: // methods
 
-    void visitDatabase(const DB& db) override;
+    bool visitDatabase(const DB& db) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(const Field& field, const Key& key) override { NOTIMP; }
 

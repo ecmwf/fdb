@@ -192,7 +192,7 @@ bool Key::match(const Key& other) const {
             return false;
         }
 
-        if (j->second != i->second) {
+        if (j->second != i->second && !i->second.empty()) {
             return false;
         }
 
@@ -245,6 +245,22 @@ bool Key::match(const std::string &key, const std::set<std::string> &values) con
     }
 
     return values.find(i->second) != values.end();
+}
+
+bool Key::partialMatch(const metkit::MarsRequest& request) const {
+
+    for (const auto& kv : *this) {
+
+        const auto& values = request.values(kv.first, /* emptyOk */ true);
+
+        if (!values.empty()) {
+            if (std::find(values.begin(), values.end(), kv.second) == values.end()) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 

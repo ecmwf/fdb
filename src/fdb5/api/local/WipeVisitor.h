@@ -31,12 +31,15 @@ namespace local {
 class WipeVisitor : public QueryVisitor<WipeElement> {
 public:
 
-    WipeVisitor(eckit::Queue<WipeElement>& queue, bool doit, bool verbose);
+    WipeVisitor(eckit::Queue<WipeElement>& queue,
+                const metkit::MarsRequest& request,
+                bool doit,
+                bool verbose);
 
     bool visitEntries() override { return false; }
 
-    void visitDatabase(const DB& db) override;
-    void visitIndex(const Index& index) override;
+    bool visitDatabase(const DB& db) override;
+    bool visitIndex(const Index& index) override;
     void databaseComplete(const DB& db) override;
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 

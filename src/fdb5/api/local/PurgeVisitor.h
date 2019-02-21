@@ -32,10 +32,13 @@ namespace local {
 class PurgeVisitor : public QueryVisitor<PurgeElement> {
 public:
 
-    PurgeVisitor(eckit::Queue<PurgeElement>& queue, bool doit, bool verbose);
+    PurgeVisitor(eckit::Queue<PurgeElement>& queue,
+                 const metkit::MarsRequest& request,
+                 bool doit,
+                 bool verbose);
 
-    void visitDatabase(const DB& db) override;
-    void visitIndex(const Index& index) override;
+    bool visitDatabase(const DB& db) override;
+    bool visitIndex(const Index& index) override;
     void databaseComplete(const DB& db) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(const Field&, const Key&) override;

@@ -74,12 +74,15 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeVisitor::WipeVisitor(eckit::Queue<WipeElement> &queue, bool doit, bool verbose) :
-    QueryVisitor(queue),
+WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue,
+                         const metkit::MarsRequest& request,
+                         bool doit,
+                         bool verbose) :
+    QueryVisitor(queue, request),
     doit_(doit),
     verbose_(verbose) {}
 
-void WipeVisitor::visitDatabase(const DB& db) {
+bool WipeVisitor::visitDatabase(const DB& db) {
 
     EntryVisitor::visitDatabase(db);
 
@@ -100,9 +103,11 @@ void WipeVisitor::visitDatabase(const DB& db) {
             current_.metadataPaths.insert(path);
         }
     }
+
+    return true; // Explore contained indexes
 }
 
-void WipeVisitor::visitIndex(const Index& index) {
+bool WipeVisitor::visitIndex(const Index& index) {
 
     eckit::PathName location(index.location().url());
 
@@ -116,6 +121,8 @@ void WipeVisitor::visitIndex(const Index& index) {
             current_.dataPaths.insert(path);
         }
     }
+
+    return true; // Explore contained entries
 }
 
 void WipeVisitor::databaseComplete(const DB& db) {

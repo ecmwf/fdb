@@ -171,10 +171,12 @@ void TocIndex::entries(EntryVisitor &visitor) const {
     TocIndexCloser closer(*this);
 
     Index instantIndex(const_cast<TocIndex*>(this));
-    visitor.visitIndex(instantIndex);
 
-    TocIndexVisitor v(files_, visitor);
-    btree_->visit(v);
+    // Allow the visitor to selectively decline to visit the entries in this index
+    if (visitor.visitIndex(instantIndex)) {
+        TocIndexVisitor v(files_, visitor);
+        btree_->visit(v);
+    }
 }
 
 void TocIndex::print(std::ostream &out) const {

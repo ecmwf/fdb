@@ -20,7 +20,7 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void StatsVisitor::visitDatabase(const DB& db) {
+bool StatsVisitor::visitDatabase(const DB& db) {
 
     EntryVisitor::visitDatabase(db);
 
@@ -28,10 +28,14 @@ void StatsVisitor::visitDatabase(const DB& db) {
     internalVisitor_.reset(db.statsReportVisitor());
 
     internalVisitor_->visitDatabase(db);
+
+    return true; // Explore contained indexes
 }
 
-void StatsVisitor::visitIndex(const Index& index) {
+bool StatsVisitor::visitIndex(const Index& index) {
     internalVisitor_->visitIndex(index);
+
+    return true; // Explore contained entries
 }
 
 void StatsVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {

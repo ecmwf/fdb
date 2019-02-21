@@ -103,14 +103,15 @@ void TocDB::visitEntries(EntryVisitor& visitor, bool sorted) {
 
     std::vector<Index> all = indexes(sorted);
 
-    visitor.visitDatabase(*this);
-
-    if (visitor.visitIndexes()) {
-        for (std::vector<Index>::const_iterator i = all.begin(); i != all.end(); ++i) {
-            if (visitor.visitEntries()) {
-                i->entries(visitor); // contains visitIndex
-            } else {
-                visitor.visitIndex(*i);
+    // Allow the visitor to selectively reject this DB.
+    if (visitor.visitDatabase(*this)) {
+        if (visitor.visitIndexes()) {
+            for (const Index& idx : all) {
+                if (visitor.visitEntries()) {
+                    idx.entries(visitor); // contains visitIndex
+                } else {
+                    visitor.visitIndex(idx);
+                }
             }
         }
     }
