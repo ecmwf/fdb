@@ -122,6 +122,7 @@ bool WipeVisitor::visitIndex(const Index& index) {
     eckit::PathName location(index.location().url());
 
     // Is this index matched by the supplied request?
+    // n.b. If the request is over-specified (i.e. below the index level), nothing will be removed
 
     bool include = index.key().match(indexRequest_);
 
