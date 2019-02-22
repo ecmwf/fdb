@@ -36,18 +36,14 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
     // Also, we want to be able to test that keys are missing internally.
 
     std::vector<FDBToolRequest> requests;
-    requests.reserve(parsedRequests.size());
-    for (const auto& rq : parsedRequests) {
-        requests.emplace_back(rq, false, minimumKeys);
+
+    bool inherit = false;
+    metkit::MarsExpension expand(inherit);
+    auto expandedRequests = expand.expand(parsedRequests);
+
+    for (const auto& request : expandedRequests) {
+        requests.emplace_back(FDBToolRequest(request, false, minimumKeys));
     }
-
-//    bool inherit = true;
-//    metkit::MarsExpension expand(inherit);
-//    auto expandedRequests = expand.expand(parsedRequests);
-
-//    for (const auto& request : expandedRequests) {
-//        requests.emplace_back(FDBToolRequest(request, false, minimumKeys));
-//    }
 
     return requests;
 }
