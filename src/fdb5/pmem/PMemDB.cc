@@ -63,6 +63,7 @@ PMemDB::PMemDB(const PathName& poolDir, const Config& config) :
     dbConfig_(config),
     init_(false)
 {
+    initialisePool();
 }
 
 PMemDB::~PMemDB() {

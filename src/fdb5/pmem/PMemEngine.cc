@@ -11,11 +11,13 @@
 #include <ostream>
 
 #include "eckit/utils/Regex.h"
+#include "eckit/io/AutoCloser.h"
 
 #include "fdb5/LibFdb.h"
 
 #include "fdb5/pmem/PMemEngine.h"
 #include "fdb5/pmem/PoolManager.h"
+#include "fdb5/pmem/PMemDBReader.h"
 #include "fdb5/rules/Schema.h"
 
 using eckit::Regex;
@@ -89,7 +91,19 @@ std::vector<eckit::PathName> PMemEngine::databases(const metkit::MarsRequest& re
 
     Log::debug<LibFdb>() << "Matched DB keys " << keys << std::endl;
 
-    return databases(keys, dirs, config);
+    std::vector<eckit::PathName> result;
+    for (const auto& path : databases(keys, dirs, config)) {
+        try {
+            pmem::PMemDBReader db(path, config);
+            if (db.key().partialMatch(request)) {
+                result.push_back(path);
+            }
+        } catch (eckit::Exception& e) {
+            eckit::Log::error() <<  "Error loading PMem FDB database from " << path << std::endl;
+            eckit::Log::error() << e.what() << std::endl;
+        }
+    }
+    return result;
 }
 
 std::vector<eckit::PathName> PMemEngine::databases(const std::set<Key>& keys,

@@ -10,6 +10,8 @@
 
 #include "fdb5/database/EntryVisitMechanism.h"
 
+#include "eckit/io/AutoCloser.h"
+
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
@@ -99,6 +101,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
                 std::unique_ptr<DB> db(DBFactory::buildReader(path));
                 ASSERT(db->open());
+                eckit::AutoCloser<DB> closer(*db);
 
                 db->visitEntries(visitor, false);
             }

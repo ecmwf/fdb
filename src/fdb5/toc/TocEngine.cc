@@ -234,16 +234,10 @@ std::vector<eckit::PathName> TocEngine::databases(const metkit::MarsRequest& req
     std::vector<eckit::PathName> result;
     for (const auto& path : databasesMatchRegex) {
         try {
-            // n.b. test match on schema-expanded keys, not on request, as the request may
-            //      be overspecified for later processing (we only expand the first level
-            //      in matchRequestToDB)
             TocHandler toc(path);
-            for (const Key& k : keys) {
-                if (toc.databaseKey().match(k)) {
-                    Log::debug<LibFdb>() << " found match with " << path << std::endl;
-                    result.push_back(path);
-                    break;
-                }
+            if (toc.databaseKey().partialMatch(request)) {
+                Log::debug<LibFdb>() << " found match with " << path << std::endl;
+                result.push_back(path);
             }
         } catch (eckit::Exception& e) {
             eckit::Log::error() <<  "Error loading FDB database from " << path << std::endl;
