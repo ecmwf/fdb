@@ -1,0 +1,11 @@
+#include "mars_server_version.h"
+
+const char * mars_server_version()     { return MARS_SERVER_VERSION; }
+const char * mars_server_version_str() { return MARS_SERVER_VERSION_STR; }
+
+unsigned int mars_server_version_int()
+{
+  return 10000*MARS_SERVER_MAJOR_VERSION + 100*MARS_SERVER_MINOR_VERSION + 1*MARS_SERVER_PATCH_VERSION;
+}
+
+const char * mars_server_git_sha1() { return "@MARS_SERVER_GIT_SHA1@"; }

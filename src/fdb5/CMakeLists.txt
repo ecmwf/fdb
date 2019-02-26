@@ -32,15 +32,21 @@
 # - purge
 # Implement privilege users that can do everything
 
-### config header
+ecbuild_generate_config_headers( ${INSTALL_INCLUDE_DIR}/fdb )
 
-if( NOT FDB_HOME  )
-    set( FDB_HOME "${CMAKE_INSTALL_PREFIX}" )
-endif()
+configure_file( fdb_config.h.in    fdb_config.h   )
+configure_file( fdb_version.h.in   fdb_version.h  )
+
+install( FILES ${CMAKE_CURRENT_BINARY_DIR}/fdb_config.h
+               ${CMAKE_CURRENT_BINARY_DIR}/fdb_version.h
+         DESTINATION ${INSTALL_INCLUDE_DIR} )
 
 # fdb5 library
 
 list( APPEND fdb5_srcs
+    fdb_config.h
+    fdb_version.h
+    fdb_version.c
 	LibFdb.h
 	LibFdb.cc
 
