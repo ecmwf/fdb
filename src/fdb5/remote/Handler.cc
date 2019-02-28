@@ -12,7 +12,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
 #include "metkit/MarsRequest.h"
@@ -192,7 +192,7 @@ void RemoteHandler::handle() {
 
     int dataport = dataSocket_.localPort();
 
-    Log::debug<LibFdb>() << "Sending data port to client: " << dataport << std::endl;
+    Log::debug<LibFdb5>() << "Sending data port to client: " << dataport << std::endl;
 
     controlWrite(&dataport, sizeof(dataport));
 
@@ -213,7 +213,7 @@ void RemoteHandler::handle() {
 
         ASSERT(hdr.marker == StartMarker);
         ASSERT(hdr.version == CurrentVersion);
-        Log::debug<LibFdb>() << "Got message with request ID: " << hdr.requestID << std::endl;
+        Log::debug<LibFdb5>() << "Got message with request ID: " << hdr.requestID << std::endl;
 
         try {
 
@@ -525,7 +525,7 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
             std::stringstream ss_key;
             ss_key << key;
             Log::status() << "Queueing: " << ss_key.str() << std::endl;
-            Log::debug<LibFdb>() << "Queueing: " << ss_key.str() << std::endl;
+            Log::debug<LibFdb5>() << "Queueing: " << ss_key.str() << std::endl;
 
             // Queue the data for asynchronous handling
 
@@ -535,7 +535,7 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
             size_t queuelen = queue.emplace(std::make_pair(std::move(key), Buffer(&payload[pos], len)));
 
             Log::status() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
-            Log::debug<LibFdb>() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
+            Log::debug<LibFdb5>() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
 
             totalArchived += 1;
         }
@@ -624,7 +624,7 @@ void RemoteHandler::retrieveThreadLoop() {
         try {
 
             Log::status() << "Retrieving: " << requestID << std::endl;
-            Log::debug<LibFdb>() << "Retrieving (" << requestID << ")" << request << std::endl;
+            Log::debug<LibFdb5>() << "Retrieving (" << requestID << ")" << request << std::endl;
 
             // Forward the API call
 
@@ -642,12 +642,12 @@ void RemoteHandler::retrieveThreadLoop() {
 
             // And when we are done, add a complete message.
 
-            Log::debug<LibFdb>() << "Writing retrieve complete message: " << requestID << std::endl;
+            Log::debug<LibFdb5>() << "Writing retrieve complete message: " << requestID << std::endl;
 
             dataWrite(Message::Complete, requestID);
 
             Log::status() << "Done retrieve: " << requestID << std::endl;
-            Log::debug<LibFdb>() << "Done retrieve: " << requestID << std::endl;
+            Log::debug<LibFdb5>() << "Done retrieve: " << requestID << std::endl;
 
         } catch (std::exception& e) {
             // n.b. more general than eckit::Exception

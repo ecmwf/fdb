@@ -16,7 +16,7 @@
 #ifndef fdb5_LustreFileHandle_h
 #define fdb5_LustreFileHandle_h
 
-#include "fdb5/fdb_config.h"
+#include "fdb5/fdb5_config.h"
 
 #include "eckit/io/Length.h"
 #include "eckit/log/Bytes.h"
@@ -24,7 +24,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 namespace fdb5 {
 
@@ -80,7 +80,7 @@ public: // methods
 
         /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
 
-        eckit::Log::debug<LibFdb>() << "Creating Lustre file " << path
+        eckit::Log::debug<LibFdb5>() << "Creating Lustre file " << path
                                     << " with " << stripe_.count_ << " stripes "
                                     << "of " << eckit::Bytes(stripe_.size_)
                                     << std::endl;

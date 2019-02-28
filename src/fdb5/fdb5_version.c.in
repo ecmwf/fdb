@@ -1,0 +1,19 @@
+#include "fdb5_version.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+const char * fdb5_version()     { return FDB5_VERSION; }
+const char * fdb5_version_str() { return FDB5_VERSION_STR; }
+
+unsigned int fdb5_version_int()
+{
+  return 10000*FDB5_MAJOR_VERSION + 100*FDB5_MINOR_VERSION + 1*FDB5_PATCH_VERSION;
+}
+
+const char * fdb5_git_sha1() { return "@FDB5_GIT_SHA1@"; }
+
+#ifdef __cplusplus
+}
+#endif

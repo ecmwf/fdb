@@ -11,14 +11,14 @@
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/tools/FDBInspect.h"
 
-#include "fdb5/fdb_config.h"
-#include "fdb5/fdb_version.h"
+#include "fdb5/fdb5_config.h"
+#include "fdb5/fdb5_version.h"
 
 using eckit::Log;
 
@@ -81,7 +81,7 @@ void FDBInfo::init(const eckit::option::CmdArgs &args) {
 void FDBInfo::execute(const eckit::option::CmdArgs&) {
 
     if(all_ || version_) {
-        Log::info() << (all_ ? "Version: " : "") << fdb_version_str() << std::endl;
+        Log::info() << (all_ ? "Version: " : "") << fdb5_version_str() << std::endl;
         if(!all_) return;
     }
 
@@ -92,7 +92,7 @@ void FDBInfo::execute(const eckit::option::CmdArgs&) {
     }
 
     if(all_ || schema_) {
-        Log::info() << (all_ ? "Schema: " : "") << LibFdb::instance().defaultConfig().schemaPath() << std::endl;
+        Log::info() << (all_ ? "Schema: " : "") << LibFdb5::instance().defaultConfig().schemaPath() << std::endl;
         if(!all_) return;
     }
 }

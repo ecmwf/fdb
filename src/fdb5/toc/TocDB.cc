@@ -10,7 +10,7 @@
 
 #include "eckit/log/Timer.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocDB.h"
@@ -120,12 +120,12 @@ void TocDB::visitEntries(EntryVisitor& visitor, bool sorted) {
 }
 
 void TocDB::loadSchema() {
-    Timer timer("TocDB::loadSchema()", Log::debug<LibFdb>());
+    Timer timer("TocDB::loadSchema()", Log::debug<LibFdb5>());
     schema_.load( schemaPath() );
 }
 
 void TocDB::checkSchema(const Key &key) const {
-    Timer timer("TocDB::checkSchema()", Log::debug<LibFdb>());
+    Timer timer("TocDB::checkSchema()", Log::debug<LibFdb5>());
     ASSERT(key.rule());
     schema_.compareTo(key.rule()->schema());
 }

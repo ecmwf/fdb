@@ -10,7 +10,7 @@
 
 #include "eckit/config/Resource.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
 #include "fdb5/rules/Rule.h"
@@ -25,7 +25,7 @@ BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key &field) :
 }
 
 bool BaseArchiveVisitor::selectDatabase(const Key &key, const Key&) {
-    eckit::Log::debug<LibFdb>() << "selectDatabase " << key << std::endl;
+    eckit::Log::debug<LibFdb5>() << "selectDatabase " << key << std::endl;
     owner_.current_ = &owner_.database(key);
     owner_.current_->checkSchema(key);
 

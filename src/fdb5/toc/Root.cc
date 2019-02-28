@@ -12,7 +12,7 @@
 #include "eckit/os/Stat.h"
 
 #include "fdb5/toc/Root.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 using eckit::Log;
 using eckit::Stat;

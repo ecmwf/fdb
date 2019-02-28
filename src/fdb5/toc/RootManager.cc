@@ -25,7 +25,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/FileSpace.h"
 #include "fdb5/toc/Root.h"
@@ -51,7 +51,7 @@ public:
     DbPathNamer(const std::string& keyregex, const std::string& format) :
         format_(format){
         crack(keyregex);
-        eckit::Log::debug<LibFdb>() << "Building " << *this << std::endl;
+        eckit::Log::debug<LibFdb5>() << "Building " << *this << std::endl;
     }
 
     /// Full match of the incomming key with the key regex
@@ -235,7 +235,7 @@ static const DbPathNamerTable& readDbNamers(const Config& config) {
 
     if(filename.exists()) {
 
-        eckit::Log::debug<LibFdb>() << "Loading FDB DBPathNames from " << fdbDbNamesFile << std::endl;
+        eckit::Log::debug<LibFdb5>() << "Loading FDB DBPathNames from " << fdbDbNamesFile << std::endl;
 
         std::ifstream in(filename.localPath());
 
@@ -298,7 +298,7 @@ static std::vector<Root> readRoots(const eckit::PathName& fdbRootsFile) {
 
     std::ifstream in(fdbRootsFile.localPath());
 
-    eckit::Log::debug<LibFdb>() << "Loading FDB roots from " << fdbRootsFile << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Loading FDB roots from " << fdbRootsFile << std::endl;
 
     if (!in) {
         eckit::Log::error() << fdbRootsFile << eckit::Log::syserr << std::endl;
@@ -377,7 +377,7 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
     eckit::PathName fdbSpacesFile = eckit::Resource<eckit::PathName>("fdbSpacesFile;$FDB_SPACES_FILE", fdbHome / "etc/fdb/spaces");
     std::ifstream in(fdbSpacesFile.localPath());
 
-    eckit::Log::debug<LibFdb>() << "Loading FDB file spaces from " << fdbSpacesFile << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Loading FDB file spaces from " << fdbSpacesFile << std::endl;
 
     if (!in) {
         throw eckit::ReadError(fdbSpacesFile, Here());
@@ -487,14 +487,14 @@ std::string RootManager::dbPathName(const Key& key)
     for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end() ; ++i) {
         if(i->match(key)) {
             dbpath = i->name(key);
-            eckit::Log::debug<LibFdb>() << "DbName is " << dbpath << " for key " << key <<  std::endl;
+            eckit::Log::debug<LibFdb5>() << "DbName is " << dbpath << " for key " << key <<  std::endl;
             return dbpath;
         }
     }
 
     // default naming convention for DB's
     dbpath = key.valuesToString();
-    eckit::Log::debug<LibFdb>() << "Using default naming convention for key " << key << " -> " << dbpath <<  std::endl;
+    eckit::Log::debug<LibFdb5>() << "Using default naming convention for key " << key << " -> " << dbpath <<  std::endl;
     return dbpath;
 }
 
@@ -504,7 +504,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
     for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end() ; ++i) {
         if(i->match(key, missing)) {
             std::string dbpath = i->namePartial(key, missing);
-            eckit::Log::debug<LibFdb>() << "Matched " << *i << " with key " << key << " resulting in dbpath " << dbpath << std::endl;
+            eckit::Log::debug<LibFdb5>() << "Matched " << *i << " with key " << key << " resulting in dbpath " << dbpath << std::endl;
             result.push_back(dbpath);
         }
     }
@@ -517,7 +517,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
     }
     result.push_back(missingKey.valuesToString());
 
-    eckit::Log::debug<LibFdb>() << "Using default naming convention for key " << key << " -> " << result.back() <<  std::endl;
+    eckit::Log::debug<LibFdb5>() << "Using default naming convention for key " << key << " -> " << result.back() <<  std::endl;
 
     return result;
 }
@@ -527,7 +527,7 @@ eckit::PathName RootManager::directory(const Key& key) {
 
     PathName dbpath = dbPathName(key);
 
-    eckit::Log::debug<LibFdb>() << "Choosing directory for key " << key << " dbpath " << dbpath << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Choosing directory for key " << key << " dbpath " << dbpath << std::endl;
 
     // override root location for testing purposes only
 
@@ -543,7 +543,7 @@ eckit::PathName RootManager::directory(const Key& key) {
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(keystr)) {
             PathName root = i->filesystem(key, dbpath);
-            eckit::Log::debug<LibFdb>() << "Directory root " << root << " dbpath " << dbpath <<  std::endl;
+            eckit::Log::debug<LibFdb5>() << "Directory root " << root << " dbpath " << dbpath <<  std::endl;
             return root / dbpath;
         }
     }
@@ -576,24 +576,24 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
     std::transform(keys.begin(), keys.end(), std::back_inserter(keystrings),
                    [](const Key& k) { return k.valuesToString(); });
 
-    Log::debug<LibFdb>() << "RootManager::visitableRoots() trying to match keys " << keystrings << std::endl;
+    Log::debug<LibFdb5>() << "RootManager::visitableRoots() trying to match keys " << keystrings << std::endl;
 
     for (const auto& space : spacesTable_) {
 
         bool matched = false;
         for (const std::string& k : keystrings) {
             if (space.match(k) || k.empty()) {
-                Log::debug<LibFdb>() << "MATCH space " << space << std::endl;
+                Log::debug<LibFdb5>() << "MATCH space " << space << std::endl;
                 space.visitable(roots);
                 matched = true;
                 break;
             }
         }
 
-        if (!matched) Log::debug<LibFdb>() << "FAIL to match space " << space << std::endl;
+        if (!matched) Log::debug<LibFdb5>() << "FAIL to match space " << space << std::endl;
     }
 
-    Log::debug<LibFdb>() << "Visitable Roots " << roots << std::endl;
+    Log::debug<LibFdb5>() << "Visitable Roots " << roots << std::endl;
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }

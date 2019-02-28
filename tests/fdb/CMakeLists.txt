@@ -35,7 +35,7 @@ foreach( _tst ${fdb_tests} )
       SOURCES  ${_tst}
       INCLUDES ${GRIB_API_INCLUDE_DIRS}
       ENVIRONMENT "${_test_environment}"
-      LIBS  mars-fdb5 )
+      LIBS  fdb5 )
 
 endforeach()
 

@@ -12,8 +12,8 @@
 /// @author Tiago Quintino
 /// @date   Nov 2016
 
-#ifndef fdb5_LibFdb_H
-#define fdb5_LibFdb_H
+#ifndef fdb5_LibFdb5_H
+#define fdb5_LibFdb5_H
 
 #include "eckit/system/Library.h"
 
@@ -26,12 +26,12 @@ class Config;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class LibFdb : public eckit::system::Library {
+class LibFdb5 : public eckit::system::Library {
 public:
 
-    LibFdb();
+    LibFdb5();
 
-    static LibFdb& instance();
+    static LibFdb5& instance();
 
     const Config& defaultConfig();
 

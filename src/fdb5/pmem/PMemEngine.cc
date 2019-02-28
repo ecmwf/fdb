@@ -13,7 +13,7 @@
 #include "eckit/utils/Regex.h"
 #include "eckit/io/AutoCloser.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 #include "fdb5/pmem/PMemEngine.h"
 #include "fdb5/pmem/PoolManager.h"
@@ -74,7 +74,7 @@ std::vector<eckit::PathName> PMemEngine::databases(const Key &key,
 
     matchKeyToDB(key, keys, regexForMissingValues, config);
 
-    Log::debug<LibFdb>() << "Matched DB keys " << keys << std::endl;
+    Log::debug<LibFdb5>() << "Matched DB keys " << keys << std::endl;
 
     return databases(keys, dirs, config);
 }
@@ -89,7 +89,7 @@ std::vector<eckit::PathName> PMemEngine::databases(const metkit::MarsRequest& re
 
     matchRequestToDB(request, keys, regexForMissingValues, config);
 
-    Log::debug<LibFdb>() << "Matched DB keys " << keys << std::endl;
+    Log::debug<LibFdb5>() << "Matched DB keys " << keys << std::endl;
 
     std::vector<eckit::PathName> result;
     for (const auto& path : databases(keys, dirs, config)) {
@@ -115,12 +115,12 @@ std::vector<eckit::PathName> PMemEngine::databases(const std::set<Key>& keys,
 
     for (std::vector<eckit::PathName>::const_iterator j = dirs.begin(); j != dirs.end(); ++j) {
 
-        Log::debug<LibFdb>() << "Trying dir " << *j << std::endl;
+        Log::debug<LibFdb5>() << "Trying dir " << *j << std::endl;
 
         std::vector<eckit::PathName> subdirs;
         eckit::PathName::match((*j) / "*:*", subdirs, false);
 
-        Log::debug<LibFdb>() << "Subdirs " << subdirs << std::endl;
+        Log::debug<LibFdb5>() << "Subdirs " << subdirs << std::endl;
 
         for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 

@@ -10,12 +10,15 @@
 
 #include <algorithm>
 
-#include "marslib/MarsParam.h"
+#include "metkit/ParamID.h"
+#include "metkit/Param.h"
 
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Notifier.h"
 #include "fdb5/types/TypeParam.h"
 #include "fdb5/types/TypesFactory.h"
+
+using metkit::Param;
 
 namespace fdb5 {
 
@@ -50,8 +53,8 @@ void TypeParam::getValues(const metkit::MarsRequest &request,
     std::copy(ax.begin(), ax.end(), std::back_inserter(axis));
     std::sort(axis.begin(), axis.end());
 
-    bool windConvertion = false;
-    MarsParam::substitute(request, user, axis, windConvertion);
+    bool windConversion = false;
+    metkit::ParamID::normalise(request, user, axis, windConversion);
 
     std::set<Param> axisSet;
     std::set<long> tables;
@@ -111,10 +114,10 @@ void TypeParam::getValues(const metkit::MarsRequest &request,
 
     // Log::info() << "TypeParam before: " << us << std::endl;
     // Log::info() << "              after: " << values << std::endl;
-    // Log::info() << "               wind: " << (windConvertion ? "true" : "false") << std::endl;
+    // Log::info() << "               wind: " << (windConversion ? "true" : "false") << std::endl;
     // Log::info() << "               axis: " << ax << std::endl;
 
-    if (windConvertion) {
+    if (windConversion) {
         wind.notifyWind();
     }
 }

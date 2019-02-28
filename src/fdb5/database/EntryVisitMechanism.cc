@@ -16,7 +16,7 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Manager.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 
 using namespace eckit;
@@ -81,7 +81,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     // TODO: Put minimim keys check into FDBToolRequest.
 
-    Log::debug<LibFdb>() << "REQUEST ====> " << request.request() << std::endl;
+    Log::debug<LibFdb5>() << "REQUEST ====> " << request.request() << std::endl;
 
     try {
 
@@ -97,7 +97,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
                 if (!path.isDir()) path = path.dirName();
                 path = path.realName();
 
-                Log::debug<LibFdb>() << "FDB processing path " << path << std::endl;
+                Log::debug<LibFdb5>() << "FDB processing path " << path << std::endl;
 
                 std::unique_ptr<DB> db(DBFactory::buildReader(path));
                 ASSERT(db->open());

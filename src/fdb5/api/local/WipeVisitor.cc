@@ -13,7 +13,7 @@
 
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 #include "eckit/os/Stat.h"
 
@@ -191,7 +191,7 @@ void WipeVisitor::databaseComplete(const DB& db) {
 
     if (doit_) {
 
-        std::ostream& log(verbose_ ? eckit::Log::info() : eckit::Log::debug<LibFdb>());
+        std::ostream& log(verbose_ ? eckit::Log::info() : eckit::Log::debug<LibFdb5>());
 
         // Sanity check...
         db.checkUID();

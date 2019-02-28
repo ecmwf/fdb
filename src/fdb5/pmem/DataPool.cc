@@ -19,7 +19,7 @@
 #include "fdb5/pmem/DataPool.h"
 #include "fdb5/pmem/PDataRoot.h"
 #include "fdb5/pmem/PRoot.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 #include <unistd.h>
 
@@ -51,7 +51,7 @@ DataPool::DataPool(const PathName& poolDir, size_t index) :
 
     ASSERT(root().valid());
 
-    Log::debug<LibFdb>() << "Opened persistent pool created at: " << TimeStamp(root().created()) << std::endl;
+    Log::debug<LibFdb5>() << "Opened persistent pool created at: " << TimeStamp(root().created()) << std::endl;
 }
 
 

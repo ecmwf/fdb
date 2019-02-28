@@ -32,23 +32,24 @@
 # - purge
 # Implement privilege users that can do everything
 
-ecbuild_generate_config_headers( ${INSTALL_INCLUDE_DIR}/fdb )
+ecbuild_generate_config_headers( ${INSTALL_INCLUDE_DIR}/fdb5 )
 
-configure_file( fdb_config.h.in    fdb_config.h   )
-configure_file( fdb_version.h.in   fdb_version.h  )
+configure_file( fdb5_config.h.in    fdb5_config.h   )
+configure_file( fdb5_version.h.in   fdb5_version.h  )
+configure_file( fdb5_version.c.in   fdb5_version.c   )
 
-install( FILES ${CMAKE_CURRENT_BINARY_DIR}/fdb_config.h
-               ${CMAKE_CURRENT_BINARY_DIR}/fdb_version.h
+install( FILES ${CMAKE_CURRENT_BINARY_DIR}/fdb5_config.h
+               ${CMAKE_CURRENT_BINARY_DIR}/fdb5_version.h
          DESTINATION ${INSTALL_INCLUDE_DIR} )
 
 # fdb5 library
 
 list( APPEND fdb5_srcs
-    fdb_config.h
-    fdb_version.h
-    fdb_version.c
-	LibFdb.h
-	LibFdb.cc
+    fdb5_config.h
+    fdb5_version.h
+    fdb5_version.c
+	LibFdb5.h
+	LibFdb5.cc
 
     api/DistFDB.cc
     api/DistFDB.h
@@ -359,10 +360,13 @@ endif()
 
 ecbuild_add_library(
 
-    TARGET  mars-fdb5
+    TARGET  fdb5
 
     SOURCES
         ${fdb5_srcs}
+
+    GENERATED
+        fdb5_version.c
 
     INSTALL_HEADERS LISTED
 
@@ -375,8 +379,6 @@ ecbuild_add_library(
         "${LUSTREAPI_INCLUDE_DIRS}"
 
     LIBS
-        Mars
-        Common
         metkit
         eckit
         eckit_option
@@ -421,8 +423,7 @@ foreach( _tool ${fdb5_tools} )
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   tools/${_tool}.cc
                           INCLUDES  ${GRIB_API_INCLUDE_DIRS}  # Please don't remove me, I am needed
-                          LIBS
-                          mars-fdb5 )
+                          LIBS      fdb5 )
 
 endforeach()
 
@@ -431,13 +432,13 @@ endforeach()
                             #SOURCES   tools/fdb-partial-adopt.cc
                             #CONDITION HAVE_FDB4_MIGRATION
                             ##INCLUDES  ${FDB_INCLUDE_DIRS}
-                            #LIBS      mars-fdb5 fdb )
+                            #LIBS      fdb5 fdb )
 
 ecbuild_add_executable( TARGET    grib2fdb5
                           SOURCES   compat/grib2fdb5.cc
                           INCLUDES  ${GRIB_API_INCLUDE_DIRS} # Please don't remove me, I am needed
                           LIBS
-                          mars-fdb5 )
+                          fdb5 )
 
 # Currently RemoteFDB is experimental technology!
 if (HAVE_EXPERIMENTAL)
@@ -455,6 +456,6 @@ if (HAVE_EXPERIMENTAL)
             remote/Messages.cc
             remote/Handler.h
             remote/Handler.cc
-        LIBS mars-fdb5 )
+        LIBS fdb5 )
 
 endif()

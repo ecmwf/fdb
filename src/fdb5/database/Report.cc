@@ -14,7 +14,7 @@
 #include "eckit/log/Statistics.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Report.h"
 
 using eckit::Statistics;
@@ -42,7 +42,7 @@ void Report::append(const dbtype_t& dbtype, DbStats stats)
 
 Report& Report::operator+=(const Report& rhs) {
 
-    Log::debug<LibFdb>() << "Collating reports" << std::endl;
+    Log::debug<LibFdb5>() << "Collating reports" << std::endl;
 
     // union of dbtypes
 
@@ -58,7 +58,7 @@ Report& Report::operator+=(const Report& rhs) {
     // collate DB stats
 
     for(std::map<dbtype_t, DbStats>::const_iterator i = rhs.dbStats_.begin(); i != rhs.dbStats_.end(); ++i) {
-        Log::debug<LibFdb>() << "dbtype " << i->first << std::endl;
+        Log::debug<LibFdb5>() << "dbtype " << i->first << std::endl;
         std::map<dbtype_t, DbStats>::iterator j = dbStats_.find(i->first);
         if(j != dbStats_.end()) {
             j->second.add(i->second);
@@ -71,7 +71,7 @@ Report& Report::operator+=(const Report& rhs) {
     // collate Index stats
 
     for(std::map<dbtype_t, IndexStats>::const_iterator i = rhs.indexStats_.begin(); i != rhs.indexStats_.end(); ++i) {
-        Log::debug<LibFdb>() << "dbtype " << i->first << std::endl;
+        Log::debug<LibFdb5>() << "dbtype " << i->first << std::endl;
         std::map<dbtype_t, IndexStats>::iterator j = indexStats_.find(i->first);
         if(j != indexStats_.end()) {
             j->second.add(i->second);
@@ -84,7 +84,7 @@ Report& Report::operator+=(const Report& rhs) {
     // collate Data stats
 
     for(std::map<dbtype_t, DataStats>::const_iterator i = rhs.dataStats_.begin(); i != rhs.dataStats_.end(); ++i) {
-        Log::debug<LibFdb>() << "dbtype " << i->first << std::endl;
+        Log::debug<LibFdb5>() << "dbtype " << i->first << std::endl;
         std::map<dbtype_t, DataStats>::iterator j = dataStats_.find(i->first);
         if(j != dataStats_.end()) {
             j->second.add(i->second);

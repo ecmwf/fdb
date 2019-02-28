@@ -21,7 +21,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/io/HandleGatherer.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 using eckit::Log;
 
@@ -69,21 +69,21 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     std::vector<size_t> laneIndices;
 
-    Log::debug<LibFdb>() << "Number of lanes: " << lanes_.size() << std::endl;
-    Log::debug<LibFdb>() << "Lane indices: ";
-    for (const auto& i : laneIndices) Log::debug<LibFdb>() << i << ", ";
-    Log::debug<LibFdb>() << std::endl;
+    Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
+    Log::debug<LibFdb5>() << "Lane indices: ";
+    for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
+    Log::debug<LibFdb5>() << std::endl;
 
     hash_.hashOrder(key.keyDict(), laneIndices);
 
-    Log::debug<LibFdb>() << "Number of lanes: " << lanes_.size() << std::endl;
-    Log::debug<LibFdb>() << "Lane indices: ";
-    for (const auto& i : laneIndices) Log::debug<LibFdb>() << i << ", ";
-    Log::debug<LibFdb>() << std::endl;
+    Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
+    Log::debug<LibFdb5>() << "Lane indices: ";
+    for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
+    Log::debug<LibFdb5>() << std::endl;
 
     // Given an order supplied by the Rendezvous hash, try the FDB in order until
     // one works. n.b. Errors are unacceptable once the FDB is dirty.
-    Log::debug<LibFdb>() << "Attempting dist FDB archive" << std::endl;
+    Log::debug<LibFdb5>() << "Attempting dist FDB archive" << std::endl;
 
     for (size_t idx : laneIndices) {
 
@@ -181,7 +181,7 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) ->
 
 
 ListIterator DistFDB::list(const FDBToolRequest& request) {
-    Log::debug<LibFdb>() << "DistFDB::list() : " << request << std::endl;
+    Log::debug<LibFdb5>() << "DistFDB::list() : " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.list(request);
@@ -189,7 +189,7 @@ ListIterator DistFDB::list(const FDBToolRequest& request) {
 }
 
 DumpIterator DistFDB::dump(const FDBToolRequest& request, bool simple) {
-    Log::debug<LibFdb>() << "DistFDB::dump() : " << request << std::endl;
+    Log::debug<LibFdb5>() << "DistFDB::dump() : " << request << std::endl;
     return queryInternal(request,
                          [simple](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.dump(request, simple);
@@ -197,7 +197,7 @@ DumpIterator DistFDB::dump(const FDBToolRequest& request, bool simple) {
 }
 
 WhereIterator DistFDB::where(const FDBToolRequest& request) {
-    Log::debug<LibFdb>() << "DistFDB::where() : " << request << std::endl;
+    Log::debug<LibFdb5>() << "DistFDB::where() : " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.where(request);
@@ -205,7 +205,7 @@ WhereIterator DistFDB::where(const FDBToolRequest& request) {
 }
 
 WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool verbose) {
-    Log::debug<LibFdb>() << "DistFDB::wipe() : " << request << std::endl;
+    Log::debug<LibFdb5>() << "DistFDB::wipe() : " << request << std::endl;
     return queryInternal(request,
                          [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.wipe(request, doit, verbose);
@@ -213,7 +213,7 @@ WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool verbos
 }
 
 PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool verbose) {
-    Log::debug<LibFdb>() << "DistFDB::purge() : " << request << std::endl;
+    Log::debug<LibFdb5>() << "DistFDB::purge() : " << request << std::endl;
     return queryInternal(request,
                          [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.purge(request, doit, verbose);
@@ -221,7 +221,7 @@ PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool verb
 }
 
 StatsIterator DistFDB::stats(const FDBToolRequest &request) {
-    Log::debug<LibFdb>() << "DistFDB::stats() : " << request << std::endl;
+    Log::debug<LibFdb5>() << "DistFDB::stats() : " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.stats(request);

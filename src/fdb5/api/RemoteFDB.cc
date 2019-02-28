@@ -10,7 +10,7 @@
 
 #include <functional>
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/api/RemoteFDB.h"
@@ -99,7 +99,7 @@ void RemoteFDB::connect() {
 
         // Get data connection port, and connect to it too
         controlRead(&dataport_, sizeof(dataport_));
-        Log::debug<LibFdb>() << "Recieved data port from host: " << hostname_ << ":" << dataport_ << std::endl;
+        Log::debug<LibFdb5>() << "Recieved data port from host: " << hostname_ << ":" << dataport_ << std::endl;
         dataClient_.connect(hostname_, dataport_);
 
         listeningThread_ = std::thread([this] { listeningThreadLoop(); });

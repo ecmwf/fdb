@@ -12,7 +12,7 @@
 
 #include "eckit/log/Log.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/toc/TocDBReader.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
@@ -33,7 +33,7 @@ TocDBReader::TocDBReader(const eckit::PathName& directory, const eckit::Configur
 
 
 TocDBReader::~TocDBReader() {
-    eckit::Log::debug<LibFdb>() << "Closing DB " << *this << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Closing DB " << *this << std::endl;
 }
 
 bool TocDBReader::selectIndex(const Key &key) {
@@ -53,7 +53,7 @@ bool TocDBReader::selectIndex(const Key &key) {
 
     for (std::vector<Index>::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
         if (j->key() == key) {
-//            eckit::Log::debug<LibFdb>() << "Matching " << j->key() << std::endl;
+//            eckit::Log::debug<LibFdb5>() << "Matching " << j->key() << std::endl;
             matching_.push_back(*j);
 //            j->open();
         }
@@ -62,7 +62,7 @@ bool TocDBReader::selectIndex(const Key &key) {
 //        }
     }
 
-    eckit::Log::debug<LibFdb>() << "TocDBReader::selectIndex " << key << ", found "
+    eckit::Log::debug<LibFdb5>() << "TocDBReader::selectIndex " << key << ", found "
                                 << matching_.size() << " matche(s)" << std::endl;
 
     return (matching_.size() != 0);
@@ -101,15 +101,15 @@ void TocDBReader::close() {
 
 eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
 
-    eckit::Log::debug<LibFdb>() << "Trying to retrieve key " << key << std::endl;
-    eckit::Log::debug<LibFdb>() << "Scanning indexes " << matching_.size() << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
 
     Field field;
     for (std::vector<Index>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
         if (j->mayContain(key)) {
             const_cast<Index*>(&(*j))->open();
             if (j->get(key, field)) {
-                eckit::Log::debug<LibFdb>() << "FOUND KEY " << key << " -> " << *j << " " << field << std::endl;
+                eckit::Log::debug<LibFdb5>() << "FOUND KEY " << key << " -> " << *j << " " << field << std::endl;
                 return field.dataHandle();
             }
         }

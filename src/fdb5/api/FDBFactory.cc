@@ -15,7 +15,7 @@
 #include "eckit/config/YAMLConfiguration.h"
 
 #include "fdb5/api/FDBFactory.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 
 namespace fdb5 {
@@ -30,7 +30,7 @@ FDBBase::FDBBase(const Config& config, const std::string& name) :
     visitable_(config.getBool("visitable", true)),
     disabled_(false) {
 
-    eckit::Log::debug<LibFdb>() << "FDBBase: " << config << std::endl;
+    eckit::Log::debug<LibFdb5>() << "FDBBase: " << config << std::endl;
 }
 
 
@@ -94,7 +94,7 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
 
     std::string key = actualConfig.getString("type", "local");
 
-    eckit::Log::debug<LibFdb>() << "Selecting FDB implementation: " << key << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Selecting FDB implementation: " << key << std::endl;
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
@@ -107,7 +107,7 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
     }
 
     std::unique_ptr<FDBBase> ret = it->second->make(actualConfig);
-    eckit::Log::debug<LibFdb>() << "Constructed FDB implementation: " << *ret << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Constructed FDB implementation: " << *ret << std::endl;
     return ret;
 }
 

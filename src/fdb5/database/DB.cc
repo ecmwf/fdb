@@ -12,7 +12,7 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/exception/Exceptions.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Engine.h"
 #include "fdb5/database/Manager.h"
@@ -74,7 +74,7 @@ const DBFactory &DBFactory::findFactory(const std::string &name) {
 
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
-    Log::debug<LibFdb>() << "Looking for DBFactory [" << name << "]" << std::endl;
+    Log::debug<LibFdb5>() << "Looking for DBFactory [" << name << "]" << std::endl;
 
     std::map<std::string, DBFactory *>::const_iterator j = m->find(name);
     if (j == m->end()) {
@@ -97,7 +97,7 @@ DB* DBFactory::buildWriter(const Key& key, const eckit::Configuration& config) {
     std::string name = Manager(config).engine(key);
     name += ".writer";
 
-    Log::debug<LibFdb>() << "Building FDB DB writer for key " << key << " = " << name << std::endl;
+    Log::debug<LibFdb5>() << "Building FDB DB writer for key " << key << " = " << name << std::endl;
 
     const DBFactory &factory( findFactory(name) );
 
@@ -112,7 +112,7 @@ DB* DBFactory::buildReader(const Key& key, const eckit::Configuration& config) {
     std::string name = Manager(config).engine(key);
     name += ".reader";
 
-    Log::debug<LibFdb>() << "Building FDB DB reader for key " << key << " = " << name << std::endl;
+    Log::debug<LibFdb5>() << "Building FDB DB reader for key " << key << " = " << name << std::endl;
 
     const DBFactory& factory( findFactory(name) );
 
@@ -127,7 +127,7 @@ DB* DBFactory::buildReader(const eckit::PathName& path, const eckit::Configurati
     std::string name = Manager(config).engine(path);
     name += ".reader";
 
-    Log::debug<LibFdb>() << "Building FDB DB reader for path " << path << " = " << name << std::endl;
+    Log::debug<LibFdb5>() << "Building FDB DB reader for path " << path << " = " << name << std::endl;
 
     const DBFactory& factory( findFactory(name) );
 

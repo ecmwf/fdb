@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/fdb_config.h"
+#include "fdb5/fdb5_config.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
@@ -17,10 +17,12 @@
 
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/io/FDBFileHandle.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/toc/TocDBWriter.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocIndex.h"
+
+using namespace eckit;
 
 namespace fdb5 {
 
@@ -103,7 +105,7 @@ bool TocDBWriter::open() {
 
 void TocDBWriter::close() {
 
-    eckit::Log::debug<LibFdb>() << "Closing path " << directory_ << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Closing path " << directory_ << std::endl;
 
     flush(); // closes the TOC entries & indexes but not data files
 
@@ -275,14 +277,14 @@ eckit::DataHandle *TocDBWriter::createFileHandle(const eckit::PathName &path) {
 
     if(stripeLustre()) {
 
-        eckit::Log::debug<LibFdb>() << "Creating LustreFileHandle<FDBFileHandle> to " << path
+        eckit::Log::debug<LibFdb5>() << "Creating LustreFileHandle<FDBFileHandle> to " << path
                                     << " buffer size " << sizeBuffer
                                     << std::endl;
 
         return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeDataLustreSettings());
     }
 
-    eckit::Log::debug<LibFdb>() << "Creating FDBFileHandle to " << path
+    eckit::Log::debug<LibFdb5>() << "Creating FDBFileHandle to " << path
                                 << " with buffer of " << eckit::Bytes(sizeBuffer)
                                 << std::endl;
 
@@ -296,7 +298,7 @@ eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
 
     if(stripeLustre()) {
 
-        eckit::Log::debug<LibFdb>() << "Creating LustreFileHandle<AIOHandle> to " << path
+        eckit::Log::debug<LibFdb5>() << "Creating LustreFileHandle<AIOHandle> to " << path
                                     << " with " << nbBuffers
                                     << " buffer each with " << eckit::Bytes(sizeBuffer)
                                     << std::endl;
@@ -400,7 +402,7 @@ void TocDBWriter::compactSubTocIndexes() {
 
     if (useSubToc() && anythingWrittenToSubToc()) {
 
-        eckit::Log::debug<LibFdb>() << "compacting sub tocs" << std::endl;
+        eckit::Log::debug<LibFdb5>() << "compacting sub tocs" << std::endl;
 
         for (IndexStore::iterator j = fullIndexes_.begin(); j != fullIndexes_.end(); ++j) {
             Index& idx = j->second;

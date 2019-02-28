@@ -19,26 +19,26 @@
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/config/Config.h"
 
-#include "fdb5/fdb_version.h"
+#include "fdb5/fdb5_version.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-REGISTER_LIBRARY(LibFdb);
+REGISTER_LIBRARY(LibFdb5);
 
-LibFdb::LibFdb() : Library("fdb") {}
+LibFdb5::LibFdb5() : Library("fdb") {}
 
-LibFdb& LibFdb::instance()
+LibFdb5& LibFdb5::instance()
 {
-    static LibFdb libfdb;
+    static LibFdb5 libfdb;
     return libfdb;
 }
 
-const Config& LibFdb::defaultConfig() {
+const Config& LibFdb5::defaultConfig() {
 
     static bool initted = false;
     static Config config;
@@ -51,12 +51,12 @@ const Config& LibFdb::defaultConfig() {
     return config;
 }
 
-const void* LibFdb::addr() const { return this; }
+const void* LibFdb5::addr() const { return this; }
 
-std::string LibFdb::version() const { return fdb_version_str(); }
+std::string LibFdb5::version() const { return fdb5_version_str(); }
 
-std::string LibFdb::gitsha1(unsigned int count) const {
-    std::string sha1(fdb_git_sha1());
+std::string LibFdb5::gitsha1(unsigned int count) const {
+    std::string sha1(fdb5_git_sha1());
     if(sha1.empty()) {
         return "not available";
     }

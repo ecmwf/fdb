@@ -16,7 +16,7 @@
 
 #include "metkit/MarsRequest.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Notifier.h"
 #include "fdb5/database/MultiRetrieveVisitor.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -50,7 +50,7 @@ eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request,
         HandleGatherer result(sorted);
         MultiRetrieveVisitor visitor(notifyee, result, databases_, dbConfig_);
 
-        Log::debug<LibFdb>() << "Using schema: " << schema << std::endl;
+        Log::debug<LibFdb5>() << "Using schema: " << schema << std::endl;
 
         schema.expand(request, visitor);
 
@@ -87,7 +87,7 @@ eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request, const
         eckit::Log::userInfo() << "Using optimise" << std::endl;
     }
 
-    Log::debug<LibFdb>() << "fdb5::Retriever::retrieve() Sorted? " << sorted << std::endl;
+    Log::debug<LibFdb5>() << "fdb5::Retriever::retrieve() Sorted? " << sorted << std::endl;
 
     return retrieve(request, dbConfig_.schema(), sorted, notifyee);
 }

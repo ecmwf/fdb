@@ -44,11 +44,11 @@ eckit::PathName FileSpace::filesystem(const Key& key, const eckit::PathName& db)
 
     eckit::PathName root;
     if(existsDB(key, db, root)) {
-        Log::debug<LibFdb>() << "Found FDB root for key " << key << " -> " << root << std::endl;
+        Log::debug<LibFdb5>() << "Found FDB root for key " << key << " -> " << root << std::endl;
         return root;
     }
 
-    Log::debug<LibFdb>() << "FDB for key " << key << " not found, selecting a root" << std::endl;
+    Log::debug<LibFdb5>() << "FDB for key " << key << " not found, selecting a root" << std::endl;
 
     return FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this);
 }

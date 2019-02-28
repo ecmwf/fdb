@@ -16,7 +16,7 @@
 #include "fdb5/api/SelectFDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/io/HandleGatherer.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 
@@ -157,7 +157,7 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) 
 }
 
 ListIterator SelectFDB::list(const FDBToolRequest& request) {
-    Log::debug<LibFdb>() << "SelectFDB::list() >> " << request << std::endl;
+    Log::debug<LibFdb5>() << "SelectFDB::list() >> " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.list(request);
@@ -165,7 +165,7 @@ ListIterator SelectFDB::list(const FDBToolRequest& request) {
 }
 
 DumpIterator SelectFDB::dump(const FDBToolRequest& request, bool simple) {
-    Log::debug<LibFdb>() << "SelectFDB::dump() >> " << request << std::endl;
+    Log::debug<LibFdb5>() << "SelectFDB::dump() >> " << request << std::endl;
     return queryInternal(request,
                          [simple](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.dump(request, simple);
@@ -173,7 +173,7 @@ DumpIterator SelectFDB::dump(const FDBToolRequest& request, bool simple) {
 }
 
 WhereIterator SelectFDB::where(const FDBToolRequest& request) {
-    Log::debug<LibFdb>() << "SelectFDB::where() >> " << request << std::endl;
+    Log::debug<LibFdb5>() << "SelectFDB::where() >> " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.where(request);
@@ -181,7 +181,7 @@ WhereIterator SelectFDB::where(const FDBToolRequest& request) {
 }
 
 WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool verbose) {
-    Log::debug<LibFdb>() << "SelectFDB::wipe() >> " << request << std::endl;
+    Log::debug<LibFdb5>() << "SelectFDB::wipe() >> " << request << std::endl;
     return queryInternal(request,
                          [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.wipe(request, doit, verbose);
@@ -189,7 +189,7 @@ WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool verb
 }
 
 PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool verbose) {
-    Log::debug<LibFdb>() << "SelectFDB::purge() >> " << request << std::endl;
+    Log::debug<LibFdb5>() << "SelectFDB::purge() >> " << request << std::endl;
     return queryInternal(request,
                          [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.purge(request, doit, verbose);
@@ -197,7 +197,7 @@ PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool ve
 }
 
 StatsIterator SelectFDB::stats(const FDBToolRequest &request) {
-    Log::debug<LibFdb>() << "SelectFDB::stats() >> " << request << std::endl;
+    Log::debug<LibFdb5>() << "SelectFDB::stats() >> " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.stats(request);

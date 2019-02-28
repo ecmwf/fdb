@@ -105,7 +105,7 @@ void TocPurgeVisitor::report(std::ostream& out) const {
 
 void TocPurgeVisitor::purge(std::ostream& out, bool verbose) const {
 
-    std::ostream& log(verbose ? out : eckit::Log::debug<LibFdb>());
+    std::ostream& log(verbose ? out : eckit::Log::debug<LibFdb5>());
 
     currentDatabase_->checkUID();
 

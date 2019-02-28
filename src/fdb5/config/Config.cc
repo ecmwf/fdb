@@ -18,7 +18,7 @@
 #include "eckit/config/YAMLConfiguration.h"
 
 #include "fdb5/rules/Schema.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 
@@ -60,7 +60,7 @@ Config Config::expandConfig() const {
 
     eckit::PathName actual_path = expandPath(config_path);
     if (actual_path.exists()) {
-        eckit::Log::debug<LibFdb>() << "Using FDB configuration file: " << actual_path << std::endl;
+        eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << actual_path << std::endl;
         eckit::YAMLConfiguration cfg(actual_path);
         return cfg;
     }

@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/fdb_config.h"
+#include "fdb5/fdb5_config.h"
 
 #include <stdlib.h>
 

@@ -17,7 +17,7 @@
 #include "eckit/option/VectorOption.h"
 #include "eckit/types/Date.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Manager.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBInspect.h"
@@ -62,7 +62,7 @@ void FDBInspect::init(const eckit::option::CmdArgs &args) {
 
 void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
-    eckit::Log::debug<LibFdb>() << " FDBInspect minimum-keys " << minimumKeys_ << " @ " << Here() << std::endl;
+    eckit::Log::debug<LibFdb5>() << " FDBInspect minimum-keys " << minimumKeys_ << " @ " << Here() << std::endl;
 
     bool all = false;
     args.get("all", all);
@@ -75,7 +75,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
     bool ignoreErrors = true;
     args.get("ignore-errors", ignoreErrors);
     if (ignoreErrors) {
-        Log::debug<LibFdb>() << "Errors ignored where possible" << std::endl;
+        Log::debug<LibFdb5>() << "Errors ignored where possible" << std::endl;
         fail_ = false;
     }
 
@@ -83,10 +83,10 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
     if (all) {
         Key dbKey;
-        Log::debug<LibFdb>() << "KEY =====> " << dbKey << std::endl;
+        Log::debug<LibFdb5>() << "KEY =====> " << dbKey << std::endl;
         std::vector<eckit::PathName> dbs = Manager().visitableLocations(dbKey);
         for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
-            Log::debug<LibFdb>() << "Visitable FDB DB location " << *j << std::endl;
+            Log::debug<LibFdb5>() << "Visitable FDB DB location " << *j << std::endl;
             paths.push_back(*j);
         }
 
@@ -114,7 +114,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
             ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeys_);
 
-            Log::debug<LibFdb>() << "KEY =====> " << req.key() << std::endl;
+            Log::debug<LibFdb5>() << "KEY =====> " << req.key() << std::endl;
             std::vector<eckit::PathName> dbs = Manager().visitableLocations(req.key());
             for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
                 paths.push_back(*j);
@@ -153,7 +153,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
         }
 
-        Log::debug<LibFdb>() << "FDBInspect processing path " << path << std::endl;
+        Log::debug<LibFdb5>() << "FDBInspect processing path " << path << std::endl;
         process(path , args);
 
     }

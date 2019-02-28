@@ -16,7 +16,7 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/config/UMask.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBTool.h"
 
@@ -65,7 +65,7 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
         FDBToolRequest req("domain=g," + args(i)); // domain add here as default
 
-        const Config& config = LibFdb::instance().defaultConfig();
+        const Config& config = LibFdb5::instance().defaultConfig();
         const Schema& schema = config.schema();
         Key result;
         ASSERT( schema.expandFirstLevel(req.request(), result) );

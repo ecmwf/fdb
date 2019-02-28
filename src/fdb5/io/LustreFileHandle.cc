@@ -8,11 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/fdb_config.h"
+#include "fdb5/fdb5_config.h"
 
 #include "eckit/log/Log.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 extern "C" {
 int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);

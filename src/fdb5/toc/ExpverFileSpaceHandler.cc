@@ -23,7 +23,7 @@
 
 #include "fdb5/toc/FileSpace.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 
@@ -32,7 +32,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 ExpverFileSpaceHandler::ExpverFileSpaceHandler() :
-    fdbExpverFileSystems_(LibResource<PathName, LibFdb>("fdbExpverFileSystems;$FDB_EXPVER_FILE", "~fdb/etc/fdb/expver_to_fdb_root.map"))
+    fdbExpverFileSystems_(LibResource<PathName, LibFdb5>("fdbExpverFileSystems;$FDB_EXPVER_FILE", "~fdb/etc/fdb/expver_to_fdb_root.map"))
 {
 }
 
@@ -41,7 +41,7 @@ ExpverFileSpaceHandler::~ExpverFileSpaceHandler() {
 
 void ExpverFileSpaceHandler::load() const {
 
-    Log::debug<LibFdb>() << "Loading " << fdbExpverFileSystems_ << std::endl;
+    Log::debug<LibFdb5>() << "Loading " << fdbExpverFileSystems_ << std::endl;
 
     std::ifstream in(fdbExpverFileSystems_.localPath());
 
@@ -137,7 +137,7 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
         }
 
         if(s[0] == expver) {
-            Log::debug<LibFdb>() << "Found expver " << expver << " " << path << " in " << fdbExpverFileSystems_ << std::endl;
+            Log::debug<LibFdb5>() << "Found expver " << expver << " " << path << " in " << fdbExpverFileSystems_ << std::endl;
             return PathName(s[1]);
         }
     }
@@ -155,7 +155,7 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
 
     // append to the file
 
-    Log::debug<LibFdb>() << "Appending expver " << expver << " " << path << " to " << fdbExpverFileSystems_ << std::endl;
+    Log::debug<LibFdb5>() << "Appending expver " << expver << " " << path << " to " << fdbExpverFileSystems_ << std::endl;
 
     of << expver << " " << path << std::endl;
 
@@ -183,11 +183,11 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     std::string expver = key.get("expver");
 
-    Log::debug<LibFdb>() << "Selecting file system for expver [" << expver << "]" << std::endl;
+    Log::debug<LibFdb5>() << "Selecting file system for expver [" << expver << "]" << std::endl;
 
     PathTable::const_iterator itr = table_.find(expver);
     if(itr != table_.end()) {
-        Log::debug<LibFdb>() << "Found expver " << expver << " " << itr->second << " in " << fdbExpverFileSystems_ << std::endl;
+        Log::debug<LibFdb5>() << "Found expver " << expver << " " << itr->second << " in " << fdbExpverFileSystems_ << std::endl;
 
         if (!fdbRootDirectory.empty() && itr->second != fdbRootDirectory) {
             Log::warning() << "Existing root directory " << itr->second << " does not match FDB5_ROOT. Using existing" << std::endl;
@@ -211,7 +211,7 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
             throw BadParameter(msg.str());
         }
 
-        Log::debug<LibFdb>() << "Using root directory specified by FDB5_ROOT: " << fdbRootDirectory << std::endl;
+        Log::debug<LibFdb5>() << "Using root directory specified by FDB5_ROOT: " << fdbRootDirectory << std::endl;
         maybe = fdbRootDirectory;
     }
 

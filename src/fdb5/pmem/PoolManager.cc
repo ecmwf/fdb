@@ -17,7 +17,7 @@
 
 #include "metkit/MarsRequest.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/pmem/PoolEntry.h"
 #include "fdb5/pmem/PoolGroup.h"
@@ -278,7 +278,7 @@ std::vector<eckit::PathName> PoolManager::visitablePools(const std::set<Key>& ke
         }
     }
 
-    Log::debug<LibFdb>() << "Visitable Pools " << pools << std::endl;
+    Log::debug<LibFdb5>() << "Visitable Pools " << pools << std::endl;
 
     return std::vector<eckit::PathName>(pools.begin(), pools.end());
 }

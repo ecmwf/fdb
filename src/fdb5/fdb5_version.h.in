@@ -1,0 +1,27 @@
+#ifndef fdb5_fdb5_version_h
+#define fdb5_fdb5_version_h
+
+#define FDB5_VERSION_STR "@FDB5_VERSION_STR@"
+#define FDB5_VERSION     "@FDB5_VERSION@"
+
+#define FDB5_MAJOR_VERSION @FDB5_MAJOR_VERSION@
+#define FDB5_MINOR_VERSION @FDB5_MINOR_VERSION@
+#define FDB5_PATCH_VERSION @FDB5_PATCH_VERSION@
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+const char * fdb5_version();
+
+unsigned int fdb5_version_int();
+
+const char * fdb5_version_str();
+
+const char * fdb5_git_sha1();
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

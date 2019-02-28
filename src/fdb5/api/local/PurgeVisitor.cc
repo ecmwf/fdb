@@ -14,7 +14,7 @@
 #include "fdb5/api/local/QueueStringLogTarget.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/PurgeVisitor.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 namespace fdb5 {
 namespace api {

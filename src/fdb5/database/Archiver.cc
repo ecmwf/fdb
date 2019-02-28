@@ -12,7 +12,7 @@
 
 #include "eckit/config/Resource.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/database/BaseArchiveVisitor.h"
 #include "fdb5/rules/Schema.h"

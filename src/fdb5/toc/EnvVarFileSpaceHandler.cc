@@ -20,7 +20,7 @@
 
 #include "fdb5/toc/FileSpace.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 
@@ -29,7 +29,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 EnvVarFileSpaceHandler::EnvVarFileSpaceHandler() :
-    fdbFileSpaceSHandlerEnvVarName_(LibResource<std::string, LibFdb>("fdbFileSpaceSHandlerEnvVarName;$FDB_FILESPACEHANDLER_ENVVARNAME", "STHOST"))
+    fdbFileSpaceSHandlerEnvVarName_(LibResource<std::string, LibFdb5>("fdbFileSpaceSHandlerEnvVarName;$FDB_FILESPACEHANDLER_ENVVARNAME", "STHOST"))
 {
 }
 
@@ -46,7 +46,7 @@ eckit::PathName EnvVarFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     AutoLock<Mutex> lock(mutex_);
 
-    Log::debug<LibFdb>() << "Selecting a file system based on environment variable " << fdbFileSpaceSHandlerEnvVarName_ << std::endl;
+    Log::debug<LibFdb5>() << "Selecting a file system based on environment variable " << fdbFileSpaceSHandlerEnvVarName_ << std::endl;
 
     const char* value  = ::getenv(fdbFileSpaceSHandlerEnvVarName_.c_str());
     if(value) {

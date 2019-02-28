@@ -21,7 +21,7 @@
 #include "eckit/thread/Mutex.h"
 #include "eckit/thread/AutoLock.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Engine.h"
 #include "fdb5/rules/Schema.h"
@@ -74,7 +74,7 @@ static const EngineTable& readEngineTypes(const eckit::PathName enginesFile) {
     // Sensible defaults if not configured
 
     if(!enginesFile.exists()) {
-        eckit::Log::debug<LibFdb>() << "FDB Engines file not found: assuming Engine 'toc' Regex '.*'" << std::endl;
+        eckit::Log::debug<LibFdb5>() << "FDB Engines file not found: assuming Engine 'toc' Regex '.*'" << std::endl;
         table.push_back(EngineType("toc", ".*"));
         return table;
     }
@@ -83,7 +83,7 @@ static const EngineTable& readEngineTypes(const eckit::PathName enginesFile) {
 
     std::ifstream in(enginesFile.localPath());
 
-    eckit::Log::debug<LibFdb>() << "Loading FDB engines from " << enginesFile << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Loading FDB engines from " << enginesFile << std::endl;
 
     if (!in) {
         eckit::Log::error() << enginesFile << eckit::Log::syserr << std::endl;
@@ -274,12 +274,12 @@ std::vector<PathName> Manager::allLocations(const Key& key)
 {
     std::set<std::string> engines = Manager::engines(key);
 
-    Log::debug<LibFdb>() << "Matching engines for key " << key << " -> " << engines << std::endl;
+    Log::debug<LibFdb5>() << "Matching engines for key " << key << " -> " << engines << std::endl;
 
     std::vector<PathName> r; // union of all locations
 
     for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
-        Log::debug<LibFdb>() << "Selected FDB engine " << *i << std::endl;
+        Log::debug<LibFdb5>() << "Selected FDB engine " << *i << std::endl;
         std::vector<PathName> p = Engine::backend(*i).allLocations(key, config_);
         r.insert(r.end(), p.begin(), p.end());
     }
@@ -292,12 +292,12 @@ std::vector<eckit::PathName> Manager::visitableLocations(const metkit::MarsReque
 
     std::set<std::string> engines = Manager::engines(rq);
 
-    Log::debug<LibFdb>() << "Matching engines for request " << rq << " -> " << engines << std::endl;
+    Log::debug<LibFdb5>() << "Matching engines for request " << rq << " -> " << engines << std::endl;
 
     std::vector<PathName> r; // union of all locations
 
     for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
-        Log::debug<LibFdb>() << "Selected FDB engine " << *i << std::endl;
+        Log::debug<LibFdb5>() << "Selected FDB engine " << *i << std::endl;
         std::vector<PathName> p = Engine::backend(*i).visitableLocations(rq, config_);
         r.insert(r.end(), p.begin(), p.end());
     }
@@ -310,12 +310,12 @@ std::vector<eckit::PathName> Manager::writableLocations(const Key& key) {
 
     std::set<std::string> engines = Manager::engines(key);
 
-    Log::debug<LibFdb>() << "Matching engines for key " << key << " -> " << engines << std::endl;
+    Log::debug<LibFdb5>() << "Matching engines for key " << key << " -> " << engines << std::endl;
 
     std::vector<PathName> r; // union of all locations
 
     for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
-        Log::debug<LibFdb>() << "Selected FDB engine " << *i << std::endl;
+        Log::debug<LibFdb5>() << "Selected FDB engine " << *i << std::endl;
         std::vector<PathName> p = Engine::backend(*i).writableLocations(key, config_);
         r.insert(r.end(), p.begin(), p.end());
     }

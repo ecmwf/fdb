@@ -11,7 +11,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/log/Timer.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Rule.h"
 
@@ -116,7 +116,7 @@ void PMemDB::visitEntries(EntryVisitor& visitor, bool sorted) {
     // There is no meaningfully more-efficient way or sorting the indexes!
     (void) sorted;
 
-    Log::debug<LibFdb>() << "Visiting entries in DB with key " << dbKey_ << std::endl;
+    Log::debug<LibFdb5>() << "Visiting entries in DB with key " << dbKey_ << std::endl;
 
     visitor.visitDatabase(*this);
 

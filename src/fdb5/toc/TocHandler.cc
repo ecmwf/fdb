@@ -22,13 +22,14 @@
 #include "eckit/thread/StaticMutex.h"
 #include "eckit/filesystem/PathName.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
 
+using namespace eckit;
 
 namespace fdb5 {
 
@@ -130,7 +131,7 @@ void TocHandler::openForAppend() {
 
     ASSERT(fd_ == -1);
 
-    eckit::Log::debug<LibFdb>() << "Opening for append TOC " << tocPath_ << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Opening for append TOC " << tocPath_ << std::endl;
 
     int iomode = O_WRONLY | O_APPEND;
     //#ifdef __linux__
@@ -145,7 +146,7 @@ void TocHandler::openForRead() const {
 
     writeMode_ = false;
 
-    eckit::Log::debug<LibFdb>() << "Opening for read TOC " << tocPath_ << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Opening for read TOC " << tocPath_ << std::endl;
 
     int iomode = O_RDONLY;
     //#ifdef __linux__
@@ -243,7 +244,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 // If this subtoc has a masking entry, then skip it, and go on to the next entry.
                 std::pair<eckit::PathName, size_t> key(path, 0);
                 if (maskedEntries_.find(key) != maskedEntries_.end()) {
-                    Log::debug<LibFdb>() << "SubToc ignored by mask: " << path << std::endl;
+                    Log::debug<LibFdb5>() << "SubToc ignored by mask: " << path << std::endl;
                     continue;
                 }
 
@@ -269,7 +270,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
                 std::pair<eckit::PathName, size_t> key(path, offset);
                 if (maskedEntries_.find(key) != maskedEntries_.end()) {
-                    Log::debug<LibFdb>() << "Index ignored by mask: " << path << ":" << offset << std::endl;
+                    Log::debug<LibFdb5>() << "Index ignored by mask: " << path << ":" << offset << std::endl;
                     continue;
                 }
 
@@ -362,7 +363,7 @@ void TocHandler::close() const {
     }
 
     if ( fd_ >= 0 ) {
-        eckit::Log::debug<LibFdb>() << "Closing TOC " << tocPath_ << std::endl;
+        eckit::Log::debug<LibFdb5>() << "Closing TOC " << tocPath_ << std::endl;
         SYSCALL2( eckit::fdatasync(fd_), tocPath_ );
         SYSCALL2( ::close(fd_), tocPath_ );
         fd_ = -1;
@@ -452,13 +453,13 @@ void TocHandler::writeInitRecord(const Key &key) {
     size_t len = readNext(r);
     if (len == 0) {
 
-        eckit::Log::debug<LibFdb>() << "Initializing FDB TOC in " << tocPath_ << std::endl;
+        eckit::Log::debug<LibFdb5>() << "Initializing FDB TOC in " << tocPath_ << std::endl;
 
         if (!isSubToc_) {
 
             /* Copy schema first */
 
-            eckit::Log::debug<LibFdb>() << "Copy schema from "
+            eckit::Log::debug<LibFdb5>() << "Copy schema from "
                                << dbConfig_.schemaPath()
                                << " to "
                                << schemaPath_
@@ -516,7 +517,7 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     s << subToc.tocPath();
     append(r, s.position());
 
-    eckit::Log::debug<LibFdb>() << "Write TOC_SUB_TOC " << subToc.tocPath() << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Write TOC_SUB_TOC " << subToc.tocPath() << std::endl;
 }
 
 
@@ -541,7 +542,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
             index_.encode(s);
             handler_.append(r, s.position());
 
-            eckit::Log::debug<LibFdb>() << "Write TOC_INDEX " << location.path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
+            eckit::Log::debug<LibFdb5>() << "Write TOC_INDEX " << location.path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
         }
 
     private:
@@ -698,14 +699,14 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
 
         case TocRecord::TOC_INIT:
             dbUID_ = r.header_.uid_;
-            eckit::Log::debug<LibFdb>() << "TocRecord TOC_INIT key is " << Key(s) << std::endl;
+            eckit::Log::debug<LibFdb5>() << "TocRecord TOC_INIT key is " << Key(s) << std::endl;
             break;
 
         case TocRecord::TOC_INDEX:
             s >> path;
             s >> offset;
             s >> type;
-            eckit::Log::debug<LibFdb>() << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
+            eckit::Log::debug<LibFdb5>() << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
             indexes.push_back( new TocIndex(s, directory_, directory_ / path, offset) );
 
             if (subTocs != 0 && subTocRead_) {
@@ -723,7 +724,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
         case TocRecord::TOC_CLEAR:
             s >> path;
             s >> offset;
-            eckit::Log::debug<LibFdb>() << "TocRecord TOC_CLEAR " << path << " - " << offset << std::endl;
+            eckit::Log::debug<LibFdb5>() << "TocRecord TOC_CLEAR " << path << " - " << offset << std::endl;
             j = std::find_if(indexes.begin(), indexes.end(), HasPath(directory_ / path, offset));
             if (j != indexes.end()) {
                 if (indexInSubtoc) {
@@ -985,7 +986,7 @@ size_t TocHandler::buildClearRecord(TocRecord &r, const Index &index) {
             s << location.offset();
             ASSERT(sz_ == 0);
             sz_ = s.position();
-            eckit::Log::debug<LibFdb>() << "Write TOC_CLEAR " << location.path().baseName() << " - " << location.offset() << std::endl;
+            eckit::Log::debug<LibFdb5>() << "Write TOC_CLEAR " << location.path().baseName() << " - " << location.offset() << std::endl;
         }
 
         size_t size() const { return sz_; }

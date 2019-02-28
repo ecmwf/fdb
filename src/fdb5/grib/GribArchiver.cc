@@ -21,7 +21,7 @@
 #include "metkit/MarsRequest.h"
 #include "metkit/grib/MetFile.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
@@ -50,16 +50,16 @@ static std::vector<metkit::MarsRequest> str_to_requests(const std::string& str) 
 
     std::string rs = std::string("retrieve,")  + str;
 
-    Log::debug<LibFdb>() << "Parsing request string : " << rs << std::endl;
+    Log::debug<LibFdb5>() << "Parsing request string : " << rs << std::endl;
 
     std::istringstream in(rs);
     metkit::MarsParser parser(in);
 
     std::vector<metkit::MarsParsedRequest> p = parser.parse();
 
-    Log::debug<LibFdb>() << "Parsed requests:" << std::endl;
+    Log::debug<LibFdb5>() << "Parsed requests:" << std::endl;
     for (auto j = p.begin(); j != p.end(); ++j) {
-        j->dump(Log::debug<LibFdb>());
+        j->dump(Log::debug<LibFdb5>());
     }
 
     // expand requests
@@ -69,9 +69,9 @@ static std::vector<metkit::MarsRequest> str_to_requests(const std::string& str) 
 
     std::vector<metkit::MarsRequest> v = expand.expand(p);
 
-    Log::debug<LibFdb>() << "Expanded requests:" << std::endl;
+    Log::debug<LibFdb5>() << "Expanded requests:" << std::endl;
     for (auto j = v.begin(); j != v.end(); ++j) {
-        j->dump(Log::debug<LibFdb>());
+        j->dump(Log::debug<LibFdb5>());
     }
 
     return v;
@@ -88,7 +88,7 @@ static std::vector<metkit::MarsRequest> make_filter_requests(const std::string& 
     std::vector<metkit::MarsRequest> r;
     for (auto j = v.begin(); j != v.end(); ++j) {
         r.push_back(j->subset(keys));
-        r.back().dump(Log::debug<LibFdb>());
+        r.back().dump(Log::debug<LibFdb5>());
     }
 
     return r;
@@ -134,7 +134,7 @@ bool GribArchiver::filterOut(const Key& k) const {
 
 eckit::Channel& GribArchiver::logVerbose() const {
 
-    return verbose_ ? Log::info() : Log::debug<LibFdb>();
+    return verbose_ ? Log::info() : Log::debug<LibFdb5>();
 
 }
 

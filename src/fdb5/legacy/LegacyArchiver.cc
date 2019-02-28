@@ -13,7 +13,7 @@
 #include "eckit/types/Metadata.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
 namespace fdb5 {
@@ -40,8 +40,8 @@ void LegacyArchiver::archive(const eckit::DataBlobPtr blob) {
         key.set(*i, value);
     }
 
-    eckit::Log::debug<LibFdb>() << "Metadata keys " << key << std::endl;
-    eckit::Log::debug<LibFdb>() << "Legacy keys " << legacy_ << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Metadata keys " << key << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Legacy keys " << legacy_ << std::endl;
 
     key.validateKeysOf(legacy_); //< compare legacy and metadata
 

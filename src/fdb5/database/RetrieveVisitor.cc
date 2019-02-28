@@ -12,7 +12,7 @@
 
 #include "eckit/config/Resource.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -43,7 +43,7 @@ bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
         }
     }
 
-    eckit::Log::debug<LibFdb>() << "selectDatabase " << key << std::endl;
+    eckit::Log::debug<LibFdb5>() << "selectDatabase " << key << std::endl;
     db_.reset(DBFactory::buildReader(key));
 
     if (!db_->open()) {

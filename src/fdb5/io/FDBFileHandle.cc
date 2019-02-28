@@ -16,7 +16,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/io/FDataSync.h"
 
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/io/FDBFileHandle.h"
 
 using namespace eckit;
@@ -73,7 +73,7 @@ long FDBFileHandle::write(const void *buffer, long length) {
 
 void FDBFileHandle::flush() {
 
-    static bool fdbDataSyncOnFlush = eckit::LibResource<bool,LibFdb>("$FDB_DATA_SYNC_ON_FLUSH;fdbDataSyncOnFlush", true);
+    static bool fdbDataSyncOnFlush = eckit::LibResource<bool,LibFdb5>("$FDB_DATA_SYNC_ON_FLUSH;fdbDataSyncOnFlush", true);
 
     if (file_) {
 

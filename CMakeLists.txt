@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.1 FATAL_ERROR )
 
-project( fdb C CXX )
+project( fdb5 C CXX )
 
 set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild/cmake")
 
@@ -107,10 +107,6 @@ include_directories( ${METKIT_INCLUDE_DIRS} )
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${GRIB_API_DEFINITIONS};${ODB_API_DEFINITIONS}" )
 
 get_directory_property( FDB5_DEFINITIONS COMPILE_DEFINITIONS )
-
-ecbuild_add_resources( TARGET          server_resources
-					   SOURCES_PACK    INSTALL LICENSE
-                       DONT_PACK_DIRS  src/sandbox dev )
 
 # source files
 

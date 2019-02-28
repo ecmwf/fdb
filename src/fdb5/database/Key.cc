@@ -16,7 +16,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/LibFdb.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/types/Type.h"
@@ -265,7 +265,7 @@ bool Key::partialMatch(const metkit::MarsRequest& request) const {
 
 
 const TypesRegistry& Key::registry() const {
-    return rule_ ? rule_->registry() : LibFdb::instance().defaultConfig().schema().registry();
+    return rule_ ? rule_->registry() : LibFdb5::instance().defaultConfig().schema().registry();
 }
 
 std::string Key::valuesToString() const {
