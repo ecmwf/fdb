@@ -34,8 +34,6 @@ using namespace fdb5::remote;
 
 namespace fdb5 {
 
-static FDBBuilder<RemoteFDB> remoteFdbBuilder("remote");
-
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace {
@@ -452,7 +450,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
                 // this is handled in the AsyncIterator.
                 new AsyncIterator (
                     [messageQueue](eckit::Queue<ValueType>& queue) {
-                        StoredMessage msg {{}, 0};
+                        StoredMessage msg = std::make_pair(remote::MessageHeader{}, 0);
                         while (true) {
                             if (messageQueue->pop(msg) == -1) {
                                 break;
@@ -659,7 +657,7 @@ private: // methods
 
         // If we are in the DataHandle, then there MUST be data to read
 
-        RemoteFDB::StoredMessage msg {{}, 0};
+        RemoteFDB::StoredMessage msg = std::make_pair(remote::MessageHeader{}, 0);
         ASSERT(queue_.pop(msg) != -1);
 
         // TODO; Error handling in the retrieve pathway
@@ -750,6 +748,7 @@ void RemoteFDB::print(std::ostream &s) const {
     s << "RemoteFDB(host=" << hostname_ << ", port=" << port_ << ", dataport=" << dataport_ << ")";
 }
 
+static FDBBuilder<RemoteFDB> remoteFdbBuilder("remote");
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -35,16 +35,6 @@ using namespace eckit;
 
 namespace fdb5 {
 
-static FDBBuilder<LocalFDB> localFdbBuilder("local");
-
-
-namespace {
-
-//----------------------------------------------------------------------------------------------------------------------
-
-} // namespace
-
-
 void LocalFDB::archive(const Key& key, const void* data, size_t length) {
 
     if (!archiver_) {
@@ -54,7 +44,6 @@ void LocalFDB::archive(const Key& key, const void* data, size_t length) {
 
     archiver_->archive(key, data, length);
 }
-
 
 DataHandle *LocalFDB::retrieve(const metkit::MarsRequest &request) {
 
@@ -125,6 +114,9 @@ void LocalFDB::flush() {
 void LocalFDB::print(std::ostream &s) const {
     s << "LocalFDB(home=" << config_.expandPath("~fdb") << ")";
 }
+
+
+static FDBBuilder<LocalFDB> localFdbBuilder("local");
 
 //----------------------------------------------------------------------------------------------------------------------
 

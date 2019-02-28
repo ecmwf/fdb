@@ -14,19 +14,19 @@
 #ifndef fdb5_api_FDBFactory_H
 #define fdb5_api_FDBFactory_H
 
-#include "fdb5/config/Config.h"
-#include "fdb5/api/FDBStats.h"
+#include <memory>
 
 #include "eckit/utils/Regex.h"
 #include "eckit/memory/NonCopyable.h"
+
+#include "fdb5/config/Config.h"
+#include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/WhereIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
-
-#include <memory>
 
 namespace metkit { class MarsRequest; }
 

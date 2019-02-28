@@ -8,6 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
+#include <chrono>
+
+#include "eckit/maths/Functions.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/config/Resource.h"
+
+#include "metkit/MarsRequest.h"
+
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
@@ -15,17 +23,8 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
-#include "metkit/MarsRequest.h"
-
-#include "eckit/maths/Functions.h"
-#include "eckit/serialisation/MemoryStream.h"
-#include "eckit/config/Resource.h"
-
-#include <chrono>
-
 using namespace eckit;
 using metkit::MarsRequest;
-
 
 namespace fdb5 {
 namespace remote {
@@ -465,7 +464,7 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
 
     std::future<void> worker = std::async(std::launch::async, [this, &queue] {
 
-        std::pair<fdb5::Key, eckit::Buffer> elem {{}, 0};
+        std::pair<fdb5::Key, eckit::Buffer> elem = std::make_pair(fdb5::Key{}, eckit::Buffer{0});
 
         try {
 

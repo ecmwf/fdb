@@ -17,16 +17,15 @@
 #include <future>
 #include <thread>
 
-#include "fdb5/api/FDB.h"
-#include "fdb5/api/FDBFactory.h"
-#include "fdb5/remote/Messages.h"
-
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/container/Queue.h"
 
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/FDBFactory.h"
+#include "fdb5/remote/Messages.h"
 
 namespace fdb5 {
 

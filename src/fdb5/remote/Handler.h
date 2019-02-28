@@ -15,17 +15,19 @@
 #ifndef fdb5_remote_Handler_H
 #define fdb5_remote_Handler_H
 
-#include "fdb5/api/FDB.h"
-#include "fdb5/config/Config.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/remote/Messages.h"
+#include <future>
+#include <mutex>
 
 #include "eckit/io/Buffer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/net/TCPServer.h"
 
-#include <future>
-#include <mutex>
+#include "metkit/MarsRequest.h"
+
+#include "fdb5/api/FDB.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/remote/Messages.h"
 
 namespace fdb5 {
 
@@ -33,7 +35,7 @@ class Config;
 
 namespace remote {
 
-class MessageHeader;
+struct MessageHeader;
 
 //----------------------------------------------------------------------------------------------------------------------
 
