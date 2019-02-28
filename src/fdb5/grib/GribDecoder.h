@@ -18,7 +18,7 @@
 
 
 #include "eckit/io/Buffer.h"
-#include "marslib/MarsRequest.h"
+#include "metkit/MarsRequest.h"
 #include <vector>
 
 struct grib_handle;
@@ -27,7 +27,7 @@ namespace eckit {
 class PathName;
 }
 
-class EmosFile;
+namespace metkit { namespace grib { class MetFile; }}
 
 #include "fdb5/database/Key.h"
 
@@ -43,9 +43,9 @@ public:
 
     virtual ~GribDecoder();
 
-    size_t gribToKey(EmosFile &file, Key &key);
-    MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
-    std::vector<MarsRequest> gribToRequests(const eckit::PathName &path, const char *verb = "retrieve");
+    size_t gribToKey(metkit::grib::MetFile& file, Key &key);
+    metkit::MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
+    std::vector<metkit::MarsRequest> gribToRequests(const eckit::PathName &path, const char *verb = "retrieve");
 
     const eckit::Buffer &buffer() const {
         return buffer_;

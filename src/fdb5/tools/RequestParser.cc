@@ -18,6 +18,8 @@
 
 #include "fdb5/tools/RequestParser.h"
 
+#include "metkit/types/TypeAny.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -51,10 +53,10 @@ std::string RequestParser::parseIdent(bool lower) {
 RequestParser::RequestParser(std::istream &in) : StreamParser(in, true) {
 }
 
-MarsRequest RequestParser::parse(bool lower) {
+metkit::MarsRequest RequestParser::parse(bool lower) {
     char c;
 
-    MarsRequest r(parseIdent(lower));
+    metkit::MarsRequest r(parseIdent(lower));
 
     while ((c = peek()) == ',') {
         consume(c);
@@ -67,7 +69,7 @@ MarsRequest RequestParser::parse(bool lower) {
             consume(c);
             values.push_back(parseIdent(lower));
         }
-        r.setValues(keyword, values);
+        r.setValuesTyped(new metkit::TypeAny(keyword), values);
     }
 
     if (peek()) {

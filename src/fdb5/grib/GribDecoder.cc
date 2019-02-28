@@ -15,12 +15,15 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
-
-#include "marslib/EmosFile.h"
-#include "fdb5/grib/GribDecoder.h"
-
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
+
+#include "metkit/grib/MetFile.h"
+#include "metkit/types/TypeAny.h"
+
+#include "fdb5/grib/GribDecoder.h"
+
+using metkit::grib::MetFile;
 
 namespace fdb5 {
 
@@ -44,7 +47,7 @@ public:
     }
 };
 
-size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
+size_t GribDecoder::gribToKey(MetFile& file, Key &key) {
 
     static std::string gribToRequestNamespace = eckit::Resource<std::string>("gribToRequestNamespace", "mars");
 
@@ -150,10 +153,10 @@ size_t GribDecoder::gribToKey(EmosFile &file, Key &key) {
     return len;
 }
 
-MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *verb) {
-    MarsRequest r(verb);
+metkit::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *verb) {
+    metkit::MarsRequest r(verb);
 
-    EmosFile file(path);
+    MetFile file(path);
     size_t len = 0;
 
     Key key;
@@ -168,17 +171,20 @@ MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *
 
     for (std::map<std::string, std::set<std::string> >::const_iterator j = s.begin(); j != s.end(); ++j) {
         eckit::StringList v(j->second.begin(), j->second.end());
-        r.setValues(j->first, v);
+
+        // When deserialising requests, metkit uses Type Any. So we should
+        // use that here to. This could probably be done better?
+        r.setValuesTyped(new metkit::TypeAny(j->first), v);
     }
 
     return r;
 }
 
 
-std::vector<MarsRequest> GribDecoder::gribToRequests(const eckit::PathName &path, const char *verb) {
+std::vector<metkit::MarsRequest> GribDecoder::gribToRequests(const eckit::PathName &path, const char *verb) {
 
-    std::vector<MarsRequest> requests;
-    EmosFile file(path);
+    std::vector<metkit::MarsRequest> requests;
+    MetFile file(path);
     size_t len = 0;
 
     Key key;
@@ -187,11 +193,14 @@ std::vector<MarsRequest> GribDecoder::gribToRequests(const eckit::PathName &path
 
     while ( (len = gribToKey(file, key))  ) {
 
-        MarsRequest r(verb);
+        metkit::MarsRequest r(verb);
         for (Key::const_iterator j = key.begin(); j != key.end(); ++j) {
             eckit::StringList s;
             s.push_back(j->second);
-            r.setValues(j->first, s);
+
+            // When deserialising requests, metkit uses Type Any. So we should
+            // use that here to. This could probably be done better?
+            r.setValuesTyped(new metkit::TypeAny(j->first), s);
         }
 
         requests.push_back(r);

@@ -17,16 +17,6 @@ configure_file( etc/fdb/poolgroups ${CMAKE_BINARY_DIR}/etc/fdb/poolgroups  @ONLY
 file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tests/fdb/pool ) # as defined in ${CMAKE_BINARY_DIR}/etc/fdb/pools file
 
 ###############################################################################
-# pointdb tests
-
-ecbuild_add_test( TARGET     mars_server_test_kdtree
-                  CONDITION  ENABLE_POINTDB AND OFF
-                  INCLUDES
-                      ${GRIB_API_INCLUDE_DIRS}
-                  SOURCES    test_kdtree.cc
-                  LIBS       mars-fdb5 eckit_geometry )
-
-###############################################################################
 # fdb unit tests
 
 list( APPEND _test_environment
@@ -41,7 +31,7 @@ foreach( _tst ${fdb_tests} )
   get_filename_component(_tst ${_tst} NAME_WE)
 
   ecbuild_add_test(
-      TARGET  mars_server_${_tst}
+      TARGET  fdb5_${_tst}
       SOURCES  ${_tst}
       INCLUDES ${GRIB_API_INCLUDE_DIRS}
       ENVIRONMENT "${_test_environment}"
@@ -56,7 +46,7 @@ list( APPEND _test_data
   "rd.vod.grib"
 )
 
-ecbuild_get_test_multidata( TARGET mars_server_fdb5_get_test_data NAMES ${_test_data} )
+ecbuild_get_test_multidata( TARGET fdb5_get_test_data NAMES ${_test_data} )
 
 foreach( _tst ${_test_data} )
 
@@ -64,16 +54,16 @@ foreach( _tst ${_test_data} )
     # see https://cmake.org/cmake/help/v3.4/manual/cmake-generator-expressions.7.html
 
     ecbuild_add_test(
-        TARGET  mars_server_fdb5_archive_${_tst}
+        TARGET  fdb5_archive_${_tst}
         COMMAND $<TARGET_FILE:fdb-write>
-        TEST_DEPENDS mars_server_fdb5_get_test_data
+        TEST_DEPENDS fdb5_get_test_data
         ARGS    ${_tst}
         ENVIRONMENT "${_test_environment}" )
 
       ecbuild_add_test(
-          TARGET  mars_server_fdb5_extract_${_tst}
+          TARGET  fdb5_extract_${_tst}
           COMMAND $<TARGET_FILE:fdb-read>
-          TEST_DEPENDS mars_server_fdb5_archive_${_tst}
+          TEST_DEPENDS fdb5_archive_${_tst}
           ARGS   --extract ${_tst} ${_tst}.2
           ENVIRONMENT "${_test_environment}" )
 

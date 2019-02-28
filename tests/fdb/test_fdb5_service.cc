@@ -22,8 +22,8 @@
 #include "eckit/types/Types.h"
 #include "eckit/utils/Translator.h"
 
-#include "marslib/MarsRequest.h"
-#include "marslib/MarsTask.h"
+#include "metkit/MarsRequest.h"
+#include "metkit/types/TypeAny.h"
 
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Archiver.h"
@@ -45,7 +45,7 @@ namespace test {
 
 struct FixtureService {
 
-    MarsRequest env;
+    metkit::MarsRequest env;
     StringDict p;
 
 	std::vector<std::string> modelParams_;
@@ -164,9 +164,8 @@ CASE ( "test_fdb_service" ) {
 
 						Log::info() << "Looking for: " << f.p << std::endl;
 
-						MarsRequest r(f.p);
-						MarsTask task(r, f.env);
-						eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve(task) );  AutoClose closer1(*dh);
+                        metkit::MarsRequest r("retrieve", f.p);
+                        eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve(r) );  AutoClose closer1(*dh);
 
 						::memset(buffer, 0, buffer.size());
 
@@ -209,7 +208,7 @@ CASE ( "test_fdb_service" ) {
 			dates.push_back( "20120912" );
 
 
-			MarsRequest r("retrieve");
+            metkit::MarsRequest r("retrieve");
 
             r.setValue("class","rd");
 			r.setValue("expver","0001");
@@ -219,18 +218,16 @@ CASE ( "test_fdb_service" ) {
 			r.setValue("domain","g");
 			r.setValue("levtype","pl");
 
-			r.setValues("param",params);
-			r.setValues("step",steps);
-			r.setValues("levelist",levels);
-			r.setValues("date",dates);
+            r.setValuesTyped(new metkit::TypeAny("param"), params);
+            r.setValuesTyped(new metkit::TypeAny("step"), steps);
+            r.setValuesTyped(new metkit::TypeAny("levelist"), levels);
+            r.setValuesTyped(new metkit::TypeAny("date"), dates);
 
 			Log::info() << r << std::endl;
 
-			MarsTask task(r, f.env);
-
 			fdb5::Retriever retriever;
 
-			eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve(task) );
+            eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve(r) );
 
 			PathName path ( "data_mars_request.data" );
 			path.unlink();

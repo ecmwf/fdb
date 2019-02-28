@@ -14,10 +14,12 @@
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
 
-#include "marslib/EmosFile.h"
+#include "metkit/grib/MetFile.h"
 
 #include "fdb5/grib/GribIndexer.h"
 #include "fdb5/toc/AdoptVisitor.h"
+
+using metkit::grib::MetFile;
 
 namespace fdb5 {
 
@@ -30,7 +32,7 @@ GribIndexer::GribIndexer(bool checkDuplicates) :
 void GribIndexer::index(const eckit::PathName &path) {
     eckit::Timer timer("fdb::service::archive");
 
-    EmosFile file(path);
+    MetFile file(path);
     size_t len = 0;
 
     size_t count = 0;

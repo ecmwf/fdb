@@ -23,7 +23,6 @@
 #include "eckit/types/Types.h"
 #include "fdb5/types/TypesRegistry.h"
 
-class MarsRequest;
 namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
@@ -56,7 +55,7 @@ public: // methods
 
     void dump(std::ostream &s, size_t depth = 0) const;
 
-    void expand(const MarsRequest &request,
+    void expand(const metkit::MarsRequest &request,
                 ReadVisitor &Visitor,
                 size_t depth,
                 std::vector<fdb5::Key> &keys,
@@ -82,7 +81,7 @@ public: // methods
 
 private: // methods
 
-    void expand(const MarsRequest &request,
+    void expand(const metkit::MarsRequest &request,
                 std::vector<Predicate *>::const_iterator cur,
                 size_t depth,
                 std::vector<Key> &keys,

@@ -49,7 +49,7 @@ private:  // methods
 
     virtual bool selectDatum(const Key &key, const Key &full);
 
-    virtual void values(const MarsRequest& request,
+    virtual void values(const metkit::MarsRequest& request,
                         const std::string& keyword,
                         const TypesRegistry& registry,
                         eckit::StringList& values);

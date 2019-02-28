@@ -28,7 +28,7 @@ TypeParam::TypeParam(const std::string &name, const std::string &type) :
 TypeParam::~TypeParam() {
 }
 
-void TypeParam::getValues(const MarsRequest &request,
+void TypeParam::getValues(const metkit::MarsRequest &request,
                           const std::string &keyword,
                           eckit::StringList &values,
                           const Notifier &wind,

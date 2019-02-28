@@ -16,7 +16,7 @@
 #ifndef fdb5_LustreFileHandle_h
 #define fdb5_LustreFileHandle_h
 
-#include "mars_server_config.h"
+#include "fdb5/fdb_config.h"
 
 #include "eckit/io/Length.h"
 #include "eckit/log/Bytes.h"

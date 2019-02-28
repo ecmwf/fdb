@@ -21,7 +21,7 @@
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
 
-class MarsRequest;
+namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
 
@@ -41,7 +41,7 @@ public: // methods
     virtual bool selectDatum(const Key &key, const Key &full) = 0;
 
 
-    virtual void values(const MarsRequest &request,
+    virtual void values(const metkit::MarsRequest &request,
                         const std::string &keyword,
                         const TypesRegistry &registry,
                         eckit::StringList &values) = 0;

@@ -61,7 +61,7 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     return 0;
 }
 
-void Schema::expand(const MarsRequest &request, ReadVisitor &visitor) const {
+void Schema::expand(const metkit::MarsRequest &request, ReadVisitor &visitor) const {
     Key full;
     std::vector<Key> keys(3);
 

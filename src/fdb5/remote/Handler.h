@@ -101,7 +101,7 @@ private: // members
     // Retrieve helpers
 
     std::thread retrieveWorker_;
-    eckit::Queue<std::pair<uint32_t, MarsRequest>> retrieveQueue_;
+    eckit::Queue<std::pair<uint32_t, metkit::MarsRequest>> retrieveQueue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

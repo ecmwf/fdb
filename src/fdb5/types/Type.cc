@@ -9,7 +9,7 @@
  */
 
 #include "fdb5/types/Type.h"
-#include "marslib/MarsRequest.h"
+#include "metkit/MarsRequest.h"
 
 namespace fdb5 {
 
@@ -23,7 +23,7 @@ Type::Type(const std::string &name, const std::string &type) :
 Type::~Type() {
 }
 
-void Type::getValues(const MarsRequest &request,
+void Type::getValues(const metkit::MarsRequest &request,
                      const std::string &keyword,
                      eckit::StringList &values,
                      const Notifier&,

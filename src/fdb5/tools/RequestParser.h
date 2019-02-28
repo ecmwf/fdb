@@ -17,7 +17,7 @@
 #include "eckit/parser/StreamParser.h"
 #include "eckit/types/Types.h"
 
-#include "marslib/MarsRequest.h"
+#include "metkit/MarsRequest.h"
 
 namespace fdb5 {
 
@@ -29,7 +29,7 @@ public: // methods
 
     RequestParser(std::istream &in);
 
-    MarsRequest parse(bool lower = true);
+    metkit::MarsRequest parse(bool lower = true);
 
 private: // methods
 

@@ -26,7 +26,6 @@
 
 #include "fdb5/types/TypesRegistry.h"
 
-class MarsRequest;
 namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
@@ -62,7 +61,7 @@ public: // methods
     ~Schema();
 
     void expand(const Key &field, WriteVisitor &visitor) const;
-    void expand(const MarsRequest &request, ReadVisitor &visitor) const;
+    void expand(const metkit::MarsRequest &request, ReadVisitor &visitor) const;
 
     bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
     bool expandFirstLevel(const metkit::MarsRequest& request,  Key& result) const ;

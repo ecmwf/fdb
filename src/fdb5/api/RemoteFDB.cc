@@ -26,7 +26,7 @@
 #include "eckit/runtime/Main.h"
 #include "eckit/os/BackTrace.h"
 
-#include "marslib/MarsRequest.h"
+#include "metkit/MarsRequest.h"
 
 using namespace eckit;
 using namespace fdb5::remote;
@@ -731,13 +731,13 @@ private: // members
 
 // Here we do (asynchronous) retrieving related stuff
 
-DataHandle* RemoteFDB::retrieve(const MarsRequest& request) {
+DataHandle* RemoteFDB::retrieve(const metkit::MarsRequest& request) {
 
     connect();
 
     Buffer encodeBuffer(4096);
     MemoryStream s(encodeBuffer);
-    request.encode(s);
+    s << request;
 
     uint32_t id = generateRequestID();
     controlWriteCheckResponse(Message::Retrieve, id, encodeBuffer, s.position());

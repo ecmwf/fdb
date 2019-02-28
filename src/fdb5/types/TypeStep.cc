@@ -10,12 +10,14 @@
 
 #include "eckit/utils/Translator.h"
 
-#include "marslib/MarsRequest.h"
-#include "marslib/StepRange.h"
+#include "metkit/MarsRequest.h"
+#include "metkit/StepRange.h"
 
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeStep.h"
 #include "fdb5/database/DB.h"
+
+using metkit::StepRange;
 
 
 namespace fdb5 {
@@ -49,7 +51,7 @@ bool TypeStep::match(const std::string&, const std::string& value1, const std::s
     return false;
 }
 
-void TypeStep::getValues(const MarsRequest& request,
+void TypeStep::getValues(const metkit::MarsRequest& request,
                          const std::string& keyword,
                          eckit::StringList& values,
                          const Notifier&,

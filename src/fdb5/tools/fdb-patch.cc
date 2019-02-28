@@ -150,8 +150,7 @@ void FDBPatch::execute(const CmdArgs& args) {
 
     HandleGatherer handles(false);
     for (const Key& key : uniqueKeys) {
-        MarsRequest rq(key.keyDict());
-        rq.verb("retrieve");
+        metkit::MarsRequest rq("retrieve", key.keyDict());
         handles.add(fdb.retrieve(rq));
     }
 

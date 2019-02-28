@@ -23,15 +23,16 @@
 #include "eckit/config/Resource.h"
 #include "eckit/io/StdFile.h"
 
+#include "metkit/grib/MetFile.h"
+
 #include "fdb5/toc/AdoptVisitor.h"
 #include "fdb5/grib/GribDecoder.h"
 
 #include "fdb5/legacy/FDBIndexScanner.h"
 #include "fdb5/legacy/LegacyTranslator.h"
 
-#include "marslib/EmosFile.h"
-
 using namespace eckit;
+using metkit::grib::MetFile;
 
 namespace fdb5 {
 namespace legacy {
@@ -256,7 +257,7 @@ void FDBIndexScanner::process(FILE *f) {
 
             if (compareToGrib_) {
                 eckit::ScopedPtr<DataHandle> h(PathName(datapath).partHandle(offset, length));
-                EmosFile file(*h);
+                MetFile file(*h);
                 GribDecoder decoder;
                 Key grib;
                 decoder.gribToKey(file, grib);

@@ -13,7 +13,7 @@
 #include "eckit/parser/Tokenizer.h"
 #include "eckit/types/Date.h"
 
-#include "marslib/MarsRequest.h"
+#include "metkit/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeClimateDaily.h"
@@ -68,7 +68,7 @@ void TypeClimateDaily::toKey(std::ostream &out,
   out.fill(prev);
 }
 
-void TypeClimateDaily::getValues(const MarsRequest &request,
+void TypeClimateDaily::getValues(const metkit::MarsRequest &request,
                                  const std::string &keyword,
                                  eckit::StringList &values,
                                  const Notifier&,

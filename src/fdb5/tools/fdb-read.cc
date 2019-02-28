@@ -20,7 +20,7 @@
 #include "fdb5/tools/FDBTool.h"
 #include "fdb5/tools/RequestParser.h"
 
-#include "marslib/MarsRequest.h"
+#include "metkit/MarsRequest.h"
 
 
 class FDBRead : public fdb5::FDBTool {
@@ -50,7 +50,7 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
     bool extract = false;
     args.get("extract", extract);
 
-    std::vector<MarsRequest> requests;
+    std::vector<metkit::MarsRequest> requests;
 
     // Build request(s) from input
 
@@ -76,11 +76,11 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     fdb5::FDB fdb(args);
 
-    for (std::vector<MarsRequest>::const_iterator rit = requests.begin(); rit != requests.end(); ++rit) {
+    for (const auto& request : requests) {
 
-        eckit::Log::info() << (*rit) << std::endl;
+        eckit::Log::info() << request << std::endl;
 
-        handles.add(fdb.retrieve(*rit));
+        handles.add(fdb.retrieve(request));
     }
 
     // And get the data

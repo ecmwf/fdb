@@ -24,7 +24,7 @@
 
 #include "fdb5/database/Key.h"
 
-class MarsRequest;
+namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
 

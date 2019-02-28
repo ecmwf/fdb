@@ -17,8 +17,8 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/tools/FDBInspect.h"
 
-#include "mars_server_config.h"
-#include "mars_server_version.h"
+#include "fdb5/fdb_config.h"
+#include "fdb5/fdb_version.h"
 
 using eckit::Log;
 
@@ -81,7 +81,7 @@ void FDBInfo::init(const eckit::option::CmdArgs &args) {
 void FDBInfo::execute(const eckit::option::CmdArgs&) {
 
     if(all_ || version_) {
-        Log::info() << (all_ ? "Version: " : "") << mars_server_version_str() << std::endl;
+        Log::info() << (all_ ? "Version: " : "") << fdb_version_str() << std::endl;
         if(!all_) return;
     }
 

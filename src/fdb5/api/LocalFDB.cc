@@ -28,9 +28,9 @@
 #include "fdb5/api/local/PurgeVisitor.h"
 #include "fdb5/api/local/StatsVisitor.h"
 
-#include "marslib/MarsTask.h"
 
 using namespace fdb5::api::local;
+using namespace eckit;
 
 
 namespace fdb5 {
@@ -48,7 +48,7 @@ namespace {
 void LocalFDB::archive(const Key& key, const void* data, size_t length) {
 
     if (!archiver_) {
-        eckit::Log::debug<LibFdb>() << *this << ": Constructing new archiver" << std::endl;
+        Log::debug<LibFdb>() << *this << ": Constructing new archiver" << std::endl;
         archiver_.reset(new Archiver(config_));
     }
 
@@ -56,17 +56,14 @@ void LocalFDB::archive(const Key& key, const void* data, size_t length) {
 }
 
 
-eckit::DataHandle *LocalFDB::retrieve(const MarsRequest &request) {
+DataHandle *LocalFDB::retrieve(const metkit::MarsRequest &request) {
 
     if (!retriever_) {
-        eckit::Log::debug<LibFdb>() << *this << ": Constructing new retriever" << std::endl;
+        Log::debug<LibFdb>() << *this << ": Constructing new retriever" << std::endl;
         retriever_.reset(new Retriever(config_));
     }
 
-    MarsRequest e("environ");
-    MarsTask task(request, e);
-
-    return retriever_->retrieve(task);
+    return retriever_->retrieve(request);
 }
 
 template<typename VisitorType, typename ... Ts>
@@ -76,7 +73,7 @@ APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBTo
     using QueryIterator = APIIterator<ValueType>;
     using AsyncIterator = APIAsyncIterator<ValueType>;
 
-    auto async_worker = [this, request, args...] (eckit::Queue<ValueType>& queue) {
+    auto async_worker = [this, request, args...] (Queue<ValueType>& queue) {
         EntryVisitMechanism mechanism(config_);
         VisitorType visitor(queue, request.request(), args...);
         mechanism.visit(request, visitor);

@@ -10,7 +10,7 @@
 
 #include "eckit/utils/Translator.h"
 
-#include "marslib/MarsRequest.h"
+#include "metkit/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeDouble.h"
@@ -39,7 +39,7 @@ void TypeDouble::toKey(std::ostream &out,
   }
 }
 
-void TypeDouble::getValues(const MarsRequest& request,
+void TypeDouble::getValues(const metkit::MarsRequest& request,
                            const std::string& keyword,
                            eckit::StringList& values,
                            const Notifier&,

@@ -19,13 +19,14 @@
 #include "metkit/MarsParser.h"
 #include "metkit/MarsExpension.h"
 #include "metkit/MarsRequest.h"
-
-#include "marslib/EmosFile.h"
+#include "metkit/grib/MetFile.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
+
+using metkit::grib::MetFile;
 
 namespace fdb5 {
 
@@ -137,19 +138,19 @@ eckit::Channel& GribArchiver::logVerbose() const {
 
 }
 
-eckit::Length GribArchiver::archive(eckit::DataHandle &source) {
+eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
 
     fdb5::UMask umask(fdb5::UMask::defaultUMask());
 
     eckit::Timer timer("fdb::service::archive");
 
-    EmosFile file(source);
+    MetFile file(source);
     size_t len = 0;
 
     size_t count = 0;
     size_t total_size = 0;
 
-    eckit::Progress progress("FDB archive", 0, file.length());
+    eckit::Progress progress("FDB archive", 0, source.estimate());
 
     try {
 

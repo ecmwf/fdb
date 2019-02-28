@@ -43,7 +43,7 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     stats_.addArchive(length, timer);
 }
 
-eckit::DataHandle* FDB::retrieve(const MarsRequest& request) {
+eckit::DataHandle* FDB::retrieve(const metkit::MarsRequest& request) {
 
     eckit::Timer timer;
     timer.start();

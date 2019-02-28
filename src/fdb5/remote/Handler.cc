@@ -15,7 +15,7 @@
 #include "fdb5/LibFdb.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
-#include "marslib/MarsRequest.h"
+#include "metkit/MarsRequest.h"
 
 #include "eckit/maths/Functions.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -24,6 +24,7 @@
 #include <chrono>
 
 using namespace eckit;
+using metkit::MarsRequest;
 
 
 namespace fdb5 {

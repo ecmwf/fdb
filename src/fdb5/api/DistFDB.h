@@ -36,7 +36,7 @@ public: // method
 
     virtual void archive(const Key& key, const void* data, size_t length) override;
 
-    virtual eckit::DataHandle* retrieve(const MarsRequest& request) override;
+    virtual eckit::DataHandle* retrieve(const metkit::MarsRequest& request) override;
 
     virtual ListIterator list(const FDBToolRequest& request) override;
 

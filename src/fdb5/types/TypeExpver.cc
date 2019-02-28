@@ -13,7 +13,7 @@
 #include "eckit/utils/Translator.h"
 
 #include "eckit/types/Date.h"
-#include "marslib/MarsRequest.h"
+#include "metkit/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeExpver.h"

@@ -9,7 +9,7 @@
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/FDB.h"
 
-#include "marslib/MarsRequest.h"
+#include "metkit/MarsRequest.h"
 
 namespace fdb {
 namespace test {
@@ -34,7 +34,7 @@ private: // types
     };
 
     using Archives = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
-    using Retrieves = std::vector<MarsRequest>;
+    using Retrieves = std::vector<metkit::MarsRequest>;
 
     class FakeDataHandle : public eckit::DataHandle {
         void print(std::ostream& s) const override { s << "FakeDH"; }
@@ -61,7 +61,7 @@ public: // methods
         archives_.push_back(std::make_tuple(key, data, length));
     }
 
-    virtual eckit::DataHandle* retrieve(const MarsRequest& request) {
+    virtual eckit::DataHandle* retrieve(const metkit::MarsRequest& request) {
         counts_.retrieve += 1;
         retrieves_.push_back(request);
         return new FakeDataHandle;

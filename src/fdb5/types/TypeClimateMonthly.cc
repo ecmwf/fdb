@@ -10,7 +10,7 @@
 
 
 #include "eckit/types/Date.h"
-#include "marslib/MarsRequest.h"
+#include "metkit/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeClimateMonthly.h"
@@ -55,7 +55,7 @@ void TypeClimateMonthly::toKey(std::ostream &out,
     out << month(value);
 }
 
-void TypeClimateMonthly::getValues(const MarsRequest &request,
+void TypeClimateMonthly::getValues(const metkit::MarsRequest &request,
                                    const std::string &keyword,
                                    eckit::StringList &values,
                                    const Notifier&,

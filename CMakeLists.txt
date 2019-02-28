@@ -100,7 +100,7 @@ endif()
 
 set( FDB5_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 
-include_directories( ${FDB5_SERVER_INCLUDE_DIRS} )
+include_directories( ${FDB5_INCLUDE_DIRS} )
 include_directories( ${ECKIT_INCLUDE_DIRS} )
 include_directories( ${METKIT_INCLUDE_DIRS} )
 

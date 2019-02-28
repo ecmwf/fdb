@@ -22,7 +22,7 @@
 #include "fdb5/LibFdb.h"
 #include "fdb5/config/Config.h"
 
-#include "mars_server_version.h"
+#include "fdb5/fdb_version.h"
 
 namespace fdb5 {
 
@@ -53,10 +53,10 @@ const Config& LibFdb::defaultConfig() {
 
 const void* LibFdb::addr() const { return this; }
 
-std::string LibFdb::version() const { return mars_server_version_str(); }
+std::string LibFdb::version() const { return fdb_version_str(); }
 
 std::string LibFdb::gitsha1(unsigned int count) const {
-    std::string sha1(mars_server_git_sha1());
+    std::string sha1(fdb_git_sha1());
     if(sha1.empty()) {
         return "not available";
     }

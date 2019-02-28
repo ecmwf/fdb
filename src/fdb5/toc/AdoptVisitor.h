@@ -20,7 +20,7 @@
 
 #include "fdb5/database/BaseArchiveVisitor.h"
 
-class MarsRequest;
+namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
 

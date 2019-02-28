@@ -11,7 +11,10 @@
 #include "fdb5/database/Retriever.h"
 
 #include "eckit/config/Resource.h"
+#include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
+
+#include "metkit/MarsRequest.h"
 
 #include "fdb5/LibFdb.h"
 #include "fdb5/database/Notifier.h"
@@ -19,7 +22,7 @@
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/rules/Schema.h"
 
-#include "marslib/MarsTask.h"
+using namespace eckit;
 
 namespace fdb5 {
 
@@ -37,7 +40,7 @@ Retriever::Retriever(const Config& dbConfig) :
 Retriever::~Retriever() {
 }
 
-eckit::DataHandle *Retriever::retrieve(const MarsTask& task,
+eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request,
                                        const Schema& schema,
                                        bool sorted,
                                        const fdb5::Notifier& notifyee) const {
@@ -49,7 +52,7 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask& task,
 
         Log::debug<LibFdb>() << "Using schema: " << schema << std::endl;
 
-        schema.expand(task.request(), visitor);
+        schema.expand(request, visitor);
 
         eckit::Log::userInfo() << "Retrieving " << eckit::Plural(int(result.count()), "field") << std::endl;
 
@@ -60,38 +63,33 @@ eckit::DataHandle *Retriever::retrieve(const MarsTask& task,
         eckit::Log::warning() << e.what() << std::endl;
         eckit::Log::warning() << "Trying with old schema: " << e.path() << std::endl;
 
-        return retrieve(task, Schema(e.path()), sorted, notifyee); // recurse down with the schema from the exception
+        return retrieve(request, Schema(e.path()), sorted, notifyee); // recurse down with the schema from the exception
     }
 }
 
-eckit::DataHandle *Retriever::retrieve(const MarsTask &task) const {
+eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request) const {
 
-    class NotifyClient : public Notifier {
-        const MarsTask &task_;
-        virtual void notifyWind() const { task_.notifyWinds(); }
-
-      public:
-        NotifyClient(const MarsTask &task) : task_(task) {}
+    class NullNotifier : public Notifier {
+        void notifyWind() const override {}
     };
 
-    NotifyClient wind(task);
-    return retrieve(task, wind);
+    return retrieve(request, NullNotifier());
 }
 
-eckit::DataHandle *Retriever::retrieve(const MarsTask &task, const Notifier& notifyee) const {
+eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request, const Notifier& notifyee) const {
 
     bool sorted = false;
-    std::vector<std::string> sort;
-    task.request().getValues("optimise", sort);
 
-    Log::debug<LibFdb>() << "fdb5::Retriever::retrieve() Sorted? " << sorted << std::endl;
+    const std::vector<std::string>& sort = request.values("optimise", /* emptyOK */ true);
 
     if (sort.size() == 1 && sort[0] == "on") {
         sorted = true;
         eckit::Log::userInfo() << "Using optimise" << std::endl;
     }
 
-    return retrieve(task, dbConfig_.schema(), sorted, notifyee);
+    Log::debug<LibFdb>() << "fdb5::Retriever::retrieve() Sorted? " << sorted << std::endl;
+
+    return retrieve(request, dbConfig_.schema(), sorted, notifyee);
 }
 
 void Retriever::visitEntries(const FDBToolRequest &request, EntryVisitor &visitor) const {

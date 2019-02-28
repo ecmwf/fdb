@@ -30,7 +30,7 @@ void TypeIgnore::toKey(std::ostream&,
                        const std::string&) const {
 }
 
-void TypeIgnore::getValues(const MarsRequest&,
+void TypeIgnore::getValues(const metkit::MarsRequest&,
                            const std::string&,
                            eckit::StringList&,
                            const Notifier&,

@@ -23,8 +23,6 @@
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/FDB.h"
 
-namespace metkit { class MarsRequest; }
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -42,7 +40,7 @@ public: // methods
 
     virtual void archive(const Key& key, const void* data, size_t length);
 
-    virtual eckit::DataHandle* retrieve(const MarsRequest& request);
+    virtual eckit::DataHandle* retrieve(const metkit::MarsRequest& request);
 
     virtual ListIterator list(const FDBToolRequest& request) override;
 
@@ -63,7 +61,6 @@ private: // methods
     virtual void print(std::ostream& s) const;
 
     bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
-    bool matches(const MarsRequest& request, const SelectMap& select) const;
     bool matches(const metkit::MarsRequest& request, const SelectMap& select, bool requireMissing) const;
 
     template <typename QueryFN>

@@ -99,7 +99,7 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
     return (dh != 0);
 }
 
-void MultiRetrieveVisitor::values(const MarsRequest &request, const std::string &keyword,
+void MultiRetrieveVisitor::values(const metkit::MarsRequest &request, const std::string &keyword,
                              const TypesRegistry &registry,
                              eckit::StringList &values) {
     registry.lookupType(keyword).getValues(request, keyword, values, wind_, db_);

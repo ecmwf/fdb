@@ -14,7 +14,7 @@
 
 #include "eckit/utils/Translator.h"
 
-#include "marslib/Param.h"
+#include "metkit/Param.h"
 
 #include "fdb5/database/Key.h"
 #include "fdb5/legacy/LegacyTranslator.h"
@@ -109,7 +109,7 @@ static StringDict::value_type repres(const Key&, const std::string&, const std::
 }
 
 static StringDict::value_type param(const Key&, const std::string&, const std::string& value) {
-    Param p(value);
+    metkit::Param p(value);
 
     // if(p.table() == 0) {
     //     if(p.value() < 1000) {

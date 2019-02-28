@@ -1,11 +1,11 @@
-#include "mars_server_version.h"
+#include "fdb_version.h"
 
-const char * mars_server_version()     { return MARS_SERVER_VERSION; }
-const char * mars_server_version_str() { return MARS_SERVER_VERSION_STR; }
+const char * fdb_version()     { return FDB_VERSION; }
+const char * fdb_version_str() { return FDB_VERSION_STR; }
 
-unsigned int mars_server_version_int()
+unsigned int fdb_version_int()
 {
-  return 10000*MARS_SERVER_MAJOR_VERSION + 100*MARS_SERVER_MINOR_VERSION + 1*MARS_SERVER_PATCH_VERSION;
+  return 10000*FDB_MAJOR_VERSION + 100*FDB_MINOR_VERSION + 1*FDB_PATCH_VERSION;
 }
 
-const char * mars_server_git_sha1() { return "@MARS_SERVER_GIT_SHA1@"; }
+const char * fdb_git_sha1() { return "@FDB_GIT_SHA1@"; }

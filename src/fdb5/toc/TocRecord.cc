@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 
-#include "mars_server_version.h"
+#include "fdb5/fdb_version.h"
 
 #include <iomanip>
 
@@ -33,7 +33,7 @@ TocRecord::Header::Header(unsigned char tag):
         tag_        = tag;
         version_    = currentVersion();
 
-        fdbVersion_ = ::mars_server_version_int();
+        fdbVersion_ = ::fdb_version_int();
 
         SYSCALL( ::gettimeofday( &timestamp_, 0 ) );
 

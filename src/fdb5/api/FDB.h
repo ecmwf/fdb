@@ -26,7 +26,7 @@
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 
-class MarsRequest;
+namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
 
@@ -59,7 +59,7 @@ public: // methods
     /// @note always safe to call
     void flush();
 
-    eckit::DataHandle* retrieve(const MarsRequest& request);
+    eckit::DataHandle* retrieve(const metkit::MarsRequest& request);
 
     ListIterator list(const FDBToolRequest& request);
 

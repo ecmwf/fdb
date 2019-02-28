@@ -128,7 +128,7 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
     throw DistributionError("No writable lanes available for archive", Here());
 }
 
-eckit::DataHandle* DistFDB::retrieve(const MarsRequest &request) {
+eckit::DataHandle* DistFDB::retrieve(const metkit::MarsRequest &request) {
 
     // TODO: Deduplication. Currently no masking.
     // TODO: Error handling on read.

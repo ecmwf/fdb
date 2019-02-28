@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "mars_server_config.h"
+#include "fdb5/fdb_config.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"

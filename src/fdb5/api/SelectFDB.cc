@@ -18,8 +18,7 @@
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/LibFdb.h"
 
-#include "marslib/MarsTask.h"
-
+using namespace eckit;
 
 namespace fdb5 {
 
@@ -96,7 +95,7 @@ void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 }
 
 
-eckit::DataHandle *SelectFDB::retrieve(const MarsRequest& request) {
+eckit::DataHandle *SelectFDB::retrieve(const metkit::MarsRequest& request) {
 
 //    HandleGatherer result(true); // Sorted
     HandleGatherer result(false);
@@ -106,7 +105,8 @@ eckit::DataHandle *SelectFDB::retrieve(const MarsRequest& request) {
         const SelectMap& select(iter.first);
         FDB& fdb(iter.second);
 
-        if (matches(request, select)) {
+        // If we want to allow non-fully-specified retrieves, make false here.
+        if (matches(request, select, true)) {
             result.add(fdb.retrieve(request));
         }
     }
@@ -241,47 +241,24 @@ bool SelectFDB::matches(const metkit::MarsRequest& request, const SelectMap &sel
         const std::string& k(kv.first);
         const eckit::Regex& re(kv.second);
 
-        if (request.has(k)) {
+        const std::vector<std::string>& request_values = request.values(k, /* emptyOK */ true);
+
+        if (request_values.size() == 0) {
+            if (requireMissing) return false;
+        } else {
 
             bool re_match = false;
-            for (const std::string& val : request.values(k)) {
-                if (re.match(val)) {
+            for (const std::string& v : request_values) {
+                if (re.match(v)) {
                     re_match = true;
                     break;
                 }
             }
             if (!re_match) return false;
-
-        } else {
-            if (requireMissing) return false;
         }
     }
 
     return true;
-}
-
-bool SelectFDB::matches(const MarsRequest &request, const SelectMap &select) const {
-
-    for (const auto& kv : select) {
-
-        const std::string& k(kv.first);
-        const eckit::Regex& re(kv.second);
-
-        std::vector<std::string> request_values;
-        long count = request.getValues(k, request_values);
-
-        // TODO: If we want to allow non-fully-specified retrieves, this is the place to do it.
-        if (count == 0) return false;
-
-        bool found = false;
-        for (const std::string& v : request_values) {
-            if (re.match(v)) found = true;
-        }
-        if (!found) return false;
-    }
-
-    return true;
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------

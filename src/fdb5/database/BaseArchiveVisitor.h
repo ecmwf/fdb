@@ -18,7 +18,7 @@
 
 #include "fdb5/database/WriteVisitor.h"
 
-class MarsRequest;
+namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
 

@@ -46,7 +46,7 @@ Rule::~Rule() {
     }
 }
 
-void Rule::expand( const MarsRequest &request,
+void Rule::expand( const metkit::MarsRequest &request,
                    std::vector<Predicate *>::const_iterator cur,
                    size_t depth,
                    std::vector<Key> &keys,
@@ -123,7 +123,7 @@ void Rule::expand( const MarsRequest &request,
 
 }
 
-void Rule::expand(const MarsRequest &request, ReadVisitor &visitor, size_t depth, std::vector<Key> &keys, Key &full) const {
+void Rule::expand(const metkit::MarsRequest &request, ReadVisitor &visitor, size_t depth, std::vector<Key> &keys, Key &full) const {
     ASSERT(keys.size() == 3);
     expand(request, predicates_.begin(), depth, keys, full, visitor);
 }

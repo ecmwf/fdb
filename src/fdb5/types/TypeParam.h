@@ -30,7 +30,7 @@ public: // methods
 
     virtual ~TypeParam();
 
-    virtual void getValues(const MarsRequest &request,
+    virtual void getValues(const metkit::MarsRequest &request,
                            const std::string &keyword,
                            eckit::StringList &values,
                            const Notifier &wind,

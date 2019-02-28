@@ -15,18 +15,17 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include "eckit/runtime/Monitorable.h"
+#include "eckit/net/Port.h"
 #include "eckit/net/TCPServer.h"
 #include "eckit/net/TCPSocket.h"
-#include "eckit/net/Port.h"
-#include "eckit/runtime/ProcessControler.h"
+#include "eckit/runtime/Application.h"
+#include "eckit/runtime/Monitorable.h"
 #include "eckit/runtime/Monitor.h"
+#include "eckit/runtime/ProcessControler.h"
 #include "eckit/thread/ThreadControler.h"
 
 #include "fdb5/remote/Handler.h"
 #include "fdb5/config/Config.h"
-
-#include "common/MarsApplication.h"
 
 using namespace eckit;
 
@@ -66,10 +65,10 @@ private: // methods
 
 //--------------------------------------------------------------------------------------------------
 
-class FDBSvrApp : public MarsApplication {
+class FDBSvrApp : public eckit::Application {
 public:
     FDBSvrApp(int argc, char** argv) :
-        MarsApplication(argc, argv, "FDB_HOME") {
+        eckit::Application(argc, argv, "FDB_HOME") {
     }
 
     ~FDBSvrApp() {}
