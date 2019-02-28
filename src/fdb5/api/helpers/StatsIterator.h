@@ -14,25 +14,17 @@
 #ifndef fdb5_api_StatsIterator_H
 #define fdb5_api_StatsIterator_H
 
+#include <string>
+
+#include "eckit/filesystem/PathName.h"
+
 #include "fdb5/api/helpers/APIIterator.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/Index.h"
 
-#include "eckit/filesystem/PathName.h"
-
-#include <string>
-
-/*
- * Define a standard object which can be used to iterate the results of a
- * where() call on an arbitrary FDB object
- */
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-
-// TODO: We might expand this to include host, port, etc, in an explicit where object.
-//       Or to use eckit::URL, ...
 
 struct StatsElement {
 

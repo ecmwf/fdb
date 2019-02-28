@@ -14,25 +14,24 @@
 #ifndef fdb5_ListIterator_H
 #define fdb5_ListIterator_H
 
+#include <vector>
+#include <memory>
+#include <iosfwd>
+
 #include "fdb5/database/Key.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/api/helpers/APIIterator.h"
-
-#include <memory>
-#include <iosfwd>
 
 namespace eckit {
     class Stream;
 }
 
-/*
- * Define a standard object which can be used to iterate the results of a
- * list() call on an arbitrary FDB object
- */
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+
+/// Define a standard object which can be used to iterate the results of a
+/// list() call on an arbitrary FDB object
 
 class ListElement {
 public: // methods

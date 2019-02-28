@@ -14,22 +14,16 @@
 #ifndef fdb5_api_DumpIterator_H
 #define fdb5_api_DumpIterator_H
 
-#include "fdb5/api/helpers/APIIterator.h"
-
 #include <string>
 
-/*
- * Define a standard object which can be used to iterate the results of a
- * dump() call on an arbitrary FDB object
- */
-
-namespace eckit {
-    class Stream;
-}
+#include "fdb5/api/helpers/APIIterator.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+
+/// Define a standard object which can be used to iterate the results of a
+/// dump() call on an arbitrary FDB object
 
 using DumpElement = std::string;
 

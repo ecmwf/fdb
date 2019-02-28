@@ -14,23 +14,21 @@
 #ifndef fdb5_api_WhereIterator_H
 #define fdb5_api_WhereIterator_H
 
-#include "fdb5/api/helpers/APIIterator.h"
+#include <string>
 
 #include "eckit/filesystem/PathName.h"
 
-#include <string>
-
-/*
- * Define a standard object which can be used to iterate the results of a
- * where() call on an arbitrary FDB object
- */
+#include "fdb5/api/helpers/APIIterator.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// TODO: We might expand this to include host, port, etc, in an explicit where object.
-//       Or to use eckit::URL, ...
+/// Define a standard object which can be used to iterate the results of a
+/// where() call on an arbitrary FDB object
+
+/// @todo We might expand this to include host, port, etc, in an explicit where object.
+///       Or to use eckit::URL, ...
 
 using WhereElement = eckit::PathName;
 
