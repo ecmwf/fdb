@@ -55,7 +55,7 @@ public: // methods
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from
 
-    eckit::DataHandle *retrieve(const metkit::MarsRequest& request) const;
+    eckit::DataHandle* retrieve(const metkit::MarsRequest& request) const;
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @param notifyee is an object that handles notifications for the client, e.g. wind conversion
