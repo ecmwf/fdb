@@ -13,7 +13,7 @@ ecbuild_declare_project()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-####################################################################################################
+########################################################################################################################
 ### dependencies and options
 
 ### eckit
@@ -49,11 +49,22 @@ ecbuild_add_option( FEATURE TOCFDB
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
 
-### Experimental features
+find_package( LustreAPI QUIET )
+
+ecbuild_add_option( FEATURE LUSTRE
+                    CONDITION LustreAPI_FOUND
+                    DEFAULT ON
+                    DESCRIPTION "Filesystem TOC support for FDB" )
+
+### experimental & sandbox features
 
 ecbuild_add_option( FEATURE EXPERIMENTAL
                     DEFAULT OFF
                     DESCRIPTION "Experimental features" )
+
+ecbuild_add_option( FEATURE SANDBOX
+                    DESCRIPTION "build the sandbox stuff"
+                    DEFAULT OFF	 )
 
 ### FDB4 - 5 migration tools
 
@@ -62,25 +73,13 @@ ecbuild_add_option( FEATURE EXPERIMENTAL
 #                    DESCRIPTION "FDB4 to 5 migration tools"
 #                    REQUIRED_PACKAGES "PROJECT fdb VERSION 4.8" )
 
-####################################################################################################
-# project vars & options
 
-ecbuild_add_option( FEATURE SANDBOX
-                    DESCRIPTION "build the sandbox stuff"
-                    DEFAULT OFF	 )
-
-####################################################################################################
-# find extra packages
-
-find_package( LustreAPI QUIET )
-
-# find thread library ( preferably pthreads )
+### find thread library ( preferably pthreads )
 
 set( CMAKE_THREAD_PREFER_PTHREAD 1 )
 find_package(Threads REQUIRED)
 
-####################################################################################################
-# checks
+### checks
 
 # check thread library is pthreads
 
@@ -88,7 +87,7 @@ if( NOT ${CMAKE_USE_PTHREADS_INIT} )
 	message( FATAL_ERROR "Only pthreads supported - thread library found is [${CMAKE_THREAD_LIBS_INIT}]" )
 endif()
 
-####################################################################################################
+########################################################################################################################
 # contents
 
 set( FDB5_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
@@ -101,15 +100,13 @@ set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};$
 
 get_directory_property( FDB5_DEFINITIONS COMPILE_DEFINITIONS )
 
-# source files
+### source files
 
 add_subdirectory( src )
 add_subdirectory( tests )
 
-####################################################################################################
-# finalize
+### finalize
 
 ecbuild_install_project( NAME fdb )
 
 ecbuild_print_summary()
-
