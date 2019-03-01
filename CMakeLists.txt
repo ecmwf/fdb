@@ -65,13 +65,6 @@ ecbuild_add_option( FEATURE EXPERIMENTAL
 ####################################################################################################
 # project vars & options
 
-### pointdb
-
-ecbuild_add_option( FEATURE POINTDB
-                    DEFAULT ON
-                    DESCRIPTION "Whether or not to build the PointDB -- [EXPERIMENTAL]"
-                    REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
-
 ecbuild_add_option( FEATURE SANDBOX
                     DESCRIPTION "build the sandbox stuff"
                     DEFAULT OFF	 )
