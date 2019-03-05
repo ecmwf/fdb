@@ -8,7 +8,7 @@ output=$(fdb-info)
 [ -z "${output}" ] || (echo "Unexpected output" && exit 1)
 
 output=$(fdb-info --version)
-[ "${output}" = "@MARS_SERVER_VERSION@" ] || (echo "Unexpected version output" && exit 1)
+[ "${output}" = "@FDB5_VERSION@" ] || (echo "Unexpected version output" && exit 1)
 
 # By default the build directory is used as home, as it has a default configuration
 # and is explored relative to the binary
