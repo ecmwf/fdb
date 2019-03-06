@@ -40,13 +40,11 @@ configure_file( fdb5_version.c.in   fdb5_version.c   )
 
 install( FILES ${CMAKE_CURRENT_BINARY_DIR}/fdb5_config.h
                ${CMAKE_CURRENT_BINARY_DIR}/fdb5_version.h
-         DESTINATION ${INSTALL_INCLUDE_DIR} )
+         DESTINATION ${INSTALL_INCLUDE_DIR}/fdb5 )
 
 # fdb5 library
 
 list( APPEND fdb5_srcs
-    fdb5_config.h
-    fdb5_version.h
     fdb5_version.c
 	LibFdb5.h
 	LibFdb5.cc
