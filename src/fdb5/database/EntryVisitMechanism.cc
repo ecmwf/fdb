@@ -85,7 +85,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     try {
 
-        std::vector<PathName> paths(Manager(dbConfig_).visitableLocations(request.request()));
+        std::vector<PathName> paths(Manager(dbConfig_).visitableLocations(request.request(), request.all()));
 
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
 

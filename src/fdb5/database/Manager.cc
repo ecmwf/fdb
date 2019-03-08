@@ -288,7 +288,7 @@ std::vector<PathName> Manager::allLocations(const Key& key)
 }
 
 
-std::vector<eckit::PathName> Manager::visitableLocations(const metkit::MarsRequest& rq) {
+std::vector<eckit::PathName> Manager::visitableLocations(const metkit::MarsRequest& rq, bool all) {
 
     std::set<std::string> engines = Manager::engines(rq);
 
@@ -298,7 +298,12 @@ std::vector<eckit::PathName> Manager::visitableLocations(const metkit::MarsReque
 
     for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
         Log::debug<LibFdb5>() << "Selected FDB engine " << *i << std::endl;
-        std::vector<PathName> p = Engine::backend(*i).visitableLocations(rq, config_);
+        std::vector<PathName> p;
+        if (all) {
+            p = Engine::backend(*i).visitableLocations(Key(), config_);
+        } else {
+            p = Engine::backend(*i).visitableLocations(rq, config_);
+        }
         r.insert(r.end(), p.begin(), p.end());
     }
 
