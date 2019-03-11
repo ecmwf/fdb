@@ -14,6 +14,8 @@
 #ifndef fdb5_api_local_ListVisitor_H
 #define fdb5_api_local_ListVisitor_H
 
+#include "fdb5/database/DB.h"
+#include "fdb5/database/Index.h"
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/ListIterator.h"
 
@@ -32,7 +34,7 @@ public:
 
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
-    bool visitDatabase(const DB& db) {
+    bool visitDatabase(const DB& db) override {
         bool ret = QueryVisitor::visitDatabase(db);
         ASSERT(db.key().partialMatch(request_));
 
@@ -76,7 +78,8 @@ public:
         }
     }
 
-private: // methods
+private: // members
+
     metkit::MarsRequest indexRequest_;
     metkit::MarsRequest datumRequest_;
 };

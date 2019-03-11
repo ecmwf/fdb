@@ -52,52 +52,52 @@ public: // methods
     ApiSpy(const fdb5::Config& config, const std::string& name) : FDBBase(config, name) {
         knownSpies().push_back(this);
     }
-    virtual ~ApiSpy() {
+    ~ApiSpy() override {
         knownSpies().erase(std::find(knownSpies().begin(), knownSpies().end(), this));
     }
 
-    virtual void archive(const fdb5::Key& key, const void* data, size_t length) {
+    void archive(const fdb5::Key& key, const void* data, size_t length) override {
         counts_.archive += 1;
         archives_.push_back(std::make_tuple(key, data, length));
     }
 
-    virtual eckit::DataHandle* retrieve(const metkit::MarsRequest& request) {
+    eckit::DataHandle* retrieve(const metkit::MarsRequest& request) override {
         counts_.retrieve += 1;
         retrieves_.push_back(request);
         return new FakeDataHandle;
     }
 
-    virtual fdb5::ListIterator list(const fdb5::FDBToolRequest& request) override {
+    fdb5::ListIterator list(const fdb5::FDBToolRequest& request) override {
         counts_.list += 1;
         return fdb5::ListIterator(0);
     }
 
-    virtual fdb5::DumpIterator dump(const fdb5::FDBToolRequest& request, bool simple) override {
+    fdb5::DumpIterator dump(const fdb5::FDBToolRequest& request, bool simple) override {
         counts_.dump += 1;
         return fdb5::DumpIterator(0);
     }
 
-    virtual fdb5::WhereIterator where(const fdb5::FDBToolRequest& request) override {
+    fdb5::WhereIterator where(const fdb5::FDBToolRequest& request) override {
         counts_.where += 1;
         return fdb5::WhereIterator(0);
     }
 
-    virtual fdb5::WipeIterator wipe(const fdb5::FDBToolRequest& request, bool doit, bool verbose) override {
+    fdb5::WipeIterator wipe(const fdb5::FDBToolRequest& request, bool doit, bool verbose) override {
         counts_.wipe += 1;
         return fdb5::WipeIterator(0);
     }
 
-    virtual fdb5::PurgeIterator purge(const fdb5::FDBToolRequest& request, bool doit, bool verbose) override {
+    fdb5::PurgeIterator purge(const fdb5::FDBToolRequest& request, bool doit, bool verbose) override {
         counts_.purge += 1;
         return fdb5::PurgeIterator(0);
     }
 
-    virtual fdb5::StatsIterator stats(const fdb5::FDBToolRequest& request) override {
+    fdb5::StatsIterator stats(const fdb5::FDBToolRequest& request) override {
         counts_.stats += 1;
         return fdb5::StatsIterator(0);
     }
 
-    virtual void flush() {
+    void flush() override {
         counts_.flush += 1;
     }
 
@@ -115,7 +115,7 @@ public: // methods
 
 private: // methods
 
-    virtual void print(std::ostream& s) const { s << "ApiSpy()"; }
+    void print(std::ostream& s) const override { s << "ApiSpy()"; }
 
 private: // members
 

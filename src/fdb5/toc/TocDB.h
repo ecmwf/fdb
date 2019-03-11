@@ -35,41 +35,41 @@ public: // methods
     TocDB(const Key& key, const eckit::Configuration& config);
     TocDB(const eckit::PathName& directory, const eckit::Configuration& config);
 
-    virtual ~TocDB();
+    ~TocDB() override;
 
     static const char* dbTypeName() { return TocEngine::typeName(); }
 
 protected: // methods
 
-    virtual std::string dbType() const;
+    std::string dbType() const override;
 
-    virtual void checkUID() const;
-    virtual bool open();
-    virtual void close();
-    virtual void flush();
-    virtual bool exists() const;
-    virtual void visitEntries(EntryVisitor& visitor, bool sorted=false);
-    virtual void visit(DBVisitor& visitor);
-    virtual void dump(std::ostream& out, bool simple=false) const;
-    virtual std::string owner() const;
-    virtual eckit::PathName basePath() const;
-    virtual std::vector<eckit::PathName> metadataPaths() const;
-    virtual const Schema& schema() const;
+    void checkUID() const override;
+    bool open() override;
+    void close() override;
+    void flush() override;
+    bool exists() const override;
+    void visitEntries(EntryVisitor& visitor, bool sorted=false) override;
+    void visit(DBVisitor& visitor) override;
+    void dump(std::ostream& out, bool simple=false) const override;
+    std::string owner() const override;
+    eckit::PathName basePath() const override;
+    std::vector<eckit::PathName> metadataPaths() const override;
+    const Schema& schema() const override;
 
-    virtual eckit::DataHandle *retrieve(const Key &key) const;
-    virtual void archive(const Key &key, const void *data, eckit::Length length);
-    virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
+    eckit::DataHandle *retrieve(const Key &key) const override;
+    void archive(const Key &key, const void *data, eckit::Length length) override;
+    void axis(const std::string &keyword, eckit::StringSet &s) const override;
 
-    virtual StatsReportVisitor* statsReportVisitor() const override;
-    virtual PurgeVisitor* purgeVisitor() const override;
-    virtual void maskIndexEntry(const Index& index) const override;
+    StatsReportVisitor* statsReportVisitor() const override;
+    PurgeVisitor* purgeVisitor() const override;
+    void maskIndexEntry(const Index& index) const override;
 
     void loadSchema();
-    void checkSchema(const Key &key) const;
+    void checkSchema(const Key &key) const override;
 
-    virtual DbStats statistics() const;
+    DbStats statistics() const override;
 
-    virtual std::vector<Index> indexes(bool sorted=false) const;
+    std::vector<Index> indexes(bool sorted=false) const override;
 
 private: // members
 
