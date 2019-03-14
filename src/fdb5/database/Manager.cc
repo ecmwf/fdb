@@ -16,7 +16,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/utils/Regex.h"
 #include "eckit/config/Resource.h"
-#include "eckit/parser/Tokenizer.h"
+#include "eckit/utils/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 #include "eckit/thread/Mutex.h"
 #include "eckit/thread/AutoLock.h"

@@ -15,8 +15,8 @@
 
 #include "eckit/types/Types.h"
 #include "eckit/config/Resource.h"
-#include "eckit/parser/Tokenizer.h"
-#include "eckit/parser/StringTools.h"
+#include "eckit/utils/Tokenizer.h"
+#include "eckit/utils/StringTools.h"
 #include "eckit/utils/Translator.h"
 #include "eckit/thread/Mutex.h"
 #include "eckit/thread/AutoLock.h"

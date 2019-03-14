@@ -10,7 +10,7 @@
 
 #include <algorithm>
 
-#include "eckit/parser/Tokenizer.h"
+#include "eckit/utils/Tokenizer.h"
 
 #include "metkit/MarsRequest.h"
 

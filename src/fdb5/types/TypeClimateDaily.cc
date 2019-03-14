@@ -10,7 +10,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
-#include "eckit/parser/Tokenizer.h"
+#include "eckit/utils/Tokenizer.h"
 #include "eckit/types/Date.h"
 
 #include "metkit/MarsRequest.h"

@@ -17,7 +17,7 @@
 
 #include "eckit/io/StdFile.h"
 #include "eckit/io/StdPipe.h"
-#include "eckit/parser/Tokenizer.h"
+#include "eckit/utils/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 #include "eckit/memory/ScopedPtr.h"
 #include "eckit/config/Resource.h"

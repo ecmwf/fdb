@@ -15,7 +15,7 @@
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
-#include "eckit/parser/Tokenizer.h"
+#include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/api/DistFDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"

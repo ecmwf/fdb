@@ -10,7 +10,7 @@
 
 #include <algorithm>
 
-#include "eckit/parser/StringTools.h"
+#include "eckit/utils/StringTools.h"
 #include "metkit/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
