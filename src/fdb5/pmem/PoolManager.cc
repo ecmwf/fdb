@@ -12,7 +12,7 @@
 #include "fdb5/pmem/PoolManager.h"
 
 #include "eckit/config/Resource.h"
-#include "eckit/parser/Tokenizer.h"
+#include "eckit/utils/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/MarsRequest.h"
