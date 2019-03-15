@@ -21,8 +21,8 @@ file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tests/fdb/pool ) # as defined in ${CMAK
 
 list( APPEND _test_environment
     FDB_HOME=${CMAKE_BINARY_DIR}
-    GRIB_DEFINITION_PATH=${grib_api_BASE_DIR}/share/${grib_handling_pkg}/definitions
-    GRIB_SAMPLES_PATH=${grib_api_BASE_DIR}/share/${grib_handling_pkg}/samples )
+    ECCODES_DEFINITION_PATH=${ECCODES_DEFINITION_PATH}
+    ECCODES_SAMPLES_PATH=${ECCODES_SAMPLES_PATH} )
 
 list( APPEND fdb_tests  test_fdb5_service.cc )
 
