@@ -205,7 +205,7 @@ std::set<std::string> Manager::engines(const Key& key)
     return s;
 }
 
-std::set<std::string> Manager::engines(const metkit::MarsRequest& rq)
+std::set<std::string> Manager::engines(const metkit::MarsRequest& rq, bool all)
 {
     std::set<std::string> s;
     std::string expanded;
@@ -215,19 +215,25 @@ std::set<std::string> Manager::engines(const metkit::MarsRequest& rq)
         s.insert(explicitEngine_);
     } else {
 
-        Key key;
-        if (!config_.schema().expandFirstLevel(rq, key)) {
-            std::stringstream ss;
-            ss << "Could not uniquely expand first level key of request: " << rq << std::endl;
-            throw eckit::SeriousBug(ss.str(), Here());
-        }
-
-        expanded = key.valuesToString();
         const EngineTable& engineTypes(readEngineTypes(enginesFile_));
 
-        for (EngineTable::const_iterator i = engineTypes.begin(); i != engineTypes.end() ; ++i) {
-            if(key.empty() || i->match(expanded)) {
-                s.insert(i->engine());
+        if (all) {
+            for (const auto& e : engineTypes) s.insert(e.engine());
+        } else {
+
+            // Match all possible expansions of the first level according to the schema
+            std::set<Key> keys;
+            config_.schema().matchFirstLevel(rq, keys, "");
+
+            std::set<std::string> expandedKeys;
+            for (const auto& k : keys) {
+                expandedKeys.insert(k.valuesToString());
+            }
+
+            for (const auto& e : engineTypes) {
+                for (const auto& expanded : expandedKeys) {
+                    if (e.match(expanded)) s.insert(e.engine());
+                }
             }
         }
     }
@@ -290,7 +296,7 @@ std::vector<PathName> Manager::allLocations(const Key& key)
 
 std::vector<eckit::PathName> Manager::visitableLocations(const metkit::MarsRequest& rq, bool all) {
 
-    std::set<std::string> engines = Manager::engines(rq);
+    std::set<std::string> engines = Manager::engines(rq, all);
 
     Log::debug<LibFdb5>() << "Matching engines for request " << rq << " -> " << engines << std::endl;
 

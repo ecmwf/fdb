@@ -42,7 +42,7 @@ public: // methods
 
     /// set union of all the engines that can possibly handle this key
     std::set<std::string> engines(const Key &key);
-    std::set<std::string> engines(const metkit::MarsRequest& rq);
+    std::set<std::string> engines(const metkit::MarsRequest& rq, bool all);
 
     /// Uniquely selects the engine that will handle this Path by checking possible handlers
     std::string engine(const eckit::PathName& path);
