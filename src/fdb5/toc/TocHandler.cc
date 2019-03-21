@@ -315,16 +315,17 @@ std::vector<PathName> TocHandler::subTocPaths() const {
     openForRead();
     TocHandlerCloser close(*this);
 
-    TocRecord r;
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord);
 
     std::vector<eckit::PathName> paths;
 
-    while ( readNext(r, true, false) ) {
+    while ( readNext(*r, true, false) ) {
 
-        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
 
-        switch (r.header_.tag_) {
+        switch (r->header_.tag_) {
 
             case TocRecord::TOC_SUB_TOC: {
                 s >> path;
@@ -380,15 +381,16 @@ void TocHandler::populateMaskedEntriesList() const {
 
     maskedEntries_.clear();
 
-    TocRecord r;
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord);
 
-    while ( readNextInternal(r) ) {
+    while ( readNextInternal(*r) ) {
 
-        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
         off_t offset;
 
-        switch (r.header_.tag_) {
+        switch (r->header_.tag_) {
 
             /// The TOC_CLEAR record is used both for clearing indexes and subtocs. If the offset is
             /// non-zero it is definitely an index, so we can skip it.
@@ -448,9 +450,10 @@ void TocHandler::writeInitRecord(const Key &key) {
 
     TocHandlerCloser closer(*this);
 
-    TocRecord r;
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord);
 
-    size_t len = readNext(r);
+    size_t len = readNext(*r);
     if (len == 0) {
 
         eckit::Log::debug<LibFdb5>() << "Initializing FDB TOC in " << tocPath_ << std::endl;
@@ -485,26 +488,30 @@ void TocHandler::writeInitRecord(const Key &key) {
             eckit::PathName::rename(tmp, schemaPath_);
         }
 
-        TocRecord r( TocRecord::TOC_INIT );
-        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+
+        // Allocate (large) TocRecord on heap not stack (MARS-779)
+        std::unique_ptr<TocRecord> r2(new TocRecord(TocRecord::TOC_INIT));
+        eckit::MemoryStream s(&r2->payload_[0], r2->maxPayloadSize);
         s << key;
         s << isSubToc_;
-        append(r, s.position());
-        dbUID_ = r.header_.uid_;
+        append(*r2, s.position());
+        dbUID_ = r2->header_.uid_;
 
     } else {
-        ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
-        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        ASSERT(r->header_.tag_ == TocRecord::TOC_INIT);
+        eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         ASSERT(key == Key(s));
-        dbUID_ = r.header_.uid_;
+        dbUID_ = r->header_.uid_;
     }
 }
 
 void TocHandler::writeClearRecord(const Index &index) {
 
-    TocRecord r(TocRecord::TOC_CLEAR);
-    size_t sz = roundRecord(r, buildClearRecord(r, index));
-    appendBlock(&r, sz);
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR));
+
+    size_t sz = roundRecord(*r, buildClearRecord(*r, index));
+    appendBlock(r.get(), sz);
 }
 
 void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
@@ -512,10 +519,12 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     openForAppend();
     TocHandlerCloser closer(*this);
 
-    TocRecord r( TocRecord::TOC_SUB_TOC );
-    eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_SUB_TOC));
+
+    eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << subToc.tocPath();
-    append(r, s.position());
+    append(*r, s.position());
 
     eckit::Log::debug<LibFdb5>() << "Write TOC_SUB_TOC " << subToc.tocPath() << std::endl;
 }
@@ -532,15 +541,17 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             const TocIndexLocation& location = reinterpret_cast<const TocIndexLocation&>(l);
 
-            TocRecord r( TocRecord::TOC_INDEX );
-            eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+            // Allocate (large) TocRecord on heap not stack (MARS-779)
+            std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_INDEX));
+
+            eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
             s << location.path().baseName();
             s << location.offset();
             s << index_.type();
 
             index_.encode(s);
-            handler_.append(r, s.position());
+            handler_.append(*r, s.position());
 
             eckit::Log::debug<LibFdb5>() << "Write TOC_INDEX " << location.path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
         }
@@ -616,11 +627,12 @@ long TocHandler::dbUID() const {
     openForRead();
     TocHandlerCloser close(*this);
 
-    TocRecord r;
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord);
 
-    while ( readNext(r) ) {
-        if (r.header_.tag_ == TocRecord::TOC_INIT) {
-            dbUID_ = r.header_.uid_;
+    while ( readNext(*r) ) {
+        if (r->header_.tag_ == TocRecord::TOC_INIT) {
+            dbUID_ = r->header_.uid_;
             return dbUID_;
         }
     }
@@ -632,12 +644,13 @@ Key TocHandler::databaseKey() {
     openForRead();
     TocHandlerCloser close(*this);
 
-    TocRecord r;
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord);
 
-    while ( readNext(r) ) {
-        if (r.header_.tag_ == TocRecord::TOC_INIT) {
-            eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
-            dbUID_ = r.header_.uid_;
+    while ( readNext(*r) ) {
+        if (r->header_.tag_ == TocRecord::TOC_INIT) {
+            eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
+            dbUID_ = r->header_.uid_;
             return Key(s);
         }
     }
@@ -651,9 +664,10 @@ size_t TocHandler::numberOfRecords() const {
         openForRead();
         TocHandlerCloser close(*this);
 
-        TocRecord r;
+        // Allocate (large) TocRecord on heap not stack (MARS-779)
+        std::unique_ptr<TocRecord> r(new TocRecord);
 
-        while ( readNext(r) ) {
+        while ( readNext(*r) ) {
             count_++;
         }
     }
@@ -679,13 +693,14 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
     openForRead();
     TocHandlerCloser close(*this);
 
-    TocRecord r;
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord);
     count_ = 0;
 
 
-    while ( readNext(r) ) {
+    while ( readNext(*r) ) {
 
-        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
         std::string type;
 
@@ -695,10 +710,10 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
         count_++;
 
 
-        switch (r.header_.tag_) {
+        switch (r->header_.tag_) {
 
         case TocRecord::TOC_INIT:
-            dbUID_ = r.header_.uid_;
+            dbUID_ = r->header_.uid_;
             eckit::Log::debug<LibFdb5>() << "TocRecord TOC_INIT key is " << Key(s) << std::endl;
             break;
 
@@ -782,11 +797,12 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
     openForRead();
     TocHandlerCloser close(*this);
 
-    TocRecord r;
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord);
 
-    while ( readNext(r, walkSubTocs) ) {
+    while ( readNext(*r, walkSubTocs) ) {
 
-        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
         std::string type;
         bool isSubToc;
@@ -794,14 +810,14 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
         off_t offset;
         std::vector<Index>::iterator j;
 
-        r.dump(out, simple);
+        r->dump(out, simple);
 
-        switch (r.header_.tag_) {
+        switch (r->header_.tag_) {
 
             case TocRecord::TOC_INIT: {
                 isSubToc = false;
                 fdb5::Key key(s);
-                if (r.header_.version_ > 1) {
+                if (r->header_.version_ > 1) {
                     s >> isSubToc;
                 }
                 out << "  Key: " << key << ", sub-toc: " << (isSubToc ? "yes" : "no");
@@ -848,16 +864,17 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
     openForRead();
     TocHandlerCloser close(*this);
 
-    TocRecord r;
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord);
 
-    while ( readNext(r) ) {
+    while ( readNext(*r) ) {
 
-        eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+        eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
         std::string type;
         off_t offset;
 
-        switch (r.header_.tag_) {
+        switch (r->header_.tag_) {
 
             case TocRecord::TOC_INDEX: {
                 s >> path;
