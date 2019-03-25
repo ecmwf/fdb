@@ -11,6 +11,8 @@
 
 #include "fdb5/api/local/PurgeVisitor.h"
 
+#include "eckit/exception/Exceptions.h"
+
 #include "fdb5/api/local/QueueStringLogTarget.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/PurgeVisitor.h"
@@ -35,6 +37,17 @@ PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
 bool PurgeVisitor::visitDatabase(const DB& db) {
 
     EntryVisitor::visitDatabase(db);
+
+    // If the request is overspecified relative to the DB key, then we
+    // bail out here.
+
+    if (!db.key().match(request_)) {
+        std::stringstream ss;
+        ss << "Purging not supported for over-specified requests. "
+           << "db=" << db.key()
+           << ", request=" << request_;
+        throw eckit::UserError(ss.str(), Here());
+    }
 
     ASSERT(!internalVisitor_);
     internalVisitor_.reset(db.purgeVisitor());
