@@ -17,6 +17,7 @@
 #define fdb5_LegacyArchiver_H
 
 #include "eckit/types/Types.h"
+#include "eckit/io/DataBlob.h"
 
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Key.h"
