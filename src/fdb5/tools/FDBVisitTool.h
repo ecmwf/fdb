@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   FDBInspect.h
 /// @author Simon Smart
 /// @date   November 2018
 
