@@ -17,9 +17,6 @@
 #define fdb5_Archiver_H
 
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/filesystem/PathName.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/DataBlob.h"
 
 #include "fdb5/database/DB.h"
 #include "fdb5/config/Config.h"
@@ -68,7 +65,7 @@ private: // members
 
     friend class BaseArchiveVisitor;
 
-    typedef std::map< Key, eckit::SharedPtr<DB> > store_t;
+    typedef std::map< Key, std::shared_ptr<DB> > store_t;
 
     Config dbConfig_;
 
