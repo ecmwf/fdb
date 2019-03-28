@@ -31,7 +31,6 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
 
 
     std::string full_string = verb + "," + request_str; // Use a dummy verb
-    eckit::Log::error() << "Full string: " << full_string << std::endl;
     std::istringstream in(full_string);
     metkit::MarsParser parser(in);
     auto parsedRequests = parser.parse();
@@ -67,10 +66,6 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
             }
             requests.emplace_back(FDBToolRequest(request, false, minimumKeys));
         }
-    }
-
-    for (const auto& r : requests) {
-        eckit::Log::error() << "full: " << r << std::endl;
     }
 
     return requests;
