@@ -18,6 +18,8 @@
 
 #include "eckit/exception/Exceptions.h"
 
+#include "fdb5/LibFdb5.h"
+
 
 namespace fdb5 {
 
@@ -36,7 +38,10 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
     auto parsedRequests = parser.parse();
     ASSERT(parsedRequests.size() == 1);
 
-    for (const auto& r : parsedRequests) checkMinimumKeys(r, minimumKeys);
+    for (const auto& r : parsedRequests) {
+        eckit::Log::debug<LibFdb5>() << "Parsed request: " << static_cast<const metkit::MarsRequest&>(r) << std::endl;
+        checkMinimumKeys(r, minimumKeys);
+    }
 
     std::vector<FDBToolRequest> requests;
 
@@ -64,6 +69,7 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
                     request.unsetValues(param);
                 }
             }
+            eckit::Log::debug<LibFdb5>() << "Expanded request: " << request << std::endl;
             requests.emplace_back(FDBToolRequest(request, false, minimumKeys));
         }
     }
