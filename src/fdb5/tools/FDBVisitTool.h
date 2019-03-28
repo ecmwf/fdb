@@ -33,6 +33,8 @@ protected: // methods
 
     virtual void init(const eckit::option::CmdArgs &args) override;
 
+    virtual void run() override;
+
     bool fail() const;
 
     std::vector<FDBToolRequest> requests() const;
@@ -49,6 +51,9 @@ private: // members
     bool fail_;
 
     bool all_;
+
+    // Don't apply contextual exapansion on mars requests.
+    bool raw_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

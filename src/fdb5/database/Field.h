@@ -21,7 +21,6 @@
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/memory/SharedPtr.h"
 #include "eckit/types/Types.h"
 #include "eckit/types/FixedString.h"
 

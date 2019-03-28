@@ -10,6 +10,8 @@
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
+#include <algorithm>
+
 #include "metkit/MarsExpension.h"
 #include "metkit/MarsParser.h"
 #include "metkit/MarsRequest.h"
@@ -23,26 +25,52 @@ namespace fdb5 {
 
 
 std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string& request_str,
-                                                               const std::vector<std::string> minimumKeys) {
+                                                               const std::vector<std::string> minimumKeys,
+                                                               bool raw,
+                                                               const std::string& verb) {
 
 
-    std::string full_string = "retrieve," + request_str; // Use a dummy verb
+    std::string full_string = verb + "," + request_str; // Use a dummy verb
+    eckit::Log::error() << "Full string: " << full_string << std::endl;
     std::istringstream in(full_string);
     metkit::MarsParser parser(in);
     auto parsedRequests = parser.parse();
+    ASSERT(parsedRequests.size() == 1);
 
-    // we DON'T fully expand this request. We don't want to force full-qualification,
-    // or end up with defaults like date, ...
-    // Also, we want to be able to test that keys are missing internally.
+    for (const auto& r : parsedRequests) checkMinimumKeys(r, minimumKeys);
 
     std::vector<FDBToolRequest> requests;
 
-    bool inherit = false;
-    metkit::MarsExpension expand(inherit);
-    auto expandedRequests = expand.expand(parsedRequests);
+    if (raw) {
+        std::copy(parsedRequests.begin(), parsedRequests.end(), std::back_inserter(requests));
+    } else {
 
-    for (const auto& request : expandedRequests) {
-        requests.emplace_back(FDBToolRequest(request, false, minimumKeys));
+        // We want to use (default) inherited requests, as this allows use to use
+        // TypeParam with a certain amount of meaning. But we also want to be able
+        // to use sparse requests for the FDB. So we unset anything that has not
+        // been originally specified by the user.
+
+        auto&& ps(parsedRequests.front().params());
+        std::set<std::string> setParams(std::make_move_iterator(ps.begin()),
+                                        std::make_move_iterator(ps.end()));
+
+        bool inherit = true;
+        metkit::MarsExpension expand(inherit);
+        auto expandedRequests = expand.expand(parsedRequests);
+
+        for (metkit::MarsRequest& request : expandedRequests) {
+
+            for (const auto& param : request.params()) {
+                if (std::find(setParams.begin(), setParams.end(), param) == setParams.end()) {
+                    request.unsetValues(param);
+                }
+            }
+            requests.emplace_back(FDBToolRequest(request, false, minimumKeys));
+        }
+    }
+
+    for (const auto& r : requests) {
+        eckit::Log::error() << "full: " << r << std::endl;
     }
 
     return requests;
@@ -55,11 +83,7 @@ FDBToolRequest::FDBToolRequest(const metkit::MarsRequest& r,
     request_(r),
     all_(all) {
 
-    for (std::vector<std::string>::const_iterator j = minimumKeySet.begin(); j != minimumKeySet.end(); ++j) {
-        if (!request_.has(*j)) {
-            throw eckit::UserError("Please provide a value for '" + (*j) + "'");
-        }
-    }
+    checkMinimumKeys(request_, minimumKeySet);
 }
 
 FDBToolRequest::FDBToolRequest(eckit::Stream& s) :
@@ -76,16 +100,26 @@ bool FDBToolRequest::all() const {
 
 }
 
-void FDBToolRequest::print(std::ostream &s) const {
-    s << "FDBToolRequest(" << request_;
-    s << " : all=" << (all_ ? "true" : "false");
-    s << ")";
+void FDBToolRequest::print(std::ostream &s, const char* cr, const char* tab) const {
 
+    if (all_) {
+        s << " -- ALL --";
+    } else {
+        request_.dump(s, cr, tab);
+    }
 }
 
 void FDBToolRequest::encode(eckit::Stream& s) const {
     s << request_;
     s << all_;
+}
+
+void FDBToolRequest::checkMinimumKeys(const metkit::MarsRequest& request, const std::vector<std::string>& minimumKeys) {
+    for (std::vector<std::string>::const_iterator j = minimumKeys.begin(); j != minimumKeys.end(); ++j) {
+        if (!request.has(*j)) {
+            throw eckit::UserError("Please provide a value for '" + (*j) + "'");
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

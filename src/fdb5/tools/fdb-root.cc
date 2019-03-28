@@ -9,7 +9,6 @@
  */
 
 #include "eckit/config/Resource.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -75,7 +74,7 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
             eckit::Log::info() << result << std::endl;
 
             // 'Touch' the database (which will create it if it doesn't exist)
-            eckit::ScopedPtr<DB> db(DBFactory::buildReader(result, config));
+            std::unique_ptr<DB> db(DBFactory::buildReader(result, config));
 
             if (!db->exists() && create_db) {
                 db.reset(DBFactory::buildWriter(result, config));

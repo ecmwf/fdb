@@ -59,6 +59,10 @@ void FDBPurge::execute(const CmdArgs& args) {
 
     for (const FDBToolRequest& request : requests()) {
 
+        Log::info() << "Purging for request" << std::endl;
+        request.print(Log::info());
+        Log::info() << std::endl;
+
         auto purgeIterator = fdb.purge(request, doit_, verbose_);
 
         size_t count = 0;

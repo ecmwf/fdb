@@ -35,7 +35,9 @@ class FDBToolRequest {
 public: // methods
 
     static std::vector<FDBToolRequest> requestsFromString(const std::string& request_str,
-                                                          const std::vector<std::string> minimumKeys = {});
+                                                          const std::vector<std::string> minimumKeys = {},
+                                                          bool raw=false,
+                                                          const std::string& verb="retrieve");
 
     FDBToolRequest(const metkit::MarsRequest& r,
                    bool all=false,
@@ -47,13 +49,16 @@ public: // methods
 
     bool all() const;
 
+    void print(std::ostream& s, const char* cr="\n", const char* tab="\t") const;
+
 protected: // methods
 
-    void print(std::ostream& s) const;
     void encode(eckit::Stream& s) const;
 
     friend std::ostream& operator<<(std::ostream& os, const FDBToolRequest& r) {
-        r.print(os);
+        os << "FDBToolRequest(";
+        r.print(os, "", "");
+        os << ")";
         return os;
     }
 
@@ -63,6 +68,10 @@ protected: // methods
     }
 
 private: // methods
+
+    static void checkMinimumKeys(const metkit::MarsRequest& request, const std::vector<std::string>& minimumKeys);
+
+private: // members
 
     metkit::MarsRequest request_;
 
