@@ -37,7 +37,7 @@ protected: // methods
 
     bool fail() const;
 
-    std::vector<FDBToolRequest> requests() const;
+    std::vector<FDBToolRequest> requests(const std::string& verb="retrieve") const;
 
 private: // members
 

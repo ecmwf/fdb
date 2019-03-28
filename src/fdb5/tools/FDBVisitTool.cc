@@ -103,7 +103,7 @@ bool FDBVisitTool::fail() const {
     return fail_;
 }
 
-std::vector<FDBToolRequest> FDBVisitTool::requests() const {
+std::vector<FDBToolRequest> FDBVisitTool::requests(const std::string& verb) const {
 
     std::vector<FDBToolRequest> requests;
 
@@ -113,7 +113,7 @@ std::vector<FDBToolRequest> FDBVisitTool::requests() const {
     } else {
 
         for (const std::string& request_string : requests_) {
-            auto parsed = FDBToolRequest::requestsFromString(request_string, minimumKeys_, raw_);
+            auto parsed = FDBToolRequest::requestsFromString(request_string, minimumKeys_, raw_, verb);
             requests.insert(requests.end(), parsed.begin(), parsed.end());
         }
     }

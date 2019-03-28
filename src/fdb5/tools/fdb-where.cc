@@ -39,7 +39,7 @@ void FDBWhere::execute(const CmdArgs&) {
 
     FDB fdb;
 
-    for (const FDBToolRequest& request : requests()) {
+    for (const FDBToolRequest& request : requests("read")) {
 
         auto whereIterator = fdb.where(request);
 
