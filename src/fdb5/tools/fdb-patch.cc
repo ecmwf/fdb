@@ -10,6 +10,8 @@
 
 #include <iomanip>
 
+#include "eccodes.h"
+
 #include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
@@ -48,7 +50,7 @@ private: // members
 void PatchArchiver::patch(grib_handle* h) {
     for (Key::const_iterator j = key_.begin(); j != key_.end(); ++j) {
         size_t len = j->second.size();
-        ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
+        ASSERT(codes_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
     }
 }
 
