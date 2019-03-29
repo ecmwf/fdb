@@ -50,7 +50,7 @@ private: // members
 void PatchArchiver::patch(grib_handle* h) {
     for (Key::const_iterator j = key_.begin(); j != key_.end(); ++j) {
         size_t len = j->second.size();
-        ASSERT(codes_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
+        ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
     }
 }
 
