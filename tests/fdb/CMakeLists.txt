@@ -33,7 +33,7 @@ foreach( _tst ${fdb_tests} )
   ecbuild_add_test(
       TARGET  fdb5_${_tst}
       SOURCES  ${_tst}
-      INCLUDES ${GRIB_API_INCLUDE_DIRS}
+      INCLUDES ${ECCODES_INCLUDE_DIRS}
       ENVIRONMENT "${_test_environment}"
       LIBS  fdb5 )
 

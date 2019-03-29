@@ -24,16 +24,9 @@ ecbuild_use_package( PROJECT eckit  VERSION 1.0  REQUIRED )
 
 ### GRIB support
 
-ecbuild_use_package( PROJECT eccodes VERSION 0.16 REQUIRED )
-set( GRIB_API_INCLUDE_DIRS ${ECCODES_INCLUDE_DIRS} )
-set( GRIB_API_LIBRARIES    ${ECCODES_LIBRARIES} )
-set( GRIB_API_DEFINITIONS  ${ECCODES_DEFINITIONS} )
-set( grib_api_BASE_DIR     ${eccodes_BASE_DIR} )
-set( GRIB_API_FOUND        1 )  # Temporary hack
-set( grib_handling_pkg eccodes )
+ecbuild_use_package( PROJECT eccodes VERSION 2.10 REQUIRED )
 
-
-ecbuild_use_package( PROJECT metkit VERSION 0.7 REQUIRED ) ## metkit is now always needed
+ecbuild_use_package( PROJECT metkit VERSION 0.17 REQUIRED ) ## metkit is now always needed
 
 ### FDB backend in persistent memory, i.e. pmem (NVRAM)
 
@@ -96,7 +89,7 @@ include_directories( ${FDB5_INCLUDE_DIRS} )
 include_directories( ${ECKIT_INCLUDE_DIRS} )
 include_directories( ${METKIT_INCLUDE_DIRS} )
 
-set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${GRIB_API_DEFINITIONS};${ODB_API_DEFINITIONS}" )
+set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${ECCODES_DEFINITIONS};${ODB_API_DEFINITIONS}" )
 
 get_directory_property( FDB5_DEFINITIONS COMPILE_DEFINITIONS )
 
