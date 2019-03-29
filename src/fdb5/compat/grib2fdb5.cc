@@ -37,18 +37,15 @@ void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
 
     fdb5::Key check;
 
+    std::vector<eckit::PathName> paths;
+
     size_t i = 0;
     while (i + 1 < args.count()) {
         std::string k = args(i);
 
         if (k == "-f") {
-            eckit::PathName path(args(i + 1));
-            std::cout << "Processing " << path << std::endl;
-            std::cout << "Key " << check << std::endl;
-            eckit::ScopedPtr<eckit::DataHandle> dh ( path.fileHandle() );
+            paths.push_back(args(i + 1));
 
-            fdb5::GribArchiver archiver(check);
-            archiver.archive( *dh );
             i += 2;
             continue;
         }
@@ -91,6 +88,17 @@ void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
 
         usage(args.tool());
         exit(1);
+    }
+
+    // Do the archiving with the relevant checks
+
+    fdb5::GribArchiver archiver(check);
+
+    for (const auto& path : paths) {
+        std::cout << "Processing " << path << std::endl;
+        std::cout << "Key " << check << std::endl;
+        eckit::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
+        archiver.archive( *dh );
     }
 
 }
