@@ -10,8 +10,6 @@
 
 #include <iomanip>
 
-#include "grib_api.h"
-
 #include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"

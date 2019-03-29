@@ -370,7 +370,7 @@ ecbuild_add_library(
         ${INSTALL_INCLUDE_DIR}/fdb5
 
     PRIVATE_INCLUDES
-        "${GRIB_API_INCLUDE_DIRS}"
+        "${ECCODES_INCLUDE_DIRS}"
         "${PMEM_INCLUDE_DIRS}"
         "${LUSTREAPI_INCLUDE_DIRS}"
 
@@ -418,7 +418,7 @@ foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
                           SOURCES   tools/${_tool}.cc
-                          INCLUDES  ${GRIB_API_INCLUDE_DIRS}  # Please don't remove me, I am needed
+                          INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
                           LIBS      fdb5 )
 
 endforeach()
@@ -432,7 +432,7 @@ endforeach()
 
 ecbuild_add_executable( TARGET    grib2fdb5
                           SOURCES   compat/grib2fdb5.cc
-                          INCLUDES  ${GRIB_API_INCLUDE_DIRS} # Please don't remove me, I am needed
+                          INCLUDES  ${ECCODES_INCLUDE_DIRS} # Please don't remove me, I am needed
                           LIBS
                           fdb5 )
 
