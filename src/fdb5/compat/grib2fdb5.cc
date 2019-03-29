@@ -8,8 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include <memory>
+
 #include "eckit/io/DataHandle.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/config/UMask.h"
@@ -97,7 +98,7 @@ void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
     for (const auto& path : paths) {
         std::cout << "Processing " << path << std::endl;
         std::cout << "Key " << check << std::endl;
-        eckit::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
+        std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
         archiver.archive( *dh );
     }
 
