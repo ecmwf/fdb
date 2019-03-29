@@ -35,7 +35,6 @@ void Grib2Fdb5::usage(const std::string &tool) const {
 
 void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::GribArchiver archiver;
     fdb5::Key check;
 
     size_t i = 0;
@@ -47,6 +46,8 @@ void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
             std::cout << "Processing " << path << std::endl;
             std::cout << "Key " << check << std::endl;
             eckit::ScopedPtr<eckit::DataHandle> dh ( path.fileHandle() );
+
+            fdb5::GribArchiver archiver(check);
             archiver.archive( *dh );
             i += 2;
             continue;
