@@ -168,12 +168,19 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) ->
 
     using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
 
+    std::vector<std::future<QueryIterator>> futures;
     std::queue<QueryIterator> iterQueue;
 
     for (FDB& lane : lanes_) {
         if (lane.visitable()) {
-            iterQueue.push(fn(lane, request));
+            futures.emplace_back(std::async(std::launch::async, [&lane, &fn, &request] {
+                return fn(lane, request);
+            }));
         }
+    }
+
+    for (std::future<QueryIterator>& f : futures) {
+        iterQueue.push(f.get());
     }
 
     return QueryIterator(new APIAggregateIterator<typename QueryIterator::value_type>(std::move(iterQueue)));
