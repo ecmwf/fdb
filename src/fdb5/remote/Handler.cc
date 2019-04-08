@@ -60,7 +60,7 @@ namespace {
 
 template <typename ValueType>
 struct BaseHelper {
-    static size_t encodeBufferSize(const ValueType&) { return 4096; }
+    virtual size_t encodeBufferSize(const ValueType&) const { return 4096; }
     void extraDecode(eckit::Stream&) {}
     ValueType apiCall(FDB& fdb, const FDBToolRequest&) const { NOTIMP; }
 
@@ -148,7 +148,7 @@ struct WipeHelper : public BaseHelper<WipeElement> {
         return fdb.wipe(request, doit_, verbose_);
     }
 
-    static size_t encodeBufferSize(const WipeElement& elem) {
+    size_t encodeBufferSize(const WipeElement& elem) const override {
         size_t totalSize = elem.guessEncodedSize();
         return eckit::round(totalSize, 4096);
     }
