@@ -42,7 +42,7 @@ void TypeGrid::getValues(const metkit::MarsRequest& request,
                          const Notifier&,
                          const DB*) const {
     std::vector<std::string> v;
-    request.getValues(keyword, v);
+    request.getValues(keyword, v, true);
     values.push_back(eckit::StringTools::join("+", v));
 }
 

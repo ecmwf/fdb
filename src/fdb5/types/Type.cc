@@ -28,7 +28,7 @@ void Type::getValues(const metkit::MarsRequest &request,
                      eckit::StringList &values,
                      const Notifier&,
                      const DB*) const {
-    request.getValues(keyword, values);
+    request.getValues(keyword, values, true);
 }
 
 const std::string &Type::type() const {

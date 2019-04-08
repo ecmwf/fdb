@@ -33,7 +33,7 @@ void TypeInteger::getValues(const metkit::MarsRequest& request,
                             const DB*) const {
     std::vector<long> intValues;
 
-    request.getValues(keyword, intValues);
+    request.getValues(keyword, intValues, true);
 
     eckit::Translator<long, std::string> t;
 

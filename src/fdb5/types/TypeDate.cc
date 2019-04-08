@@ -50,7 +50,7 @@ void TypeDate::getValues(const metkit::MarsRequest & request,
                          const DB*) const {
     std::vector<eckit::Date> dates;
 
-    request.getValues(keyword, dates);
+    request.getValues(keyword, dates, true);
 
     eckit::Translator<long, std::string> t;
 
