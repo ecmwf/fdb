@@ -13,7 +13,6 @@
 #include <unistd.h>
 
 #include "eckit/log/Log.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
@@ -59,7 +58,7 @@ void PIndexRoot::build(PersistentPtr<PIndexRoot>& ptr, const Key& dbKey, const e
     // Store the currently loaded master schema, so it can be recovered later
 
     eckit::PathName schemaPath(schema.exists() ? schema : LibFdb5::instance().defaultConfig().schemaPath());
-    ScopedPtr<DataHandle> schemaFile(schemaPath.fileHandle());
+    std::unique_ptr<DataHandle> schemaFile(schemaPath.fileHandle());
     std::string buf(static_cast<size_t>(schemaFile->openForRead()), '\0');
     schemaFile->read(&buf[0], buf.size());
 
