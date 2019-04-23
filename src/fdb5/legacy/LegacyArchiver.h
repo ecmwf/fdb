@@ -19,7 +19,7 @@
 #include "eckit/types/Types.h"
 #include "eckit/io/DataBlob.h"
 
-#include "fdb5/database/Archiver.h"
+#include "fdb5/api/FDB.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/legacy/LegacyTranslator.h"
 
@@ -32,7 +32,7 @@ namespace legacy {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class LegacyArchiver :  public Archiver {
+class LegacyArchiver {
 
 public: // methods
 
@@ -42,7 +42,11 @@ public: // methods
 
     void legacy(const std::string &keyword, const std::string &value);
 
+    void flush();
+
 private: // members
+
+    FDB fdb_;
 
     LegacyTranslator translator_;
 
