@@ -10,8 +10,9 @@
 
 #include "fdb5/database/MultiRetrieveVisitor.h"
 
+#include <memory>
+
 #include "eckit/config/Resource.h"
-#include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/DB.h"

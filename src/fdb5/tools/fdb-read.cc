@@ -9,9 +9,9 @@
  */
 
 #include <fstream>
+#include <memory>
 
 #include "eckit/io/FileHandle.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/api/FDB.h"
@@ -85,7 +85,7 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     // And get the data
 
-    eckit::ScopedPtr<eckit::DataHandle> dh(handles.dataHandle());
+    std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
     dh->saveInto(out);
 }

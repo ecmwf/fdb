@@ -8,7 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/memory/ScopedPtr.h"
+#include <memory>
+
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/LibFdb5.h"
@@ -51,7 +52,7 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
         eckit::PathName path(args(i));
 
         if (path.isDir()) {
-            eckit::ScopedPtr<DB> db(DBFactory::buildReader(path));
+            std::unique_ptr<DB> db(DBFactory::buildReader(path));
             ASSERT(db->open());
             db->schema().dump(std::cout);
         } else {
