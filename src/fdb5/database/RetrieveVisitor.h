@@ -16,10 +16,9 @@
 #ifndef fdb5_RetrieveVisitor_H
 #define fdb5_RetrieveVisitor_H
 
+#include <memory>
 
 #include "fdb5/database/ReadVisitor.h"
-#include "eckit/memory/ScopedPtr.h"
-
 
 namespace fdb5 {
 
@@ -60,7 +59,7 @@ private:
 
     const Notifier &wind_;
 
-    eckit::ScopedPtr<DB> db_;
+    std::unique_ptr<DB> db_;
 
     HandleGatherer &gatherer_;
 };

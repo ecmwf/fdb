@@ -16,7 +16,7 @@
 #ifndef fdb5_PMemDB_H
 #define fdb5_PMemDB_H
 
-#include "eckit/memory/ScopedPtr.h"
+#include <memory>
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DB.h"
@@ -104,13 +104,13 @@ protected: // members
     eckit::PathName poolDir_;
     Config dbConfig_;
 
-    eckit::ScopedPtr<Pool> pool_;
+    std::unique_ptr<Pool> pool_;
 
     // Not owned by PMemDB but by pool_. This is only a pointer not a reference so it can
     // be initialised later than the PMemDB is constructed.
     PIndexRoot* root_;
 
-    eckit::ScopedPtr<DataPoolManager> dataPoolMgr_;
+    std::unique_ptr<DataPoolManager> dataPoolMgr_;
 
     IndexStore  indexes_;
     Index currentIndex_;

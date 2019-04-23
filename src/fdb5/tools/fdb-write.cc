@@ -8,9 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include <memory>
+
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/DataHandle.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
@@ -75,7 +76,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
         std::cout << "Processing " << path << std::endl;
 
-        eckit::ScopedPtr<eckit::DataHandle> dh ( path.fileHandle() );
+        std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
 
         archiver.archive( *dh );
     }

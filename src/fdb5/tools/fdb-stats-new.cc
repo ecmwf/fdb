@@ -8,8 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include <memory>
+
 #include "eckit/log/BigNum.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/database/Index.h"
@@ -60,7 +61,7 @@ void FDBStats::process(const eckit::PathName& path, const eckit::option::CmdArgs
 
     eckit::Log::info() << "Scanning " << path << std::endl;
 
-    eckit::ScopedPtr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
+    std::unique_ptr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
     ASSERT(db->open());
 
     fdb5::ReportVisitor visitor(*db);

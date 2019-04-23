@@ -15,11 +15,11 @@
 #include <sstream>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <memory>
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/utils/Translator.h"
-#include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/config/UMask.h"
 #include "fdb5/LibFdb5.h"
@@ -443,7 +443,7 @@ std::vector<Key> FDBPartialAdopt::expandRequest(Key rq) const {
 
 Key FDBPartialAdopt::gribToKey(const eckit::PathName& datapath, size_t offset, size_t length) const {
 
-     eckit::ScopedPtr<DataHandle> h(PathName(datapath).partHandle(offset, length));
+     std::unique_ptr<DataHandle> h(PathName(datapath).partHandle(offset, length));
 
      EmosFile file(*h);
      GribDecoder decoder;
