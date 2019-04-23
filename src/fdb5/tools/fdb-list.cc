@@ -44,7 +44,8 @@ class FDBList : public FDBVisitTool {
 
     FDBList(int argc, char **argv) :
         FDBVisitTool(argc, argv, "class,expver"),
-        location_(false) {
+        location_(false),
+        porcelain_(false) {
 
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));

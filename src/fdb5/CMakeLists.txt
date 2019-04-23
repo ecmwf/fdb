@@ -350,7 +350,7 @@ if (HAVE_EXPERIMENTAL)
 endif()
 
 
-if(LUSTREAPI_FOUND)
+if(HAVE_LUSTRE)
     list( APPEND fdb5_srcs io/LustreFileHandle.h io/LustreFileHandle.cc )
 endif()
 

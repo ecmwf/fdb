@@ -12,7 +12,7 @@
 
 #include <stdlib.h>
 
-#if defined(LUSTREAPI_FOUND)
+#if defined(HAVE_LUSTRE)
 
 #include <lustre/lustreapi.h>
 
