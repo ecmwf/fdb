@@ -14,16 +14,17 @@
 #ifndef fdb5_TocHandler_H
 #define fdb5_TocHandler_H
 
+#include <map>
+#include <memory>
+
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
-#include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/io/LustreFileHandle.h"
 #include "fdb5/toc/TocRecord.h"
 
-#include <map>
 
 namespace eckit {
 class Configuration;
@@ -68,8 +69,8 @@ public: // methods
     /// Return a list of existent indexes. If supplied, also supply a list of associated
     /// subTocs that were read to get these indexes
     std::vector<Index> loadIndexes(bool sorted=false,
-                                   std::set<std::string>* subTocs=0,
-                                   std::vector<bool>* indexInSubtoc=0) const;
+                                   std::set<std::string>* subTocs = nullptr,
+                                   std::vector<bool>* indexInSubtoc = nullptr) const;
 
     Key databaseKey();
     size_t numberOfRecords() const;
@@ -158,8 +159,8 @@ private: // members
     mutable int fd_;      ///< file descriptor, if zero file is not yet open.
 
     /// The sub toc is initialised in the read or write pathways for maintaining state.
-    mutable eckit::ScopedPtr<TocHandler> subTocRead_;
-    mutable eckit::ScopedPtr<TocHandler> subTocWrite_;
+    mutable std::unique_ptr<TocHandler> subTocRead_;
+    mutable std::unique_ptr<TocHandler> subTocWrite_;
     mutable size_t count_;
 
     mutable std::set<std::pair<eckit::PathName, size_t>> maskedEntries_;

@@ -50,7 +50,7 @@ public:
 TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
     FileStoreWrapper(path.dirName()),
     IndexBase(key, type),
-    btree_( 0 ),
+    btree_(nullptr),
     dirty_(false),
     mode_(mode),
     location_(path, offset) {
@@ -59,7 +59,7 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
 TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
     FileStoreWrapper(directory, s),
     IndexBase(s),
-    btree_(0),
+    btree_(nullptr),
     dirty_(false),
     mode_(TocIndex::READ),
     location_(path, offset) {
@@ -119,7 +119,7 @@ void TocIndex::reopen() {
 void TocIndex::close() {
     if (btree_) {
         eckit::Log::debug<LibFdb5>() << "Closing " << *this << std::endl;
-        btree_.reset(0);
+        btree_.reset();
     }
 }
 

@@ -102,7 +102,7 @@ private: // methods
 
 private: // members
 
-    eckit::ScopedPtr<BTreeIndex>  btree_;
+    std::unique_ptr<BTreeIndex>  btree_;
 
     bool dirty_;
 
