@@ -32,7 +32,7 @@ class DumpVisitor : public QueryVisitor<DumpElement> {
 public:
 
     DumpVisitor(eckit::Queue<DumpElement>& queue, const metkit::MarsRequest& request, bool simple) :
-        QueryVisitor(queue, request),
+        QueryVisitor<DumpElement>(queue, request),
         out_(new QueueStringLogTarget(queue)),
         simple_(simple) {}
 

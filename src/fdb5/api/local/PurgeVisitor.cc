@@ -29,7 +29,7 @@ PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
                            const metkit::MarsRequest& request,
                            bool doit,
                            bool verbose) :
-    QueryVisitor(queue, request),
+    QueryVisitor<PurgeElement>(queue, request),
     out_(new QueueStringLogTarget(queue)),
     doit_(doit),
     verbose_(verbose) {}

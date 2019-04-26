@@ -30,7 +30,7 @@ namespace local {
 class StatsVisitor : public QueryVisitor<StatsElement> {
 public:
 
-    using QueryVisitor::QueryVisitor;
+    using QueryVisitor<StatsElement>::QueryVisitor;
 
     bool visitDatabase(const DB& db) override;
     bool visitIndex(const Index& index) override;

@@ -78,7 +78,7 @@ WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue,
                          const metkit::MarsRequest& request,
                          bool doit,
                          bool verbose) :
-    QueryVisitor(queue, request),
+    QueryVisitor<WipeElement>(queue, request),
     doit_(doit),
     verbose_(verbose) {}
 
