@@ -118,8 +118,6 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
         if (idx.mayContain(key)) {
             const_cast<Index&>(idx).open();
             if (idx.get(key, field)) {
-                eckit::Log::debug<LibFdb5>() << "INDEX: " << idx.key() << " : " << remapKey << std::endl;
-                eckit::Log::debug<LibFdb5>() << "FOUND KEY " << key << " -> " << idx << " " << field << std::endl;
                 return field.dataHandle(remapKey);
             }
         }

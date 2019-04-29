@@ -8,8 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-// File Partio/FileHandle.h
-// Baudouin Raoult - ECMWF May 96
+/// @author Simon Smart
+/// @date May 2019
 
 #ifndef fdb5_io_SingleGribMungePartFileHandle_h
 #define fdb5_io_SingleGribMungePartFileHandle_h

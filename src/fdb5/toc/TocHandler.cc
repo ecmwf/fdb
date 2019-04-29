@@ -246,8 +246,6 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
     if (!walkSubTocs)
         return readNextInternal(r);
 
-    eckit::Log::debug<LibFdb5>() << " >> readNext(): " << this << std::endl;
-
     while (true) {
 
         if (subTocRead_) {
@@ -267,10 +265,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
             } else if (r.header_.tag_ == TocRecord::TOC_INIT) {
 
                 eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
-                if (parentKey_.empty()) {
-                    parentKey_ = Key(s);
-                    Log::debug<LibFdb5>() << "Read INIT -- > parent: " << parentKey_ << std::endl;
-                }
+                if (parentKey_.empty()) parentKey_ = Key(s);
                 return true;
 
             } else if (r.header_.tag_ == TocRecord::TOC_SUB_TOC) {
@@ -287,7 +282,6 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 }
 
                 eckit::Log::debug<LibFdb5>() << "Opening SUB_TOC: " << path << " " << parentKey_ << std::endl;
-                eckit::Log::debug<LibFdb5>() << "From parent: " << parentKey_ << " " << parentKey_ << std::endl;
 
                 subTocRead_.reset(new TocHandler(path, parentKey_));
                 subTocRead_->openForRead();
