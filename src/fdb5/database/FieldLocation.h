@@ -32,6 +32,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 class FieldLocationVisitor;
+class Key;
 
 
 class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
@@ -49,7 +50,7 @@ public: // methods
 
     const eckit::Length &length() const { return length_; }
 
-    virtual eckit::DataHandle *dataHandle() const = 0;
+    virtual eckit::DataHandle *dataHandle(const Key& remapKey) const = 0;
 
     /// Create a (shared) copy of the current object, for storage in a general container.
     virtual std::shared_ptr<FieldLocation> make_shared() const = 0;

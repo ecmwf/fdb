@@ -48,7 +48,7 @@ public: // methods
 
     Field(const FieldLocation& location, const FieldDetails& details = FieldDetails());
 
-    eckit::DataHandle *dataHandle() const { return location_->dataHandle(); }
+    eckit::DataHandle* dataHandle(const Key& remapKey=Key{}) const { return location_->dataHandle(remapKey); }
 
     const FieldLocation& location() const { return *location_; }
 

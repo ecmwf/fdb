@@ -39,7 +39,7 @@ FDBVisitTool::FDBVisitTool(int argc, char **argv, std::string minimumKeys) :
 
     if(minimumKeys_.size() != 0) {
         options_.push_back(new VectorOption<std::string>("minimum-keys",
-                                                         "Use these keywords as a minimun set which *must* be specified",
+                                                         "Use these keywords as a minimum set which *must* be specified",
                                                          0, ","));
     }
 

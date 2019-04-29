@@ -72,9 +72,10 @@ TocHandler::TocHandler(const eckit::PathName &directory, const Config& config) :
     }
 }
 
-TocHandler::TocHandler(const eckit::PathName& path, bool) :
+TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     directory_(path.dirName()),
     dbUID_(-1),
+    parentKey_(parentKey),
     userUID_(::getuid()),
     tocPath_(path),
     schemaPath_(path.dirName() / "schema"),
@@ -84,6 +85,33 @@ TocHandler::TocHandler(const eckit::PathName& path, bool) :
     count_(0),
     enumeratedMaskedEntries_(false),
     writeMode_(false) {
+
+    /// Are we remapping a mounted DB?
+    Key key(databaseKey());
+    if (!parentKey.empty() && parentKey != key) {
+
+        eckit::Log::debug<LibFdb5>() << "Opening (remapped) toc with differing parent key: "
+                                     << key << " --> " << parentKey << std::endl;
+
+        if (parentKey.size() != key.size()) {
+            std::stringstream ss;
+            ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
+            throw UserError(ss.str(), Here());
+        }
+
+        for (const auto& kv : parentKey) {
+            auto it = key.find(kv.first);
+            if (it == key.end()) {
+                std::stringstream ss;
+                ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
+                throw UserError(ss.str(), Here());
+            } else if (kv.second != it->second) {
+                remapKey_.set(kv.first, kv.second);
+            }
+        }
+
+        eckit::Log::debug<LibFdb5>() << "Key remapping: " << remapKey_ << std::endl;
+    }
 }
 
 
@@ -218,6 +246,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
     if (!walkSubTocs)
         return readNextInternal(r);
 
+    eckit::Log::debug<LibFdb5>() << " >> readNext(): " << this << std::endl;
 
     while (true) {
 
@@ -235,6 +264,15 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
                 return false;
 
+            } else if (r.header_.tag_ == TocRecord::TOC_INIT) {
+
+                eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
+                if (parentKey_.empty()) {
+                    parentKey_ = Key(s);
+                    Log::debug<LibFdb5>() << "Read INIT -- > parent: " << parentKey_ << std::endl;
+                }
+                return true;
+
             } else if (r.header_.tag_ == TocRecord::TOC_SUB_TOC) {
 
                 eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
@@ -248,7 +286,10 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                     continue;
                 }
 
-                subTocRead_.reset(new TocHandler(path, true));
+                eckit::Log::debug<LibFdb5>() << "Opening SUB_TOC: " << path << " " << parentKey_ << std::endl;
+                eckit::Log::debug<LibFdb5>() << "From parent: " << parentKey_ << " " << parentKey_ << std::endl;
+
+                subTocRead_.reset(new TocHandler(path, parentKey_));
                 subTocRead_->openForRead();
 
                 if (hideSubTocEntries) {
@@ -569,7 +610,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
         if (!subTocWrite_) {
 
-            subTocWrite_.reset(new TocHandler(eckit::PathName::unique(tocPath_), true));
+            subTocWrite_.reset(new TocHandler(eckit::PathName::unique(tocPath_), Key{}));
 
             subTocWrite_->writeInitRecord(databaseKey());
 
@@ -587,6 +628,15 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
     WriteToStream writeVisitor(index, *this);
     index.visit(writeVisitor);
+}
+
+void TocHandler::writeSubTocMaskRecord(const TocHandler &subToc) {
+
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR));
+
+    size_t sz = roundRecord(*r, buildSubTocMaskRecord(*r, subToc.tocPath()));
+    appendBlock(r.get(), sz);
 }
 
 bool TocHandler::useSubToc() const {
@@ -682,7 +732,8 @@ const eckit::PathName& TocHandler::directory() const
 
 std::vector<Index> TocHandler::loadIndexes(bool sorted,
                                            std::set<std::string>* subTocs,
-                                           std::vector<bool>* indexInSubtoc) const {
+                                           std::vector<bool>* indexInSubtoc,
+                                           std::vector<Key>* remapKeys) const {
 
     std::vector<Index> indexes;
 
@@ -722,13 +773,16 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             s >> offset;
             s >> type;
             eckit::Log::debug<LibFdb5>() << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
-            indexes.push_back( new TocIndex(s, directory_, directory_ / path, offset) );
+            indexes.push_back( new TocIndex(s, currentDirectory(), currentDirectory() / path, offset) );
 
             if (subTocs != 0 && subTocRead_) {
                 subTocs->insert(subTocRead_->tocPath());
             }
             if (indexInSubtoc) {
                 indexInSubtoc->push_back(!!subTocRead_);
+            }
+            if (remapKeys) {
+                remapKeys->push_back(currentRemapKey());
             }
             break;
 
@@ -740,7 +794,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             s >> path;
             s >> offset;
             eckit::Log::debug<LibFdb5>() << "TocRecord TOC_CLEAR " << path << " - " << offset << std::endl;
-            j = std::find_if(indexes.begin(), indexes.end(), HasPath(directory_ / path, offset));
+            j = std::find_if(indexes.begin(), indexes.end(), HasPath(currentDirectory() / path, offset));
             if (j != indexes.end()) {
                 if (indexInSubtoc) {
                     indexInSubtoc->erase(indexInSubtoc->begin() + (j - indexes.begin()));
@@ -831,7 +885,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
                 s >> type;
                 out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
                 if(!simple) { out << std::endl; }
-                Index index(new TocIndex(s, directory_, directory_ / path, offset));
+                Index index(new TocIndex(s, currentDirectory(), currentDirectory() / path, offset));
                 index.dump(out, "  ", simple);
                 break;
             }
@@ -881,9 +935,9 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
                 s >> offset;
                 s >> type;
 
-                if ((directory_ / path).fullName() == indexFile.fullName()) {
+                if ((currentDirectory() / path).fullName() == indexFile.fullName()) {
                     out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
-                    Index index(new TocIndex(s, directory_, directory_ / path, offset));
+                    Index index(new TocIndex(s, currentDirectory(), currentDirectory() / path, offset));
                     index.dump(out, "  ", false, true);
                 }
                 break;
@@ -968,6 +1022,22 @@ LustreStripe TocHandler::stripeDataLustreSettings() {
     static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
 
     return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
+}
+
+const Key &TocHandler::currentRemapKey() const {
+    if (subTocRead_) {
+        return subTocRead_->currentRemapKey();
+    } else {
+        return remapKey_;
+    }
+}
+
+const PathName &TocHandler::currentDirectory() const {
+    if (subTocRead_) {
+        return subTocRead_->currentDirectory();
+    } else {
+        return directory_;
+    }
 }
 
 size_t TocHandler::buildIndexRecord(TocRecord& r, const Index &index) {

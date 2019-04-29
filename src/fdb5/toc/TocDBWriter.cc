@@ -211,7 +211,56 @@ void TocDBWriter::reconsolidateIndexesAndTocs() {
     appendBlock(buf, combinedSize);
 }
 
+void TocDBWriter::mountDB(const TocDB& otherDb, const std::set<std::string>& variableKeys, bool unmount) {
 
+    const Key& otherKey(otherDb.key());
+
+    if (otherKey.size() != dbKey_.size()) {
+        std::stringstream ss;
+        ss << "Keys insufficiently matching for mount: " << dbKey_ << " : " << otherKey;
+        throw UserError(ss.str(), Here());
+    }
+
+    // Build the difference map from the old to the new key
+
+    for (const auto& kv : dbKey_) {
+
+        auto it = otherKey.find(kv.first);
+        if (it == otherKey.end()) {
+            std::stringstream ss;
+            ss << "Keys insufficiently matching for mount: " << dbKey_ << " : " << otherKey;
+            throw UserError(ss.str(), Here());
+        }
+
+        if (kv.second != it->second) {
+            if (variableKeys.find(kv.first) == variableKeys.end()) {
+                std::stringstream ss;
+                ss << "Key " << kv.first << " not allowed to differ between DBs: " << dbKey_ << " : " << otherKey;
+                throw UserError(ss.str(), Here());
+            }
+        }
+    }
+
+    // And append the mount link / unmount mask
+    if (unmount) {
+
+        // First sanity check that we are already mounted
+
+        std::set<std::string> subtocs;
+        loadIndexes(false, &subtocs);
+
+        eckit::PathName stPath(otherDb.tocPath());
+        if (subtocs.find(stPath) == subtocs.end()) {
+            std::stringstream ss;
+            ss << "Cannot unmount DB: " << otherDb << ". Not currently mounted";
+            throw UserError(ss.str(), Here());
+        }
+
+        writeSubTocMaskRecord(otherDb);
+    } else {
+        writeSubTocRecord(otherDb);
+    }
+}
 
 void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length) {
     dirty_ = true;
