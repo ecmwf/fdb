@@ -12,12 +12,12 @@
 /// @date Sep 2012
 
 #include <cstring>
+#include <memory>
 
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/MultiHandle.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/types/Types.h"
 #include "eckit/utils/Translator.h"
@@ -165,7 +165,7 @@ CASE ( "test_fdb_service" ) {
 						Log::info() << "Looking for: " << f.p << std::endl;
 
                         metkit::MarsRequest r("retrieve", f.p);
-                        eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve(r) );  AutoClose closer1(*dh);
+                        std::unique_ptr<DataHandle> dh ( retriever.retrieve(r) );  AutoClose closer1(*dh);
 
 						::memset(buffer, 0, buffer.size());
 
@@ -227,7 +227,7 @@ CASE ( "test_fdb_service" ) {
 
 			fdb5::Retriever retriever;
 
-            eckit::ScopedPtr<DataHandle> dh ( retriever.retrieve(r) );
+            std::unique_ptr<DataHandle> dh ( retriever.retrieve(r) );
 
 			PathName path ( "data_mars_request.data" );
 			path.unlink();

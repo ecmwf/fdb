@@ -42,7 +42,7 @@ public: // methods
 
     /// set union of all the engines that can possibly handle this key
     std::set<std::string> engines(const Key &key);
-    std::set<std::string> engines(const metkit::MarsRequest& rq);
+    std::set<std::string> engines(const metkit::MarsRequest& rq, bool all);
 
     /// Uniquely selects the engine that will handle this Path by checking possible handlers
     std::string engine(const eckit::PathName& path);
@@ -54,7 +54,7 @@ public: // methods
     std::vector<eckit::PathName> allLocations(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::PathName> visitableLocations(const metkit::MarsRequest& request);
+    std::vector<eckit::PathName> visitableLocations(const metkit::MarsRequest& request, bool all);
 
     /// Lists the roots where a DB key would be able to be written
     std::vector<eckit::PathName> writableLocations(const Key& key);

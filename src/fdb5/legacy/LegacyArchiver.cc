@@ -22,7 +22,7 @@ namespace legacy {
 //----------------------------------------------------------------------------------------------------------------------
 
 LegacyArchiver::LegacyArchiver(const eckit::Configuration& dbConfig) :
-    Archiver(dbConfig),
+    fdb_(/* dbConfig */), // TODO: Pass dbConfig through. Currently clash between sink type/fdb type
     translator_(),
     legacy_() {
 }
@@ -47,7 +47,11 @@ void LegacyArchiver::archive(const eckit::DataBlobPtr blob) {
 
     // archive
 
-    this->Archiver::archive(key, blob->buffer(), blob->length());
+    fdb_.archive(key, blob->buffer(), blob->length());
+}
+
+void LegacyArchiver::flush() {
+    fdb_.flush();
 }
 
 void LegacyArchiver::legacy(const std::string &keyword, const std::string &value) {

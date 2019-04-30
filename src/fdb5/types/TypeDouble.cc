@@ -46,7 +46,7 @@ void TypeDouble::getValues(const metkit::MarsRequest& request,
                            const DB*) const {
   std::vector<double> dblValues;
 
-  request.getValues(keyword, dblValues);
+  request.getValues(keyword, dblValues, true);
 
   eckit::Translator<double, std::string> t;
 

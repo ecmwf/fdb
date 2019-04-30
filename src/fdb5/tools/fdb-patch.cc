@@ -10,7 +10,7 @@
 
 #include <iomanip>
 
-#include "grib_api.h"
+#include "eccodes.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"

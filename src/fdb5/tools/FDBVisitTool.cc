@@ -32,17 +32,20 @@ namespace tools {
 FDBVisitTool::FDBVisitTool(int argc, char **argv, std::string minimumKeys) :
     FDBTool(argc, argv),
     fail_(true),
-    all_(false) {
+    all_(false),
+    raw_(false) {
 
     minimumKeys_ = Resource<std::vector<std::string> >("FDBInspectMinimumKeys", minimumKeys, true);
 
-    if(minimumKeys_.size() == 0) {
-        options_.push_back(new SimpleOption<bool>("all", "Visit all FDB databases"));
-    } else {
+    if(minimumKeys_.size() != 0) {
         options_.push_back(new VectorOption<std::string>("minimum-keys",
                                                          "Use these keywords as a minimun set which *must* be specified",
                                                          0, ","));
     }
+
+    // Don't apply MarsExpension to the parsed requests. This relies on the user
+    // to provide values that are acceptable internally
+    options_.push_back(new SimpleOption<bool>("raw", "Don't apply (contextual) expansion and checking on requests."));
 
     // Be able to turn ignore-errors off
     options_.push_back(
@@ -55,6 +58,15 @@ FDBVisitTool::FDBVisitTool(int argc, char **argv, std::string minimumKeys) :
 
 FDBVisitTool::~FDBVisitTool() {}
 
+void FDBVisitTool::run() {
+
+    // We add this option here. This creates a hidden option that can be used by advanced users
+    // (i.e. in unit tests/debugging) but is not visible to users.
+    options_.push_back(new SimpleOption<bool>("all", "Visit all FDB databases"));
+
+    FDBTool::run();
+}
+
 void FDBVisitTool::init(const option::CmdArgs& args) {
 
     FDBTool::init(args);
@@ -66,6 +78,12 @@ void FDBVisitTool::init(const option::CmdArgs& args) {
     fail_ = !ignore;
 
     args.get("all", all_);
+
+    if (!minimumKeys_.empty() && all_) {
+        throw eckit::UserError("--all option (advanced for debugging) can only be used with no minimum keys", Here());
+    }
+
+    args.get("raw", raw_);
 
     if (all_ && args.count()) {
         usage(args.tool());
@@ -85,7 +103,7 @@ bool FDBVisitTool::fail() const {
     return fail_;
 }
 
-std::vector<FDBToolRequest> FDBVisitTool::requests() const {
+std::vector<FDBToolRequest> FDBVisitTool::requests(const std::string& verb) const {
 
     std::vector<FDBToolRequest> requests;
 
@@ -95,7 +113,7 @@ std::vector<FDBToolRequest> FDBVisitTool::requests() const {
     } else {
 
         for (const std::string& request_string : requests_) {
-            auto parsed = FDBToolRequest::requestsFromString(request_string, minimumKeys_);
+            auto parsed = FDBToolRequest::requestsFromString(request_string, minimumKeys_, raw_, verb);
             requests.insert(requests.end(), parsed.begin(), parsed.end());
         }
     }

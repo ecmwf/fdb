@@ -40,7 +40,7 @@ void TypeAbbreviation::getValues(const metkit::MarsRequest &request,
                                  const DB*) const {
     std::vector<std::string> vals;
 
-    request.getValues(keyword, vals);
+    request.getValues(keyword, vals, true);
 
     values.reserve(vals.size());
 

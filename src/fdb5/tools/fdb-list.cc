@@ -10,7 +10,6 @@
 
 #include <unordered_set>
 
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/config/Resource.h"
 #include "eckit/option/SimpleOption.h"
@@ -44,11 +43,13 @@ class FDBList : public FDBVisitTool {
   public: // methods
 
     FDBList(int argc, char **argv) :
-        FDBVisitTool(argc, argv),
-        location_(false) {
+        FDBVisitTool(argc, argv, "class,expver"),
+        location_(false),
+        porcelain_(false) {
 
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
+        options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined output for input into other tools"));
     }
 
   private: // methods
@@ -58,6 +59,7 @@ class FDBList : public FDBVisitTool {
 
     bool location_;
     bool full_;
+    bool porcelain_;
 };
 
 void FDBList::init(const CmdArgs& args) {
@@ -66,6 +68,7 @@ void FDBList::init(const CmdArgs& args) {
 
     args.get("location", location_);
     args.get("full", full_);
+    args.get("porcelain", porcelain_);
     // TODO: ignore-errors
 
 }
@@ -85,6 +88,12 @@ void FDBList::execute(const CmdArgs& args) {
     std::unordered_set<Key, KeyHasher> seenKeys_;
 
     for (const FDBToolRequest& request : requests()) {
+
+        if (!porcelain_) {
+            Log::info() << "Listing for request" << std::endl;
+            request.print(Log::info());
+            Log::info() << std::endl;
+        }
 
         auto listObject = fdb.list(request);
 
@@ -117,11 +126,7 @@ void FDBList::execute(const CmdArgs& args) {
             }
         }
 
-        if (count == 0 && fail()) {
-            std::stringstream ss;
-            ss << "No FDB entries found for: " << request << std::endl;
-            throw FDBToolException(ss.str());
-        }
+        // n.b. finding no data is not an error for fdb-list
     }
 }
 

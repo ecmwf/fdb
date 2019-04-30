@@ -20,7 +20,6 @@
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
 #include "eckit/io/Buffer.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/container/Queue.h"
 
 #include "fdb5/api/FDB.h"

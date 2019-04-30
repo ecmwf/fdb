@@ -62,7 +62,9 @@ CASE( "archives_distributed_according_to_dist" ) {
     // Build FDB from default config
 
     fdb5::FDB fdb(defaultConfig());
+
     EXPECT(ApiSpy::knownSpies().size() == 3);
+
     ApiSpy& spy1(*ApiSpy::knownSpies()[0]);
     ApiSpy& spy2(*ApiSpy::knownSpies()[1]);
     ApiSpy& spy3(*ApiSpy::knownSpies()[2]);
@@ -77,6 +79,8 @@ CASE( "archives_distributed_according_to_dist" ) {
 
     // Do some archiving
 
+    std::vector<int> data = {1, 2, 3, 4, 5};
+
     const int nflush = 5;
     const int narch = 5;
 
@@ -90,14 +94,20 @@ CASE( "archives_distributed_according_to_dist" ) {
             k.set("f", eckit::Translator<int, std::string>()(f));
             k.set("a", eckit::Translator<int, std::string>()(a));
 
-            fdb.archive(k, (void*)(100*f + a), 123);
+            data.assign(data.size(), 100*f + a);
+
+            size_t len = data.size()*sizeof(int);
+
+            fdb.archive(k, data.data(), len);
 
             EXPECT((spy1.counts().archive + spy2.counts().archive + spy3.counts().archive) == (1 + a + (narch * f)));
             EXPECT(spy1.counts().flush + spy2.counts().flush + spy3.counts().flush == flush_count);
         }
 
         fdb.flush();
+
         EXPECT(spy1.counts().flush + spy2.counts().flush + spy3.counts().flush <= flush_count+3);
+
         flush_count = (spy1.counts().flush + spy2.counts().flush + spy3.counts().flush);
     }
 

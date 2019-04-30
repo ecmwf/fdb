@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   FDBInspect.h
 /// @author Simon Smart
 /// @date   November 2018
 
@@ -34,9 +33,11 @@ protected: // methods
 
     virtual void init(const eckit::option::CmdArgs &args) override;
 
+    virtual void run() override;
+
     bool fail() const;
 
-    std::vector<FDBToolRequest> requests() const;
+    std::vector<FDBToolRequest> requests(const std::string& verb="retrieve") const;
 
 private: // members
 
@@ -50,6 +51,9 @@ private: // members
     bool fail_;
 
     bool all_;
+
+    // Don't apply contextual exapansion on mars requests.
+    bool raw_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

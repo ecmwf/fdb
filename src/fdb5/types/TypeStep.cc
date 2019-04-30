@@ -58,7 +58,7 @@ void TypeStep::getValues(const metkit::MarsRequest& request,
                          const DB *db) const {
     std::vector<std::string> steps;
 
-    request.getValues(keyword, steps);
+    request.getValues(keyword, steps, true);
 
     eckit::Translator<StepRange, std::string> t;
 

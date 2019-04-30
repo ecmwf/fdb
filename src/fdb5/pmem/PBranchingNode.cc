@@ -15,7 +15,6 @@
 #include "eckit/parser/JSONDataBlob.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/types/Types.h"
-#include "eckit/memory/ScopedPtr.h"
 
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"

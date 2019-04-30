@@ -9,7 +9,6 @@
  */
 
 #include "eckit/config/Resource.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -63,24 +62,28 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
     for (size_t i = 0; i < args.count(); ++i) {
 
-        FDBToolRequest req("domain=g," + args(i)); // domain add here as default
+        // domain add here as default
+        auto parsed = FDBToolRequest::requestsFromString("domain=g," + args(i), {}, false, "read");
 
-        const Config& config = LibFdb5::instance().defaultConfig();
-        const Schema& schema = config.schema();
-        Key result;
-        ASSERT( schema.expandFirstLevel(req.request(), result) );
+        for (const auto& request : parsed) {
 
-        eckit::Log::info() << result << std::endl;
+            const Config& config = LibFdb5::instance().defaultConfig();
+            const Schema& schema = config.schema();
+            Key result;
+            ASSERT( schema.expandFirstLevel(request.request(), result) );
 
-        // 'Touch' the database (which will create it if it doesn't exist)
-        eckit::ScopedPtr<DB> db(DBFactory::buildReader(result, config));
+            eckit::Log::info() << result << std::endl;
 
-        if (!db->exists() && create_db) {
-            db.reset(DBFactory::buildWriter(result, config));
-        }
+            // 'Touch' the database (which will create it if it doesn't exist)
+            std::unique_ptr<DB> db(DBFactory::buildReader(result, config));
 
-        if (db->exists()) {
-            eckit::Log::info() << (*db) << std::endl;
+            if (!db->exists() && create_db) {
+                db.reset(DBFactory::buildWriter(result, config));
+            }
+
+            if (db->exists()) {
+                eckit::Log::info() << (*db) << std::endl;
+            }
         }
     }
 }

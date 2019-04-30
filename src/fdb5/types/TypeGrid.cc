@@ -10,7 +10,7 @@
 
 #include <algorithm>
 
-#include "eckit/parser/StringTools.h"
+#include "eckit/utils/StringTools.h"
 #include "metkit/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
@@ -42,7 +42,7 @@ void TypeGrid::getValues(const metkit::MarsRequest& request,
                          const Notifier&,
                          const DB*) const {
     std::vector<std::string> v;
-    request.getValues(keyword, v);
+    request.getValues(keyword, v, true);
     values.push_back(eckit::StringTools::join("+", v));
 }
 

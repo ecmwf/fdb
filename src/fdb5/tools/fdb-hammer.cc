@@ -9,25 +9,25 @@
  */
 
 #include <unordered_set>
+#include <memory>
+
+#include "eccodes.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/StdFile.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/EmptyHandle.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
+
+#include "metkit/grib/GribHandle.h"
 
 #include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
-
-#include "metkit/grib/GribHandle.h"
-
-#include "eccodes.h"
 
 // This list is currently sufficient to get to nparams=200 of levtype=ml,type=fc
 const std::unordered_set<size_t> AWKWARD_PARAMS {11, 12, 13, 14, 15, 16, 49, 51, 52, 61, 121, 122, 146, 147, 169, 175, 176, 177, 179, 189, 201, 202};
@@ -95,8 +95,8 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     eckit::AutoStdFile fin(args(0));
 
     int err;
-    codes_handle* handle = codes_handle_new_from_file(0, fin, PRODUCT_GRIB, &err);
-    ASSERT(handle != 0);
+    codes_handle* handle = codes_handle_new_from_file(nullptr, fin, PRODUCT_GRIB, &err);
+    ASSERT(handle);
 
     /*long value;
     metkit::grib::GribHandle gh(*handle);
@@ -112,7 +112,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     size_t number  = args.getLong("number", 1);
 
 
-    const char* buffer = 0;
+    const char* buffer = nullptr;
     size_t size = 0;
 
     fdb5::GribArchiver archiver(fdb5::Key(), false, verbose_, args);
@@ -242,7 +242,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
         }
     }
 
-    ScopedPtr<eckit::DataHandle> dh(handles.dataHandle());
+    std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
     EmptyHandle nullOutputHandle;
     size_t total = dh->saveInto(nullOutputHandle);

@@ -13,27 +13,20 @@ ecbuild_declare_project()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-####################################################################################################
+########################################################################################################################
 ### dependencies and options
 
 ### eckit
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit  VERSION 0.21.0  REQUIRED )
+ecbuild_use_package( PROJECT eckit  VERSION 1.0  REQUIRED )
 
 ### GRIB support
 
-ecbuild_use_package( PROJECT eccodes VERSION 0.16 REQUIRED )
-set( GRIB_API_INCLUDE_DIRS ${ECCODES_INCLUDE_DIRS} )
-set( GRIB_API_LIBRARIES    ${ECCODES_LIBRARIES} )
-set( GRIB_API_DEFINITIONS  ${ECCODES_DEFINITIONS} )
-set( grib_api_BASE_DIR     ${eccodes_BASE_DIR} )
-set( GRIB_API_FOUND        1 )  # Temporary hack
-set( grib_handling_pkg eccodes )
+ecbuild_use_package( PROJECT eccodes VERSION 2.10 REQUIRED )
 
-
-ecbuild_use_package( PROJECT metkit VERSION 0.7 REQUIRED ) ## metkit is now always needed
+ecbuild_use_package( PROJECT metkit VERSION 0.17 REQUIRED ) ## metkit is now always needed
 
 ### FDB backend in persistent memory, i.e. pmem (NVRAM)
 
@@ -49,11 +42,22 @@ ecbuild_add_option( FEATURE TOCFDB
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
 
-### Experimental features
+find_package( LustreAPI QUIET )
+
+ecbuild_add_option( FEATURE LUSTRE
+                    CONDITION LustreAPI_FOUND
+                    DEFAULT ON
+                    DESCRIPTION "Filesystem TOC support for FDB" )
+
+### experimental & sandbox features
 
 ecbuild_add_option( FEATURE EXPERIMENTAL
                     DEFAULT OFF
                     DESCRIPTION "Experimental features" )
+
+ecbuild_add_option( FEATURE SANDBOX
+                    DESCRIPTION "build the sandbox stuff"
+                    DEFAULT OFF	 )
 
 ### FDB4 - 5 migration tools
 
@@ -62,32 +66,13 @@ ecbuild_add_option( FEATURE EXPERIMENTAL
 #                    DESCRIPTION "FDB4 to 5 migration tools"
 #                    REQUIRED_PACKAGES "PROJECT fdb VERSION 4.8" )
 
-####################################################################################################
-# project vars & options
 
-### pointdb
-
-ecbuild_add_option( FEATURE POINTDB
-                    DEFAULT ON
-                    DESCRIPTION "Whether or not to build the PointDB -- [EXPERIMENTAL]"
-                    REQUIRED_PACKAGES "PROJECT metkit VERSION 0.2" )
-
-ecbuild_add_option( FEATURE SANDBOX
-                    DESCRIPTION "build the sandbox stuff"
-                    DEFAULT OFF	 )
-
-####################################################################################################
-# find extra packages
-
-find_package( LustreAPI QUIET )
-
-# find thread library ( preferably pthreads )
+### find thread library ( preferably pthreads )
 
 set( CMAKE_THREAD_PREFER_PTHREAD 1 )
 find_package(Threads REQUIRED)
 
-####################################################################################################
-# checks
+### checks
 
 # check thread library is pthreads
 
@@ -95,7 +80,7 @@ if( NOT ${CMAKE_USE_PTHREADS_INIT} )
 	message( FATAL_ERROR "Only pthreads supported - thread library found is [${CMAKE_THREAD_LIBS_INIT}]" )
 endif()
 
-####################################################################################################
+########################################################################################################################
 # contents
 
 set( FDB5_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
@@ -104,19 +89,17 @@ include_directories( ${FDB5_INCLUDE_DIRS} )
 include_directories( ${ECKIT_INCLUDE_DIRS} )
 include_directories( ${METKIT_INCLUDE_DIRS} )
 
-set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${GRIB_API_DEFINITIONS};${ODB_API_DEFINITIONS}" )
+set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${ECCODES_DEFINITIONS};${ODB_API_DEFINITIONS}" )
 
 get_directory_property( FDB5_DEFINITIONS COMPILE_DEFINITIONS )
 
-# source files
+### source files
 
 add_subdirectory( src )
 add_subdirectory( tests )
 
-####################################################################################################
-# finalize
+### finalize
 
 ecbuild_install_project( NAME fdb )
 
 ecbuild_print_summary()
-

@@ -9,7 +9,7 @@
  */
 
 #include "eckit/log/Log.h"
-#include "eckit/parser/Tokenizer.h"
+#include "eckit/utils/Tokenizer.h"
 #include "eckit/types/Types.h"
 
 #include "fdb5/api/helpers/ListIterator.h"

@@ -14,12 +14,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstring>
+#include <memory>
 
 #include "eckit/io/StdFile.h"
 #include "eckit/io/StdPipe.h"
-#include "eckit/parser/Tokenizer.h"
+#include "eckit/utils/Tokenizer.h"
 #include "eckit/utils/Translator.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/config/Resource.h"
 #include "eckit/io/StdFile.h"
 
@@ -27,7 +27,6 @@
 
 #include "fdb5/toc/AdoptVisitor.h"
 #include "fdb5/grib/GribDecoder.h"
-
 #include "fdb5/legacy/FDBIndexScanner.h"
 #include "fdb5/legacy/LegacyTranslator.h"
 
@@ -256,7 +255,7 @@ void FDBIndexScanner::process(FILE *f) {
 
 
             if (compareToGrib_) {
-                eckit::ScopedPtr<DataHandle> h(PathName(datapath).partHandle(offset, length));
+                std::unique_ptr<DataHandle> h(PathName(datapath).partHandle(offset, length));
                 MetFile file(*h);
                 GribDecoder decoder;
                 Key grib;

@@ -21,7 +21,6 @@
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/memory/ScopedPtr.h"
 
 #include "eckit/types/FixedString.h"
 
@@ -69,7 +68,7 @@ public: // methods
 
     TocIndex(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
 
-    virtual ~TocIndex();
+    ~TocIndex() override;
 
     static std::string defaulType();
 
@@ -78,31 +77,31 @@ public: // methods
 
 private: // methods
 
-    virtual const IndexLocation& location() const { return location_; }
-    virtual const std::vector<eckit::PathName> dataPaths() const override;
+    const IndexLocation& location() const override { return location_; }
+    const std::vector<eckit::PathName> dataPaths() const override;
 
-    virtual bool dirty() const;
+    bool dirty() const override;
 
-    virtual void open();
-    virtual void close();
-    virtual void reopen();
+    void open() override;
+    void close() override;
+    void reopen() override;
 
-    virtual void visit(IndexLocationVisitor& visitor) const;
+    void visit(IndexLocationVisitor& visitor) const override;
 
-    virtual bool get( const Key &key, Field &field ) const;
-    virtual void add( const Key &key, const Field &field );
-    virtual void flush();
-    virtual void encode(eckit::Stream &s) const;
-    virtual void entries(EntryVisitor &visitor) const;
+    bool get( const Key &key, Field &field ) const override;
+    void add( const Key &key, const Field &field ) override;
+    void flush() override;
+    void encode(eckit::Stream &s) const override;
+    void entries(EntryVisitor &visitor) const override;
 
-    virtual void print( std::ostream &out ) const;
-    virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const;
+    void print( std::ostream &out ) const override;
+    void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const override;
 
-    virtual IndexStats statistics() const;
+    IndexStats statistics() const override;
 
 private: // members
 
-    eckit::ScopedPtr<BTreeIndex>  btree_;
+    std::unique_ptr<BTreeIndex>  btree_;
 
     bool dirty_;
 

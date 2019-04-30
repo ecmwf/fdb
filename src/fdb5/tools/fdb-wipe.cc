@@ -59,6 +59,10 @@ void FDBWipe::execute(const CmdArgs& args) {
 
     for (const FDBToolRequest& request : requests()) {
 
+        Log::info() << "Wiping for request" << std::endl;
+        request.print(Log::info());
+        Log::info() << std::endl;
+
         auto listObject = fdb.wipe(request, doit_, verbose_);
 
         size_t count = 0;

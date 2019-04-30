@@ -55,7 +55,7 @@ protected: // For Streamable
 
 private: // methods
 
-    virtual void print(std::ostream &out) const;
+    void print(std::ostream &out) const override;
 
 private: // members
 

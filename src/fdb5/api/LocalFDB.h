@@ -31,27 +31,27 @@ public: // methods
 
     using FDBBase::FDBBase;
 
-    virtual void archive(const Key& key, const void* data, size_t length);
+    void archive(const Key& key, const void* data, size_t length) override;
 
-    virtual eckit::DataHandle* retrieve(const metkit::MarsRequest& request);
+    eckit::DataHandle* retrieve(const metkit::MarsRequest& request) override;
 
-    virtual ListIterator list(const FDBToolRequest& request) override;
+    ListIterator list(const FDBToolRequest& request) override;
 
-    virtual DumpIterator dump(const FDBToolRequest& request, bool simple) override;
+    DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
-    virtual WhereIterator where(const FDBToolRequest& request) override;
+    WhereIterator where(const FDBToolRequest& request) override;
 
-    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) override;
+    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) override;
 
-    virtual PurgeIterator purge(const FDBToolRequest& request, bool doit, bool verbose) override;
+    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool verbose) override;
 
-    virtual StatsIterator stats(const FDBToolRequest& request) override;
+    StatsIterator stats(const FDBToolRequest& request) override;
 
-    virtual void flush();
+    void flush() override;
 
 private: // methods
 
-    virtual void print(std::ostream& s) const;
+    void print(std::ostream& s) const override;
 
     template <typename VisitorType, typename ... Ts>
     APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts ... args);

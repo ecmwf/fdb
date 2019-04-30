@@ -62,7 +62,7 @@ void TypeClimateMonthly::getValues(const metkit::MarsRequest &request,
                                    const DB*) const {
     std::vector<std::string> dates;
 
-    request.getValues(keyword, dates);
+    request.getValues(keyword, dates, true);
 
     values.reserve(dates.size());
 

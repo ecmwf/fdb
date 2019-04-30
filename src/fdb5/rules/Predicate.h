@@ -18,9 +18,9 @@
 
 #include <iosfwd>
 #include <vector>
+#include <memory>
 
 #include "eckit/memory/NonCopyable.h"
-#include "eckit/memory/ScopedPtr.h"
 
 namespace metkit { class MarsRequest; }
 
@@ -61,7 +61,7 @@ private: // methods
 
 private: // members
 
-    eckit::ScopedPtr<Matcher> matcher_;
+    std::unique_ptr<Matcher> matcher_;
 
     std::string keyword_;
 };

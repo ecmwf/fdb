@@ -115,7 +115,7 @@ DB& Archiver::database(const Key &key) {
         }
     }
 
-    eckit::SharedPtr<DB> db ( DBFactory::buildWriter(key, dbConfig_) );
+    std::shared_ptr<DB> db ( DBFactory::buildWriter(key, dbConfig_) );
     ASSERT(db);
     databases_[key] = db;
     return *db;

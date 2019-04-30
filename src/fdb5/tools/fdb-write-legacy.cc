@@ -9,7 +9,6 @@
  */
 
 #include "eckit/io/DataHandle.h"
-#include "eckit/memory/ScopedPtr.h"
 #include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"

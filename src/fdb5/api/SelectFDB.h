@@ -36,29 +36,30 @@ private: // types
 public: // methods
 
     SelectFDB(const Config& config, const std::string& name);
-    virtual ~SelectFDB();
 
-    virtual void archive(const Key& key, const void* data, size_t length);
+    ~SelectFDB() override;
 
-    virtual eckit::DataHandle* retrieve(const metkit::MarsRequest& request);
+    void archive(const Key& key, const void* data, size_t length) override;
 
-    virtual ListIterator list(const FDBToolRequest& request) override;
+    eckit::DataHandle* retrieve(const metkit::MarsRequest& request) override;
 
-    virtual DumpIterator dump(const FDBToolRequest& request, bool simple) override;
+    ListIterator list(const FDBToolRequest& request) override;
 
-    virtual WhereIterator where(const FDBToolRequest& request) override;
+    DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
-    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) override;
+    WhereIterator where(const FDBToolRequest& request) override;
 
-    virtual PurgeIterator purge(const FDBToolRequest& request, bool doit, bool verbose) override;
+    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) override;
 
-    virtual StatsIterator stats(const FDBToolRequest& request) override;
+    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool verbose) override;
 
-    virtual void flush();
+    StatsIterator stats(const FDBToolRequest& request) override;
+
+    void flush() override;
 
 private: // methods
 
-    virtual void print(std::ostream& s) const;
+    void print(std::ostream& s) const override;
 
     bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
     bool matches(const metkit::MarsRequest& request, const SelectMap& select, bool requireMissing) const;

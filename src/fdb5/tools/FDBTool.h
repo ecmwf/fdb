@@ -43,6 +43,8 @@ protected: // methods
     FDBTool(int argc, char **argv);
     virtual ~FDBTool() {}
 
+    virtual void run();
+
 public: // methods
 
     virtual void usage(const std::string &tool) const = 0;
@@ -66,9 +68,6 @@ private: // methods
 
     virtual int numberOfPositionalArguments() const { return -1; }
     virtual int minimumPositionalArguments() const { return -1; }
-
-    virtual void run();
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
