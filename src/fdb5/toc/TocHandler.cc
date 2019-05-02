@@ -600,7 +600,9 @@ void TocHandler::writeClearAllRecord() {
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << std::string {"*"};
     s << off_t{0};
-    append(*r, s.position());
+
+    size_t sz = roundRecord(*r, s.position());
+    appendBlock(r.get(), sz);
 }
 
 void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
