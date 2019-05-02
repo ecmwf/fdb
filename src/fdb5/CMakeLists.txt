@@ -414,6 +414,7 @@ if ( HAVE_TOCFDB )
         fdb-write-legacy
         fdb-root
         fdb-overlay
+        fdb-hide
     )
 endif()
 
