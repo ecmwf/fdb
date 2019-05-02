@@ -38,13 +38,13 @@ public: // methods
     FdbOverlay(int argc, char **argv) :
         FDBTool(argc, argv),
         variableKeys_{"class", "expver"},
-        unmount_(false),
+        remove_(false),
         force_(false) {
         options_.push_back(new VectorOption<std::string>("variable-keys",
                                                          "The keys that may vary between mounted DBs",
                                                          0, ","));
-        options_.push_back(new SimpleOption<bool>("unmount", "Unmount a previously mounted DB"));
-        options_.push_back(new SimpleOption<bool>("force", "Mount even if target already exists"));
+        options_.push_back(new SimpleOption<bool>("remove", "Remove a previously FDB overlay"));
+        options_.push_back(new SimpleOption<bool>("force", "Apply overlay even if target already exists"));
     }
 
 private: // methods
@@ -56,7 +56,7 @@ private: // methods
 private: // members
 
     std::vector<std::string> variableKeys_;
-    bool unmount_;
+    bool remove_;
     bool force_;
 };
 
@@ -65,11 +65,6 @@ void FdbOverlay::usage(const std::string &tool) const {
     Log::info() << std::endl
                 << "Usage: " << tool << " [options] [source DB request] [target DB request] ..." << std::endl
                 << std::endl
-                << std::endl
-                << "Examples:" << std::endl
-                << "=========" << std::endl << std::endl
-                << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200"
-                << std::endl
                 << std::endl;
     FDBTool::usage(tool);
 }
@@ -77,7 +72,7 @@ void FdbOverlay::usage(const std::string &tool) const {
 void FdbOverlay::init(const option::CmdArgs& args) {
     FDBTool::init(args);
     args.get("variable-keys", variableKeys_);
-    args.get("unmount", unmount_);
+    args.get("remove", remove_);
     args.get("force", force_);
 }
 
@@ -86,7 +81,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     UMask umask(UMask::defaultUMask());
 
     if (args.count() != 2) {
-        usage("fdb-mount");
+        usage("fdb-overlay");
         return;
     }
 
@@ -108,10 +103,10 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     ASSERT(schema.expandFirstLevel(sourceRequest.request(), source));
     ASSERT(schema.expandFirstLevel(targetRequest.request(), target));
 
-    if (unmount_) {
-        Log::info() << "Unmounting " << source << " from " << target << std::endl;
+    if (remove_) {
+        Log::info() << "Removing " << source << " from " << target << std::endl;
     } else {
-        Log::info() << "Mounting " << source << " onto " << target << std::endl;
+        Log::info() << "Applying " << source << " onto " << target << std::endl;
     }
 
     std::unique_ptr<DB> dbSource(DBFactory::buildReader(source, config));
@@ -129,7 +124,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
 
     std::unique_ptr<DB> dbTarget(DBFactory::buildReader(target, config));
 
-    if (unmount_) {
+    if (remove_) {
         if (!dbTarget->exists()) {
             std::stringstream ss;
             ss << "Target database must already already exist: " << target << std::endl;
@@ -157,7 +152,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     ASSERT(tocTargetDB);
 
     std::set<std::string> vkeys(variableKeys_.begin(), variableKeys_.end());
-    tocTargetDB->overlayDB(*tocSourceDB, vkeys, unmount_);
+    tocTargetDB->overlayDB(*tocSourceDB, vkeys, remove_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
