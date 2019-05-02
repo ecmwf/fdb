@@ -50,6 +50,7 @@ public: // methods
 
     const eckit::Length &length() const { return length_; }
 
+    virtual eckit::DataHandle *dataHandle() const = 0;
     virtual eckit::DataHandle *dataHandle(const Key& remapKey) const = 0;
 
     /// Create a (shared) copy of the current object, for storage in a general container.

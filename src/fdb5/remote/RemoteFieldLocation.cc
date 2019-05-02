@@ -46,6 +46,10 @@ std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
     return std::make_shared<RemoteFieldLocation>(*this);
 }
 
+eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
+    return internal_->dataHandle();
+}
+
 eckit::DataHandle* RemoteFieldLocation::dataHandle(const Key& remapKey) const {
     return internal_->dataHandle(remapKey);
 }

@@ -118,7 +118,11 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
         if (idx.mayContain(key)) {
             const_cast<Index&>(idx).open();
             if (idx.get(key, field)) {
-                return field.dataHandle(remapKey);
+                if (remapKey.empty()) {
+                    return field.dataHandle();
+                } else {
+                    return field.dataHandle(remapKey);
+                }
             }
         }
     }

@@ -413,7 +413,7 @@ if ( HAVE_TOCFDB )
         fdb-adopt
         fdb-write-legacy
         fdb-root
-        fdb-mount
+        fdb-overlay
     )
 endif()
 

@@ -211,7 +211,7 @@ void TocDBWriter::reconsolidateIndexesAndTocs() {
     appendBlock(buf, combinedSize);
 }
 
-void TocDBWriter::mountDB(const TocDB& otherDb, const std::set<std::string>& variableKeys, bool unmount) {
+void TocDBWriter::overlayDB(const TocDB& otherDb, const std::set<std::string>& variableKeys, bool unmount) {
 
     const Key& otherKey(otherDb.key());
 

@@ -39,6 +39,7 @@ public:
 
     virtual eckit::PathName url() const;
 
+    virtual eckit::DataHandle *dataHandle() const;
     virtual eckit::DataHandle *dataHandle(const Key& remapKey) const;
 
     virtual std::shared_ptr<FieldLocation> make_shared() const;

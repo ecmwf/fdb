@@ -31,11 +31,11 @@ namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FdbMount : public FDBTool {
+class FdbOverlay : public FDBTool {
 
 public: // methods
 
-    FdbMount(int argc, char **argv) :
+    FdbOverlay(int argc, char **argv) :
         FDBTool(argc, argv),
         variableKeys_{"class", "expver"},
         unmount_(false),
@@ -60,7 +60,7 @@ private: // members
     bool force_;
 };
 
-void FdbMount::usage(const std::string &tool) const {
+void FdbOverlay::usage(const std::string &tool) const {
 
     Log::info() << std::endl
                 << "Usage: " << tool << " [options] [source DB request] [target DB request] ..." << std::endl
@@ -74,14 +74,14 @@ void FdbMount::usage(const std::string &tool) const {
     FDBTool::usage(tool);
 }
 
-void FdbMount::init(const option::CmdArgs& args) {
+void FdbOverlay::init(const option::CmdArgs& args) {
     FDBTool::init(args);
     args.get("variable-keys", variableKeys_);
     args.get("unmount", unmount_);
     args.get("force", force_);
 }
 
-void FdbMount::execute(const option::CmdArgs& args) {
+void FdbOverlay::execute(const option::CmdArgs& args) {
 
     UMask umask(UMask::defaultUMask());
 
@@ -157,7 +157,7 @@ void FdbMount::execute(const option::CmdArgs& args) {
     ASSERT(tocTargetDB);
 
     std::set<std::string> vkeys(variableKeys_.begin(), variableKeys_.end());
-    tocTargetDB->mountDB(*tocSourceDB, vkeys, unmount_);
+    tocTargetDB->overlayDB(*tocSourceDB, vkeys, unmount_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -166,6 +166,6 @@ void FdbMount::execute(const option::CmdArgs& args) {
 } // namespace fbb5
 
 int main(int argc, char **argv) {
-    fdb5::tools::FdbMount app(argc, argv);
+    fdb5::tools::FdbOverlay app(argc, argv);
     return app.start();
 }
