@@ -21,17 +21,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-SchemaHasChanged::SchemaHasChanged(const Schema &schema):
-    Exception("Schema has changed: " + schema.path()),
-    path_(schema.path()) {
-}
-
-SchemaHasChanged::~SchemaHasChanged() noexcept {
-
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
 Schema::Schema() {
 }
 
@@ -80,6 +69,46 @@ void Schema::expand(const Key &field, WriteVisitor &visitor) const {
 
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->expand(field, visitor, 0, keys, full);
+    }
+}
+
+void Schema::expandSecond(const metkit::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const {
+
+    const Rule* dbRule;
+    for (const Rule* r : rules_) {
+        if (r->match(dbKey)) {
+            dbRule = r;
+            break;
+        }
+    }
+    ASSERT(dbRule);
+
+    Key full = dbKey;
+    std::vector<Key> keys(3);
+    keys[0] = dbKey;
+
+    for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
+        (*i)->expand(request, visitor, 1, keys, full);
+    }
+}
+
+void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& dbKey) const {
+
+    const Rule* dbRule;
+    for (const Rule* r : rules_) {
+        if (r->match(dbKey)) {
+            dbRule = r;
+            break;
+        }
+    }
+    ASSERT(dbRule);
+
+    Key full = dbKey;
+    std::vector<Key> keys(3);
+    keys[0] = dbKey;
+
+    for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
+        (*i)->expand(field, visitor, 1, keys, full);
     }
 }
 
@@ -169,27 +198,6 @@ const Type &Schema::lookupType(const std::string &keyword) const {
     return registry_.lookupType(keyword);
 }
 
-
-
-void Schema::compareTo(const Schema &other) const {
-    std::ostringstream a;
-    std::ostringstream b;
-
-    dump(a);
-    other.dump(b);
-
-    if (empty()) {
-        eckit::Log::warning() << *this << " is empty" << std::endl;
-    }
-
-    if (other.empty()) {
-        eckit::Log::warning() << other << " is empty" << std::endl;
-    }
-
-    if (a.str() != b.str()) {
-        throw SchemaHasChanged(*this);
-    }
-}
 
 bool Schema::empty() const {
     return rules_.empty();

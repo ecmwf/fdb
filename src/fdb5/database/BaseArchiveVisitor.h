@@ -24,6 +24,7 @@ namespace fdb5 {
 
 class Archiver;
 class DB;
+class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -40,6 +41,8 @@ protected: // methods
     virtual bool selectIndex(const Key &key, const Key &full);
 
     virtual void checkMissingKeys(const Key &full);
+
+    virtual const Schema& databaseSchema() const;
 
     fdb5::DB *current() const;
 

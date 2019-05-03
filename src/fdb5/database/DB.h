@@ -75,8 +75,6 @@ public: // methods
 
     virtual void close() = 0;
 
-    virtual void checkSchema(const Key &key) const = 0;
-
     virtual bool exists() const = 0;
 
     /// If sorted is specified, the entries may be visited in the most efficient order, rather than

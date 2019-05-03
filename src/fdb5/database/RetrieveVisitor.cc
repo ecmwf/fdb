@@ -50,7 +50,6 @@ bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
         eckit::Log::info() << "Database does not exists " << key << std::endl;
         return false;
     } else {
-        db_->checkSchema(key);
         return true;
     }
 }
@@ -82,6 +81,11 @@ void RetrieveVisitor::values(const metkit::MarsRequest &request, const std::stri
 
 void RetrieveVisitor::print( std::ostream &out ) const {
     out << "RetrieveVisitor[]";
+}
+
+const Schema& RetrieveVisitor::databaseSchema() const {
+    ASSERT(db_);
+    return db_->schema();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

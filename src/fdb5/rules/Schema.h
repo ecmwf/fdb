@@ -38,18 +38,6 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class SchemaHasChanged: public eckit::Exception {
-    std::string path_;
-public:
-    SchemaHasChanged(const Schema &schema);
-    ~SchemaHasChanged() noexcept;
-    const std::string &path() const {
-        return path_;
-    }
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
 class Schema : private eckit::NonCopyable {
 
 public: // methods
@@ -63,6 +51,12 @@ public: // methods
     void expand(const Key &field, WriteVisitor &visitor) const;
     void expand(const metkit::MarsRequest &request, ReadVisitor &visitor) const;
 
+    // Each database has its own internal schema. So expand() above results in
+    // expandFurther being called on the relevant schema from the DB, to start
+    // iterating on that schemas rules.
+    void expandSecond(const Key& field, WriteVisitor &visitor, const Key& dbKey) const;
+    void expandSecond(const metkit::MarsRequest& request, ReadVisitor &visitor, const Key& dbKey) const;
+
     bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
     bool expandFirstLevel(const metkit::MarsRequest& request,  Key& result) const ;
     void matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const ;
@@ -75,7 +69,6 @@ public: // methods
 
     void dump(std::ostream &s) const;
 
-    void compareTo(const Schema &other) const;
     bool empty() const;
 
     const Type &lookupType(const std::string &keyword) const;

@@ -65,7 +65,6 @@ protected: // methods
     void maskIndexEntry(const Index& index) const override;
 
     void loadSchema();
-    void checkSchema(const Key &key) const override;
 
     DbStats statistics() const override;
 

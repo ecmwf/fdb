@@ -149,12 +149,6 @@ void PMemDB::close() {
     indexes_.clear();
 }
 
-void PMemDB::checkSchema(const Key &key) const {
-    eckit::Timer timer("PMemDB::checkSchema()");
-    ASSERT(key.rule());
-    schema_.compareTo(key.rule()->schema());
-}
-
 void PMemDB::axis(const std::string &keyword, eckit::StringSet &s) const {
     Log::error() << "axis not implemented for " << *this << std::endl;
     NOTIMP;
