@@ -30,7 +30,7 @@ namespace local {
 struct ListVisitor : public QueryVisitor<ListElement> {
 
 public:
-    using QueryVisitor::QueryVisitor;
+    using QueryVisitor<ListElement>::QueryVisitor;
 
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety

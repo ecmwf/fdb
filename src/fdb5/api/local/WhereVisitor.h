@@ -28,7 +28,7 @@ namespace local {
 
 class WhereVisitor : public QueryVisitor<WhereElement> {
 public:
-    using QueryVisitor::QueryVisitor;
+    using QueryVisitor<WhereElement>::QueryVisitor;
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
     bool visitDatabase(const DB& db) override { queue_.emplace(db.basePath()); return true; }

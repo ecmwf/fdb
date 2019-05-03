@@ -55,9 +55,12 @@ std::shared_ptr<FieldLocation> PMemFieldLocation::stableLocation() const {
 
 
 eckit::DataHandle *PMemFieldLocation::dataHandle() const {
-
     const PDataNode& node(*dataNode_);
     return new eckit::MemoryHandle(node.data(), node.length());
+}
+
+eckit::DataHandle *PMemFieldLocation::dataHandle(const Key& remapKey) const {
+    throw eckit::NotImplemented("fdb-mount functionality not implemented in pmem backend (yet)", Here());
 }
 
 void PMemFieldLocation::print(std::ostream& out) const {

@@ -48,8 +48,8 @@ public: // methods
 
     TocHandler( const eckit::PathName &dir, const Config& config=Config());
 
-    /// For initialising sub tocs or diagnostic interrogation. Bool just for identification.
-    TocHandler(const eckit::PathName& path, bool);
+    /// For initialising sub tocs or diagnostic interrogation.
+    TocHandler(const eckit::PathName& path, const Key& parentKey);
 
     ~TocHandler();
 
@@ -58,8 +58,10 @@ public: // methods
 
     void writeInitRecord(const Key &tocKey);
     void writeClearRecord(const Index &);
+    void writeClearAllRecord();
     void writeSubTocRecord(const TocHandler& subToc);
     void writeIndexRecord(const Index &);
+    void writeSubTocMaskRecord(const TocHandler& subToc);
 
     void reconsolidateIndexesAndTocs();
 
@@ -70,7 +72,8 @@ public: // methods
     /// subTocs that were read to get these indexes
     std::vector<Index> loadIndexes(bool sorted=false,
                                    std::set<std::string>* subTocs = nullptr,
-                                   std::vector<bool>* indexInSubtoc = nullptr) const;
+                                   std::vector<bool>* indexInSubtoc = nullptr,
+                                   std::vector<Key>* remapKeys = nullptr) const;
 
     Key databaseKey();
     size_t numberOfRecords() const;
@@ -95,6 +98,7 @@ protected: // members
 
     const eckit::PathName directory_;
     mutable long dbUID_;
+    mutable Key parentKey_; // Contains the key of the first TOC explored in subtoc chain
     long userUID_;
 
     long dbUID() const;
@@ -106,6 +110,10 @@ protected: // methods
     static LustreStripe stripeIndexLustreSettings();
 
     static LustreStripe stripeDataLustreSettings();
+
+    // Handle location and remapping information if using a mounted TocDB
+    const eckit::PathName& currentDirectory() const;
+    const Key& currentRemapKey() const;
 
     // Build the record, and return the payload size
 
@@ -133,6 +141,8 @@ private: // methods
     /// Populate the masked sub toc list, starting from the _current_position_ in the
     /// file (opened for read). It resets back to the same place when done. This is
     /// to allow searching only from the first subtoc.
+    void allMaskableEntries(off_t startOffset, off_t endOffset,
+                            std::set<std::pair<eckit::PathName, size_t>>& entries) const;
     void populateMaskedEntriesList() const;
 
     void append(TocRecord &r, size_t payloadSize);
@@ -155,6 +165,10 @@ private: // members
 
     bool useSubToc_;
     bool isSubToc_;
+
+    // If we have mounted another TocDB internally, what is the current
+    // remapping key?
+    Key remapKey_;
 
     mutable int fd_;      ///< file descriptor, if zero file is not yet open.
 

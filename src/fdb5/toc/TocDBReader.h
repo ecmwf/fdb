@@ -37,6 +37,7 @@ public: // methods
 
 private: // methods
 
+    void loadIndexesAndRemap();
     virtual bool selectIndex(const Key &key);
     virtual void deselectIndex();
 
@@ -52,8 +53,14 @@ private: // methods
 private: // members
 
     Key currentIndexKey_;
-    std::vector<Index> matching_; //< Indexes matching current key
-    std::vector<Index> indexes_;  //< All indexes
+
+    // Indexes matching current key. If there is a key remapping for a mounted
+    // SubToc, then this is stored alongside
+    std::vector<std::pair<Index, Key>> matching_;
+
+    // All indexes
+    // If there is a key remapping for a mounted SubToc, this is stored alongside
+    std::vector<std::pair<Index, Key>> indexes_;
 
 };
 

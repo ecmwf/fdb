@@ -158,6 +158,8 @@ list( APPEND fdb5_srcs
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
     io/fdb5_lustreapi_file_create.c
+    io/SingleGribMungePartFileHandle.cc
+    io/SingleGribMungePartFileHandle.h
     io/LustreFileHandle.cc
     io/LustreFileHandle.h
     io/HandleGatherer.cc
@@ -411,6 +413,8 @@ if ( HAVE_TOCFDB )
         fdb-adopt
         fdb-write-legacy
         fdb-root
+        fdb-overlay
+        fdb-hide
     )
 endif()
 

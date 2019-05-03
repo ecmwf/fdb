@@ -78,7 +78,7 @@ WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue,
                          const metkit::MarsRequest& request,
                          bool doit,
                          bool verbose) :
-    QueryVisitor(queue, request),
+    QueryVisitor<WipeElement>(queue, request),
     doit_(doit),
     verbose_(verbose) {}
 
@@ -126,7 +126,13 @@ bool WipeVisitor::visitIndex(const Index& index) {
 
     bool include = index.key().match(indexRequest_);
 
-    ASSERT(location.dirName().sameAs(basePath_));
+    // If we have cross fdb-mounted another DB, ensure we can't delete another
+    // DBs data.
+    if (!location.dirName().sameAs(basePath_)) {
+        include = false;
+    }
+
+    ASSERT(location.dirName().sameAs(basePath_) || !include);
     if (include) {
         indexesToMask_.push_back(index);
         current_.indexes.push_back(std::shared_ptr<IndexLocation>(index.location().clone()));
@@ -142,12 +148,10 @@ bool WipeVisitor::visitIndex(const Index& index) {
     // Enumerate data files.
 
     for (const eckit::PathName& path : index.dataPaths()) {
-        if (path.dirName().sameAs(basePath_)) {
-            if (include) {
-                current_.dataPaths.insert(path);
-            } else {
-                current_.safePaths.insert(path);
-            }
+        if (include && path.dirName().sameAs(basePath_)) {
+            current_.dataPaths.insert(path);
+        } else {
+            current_.safePaths.insert(path);
         }
     }
 

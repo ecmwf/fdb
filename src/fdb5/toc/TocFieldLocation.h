@@ -39,7 +39,8 @@ public:
     const eckit::PathName& path() const { return path_; }
     const eckit::Offset&   offset() const { return offset_; }
 
-    virtual eckit::DataHandle *dataHandle() const;
+    virtual eckit::DataHandle* dataHandle() const;
+    virtual eckit::DataHandle* dataHandle(const Key& remapKey) const;
 
     virtual eckit::PathName url() const;
 

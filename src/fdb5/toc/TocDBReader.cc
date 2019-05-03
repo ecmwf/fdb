@@ -22,18 +22,29 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocDBReader::TocDBReader(const Key& key, const eckit::Configuration& config) :
-    TocDB(key, config),
-    indexes_(loadIndexes()) {
+    TocDB(key, config) {
+    loadIndexesAndRemap();
 }
 
 TocDBReader::TocDBReader(const eckit::PathName& directory, const eckit::Configuration& config) :
-    TocDB(directory, config),
-    indexes_(loadIndexes()) {
+    TocDB(directory, config) {
+    loadIndexesAndRemap();
 }
 
 
 TocDBReader::~TocDBReader() {
     eckit::Log::debug<LibFdb5>() << "Closing DB " << *this << std::endl;
+}
+
+void TocDBReader::loadIndexesAndRemap() {
+    std::vector<Key> remapKeys;
+    std::vector<Index> indexes = loadIndexes(false, nullptr, nullptr, &remapKeys);
+
+    ASSERT(remapKeys.size() == indexes.size());
+    indexes_.reserve(remapKeys.size());
+    for (size_t i = 0; i < remapKeys.size(); ++i) {
+        indexes_.emplace_back(indexes[i], remapKeys[i]);
+    }
 }
 
 bool TocDBReader::selectIndex(const Key &key) {
@@ -44,22 +55,17 @@ bool TocDBReader::selectIndex(const Key &key) {
 
     currentIndexKey_ = key;
 
-    for (std::vector<Index>::iterator j = matching_.begin(); j != matching_.end(); ++j) {
-        j->close();
+    for (auto& idx : matching_) {
+        idx.first.close();
     }
 
     matching_.clear();
 
 
-    for (std::vector<Index>::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
-        if (j->key() == key) {
-//            eckit::Log::debug<LibFdb5>() << "Matching " << j->key() << std::endl;
-            matching_.push_back(*j);
-//            j->open();
+    for (const auto& idx : indexes_) {
+        if (idx.first.key() == key) {
+            matching_.push_back(idx);
         }
-//        else {
-//           eckit::Log::info() << "Not matching " << j->key() << std::endl;
-//        }
     }
 
     eckit::Log::debug<LibFdb5>() << "TocDBReader::selectIndex " << key << ", found "
@@ -87,15 +93,15 @@ bool TocDBReader::open() {
 }
 
 void TocDBReader::axis(const std::string &keyword, eckit::StringSet &s) const {
-    for (std::vector<Index>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
-        const eckit::StringSet& a = j->axes().values(keyword);
+    for (const auto& m : matching_ ){
+        const eckit::StringSet& a = m.first.axes().values(keyword);
         s.insert(a.begin(), a.end());
     }
 }
 
 void TocDBReader::close() {
-    for (std::vector<Index>::iterator j = matching_.begin(); j != matching_.end(); ++j) {
-        j->close();
+    for (auto& m : matching_) {
+        m.first.close();
     }
 }
 
@@ -105,12 +111,18 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
     eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
 
     Field field;
-    for (std::vector<Index>::const_iterator j = matching_.begin(); j != matching_.end(); ++j) {
-        if (j->mayContain(key)) {
-            const_cast<Index*>(&(*j))->open();
-            if (j->get(key, field)) {
-                eckit::Log::debug<LibFdb5>() << "FOUND KEY " << key << " -> " << *j << " " << field << std::endl;
-                return field.dataHandle();
+    for (const auto& m : matching_) {
+        const Index& idx(m.first);
+        const Key& remapKey(m.second);
+
+        if (idx.mayContain(key)) {
+            const_cast<Index&>(idx).open();
+            if (idx.get(key, field)) {
+                if (remapKey.empty()) {
+                    return field.dataHandle();
+                } else {
+                    return field.dataHandle(remapKey);
+                }
             }
         }
     }
@@ -125,13 +137,18 @@ void TocDBReader::print(std::ostream &out) const {
 
 std::vector<Index> TocDBReader::indexes(bool sorted) const {
 
+    std::vector<Index> returnedIndexes;
+    returnedIndexes.reserve(indexes_.size());
+    for (const auto& idx : indexes_) {
+        returnedIndexes.emplace_back(idx.first);
+    }
+
     // If required, sort the indexes by file, and location within the file, for efficient iteration.
     if (sorted) {
-        std::vector<Index> returnedIndexes(indexes_);
         std::sort(returnedIndexes.begin(), returnedIndexes.end(), TocIndexFileSort());
     }
 
-    return indexes_;
+    return returnedIndexes;
 }
 
 static DBBuilder<TocDBReader> builder("toc.reader", true, false);

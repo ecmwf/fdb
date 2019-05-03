@@ -9,6 +9,8 @@
  */
 
 #include "fdb5/toc/TocFieldLocation.h"
+#include "fdb5/io/SingleGribMungePartFileHandle.h"
+#include "fdb5/LibFdb5.h"
 
 namespace fdb5 {
 
@@ -48,9 +50,12 @@ std::shared_ptr<FieldLocation> TocFieldLocation::make_shared() const {
     return std::make_shared<TocFieldLocation>(*this);
 }
 
-
 eckit::DataHandle *TocFieldLocation::dataHandle() const {
     return path_.partHandle(offset_, length_);
+}
+
+eckit::DataHandle *TocFieldLocation::dataHandle(const Key& remapKey) const {
+    return new SingleGribMungePartFileHandle(path_, offset_, length_, remapKey);
 }
 
 eckit::PathName TocFieldLocation::url() const

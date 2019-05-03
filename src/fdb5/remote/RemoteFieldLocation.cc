@@ -10,6 +10,8 @@
 
 #include "fdb5/remote/RemoteFieldLocation.h"
 
+#include "eckit/exception/Exceptions.h"
+
 namespace fdb5 {
 namespace remote {
 
@@ -46,6 +48,10 @@ std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
 
 eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
     return internal_->dataHandle();
+}
+
+eckit::DataHandle* RemoteFieldLocation::dataHandle(const Key& remapKey) const {
+    return internal_->dataHandle(remapKey);
 }
 
 eckit::PathName RemoteFieldLocation::url() const {

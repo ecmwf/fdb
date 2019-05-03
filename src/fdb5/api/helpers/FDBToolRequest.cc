@@ -49,26 +49,26 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
         std::copy(parsedRequests.begin(), parsedRequests.end(), std::back_inserter(requests));
     } else {
 
-        // We want to use (default) inherited requests, as this allows use to use
+        /*// We want to use (default) inherited requests, as this allows use to use
         // TypeParam with a certain amount of meaning. But we also want to be able
         // to use sparse requests for the FDB. So we unset anything that has not
         // been originally specified by the user.
 
         auto&& ps(parsedRequests.front().params());
         std::set<std::string> setParams(std::make_move_iterator(ps.begin()),
-                                        std::make_move_iterator(ps.end()));
+                                        std::make_move_iterator(ps.end()));*/
 
-        bool inherit = true;
+        bool inherit = false;
         metkit::MarsExpension expand(inherit);
         auto expandedRequests = expand.expand(parsedRequests);
 
         for (metkit::MarsRequest& request : expandedRequests) {
 
-            for (const auto& param : request.params()) {
+            /*for (const auto& param : request.params()) {
                 if (std::find(setParams.begin(), setParams.end(), param) == setParams.end()) {
                     request.unsetValues(param);
                 }
-            }
+            }*/
             eckit::Log::debug<LibFdb5>() << "Expanded request: " << request << std::endl;
             requests.emplace_back(FDBToolRequest(request, false, minimumKeys));
         }

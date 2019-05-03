@@ -209,8 +209,9 @@ void TocDataStats::report(std::ostream &out, const char *indent) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocStatsReportVisitor::TocStatsReportVisitor(const TocDB& db) :
-    directory_(static_cast<const DB&>(db).basePath()) {
+TocStatsReportVisitor::TocStatsReportVisitor(const TocDB& db, bool includeReferenced) :
+    directory_(static_cast<const DB&>(db).basePath()),
+    includeReferencedNonOwnedData_(includeReferenced) {
 
     currentDatabase_ = &db;
     dbStats_ = db.stats();
@@ -229,6 +230,12 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
 //    ASSERT(currIndex_ != 0);
 
     TocDbStats* dbStats = new TocDbStats();
+
+    // Exclude non-owned data if relevant
+    if (!includeReferencedNonOwnedData_) {
+        if (!currentIndex_->location().url().dirName().sameAs(currentDatabase_->basePath())) return;
+        if (!field.location().url().dirName().sameAs(currentDatabase_->basePath())) return;
+    }
 
     // If this index is not yet in the map, then create an entry
 

@@ -31,6 +31,8 @@ public:
     RemoteFieldLocation(const RemoteFieldLocation&);
 
     virtual eckit::DataHandle *dataHandle() const;
+    virtual eckit::DataHandle *dataHandle(const Key& remapKey) const;
+
     virtual eckit::PathName url() const;
     virtual std::shared_ptr<FieldLocation> make_shared() const;
     virtual void visit(FieldLocationVisitor& visitor) const;

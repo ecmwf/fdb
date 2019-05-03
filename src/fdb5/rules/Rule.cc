@@ -100,7 +100,7 @@ void Rule::expand( const metkit::MarsRequest &request,
     eckit::StringList values;
     visitor.values(request, keyword, registry_, values);
 
-	// eckit::Log::info() << "keyword " << keyword << " values " << values << std::endl;
+    // eckit::Log::info() << "keyword " << keyword << " values " << values << std::endl;
 
     Key &k = keys[depth];
 

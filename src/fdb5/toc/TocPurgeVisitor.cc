@@ -21,7 +21,7 @@ namespace fdb5 {
 
 TocPurgeVisitor::TocPurgeVisitor(const TocDB& db) :
     PurgeVisitor(),
-    TocStatsReportVisitor(db) {}
+    TocStatsReportVisitor(db, false) {}
 
 TocPurgeVisitor::~TocPurgeVisitor() {}
 

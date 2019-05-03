@@ -44,6 +44,14 @@ public: // methods
 
     void reconsolidateIndexesAndTocs();
 
+    /// Mount an existing TocDB, which has a different metadata key (within
+    /// constraints) to allow on-line rebadging of data
+    /// variableKeys: The keys that are allowed to differ between the two DBs
+    void overlayDB(const TocDB& db, const std::set<std::string>& variableKeys, bool unmount);
+
+    // Hide the contents of the DB!!!
+    void hideContents();
+
 protected: // methods
 
     virtual bool selectIndex(const Key &key);

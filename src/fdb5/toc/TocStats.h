@@ -151,7 +151,7 @@ public:
 class TocStatsReportVisitor : public virtual StatsReportVisitor {
 public:
 
-    TocStatsReportVisitor(const TocDB& reader);
+    TocStatsReportVisitor(const TocDB& reader, bool includeReferenced=true);
     virtual ~TocStatsReportVisitor() override;
 
     IndexStats indexStatistics() const override;
@@ -187,6 +187,9 @@ protected: // members
 
     eckit::PathName lastDataPath_;
     eckit::PathName lastIndexPath_;
+
+    // Where data has been adopted/fdb-mounted, should it be included in the stats?
+    bool includeReferencedNonOwnedData_;
 };
 
 
