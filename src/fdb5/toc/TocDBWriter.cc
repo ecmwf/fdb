@@ -262,6 +262,10 @@ void TocDBWriter::overlayDB(const TocDB& otherDb, const std::set<std::string>& v
     }
 }
 
+void TocDBWriter::hideContents() {
+    writeClearAllRecord();
+}
+
 void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length) {
     dirty_ = true;
 

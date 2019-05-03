@@ -49,6 +49,9 @@ public: // methods
     /// variableKeys: The keys that are allowed to differ between the two DBs
     void overlayDB(const TocDB& db, const std::set<std::string>& variableKeys, bool unmount);
 
+    // Hide the contents of the DB!!!
+    void hideContents();
+
 protected: // methods
 
     virtual bool selectIndex(const Key &key);

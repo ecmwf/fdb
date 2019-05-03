@@ -407,6 +407,51 @@ void TocHandler::close() const {
     }
 }
 
+void TocHandler::allMaskableEntries(off_t startOffset, off_t endOffset,
+                                    std::set<std::pair<eckit::PathName, size_t>>& entries) const {
+
+    // Start reading entries where we are told to
+
+    off_t ret = ::lseek(fd_, startOffset, SEEK_SET);
+    ASSERT(ret == startOffset);
+
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord);
+
+    while (::lseek(fd_, 0, SEEK_CUR) < endOffset) {
+
+        ASSERT(readNextInternal(*r));
+
+        eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
+        std::string path;
+        off_t offset;
+
+        switch (r->header_.tag_) {
+            case TocRecord::TOC_SUB_TOC:
+                s >> path;
+                entries.emplace(std::pair<eckit::PathName, size_t>(path, 0));
+                break;
+
+            case TocRecord::TOC_INDEX:
+                s >> path;
+                s >> offset;
+                entries.emplace(std::pair<eckit::PathName, size_t>(path, offset));
+                break;
+
+            case TocRecord::TOC_CLEAR:
+            case TocRecord::TOC_INIT:
+                break;
+
+            default: {
+                // This is only a warning, as it is legal for later versions of software to add stuff
+                // that is just meaningless in a backwards-compatible sense.
+                Log::warning() << "Unknown TOC entry" << std::endl;
+                break;
+            }
+        }
+    }
+}
+
 void TocHandler::populateMaskedEntriesList() const {
 
     ASSERT(fd_ != -1);
@@ -427,18 +472,16 @@ void TocHandler::populateMaskedEntriesList() const {
 
         switch (r->header_.tag_) {
 
-            /// The TOC_CLEAR record is used both for clearing indexes and subtocs. If the offset is
-            /// non-zero it is definitely an index, so we can skip it.
-            ///
-            /// HOWEVER, without opening it, we cannot know if something is a subtoc at this point, so
-            /// some indexes will get added to the maskedSubTocs list. This is not a problem, as we
-            /// will never do a lookup in this list for something that is not a subtoc.
-
             case TocRecord::TOC_CLEAR: {
                 s >> path;
                 s >> offset;
 
-                if (offset == 0) {
+                if (path == "*") {
+                    // For the "*" path, mask EVERYTHING that we have already seen.
+                    off_t currentPosition = lseek(fd_, 0, SEEK_CUR);
+                    allMaskableEntries(startPosition, currentPosition, maskedEntries_);
+                    ASSERT(currentPosition == lseek(fd_, 0, SEEK_CUR));
+                } else {
                     maskedEntries_.emplace(std::pair<eckit::PathName, size_t>(path, offset));
                 }
                 break;
@@ -549,6 +592,19 @@ void TocHandler::writeClearRecord(const Index &index) {
     appendBlock(r.get(), sz);
 }
 
+void TocHandler::writeClearAllRecord() {
+
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR));
+
+    eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
+    s << std::string {"*"};
+    s << off_t{0};
+
+    size_t sz = roundRecord(*r, s.position());
+    appendBlock(r.get(), sz);
+}
+
 void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
 
     openForAppend();
@@ -559,6 +615,7 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << subToc.tocPath();
+    s << off_t{0};
     append(*r, s.position());
 
     eckit::Log::debug<LibFdb5>() << "Write TOC_SUB_TOC " << subToc.tocPath() << std::endl;
