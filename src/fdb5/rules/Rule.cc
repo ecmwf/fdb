@@ -15,6 +15,7 @@
 #include "metkit/MarsRequest.h"
 
 #include "fdb5/rules/Predicate.h"
+#include "fdb5/rules/Schema.h"
 #include "fdb5/database/ReadVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
 
@@ -72,7 +73,11 @@ void Rule::expand( const metkit::MarsRequest &request,
                 if (!visitor.selectDatabase(keys[0], full)) {
                     return;
                 };
-                break;
+
+                // Here we recurse on the database's schema (rather than the master schema)
+                ASSERT(keys[0] == full);
+                visitor.databaseSchema().expandSecond(request, visitor, keys[0]);
+                return;
 
             case 1:
                 if (!visitor.selectIndex(keys[1], full)) {
@@ -171,7 +176,10 @@ void Rule::expand( const Key &field,
                     visitor.prev_[0] = keys[0];
                     visitor.prev_[1] = Key();
                 }
-                break;
+
+                // Here we recurse on the database's schema (rather than the master schema)
+                visitor.databaseSchema().expandSecond(field, visitor, keys[0]);
+                return;
 
             case 1:
                 if (keys[1] != visitor.prev_[1] /*|| keys[1].registry() != visitor.prev_[1].registry()*/) {

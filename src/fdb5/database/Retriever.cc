@@ -45,26 +45,16 @@ eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request,
                                        bool sorted,
                                        const fdb5::Notifier& notifyee) const {
 
-    try {
+    HandleGatherer result(sorted);
+    MultiRetrieveVisitor visitor(notifyee, result, databases_, dbConfig_);
 
-        HandleGatherer result(sorted);
-        MultiRetrieveVisitor visitor(notifyee, result, databases_, dbConfig_);
+    Log::debug<LibFdb5>() << "Using schema: " << schema << std::endl;
 
-        Log::debug<LibFdb5>() << "Using schema: " << schema << std::endl;
+    schema.expand(request, visitor);
 
-        schema.expand(request, visitor);
+    eckit::Log::userInfo() << "Retrieving " << eckit::Plural(int(result.count()), "field") << std::endl;
 
-        eckit::Log::userInfo() << "Retrieving " << eckit::Plural(int(result.count()), "field") << std::endl;
-
-        return result.dataHandle();
-
-    } catch (SchemaHasChanged& e) {
-
-        eckit::Log::warning() << e.what() << std::endl;
-        eckit::Log::warning() << "Trying with old schema: " << e.path() << std::endl;
-
-        return retrieve(request, Schema(e.path()), sorted, notifyee); // recurse down with the schema from the exception
-    }
+    return result.dataHandle();
 }
 
 eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request) const {

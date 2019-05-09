@@ -74,7 +74,6 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
         eckit::Log::debug() << "Database does not exist " << key << std::endl;
         return false;
     } else {
-        newDB->checkSchema(key);
         db_ = newDB.release();
         databases_.insert(key, db_);
         return true;
@@ -108,6 +107,11 @@ void MultiRetrieveVisitor::values(const metkit::MarsRequest &request, const std:
 
 void MultiRetrieveVisitor::print( std::ostream &out ) const {
     out << "MultiRetrieveVisitor[]";
+}
+
+const Schema& MultiRetrieveVisitor::databaseSchema() const {
+    ASSERT(db_);
+    return db_->schema();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

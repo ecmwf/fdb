@@ -81,7 +81,6 @@ protected: // methods
     virtual void maskIndexEntry(const Index& index) const override;
 
     // void loadSchema();
-    virtual void checkSchema(const Key &key) const;
 
     virtual bool selectIndex(const Key &key);
     virtual void deselectIndex();

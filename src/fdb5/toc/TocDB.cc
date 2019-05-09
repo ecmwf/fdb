@@ -124,12 +124,6 @@ void TocDB::loadSchema() {
     schema_.load( schemaPath() );
 }
 
-void TocDB::checkSchema(const Key &key) const {
-    Timer timer("TocDB::checkSchema()", Log::debug<LibFdb5>());
-    ASSERT(key.rule());
-    schema_.compareTo(key.rule()->schema());
-}
-
 DbStats TocDB::statistics() const
 {
     return TocHandler::stats();

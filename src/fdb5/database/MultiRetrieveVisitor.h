@@ -60,6 +60,8 @@ private:  // methods
 
     virtual void print( std::ostream &out ) const;
 
+    virtual const Schema& databaseSchema() const;
+
 private:
 
     DB* db_;

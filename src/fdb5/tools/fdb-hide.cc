@@ -55,7 +55,7 @@ private: // members
 void FdbHide::usage(const std::string &tool) const {
 
     Log::info() << std::endl
-                << "Usage: " << tool << " [options] [source DB request] [target DB request] ..." << std::endl
+                << "Usage: " << tool << " [options] [DB request]" << std::endl
                 << std::endl
                 << std::endl;
     FDBTool::usage(tool);
