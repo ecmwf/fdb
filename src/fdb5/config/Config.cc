@@ -16,6 +16,7 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
+#include "eckit/runtime/Main.h"
 
 #include "fdb5/rules/Schema.h"
 #include "fdb5/LibFdb5.h"
@@ -47,19 +48,41 @@ Config Config::expandConfig() const {
         return cfg;
     }
 
-    // Otherwise, if we have specified a configuration path (including in the config
-    // being expanded) then read that and use it.
+    // Consider possible config files
 
-    const std::string default_config_path = "~fdb/etc/fdb/config.yaml";
-    std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", default_config_path);
+    PathName actual_path;
+    bool found = false;
 
+    // If the config file has been overridden, then use that directly.
+    //
     // If fdb_home is explicitly set in the config then use that not from
     // the Resource (as it has been overridden, or this is a _nested_ config).
 
-    if (has("fdb_home")) config_path = default_config_path;
+    std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "");
+    if (!config_path.empty() && !has("fdb_home")) {
+        actual_path = config_path;
+        if (!actual_path.exists()) return *this;
+        found = true;
+    }
 
-    eckit::PathName actual_path = expandPath(config_path);
-    if (actual_path.exists()) {
+    if (!found) {
+        PathName configDir = expandPath("~fdb/etc/fdb");
+        for (const std::string stem : {Main::instance().displayName(),
+                                       Main::instance().name(),
+                                       std::string("config")}) {
+
+            for (const char* tail : {".yaml", ".json"}) {
+                actual_path = configDir / (stem + tail);
+                if (actual_path.exists()) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+    }
+
+    if (found) {
         eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << actual_path << std::endl;
         eckit::YAMLConfiguration cfg(actual_path);
         return cfg;

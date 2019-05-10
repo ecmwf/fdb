@@ -41,6 +41,7 @@ public:
                                   const eckit::Offset&,
                                   const eckit::Length&,
                                   const Key& substitute);
+    SingleGribMungePartFileHandle(eckit::Stream&) { NOTIMP; }
     ~SingleGribMungePartFileHandle() override;
 
 	// From DataHandle
@@ -71,7 +72,7 @@ public:
 	// From Streamable
 
     void encode(eckit::Stream&) const override { NOTIMP; }
-    const eckit::ReanimatorBase& reanimator() const override { NOTIMP; }
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
 private: // members
 
@@ -82,6 +83,11 @@ private: // members
     eckit::Length   length_;
     Key             substitute_;
     std::unique_ptr<eckit::Buffer>  buffer_;
+
+    // For Streamable
+
+    static eckit::ClassSpec classSpec_;
+    static eckit:: Reanimator<SingleGribMungePartFileHandle> reanimator_;
 };
 
 

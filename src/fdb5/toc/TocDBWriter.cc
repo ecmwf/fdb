@@ -14,6 +14,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/io/AIOHandle.h"
+#include "eckit/io/EmptyHandle.h"
 
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/io/FDBFileHandle.h"
@@ -352,9 +353,9 @@ eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
     if(stripeLustre()) {
 
         eckit::Log::debug<LibFdb5>() << "Creating LustreFileHandle<AIOHandle> to " << path
-                                    << " with " << nbBuffers
-                                    << " buffer each with " << eckit::Bytes(sizeBuffer)
-                                    << std::endl;
+                                     << " with " << nbBuffers
+                                     << " buffer each with " << eckit::Bytes(sizeBuffer)
+                                     << std::endl;
 
         return new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeDataLustreSettings());
     }
@@ -362,15 +363,25 @@ eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
     return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
 }
 
+eckit::DataHandle *TocDBWriter::createDataHandle(const eckit::PathName &path) {
 
-eckit::DataHandle &TocDBWriter::getDataHandle( const eckit::PathName &path ) {
-    eckit::DataHandle *dh = getCachedHandle( path );
+    static bool fdbWriteToNull = eckit::Resource<bool>("fdbWriteToNull;$FDB_WRITE_TO_NULL", false);
+    if(fdbWriteToNull)
+        return new eckit::EmptyHandle();
+
+    static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite;$FDB_ASYNC_WRITE", false);
+    if(fdbAsyncWrite)
+        return createAsyncHandle(path);
+
+    return createFileHandle(path);
+}
+
+eckit::DataHandle& TocDBWriter::getDataHandle( const eckit::PathName &path ) {
+    eckit::DataHandle *dh = getCachedHandle(path);
     if ( !dh ) {
-        static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite;$FDB_ASYNC_WRITE", false);
-
-        dh = fdbAsyncWrite ? createAsyncHandle( path ) : createFileHandle( path );
+        dh = createDataHandle(path);
+        ASSERT(dh);
         handles_[path] = dh;
-        ASSERT( dh );
         dh->openForAppend(0);
     }
     return *dh;

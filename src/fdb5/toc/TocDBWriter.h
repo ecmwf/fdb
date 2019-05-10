@@ -70,6 +70,7 @@ private: // methods
 
 
     eckit::DataHandle *getCachedHandle( const eckit::PathName &path ) const;
+    eckit::DataHandle *createDataHandle(const eckit::PathName &path);
     eckit::DataHandle *createFileHandle(const eckit::PathName &path);
     eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
 
