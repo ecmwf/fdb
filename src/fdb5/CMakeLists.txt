@@ -340,17 +340,12 @@ else()
     set( PMEM_INCLUDE_DIRS "" )
 endif()
 
-
-# Currently RemoteFDB is experimental technology!
-if (HAVE_EXPERIMENTAL)
     list( APPEND fdb5_srcs
         api/RemoteFDB.cc
         api/RemoteFDB.h
         remote/RemoteFieldLocation.h
         remote/RemoteFieldLocation.cc
     )
-endif()
-
 
 if(HAVE_LUSTRE)
     list( APPEND fdb5_srcs io/LustreFileHandle.h io/LustreFileHandle.cc )
@@ -435,21 +430,17 @@ endforeach()
                             #LIBS      fdb5 fdb )
 
 ecbuild_add_executable( TARGET    grib2fdb5
-                          SOURCES   compat/grib2fdb5.cc
-                          INCLUDES  ${ECCODES_INCLUDE_DIRS} # Please don't remove me, I am needed
-                          LIBS
-                          fdb5 )
+                        SOURCES   compat/grib2fdb5.cc
+                        INCLUDES  ${ECCODES_INCLUDE_DIRS} # Please don't remove me, I am needed
+                        LIBS      fdb5 )
 
-# Currently RemoteFDB is experimental technology!
-if (HAVE_EXPERIMENTAL)
-
-    ecbuild_add_executable(
+ecbuild_add_executable(
         TARGET fdb-monitor
         SOURCES remote/fdb-monitor.cc
         LIBS eckit eckit_cmd )
 
-    ecbuild_add_executable(
-        TARGET fdb-server
+ecbuild_add_executable(
+        TARGET fdbsvr
         SOURCES
             remote/fdb-server.cc
             remote/Messages.h
@@ -457,5 +448,3 @@ if (HAVE_EXPERIMENTAL)
             remote/Handler.h
             remote/Handler.cc
         LIBS fdb5 )
-
-endif()
