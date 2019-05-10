@@ -24,6 +24,11 @@ namespace fdb5 {
 
 //--------------------------------------------------------------------------------------------------
 
+::eckit::ClassSpec SingleGribMungePartFileHandle::classSpec_ = {
+    &DataHandle::classSpec(),
+    "SingleGribMungePartFileHandle",
+};
+::eckit::Reanimator<SingleGribMungePartFileHandle> SingleGribMungePartFileHandle::reanimator_;
 
 void SingleGribMungePartFileHandle::print(std::ostream& s) const
 {
