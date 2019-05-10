@@ -136,7 +136,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
         if (args.has("nensembles")) {
             CODES_CHECK(codes_set_long(handle, "number", member+number), 0);
         }
-        for (size_t step = 0; step <= nsteps; ++step) {
+        for (size_t step = 0; step < nsteps; ++step) {
             CODES_CHECK(codes_set_long(handle, "step", step), 0);
             for (size_t level = 1; level <= nlevels; ++level) {
                 CODES_CHECK(codes_set_long(handle, "level", level), 0);
@@ -219,7 +219,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
         if (args.has("nensembles")) {
             request.setValue("number", member);
         }
-        for (size_t step = 0; step <= nsteps; ++step) {
+        for (size_t step = 0; step < nsteps; ++step) {
             request.setValue("step", step);
             for (size_t level = 1; level <= nlevels; ++level) {
                 request.setValue("level", level);
