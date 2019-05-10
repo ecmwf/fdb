@@ -70,12 +70,14 @@ SingleGribMungePartFileHandle::~SingleGribMungePartFileHandle()
     }
 }
 
-Length SingleGribMungePartFileHandle::openForRead()
-{
+Length SingleGribMungePartFileHandle::openForRead() {
+    pos_ = 0;
     file_ = ::fopen(name_.localPath(), "r");
 
     if (file_ == 0)
         throw CantOpenFile(name_, errno == ENOENT);
+
+    if (buffer_) buffer_.reset();
 
     return estimate();
 }
@@ -92,13 +94,13 @@ long SingleGribMungePartFileHandle::read(void* buffer, long length) {
 
         // Read the data in from the relevant file
 
-        off_t pos = pos_;
-        if (::fseeko(file_, pos, SEEK_SET) != 0) {
+        off_t off = offset_;
+        if (::fseeko(file_, off, SEEK_SET) != 0) {
             std::stringstream ss;
-            ss << name_ << ": cannot seek to " << pos << " (file=" << fileno(file_) << ")";
+            ss << name_ << ": cannot seek to " << off << " (file=" << fileno(file_) << ")";
             throw ReadError(ss.str());
         }
-        ASSERT(::ftello(file_) == pos);
+        ASSERT(::ftello(file_) == off);
         ASSERT(::fread(readBuffer, 1, length_, file_) == static_cast<size_t>(length_));
 
         // Do the GRIB manipulation
