@@ -44,7 +44,8 @@ Config Config::expandConfig() const {
     char* config_str = ::getenv("FDB5_CONFIG");
     if (config_str) {
         std::string s(config_str);
-        eckit::YAMLConfiguration cfg(s);
+        Config cfg{YAMLConfiguration(s)};
+        cfg.set("configSource", "environment");
         return cfg;
     }
 
@@ -84,7 +85,8 @@ Config Config::expandConfig() const {
 
     if (found) {
         eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << actual_path << std::endl;
-        eckit::YAMLConfiguration cfg(actual_path);
+        Config cfg{YAMLConfiguration(actual_path)};
+        cfg.set("configSource", actual_path);
         return cfg;
     }
 
@@ -138,6 +140,10 @@ PathName Config::schemaPath() const {
     static std::string fdbSchemaFile = Resource<std::string>("fdbSchemaFile;$FDB_SCHEMA_FILE", "~fdb/etc/fdb/schema");
 
     return expandPath(fdbSchemaFile);
+}
+
+PathName Config::configPath() const {
+    return getString("configSource", "unknown");
 }
 
 const Schema& Config::schema() const {
