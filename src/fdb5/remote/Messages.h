@@ -56,7 +56,8 @@ enum class Message : uint16_t {
     Received,
     Blob,
     Complete,
-    Error
+    Error,
+    ExpectedSize
 };
 
 

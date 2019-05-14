@@ -635,6 +635,8 @@ void RemoteHandler::retrieveThreadLoop() {
             long dataRead;
 
             dh->openForRead();
+            Length expectedSize = dh->estimate();
+            dataWrite(Message::ExpectedSize, requestID, &expectedSize, sizeof(expectedSize));
             while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
                 dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
             }
