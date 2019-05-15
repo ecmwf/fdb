@@ -12,6 +12,7 @@
 
 #include "metkit/MarsRequest.h"
 #include "metkit/StepRange.h"
+#include "metkit/StepRangeNormalise.h"
 
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeStep.h"
@@ -56,35 +57,40 @@ void TypeStep::getValues(const metkit::MarsRequest& request,
                          eckit::StringList& values,
                          const Notifier&,
                          const DB *db) const {
-    std::vector<std::string> steps;
 
+    // Get the steps / step ranges from the request
+
+    std::vector<std::string> steps;
     request.getValues(keyword, steps, true);
 
-    eckit::Translator<StepRange, std::string> t;
+    std::vector<metkit::StepRange> ranges;
+    std::copy(steps.begin(), steps.end(), std::back_inserter(ranges));
 
-    values.reserve(steps.size());
+    // If this is before knowing the DB, we are constrained on what we can do.
 
-    if (db && !steps.empty()) {
-        eckit::StringSet axis;
-        db->axis(keyword, axis);
-        for (std::vector<std::string>::const_iterator i = steps.begin(); i != steps.end(); ++i) {
-            std::string s(t(StepRange(*i)));
-            if (axis.find(s) == axis.end()) {
-                std::string z = "0-" + s;
-                if (axis.find(z) != axis.end()) {
-                    values.push_back(z);
-                } else {
-                    values.push_back(s);
-                }
-            } else {
-                values.push_back(s);
-            }
-        }
-    } else {
-        for (std::vector<std::string>::const_iterator i = steps.begin(); i != steps.end(); ++i) {
-            values.push_back(t(StepRange(*i)));
-        }
+    if (db) {
+
+        // Get the axis
+
+        eckit::StringSet ax;
+        db->axis("step", ax);
+
+        std::vector<metkit::StepRange> axis;
+        std::copy(ax.begin(), ax.end(), std::back_inserter(axis));
+        std::sort(axis.begin(), axis.end());
+
+        // Match the step range to the axis
+
+        metkit::StepRangeNormalise::normalise(ranges, axis);
     }
+
+    // Convert the ranges back into strings for the FDB
+
+    eckit::Translator<metkit::StepRange, std::string> t;
+
+    values.reserve(ranges.size());
+    std::transform(ranges.begin(), ranges.end(), std::back_inserter(values),
+                   [&](const metkit::StepRange& r) { return t(r); });
 }
 
 void TypeStep::print(std::ostream &out) const {

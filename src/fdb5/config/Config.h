@@ -42,6 +42,7 @@ public: // methods
     eckit::PathName expandPath(const std::string& path) const;
 
     eckit::PathName schemaPath() const;
+    eckit::PathName configPath() const;
     const Schema& schema() const;
 };
 

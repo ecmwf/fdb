@@ -10,6 +10,8 @@
 
 #include "fdb5/api/helpers/ListIterator.h"
 
+#include "eckit/parser/JSON.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -45,6 +47,10 @@ void ListElement::print(std::ostream &out, bool location) const {
     if (location && location_) {
         out << " " << *location_;
     }
+}
+
+void ListElement::json(eckit::JSON& json) const {
+    json << combinedKey().keyDict();
 }
 
 void ListElement::encode(eckit::Stream &s) const {

@@ -14,13 +14,14 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/option/CmdArgs.h"
 
+#include "metkit/MarsRequest.h"
+#include "metkit/MarsParser.h"
+#include "metkit/MarsExpension.h"
+
 #include "fdb5/api/FDB.h"
 #include "fdb5/grib/GribDecoder.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
-#include "fdb5/tools/RequestParser.h"
-
-#include "metkit/MarsRequest.h"
 
 
 class FDBRead : public fdb5::FDBTool {
@@ -66,8 +67,11 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
         if (in.bad()) {
             throw eckit::ReadError(args(0));
         }
-        fdb5::RequestParser parser(in);
-        requests.push_back(parser.parse());
+
+        metkit::MarsParser parser(in);
+        auto parsedRequests = parser.parse();
+        metkit::MarsExpension expand(/* inherit */ false);
+        requests = expand.expand(parsedRequests);
     }
 
     // Evaluate the requests to obtain data handles
