@@ -555,7 +555,15 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
 
         Log::info() << "Recieved end marker. Exiting" << std::endl;
 
+    } catch (std::exception& e) {
+        // n.b. more general than eckit::Exception
+        std::string what(e.what());
+        dataWrite(Message::Error, id, what.c_str(), what.length());
+        queue.interrupt(std::current_exception());
+        throw;
     } catch (...) {
+        std::string what("Caught unexpected, unknown exception in retrieve worker");
+        dataWrite(Message::Error, id, what.c_str(), what.length());
         queue.interrupt(std::current_exception());
         throw;
     }

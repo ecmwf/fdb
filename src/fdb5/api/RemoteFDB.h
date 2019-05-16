@@ -127,6 +127,7 @@ private: // members
 
     // Helpers for retrievals
 
+    uint32_t archiveID_;
     size_t maxArchiveQueueLength_;
     std::unique_ptr<ArchiveQueue> archiveQueue_;
     MessageQueue retrieveMessageQueue_;

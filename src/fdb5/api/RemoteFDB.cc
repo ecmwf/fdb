@@ -60,7 +60,7 @@ static uint32_t generateRequestID() {
     static uint32_t id = 0;
 
     std::lock_guard<std::mutex> lock(m);
-    return id++;
+    return ++id;
 }
 
 
@@ -69,6 +69,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     hostname_(config.getString("host")),
     port_(config.getLong("port")),
     dataport_(0),
+    archiveID_(0),
     maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
     connected_(false) {}
@@ -195,6 +196,17 @@ void RemoteFDB::listeningThreadLoop() {
                 // goes out of scope in the worker thread).
                 messageQueues_.erase(it);
 
+            } else if (hdr.requestID == archiveID_) {
+                ASSERT(archiveID_ != 0);
+                ASSERT(archiveQueue_);
+
+                std::string msg;
+                if (hdr.payloadSize > 0) {
+                    msg.resize(hdr.payloadSize, ' ');
+                    dataRead(&msg[0], hdr.payloadSize);
+                }
+
+                archiveQueue_->interrupt(std::make_exception_ptr(RemoteException(msg, hostname_)));
             } else {
                 Buffer payload(hdr.payloadSize);
                 if (hdr.payloadSize > 0) dataRead(payload, hdr.payloadSize);
@@ -505,8 +517,10 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
     if (!archiveFuture_.valid()) {
 
         // Start the archival request on the remote side
+        ASSERT(archiveID_ == 0);
         uint32_t id = generateRequestID();
         controlWriteCheckResponse(Message::Archive, id);
+        archiveID_ = id;
 
         // Reset the queue after previous done/errors
         ASSERT(!archiveQueue_);
@@ -516,6 +530,7 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
     }
 
     ASSERT(archiveQueue_);
+    ASSERT(archiveID_ != 0);
     archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
 }
 
@@ -530,9 +545,11 @@ void RemoteFDB::flush() {
     if (archiveFuture_.valid()) {
 
         ASSERT(archiveQueue_);
+        ASSERT(archiveID_ != 0);
         archiveQueue_->close();
         FDBStats stats = archiveFuture_.get();
         ASSERT(!archiveQueue_);
+        archiveID_ = 0;
 
         ASSERT(stats.numFlush() == 0);
         size_t numArchive = stats.numArchive();
@@ -562,6 +579,7 @@ FDBStats RemoteFDB::archiveThreadLoop(uint32_t requestID) {
     try {
 
         ASSERT(archiveQueue_);
+        ASSERT(archiveID_ != 0);
 
         while (archiveQueue_->pop(element) != -1) {
 
