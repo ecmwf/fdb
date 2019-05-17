@@ -119,6 +119,9 @@ private:
             int startPort = config.getInt("dataPortStart");
             size_t count = config.getLong("dataPortCount");
 
+            eckit::Log::info() << "Using custom port list. startPort=" << startPort
+                               << ", count=" << count << std::endl;
+
             AvailablePortList portList(startPort, count);
             portList.initialise();
 
