@@ -10,6 +10,8 @@
 
 #include "fdb5/rules/Rule.h"
 
+#include <algorithm>
+
 #include "eckit/config/Resource.h"
 
 #include "metkit/MarsRequest.h"
@@ -397,12 +399,45 @@ const Rule* Rule::ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) cons
 
 void Rule::fill(Key& key, const eckit::StringList& values) const {
 
-    ASSERT(values.size() == predicates_.size());
+    // See FDB-103. This is a hack to work around the indexing abstraction
+    // being leaky.
+    //
+    // i) Indexing is according to a colon-separated string of values
+    // ii) This string of values is passed to, and split in, the constructor
+    //     of Key().
+    // iii) The constructor of Key does not know what these values correspond
+    //      to, so calls this function to map them to the Predicates.
+    //
+    // This whole process really ought to take place inside of (Toc)-Index,
+    // such that a Key() is returned, and any kludgery is contained there.
+    // But that is too large a change to safely make this close to
+    // operational switchover day.
+    //
+    // --> HACK.
+    // --> Stick a plaster over the symptom.
 
-    eckit::StringList::const_iterator j = values.begin();
-    for (std::vector<Predicate *>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i, ++j ) {
-        (*i)->fill(key, *j);
+    ASSERT(values.size() >= predicates_.size()); // Should be equal, except for quantile (FDB-103)
+    ASSERT(values.size() <= predicates_.size() + 1);
+
+    auto it_value = values.begin();
+    auto it_pred = predicates_.begin();
+
+    for (; it_pred != predicates_.end() && it_value != values.end(); ++it_pred, ++it_value) {
+
+        if (values.size() == (predicates_.size() + 1) && (*it_pred)->keyword() == "quantile") {
+            std::string actualQuantile = *it_value;
+            ++it_value;
+            ASSERT(it_value != values.end());
+            actualQuantile += std::string(":") + (*it_value);
+            (*it_pred)->fill(key, actualQuantile);
+        } else {
+            (*it_pred)->fill(key, *it_value);
+        }
     }
+
+    // Check that everything is exactly consumed
+    ASSERT(it_value == values.end());
+    ASSERT(it_pred == predicates_.end());
 }
 
 void Rule::dump(std::ostream &s, size_t depth) const {

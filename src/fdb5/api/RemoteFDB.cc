@@ -151,7 +151,8 @@ void RemoteFDB::listeningThreadLoop() {
         case Message::Exit:
             return;
 
-        case Message::Blob: {
+        case Message::Blob:
+        case Message::ExpectedSize: {
             Buffer payload(hdr.payloadSize);
             if (hdr.payloadSize > 0) dataRead(payload, hdr.payloadSize);
 
@@ -634,6 +635,8 @@ public: // methods
         queue_(queue),
         remoteHost_(remoteHost),
         pos_(0),
+        estimatedLength_(-1),
+        overallPosition_(0),
         currentBuffer_(0),
         complete_(false) {}
 
@@ -643,13 +646,20 @@ private: // methods
         s << "FDBRemoteDataHandle(id=" << requestID_ << ")";
     }
 
-    Length openForRead() override { return 0; }
+    Length openForRead() override {
+        return estimate();
+    }
     void openForWrite(const Length&) override { NOTIMP; }
     void openForAppend(const Length&) override { NOTIMP; }
     long write(const void*, long) override { NOTIMP; }
     void close() override {}
 
     long read(void* pos, long sz) override {
+
+        // First message received gives an indication of the total amount of data expected,
+        // so it is important that estimate() is called before any actual reading
+        // (see openForRead)
+        ASSERT(static_cast<long>(estimatedLength_) != -1);
 
         if (complete_) return 0;
 
@@ -702,6 +712,7 @@ private: // methods
 
         ::memcpy(pos, &currentBuffer_[pos_], read);
         pos_ += read;
+        overallPosition_ += read;
 
         // If we have exhausted this buffer, free it up.
 
@@ -715,12 +726,56 @@ private: // methods
         return read;
     }
 
+    Length estimate() override {
+
+        if (static_cast<long>(estimatedLength_) == -1) {
+            std::lock_guard<std::mutex> lock(estimatedMutex_);
+            if (static_cast<long>(estimatedLength_) == -1) {
+                estimatedLength_ = estimateInternal();
+            }
+        }
+
+        ASSERT(static_cast<long>(estimatedLength_) != -1);
+        return estimatedLength_;
+    }
+
+    Offset position() override {
+        return overallPosition_;
+    }
+
+    Length estimateInternal() {
+
+        RemoteFDB::StoredMessage msg = std::make_pair(remote::MessageHeader{}, 0);
+        ASSERT(queue_.pop(msg) != -1);
+
+        MessageHeader& hdr(msg.first);
+
+        ASSERT(hdr.marker == StartMarker);
+        ASSERT(hdr.version == CurrentVersion);
+
+        // Handle any remote errors communicated from the server
+
+        if (hdr.message == Message::Error) {
+            std::string errmsg(static_cast<const char*>(msg.second), msg.second.size());
+            throw RemoteException(errmsg, remoteHost_);
+        }
+
+        // Are we now complete
+
+        ASSERT(hdr.message == Message::ExpectedSize);
+
+        return *static_cast<const Length*>(msg.second.data());
+    }
+
 private: // members
 
     uint32_t requestID_;
     RemoteFDB::MessageQueue& queue_;
     std::string remoteHost_;
     size_t pos_;
+    std::mutex estimatedMutex_;
+    Length estimatedLength_;
+    Offset overallPosition_;
     Buffer currentBuffer_;
     bool complete_;
 };

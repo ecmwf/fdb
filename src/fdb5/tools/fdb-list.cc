@@ -15,6 +15,7 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/parser/JSON.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -45,11 +46,13 @@ class FDBList : public FDBVisitTool {
     FDBList(int argc, char **argv) :
         FDBVisitTool(argc, argv, "class,expver"),
         location_(false),
-        porcelain_(false) {
+        porcelain_(false),
+        json_(false) {
 
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
         options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined output for input into other tools"));
+        options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
     }
 
   private: // methods
@@ -60,6 +63,7 @@ class FDBList : public FDBVisitTool {
     bool location_;
     bool full_;
     bool porcelain_;
+    bool json_;
 };
 
 void FDBList::init(const CmdArgs& args) {
@@ -69,8 +73,16 @@ void FDBList::init(const CmdArgs& args) {
     args.get("location", location_);
     args.get("full", full_);
     args.get("porcelain", porcelain_);
-    // TODO: ignore-errors
+    args.get("json", json_);
 
+    if (json_) {
+        porcelain_ = true;
+        if (location_) {
+            throw UserError("--json and --location not compatible", Here());
+        }
+    }
+
+    // TODO: ignore-errors
 }
 
 
@@ -86,6 +98,12 @@ void FDBList::execute(const CmdArgs& args) {
     FDB fdb;
 
     std::unordered_set<Key, KeyHasher> seenKeys_;
+
+    std::unique_ptr<JSON> json;
+    if (json_) {
+        json.reset(new JSON(Log::info()));
+        json->startList();
+    }
 
     for (const FDBToolRequest& request : requests()) {
 
@@ -120,13 +138,21 @@ void FDBList::execute(const CmdArgs& args) {
             }
 
             if (include) {
-                elem.print(Log::info(), location_);
-                Log::info() << std::endl;
-                count++;
+                if (json_) {
+                    (*json) << elem;
+                } else {
+                    elem.print(Log::info(), location_);
+                    Log::info() << std::endl;
+                    count++;
+                }
             }
         }
 
         // n.b. finding no data is not an error for fdb-list
+    }
+
+    if (json_) {
+        json->endList();
     }
 }
 
