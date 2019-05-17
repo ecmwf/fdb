@@ -105,6 +105,19 @@ void AvailablePortList::initialise() {
 
     std::lock_guard<decltype(shared_)> lock(shared_);
 
+    // Only initialise if any of the entries are not already initialised.
+
+    bool initialised = true;
+    for (const Entry& e : shared_) {
+        if (e.port == 0) {
+            initialised = false;
+            break;
+        }
+    }
+    if (initialised) return;
+
+    // Get a list of everything that needs to be skipped
+
     std::set<int> portsToSkip = readServices();
 
     size_t foundCount = 0;
@@ -183,10 +196,6 @@ void AvailablePortList::reap(int deadTime) {
 
     shared_.sync();
 }
-
-
-
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
