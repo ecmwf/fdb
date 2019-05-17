@@ -447,4 +447,6 @@ ecbuild_add_executable(
             remote/Messages.cc
             remote/Handler.h
             remote/Handler.cc
+            remote/AvailablePortList.cc
+            remote/AvailablePortList.h
         LIBS fdb5 )

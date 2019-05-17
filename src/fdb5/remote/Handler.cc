@@ -16,6 +16,7 @@
 
 #include "metkit/MarsRequest.h"
 
+#include "fdb5/remote/AvailablePortList.h"
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
@@ -167,8 +168,9 @@ private:
 // results in a MultiHandle/HandleGatherer).
 
 RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
+    config_(config),
     controlSocket_(socket),
-    dataSocket_(),
+    dataSocket_(selectDataPort(), "", false),
     fdb_(config),
     retrieveQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {}
 
@@ -191,7 +193,7 @@ void RemoteHandler::handle() {
 
     int dataport = dataSocket_.localPort();
 
-    Log::debug<LibFdb5>() << "Sending data port to client: " << dataport << std::endl;
+    Log::info() << "Sending data port to client: " << dataport << std::endl;
 
     controlWrite(&dataport, sizeof(dataport));
 
@@ -286,6 +288,19 @@ void RemoteHandler::handle() {
             controlWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
         }
     }
+}
+
+int RemoteHandler::selectDataPort() {
+    eckit::Log::info() << "SelectDataPort: " << std::endl;
+    eckit::Log::info() << config_ << std::endl;
+    if (config_.has("dataPortStart")) {
+        ASSERT(config_.has("dataPortCount"));
+        return AvailablePortList(config_.getInt("dataPortStart"),
+                                 config_.getLong("dataPortCount")).acquire();
+    }
+
+    // Use a system assigned port
+    return 0;
 }
 
 void RemoteHandler::controlWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {

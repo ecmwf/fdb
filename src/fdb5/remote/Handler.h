@@ -55,6 +55,8 @@ private: // methods
 
     // Socket methods
 
+    int selectDataPort();
+
     void controlWrite(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(const void* data, size_t length);
     void socketRead(void* data, size_t length, eckit::TCPSocket& socket);
@@ -86,6 +88,8 @@ private: // methods
     void retrieveThreadLoop();
 
 private: // members
+
+    Config config_;
 
     eckit::TCPSocket controlSocket_;
     eckit::TCPServer dataSocket_;
