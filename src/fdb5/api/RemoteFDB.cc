@@ -238,12 +238,14 @@ void RemoteFDB::listeningThreadLoop() {
         }
         messageQueues_.clear();
         retrieveMessageQueue_.interrupt(std::make_exception_ptr(e));
+        if (archiveQueue_) archiveQueue_->interrupt(std::make_exception_ptr(e));
     } catch (...) {
         for (auto& it : messageQueues_) {
             it.second->interrupt(std::current_exception());
         }
         messageQueues_.clear();
         retrieveMessageQueue_.interrupt(std::current_exception());
+        if (archiveQueue_) archiveQueue_->interrupt(std::current_exception());
     }
 }
 
@@ -529,6 +531,7 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
         archiveFuture_ = std::async(std::launch::async, [this, id] { return archiveThreadLoop(id); });
     }
 
+    ASSERT(archiveFuture_.valid());
     ASSERT(archiveQueue_);
     ASSERT(archiveID_ != 0);
     archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
