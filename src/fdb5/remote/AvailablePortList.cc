@@ -128,7 +128,6 @@ void AvailablePortList::initialise() {
         bool found = true;
         if (portsToSkip.find(port) != portsToSkip.end()) found = false;
 
-        struct servent* e;
         if (found && getservbyport(port, 0) != 0) found = false;
 
         if (found) {

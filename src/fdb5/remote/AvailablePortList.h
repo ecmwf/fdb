@@ -59,7 +59,7 @@ private: // members
     eckit::SharedMemArray<Entry> shared_;
 
     int startPort_;
-    int count_;
+    size_t count_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
