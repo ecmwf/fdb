@@ -197,16 +197,18 @@ void RemoteFDB::listeningThreadLoop() {
                 messageQueues_.erase(it);
 
             } else if (hdr.requestID == archiveID_) {
-                ASSERT(archiveID_ != 0);
-                ASSERT(archiveQueue_);
 
-                std::string msg;
-                if (hdr.payloadSize > 0) {
-                    msg.resize(hdr.payloadSize, ' ');
-                    dataRead(&msg[0], hdr.payloadSize);
+                std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
+
+                if (archiveQueue_) {
+                    std::string msg;
+                    if (hdr.payloadSize > 0) {
+                        msg.resize(hdr.payloadSize, ' ');
+                        dataRead(&msg[0], hdr.payloadSize);
+                    }
+
+                    archiveQueue_->interrupt(std::make_exception_ptr(RemoteException(msg, hostname_)));
                 }
-
-                archiveQueue_->interrupt(std::make_exception_ptr(RemoteException(msg, hostname_)));
             } else {
                 Buffer payload(hdr.payloadSize);
                 if (hdr.payloadSize > 0) dataRead(payload, hdr.payloadSize);
@@ -238,14 +240,20 @@ void RemoteFDB::listeningThreadLoop() {
         }
         messageQueues_.clear();
         retrieveMessageQueue_.interrupt(std::make_exception_ptr(e));
-        if (archiveQueue_) archiveQueue_->interrupt(std::make_exception_ptr(e));
+        {
+            std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
+            if (archiveQueue_) archiveQueue_->interrupt(std::make_exception_ptr(e));
+        }
     } catch (...) {
         for (auto& it : messageQueues_) {
             it.second->interrupt(std::current_exception());
         }
         messageQueues_.clear();
         retrieveMessageQueue_.interrupt(std::current_exception());
-        if (archiveQueue_) archiveQueue_->interrupt(std::current_exception());
+        {
+            std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
+            if (archiveQueue_) archiveQueue_->interrupt(std::current_exception());
+        }
     }
 }
 
@@ -525,16 +533,22 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
         archiveID_ = id;
 
         // Reset the queue after previous done/errors
-        ASSERT(!archiveQueue_);
-        archiveQueue_.reset(new ArchiveQueue(maxArchiveQueueLength_));
+        {
+            std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
+            ASSERT(!archiveQueue_);
+            archiveQueue_.reset(new ArchiveQueue(maxArchiveQueueLength_));
+        }
 
         archiveFuture_ = std::async(std::launch::async, [this, id] { return archiveThreadLoop(id); });
     }
 
     ASSERT(archiveFuture_.valid());
-    ASSERT(archiveQueue_);
     ASSERT(archiveID_ != 0);
-    archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
+    {
+        std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
+        ASSERT(archiveQueue_);
+        archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
+    }
 }
 
 
@@ -547,9 +561,14 @@ void RemoteFDB::flush() {
     // Flush only does anything if there is an ongoing archive();
     if (archiveFuture_.valid()) {
 
-        ASSERT(archiveQueue_);
+	eckit::Log::info() << "RemoteFDB::flush()" << std::endl;
+
         ASSERT(archiveID_ != 0);
-        archiveQueue_->close();
+        {
+            ASSERT(archiveQueue_);
+            std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
+            archiveQueue_->close();
+        }
         FDBStats stats = archiveFuture_.get();
         ASSERT(!archiveQueue_);
         archiveID_ = 0;
@@ -602,6 +621,7 @@ FDBStats RemoteFDB::archiveThreadLoop(uint32_t requestID) {
         dataWrite(&hdr, sizeof(hdr));
         dataWrite(&EndMarker, sizeof(EndMarker));
 
+	archiveID_ = 0;
         archiveQueue_.reset();
 
     } catch (...) {
