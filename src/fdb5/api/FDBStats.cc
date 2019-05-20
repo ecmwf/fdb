@@ -59,13 +59,13 @@ FDBStats& FDBStats::operator+=(const FDBStats& rhs) {
 }
 
 
-void FDBStats::addArchive(size_t length, eckit::Timer& timer) {
+void FDBStats::addArchive(size_t length, eckit::Timer& timer, size_t nfields) {
 
-    numArchive_++;
+    numArchive_ += nfields;
     bytesArchive_ += length;
-    sumBytesArchiveSquared_ += length * length;
+    sumBytesArchiveSquared_ += nfields * ((length / nfields) * (length / nfields));
 
-    double elapsed = timer.elapsed();
+    double elapsed = timer.elapsed() / nfields;
     elapsedArchive_ += elapsed;
     sumArchiveTimingSquared_ += elapsed * elapsed;
 

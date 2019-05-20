@@ -130,7 +130,7 @@ void AvailablePortList::initialise() {
         bool found = true;
         if (portsToSkip.find(port) != portsToSkip.end()) found = false;
 
-        if (found && getservbyport(port, 0) != 0) found = false;
+//        if (found && getservbyport(port, 0) != 0) found = false;
 
         if (found) {
             shared_[foundCount].port = port;
@@ -160,8 +160,14 @@ int AvailablePortList::acquire() {
             it->pid = pid;
             it->deadTime = 0;
             shared_.sync();
-            eckit::Log::info() << "Acquiring port: " << it->port << std::endl;
-            return it->port;
+            if (::getservbyport(it->port, 0) == 0) {
+                eckit::Log::info() << "Acquiring port: " << it->port << std::endl;
+                return it->port;
+            } else {
+                eckit::Log::info() << "Port " << it->port
+                                   << " already belongs to a service."
+                                   << " Marking as in use, and trying another." << std::endl;
+            }
         }
     }
 

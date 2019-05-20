@@ -71,6 +71,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     dataport_(0),
     archiveID_(0),
     maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)),
+    maxArchiveBatchSize_(config.getInt("maxBatchSize", 1)),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
     connected_(false) {}
 
@@ -596,22 +597,25 @@ FDBStats RemoteFDB::archiveThreadLoop(uint32_t requestID) {
     FDBStats localStats;
     eckit::Timer timer;
 
-    std::pair<Key, Buffer> element {Key{}, 0};
+    // We can pop multiple elements off the archive queue simultaneously, if
+    // configured
+    std::vector<std::pair<Key, Buffer>> elements;
+    for (size_t i = 0; i < maxArchiveBatchSize_; ++i) {
+        elements.emplace_back(std::make_pair(Key{}, Buffer{0}));
+    }
 
     try {
 
         ASSERT(archiveQueue_);
         ASSERT(archiveID_ != 0);
 
-        while (archiveQueue_->pop(element) != -1) {
-
-            const Key& key(element.first);
-            const Buffer& buffer(element.second);
+        long popped;
+        while ((popped = archiveQueue_->pop(elements)) != -1) {
 
             timer.start();
-            sendArchiveData(requestID, key, buffer.data(), buffer.size());
+            long dataSent = sendArchiveData(requestID, elements, popped);
             timer.stop();
-            localStats.addArchive(buffer.size(), timer);
+            localStats.addArchive(dataSent, timer, popped);
         }
 
         // And note that we are done. (don't time this, as already being blocked
@@ -621,7 +625,7 @@ FDBStats RemoteFDB::archiveThreadLoop(uint32_t requestID) {
         dataWrite(&hdr, sizeof(hdr));
         dataWrite(&EndMarker, sizeof(EndMarker));
 
-	archiveID_ = 0;
+        archiveID_ = 0;
         archiveQueue_.reset();
 
     } catch (...) {
@@ -634,6 +638,52 @@ FDBStats RemoteFDB::archiveThreadLoop(uint32_t requestID) {
     // We are inside an async, so don't need to worry about exceptions escaping.
     // They will be released when flush() is called.
 }
+
+long RemoteFDB::sendArchiveData(uint32_t id, const std::vector<std::pair<Key, Buffer>>& elements, size_t count) {
+
+    if (count == 1) {
+        sendArchiveData(id, elements[0].first, elements[0].second.data(), elements[0].second.size());
+        return elements[0].second.size();
+    }
+
+    // Serialise the keys
+
+    std::vector<Buffer> keyBuffers;
+    std::vector<size_t> keySizes;
+    keyBuffers.reserve(count);
+    keySizes.reserve(count);
+
+    size_t containedSize = 0;
+
+    for (size_t i = 0; i < count; ++i) {
+        keyBuffers.emplace_back(Buffer {4096});
+        MemoryStream keyStream(keyBuffers.back());
+        keyStream << elements[i].first;
+        keySizes.push_back(keyStream.position());
+        containedSize += (keyStream.position() + elements[i].second.size() +
+                          sizeof(MessageHeader) + sizeof(EndMarker));
+    }
+
+    // Construct the containing message
+
+    MessageHeader message(Message::MultiBlob, id, containedSize);
+    dataWrite(&message, sizeof(message));
+
+    long dataSent = 0;
+
+    for (size_t i = 0; i < count; ++i) {
+        MessageHeader containedMessage(Message::Blob, id, elements[i].second.size() + keySizes[i]);
+        dataWrite(&containedMessage, sizeof(containedMessage));
+        dataWrite(keyBuffers[i], keySizes[i]);
+        dataWrite(elements[i].second.data(), elements[i].second.size());
+        dataWrite(&EndMarker, sizeof(EndMarker));
+        dataSent += elements[i].second.size();
+    }
+
+    dataWrite(&EndMarker, sizeof(EndMarker));
+    return dataSent;
+}
+
 
 void RemoteFDB::sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length) {
 
