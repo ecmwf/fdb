@@ -37,6 +37,7 @@ public: // methods
 
 private: // methods
 
+    virtual void usage(const std::string &tool) const;
     virtual void init(const CmdArgs &args);
     virtual void execute(const CmdArgs& args);
     virtual void finish(const CmdArgs &args);
@@ -45,6 +46,20 @@ private: // members
     bool doit_;
 };
 
+void FDBWipe::usage(const std::string &tool) const {
+
+    Log::info() << std::endl
+                << "Usage: " << tool << " [options] [DB request]" << std::endl
+                << std::endl
+                << std::endl
+                << "Examples:" << std::endl
+                << "=========" << std::endl << std::endl
+                << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g"
+                << std::endl
+                << std::endl;
+
+    FDBTool::usage(tool);
+}
 
 void FDBWipe::init(const CmdArgs &args) {
 
