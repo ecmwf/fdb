@@ -340,12 +340,14 @@ else()
     set( PMEM_INCLUDE_DIRS "" )
 endif()
 
+if(HAVE_FDB_REMOTE)
     list( APPEND fdb5_srcs
         api/RemoteFDB.cc
         api/RemoteFDB.h
         remote/RemoteFieldLocation.h
         remote/RemoteFieldLocation.cc
     )
+endif()
 
 if(HAVE_LUSTRE)
     list( APPEND fdb5_srcs io/LustreFileHandle.h io/LustreFileHandle.cc )
@@ -437,6 +439,7 @@ ecbuild_add_executable( TARGET    grib2fdb5
 ecbuild_add_executable(
         TARGET fdb-monitor
         SOURCES remote/fdb-monitor.cc
+        CONDITION HAVE_FDB_REMOTE
         LIBS eckit eckit_cmd )
 
 ecbuild_add_executable(
@@ -447,4 +450,5 @@ ecbuild_add_executable(
             remote/Messages.cc
             remote/Handler.h
             remote/Handler.cc
+        CONDITION HAVE_FDB_REMOTE
         LIBS fdb5 )
