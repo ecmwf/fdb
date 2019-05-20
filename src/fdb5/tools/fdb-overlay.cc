@@ -109,6 +109,23 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         Log::info() << "Applying " << source << " onto " << target << std::endl;
     }
 
+    if (source.keys() != target.keys()) {
+        std::stringstream ss;
+        ss << "Keys insufficiently matching for mount: " << source << " : " << target << std::endl;
+        throw UserError(ss.str(), Here());
+    }
+
+    std::set<std::string> vkeys(variableKeys_.begin(), variableKeys_.end());
+    for (const auto& kv : target) {
+        auto it = source.find(kv.first);
+        ASSERT(it != source.end());
+        if (kv.second != it->second && vkeys.find(kv.first) == vkeys.end()) {
+            std::stringstream ss;
+            ss << "Key " << kv.first << " not allowed to differ between DBs: " << source << " : " << target;
+            throw UserError(ss.str(), Here());
+        }
+    }
+
     std::unique_ptr<DB> dbSource(DBFactory::buildReader(source, config));
     if (!dbSource->exists()) {
         std::stringstream ss;
@@ -151,7 +168,6 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     ASSERT(tocSourceDB);
     ASSERT(tocTargetDB);
 
-    std::set<std::string> vkeys(variableKeys_.begin(), variableKeys_.end());
     tocTargetDB->overlayDB(*tocSourceDB, vkeys, remove_);
 }
 
