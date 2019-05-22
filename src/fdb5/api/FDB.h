@@ -83,6 +83,9 @@ public: // methods
     FDBStats stats() const;
     FDBStats internalStats() const;
 
+    const std::string& name() const;
+    const Config& config() const;
+
     bool writable() const;
     bool visitable() const;
     bool disabled() const;

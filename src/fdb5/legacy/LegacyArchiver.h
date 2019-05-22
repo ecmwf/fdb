@@ -44,6 +44,9 @@ public: // methods
 
     void flush();
 
+    // For diagnostic purposes
+    const FDB& fdb() const;
+
 private: // members
 
     FDB fdb_;

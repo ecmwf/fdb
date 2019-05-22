@@ -76,6 +76,8 @@ public: // methods
 
     const std::string& name() const;
 
+    const Config& config() const;
+
     bool writable();
     bool visitable();
     bool disabled();

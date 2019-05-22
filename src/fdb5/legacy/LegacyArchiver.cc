@@ -105,6 +105,10 @@ void LegacyArchiver::legacy(const std::string &keyword, const std::string &value
     translator_.set(legacy_, keyword, value);
 }
 
+const FDB& LegacyArchiver::fdb() const {
+    return fdb_;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace legacy
