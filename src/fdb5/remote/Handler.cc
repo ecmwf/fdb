@@ -10,9 +10,12 @@
 
 #include <chrono>
 
-#include "eckit/maths/Functions.h"
-#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/config/Resource.h"
+#include "eckit/maths/Functions.h"
+#include "eckit/net/Endpoint.h"
+#include "eckit/runtime/Main.h"
+#include "eckit/runtime/SessionID.h"
+#include "eckit/serialisation/MemoryStream.h"
 
 #include "metkit/MarsRequest.h"
 
@@ -171,6 +174,7 @@ RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
     config_(config),
     controlSocket_(socket),
     dataSocket_(selectDataPort(), "", false),
+    dataListenHostname_(config.getString("dataListenHostname", "")),
     fdb_(config),
     retrieveQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {}
 
@@ -187,17 +191,84 @@ RemoteHandler::~RemoteHandler() {
     Log::info() << "Done" << std::endl;
 }
 
-void RemoteHandler::handle() {
+void RemoteHandler::initialiseConnections() {
+
+    // Read the startup message from the client. Check that it all checks out.
+
+    MessageHeader hdr;
+    socketRead(&hdr, sizeof(hdr), controlSocket_);
+
+    ASSERT(hdr.marker == StartMarker);
+    ASSERT(hdr.version == CurrentVersion);
+    ASSERT(hdr.message == Message::Startup);
+    ASSERT(hdr.requestID == 0);
+
+    Buffer payload1 = receivePayload(hdr, controlSocket_);
+    eckit::FixedString<4> tail;
+    socketRead(&tail, sizeof(tail), controlSocket_);
+    ASSERT(tail == EndMarker);
+
+    MemoryStream s1(payload1);
+    SessionID clientSession(s1);
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
 
     int dataport = dataSocket_.localPort();
+    std::string host = dataListenHostname_.empty() ? dataSocket_.localHost() : dataListenHostname_;
+    Endpoint dataEndpoint(host, dataport);
 
-    Log::info() << "Sending data port to client: " << dataport << std::endl;
+    Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
 
-    controlWrite(&dataport, sizeof(dataport));
+    {
+        Buffer startupBuffer(1024);
+        MemoryStream s(startupBuffer);
+
+        s << clientSession;
+        s << sessionID_;
+        s << dataEndpoint;
+
+        controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
+    }
 
     dataSocket_.accept();
+
+    // Check the response from the client.
+    // Ensure that the hostname matches the original hostname, and that
+    // it returns the details we sent it
+    // IE check that we are connected to the correct client!
+
+    MessageHeader dataHdr;
+    socketRead(&dataHdr, sizeof(dataHdr), dataSocket_);
+
+    ASSERT(dataHdr.marker == StartMarker);
+    ASSERT(dataHdr.version == CurrentVersion);
+    ASSERT(dataHdr.message == Message::Startup);
+    ASSERT(dataHdr.requestID == 0);
+
+    Buffer payload2 = receivePayload(dataHdr, dataSocket_);
+    socketRead(&tail, sizeof(tail), dataSocket_);
+    ASSERT(tail == EndMarker);
+
+    MemoryStream s2(payload2);
+    SessionID clientSession2(s2);
+    SessionID serverSession(s2);
+
+    if (clientSession != clientSession2) {
+        std::stringstream ss;
+        ss << "Client session IDs do not match: " << clientSession << " != " << clientSession2;
+        throw BadValue(ss.str(), Here());
+    }
+
+    if (serverSession != sessionID_) {
+        std::stringstream ss;
+        ss << "Session IDs do not match: " << serverSession << " != " << sessionID_;
+        throw BadValue(ss.str(), Here());
+    }
+}
+
+void RemoteHandler::handle() {
+
+    initialiseConnections();
 
     // And go into the main loop
 
@@ -489,8 +560,6 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
 
     size_t totalArchived = 0;
 
-    Log::info() << "Inside archiveThreadLoop. ID: " << id << std::endl;
-
     // Create a worker that will do the actual archiving
 
     static size_t queueSize(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32));
@@ -600,8 +669,6 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
 
         ASSERT(worker.valid());
         totalArchived = worker.get(); // n.b. use of async, get() propagates any exceptions.
-
-        Log::info() << "Recieved end marker. Exiting" << std::endl;
 
     } catch (std::exception& e) {
         // n.b. more general than eckit::Exception

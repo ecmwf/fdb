@@ -114,7 +114,6 @@ void AvailablePortList::initialise() {
             break;
         }
     }
-    eckit::Log::info() << "Available port list initialised: " << (initialised ? "T": "F") << std::endl;
     if (initialised) return;
 
     // Get a list of everything that needs to be skipped
@@ -137,7 +136,6 @@ void AvailablePortList::initialise() {
             shared_[foundCount].pid = 0;
             shared_[foundCount].deadTime = 0;
             foundCount++;
-            eckit::Log::info() << "Port (" << foundCount << "): " << port << std::endl;
         }
         port++;
     }
@@ -191,7 +189,6 @@ void AvailablePortList::reap(int deadTime) {
             ASSERT(it->deadTime <= now);
             ASSERT(!ProcessControler::isRunning(it->pid));
             if ((now - it->deadTime) >= deadTime) {
-                eckit::Log::info() << "Releasing port: " << it->port << std::endl;
                 it->pid = 0;
                 it->deadTime = 0;
             }

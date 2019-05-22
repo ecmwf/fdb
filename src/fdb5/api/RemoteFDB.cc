@@ -9,6 +9,7 @@
  */
 
 #include <functional>
+#include <unistd.h>
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -32,6 +33,16 @@ using namespace eckit;
 using namespace fdb5::remote;
 
 
+namespace eckit {
+template<> struct Translator<Endpoint, std::string> {
+    std::string operator()(const Endpoint& e) {
+        std::stringstream ss;
+        ss << e;
+        return ss.str();
+    }
+};
+}
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -47,6 +58,12 @@ public:
     }
 };
 }
+
+class RemoteFDBException : public RemoteException {
+public:
+    RemoteFDBException(const std::string& msg, const Endpoint& endpoint):
+        RemoteException(msg, eckit::Translator<Endpoint, std::string>()(endpoint)) {}
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -66,9 +83,7 @@ static uint32_t generateRequestID() {
 
 RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name) :
     FDBBase(config, name),
-    hostname_(config.getString("host")),
-    port_(config.getLong("port")),
-    dataport_(0),
+    controlEndpoint_(config.getString("host"), config.getInt("port")),
     archiveID_(0),
     maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)),
     maxArchiveBatchSize_(config.getInt("maxBatchSize", 1)),
@@ -90,17 +105,72 @@ RemoteFDB::~RemoteFDB() {
     disconnect();
 }
 
+
 // Functions for management of the connection
 
 void RemoteFDB::connect() {
 
     if (!connected_) {
-        controlClient_.connect(hostname_, port_);
+        eckit::Log::info() << "Connecting to host: " << controlEndpoint_ << std::endl;
+        controlClient_.connect(controlEndpoint_);
 
-        // Get data connection port, and connect to it too
-        controlRead(&dataport_, sizeof(dataport_));
-        Log::debug<LibFdb5>() << "Recieved data port from host: " << hostname_ << ":" << dataport_ << std::endl;
-        dataClient_.connect(hostname_, dataport_);
+        // Initial startup message
+
+        {
+            Buffer payload(1024);
+            MemoryStream s(payload);
+            s << sessionID_;
+
+            controlWrite(Message::Startup, 0, payload.data(), s.position());
+        }
+
+        // Read and verify the response from the server
+
+        MessageHeader hdr;
+        controlRead(&hdr, sizeof(hdr));
+
+        ASSERT(hdr.marker == StartMarker);
+        ASSERT(hdr.version == CurrentVersion);
+        ASSERT(hdr.message == Message::Startup);
+        ASSERT(hdr.requestID == 0);
+
+        Buffer payload(hdr.payloadSize);
+        eckit::FixedString<4> tail;
+        controlRead(payload, hdr.payloadSize);
+        controlRead(&tail, sizeof(tail));
+        ASSERT(tail == EndMarker);
+
+        MemoryStream s(payload);
+        SessionID clientSession(s);
+        SessionID serverSession(s);
+        Endpoint dataEndpoint(s);
+
+        dataEndpoint_ = dataEndpoint;
+
+        if (clientSession != sessionID_) {
+            std::stringstream ss;
+            ss << "Session ID does not match session received from server: "
+               << sessionID_ << " != " << clientSession;
+            throw BadValue(ss.str(), Here());
+        }
+
+        // Connect to the specified data port
+
+        Log::info() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
+
+        dataClient_.connect(dataEndpoint_);
+
+        // Write startup message to server for verification purposes
+
+        {
+            Buffer payload(1024);
+            MemoryStream s(payload);
+
+            s << sessionID_;
+            s << serverSession;
+
+            dataWrite(Message::Startup, 0, payload.data(), s.position());
+        }
 
         listeningThread_ = std::thread([this] { listeningThreadLoop(); });
 
@@ -191,7 +261,7 @@ void RemoteFDB::listeningThreadLoop() {
                     msg.resize(hdr.payloadSize, ' ');
                     dataRead(&msg[0], hdr.payloadSize);
                 }
-                it->second->interrupt(std::make_exception_ptr(RemoteException(msg, hostname_)));
+                it->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, dataEndpoint_)));
 
                 // Remove entry (shared_ptr --> message queue will be destroyed when it
                 // goes out of scope in the worker thread).
@@ -208,7 +278,7 @@ void RemoteFDB::listeningThreadLoop() {
                         dataRead(&msg[0], hdr.payloadSize);
                     }
 
-                    archiveQueue_->interrupt(std::make_exception_ptr(RemoteException(msg, hostname_)));
+                    archiveQueue_->interrupt(std::make_exception_ptr(RemoteFDBException(msg, dataEndpoint_)));
                 }
             } else {
                 Buffer payload(hdr.payloadSize);
@@ -308,6 +378,18 @@ void RemoteFDB::controlRead(void* data, size_t length) {
     }
 }
 
+void RemoteFDB::dataWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+
+    ASSERT((payload == nullptr) == (payloadLength == 0));
+
+    MessageHeader message(msg, requestID, payloadLength);
+    dataWrite(&message, sizeof(message));
+    if (payload) {
+        dataWrite(payload, payloadLength);
+    }
+    dataWrite(&EndMarker, sizeof(EndMarker));
+}
+
 void RemoteFDB::dataWrite(const void* data, size_t length) {
     size_t written = dataClient_.write(data, length);
     if (length != written) {
@@ -343,7 +425,7 @@ void RemoteFDB::handleError(const MessageHeader& hdr) {
             controlRead(&tail, sizeof(tail));
         } catch (...) {}
 
-        throw RemoteException(what, hostname_);
+        throw RemoteFDBException(what, controlEndpoint_);
     }
 }
 
@@ -562,8 +644,6 @@ void RemoteFDB::flush() {
     // Flush only does anything if there is an ongoing archive();
     if (archiveFuture_.valid()) {
 
-	eckit::Log::info() << "RemoteFDB::flush()" << std::endl;
-
         ASSERT(archiveID_ != 0);
         {
             ASSERT(archiveQueue_);
@@ -721,10 +801,10 @@ class FDBRemoteDataHandle : public DataHandle {
 
 public: // methods
 
-    FDBRemoteDataHandle(uint32_t requestID, RemoteFDB::MessageQueue& queue, const std::string& remoteHost) :
+    FDBRemoteDataHandle(uint32_t requestID, RemoteFDB::MessageQueue& queue, const Endpoint& remoteEndpoint) :
         requestID_(requestID),
         queue_(queue),
-        remoteHost_(remoteHost),
+        remoteEndpoint_(remoteEndpoint),
         pos_(0),
         estimatedLength_(-1),
         overallPosition_(0),
@@ -772,7 +852,7 @@ private: // methods
 
         if (hdr.message == Message::Error) {
             std::string errmsg(static_cast<const char*>(msg.second), msg.second.size());
-            throw RemoteException(errmsg, remoteHost_);
+            throw RemoteFDBException(errmsg, remoteEndpoint_);
         }
 
         // Are we now complete
@@ -848,7 +928,7 @@ private: // methods
 
         if (hdr.message == Message::Error) {
             std::string errmsg(static_cast<const char*>(msg.second), msg.second.size());
-            throw RemoteException(errmsg, remoteHost_);
+            throw RemoteFDBException(errmsg, remoteEndpoint_);
         }
 
         // Are we now complete
@@ -862,7 +942,7 @@ private: // members
 
     uint32_t requestID_;
     RemoteFDB::MessageQueue& queue_;
-    std::string remoteHost_;
+    Endpoint remoteEndpoint_;
     size_t pos_;
     std::mutex estimatedMutex_;
     Length estimatedLength_;
@@ -886,12 +966,12 @@ DataHandle* RemoteFDB::retrieve(const metkit::MarsRequest& request) {
     uint32_t id = generateRequestID();
     controlWriteCheckResponse(Message::Retrieve, id, encodeBuffer, s.position());
 
-    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, hostname_);
+    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
 }
 
 
 void RemoteFDB::print(std::ostream &s) const {
-    s << "RemoteFDB(host=" << hostname_ << ", port=" << port_ << ", dataport=" << dataport_ << ")";
+    s << "RemoteFDB(host=" << controlEndpoint_ << ", data=" << dataEndpoint_ << ")";
 }
 
 static FDBBuilder<RemoteFDB> remoteFdbBuilder("remote");
