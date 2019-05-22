@@ -51,6 +51,10 @@ const std::string &FDBBase::name() const {
     return name_;
 }
 
+const Config& FDBBase::config() const {
+    return config_;
+}
+
 bool FDBBase::writable() {
     return writable_;
 }
