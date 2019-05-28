@@ -16,6 +16,8 @@
 
 #include "fdb5/legacy/LegacyArchiver.h"
 
+#include "eckit/config/YAMLConfiguration.h"
+#include "eckit/value/Value.h"
 #include "eckit/testing/Test.h"
 
 using namespace std;
@@ -46,6 +48,42 @@ CASE ( "test_set_subtoc" ) {
     LocalConfiguration cfg;
     cfg.set("type", "fdb5");
     cfg.set("useSubToc", true);
+
+    legacy::LegacyArchiver la(cfg);
+
+    ASSERT(la.fdb().name() == "local");
+    ASSERT(la.fdb().config().has("useSubToc"));
+    ASSERT(la.fdb().config().getBool("useSubToc") == true);
+}
+
+
+CASE("test_set_subtoc_orderedmap") {
+
+    class TestConfiguration : public Configuration {
+    public:
+        TestConfiguration() : Configuration(Value()) {
+            ValueList vl{"type", "useSubToc"};
+            ValueMap vm;
+            vm["type"] = "fdb5";
+            vm["useSubToc"] = true;
+
+            root_.reset(new Value(Value::makeOrderedMap(vm, vl)));
+        }
+        void print(std::ostream& s) const { s << "TestConfiguration"; }
+    };
+
+    TestConfiguration cfg;
+    legacy::LegacyArchiver la(cfg);
+
+    ASSERT(la.fdb().name() == "local");
+    ASSERT(la.fdb().config().has("useSubToc"));
+    ASSERT(la.fdb().config().getBool("useSubToc") == true);
+}
+
+CASE("test_set_subtoc_yaml") {
+
+    std::string strcfg("{\"type\": \"fdb5\", \"useSubToc\": true}");
+    YAMLConfiguration cfg(strcfg);
 
     legacy::LegacyArchiver la(cfg);
 
