@@ -87,30 +87,32 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     writeMode_(false) {
 
     /// Are we remapping a mounted DB?
-    Key key(databaseKey());
-    if (!parentKey.empty() && parentKey != key) {
+    if (exists()) {
+        Key key(databaseKey());
+        if (!parentKey.empty() && parentKey != key) {
 
-        eckit::Log::debug<LibFdb5>() << "Opening (remapped) toc with differing parent key: "
-                                     << key << " --> " << parentKey << std::endl;
+            eckit::Log::debug<LibFdb5>() << "Opening (remapped) toc with differing parent key: "
+                                         << key << " --> " << parentKey << std::endl;
 
-        if (parentKey.size() != key.size()) {
-            std::stringstream ss;
-            ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
-            throw UserError(ss.str(), Here());
-        }
-
-        for (const auto& kv : parentKey) {
-            auto it = key.find(kv.first);
-            if (it == key.end()) {
+            if (parentKey.size() != key.size()) {
                 std::stringstream ss;
                 ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
                 throw UserError(ss.str(), Here());
-            } else if (kv.second != it->second) {
-                remapKey_.set(kv.first, kv.second);
             }
-        }
 
-        eckit::Log::debug<LibFdb5>() << "Key remapping: " << remapKey_ << std::endl;
+            for (const auto& kv : parentKey) {
+                auto it = key.find(kv.first);
+                if (it == key.end()) {
+                    std::stringstream ss;
+                    ss << "Keys insufficiently matching for mount: " << key << " : " << parentKey;
+                    throw UserError(ss.str(), Here());
+                } else if (kv.second != it->second) {
+                    remapKey_.set(kv.first, kv.second);
+                }
+            }
+
+            eckit::Log::debug<LibFdb5>() << "Key remapping: " << remapKey_ << std::endl;
+        }
     }
 }
 

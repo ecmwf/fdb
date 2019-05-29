@@ -90,6 +90,14 @@ FDBStats FDB::internalStats() const {
     return internal_->stats();
 }
 
+const std::string& FDB::name() const {
+    return internal_->name();
+}
+
+const Config &FDB::config() const {
+    return internal_->config();
+}
+
 void FDB::print(std::ostream& s) const {
     s << *internal_;
 }
