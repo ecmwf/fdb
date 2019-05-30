@@ -45,7 +45,7 @@ SingleGribMungePartFileHandle::SingleGribMungePartFileHandle(const PathName& nam
                                                              const Length& length,
                                                              const Key& substitute):
     name_(name),
-    file_(0),
+    file_(nullptr),
     pos_(0),
     offset_(offset),
     length_(length),
@@ -57,7 +57,7 @@ DataHandle* SingleGribMungePartFileHandle::clone() const {
 }
 
 
-bool SingleGribMungePartFileHandle::compress(bool sorted) {
+bool SingleGribMungePartFileHandle::compress(bool) {
     return false;
 }
 
@@ -66,18 +66,21 @@ SingleGribMungePartFileHandle::~SingleGribMungePartFileHandle()
     if (file_) {
         Log::warning() << "Closing SingleGribMungePartFileHandle " << name_ << std::endl;
         ::fclose(file_);
-        file_ = 0;
+        file_ = nullptr;
     }
 }
 
 Length SingleGribMungePartFileHandle::openForRead() {
+
     pos_ = 0;
     file_ = ::fopen(name_.localPath(), "r");
 
-    if (file_ == 0)
+    if (!file_)
         throw CantOpenFile(name_, errno == ENOENT);
 
-    if (buffer_) buffer_.reset();
+    if (buffer_) {
+        buffer_.reset();
+    }
 
     return estimate();
 }
@@ -118,6 +121,7 @@ long SingleGribMungePartFileHandle::read(void* buffer, long length) {
         CODES_CHECK(codes_get_message(handle, &messageBuffer, &messageSize), 0);
 
         buffer_.reset(new Buffer(messageSize));
+        pos_ = 0;
         ::memcpy(*buffer_, messageBuffer, messageSize);
 
         codes_handle_delete(handle);
@@ -126,7 +130,7 @@ long SingleGribMungePartFileHandle::read(void* buffer, long length) {
     long readLength = 0;
 
     if (pos_ < length_) {
-        long readLength = std::min(static_cast<long>(length_), length);
+        long readLength = std::min(static_cast<long>(length_ - pos_), length);
         ::memcpy(buffer, &(*buffer_)[pos_], readLength);
         pos_ += readLength;
         return readLength;
