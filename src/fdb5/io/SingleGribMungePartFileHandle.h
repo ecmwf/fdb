@@ -60,7 +60,7 @@ public:
     bool compress(bool = false) override;
     eckit::Length estimate() override;
 
-    void restartReadFrom(const eckit::Offset& from) override { NOTIMP; }
+    void restartReadFrom(const eckit::Offset&) override { NOTIMP; }
     eckit::Offset seek(const eckit::Offset&) override { NOTIMP; }
 
     void toRemote(eckit::Stream&) const override { NOTIMP; }
@@ -78,7 +78,7 @@ private: // members
 
     eckit::PathName name_;
     FILE*           file_;
-    long long       pos_;
+    eckit::Offset   pos_;
     eckit::Offset   offset_;
     eckit::Length   length_;
     Key             substitute_;
