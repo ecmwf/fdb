@@ -157,7 +157,6 @@ list( APPEND fdb5_srcs
     grib/GribIndexer.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
-    io/fdb5_lustreapi_file_create.c
     io/SingleGribMungePartFileHandle.cc
     io/SingleGribMungePartFileHandle.h
     io/LustreFileHandle.cc
@@ -347,10 +346,6 @@ if(HAVE_FDB_REMOTE)
         remote/RemoteFieldLocation.h
         remote/RemoteFieldLocation.cc
     )
-endif()
-
-if(HAVE_LUSTRE)
-    list( APPEND fdb5_srcs io/LustreFileHandle.h io/LustreFileHandle.cc )
 endif()
 
 ecbuild_add_library(
