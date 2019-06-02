@@ -233,6 +233,10 @@ list( APPEND fdb5_srcs
     types/TypeTime.h
 )
 
+if(HAVE_LUSTRE)
+  list( APPEND fdb5_srcs fdb5_lustreapi_file_create.c )
+endif()
+
 if( HAVE_TOCFDB )
     list( APPEND fdb5_srcs
         toc/AdoptVisitor.cc
