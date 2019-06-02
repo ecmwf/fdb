@@ -234,7 +234,7 @@ list( APPEND fdb5_srcs
 )
 
 if(HAVE_LUSTRE)
-  list( APPEND fdb5_srcs fdb5_lustreapi_file_create.c )
+  list( APPEND fdb5_srcs io/fdb5_lustreapi_file_create.c )
 endif()
 
 if( HAVE_TOCFDB )
