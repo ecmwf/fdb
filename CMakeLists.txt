@@ -36,7 +36,7 @@ ecbuild_add_option( FEATURE FDB_REMOTE
 
 ### FDB backend in persistent memory, i.e. pmem (NVRAM)
 
-ecbuild_add_option( FEATURE PMEMFDB
+ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
                     DEFAULT OFF
                     DESCRIPTION "Persistent memory (NVRAM) support for FDB"
                     REQUIRED_PACKAGES "PROJECT pmem" )
@@ -44,14 +44,14 @@ ecbuild_add_option( FEATURE PMEMFDB
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
 ### Supports Lustre parallel filesystem stripping control
 
-ecbuild_add_option( FEATURE TOCFDB
+ecbuild_add_option( FEATURE TOCFDB  # option defined in fdb5_config.h
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
 
 find_package( LustreAPI QUIET )
 
-ecbuild_add_option( FEATURE LUSTRE
-                    CONDITION LustreAPI_FOUND
+ecbuild_add_option( FEATURE LUSTRE  # option defined in fdb5_config.h
+                    CONDITION LUSTREAPI_FOUND
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
 
