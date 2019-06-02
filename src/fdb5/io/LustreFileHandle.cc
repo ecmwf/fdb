@@ -11,17 +11,21 @@
 #include "fdb5/fdb5_config.h"
 
 #include "eckit/log/Log.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "fdb5/LibFdb5.h"
 
+
+#if defined(HAVE_LUSTRE)
 extern "C" {
 int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
 }
+#endif
 
 namespace fdb5 {
 
 bool fdb5LustreapiSupported() {
-#if defined(LUSTREAPI_FOUND)
+#if defined(HAVE_LUSTRE)
     return true;
 #else
     return false;
@@ -30,15 +34,16 @@ bool fdb5LustreapiSupported() {
 
 int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripecount) {
 
-#if defined(LUSTREAPI_FOUND)
+#if defined(HAVE_LUSTRE)
     return fdb5_lustreapi_file_create(path, stripesize, stripecount);
 #endif
 
-    eckit::Log::warning() << "LustreAPI was not found on this system. Creating file with striped information reverts to default system behavior." << std::endl;
+    /// @note since fdb5LustreapiSupported() should be guarding all calls to this function,
+    ///       the code below should never be executed
 
-    // will not create here, since openForAppend will call correct handle
+    ASSERT_MSG(fdb5LustreapiSupported(), "fdb5LustreapiFileCreate() called yet HAVE_LUSTRE is not defined");
 
-    return 0;
+    return 0; /* should never be executed */
 }
 
 } // namespace fdb5
