@@ -87,7 +87,7 @@ void FDBWipe::execute(const CmdArgs& args) {
             Log::info() << "FDB owner: " << elem.owner << std::endl
                         << std::endl;
 
-            Log::info() << "Metadata files to deleted:" << std::endl;
+            Log::info() << "Metadata files to delete:" << std::endl;
             for (const auto& f : elem.metadataPaths) {
                 Log::info() << "    " << f << std::endl;
             }
