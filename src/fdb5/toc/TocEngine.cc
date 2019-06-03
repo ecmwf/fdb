@@ -80,9 +80,10 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
         if(e == 0)
             break;
 
-        if(e->d_name[0] == '.')
+        if(e->d_name[0] == '.') {
             if(e->d_name[1] == 0 || (e->d_name[1] =='.' && e->d_name[2] == 0))
                 continue;
+	}
 
         if(::strcmp(e->d_name, "toc") == 0) {
             dbs.push_back(path);
@@ -93,17 +94,20 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
         full += e->d_name;
 
 #if defined(ECKIT_HAVE_DIRENT_D_TYPE) || defined(DT_DIR)
-        if(e->d_type == DT_DIR) {
+        if (e->d_type == DT_DIR) {
             scan_dbs(full.c_str(), dbs);
+        } else if (e->d_type == DT_UNKNOWN) {
+#endif
+            eckit::Stat::Struct info;
+            if(eckit::Stat::stat(full.c_str(), &info) == 0)
+            {
+                if(S_ISDIR(info.st_mode)) {
+                    scan_dbs(full.c_str(), dbs);
+                }
+            }
+            else Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
+#if defined(ECKIT_HAVE_DIRENT_D_TYPE) || defined(DT_DIR)
         }
-#else
-        eckit::Stat::Struct info;
-        if(eckit::Stat::stat(full.c_str(), &info) == 0)
-        {
-            if(S_ISDIR(info.st_mode))
-                scan_dbs(full.c_str(), dbs);
-        }
-        else Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
 #endif
     }
 }

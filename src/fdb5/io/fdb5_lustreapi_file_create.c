@@ -8,25 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/fdb5_config.h"
-
 #include <stdlib.h>
-
-#if defined(HAVE_LUSTRE)
 
 #include <lustre/lustreapi.h>
 
+/// Provides a interface to Lustre API, however it must be accessed via a C code due to some
+/// lustreapi.h incompatibility with C++
+/// This code won't be compiled if build system doesnt HAVE_LUSTRE
 int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount) {
-
     return llapi_file_create(path, stripesize, -1, stripecount, LOV_PATTERN_RAID0);
-
 }
-
-#else
-
-int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount) {
-    return 0; // this is never called
-}
-
-#endif
-
