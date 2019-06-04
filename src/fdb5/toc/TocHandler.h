@@ -149,7 +149,7 @@ private: // methods
 
     // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
     // the mechanism of subtocs).
-    bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true) const;
+    bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true, bool hideClearEntries = true) const;
 
     bool readNextInternal(TocRecord &r) const;
 
