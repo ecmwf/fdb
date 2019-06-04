@@ -852,6 +852,9 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
                 if (indexInSubtoc) {
                     indexInSubtoc->erase(indexInSubtoc->begin() + (j - indexes.begin()));
                 }
+                if (remapKeys) {
+                    remapKeys->erase(remapKeys->begin() + (j - indexes.begin()));
+                }
                 indexes.erase(j);
             }
             break;
@@ -874,6 +877,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
     if (sorted) {
 
         ASSERT(!indexInSubtoc);
+        ASSERT(!remapKeys);
         std::sort(indexes.begin(), indexes.end(), TocIndexFileSort());
 
     } else {
@@ -883,6 +887,9 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
 
         if (indexInSubtoc) {
             std::reverse(indexInSubtoc->begin(), indexInSubtoc->end());
+        }
+        if (remapKeys) {
+            std::reverse(remapKeys->begin(), remapKeys->end());
         }
     }
 
