@@ -376,7 +376,7 @@ std::vector<PathName> TocHandler::subTocPaths() const {
             }
 
             case TocRecord::TOC_CLEAR:
-                ASSERT(false);
+                ASSERT_MSG(r->header_.tag_ != TocRecord::TOC_CLEAR, "The TOC_CLEAR records should have been pre-filtered on the first pass");
 
             case TocRecord::TOC_INIT:
             case TocRecord::TOC_INDEX:
@@ -852,7 +852,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             break;
 
         case TocRecord::TOC_CLEAR:
-			ASSERT_MSG(r->header_.tag_ != TocRecord::TOC_CLEAR, "The TOC_CLEAR records should have been pre-filtered on the first pass")
+            ASSERT_MSG(r->header_.tag_ != TocRecord::TOC_CLEAR, "The TOC_CLEAR records should have been pre-filtered on the first pass");
 
         case TocRecord::TOC_SUB_TOC:
             throw eckit::SeriousBug("TOC_SUB_TOC entry should be handled inside readNext");
@@ -1001,7 +1001,7 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
 
             case TocRecord::TOC_SUB_TOC:
             case TocRecord::TOC_CLEAR:
-                ASSERT(false);
+                ASSERT_MSG(r->header_.tag_ != TocRecord::TOC_CLEAR, "The TOC_CLEAR records should have been pre-filtered on the first pass");
 
             case TocRecord::TOC_INIT:
                 break;
