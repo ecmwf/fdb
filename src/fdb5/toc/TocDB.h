@@ -70,6 +70,9 @@ protected: // methods
 
     std::vector<Index> indexes(bool sorted=false) const override;
 
+    void allMasked(std::set<std::pair<eckit::PathName, size_t>>& metadata,
+                   std::set<eckit::PathName>& data) const override;
+
 private: // members
 
     Schema schema_;

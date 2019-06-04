@@ -15,6 +15,9 @@
 
 #include "fdb5/toc/TocHandler.h"
 
+using namespace eckit;
+
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -24,6 +27,26 @@ TocPurgeVisitor::TocPurgeVisitor(const TocDB& db) :
     TocStatsReportVisitor(db, false) {}
 
 TocPurgeVisitor::~TocPurgeVisitor() {}
+
+bool TocPurgeVisitor::visitDatabase(const DB &db) {
+
+    std::set<std::pair<PathName, size_t>> metadata;
+    std::set<PathName> data;
+
+    db.allMasked(metadata, data);
+
+    for (const auto& entry : metadata) {
+        const PathName& path = entry.first;
+
+        allIndexFiles_.insert(path);
+        indexUsage_[path] += 0;
+    }
+
+    for (const auto& path : data) {
+        allDataFiles_.insert(path);
+        dataUsage_[path] += 0;
+    }
+}
 
 
 void TocPurgeVisitor::report(std::ostream& out) const {

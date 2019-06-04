@@ -110,6 +110,11 @@ public: // methods
     /// For use by the WipeVisitor
     virtual void maskIndexEntry(const Index& index) const = 0;
 
+    /// For use by purge/wipe
+
+    virtual void allMasked(std::set<std::pair<eckit::PathName, size_t>>& metadata,
+                           std::set<eckit::PathName>& data) const {}
+
 protected: // methods
 
     virtual void print( std::ostream &out ) const = 0;

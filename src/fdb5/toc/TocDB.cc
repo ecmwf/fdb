@@ -146,6 +146,11 @@ std::vector<Index> TocDB::indexes(bool sorted) const {
     return loadIndexes(sorted);
 }
 
+void TocDB::allMasked(std::set<std::pair<eckit::PathName, size_t>>& metadata,
+                      std::set<eckit::PathName>& data) const {
+    enumerateMasked(metadata, data);
+}
+
 void TocDB::visit(DBVisitor &visitor) {
     visitor(*this);
 }

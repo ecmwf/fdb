@@ -88,6 +88,9 @@ public: // methods
 
     DbStats stats() const;
 
+    void enumerateMasked(std::set<std::pair<eckit::PathName, size_t>>& metadata,
+                         std::set<eckit::PathName>& data) const;
+
 protected: // methods
 
     size_t tocFilesSize() const;

@@ -1034,6 +1034,71 @@ DbStats TocHandler::stats() const
     return DbStats(stats);
 }
 
+
+void TocHandler::enumerateMasked(std::set<std::pair<eckit::PathName, size_t>>& metadata,
+                                 std::set<eckit::PathName>& data) const {
+
+    if (!enumeratedMaskedEntries_) {
+        populateMaskedEntriesList();
+    }
+
+    for (const auto& entry : maskedEntries_) {
+
+        const PathName& path = entry.first;
+        if (path.exists()) {
+            metadata.insert(entry);
+
+            // If this is a subtoc, then enumerate its contained indexes and data!
+
+            if (path.baseName().asString().substr(0, 4) == "toc.") {
+                TocHandler h(path, remapKey_);
+
+                h.enumerateMasked(metadata, data);
+
+                std::vector<Index> indexes = h.loadIndexes();
+                for (const auto& i : indexes) {
+                    metadata.insert(std::make_pair<PathName, size_t>(i.location().url(), 0));
+                    for (const auto& dataPath : i.dataPaths()) {
+                        data.insert(dataPath);
+                    }
+                }
+            }
+        }
+    }
+
+    // Get the data files referenced by the masked indexes (those in subtocs are
+    // referenced internally)
+
+    openForRead();
+    TocHandlerCloser close(*this);
+
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord);
+
+    while ( readNextInternal(*r) ) {
+        if (r->header_.tag_ == TocRecord::TOC_INDEX) {
+
+            eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
+
+            std::string path;
+            std::string type;
+            off_t offset;
+            s >> path;
+            s >> offset;
+            s >> type;
+
+            std::pair<eckit::PathName, size_t> key(path, offset);
+            if (maskedEntries_.find(key) != maskedEntries_.end()) {
+                if (PathName(path).exists()) {
+                    Index index(new TocIndex(s, currentDirectory(), currentDirectory() / path, offset));
+                    for (const auto& dataPath : index.dataPaths()) data.insert(dataPath);
+                }
+            }
+        }
+    }
+}
+
+
 size_t TocHandler::tocFilesSize() const {
 
     // Get the size of the master toc

@@ -31,6 +31,7 @@ public:
     TocPurgeVisitor(const TocDB& db);
     ~TocPurgeVisitor() override;
 
+    bool visitDatabase(const DB& db) override;
     void report(std::ostream& out) const override;
     void purge(std::ostream& out, bool verbose) const override;
 };
