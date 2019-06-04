@@ -905,7 +905,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
     // Allocate (large) TocRecord on heap not stack (MARS-779)
     std::unique_ptr<TocRecord> r(new TocRecord);
 
-    bool hideSubtocEntries = false;
+    bool hideSubTocEntries = false;
     bool hideClearEntries = false;
     while ( readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries) ) {
 
