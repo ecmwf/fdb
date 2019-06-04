@@ -114,6 +114,17 @@ bool WipeVisitor::visitDatabase(const DB& db) {
         }
     }
 
+    // Enumerate masked stuff
+
+    std::set<std::pair<eckit::PathName, size_t>> metadata;
+    std::set<eckit::PathName> data;
+    for (const auto& entry : metadata) {
+        if (entry.first.dirName().sameAs(basePath_)) current_.metadataPaths.insert(entry.first);
+    }
+    for (const auto& path : data) {
+        if (path.dirName().sameAs(basePath_)) current_.dataPaths.insert(path);
+    }
+
     return true; // Explore contained indexes
 }
 
