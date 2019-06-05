@@ -56,7 +56,7 @@ public: // methods
     CachedFDProxy(const eckit::PathName& path, int fd, std::unique_ptr<eckit::MemoryHandle>& cached) :
         path_(path),
         fd_(fd),
-        cached_(cached ? cached.get() : 0) {
+        cached_(cached.get()) {
         ASSERT((fd != -1) != (!!cached));
     }
 
@@ -64,7 +64,7 @@ public: // methods
         if (cached_) {
             return cached_->read(buf, len);
         } else {
-            ssize_t ret;
+            long ret;
             SYSCALL2( ret = ::read(fd_, buf, len), path_);
             return ret;
         }
@@ -273,6 +273,8 @@ void TocHandler::append(TocRecord &r, size_t payloadSize ) {
     ASSERT(fd_ != -1);
     ASSERT(not cachedToc_);
 
+    Log::debug<LibFdb5>() << "Writing toc entry: " << (int)r.header_.tag_ << std::endl;
+
     // Obtain the rounded size, and set it in the record header.
     size_t roundedSize = roundRecord(r, payloadSize);
 
@@ -468,7 +470,7 @@ std::vector<PathName> TocHandler::subTocPaths() const {
             default: {
                 // This is only a warning, as it is legal for later versions of software to add stuff
                 // that is just meaningless in a backwards-compatible sense.
-                Log::warning() << "Unknown TOC entry" << std::endl;
+                Log::warning() << "Unknown TOC entry " << r << " @ " << Here() << std::endl;
                 break;
             }
         }
@@ -542,7 +544,7 @@ void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
             default: {
                 // This is only a warning, as it is legal for later versions of software to add stuff
                 // that is just meaningless in a backwards-compatible sense.
-                Log::warning() << "Unknown TOC entry" << std::endl;
+                Log::warning() << "Unknown TOC entry " << r << " @ " << Here() << std::endl;
                 break;
             }
         }
@@ -592,7 +594,7 @@ void TocHandler::populateMaskedEntriesList() const {
             default: {
                 // This is only a warning, as it is legal for later versions of software to add stuff
                 // that is just meaningless in a backwards-compatible sense.
-                Log::warning() << "Unknown TOC entry" << std::endl;
+                Log::warning() << "Unknown TOC entry " << r << " @ " << Here() << std::endl;
                 break;
             }
         }
@@ -681,7 +683,7 @@ void TocHandler::writeInitRecord(const Key &key) {
 
 void TocHandler::writeClearRecord(const Index &index) {
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t sz = roundRecord(*r, buildClearRecord(*r, index));
     appendBlock(r.get(), sz);
@@ -689,7 +691,7 @@ void TocHandler::writeClearRecord(const Index &index) {
 
 void TocHandler::writeClearAllRecord() {
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << std::string {"*"};
@@ -704,7 +706,7 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     openForAppend();
     TocHandlerCloser closer(*this);
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_SUB_TOC)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << subToc.tocPath();
@@ -726,7 +728,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             const TocIndexLocation& location = reinterpret_cast<const TocIndexLocation&>(l);
 
-            std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+            std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_INDEX)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
@@ -775,7 +777,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
 void TocHandler::writeSubTocMaskRecord(const TocHandler &subToc) {
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t sz = roundRecord(*r, buildSubTocMaskRecord(*r, subToc.tocPath()));
     appendBlock(r.get(), sz);
@@ -942,7 +944,9 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             break;
 
         default:
-            throw eckit::SeriousBug("Unknown tag in TocRecord", Here());
+            std::ostringstream oss;
+            oss << "Unknown tag in TocRecord " << r;
+            throw eckit::SeriousBug(oss.str(), Here());
             break;
 
         }
