@@ -221,7 +221,11 @@ void TocHandler::openForAppend() {
 
     int iomode = O_WRONLY | O_APPEND;
 #ifdef O_NOATIME
-    iomode |= O_NOATIME;
+    // this introduces issues of permissions
+    static bool fdbNoATime = eckit::Resource<bool>("fdbNoATime;$FDB_OPEN_NOATIME", false);
+    if(fdbNoATime) {
+        iomode |= O_NOATIME;
+    }
 #endif
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode, (mode_t)0777 )), tocPath_);
 }
@@ -244,7 +248,11 @@ void TocHandler::openForRead() const {
 
     int iomode = O_RDONLY;
 #ifdef O_NOATIME
-    iomode |= O_NOATIME;
+    // this introduces issues of permissions
+    static bool fdbNoATime = eckit::Resource<bool>("fdbNoATime;$FDB_OPEN_NOATIME", false);
+    if(fdbNoATime) {
+        iomode |= O_NOATIME;
+    }
 #endif
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
 
