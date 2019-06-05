@@ -64,7 +64,7 @@ public: // methods
         if (cached_) {
             return cached_->read(buf, len);
         } else {
-            ssize_t ret;
+            long ret;
             SYSCALL2( ret = ::read(fd_, buf, len), path_);
             return ret;
         }
@@ -470,7 +470,7 @@ std::vector<PathName> TocHandler::subTocPaths() const {
             default: {
                 // This is only a warning, as it is legal for later versions of software to add stuff
                 // that is just meaningless in a backwards-compatible sense.
-                Log::warning() << "Unknown TOC entry" << std::endl;
+                Log::warning() << "Unknown TOC entry " << r << " @ " << Here() << std::endl;
                 break;
             }
         }
@@ -544,7 +544,7 @@ void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
             default: {
                 // This is only a warning, as it is legal for later versions of software to add stuff
                 // that is just meaningless in a backwards-compatible sense.
-                Log::warning() << "Unknown TOC entry" << std::endl;
+                Log::warning() << "Unknown TOC entry " << r << " @ " << Here() << std::endl;
                 break;
             }
         }
@@ -596,7 +596,7 @@ void TocHandler::populateMaskedEntriesList() const {
             default: {
                 // This is only a warning, as it is legal for later versions of software to add stuff
                 // that is just meaningless in a backwards-compatible sense.
-                Log::warning() << "Unknown TOC entry" << std::endl;
+                Log::warning() << "Unknown TOC entry " << r << " @ " << Here() << std::endl;
                 break;
             }
         }
@@ -946,7 +946,9 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             break;
 
         default:
-            throw eckit::SeriousBug("Unknown tag in TocRecord", Here());
+            std::ostringstream oss;
+            oss << "Unknown tag in TocRecord " << r;
+            throw eckit::SeriousBug(oss.str(), Here());
             break;
 
         }
