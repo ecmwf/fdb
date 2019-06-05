@@ -19,6 +19,7 @@
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
+#include "eckit/io/MemoryHandle.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
@@ -144,7 +145,7 @@ private: // methods
     /// Populate the masked sub toc list, starting from the _current_position_ in the
     /// file (opened for read). It resets back to the same place when done. This is
     /// to allow searching only from the first subtoc.
-    void allMaskableEntries(off_t startOffset, off_t endOffset,
+    void allMaskableEntries(eckit::Offset startOffset, eckit::Offset endOffset,
                             std::set<std::pair<eckit::PathName, size_t>>& entries) const;
     void populateMaskedEntriesList() const;
 
@@ -175,6 +176,8 @@ private: // members
 
     mutable int fd_;      ///< file descriptor, if zero file is not yet open.
 
+    mutable std::unique_ptr<eckit::MemoryHandle> cachedToc_; ///< this is only for read path
+
     /// The sub toc is initialised in the read or write pathways for maintaining state.
     mutable std::unique_ptr<TocHandler> subTocRead_;
     mutable std::unique_ptr<TocHandler> subTocWrite_;
@@ -184,6 +187,7 @@ private: // members
 
     mutable bool enumeratedMaskedEntries_;
     mutable bool writeMode_;
+    mutable bool dirty_;
 };
 
 
