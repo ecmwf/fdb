@@ -64,9 +64,9 @@ public: // methods
         if (cached_) {
             return cached_->read(buf, len);
         } else {
-            ssize_t len;
-            SYSCALL2( len = ::read(fd_, buf, len), path_);
-            return len;
+            ssize_t ret;
+            SYSCALL2( ret = ::read(fd_, buf, len), path_);
+            return ret;
         }
     }
 
