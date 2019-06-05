@@ -273,6 +273,8 @@ void TocHandler::append(TocRecord &r, size_t payloadSize ) {
     ASSERT(fd_ != -1);
     ASSERT(not cachedToc_);
 
+    Log::info() << "Writing toc entry: " << (int)r.header_.tag_ << std::endl;
+
     // Obtain the rounded size, and set it in the record header.
     size_t roundedSize = roundRecord(r, payloadSize);
 
@@ -562,6 +564,8 @@ void TocHandler::populateMaskedEntriesList() const {
 
     while ( readNextInternal(*r) ) {
 
+        Log::info() << "(enumerate) Reading toc entry: " << (int)r->header_.tag_ << std::endl;
+
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
         off_t offset;
@@ -681,7 +685,7 @@ void TocHandler::writeInitRecord(const Key &key) {
 
 void TocHandler::writeClearRecord(const Index &index) {
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t sz = roundRecord(*r, buildClearRecord(*r, index));
     appendBlock(r.get(), sz);
@@ -689,7 +693,7 @@ void TocHandler::writeClearRecord(const Index &index) {
 
 void TocHandler::writeClearAllRecord() {
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << std::string {"*"};
@@ -704,7 +708,7 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     openForAppend();
     TocHandlerCloser closer(*this);
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_SUB_TOC)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << subToc.tocPath();
@@ -726,7 +730,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             const TocIndexLocation& location = reinterpret_cast<const TocIndexLocation&>(l);
 
-            std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+            std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_INDEX)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
@@ -775,7 +779,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
 void TocHandler::writeSubTocMaskRecord(const TocHandler &subToc) {
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t sz = roundRecord(*r, buildSubTocMaskRecord(*r, subToc.tocPath()));
     appendBlock(r.get(), sz);
@@ -991,6 +995,8 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
     bool hideSubTocEntries = false;
     bool hideClearEntries = false;
     while ( readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries) ) {
+
+        Log::info() << "Reading toc entry: " << (int)r->header_.tag_ << std::endl;
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
