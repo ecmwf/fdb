@@ -56,7 +56,7 @@ public: // methods
     CachedFDProxy(const eckit::PathName& path, int fd, std::unique_ptr<eckit::MemoryHandle>& cached) :
         path_(path),
         fd_(fd),
-        cached_(cached ? cached.get() : 0) {
+        cached_(cached.get()) {
         ASSERT((fd != -1) != (!!cached));
     }
 
