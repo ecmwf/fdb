@@ -142,7 +142,7 @@ private: // methods
     /// Populate the masked sub toc list, starting from the _current_position_ in the
     /// file (opened for read). It resets back to the same place when done. This is
     /// to allow searching only from the first subtoc.
-    void allMaskableEntries(off_t startOffset, off_t endOffset,
+    void allMaskableEntries(eckit::Offset startOffset, eckit::Offset endOffset,
                             std::set<std::pair<eckit::PathName, size_t>>& entries) const;
     void populateMaskedEntriesList() const;
 

@@ -48,6 +48,53 @@ class TocHandlerCloser {
     }
 };
 
+//----------------------------------------------------------------------------------------------------------------------
+
+class CachedFDProxy {
+public: // methods
+
+    CachedFDProxy(const eckit::PathName& path, int fd, std::unique_ptr<eckit::MemoryHandle>& cached) :
+        path_(path),
+        fd_(fd),
+        cached_(cached ? cached.get() : 0) {
+        ASSERT((fd != -1) != (!!cached));
+    }
+
+    long read(void* buf, long len) {
+        if (cached_) {
+            return cached_->read(buf, len);
+        } else {
+            ssize_t len;
+            SYSCALL2( len = ::read(fd_, buf, len), path_);
+            return len;
+        }
+    }
+
+    Offset position() {
+        if (cached_) {
+            return cached_->position();
+        } else {
+            off_t pos = ::lseek(fd_, 0, SEEK_CUR);
+            return pos;
+        }
+    }
+
+    Offset seek(const Offset& pos) {
+        if (cached_) {
+            return cached_->seek(pos);
+        } else {
+            off_t ret = ::lseek(fd_, pos, SEEK_SET);
+            ASSERT(ret == pos);
+            return pos;
+        }
+    }
+
+private: // members
+
+    const eckit::PathName& path_;
+    int fd_;
+    MemoryHandle* cached_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -362,16 +409,15 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 // readNextInternal reads the next TOC entry from this toc.
 bool TocHandler::readNextInternal( TocRecord &r ) const {
 
-    int len;
+    CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
-    SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord::Header)), tocPath_ );
+    long len = proxy.read(&r, sizeof(TocRecord::Header));
     if (len == 0) {
         return false;
     }
-
     ASSERT(len == sizeof(TocRecord::Header));
 
-    SYSCALL2( len = ::read(fd_, &r.payload_, r.header_.size_ - sizeof(TocRecord::Header)), tocPath_ );
+    len = proxy.read(&r.payload_, r.header_.size_ - sizeof(TocRecord::Header));
     ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
 
     if ( TocRecord::currentVersion() < r.header_.version_ ) {
@@ -456,17 +502,19 @@ void TocHandler::close() const {
     }
 }
 
-void TocHandler::allMaskableEntries(off_t startOffset, off_t endOffset,
+void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
                                     std::set<std::pair<eckit::PathName, size_t>>& entries) const {
+
+    CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
     // Start reading entries where we are told to
 
-    off_t ret = ::lseek(fd_, startOffset, SEEK_SET);
+    Offset ret = proxy.seek(startOffset);
     ASSERT(ret == startOffset);
 
     std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
-    while (::lseek(fd_, 0, SEEK_CUR) < endOffset) {
+    while (proxy.position() < endOffset) {
 
         ASSERT(readNextInternal(*r));
 
@@ -503,9 +551,10 @@ void TocHandler::allMaskableEntries(off_t startOffset, off_t endOffset,
 
 void TocHandler::populateMaskedEntriesList() const {
 
-    ASSERT(fd_ != -1);
+    ASSERT(fd_ != -1 || cachedToc_);
+    CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
-    off_t startPosition = ::lseek(fd_, 0, SEEK_CUR); // remember the current position of the file descriptor
+    Offset startPosition = proxy.position(); // remember the current position of the file descriptor
 
     maskedEntries_.clear();
 
@@ -524,9 +573,9 @@ void TocHandler::populateMaskedEntriesList() const {
                 s >> offset;
 
                 if (path == "*") { // For the "*" path, mask EVERYTHING that we have already seen
-                    off_t currentPosition = ::lseek(fd_, 0, SEEK_CUR);
+                    Offset currentPosition = proxy.position();
                     allMaskableEntries(startPosition, currentPosition, maskedEntries_);
-                    ASSERT(currentPosition == ::lseek(fd_, 0, SEEK_CUR));
+                    ASSERT(currentPosition == proxy.position());
                 } else {
                     maskedEntries_.emplace(std::pair<eckit::PathName, size_t>(path, offset));
                 }
@@ -551,7 +600,7 @@ void TocHandler::populateMaskedEntriesList() const {
 
     // And reset back to where we were.
 
-    off_t ret = ::lseek(fd_, startPosition, SEEK_SET);
+    Offset ret = proxy.seek(startPosition);
     ASSERT(ret == startPosition);
 
     enumeratedMaskedEntries_ = true;
