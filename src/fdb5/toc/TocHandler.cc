@@ -14,6 +14,7 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/FileHandle.h"
+#include "eckit/io/FileDescHandle.h"
 #include "eckit/log/BigNum.h"
 #include "eckit/log/Log.h"
 #include "eckit/maths/Functions.h"
@@ -47,6 +48,53 @@ class TocHandlerCloser {
     }
 };
 
+//----------------------------------------------------------------------------------------------------------------------
+
+class CachedFDProxy {
+public: // methods
+
+    CachedFDProxy(const eckit::PathName& path, int fd, std::unique_ptr<eckit::MemoryHandle>& cached) :
+        path_(path),
+        fd_(fd),
+        cached_(cached.get()) {
+        ASSERT((fd != -1) != (!!cached));
+    }
+
+    long read(void* buf, long len) {
+        if (cached_) {
+            return cached_->read(buf, len);
+        } else {
+            long ret;
+            SYSCALL2( ret = ::read(fd_, buf, len), path_);
+            return ret;
+        }
+    }
+
+    Offset position() {
+        if (cached_) {
+            return cached_->position();
+        } else {
+            off_t pos = ::lseek(fd_, 0, SEEK_CUR);
+            return pos;
+        }
+    }
+
+    Offset seek(const Offset& pos) {
+        if (cached_) {
+            return cached_->seek(pos);
+        } else {
+            off_t ret = ::lseek(fd_, pos, SEEK_SET);
+            ASSERT(ret == pos);
+            return pos;
+        }
+    }
+
+private: // members
+
+    const eckit::PathName& path_;
+    int fd_;
+    MemoryHandle* cached_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -60,9 +108,11 @@ TocHandler::TocHandler(const eckit::PathName &directory, const Config& config) :
     useSubToc_(config.getBool("useSubToc", false)),
     isSubToc_(false),
     fd_(-1),
+    cachedToc_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
-    writeMode_(false) {
+    writeMode_(false),
+    dirty_(false) {
 
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
@@ -82,9 +132,11 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     useSubToc_(false),
     isSubToc_(true),
     fd_(-1),
+    cachedToc_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
-    writeMode_(false) {
+    writeMode_(false),
+    dirty_(false) {
 
     /// Are we remapping a mounted DB?
     if (exists()) {
@@ -155,6 +207,10 @@ void TocHandler::checkUID() const {
 
 void TocHandler::openForAppend() {
 
+    if (cachedToc_) {
+        cachedToc_.reset();
+    }
+
     checkUID();
 
     writeMode_ = true;
@@ -164,13 +220,21 @@ void TocHandler::openForAppend() {
     eckit::Log::debug<LibFdb5>() << "Opening for append TOC " << tocPath_ << std::endl;
 
     int iomode = O_WRONLY | O_APPEND;
-    //#ifdef __linux__
-    //  iomode |= O_NOATIME;
-    //#endif
+#ifdef O_NOATIME
+    iomode |= O_NOATIME;
+#endif
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode, (mode_t)0777 )), tocPath_);
 }
 
 void TocHandler::openForRead() const {
+
+    if (cachedToc_) {
+        ASSERT(not writeMode_);
+        cachedToc_->seek(0);
+        return;
+    }
+
+    static bool fdbCacheTocsOnRead = eckit::Resource<bool>("fdbCacheTocsOnRead;$FDB_CACHE_TOCS_ON_READ", true);
 
     ASSERT(fd_ == -1);
 
@@ -179,25 +243,44 @@ void TocHandler::openForRead() const {
     eckit::Log::debug<LibFdb5>() << "Opening for read TOC " << tocPath_ << std::endl;
 
     int iomode = O_RDONLY;
-    //#ifdef __linux__
-    //  iomode |= O_NOATIME;
-    //#endif
+#ifdef O_NOATIME
+    iomode |= O_NOATIME;
+#endif
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
 
     // The masked subtocs and indexes could be updated each time, so reset this.
     enumeratedMaskedEntries_ = false;
     maskedEntries_.clear();
+
+    if(fdbCacheTocsOnRead) {
+
+        FileDescHandle toc(fd_, true); // closes the file descriptor
+        AutoClose closer1(toc);
+        fd_ = -1;
+
+        bool grow = true;
+        cachedToc_.reset( new eckit::MemoryHandle(tocPath().size(), grow) );
+
+        long buffersize = 4*1024*1024;
+        toc.copyTo(*cachedToc_, buffersize);
+
+        cachedToc_->openForRead();
+    }
 }
 
 void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
     ASSERT(fd_ != -1);
+    ASSERT(not cachedToc_);
+
+    Log::debug<LibFdb5>() << "Writing toc entry: " << (int)r.header_.tag_ << std::endl;
 
     // Obtain the rounded size, and set it in the record header.
     size_t roundedSize = roundRecord(r, payloadSize);
 
     size_t len;
     SYSCALL2( len = ::write(fd_, &r, roundedSize), tocPath_ );
+    dirty_ = true;
     ASSERT( len == roundedSize);
 }
 
@@ -207,6 +290,7 @@ void TocHandler::appendBlock(const void *data, size_t size) {
     TocHandlerCloser close(*this);
 
     ASSERT(fd_ != -1);
+    ASSERT(not cachedToc_);
 
     // Ensure that this block is appropriately rounded.
 
@@ -214,6 +298,7 @@ void TocHandler::appendBlock(const void *data, size_t size) {
 
     size_t len;
     SYSCALL2( len = ::write(fd_, data, size), tocPath_ );
+    dirty_ = true;
     ASSERT( len == size );
 }
 
@@ -326,16 +411,15 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 // readNextInternal reads the next TOC entry from this toc.
 bool TocHandler::readNextInternal( TocRecord &r ) const {
 
-    int len;
+    CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
-    SYSCALL2( len = ::read(fd_, &r, sizeof(TocRecord::Header)), tocPath_ );
+    long len = proxy.read(&r, sizeof(TocRecord::Header));
     if (len == 0) {
         return false;
     }
-
     ASSERT(len == sizeof(TocRecord::Header));
 
-    SYSCALL2( len = ::read(fd_, &r.payload_, r.header_.size_ - sizeof(TocRecord::Header)), tocPath_ );
+    len = proxy.read(&r.payload_, r.header_.size_ - sizeof(TocRecord::Header));
     ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
 
     if ( TocRecord::currentVersion() < r.header_.version_ ) {
@@ -375,6 +459,7 @@ std::vector<PathName> TocHandler::subTocPaths() const {
 
             case TocRecord::TOC_CLEAR:
                 ASSERT_MSG(r->header_.tag_ != TocRecord::TOC_CLEAR, "The TOC_CLEAR records should have been pre-filtered on the first pass");
+                break;
 
             case TocRecord::TOC_INIT:
                 break;
@@ -385,7 +470,7 @@ std::vector<PathName> TocHandler::subTocPaths() const {
             default: {
                 // This is only a warning, as it is legal for later versions of software to add stuff
                 // that is just meaningless in a backwards-compatible sense.
-                Log::warning() << "Unknown TOC entry" << std::endl;
+                Log::warning() << "Unknown TOC entry " << (*r) << " @ " << Here() << std::endl;
                 break;
             }
         }
@@ -409,24 +494,29 @@ void TocHandler::close() const {
 
     if ( fd_ >= 0 ) {
         eckit::Log::debug<LibFdb5>() << "Closing TOC " << tocPath_ << std::endl;
-        SYSCALL2( eckit::fdatasync(fd_), tocPath_ );
+        if(dirty_) {
+            SYSCALL2( eckit::fdatasync(fd_), tocPath_ );
+            dirty_ = false;
+        }
         SYSCALL2( ::close(fd_), tocPath_ );
         fd_ = -1;
         writeMode_ = false;
     }
 }
 
-void TocHandler::allMaskableEntries(off_t startOffset, off_t endOffset,
+void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
                                     std::set<std::pair<eckit::PathName, size_t>>& entries) const {
+
+    CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
     // Start reading entries where we are told to
 
-    off_t ret = ::lseek(fd_, startOffset, SEEK_SET);
+    Offset ret = proxy.seek(startOffset);
     ASSERT(ret == startOffset);
 
     std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
-    while (::lseek(fd_, 0, SEEK_CUR) < endOffset) {
+    while (proxy.position() < endOffset) {
 
         ASSERT(readNextInternal(*r));
 
@@ -447,13 +537,14 @@ void TocHandler::allMaskableEntries(off_t startOffset, off_t endOffset,
                 break;
 
             case TocRecord::TOC_CLEAR:
+                break;
             case TocRecord::TOC_INIT:
                 break;
 
             default: {
                 // This is only a warning, as it is legal for later versions of software to add stuff
                 // that is just meaningless in a backwards-compatible sense.
-                Log::warning() << "Unknown TOC entry" << std::endl;
+                Log::warning() << "Unknown TOC entry " << (*r) << " @ " << Here() << std::endl;
                 break;
             }
         }
@@ -462,9 +553,10 @@ void TocHandler::allMaskableEntries(off_t startOffset, off_t endOffset,
 
 void TocHandler::populateMaskedEntriesList() const {
 
-    ASSERT(fd_ != -1);
+    ASSERT(fd_ != -1 || cachedToc_);
+    CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
-    off_t startPosition = ::lseek(fd_, 0, SEEK_CUR); // remember the current position of the file descriptor
+    Offset startPosition = proxy.position(); // remember the current position of the file descriptor
 
     maskedEntries_.clear();
 
@@ -483,9 +575,9 @@ void TocHandler::populateMaskedEntriesList() const {
                 s >> offset;
 
                 if (path == "*") { // For the "*" path, mask EVERYTHING that we have already seen
-                    off_t currentPosition = ::lseek(fd_, 0, SEEK_CUR);
+                    Offset currentPosition = proxy.position();
                     allMaskableEntries(startPosition, currentPosition, maskedEntries_);
-                    ASSERT(currentPosition == ::lseek(fd_, 0, SEEK_CUR));
+                    ASSERT(currentPosition == proxy.position());
                 } else {
                     maskedEntries_.emplace(std::pair<eckit::PathName, size_t>(path, offset));
                 }
@@ -502,7 +594,7 @@ void TocHandler::populateMaskedEntriesList() const {
             default: {
                 // This is only a warning, as it is legal for later versions of software to add stuff
                 // that is just meaningless in a backwards-compatible sense.
-                Log::warning() << "Unknown TOC entry" << std::endl;
+                Log::warning() << "Unknown TOC entry " << (*r) << " @ " << Here() << std::endl;
                 break;
             }
         }
@@ -510,7 +602,7 @@ void TocHandler::populateMaskedEntriesList() const {
 
     // And reset back to where we were.
 
-    off_t ret = ::lseek(fd_, startPosition, SEEK_SET);
+    Offset ret = proxy.seek(startPosition);
     ASSERT(ret == startPosition);
 
     enumeratedMaskedEntries_ = true;
@@ -529,6 +621,8 @@ void TocHandler::writeInitRecord(const Key &key) {
         LustreStripe stripe = stripeIndexLustreSettings();
         fdb5LustreapiFileCreate(tocPath_.localPath(), stripe.size_, stripe.count_);
     }
+
+    ASSERT(fd_ == -1);
 
     int iomode = O_CREAT | O_RDWR;
     SYSCALL2(fd_ = ::open( tocPath_.localPath(), iomode, mode_t(0777) ), tocPath_);
@@ -572,9 +666,7 @@ void TocHandler::writeInitRecord(const Key &key) {
             eckit::PathName::rename(tmp, schemaPath_);
         }
 
-
-        // Allocate (large) TocRecord on heap not stack (MARS-779)
-        std::unique_ptr<TocRecord> r2(new TocRecord(TocRecord::TOC_INIT));
+        std::unique_ptr<TocRecord> r2(new TocRecord(TocRecord::TOC_INIT)); // allocate TocRecord on heap (MARS-779)
         eckit::MemoryStream s(&r2->payload_[0], r2->maxPayloadSize);
         s << key;
         s << isSubToc_;
@@ -591,7 +683,7 @@ void TocHandler::writeInitRecord(const Key &key) {
 
 void TocHandler::writeClearRecord(const Index &index) {
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t sz = roundRecord(*r, buildClearRecord(*r, index));
     appendBlock(r.get(), sz);
@@ -599,7 +691,7 @@ void TocHandler::writeClearRecord(const Index &index) {
 
 void TocHandler::writeClearAllRecord() {
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << std::string {"*"};
@@ -614,7 +706,7 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     openForAppend();
     TocHandlerCloser closer(*this);
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_SUB_TOC)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << subToc.tocPath();
@@ -636,7 +728,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             const TocIndexLocation& location = reinterpret_cast<const TocIndexLocation&>(l);
 
-            std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+            std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_INDEX)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
@@ -685,7 +777,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
 void TocHandler::writeSubTocMaskRecord(const TocHandler &subToc) {
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t sz = roundRecord(*r, buildSubTocMaskRecord(*r, subToc.tocPath()));
     appendBlock(r.get(), sz);
@@ -852,7 +944,9 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             break;
 
         default:
-            throw eckit::SeriousBug("Unknown tag in TocRecord", Here());
+            std::ostringstream oss;
+            oss << "Unknown tag in TocRecord " << *r;
+            throw eckit::SeriousBug(oss.str(), Here());
             break;
 
         }
