@@ -207,11 +207,11 @@ void TocHandler::checkUID() const {
 
 void TocHandler::openForAppend() {
 
+    checkUID(); // n.b. may openForRead
+
     if (cachedToc_) {
         cachedToc_.reset();
     }
-
-    checkUID();
 
     writeMode_ = true;
 
