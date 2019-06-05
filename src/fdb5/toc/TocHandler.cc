@@ -232,7 +232,7 @@ size_t TocHandler::roundRecord(TocRecord &r, size_t payloadSize) {
 
 // readNext wraps readNextInternal.
 // readNext reads the next TOC entry from this toc, or from an appropriate subtoc if necessary.
-bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntries) const {
+bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntries, bool hideClearEntries) const {
 
     int len;
 
@@ -251,7 +251,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
     while (true) {
 
         if (subTocRead_) {
-            len = subTocRead_->readNext(r);
+            len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries);
             if (len == 0) {
                 subTocRead_.reset();
             } else {
@@ -290,11 +290,10 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
                 if (hideSubTocEntries) {
                     // The first entry in a subtoc must be the init record. Check that
-                    subTocRead_->readNext(r);
+                    subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries);
                     ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
                 } else {
-                    // If not hiding the subtoc entries, return them as normal entries!
-                    return true;
+                    return true; // if not hiding the subtoc entries, return them as normal entries!
                 }
 
             } else if (r.header_.tag_ == TocRecord::TOC_INDEX) {
@@ -313,6 +312,8 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
                 return true;
 
+            } else if (r.header_.tag_ == TocRecord::TOC_CLEAR && hideClearEntries) {
+                continue; // we already handled the TOC_CLEAR entries in populateMaskedEntriesList()
             } else {
                 // A normal read operation
                 return true;
@@ -352,12 +353,14 @@ std::vector<PathName> TocHandler::subTocPaths() const {
     openForRead();
     TocHandlerCloser close(*this);
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord);
+    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     std::vector<eckit::PathName> paths;
 
-    while ( readNext(*r, true, false) ) {
+    bool walkSubTocs = true;
+    bool hideSubTocEntries = false;
+    bool hideClearEntries = true;
+    while ( readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries) ) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
@@ -370,9 +373,13 @@ std::vector<PathName> TocHandler::subTocPaths() const {
                 break;
             }
 
-            case TocRecord::TOC_INIT:
-            case TocRecord::TOC_INDEX:
             case TocRecord::TOC_CLEAR:
+                ASSERT_MSG(r->header_.tag_ != TocRecord::TOC_CLEAR, "The TOC_CLEAR records should have been pre-filtered on the first pass");
+
+            case TocRecord::TOC_INIT:
+                break;
+
+            case TocRecord::TOC_INDEX:
                 break;
 
             default: {
@@ -417,8 +424,7 @@ void TocHandler::allMaskableEntries(off_t startOffset, off_t endOffset,
     off_t ret = ::lseek(fd_, startOffset, SEEK_SET);
     ASSERT(ret == startOffset);
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord);
+    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     while (::lseek(fd_, 0, SEEK_CUR) < endOffset) {
 
@@ -458,13 +464,11 @@ void TocHandler::populateMaskedEntriesList() const {
 
     ASSERT(fd_ != -1);
 
-    // Get the current position of the file descriptor.
-    off_t startPosition = lseek(fd_, 0, SEEK_CUR);
+    off_t startPosition = ::lseek(fd_, 0, SEEK_CUR); // remember the current position of the file descriptor
 
     maskedEntries_.clear();
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord);
+    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     while ( readNextInternal(*r) ) {
 
@@ -478,11 +482,10 @@ void TocHandler::populateMaskedEntriesList() const {
                 s >> path;
                 s >> offset;
 
-                if (path == "*") {
-                    // For the "*" path, mask EVERYTHING that we have already seen.
-                    off_t currentPosition = lseek(fd_, 0, SEEK_CUR);
+                if (path == "*") { // For the "*" path, mask EVERYTHING that we have already seen
+                    off_t currentPosition = ::lseek(fd_, 0, SEEK_CUR);
                     allMaskableEntries(startPosition, currentPosition, maskedEntries_);
-                    ASSERT(currentPosition == lseek(fd_, 0, SEEK_CUR));
+                    ASSERT(currentPosition == ::lseek(fd_, 0, SEEK_CUR));
                 } else {
                     maskedEntries_.emplace(std::pair<eckit::PathName, size_t>(path, offset));
                 }
@@ -490,7 +493,9 @@ void TocHandler::populateMaskedEntriesList() const {
             }
 
             case TocRecord::TOC_SUB_TOC:
+                break;
             case TocRecord::TOC_INIT:
+                break;
             case TocRecord::TOC_INDEX:
                 break;
 
@@ -505,7 +510,7 @@ void TocHandler::populateMaskedEntriesList() const {
 
     // And reset back to where we were.
 
-    off_t ret = lseek(fd_, startPosition, SEEK_SET);
+    off_t ret = ::lseek(fd_, startPosition, SEEK_SET);
     ASSERT(ret == startPosition);
 
     enumeratedMaskedEntries_ = true;
@@ -530,8 +535,7 @@ void TocHandler::writeInitRecord(const Key &key) {
 
     TocHandlerCloser closer(*this);
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord);
+    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t len = readNext(*r);
     if (len == 0) {
@@ -587,8 +591,7 @@ void TocHandler::writeInitRecord(const Key &key) {
 
 void TocHandler::writeClearRecord(const Index &index) {
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR));
+    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t sz = roundRecord(*r, buildClearRecord(*r, index));
     appendBlock(r.get(), sz);
@@ -596,8 +599,7 @@ void TocHandler::writeClearRecord(const Index &index) {
 
 void TocHandler::writeClearAllRecord() {
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR));
+    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << std::string {"*"};
@@ -612,8 +614,7 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     openForAppend();
     TocHandlerCloser closer(*this);
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_SUB_TOC));
+    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << subToc.tocPath();
@@ -635,8 +636,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             const TocIndexLocation& location = reinterpret_cast<const TocIndexLocation&>(l);
 
-            // Allocate (large) TocRecord on heap not stack (MARS-779)
-            std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_INDEX));
+            std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
@@ -685,8 +685,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
 void TocHandler::writeSubTocMaskRecord(const TocHandler &subToc) {
 
-    // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR));
+    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t sz = roundRecord(*r, buildSubTocMaskRecord(*r, subToc.tocPath()));
     appendBlock(r.get(), sz);
@@ -770,7 +769,10 @@ size_t TocHandler::numberOfRecords() const {
         // Allocate (large) TocRecord on heap not stack (MARS-779)
         std::unique_ptr<TocRecord> r(new TocRecord);
 
-        while ( readNext(*r) ) {
+        bool walkSubTocs = true;
+        bool hideSubTocEntries = false;
+        bool hideClearEntries = false;
+        while ( readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries) ) {
             count_++;
         }
     }
@@ -801,8 +803,10 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
     std::unique_ptr<TocRecord> r(new TocRecord);
     count_ = 0;
 
-
-    while ( readNext(*r) ) {
+    bool walkSubTocs = true;
+    bool hideSubTocEntries = true;
+    bool hideClearEntries = true;
+    while ( readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries) ) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
@@ -839,24 +843,8 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             }
             break;
 
-        // n.b. TOC_CLEAR may refer to an index (in this case we erase the index from the indexes list).
-        //      or it may refer to a sub toc. In the latter case, this just won't be in the indexes
-        //      list, so no matter.
-
         case TocRecord::TOC_CLEAR:
-            s >> path;
-            s >> offset;
-            eckit::Log::debug<LibFdb5>() << "TocRecord TOC_CLEAR " << path << " - " << offset << std::endl;
-            j = std::find_if(indexes.begin(), indexes.end(), HasPath(currentDirectory() / path, offset));
-            if (j != indexes.end()) {
-                if (indexInSubtoc) {
-                    indexInSubtoc->erase(indexInSubtoc->begin() + (j - indexes.begin()));
-                }
-                if (remapKeys) {
-                    remapKeys->erase(remapKeys->begin() + (j - indexes.begin()));
-                }
-                indexes.erase(j);
-            }
+           ASSERT_MSG(r->header_.tag_ != TocRecord::TOC_CLEAR, "The TOC_CLEAR records should have been pre-filtered on the first pass");
             break;
 
         case TocRecord::TOC_SUB_TOC:
@@ -914,7 +902,9 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
     // Allocate (large) TocRecord on heap not stack (MARS-779)
     std::unique_ptr<TocRecord> r(new TocRecord);
 
-    while ( readNext(*r, walkSubTocs) ) {
+    bool hideSubTocEntries = false;
+    bool hideClearEntries = false;
+    while ( readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries) ) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
@@ -981,7 +971,10 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
     // Allocate (large) TocRecord on heap not stack (MARS-779)
     std::unique_ptr<TocRecord> r(new TocRecord);
 
-    while ( readNext(*r) ) {
+    bool walkSubTocs = true;
+    bool hideSubTocEntries = true;
+    bool hideClearEntries = true;
+    while ( readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries) ) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
@@ -1003,9 +996,12 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
                 break;
             }
 
-            case TocRecord::TOC_CLEAR:
-            case TocRecord::TOC_INIT:
             case TocRecord::TOC_SUB_TOC:
+            case TocRecord::TOC_CLEAR:
+                ASSERT_MSG(r->header_.tag_ != TocRecord::TOC_CLEAR, "The TOC_CLEAR records should have been pre-filtered on the first pass");
+                break;
+
+            case TocRecord::TOC_INIT:
                 break;
 
             default: {
