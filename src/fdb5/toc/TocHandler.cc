@@ -14,6 +14,7 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/FileHandle.h"
+#include "eckit/io/FileDescHandle.h"
 #include "eckit/log/BigNum.h"
 #include "eckit/log/Log.h"
 #include "eckit/maths/Functions.h"
@@ -60,9 +61,11 @@ TocHandler::TocHandler(const eckit::PathName &directory, const Config& config) :
     useSubToc_(config.getBool("useSubToc", false)),
     isSubToc_(false),
     fd_(-1),
+    cachedToc_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
-    writeMode_(false) {
+    writeMode_(false),
+    dirty_(false) {
 
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
@@ -82,9 +85,11 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     useSubToc_(false),
     isSubToc_(true),
     fd_(-1),
+    cachedToc_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
-    writeMode_(false) {
+    writeMode_(false),
+    dirty_(false) {
 
     /// Are we remapping a mounted DB?
     if (exists()) {
@@ -155,6 +160,10 @@ void TocHandler::checkUID() const {
 
 void TocHandler::openForAppend() {
 
+    if (cachedToc_) {
+        cachedToc_.reset();
+    }
+
     checkUID();
 
     writeMode_ = true;
@@ -164,13 +173,21 @@ void TocHandler::openForAppend() {
     eckit::Log::debug<LibFdb5>() << "Opening for append TOC " << tocPath_ << std::endl;
 
     int iomode = O_WRONLY | O_APPEND;
-    //#ifdef __linux__
-    //  iomode |= O_NOATIME;
-    //#endif
+#ifdef O_NOATIME
+    iomode |= O_NOATIME;
+#endif
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode, (mode_t)0777 )), tocPath_);
 }
 
 void TocHandler::openForRead() const {
+
+    if (cachedToc_) {
+        ASSERT(not writeMode_);
+        cachedToc_->seek(0);
+        return;
+    }
+
+    static bool fdbCacheTocsOnRead = eckit::Resource<bool>("fdbCacheTocsOnRead;$FDB_CACHE_TOCS_ON_READ", true);
 
     ASSERT(fd_ == -1);
 
@@ -179,25 +196,42 @@ void TocHandler::openForRead() const {
     eckit::Log::debug<LibFdb5>() << "Opening for read TOC " << tocPath_ << std::endl;
 
     int iomode = O_RDONLY;
-    //#ifdef __linux__
-    //  iomode |= O_NOATIME;
-    //#endif
+#ifdef O_NOATIME
+    iomode |= O_NOATIME;
+#endif
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
 
     // The masked subtocs and indexes could be updated each time, so reset this.
     enumeratedMaskedEntries_ = false;
     maskedEntries_.clear();
+
+    if(fdbCacheTocsOnRead) {
+
+        FileDescHandle toc(fd_, true); // closes the file descriptor
+        AutoClose closer1(toc);
+        fd_ = -1;
+
+        bool grow = true;
+        cachedToc_.reset( new eckit::MemoryHandle(tocPath().size(), grow) );
+
+        long buffersize = 4*1024*1024;
+        toc.copyTo(*cachedToc_, buffersize);
+
+        cachedToc_->openForRead();
+    }
 }
 
 void TocHandler::append(TocRecord &r, size_t payloadSize ) {
 
     ASSERT(fd_ != -1);
+    ASSERT(not cachedToc_);
 
     // Obtain the rounded size, and set it in the record header.
     size_t roundedSize = roundRecord(r, payloadSize);
 
     size_t len;
     SYSCALL2( len = ::write(fd_, &r, roundedSize), tocPath_ );
+    dirty_ = true;
     ASSERT( len == roundedSize);
 }
 
@@ -207,6 +241,7 @@ void TocHandler::appendBlock(const void *data, size_t size) {
     TocHandlerCloser close(*this);
 
     ASSERT(fd_ != -1);
+    ASSERT(not cachedToc_);
 
     // Ensure that this block is appropriately rounded.
 
@@ -214,6 +249,7 @@ void TocHandler::appendBlock(const void *data, size_t size) {
 
     size_t len;
     SYSCALL2( len = ::write(fd_, data, size), tocPath_ );
+    dirty_ = true;
     ASSERT( len == size );
 }
 
@@ -375,6 +411,7 @@ std::vector<PathName> TocHandler::subTocPaths() const {
 
             case TocRecord::TOC_CLEAR:
                 ASSERT_MSG(r->header_.tag_ != TocRecord::TOC_CLEAR, "The TOC_CLEAR records should have been pre-filtered on the first pass");
+                break;
 
             case TocRecord::TOC_INIT:
                 break;
@@ -409,7 +446,10 @@ void TocHandler::close() const {
 
     if ( fd_ >= 0 ) {
         eckit::Log::debug<LibFdb5>() << "Closing TOC " << tocPath_ << std::endl;
-        SYSCALL2( eckit::fdatasync(fd_), tocPath_ );
+        if(dirty_) {
+            SYSCALL2( eckit::fdatasync(fd_), tocPath_ );
+            dirty_ = false;
+        }
         SYSCALL2( ::close(fd_), tocPath_ );
         fd_ = -1;
         writeMode_ = false;
@@ -447,6 +487,7 @@ void TocHandler::allMaskableEntries(off_t startOffset, off_t endOffset,
                 break;
 
             case TocRecord::TOC_CLEAR:
+                break;
             case TocRecord::TOC_INIT:
                 break;
 
@@ -530,6 +571,8 @@ void TocHandler::writeInitRecord(const Key &key) {
         fdb5LustreapiFileCreate(tocPath_.localPath(), stripe.size_, stripe.count_);
     }
 
+    ASSERT(fd_ == -1);
+
     int iomode = O_CREAT | O_RDWR;
     SYSCALL2(fd_ = ::open( tocPath_.localPath(), iomode, mode_t(0777) ), tocPath_);
 
@@ -572,9 +615,7 @@ void TocHandler::writeInitRecord(const Key &key) {
             eckit::PathName::rename(tmp, schemaPath_);
         }
 
-
-        // Allocate (large) TocRecord on heap not stack (MARS-779)
-        std::unique_ptr<TocRecord> r2(new TocRecord(TocRecord::TOC_INIT));
+        std::unique_ptr<TocRecord> r2(new TocRecord(TocRecord::TOC_INIT)); // allocate TocRecord on heap (MARS-779)
         eckit::MemoryStream s(&r2->payload_[0], r2->maxPayloadSize);
         s << key;
         s << isSubToc_;
