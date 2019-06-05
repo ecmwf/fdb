@@ -273,7 +273,7 @@ void TocHandler::append(TocRecord &r, size_t payloadSize ) {
     ASSERT(fd_ != -1);
     ASSERT(not cachedToc_);
 
-    Log::info() << "Writing toc entry: " << (int)r.header_.tag_ << std::endl;
+    Log::debug<LibFdb5>() << "Writing toc entry: " << (int)r.header_.tag_ << std::endl;
 
     // Obtain the rounded size, and set it in the record header.
     size_t roundedSize = roundRecord(r, payloadSize);
@@ -563,8 +563,6 @@ void TocHandler::populateMaskedEntriesList() const {
     std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     while ( readNextInternal(*r) ) {
-
-        Log::info() << "(enumerate) Reading toc entry: " << (int)r->header_.tag_ << std::endl;
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
@@ -997,8 +995,6 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
     bool hideSubTocEntries = false;
     bool hideClearEntries = false;
     while ( readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries) ) {
-
-        Log::info() << "Reading toc entry: " << (int)r->header_.tag_ << std::endl;
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
