@@ -193,8 +193,6 @@ list( APPEND fdb5_srcs
     tools/FDBTool.h
     tools/FDBVisitTool.cc
     tools/FDBVisitTool.h
-    tools/RequestParser.cc
-    tools/RequestParser.h
     types/Type.cc
     types/Type.h
     types/TypeAbbreviation.cc
