@@ -29,9 +29,11 @@ public: // methods
 
     FDBWipe(int argc, char **argv) :
         FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
-        doit_(false) {
+        doit_(false),
+        ignoreNoData_(false) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
+        options_.push_back(new SimpleOption<bool>("ignore-no-data", "No data available to delete is not an error"));
         verbose_ = true;
     }
 
@@ -44,6 +46,7 @@ private: // methods
 
 private: // members
     bool doit_;
+    bool ignoreNoData_;
 };
 
 void FDBWipe::usage(const std::string &tool) const {
@@ -66,6 +69,7 @@ void FDBWipe::init(const CmdArgs &args) {
     FDBVisitTool::init(args);
 
     args.get("doit", doit_);
+    args.get("ignore-no-data", ignoreNoData_);
 }
 
 void FDBWipe::execute(const CmdArgs& args) {
@@ -125,7 +129,7 @@ void FDBWipe::execute(const CmdArgs& args) {
             count++;
         }
 
-        if (count == 0 && fail()) {
+        if (count == 0 && !ignoreNoData_ && fail()) {
             std::stringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
