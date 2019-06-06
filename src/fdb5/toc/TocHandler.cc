@@ -609,7 +609,9 @@ void TocHandler::populateMaskedEntriesList() const {
                     ASSERT(currentPosition == proxy.position());
                 } else {
                     // readNextInternal --> use directory_ not currentDirectory()
-                    maskedEntries_.emplace(std::pair<PathName, Offset>(directory_ / path, offset));
+                    ASSERT(path.size() > 0);
+                    eckit::PathName absPath = (path[0] == '/') ? PathName(path) : (directory_ / path);
+                    maskedEntries_.emplace(std::pair<PathName, Offset>(absPath, offset));
                 }
                 break;
             }
