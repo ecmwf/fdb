@@ -117,6 +117,7 @@ protected: // methods
 
     // Handle location and remapping information if using a mounted TocDB
     const eckit::PathName& currentDirectory() const;
+    const eckit::PathName& currentTocPath() const;
     const Key& currentRemapKey() const;
 
     // Build the record, and return the payload size
