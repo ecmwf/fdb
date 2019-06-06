@@ -379,17 +379,15 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 eckit::PathName path;
                 s >> path;
 
-                // Maintain both path and absPath for compatibility as we move from storing
+                // Handle both path and absPath for compatibility as we move from storing
                 // absolute paths to relative paths. Either may exist in either the TOC_SUB_TOC
                 // or TOC_CLEAR entries.
                 ASSERT(path.path().size() > 0);
                 eckit::PathName absPath = (path.path()[0] == '/') ? path : (currentDirectory() / path);
 
                 // If this subtoc has a masking entry, then skip it, and go on to the next entry.
-                std::pair<eckit::PathName, size_t> key(path, 0);
-                std::pair<eckit::PathName, size_t> key2(absPath, 0);
-                if (maskedEntries_.find(key) != maskedEntries_.end() ||
-                    maskedEntries_.find(key2) != maskedEntries_.end()) {
+                std::pair<eckit::PathName, size_t> key(absPath, 0);
+                if (maskedEntries_.find(key) != maskedEntries_.end()) {
                     Log::debug<LibFdb5>() << "SubToc ignored by mask: " << path << std::endl;
                     continue;
                 }
@@ -415,7 +413,9 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 s >> path;
                 s >> offset;
 
-                std::pair<eckit::PathName, size_t> key(path, offset);
+                PathName absPath = currentDirectory() / path;
+
+                std::pair<eckit::PathName, size_t> key(absPath, offset);
                 if (maskedEntries_.find(key) != maskedEntries_.end()) {
                     Log::debug<LibFdb5>() << "Index ignored by mask: " << path << ":" << offset << std::endl;
                     continue;
@@ -561,7 +561,8 @@ void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
             case TocRecord::TOC_INDEX:
                 s >> path;
                 s >> offset;
-                entries.emplace(std::pair<PathName, Offset>(path, offset));
+                // readNextInternal --> use directory_ not currentDirectory()
+                entries.emplace(std::pair<PathName, Offset>(directory_ / path, offset));
                 break;
 
             case TocRecord::TOC_CLEAR:
@@ -607,7 +608,8 @@ void TocHandler::populateMaskedEntriesList() const {
                     allMaskableEntries(startPosition, currentPosition, maskedEntries_);
                     ASSERT(currentPosition == proxy.position());
                 } else {
-                    maskedEntries_.emplace(std::pair<PathName, Offset>(path, offset));
+                    // readNextInternal --> use directory_ not currentDirectory()
+                    maskedEntries_.emplace(std::pair<PathName, Offset>(directory_ / path, offset));
                 }
                 break;
             }
@@ -1217,10 +1219,13 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::PathName, Offset>>& m
             s >> offset;
             s >> type;
 
-            std::pair<eckit::PathName, size_t> key(path, offset);
+            // n.b. readNextInternal --> directory_ not currentDirectory()
+            PathName absPath = directory_ / path;
+
+            std::pair<eckit::PathName, size_t> key(absPath, offset);
             if (maskedEntries_.find(key) != maskedEntries_.end()) {
-                if (PathName(path).exists()) {
-                    Index index(new TocIndex(s, currentDirectory(), currentDirectory() / path, offset));
+                if (absPath.exists()) {
+                    Index index(new TocIndex(s, directory_, absPath, offset));
                     for (const auto& dataPath : index.dataPaths()) data.insert(dataPath);
                 }
             }
