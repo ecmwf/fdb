@@ -93,11 +93,17 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
         if (path[path.length()-1] != '/') full += "/";
         full += e->d_name;
 
-#if defined(ECKIT_HAVE_DIRENT_D_TYPE) || defined(DT_DIR)
+        bool do_stat = true;
+
+#if defined(ECKIT_HAVE_DIRENT_D_TYPE)
+        do_stat = false;
         if (e->d_type == DT_DIR) {
             scan_dbs(full.c_str(), dbs);
         } else if (e->d_type == DT_UNKNOWN) {
+            do_stat = true;
+        }
 #endif
+        if(do_stat) {
             eckit::Stat::Struct info;
             if(eckit::Stat::stat(full.c_str(), &info) == 0)
             {
@@ -106,9 +112,7 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
                 }
             }
             else Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
-#if defined(ECKIT_HAVE_DIRENT_D_TYPE) || defined(DT_DIR)
         }
-#endif
     }
 }
 
