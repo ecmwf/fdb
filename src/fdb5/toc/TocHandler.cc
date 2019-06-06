@@ -744,7 +744,9 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     // but an absolute one otherwise (e.g. for fdb-overlay).
 
     const PathName& absPath = subToc.tocPath();
-    PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    // TODO: See FDB-142. Write subtocs as relative.
+    // PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    const PathName& path = absPath;
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << path;
@@ -821,7 +823,9 @@ void TocHandler::writeSubTocMaskRecord(const TocHandler &subToc) {
     // but an absolute one otherwise (e.g. for fdb-overlay).
 
     const PathName& absPath = subToc.tocPath();
-    PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    // TODO: See FDB-142. Write subtocs as relative.
+    // PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    const PathName& path = absPath;
 
     size_t sz = roundRecord(*r, buildSubTocMaskRecord(*r, path));
     appendBlock(r.get(), sz);
@@ -1370,7 +1374,9 @@ size_t TocHandler::buildSubTocMaskRecord(TocRecord& r) {
     // but an absolute one otherwise (e.g. for fdb-overlay).
 
     const PathName& absPath = subTocWrite_->tocPath();
-    PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    // TODO: See FDB-142. Write subtocs as relative.
+    // PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    const PathName& path = absPath;
 
     return buildSubTocMaskRecord(r, path);
 }
