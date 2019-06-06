@@ -513,7 +513,7 @@ void TocHandler::close() const {
 }
 
 void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
-                                    std::set<std::pair<eckit::PathName, size_t>>& entries) const {
+                                    std::set<std::pair<PathName, Offset>>& entries) const {
 
     CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
@@ -535,13 +535,13 @@ void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
         switch (r->header_.tag_) {
             case TocRecord::TOC_SUB_TOC:
                 s >> path;
-                entries.emplace(std::pair<eckit::PathName, size_t>(path, 0));
+                entries.emplace(std::pair<PathName, Offset>(path, 0));
                 break;
 
             case TocRecord::TOC_INDEX:
                 s >> path;
                 s >> offset;
-                entries.emplace(std::pair<eckit::PathName, size_t>(path, offset));
+                entries.emplace(std::pair<PathName, Offset>(path, offset));
                 break;
 
             case TocRecord::TOC_CLEAR:
@@ -587,7 +587,7 @@ void TocHandler::populateMaskedEntriesList() const {
                     allMaskableEntries(startPosition, currentPosition, maskedEntries_);
                     ASSERT(currentPosition == proxy.position());
                 } else {
-                    maskedEntries_.emplace(std::pair<eckit::PathName, size_t>(path, offset));
+                    maskedEntries_.emplace(std::pair<PathName, Offset>(path, offset));
                 }
                 break;
             }
@@ -1133,7 +1133,7 @@ DbStats TocHandler::stats() const
 }
 
 
-void TocHandler::enumerateMasked(std::set<std::pair<eckit::PathName, size_t>>& metadata,
+void TocHandler::enumerateMasked(std::set<std::pair<eckit::PathName, Offset>>& metadata,
                                  std::set<eckit::PathName>& data) const {
 
     if (!enumeratedMaskedEntries_) {

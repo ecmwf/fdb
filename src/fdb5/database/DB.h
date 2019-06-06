@@ -20,6 +20,7 @@
 
 #include "eckit/memory/Owned.h"
 #include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
 #include "eckit/types/Types.h"
 #include "eckit/config/LocalConfiguration.h"
 
@@ -112,7 +113,7 @@ public: // methods
 
     /// For use by purge/wipe
 
-    virtual void allMasked(std::set<std::pair<eckit::PathName, size_t>>& metadata,
+    virtual void allMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
                            std::set<eckit::PathName>& data) const {}
 
 protected: // methods

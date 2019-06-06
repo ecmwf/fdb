@@ -30,7 +30,7 @@ TocPurgeVisitor::~TocPurgeVisitor() {}
 
 bool TocPurgeVisitor::visitDatabase(const DB &db) {
 
-    std::set<std::pair<PathName, size_t>> metadata;
+    std::set<std::pair<PathName, Offset>> metadata;
     std::set<PathName> data;
 
     db.allMasked(metadata, data);
