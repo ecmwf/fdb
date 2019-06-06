@@ -172,7 +172,7 @@ bool WipeVisitor::visitIndex(const Index& index) {
 void WipeVisitor::databaseComplete(const DB& db) {
     EntryVisitor::databaseComplete(db);
 
-    // Build a list of 'other' paths to include.
+    /*// Build a list of 'other' paths to include.
 
     std::vector<eckit::PathName> otherPaths;
     StdDir(basePath_).children(otherPaths);
@@ -183,7 +183,7 @@ void WipeVisitor::databaseComplete(const DB& db) {
 
             current_.otherPaths.insert(path);
         }
-    }
+    }*/
 
     // Subtract the safe paths from the various options.
 
