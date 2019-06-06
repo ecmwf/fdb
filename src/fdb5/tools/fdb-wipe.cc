@@ -54,7 +54,7 @@ void FDBWipe::usage(const std::string &tool) const {
                 << std::endl
                 << "Examples:" << std::endl
                 << "=========" << std::endl << std::endl
-                << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g"
+                << tool << " class=rd,expver=xywz,stream=oper,date=20190603,time=00"
                 << std::endl
                 << std::endl;
 

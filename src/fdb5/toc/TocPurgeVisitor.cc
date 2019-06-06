@@ -46,6 +46,8 @@ bool TocPurgeVisitor::visitDatabase(const DB &db) {
         allDataFiles_.insert(path);
         dataUsage_[path] += 0;
     }
+
+    return true;
 }
 
 
