@@ -30,7 +30,7 @@ class Grib2Fdb5 : public fdb5::FDBTool {
 
 void Grib2Fdb5::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " [-d database] [-c class] [-e expver] [-T type] [-s stream] [-f file]" << std::endl;
+                       << "Usage: " << tool << " [-c class] [-e expver] [-T type] [-s stream] [-f file]" << std::endl;
     fdb5::FDBTool::usage(tool);
 }
 
