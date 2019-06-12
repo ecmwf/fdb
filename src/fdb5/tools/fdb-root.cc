@@ -67,7 +67,7 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
         for (const auto& request : parsed) {
 
-            const Config& config = LibFdb5::instance().defaultConfig();
+            Config config = LibFdb5::instance().defaultConfig();
             const Schema& schema = config.schema();
             Key result;
             ASSERT( schema.expandFirstLevel(request.request(), result) );

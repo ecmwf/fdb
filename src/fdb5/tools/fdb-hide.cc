@@ -81,7 +81,7 @@ void FdbHide::execute(const option::CmdArgs& args) {
     const auto& dbrequest = dbrequests.front();
     ASSERT(!dbrequest.all());
 
-    const Config& config = LibFdb5::instance().defaultConfig();
+    Config config = LibFdb5::instance().defaultConfig();
     const Schema& schema = config.schema();
 
     Key dbkey;

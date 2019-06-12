@@ -41,7 +41,8 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
     // With no arguments, provide the current master configuration schema (i.e. that selected by FDB_HOME)
 
     if (args.count() == 0) {
-        LibFdb5::instance().defaultConfig().schema().dump(std::cout);
+        Config config = LibFdb5::instance().defaultConfig();
+        config.schema().dump(std::cout);
     }
 
     // If the argument specifies a schema file, then examine that. Otherwise load the DB which is
