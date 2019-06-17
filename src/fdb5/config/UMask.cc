@@ -27,7 +27,7 @@ UMask::~UMask() {
 }
 
 mode_t UMask::defaultUMask() {
-    static long fdbDefaultUMask = eckit::Resource<long>("fdbDefaultUMask", 0);
+    static long fdbDefaultUMask = eckit::Resource<long>("fdbDefaultUMask", 0022);
     return fdbDefaultUMask;
 }
 
