@@ -57,7 +57,6 @@ public: // members
     std::string owner;
     std::set<eckit::PathName> metadataPaths;
     std::set<eckit::PathName> dataPaths;
-    std::set<eckit::PathName> otherPaths;
     std::set<eckit::PathName> safePaths;
     std::vector<std::shared_ptr<const IndexLocation>> indexes;
 };

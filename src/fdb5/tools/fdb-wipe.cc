@@ -104,13 +104,6 @@ void FDBWipe::execute(const CmdArgs& args) {
             }
             Log::info() << std::endl;
 
-            Log::info() << "Other files to delete: " << std::endl;
-            if (elem.otherPaths.empty()) Log::info() << " - NONE -" << std::endl;
-            for (const auto& f : elem.otherPaths) {
-                Log::info() << "    " << f << std::endl;
-            }
-            Log::info() << std::endl;
-
             Log::info() << "Untouched files:" << std::endl;
             if (elem.safePaths.empty()) Log::info() << " - NONE - " << std::endl;
             for (const auto& f : elem.safePaths) {

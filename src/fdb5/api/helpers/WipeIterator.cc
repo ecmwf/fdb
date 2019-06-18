@@ -21,7 +21,6 @@ WipeElement::WipeElement(eckit::Stream& s) {
     s >> owner;
     s >> metadataPaths;
     s >> dataPaths;
-    s >> otherPaths;
     s >> safePaths;
 
     size_t nIndexes;
@@ -54,10 +53,6 @@ size_t WipeElement::guessEncodedSize() const {
     totalSize += objTag;
     for (const auto& p : dataPaths) { totalSize += objTag + p.size(); }
 
-    // otherPaths
-    totalSize += objTag;
-    for (const auto& p : otherPaths) { totalSize += objTag + p.size(); }
-
     return totalSize;
 }
 
@@ -65,7 +60,6 @@ void WipeElement::encode(eckit::Stream &s) const {
     s << owner;
     s << metadataPaths;
     s << dataPaths;
-    s << otherPaths;
     s << safePaths;
 
     size_t nIndexes = indexes.size();
