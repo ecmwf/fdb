@@ -74,7 +74,8 @@ public: // methods
         if (cached_) {
             return cached_->position();
         } else {
-            off_t pos = ::lseek(fd_, 0, SEEK_CUR);
+            off_t pos;
+            SYSCALL(pos = ::lseek(fd_, 0, SEEK_CUR));
             return pos;
         }
     }
@@ -83,7 +84,8 @@ public: // methods
         if (cached_) {
             return cached_->seek(pos);
         } else {
-            off_t ret = ::lseek(fd_, pos, SEEK_SET);
+            off_t ret;
+            SYSCALL(ret = ::lseek(fd_, pos, SEEK_SET));
             ASSERT(ret == pos);
             return pos;
         }

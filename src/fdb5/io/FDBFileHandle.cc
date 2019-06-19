@@ -105,7 +105,7 @@ void FDBFileHandle::close() {
 
 Offset FDBFileHandle::position() {
     ASSERT(file_);
-    Offset pos;
+    off_t pos;
     SYSCALL(pos = ::ftello(file_));
     return pos;
 }
