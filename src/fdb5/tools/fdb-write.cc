@@ -33,7 +33,9 @@ class FDBWrite : public fdb5::FDBTool {
 
 public:
 
-    FDBWrite(int argc, char **argv) : fdb5::FDBTool(argc, argv) {
+    FDBWrite(int argc, char **argv) :
+        fdb5::FDBTool(argc, argv),
+        verbose_(false) {
 
         options_.push_back(
                     new eckit::option::SimpleOption<std::string>("include-filter",
@@ -46,10 +48,13 @@ public:
         options_.push_back(
                     new eckit::option::SimpleOption<bool>("statistics",
                                                           "Report timing statistics"));
+
+        options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
     }
 
     std::string filterInclude_;
     std::string filterExclude_;
+    bool verbose_;
 };
 
 void FDBWrite::usage(const std::string &tool) const {
@@ -62,6 +67,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     FDBTool::init(args);
     args.get("include-filter", filterInclude_);
     args.get("exclude-filter", filterExclude_);
+    args.get("verbose", verbose_);
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {

@@ -483,10 +483,10 @@ private:
 
 struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
 
-    PurgeHelper(bool doit, bool verbose) : doit_(doit), verbose_(verbose) {}
+    PurgeHelper(bool doit, bool porcelain) : doit_(doit), porcelain_(porcelain) {}
     void encodeExtra(eckit::Stream& s) const {
         s << doit_;
-        s << verbose_;
+        s << porcelain_;
     }
     static PurgeElement valueFromStream(eckit::Stream& s) {
         PurgeElement elem;
@@ -496,7 +496,7 @@ struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
 
 private:
     bool doit_;
-    bool verbose_;
+    bool porcelain_;
 };
 
 struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
@@ -588,8 +588,8 @@ WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool verb
     return forwardApiCall(WipeHelper(doit, verbose), request);
 }
 
-PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit, bool verbose) {
-    return forwardApiCall(PurgeHelper(doit, verbose), request);
+PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
+    return forwardApiCall(PurgeHelper(doit, porcelain), request);
 }
 
 StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {

@@ -51,7 +51,9 @@ class FDBWrite : public fdb5::FDBTool {
 
 public:
 
-    FDBWrite(int argc, char **argv) : fdb5::FDBTool(argc, argv) {
+    FDBWrite(int argc, char **argv) :
+        fdb5::FDBTool(argc, argv),
+        verbose_(false) {
 
         options_.push_back(new eckit::option::SimpleOption<std::string>("expver", "Reset expver on data"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("class", "Reset class on data"));
@@ -62,7 +64,12 @@ public:
         options_.push_back(new eckit::option::SimpleOption<long>("number", "The first ensemble number to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nlevels", "Number of levels"));
         options_.push_back(new eckit::option::SimpleOption<long>("nparams", "Number of parameters"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
     }
+    ~FDBWrite() override {}
+
+private:
+    bool verbose_;
 };
 
 void FDBWrite::usage(const std::string &tool) const {
@@ -79,6 +86,8 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     ASSERT(args.has("nlevels"));
     ASSERT(args.has("nsteps"));
     ASSERT(args.has("nparams"));
+
+    args.get("verbose", verbose_);
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {

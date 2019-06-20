@@ -46,7 +46,7 @@ public: // method
 
     virtual WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) override;
 
-    virtual PurgeIterator purge(const FDBToolRequest& request, bool doit, bool verbose) override;
+    virtual PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
     virtual StatsIterator stats(const FDBToolRequest& request) override;
 

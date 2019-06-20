@@ -128,9 +128,10 @@ void TocPurgeVisitor::report(std::ostream& out) const {
     out << std::endl;
 }
 
-void TocPurgeVisitor::purge(std::ostream& out, bool verbose) const {
+void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const {
 
-    std::ostream& log(verbose ? out : eckit::Log::debug<LibFdb5>());
+    std::ostream& logAlways(out);
+    std::ostream& logVerbose(porcelain ? Log::debug<LibFdb5>() : out);
 
     currentDatabase_->checkUID();
 
@@ -141,9 +142,11 @@ void TocPurgeVisitor::purge(std::ostream& out, bool verbose) const {
         const fdb5::IndexStats& stats = it.second;
 
         if (stats.fieldsCount() == stats.duplicatesCount()) {
-            log << "Removing: " << it.first << std::endl;
-            fdb5::TocHandler handler(directory);
-            handler.writeClearRecord(it.first);
+            logVerbose << "Removing: " << it.first << std::endl;
+            if (doit) {
+                fdb5::TocHandler handler(directory);
+                handler.writeClearRecord(it.first);
+            }
         }
     }
 
@@ -151,8 +154,9 @@ void TocPurgeVisitor::purge(std::ostream& out, bool verbose) const {
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                log << "Unlinking: " << path << std::endl;
-                path.unlink(verbose);
+                logVerbose << "Unlinking: ";
+                logAlways << path << std::endl;
+                if (doit) path.unlink(false);
             }
         }
     }
@@ -161,8 +165,9 @@ void TocPurgeVisitor::purge(std::ostream& out, bool verbose) const {
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                log << "Unlinking: " << path << std::endl;
-                path.unlink(verbose);
+                logVerbose << "Unlinking: ";
+                logAlways << path << std::endl;
+                if (doit) path.unlink(false);
             }
        }
     }

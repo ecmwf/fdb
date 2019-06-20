@@ -116,16 +116,16 @@ struct PurgeHelper : public BaseHelper<PurgeElement> {
 
     void extraDecode(eckit::Stream& s) {
         s >> doit_;
-        s >> verbose_;
+        s >> porcelain_;
     }
 
     PurgeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.purge(request, doit_, verbose_);
+        return fdb.purge(request, doit_, porcelain_);
     }
 
 private:
     bool doit_;
-    bool verbose_;
+    bool porcelain_;
 };
 
 

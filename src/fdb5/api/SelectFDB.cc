@@ -188,11 +188,11 @@ WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool verb
     });
 }
 
-PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool verbose) {
+PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
     Log::debug<LibFdb5>() << "SelectFDB::purge() >> " << request << std::endl;
     return queryInternal(request,
-                         [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.purge(request, doit, verbose);
+                         [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.purge(request, doit, porcelain);
     });
 }
 
