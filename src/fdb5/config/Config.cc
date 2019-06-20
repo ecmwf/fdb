@@ -146,22 +146,35 @@ PathName Config::configPath() const {
     return getString("configSource", "unknown");
 }
 
+/// Schemas are persisted in this registry
+///
+class SchemaRegistry {
+public:
+
+    static SchemaRegistry& instance() {
+        static SchemaRegistry me;
+        return me;
+    }
+
+    const Schema& get(const PathName& path) {
+        std::lock_guard<std::mutex> lock(m_);
+        auto it = schemas_.find(path);
+        if (it != schemas_.end()) {
+            return *it->second;
+        }
+
+        schemas_[path] = std::unique_ptr<Schema>(new Schema(path));
+        return *schemas_[path];
+    }
+private:
+    std::mutex m_;
+    std::map<PathName, std::unique_ptr<Schema>> schemas_;
+};
+
 const Schema& Config::schema() const {
-
-    static std::mutex m;
-    static std::map<PathName, std::unique_ptr<Schema>> schemaMap;
-
-    std::lock_guard<std::mutex> lock(m);
-
     PathName path(schemaPath());
-
-    auto it = schemaMap.find(path);
-    if (it != schemaMap.end()) return *it->second;
-
-    schemaMap[path] = std::unique_ptr<Schema>(new Schema(path));
-    return *schemaMap[path];
+    return SchemaRegistry::instance().get(path);
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

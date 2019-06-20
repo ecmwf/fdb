@@ -105,7 +105,9 @@ void FDBFileHandle::close() {
 
 Offset FDBFileHandle::position() {
     ASSERT(file_);
-    return ::ftello(file_);
+    off_t pos;
+    SYSCALL(pos = ::ftello(file_));
+    return pos;
 }
 
 std::string FDBFileHandle::title() const {
