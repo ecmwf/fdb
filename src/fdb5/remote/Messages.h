@@ -32,7 +32,7 @@ namespace remote {
 const static eckit::FixedString<4> StartMarker {"SFDB"};
 const static eckit::FixedString<4> EndMarker {"EFDB"};
 
-constexpr uint16_t CurrentVersion = 4;
+constexpr uint16_t CurrentVersion = 5;
 
 
 enum class Message : uint16_t {

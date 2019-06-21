@@ -41,9 +41,6 @@ public: // methods
 
 private: // methods
 
-    std::ostream& alwaysLog() { return Log::info(); }
-    std::ostream& verboseLog() { return porcelain_ ? Log::debug<LibFdb5>() : Log::info(); }
-
     virtual void usage(const std::string &tool) const;
     virtual void init(const CmdArgs &args);
     virtual void execute(const CmdArgs& args);
@@ -85,49 +82,18 @@ void FDBWipe::execute(const CmdArgs& args) {
 
     for (const FDBToolRequest& request : requests()) {
 
-        verboseLog() << "Wiping for request" << std::endl;
-        request.print(verboseLog());
-        verboseLog() << std::endl;
+        if (!porcelain_) {
+            Log::info() << "Wiping for request" << std::endl;
+            request.print(Log::info());
+            Log::info() << std::endl;
+        }
 
-        auto listObject = fdb.wipe(request, doit_, !porcelain_);
+        auto listObject = fdb.wipe(request, doit_, porcelain_);
 
         size_t count = 0;
         WipeElement elem;
         while (listObject.next(elem)) {
-
-            verboseLog() << "FDB owner: " << elem.owner << std::endl
-                        << std::endl;
-
-            verboseLog() << "Metadata files to delete:" << std::endl;
-            for (const auto& f : elem.metadataPaths) {
-                verboseLog() << "    ";
-                alwaysLog() << f << std::endl;
-            }
-            verboseLog() << std::endl;
-
-            verboseLog() << "Data files to delete: " << std::endl;
-            if (elem.dataPaths.empty()) verboseLog() << " - NONE -" << std::endl;
-            for (const auto& f : elem.dataPaths) {
-                verboseLog() << "    ";
-                alwaysLog() << f << std::endl;
-            }
-            verboseLog() << std::endl;
-
-            verboseLog() << "Untouched files:" << std::endl;
-            if (elem.safePaths.empty()) verboseLog() << " - NONE - " << std::endl;
-            for (const auto& f : elem.safePaths) {
-                verboseLog() << "    " << f << std::endl;
-            }
-            verboseLog() << std::endl;
-
-            if (!elem.safePaths.empty()) {
-                verboseLog() << "Indexes to mask:" << std::endl;
-                if (elem.indexes.empty()) verboseLog() << " - NONE - " << std::endl;
-                for (const auto& f : elem.indexes) {
-                    verboseLog() << "    " << *f << std::endl;
-                }
-            }
-
+            Log::info() << elem << std::endl;
             count++;
         }
 

@@ -145,21 +145,16 @@ struct WipeHelper : public BaseHelper<WipeElement> {
 
     void extraDecode(eckit::Stream& s) {
         s >> doit_;
-        s >> verbose_;
+        s >> porcelain_;
     }
 
     WipeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.wipe(request, doit_, verbose_);
-    }
-
-    size_t encodeBufferSize(const WipeElement& elem) const override {
-        size_t totalSize = elem.guessEncodedSize();
-        return eckit::round(totalSize, 4096);
+        return fdb.wipe(request, doit_, porcelain_);
     }
 
 private:
     bool doit_;
-    bool verbose_;
+    bool porcelain_;
 };
 
 } // namespace

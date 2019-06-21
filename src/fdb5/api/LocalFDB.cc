@@ -87,14 +87,14 @@ WhereIterator LocalFDB::where(const FDBToolRequest &request) {
     return queryInternal<WhereVisitor>(request);
 }
 
-WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit, bool verbose) {
+WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit, bool porcelain) {
     Log::debug<LibFdb5>() << "LocalFDB::wipe() : " << request << std::endl;
-    return queryInternal<WipeVisitor>(request, doit, verbose);
+    return queryInternal<WipeVisitor>(request, doit, porcelain);
 }
 
-PurgeIterator LocalFDB::purge(const FDBToolRequest& request, bool doit, bool verbose) {
+PurgeIterator LocalFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
     Log::debug<LibFdb5>() << "LocalFDB::purge() : " << request << std::endl;
-    return queryInternal<fdb5::api::local::PurgeVisitor>(request, doit, verbose);
+    return queryInternal<fdb5::api::local::PurgeVisitor>(request, doit, porcelain);
 }
 
 StatsIterator LocalFDB::stats(const FDBToolRequest &request) {
