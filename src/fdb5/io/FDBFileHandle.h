@@ -26,6 +26,8 @@ namespace fdb5 {
 /// The differences are:
 ///   * it does not fsync() on flush, only on close()
 ///   * it fails on ENOSPC
+///   * this class can only be used in Append mode
+///   * this is not thread-safe neither multi-process safe
 
 class FDBFileHandle : public eckit::DataHandle {
 public:  // methods

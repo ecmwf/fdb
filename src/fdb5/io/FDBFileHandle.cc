@@ -51,7 +51,7 @@ void FDBFileHandle::openForAppend(const Length&) {
     if (!file_) {
         throw eckit::CantOpenFile(path_);
     }
-    pos_ = 0;
+    SYSCALL(pos_ = ::ftello(file_));
     SYSCALL(::setvbuf(file_, buffer_, _IOFBF, buffer_.size()));
 }
 
