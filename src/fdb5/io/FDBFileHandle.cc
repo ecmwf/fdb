@@ -11,10 +11,10 @@
 #include <unistd.h>
 #include <cstdio>
 
-#include "eckit/eckit.h"
 #include "eckit/config/Resource.h"
-#include "eckit/log/Log.h"
+#include "eckit/eckit.h"
 #include "eckit/io/FDataSync.h"
+#include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/io/FDBFileHandle.h"
@@ -25,18 +25,17 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void FDBFileHandle::print(std::ostream &s) const {
+void FDBFileHandle::print(std::ostream& s) const {
     s << "FDBFileHandle[file=" << path_ << ']';
 }
 
-FDBFileHandle::FDBFileHandle(const std::string &name, size_t buffer):
+FDBFileHandle::FDBFileHandle(const std::string& name, size_t buffer) :
     path_(name),
-    file_(0),
-    buffer_(buffer) {
-}
+    file_(nullptr),
+    buffer_(buffer),
+    pos_(0) {}
 
-FDBFileHandle::~FDBFileHandle() {
-}
+FDBFileHandle::~FDBFileHandle() {}
 
 Length FDBFileHandle::openForRead() {
     NOTIMP;
@@ -47,11 +46,12 @@ void FDBFileHandle::openForWrite(const Length&) {
 }
 
 void FDBFileHandle::openForAppend(const Length&) {
+    ASSERT(!file_);
     file_ = ::fopen(path_.c_str(), "a");
     if (!file_) {
         throw eckit::CantOpenFile(path_);
     }
-
+    pos_ = 0;
     SYSCALL(::setvbuf(file_, buffer_, _IOFBF, buffer_.size()));
 }
 
@@ -59,8 +59,9 @@ long FDBFileHandle::read(void*, long) {
     NOTIMP;
 }
 
-long FDBFileHandle::write(const void *buffer, long length) {
-    ASSERT( buffer );
+long FDBFileHandle::write(const void* buffer, long length) {
+    ASSERT(buffer);
+    ASSERT(file_);
 
     long written = ::fwrite(buffer, 1, length, file_);
 
@@ -68,46 +69,53 @@ long FDBFileHandle::write(const void *buffer, long length) {
         throw eckit::WriteError(path_);
     }
 
+    pos_ += written;
+
     return written;
 }
 
 void FDBFileHandle::flush() {
-
-    static bool fdbDataSyncOnFlush = eckit::LibResource<bool,LibFdb5>("$FDB_DATA_SYNC_ON_FLUSH;fdbDataSyncOnFlush", true);
+    static bool fdbDataSyncOnFlush =
+        eckit::LibResource<bool, LibFdb5>("$FDB_DATA_SYNC_ON_FLUSH;fdbDataSyncOnFlush", true);
 
     if (file_) {
+        if (::fflush(file_))
+            throw WriteError(std::string("FDBFileHandle::~FDBFileHandle(fflush(") + path_ + "))",
+                             Here());
 
-        if(::fflush(file_)) throw WriteError(std::string("FDBFileHandle::~FDBFileHandle(fflush(") + path_ + "))", Here());
-
-        if(fdbDataSyncOnFlush) {
-
+        if (fdbDataSyncOnFlush) {
             int ret = eckit::fdatasync(::fileno(file_));
 
             while (ret < 0 && errno == EINTR) {
                 ret = eckit::fdatasync(::fileno(file_));
             }
             if (ret < 0) {
-                Log::error() << "Cannot fdatasync(" << path_ << ") " << ::fileno(file_) <<  Log::syserr << std::endl;
+                Log::error() << "Cannot fdatasync(" << path_ << ") " << ::fileno(file_)
+                             << Log::syserr << std::endl;
+                throw eckit::WriteError(path_);
             }
         }
+
+        off_t current;
+        SYSCALL(current = ::ftello(file_));
+        ASSERT(pos_ == current);
     }
 }
 
 void FDBFileHandle::close() {
     if (file_) {
         if (::fclose(file_)) {
-            file_ = 0;
+            file_ = nullptr;
+            pos_ = 0;
             throw WriteError(std::string("fclose ") + name());
         }
-        file_ = 0;
+        file_ = nullptr;
+        pos_ = 0;
     }
 }
 
 Offset FDBFileHandle::position() {
-    ASSERT(file_);
-    off_t pos;
-    SYSCALL(pos = ::ftello(file_));
-    return pos;
+    return pos_;
 }
 
 std::string FDBFileHandle::title() const {
@@ -117,4 +125,4 @@ std::string FDBFileHandle::title() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace eckit
+}  // namespace fdb5

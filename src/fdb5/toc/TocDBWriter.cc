@@ -281,7 +281,9 @@ void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length
 
     eckit::Offset position = dh.position();
 
-    dh.write( data, length );
+    long len = dh.write( data, length );
+
+    ASSERT(len == length);
 
     Field field (TocFieldLocation(dataPath, position, length));
 

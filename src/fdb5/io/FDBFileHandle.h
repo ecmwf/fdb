@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   AdoptVisitor.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
@@ -29,22 +28,11 @@ namespace fdb5 {
 ///   * it fails on ENOSPC
 
 class FDBFileHandle : public eckit::DataHandle {
-public:
-
-    // -- Contructors
+public:  // methods
 
     FDBFileHandle(const std::string&, size_t buffer);
 
-    // -- Destructor
-
     ~FDBFileHandle();
-
-    // --  Methods
-
-
-    // -- Overridden methods
-
-    // From eckit::DataHandle
 
     virtual eckit::Length openForRead();
     virtual void   openForWrite(const eckit::Length &);
@@ -66,6 +54,7 @@ private: // members
 
     FILE            *file_;
     eckit::Buffer    buffer_;
+    off_t pos_;
 
 };
 
