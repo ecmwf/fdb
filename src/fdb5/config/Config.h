@@ -9,13 +9,18 @@
  */
 
 /// @author Simon Smart
+/// @author Tiago Quintino
 /// @date   Mar 2018
 
-#ifndef fdb5_config_FDBConfig_H
-#define fdb5_config_FDBConfig_H
+#ifndef fdb5_config_Config_H
+#define fdb5_config_Config_H
 
+#include <sys/stat.h>   // for mode_t
+
+#include <string>
 
 #include "eckit/config/LocalConfiguration.h"
+#include "eckit/filesystem/PathName.h"
 
 
 namespace fdb5 {
@@ -25,9 +30,7 @@ class Schema;
 //----------------------------------------------------------------------------------------------------------------------
 
 class Config : public eckit::LocalConfiguration {
-
-public: // methods
-
+public:  // methods
     Config();
     Config(const eckit::Configuration& config);
 
@@ -43,11 +46,14 @@ public: // methods
 
     eckit::PathName schemaPath() const;
     eckit::PathName configPath() const;
+
     const Schema& schema() const;
+
+    mode_t umask() const;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_config_FDBConfig_H
+#endif  // fdb5_config_Config_H

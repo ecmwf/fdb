@@ -650,8 +650,8 @@ void TocHandler::writeInitRecord(const Key &key) {
         directory_.mkdir();
     }
 
-    // Enforce lustre striping if requested
-    if (stripeLustre()) {
+    // enforce lustre striping if requested
+    if (stripeLustre() && !tocPath_.exists()) {
         LustreStripe stripe = stripeIndexLustreSettings();
         fdb5LustreapiFileCreate(tocPath_.localPath(), stripe.size_, stripe.count_);
     }

@@ -22,9 +22,9 @@
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 #include "eckit/types/Types.h"
-#include "eckit/config/LocalConfiguration.h"
 
 #include "fdb5/database/Key.h"
+#include "fdb5/config/Config.h"
 
 namespace eckit {
 class DataHandle;
@@ -138,8 +138,8 @@ class DBFactory : private eckit::NonCopyable {
     bool read_;
     bool write_;
 
-    virtual DB *make(const Key &key, const eckit::Configuration& config) const = 0 ;
-    virtual DB *make(const eckit::PathName& path, const eckit::Configuration& config) const = 0 ;
+    virtual DB *make(const Key &key, const fdb5::Config& config) const = 0 ;
+    virtual DB *make(const eckit::PathName& path, const fdb5::Config& config) const = 0 ;
 
 protected:
 
@@ -149,9 +149,9 @@ protected:
 public:
 
     static void list(std::ostream &);
-    static DB* buildWriter(const Key &key, const eckit::Configuration& config=eckit::LocalConfiguration());
-    static DB* buildReader(const Key &key, const eckit::Configuration& config=eckit::LocalConfiguration());
-    static DB* buildReader(const eckit::PathName& path, const eckit::Configuration& config=eckit::LocalConfiguration());
+    static DB* buildWriter(const Key &key, const fdb5::Config& config = fdb5::Config());
+    static DB* buildReader(const Key &key, const fdb5::Config& config = fdb5::Config());
+    static DB* buildReader(const eckit::PathName& path, const fdb5::Config& config = fdb5::Config());
 
 private: // methods
 
@@ -167,10 +167,10 @@ private: // methods
 template< class T>
 class DBBuilder : public DBFactory {
 
-    virtual DB *make(const Key &key, const eckit::Configuration& config) const {
+    virtual DB *make(const Key &key, const fdb5::Config& config) const {
         return new T(key, config);
     }
-    virtual DB *make(const eckit::PathName& path, const eckit::Configuration& config) const {
+    virtual DB *make(const eckit::PathName& path, const fdb5::Config& config) const {
         return new T(path, config);
     }
 

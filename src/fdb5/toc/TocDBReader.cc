@@ -21,12 +21,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDBReader::TocDBReader(const Key& key, const eckit::Configuration& config) :
+TocDBReader::TocDBReader(const Key& key, const fdb5::Config& config) :
     TocDB(key, config) {
     loadIndexesAndRemap();
 }
 
-TocDBReader::TocDBReader(const eckit::PathName& directory, const eckit::Configuration& config) :
+TocDBReader::TocDBReader(const eckit::PathName& directory, const fdb5::Config& config) :
     TocDB(directory, config) {
     loadIndexesAndRemap();
 }

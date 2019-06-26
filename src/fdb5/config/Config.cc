@@ -17,6 +17,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/filesystem/FileMode.h"
 
 #include "fdb5/rules/Schema.h"
 #include "fdb5/LibFdb5.h"
@@ -25,6 +26,32 @@ using namespace eckit;
 
 
 namespace fdb5 {
+
+
+/// Schemas are persisted in this registry
+///
+class SchemaRegistry {
+public:
+
+    static SchemaRegistry& instance() {
+        static SchemaRegistry me;
+        return me;
+    }
+
+    const Schema& get(const PathName& path) {
+        std::lock_guard<std::mutex> lock(m_);
+        auto it = schemas_.find(path);
+        if (it != schemas_.end()) {
+            return *it->second;
+        }
+
+        schemas_[path] = std::unique_ptr<Schema>(new Schema(path));
+        return *schemas_[path];
+    }
+private:
+    std::mutex m_;
+    std::map<PathName, std::unique_ptr<Schema>> schemas_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -68,9 +95,9 @@ Config Config::expandConfig() const {
 
     if (!found) {
         PathName configDir = expandPath("~fdb/etc/fdb");
-        for (const std::string stem : {Main::instance().displayName(),
-                                       Main::instance().name(),
-                                       std::string("config")}) {
+        for (const std::string& stem : {Main::instance().displayName(),
+                                        Main::instance().name(),
+                                        std::string("config")}) {
 
             for (const char* tail : {".yaml", ".json"}) {
                 actual_path = configDir / (stem + tail);
@@ -146,34 +173,17 @@ PathName Config::configPath() const {
     return getString("configSource", "unknown");
 }
 
-/// Schemas are persisted in this registry
-///
-class SchemaRegistry {
-public:
-
-    static SchemaRegistry& instance() {
-        static SchemaRegistry me;
-        return me;
-    }
-
-    const Schema& get(const PathName& path) {
-        std::lock_guard<std::mutex> lock(m_);
-        auto it = schemas_.find(path);
-        if (it != schemas_.end()) {
-            return *it->second;
-        }
-
-        schemas_[path] = std::unique_ptr<Schema>(new Schema(path));
-        return *schemas_[path];
-    }
-private:
-    std::mutex m_;
-    std::map<PathName, std::unique_ptr<Schema>> schemas_;
-};
-
 const Schema& Config::schema() const {
     PathName path(schemaPath());
     return SchemaRegistry::instance().get(path);
+}
+
+mode_t Config::umask() const {
+    if(has("umask")) {
+        return FileMode(getString("umask")).mask();
+    }
+    static eckit::FileMode fdbFileMode(eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
+    return fdbFileMode.mask();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

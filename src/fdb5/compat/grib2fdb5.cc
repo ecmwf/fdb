@@ -13,7 +13,6 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/tools/FDBTool.h"
 

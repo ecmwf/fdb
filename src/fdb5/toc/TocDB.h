@@ -32,8 +32,8 @@ class TocDB : public DB, public TocHandler {
 
 public: // methods
 
-    TocDB(const Key& key, const eckit::Configuration& config);
-    TocDB(const eckit::PathName& directory, const eckit::Configuration& config);
+    TocDB(const Key& key, const fdb5::Config& config);
+    TocDB(const eckit::PathName& directory, const fdb5::Config& config);
 
     ~TocDB() override;
 
