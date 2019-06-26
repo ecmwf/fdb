@@ -13,8 +13,8 @@
 /// @author Tiago Quintino
 /// @date   October 2016
 
-#ifndef fdb5_LustreFileHandle_h
-#define fdb5_LustreFileHandle_h
+#ifndef fdb5_io_LustreFileHandle_h
+#define fdb5_io_LustreFileHandle_h
 
 #include "fdb5/fdb5_config.h"
 

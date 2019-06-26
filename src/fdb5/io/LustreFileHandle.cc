@@ -28,8 +28,6 @@ int  fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stri
 
 namespace fdb5 {
 
-static bool lustreapi_silence = false;
-
 bool fdb5LustreapiSupported() {
 #if defined(HAVE_LUSTRE)
     return true;
@@ -41,6 +39,8 @@ bool fdb5LustreapiSupported() {
 int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripecount) {
 
 #if defined(HAVE_LUSTRE)
+
+    static bool lustreapi_silence = false;
 
     if(not lustreapi_silence) {
         fdb5_lustreapi_silence_msg();
