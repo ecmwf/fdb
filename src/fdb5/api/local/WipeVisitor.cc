@@ -267,12 +267,18 @@ void WipeVisitor::databaseComplete(const DB& db) {
         dataPaths_.erase(path);
     }
 
-    // Report and do
+    // If there is nothing found, then don't do anything that will write to stdout,
+    // or do any work
 
-    if (!porcelain_) report();
+    if (!metadataPaths_.empty() || !dataPaths_.empty() || !indexesToMask_.empty()) {
 
-    if (doit_ || porcelain_) {
-        wipe(db);
+        // Report and do
+
+        if (!porcelain_) report();
+
+        if (doit_ || porcelain_) {
+            wipe(db);
+        }
     }
 
     // Cleanup counts for all the existant bits
