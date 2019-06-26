@@ -376,16 +376,15 @@ ecbuild_add_library(
         ${LUSTREAPI_LIBRARIES}
 )
 
-list( APPEND fdb5_scripts fdb fdb-which )
+if(HAVE_FDB_TOOLS)
 
-foreach( _script ${fdb5_scripts} )
+  list( APPEND fdb5_scripts fdb fdb-which )
 
-configure_file(scripts/${_script}.in ${CMAKE_BINARY_DIR}/bin/${_script} @ONLY)
-
-install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/${_script}
-        DESTINATION ${INSTALL_BIN_DIR} )
-endforeach()
-
+  foreach( _script ${fdb5_scripts} )
+    configure_file(scripts/${_script}.in ${CMAKE_BINARY_DIR}/bin/${_script} @ONLY)
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/${_script} DESTINATION ${INSTALL_BIN_DIR} )
+  endforeach()
+endif()
 
 list( APPEND fdb5_tools
     fdb-hammer
@@ -412,6 +411,7 @@ endif()
 foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
+                          CONDITION HAVE_FDB_TOOLS
                           SOURCES   tools/${_tool}.cc
                           INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
                           LIBS      fdb5 )
@@ -419,24 +419,20 @@ foreach( _tool ${fdb5_tools} )
 endforeach()
 
 
-#ecbuild_add_executable( TARGET    fdb-partial-adopt
-                            #SOURCES   tools/fdb-partial-adopt.cc
-                            #CONDITION HAVE_FDB4_MIGRATION
-                            ##INCLUDES  ${FDB_INCLUDE_DIRS}
-                            #LIBS      fdb5 fdb )
-
 ecbuild_add_executable( TARGET    grib2fdb5
+                        CONDITION HAVE_FDB_TOOLS
                         SOURCES   compat/grib2fdb5.cc
                         INCLUDES  ${ECCODES_INCLUDE_DIRS} # Please don't remove me, I am needed
                         LIBS      fdb5 )
 
 ecbuild_add_executable(
+        CONDITION HAVE_FDB_TOOLS AND HAVE_FDB_REMOTE
         TARGET fdb-monitor
         SOURCES remote/fdb-monitor.cc
-        CONDITION HAVE_FDB_REMOTE
         LIBS eckit eckit_cmd )
 
 ecbuild_add_executable(
+        CONDITION HAVE_FDB_TOOLS AND HAVE_FDB_REMOTE
         TARGET fdbsvr
         SOURCES
             remote/fdb-server.cc
@@ -446,5 +442,4 @@ ecbuild_add_executable(
             remote/Handler.cc
             remote/AvailablePortList.cc
             remote/AvailablePortList.h
-        CONDITION HAVE_FDB_REMOTE
         LIBS fdb5 )
