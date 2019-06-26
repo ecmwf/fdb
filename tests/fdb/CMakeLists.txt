@@ -59,6 +59,7 @@ foreach( _tst ${_test_data} )
         TARGET  fdb5_archive_${_tst}
         COMMAND $<TARGET_FILE:fdb-write>
         TEST_DEPENDS fdb5_get_test_data
+        CONDITION HAVE_FDB_TOOLS
         ARGS    ${_tst}
         ENVIRONMENT "${_test_environment}" )
 
@@ -66,6 +67,7 @@ foreach( _tst ${_test_data} )
           TARGET  fdb5_extract_${_tst}
           COMMAND $<TARGET_FILE:fdb-read>
           TEST_DEPENDS fdb5_archive_${_tst}
+          CONDITION HAVE_FDB_TOOLS
           ARGS   --extract ${_tst} ${_tst}.2
           ENVIRONMENT "${_test_environment}" )
 

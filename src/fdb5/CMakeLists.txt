@@ -412,6 +412,7 @@ endif()
 foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
+                          CONDITION HAVE_FDB_TOOLS
                           SOURCES   tools/${_tool}.cc
                           INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
                           LIBS      fdb5 )

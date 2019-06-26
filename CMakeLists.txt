@@ -28,6 +28,12 @@ ecbuild_use_package( PROJECT eccodes VERSION 2.10 REQUIRED )
 
 ecbuild_use_package( PROJECT metkit VERSION 0.17 REQUIRED ) ## metkit is now always needed
 
+### FDB tools
+
+ecbuild_add_option( FEATURE FDB_TOOLS
+                    DEFAULT ON
+                    DESCRIPTION "Commandline tools for FDB" )
+
 ### FDB remote front-end
 
 ecbuild_add_option( FEATURE FDB_REMOTE

@@ -184,17 +184,16 @@ void WipeVisitor::report() {
          << std::endl;
 
     out_ << "Metadata files to delete:" << std::endl;
+    if (dataPaths_.empty()) out_ << " - NONE -" << std::endl;
     for (const auto& f : metadataPaths_) {
-        out_ << "    ";
-        out_ << f << std::endl;
+        out_ << "    " << f << std::endl;
     }
     out_ << std::endl;
 
     out_ << "Data files to delete: " << std::endl;
     if (dataPaths_.empty()) out_ << " - NONE -" << std::endl;
     for (const auto& f : dataPaths_) {
-        out_ << "    ";
-        out_ << f << std::endl;
+        out_ << "    " << f << std::endl;
     }
     out_ << std::endl;
 
