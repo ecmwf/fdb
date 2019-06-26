@@ -24,7 +24,6 @@
 
 #include "metkit/grib/GribHandle.h"
 
-#include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"

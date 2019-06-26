@@ -18,7 +18,6 @@
 
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/tools/FDBTool.h"
-#include "fdb5/config/UMask.h"
 
 
 class FDBWrite : public fdb5::FDBTool {

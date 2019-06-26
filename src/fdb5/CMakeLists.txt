@@ -86,8 +86,6 @@ list( APPEND fdb5_srcs
     api/local/StatsVisitor.cc
     api/local/StatsVisitor.h
 
-    config/UMask.cc
-    config/UMask.h
     config/Config.cc
     config/Config.h
     database/Archiver.cc

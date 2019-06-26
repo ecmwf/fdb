@@ -14,7 +14,6 @@
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/config/UMask.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
@@ -77,8 +76,6 @@ void FdbOverlay::init(const option::CmdArgs& args) {
 }
 
 void FdbOverlay::execute(const option::CmdArgs& args) {
-
-    UMask umask(UMask::defaultUMask());
 
     if (args.count() != 2) {
         usage("fdb-overlay");
