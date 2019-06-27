@@ -28,11 +28,11 @@ namespace local {
 PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
                            const metkit::MarsRequest& request,
                            bool doit,
-                           bool verbose) :
+                           bool porcelain) :
     QueryVisitor<PurgeElement>(queue, request),
     out_(new QueueStringLogTarget(queue)),
     doit_(doit),
-    verbose_(verbose) {}
+    porcelain_(porcelain) {}
 
 bool PurgeVisitor::visitDatabase(const DB& db) {
 
@@ -72,10 +72,12 @@ void PurgeVisitor::visitDatum(const Field&, const Key&) { NOTIMP; }
 void PurgeVisitor::databaseComplete(const DB& db) {
     internalVisitor_->databaseComplete(db);
 
-    internalVisitor_->report(out_);
+    if (!porcelain_) {
+        internalVisitor_->report(out_);
+    }
 
-    if (doit_) {
-        internalVisitor_->purge(out_, verbose_);
+    if (doit_ || porcelain_) {
+        internalVisitor_->purge(out_, porcelain_, doit_);
     }
 
     // Cleanup

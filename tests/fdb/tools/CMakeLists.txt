@@ -7,6 +7,7 @@ foreach( _t ${fdb_tools_tests} )
 
     ecbuild_add_test(
         TYPE SCRIPT
+        CONDITION HAVE_FDB_TOOLS
         COMMAND ${_t}.sh)
 
 endforeach()

@@ -89,6 +89,9 @@ public: // methods
 
     DbStats stats() const;
 
+    void enumerateMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
+                         std::set<eckit::PathName>& data) const;
+
 protected: // methods
 
     size_t tocFilesSize() const;
@@ -114,6 +117,7 @@ protected: // methods
 
     // Handle location and remapping information if using a mounted TocDB
     const eckit::PathName& currentDirectory() const;
+    const eckit::PathName& currentTocPath() const;
     const Key& currentRemapKey() const;
 
     // Build the record, and return the payload size
@@ -143,7 +147,7 @@ private: // methods
     /// file (opened for read). It resets back to the same place when done. This is
     /// to allow searching only from the first subtoc.
     void allMaskableEntries(eckit::Offset startOffset, eckit::Offset endOffset,
-                            std::set<std::pair<eckit::PathName, size_t>>& entries) const;
+                            std::set<std::pair<eckit::PathName, eckit::Offset>>& entries) const;
     void populateMaskedEntriesList() const;
 
     void append(TocRecord &r, size_t payloadSize);
@@ -180,7 +184,7 @@ private: // members
     mutable std::unique_ptr<TocHandler> subTocWrite_;
     mutable size_t count_;
 
-    mutable std::set<std::pair<eckit::PathName, size_t>> maskedEntries_;
+    mutable std::set<std::pair<eckit::PathName, eckit::Offset>> maskedEntries_;
 
     mutable bool enumeratedMaskedEntries_;
     mutable bool writeMode_;

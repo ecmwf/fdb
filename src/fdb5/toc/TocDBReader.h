@@ -28,8 +28,8 @@ class TocDBReader : public TocDB {
 
 public: // methods
 
-    TocDBReader(const Key& key, const eckit::Configuration& config);
-    TocDBReader(const eckit::PathName& directory, const eckit::Configuration& config);
+    TocDBReader(const Key& key, const fdb5::Config& config);
+    TocDBReader(const eckit::PathName& directory, const fdb5::Config& config);
 
     virtual ~TocDBReader();
 

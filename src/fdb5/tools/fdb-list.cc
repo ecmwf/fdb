@@ -51,7 +51,7 @@ class FDBList : public FDBVisitTool {
 
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
-        options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined output for input into other tools"));
+        options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined and stable output for input into other tools"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
     }
 

@@ -38,17 +38,9 @@ LibFdb5& LibFdb5::instance()
     return libfdb;
 }
 
-const Config& LibFdb5::defaultConfig() {
-
-    static bool initted = false;
-    static Config config;
-
-    if (!initted) {
-        config = config.expandConfig();
-        initted = true;
-    }
-
-    return config;
+Config LibFdb5::defaultConfig() {
+    Config config;
+    return config.expandConfig();
 }
 
 const void* LibFdb5::addr() const { return this; }

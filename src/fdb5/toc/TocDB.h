@@ -32,8 +32,8 @@ class TocDB : public DB, public TocHandler {
 
 public: // methods
 
-    TocDB(const Key& key, const eckit::Configuration& config);
-    TocDB(const eckit::PathName& directory, const eckit::Configuration& config);
+    TocDB(const Key& key, const fdb5::Config& config);
+    TocDB(const eckit::PathName& directory, const fdb5::Config& config);
 
     ~TocDB() override;
 
@@ -69,6 +69,9 @@ protected: // methods
     DbStats statistics() const override;
 
     std::vector<Index> indexes(bool sorted=false) const override;
+
+    void allMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
+                   std::set<eckit::PathName>& data) const override;
 
 private: // members
 

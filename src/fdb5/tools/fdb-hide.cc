@@ -11,10 +11,10 @@
 #include "eckit/config/Resource.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/VectorOption.h"
+#include "eckit/os/AutoUmask.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/config/UMask.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
@@ -68,7 +68,7 @@ void FdbHide::init(const option::CmdArgs& args) {
 
 void FdbHide::execute(const option::CmdArgs& args) {
 
-    UMask umask(UMask::defaultUMask());
+    Config config = LibFdb5::instance().defaultConfig();
 
     if (args.count() != 1) {
         usage("fdb-hide");
@@ -81,7 +81,6 @@ void FdbHide::execute(const option::CmdArgs& args) {
     const auto& dbrequest = dbrequests.front();
     ASSERT(!dbrequest.all());
 
-    const Config& config = LibFdb5::instance().defaultConfig();
     const Schema& schema = config.schema();
 
     Key dbkey;

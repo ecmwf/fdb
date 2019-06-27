@@ -14,13 +14,17 @@
 #include "eckit/exception/Exceptions.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/io/LustreFileHandle.h"
 
 
 #if defined(HAVE_LUSTRE)
 extern "C" {
-int fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
+void fdb5_lustreapi_silence_msg();
+int  fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
 }
 #endif
+
+//----------------------------------------------------------------------------------------------------------------------
 
 namespace fdb5 {
 
@@ -35,7 +39,16 @@ bool fdb5LustreapiSupported() {
 int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripecount) {
 
 #if defined(HAVE_LUSTRE)
+
+    static bool lustreapi_silence = false;
+
+    if(not lustreapi_silence) {
+        fdb5_lustreapi_silence_msg();
+        lustreapi_silence = true;
+    }
+
     return fdb5_lustreapi_file_create(path, stripesize, stripecount);
+
 #endif
 
     /// @note since fdb5LustreapiSupported() should be guarding all calls to this function,
@@ -45,5 +58,7 @@ int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripeco
 
     return 0; /* should never be executed */
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

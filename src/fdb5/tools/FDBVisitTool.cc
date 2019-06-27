@@ -51,9 +51,6 @@ FDBVisitTool::FDBVisitTool(int argc, char **argv, std::string minimumKeys) :
     options_.push_back(
                 new SimpleOption<bool>("ignore-errors",
                                        "Ignore errors (report them as warnings) and continue processing wherever possible"));
-
-    // Bypass the check for minimum keys
-    options_.push_back(new SimpleOption<bool>("force", "Bypass the check for minimum keys"));
 }
 
 FDBVisitTool::~FDBVisitTool() {}
@@ -123,20 +120,14 @@ std::vector<FDBToolRequest> FDBVisitTool::requests(const std::string& verb) cons
 
 void FDBVisitTool::usage(const std::string &tool) const {
 
-               // derived classes should provide this type of usage information ...
+    // derived classes should provide this type of usage information ...
 
-                //                       << "Usage: " << tool << " [options] [path1|request1] [path2|request2] ..." << std::endl
-                //                       << std::endl
-                //                       << std::endl
+    Log::info() << "Usage: " << tool << " [options] [request1] [request2] ..." << std::endl
+                << std::endl;
 
-    Log::info() << std::endl
-                << "Examples:" << std::endl
+    Log::info() << "Examples:" << std::endl
                 << "=========" << std::endl << std::endl
-                << tool << " ."
-                << std::endl
-                << tool << " /tmp/fdb/od:0001:oper:20160428:1200:g"
-                << std::endl
-                << tool << " class=od,expver=0001,stream=oper,date=20160428,time=1200,domain=g"
+                << tool << " class=rd,expver=xywz,stream=oper,date=20190603,time=00"
                 << std::endl
                 << std::endl;
 

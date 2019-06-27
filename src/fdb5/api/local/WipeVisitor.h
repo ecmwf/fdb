@@ -34,7 +34,7 @@ public:
     WipeVisitor(eckit::Queue<WipeElement>& queue,
                 const metkit::MarsRequest& request,
                 bool doit,
-                bool verbose);
+                bool porcelain);
 
     bool visitEntries() override { return false; }
 
@@ -43,18 +43,29 @@ public:
     void databaseComplete(const DB& db) override;
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
+private: // methods
+
+    void report();
+    void wipe(const DB& db);
+
 private: // members
-
-    eckit::PathName basePath_;
-
-    WipeElement current_;
-
-    std::vector<Index> indexesToMask_;
 
     metkit::MarsRequest indexRequest_;
 
+    eckit::Channel out_;
     bool doit_;
-    bool verbose_;
+    bool porcelain_;
+
+    // Details of current DB being explored/wiped
+
+    std::string owner_;
+    eckit::PathName basePath_;
+
+    std::set<eckit::PathName> metadataPaths_;
+    std::set<eckit::PathName> dataPaths_;
+    std::set<eckit::PathName> safePaths_;
+
+    std::vector<Index> indexesToMask_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

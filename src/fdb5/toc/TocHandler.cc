@@ -74,7 +74,8 @@ public: // methods
         if (cached_) {
             return cached_->position();
         } else {
-            off_t pos = ::lseek(fd_, 0, SEEK_CUR);
+            off_t pos;
+            SYSCALL(pos = ::lseek(fd_, 0, SEEK_CUR));
             return pos;
         }
     }
@@ -83,7 +84,8 @@ public: // methods
         if (cached_) {
             return cached_->seek(pos);
         } else {
-            off_t ret = ::lseek(fd_, pos, SEEK_SET);
+            off_t ret;
+            SYSCALL(ret = ::lseek(fd_, pos, SEEK_SET));
             ASSERT(ret == pos);
             return pos;
         }
@@ -98,12 +100,22 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocHandler::TocHandler(const eckit::PathName &directory, const Config& config) :
-    directory_(directory),
+eckit::PathName findRealPath(const eckit::PathName& path) {
+
+    // realpath only works on existing paths, so work back up the path until
+    // we find one that does, get the realpath on that, then reconstruct.
+
+    if (path.exists()) return path.realName();
+
+    return findRealPath(path.dirName()) / path.baseName();
+}
+
+TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
+    directory_(findRealPath(directory)),
     dbUID_(-1),
     userUID_(::getuid()),
-    tocPath_(directory / "toc"),
-    schemaPath_(directory / "schema"),
+    tocPath_(directory_ / "toc"),
+    schemaPath_(directory_ / "schema"),
     dbConfig_(config),
     useSubToc_(config.getBool("useSubToc", false)),
     isSubToc_(false),
@@ -123,12 +135,12 @@ TocHandler::TocHandler(const eckit::PathName &directory, const Config& config) :
 }
 
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
-    directory_(path.dirName()),
+    directory_(findRealPath(path.dirName())),
     dbUID_(-1),
     parentKey_(parentKey),
     userUID_(::getuid()),
-    tocPath_(path),
-    schemaPath_(path.dirName() / "schema"),
+    tocPath_(findRealPath(path)),
+    schemaPath_(directory_ / "schema"),
     useSubToc_(false),
     isSubToc_(true),
     fd_(-1),
@@ -369,16 +381,22 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 eckit::PathName path;
                 s >> path;
 
+                // Handle both path and absPath for compatibility as we move from storing
+                // absolute paths to relative paths. Either may exist in either the TOC_SUB_TOC
+                // or TOC_CLEAR entries.
+                ASSERT(path.path().size() > 0);
+                eckit::PathName absPath = (path.path()[0] == '/') ? path : (currentDirectory() / path);
+
                 // If this subtoc has a masking entry, then skip it, and go on to the next entry.
-                std::pair<eckit::PathName, size_t> key(path, 0);
+                std::pair<eckit::PathName, size_t> key(absPath, 0);
                 if (maskedEntries_.find(key) != maskedEntries_.end()) {
                     Log::debug<LibFdb5>() << "SubToc ignored by mask: " << path << std::endl;
                     continue;
                 }
 
-                eckit::Log::debug<LibFdb5>() << "Opening SUB_TOC: " << path << " " << parentKey_ << std::endl;
+                eckit::Log::debug<LibFdb5>() << "Opening SUB_TOC: " << absPath << " " << parentKey_ << std::endl;
 
-                subTocRead_.reset(new TocHandler(path, parentKey_));
+                subTocRead_.reset(new TocHandler(absPath, parentKey_));
                 subTocRead_->openForRead();
 
                 if (hideSubTocEntries) {
@@ -397,7 +415,9 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 s >> path;
                 s >> offset;
 
-                std::pair<eckit::PathName, size_t> key(path, offset);
+                PathName absPath = currentDirectory() / path;
+
+                std::pair<eckit::PathName, size_t> key(absPath, offset);
                 if (maskedEntries_.find(key) != maskedEntries_.end()) {
                     Log::debug<LibFdb5>() << "Index ignored by mask: " << path << ":" << offset << std::endl;
                     continue;
@@ -460,8 +480,10 @@ std::vector<PathName> TocHandler::subTocPaths() const {
         switch (r->header_.tag_) {
 
             case TocRecord::TOC_SUB_TOC: {
-                s >> path;
-                paths.push_back(path);
+                // n.b. don't just push path onto paths, as it may be relative to a subtoc
+                //      in a different DB (e.g. through an overlay). So query it properly.
+                ASSERT(subTocRead_);
+                paths.push_back(currentTocPath());
                 break;
             }
 
@@ -513,7 +535,7 @@ void TocHandler::close() const {
 }
 
 void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
-                                    std::set<std::pair<eckit::PathName, size_t>>& entries) const {
+                                    std::set<std::pair<PathName, Offset>>& entries) const {
 
     CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
@@ -535,13 +557,14 @@ void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
         switch (r->header_.tag_) {
             case TocRecord::TOC_SUB_TOC:
                 s >> path;
-                entries.emplace(std::pair<eckit::PathName, size_t>(path, 0));
+                entries.emplace(std::pair<PathName, Offset>(path, 0));
                 break;
 
             case TocRecord::TOC_INDEX:
                 s >> path;
                 s >> offset;
-                entries.emplace(std::pair<eckit::PathName, size_t>(path, offset));
+                // readNextInternal --> use directory_ not currentDirectory()
+                entries.emplace(std::pair<PathName, Offset>(directory_ / path, offset));
                 break;
 
             case TocRecord::TOC_CLEAR:
@@ -587,7 +610,10 @@ void TocHandler::populateMaskedEntriesList() const {
                     allMaskableEntries(startPosition, currentPosition, maskedEntries_);
                     ASSERT(currentPosition == proxy.position());
                 } else {
-                    maskedEntries_.emplace(std::pair<eckit::PathName, size_t>(path, offset));
+                    // readNextInternal --> use directory_ not currentDirectory()
+                    ASSERT(path.size() > 0);
+                    eckit::PathName absPath = (path[0] == '/') ? PathName(path) : (directory_ / path);
+                    maskedEntries_.emplace(std::pair<PathName, Offset>(absPath, offset));
                 }
                 break;
             }
@@ -624,8 +650,8 @@ void TocHandler::writeInitRecord(const Key &key) {
         directory_.mkdir();
     }
 
-    // Enforce lustre striping if requested
-    if (stripeLustre()) {
+    // enforce lustre striping if requested
+    if (stripeLustre() && !tocPath_.exists()) {
         LustreStripe stripe = stripeIndexLustreSettings();
         fdb5LustreapiFileCreate(tocPath_.localPath(), stripe.size_, stripe.count_);
     }
@@ -716,12 +742,20 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
 
     std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_SUB_TOC)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
+    // We use a relative path to this subtoc if it belongs to the current DB
+    // but an absolute one otherwise (e.g. for fdb-overlay).
+
+    const PathName& absPath = subToc.tocPath();
+    // TODO: See FDB-142. Write subtocs as relative.
+    // PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    const PathName& path = absPath;
+
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
-    s << subToc.tocPath();
+    s << path;
     s << off_t{0};
     append(*r, s.position());
 
-    eckit::Log::debug<LibFdb5>() << "Write TOC_SUB_TOC " << subToc.tocPath() << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Write TOC_SUB_TOC " << path << std::endl;
 }
 
 
@@ -787,7 +821,15 @@ void TocHandler::writeSubTocMaskRecord(const TocHandler &subToc) {
 
     std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
-    size_t sz = roundRecord(*r, buildSubTocMaskRecord(*r, subToc.tocPath()));
+    // We use a relative path to this subtoc if it belongs to the current DB
+    // but an absolute one otherwise (e.g. for fdb-overlay).
+
+    const PathName& absPath = subToc.tocPath();
+    // TODO: See FDB-142. Write subtocs as relative.
+    // PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    const PathName& path = absPath;
+
+    size_t sz = roundRecord(*r, buildSubTocMaskRecord(*r, path));
     appendBlock(r.get(), sz);
 }
 
@@ -944,7 +986,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             break;
 
         case TocRecord::TOC_CLEAR:
-            ASSERT_MSG(r->header_.tag_ != TocRecord::TOC_CLEAR, "The TOC_CLEAR records should have been pre-filtered on the first pass");
+           ASSERT_MSG(r->header_.tag_ != TocRecord::TOC_CLEAR, "The TOC_CLEAR records should have been pre-filtered on the first pass");
             break;
 
         case TocRecord::TOC_SUB_TOC:
@@ -967,6 +1009,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
     if (sorted) {
 
         ASSERT(!indexInSubtoc);
+        ASSERT(!remapKeys);
         std::sort(indexes.begin(), indexes.end(), TocIndexFileSort());
 
     } else {
@@ -976,6 +1019,9 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
 
         if (indexInSubtoc) {
             std::reverse(indexInSubtoc->begin(), indexInSubtoc->end());
+        }
+        if (remapKeys) {
+            std::reverse(remapKeys->begin(), remapKeys->end());
         }
     }
 
@@ -1128,6 +1174,74 @@ DbStats TocHandler::stats() const
     return DbStats(stats);
 }
 
+
+void TocHandler::enumerateMasked(std::set<std::pair<eckit::PathName, Offset>>& metadata,
+                                 std::set<eckit::PathName>& data) const {
+
+    if (!enumeratedMaskedEntries_) {
+        populateMaskedEntriesList();
+    }
+
+    for (const auto& entry : maskedEntries_) {
+
+        const PathName& path = entry.first;
+        if (path.exists()) {
+            metadata.insert(entry);
+
+            // If this is a subtoc, then enumerate its contained indexes and data!
+
+            if (path.baseName().asString().substr(0, 4) == "toc.") {
+                TocHandler h(path, remapKey_);
+
+                h.enumerateMasked(metadata, data);
+
+                std::vector<Index> indexes = h.loadIndexes();
+                for (const auto& i : indexes) {
+                    metadata.insert(std::make_pair<PathName, size_t>(i.location().url(), 0));
+                    for (const auto& dataPath : i.dataPaths()) {
+                        data.insert(dataPath);
+                    }
+                }
+            }
+        }
+    }
+
+    // Get the data files referenced by the masked indexes (those in subtocs are
+    // referenced internally)
+
+    openForRead();
+    TocHandlerCloser close(*this);
+
+    // Allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord);
+
+    while ( readNextInternal(*r) ) {
+        if (r->header_.tag_ == TocRecord::TOC_INDEX) {
+
+            eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
+
+            std::string path;
+            std::string type;
+            off_t offset;
+            s >> path;
+            s >> offset;
+            s >> type;
+
+            // n.b. readNextInternal --> directory_ not currentDirectory()
+            PathName absPath = directory_ / path;
+
+            std::pair<eckit::PathName, size_t> key(absPath, offset);
+            if (maskedEntries_.find(key) != maskedEntries_.end()) {
+                if (absPath.exists()) {
+                    Index index(new TocIndex(s, directory_, absPath, offset));
+                    for (const auto& dataPath : index.dataPaths()) data.insert(dataPath);
+                }
+            }
+        }
+    }
+}
+
+
 size_t TocHandler::tocFilesSize() const {
 
     // Get the size of the master toc
@@ -1194,6 +1308,14 @@ const PathName &TocHandler::currentDirectory() const {
     }
 }
 
+const PathName& TocHandler::currentTocPath() const {
+    if (subTocRead_) {
+        return subTocRead_->currentTocPath();
+    } else {
+        return tocPath_;
+    }
+}
+
 size_t TocHandler::buildIndexRecord(TocRecord& r, const Index &index) {
 
     const IndexLocation& location(index.location());
@@ -1250,7 +1372,15 @@ size_t TocHandler::buildSubTocMaskRecord(TocRecord& r) {
     ASSERT(useSubToc_);
     ASSERT(subTocWrite_);
 
-    return buildSubTocMaskRecord(r, subTocWrite_->tocPath());
+    // We use a relative path to this subtoc if it belongs to the current DB
+    // but an absolute one otherwise (e.g. for fdb-overlay).
+
+    const PathName& absPath = subTocWrite_->tocPath();
+    // TODO: See FDB-142. Write subtocs as relative.
+    // PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+    const PathName& path = absPath;
+
+    return buildSubTocMaskRecord(r, path);
 }
 
 size_t TocHandler::buildSubTocMaskRecord(TocRecord& r, const eckit::PathName& path) {

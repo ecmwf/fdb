@@ -16,6 +16,8 @@
 #ifndef fdb5_TocDBWriter_H
 #define fdb5_TocDBWriter_H
 
+#include "eckit/os/AutoUmask.h"
+
 #include "fdb5/database/Index.h"
 #include "fdb5/toc/TocRecord.h"
 
@@ -34,8 +36,8 @@ class TocDBWriter : public TocDB {
 
 public: // methods
 
-    TocDBWriter(const Key &key, const eckit::Configuration& config);
-    TocDBWriter(const eckit::PathName& directory, const eckit::Configuration& config);
+    TocDBWriter(const Key &key, const fdb5::Config& config);
+    TocDBWriter(const eckit::PathName& directory, const fdb5::Config& config);
 
     virtual ~TocDBWriter();
 
@@ -106,6 +108,8 @@ private: // members
     Index current_;
     Index currentFull_;
     Key currentIndexKey_;
+
+    eckit::AutoUmask umask_;
 
     bool dirty_;
 };

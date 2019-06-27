@@ -23,12 +23,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDB::TocDB(const Key& key, const eckit::Configuration& config) :
+TocDB::TocDB(const Key& key, const fdb5::Config& config) :
     DB(key),
     TocHandler(RootManager(config).directory(key), config) {
 }
 
-TocDB::TocDB(const eckit::PathName& directory, const eckit::Configuration& config) :
+TocDB::TocDB(const eckit::PathName& directory, const fdb5::Config& config) :
     DB(Key()),
     TocHandler(directory, config) {
 
@@ -144,6 +144,11 @@ void TocDB::maskIndexEntry(const Index &index) const {
 
 std::vector<Index> TocDB::indexes(bool sorted) const {
     return loadIndexes(sorted);
+}
+
+void TocDB::allMasked(std::set<std::pair<PathName, Offset>>& metadata,
+                      std::set<PathName>& data) const {
+    enumerateMasked(metadata, data);
 }
 
 void TocDB::visit(DBVisitor &visitor) {

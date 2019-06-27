@@ -30,16 +30,18 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-TocDBWriter::TocDBWriter(const Key &key, const eckit::Configuration& config) :
+TocDBWriter::TocDBWriter(const Key &key, const fdb5::Config& config) :
     TocDB(key, config),
+    umask_(config.umask()),
     dirty_(false) {
     writeInitRecord(key);
     loadSchema();
     checkUID();
 }
 
-TocDBWriter::TocDBWriter(const eckit::PathName &directory, const eckit::Configuration& config) :
+TocDBWriter::TocDBWriter(const eckit::PathName &directory, const fdb5::Config& config) :
     TocDB(directory, config),
+    umask_(config.umask()),
     dirty_(false) {
     writeInitRecord(key());
     loadSchema();
@@ -281,7 +283,9 @@ void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length
 
     eckit::Offset position = dh.position();
 
-    dh.write( data, length );
+    long len = dh.write( data, length );
+
+    ASSERT(len == length);
 
     Field field (TocFieldLocation(dataPath, position, length));
 

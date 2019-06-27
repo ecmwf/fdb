@@ -32,7 +32,7 @@ namespace remote {
 const static eckit::FixedString<4> StartMarker {"SFDB"};
 const static eckit::FixedString<4> EndMarker {"EFDB"};
 
-constexpr uint16_t CurrentVersion = 2;
+constexpr uint16_t CurrentVersion = 5;
 
 
 enum class Message : uint16_t {
@@ -55,9 +55,11 @@ enum class Message : uint16_t {
     // Responses
     Received,
     Blob,
+    MultiBlob,
     Complete,
     Error,
-    ExpectedSize
+    ExpectedSize,
+    Startup
 };
 
 
@@ -76,48 +78,19 @@ public: // methods
         requestID(requestID),
         payloadSize(payloadSize) {}
 
-    eckit::FixedString<4> marker;
+    eckit::FixedString<4> marker;   // 4 bytes  --> 4
 
-    uint16_t version;
+    uint16_t version;               // 2 bytes  --> 6
 
-    Message message;
+    Message message;                // 2 bytes  --> 8
 
-    uint32_t requestID;
+    uint32_t requestID;             // 4 bytes  --> 12
 
-    uint32_t payloadSize;
+    uint32_t payloadSize;           // 4 bytes  --> 16
+
+    eckit::FixedString<16> hash;    // 16 bytes --> 32
 };
 
-
-// // Header used for all messages
-//
-// class MessageHeader : public eckit::Streamable {
-//
-// public: // methods
-//
-//     MessageHeader(Message message, uint16_t payloadSize=0);
-//     MessageHeader(eckit::Stream& s);
-//
-//     // From Streamable
-//
-//     virtual void encode(eckit::Stream& s) const;
-//     virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
-//
-//     static  const eckit::ClassSpec&  classSpec()        { return classSpec_; }
-//
-// public: // members
-//
-//     eckit::FixedString<4> marker;
-//
-//     uint8_t version;
-//
-//     Message message;
-//
-//     uint16_t payloadSize;
-//
-// private:
-//     static  eckit::ClassSpec               classSpec_;
-//     static  eckit::Reanimator<MessageHeader>  reanimator_;
-// };
 
 //----------------------------------------------------------------------------------------------------------------------
 

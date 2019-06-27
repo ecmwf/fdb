@@ -265,7 +265,13 @@ bool Key::partialMatch(const metkit::MarsRequest& request) const {
 
 
 const TypesRegistry& Key::registry() const {
-    return rule_ ? rule_->registry() : LibFdb5::instance().defaultConfig().schema().registry();
+    if(rule_) {
+        return rule_->registry();
+    }
+    else {
+        Config config = LibFdb5::instance().defaultConfig();
+        return config.schema().registry();
+    }
 }
 
 std::string Key::valuesToString() const {

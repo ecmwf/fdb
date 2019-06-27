@@ -14,7 +14,6 @@
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/config/UMask.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
@@ -78,8 +77,6 @@ void FdbOverlay::init(const option::CmdArgs& args) {
 
 void FdbOverlay::execute(const option::CmdArgs& args) {
 
-    UMask umask(UMask::defaultUMask());
-
     if (args.count() != 2) {
         usage("fdb-overlay");
         return;
@@ -95,7 +92,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     ASSERT(!sourceRequest.all());
     ASSERT(!targetRequest.all());
 
-    const Config& config = LibFdb5::instance().defaultConfig();
+    Config config = LibFdb5::instance().defaultConfig();
     const Schema& schema = config.schema();
 
     Key source;
@@ -107,6 +104,23 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         Log::info() << "Removing " << source << " from " << target << std::endl;
     } else {
         Log::info() << "Applying " << source << " onto " << target << std::endl;
+    }
+
+    if (source.keys() != target.keys()) {
+        std::stringstream ss;
+        ss << "Keys insufficiently matching for mount: " << source << " : " << target << std::endl;
+        throw UserError(ss.str(), Here());
+    }
+
+    std::set<std::string> vkeys(variableKeys_.begin(), variableKeys_.end());
+    for (const auto& kv : target) {
+        auto it = source.find(kv.first);
+        ASSERT(it != source.end());
+        if (kv.second != it->second && vkeys.find(kv.first) == vkeys.end()) {
+            std::stringstream ss;
+            ss << "Key " << kv.first << " not allowed to differ between DBs: " << source << " : " << target;
+            throw UserError(ss.str(), Here());
+        }
     }
 
     std::unique_ptr<DB> dbSource(DBFactory::buildReader(source, config));
@@ -151,7 +165,6 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     ASSERT(tocSourceDB);
     ASSERT(tocTargetDB);
 
-    std::set<std::string> vkeys(variableKeys_.begin(), variableKeys_.end());
     tocTargetDB->overlayDB(*tocSourceDB, vkeys, remove_);
 }
 

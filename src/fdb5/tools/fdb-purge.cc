@@ -32,10 +32,13 @@ public: // methods
 
     FDBPurge(int argc, char **argv) :
         FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
-        doit_(false) {
+        doit_(false),
+        porcelain_(false),
+        ignoreNoData_(false) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
-        verbose_ = true;
+        options_.push_back(new SimpleOption<bool>("ignore-no-data", "No data available to delete is not an error"));
+        options_.push_back(new SimpleOption<bool>("porcelain", "List only the deleted files"));
     }
 
 private: // methods
@@ -45,12 +48,16 @@ private: // methods
     virtual void finish(const CmdArgs &args);
 
     bool doit_;
+    bool porcelain_;
+    bool ignoreNoData_;
 };
 
 
 void FDBPurge::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
     args.get("doit", doit_);
+    args.get("porcelain", porcelain_);
+    args.get("ignore-no-data", ignoreNoData_);
 }
 
 void FDBPurge::execute(const CmdArgs& args) {
@@ -59,11 +66,13 @@ void FDBPurge::execute(const CmdArgs& args) {
 
     for (const FDBToolRequest& request : requests()) {
 
-        Log::info() << "Purging for request" << std::endl;
-        request.print(Log::info());
-        Log::info() << std::endl;
+        if (!porcelain_) {
+            Log::info() << "Purging for request" << std::endl;
+            request.print(Log::info());
+            Log::info() << std::endl;
+        }
 
-        auto purgeIterator = fdb.purge(request, doit_, verbose_);
+        auto purgeIterator = fdb.purge(request, doit_, porcelain_);
 
         size_t count = 0;
         PurgeElement elem;
@@ -72,7 +81,7 @@ void FDBPurge::execute(const CmdArgs& args) {
             count++;
         }
 
-        if (count == 0 && fail()) {
+        if (count == 0 && fail() && !ignoreNoData_) {
             std::stringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
@@ -83,7 +92,7 @@ void FDBPurge::execute(const CmdArgs& args) {
 
 void FDBPurge::finish(const CmdArgs&) {
 
-    if (!doit_) {
+    if (!doit_ && !porcelain_) {
         Log::info() << std::endl
                     << "Rerun command with --doit flag to delete unused files"
                     << std::endl

@@ -25,8 +25,10 @@ class PurgeVisitor : public virtual StatsReportVisitor {
 public: // methods
     using StatsReportVisitor::StatsReportVisitor;
 
+    // n.b. report is only called when either doit=false OR porcelain=false
     virtual void report(std::ostream& out) const = 0;
-    virtual void purge(std::ostream& out, bool verbose) const = 0;
+
+    virtual void purge(std::ostream& out, bool porcelain, bool doit) const = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

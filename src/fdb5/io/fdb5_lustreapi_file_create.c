@@ -12,6 +12,11 @@
 
 #include <lustre/lustreapi.h>
 
+/// Silence messages from the lustre library
+void fdb5_lustreapi_silence_msg() {
+    llapi_msg_set_level(LLAPI_MSG_OFF);
+}
+
 /// Provides a interface to Lustre API, however it must be accessed via a C code due to some
 /// lustreapi.h incompatibility with C++
 /// This code won't be compiled if build system doesnt HAVE_LUSTRE

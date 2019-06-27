@@ -35,7 +35,7 @@ public:
     PurgeVisitor(eckit::Queue<PurgeElement>& queue,
                  const metkit::MarsRequest& request,
                  bool doit,
-                 bool verbose);
+                 bool porcelain);
 
     bool visitDatabase(const DB& db) override;
     bool visitIndex(const Index& index) override;
@@ -47,7 +47,7 @@ private: // members
 
     eckit::Channel out_;
     bool doit_;
-    bool verbose_;
+    bool porcelain_;
 
     std::unique_ptr<fdb5::PurgeVisitor> internalVisitor_;
 };

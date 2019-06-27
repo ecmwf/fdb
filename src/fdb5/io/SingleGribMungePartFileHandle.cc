@@ -103,7 +103,10 @@ long SingleGribMungePartFileHandle::read(void* buffer, long length) {
             ss << name_ << ": cannot seek to " << off << " (file=" << fileno(file_) << ")";
             throw ReadError(ss.str());
         }
-        ASSERT(::ftello(file_) == off);
+
+        off_t pos;
+        SYSCALL(pos = ::ftello(file_));
+        ASSERT(pos == off);
         ASSERT(::fread(readBuffer, 1, length_, file_) == static_cast<size_t>(length_));
 
         // Do the GRIB manipulation

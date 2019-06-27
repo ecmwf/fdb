@@ -20,10 +20,11 @@
 
 #include "eckit/memory/Owned.h"
 #include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
 #include "eckit/types/Types.h"
-#include "eckit/config/LocalConfiguration.h"
 
 #include "fdb5/database/Key.h"
+#include "fdb5/config/Config.h"
 
 namespace eckit {
 class DataHandle;
@@ -110,6 +111,11 @@ public: // methods
     /// For use by the WipeVisitor
     virtual void maskIndexEntry(const Index& index) const = 0;
 
+    /// For use by purge/wipe
+
+    virtual void allMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
+                           std::set<eckit::PathName>& data) const {}
+
 protected: // methods
 
     virtual void print( std::ostream &out ) const = 0;
@@ -132,8 +138,8 @@ class DBFactory : private eckit::NonCopyable {
     bool read_;
     bool write_;
 
-    virtual DB *make(const Key &key, const eckit::Configuration& config) const = 0 ;
-    virtual DB *make(const eckit::PathName& path, const eckit::Configuration& config) const = 0 ;
+    virtual DB *make(const Key &key, const fdb5::Config& config) const = 0 ;
+    virtual DB *make(const eckit::PathName& path, const fdb5::Config& config) const = 0 ;
 
 protected:
 
@@ -143,9 +149,9 @@ protected:
 public:
 
     static void list(std::ostream &);
-    static DB* buildWriter(const Key &key, const eckit::Configuration& config=eckit::LocalConfiguration());
-    static DB* buildReader(const Key &key, const eckit::Configuration& config=eckit::LocalConfiguration());
-    static DB* buildReader(const eckit::PathName& path, const eckit::Configuration& config=eckit::LocalConfiguration());
+    static DB* buildWriter(const Key &key, const fdb5::Config& config = fdb5::Config());
+    static DB* buildReader(const Key &key, const fdb5::Config& config = fdb5::Config());
+    static DB* buildReader(const eckit::PathName& path, const fdb5::Config& config = fdb5::Config());
 
 private: // methods
 
@@ -161,10 +167,10 @@ private: // methods
 template< class T>
 class DBBuilder : public DBFactory {
 
-    virtual DB *make(const Key &key, const eckit::Configuration& config) const {
+    virtual DB *make(const Key &key, const fdb5::Config& config) const {
         return new T(key, config);
     }
-    virtual DB *make(const eckit::PathName& path, const eckit::Configuration& config) const {
+    virtual DB *make(const eckit::PathName& path, const fdb5::Config& config) const {
         return new T(path, config);
     }
 

@@ -211,19 +211,19 @@ WhereIterator DistFDB::where(const FDBToolRequest& request) {
     });
 }
 
-WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool verbose) {
+WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain) {
     Log::debug<LibFdb5>() << "DistFDB::wipe() : " << request << std::endl;
     return queryInternal(request,
-                         [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.wipe(request, doit, verbose);
+                         [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.wipe(request, doit, porcelain);
     });
 }
 
-PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool verbose) {
+PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
     Log::debug<LibFdb5>() << "DistFDB::purge() : " << request << std::endl;
     return queryInternal(request,
-                         [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.purge(request, doit, verbose);
+                         [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.purge(request, doit, porcelain);
     });
 }
 
@@ -238,33 +238,15 @@ StatsIterator DistFDB::stats(const FDBToolRequest &request) {
 
 void DistFDB::flush() {
 
-    std::vector<std::thread> threads;
-    std::vector<std::promise<int>> promises(lanes_.size());
-    std::vector<std::future<int>> futures;
+    std::vector<std::future<void>> futures;
 
     for (size_t i = 0; i < lanes_.size(); i++) {
 
         FDB& lane(lanes_[i]);
-        std::promise<int>& prm(promises[i]);
-        futures.emplace_back(prm.get_future());
 
-        threads.emplace_back(std::thread([&lane, &prm]{
-            try {
-                lane.flush();
-                prm.set_value(0);
-            } catch (...) {
-                prm.set_exception(std::current_exception());
-            }
+        futures.emplace_back(std::async(std::launch::async, [&lane] {
+            lane.flush();
         }));
-    }
-
-    for (auto& fut : futures) {
-        fut.get();
-    }
-
-    for (std::thread& thread : threads) {
-        ASSERT(thread.joinable());
-        thread.join();
     }
 }
 

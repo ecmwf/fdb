@@ -22,7 +22,6 @@
 #include "metkit/grib/MetFile.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
@@ -139,8 +138,6 @@ eckit::Channel& GribArchiver::logVerbose() const {
 }
 
 eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
-
-    fdb5::UMask umask(fdb5::UMask::defaultUMask());
 
     eckit::Timer timer("fdb::service::archive");
 

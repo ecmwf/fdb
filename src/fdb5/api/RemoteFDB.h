@@ -17,10 +17,12 @@
 #include <future>
 #include <thread>
 
+#include "eckit/container/Queue.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/net/Endpoint.h"
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
-#include "eckit/io/Buffer.h"
-#include "eckit/container/Queue.h"
+#include "eckit/runtime/SessionID.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
@@ -57,9 +59,9 @@ public: // method
 
     WhereIterator where(const FDBToolRequest& request) override;
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) override;
+    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
-    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool verbose) override;
+    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
@@ -78,6 +80,7 @@ private: // methods
     void controlWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(const void* data, size_t length);
     void controlRead(void* data, size_t length);
+    void dataWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void dataWrite(const void* data, size_t length);
     void dataRead(void* data, size_t length);
     void handleError(const remote::MessageHeader& hdr);
@@ -92,6 +95,7 @@ private: // methods
     FDBStats archiveThreadLoop(uint32_t requestID);
 
     void sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length);
+    long sendArchiveData(uint32_t id, const std::vector<std::pair<Key, eckit::Buffer>>& elements, size_t count);
 
     virtual void print(std::ostream& s) const override;
 
@@ -99,10 +103,11 @@ private: // methods
 
 private: // members
 
-    std::string hostname_;
-    int port_;
-    int dataport_;
-//
+    eckit::SessionID sessionID_;
+
+    eckit::Endpoint controlEndpoint_;
+    eckit::Endpoint dataEndpoint_;
+
     eckit::TCPClient controlClient_;
     eckit::TCPClient dataClient_;
 
@@ -127,7 +132,10 @@ private: // members
 
     // Helpers for retrievals
 
+    uint32_t archiveID_;
     size_t maxArchiveQueueLength_;
+    size_t maxArchiveBatchSize_;
+    std::mutex archiveQueuePtrMutex_;
     std::unique_ptr<ArchiveQueue> archiveQueue_;
     MessageQueue retrieveMessageQueue_;
 

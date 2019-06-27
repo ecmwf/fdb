@@ -21,6 +21,7 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/net/TCPServer.h"
+#include "eckit/runtime/SessionID.h"
 
 #include "metkit/MarsRequest.h"
 
@@ -55,6 +56,9 @@ private: // methods
 
     // Socket methods
 
+    int selectDataPort();
+    void initialiseConnections();
+
     void controlWrite(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(const void* data, size_t length);
     void socketRead(void* data, size_t length, eckit::TCPSocket& socket);
@@ -87,8 +91,12 @@ private: // methods
 
 private: // members
 
+    Config config_;
+    eckit::SessionID sessionID_;
+
     eckit::TCPSocket controlSocket_;
     eckit::TCPServer dataSocket_;
+    std::string dataListenHostname_;
     std::mutex dataWriteMutex_;
 
     // API helpers
