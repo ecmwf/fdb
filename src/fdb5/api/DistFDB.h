@@ -31,6 +31,8 @@ class DistFDB : public FDBBase {
 
 public: // method
 
+    using FDBBase::stats;
+
     DistFDB(const eckit::Configuration& config, const std::string& name);
     ~DistFDB() override;
 

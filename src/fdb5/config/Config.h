@@ -23,6 +23,11 @@
 #include "eckit/filesystem/PathName.h"
 
 
+#ifdef _CRAYCC
+#pragma _CRI noopt
+#endif
+
+
 namespace fdb5 {
 
 class Schema;
