@@ -55,16 +55,16 @@ bool TocDBReader::selectIndex(const Key &key) {
 
     currentIndexKey_ = key;
 
-    for (auto& idx : matching_) {
-        idx.first.close();
+    for (auto idx = matching_.begin(); idx != matching_.end(); ++idx) {
+        idx->first.close();
     }
 
     matching_.clear();
 
 
-    for (const auto& idx : indexes_) {
-        if (idx.first.key() == key) {
-            matching_.push_back(idx);
+    for (auto idx = indexes_.begin(); idx != indexes_.end(); ++idx) {
+        if (idx->first.key() == key) {
+            matching_.push_back(*idx);
         }
     }
 
@@ -93,15 +93,15 @@ bool TocDBReader::open() {
 }
 
 void TocDBReader::axis(const std::string &keyword, eckit::StringSet &s) const {
-    for (const auto& m : matching_ ){
-        const eckit::StringSet& a = m.first.axes().values(keyword);
+    for (auto m = matching_.begin(); m != matching_.end(); ++m) {
+        const eckit::StringSet& a = m->first.axes().values(keyword);
         s.insert(a.begin(), a.end());
     }
 }
 
 void TocDBReader::close() {
-    for (auto& m : matching_) {
-        m.first.close();
+    for (auto m = matching_.begin(); m != matching_.end(); ++m) {
+        m->first.close();
     }
 }
 
@@ -111,9 +111,9 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
     eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
 
     Field field;
-    for (const auto& m : matching_) {
-        const Index& idx(m.first);
-        const Key& remapKey(m.second);
+    for (auto m = matching_.begin(); m != matching_.end(); ++m) {
+        const Index& idx(m->first);
+        const Key& remapKey(m->second);
 
         if (idx.mayContain(key)) {
             const_cast<Index&>(idx).open();
@@ -139,8 +139,8 @@ std::vector<Index> TocDBReader::indexes(bool sorted) const {
 
     std::vector<Index> returnedIndexes;
     returnedIndexes.reserve(indexes_.size());
-    for (const auto& idx : indexes_) {
-        returnedIndexes.emplace_back(idx.first);
+    for (auto idx = indexes_.begin(); idx != indexes_.end(); ++idx) {
+        returnedIndexes.emplace_back(idx->first);
     }
 
     // If required, sort the indexes by file, and location within the file, for efficient iteration.

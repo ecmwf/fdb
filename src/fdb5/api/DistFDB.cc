@@ -69,23 +69,26 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     std::vector<size_t> laneIndices;
 
-    Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
-    Log::debug<LibFdb5>() << "Lane indices: ";
-    for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
-    Log::debug<LibFdb5>() << std::endl;
+    //Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
+    //Log::debug<LibFdb5>() << "Lane indices: ";
+    //for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
+    //Log::debug<LibFdb5>() << std::endl;
 
     hash_.hashOrder(key.keyDict(), laneIndices);
 
-    Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
-    Log::debug<LibFdb5>() << "Lane indices: ";
-    for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
-    Log::debug<LibFdb5>() << std::endl;
+    //Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
+    //Log::debug<LibFdb5>() << "Lane indices: ";
+    //for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
+    //Log::debug<LibFdb5>() << std::endl;
 
     // Given an order supplied by the Rendezvous hash, try the FDB in order until
     // one works. n.b. Errors are unacceptable once the FDB is dirty.
     Log::debug<LibFdb5>() << "Attempting dist FDB archive" << std::endl;
 
-    for (size_t idx : laneIndices) {
+    decltype(laneIndices)::const_iterator it = laneIndices.begin();
+    decltype(laneIndices)::const_iterator end = laneIndices.end();
+    for (; it != end; ++it) {
+        size_t idx = *it;
 
         FDB& lane = lanes_[idx];
 

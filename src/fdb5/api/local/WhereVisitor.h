@@ -34,6 +34,10 @@ public:
     bool visitDatabase(const DB& db) override { queue_.emplace(db.basePath()); return true; }
     bool visitIndex(const Index&) override { NOTIMP; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
+
+    void visitDatum(const Field& field, const std::string& keyFingerprint) {
+        EntryVisitor::visitDatum(field, keyFingerprint);
+    }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
