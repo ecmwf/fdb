@@ -45,6 +45,8 @@ public: // types
 
 public: // method
 
+    using FDBBase::stats;
+
     RemoteFDB(const eckit::Configuration& config, const std::string& name);
     ~RemoteFDB() override;
 

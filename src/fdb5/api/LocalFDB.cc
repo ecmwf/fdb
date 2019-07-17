@@ -34,7 +34,6 @@ using namespace eckit;
 
 
 namespace fdb5 {
-
 void LocalFDB::archive(const Key& key, const void* data, size_t length) {
 
     if (!archiver_) {

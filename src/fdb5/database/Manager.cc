@@ -218,7 +218,7 @@ std::set<std::string> Manager::engines(const metkit::MarsRequest& rq, bool all)
         const EngineTable& engineTypes(readEngineTypes(enginesFile_));
 
         if (all) {
-            for (const auto& e : engineTypes) s.insert(e.engine());
+            for (auto e = engineTypes.begin(); e != engineTypes.end(); ++e) s.insert(e->engine());
         } else {
 
             // Match all possible expansions of the first level according to the schema
@@ -226,13 +226,13 @@ std::set<std::string> Manager::engines(const metkit::MarsRequest& rq, bool all)
             config_.schema().matchFirstLevel(rq, keys, "");
 
             std::set<std::string> expandedKeys;
-            for (const auto& k : keys) {
-                expandedKeys.insert(k.valuesToString());
+            for (auto k = keys.begin(); k != keys.end(); ++k) {
+                expandedKeys.insert(k->valuesToString());
             }
 
-            for (const auto& e : engineTypes) {
-                for (const auto& expanded : expandedKeys) {
-                    if (e.match(expanded)) s.insert(e.engine());
+            for (auto e = engineTypes.begin(); e != engineTypes.end(); ++e) {
+                for (auto expanded = expandedKeys.begin(); expanded != expandedKeys.end(); ++expanded) {
+                    if (e->match(*expanded)) s.insert(e->engine());
                 }
             }
         }
