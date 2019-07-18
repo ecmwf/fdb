@@ -57,13 +57,17 @@ public: // method
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
-    WhereIterator where(const FDBToolRequest& request) override;
+    StatusIterator status(const FDBToolRequest& request) override;
 
     WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
     StatsIterator stats(const FDBToolRequest& request) override;
+
+    ControlIterator control(const FDBToolRequest& request,
+                            ControlAction action,
+                            ControlIdentifiers identifiers) override;
 
     void flush() override;
 

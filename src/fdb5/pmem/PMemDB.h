@@ -89,6 +89,15 @@ protected: // methods
 
     virtual std::vector<Index> indexes(bool sorted=false) const;
 
+    // Control access properties of the DB
+
+    void control(const ControlAction& action, const ControlIdentifiers& identifiers) override { NOTIMP; }
+
+    bool retrieveLocked() const override { NOTIMP; }
+    bool archiveLocked() const override { NOTIMP; }
+    bool listLocked() const override { NOTIMP; }
+    bool wipeLocked() const override { NOTIMP; }
+
 private: // methods
 
     /// Initialise or open the peristent pool. Worker function for the construtor

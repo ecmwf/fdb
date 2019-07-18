@@ -135,9 +135,9 @@ struct StatsHelper : public BaseHelper<StatsElement> {
     }
 };
 
-struct WhereHelper : public BaseHelper<WhereElement> {
-    WhereIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.where(request);
+struct StatusHelper : public BaseHelper<StatusElement> {
+    StatusIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.status(request);
     }
 };
 
@@ -155,6 +155,22 @@ struct WipeHelper : public BaseHelper<WipeElement> {
 private:
     bool doit_;
     bool porcelain_;
+};
+
+struct ControlHelper : public BaseHelper<ControlElement> {
+
+    void extraDecode(eckit::Stream& s) {
+        s >> action_;
+        identifiers_ = ControlIdentifiers(s);
+    }
+
+    ControlIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.control(request, action_, identifiers_);
+    }
+
+private:
+    ControlAction action_;
+    ControlIdentifiers identifiers_;
 };
 
 } // namespace
@@ -307,12 +323,16 @@ void RemoteHandler::handle() {
                 forwardApiCall<StatsHelper>(hdr);
                 break;
 
-            case Message::Where:
-                forwardApiCall<WhereHelper>(hdr);
+            case Message::Status:
+                forwardApiCall<StatusHelper>(hdr);
                 break;
 
             case Message::Wipe:
                 forwardApiCall<WipeHelper>(hdr);
+                break;
+
+            case Message::Control:
+                forwardApiCall<ControlHelper>(hdr);
                 break;
 
             case Message::Flush:

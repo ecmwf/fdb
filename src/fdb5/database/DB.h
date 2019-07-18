@@ -45,6 +45,9 @@ class Schema;
 class DBVisitor;
 class DbStats;
 
+enum class ControlAction : uint16_t;
+class ControlIdentifiers;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class DB : public eckit::OwnedLock {
@@ -98,6 +101,15 @@ public: // methods
     virtual const Schema& schema() const = 0;
 
     virtual DbStats statistics() const = 0;
+
+    // Control access properties of the DB
+
+    virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
+
+    virtual bool retrieveLocked() const = 0;
+    virtual bool archiveLocked() const = 0;
+    virtual bool listLocked() const = 0;
+    virtual bool wipeLocked() const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const DB &x);
 

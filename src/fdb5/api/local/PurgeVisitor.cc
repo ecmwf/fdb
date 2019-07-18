@@ -36,6 +36,9 @@ PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
 
 bool PurgeVisitor::visitDatabase(const DB& db) {
 
+    // If the DB is locked for wiping, then it "doesn't exist"
+    if (db.wipeLocked()) return false;
+
     EntryVisitor::visitDatabase(db);
 
     // If the request is overspecified relative to the DB key, then we

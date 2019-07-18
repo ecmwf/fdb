@@ -17,14 +17,15 @@
 #include <memory>
 #include <iosfwd>
 
-#include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
-#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
-#include "fdb5/api/helpers/WhereIterator.h"
-#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
+#include "fdb5/api/helpers/StatusIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/config/Config.h"
 
 namespace metkit { class MarsRequest; }
 
@@ -65,13 +66,18 @@ public: // methods
 
     DumpIterator dump(const FDBToolRequest& request, bool simple=false);
 
-    WhereIterator where(const FDBToolRequest& request);
+    /// TODO: Is this function superfluous given the control() function?
+    StatusIterator status(const FDBToolRequest& request);
 
     WipeIterator wipe(const FDBToolRequest& request, bool doit=false, bool porcelain=false);
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit=false, bool porcelain=false);
 
     StatsIterator stats(const FDBToolRequest& request);
+
+    ControlIterator control(const FDBToolRequest& request,
+                            ControlAction action,
+                            ControlIdentifiers identifiers);
 
     bool dirty() const;
 

@@ -73,6 +73,15 @@ protected: // methods
     void allMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
                    std::set<eckit::PathName>& data) const override;
 
+    // Control access properties of the DB
+
+    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
+
+    bool retrieveLocked() const override;
+    bool archiveLocked() const override;
+    bool listLocked() const override;
+    bool wipeLocked() const override;
+
 private: // members
 
     Schema schema_;

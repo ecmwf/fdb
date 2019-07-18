@@ -459,13 +459,7 @@ using ListHelper = BaseAPIHelper<ListElement, Message::List>;
 
 using StatsHelper = BaseAPIHelper<StatsElement, Message::Stats>;
 
-struct WhereHelper : public BaseAPIHelper<WhereElement, Message::Where> {
-    static WhereElement valueFromStream(eckit::Stream& s) {
-        WhereElement elem;
-        s >> elem;
-        return elem;
-    }
-};
+using StatusHelper = BaseAPIHelper<StatusElement, Message::Status>;
 
 struct DumpHelper : BaseAPIHelper<DumpElement, Message::Dump> {
 
@@ -515,6 +509,21 @@ struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
 private:
     bool doit_;
     bool porcelain_;
+};
+
+struct ControlHelper : BaseAPIHelper<ControlElement, Message::Control> {
+
+    ControlHelper(ControlAction action, ControlIdentifiers identifiers) :
+        action_(action),
+        identifiers_(identifiers) {}
+    void encodeExtra(eckit::Stream& s) const {
+        s << action_;
+        s << identifiers_;
+    }
+
+private:
+    ControlAction action_;
+    ControlIdentifiers identifiers_;
 };
 
 } // namespace
@@ -585,8 +594,8 @@ DumpIterator RemoteFDB::dump(const FDBToolRequest& request, bool simple) {
     return forwardApiCall(DumpHelper(simple), request);
 }
 
-WhereIterator RemoteFDB::where(const FDBToolRequest& request) {
-    return forwardApiCall(WhereHelper(), request);
+StatusIterator RemoteFDB::status(const FDBToolRequest& request) {
+    return forwardApiCall(StatusHelper(), request);
 }
 
 WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain) {
@@ -600,6 +609,12 @@ PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit, bool po
 StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
 }
+
+ControlIterator RemoteFDB::control(const FDBToolRequest& request,
+                                   ControlAction action,
+                                   ControlIdentifiers identifiers) {
+    return forwardApiCall(ControlHelper(action, identifiers), request);
+};
 
 // -----------------------------------------------------------------------------------------------------
 

@@ -21,16 +21,19 @@ class ApiSpy : public fdb5::FDBBase {
 private: // types
 
     struct Counts {
-        Counts() : archive(0), retrieve(0), list(0), dump(0), where(0), wipe(0), purge(0), stats(0), flush(0) {}
+        Counts() :
+            archive(0), retrieve(0), list(0), dump(0), status(0), wipe(0),
+            purge(0), stats(0), flush(0), control(0) {}
         size_t archive;
         size_t retrieve;
         size_t list;
         size_t dump;
-        size_t where;
+        size_t status;
         size_t wipe;
         size_t purge;
         size_t stats;
         size_t flush;
+        size_t control;
     };
 
     using Archives = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
@@ -77,9 +80,9 @@ public: // methods
         return fdb5::DumpIterator(0);
     }
 
-    fdb5::WhereIterator where(const fdb5::FDBToolRequest& request) override {
-        counts_.where += 1;
-        return fdb5::WhereIterator(0);
+    fdb5::StatusIterator status(const fdb5::FDBToolRequest& request) override {
+        counts_.status += 1;
+        return fdb5::StatusIterator(0);
     }
 
     fdb5::WipeIterator wipe(const fdb5::FDBToolRequest& request, bool doit, bool verbose) override {
@@ -95,6 +98,13 @@ public: // methods
     fdb5::StatsIterator stats(const fdb5::FDBToolRequest& request) override {
         counts_.stats += 1;
         return fdb5::StatsIterator(0);
+    }
+
+    fdb5::ControlIterator control(const fdb5::FDBToolRequest& request,
+                                  fdb5::ControlAction action,
+                                  fdb5::ControlIdentifiers identifiers) override {
+        counts_.control += 1;
+        return fdb5::ControlIterator(0);
     }
 
     void flush() override {

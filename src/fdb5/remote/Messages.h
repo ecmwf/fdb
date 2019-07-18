@@ -32,7 +32,7 @@ namespace remote {
 const static eckit::FixedString<4> StartMarker {"SFDB"};
 const static eckit::FixedString<4> EndMarker {"EFDB"};
 
-constexpr uint16_t CurrentVersion = 5;
+constexpr uint16_t CurrentVersion = 6;
 
 
 enum class Message : uint16_t {
@@ -47,10 +47,11 @@ enum class Message : uint16_t {
     Retrieve,
     List,
     Dump,
-    Where,
+    Status,
     Wipe,
     Purge,
     Stats,
+    Control,
 
     // Responses
     Received,

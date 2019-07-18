@@ -96,6 +96,9 @@ std::vector<PathName> TocDB::metadataPaths() const {
     paths.emplace_back(schemaPath());
     paths.emplace_back(tocPath());
 
+    std::vector<PathName>&& lpaths(lockfilePaths());
+    paths.insert(paths.end(), lpaths.begin(), lpaths.end());
+
     return paths;
 }
 
@@ -114,9 +117,10 @@ void TocDB::visitEntries(EntryVisitor& visitor, bool sorted) {
                 }
             }
         }
+
+        visitor.databaseComplete(*this);
     }
 
-    visitor.databaseComplete(*this);
 }
 
 void TocDB::loadSchema() {
@@ -162,6 +166,26 @@ std::string TocDB::dbType() const
 
 void TocDB::checkUID() const {
     TocHandler::checkUID();
+}
+
+void TocDB::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
+    TocHandler::control(action, identifiers);
+}
+
+bool TocDB::retrieveLocked() const {
+    return TocHandler::retrieveLocked();
+}
+
+bool TocDB::archiveLocked() const {
+    return TocHandler::archiveLocked();
+}
+
+bool TocDB::listLocked() const {
+    return TocHandler::listLocked();
+}
+
+bool TocDB::wipeLocked() const {
+    return TocHandler::wipeLocked();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

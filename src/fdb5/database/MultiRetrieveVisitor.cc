@@ -68,6 +68,14 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     std::unique_ptr<DB> newDB( DBFactory::buildReader(key, config_) );
 
+    // If this database is locked for retrieval then it "does not exist"
+    if (newDB->retrieveLocked()) {
+        std::ostringstream ss;
+        ss << "Database " << *newDB << " is LOCKED for retrieval";
+        eckit::Log::warning() << ss.str() << std::endl;
+        return false;
+    }
+
     eckit::Log::debug<LibFdb5>() << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")" << std::endl;
 
     if (!newDB->open()) {

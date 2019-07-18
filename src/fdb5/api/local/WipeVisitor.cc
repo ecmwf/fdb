@@ -88,6 +88,9 @@ WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue,
 
 bool WipeVisitor::visitDatabase(const DB& db) {
 
+    // If the DB is locked for wiping, then it "doesn't exist"
+    if (db.wipeLocked()) return false;
+
     EntryVisitor::visitDatabase(db);
 
     ASSERT(metadataPaths_.empty());

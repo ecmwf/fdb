@@ -63,12 +63,15 @@ list( APPEND fdb5_srcs
     api/SelectFDB.h
 
     api/helpers/APIIterator.h
+    api/helpers/ControlIterator.cc
+    api/helpers/ControlIterator.h
     api/helpers/FDBToolRequest.cc
     api/helpers/FDBToolRequest.h
     api/helpers/DumpIterator.h
     api/helpers/ListIterator.cc
     api/helpers/ListIterator.h
-    api/helpers/WhereIterator.h
+    api/helpers/StatusIterator.cc
+    api/helpers/StatusIterator.h
     api/helpers/WipeIterator.h
     api/helpers/PurgeIterator.h
     api/helpers/StatsIterator.cc
@@ -77,14 +80,16 @@ list( APPEND fdb5_srcs
     api/local/QueryVisitor.h
     api/local/QueueStringLogTarget.h
     api/local/ListVisitor.h
+    api/local/ControlVisitor.cc
+    api/local/ControlVisitor.h
     api/local/DumpVisitor.h
-    api/local/WhereVisitor.h
     api/local/WipeVisitor.cc
     api/local/WipeVisitor.h
     api/local/PurgeVisitor.cc
     api/local/PurgeVisitor.h
     api/local/StatsVisitor.cc
     api/local/StatsVisitor.h
+    api/local/StatusVisitor.h
 
     config/Config.cc
     config/Config.h
@@ -396,6 +401,9 @@ list( APPEND fdb5_tools
     fdb-schema
     fdb-where
     fdb-info
+    fdb-status
+    fdb-lock
+    fdb-unlock
 )
 
 if ( HAVE_TOCFDB )
@@ -443,3 +451,8 @@ ecbuild_add_executable(
             remote/AvailablePortList.cc
             remote/AvailablePortList.h
         LIBS fdb5 )
+
+if ( HAVE_FDB_TOOLS )
+    target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
+    target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
+endif()

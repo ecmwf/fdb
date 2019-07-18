@@ -28,6 +28,8 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+// TODO: This WipeVisitor is really a TocWipeVisitor in disguise. This needs to be split out.
+
 class WipeVisitor : public QueryVisitor<WipeElement> {
 public:
 
