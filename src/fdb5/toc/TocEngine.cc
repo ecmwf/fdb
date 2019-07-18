@@ -55,6 +55,13 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
         if (errno == ENOENT) {
             return;
         }
+
+        // It should not be an error if we don't have permission to read a path/DB in the
+        // tree. This is a multi-user system.
+        if (errno == EPERM) {
+            return;
+        }
+
         Log::error() << "opendir(" << path << ")" << Log::syserr << std::endl;
         throw FailedSystemCall("opendir");
     }
