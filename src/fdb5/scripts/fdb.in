@@ -2,8 +2,6 @@
 
 shopt -s nullglob
 
-export FDB_ASYNC_WRITE=1
-
 BINDIR=$(dirname $0)
 PROC=$1
 
