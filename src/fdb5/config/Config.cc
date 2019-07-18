@@ -179,8 +179,8 @@ const Schema& Config::schema() const {
 }
 
 mode_t Config::umask() const {
-    if(has("umask")) {
-        return FileMode(getString("umask")).mask();
+    if(has("permissions")) {
+        return FileMode(getString("permissions")).mask();
     }
     static eckit::FileMode fdbFileMode(eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();

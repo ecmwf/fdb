@@ -23,6 +23,7 @@
 
 using namespace eckit;
 
+
 namespace fdb5 {
 namespace api {
 namespace local {
@@ -170,7 +171,8 @@ bool WipeVisitor::visitIndex(const Index& index) {
 
     // Enumerate data files.
 
-    for (const eckit::PathName& path : index.dataPaths()) {
+    std::vector<eckit::PathName> indexDataPaths(index.dataPaths());
+    for (const eckit::PathName& path : indexDataPaths) {
         if (include && path.dirName().sameAs(basePath_)) {
             dataPaths_.insert(path);
         } else {
@@ -291,8 +293,6 @@ void WipeVisitor::databaseComplete(const DB& db) {
     safePaths_.clear();
     indexesToMask_.clear();
 }
-
-
 
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -82,6 +82,10 @@ public:
         }
     }
 
+    void visitDatum(const Field& field, const std::string& keyFingerprint) {
+        EntryVisitor::visitDatum(field, keyFingerprint);
+    }
+
 private: // members
 
     metkit::MarsRequest indexRequest_;

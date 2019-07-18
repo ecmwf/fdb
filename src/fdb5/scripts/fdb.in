@@ -2,8 +2,6 @@
 
 shopt -s nullglob
 
-export FDB_ASYNC_WRITE=1
-
 BINDIR=$(dirname $0)
 PROC=$1
 
@@ -11,14 +9,13 @@ PROC=$1
 
 function usage {
     echo "Usage $(basename $0): command [options] ..."
-    echo "Commands are:"
+    echo "General purpose commands are:"
 
     (
     declare -F | grep fdb_builtin_ | sed 's/.*fdb_builtin_/   /'
-    for n in $BINDIR/fdb-*
+    for n in info list purge schema stats where wipe
     do
-        m=$(basename $n | sed 's/fdb-//')
-        echo "   $m"
+        echo "   $n"
     done
     ) | sort
 }

@@ -17,7 +17,6 @@
 
 using namespace eckit;
 
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -98,30 +97,30 @@ void TocPurgeVisitor::report(std::ostream& out) const {
     }
 
     out << std::endl;
-    cnt = 0;
+    size_t cnt2 = 0;
     out << "Unreferenced adopted data files:" << std::endl;
     for (const auto& it : dataUsage_) { // <std::string, size_t>
         if (it.second == 0) {
             if (!eckit::PathName(it.first).dirName().sameAs(directory)) {
                 out << "    " << it.first << std::endl;
-                cnt++;
+                cnt2++;
             }
         }
     }
-    if (!cnt) {
+    if (!cnt2) {
         out << "    - NONE -" << std::endl;
     }
 
     out << std::endl;
-    cnt = 0;
+    size_t cnt3 = 0;
     out << "Index files to be deleted:" << std::endl;
     for (const auto& it : indexUsage_) { // <std::string, size_t>
         if (it.second == 0) {
             out << "    " << it.first << std::endl;
-            cnt++;
+            cnt3++;
         }
     }
-    if (!cnt) {
+    if (!cnt3) {
         out << "    - NONE -" << std::endl;
     }
 
@@ -172,7 +171,6 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
        }
     }
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

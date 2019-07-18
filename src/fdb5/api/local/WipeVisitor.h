@@ -45,6 +45,10 @@ public:
     void databaseComplete(const DB& db) override;
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
+    void visitDatum(const Field& field, const std::string& keyFingerprint) {
+        EntryVisitor::visitDatum(field, keyFingerprint);
+    }
+
 private: // methods
 
     void report();

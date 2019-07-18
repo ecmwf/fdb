@@ -74,8 +74,10 @@ Key::Key(const eckit::StringDict &keys) :
     keys_(keys),
     rule_(0) {
 
-    for (auto& kv : keys) {
-        names_.emplace_back(kv.first);
+    eckit::StringDict::const_iterator it = keys.begin();
+    eckit::StringDict::const_iterator end = keys.end();
+    for (; it != end; ++it) {
+        names_.emplace_back(it->first);
     }
 }
 
@@ -200,16 +202,20 @@ bool Key::match(const Key& other) const {
     return true;
 }
 
+
 bool Key::match(const metkit::MarsRequest& request) const {
 
-    for (const std::string& k : request.params()) {
+    std::vector<std::string> p = request.params();
+    std::vector<std::string>::const_iterator k = p.begin();
+    std::vector<std::string>::const_iterator kend = p.end();
+    for (; k != kend; ++k) {
 
-        const_iterator j = find(k);
+        const_iterator j = find(*k);
         if (j == end()) {
             return false;
         }
 
-        const auto& values = request.values(k);
+        const auto& values = request.values(*k);
         if (std::find(values.begin(), values.end(), j->second) == values.end()) {
             return false;
         }

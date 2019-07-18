@@ -113,7 +113,9 @@ CASE( "archives_distributed_according_to_dist" ) {
 
     // And unused functions
 
-    for (auto spy : {&spy1, &spy2, &spy3}) {
+    ApiSpy* spies[] = {&spy1, &spy2, &spy3};
+    for (int i = 0; i < 3; i++) {
+        ApiSpy* spy = spies[i];
         EXPECT(spy->counts().retrieve == 0);
         EXPECT(spy->counts().list == 0);
         EXPECT(spy->counts().dump == 0);
@@ -182,7 +184,9 @@ CASE( "retrieves_distributed_according_to_dist" ) {
 
     // And unused functions
 
-    for (auto spy : {&spy1, &spy2, &spy3}) {
+    ApiSpy* spies[] = {&spy1, &spy2, &spy3};
+    for (int i = 0; i < 3; i++) {
+        ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().list == 0);
@@ -246,7 +250,9 @@ CASE( "lists_distributed_according_to_dist" ) {
 
     // And unused functions
 
-    for (auto spy : {&spy1, &spy2, &spy3}) {
+    ApiSpy* spies[] = {&spy1, &spy2, &spy3};
+    for (int i = 0; i < 3; i++) {
+        ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().retrieve == 0);
@@ -311,7 +317,9 @@ CASE( "dump_distributed_according_to_dist" ) {
 
     // And unused functions
 
-    for (auto spy : {&spy1, &spy2, &spy3}) {
+    ApiSpy* spies[] = {&spy1, &spy2, &spy3};
+    for (int i = 0; i < 3; i++) {
+        ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().retrieve == 0);
@@ -375,7 +383,9 @@ CASE( "status_distributed_according_to_dist" ) {
 
     // And unused functions
 
-    for (auto spy : {&spy1, &spy2, &spy3}) {
+    ApiSpy* spies[] = {&spy1, &spy2, &spy3};
+    for (int i = 0; i < 3; i++) {
+        ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().retrieve == 0);
@@ -440,7 +450,9 @@ CASE( "wipe_distributed_according_to_dist" ) {
 
     // And unused functions
 
-    for (auto spy : {&spy1, &spy2, &spy3}) {
+    ApiSpy* spies[] = {&spy1, &spy2, &spy3};
+    for (int i = 0; i < 3; i++) {
+        ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().retrieve == 0);
@@ -505,7 +517,9 @@ CASE( "purge_distributed_according_to_dist" ) {
 
     // And unused functions
 
-    for (auto spy : {&spy1, &spy2, &spy3}) {
+    ApiSpy* spies[] = {&spy1, &spy2, &spy3};
+    for (int i = 0; i < 3; i++) {
+        ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().retrieve == 0);
@@ -570,7 +584,9 @@ CASE( "stats_distributed_according_to_dist" ) {
 
     // And unused functions
 
-    for (auto spy : {&spy1, &spy2, &spy3}) {
+    ApiSpy* spies[] = {&spy1, &spy2, &spy3};
+    for (int i = 0; i < 3; i++) {
+        ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
         EXPECT(spy->counts().retrieve == 0);
