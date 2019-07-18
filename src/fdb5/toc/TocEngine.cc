@@ -58,7 +58,7 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
 
         // It should not be an error if we don't have permission to read a path/DB in the
         // tree. This is a multi-user system.
-        if (errno == EPERM) {
+        if (errno == EACCES) {
             return;
         }
 
