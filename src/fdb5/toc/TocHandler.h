@@ -113,7 +113,7 @@ protected: // methods
 
 private: // methods
 
-    constexpr eckit::PathName fullLockFilePath(const std::string& name) const;
+    eckit::PathName fullLockFilePath(const std::string& name) const;
     void createLockFile(const std::string& name) const;
     void removeLockFile(const std::string& name) const;
 
