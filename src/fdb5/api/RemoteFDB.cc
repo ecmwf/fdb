@@ -111,7 +111,7 @@ RemoteFDB::~RemoteFDB() {
 void RemoteFDB::connect() {
 
     if (!connected_) {
-        eckit::Log::info() << "Connecting to host: " << controlEndpoint_ << std::endl;
+        Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
         controlClient_.connect(controlEndpoint_);
 
         // Initial startup message
@@ -156,7 +156,7 @@ void RemoteFDB::connect() {
 
         // Connect to the specified data port
 
-        Log::info() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
+        Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
 
         dataClient_.connect(dataEndpoint_);
 
