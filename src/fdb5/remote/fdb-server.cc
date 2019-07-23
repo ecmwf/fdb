@@ -94,7 +94,8 @@ private:
         // maintains the list of available ports.
         startPortReaperThread(config);
 
-        TCPServer server(Port("fdb", 7654), "", true);
+        int port = config.getInt("serverPort", 7654);
+        TCPServer server(Port("fdb", port), "", true);
         server.closeExec(false);
 
         port_ = server.localPort();
