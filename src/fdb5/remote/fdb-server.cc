@@ -95,7 +95,12 @@ private:
         startPortReaperThread(config);
 
         int port = config.getInt("serverPort", 7654);
-        TCPServer server(Port("fdb", port), "", true);
+        bool reusePort = false;
+#ifdef SO_REUSEPORT
+        reusePort = true;
+#endif
+
+        TCPServer server(Port("fdb", port), "", reusePort);
         server.closeExec(false);
 
         port_ = server.localPort();
