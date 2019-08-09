@@ -37,6 +37,7 @@ public: // methods
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
         options_.push_back(new SimpleOption<bool>("ignore-no-data", "No data available to delete is not an error"));
         options_.push_back(new SimpleOption<bool>("porcelain", "List only the deleted files"));
+        options_.push_back(new SimpleOption<bool>("unsafe-wipe-all", "Wipe all (unowned) contents of an unclean database"));
     }
 
 private: // methods
@@ -50,6 +51,7 @@ private: // members
     bool doit_;
     bool ignoreNoData_;
     bool porcelain_;
+    bool unsafeWipeAll_;
 };
 
 void FDBWipe::usage(const std::string &tool) const {
@@ -74,6 +76,7 @@ void FDBWipe::init(const CmdArgs &args) {
     args.get("doit", doit_);
     args.get("ignore-no-data", ignoreNoData_);
     args.get("porcelain", porcelain_);
+    args.get("unsafe-wipe-all", unsafeWipeAll_);
 }
 
 void FDBWipe::execute(const CmdArgs& args) {
@@ -88,7 +91,7 @@ void FDBWipe::execute(const CmdArgs& args) {
             Log::info() << std::endl;
         }
 
-        auto listObject = fdb.wipe(request, doit_, porcelain_);
+        auto listObject = fdb.wipe(request, doit_, porcelain_, unsafeWipeAll_);
 
         size_t count = 0;
         WipeElement elem;

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2018- ECMWF.
+ * (C) Copyright 1996- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -9,60 +9,49 @@
  */
 
 /// @author Simon Smart
-/// @date   November 2018
+/// @date   August 2019
 
-#ifndef fdb5_api_local_WipeVisitor_H
-#define fdb5_api_local_WipeVisitor_H
+#ifndef fdb5_database_WipeVisitor_H
+#define fdb5_database_WipeVisitor_H
 
-#include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/helpers/WipeIterator.h"
-#include "fdb5/database/WipeVisitor.h"
+#include "eckit/exception/Exceptions.h"
 
-#include "eckit/filesystem/PathName.h"
+#include "metkit/MarsRequest.h"
 
+#include "fdb5/database/EntryVisitMechanism.h"
 
 namespace fdb5 {
-namespace api {
-namespace local {
-
-/// @note Helper classes for LocalFDB
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class WipeVisitor : public QueryVisitor<WipeElement> {
+class WipeVisitor : public EntryVisitor {
 
 public: // methods
 
-    WipeVisitor(eckit::Queue<WipeElement>& queue,
-                const metkit::MarsRequest& request,
+    WipeVisitor(const metkit::MarsRequest& request,
+                std::ostream& out,
                 bool doit,
                 bool porcelain,
                 bool unsafeWipeAll);
 
-    bool visitEntries() override { return false; }
-    bool visitIndexes() override;
+    ~WipeVisitor() override;
 
-    bool visitDatabase(const DB& db) override;
-    bool visitIndex(const Index& index) override;
-    void databaseComplete(const DB& db) override;
+    bool visitEntries() override { return false; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
     void visitDatum(const Field& field, const std::string& keyFingerprint) { NOTIMP; }
 
-private: // members
+protected: // members
 
-    eckit::Channel out_;
-    bool doit_;
-    bool porcelain_;
-    bool unsafeWipeAll_;
+    const metkit::MarsRequest& request_;
 
-    std::unique_ptr<fdb5::WipeVisitor> internalVisitor_;
+    std::ostream& out_;
+    const bool doit_;
+    const bool porcelain_;
+    const bool unsafeWipeAll_;
 };
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
 } // namespace fdb5
 
-#endif
+#endif // fdb5_WipeVisitor_H

@@ -129,6 +129,8 @@ list( APPEND fdb5_srcs
     database/StatsReportVisitor.h
     database/PurgeVisitor.cc
     database/PurgeVisitor.h
+    database/WipeVisitor.cc
+    database/WipeVisitor.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc
@@ -273,6 +275,8 @@ if( HAVE_TOCFDB )
         toc/TocIndexLocation.h
         toc/TocPurgeVisitor.cc
         toc/TocPurgeVisitor.h
+        toc/TocWipeVisitor.cc
+        toc/TocWipeVisitor.h
         toc/TocRecord.cc
         toc/TocRecord.h
         toc/TocStats.cc

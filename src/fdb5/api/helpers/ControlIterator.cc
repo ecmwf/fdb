@@ -91,6 +91,10 @@ ControlIdentifiers& ControlIdentifiers::operator|=(const ControlIdentifier& val)
     return *this;
 }
 
+ControlIdentifiers ControlIdentifiers::operator|(const ControlIdentifier& val) {
+    return (ControlIdentifiers(*this) |= val);
+}
+
 void ControlIdentifiers::encode(eckit::Stream& s) const {
     s << value_;
 }
@@ -101,6 +105,10 @@ ControlIdentifierIterator ControlIdentifiers::begin() const {
 
 ControlIdentifierIterator ControlIdentifiers::end() const {
     return ControlIdentifierIterator(ControlIdentifier::None);
+}
+
+ControlIdentifiers operator|(const ControlIdentifier& lhs, const ControlIdentifier& rhs) {
+    return (ControlIdentifiers(lhs) |= rhs);
 }
 
 

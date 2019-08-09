@@ -146,15 +146,17 @@ struct WipeHelper : public BaseHelper<WipeElement> {
     void extraDecode(eckit::Stream& s) {
         s >> doit_;
         s >> porcelain_;
+        s >> unsafeWipeAll_;
     }
 
     WipeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.wipe(request, doit_, porcelain_);
+        return fdb.wipe(request, doit_, porcelain_, unsafeWipeAll_);
     }
 
 private:
     bool doit_;
     bool porcelain_;
+    bool unsafeWipeAll_;
 };
 
 struct ControlHelper : public BaseHelper<ControlElement> {

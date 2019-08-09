@@ -90,6 +90,7 @@ public:
     ControlIdentifiers(eckit::Stream& s);
 
     ControlIdentifiers& operator|=(const ControlIdentifier& val);
+    ControlIdentifiers operator|(const ControlIdentifier& val);
 
     ControlIdentifierIterator begin() const;
     ControlIdentifierIterator end() const;
@@ -104,6 +105,8 @@ private:
 
     friend class ControlIdentifierIterator;
 };
+
+ControlIdentifiers operator|(const ControlIdentifier& lhs, const ControlIdentifier& rhs);
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -40,6 +40,7 @@ class Index;
 class EntryVisitor;
 class StatsReportVisitor;
 class PurgeVisitor;
+class WipeVisitor;
 class Schema;
 
 class DBVisitor;
@@ -92,10 +93,11 @@ public: // methods
 
     virtual StatsReportVisitor* statsReportVisitor() const;
     virtual PurgeVisitor* purgeVisitor() const;
+    virtual WipeVisitor* wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const;
 
     virtual std::string owner() const = 0;
 
-    virtual eckit::PathName basePath() const = 0;
+    virtual const eckit::PathName& basePath() const = 0;
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
 
     virtual const Schema& schema() const = 0;

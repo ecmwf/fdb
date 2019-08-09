@@ -69,7 +69,7 @@ public: // methods
     /// TODO: Is this function superfluous given the control() function?
     StatusIterator status(const FDBToolRequest& request);
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit=false, bool porcelain=false);
+    WipeIterator wipe(const FDBToolRequest& request, bool doit=false, bool porcelain=false, bool unsafeWipeAll=false);
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit=false, bool porcelain=false);
 

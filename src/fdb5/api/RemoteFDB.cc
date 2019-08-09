@@ -495,10 +495,12 @@ private:
 
 struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
 
-    WipeHelper(bool doit, bool porcelain) : doit_(doit), porcelain_(porcelain) {}
+    WipeHelper(bool doit, bool porcelain, bool unsafeWipeAll) :
+        doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
     void encodeExtra(eckit::Stream& s) const {
         s << doit_;
         s << porcelain_;
+        s << unsafeWipeAll_;
     }
     static WipeElement valueFromStream(eckit::Stream& s) {
         WipeElement elem;
@@ -509,6 +511,7 @@ struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
 private:
     bool doit_;
     bool porcelain_;
+    bool unsafeWipeAll_;
 };
 
 struct ControlHelper : BaseAPIHelper<ControlElement, Message::Control> {
@@ -598,8 +601,8 @@ StatusIterator RemoteFDB::status(const FDBToolRequest& request) {
     return forwardApiCall(StatusHelper(), request);
 }
 
-WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain) {
-    return forwardApiCall(WipeHelper(doit, porcelain), request);
+WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+    return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request);
 }
 
 PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

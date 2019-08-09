@@ -180,11 +180,11 @@ StatusIterator SelectFDB::status(const FDBToolRequest& request) {
     });
 }
 
-WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain) {
+WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     Log::debug<LibFdb5>() << "SelectFDB::wipe() >> " << request << std::endl;
     return queryInternal(request,
-                         [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.wipe(request, doit, porcelain);
+                         [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
     });
 }
 

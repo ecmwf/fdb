@@ -161,6 +161,10 @@ PurgeVisitor* DB::purgeVisitor() const {
     NOTIMP;
 }
 
+WipeVisitor* DB::wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
+    NOTIMP;
+}
+
 time_t DB::lastAccess() const {
     return lastAccess_;
 }

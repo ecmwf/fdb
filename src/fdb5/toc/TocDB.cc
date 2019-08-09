@@ -14,8 +14,9 @@
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocDB.h"
-#include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
+#include "fdb5/toc/TocStats.h"
+#include "fdb5/toc/TocWipeVisitor.h"
 
 using namespace eckit;
 
@@ -85,7 +86,7 @@ const Schema& TocDB::schema() const {
     return schema_;
 }
 
-eckit::PathName TocDB::basePath() const {
+const eckit::PathName& TocDB::basePath() const {
     return directory_;
 }
 
@@ -139,6 +140,10 @@ StatsReportVisitor* TocDB::statsReportVisitor() const {
 
 PurgeVisitor *TocDB::purgeVisitor() const {
     return new TocPurgeVisitor(*this);
+}
+
+WipeVisitor* TocDB::wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
+    return new TocWipeVisitor(*this, request, out, doit, porcelain, unsafeWipeAll);
 }
 
 void TocDB::maskIndexEntry(const Index &index) const {
