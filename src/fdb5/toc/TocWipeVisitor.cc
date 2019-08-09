@@ -90,7 +90,9 @@ TocWipeVisitor::TocWipeVisitor(const TocDB& db,
                                bool porcelain,
                                bool unsafeWipeAll) :
     WipeVisitor(request, out, doit, porcelain, unsafeWipeAll),
-    db_(db) {}
+    db_(db),
+    tocPath_(""),
+    schemaPath_("") {}
 
 TocWipeVisitor::~TocWipeVisitor() {}
 
@@ -175,7 +177,7 @@ void TocWipeVisitor::addMaskedPaths() {
     std::set<eckit::PathName> data;
     db_.allMasked(metadata, data);
     for (const auto& entry : metadata) {
-        if (entry.first.dirName().sameAs(basePath_)) {
+        if (entry.first.dirName().sameAs(db_.basePath())) {
             if (entry.first.baseName().asString().substr(0, 4) == "toc.") {
                 subtocPaths_.insert(entry.first);
             } else {
@@ -184,7 +186,7 @@ void TocWipeVisitor::addMaskedPaths() {
         }
     }
     for (const auto& path : data) {
-        if (path.dirName().sameAs(basePath_)) dataPaths_.insert(path);
+        if (path.dirName().sameAs(db_.basePath())) dataPaths_.insert(path);
     }
 }
 
@@ -267,7 +269,7 @@ void TocWipeVisitor::calculateResidualPaths() {
 
         std::set_difference(allPaths.begin(), allPaths.end(),
                             deletePaths.begin(), deletePaths.end(),
-                            std::inserter(residualPaths_, paths.begin()));
+                            std::inserter(residualPaths_, residualPaths_.begin()));
     }
 }
 
@@ -281,7 +283,7 @@ void TocWipeVisitor::report() {
 
     ASSERT(anythingToWipe());
 
-    out_ << "FDB owner: " << owner_ << std::endl
+    out_ << "FDB owner: " << db_.owner() << std::endl
          << std::endl;
 
     out_ << "Toc files to delete:" << std::endl;
@@ -298,6 +300,7 @@ void TocWipeVisitor::report() {
     for (const auto& f : lockfilePaths_) {
         out_ << "    " << f << std::endl;
     }
+    out_ << std::endl;
 
     out_ << "Index files to delete: " << std::endl;
     if (indexPaths_.empty()) out_ << " - NONE -" << std::endl;
@@ -331,7 +334,7 @@ void TocWipeVisitor::report() {
 
 void TocWipeVisitor::wipe(bool wipeAll) {
 
-    ASSERT(!anythingToWipe());
+    ASSERT(anythingToWipe());
 
     std::ostream& logAlways(out_);
     std::ostream& logVerbose(porcelain_ ? Log::debug<LibFdb5>() : out_);
@@ -361,7 +364,7 @@ void TocWipeVisitor::wipe(bool wipeAll) {
     // This results in a failure mode merely being data becoming invisible (which has the correct
     // effect for the user), to be wiped at a later date.
 
-    if (!indexesToMask_.empty()) {
+    if (!indexesToMask_.empty() && !safePaths_.empty() && !wipeAll) {
         for (const auto& index : indexesToMask_) {
             logVerbose << "Index to mask: ";
             logAlways << index << std::endl;
@@ -426,6 +429,7 @@ void TocWipeVisitor::databaseComplete(const DB& db) {
 
             out_ << "Unexpected files present in directory: " << std::endl;
             for (const auto& p : residualPaths_) out_ << "    " << p << std::endl;
+            out_ << std::endl;
 
             if (!unsafeWipeAll_) {
                 out_ << "Full wipe will not proceed without --unsafe-wipe-all" << std::endl;
