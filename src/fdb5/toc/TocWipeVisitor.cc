@@ -346,7 +346,7 @@ void TocWipeVisitor::wipe(bool wipeAll) {
     // If we are wiping the metadata files, then we need to lock the DB to ensure we don't get
     // into a state we don't like.
 
-    if (wipeAll) {
+    if (wipeAll && doit_) {
         db_.control(ControlAction::Lock, ControlIdentifier::List |
                                          ControlIdentifier::Retrieve |
                                          ControlIdentifier::Archive);
