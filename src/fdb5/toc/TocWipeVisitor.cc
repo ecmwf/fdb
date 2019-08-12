@@ -377,7 +377,8 @@ void TocWipeVisitor::wipe(bool wipeAll) {
 
     for (const std::set<PathName>& pathset : {residualPaths_, dataPaths_, indexPaths_,
                                               std::set<PathName>{schemaPath_},
-                                              std::set<PathName>{tocPath_}, lockfilePaths_}) {
+                                              std::set<PathName>{tocPath_}, lockfilePaths_,
+                                              (wipeAll ? std::set<PathName>{db_.basePath()} : std::set<PathName>{})}) {
 
         for (const PathName& path : pathset) {
             if (path.exists()) {
