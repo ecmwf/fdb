@@ -60,7 +60,6 @@ private: // members
     metkit::MarsRequest indexRequest_;
 
     std::string owner_;
-    eckit::PathName basePath_;
 
     eckit::PathName tocPath_;
     eckit::PathName schemaPath_;
