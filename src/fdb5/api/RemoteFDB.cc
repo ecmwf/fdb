@@ -223,8 +223,15 @@ void RemoteFDB::listeningThreadLoop() {
         case Message::Exit:
             return;
 
-        case Message::Blob:
         case Message::ExpectedSize: {
+            ASSERT(hdr.payloadSize > 0);
+            Buffer payload(hdr.payloadSize);
+            dataRead(payload, hdr.payloadSize);
+            expectedSizes_[hdr.requestID] = *static_cast<const Length*>(payload.data());
+            break;
+        }
+
+        case Message::Blob: {
             Buffer payload(hdr.payloadSize);
             if (hdr.payloadSize > 0) dataRead(payload, hdr.payloadSize);
 
@@ -824,15 +831,18 @@ class FDBRemoteDataHandle : public DataHandle {
 
 public: // methods
 
-    FDBRemoteDataHandle(uint32_t requestID, RemoteFDB::MessageQueue& queue, const Endpoint& remoteEndpoint) :
+    FDBRemoteDataHandle(uint32_t requestID,
+                        RemoteFDB::MessageQueue& queue,
+                        const Endpoint& remoteEndpoint,
+                        Length& expectedSize) :
         requestID_(requestID),
         queue_(queue),
         remoteEndpoint_(remoteEndpoint),
         pos_(0),
-        estimatedLength_(-1),
         overallPosition_(0),
         currentBuffer_(0),
-        complete_(false) {}
+        complete_(false),
+        expectedSize_(expectedSize) {}
 
 private: // methods
 
@@ -849,11 +859,6 @@ private: // methods
     void close() override {}
 
     long read(void* pos, long sz) override {
-
-        // First message received gives an indication of the total amount of data expected,
-        // so it is important that estimate() is called before any actual reading
-        // (see openForRead)
-        ASSERT(static_cast<long>(estimatedLength_) != -1);
 
         if (complete_) return 0;
 
@@ -922,43 +927,14 @@ private: // methods
 
     Length estimate() override {
 
-        if (static_cast<long>(estimatedLength_) == -1) {
-            std::lock_guard<std::mutex> lock(estimatedMutex_);
-            if (static_cast<long>(estimatedLength_) == -1) {
-                estimatedLength_ = estimateInternal();
-            }
-        }
-
-        ASSERT(static_cast<long>(estimatedLength_) != -1);
-        return estimatedLength_;
+        // If the expected size has not yet been received on the data connection, this
+        // element will be default constructed (0).
+        // Once we know the size, it will be the correct size!
+        return expectedSize_;
     }
 
     Offset position() override {
         return overallPosition_;
-    }
-
-    Length estimateInternal() {
-
-        RemoteFDB::StoredMessage msg = std::make_pair(remote::MessageHeader{}, 0);
-        ASSERT(queue_.pop(msg) != -1);
-
-        MessageHeader& hdr(msg.first);
-
-        ASSERT(hdr.marker == StartMarker);
-        ASSERT(hdr.version == CurrentVersion);
-
-        // Handle any remote errors communicated from the server
-
-        if (hdr.message == Message::Error) {
-            std::string errmsg(static_cast<const char*>(msg.second), msg.second.size());
-            throw RemoteFDBException(errmsg, remoteEndpoint_);
-        }
-
-        // Are we now complete
-
-        ASSERT(hdr.message == Message::ExpectedSize);
-
-        return *static_cast<const Length*>(msg.second.data());
     }
 
 private: // members
@@ -967,11 +943,10 @@ private: // members
     RemoteFDB::MessageQueue& queue_;
     Endpoint remoteEndpoint_;
     size_t pos_;
-    std::mutex estimatedMutex_;
-    Length estimatedLength_;
     Offset overallPosition_;
     Buffer currentBuffer_;
     bool complete_;
+    Length& expectedSize_;
 };
 
 }
@@ -987,9 +962,13 @@ DataHandle* RemoteFDB::retrieve(const metkit::MarsRequest& request) {
     s << request;
 
     uint32_t id = generateRequestID();
+
+    // We don't yet know the size of the read, so set it to zero (unknown)
+    expectedSizes_[id] = 0;
+
     controlWriteCheckResponse(Message::Retrieve, id, encodeBuffer, s.position());
 
-    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
+    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_, expectedSizes_[id]);
 }
 
 
