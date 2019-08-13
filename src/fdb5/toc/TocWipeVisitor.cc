@@ -376,7 +376,7 @@ void TocWipeVisitor::wipe(bool wipeAll) {
     // n.b. We delete carefully in a order such that we can always access the DB by what is left
 
     for (const std::set<PathName>& pathset : {residualPaths_, dataPaths_, indexPaths_,
-                                              std::set<PathName>{schemaPath_},
+                                              std::set<PathName>{schemaPath_}, subtocPaths_,
                                               std::set<PathName>{tocPath_}, lockfilePaths_,
                                               (wipeAll ? std::set<PathName>{db_.basePath()} : std::set<PathName>{})}) {
 
