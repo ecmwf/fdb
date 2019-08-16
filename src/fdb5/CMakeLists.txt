@@ -351,6 +351,8 @@ if(HAVE_FDB_REMOTE)
     list( APPEND fdb5_srcs
         api/RemoteFDB.cc
         api/RemoteFDB.h
+        remote/RemoteConfiguration.h
+        remote/RemoteConfiguration.cc
         remote/RemoteFieldLocation.h
         remote/RemoteFieldLocation.cc
     )

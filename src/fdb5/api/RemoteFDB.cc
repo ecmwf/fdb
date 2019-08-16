@@ -108,72 +108,50 @@ RemoteFDB::~RemoteFDB() {
 
 // Functions for management of the connection
 
+// Protocol negotiation:
+//
+// i) Connect to server. Send:
+//     - session identification
+//     - supported functionality for protocol negotiation
+//
+// ii) Server responds. Sends:
+//     - returns the client session id (for verification)
+//     - the server session id
+//     - endpoint for data connection
+//     - selected functionality for protocol negotiation
+//
+// iii) Open data connection, and write to server:
+//     - client session id
+//     - server session id
+//
+// This appears quite verbose in terms of protocol negotiation, but the repeated
+// sending of both session ids allows clients and servers to be sure that they are
+// connected to the correct endpoint in a multi-process, multi-host environment.
+//
+// This was an issue on the NextGenIO prototype machine, where TCP connections were
+// getting lost, and/or incorrectly reset, and as a result sessions were being
+// mispaired by the network stack!
+
 void RemoteFDB::connect() {
 
     if (!connected_) {
+
+        // Connect to server, and check that the server is happy on the response
+
         Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
         controlClient_.connect(controlEndpoint_);
-
-        // Initial startup message
-
-        {
-            Buffer payload(1024);
-            MemoryStream s(payload);
-            s << sessionID_;
-
-            controlWrite(Message::Startup, 0, payload.data(), s.position());
-        }
-
-        // Read and verify the response from the server
-
-        MessageHeader hdr;
-        controlRead(&hdr, sizeof(hdr));
-
-        ASSERT(hdr.marker == StartMarker);
-        ASSERT(hdr.version == CurrentVersion);
-        ASSERT(hdr.message == Message::Startup);
-        ASSERT(hdr.requestID == 0);
-
-        Buffer payload(hdr.payloadSize);
-        eckit::FixedString<4> tail;
-        controlRead(payload, hdr.payloadSize);
-        controlRead(&tail, sizeof(tail));
-        ASSERT(tail == EndMarker);
-
-        MemoryStream s(payload);
-        SessionID clientSession(s);
-        SessionID serverSession(s);
-        Endpoint dataEndpoint(s);
-
-        dataEndpoint_ = dataEndpoint;
-
-        if (clientSession != sessionID_) {
-            std::stringstream ss;
-            ss << "Session ID does not match session received from server: "
-               << sessionID_ << " != " << clientSession;
-            throw BadValue(ss.str(), Here());
-        }
+        writeControlStartupMessage();
+        SessionID serverSession = verifyServerStartupResponse();
 
         // Connect to the specified data port
 
         Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
-
         dataClient_.connect(dataEndpoint_);
+        writeDataStartupMessage(serverSession);
 
-        // Write startup message to server for verification purposes
-
-        {
-            Buffer payload(1024);
-            MemoryStream s(payload);
-
-            s << sessionID_;
-            s << serverSession;
-
-            dataWrite(Message::Startup, 0, payload.data(), s.position());
-        }
+        // And the connections are set up. Let everything start up!
 
         listeningThread_ = std::thread([this] { listeningThreadLoop(); });
-
         connected_ = true;
     }
 }
@@ -191,6 +169,69 @@ void RemoteFDB::disconnect() {
         dataClient_.close();
         connected_ = false;
     }
+}
+
+void RemoteFDB::writeControlStartupMessage() {
+
+    Buffer payload(4096);
+    MemoryStream s(payload);
+    s << sessionID_;
+
+    // TODO: Abstract this dictionary into a RemoteConfiguration object, which
+    //       understands how to do the negotiation, etc, but uses Value (i.e.
+    //       essentially JSON) over the wire for flexibility.
+    s << availableFunctionality().get();
+
+    controlWrite(Message::Startup, 0, payload.data(), s.position());
+}
+
+SessionID RemoteFDB::verifyServerStartupResponse() {
+
+    MessageHeader hdr;
+    controlRead(&hdr, sizeof(hdr));
+
+    ASSERT(hdr.marker == StartMarker);
+    ASSERT(hdr.version == CurrentVersion);
+    ASSERT(hdr.message == Message::Startup);
+    ASSERT(hdr.requestID == 0);
+
+    Buffer payload(hdr.payloadSize);
+    eckit::FixedString<4> tail;
+    controlRead(payload, hdr.payloadSize);
+    controlRead(&tail, sizeof(tail));
+    ASSERT(tail == EndMarker);
+
+    MemoryStream s(payload);
+    SessionID clientSession(s);
+    SessionID serverSession(s);
+    Endpoint dataEndpoint(s);
+    LocalConfiguration serverFunctionality(Value(s));
+
+    dataEndpoint_ = dataEndpoint;
+
+    if (clientSession != sessionID_) {
+        std::stringstream ss;
+        ss << "Session ID does not match session received from server: "
+           << sessionID_ << " != " << clientSession;
+        throw BadValue(ss.str(), Here());
+    }
+
+    return serverSession;
+}
+
+void RemoteFDB::writeDataStartupMessage(const eckit::SessionID& serverSession) {
+
+    Buffer payload(1024);
+    MemoryStream s(payload);
+
+    s << sessionID_;
+    s << serverSession;
+
+    dataWrite(Message::Startup, 0, payload.data(), s.position());
+}
+
+eckit::LocalConfiguration RemoteFDB::availableFunctionality() const {
+    return LocalConfiguration();
 }
 
 void RemoteFDB::listeningThreadLoop() {

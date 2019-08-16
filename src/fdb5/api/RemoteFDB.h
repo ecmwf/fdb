@@ -75,13 +75,25 @@ public: // method
 
 private: // methods
 
+    // Methods to control the connection
+
     void connect();
     void disconnect();
+
+    // Session negotiation with the server
+    void writeControlStartupMessage();
+    eckit::SessionID verifyServerStartupResponse();
+    void writeDataStartupMessage(const eckit::SessionID& serverSession);
+
+    // Construct dictionary for protocol negotiation
+
+    eckit::LocalConfiguration availableFunctionality() const;
 
     // Listen to the dataClient for incoming messages, and push them onto
     // appropriate queues.
     void listeningThreadLoop();
 
+    // Handle data going in either direction on the wire
     void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(const void* data, size_t length);

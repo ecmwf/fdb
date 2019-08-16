@@ -223,6 +223,7 @@ void RemoteHandler::initialiseConnections() {
 
     MemoryStream s1(payload1);
     SessionID clientSession(s1);
+    LocalConfiguration clientAvailableFunctionality(Value(s1));
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
 
@@ -239,6 +240,10 @@ void RemoteHandler::initialiseConnections() {
         s << clientSession;
         s << sessionID_;
         s << dataEndpoint;
+
+        // TODO: Function to decide what functionality we will actually use. This just
+        //       sets up the components of the over-the-wire protocol
+        s << LocalConfiguration().get();
 
         controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
     }
