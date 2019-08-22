@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #include <string>
 
 #include "eckit/thread/Thread.h"

@@ -8,6 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
 
 #include "fdb5/pmem/PMemDBReader.h"
 #include "fdb5/pmem/PMemIndex.h"

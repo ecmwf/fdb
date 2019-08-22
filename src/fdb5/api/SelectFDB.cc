@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #include "eckit/log/Log.h"
 #include "eckit/utils/Tokenizer.h"
 #include "eckit/types/Types.h"

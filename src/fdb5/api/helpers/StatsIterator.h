@@ -11,6 +11,11 @@
 /// @author Simon Smart
 /// @date   November 2018
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #ifndef fdb5_api_StatsIterator_H
 #define fdb5_api_StatsIterator_H
 
