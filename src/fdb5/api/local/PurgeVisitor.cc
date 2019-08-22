@@ -9,6 +9,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #include "fdb5/api/local/PurgeVisitor.h"
 
 #include "eckit/exception/Exceptions.h"

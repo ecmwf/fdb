@@ -7,6 +7,11 @@
  */
 
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @date   Sept 2016
 

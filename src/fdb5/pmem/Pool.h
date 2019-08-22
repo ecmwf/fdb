@@ -6,10 +6,13 @@
  * nor does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
 
 /// @author Simon Smart
 /// @date   Feb 2016
-
 
 #ifndef fdb5_pmem_Pool_H
 #define fdb5_pmem_Pool_H
