@@ -1,1 +1,1 @@
-set( ${PROJECT_NAME}_VERSION_STR  "5.4.3" )
+set( ${PROJECT_NAME}_VERSION_STR  "5.4.4" )
