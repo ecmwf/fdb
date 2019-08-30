@@ -181,6 +181,7 @@ void RemoteFDB::writeControlStartupMessage() {
     Buffer payload(4096);
     MemoryStream s(payload);
     s << sessionID_;
+    s << controlEndpoint_;
 
     // TODO: Abstract this dictionary into a RemoteConfiguration object, which
     //       understands how to do the negotiation, etc, but uses Value (i.e.
@@ -213,6 +214,12 @@ SessionID RemoteFDB::verifyServerStartupResponse() {
     LocalConfiguration serverFunctionality(Value(s));
 
     dataEndpoint_ = dataEndpoint;
+
+    if (dataEndpoint_.hostname() != controlEndpoint_.hostname()) {
+        Log::warning() << "Data and control interface hostnames do not match. "
+                       << dataEndpoint_.hostname() << " /= "
+                       << controlEndpoint_.hostname() << std::endl;
+    }
 
     if (clientSession != sessionID_) {
         std::stringstream ss;

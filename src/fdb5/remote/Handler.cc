@@ -228,13 +228,18 @@ void RemoteHandler::initialiseConnections() {
 
     MemoryStream s1(payload1);
     SessionID clientSession(s1);
+    Endpoint endpointFromClient(s1);
     LocalConfiguration clientAvailableFunctionality(Value(s1));
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
+    // n.b. FDB-192: we use the host communicated from the client endpoint. This
+    //               ensures that if a specific interface has been selected and the
+    //               server has multiple, then we use that on, whilst retaining
+    //               the capacity in the protocol for the server to make a choice.
 
     int dataport = dataSocket_.localPort();
-    std::string host = dataListenHostname_.empty() ? dataSocket_.localHost() : dataListenHostname_;
-    Endpoint dataEndpoint(host, dataport);
+    // std::string host = dataListenHostname_.empty() ? dataSocket_.localHost() : dataListenHostname_;
+    Endpoint dataEndpoint(endpointFromClient.hostname(), dataport);
 
     Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
 
