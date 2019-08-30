@@ -53,7 +53,7 @@ struct UniquePoolDir {
         putenv(const_cast<char*>("fdbPMemDataPoolSize=11534336"));
     }
 
-    ~UniquePoolDir() {
+    ~UniquePoolDir() noexcept(false) {
         // Clean up all the files
 
         std::vector<PathName> files;
