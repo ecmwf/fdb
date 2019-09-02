@@ -40,6 +40,10 @@ public:
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
     bool visitDatabase(const DB& db) override {
+
+        // If the DB is locked for listing, then it "doesn't exist"
+        if (db.listLocked()) return false;
+
         bool ret = QueryVisitor::visitDatabase(db);
         ASSERT(db.key().partialMatch(request_));
 

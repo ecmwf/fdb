@@ -36,6 +36,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace {
 class StdDir {
     DIR *d_;
 public:
@@ -121,6 +122,7 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
             else Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
         }
     }
+}
 }
 
 //----------------------------------------------------------------------------------------------------------------------

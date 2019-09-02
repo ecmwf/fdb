@@ -37,7 +37,7 @@ namespace remote {
 const static eckit::FixedString<4> StartMarker {"SFDB"};
 const static eckit::FixedString<4> EndMarker {"EFDB"};
 
-constexpr uint16_t CurrentVersion = 5;
+constexpr uint16_t CurrentVersion = 7;
 
 
 enum class Message : uint16_t {
@@ -45,26 +45,29 @@ enum class Message : uint16_t {
     // Server instructions
     None = 0,
     Exit,
+    Startup,
+    Error,
 
     // API calls to forward
-    Flush,
+    Flush = 100,
     Archive,
     Retrieve,
     List,
     Dump,
-    Where,
+    Status,
     Wipe,
     Purge,
     Stats,
+    Control,
 
     // Responses
-    Received,
-    Blob,
-    MultiBlob,
+    Received = 200,
     Complete,
-    Error,
+
+    // Data communication
+    Blob = 300,
+    MultiBlob,
     ExpectedSize,
-    Startup
 };
 
 

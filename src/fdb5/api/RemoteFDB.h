@@ -64,25 +64,41 @@ public: // method
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
-    WhereIterator where(const FDBToolRequest& request) override;
+    StatusIterator status(const FDBToolRequest& request) override;
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain) override;
+    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
+    ControlIterator control(const FDBToolRequest& request,
+                            ControlAction action,
+                            ControlIdentifiers identifiers) override;
+
     void flush() override;
 
 private: // methods
 
+    // Methods to control the connection
+
     void connect();
     void disconnect();
+
+    // Session negotiation with the server
+    void writeControlStartupMessage();
+    eckit::SessionID verifyServerStartupResponse();
+    void writeDataStartupMessage(const eckit::SessionID& serverSession);
+
+    // Construct dictionary for protocol negotiation
+
+    eckit::LocalConfiguration availableFunctionality() const;
 
     // Listen to the dataClient for incoming messages, and push them onto
     // appropriate queues.
     void listeningThreadLoop();
 
+    // Handle data going in either direction on the wire
     void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(const void* data, size_t length);
@@ -145,6 +161,8 @@ private: // members
     std::mutex archiveQueuePtrMutex_;
     std::unique_ptr<ArchiveQueue> archiveQueue_;
     MessageQueue retrieveMessageQueue_;
+
+    std::map<uint32_t, eckit::Length> expectedSizes_;
 
     bool connected_;
 };

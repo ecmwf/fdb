@@ -16,11 +16,11 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_local_WhereVisitor_H
-#define fdb5_api_local_WhereVisitor_H
+#ifndef fdb5_api_local_StatusVisitor_H
+#define fdb5_api_local_StatusVisitor_H
 
 #include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/helpers/WhereIterator.h"
+#include "fdb5/api/helpers/StatusIterator.h"
 
 
 namespace fdb5 {
@@ -31,12 +31,12 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class WhereVisitor : public QueryVisitor<WhereElement> {
+class StatusVisitor : public QueryVisitor<StatusElement> {
 public:
-    using QueryVisitor<WhereElement>::QueryVisitor;
+    using QueryVisitor<StatusElement>::QueryVisitor;
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
-    bool visitDatabase(const DB& db) override { queue_.emplace(db.basePath()); return true; }
+    bool visitDatabase(const DB& db) override { queue_.emplace(db); return true; }
     bool visitIndex(const Index&) override { NOTIMP; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 

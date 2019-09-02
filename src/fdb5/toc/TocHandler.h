@@ -98,6 +98,25 @@ protected: // methods
 
     std::vector<eckit::PathName> subTocPaths() const;
 
+    // Access and control of locks
+
+    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
+
+    bool retrieveLocked() const;
+    bool archiveLocked() const;
+    bool listLocked() const;
+    bool wipeLocked() const;
+
+    // Utilities for handling locks
+
+    std::vector<eckit::PathName> lockfilePaths() const;
+
+private: // methods
+
+    eckit::PathName fullLockFilePath(const std::string& name) const;
+    void createLockFile(const std::string& name) const;
+    void removeLockFile(const std::string& name) const;
+
 protected: // members
 
     const eckit::PathName directory_;

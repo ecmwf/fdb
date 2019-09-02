@@ -92,6 +92,14 @@ DB& Archiver::database(const Key &key) {
 
     std::shared_ptr<DB> db ( DBFactory::buildWriter(key, dbConfig_) );
     ASSERT(db);
+
+    // If this database is locked for writing then this is an error
+    if (db->archiveLocked()) {
+        std::ostringstream ss;
+        ss << "Database " << *db << " matched for archived is LOCKED against archiving";
+        throw eckit::UserError(ss.str(), Here());
+    }
+
     databases_[key] = db;
     return *db;
 }

@@ -14,8 +14,9 @@
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocDB.h"
-#include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
+#include "fdb5/toc/TocStats.h"
+#include "fdb5/toc/TocWipeVisitor.h"
 
 using namespace eckit;
 
@@ -85,7 +86,7 @@ const Schema& TocDB::schema() const {
     return schema_;
 }
 
-eckit::PathName TocDB::basePath() const {
+const eckit::PathName& TocDB::basePath() const {
     return directory_;
 }
 
@@ -95,6 +96,9 @@ std::vector<PathName> TocDB::metadataPaths() const {
 
     paths.emplace_back(schemaPath());
     paths.emplace_back(tocPath());
+
+    std::vector<PathName>&& lpaths(lockfilePaths());
+    paths.insert(paths.end(), lpaths.begin(), lpaths.end());
 
     return paths;
 }
@@ -114,9 +118,10 @@ void TocDB::visitEntries(EntryVisitor& visitor, bool sorted) {
                 }
             }
         }
+
+        visitor.databaseComplete(*this);
     }
 
-    visitor.databaseComplete(*this);
 }
 
 void TocDB::loadSchema() {
@@ -135,6 +140,10 @@ StatsReportVisitor* TocDB::statsReportVisitor() const {
 
 PurgeVisitor *TocDB::purgeVisitor() const {
     return new TocPurgeVisitor(*this);
+}
+
+WipeVisitor* TocDB::wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
+    return new TocWipeVisitor(*this, request, out, doit, porcelain, unsafeWipeAll);
 }
 
 void TocDB::maskIndexEntry(const Index &index) const {
@@ -162,6 +171,26 @@ std::string TocDB::dbType() const
 
 void TocDB::checkUID() const {
     TocHandler::checkUID();
+}
+
+void TocDB::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
+    TocHandler::control(action, identifiers);
+}
+
+bool TocDB::retrieveLocked() const {
+    return TocHandler::retrieveLocked();
+}
+
+bool TocDB::archiveLocked() const {
+    return TocHandler::archiveLocked();
+}
+
+bool TocDB::listLocked() const {
+    return TocHandler::listLocked();
+}
+
+bool TocDB::wipeLocked() const {
+    return TocHandler::wipeLocked();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

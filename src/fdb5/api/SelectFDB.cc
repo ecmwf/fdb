@@ -177,19 +177,19 @@ DumpIterator SelectFDB::dump(const FDBToolRequest& request, bool simple) {
                          });
 }
 
-WhereIterator SelectFDB::where(const FDBToolRequest& request) {
-    Log::debug<LibFdb5>() << "SelectFDB::where() >> " << request << std::endl;
+StatusIterator SelectFDB::status(const FDBToolRequest& request) {
+    Log::debug<LibFdb5>() << "SelectFDB::status() >> " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.where(request);
+                            return fdb.status(request);
     });
 }
 
-WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain) {
+WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     Log::debug<LibFdb5>() << "SelectFDB::wipe() >> " << request << std::endl;
     return queryInternal(request,
-                         [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.wipe(request, doit, porcelain);
+                         [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
     });
 }
 
@@ -206,6 +206,17 @@ StatsIterator SelectFDB::stats(const FDBToolRequest &request) {
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.stats(request);
+    });
+}
+
+ControlIterator SelectFDB::control(const FDBToolRequest& request,
+                                   ControlAction action,
+                                   ControlIdentifiers identifiers) {
+    Log::debug<LibFdb5>() << "SelectFDB::control >> " << request << std::endl;
+    return queryInternal(request,
+                         [action, identifiers](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.control(request, action, identifiers);
+
     });
 }
 

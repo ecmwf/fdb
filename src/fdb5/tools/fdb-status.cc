@@ -24,34 +24,20 @@ namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBWhere : public FDBVisitTool {
-  public: // methods
+class FDBStatus : public FDBVisitTool {
+public: // methods
 
-    FDBWhere(int argc, char **argv) :
-        FDBVisitTool(argc, argv, "class,expver"),
-        porcelain_(false) {
+    FDBStatus(int argc, char **argv) :
+        FDBVisitTool(argc, argv, "class,expver") {}
 
-        options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined output for input into other tools"));
-    }
-
-  private: // methods
+private: // methods
 
     void execute(const CmdArgs& args) override;
-    void init(const CmdArgs &args) override;
 
-  private: // members
-
-    bool porcelain_;
 };
 
-void FDBWhere::init(const CmdArgs& args) {
-    FDBVisitTool::init(args);
 
-    args.get("porcelain", porcelain_);
-}
-
-
-void FDBWhere::execute(const CmdArgs&) {
+void FDBStatus::execute(const CmdArgs&) {
 
     FDB fdb;
 
@@ -62,7 +48,15 @@ void FDBWhere::execute(const CmdArgs&) {
         size_t count = 0;
         StatusElement elem;
         while (statusIterator.next(elem)) {
-            Log::info() << elem.location.asString() << std::endl;
+
+            Log::info() << "Database: " << elem.key << std::endl
+                        << "  location: " << elem.location.asString() << std::endl;
+
+            if (elem.retrieveLocked)  Log::info() << "  retrieve: LOCKED" << std::endl;
+            if (elem.archiveLocked)   Log::info() << "  archive: LOCKED" << std::endl;
+            if (elem.listLocked)      Log::info() << "  list: LOCKED" << std::endl;
+            if (elem.wipeLocked)      Log::info() << "  wipe: LOCKED" << std::endl;
+
             count++;
         }
 
@@ -81,6 +75,6 @@ void FDBWhere::execute(const CmdArgs&) {
 
 
 int main(int argc, char **argv) {
-    fdb5::tools::FDBWhere app(argc, argv);
+    fdb5::tools::FDBStatus app(argc, argv);
     return app.start();
 }

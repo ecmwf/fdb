@@ -99,7 +99,13 @@ private:
         // maintains the list of available ports.
         startPortReaperThread(config);
 
-        TCPServer server(Port("fdb", 7654), "", true);
+        int port = config.getInt("serverPort", 7654);
+        bool reusePort = false;
+#ifdef SO_REUSEPORT
+        reusePort = true;
+#endif
+
+        TCPServer server(Port("fdb", port), "", reusePort);
         server.closeExec(false);
 
         port_ = server.localPort();

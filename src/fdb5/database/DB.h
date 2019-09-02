@@ -40,10 +40,14 @@ class Index;
 class EntryVisitor;
 class StatsReportVisitor;
 class PurgeVisitor;
+class WipeVisitor;
 class Schema;
 
 class DBVisitor;
 class DbStats;
+
+enum class ControlAction : uint16_t;
+class ControlIdentifiers;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -89,15 +93,25 @@ public: // methods
 
     virtual StatsReportVisitor* statsReportVisitor() const;
     virtual PurgeVisitor* purgeVisitor() const;
+    virtual WipeVisitor* wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const;
 
     virtual std::string owner() const = 0;
 
-    virtual eckit::PathName basePath() const = 0;
+    virtual const eckit::PathName& basePath() const = 0;
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
 
     virtual const Schema& schema() const = 0;
 
     virtual DbStats statistics() const = 0;
+
+    // Control access properties of the DB
+
+    virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
+
+    virtual bool retrieveLocked() const = 0;
+    virtual bool archiveLocked() const = 0;
+    virtual bool listLocked() const = 0;
+    virtual bool wipeLocked() const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const DB &x);
 

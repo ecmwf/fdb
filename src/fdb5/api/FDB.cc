@@ -67,12 +67,12 @@ DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
     return internal_->dump(request, simple);
 }
 
-WhereIterator FDB::where(const FDBToolRequest& request) {
-    return internal_->where(request);
+StatusIterator FDB::status(const FDBToolRequest& request) {
+    return internal_->status(request);
 }
 
-WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain) {
-    return internal_->wipe(request, doit, porcelain);
+WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+    return internal_->wipe(request, doit, porcelain, unsafeWipeAll);
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest &request, bool doit, bool porcelain) {
@@ -81,6 +81,10 @@ PurgeIterator FDB::purge(const FDBToolRequest &request, bool doit, bool porcelai
 
 StatsIterator FDB::stats(const FDBToolRequest &request) {
     return internal_->stats(request);
+}
+
+ControlIterator FDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
+    return internal_->control(request, action, identifiers);
 }
 
 const std::string FDB::id() const {

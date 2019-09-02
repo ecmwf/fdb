@@ -27,11 +27,12 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
-#include "fdb5/api/helpers/WhereIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
+#include "fdb5/api/helpers/StatusIterator.h"
 
 namespace metkit { class MarsRequest; }
 
@@ -63,13 +64,17 @@ public: // methods
 
     virtual DumpIterator dump(const FDBToolRequest& request, bool simple) = 0;
 
-    virtual WhereIterator where(const FDBToolRequest& request) = 0;
+    virtual StatusIterator status(const FDBToolRequest& request) = 0;
 
-    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain) = 0;
+    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) = 0;
 
     virtual PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) = 0;
 
     virtual StatsIterator stats(const FDBToolRequest& request) = 0;
+
+    virtual ControlIterator control(const FDBToolRequest& request,
+                                    ControlAction action,
+                                    ControlIdentifiers identifier) = 0;
 
     // -------------- API management ----------------------------
 

@@ -29,10 +29,20 @@
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 
 using namespace eckit;
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace {
+    constexpr const char* retrieve_lock_file = "retrieve.lock";
+    constexpr const char* archive_lock_file = "archive.lock";
+    constexpr const char* list_lock_file = "list.lock";
+    constexpr const char* wipe_lock_file = "wipe.lock";
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -1397,6 +1407,97 @@ size_t TocHandler::buildSubTocMaskRecord(TocRecord& r, const eckit::PathName& pa
     return s.position();
 }
 
+void TocHandler::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
+
+    const std::map<ControlIdentifier, std::string> lockfile_lookup {
+        {ControlIdentifier::Retrieve, retrieve_lock_file},
+        {ControlIdentifier::Archive, archive_lock_file},
+        {ControlIdentifier::List, list_lock_file},
+        {ControlIdentifier::Wipe, wipe_lock_file},
+    };
+
+    for (ControlIdentifier identifier : identifiers) {
+
+        auto it = lockfile_lookup.find(identifier);
+        ASSERT(it != lockfile_lookup.end());
+
+        const std::string& lock_file(it->second);
+
+        switch (action) {
+        case ControlAction::Lock:
+            createLockFile(lock_file);
+            break;
+
+        case ControlAction::Unlock:
+            removeLockFile(lock_file);
+            break;
+
+        default:
+            eckit::Log::warning() << "Unexpected action: "
+                                  << static_cast<uint16_t>(action)
+                                  << std::endl;
+        }
+    }
+}
+
+bool TocHandler::retrieveLocked() const {
+    return fullLockFilePath(retrieve_lock_file).exists();
+}
+
+bool TocHandler::archiveLocked() const {
+    return fullLockFilePath(archive_lock_file).exists();
+}
+
+bool TocHandler::listLocked() const {
+    return fullLockFilePath(list_lock_file).exists();
+}
+
+bool TocHandler::wipeLocked() const {
+    return fullLockFilePath(wipe_lock_file).exists();
+}
+
+std::vector<PathName> TocHandler::lockfilePaths() const {
+
+    std::vector<PathName> paths;
+
+    for (const auto& name : { retrieve_lock_file,
+                              archive_lock_file,
+                              list_lock_file,
+                              wipe_lock_file }) {
+
+        PathName fullPath = fullLockFilePath(name);
+        if (fullPath.exists()) paths.emplace_back(std::move(fullPath));
+    }
+
+    return paths;
+}
+
+PathName TocHandler::fullLockFilePath(const std::string& name) const {
+    return directory_ / name;
+}
+
+void TocHandler::createLockFile(const std::string& name) const {
+
+    checkUID();
+
+    // It is not an error to lock something that is already locked
+    PathName fullPath(fullLockFilePath(name));
+    if (!fullPath.exists()) {
+        fullPath.touch();
+    }
+}
+
+void TocHandler::removeLockFile(const std::string& name) const {
+
+    checkUID();
+
+    // It is not an error to unlock something that is already unlocked
+    PathName fullPath(fullLockFilePath(name));
+    if (fullPath.exists()) {
+        bool verbose = false;
+        fullPath.unlink(verbose);
+    }
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

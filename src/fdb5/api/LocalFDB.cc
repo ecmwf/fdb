@@ -25,13 +25,14 @@
 #include "fdb5/database/Retriever.h"
 #include "fdb5/LibFdb5.h"
 
-#include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/local/ListVisitor.h"
+#include "fdb5/api/local/ControlVisitor.h"
 #include "fdb5/api/local/DumpVisitor.h"
-#include "fdb5/api/local/WhereVisitor.h"
-#include "fdb5/api/local/WipeVisitor.h"
+#include "fdb5/api/local/ListVisitor.h"
 #include "fdb5/api/local/PurgeVisitor.h"
+#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/local/StatsVisitor.h"
+#include "fdb5/api/local/StatusVisitor.h"
+#include "fdb5/api/local/WipeVisitor.h"
 
 
 using namespace fdb5::api::local;
@@ -86,14 +87,14 @@ DumpIterator LocalFDB::dump(const FDBToolRequest &request, bool simple) {
     return queryInternal<DumpVisitor>(request, simple);
 }
 
-WhereIterator LocalFDB::where(const FDBToolRequest &request) {
-    Log::debug<LibFdb5>() << "LocalFDB::where() : " << request << std::endl;
-    return queryInternal<WhereVisitor>(request);
+StatusIterator LocalFDB::status(const FDBToolRequest &request) {
+    Log::debug<LibFdb5>() << "LocalFDB::status() : " << request << std::endl;
+    return queryInternal<StatusVisitor>(request);
 }
 
-WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit, bool porcelain) {
+WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit, bool porcelain, bool unsafeWipeAll) {
     Log::debug<LibFdb5>() << "LocalFDB::wipe() : " << request << std::endl;
-    return queryInternal<WipeVisitor>(request, doit, porcelain);
+    return queryInternal<fdb5::api::local::WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
 }
 
 PurgeIterator LocalFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
@@ -101,10 +102,16 @@ PurgeIterator LocalFDB::purge(const FDBToolRequest& request, bool doit, bool por
     return queryInternal<fdb5::api::local::PurgeVisitor>(request, doit, porcelain);
 }
 
-StatsIterator LocalFDB::stats(const FDBToolRequest &request) {
+StatsIterator LocalFDB::stats(const FDBToolRequest& request) {
     Log::debug<LibFdb5>() << "LocalFDB::stats() : " << request << std::endl;
     return queryInternal<StatsVisitor>(request);
+}
 
+ControlIterator LocalFDB::control(const FDBToolRequest& request,
+                                  ControlAction action,
+                                  ControlIdentifiers identifiers) {
+    Log::debug<LibFdb5>() << "LocalFDB::control() : " << request << std::endl;
+    return queryInternal<ControlVisitor>(request, action, identifiers);
 }
 
 

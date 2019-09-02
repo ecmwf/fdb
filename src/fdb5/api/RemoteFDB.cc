@@ -113,72 +113,50 @@ RemoteFDB::~RemoteFDB() {
 
 // Functions for management of the connection
 
+// Protocol negotiation:
+//
+// i) Connect to server. Send:
+//     - session identification
+//     - supported functionality for protocol negotiation
+//
+// ii) Server responds. Sends:
+//     - returns the client session id (for verification)
+//     - the server session id
+//     - endpoint for data connection
+//     - selected functionality for protocol negotiation
+//
+// iii) Open data connection, and write to server:
+//     - client session id
+//     - server session id
+//
+// This appears quite verbose in terms of protocol negotiation, but the repeated
+// sending of both session ids allows clients and servers to be sure that they are
+// connected to the correct endpoint in a multi-process, multi-host environment.
+//
+// This was an issue on the NextGenIO prototype machine, where TCP connections were
+// getting lost, and/or incorrectly reset, and as a result sessions were being
+// mispaired by the network stack!
+
 void RemoteFDB::connect() {
 
     if (!connected_) {
-        eckit::Log::info() << "Connecting to host: " << controlEndpoint_ << std::endl;
+
+        // Connect to server, and check that the server is happy on the response
+
+        Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
         controlClient_.connect(controlEndpoint_);
-
-        // Initial startup message
-
-        {
-            Buffer payload(1024);
-            MemoryStream s(payload);
-            s << sessionID_;
-
-            controlWrite(Message::Startup, 0, payload.data(), s.position());
-        }
-
-        // Read and verify the response from the server
-
-        MessageHeader hdr;
-        controlRead(&hdr, sizeof(hdr));
-
-        ASSERT(hdr.marker == StartMarker);
-        ASSERT(hdr.version == CurrentVersion);
-        ASSERT(hdr.message == Message::Startup);
-        ASSERT(hdr.requestID == 0);
-
-        Buffer payload(hdr.payloadSize);
-        eckit::FixedString<4> tail;
-        controlRead(payload, hdr.payloadSize);
-        controlRead(&tail, sizeof(tail));
-        ASSERT(tail == EndMarker);
-
-        MemoryStream s(payload);
-        SessionID clientSession(s);
-        SessionID serverSession(s);
-        Endpoint dataEndpoint(s);
-
-        dataEndpoint_ = dataEndpoint;
-
-        if (clientSession != sessionID_) {
-            std::stringstream ss;
-            ss << "Session ID does not match session received from server: "
-               << sessionID_ << " != " << clientSession;
-            throw BadValue(ss.str(), Here());
-        }
+        writeControlStartupMessage();
+        SessionID serverSession = verifyServerStartupResponse();
 
         // Connect to the specified data port
 
-        Log::info() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
-
+        Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
         dataClient_.connect(dataEndpoint_);
+        writeDataStartupMessage(serverSession);
 
-        // Write startup message to server for verification purposes
-
-        {
-            Buffer payload(1024);
-            MemoryStream s(payload);
-
-            s << sessionID_;
-            s << serverSession;
-
-            dataWrite(Message::Startup, 0, payload.data(), s.position());
-        }
+        // And the connections are set up. Let everything start up!
 
         listeningThread_ = std::thread([this] { listeningThreadLoop(); });
-
         connected_ = true;
     }
 }
@@ -196,6 +174,76 @@ void RemoteFDB::disconnect() {
         dataClient_.close();
         connected_ = false;
     }
+}
+
+void RemoteFDB::writeControlStartupMessage() {
+
+    Buffer payload(4096);
+    MemoryStream s(payload);
+    s << sessionID_;
+    s << controlEndpoint_;
+
+    // TODO: Abstract this dictionary into a RemoteConfiguration object, which
+    //       understands how to do the negotiation, etc, but uses Value (i.e.
+    //       essentially JSON) over the wire for flexibility.
+    s << availableFunctionality().get();
+
+    controlWrite(Message::Startup, 0, payload.data(), s.position());
+}
+
+SessionID RemoteFDB::verifyServerStartupResponse() {
+
+    MessageHeader hdr;
+    controlRead(&hdr, sizeof(hdr));
+
+    ASSERT(hdr.marker == StartMarker);
+    ASSERT(hdr.version == CurrentVersion);
+    ASSERT(hdr.message == Message::Startup);
+    ASSERT(hdr.requestID == 0);
+
+    Buffer payload(hdr.payloadSize);
+    eckit::FixedString<4> tail;
+    controlRead(payload, hdr.payloadSize);
+    controlRead(&tail, sizeof(tail));
+    ASSERT(tail == EndMarker);
+
+    MemoryStream s(payload);
+    SessionID clientSession(s);
+    SessionID serverSession(s);
+    Endpoint dataEndpoint(s);
+    LocalConfiguration serverFunctionality(Value(s));
+
+    dataEndpoint_ = dataEndpoint;
+
+    if (dataEndpoint_.hostname() != controlEndpoint_.hostname()) {
+        Log::warning() << "Data and control interface hostnames do not match. "
+                       << dataEndpoint_.hostname() << " /= "
+                       << controlEndpoint_.hostname() << std::endl;
+    }
+
+    if (clientSession != sessionID_) {
+        std::stringstream ss;
+        ss << "Session ID does not match session received from server: "
+           << sessionID_ << " != " << clientSession;
+        throw BadValue(ss.str(), Here());
+    }
+
+    return serverSession;
+}
+
+void RemoteFDB::writeDataStartupMessage(const eckit::SessionID& serverSession) {
+
+    Buffer payload(1024);
+    MemoryStream s(payload);
+
+    s << sessionID_;
+    s << serverSession;
+
+    dataWrite(Message::Startup, 0, payload.data(), s.position());
+}
+
+eckit::LocalConfiguration RemoteFDB::availableFunctionality() const {
+    return LocalConfiguration();
 }
 
 void RemoteFDB::listeningThreadLoop() {
@@ -228,8 +276,15 @@ void RemoteFDB::listeningThreadLoop() {
         case Message::Exit:
             return;
 
-        case Message::Blob:
         case Message::ExpectedSize: {
+            ASSERT(hdr.payloadSize > 0);
+            Buffer payload(hdr.payloadSize);
+            dataRead(payload, hdr.payloadSize);
+            expectedSizes_[hdr.requestID] = *static_cast<const Length*>(payload.data());
+            break;
+        }
+
+        case Message::Blob: {
             Buffer payload(hdr.payloadSize);
             if (hdr.payloadSize > 0) dataRead(payload, hdr.payloadSize);
 
@@ -464,13 +519,7 @@ using ListHelper = BaseAPIHelper<ListElement, Message::List>;
 
 using StatsHelper = BaseAPIHelper<StatsElement, Message::Stats>;
 
-struct WhereHelper : public BaseAPIHelper<WhereElement, Message::Where> {
-    static WhereElement valueFromStream(eckit::Stream& s) {
-        WhereElement elem;
-        s >> elem;
-        return elem;
-    }
-};
+using StatusHelper = BaseAPIHelper<StatusElement, Message::Status>;
 
 struct DumpHelper : BaseAPIHelper<DumpElement, Message::Dump> {
 
@@ -506,10 +555,12 @@ private:
 
 struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
 
-    WipeHelper(bool doit, bool porcelain) : doit_(doit), porcelain_(porcelain) {}
+    WipeHelper(bool doit, bool porcelain, bool unsafeWipeAll) :
+        doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
     void encodeExtra(eckit::Stream& s) const {
         s << doit_;
         s << porcelain_;
+        s << unsafeWipeAll_;
     }
     static WipeElement valueFromStream(eckit::Stream& s) {
         WipeElement elem;
@@ -520,6 +571,22 @@ struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
 private:
     bool doit_;
     bool porcelain_;
+    bool unsafeWipeAll_;
+};
+
+struct ControlHelper : BaseAPIHelper<ControlElement, Message::Control> {
+
+    ControlHelper(ControlAction action, ControlIdentifiers identifiers) :
+        action_(action),
+        identifiers_(identifiers) {}
+    void encodeExtra(eckit::Stream& s) const {
+        s << action_;
+        s << identifiers_;
+    }
+
+private:
+    ControlAction action_;
+    ControlIdentifiers identifiers_;
 };
 
 } // namespace
@@ -590,12 +657,12 @@ DumpIterator RemoteFDB::dump(const FDBToolRequest& request, bool simple) {
     return forwardApiCall(DumpHelper(simple), request);
 }
 
-WhereIterator RemoteFDB::where(const FDBToolRequest& request) {
-    return forwardApiCall(WhereHelper(), request);
+StatusIterator RemoteFDB::status(const FDBToolRequest& request) {
+    return forwardApiCall(StatusHelper(), request);
 }
 
-WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain) {
-    return forwardApiCall(WipeHelper(doit, porcelain), request);
+WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+    return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request);
 }
 
 PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
@@ -605,6 +672,12 @@ PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit, bool po
 StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
 }
+
+ControlIterator RemoteFDB::control(const FDBToolRequest& request,
+                                   ControlAction action,
+                                   ControlIdentifiers identifiers) {
+    return forwardApiCall(ControlHelper(action, identifiers), request);
+};
 
 // -----------------------------------------------------------------------------------------------------
 
@@ -811,15 +884,18 @@ class FDBRemoteDataHandle : public DataHandle {
 
 public: // methods
 
-    FDBRemoteDataHandle(uint32_t requestID, RemoteFDB::MessageQueue& queue, const Endpoint& remoteEndpoint) :
+    FDBRemoteDataHandle(uint32_t requestID,
+                        RemoteFDB::MessageQueue& queue,
+                        const Endpoint& remoteEndpoint,
+                        Length& expectedSize) :
         requestID_(requestID),
         queue_(queue),
         remoteEndpoint_(remoteEndpoint),
         pos_(0),
-        estimatedLength_(-1),
         overallPosition_(0),
         currentBuffer_(0),
-        complete_(false) {}
+        complete_(false),
+        expectedSize_(expectedSize) {}
 
 private: // methods
 
@@ -836,11 +912,6 @@ private: // methods
     void close() override {}
 
     long read(void* pos, long sz) override {
-
-        // First message received gives an indication of the total amount of data expected,
-        // so it is important that estimate() is called before any actual reading
-        // (see openForRead)
-        ASSERT(static_cast<long>(estimatedLength_) != -1);
 
         if (complete_) return 0;
 
@@ -909,43 +980,14 @@ private: // methods
 
     Length estimate() override {
 
-        if (static_cast<long>(estimatedLength_) == -1) {
-            std::lock_guard<std::mutex> lock(estimatedMutex_);
-            if (static_cast<long>(estimatedLength_) == -1) {
-                estimatedLength_ = estimateInternal();
-            }
-        }
-
-        ASSERT(static_cast<long>(estimatedLength_) != -1);
-        return estimatedLength_;
+        // If the expected size has not yet been received on the data connection, this
+        // element will be default constructed (0).
+        // Once we know the size, it will be the correct size!
+        return expectedSize_;
     }
 
     Offset position() override {
         return overallPosition_;
-    }
-
-    Length estimateInternal() {
-
-        RemoteFDB::StoredMessage msg = std::make_pair(remote::MessageHeader{}, 0);
-        ASSERT(queue_.pop(msg) != -1);
-
-        MessageHeader& hdr(msg.first);
-
-        ASSERT(hdr.marker == StartMarker);
-        ASSERT(hdr.version == CurrentVersion);
-
-        // Handle any remote errors communicated from the server
-
-        if (hdr.message == Message::Error) {
-            std::string errmsg(static_cast<const char*>(msg.second), msg.second.size());
-            throw RemoteFDBException(errmsg, remoteEndpoint_);
-        }
-
-        // Are we now complete
-
-        ASSERT(hdr.message == Message::ExpectedSize);
-
-        return *static_cast<const Length*>(msg.second.data());
     }
 
 private: // members
@@ -954,11 +996,10 @@ private: // members
     RemoteFDB::MessageQueue& queue_;
     Endpoint remoteEndpoint_;
     size_t pos_;
-    std::mutex estimatedMutex_;
-    Length estimatedLength_;
     Offset overallPosition_;
     Buffer currentBuffer_;
     bool complete_;
+    Length& expectedSize_;
 };
 
 }
@@ -974,9 +1015,13 @@ DataHandle* RemoteFDB::retrieve(const metkit::MarsRequest& request) {
     s << request;
 
     uint32_t id = generateRequestID();
+
+    // We don't yet know the size of the read, so set it to zero (unknown)
+    expectedSizes_[id] = 0;
+
     controlWriteCheckResponse(Message::Retrieve, id, encodeBuffer, s.position());
 
-    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
+    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_, expectedSizes_[id]);
 }
 
 

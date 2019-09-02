@@ -8,22 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-/*
- * This software was developed as part of the EC H2020 funded project NextGenIO
- * (Project ID: 671951) www.nextgenio.eu
- */
-
 /// @author Simon Smart
-/// @date   November 2018
+/// @date   July 2019
 
-#ifndef fdb5_api_local_WipeVisitor_H
-#define fdb5_api_local_WipeVisitor_H
+#ifndef fdb5_api_local_ControlVisitor_H
+#define fdb5_api_local_ControlVisitor_H
 
 #include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/helpers/WipeIterator.h"
-#include "fdb5/database/WipeVisitor.h"
-
-#include "eckit/filesystem/PathName.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 
 
 namespace fdb5 {
@@ -34,35 +26,26 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class WipeVisitor : public QueryVisitor<WipeElement> {
+class ControlVisitor : public QueryVisitor<ControlElement> {
+public:
 
-public: // methods
+    ControlVisitor(eckit::Queue<ControlElement>& queue,
+                   const metkit::MarsRequest& request,
+                   ControlAction action,
+                   ControlIdentifiers identifiers);
 
-    WipeVisitor(eckit::Queue<WipeElement>& queue,
-                const metkit::MarsRequest& request,
-                bool doit,
-                bool porcelain,
-                bool unsafeWipeAll);
-
+    bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
-    bool visitIndexes() override;
 
     bool visitDatabase(const DB& db) override;
-    bool visitIndex(const Index& index) override;
-    void databaseComplete(const DB& db) override;
+    bool visitIndex(const Index&) override { NOTIMP; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
-    void visitDatum(const Field& field, const std::string& keyFingerprint) { NOTIMP; }
 
 private: // members
 
-    eckit::Channel out_;
-    bool doit_;
-    bool porcelain_;
-    bool unsafeWipeAll_;
-
-    std::unique_ptr<fdb5::WipeVisitor> internalVisitor_;
+    ControlAction action_;
+    ControlIdentifiers identifiers_;
 };
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
