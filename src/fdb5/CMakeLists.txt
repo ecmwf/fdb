@@ -59,6 +59,7 @@ list( APPEND fdb5_srcs
     api/FDBStats.h
     api/LocalFDB.cc
     api/LocalFDB.h
+    api/RandomFDB.cc
     api/SelectFDB.cc
     api/SelectFDB.h
 
