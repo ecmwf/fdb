@@ -51,7 +51,7 @@ public:
     bool visitIndex(const Index&) override { NOTIMP; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
-    void visitDatum(const Field& field, const std::string& keyFingerprint) {
+    void visitDatum(const Field& field, const std::string& keyFingerprint) override {
         EntryVisitor::visitDatum(field, keyFingerprint);
     }
 

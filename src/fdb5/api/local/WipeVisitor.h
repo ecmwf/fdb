@@ -51,7 +51,7 @@ public: // methods
     bool visitIndex(const Index& index) override;
     void databaseComplete(const DB& db) override;
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
-    void visitDatum(const Field& field, const std::string& keyFingerprint) { NOTIMP; }
+    void visitDatum(const Field& field, const std::string& keyFingerprint) override { NOTIMP; }
 
 private: // members
 
