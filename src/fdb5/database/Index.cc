@@ -20,8 +20,7 @@ namespace fdb5 {
 IndexBase::IndexBase(const Key& key, const std::string& type) :
     type_(type),
     axes_(),
-    key_(key),
-    prefix_(key.valuesToString())
+    key_(key)
 {
 }
 
@@ -29,7 +28,8 @@ IndexBase::IndexBase(const Key& key, const std::string& type) :
 IndexBase::IndexBase(eckit::Stream& s) :
     axes_(s),
     key_(s) {
-    s >> prefix_;
+    std::string dummy;
+    s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
     s >> type_;
 }
 

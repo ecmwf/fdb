@@ -44,7 +44,7 @@ public:
 /// @note We use a FileStoreWrapper base that only exists to initialise the files_ member function
 ///       before the Index constructor is called. This is necessary as due to (preexisting)
 ///       serialisation ordering, the files_ member needs to be initialised from a Stream
-///       before the prefix_ and type_ members of Index, but Indexs WILL be constructed before
+///       before the type_ members of Index, but Indexs WILL be constructed before
 ///       the members of TocIndex
 
 TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
@@ -73,7 +73,7 @@ void TocIndex::encode(eckit::Stream &s) const {
     files_.encode(s);
     axes_.encode(s);
     s << key_;
-    s << prefix_;
+    s << key_.valuesToString(); //< unused entry for legacy compatibility
     s << type_;
 }
 
@@ -213,7 +213,7 @@ public:
 
 
 void TocIndex::dump(std::ostream &out, const char* indent, bool simple, bool dumpFields) const {
-    out << indent << "Prefix: " << prefix_ << ", key: " << key_;
+    out << indent << "Key: " << key_;
 
     if(!simple) {
         out << std::endl;
