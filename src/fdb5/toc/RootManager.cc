@@ -361,7 +361,7 @@ static std::vector<Root> fileSpaceRoots(const std::vector<Root>& all, const std:
     return roots;
 }
 
-static FileSpace parseMarsDisks(const eckit::PathName& fdbHome) {
+static std::vector<Root> parseMarsDisks(const eckit::PathName& fdbHome) {
     eckit::AutoLock<eckit::Mutex> lock(fileSpacesMutex);
 
     std::string fileSpaceName = "MarsDisksFDB";
@@ -385,7 +385,7 @@ static FileSpace parseMarsDisks(const eckit::PathName& fdbHome) {
         }
     }
 
-    return FileSpace(fileSpaceName, ".*", "WeightedRandom", spaceRoots);
+    return spaceRoots;
 }
 
 static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
@@ -469,21 +469,23 @@ static FileSpaceTable fileSpaces(const Config& config) {
         std::vector<LocalConfiguration> spacesConfigs(config.getSubConfigurations("spaces"));
         for (const auto& space : spacesConfigs) {
 
-            if (space.has("marsDisks")) {
-                table.emplace_back(parseMarsDisks(config.expandPath("~fdb/")));
-            }
-
             std::vector<Root> spaceRoots;
-            std::vector<LocalConfiguration> roots(space.getSubConfigurations("roots"));
-            for (const auto& root : roots) {
-                spaceRoots.emplace_back(
-                    Root(
-                        root.getString("path"),
-                        "",
-                        root.getBool("writable", true),
-                        root.getBool("visit", true)
-                    )
-                );
+
+            if (space.getBool("marsDisks", false)) {
+                spaceRoots = parseMarsDisks(config.expandPath("~fdb/"));
+            }
+            else {
+                std::vector<LocalConfiguration> roots(space.getSubConfigurations("roots"));
+                for (const auto& root : roots) {
+                    spaceRoots.emplace_back(
+                        Root(
+                            root.getString("path"),
+                            "",
+                            root.getBool("writable", true),
+                            root.getBool("visit", true)
+                        )
+                    );
+                }
             }
 
             table.emplace_back(
