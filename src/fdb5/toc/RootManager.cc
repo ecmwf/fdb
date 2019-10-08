@@ -20,6 +20,7 @@
 #include "eckit/utils/Translator.h"
 #include "eckit/thread/Mutex.h"
 #include "eckit/thread/AutoLock.h"
+#include "eckit/filesystem/LocalPathName.h"
 
 #include "metkit/MarsRequest.h"
 
@@ -360,6 +361,33 @@ static std::vector<Root> fileSpaceRoots(const std::vector<Root>& all, const std:
     return roots;
 }
 
+static FileSpace parseMarsDisks(const eckit::PathName& fdbHome) {
+    eckit::AutoLock<eckit::Mutex> lock(fileSpacesMutex);
+
+    std::string fileSpaceName = "MarsDisksFDB";
+
+    bool writable = true;
+    bool visitable = true;
+
+    std::vector<Root> spaceRoots;
+
+    LocalPathName file(fdbHome + "/etc/disks/fdb");
+    std::ifstream in(file.localPath());
+    char line[1024];
+    while (in.getline(line, sizeof(line))) {
+        if (line[0] != 0 && line[0] != '#') {
+            Tokenizer tokenize(", \t");
+            std::vector<std::string> tokens;
+            tokenize(line, tokens);
+            if (tokens.size() == 1) {
+                spaceRoots.emplace_back(Root(tokens[0], fileSpaceName, writable, visitable));
+            }
+        }
+    }
+
+    return FileSpace(fileSpaceName, ".*", "WeightedRandom", spaceRoots);
+}
+
 static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
 
     eckit::AutoLock<eckit::Mutex> lock(fileSpacesMutex);
@@ -440,6 +468,10 @@ static FileSpaceTable fileSpaces(const Config& config) {
         FileSpaceTable table;
         std::vector<LocalConfiguration> spacesConfigs(config.getSubConfigurations("spaces"));
         for (const auto& space : spacesConfigs) {
+
+            if (space.has("marsDisks")) {
+                table.emplace_back(parseMarsDisks(config.expandPath("~fdb/")));
+            }
 
             std::vector<Root> spaceRoots;
             std::vector<LocalConfiguration> roots(space.getSubConfigurations("roots"));
