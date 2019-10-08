@@ -61,7 +61,7 @@ class FDBPatch : public FDBVisitTool {
 public: // methods
 
     FDBPatch(int argc, char **argv) :
-        FDBVisitTool(argc, argv) {
+        FDBVisitTool(argc, argv, "class,expver,stream,date,time") {
 
         options_.push_back(new SimpleOption<std::string>("expver", "Set the expver"));
         options_.push_back(new SimpleOption<std::string>("class", "Set the class"));

@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #include "eckit/log/Log.h"
 #include "eckit/utils/Tokenizer.h"
 #include "eckit/types/Types.h"
@@ -172,27 +177,27 @@ DumpIterator SelectFDB::dump(const FDBToolRequest& request, bool simple) {
                          });
 }
 
-WhereIterator SelectFDB::where(const FDBToolRequest& request) {
-    Log::debug<LibFdb5>() << "SelectFDB::where() >> " << request << std::endl;
+StatusIterator SelectFDB::status(const FDBToolRequest& request) {
+    Log::debug<LibFdb5>() << "SelectFDB::status() >> " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.where(request);
+                            return fdb.status(request);
     });
 }
 
-WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool verbose) {
+WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     Log::debug<LibFdb5>() << "SelectFDB::wipe() >> " << request << std::endl;
     return queryInternal(request,
-                         [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.wipe(request, doit, verbose);
+                         [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
     });
 }
 
-PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool verbose) {
+PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
     Log::debug<LibFdb5>() << "SelectFDB::purge() >> " << request << std::endl;
     return queryInternal(request,
-                         [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.purge(request, doit, verbose);
+                         [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.purge(request, doit, porcelain);
     });
 }
 
@@ -201,6 +206,17 @@ StatsIterator SelectFDB::stats(const FDBToolRequest &request) {
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.stats(request);
+    });
+}
+
+ControlIterator SelectFDB::control(const FDBToolRequest& request,
+                                   ControlAction action,
+                                   ControlIdentifiers identifiers) {
+    Log::debug<LibFdb5>() << "SelectFDB::control >> " << request << std::endl;
+    return queryInternal(request,
+                         [action, identifiers](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.control(request, action, identifiers);
+
     });
 }
 

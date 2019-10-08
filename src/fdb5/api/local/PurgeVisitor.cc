@@ -9,6 +9,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #include "fdb5/api/local/PurgeVisitor.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -28,13 +33,16 @@ namespace local {
 PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
                            const metkit::MarsRequest& request,
                            bool doit,
-                           bool verbose) :
+                           bool porcelain) :
     QueryVisitor<PurgeElement>(queue, request),
     out_(new QueueStringLogTarget(queue)),
     doit_(doit),
-    verbose_(verbose) {}
+    porcelain_(porcelain) {}
 
 bool PurgeVisitor::visitDatabase(const DB& db) {
+
+    // If the DB is locked for wiping, then it "doesn't exist"
+    if (db.wipeLocked()) return false;
 
     EntryVisitor::visitDatabase(db);
 
@@ -72,10 +80,12 @@ void PurgeVisitor::visitDatum(const Field&, const Key&) { NOTIMP; }
 void PurgeVisitor::databaseComplete(const DB& db) {
     internalVisitor_->databaseComplete(db);
 
-    internalVisitor_->report(out_);
+    if (!porcelain_) {
+        internalVisitor_->report(out_);
+    }
 
-    if (doit_) {
-        internalVisitor_->purge(out_, verbose_);
+    if (doit_ || porcelain_) {
+        internalVisitor_->purge(out_, porcelain_, doit_);
     }
 
     // Cleanup

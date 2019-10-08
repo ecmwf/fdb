@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @date   October 2018
 
@@ -24,6 +29,7 @@
 
 namespace eckit {
     class Stream;
+    class JSON;
 }
 
 namespace fdb5 {
@@ -44,6 +50,8 @@ public: // methods
 
     void print(std::ostream& out, bool location=false) const;
 
+    void json(eckit::JSON& json) const;
+
 private: // methods
 
     void encode(eckit::Stream& s) const;
@@ -56,6 +64,11 @@ private: // methods
     friend eckit::Stream& operator<<(eckit::Stream& s, const ListElement& r) {
         r.encode(s);
         return s;
+    }
+
+    friend eckit::JSON& operator<<(eckit::JSON& j, const ListElement& e) {
+        e.json(j);
+        return j;
     }
 
 public: // members

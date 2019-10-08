@@ -19,6 +19,7 @@
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
+#include "eckit/io/MemoryHandle.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
@@ -88,11 +89,33 @@ public: // methods
 
     DbStats stats() const;
 
+    void enumerateMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
+                         std::set<eckit::PathName>& data) const;
+
 protected: // methods
 
     size_t tocFilesSize() const;
 
     std::vector<eckit::PathName> subTocPaths() const;
+
+    // Access and control of locks
+
+    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
+
+    bool retrieveLocked() const;
+    bool archiveLocked() const;
+    bool listLocked() const;
+    bool wipeLocked() const;
+
+    // Utilities for handling locks
+
+    std::vector<eckit::PathName> lockfilePaths() const;
+
+private: // methods
+
+    eckit::PathName fullLockFilePath(const std::string& name) const;
+    void createLockFile(const std::string& name) const;
+    void removeLockFile(const std::string& name) const;
 
 protected: // members
 
@@ -113,6 +136,7 @@ protected: // methods
 
     // Handle location and remapping information if using a mounted TocDB
     const eckit::PathName& currentDirectory() const;
+    const eckit::PathName& currentTocPath() const;
     const Key& currentRemapKey() const;
 
     // Build the record, and return the payload size
@@ -141,15 +165,15 @@ private: // methods
     /// Populate the masked sub toc list, starting from the _current_position_ in the
     /// file (opened for read). It resets back to the same place when done. This is
     /// to allow searching only from the first subtoc.
-    void allMaskableEntries(off_t startOffset, off_t endOffset,
-                            std::set<std::pair<eckit::PathName, size_t>>& entries) const;
+    void allMaskableEntries(eckit::Offset startOffset, eckit::Offset endOffset,
+                            std::set<std::pair<eckit::PathName, eckit::Offset>>& entries) const;
     void populateMaskedEntriesList() const;
 
     void append(TocRecord &r, size_t payloadSize);
 
     // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
     // the mechanism of subtocs).
-    bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true) const;
+    bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true, bool hideClearEntries = true) const;
 
     bool readNextInternal(TocRecord &r) const;
 
@@ -172,15 +196,18 @@ private: // members
 
     mutable int fd_;      ///< file descriptor, if zero file is not yet open.
 
+    mutable std::unique_ptr<eckit::MemoryHandle> cachedToc_; ///< this is only for read path
+
     /// The sub toc is initialised in the read or write pathways for maintaining state.
     mutable std::unique_ptr<TocHandler> subTocRead_;
     mutable std::unique_ptr<TocHandler> subTocWrite_;
     mutable size_t count_;
 
-    mutable std::set<std::pair<eckit::PathName, size_t>> maskedEntries_;
+    mutable std::set<std::pair<eckit::PathName, eckit::Offset>> maskedEntries_;
 
     mutable bool enumeratedMaskedEntries_;
     mutable bool writeMode_;
+    mutable bool dirty_;
 };
 
 

@@ -8,14 +8,23 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #include <chrono>
 
-#include "eckit/maths/Functions.h"
-#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/config/Resource.h"
+#include "eckit/maths/Functions.h"
+#include "eckit/net/Endpoint.h"
+#include "eckit/runtime/Main.h"
+#include "eckit/runtime/SessionID.h"
+#include "eckit/serialisation/MemoryStream.h"
 
 #include "metkit/MarsRequest.h"
 
+#include "fdb5/remote/AvailablePortList.h"
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
@@ -112,16 +121,16 @@ struct PurgeHelper : public BaseHelper<PurgeElement> {
 
     void extraDecode(eckit::Stream& s) {
         s >> doit_;
-        s >> verbose_;
+        s >> porcelain_;
     }
 
     PurgeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.purge(request, doit_, verbose_);
+        return fdb.purge(request, doit_, porcelain_);
     }
 
 private:
     bool doit_;
-    bool verbose_;
+    bool porcelain_;
 };
 
 
@@ -131,9 +140,9 @@ struct StatsHelper : public BaseHelper<StatsElement> {
     }
 };
 
-struct WhereHelper : public BaseHelper<WhereElement> {
-    WhereIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.where(request);
+struct StatusHelper : public BaseHelper<StatusElement> {
+    StatusIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.status(request);
     }
 };
 
@@ -141,21 +150,34 @@ struct WipeHelper : public BaseHelper<WipeElement> {
 
     void extraDecode(eckit::Stream& s) {
         s >> doit_;
-        s >> verbose_;
+        s >> porcelain_;
+        s >> unsafeWipeAll_;
     }
 
     WipeIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.wipe(request, doit_, verbose_);
-    }
-
-    size_t encodeBufferSize(const WipeElement& elem) const override {
-        size_t totalSize = elem.guessEncodedSize();
-        return eckit::round(totalSize, 4096);
+        return fdb.wipe(request, doit_, porcelain_, unsafeWipeAll_);
     }
 
 private:
     bool doit_;
-    bool verbose_;
+    bool porcelain_;
+    bool unsafeWipeAll_;
+};
+
+struct ControlHelper : public BaseHelper<ControlElement> {
+
+    void extraDecode(eckit::Stream& s) {
+        s >> action_;
+        identifiers_ = ControlIdentifiers(s);
+    }
+
+    ControlIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.control(request, action_, identifiers_);
+    }
+
+private:
+    ControlAction action_;
+    ControlIdentifiers identifiers_;
 };
 
 } // namespace
@@ -167,8 +189,10 @@ private:
 // results in a MultiHandle/HandleGatherer).
 
 RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
+    config_(config),
     controlSocket_(socket),
-    dataSocket_(),
+    dataSocket_(selectDataPort(), "", false),
+    dataListenHostname_(config.getString("dataListenHostname", "")),
     fdb_(config),
     retrieveQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {}
 
@@ -185,17 +209,94 @@ RemoteHandler::~RemoteHandler() {
     Log::info() << "Done" << std::endl;
 }
 
-void RemoteHandler::handle() {
+void RemoteHandler::initialiseConnections() {
+
+    // Read the startup message from the client. Check that it all checks out.
+
+    MessageHeader hdr;
+    socketRead(&hdr, sizeof(hdr), controlSocket_);
+
+    ASSERT(hdr.marker == StartMarker);
+    ASSERT(hdr.version == CurrentVersion);
+    ASSERT(hdr.message == Message::Startup);
+    ASSERT(hdr.requestID == 0);
+
+    Buffer payload1 = receivePayload(hdr, controlSocket_);
+    eckit::FixedString<4> tail;
+    socketRead(&tail, sizeof(tail), controlSocket_);
+    ASSERT(tail == EndMarker);
+
+    MemoryStream s1(payload1);
+    SessionID clientSession(s1);
+    Endpoint endpointFromClient(s1);
+    LocalConfiguration clientAvailableFunctionality(Value(s1));
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
+    // n.b. FDB-192: we use the host communicated from the client endpoint. This
+    //               ensures that if a specific interface has been selected and the
+    //               server has multiple, then we use that on, whilst retaining
+    //               the capacity in the protocol for the server to make a choice.
 
     int dataport = dataSocket_.localPort();
+    // std::string host = dataListenHostname_.empty() ? dataSocket_.localHost() : dataListenHostname_;
+    Endpoint dataEndpoint(endpointFromClient.hostname(), dataport);
 
-    Log::debug<LibFdb5>() << "Sending data port to client: " << dataport << std::endl;
+    Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
 
-    controlWrite(&dataport, sizeof(dataport));
+    {
+        Buffer startupBuffer(1024);
+        MemoryStream s(startupBuffer);
+
+        s << clientSession;
+        s << sessionID_;
+        s << dataEndpoint;
+
+        // TODO: Function to decide what functionality we will actually use. This just
+        //       sets up the components of the over-the-wire protocol
+        s << LocalConfiguration().get();
+
+        controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
+    }
 
     dataSocket_.accept();
+
+    // Check the response from the client.
+    // Ensure that the hostname matches the original hostname, and that
+    // it returns the details we sent it
+    // IE check that we are connected to the correct client!
+
+    MessageHeader dataHdr;
+    socketRead(&dataHdr, sizeof(dataHdr), dataSocket_);
+
+    ASSERT(dataHdr.marker == StartMarker);
+    ASSERT(dataHdr.version == CurrentVersion);
+    ASSERT(dataHdr.message == Message::Startup);
+    ASSERT(dataHdr.requestID == 0);
+
+    Buffer payload2 = receivePayload(dataHdr, dataSocket_);
+    socketRead(&tail, sizeof(tail), dataSocket_);
+    ASSERT(tail == EndMarker);
+
+    MemoryStream s2(payload2);
+    SessionID clientSession2(s2);
+    SessionID serverSession(s2);
+
+    if (clientSession != clientSession2) {
+        std::stringstream ss;
+        ss << "Client session IDs do not match: " << clientSession << " != " << clientSession2;
+        throw BadValue(ss.str(), Here());
+    }
+
+    if (serverSession != sessionID_) {
+        std::stringstream ss;
+        ss << "Session IDs do not match: " << serverSession << " != " << sessionID_;
+        throw BadValue(ss.str(), Here());
+    }
+}
+
+void RemoteHandler::handle() {
+
+    initialiseConnections();
 
     // And go into the main loop
 
@@ -239,12 +340,16 @@ void RemoteHandler::handle() {
                 forwardApiCall<StatsHelper>(hdr);
                 break;
 
-            case Message::Where:
-                forwardApiCall<WhereHelper>(hdr);
+            case Message::Status:
+                forwardApiCall<StatusHelper>(hdr);
                 break;
 
             case Message::Wipe:
                 forwardApiCall<WipeHelper>(hdr);
+                break;
+
+            case Message::Control:
+                forwardApiCall<ControlHelper>(hdr);
                 break;
 
             case Message::Flush:
@@ -286,6 +391,19 @@ void RemoteHandler::handle() {
             controlWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
         }
     }
+}
+
+int RemoteHandler::selectDataPort() {
+    eckit::Log::info() << "SelectDataPort: " << std::endl;
+    eckit::Log::info() << config_ << std::endl;
+    if (config_.has("dataPortStart")) {
+        ASSERT(config_.has("dataPortCount"));
+        return AvailablePortList(config_.getInt("dataPortStart"),
+                                 config_.getLong("dataPortCount")).acquire();
+    }
+
+    // Use a system assigned port
+    return 0;
 }
 
 void RemoteHandler::controlWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
@@ -347,7 +465,7 @@ void RemoteHandler::dataWriteUnsafe(const void* data, size_t length) {
 
 Buffer RemoteHandler::receivePayload(const MessageHeader &hdr, TCPSocket& socket) {
 
-    Buffer payload(eckit::round(hdr.payloadSize, 4*1024));
+    Buffer payload(hdr.payloadSize);
 
     ASSERT(hdr.payloadSize > 0);
     socketRead(payload, hdr.payloadSize, socket);
@@ -451,35 +569,76 @@ void RemoteHandler::archive(const MessageHeader& hdr) {
     archiveFuture_ = std::async(std::launch::async, [this, id] { return archiveThreadLoop(id); });
 }
 
+
+// A helper function to make archiveThreadLoop a bit cleaner
+
+static void archiveBlobPayload(FDB& fdb, const void* data, size_t length) {
+
+    MemoryStream s(data, length);
+
+    fdb5::Key key(s);
+
+    std::stringstream ss_key;
+    ss_key << key;
+
+    const char* charData = static_cast<const char*>(data); // To allow pointer arithmetic
+    Log::status() << "Archiving data: " << ss_key.str() << std::endl;
+    fdb.archive(key, charData + s.position(), length - s.position());
+    Log::status() << "Archiving done: " << ss_key.str() << std::endl;
+}
+
+
 size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
 
     size_t totalArchived = 0;
 
-    Log::info() << "Inside archiveThreadLoop. ID: " << id << std::endl;
-
     // Create a worker that will do the actual archiving
 
     static size_t queueSize(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32));
-    eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>> queue(queueSize);
+    eckit::Queue<std::pair<eckit::Buffer, bool>> queue(queueSize);
 
-    std::future<void> worker = std::async(std::launch::async, [this, &queue] {
+    std::future<size_t> worker = std::async(std::launch::async, [this, &queue, id] {
 
-        std::pair<fdb5::Key, eckit::Buffer> elem = std::make_pair(fdb5::Key{}, eckit::Buffer{0});
+        size_t totalArchived = 0;
+
+        std::pair<eckit::Buffer, bool> elem = std::make_pair(Buffer{0}, false);
 
         try {
 
             long queuelen;
             while ((queuelen = queue.pop(elem)) != -1) {
 
-                const Key& key(elem.first);
-                const Buffer& buffer(elem.second);
+                if (elem.second) {
 
-                std::stringstream ss_key;
-                ss_key << key;
-                Log::info() << "Archive (" << queuelen << "): " << ss_key.str() << std::endl;
-                Log::status() << "Archive (" << queuelen << "): " << ss_key.str() << std::endl;
-                fdb_.archive(key, buffer, buffer.size());
-                Log::status() << "Archive done (" << queuelen << "): " << ss_key.str() << std::endl;
+                    // Handle MultiBlob
+
+                    const char* firstData = static_cast<const char*>(elem.first.data()); // For pointer arithmetic
+                    const char* charData = firstData;
+                    while (size_t(charData - firstData) < elem.first.size()) {
+
+                        const MessageHeader* hdr = static_cast<const MessageHeader*>(static_cast<const void*>(charData));
+                        ASSERT(hdr->marker == StartMarker);
+                        ASSERT(hdr->version == CurrentVersion);
+                        ASSERT(hdr->message == Message::Blob);
+                        ASSERT(hdr->requestID == id);
+                        charData += sizeof(MessageHeader);
+
+                        const void* payloadData = charData;
+                        charData += hdr->payloadSize;
+
+                        const decltype(EndMarker)* e = static_cast<const decltype(EndMarker)*>(static_cast<const void*>(charData));
+                        ASSERT(*e == EndMarker);
+                        charData += sizeof(EndMarker);
+
+                        archiveBlobPayload(fdb_, payloadData, hdr->payloadSize);
+                        totalArchived += 1;
+                    }
+                } else {
+                    // Handle single blob
+                    archiveBlobPayload(fdb_, elem.first.data(), elem.first.size());
+                    totalArchived += 1;
+                }
+
             }
 
         } catch (...) {
@@ -487,6 +646,8 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
             queue.interrupt(std::current_exception());
             throw;
         }
+
+        return totalArchived;
     });
 
     try {
@@ -508,7 +669,8 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
             // Have we been told that we are done yet?
             if (hdr.message == Message::Flush) break;
 
-            ASSERT(hdr.message == Message::Blob);
+            ASSERT(hdr.message == Message::Blob ||
+                   hdr.message == Message::MultiBlob);
 
             Buffer payload(receivePayload(hdr, dataSocket_));
             MemoryStream s(payload);
@@ -517,26 +679,13 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
             socketRead(&tail, sizeof(tail), dataSocket_);
             ASSERT(tail == EndMarker);
 
-            // Get the key and the data out
+            // Queueing payload
 
-            fdb5::Key key(s);
-
-            std::stringstream ss_key;
-            ss_key << key;
-            Log::status() << "Queueing: " << ss_key.str() << std::endl;
-            Log::debug<LibFdb5>() << "Queueing: " << ss_key.str() << std::endl;
-
-            // Queue the data for asynchronous handling
-
-            size_t pos = s.position();
-            size_t len = hdr.payloadSize - pos;
-
-            size_t queuelen = queue.emplace(std::make_pair(std::move(key), Buffer(&payload[pos], len)));
-
-            Log::status() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
-            Log::debug<LibFdb5>() << "Queued (" << queuelen << "): " << ss_key.str() << std::endl;
-
-            totalArchived += 1;
+            size_t sz = payload.size();
+            Log::debug<LibFdb5>() << "Queueing data: " << sz << std::endl;
+            size_t queuelen = queue.emplace(std::make_pair(std::move(payload), hdr.message == Message::MultiBlob));
+            Log::status() << "Queued data (" << queuelen << ", size=" << sz << ")" << std::endl;;
+            Log::debug<LibFdb5>() << "Queued data (" << queuelen << ", size=" << sz << ")" << std::endl;;
         }
 
         // Trigger cleanup of the workers
@@ -551,11 +700,17 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
         // Ensure worker is done
 
         ASSERT(worker.valid());
-        worker.get(); // n.b. use of async, get() propagates any exceptions.
+        totalArchived = worker.get(); // n.b. use of async, get() propagates any exceptions.
 
-        Log::info() << "Recieved end marker. Exiting" << std::endl;
-
+    } catch (std::exception& e) {
+        // n.b. more general than eckit::Exception
+        std::string what(e.what());
+        dataWrite(Message::Error, id, what.c_str(), what.length());
+        queue.interrupt(std::current_exception());
+        throw;
     } catch (...) {
+        std::string what("Caught unexpected, unknown exception in retrieve worker");
+        dataWrite(Message::Error, id, what.c_str(), what.length());
         queue.interrupt(std::current_exception());
         throw;
     }
@@ -635,6 +790,8 @@ void RemoteHandler::retrieveThreadLoop() {
             long dataRead;
 
             dh->openForRead();
+            Length expectedSize = dh->estimate();
+            dataWrite(Message::ExpectedSize, requestID, &expectedSize, sizeof(expectedSize));
             while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
                 dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
             }

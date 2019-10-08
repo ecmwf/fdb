@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @file   PMemDB.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
@@ -81,7 +86,6 @@ protected: // methods
     virtual void maskIndexEntry(const Index& index) const override;
 
     // void loadSchema();
-    virtual void checkSchema(const Key &key) const;
 
     virtual bool selectIndex(const Key &key);
     virtual void deselectIndex();
@@ -89,6 +93,15 @@ protected: // methods
     virtual DbStats statistics() const;
 
     virtual std::vector<Index> indexes(bool sorted=false) const;
+
+    // Control access properties of the DB
+
+    void control(const ControlAction& action, const ControlIdentifiers& identifiers) override { NOTIMP; }
+
+    bool retrieveLocked() const override { NOTIMP; }
+    bool archiveLocked() const override { NOTIMP; }
+    bool listLocked() const override { NOTIMP; }
+    bool wipeLocked() const override { NOTIMP; }
 
 private: // methods
 

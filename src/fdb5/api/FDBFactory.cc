@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 
 #include "eckit/log/Log.h"
 #include "eckit/thread/AutoLock.h"
@@ -49,6 +54,10 @@ FDBStats FDBBase::stats() const {
 
 const std::string &FDBBase::name() const {
     return name_;
+}
+
+const Config& FDBBase::config() const {
+    return config_;
 }
 
 bool FDBBase::writable() {

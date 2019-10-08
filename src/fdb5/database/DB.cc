@@ -89,7 +89,7 @@ const DBFactory &DBFactory::findFactory(const std::string &name) {
 }
 
 
-DB* DBFactory::buildWriter(const Key& key, const eckit::Configuration& config) {
+DB* DBFactory::buildWriter(const Key& key, const fdb5::Config& config) {
 
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
@@ -104,7 +104,7 @@ DB* DBFactory::buildWriter(const Key& key, const eckit::Configuration& config) {
     return factory.make(key, config);
 }
 
-DB* DBFactory::buildReader(const Key& key, const eckit::Configuration& config) {
+DB* DBFactory::buildReader(const Key& key, const fdb5::Config& config) {
 
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
@@ -119,7 +119,7 @@ DB* DBFactory::buildReader(const Key& key, const eckit::Configuration& config) {
     return factory.make(key, config);
 }
 
-DB* DBFactory::buildReader(const eckit::PathName& path, const eckit::Configuration& config) {
+DB* DBFactory::buildReader(const eckit::PathName& path, const fdb5::Config& config) {
 
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
@@ -158,6 +158,10 @@ StatsReportVisitor* DB::statsReportVisitor() const {
 }
 
 PurgeVisitor* DB::purgeVisitor() const {
+    NOTIMP;
+}
+
+WipeVisitor* DB::wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
     NOTIMP;
 }
 

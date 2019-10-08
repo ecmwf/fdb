@@ -46,11 +46,19 @@ bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     eckit::Log::debug<LibFdb5>() << "selectDatabase " << key << std::endl;
     db_.reset(DBFactory::buildReader(key));
 
+    // If this database is locked for retrieval then it "does not exist"
+    if (db_->retrieveLocked()) {
+        std::ostringstream ss;
+        ss << "Database " << *db_ << " is LOCKED for retrieval";
+        eckit::Log::warning() << ss.str() << std::endl;
+        db_.reset();
+        return false;
+    }
+
     if (!db_->open()) {
         eckit::Log::info() << "Database does not exists " << key << std::endl;
         return false;
     } else {
-        db_->checkSchema(key);
         return true;
     }
 }
@@ -82,6 +90,11 @@ void RetrieveVisitor::values(const metkit::MarsRequest &request, const std::stri
 
 void RetrieveVisitor::print( std::ostream &out ) const {
     out << "RetrieveVisitor[]";
+}
+
+const Schema& RetrieveVisitor::databaseSchema() const {
+    ASSERT(db_);
+    return db_->schema();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

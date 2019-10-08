@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #include "eckit/io/DataHandle.h"
 
 #include "fdb5/api/FDB.h"
@@ -62,20 +67,24 @@ DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
     return internal_->dump(request, simple);
 }
 
-WhereIterator FDB::where(const FDBToolRequest& request) {
-    return internal_->where(request);
+StatusIterator FDB::status(const FDBToolRequest& request) {
+    return internal_->status(request);
 }
 
-WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool verbose) {
-    return internal_->wipe(request, doit, verbose);
+WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+    return internal_->wipe(request, doit, porcelain, unsafeWipeAll);
 }
 
-PurgeIterator FDB::purge(const FDBToolRequest &request, bool doit, bool verbose) {
-    return internal_->purge(request, doit, verbose);
+PurgeIterator FDB::purge(const FDBToolRequest &request, bool doit, bool porcelain) {
+    return internal_->purge(request, doit, porcelain);
 }
 
 StatsIterator FDB::stats(const FDBToolRequest &request) {
     return internal_->stats(request);
+}
+
+ControlIterator FDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
+    return internal_->control(request, action, identifiers);
 }
 
 const std::string FDB::id() const {
@@ -88,6 +97,14 @@ FDBStats FDB::stats() const {
 
 FDBStats FDB::internalStats() const {
     return internal_->stats();
+}
+
+const std::string& FDB::name() const {
+    return internal_->name();
+}
+
+const Config &FDB::config() const {
+    return internal_->config();
 }
 
 void FDB::print(std::ostream& s) const {

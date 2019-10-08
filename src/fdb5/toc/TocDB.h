@@ -32,8 +32,8 @@ class TocDB : public DB, public TocHandler {
 
 public: // methods
 
-    TocDB(const Key& key, const eckit::Configuration& config);
-    TocDB(const eckit::PathName& directory, const eckit::Configuration& config);
+    TocDB(const Key& key, const fdb5::Config& config);
+    TocDB(const eckit::PathName& directory, const fdb5::Config& config);
 
     ~TocDB() override;
 
@@ -52,7 +52,7 @@ protected: // methods
     void visit(DBVisitor& visitor) override;
     void dump(std::ostream& out, bool simple=false) const override;
     std::string owner() const override;
-    eckit::PathName basePath() const override;
+    const eckit::PathName& basePath() const override;
     std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;
 
@@ -62,16 +62,30 @@ protected: // methods
 
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor() const override;
+    WipeVisitor* wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
     void maskIndexEntry(const Index& index) const override;
 
     void loadSchema();
-    void checkSchema(const Key &key) const override;
 
     DbStats statistics() const override;
 
     std::vector<Index> indexes(bool sorted=false) const override;
 
+    void allMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
+                   std::set<eckit::PathName>& data) const override;
+
+    // Control access properties of the DB
+
+    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
+
+    bool retrieveLocked() const override;
+    bool archiveLocked() const override;
+    bool listLocked() const override;
+    bool wipeLocked() const override;
+
 private: // members
+
+    friend class TocWipeVisitor;
 
     Schema schema_;
 };

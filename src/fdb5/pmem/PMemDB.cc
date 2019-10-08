@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #include "eckit/config/Resource.h"
 #include "eckit/log/Timer.h"
 
@@ -147,12 +152,6 @@ void PMemDB::close() {
         idx.close();
     }
     indexes_.clear();
-}
-
-void PMemDB::checkSchema(const Key &key) const {
-    eckit::Timer timer("PMemDB::checkSchema()");
-    ASSERT(key.rule());
-    schema_.compareTo(key.rule()->schema());
 }
 
 void PMemDB::axis(const std::string &keyword, eckit::StringSet &s) const {

@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @date   Mar 2018
 
@@ -30,6 +35,7 @@ class LocalFDB : public FDBBase {
 public: // methods
 
     using FDBBase::FDBBase;
+    using FDBBase::stats;
 
     void archive(const Key& key, const void* data, size_t length) override;
 
@@ -39,13 +45,17 @@ public: // methods
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
-    WhereIterator where(const FDBToolRequest& request) override;
+    StatusIterator status(const FDBToolRequest& request) override;
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) override;
+    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
-    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool verbose) override;
+    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
     StatsIterator stats(const FDBToolRequest& request) override;
+
+    ControlIterator control(const FDBToolRequest& request,
+                            ControlAction action,
+                            ControlIdentifiers identifiers) override;
 
     void flush() override;
 

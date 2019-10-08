@@ -16,6 +16,8 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
+#include "eckit/runtime/Main.h"
+#include "eckit/filesystem/FileMode.h"
 
 #include "fdb5/rules/Schema.h"
 #include "fdb5/LibFdb5.h"
@@ -24,6 +26,32 @@ using namespace eckit;
 
 
 namespace fdb5 {
+
+
+/// Schemas are persisted in this registry
+///
+class SchemaRegistry {
+public:
+
+    static SchemaRegistry& instance() {
+        static SchemaRegistry me;
+        return me;
+    }
+
+    const Schema& get(const PathName& path) {
+        std::lock_guard<std::mutex> lock(m_);
+        auto it = schemas_.find(path);
+        if (it != schemas_.end()) {
+            return *it->second;
+        }
+
+        schemas_[path] = std::unique_ptr<Schema>(new Schema(path));
+        return *schemas_[path];
+    }
+private:
+    std::mutex m_;
+    std::map<PathName, std::unique_ptr<Schema>> schemas_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -43,25 +71,49 @@ Config Config::expandConfig() const {
     char* config_str = ::getenv("FDB5_CONFIG");
     if (config_str) {
         std::string s(config_str);
-        eckit::YAMLConfiguration cfg(s);
+        Config cfg{YAMLConfiguration(s)};
+        cfg.set("configSource", "environment");
         return cfg;
     }
 
-    // Otherwise, if we have specified a configuration path (including in the config
-    // being expanded) then read that and use it.
+    // Consider possible config files
 
-    const std::string default_config_path = "~fdb/etc/fdb/config.yaml";
-    std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", default_config_path);
+    PathName actual_path;
+    bool found = false;
 
+    // If the config file has been overridden, then use that directly.
+    //
     // If fdb_home is explicitly set in the config then use that not from
     // the Resource (as it has been overridden, or this is a _nested_ config).
 
-    if (has("fdb_home")) config_path = default_config_path;
+    std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "");
+    if (!config_path.empty() && !has("fdb_home")) {
+        actual_path = config_path;
+        if (!actual_path.exists()) return *this;
+        found = true;
+    }
 
-    eckit::PathName actual_path = expandPath(config_path);
-    if (actual_path.exists()) {
+    if (!found) {
+        PathName configDir = expandPath("~fdb/etc/fdb");
+        for (const std::string& stem : {Main::instance().displayName(),
+                                        Main::instance().name(),
+                                        std::string("config")}) {
+
+            for (const char* tail : {".yaml", ".json"}) {
+                actual_path = configDir / (stem + tail);
+                if (actual_path.exists()) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+    }
+
+    if (found) {
         eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << actual_path << std::endl;
-        eckit::YAMLConfiguration cfg(actual_path);
+        Config cfg{YAMLConfiguration(actual_path)};
+        cfg.set("configSource", actual_path);
         return cfg;
     }
 
@@ -117,22 +169,22 @@ PathName Config::schemaPath() const {
     return expandPath(fdbSchemaFile);
 }
 
-const Schema& Config::schema() const {
-
-    static std::mutex m;
-    static std::map<PathName, std::unique_ptr<Schema>> schemaMap;
-
-    std::lock_guard<std::mutex> lock(m);
-
-    PathName path(schemaPath());
-
-    auto it = schemaMap.find(path);
-    if (it != schemaMap.end()) return *it->second;
-
-    schemaMap[path] = std::unique_ptr<Schema>(new Schema(path));
-    return *schemaMap[path];
+PathName Config::configPath() const {
+    return getString("configSource", "unknown");
 }
 
+const Schema& Config::schema() const {
+    PathName path(schemaPath());
+    return SchemaRegistry::instance().get(path);
+}
+
+mode_t Config::umask() const {
+    if(has("permissions")) {
+        return FileMode(getString("permissions")).mask();
+    }
+    static eckit::FileMode fdbFileMode(eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
+    return fdbFileMode.mask();
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

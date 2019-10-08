@@ -8,12 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
+
 #include "fdb5/tools/FDBVisitTool.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-
-#include "eckit/option/CmdArgs.h"
-#include "eckit/option/SimpleOption.h"
+#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 using namespace eckit::option;
@@ -29,28 +30,53 @@ public: // methods
 
     FDBWipe(int argc, char **argv) :
         FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
-        doit_(false) {
+        doit_(false),
+        ignoreNoData_(false),
+        porcelain_(false) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
-        verbose_ = true;
+        options_.push_back(new SimpleOption<bool>("ignore-no-data", "No data available to delete is not an error"));
+        options_.push_back(new SimpleOption<bool>("porcelain", "List only the deleted files"));
+        options_.push_back(new SimpleOption<bool>("unsafe-wipe-all", "Wipe all (unowned) contents of an unclean database"));
     }
 
 private: // methods
 
+    virtual void usage(const std::string &tool) const;
     virtual void init(const CmdArgs &args);
     virtual void execute(const CmdArgs& args);
     virtual void finish(const CmdArgs &args);
 
 private: // members
     bool doit_;
+    bool ignoreNoData_;
+    bool porcelain_;
+    bool unsafeWipeAll_;
 };
 
+void FDBWipe::usage(const std::string &tool) const {
+
+    Log::info() << std::endl
+                << "Usage: " << tool << " [options] [DB request]" << std::endl
+                << std::endl
+                << std::endl
+                << "Examples:" << std::endl
+                << "=========" << std::endl << std::endl
+                << tool << " class=rd,expver=xywz,stream=oper,date=20190603,time=00"
+                << std::endl
+                << std::endl;
+
+    FDBTool::usage(tool);
+}
 
 void FDBWipe::init(const CmdArgs &args) {
 
     FDBVisitTool::init(args);
 
     args.get("doit", doit_);
+    args.get("ignore-no-data", ignoreNoData_);
+    args.get("porcelain", porcelain_);
+    args.get("unsafe-wipe-all", unsafeWipeAll_);
 }
 
 void FDBWipe::execute(const CmdArgs& args) {
@@ -59,59 +85,23 @@ void FDBWipe::execute(const CmdArgs& args) {
 
     for (const FDBToolRequest& request : requests()) {
 
-        Log::info() << "Wiping for request" << std::endl;
-        request.print(Log::info());
-        Log::info() << std::endl;
+        if (!porcelain_) {
+            Log::info() << "Wiping for request" << std::endl;
+            request.print(Log::info());
+            Log::info() << std::endl;
+        }
 
-        auto listObject = fdb.wipe(request, doit_, verbose_);
+        auto listObject = fdb.wipe(request, doit_, porcelain_, unsafeWipeAll_);
 
         size_t count = 0;
         WipeElement elem;
         while (listObject.next(elem)) {
-
-            Log::info() << "FDB owner: " << elem.owner << std::endl
-                        << std::endl;
-
-            Log::info() << "Metadata files to deleted:" << std::endl;
-            for (const auto& f : elem.metadataPaths) {
-                Log::info() << "    " << f << std::endl;
-            }
-            Log::info() << std::endl;
-
-            Log::info() << "Data files to delete: " << std::endl;
-            if (elem.dataPaths.empty()) Log::info() << " - NONE -" << std::endl;
-            for (const auto& f : elem.dataPaths) {
-                Log::info() << "    " << f << std::endl;
-            }
-            Log::info() << std::endl;
-
-            Log::info() << "Other files to delete: " << std::endl;
-            if (elem.otherPaths.empty()) Log::info() << " - NONE -" << std::endl;
-            for (const auto& f : elem.otherPaths) {
-                Log::info() << "    " << f << std::endl;
-            }
-            Log::info() << std::endl;
-
-            Log::info() << "Untouched files:" << std::endl;
-            if (elem.safePaths.empty()) Log::info() << " - NONE - " << std::endl;
-            for (const auto& f : elem.safePaths) {
-                Log::info() << "    " << f << std::endl;
-            }
-            Log::info() << std::endl;
-
-            if (!elem.safePaths.empty()) {
-                Log::info() << "Indexes to mask:" << std::endl;
-                if (elem.indexes.empty()) Log::info() << " - NONE - " << std::endl;
-                for (const auto& f : elem.indexes) {
-                    Log::info() << "    " << *f << std::endl;
-                }
-            }
-
+            Log::info() << elem << std::endl;
             count++;
         }
 
-        if (count == 0 && fail()) {
-            std::stringstream ss;
+        if (count == 0 && !ignoreNoData_ && fail()) {
+            std::ostringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
         }
@@ -121,7 +111,7 @@ void FDBWipe::execute(const CmdArgs& args) {
 
 void FDBWipe::finish(const CmdArgs&) {
 
-    if (!doit_) {
+    if (!doit_ && !porcelain_) {
         Log::info() << std::endl
                     << "Rerun command with --doit flag to delete unused files"
                     << std::endl

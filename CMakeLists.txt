@@ -20,7 +20,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit  VERSION 1.0  REQUIRED )
+ecbuild_use_package( PROJECT eckit  VERSION 1.4  REQUIRED )
 
 ### GRIB support
 
@@ -28,9 +28,15 @@ ecbuild_use_package( PROJECT eccodes VERSION 2.10 REQUIRED )
 
 ecbuild_use_package( PROJECT metkit VERSION 0.17 REQUIRED ) ## metkit is now always needed
 
+### FDB remote front-end
+
+ecbuild_add_option( FEATURE FDB_REMOTE
+                    DEFAULT ON
+                    DESCRIPTION "Support distributed remote FDB" )
+
 ### FDB backend in persistent memory, i.e. pmem (NVRAM)
 
-ecbuild_add_option( FEATURE PMEMFDB
+ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
                     DEFAULT OFF
                     DESCRIPTION "Persistent memory (NVRAM) support for FDB"
                     REQUIRED_PACKAGES "PROJECT pmem" )
@@ -38,14 +44,14 @@ ecbuild_add_option( FEATURE PMEMFDB
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
 ### Supports Lustre parallel filesystem stripping control
 
-ecbuild_add_option( FEATURE TOCFDB
+ecbuild_add_option( FEATURE TOCFDB  # option defined in fdb5_config.h
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
 
 find_package( LustreAPI QUIET )
 
-ecbuild_add_option( FEATURE LUSTRE
-                    CONDITION LustreAPI_FOUND
+ecbuild_add_option( FEATURE LUSTRE  # option defined in fdb5_config.h
+                    CONDITION LUSTREAPI_FOUND
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
 
@@ -59,13 +65,11 @@ ecbuild_add_option( FEATURE SANDBOX
                     DESCRIPTION "build the sandbox stuff"
                     DEFAULT OFF	 )
 
-### FDB4 - 5 migration tools
+### build the tools
 
-#ecbuild_add_option( FEATURE FDB4_MIGRATION
-#                    DEFAULT ON
-#                    DESCRIPTION "FDB4 to 5 migration tools"
-#                    REQUIRED_PACKAGES "PROJECT fdb VERSION 4.8" )
-
+ecbuild_add_option( FEATURE FDB_TOOLS
+                    DEFAULT ON
+                    DESCRIPTION "Build the command line FDB tools" )
 
 ### find thread library ( preferably pthreads )
 

@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @date   November 2018
 
@@ -35,7 +40,7 @@ public:
     PurgeVisitor(eckit::Queue<PurgeElement>& queue,
                  const metkit::MarsRequest& request,
                  bool doit,
-                 bool verbose);
+                 bool porcelain);
 
     bool visitDatabase(const DB& db) override;
     bool visitIndex(const Index& index) override;
@@ -47,7 +52,7 @@ private: // members
 
     eckit::Channel out_;
     bool doit_;
-    bool verbose_;
+    bool porcelain_;
 
     std::unique_ptr<fdb5::PurgeVisitor> internalVisitor_;
 };

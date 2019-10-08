@@ -13,13 +13,15 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
+#include "eckit/os/AutoUmask.h"
 
 #include "metkit/grib/MetFile.h"
 #include "metkit/grib/GribDataBlob.h"
 
 #include "fdb5/legacy/LegacyArchiver.h"
 #include "fdb5/tools/FDBTool.h"
-#include "fdb5/config/UMask.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/LibFdb5.h"
 
 class FDBWriteLegacy : public fdb5::FDBTool {
 

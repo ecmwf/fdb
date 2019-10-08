@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @date   Mar 2018
 
@@ -31,28 +36,34 @@ class DistFDB : public FDBBase {
 
 public: // method
 
+    using FDBBase::stats;
+
     DistFDB(const eckit::Configuration& config, const std::string& name);
     ~DistFDB() override;
 
-    virtual void archive(const Key& key, const void* data, size_t length) override;
+    void archive(const Key& key, const void* data, size_t length) override;
 
-    virtual eckit::DataHandle* retrieve(const metkit::MarsRequest& request) override;
+    eckit::DataHandle* retrieve(const metkit::MarsRequest& request) override;
 
-    virtual ListIterator list(const FDBToolRequest& request) override;
+    ListIterator list(const FDBToolRequest& request) override;
 
-    virtual DumpIterator dump(const FDBToolRequest& request, bool simple) override;
+    DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
-    virtual WhereIterator where(const FDBToolRequest& request) override;
+    StatusIterator status(const FDBToolRequest& request) override;
 
-    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) override;
+    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
-    virtual PurgeIterator purge(const FDBToolRequest& request, bool doit, bool verbose) override;
+    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
-    virtual StatsIterator stats(const FDBToolRequest& request) override;
+    StatsIterator stats(const FDBToolRequest& request) override;
 
-    virtual void flush() override;
+    ControlIterator control(const FDBToolRequest& request,
+                            ControlAction action,
+                            ControlIdentifiers identifiers) override;
 
-    virtual FDBStats stats() const override;
+    void flush() override;
+
+    FDBStats stats() const override;
 
 private: // methods
 

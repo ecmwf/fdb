@@ -49,13 +49,9 @@ public: // methods
 
     virtual void usage(const std::string &tool) const = 0;
 
-    eckit::Channel& logVerbose() const;
-
 protected: // members
 
     std::vector<eckit::option::Option *> options_;
-
-    bool verbose_;
 
 protected: // methods
 

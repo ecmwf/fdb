@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @date   November 2018
 
@@ -35,6 +40,10 @@ public:
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
     bool visitDatabase(const DB& db) override {
+
+        // If the DB is locked for listing, then it "doesn't exist"
+        if (db.listLocked()) return false;
+
         bool ret = QueryVisitor::visitDatabase(db);
         ASSERT(db.key().partialMatch(request_));
 
@@ -76,6 +85,10 @@ public:
             queue_.emplace(ListElement({currentDatabase_->key(), currentIndex_->key(), key},
                                           field.stableLocation()));
         }
+    }
+
+    void visitDatum(const Field& field, const std::string& keyFingerprint) override {
+        EntryVisitor::visitDatum(field, keyFingerprint);
     }
 
 private: // members

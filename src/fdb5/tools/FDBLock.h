@@ -8,36 +8,47 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   UMask.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Mar 2016
+/// @author Simon Smart
+/// @date   July 2019
 
-#ifndef fdb5_UMask_H
-#define fdb5_UMask_H
+#ifndef fdb5_fdb_lock_H
+#define fdb5_fdb_lock_H
 
-#include <sys/stat.h>
+#include "fdb5/tools/FDBVisitTool.h"
+
+using namespace eckit::option;
+using namespace eckit;
 
 
 namespace fdb5 {
+namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class UMask {
-
-    mode_t save_;
-
+class FDBLock : public FDBVisitTool {
 public: // methods
 
-    UMask(mode_t = 0);
-    ~UMask();
+    FDBLock(int argc, char **argv, bool unlock=false);
+    ~FDBLock() override;
 
-    static mode_t defaultUMask();
+private: // methods
 
+    void execute(const CmdArgs& args) override;
+    void init(const CmdArgs &args) override;
+
+private: // members
+
+    bool unlock_;
+
+    bool list_;
+    bool retrieve_;
+    bool archive_;
+    bool wipe_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
+} // namespace tools
 } // namespace fdb5
 
 #endif

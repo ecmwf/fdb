@@ -24,7 +24,9 @@ list( APPEND _test_environment
     ECCODES_DEFINITION_PATH=${ECCODES_DEFINITION_PATH}
     ECCODES_SAMPLES_PATH=${ECCODES_SAMPLES_PATH} )
 
-list( APPEND fdb_tests  test_fdb5_service.cc )
+list( APPEND fdb_tests
+    test_fdb5_service.cc
+    test_fdb5_LegacyArchiver.cc )
 
 foreach( _tst ${fdb_tests} )
 
@@ -55,6 +57,7 @@ foreach( _tst ${_test_data} )
 
     ecbuild_add_test(
         TARGET  fdb5_archive_${_tst}
+        CONDITION HAVE_FDB_TOOLS
         COMMAND $<TARGET_FILE:fdb-write>
         TEST_DEPENDS fdb5_get_test_data
         ARGS    ${_tst}
@@ -62,6 +65,7 @@ foreach( _tst ${_test_data} )
 
       ecbuild_add_test(
           TARGET  fdb5_extract_${_tst}
+          CONDITION HAVE_FDB_TOOLS
           COMMAND $<TARGET_FILE:fdb-read>
           TEST_DEPENDS fdb5_archive_${_tst}
           ARGS   --extract ${_tst} ${_tst}.2

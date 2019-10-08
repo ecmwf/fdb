@@ -9,13 +9,13 @@
  */
 
 /// @author Simon Smart
-/// @date   November 2018
+/// @date   July 2019
 
-#ifndef fdb5_api_local_WhereVisitor_H
-#define fdb5_api_local_WhereVisitor_H
+#ifndef fdb5_api_local_ControlVisitor_H
+#define fdb5_api_local_ControlVisitor_H
 
 #include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/helpers/WhereIterator.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 
 
 namespace fdb5 {
@@ -26,14 +26,25 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class WhereVisitor : public QueryVisitor<WhereElement> {
+class ControlVisitor : public QueryVisitor<ControlElement> {
 public:
-    using QueryVisitor<WhereElement>::QueryVisitor;
+
+    ControlVisitor(eckit::Queue<ControlElement>& queue,
+                   const metkit::MarsRequest& request,
+                   ControlAction action,
+                   ControlIdentifiers identifiers);
+
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
-    bool visitDatabase(const DB& db) override { queue_.emplace(db.basePath()); return true; }
+
+    bool visitDatabase(const DB& db) override;
     bool visitIndex(const Index&) override { NOTIMP; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
+
+private: // members
+
+    ControlAction action_;
+    ControlIdentifiers identifiers_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

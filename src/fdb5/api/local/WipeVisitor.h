@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @date   November 2018
 
@@ -16,6 +21,7 @@
 
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/database/WipeVisitor.h"
 
 #include "eckit/filesystem/PathName.h"
 
@@ -29,33 +35,34 @@ namespace local {
 //----------------------------------------------------------------------------------------------------------------------
 
 class WipeVisitor : public QueryVisitor<WipeElement> {
-public:
+
+public: // methods
 
     WipeVisitor(eckit::Queue<WipeElement>& queue,
                 const metkit::MarsRequest& request,
                 bool doit,
-                bool verbose);
+                bool porcelain,
+                bool unsafeWipeAll);
 
     bool visitEntries() override { return false; }
+    bool visitIndexes() override;
 
     bool visitDatabase(const DB& db) override;
     bool visitIndex(const Index& index) override;
     void databaseComplete(const DB& db) override;
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
+    void visitDatum(const Field& field, const std::string& keyFingerprint) override { NOTIMP; }
 
 private: // members
 
-    eckit::PathName basePath_;
-
-    WipeElement current_;
-
-    std::vector<Index> indexesToMask_;
-
-    metkit::MarsRequest indexRequest_;
-
+    eckit::Channel out_;
     bool doit_;
-    bool verbose_;
+    bool porcelain_;
+    bool unsafeWipeAll_;
+
+    std::unique_ptr<fdb5::WipeVisitor> internalVisitor_;
 };
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

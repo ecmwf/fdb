@@ -24,7 +24,6 @@
 
 #include "metkit/grib/GribHandle.h"
 
-#include "fdb5/config/UMask.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
@@ -51,7 +50,9 @@ class FDBWrite : public fdb5::FDBTool {
 
 public:
 
-    FDBWrite(int argc, char **argv) : fdb5::FDBTool(argc, argv) {
+    FDBWrite(int argc, char **argv) :
+        fdb5::FDBTool(argc, argv),
+        verbose_(false) {
 
         options_.push_back(new eckit::option::SimpleOption<std::string>("expver", "Reset expver on data"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("class", "Reset class on data"));
@@ -62,7 +63,12 @@ public:
         options_.push_back(new eckit::option::SimpleOption<long>("number", "The first ensemble number to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nlevels", "Number of levels"));
         options_.push_back(new eckit::option::SimpleOption<long>("nparams", "Number of parameters"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
     }
+    ~FDBWrite() override {}
+
+private:
+    bool verbose_;
 };
 
 void FDBWrite::usage(const std::string &tool) const {
@@ -79,6 +85,8 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     ASSERT(args.has("nlevels"));
     ASSERT(args.has("nsteps"));
     ASSERT(args.has("nparams"));
+
+    args.get("verbose", verbose_);
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
@@ -136,7 +144,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
         if (args.has("nensembles")) {
             CODES_CHECK(codes_set_long(handle, "number", member+number), 0);
         }
-        for (size_t step = 0; step <= nsteps; ++step) {
+        for (size_t step = 0; step < nsteps; ++step) {
             CODES_CHECK(codes_set_long(handle, "step", step), 0);
             for (size_t level = 1; level <= nlevels; ++level) {
                 CODES_CHECK(codes_set_long(handle, "level", level), 0);
@@ -219,7 +227,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
         if (args.has("nensembles")) {
             request.setValue("number", member);
         }
-        for (size_t step = 0; step <= nsteps; ++step) {
+        for (size_t step = 0; step < nsteps; ++step) {
             request.setValue("step", step);
             for (size_t level = 1; level <= nlevels; ++level) {
                 request.setValue("level", level);

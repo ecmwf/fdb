@@ -27,12 +27,28 @@ namespace tools {
 class FDBWhere : public FDBVisitTool {
   public: // methods
 
-    FDBWhere(int argc, char **argv) : FDBVisitTool(argc, argv) {}
+    FDBWhere(int argc, char **argv) :
+        FDBVisitTool(argc, argv, "class,expver"),
+        porcelain_(false) {
+
+        options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined output for input into other tools"));
+    }
 
   private: // methods
 
-    virtual void execute(const CmdArgs& args) override;
+    void execute(const CmdArgs& args) override;
+    void init(const CmdArgs &args) override;
+
+  private: // members
+
+    bool porcelain_;
 };
+
+void FDBWhere::init(const CmdArgs& args) {
+    FDBVisitTool::init(args);
+
+    args.get("porcelain", porcelain_);
+}
 
 
 void FDBWhere::execute(const CmdArgs&) {
@@ -41,12 +57,12 @@ void FDBWhere::execute(const CmdArgs&) {
 
     for (const FDBToolRequest& request : requests("read")) {
 
-        auto whereIterator = fdb.where(request);
+        auto statusIterator = fdb.status(request);
 
         size_t count = 0;
-        WhereElement elem;
-        while (whereIterator.next(elem)) {
-            Log::info() << elem << std::endl;
+        StatusElement elem;
+        while (statusIterator.next(elem)) {
+            Log::info() << elem.location.asString() << std::endl;
             count++;
         }
 

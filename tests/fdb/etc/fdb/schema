@@ -83,8 +83,6 @@ iteration:  Integer;
 system:     Integer;
 method:     Integer;
 
-
-
 # ???????
 
 # reference:  Integer;
@@ -97,6 +95,7 @@ method:     Integer;
 # range:      ??????
 
 # band:       Integer;
+
 
 ########################################################
 # These rules must be first, otherwise fields of These
@@ -130,6 +129,9 @@ method:     Integer;
        [ type=im/sim
                [ step?, ident, instrument, channel ]]
 
+       [ type=ssd
+               [ step, param, ident, instrument, channel ]]
+
        [ type=4i, levtype
                [ step, iteration, levelist, param ]]
 
@@ -150,23 +152,23 @@ method:     Integer;
                [ step, param, frequency?, direction? ]]]
 
 # enfo
-[ class, expver, stream=enfo/efov, date, time, domain, number?
+[ class, expver, stream=enfo/efov, date, time, domain
 
        [ type, levtype=dp, product?, section?
-	   		  [ step, levelist?, latitude?, longitude?, range?, param ]]
+	   		  [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
 
        [ type=tu, levtype, reference
-               [ step, levelist?, param ]]
+               [ step, number, levelist?, param ]]
 
        [ type, levtype
-               [ step, quantile?, levelist?, param ]]
+               [ step, quantile?, number?, levelist?, param ]]
 
 ]
 
 # waef/weov
-[ class, expver, stream=waef/weov, date, time, domain, number?
+[ class, expver, stream=waef/weov, date, time, domain
        [ type, levtype
-               [ step, param, frequency?, direction? ]]
+               [ step, number?, param, frequency?, direction? ]]
 ]
 
 ########################################################
@@ -209,8 +211,14 @@ method:     Integer;
 # elda
 [ class, expver, stream=lwda, date, time, domain
 
+       [ type=ssd, anoffset
+               [ step, param, ident, instrument, channel ]]
+
        [type=me, levtype, anoffset
                [ number, step, levelist?, param]]
+
+       [ type=4i, levtype, anoffset
+               [ step, iteration, levelist, param ]]
 
        [ type, levtype, anoffset
                [ step, levelist?, param]]
@@ -257,7 +265,12 @@ method:     Integer;
 # efhs
 [ class, expver, stream=efhs, date, time, domain
        [ type, levtype
-               [ step, number?, levelist?, param ]]]
+               [ step, quantile?, number?, levelist?, param ]]]
+
+# wehs
+[ class, expver, stream=wehs, date, time, domain
+       [ type, levtype
+               [ step, quantile?, number?, levelist?, param ]]]
 
 # kwbc
 [ class, expver, stream=kwbc, date, time, domain
@@ -522,6 +535,17 @@ method:     Integer;
        [ type, levtype
                [ number, levelist?, param ]]
 ]
+
+# stream gfas
+[ class=mc, expver, stream=gfas, date, time, domain
+       [ type=ga, levtype
+               [ step, param ]]
+
+       [ type=gsd
+               [ param, ident, instrument ]]
+
+]
+
 # class is e2
 [ class, expver, stream=espd, date, time, domain
        [ type, levtype, origin, grid

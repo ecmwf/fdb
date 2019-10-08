@@ -20,10 +20,11 @@
 
 #include "eckit/memory/Owned.h"
 #include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
 #include "eckit/types/Types.h"
-#include "eckit/config/LocalConfiguration.h"
 
 #include "fdb5/database/Key.h"
+#include "fdb5/config/Config.h"
 
 namespace eckit {
 class DataHandle;
@@ -39,10 +40,14 @@ class Index;
 class EntryVisitor;
 class StatsReportVisitor;
 class PurgeVisitor;
+class WipeVisitor;
 class Schema;
 
 class DBVisitor;
 class DbStats;
+
+enum class ControlAction : uint16_t;
+class ControlIdentifiers;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -75,8 +80,6 @@ public: // methods
 
     virtual void close() = 0;
 
-    virtual void checkSchema(const Key &key) const = 0;
-
     virtual bool exists() const = 0;
 
     /// If sorted is specified, the entries may be visited in the most efficient order, rather than
@@ -90,15 +93,25 @@ public: // methods
 
     virtual StatsReportVisitor* statsReportVisitor() const;
     virtual PurgeVisitor* purgeVisitor() const;
+    virtual WipeVisitor* wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const;
 
     virtual std::string owner() const = 0;
 
-    virtual eckit::PathName basePath() const = 0;
+    virtual const eckit::PathName& basePath() const = 0;
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
 
     virtual const Schema& schema() const = 0;
 
     virtual DbStats statistics() const = 0;
+
+    // Control access properties of the DB
+
+    virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
+
+    virtual bool retrieveLocked() const = 0;
+    virtual bool archiveLocked() const = 0;
+    virtual bool listLocked() const = 0;
+    virtual bool wipeLocked() const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const DB &x);
 
@@ -111,6 +124,11 @@ public: // methods
 
     /// For use by the WipeVisitor
     virtual void maskIndexEntry(const Index& index) const = 0;
+
+    /// For use by purge/wipe
+
+    virtual void allMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
+                           std::set<eckit::PathName>& data) const {}
 
 protected: // methods
 
@@ -134,8 +152,8 @@ class DBFactory : private eckit::NonCopyable {
     bool read_;
     bool write_;
 
-    virtual DB *make(const Key &key, const eckit::Configuration& config) const = 0 ;
-    virtual DB *make(const eckit::PathName& path, const eckit::Configuration& config) const = 0 ;
+    virtual DB *make(const Key &key, const fdb5::Config& config) const = 0 ;
+    virtual DB *make(const eckit::PathName& path, const fdb5::Config& config) const = 0 ;
 
 protected:
 
@@ -145,9 +163,9 @@ protected:
 public:
 
     static void list(std::ostream &);
-    static DB* buildWriter(const Key &key, const eckit::Configuration& config=eckit::LocalConfiguration());
-    static DB* buildReader(const Key &key, const eckit::Configuration& config=eckit::LocalConfiguration());
-    static DB* buildReader(const eckit::PathName& path, const eckit::Configuration& config=eckit::LocalConfiguration());
+    static DB* buildWriter(const Key &key, const fdb5::Config& config = fdb5::Config());
+    static DB* buildReader(const Key &key, const fdb5::Config& config = fdb5::Config());
+    static DB* buildReader(const eckit::PathName& path, const fdb5::Config& config = fdb5::Config());
 
 private: // methods
 
@@ -163,10 +181,10 @@ private: // methods
 template< class T>
 class DBBuilder : public DBFactory {
 
-    virtual DB *make(const Key &key, const eckit::Configuration& config) const {
+    virtual DB *make(const Key &key, const fdb5::Config& config) const {
         return new T(key, config);
     }
-    virtual DB *make(const eckit::PathName& path, const eckit::Configuration& config) const {
+    virtual DB *make(const eckit::PathName& path, const fdb5::Config& config) const {
         return new T(path, config);
     }
 

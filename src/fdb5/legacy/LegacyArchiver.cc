@@ -10,8 +10,10 @@
 
 #include "fdb5/legacy/LegacyArchiver.h"
 
-#include "eckit/types/Metadata.h"
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/log/Log.h"
+#include "eckit/types/Metadata.h"
+#include "eckit/value/Value.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/ArchiveVisitor.h"
@@ -21,8 +23,53 @@ namespace legacy {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+// FDB-130
+// Multio creates a default configuration of {"type": "fdb5", "useSubToc": true}
+//
+// This is an unfortunate mixing of responsibilities, whereby the type of sink
+// being used (type=fdb5) becomes mixed with the fdb configuration. What we want
+// to do is ensure that if this is happening, we strip out the "type=fdb5" such
+// that the default configuration continues to be used (supplemented by other
+// supplied configuration).
+
+
+/// Eckit::LocalConfiguration does not allow us to remove values!!!
+class TweakableConfiguration : public eckit::LocalConfiguration {
+public:
+    using LocalConfiguration::LocalConfiguration;
+
+    void unset(const std::string& name) {
+        ASSERT(has(name));
+        ASSERT(root_);
+        if (root_->shared()) {
+            (*root_) = root_->clone();
+        }
+        ASSERT(!root_->shared());
+        ASSERT(root_->contains(name));
+        root_->remove(name);
+    }
+};
+
+
+eckit::LocalConfiguration tweakedConfig(const eckit::Configuration& dbConfig) {
+
+    if (dbConfig.has("type")) {
+        if (dbConfig.getString("type") == "fdb5") {
+            TweakableConfiguration cfg(dbConfig);
+            ASSERT(cfg.has("type"));
+            ASSERT(cfg.getString("type") == "fdb5");
+            cfg.unset("type");
+            return cfg;
+        }
+    }
+
+    return dbConfig;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 LegacyArchiver::LegacyArchiver(const eckit::Configuration& dbConfig) :
-    fdb_(/* dbConfig */), // TODO: Pass dbConfig through. Currently clash between sink type/fdb type
+    fdb_(tweakedConfig(dbConfig)),
     translator_(),
     legacy_() {
 }
@@ -56,6 +103,10 @@ void LegacyArchiver::flush() {
 
 void LegacyArchiver::legacy(const std::string &keyword, const std::string &value) {
     translator_.set(legacy_, keyword, value);
+}
+
+const FDB& LegacyArchiver::fdb() const {
+    return fdb_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

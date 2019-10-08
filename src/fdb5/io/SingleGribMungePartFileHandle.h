@@ -41,6 +41,7 @@ public:
                                   const eckit::Offset&,
                                   const eckit::Length&,
                                   const Key& substitute);
+    SingleGribMungePartFileHandle(eckit::Stream&) { NOTIMP; }
     ~SingleGribMungePartFileHandle() override;
 
 	// From DataHandle
@@ -59,7 +60,7 @@ public:
     bool compress(bool = false) override;
     eckit::Length estimate() override;
 
-    void restartReadFrom(const eckit::Offset& from) override { NOTIMP; }
+    void restartReadFrom(const eckit::Offset&) override { NOTIMP; }
     eckit::Offset seek(const eckit::Offset&) override { NOTIMP; }
 
     void toRemote(eckit::Stream&) const override { NOTIMP; }
@@ -71,17 +72,22 @@ public:
 	// From Streamable
 
     void encode(eckit::Stream&) const override { NOTIMP; }
-    const eckit::ReanimatorBase& reanimator() const override { NOTIMP; }
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
 private: // members
 
     eckit::PathName name_;
     FILE*           file_;
-    long long       pos_;
+    eckit::Offset   pos_;
     eckit::Offset   offset_;
     eckit::Length   length_;
     Key             substitute_;
     std::unique_ptr<eckit::Buffer>  buffer_;
+
+    // For Streamable
+
+    static eckit::ClassSpec classSpec_;
+    static eckit:: Reanimator<SingleGribMungePartFileHandle> reanimator_;
 };
 
 

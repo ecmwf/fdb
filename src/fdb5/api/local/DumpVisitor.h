@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @date   November 2018
 
@@ -45,6 +50,10 @@ public:
     }
     bool visitIndex(const Index&) override { NOTIMP; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
+
+    void visitDatum(const Field& field, const std::string& keyFingerprint) override {
+        EntryVisitor::visitDatum(field, keyFingerprint);
+    }
 
 private:
     eckit::Channel out_;

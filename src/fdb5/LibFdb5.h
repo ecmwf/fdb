@@ -33,7 +33,7 @@ public:
 
     static LibFdb5& instance();
 
-    const Config& defaultConfig();
+    Config defaultConfig();
 
 protected:
 

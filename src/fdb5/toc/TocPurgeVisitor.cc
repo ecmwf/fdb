@@ -15,6 +15,8 @@
 
 #include "fdb5/toc/TocHandler.h"
 
+using namespace eckit;
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -24,6 +26,28 @@ TocPurgeVisitor::TocPurgeVisitor(const TocDB& db) :
     TocStatsReportVisitor(db, false) {}
 
 TocPurgeVisitor::~TocPurgeVisitor() {}
+
+bool TocPurgeVisitor::visitDatabase(const DB &db) {
+
+    std::set<std::pair<PathName, Offset>> metadata;
+    std::set<PathName> data;
+
+    db.allMasked(metadata, data);
+
+    for (const auto& entry : metadata) {
+        const PathName& path = entry.first;
+
+        allIndexFiles_.insert(path);
+        indexUsage_[path] += 0;
+    }
+
+    for (const auto& path : data) {
+        allDataFiles_.insert(path);
+        dataUsage_[path] += 0;
+    }
+
+    return true;
+}
 
 
 void TocPurgeVisitor::report(std::ostream& out) const {
@@ -73,39 +97,40 @@ void TocPurgeVisitor::report(std::ostream& out) const {
     }
 
     out << std::endl;
-    cnt = 0;
+    size_t cnt2 = 0;
     out << "Unreferenced adopted data files:" << std::endl;
     for (const auto& it : dataUsage_) { // <std::string, size_t>
         if (it.second == 0) {
             if (!eckit::PathName(it.first).dirName().sameAs(directory)) {
                 out << "    " << it.first << std::endl;
-                cnt++;
+                cnt2++;
             }
         }
     }
-    if (!cnt) {
+    if (!cnt2) {
         out << "    - NONE -" << std::endl;
     }
 
     out << std::endl;
-    cnt = 0;
+    size_t cnt3 = 0;
     out << "Index files to be deleted:" << std::endl;
     for (const auto& it : indexUsage_) { // <std::string, size_t>
         if (it.second == 0) {
             out << "    " << it.first << std::endl;
-            cnt++;
+            cnt3++;
         }
     }
-    if (!cnt) {
+    if (!cnt3) {
         out << "    - NONE -" << std::endl;
     }
 
     out << std::endl;
 }
 
-void TocPurgeVisitor::purge(std::ostream& out, bool verbose) const {
+void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const {
 
-    std::ostream& log(verbose ? out : eckit::Log::debug<LibFdb5>());
+    std::ostream& logAlways(out);
+    std::ostream& logVerbose(porcelain ? Log::debug<LibFdb5>() : out);
 
     currentDatabase_->checkUID();
 
@@ -116,9 +141,11 @@ void TocPurgeVisitor::purge(std::ostream& out, bool verbose) const {
         const fdb5::IndexStats& stats = it.second;
 
         if (stats.fieldsCount() == stats.duplicatesCount()) {
-            log << "Removing: " << it.first << std::endl;
-            fdb5::TocHandler handler(directory);
-            handler.writeClearRecord(it.first);
+            logVerbose << "Removing: " << it.first << std::endl;
+            if (doit) {
+                fdb5::TocHandler handler(directory);
+                handler.writeClearRecord(it.first);
+            }
         }
     }
 
@@ -126,8 +153,9 @@ void TocPurgeVisitor::purge(std::ostream& out, bool verbose) const {
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                log << "Unlinking: " << path << std::endl;
-                path.unlink(verbose);
+                logVerbose << "Unlinking: ";
+                logAlways << path << std::endl;
+                if (doit) path.unlink(false);
             }
         }
     }
@@ -136,13 +164,13 @@ void TocPurgeVisitor::purge(std::ostream& out, bool verbose) const {
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                log << "Unlinking: " << path << std::endl;
-                path.unlink(verbose);
+                logVerbose << "Unlinking: ";
+                logAlways << path << std::endl;
+                if (doit) path.unlink(false);
             }
        }
     }
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

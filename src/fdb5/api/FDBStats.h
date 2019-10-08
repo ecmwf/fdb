@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @author Tiago Quintino
 /// @date   June 2018
@@ -33,7 +38,7 @@ public:
     size_t numArchive() const { return numArchive_; }
     size_t numFlush() const { return numFlush_; }
 
-    void addArchive(size_t length, eckit::Timer& timer);
+    void addArchive(size_t length, eckit::Timer& timer, size_t nfields=1);
     void addRetrieve(size_t length, eckit::Timer& timer);
     void addFlush(eckit::Timer& timer);
 

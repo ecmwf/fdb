@@ -29,6 +29,7 @@ namespace metkit { class MarsRequest; }
 namespace fdb5 {
 
 class Rule;
+class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -44,7 +45,8 @@ public: // methods
     virtual bool selectIndex(const Key &key, const Key &full) = 0;
     virtual bool selectDatum(const Key &key, const Key &full) = 0;
 
-    void resetPreviousVisitedKey();
+    // Once we have selected a database, return its schema. Used for further iteration.
+    virtual const Schema& databaseSchema() const = 0;
 
     void rule(const Rule *r) {
         rule_ = r;

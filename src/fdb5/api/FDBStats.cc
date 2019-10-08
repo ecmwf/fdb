@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #include "eckit/filesystem/PathName.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Timer.h"
@@ -59,13 +64,13 @@ FDBStats& FDBStats::operator+=(const FDBStats& rhs) {
 }
 
 
-void FDBStats::addArchive(size_t length, eckit::Timer& timer) {
+void FDBStats::addArchive(size_t length, eckit::Timer& timer, size_t nfields) {
 
-    numArchive_++;
+    numArchive_ += nfields;
     bytesArchive_ += length;
-    sumBytesArchiveSquared_ += length * length;
+    sumBytesArchiveSquared_ += nfields * ((length / nfields) * (length / nfields));
 
-    double elapsed = timer.elapsed();
+    double elapsed = timer.elapsed() / nfields;
     elapsedArchive_ += elapsed;
     sumArchiveTimingSquared_ += elapsed * elapsed;
 

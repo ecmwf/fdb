@@ -33,12 +33,6 @@ Archiver::~Archiver() {
     flush(); // certify that all sessions are flushed before closing them
 
     databases_.clear(); //< explicitly delete the DBs before schemas are destroyed
-
-    /// schemas need to exist after the DB's -- see MARS-687
-    for(std::vector<Schema*>::iterator j = schemas_.begin(); j != schemas_.end(); ++j) {
-        delete (*j);
-    }
-    schemas_.clear();
 }
 
 void Archiver::archive(const Key &key, const void* data, size_t len) {
@@ -48,28 +42,9 @@ void Archiver::archive(const Key &key, const void* data, size_t len) {
 
 void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
 
-    const Schema &schema = dbConfig_.schema();
-
     visitor.rule(0);
 
-    try {
-
-        schema.expand(key, visitor);
-
-    } catch (SchemaHasChanged &e) {
-        eckit::Log::error() << e.what() << std::endl;
-        eckit::Log::error() << "Trying with old schema: " << e.path() << std::endl;
-
-        // Ensure that the schema lives until the data is flushed
-        schemas_.push_back(new Schema(e.path()));
-        schemas_.back()->expand(key, visitor);
-
-        // Disable optimisations that rely on the previous visited key.
-        // (These iterations implicitly assume that the schema stays constant, but
-        // the next time this routine is called the try {} block will be explored
-        // first. We need to trigger the exception that ends up here again.
-        visitor.resetPreviousVisitedKey();
-    }
+    dbConfig_.schema().expand(key, visitor);
 
     if (visitor.rule() == 0) { // Make sure we did find a rule that matched
         std::ostringstream oss;
@@ -117,6 +92,14 @@ DB& Archiver::database(const Key &key) {
 
     std::shared_ptr<DB> db ( DBFactory::buildWriter(key, dbConfig_) );
     ASSERT(db);
+
+    // If this database is locked for writing then this is an error
+    if (db->archiveLocked()) {
+        std::ostringstream ss;
+        ss << "Database " << *db << " matched for archived is LOCKED against archiving";
+        throw eckit::UserError(ss.str(), Here());
+    }
+
     databases_[key] = db;
     return *db;
 }

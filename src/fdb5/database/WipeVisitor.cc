@@ -8,38 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Baudouin Raoult
-/// @date Jun 2012
-
-#ifndef fdb5_RequestParser_h
-#define fdb5_RequestParser_h
-
-#include "eckit/parser/StreamParser.h"
-#include "eckit/types/Types.h"
-
-#include "metkit/MarsRequest.h"
+#include "fdb5/database/WipeVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class RequestParser : public eckit::StreamParser {
+WipeVisitor::WipeVisitor(const metkit::MarsRequest& request,
+                         std::ostream& out,
+                         bool doit,
+                         bool porcelain,
+                         bool unsafeWipeAll) :
+    EntryVisitor(),
+    request_(request),
+    out_(out),
+    doit_(doit),
+    porcelain_(porcelain),
+    unsafeWipeAll_(unsafeWipeAll) {}
 
-public: // methods
 
-    RequestParser(std::istream &in);
-
-    metkit::MarsRequest parse(bool lower = true);
-
-private: // methods
-
-    std::string parseIdent(bool);
-
-
-};
+WipeVisitor::~WipeVisitor() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace eckit
-
-#endif
+} // namespace fdb5

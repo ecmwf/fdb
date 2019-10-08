@@ -24,13 +24,10 @@ namespace fdb5 {
 static FDBTool* instance_ = 0;
 
 FDBTool::FDBTool(int argc, char **argv) :
-    eckit::Tool(argc, argv, "FDB_HOME"),
-    verbose_(false) {
+    eckit::Tool(argc, argv, "FDB_HOME") {
 
     ASSERT(instance_ == 0);    
     instance_ = this;
-
-    options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
 }
 
 static void usage(const std::string &tool) {
@@ -54,17 +51,11 @@ void FDBTool::usage(const std::string&) const {
 }
 
 void FDBTool::init(const eckit::option::CmdArgs& args) {
-    args.get("verbose", verbose_);
 }
 
 void FDBTool::finish(const eckit::option::CmdArgs&) {
 
 }
-
-eckit::Channel& FDBTool::logVerbose() const {
-    return verbose_ ? Log::info() : Log::debug<LibFdb5>();
-}
-
 
 FDBToolException::FDBToolException(const std::string& w) :
     Exception(w) {

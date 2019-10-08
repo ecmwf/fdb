@@ -35,12 +35,14 @@ class FDBInfo : public FDBTool {
         all_(false),
         version_(false),
         home_(false),
-        schema_(false)
+        schema_(false),
+        config_(false)
     {
         options_.push_back(new eckit::option::SimpleOption<bool>("all", "Print all information"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("version", "Print the version of the FDB/Mars server being used"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("version", "Print the version of the FDB being used"));
         options_.push_back(new eckit::option::SimpleOption<bool>("home", "Print the location of the FDB configuration files"));
         options_.push_back(new eckit::option::SimpleOption<bool>("schema", "Print the location of the FDB schema file"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("config", "Print the location of the FDB configuration file if being used"));
     }
 
   private: // methods
@@ -53,6 +55,7 @@ class FDBInfo : public FDBTool {
     bool version_;
     bool home_;
     bool schema_;
+    bool config_;
 };
 
 void FDBInfo::usage(const std::string &tool) const {
@@ -66,6 +69,7 @@ void FDBInfo::usage(const std::string &tool) const {
                 << tool << " --version" << std::endl
                 << tool << " --home" << std::endl
                 << tool << " --schema" << std::endl
+                << tool << " --config" << std::endl
                 << std::endl;
     FDBTool::usage(tool);
 }
@@ -75,6 +79,7 @@ void FDBInfo::init(const eckit::option::CmdArgs &args) {
     args.get("version", version_);
     args.get("home", home_);
     args.get("schema", schema_);
+    args.get("config", config_);
 }
 
 void FDBInfo::execute(const eckit::option::CmdArgs&) {
@@ -90,8 +95,15 @@ void FDBInfo::execute(const eckit::option::CmdArgs&) {
         if(!all_) return;
     }
 
+    Config config = LibFdb5::instance().defaultConfig();
+
     if(all_ || schema_) {
-        Log::info() << (all_ ? "Schema: " : "") << LibFdb5::instance().defaultConfig().schemaPath() << std::endl;
+        Log::info() << (all_ ? "Schema: " : "") << config.schemaPath() << std::endl;
+        if(!all_) return;
+    }
+
+    if(all_ || config_) {
+        Log::info() << (all_ ? "Config: " : "") << config.configPath() << std::endl;
         if(!all_) return;
     }
 }

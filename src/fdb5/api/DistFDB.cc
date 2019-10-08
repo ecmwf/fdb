@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #include <vector>
 #include <thread>
 #include <future>
@@ -69,23 +74,26 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     std::vector<size_t> laneIndices;
 
-    Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
-    Log::debug<LibFdb5>() << "Lane indices: ";
-    for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
-    Log::debug<LibFdb5>() << std::endl;
+    //Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
+    //Log::debug<LibFdb5>() << "Lane indices: ";
+    //for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
+    //Log::debug<LibFdb5>() << std::endl;
 
     hash_.hashOrder(key.keyDict(), laneIndices);
 
-    Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
-    Log::debug<LibFdb5>() << "Lane indices: ";
-    for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
-    Log::debug<LibFdb5>() << std::endl;
+    //Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
+    //Log::debug<LibFdb5>() << "Lane indices: ";
+    //for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
+    //Log::debug<LibFdb5>() << std::endl;
 
     // Given an order supplied by the Rendezvous hash, try the FDB in order until
     // one works. n.b. Errors are unacceptable once the FDB is dirty.
     Log::debug<LibFdb5>() << "Attempting dist FDB archive" << std::endl;
 
-    for (size_t idx : laneIndices) {
+    decltype(laneIndices)::const_iterator it = laneIndices.begin();
+    decltype(laneIndices)::const_iterator end = laneIndices.end();
+    for (; it != end; ++it) {
+        size_t idx = *it;
 
         FDB& lane = lanes_[idx];
 
@@ -203,27 +211,27 @@ DumpIterator DistFDB::dump(const FDBToolRequest& request, bool simple) {
                          });
 }
 
-WhereIterator DistFDB::where(const FDBToolRequest& request) {
-    Log::debug<LibFdb5>() << "DistFDB::where() : " << request << std::endl;
+StatusIterator DistFDB::status(const FDBToolRequest& request) {
+    Log::debug<LibFdb5>() << "DistFDB::status() : " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.where(request);
+                            return fdb.status(request);
     });
 }
 
-WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool verbose) {
+WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     Log::debug<LibFdb5>() << "DistFDB::wipe() : " << request << std::endl;
     return queryInternal(request,
-                         [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.wipe(request, doit, verbose);
+                         [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
     });
 }
 
-PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool verbose) {
+PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
     Log::debug<LibFdb5>() << "DistFDB::purge() : " << request << std::endl;
     return queryInternal(request,
-                         [doit, verbose](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.purge(request, doit, verbose);
+                         [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.purge(request, doit, porcelain);
     });
 }
 
@@ -235,36 +243,28 @@ StatsIterator DistFDB::stats(const FDBToolRequest &request) {
     });
 }
 
+ControlIterator DistFDB::control(const FDBToolRequest& request,
+                                 ControlAction action,
+                                 ControlIdentifiers identifiers) {
+    Log::debug<LibFdb5>() << "DistFDB::control() : " << request << std::endl;
+    return queryInternal(request,
+                         [action, identifiers](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.control(request, action, identifiers);
+    });
+}
+
 
 void DistFDB::flush() {
 
-    std::vector<std::thread> threads;
-    std::vector<std::promise<int>> promises(lanes_.size());
-    std::vector<std::future<int>> futures;
+    std::vector<std::future<void>> futures;
 
     for (size_t i = 0; i < lanes_.size(); i++) {
 
         FDB& lane(lanes_[i]);
-        std::promise<int>& prm(promises[i]);
-        futures.emplace_back(prm.get_future());
 
-        threads.emplace_back(std::thread([&lane, &prm]{
-            try {
-                lane.flush();
-                prm.set_value(0);
-            } catch (...) {
-                prm.set_exception(std::current_exception());
-            }
+        futures.emplace_back(std::async(std::launch::async, [&lane] {
+            lane.flush();
         }));
-    }
-
-    for (auto& fut : futures) {
-        fut.get();
-    }
-
-    for (std::thread& thread : threads) {
-        ASSERT(thread.joinable());
-        thread.join();
     }
 }
 

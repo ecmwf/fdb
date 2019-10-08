@@ -8,12 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @author Tiago Quintino
 /// @date   Apr 2018
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <thread>
 
 #include "eckit/net/Port.h"
 #include "eckit/net/TCPServer.h"
@@ -24,8 +30,10 @@
 #include "eckit/runtime/ProcessControler.h"
 #include "eckit/thread/ThreadControler.h"
 
-#include "fdb5/remote/Handler.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/LibFdb5.h"
+#include "fdb5/remote/AvailablePortList.h"
+#include "fdb5/remote/Handler.h"
 
 using namespace eckit;
 
@@ -76,6 +84,7 @@ public:
 private:
 
     int port_;
+    std::thread reaperThread_;
 
     FDBSvrApp(const FDBSvrApp&) = delete;
     FDBSvrApp& operator=(const FDBSvrApp&) = delete;
@@ -83,10 +92,20 @@ private:
     virtual void run() {
 //        unique();
 
-        LocalConfiguration config;
+        Config config = LibFdb5::instance().defaultConfig();
         config.set("statistics", true);
 
-        TCPServer server(Port("fdb", 7654), "", true);
+        // If we are using a specified range of ports, start a thread that
+        // maintains the list of available ports.
+        startPortReaperThread(config);
+
+        int port = config.getInt("serverPort", 7654);
+        bool reusePort = false;
+#ifdef SO_REUSEPORT
+        reusePort = true;
+#endif
+
+        TCPServer server(Port("fdb", port), "", reusePort);
         server.closeExec(false);
 
         port_ = server.localPort();
@@ -101,6 +120,33 @@ private:
                 Log::error() << "** Exception is ignored" << std::endl;
             }
         }
+    }
+
+    void startPortReaperThread(const Config& config) {
+
+        if (config.has("dataPortStart")) {
+            ASSERT(config.has("dataPortCount"));
+
+            int startPort = config.getInt("dataPortStart");
+            size_t count = config.getLong("dataPortCount");
+
+            eckit::Log::info() << "Using custom port list. startPort=" << startPort
+                               << ", count=" << count << std::endl;
+
+            AvailablePortList portList(startPort, count);
+            portList.initialise();
+
+            reaperThread_ = std::thread([this, startPort, count]() {
+
+                AvailablePortList portList(startPort, count);
+
+                while (true) {
+                    portList.reap(120);
+                    std::this_thread::sleep_for(std::chrono::seconds(10));
+                }
+            });
+        }
+
     }
 };
 

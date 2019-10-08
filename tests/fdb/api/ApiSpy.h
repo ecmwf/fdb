@@ -1,3 +1,18 @@
+/*
+ * (C) Copyright 1996- ECMWF.
+ *
+ * This software is licensed under the terms of the Apache Licence Version 2.0
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
+ * granted to it by virtue of its status as an intergovernmental organisation nor
+ * does it submit to any jurisdiction.
+ */
+
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @date   Mar 2018
 
 #ifndef fdb_testing_ApiSpy_H
@@ -21,16 +36,19 @@ class ApiSpy : public fdb5::FDBBase {
 private: // types
 
     struct Counts {
-        Counts() : archive(0), retrieve(0), list(0), dump(0), where(0), wipe(0), purge(0), stats(0), flush(0) {}
+        Counts() :
+            archive(0), retrieve(0), list(0), dump(0), status(0), wipe(0),
+            purge(0), stats(0), flush(0), control(0) {}
         size_t archive;
         size_t retrieve;
         size_t list;
         size_t dump;
-        size_t where;
+        size_t status;
         size_t wipe;
         size_t purge;
         size_t stats;
         size_t flush;
+        size_t control;
     };
 
     using Archives = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
@@ -48,6 +66,8 @@ private: // types
     };
 
 public: // methods
+
+    using FDBBase::stats;
 
     ApiSpy(const fdb5::Config& config, const std::string& name) : FDBBase(config, name) {
         knownSpies().push_back(this);
@@ -77,12 +97,12 @@ public: // methods
         return fdb5::DumpIterator(0);
     }
 
-    fdb5::WhereIterator where(const fdb5::FDBToolRequest& request) override {
-        counts_.where += 1;
-        return fdb5::WhereIterator(0);
+    fdb5::StatusIterator status(const fdb5::FDBToolRequest& request) override {
+        counts_.status += 1;
+        return fdb5::StatusIterator(0);
     }
 
-    fdb5::WipeIterator wipe(const fdb5::FDBToolRequest& request, bool doit, bool verbose) override {
+    fdb5::WipeIterator wipe(const fdb5::FDBToolRequest& request, bool doit, bool verbose, bool unsafeWipeAll) override {
         counts_.wipe += 1;
         return fdb5::WipeIterator(0);
     }
@@ -95,6 +115,13 @@ public: // methods
     fdb5::StatsIterator stats(const fdb5::FDBToolRequest& request) override {
         counts_.stats += 1;
         return fdb5::StatsIterator(0);
+    }
+
+    fdb5::ControlIterator control(const fdb5::FDBToolRequest& request,
+                                  fdb5::ControlAction action,
+                                  fdb5::ControlIdentifiers identifiers) override {
+        counts_.control += 1;
+        return fdb5::ControlIterator(0);
     }
 
     void flush() override {

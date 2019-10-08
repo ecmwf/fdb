@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @date   November 2018
 
@@ -31,36 +36,7 @@ class IndexLocation;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// TODO: We might expand this to include host, port, etc, in an explicit where object.
-//       Or to use eckit::URL, ...
-
-class WipeElement {
-
-public: // methods
-
-    WipeElement() = default;
-    WipeElement(eckit::Stream& s);
-
-    size_t guessEncodedSize() const;
-
-private: // methods
-
-    void encode(eckit::Stream& s) const;
-
-    friend eckit::Stream& operator<<(eckit::Stream& s, const WipeElement& r) {
-        r.encode(s);
-        return s;
-    }
-
-public: // members
-
-    std::string owner;
-    std::set<eckit::PathName> metadataPaths;
-    std::set<eckit::PathName> dataPaths;
-    std::set<eckit::PathName> otherPaths;
-    std::set<eckit::PathName> safePaths;
-    std::vector<std::shared_ptr<const IndexLocation>> indexes;
-};
+using WipeElement = std::string;
 
 using WipeIterator = APIIterator<WipeElement>;
 

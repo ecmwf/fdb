@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 /// @author Simon Smart
 /// @date   Mar 2018
 
@@ -17,14 +22,15 @@
 #include <memory>
 #include <iosfwd>
 
-#include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
-#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
-#include "fdb5/api/helpers/WhereIterator.h"
-#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
+#include "fdb5/api/helpers/StatusIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/config/Config.h"
 
 namespace metkit { class MarsRequest; }
 
@@ -65,13 +71,18 @@ public: // methods
 
     DumpIterator dump(const FDBToolRequest& request, bool simple=false);
 
-    WhereIterator where(const FDBToolRequest& request);
+    /// TODO: Is this function superfluous given the control() function?
+    StatusIterator status(const FDBToolRequest& request);
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit=false, bool verbose=true);
+    WipeIterator wipe(const FDBToolRequest& request, bool doit=false, bool porcelain=false, bool unsafeWipeAll=false);
 
-    PurgeIterator purge(const FDBToolRequest& request, bool doit=false, bool verbose=true);
+    PurgeIterator purge(const FDBToolRequest& request, bool doit=false, bool porcelain=false);
 
     StatsIterator stats(const FDBToolRequest& request);
+
+    ControlIterator control(const FDBToolRequest& request,
+                            ControlAction action,
+                            ControlIdentifiers identifiers);
 
     bool dirty() const;
 
@@ -82,6 +93,9 @@ public: // methods
 
     FDBStats stats() const;
     FDBStats internalStats() const;
+
+    const std::string& name() const;
+    const Config& config() const;
 
     bool writable() const;
     bool visitable() const;

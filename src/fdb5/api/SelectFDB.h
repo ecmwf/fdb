@@ -1,4 +1,4 @@
-﻿/*
+/*
  * (C) Copyright 1996- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
@@ -6,6 +6,11 @@
  * In applying this licence, ECMWF does not waive the privileges and immunities
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
+ */
+
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
  */
 
 /// @author Simon Smart
@@ -35,6 +40,8 @@ private: // types
 
 public: // methods
 
+    using FDBBase::stats;
+
     SelectFDB(const Config& config, const std::string& name);
 
     ~SelectFDB() override;
@@ -47,13 +54,17 @@ public: // methods
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
-    WhereIterator where(const FDBToolRequest& request) override;
+    StatusIterator status(const FDBToolRequest& request) override;
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool verbose) override;
+    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
-    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool verbose) override;
+    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
     StatsIterator stats(const FDBToolRequest& request) override;
+
+    ControlIterator control(const FDBToolRequest& request,
+                            ControlAction action,
+                            ControlIdentifiers identifiers) override;
 
     void flush() override;
 

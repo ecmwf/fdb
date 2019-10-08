@@ -139,7 +139,6 @@ protected: // members
     /// @note Order of members is important here ...
     IndexAxis     axes_;   ///< This Index spans along these axis
     const Key     key_;    ///< key that selected this index
-    std::string   prefix_;
 
     Indexer indexer_;
 

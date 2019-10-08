@@ -63,13 +63,15 @@ list( APPEND fdb5_srcs
     api/SelectFDB.h
 
     api/helpers/APIIterator.h
+    api/helpers/ControlIterator.cc
+    api/helpers/ControlIterator.h
     api/helpers/FDBToolRequest.cc
     api/helpers/FDBToolRequest.h
     api/helpers/DumpIterator.h
     api/helpers/ListIterator.cc
     api/helpers/ListIterator.h
-    api/helpers/WhereIterator.h
-    api/helpers/WipeIterator.cc
+    api/helpers/StatusIterator.cc
+    api/helpers/StatusIterator.h
     api/helpers/WipeIterator.h
     api/helpers/PurgeIterator.h
     api/helpers/StatsIterator.cc
@@ -78,17 +80,17 @@ list( APPEND fdb5_srcs
     api/local/QueryVisitor.h
     api/local/QueueStringLogTarget.h
     api/local/ListVisitor.h
+    api/local/ControlVisitor.cc
+    api/local/ControlVisitor.h
     api/local/DumpVisitor.h
-    api/local/WhereVisitor.h
     api/local/WipeVisitor.cc
     api/local/WipeVisitor.h
     api/local/PurgeVisitor.cc
     api/local/PurgeVisitor.h
     api/local/StatsVisitor.cc
     api/local/StatsVisitor.h
+    api/local/StatusVisitor.h
 
-    config/UMask.cc
-    config/UMask.h
     config/Config.cc
     config/Config.h
     database/Archiver.cc
@@ -127,6 +129,8 @@ list( APPEND fdb5_srcs
     database/StatsReportVisitor.h
     database/PurgeVisitor.cc
     database/PurgeVisitor.h
+    database/WipeVisitor.cc
+    database/WipeVisitor.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc
@@ -157,7 +161,6 @@ list( APPEND fdb5_srcs
     grib/GribIndexer.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
-    io/fdb5_lustreapi_file_create.c
     io/SingleGribMungePartFileHandle.cc
     io/SingleGribMungePartFileHandle.h
     io/LustreFileHandle.cc
@@ -194,8 +197,6 @@ list( APPEND fdb5_srcs
     tools/FDBTool.h
     tools/FDBVisitTool.cc
     tools/FDBVisitTool.h
-    tools/RequestParser.cc
-    tools/RequestParser.h
     types/Type.cc
     types/Type.h
     types/TypeAbbreviation.cc
@@ -234,6 +235,10 @@ list( APPEND fdb5_srcs
     types/TypeTime.h
 )
 
+if(HAVE_LUSTRE)
+  list( APPEND fdb5_srcs io/fdb5_lustreapi_file_create.c )
+endif()
+
 if( HAVE_TOCFDB )
     list( APPEND fdb5_srcs
         toc/AdoptVisitor.cc
@@ -270,6 +275,8 @@ if( HAVE_TOCFDB )
         toc/TocIndexLocation.h
         toc/TocPurgeVisitor.cc
         toc/TocPurgeVisitor.h
+        toc/TocWipeVisitor.cc
+        toc/TocWipeVisitor.h
         toc/TocRecord.cc
         toc/TocRecord.h
         toc/TocStats.cc
@@ -340,20 +347,15 @@ else()
     set( PMEM_INCLUDE_DIRS "" )
 endif()
 
-
-# Currently RemoteFDB is experimental technology!
-if (HAVE_EXPERIMENTAL)
+if(HAVE_FDB_REMOTE)
     list( APPEND fdb5_srcs
         api/RemoteFDB.cc
         api/RemoteFDB.h
+        remote/RemoteConfiguration.h
+        remote/RemoteConfiguration.cc
         remote/RemoteFieldLocation.h
         remote/RemoteFieldLocation.cc
     )
-endif()
-
-
-if(HAVE_LUSTRE)
-    list( APPEND fdb5_srcs io/LustreFileHandle.h io/LustreFileHandle.cc )
 endif()
 
 ecbuild_add_library(
@@ -385,16 +387,15 @@ ecbuild_add_library(
         ${LUSTREAPI_LIBRARIES}
 )
 
-list( APPEND fdb5_scripts fdb fdb-which )
+if(HAVE_FDB_TOOLS)
 
-foreach( _script ${fdb5_scripts} )
+  list( APPEND fdb5_scripts fdb fdb-which )
 
-configure_file(scripts/${_script}.in ${CMAKE_BINARY_DIR}/bin/${_script} @ONLY)
-
-install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/${_script}
-        DESTINATION ${INSTALL_BIN_DIR} )
-endforeach()
-
+  foreach( _script ${fdb5_scripts} )
+    configure_file(scripts/${_script}.in ${CMAKE_BINARY_DIR}/bin/${_script} @ONLY)
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/${_script} DESTINATION ${INSTALL_BIN_DIR} )
+  endforeach()
+endif()
 
 list( APPEND fdb5_tools
     fdb-hammer
@@ -406,6 +407,9 @@ list( APPEND fdb5_tools
     fdb-schema
     fdb-where
     fdb-info
+    fdb-status
+    fdb-lock
+    fdb-unlock
 )
 
 if ( HAVE_TOCFDB )
@@ -421,6 +425,7 @@ endif()
 foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
+                          CONDITION HAVE_FDB_TOOLS
                           SOURCES   tools/${_tool}.cc
                           INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
                           LIBS      fdb5 )
@@ -428,34 +433,32 @@ foreach( _tool ${fdb5_tools} )
 endforeach()
 
 
-#ecbuild_add_executable( TARGET    fdb-partial-adopt
-                            #SOURCES   tools/fdb-partial-adopt.cc
-                            #CONDITION HAVE_FDB4_MIGRATION
-                            ##INCLUDES  ${FDB_INCLUDE_DIRS}
-                            #LIBS      fdb5 fdb )
-
 ecbuild_add_executable( TARGET    grib2fdb5
-                          SOURCES   compat/grib2fdb5.cc
-                          INCLUDES  ${ECCODES_INCLUDE_DIRS} # Please don't remove me, I am needed
-                          LIBS
-                          fdb5 )
+                        CONDITION HAVE_FDB_TOOLS
+                        SOURCES   compat/grib2fdb5.cc
+                        INCLUDES  ${ECCODES_INCLUDE_DIRS} # Please don't remove me, I am needed
+                        LIBS      fdb5 )
 
-# Currently RemoteFDB is experimental technology!
-if (HAVE_EXPERIMENTAL)
-
-    ecbuild_add_executable(
+ecbuild_add_executable(
+        CONDITION HAVE_FDB_TOOLS AND HAVE_FDB_REMOTE
         TARGET fdb-monitor
         SOURCES remote/fdb-monitor.cc
         LIBS eckit eckit_cmd )
 
-    ecbuild_add_executable(
-        TARGET fdb-server
+ecbuild_add_executable(
+        CONDITION HAVE_FDB_TOOLS AND HAVE_FDB_REMOTE
+        TARGET fdbsvr
         SOURCES
             remote/fdb-server.cc
             remote/Messages.h
             remote/Messages.cc
             remote/Handler.h
             remote/Handler.cc
+            remote/AvailablePortList.cc
+            remote/AvailablePortList.h
         LIBS fdb5 )
 
+if ( HAVE_FDB_TOOLS )
+    target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
+    target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
 endif()

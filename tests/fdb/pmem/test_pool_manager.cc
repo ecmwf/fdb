@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+/*
+ * This software was developed as part of the EC H2020 funded project NextGenIO
+ * (Project ID: 671951) www.nextgenio.eu
+ */
+
 #include <string>
 #include <dirent.h>
 #include <cstdio>
@@ -48,7 +53,7 @@ struct UniquePoolDir {
         putenv(const_cast<char*>("fdbPMemDataPoolSize=11534336"));
     }
 
-    ~UniquePoolDir() {
+    ~UniquePoolDir() noexcept(false) {
         // Clean up all the files
 
         std::vector<PathName> files;

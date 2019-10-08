@@ -14,6 +14,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/io/AIOHandle.h"
+#include "eckit/io/EmptyHandle.h"
 
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/io/FDBFileHandle.h"
@@ -29,16 +30,18 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-TocDBWriter::TocDBWriter(const Key &key, const eckit::Configuration& config) :
+TocDBWriter::TocDBWriter(const Key &key, const fdb5::Config& config) :
     TocDB(key, config),
+    umask_(config.umask()),
     dirty_(false) {
     writeInitRecord(key);
     loadSchema();
     checkUID();
 }
 
-TocDBWriter::TocDBWriter(const eckit::PathName &directory, const eckit::Configuration& config) :
+TocDBWriter::TocDBWriter(const eckit::PathName &directory, const fdb5::Config& config) :
     TocDB(directory, config),
+    umask_(config.umask()),
     dirty_(false) {
     writeInitRecord(key());
     loadSchema();
@@ -154,6 +157,9 @@ void TocDBWriter::reconsolidateIndexesAndTocs() {
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
             writer_.index(key, location.path(), location.offset(), location.length());
 
+        }
+        void visitDatum(const Field& field, const std::string& keyFingerprint) {
+            EntryVisitor::visitDatum(field, keyFingerprint);
         }
 
         TocDBWriter& writer_;
@@ -280,7 +286,9 @@ void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length
 
     eckit::Offset position = dh.position();
 
-    dh.write( data, length );
+    long len = dh.write( data, length );
+
+    ASSERT(len == length);
 
     Field field (TocFieldLocation(dataPath, position, length));
 
@@ -352,9 +360,9 @@ eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
     if(stripeLustre()) {
 
         eckit::Log::debug<LibFdb5>() << "Creating LustreFileHandle<AIOHandle> to " << path
-                                    << " with " << nbBuffers
-                                    << " buffer each with " << eckit::Bytes(sizeBuffer)
-                                    << std::endl;
+                                     << " with " << nbBuffers
+                                     << " buffer each with " << eckit::Bytes(sizeBuffer)
+                                     << std::endl;
 
         return new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeDataLustreSettings());
     }
@@ -362,15 +370,25 @@ eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
     return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
 }
 
+eckit::DataHandle *TocDBWriter::createDataHandle(const eckit::PathName &path) {
 
-eckit::DataHandle &TocDBWriter::getDataHandle( const eckit::PathName &path ) {
-    eckit::DataHandle *dh = getCachedHandle( path );
+    static bool fdbWriteToNull = eckit::Resource<bool>("fdbWriteToNull;$FDB_WRITE_TO_NULL", false);
+    if(fdbWriteToNull)
+        return new eckit::EmptyHandle();
+
+    static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite;$FDB_ASYNC_WRITE", false);
+    if(fdbAsyncWrite)
+        return createAsyncHandle(path);
+
+    return createFileHandle(path);
+}
+
+eckit::DataHandle& TocDBWriter::getDataHandle( const eckit::PathName &path ) {
+    eckit::DataHandle *dh = getCachedHandle(path);
     if ( !dh ) {
-        static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite;$FDB_ASYNC_WRITE", false);
-
-        dh = fdbAsyncWrite ? createAsyncHandle( path ) : createFileHandle( path );
+        dh = createDataHandle(path);
+        ASSERT(dh);
         handles_[path] = dh;
-        ASSERT( dh );
         dh->openForAppend(0);
     }
     return *dh;
