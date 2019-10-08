@@ -20,6 +20,7 @@
 #include "eckit/utils/Translator.h"
 #include "eckit/thread/Mutex.h"
 #include "eckit/thread/AutoLock.h"
+#include "eckit/filesystem/LocalPathName.h"
 
 #include "metkit/MarsRequest.h"
 
@@ -360,6 +361,33 @@ static std::vector<Root> fileSpaceRoots(const std::vector<Root>& all, const std:
     return roots;
 }
 
+static std::vector<Root> parseMarsDisks(const eckit::PathName& fdbHome) {
+    eckit::AutoLock<eckit::Mutex> lock(fileSpacesMutex);
+
+    std::string fileSpaceName = "MarsDisksFDB";
+
+    bool writable = true;
+    bool visitable = true;
+
+    std::vector<Root> spaceRoots;
+
+    LocalPathName file(fdbHome + "/etc/disks/fdb");
+    std::ifstream in(file.localPath());
+    char line[1024];
+    while (in.getline(line, sizeof(line))) {
+        if (line[0] != 0 && line[0] != '#') {
+            Tokenizer tokenize(", \t");
+            std::vector<std::string> tokens;
+            tokenize(line, tokens);
+            if (tokens.size() == 1) {
+                spaceRoots.emplace_back(Root(tokens[0], fileSpaceName, writable, visitable));
+            }
+        }
+    }
+
+    return spaceRoots;
+}
+
 static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
 
     eckit::AutoLock<eckit::Mutex> lock(fileSpacesMutex);
@@ -442,16 +470,22 @@ static FileSpaceTable fileSpaces(const Config& config) {
         for (const auto& space : spacesConfigs) {
 
             std::vector<Root> spaceRoots;
-            std::vector<LocalConfiguration> roots(space.getSubConfigurations("roots"));
-            for (const auto& root : roots) {
-                spaceRoots.emplace_back(
-                    Root(
-                        root.getString("path"),
-                        "",
-                        root.getBool("writable", true),
-                        root.getBool("visit", true)
-                    )
-                );
+
+            if (space.getBool("marsDisks", false)) {
+                spaceRoots = parseMarsDisks(config.expandPath("~fdb/"));
+            }
+            else {
+                std::vector<LocalConfiguration> roots(space.getSubConfigurations("roots"));
+                for (const auto& root : roots) {
+                    spaceRoots.emplace_back(
+                        Root(
+                            root.getString("path"),
+                            "",
+                            root.getBool("writable", true),
+                            root.getBool("visit", true)
+                        )
+                    );
+                }
             }
 
             table.emplace_back(
