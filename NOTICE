@@ -1,0 +1,14 @@
+fdb
+===
+
+Copyright 1996- ECMWF
+
+This product is developed by the
+
+  Development Section, European Centre for Medium-Range Weather Forecasts (ECMWF) - http://www.ecmwf.int
+
+Below is a list of software packages which are used inside:
+
+- No external package in currently included
+
+Please also read the cmake/NOTICE file bundled in the distribution packages, which lists the included third-party CMake macros.
