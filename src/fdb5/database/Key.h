@@ -25,6 +25,7 @@
 
 namespace eckit {
     class JSON;
+    template<class T> class DenseSet;
 }
 
 namespace metkit {
@@ -68,6 +69,7 @@ public: // methods
     bool match(const Key& other, const eckit::StringList& ignore) const;
 
     bool match(const std::string& key, const std::set<std::string>& values) const;
+    bool match(const std::string& key, const eckit::DenseSet<std::string>& values) const;
 
     /// test that, if keys are present in the supplied request, they match the
     /// keys present in the key. Essentially implements a reject-filter

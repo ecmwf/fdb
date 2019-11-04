@@ -140,6 +140,7 @@ void TocIndex::flush() {
     ASSERT( mode_ == TocIndex::WRITE );
 
     if (dirty_) {
+        axes_.sort();
         ASSERT(btree_);
         btree_->flush();
         btree_->sync();

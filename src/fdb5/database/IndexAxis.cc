@@ -38,9 +38,9 @@ void IndexAxis::encode(eckit::Stream &s) const {
     s << axis_.size();
     for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
         s << (*i).first;
-        const std::set<std::string> &values = (*i).second;
+        const eckit::DenseSet<std::string> &values = (*i).second;
         s << values.size();
-        for (std::set<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
+        for (eckit::DenseSet<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
             s << (*j);
         }
     }
@@ -56,13 +56,14 @@ void IndexAxis::decode(eckit::Stream &s) {
 
     for (size_t i = 0; i < n; i++) {
         s >> k;
-        std::set<std::string> &values = axis_[k];
+        eckit::DenseSet<std::string> &values = axis_[k];
         size_t m;
         s >> m;
         for (size_t j = 0; j < m; j++) {
             s >> v;
             values.insert(v);
         }
+        values.sort();
     }
 }
 
@@ -70,8 +71,8 @@ void IndexAxis::dump(std::ostream &out, const char* indent) const {
     out << indent << "Axes:" << std::endl;
    for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
         out << indent << indent << (*i).first << std::endl;
-        const std::set<std::string> &values = (*i).second;
-        for (std::set<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
+        const eckit::DenseSet<std::string> &values = (*i).second;
+        for (eckit::DenseSet<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
             out << indent << indent << indent;
             if ((*j).empty()) {
                 out << "<empty>";
@@ -103,9 +104,8 @@ void IndexAxis::insert(const Key &key) {
         const std::string &keyword = i->first;
         const std::string &value   = i->second;
 
-        std::pair<eckit::StringSet::iterator, bool> result = axis_[keyword].insert(value);
-        if (result.second)
-            dirty_ = true;
+        axis_[keyword].insert(value);
+        dirty_ = true;
     }
 }
 
@@ -119,6 +119,11 @@ void IndexAxis::clean() {
     dirty_ = false;
 }
 
+void IndexAxis::sort() {
+    for (AxisMap::iterator i = axis_.begin(); i != axis_.end(); ++i)
+       i->second.sort();
+}
+
 void IndexAxis::wipe() {
 
     ASSERT(!readOnly_);
@@ -128,14 +133,14 @@ void IndexAxis::wipe() {
 }
 
 
-const eckit::StringSet &IndexAxis::values(const std::string &keyword) const {
+const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword) const {
 
     // If an Index is empty, this is bad, but is not strictly an error. Nothing will
     // be found...
 
     if (axis_.empty()) {
         eckit::Log::warning() << "Querying axis of empty Index: " << keyword << std::endl;
-        const static eckit::StringSet nullStringSet;
+        const static eckit::DenseSet<std::string> nullStringSet;
         return nullStringSet;
     }
 
