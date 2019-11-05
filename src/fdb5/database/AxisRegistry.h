@@ -39,11 +39,13 @@ public: // types
     {
         std::size_t operator()(ptr_axis_t const& p) const noexcept
         {
-          std::size_t h = 0;
-          for(const auto& s: *p) {
-            h ^= std::hash<std::string>{}(s) + 0x9e3779b9 + (h << 6) + (h >> 2);
-          }
-          return h;
+            std::size_t h = 0;
+            for(const auto& s: *p) {
+                // this hash combine is inspired in the boost::hash_combine
+                // 0x9e3779b9 is the reciprocal of the golden ratio to ensure random bit distribution
+                h ^= std::hash<std::string>{}(s) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            }
+            return h;
         }
     };
 
