@@ -98,6 +98,8 @@ list( APPEND fdb5_srcs
     database/Archiver.h
     database/ArchiveVisitor.cc
     database/ArchiveVisitor.h
+    database/AxisRegistry.cc
+    database/AxisRegistry.h
     database/BaseArchiveVisitor.cc
     database/BaseArchiveVisitor.h
     database/DB.cc

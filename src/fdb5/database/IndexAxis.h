@@ -17,8 +17,8 @@
 #define fdb5_IndexAxis_H
 
 #include <iosfwd>
-#include <set>
 #include <map>
+#include <memory>
 
 #include "eckit/container/DenseSet.h"
 #include "eckit/memory/NonCopyable.h"
@@ -79,7 +79,7 @@ private: // methods
 
 private: // members
 
-    typedef std::map<std::string, eckit::DenseSet<std::string> > AxisMap;
+    typedef std::map<std::string, std::shared_ptr<eckit::DenseSet<std::string> > > AxisMap;
     AxisMap axis_;
 
     bool readOnly_;
