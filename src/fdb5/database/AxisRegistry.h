@@ -18,34 +18,54 @@
 
 #include <map>
 #include <memory>
-#include <unordered_map>
+#include <unordered_set>
+#include <functional>
 
 #include "eckit/container/DenseSet.h"
 #include "eckit/thread/Mutex.h"
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 class AxisRegistry {
 public: // types
 
+    typedef std::string keyword_t;
     typedef eckit::DenseSet<std::string> axis_t;
+    typedef std::shared_ptr<axis_t> ptr_axis_t;
+
+    struct PtrHash
+    {
+        std::size_t operator()(ptr_axis_t const& p) const noexcept
+        {
+          std::size_t h = 0;
+          for(const auto& s: *p) {
+            h ^= std::hash<std::string>{}(s) + 0x9e3779b9 + (h << 6) + (h >> 2);
+          }
+          return h;
+        }
+    };
+
+    struct MyEquals
+    {
+        bool operator()(ptr_axis_t const& left, ptr_axis_t const& right) const noexcept {
+          return *left == *right;
+        }
+    };
 
 private: // types
 
     typedef std::string axis_key_t;
-    typedef std::unordered_map<axis_key_t, std::shared_ptr<axis_t> > axis_store_t;
-    typedef std::map<std::string, axis_store_t> axis_map_t;
+    typedef std::unordered_set<ptr_axis_t> axis_store_t;
+    typedef std::map<keyword_t, axis_store_t> axis_map_t;
 
 public: // methods
 
     static AxisRegistry& instance();
 
-    void deduplicate(std::string key, std::shared_ptr<axis_t>& ptr);
-    void release(std::string key, std::shared_ptr<axis_t>& ptr);
-
-private: // methods
-
-    static axis_key_t axisToKeyword(const axis_t &axis);
+    void deduplicate(const keyword_t& key, std::shared_ptr<axis_t>& ptr);
+    void release(const keyword_t& key, std::shared_ptr<axis_t>& ptr);
 
 private: // members
 

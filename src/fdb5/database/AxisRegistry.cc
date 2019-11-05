@@ -16,24 +16,16 @@
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 AxisRegistry& AxisRegistry::instance() {
     static AxisRegistry axisregistry;
     return axisregistry;
 }
 
-AxisRegistry::axis_key_t AxisRegistry::axisToKeyword(const axis_t& axis) {
-    std::ostringstream oss;
-    char sep = '/';
-    for (axis_t::const_iterator it = axis.begin(); it != axis.end(); ++it) {
-        oss << *it << sep;
-    }
-    return oss.str();
-}
+void AxisRegistry::release(const keyword_t& keyword, std::shared_ptr<axis_t>& ptr) {
 
-void AxisRegistry::release(std::string keyword, std::shared_ptr<axis_t>& ptr) {
-    ASSERT(ptr.use_count() >= 2);
-
-    if (ptr.use_count() > 2)
+    if (ptr.use_count() != 2)
         return;
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
@@ -41,23 +33,25 @@ void AxisRegistry::release(std::string keyword, std::shared_ptr<axis_t>& ptr) {
     axis_map_t::iterator it = axes_.find(keyword);
     ASSERT(it != axes_.end());
 
-    AxisRegistry::axis_key_t key = axisToKeyword(*ptr);
-    it->second.erase(key);
+    it->second.erase(ptr);
+
+    ASSERT(ptr.use_count() == 1);
 
     if (it->second.empty())
         axes_.erase(it);
 }
 
-void AxisRegistry::deduplicate(std::string keyword, std::shared_ptr<axis_t>& ptr) {
+void AxisRegistry::deduplicate(const keyword_t& keyword, std::shared_ptr<axis_t>& ptr) {
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
     axis_store_t& axis = axes_[keyword];
-    AxisRegistry::axis_key_t key = axisToKeyword(*ptr);
-    axis_store_t::iterator it = axis.find(key);
-    if (it == axis.end())
-        axis.insert({key, ptr});
-    else
-        ptr = it->second;
+    axis_store_t::iterator it = axis.find(ptr);
+    if (it == axis.end()) {
+        axis.insert(ptr);
+    }
+    else {
+        ptr = *it;
+    }
 }
 
 }
