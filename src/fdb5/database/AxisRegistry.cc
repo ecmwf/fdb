@@ -11,7 +11,9 @@
 #include <sstream>
 
 #include "eckit/thread/AutoLock.h"
+#include "eckit/log/Log.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/AxisRegistry.h"
 
 namespace fdb5 {
@@ -42,6 +44,9 @@ void AxisRegistry::release(const keyword_t& keyword, std::shared_ptr<axis_t>& pt
 }
 
 void AxisRegistry::deduplicate(const keyword_t& keyword, std::shared_ptr<axis_t>& ptr) {
+
+    static std::size_t dedups = 0;
+
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
     axis_store_t& axis = axes_[keyword];
@@ -50,6 +55,8 @@ void AxisRegistry::deduplicate(const keyword_t& keyword, std::shared_ptr<axis_t>
         axis.insert(ptr);
     }
     else {
+        dedups++;
+        eckit::Log::debug<LibFdb5>() << dedups << " deduped axis " << *ptr << std::endl;
         ptr = *it;
     }
 }
