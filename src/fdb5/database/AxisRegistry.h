@@ -38,14 +38,14 @@ private: // types
 
 public: // methods
 
-    static void deduplicate(std::string key, std::shared_ptr<axis_t>& ptr);
-    static void release(std::string key, std::shared_ptr<axis_t>& ptr);
+    static AxisRegistry& instance();
+
+    void deduplicate(std::string key, std::shared_ptr<axis_t>& ptr);
+    void release(std::string key, std::shared_ptr<axis_t>& ptr);
 
 private: // methods
 
-    static AxisRegistry& instance();
-
-    static axis_key_t get_key(const axis_t &axis);
+    static axis_key_t axisToKeyword(const axis_t &axis);
 
 private: // members
 

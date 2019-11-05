@@ -21,42 +21,41 @@ AxisRegistry& AxisRegistry::instance() {
     return axisregistry;
 }
 
-AxisRegistry::axis_key_t AxisRegistry::get_key(const axis_t &axis) {
+AxisRegistry::axis_key_t AxisRegistry::axisToKeyword(const axis_t& axis) {
     std::ostringstream oss;
-    char sep[] = {0, 0};
+    char sep = '/';
     for (axis_t::const_iterator it = axis.begin(); it != axis.end(); ++it) {
-        oss << sep << *it;
-        sep[0] = '/';
+        oss << *it << sep;
     }
     return oss.str();
 }
 
-void AxisRegistry::release(std::string key, std::shared_ptr<axis_t>& ptr) {
+void AxisRegistry::release(std::string keyword, std::shared_ptr<axis_t>& ptr) {
     ASSERT(ptr.use_count() >= 2);
 
     if (ptr.use_count() > 2)
         return;
 
-    eckit::AutoLock<eckit::Mutex> lock(instance().mutex_);
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
-    axis_map_t::iterator it = instance().axes_.find(key);
-    ASSERT(it != instance().axes_.end());
+    axis_map_t::iterator it = axes_.find(keyword);
+    ASSERT(it != axes_.end());
 
-    AxisRegistry::axis_key_t data_key = get_key(*ptr);
-    it->second.erase(data_key);
+    AxisRegistry::axis_key_t key = axisToKeyword(*ptr);
+    it->second.erase(key);
 
     if (it->second.empty())
-        instance().axes_.erase(it);
+        axes_.erase(it);
 }
 
-void AxisRegistry::deduplicate(std::string key, std::shared_ptr<axis_t>& ptr) {
-    eckit::AutoLock<eckit::Mutex> lock(instance().mutex_);
+void AxisRegistry::deduplicate(std::string keyword, std::shared_ptr<axis_t>& ptr) {
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
-    axis_store_t& axis = instance().axes_[key];
-    AxisRegistry::axis_key_t data_key = get_key(*ptr);
-    axis_store_t::iterator it = axis.find(data_key);
+    axis_store_t& axis = axes_[keyword];
+    AxisRegistry::axis_key_t key = axisToKeyword(*ptr);
+    axis_store_t::iterator it = axis.find(key);
     if (it == axis.end())
-        axis.insert({data_key, ptr});
+        axis.insert({key, ptr});
     else
         ptr = it->second;
 }

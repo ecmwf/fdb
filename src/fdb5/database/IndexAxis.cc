@@ -30,7 +30,7 @@ IndexAxis::~IndexAxis() {
       return;
 
     for (AxisMap::iterator it = axis_.begin(); it != axis_.end(); ++it) {
-       AxisRegistry::release(it->first, it->second);
+       AxisRegistry::instance().release(it->first, it->second);
     }
 }
 
@@ -72,7 +72,7 @@ void IndexAxis::decode(eckit::Stream &s) {
             values->insert(v);
         }
         values->sort();
-        AxisRegistry::deduplicate(k, values);
+        AxisRegistry::instance().deduplicate(k, values);
     }
 }
 
