@@ -45,9 +45,9 @@ void AxisRegistry::release(const keyword_t& keyword, std::shared_ptr<axis_t>& pt
 
 void AxisRegistry::deduplicate(const keyword_t& keyword, std::shared_ptr<axis_t>& ptr) {
 
-    static std::size_t dedups = 0;
-
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
+
+    static std::size_t dedups = 0;
 
     axis_store_t& axis = axes_[keyword];
     axis_store_t::iterator it = axis.find(ptr);
