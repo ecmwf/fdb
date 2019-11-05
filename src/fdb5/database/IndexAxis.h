@@ -17,9 +17,10 @@
 #define fdb5_IndexAxis_H
 
 #include <iosfwd>
-#include <set>
 #include <map>
+#include <memory>
 
+#include "eckit/container/DenseSet.h"
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/types/Types.h"
@@ -49,7 +50,7 @@ public: // methods
     // Decode can be used for two-stage initialisation (IndexAxis a; a.decode(s);)
     void decode(eckit::Stream& s);
 
-    const eckit::StringSet &values(const std::string &keyword) const;
+    const eckit::DenseSet<std::string> &values(const std::string &keyword) const;
 
     void dump(std::ostream &out, const char* indent) const;
 
@@ -59,6 +60,9 @@ public: // methods
     /// mark that it has been written out.
     bool dirty() const;
     void clean();
+
+    /// Sort the internal axes
+    void sort();
 
     /// Reset the axis to a default state.
     void wipe();
@@ -75,7 +79,7 @@ private: // methods
 
 private: // members
 
-    typedef std::map<std::string, eckit::StringSet> AxisMap;
+    typedef std::map<std::string, std::shared_ptr<eckit::DenseSet<std::string> > > AxisMap;
     AxisMap axis_;
 
     bool readOnly_;

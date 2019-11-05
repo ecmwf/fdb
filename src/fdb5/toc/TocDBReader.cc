@@ -94,7 +94,7 @@ bool TocDBReader::open() {
 
 void TocDBReader::axis(const std::string &keyword, eckit::StringSet &s) const {
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
-        const eckit::StringSet& a = m->first.axes().values(keyword);
+        const eckit::DenseSet<std::string>& a = m->first.axes().values(keyword);
         s.insert(a.begin(), a.end());
     }
 }

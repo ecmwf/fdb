@@ -10,6 +10,7 @@
 
 #include <algorithm>
 
+#include "eckit/container/DenseSet.h"
 #include "eckit/utils/Tokenizer.h"
 
 #include "metkit/MarsRequest.h"
@@ -244,6 +245,16 @@ bool Key::match(const Key& other, const eckit::StringList& ignore) const {
 }
 
 bool Key::match(const std::string &key, const std::set<std::string> &values) const {
+
+    eckit::StringDict::const_iterator i = find(key);
+    if (i == end()) {
+        return false;
+    }
+
+    return values.find(i->second) != values.end();
+}
+
+bool Key::match(const std::string &key, const eckit::DenseSet<std::string> &values) const {
 
     eckit::StringDict::const_iterator i = find(key);
     if (i == end()) {

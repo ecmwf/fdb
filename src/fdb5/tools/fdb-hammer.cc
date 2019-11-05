@@ -37,13 +37,13 @@ using namespace eckit;
 
 class FDBWrite : public fdb5::FDBTool {
 
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string &tool) const override;
 
-    virtual void init(const eckit::option::CmdArgs &args);
+    virtual void init(const eckit::option::CmdArgs &args) override;
 
-    virtual int minimumPositionalArguments() const { return 1; }
+    virtual int minimumPositionalArguments() const override { return 1; }
 
-    virtual void execute(const eckit::option::CmdArgs &args);
+    virtual void execute(const eckit::option::CmdArgs &args) override;
 
     void executeRead(const eckit::option::CmdArgs& args);
     void executeWrite(const eckit::option::CmdArgs& args);
