@@ -35,7 +35,7 @@ public: // types
     typedef eckit::DenseSet<std::string> axis_t;
     typedef std::shared_ptr<axis_t> ptr_axis_t;
 
-    struct PtrHash
+    struct HashDenseSet
     {
         std::size_t operator()(ptr_axis_t const& p) const noexcept
         {
@@ -49,7 +49,7 @@ public: // types
         }
     };
 
-    struct MyEquals
+    struct EqualsDenseSet
     {
         bool operator()(ptr_axis_t const& left, ptr_axis_t const& right) const noexcept {
           return *left == *right;
@@ -59,7 +59,7 @@ public: // types
 private: // types
 
     typedef std::string axis_key_t;
-    typedef std::unordered_set<ptr_axis_t> axis_store_t;
+    typedef std::unordered_set<ptr_axis_t,HashDenseSet,EqualsDenseSet> axis_store_t;
     typedef std::map<keyword_t, axis_store_t> axis_map_t;
 
 public: // methods
