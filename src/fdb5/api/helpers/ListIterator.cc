@@ -15,7 +15,7 @@
 
 #include "fdb5/api/helpers/ListIterator.h"
 
-#include "eckit/parser/JSON.h"
+#include "eckit/log/JSON.h"
 
 namespace fdb5 {
 
@@ -66,4 +66,3 @@ void ListElement::encode(eckit::Stream &s) const {
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
