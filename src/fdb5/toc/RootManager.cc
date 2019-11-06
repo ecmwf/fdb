@@ -20,6 +20,7 @@
 #include "eckit/utils/Translator.h"
 #include "eckit/thread/Mutex.h"
 #include "eckit/thread/AutoLock.h"
+#include "eckit/filesystem/LocalPathName.h"
 
 #include "metkit/MarsRequest.h"
 
@@ -360,6 +361,43 @@ static std::vector<Root> fileSpaceRoots(const std::vector<Root>& all, const std:
     return roots;
 }
 
+static std::map<std::string, std::vector<Root>> marsRootsTable;
+
+static std::vector<Root> parseMarsDisks(const eckit::PathName& file, const std::string& name) {
+
+    eckit::AutoLock<eckit::Mutex> lock(fileSpacesMutex);
+
+    // mars roots are memoised, so only read it once per file
+
+    auto it = marsRootsTable.find(file);
+    if (it != marsRootsTable.end()) {
+        return it->second;
+    }
+
+    // these could be gotten from the file if we decide to extend the format
+    bool writable = true;
+    bool visitable = true;
+
+    std::vector<Root> spaceRoots;
+
+    std::ifstream in(file.localPath());
+    char line[1024];
+    while (in.getline(line, sizeof(line))) {
+        if (line[0] != 0 && line[0] != '#') {
+            Tokenizer tokenize(", \t");
+            std::vector<std::string> tokens;
+            tokenize(line, tokens);
+            if (tokens.size() == 1) {
+                spaceRoots.emplace_back(Root(tokens[0], name, writable, visitable));
+            }
+        }
+    }
+
+    marsRootsTable[file] = spaceRoots;
+
+    return spaceRoots;
+}
+
 static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
 
     eckit::AutoLock<eckit::Mutex> lock(fileSpacesMutex);
@@ -436,27 +474,36 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
 
 
 static FileSpaceTable fileSpaces(const Config& config) {
+
     if (config.has("spaces")) {
         FileSpaceTable table;
         std::vector<LocalConfiguration> spacesConfigs(config.getSubConfigurations("spaces"));
         for (const auto& space : spacesConfigs) {
 
+            std::string name = space.getString("name", "");
             std::vector<Root> spaceRoots;
-            std::vector<LocalConfiguration> roots(space.getSubConfigurations("roots"));
-            for (const auto& root : roots) {
-                spaceRoots.emplace_back(
-                    Root(
-                        root.getString("path"),
-                        "",
-                        root.getBool("writable", true),
-                        root.getBool("visit", true)
-                    )
-                );
+
+            if (space.getBool("marsDisks", false)) {
+                PathName file = config.expandPath(space.getString("path", "~fdb/etc/disks/fdb"));
+                spaceRoots = parseMarsDisks(file, name);
+            }
+            else {
+                std::vector<LocalConfiguration> roots(space.getSubConfigurations("roots"));
+                for (const auto& root : roots) {
+                    spaceRoots.emplace_back(
+                        Root(
+                            root.getString("path"),
+                            "",
+                            root.getBool("writable", true),
+                            root.getBool("visit", true)
+                        )
+                    );
+                }
             }
 
             table.emplace_back(
                 FileSpace(
-                    space.getString("name", ""),
+                    name,
                     space.getString("regex", ".*"),
                     space.getString("handler", "Default"),
                     spaceRoots

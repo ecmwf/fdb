@@ -15,7 +15,7 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
 #include "eckit/option/CmdArgs.h"
-#include "eckit/parser/JSON.h"
+#include "eckit/log/JSON.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"

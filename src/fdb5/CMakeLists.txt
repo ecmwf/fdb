@@ -59,6 +59,7 @@ list( APPEND fdb5_srcs
     api/FDBStats.h
     api/LocalFDB.cc
     api/LocalFDB.h
+    api/RandomFDB.cc
     api/SelectFDB.cc
     api/SelectFDB.h
 
@@ -97,6 +98,8 @@ list( APPEND fdb5_srcs
     database/Archiver.h
     database/ArchiveVisitor.cc
     database/ArchiveVisitor.h
+    database/AxisRegistry.cc
+    database/AxisRegistry.h
     database/BaseArchiveVisitor.cc
     database/BaseArchiveVisitor.h
     database/DB.cc

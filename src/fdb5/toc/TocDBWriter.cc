@@ -158,7 +158,7 @@ void TocDBWriter::reconsolidateIndexesAndTocs() {
             writer_.index(key, location.path(), location.offset(), location.length());
 
         }
-        void visitDatum(const Field& field, const std::string& keyFingerprint) {
+        void visitDatum(const Field& field, const std::string& keyFingerprint) override {
             EntryVisitor::visitDatum(field, keyFingerprint);
         }
 
