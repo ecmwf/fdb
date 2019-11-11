@@ -1,0 +1,103 @@
+/*
+ * (C) Copyright 1996- ECMWF.
+ *
+ * This software is licensed under the terms of the Apache Licence Version 2.0
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
+ * granted to it by virtue of its status as an intergovernmental organisation nor
+ * does it submit to any jurisdiction.
+ */
+
+/// @author Simon Smart
+/// @author Tiagop Quintino
+/// @date   Nov 2019
+
+#ifndef fdb5_remote_FdbServer_H
+#define fdb5_remote_FdbServer_H
+
+#include <unistd.h>
+#include <stdlib.h>
+#include <thread>
+
+#include "eckit/net/Port.h"
+#include "eckit/net/TCPServer.h"
+#include "eckit/net/TCPSocket.h"
+#include "eckit/runtime/Application.h"
+#include "eckit/runtime/Monitorable.h"
+#include "eckit/runtime/Monitor.h"
+#include "eckit/runtime/ProcessControler.h"
+#include "eckit/thread/ThreadControler.h"
+
+#include "fdb5/config/Config.h"
+#include "fdb5/LibFdb5.h"
+
+
+#include "fdb5/remote/AvailablePortList.h"
+#include "fdb5/remote/Handler.h"
+
+
+namespace fdb5 {
+namespace remote {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+class FDBForker : public eckit::ProcessControler {
+
+public: // methods
+
+    FDBForker(eckit::TCPSocket& socket, const Config& config = fdb5::Config());
+    virtual ~FDBForker();
+
+private: // methods
+
+    virtual void run();
+
+    eckit::TCPSocket socket_;
+    eckit::LocalConfiguration config_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class FdbServerBase {
+public:
+
+    FdbServerBase();
+
+    virtual ~FdbServerBase();
+
+    virtual void doRun();
+
+private:
+
+    int port_;
+    std::thread reaperThread_;
+
+    FdbServerBase(const FdbServerBase&) = delete;
+    FdbServerBase& operator=(const FdbServerBase&) = delete;
+
+    virtual void hookUnique() = 0;
+
+    void startPortReaperThread(const Config& config);
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class FdbServer : public eckit::Application, public FdbServerBase {
+public:
+    FdbServer(int argc, char** argv, const char* home);
+
+    virtual ~FdbServer();
+
+    virtual void run();
+
+    void virtual hookUnique(); // non-unique
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+} // namespace remote
+} // namespace fdb5
+
+#endif // fdb5_remote_FdbServer_H
