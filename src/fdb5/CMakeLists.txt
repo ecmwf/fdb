@@ -358,6 +358,14 @@ if(HAVE_FDB_REMOTE)
         remote/RemoteConfiguration.cc
         remote/RemoteFieldLocation.h
         remote/RemoteFieldLocation.cc
+        remote/Messages.h
+        remote/Messages.cc
+        remote/Handler.h
+        remote/Handler.cc
+        remote/AvailablePortList.cc
+        remote/AvailablePortList.h
+        remote/FdbServer.h
+        remote/FdbServer.cc
     )
 endif()
 
@@ -450,15 +458,9 @@ ecbuild_add_executable(
 
 ecbuild_add_executable(
         CONDITION HAVE_FDB_TOOLS AND HAVE_FDB_REMOTE
-        TARGET fdbsvr
+        TARGET fdb-server
         SOURCES
             remote/fdb-server.cc
-            remote/Messages.h
-            remote/Messages.cc
-            remote/Handler.h
-            remote/Handler.cc
-            remote/AvailablePortList.cc
-            remote/AvailablePortList.h
         LIBS fdb5 )
 
 if ( HAVE_FDB_TOOLS )
