@@ -162,8 +162,6 @@ private: // members
     std::unique_ptr<ArchiveQueue> archiveQueue_;
     MessageQueue retrieveMessageQueue_;
 
-    std::map<uint32_t, eckit::Length> expectedSizes_;
-
     bool connected_;
 };
 
