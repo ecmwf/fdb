@@ -264,6 +264,10 @@ void TocWipeVisitor::calculateResidualPaths() {
                             std::inserter(paths, paths.begin()));
 
         if (!paths.empty()) {
+	    Log::error() << "Paths not in existing paths set:" << std::endl;
+	    for (const auto& p : paths) {
+		Log::error() << " - " << p << std::endl;
+	    }
             throw SeriousBug("Path to delete should be in existing path set. Are multiple wipe commands running simultaneously?", Here());
         }
 
