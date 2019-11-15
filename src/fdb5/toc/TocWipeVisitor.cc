@@ -368,7 +368,7 @@ void TocWipeVisitor::wipe(bool wipeAll) {
     // This results in a failure mode merely being data becoming invisible (which has the correct
     // effect for the user), to be wiped at a later date.
 
-    if (!indexesToMask_.empty() && !safePaths_.empty() && !wipeAll) {
+    if (!indexesToMask_.empty() && !wipeAll) {
         for (const auto& index : indexesToMask_) {
             logVerbose << "Index to mask: ";
             logAlways << index << std::endl;
@@ -405,12 +405,10 @@ void TocWipeVisitor::wipe(bool wipeAll) {
 void TocWipeVisitor::databaseComplete(const DB& db) {
     WipeVisitor::databaseComplete(db);
 
-    // We wipe everything if both of these are true:
-    //
-    // i) The request matches the DB exactly
-    // ii) There is nothing within safePaths.
+    // We wipe everything if there is nothingn within safePaths - i.e. there is
+    // no data that wasn't matched by the request
 
-    bool wipeAll = db_.key().match(request_) && safePaths_.empty();
+    bool wipeAll = safePaths_.empty();
 
     if (wipeAll) {
         addMaskedPaths();
