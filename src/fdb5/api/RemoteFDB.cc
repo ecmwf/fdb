@@ -276,14 +276,6 @@ void RemoteFDB::listeningThreadLoop() {
         case Message::Exit:
             return;
 
-        case Message::ExpectedSize: {
-            ASSERT(hdr.payloadSize > 0);
-            Buffer payload(hdr.payloadSize);
-            dataRead(payload, hdr.payloadSize);
-            expectedSizes_[hdr.requestID] = *static_cast<const Length*>(payload.data());
-            break;
-        }
-
         case Message::Blob: {
             Buffer payload(hdr.payloadSize);
             if (hdr.payloadSize > 0) dataRead(payload, hdr.payloadSize);
@@ -886,16 +878,14 @@ public: // methods
 
     FDBRemoteDataHandle(uint32_t requestID,
                         RemoteFDB::MessageQueue& queue,
-                        const Endpoint& remoteEndpoint,
-                        Length& expectedSize) :
+                        const Endpoint& remoteEndpoint) :
         requestID_(requestID),
         queue_(queue),
         remoteEndpoint_(remoteEndpoint),
         pos_(0),
         overallPosition_(0),
         currentBuffer_(0),
-        complete_(false),
-        expectedSize_(expectedSize) {}
+        complete_(false) {}
 
 private: // methods
 
@@ -979,11 +969,7 @@ private: // methods
     }
 
     Length estimate() override {
-
-        // If the expected size has not yet been received on the data connection, this
-        // element will be default constructed (0).
-        // Once we know the size, it will be the correct size!
-        return expectedSize_;
+        return 0;
     }
 
     Offset position() override {
@@ -999,7 +985,6 @@ private: // members
     Offset overallPosition_;
     Buffer currentBuffer_;
     bool complete_;
-    Length& expectedSize_;
 };
 
 }
@@ -1016,12 +1001,9 @@ DataHandle* RemoteFDB::retrieve(const metkit::MarsRequest& request) {
 
     uint32_t id = generateRequestID();
 
-    // We don't yet know the size of the read, so set it to zero (unknown)
-    expectedSizes_[id] = 0;
-
     controlWriteCheckResponse(Message::Retrieve, id, encodeBuffer, s.position());
 
-    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_, expectedSizes_[id]);
+    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
 }
 
 

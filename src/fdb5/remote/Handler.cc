@@ -71,7 +71,7 @@ template <typename ValueType>
 struct BaseHelper {
     virtual size_t encodeBufferSize(const ValueType&) const { return 4096; }
     void extraDecode(eckit::Stream&) {}
-    ValueType apiCall(FDB& fdb, const FDBToolRequest&) const { NOTIMP; }
+    ValueType apiCall(FDB&, const FDBToolRequest&) const { NOTIMP; }
 
     struct Encoded {
         size_t position;
@@ -790,8 +790,6 @@ void RemoteHandler::retrieveThreadLoop() {
             long dataRead;
 
             dh->openForRead();
-            Length expectedSize = dh->estimate();
-            dataWrite(Message::ExpectedSize, requestID, &expectedSize, sizeof(expectedSize));
             while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
                 dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
             }
