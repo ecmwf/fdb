@@ -395,7 +395,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 // absolute paths to relative paths. Either may exist in either the TOC_SUB_TOC
                 // or TOC_CLEAR entries.
                 ASSERT(path.path().size() > 0);
-                eckit::PathName absPath = (path.path()[0] == '/') ? path : (currentDirectory() / path);
+                eckit::PathName absPath = (path.path()[0] == '/') ? findRealPath(path) : (currentDirectory() / path);
 
                 // If this subtoc has a masking entry, then skip it, and go on to the next entry.
                 std::pair<eckit::PathName, size_t> key(absPath, 0);
@@ -565,10 +565,13 @@ void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
         off_t offset;
 
         switch (r->header_.tag_) {
-            case TocRecord::TOC_SUB_TOC:
+            case TocRecord::TOC_SUB_TOC: {
                 s >> path;
-                entries.emplace(std::pair<PathName, Offset>(path, 0));
+                ASSERT(path.size() > 0);
+                eckit::PathName absPath = (path[0] == '/') ? findRealPath(path) : (currentDirectory() / path);
+                entries.emplace(std::pair<PathName, Offset>(absPath, 0));
                 break;
+	    }
 
             case TocRecord::TOC_INDEX:
                 s >> path;
@@ -622,7 +625,7 @@ void TocHandler::populateMaskedEntriesList() const {
                 } else {
                     // readNextInternal --> use directory_ not currentDirectory()
                     ASSERT(path.size() > 0);
-                    eckit::PathName absPath = (path[0] == '/') ? PathName(path) : (directory_ / path);
+                    eckit::PathName absPath = (path[0] == '/') ? findRealPath(path) : (directory_ / path);
                     maskedEntries_.emplace(std::pair<PathName, Offset>(absPath, offset));
                 }
                 break;
