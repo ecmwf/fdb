@@ -18,6 +18,7 @@
 #include "eckit/eckit.h"
 
 #include "eckit/container/BTree.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 #include "eckit/memory/NonCopyable.h"
@@ -25,6 +26,7 @@
 #include "eckit/types/FixedString.h"
 
 #include "fdb5/database/Index.h"
+#include "fdb5/database/FileStore.h"
 #include "fdb5/toc/TocIndexLocation.h"
 
 namespace fdb5 {
@@ -41,8 +43,10 @@ class BTreeIndex;
 
 struct FileStoreWrapper {
 
-    FileStoreWrapper(const eckit::PathName& directory) : files_(directory) {}
-    FileStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : files_(directory, s) {}
+    FileStoreWrapper(const eckit::PathName& directory) : files_(eckit::URI("toc", directory)) {}
+    FileStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : files_(eckit::URI("toc", directory), s) {}
+    FileStoreWrapper(const eckit::URI& uri) : files_(uri) {}
+    FileStoreWrapper(const eckit::URI& uri, eckit::Stream& s) : files_(uri, s) {}
 
     FileStore files_;
 };
@@ -78,7 +82,7 @@ public: // methods
 private: // methods
 
     const IndexLocation& location() const override { return location_; }
-    const std::vector<eckit::PathName> dataPaths() const override;
+    const std::vector<eckit::URI> dataUris() const override;
 
     bool dirty() const override;
 

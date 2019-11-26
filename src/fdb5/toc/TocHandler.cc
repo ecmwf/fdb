@@ -25,6 +25,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
@@ -110,22 +111,13 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::PathName findRealPath(const eckit::PathName& path) {
-
-    // realpath only works on existing paths, so work back up the path until
-    // we find one that does, get the realpath on that, then reconstruct.
-
-    if (path.exists()) return path.realName();
-
-    return findRealPath(path.dirName()) / path.baseName();
-}
-
 TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
-    directory_(findRealPath(directory)),
-    dbUID_(-1),
-    userUID_(::getuid()),
+    TocCommon(directory),
+//    directory_(TocCommon::findRealPath(directory)),
+//    dbUID_(-1),
+//    userUID_(::getuid()),
     tocPath_(directory_ / "toc"),
-    schemaPath_(directory_ / "schema"),
+//    schemaPath_(directory_ / "schema"),
     dbConfig_(config),
     useSubToc_(config.getBool("useSubToc", false)),
     isSubToc_(false),
@@ -133,8 +125,9 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     cachedToc_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
-    writeMode_(false),
-    dirty_(false) {
+    writeMode_(false)
+//    dirty_(false)
+{
 
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
@@ -145,20 +138,22 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
 }
 
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
-    directory_(findRealPath(path.dirName())),
-    dbUID_(-1),
+    TocCommon(path.dirName()),
+//    directory_(TocCommon::findRealPath(path.dirName())),
+//    dbUID_(-1),
     parentKey_(parentKey),
-    userUID_(::getuid()),
-    tocPath_(findRealPath(path)),
-    schemaPath_(directory_ / "schema"),
+//    userUID_(::getuid()),
+    tocPath_(TocCommon::findRealPath(path)),
+//    schemaPath_(directory_ / "schema"),
     useSubToc_(false),
     isSubToc_(true),
     fd_(-1),
     cachedToc_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
-    writeMode_(false),
-    dirty_(false) {
+    writeMode_(false)
+//    dirty_(false)
+{
 
     /// Are we remapping a mounted DB?
     if (exists()) {
@@ -200,6 +195,7 @@ bool TocHandler::exists() const {
 }
 
 void TocHandler::checkUID() const {
+    return;
 
     static bool fdbOnlyCreatorCanWrite = eckit::Resource<bool>("fdbOnlyCreatorCanWrite", true);
     if (!fdbOnlyCreatorCanWrite) {

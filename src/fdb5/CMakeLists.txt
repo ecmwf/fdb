@@ -102,6 +102,8 @@ list( APPEND fdb5_srcs
     database/AxisRegistry.h
     database/BaseArchiveVisitor.cc
     database/BaseArchiveVisitor.h
+    database/Catalogue.cc
+    database/Catalogue.h
     database/DB.cc
     database/DB.h
     database/DataStats.cc
@@ -130,6 +132,8 @@ list( APPEND fdb5_srcs
     database/IndexStats.h
     database/StatsReportVisitor.cc
     database/StatsReportVisitor.h
+    database/Store.cc
+    database/Store.h
     database/PurgeVisitor.cc
     database/PurgeVisitor.h
     database/WipeVisitor.cc
@@ -248,8 +252,6 @@ if( HAVE_TOCFDB )
         toc/AdoptVisitor.h
         toc/BTreeIndex.cc
         toc/BTreeIndex.h
-        toc/TocDB.cc
-        toc/TocDB.h
         toc/Root.cc
         toc/Root.h
         toc/FieldRef.cc
@@ -264,10 +266,14 @@ if( HAVE_TOCFDB )
         toc/EnvVarFileSpaceHandler.h
         toc/RootManager.cc
         toc/RootManager.h
-        toc/TocDBReader.cc
-        toc/TocDBReader.h
-        toc/TocDBWriter.cc
-        toc/TocDBWriter.h
+        toc/TocCommon.cc
+        toc/TocCommon.h
+        toc/TocCatalogue.cc
+        toc/TocCatalogue.h
+        toc/TocCatalogueReader.cc
+        toc/TocCatalogueReader.h
+        toc/TocCatalogueWriter.cc
+        toc/TocCatalogueWriter.h
         toc/TocFieldLocation.cc
         toc/TocFieldLocation.h
         toc/TocHandler.cc
@@ -284,6 +290,8 @@ if( HAVE_TOCFDB )
         toc/TocRecord.h
         toc/TocStats.cc
         toc/TocStats.h
+        toc/TocStore.cc
+        toc/TocStore.h
         toc/TocEngine.cc
         toc/TocEngine.h
         )

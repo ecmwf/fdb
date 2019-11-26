@@ -13,7 +13,7 @@
 #include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/toc/TocDBReader.h"
+#include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
 
@@ -21,22 +21,22 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDBReader::TocDBReader(const Key& key, const fdb5::Config& config) :
-    TocDB(key, config) {
+TocCatalogueReader::TocCatalogueReader(const Key& key, const fdb5::Config& config) :
+    TocCatalogue(key, config) {
     loadIndexesAndRemap();
 }
 
-TocDBReader::TocDBReader(const eckit::PathName& directory, const fdb5::Config& config) :
-    TocDB(directory, config) {
+TocCatalogueReader::TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
+    TocCatalogue(uri.path(), config) {
     loadIndexesAndRemap();
 }
 
 
-TocDBReader::~TocDBReader() {
-    eckit::Log::debug<LibFdb5>() << "Closing DB " << *this << std::endl;
+TocCatalogueReader::~TocCatalogueReader() {
+    eckit::Log::debug<LibFdb5>() << "Closing DB " << *dynamic_cast<TocCatalogue*>(this) << std::endl;
 }
 
-void TocDBReader::loadIndexesAndRemap() {
+void TocCatalogueReader::loadIndexesAndRemap() {
     std::vector<Key> remapKeys;
     std::vector<Index> indexes = loadIndexes(false, nullptr, nullptr, &remapKeys);
 
@@ -47,7 +47,7 @@ void TocDBReader::loadIndexesAndRemap() {
     }
 }
 
-bool TocDBReader::selectIndex(const Key &key) {
+bool TocCatalogueReader::selectIndex(const Key &key) {
 
     if(currentIndexKey_ == key) {
         return true;
@@ -68,44 +68,63 @@ bool TocDBReader::selectIndex(const Key &key) {
         }
     }
 
-    eckit::Log::debug<LibFdb5>() << "TocDBReader::selectIndex " << key << ", found "
+    eckit::Log::debug<LibFdb5>() << "TocCatalogueReader::selectIndex " << key << ", found "
                                 << matching_.size() << " matche(s)" << std::endl;
 
     return (matching_.size() != 0);
 }
 
-void TocDBReader::deselectIndex() {
+void TocCatalogueReader::deselectIndex() {
     NOTIMP; //< should not be called
 }
 
-bool TocDBReader::open() {
+bool TocCatalogueReader::open() {
 
     // This used to test if indexes_.empty(), but it is perfectly valid to have a DB with no indexes
     // if it has been created with fdb-root --create.
     // See MARS-
 
-    if (!exists()) {
+    if (!TocCatalogue::exists()) {
         return false;
     }
 
-    loadSchema();
+    TocCatalogue::loadSchema();
     return true;
 }
 
-void TocDBReader::axis(const std::string &keyword, eckit::StringSet &s) const {
+void TocCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         const eckit::DenseSet<std::string>& a = m->first.axes().values(keyword);
         s.insert(a.begin(), a.end());
     }
 }
 
-void TocDBReader::close() {
+void TocCatalogueReader::close() {
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         m->first.close();
     }
 }
 
-eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
+bool TocCatalogueReader::retrieve(const Key& key, Field& field, Key& remapKey) const {
+    eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
+
+    for (auto m = matching_.begin(); m != matching_.end(); ++m) {
+        const Index& idx(m->first);
+        remapKey = m->second;
+
+        if (idx.mayContain(key)) {
+            const_cast<Index&>(idx).open();
+            if (idx.get(key, field))
+                return true;
+        }
+    }
+    return false;
+}
+
+
+/*
+eckit::DataHandle *TocCatalogueReader::retrieve(const Key &key) const {
 
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
     eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
@@ -128,14 +147,14 @@ eckit::DataHandle *TocDBReader::retrieve(const Key &key) const {
     }
 
     return 0;
+}*/
+
+
+void TocCatalogueReader::print(std::ostream &out) const {
+    out << "TocCatalogueReader(" << directory() << ")";
 }
 
-
-void TocDBReader::print(std::ostream &out) const {
-    out << "TocDBReader(" << directory() << ")";
-}
-
-std::vector<Index> TocDBReader::indexes(bool sorted) const {
+std::vector<Index> TocCatalogueReader::indexes(bool sorted) const {
 
     std::vector<Index> returnedIndexes;
     returnedIndexes.reserve(indexes_.size());
@@ -151,7 +170,7 @@ std::vector<Index> TocDBReader::indexes(bool sorted) const {
     return returnedIndexes;
 }
 
-static DBBuilder<TocDBReader> builder("toc.reader", true, false);
+static CatalogueBuilder<TocCatalogueReader> builder("toc.reader");
 
 //----------------------------------------------------------------------------------------------------------------------
 

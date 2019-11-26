@@ -24,6 +24,7 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/io/LustreFileHandle.h"
+#include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocRecord.h"
 
 
@@ -38,7 +39,7 @@ class Index;
 
 //-----------------------------------------------------------------------------
 
-class TocHandler : private eckit::NonCopyable {
+class TocHandler : public TocCommon, private eckit::NonCopyable {
 
 public: // typedefs
 
@@ -46,6 +47,8 @@ public: // typedefs
     typedef std::vector< eckit::PathName > TocPaths;
 
 public: // methods
+
+    TocHandler( const Key &key, const Config& config=Config());
 
     TocHandler( const eckit::PathName &dir, const Config& config=Config());
 
@@ -92,11 +95,14 @@ public: // methods
     void enumerateMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
                          std::set<eckit::PathName>& data) const;
 
+    std::vector<eckit::PathName> subTocPaths() const;
+    // Utilities for handling locks
+    std::vector<eckit::PathName> lockfilePaths() const;
+
 protected: // methods
 
     size_t tocFilesSize() const;
 
-    std::vector<eckit::PathName> subTocPaths() const;
 
     // Access and control of locks
 
@@ -107,9 +113,6 @@ protected: // methods
     bool listLocked() const;
     bool wipeLocked() const;
 
-    // Utilities for handling locks
-
-    std::vector<eckit::PathName> lockfilePaths() const;
 
 private: // methods
 
@@ -119,7 +122,7 @@ private: // methods
 
 protected: // members
 
-    const eckit::PathName directory_;
+    //const eckit::PathName directory_;
     mutable long dbUID_;
     mutable Key parentKey_; // Contains the key of the first TOC explored in subtoc chain
     long userUID_;
@@ -134,7 +137,7 @@ protected: // methods
 
     static LustreStripe stripeDataLustreSettings();
 
-    // Handle location and remapping information if using a mounted TocDB
+    // Handle location and remapping information if using a mounted TocCatalogue
     const eckit::PathName& currentDirectory() const;
     const eckit::PathName& currentTocPath() const;
     const Key& currentRemapKey() const;
@@ -184,13 +187,13 @@ private: // methods
 private: // members
 
     eckit::PathName tocPath_;
-    eckit::PathName schemaPath_;
+    //eckit::PathName schemaPath_;
     Config dbConfig_;
 
     bool useSubToc_;
     bool isSubToc_;
 
-    // If we have mounted another TocDB internally, what is the current
+    // If we have mounted another TocCatalogue internally, what is the current
     // remapping key?
     Key remapKey_;
 
@@ -207,7 +210,7 @@ private: // members
 
     mutable bool enumeratedMaskedEntries_;
     mutable bool writeMode_;
-    mutable bool dirty_;
+    //mutable bool dirty_;
 };
 
 

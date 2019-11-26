@@ -19,7 +19,7 @@
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/LibFdb5.h"
-#include "fdb5/toc/TocDBWriter.h"
+#include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocIndex.h"
 
@@ -30,29 +30,27 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-TocDBWriter::TocDBWriter(const Key &key, const fdb5::Config& config) :
-    TocDB(key, config),
-    umask_(config.umask()),
-    dirty_(false) {
+TocCatalogueWriter::TocCatalogueWriter(const Key &key, const fdb5::Config& config) :
+    TocCatalogue(key, config),
+    umask_(config.umask()) {
     writeInitRecord(key);
-    loadSchema();
-    checkUID();
+    TocCatalogue::loadSchema();
+    TocCatalogue::checkUID();
 }
 
-TocDBWriter::TocDBWriter(const eckit::PathName &directory, const fdb5::Config& config) :
-    TocDB(directory, config),
-    umask_(config.umask()),
-    dirty_(false) {
-    writeInitRecord(key());
-    loadSchema();
-    checkUID();
+TocCatalogueWriter::TocCatalogueWriter(const eckit::URI &uri, const fdb5::Config& config) :
+    TocCatalogue(uri.path(), config),
+    umask_(config.umask()) {
+    writeInitRecord(TocCatalogue::key());
+    TocCatalogue::loadSchema();
+    TocCatalogue::checkUID();
 }
 
-TocDBWriter::~TocDBWriter() {
+TocCatalogueWriter::~TocCatalogueWriter() {
     close();
 }
 
-bool TocDBWriter::selectIndex(const Key& key) {
+bool TocCatalogueWriter::selectIndex(const Key& key) {
     currentIndexKey_ = key;
 
     if (indexes_.find(key) == indexes_.end()) {
@@ -96,17 +94,17 @@ bool TocDBWriter::selectIndex(const Key& key) {
     return true;
 }
 
-void TocDBWriter::deselectIndex() {
+void TocCatalogueWriter::deselectIndex() {
     current_ = Index();
     currentFull_ = Index();
     currentIndexKey_ = Key();
 }
 
-bool TocDBWriter::open() {
+bool TocCatalogueWriter::open() {
     return true;
 }
 
-void TocDBWriter::close() {
+void TocCatalogueWriter::close() {
 
     eckit::Log::debug<LibFdb5>() << "Closing path " << directory_ << std::endl;
 
@@ -121,7 +119,7 @@ void TocDBWriter::close() {
     closeIndexes();
 }
 
-void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+void TocCatalogueWriter::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
     dirty_ = true;
 
     if (current_.null()) {
@@ -137,7 +135,7 @@ void TocDBWriter::index(const Key &key, const eckit::PathName &path, eckit::Offs
         currentFull_.put(key, field);
 }
 
-void TocDBWriter::reconsolidateIndexesAndTocs() {
+void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 
     // TODO: This tool needs to be rewritten to reindex properly using the schema.
     //       Currently it results in incomplete indexes if data has been written
@@ -147,7 +145,7 @@ void TocDBWriter::reconsolidateIndexesAndTocs() {
 
     class ConsolidateIndexVisitor : public EntryVisitor {
     public:
-        ConsolidateIndexVisitor(TocDBWriter& writer) :
+        ConsolidateIndexVisitor(TocCatalogueWriter& writer) :
             writer_(writer) {}
         ~ConsolidateIndexVisitor() override {}
     private:
@@ -162,7 +160,7 @@ void TocDBWriter::reconsolidateIndexesAndTocs() {
             EntryVisitor::visitDatum(field, keyFingerprint);
         }
 
-        TocDBWriter& writer_;
+        TocCatalogueWriter& writer_;
     };
 
     // Visit all tocs and indexes
@@ -217,31 +215,43 @@ void TocDBWriter::reconsolidateIndexesAndTocs() {
     appendBlock(buf, combinedSize);
 }
 
-void TocDBWriter::overlayDB(const TocDB& otherDb, const std::set<std::string>& variableKeys, bool unmount) {
+const Index& TocCatalogueWriter::currentIndex() {
 
-    const Key& otherKey(otherDb.key());
+    if (current_.null()) {
+        ASSERT(!currentIndexKey_.empty());
+        selectIndex(currentIndexKey_);
+    }
 
-    if (otherKey.size() != dbKey_.size()) {
+    return current_;
+}
+
+
+void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std::string>& variableKeys, bool unmount) {
+
+    const TocCatalogue& otherCatalogue = dynamic_cast<const TocCatalogue&>(otherCat);
+    const Key& otherKey(otherCatalogue.key());
+
+    if (otherKey.size() != TocCatalogue::dbKey_.size()) {
         std::stringstream ss;
-        ss << "Keys insufficiently matching for mount: " << dbKey_ << " : " << otherKey;
+        ss << "Keys insufficiently matching for mount: " << TocCatalogue::dbKey_ << " : " << otherKey;
         throw UserError(ss.str(), Here());
     }
 
     // Build the difference map from the old to the new key
 
-    for (const auto& kv : dbKey_) {
+    for (const auto& kv : TocCatalogue::dbKey_) {
 
         auto it = otherKey.find(kv.first);
         if (it == otherKey.end()) {
             std::stringstream ss;
-            ss << "Keys insufficiently matching for mount: " << dbKey_ << " : " << otherKey;
+            ss << "Keys insufficiently matching for mount: " << TocCatalogue::dbKey_ << " : " << otherKey;
             throw UserError(ss.str(), Here());
         }
 
         if (kv.second != it->second) {
             if (variableKeys.find(kv.first) == variableKeys.end()) {
                 std::stringstream ss;
-                ss << "Key " << kv.first << " not allowed to differ between DBs: " << dbKey_ << " : " << otherKey;
+                ss << "Key " << kv.first << " not allowed to differ between DBs: " << TocCatalogue::dbKey_ << " : " << otherKey;
                 throw UserError(ss.str(), Here());
             }
         }
@@ -255,24 +265,40 @@ void TocDBWriter::overlayDB(const TocDB& otherDb, const std::set<std::string>& v
         std::set<std::string> subtocs;
         loadIndexes(false, &subtocs);
 
-        eckit::PathName stPath(otherDb.tocPath());
+        eckit::PathName stPath(otherCatalogue.tocPath());
         if (subtocs.find(stPath) == subtocs.end()) {
             std::stringstream ss;
-            ss << "Cannot unmount DB: " << otherDb << ". Not currently mounted";
+            ss << "Cannot unmount DB: " << otherCatalogue << ". Not currently mounted";
             throw UserError(ss.str(), Here());
         }
 
-        writeSubTocMaskRecord(otherDb);
+        writeSubTocMaskRecord(otherCatalogue);
     } else {
-        writeSubTocRecord(otherDb);
+        writeSubTocRecord(otherCatalogue);
     }
 }
 
-void TocDBWriter::hideContents() {
+void TocCatalogueWriter::hideContents() {
     writeClearAllRecord();
 }
 
-void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length) {
+void TocCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocation) {
+    dirty_ = true;
+
+    if (current_.null()) {
+        ASSERT(!currentIndexKey_.empty());
+        selectIndex(currentIndexKey_);
+    }
+
+    Field field(*fieldLocation);
+
+    current_.put(key, field);
+
+    if (useSubToc())
+        currentFull_.put(key, field);
+}
+
+/*void TocCatalogueWriter::archive(const Key &key, const void *data, eckit::Length length) {
     dirty_ = true;
 
     if (current_.null()) {
@@ -296,9 +322,9 @@ void TocDBWriter::archive(const Key &key, const void *data, eckit::Length length
 
     if (useSubToc())
         currentFull_.put(key, field);
-}
+}*/
 
-void TocDBWriter::flush() {
+void TocCatalogueWriter::flush() {
     if (!dirty_) {
         return;
     }
@@ -314,7 +340,7 @@ void TocDBWriter::flush() {
 }
 
 
-eckit::DataHandle *TocDBWriter::getCachedHandle( const eckit::PathName &path ) const {
+eckit::DataHandle *TocCatalogueWriter::getCachedHandle( const eckit::PathName &path ) const {
     HandleStore::const_iterator j = handles_.find( path );
     if ( j != handles_.end() )
         return j->second;
@@ -322,7 +348,7 @@ eckit::DataHandle *TocDBWriter::getCachedHandle( const eckit::PathName &path ) c
         return 0;
 }
 
-void TocDBWriter::closeDataHandles() {
+void TocCatalogueWriter::closeDataHandles() {
     for ( HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j ) {
         eckit::DataHandle *dh = j->second;
         dh->close();
@@ -332,7 +358,7 @@ void TocDBWriter::closeDataHandles() {
 }
 
 
-eckit::DataHandle *TocDBWriter::createFileHandle(const eckit::PathName &path) {
+eckit::DataHandle *TocCatalogueWriter::createFileHandle(const eckit::PathName &path) {
 
     static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
 
@@ -352,7 +378,7 @@ eckit::DataHandle *TocDBWriter::createFileHandle(const eckit::PathName &path) {
     return new FDBFileHandle(path, sizeBuffer);
 }
 
-eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
+eckit::DataHandle *TocCatalogueWriter::createAsyncHandle(const eckit::PathName &path) {
 
     static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
     static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
@@ -370,7 +396,7 @@ eckit::DataHandle *TocDBWriter::createAsyncHandle(const eckit::PathName &path) {
     return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
 }
 
-eckit::DataHandle *TocDBWriter::createDataHandle(const eckit::PathName &path) {
+eckit::DataHandle *TocCatalogueWriter::createDataHandle(const eckit::PathName &path) {
 
     static bool fdbWriteToNull = eckit::Resource<bool>("fdbWriteToNull;$FDB_WRITE_TO_NULL", false);
     if(fdbWriteToNull)
@@ -383,7 +409,7 @@ eckit::DataHandle *TocDBWriter::createDataHandle(const eckit::PathName &path) {
     return createFileHandle(path);
 }
 
-eckit::DataHandle& TocDBWriter::getDataHandle( const eckit::PathName &path ) {
+eckit::DataHandle& TocCatalogueWriter::getDataHandle( const eckit::PathName &path ) {
     eckit::DataHandle *dh = getCachedHandle(path);
     if ( !dh ) {
         dh = createDataHandle(path);
@@ -394,21 +420,21 @@ eckit::DataHandle& TocDBWriter::getDataHandle( const eckit::PathName &path ) {
     return *dh;
 }
 
-eckit::PathName TocDBWriter::generateIndexPath(const Key &key) const {
+eckit::PathName TocCatalogueWriter::generateIndexPath(const Key &key) const {
     eckit::PathName tocPath ( directory_ );
     tocPath /= key.valuesToString();
     tocPath = eckit::PathName::unique(tocPath) + ".index";
     return tocPath;
 }
 
-eckit::PathName TocDBWriter::generateDataPath(const Key &key) const {
+eckit::PathName TocCatalogueWriter::generateDataPath(const Key &key) const {
     eckit::PathName dpath ( directory_ );
     dpath /=  key.valuesToString();
     dpath = eckit::PathName::unique(dpath) + ".data";
     return dpath;
 }
 
-eckit::PathName TocDBWriter::getDataPath(const Key &key) {
+eckit::PathName TocCatalogueWriter::getDataPath(const Key &key) {
     PathStore::const_iterator j = dataPaths_.find(key);
     if ( j != dataPaths_.end() )
         return j->second;
@@ -425,7 +451,7 @@ eckit::PathName TocDBWriter::getDataPath(const Key &key) {
 // a flush (i.e. every step). The indexes stored in fullIndexes then contain _all_
 // the data that is indexes thorughout the lifetime of the DBWriter, which can be
 // compacted later for read performance.
-void TocDBWriter::flushIndexes() {
+void TocCatalogueWriter::flushIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
         Index& idx = j->second;
 
@@ -438,7 +464,7 @@ void TocDBWriter::flushIndexes() {
 }
 
 
-void TocDBWriter::closeIndexes() {
+void TocCatalogueWriter::closeIndexes() {
     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
         Index& idx = j->second;
         idx.close();
@@ -453,7 +479,7 @@ void TocDBWriter::closeIndexes() {
     fullIndexes_.clear(); // all indexes instances destroyed
 }
 
-void TocDBWriter::flushDataHandles() {
+void TocCatalogueWriter::flushDataHandles() {
 
     for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
         eckit::DataHandle *dh = j->second;
@@ -461,7 +487,7 @@ void TocDBWriter::flushDataHandles() {
     }
 }
 
-void TocDBWriter::compactSubTocIndexes() {
+void TocCatalogueWriter::compactSubTocIndexes() {
 
     // In this routine, we write out indexes that correspond to all of the data in the
     // subtoc, written by this process. Then we append a masking entry.
@@ -498,11 +524,11 @@ void TocDBWriter::compactSubTocIndexes() {
 }
 
 
-void TocDBWriter::print(std::ostream &out) const {
-    out << "TocDBWriter(" << directory() << ")";
+void TocCatalogueWriter::print(std::ostream &out) const {
+    out << "TocCatalogueWriter(" << directory() << ")";
 }
 
-static DBBuilder<TocDBWriter> builder("toc.writer", false, true);
+static CatalogueBuilder<TocCatalogueWriter> builder("toc.writer");
 
 //----------------------------------------------------------------------------------------------------------------------
 

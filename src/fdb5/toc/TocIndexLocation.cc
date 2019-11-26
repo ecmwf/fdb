@@ -49,6 +49,11 @@ PathName TocIndexLocation::url() const
     return path_;
 }
 
+URI TocIndexLocation::uri() const
+{
+    return URI("toc", path_);
+}
+
 IndexLocation* TocIndexLocation::clone() const {
     return new TocIndexLocation(path_, offset_);
 }

@@ -135,14 +135,18 @@ std::string TocEngine::dbType() const {
     return TocEngine::typeName();
 }
 
-eckit::PathName TocEngine::location(const Key& key, const Config& config) const
+eckit::URI TocEngine::location(const Key& key, const Config& config) const
 {
-    return RootManager(config).directory(key);
+    return URI("toc", RootManager(config).directory(key));
 }
 
-bool TocEngine::canHandle(const eckit::PathName& path) const
+bool TocEngine::canHandle(const eckit::URI& uri) const
 {
-    eckit::PathName toc = path / "toc";
+    if (uri.scheme() != "toc")
+        return false;
+
+    eckit::PathName path = uri.path();
+    eckit::PathName toc =  path / "toc";
     return path.isDir() && toc.exists();
 }
 
@@ -206,7 +210,7 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
     return result;
 }
 
-std::vector<eckit::PathName> TocEngine::databases(const Key& key,
+std::vector<eckit::URI> TocEngine::databases(const Key& key,
                                                   const std::vector<eckit::PathName>& roots,
                                                   const Config& config) {
 
@@ -218,13 +222,13 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key,
 
     std::set<eckit::PathName> databasesMatchRegex(databases(keys, roots, config));
 
-    std::vector<eckit::PathName> result;
+    std::vector<eckit::URI> result;
     for (const auto& path : databasesMatchRegex) {
         try {
             TocHandler toc(path);
             if (toc.databaseKey().match(key)) {
                 Log::debug<LibFdb5>() << " found match with " << path << std::endl;
-                result.push_back(path);
+                result.push_back(eckit::URI("toc", path));
             }
         } catch (eckit::Exception& e) {
             eckit::Log::error() <<  "Error loading FDB database from " << path << std::endl;
@@ -235,7 +239,7 @@ std::vector<eckit::PathName> TocEngine::databases(const Key& key,
     return result;
 }
 
-std::vector<eckit::PathName> TocEngine::databases(const metkit::MarsRequest& request,
+std::vector<eckit::URI> TocEngine::databases(const metkit::MarsRequest& request,
                                                   const std::vector<eckit::PathName>& roots,
                                                   const Config& config) {
 
@@ -248,13 +252,13 @@ std::vector<eckit::PathName> TocEngine::databases(const metkit::MarsRequest& req
 
     std::set<eckit::PathName> databasesMatchRegex(databases(keys, roots, config));
 
-    std::vector<eckit::PathName> result;
+    std::vector<eckit::URI> result;
     for (const auto& path : databasesMatchRegex) {
         try {
             TocHandler toc(path);
             if (toc.databaseKey().partialMatch(request)) {
                 Log::debug<LibFdb5>() << " found match with " << path << std::endl;
-                result.push_back(path);
+                result.push_back(eckit::URI("toc", path));
             }
         } catch (eckit::Exception& e) {
             eckit::Log::error() <<  "Error loading FDB database from " << path << std::endl;
@@ -265,22 +269,22 @@ std::vector<eckit::PathName> TocEngine::databases(const metkit::MarsRequest& req
     return result;
 }
 
-std::vector<eckit::PathName> TocEngine::allLocations(const Key& key, const Config& config) const
+std::vector<eckit::URI> TocEngine::allLocations(const Key& key, const Config& config) const
 {
     return databases(key, RootManager(config).allRoots(key), config);
 }
 
-std::vector<eckit::PathName> TocEngine::visitableLocations(const Key& key, const Config& config) const
+std::vector<eckit::URI> TocEngine::visitableLocations(const Key& key, const Config& config) const
 {
     return databases(key, RootManager(config).visitableRoots(key), config);
 }
 
-std::vector<PathName> TocEngine::visitableLocations(const metkit::MarsRequest& request, const Config& config) const
+std::vector<URI> TocEngine::visitableLocations(const metkit::MarsRequest& request, const Config& config) const
 {
     return databases(request, RootManager(config).visitableRoots(request), config);
 }
 
-std::vector<eckit::PathName> TocEngine::writableLocations(const Key& key, const Config& config) const
+std::vector<eckit::URI> TocEngine::writableLocations(const Key& key, const Config& config) const
 {
     return databases(key, RootManager(config).writableRoots(key), config);
 }

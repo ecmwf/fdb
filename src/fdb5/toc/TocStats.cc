@@ -13,7 +13,6 @@
 #include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
 
-#include "fdb5/toc/TocDB.h"
 #include "fdb5/toc/TocStats.h"
 
 using namespace eckit;
@@ -209,18 +208,18 @@ void TocDataStats::report(std::ostream &out, const char *indent) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocStatsReportVisitor::TocStatsReportVisitor(const TocDB& db, bool includeReferenced) :
-    directory_(static_cast<const DB&>(db).basePath()),
+TocStatsReportVisitor::TocStatsReportVisitor(const TocCatalogue& catalogue, bool includeReferenced) :
+    directory_(catalogue.basePath()),
     includeReferencedNonOwnedData_(includeReferenced) {
 
-    currentDatabase_ = &db;
-    dbStats_ = db.stats();
+    currentCatalogue_ = &catalogue;
+    dbStats_ = catalogue.stats();
 }
 
 TocStatsReportVisitor::~TocStatsReportVisitor() {}
 
-bool TocStatsReportVisitor::visitDatabase(const DB &db) {
-    ASSERT(&db == currentDatabase_);
+bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+    ASSERT(&catalogue == currentCatalogue_);
     return true;
 }
 
@@ -233,8 +232,8 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
 
     // Exclude non-owned data if relevant
     if (!includeReferencedNonOwnedData_) {
-        if (!currentIndex_->location().url().dirName().sameAs(currentDatabase_->basePath())) return;
-        if (!field.location().url().dirName().sameAs(currentDatabase_->basePath())) return;
+        if (!currentIndex_->location().url().dirName().sameAs(((TocCatalogue*) currentCatalogue_)->basePath())) return;
+        if (!field.location().path().dirName().sameAs(((TocCatalogue*) currentCatalogue_)->basePath())) return;
     }
 
     // If this index is not yet in the map, then create an entry
@@ -252,7 +251,7 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     stats.addFieldsCount(1);
     stats.addFieldsSize(len);
 
-    const eckit::PathName& dataPath  = field.location().url();
+    const eckit::PathName& dataPath  = field.location().path();
     const eckit::PathName& indexPath = currentIndex_->location().url();
 
     if (dataPath != lastDataPath_) {
@@ -299,7 +298,7 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     dbStats_ += DbStats(dbStats); // append to the global dbStats
 }
 
-void TocStatsReportVisitor::databaseComplete(const DB &db) {}
+void TocStatsReportVisitor::catalogueComplete(const Catalogue& catalogue) {}
 
 
 DbStats TocStatsReportVisitor::dbStatistics() const {

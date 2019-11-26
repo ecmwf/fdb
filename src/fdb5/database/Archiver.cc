@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+
 #include "fdb5/database/Archiver.h"
 
 #include "eckit/config/Resource.h"
@@ -25,7 +26,7 @@ namespace fdb5 {
 
 Archiver::Archiver(const Config& dbConfig) :
     dbConfig_(dbConfig),
-    current_(0) {
+    current_(nullptr) {
 }
 
 Archiver::~Archiver() {
@@ -42,11 +43,11 @@ void Archiver::archive(const Key &key, const void* data, size_t len) {
 
 void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
 
-    visitor.rule(0);
+    visitor.rule(nullptr);
 
     dbConfig_.schema().expand(key, visitor);
 
-    if (visitor.rule() == 0) { // Make sure we did find a rule that matched
+    if (visitor.rule() == nullptr) { // Make sure we did find a rule that matched
         std::ostringstream oss;
         oss << "FDB: Could not find a rule to archive " << key;
         throw eckit::SeriousBug(oss.str());
@@ -55,7 +56,7 @@ void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
 
 void Archiver::flush() {
     for (store_t::iterator i = databases_.begin(); i != databases_.end(); ++i) {
-        i->second->flush();
+        i->second.second->flush();
     }
 }
 
@@ -65,8 +66,8 @@ DB& Archiver::database(const Key &key) {
     store_t::iterator i = databases_.find(key);
 
     if (i != databases_.end() ) {
-        DB& db = *(i->second.get());
-        db.touch();
+        DB& db = *(i->second.second);
+        i->second.first = ::time(0);
         return db;
     }
 
@@ -77,20 +78,20 @@ DB& Archiver::database(const Key &key) {
         time_t oldest = ::time(0) + 24 * 60 * 60;
         Key oldK;
         for (store_t::iterator i = databases_.begin(); i != databases_.end(); ++i) {
-            DB &db = *(i->second.get());
-            if (db.lastAccess() <= oldest) {
+            if (i->second.first <= oldest) {
                 found = true;
                 oldK = i->first;
-                oldest = db.lastAccess();
+                oldest = i->second.first;
             }
         }
         if (found) {
-            eckit::Log::info() << "Closing database " << *databases_[oldK] << std::endl;
+            eckit::Log::info() << "Closing database " << *databases_[oldK].second << std::endl;
             databases_.erase(oldK);
         }
     }
 
-    std::shared_ptr<DB> db ( DBFactory::buildWriter(key, dbConfig_) );
+    std::unique_ptr<DB> db = DB::buildWriter(key, dbConfig_);
+
     ASSERT(db);
 
     // If this database is locked for writing then this is an error
@@ -100,8 +101,9 @@ DB& Archiver::database(const Key &key) {
         throw eckit::UserError(ss.str(), Here());
     }
 
-    databases_[key] = db;
-    return *db;
+    DB& out = *db;
+    databases_[key] = std::make_pair(::time(0), std::move(db));
+    return out;
 }
 
 void Archiver::print(std::ostream &out) const {

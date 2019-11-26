@@ -35,12 +35,12 @@ public:
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
 
-    virtual eckit::DataHandle *dataHandle() const;
-    virtual eckit::DataHandle *dataHandle(const Key& remapKey) const;
+    eckit::DataHandle *dataHandle() const override;
+    eckit::DataHandle *dataHandle(const Key& remapKey) const override;
 
-    virtual eckit::PathName url() const;
-    virtual std::shared_ptr<FieldLocation> make_shared() const;
-    virtual void visit(FieldLocationVisitor& visitor) const;
+    //virtual eckit::PathName url() const;
+    std::shared_ptr<FieldLocation> make_shared() const override;
+    void visit(FieldLocationVisitor& visitor) const override;
 
 public: // For Streamable
 
@@ -48,22 +48,19 @@ public: // For Streamable
 
 protected: // For Streamable
 
-    virtual void encode(eckit::Stream&) const;
-    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
+    void encode(eckit::Stream&) const override;
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static eckit::ClassSpec                    classSpec_;
     static eckit::Reanimator<RemoteFieldLocation> reanimator_;
 
 private: // methods
 
-    virtual void dump(std::ostream &out) const;
+    void dump(std::ostream &out) const override;
 
-    virtual void print(std::ostream &out) const;
+    void print(std::ostream &out) const override;
 
 private: // members
-
-    std::string hostname_;
-    int port_;
 
     std::shared_ptr<FieldLocation> internal_;
 };

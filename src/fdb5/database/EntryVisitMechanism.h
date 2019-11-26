@@ -20,7 +20,8 @@
 
 namespace fdb5 {
 
-class DB;
+class Catalogue;
+class Store;
 class FDBToolRequest;
 class Field;
 class Index;
@@ -39,9 +40,9 @@ public:  // methods
     virtual bool visitIndexes() { return true; }
     virtual bool visitEntries() { return true; }
 
-    virtual bool visitDatabase(const DB& db);    // return true if DB should be explored
+    virtual bool visitDatabase(const Catalogue& catalogue, const Store& store);    // return true if Catalogue should be explored
     virtual bool visitIndex(const Index& index); // return true if index should be explored
-    virtual void databaseComplete(const DB& db);
+    virtual void catalogueComplete(const Catalogue& catalogue);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
 
 private: // methods
@@ -51,7 +52,8 @@ private: // methods
 protected:  // members
 
     // n.b. non-owning
-    const DB* currentDatabase_;
+    const Catalogue* currentCatalogue_;
+    const Store* currentStore_;
     const Index* currentIndex_;
 };
 

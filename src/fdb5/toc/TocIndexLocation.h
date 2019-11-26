@@ -17,6 +17,7 @@
 #include <sys/types.h>
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
 
 #include "fdb5/database/IndexLocation.h"
 
@@ -38,6 +39,7 @@ public: // methods
     const eckit::PathName& path() const;
 
     eckit::PathName url() const override;
+    eckit::URI uri() const override;
 
     IndexLocation* clone() const override;
 

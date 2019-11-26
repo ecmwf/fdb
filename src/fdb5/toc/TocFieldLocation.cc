@@ -9,8 +9,9 @@
  */
 
 #include "fdb5/toc/TocFieldLocation.h"
-#include "fdb5/io/SingleGribMungePartFileHandle.h"
+#include "TocStore.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/io/SingleGribMungePartFileHandle.h"
 
 namespace fdb5 {
 
@@ -19,31 +20,25 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocFieldLocation::TocFieldLocation() {
-}
+//TocFieldLocation::TocFieldLocation() {}
 
-TocFieldLocation::TocFieldLocation(const eckit::PathName &path, eckit::Offset offset, eckit::Length length ) :
-    FieldLocation(length),
-    path_(path),
-    offset_(offset) {
-}
+TocFieldLocation::TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length ) :
+        FieldLocation(eckit::URI("file", path), offset, length) {}
+
+TocFieldLocation::TocFieldLocation(const eckit::URI &uri) :
+        FieldLocation(uri) {}
+
+TocFieldLocation::TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length ) :
+        FieldLocation(uri, offset, length) {}
 
 TocFieldLocation::TocFieldLocation(const TocFieldLocation& rhs) :
-    FieldLocation(rhs.length_),
-    path_(rhs.path_),
-    offset_(rhs.offset_) {
-}
+    FieldLocation(rhs.uri_) {}
 
 TocFieldLocation::TocFieldLocation(const FileStore &store, const FieldRef &ref) :
-    FieldLocation(ref.length()),
-    path_(store.get(ref.pathId())),
-    offset_(ref.offset()) {}
+    FieldLocation(store.get(ref.pathId()), ref.offset(), ref.length()) {}
 
 TocFieldLocation::TocFieldLocation(eckit::Stream& s) :
-    FieldLocation(s) {
-    s >> path_;
-    s >> offset_;
-}
+    FieldLocation(s) {}
 
 
 std::shared_ptr<FieldLocation> TocFieldLocation::make_shared() const {
@@ -51,37 +46,26 @@ std::shared_ptr<FieldLocation> TocFieldLocation::make_shared() const {
 }
 
 eckit::DataHandle *TocFieldLocation::dataHandle() const {
-    return path_.partHandle(offset_, length_);
+    return path().partHandle(offset(), length());
 }
 
 eckit::DataHandle *TocFieldLocation::dataHandle(const Key& remapKey) const {
-    return new SingleGribMungePartFileHandle(path_, offset_, length_, remapKey);
-}
-
-eckit::PathName TocFieldLocation::url() const
-{
-    return path_;
+    return new SingleGribMungePartFileHandle(path(), offset(), length(), remapKey);
 }
 
 void TocFieldLocation::print(std::ostream &out) const {
-    out << "(" << path_ << "," << offset_ << "," << length_ << ")";
+    out << "TocFieldLocation[uri=" << uri_ << "]";
 }
 
 void TocFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
 }
 
-void TocFieldLocation::encode(eckit::Stream& s) const {
-    FieldLocation::encode(s);
-    s << path_;
-    s << offset_;
+eckit::URI TocFieldLocation::uri(const eckit::PathName &path) {
+    return eckit::URI("file", path);
 }
 
-void TocFieldLocation::dump(std::ostream& out) const
-{
-    out << "  path: " << path_ << std::endl;
-    out << "  offset: " << offset_ << std::endl;
-}
+static FieldLocationBuilder<TocFieldLocation> builder("file");
 
 //----------------------------------------------------------------------------------------------------------------------
 

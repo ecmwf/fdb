@@ -44,7 +44,8 @@ bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     }
 
     eckit::Log::debug<LibFdb5>() << "selectDatabase " << key << std::endl;
-    db_.reset(DBFactory::buildReader(key));
+//    db_.reset(DBFactory::buildReader(key));
+    db_ = DB::buildReader(key);
 
     // If this database is locked for retrieval then it "does not exist"
     if (db_->retrieveLocked()) {

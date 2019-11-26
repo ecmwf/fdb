@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <iostream>
+
 #include "eckit/log/BigNum.h"
 
 #include "fdb5/LibFdb5.h"
@@ -70,6 +72,7 @@ TocIndex::~TocIndex() {
 }
 
 void TocIndex::encode(eckit::Stream &s) const {
+
     files_.encode(s);
     axes_.encode(s);
     s << key_;
@@ -189,8 +192,8 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-const std::vector<eckit::PathName> TocIndex::dataPaths() const {
-    return files_.paths();
+const std::vector<eckit::URI> TocIndex::dataUris() const {
+    return files_.uris();
 }
 
 bool TocIndex::dirty() const {

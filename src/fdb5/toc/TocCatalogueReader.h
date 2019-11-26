@@ -16,7 +16,7 @@
 #ifndef fdb5_TocDBReader_H
 #define fdb5_TocDBReader_H
 
-#include "fdb5/toc/TocDB.h"
+#include "fdb5/toc/TocCatalogue.h"
 
 namespace fdb5 {
 
@@ -24,35 +24,35 @@ namespace fdb5 {
 
 /// DB that implements the FDB on POSIX filesystems
 
-class TocDBReader : public TocDB {
+class TocCatalogueReader : public TocCatalogue, public CatalogueReader {
 
 public: // methods
 
-    TocDBReader(const Key& key, const fdb5::Config& config);
-    TocDBReader(const eckit::PathName& directory, const fdb5::Config& config);
+    TocCatalogueReader(const Key& key, const fdb5::Config& config);
+    TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
 
-    virtual ~TocDBReader();
+    ~TocCatalogueReader() override;
 
-    virtual std::vector<Index> indexes(bool sorted) const;
+    std::vector<Index> indexes(bool sorted) const override;
+    DbStats stats() const override { return TocHandler::stats(); }
 
 private: // methods
 
     void loadIndexesAndRemap();
-    virtual bool selectIndex(const Key &key);
-    virtual void deselectIndex();
+    bool selectIndex(const Key &key) override;
+    void deselectIndex() override;
 
-    virtual bool open();
-    virtual void close();
+    bool open() override;
+    void close() override;
 
-    virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
+    void axis(const std::string &keyword, eckit::StringSet &s) const override;
 
-    virtual eckit::DataHandle *retrieve(const Key &key) const;
+    bool retrieve(const Key& key, Field& field, Key& remapKey) const override;
 
-    virtual void print( std::ostream &out ) const;
+    void print( std::ostream &out ) const override;
 
 private: // members
 
-    Key currentIndexKey_;
 
     // Indexes matching current key. If there is a key remapping for a mounted
     // SubToc, then this is stored alongside

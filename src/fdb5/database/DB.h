@@ -16,34 +16,20 @@
 #ifndef fdb5_DB_H
 #define fdb5_DB_H
 
-#include <iosfwd>
-
-#include "eckit/memory/Owned.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/Offset.h"
 #include "eckit/types/Types.h"
 
-#include "fdb5/database/Key.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/Store.h"
 
 namespace eckit {
 class DataHandle;
-class PathName;
 }
-
-class MarsTask;
 
 namespace fdb5 {
 
-class Key;
-class Index;
-class EntryVisitor;
-class StatsReportVisitor;
-class PurgeVisitor;
-class WipeVisitor;
 class Schema;
-
-class DBVisitor;
 class DbStats;
 
 enum class ControlAction : uint16_t;
@@ -51,147 +37,67 @@ class ControlIdentifiers;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DB : public eckit::OwnedLock {
+class DB final : public eckit::OwnedLock {
 
 public: // methods
 
-    DB(const Key &key);
+    static std::unique_ptr<DB> buildReader(const Key &key, const fdb5::Config& config = fdb5::Config());
+    static std::unique_ptr<DB> buildWriter(const Key &key, const fdb5::Config& config = fdb5::Config());
+    static std::unique_ptr<DB> buildReader(const eckit::URI& uri, const fdb5::Config& config = fdb5::Config());
+    static std::unique_ptr<DB> buildWriter(const eckit::URI& uri, const fdb5::Config& config = fdb5::Config());
 
-    virtual ~DB();
+    std::string dbType() const;
 
-    const Key& key() const { return dbKey_; }
+    const Key& key() const;
+    const Schema& schema() const;
 
-    virtual void checkUID() const = 0;
+    void axis(const std::string &keyword, eckit::StringSet &s) const;
+    eckit::DataHandle *retrieve(const Key &key) const;
+    void archive(const Key &key, const void *data, eckit::Length length);
 
-    virtual std::string dbType() const = 0;
+    bool open();
+    void flush();
+    void close();
 
-    virtual bool selectIndex(const Key &key) = 0;
-    virtual void deselectIndex() = 0;
+    bool exists() const;
 
-    virtual bool open() = 0;
+    void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const;
 
-    virtual void axis(const std::string &keyword, eckit::StringSet &s) const = 0;
+    bool selectIndex(const Key &key);
+    void deselectIndex();
 
-    virtual eckit::DataHandle *retrieve(const Key &key) const = 0;
+    virtual DbStats stats() const;
 
-    virtual void archive(const Key &key, const void *data, eckit::Length length) = 0;
-
-    virtual void flush() = 0;
-
-    virtual void close() = 0;
-
-    virtual bool exists() const = 0;
-
-    /// If sorted is specified, the entries may be visited in the most efficient order, rather than
-    /// in the logical read order implied by the appends
-    /// (i.e. for Toc, visit indexes in the order they are stored, file by file).
-    virtual void visitEntries(EntryVisitor& visitor, bool sorted=false) = 0;
-
-    virtual void visit(DBVisitor& visitor) = 0;
-
-    virtual void dump(std::ostream& out, bool simple=false) const = 0;
-
-    virtual StatsReportVisitor* statsReportVisitor() const;
-    virtual PurgeVisitor* purgeVisitor() const;
-    virtual WipeVisitor* wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const;
-
-    virtual std::string owner() const = 0;
-
-    virtual const eckit::PathName& basePath() const = 0;
-    virtual std::vector<eckit::PathName> metadataPaths() const = 0;
-
-    virtual const Schema& schema() const = 0;
-
-    virtual DbStats statistics() const = 0;
+    // for ToC tools
+    void hideContents();
+    eckit::URI uri() const;
+    void overlayDB(const DB& otherDB, const std::set<std::string>& variableKeys, bool unmount);
+    void reconsolidateIndexesAndTocs();
 
     // Control access properties of the DB
-
-    virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
-
-    virtual bool retrieveLocked() const = 0;
-    virtual bool archiveLocked() const = 0;
-    virtual bool listLocked() const = 0;
-    virtual bool wipeLocked() const = 0;
-
-    friend std::ostream &operator<<(std::ostream &s, const DB &x);
-
-    time_t lastAccess() const;
-
-    void touch();
-
-    /// @returns all the indexes in this DB
-    virtual std::vector<fdb5::Index> indexes(bool sorted=false) const = 0;
-
-    /// For use by the WipeVisitor
-    virtual void maskIndexEntry(const Index& index) const = 0;
-
-    /// For use by purge/wipe
-
-    virtual void allMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
-                           std::set<eckit::PathName>& data) const {}
+    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
+    // TODO: *Locked to be implemented by a single enquire()
+    virtual bool retrieveLocked() const;
+    virtual bool archiveLocked() const;
+    virtual bool listLocked() const;
+    virtual bool wipeLocked() const;
 
 protected: // methods
 
-    virtual void print( std::ostream &out ) const = 0;
+    friend std::ostream &operator<<(std::ostream &s, const DB &x);
+    void print( std::ostream &out ) const;
 
-protected: // members
+private: // members
 
-    Key dbKey_;
+    DB(const Key &key, const fdb5::Config& config, bool read);
+    DB(const eckit::URI &uri, const fdb5::Config& config, bool read);
 
-    time_t lastAccess_;
+    Store& store() const;
 
+    bool buildByKey_ = false;
+    std::unique_ptr<Catalogue> catalogue_;
+    mutable std::unique_ptr<Store> store_ = nullptr;
 };
-
-//----------------------------------------------------------------------------------------------------------------------
-
-/// A self-registering factory for producing DB instances.
-
-class DBFactory : private eckit::NonCopyable {
-
-    std::string name_;
-    bool read_;
-    bool write_;
-
-    virtual DB *make(const Key &key, const fdb5::Config& config) const = 0 ;
-    virtual DB *make(const eckit::PathName& path, const fdb5::Config& config) const = 0 ;
-
-protected:
-
-    DBFactory(const std::string &, bool read, bool write);
-    virtual ~DBFactory();
-
-public:
-
-    static void list(std::ostream &);
-    static DB* buildWriter(const Key &key, const fdb5::Config& config = fdb5::Config());
-    static DB* buildReader(const Key &key, const fdb5::Config& config = fdb5::Config());
-    static DB* buildReader(const eckit::PathName& path, const fdb5::Config& config = fdb5::Config());
-
-private: // methods
-
-    static const DBFactory &findFactory(const std::string &);
-
-    bool read() const;
-    bool write() const;
-};
-
-/// Templated specialisation of the self-registering factory,
-/// that does the self-registration, and the construction of each object.
-
-template< class T>
-class DBBuilder : public DBFactory {
-
-    virtual DB *make(const Key &key, const fdb5::Config& config) const {
-        return new T(key, config);
-    }
-    virtual DB *make(const eckit::PathName& path, const fdb5::Config& config) const {
-        return new T(path, config);
-    }
-
-public:
-    DBBuilder(const std::string &name, bool read, bool write) : DBFactory(name, read, write) {}
-};
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

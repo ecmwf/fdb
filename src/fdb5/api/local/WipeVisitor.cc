@@ -47,16 +47,16 @@ WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue,
     unsafeWipeAll_(unsafeWipeAll) {}
 
 
-bool WipeVisitor::visitDatabase(const DB& db) {
+bool WipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 
     // If the DB is locked for wiping, then it "doesn't exist"
-    if (db.wipeLocked()) return false;
+    if (catalogue.wipeLocked()) return false;
 
-    EntryVisitor::visitDatabase(db);
+    EntryVisitor::visitDatabase(catalogue, store);
 
     ASSERT(!internalVisitor_);
-    internalVisitor_.reset(db.wipeVisitor(request_, out_, doit_, porcelain_, unsafeWipeAll_));
-    internalVisitor_->visitDatabase(db);
+    internalVisitor_.reset(catalogue.wipeVisitor(request_, out_, doit_, porcelain_, unsafeWipeAll_));
+    internalVisitor_->visitDatabase(catalogue, store);
 
     return true; // Explore contained indexes
 }
@@ -68,9 +68,9 @@ bool WipeVisitor::visitIndex(const Index& index) {
     return false; // Do not explore contained entries
 }
 
-void WipeVisitor::databaseComplete(const DB& db) {
+void WipeVisitor::catalogueComplete(const Catalogue& catalogue) {
     ASSERT(internalVisitor_);
-    internalVisitor_->databaseComplete(db);
+    internalVisitor_->catalogueComplete(catalogue);
 
     // Cleanup
 

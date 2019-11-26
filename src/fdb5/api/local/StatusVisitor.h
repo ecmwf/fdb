@@ -36,7 +36,7 @@ public:
     using QueryVisitor<StatusElement>::QueryVisitor;
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
-    bool visitDatabase(const DB& db) override { queue_.emplace(db); return true; }
+    bool visitDatabase(const Catalogue& catalogue, const Store& store) override { queue_.emplace(catalogue); return true; }
     bool visitIndex(const Index&) override { NOTIMP; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 

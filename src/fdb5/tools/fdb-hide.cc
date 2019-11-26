@@ -18,8 +18,8 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/toc/TocDBWriter.h"
-#include "fdb5/toc/TocDBReader.h"
+#include "fdb5/toc/TocCatalogueWriter.h"
+#include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocEngine.h"
 #include "fdb5/tools/FDBTool.h"
 
@@ -86,14 +86,14 @@ void FdbHide::execute(const option::CmdArgs& args) {
     Key dbkey;
     ASSERT(schema.expandFirstLevel(dbrequest.request(), dbkey));
 
-    std::unique_ptr<DB> db(DBFactory::buildReader(dbkey, config));
+    std::unique_ptr<Catalogue> db = CatalogueFactory::instance().build(dbkey, config, true);
     if (!db->exists()) {
         std::stringstream ss;
         ss << "Database not found: " << dbkey << std::endl;
         throw UserError(ss.str(), Here());
     }
 
-    if (db->dbType() != TocEngine::typeName()) {
+    if (db->type() != TocEngine::typeName()) {
         std::stringstream ss;
         ss << "Only TOC DBs currently supported" << std::endl;
         throw UserError(ss.str(), Here());
@@ -101,8 +101,8 @@ void FdbHide::execute(const option::CmdArgs& args) {
 
     eckit::Log::info() << "Hide contents of DB: " << *db << std::endl;
     if (doit_) {
-        std::unique_ptr<DB> dbWriter(DBFactory::buildWriter(dbkey, config));
-        TocDBWriter* tocDB = dynamic_cast<TocDBWriter*>(dbWriter.get());
+        std::unique_ptr<Catalogue> dbWriter = CatalogueFactory::instance().build(dbkey, config, false);
+        TocCatalogueWriter* tocDB = dynamic_cast<TocCatalogueWriter*>(dbWriter.get());
         tocDB->hideContents();
     } else {
         eckit::Log::info() << "Run with --doit to make changes" << std::endl;

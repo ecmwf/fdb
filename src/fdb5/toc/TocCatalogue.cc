@@ -13,7 +13,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/toc/RootManager.h"
-#include "fdb5/toc/TocDB.h"
+#include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocWipeVisitor.h"
@@ -24,73 +24,81 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocDB::TocDB(const Key& key, const fdb5::Config& config) :
-    DB(key),
+TocCatalogue::TocCatalogue(const Key& key, const fdb5::Config& config) :
+    Catalogue(key, config),
     TocHandler(RootManager(config).directory(key), config) {
 }
 
-TocDB::TocDB(const eckit::PathName& directory, const fdb5::Config& config) :
-    DB(Key()),
+TocCatalogue::TocCatalogue(const eckit::PathName& directory, const fdb5::Config& config) :
+    Catalogue(Key(), config),
     TocHandler(directory, config) {
 
     // Read the real DB key into the DB base object
     dbKey_ = databaseKey();
 }
 
-TocDB::~TocDB() {
+TocCatalogue::~TocCatalogue() {
 }
 
-void TocDB::axis(const std::string&, eckit::StringSet&) const {
+void TocCatalogue::axis(const std::string&, eckit::StringSet&) const {
     Log::error() << "axis() not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
-bool TocDB::open() {
+bool TocCatalogue::open() {
     Log::error() << "Open not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
-bool TocDB::exists() const {
+bool TocCatalogue::exists() const {
     return TocHandler::exists();
 }
 
-void TocDB::archive(const Key&, const void*, Length) {
+/*void TocCatalogue::archive(const Key&, const void*, Length) {
     Log::error() << "Archive not implemented for " << *this << std::endl;
     NOTIMP;
-}
+}*/
 
-void TocDB::flush() {
+void TocCatalogue::flush() {
     Log::error() << "Flush not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
-eckit::DataHandle *TocDB::retrieve(const Key&) const {
+/*eckit::DataHandle *TocCatalogue::retrieve(const Key&) const {
     Log::error() << "Retrieve not implemented for " << *this << std::endl;
     NOTIMP;
-}
+}*/
 
-void TocDB::close() {
+void TocCatalogue::close() {
     Log::error() << "Close not implemented for " << *this << std::endl;
     NOTIMP;
 }
 
-void TocDB::dump(std::ostream &out, bool simple) const {
-    TocHandler::dump(out, simple);
+const std::string TocCatalogue::DUMP_PARAM_WALKSUBTOC = "walk";
+
+void TocCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {
+    bool walkSubToc = false;
+    conf.get(DUMP_PARAM_WALKSUBTOC, walkSubToc);
+
+    TocHandler::dump(out, simple, walkSubToc);
 }
 
-std::string TocDB::owner() const {
+/*std::string TocCatalogue::owner() const {
     return dbOwner();
+}*/
+eckit::URI TocCatalogue::uri() const {
+    return eckit::URI(TocEngine::typeName(), basePath());
 }
 
-const Schema& TocDB::schema() const {
+const Schema& TocCatalogue::schema() const {
     return schema_;
 }
 
-const eckit::PathName& TocDB::basePath() const {
+const eckit::PathName& TocCatalogue::basePath() const {
     return directory_;
 }
 
-std::vector<PathName> TocDB::metadataPaths() const {
+std::vector<PathName> TocCatalogue::metadataPaths() const {
 
     std::vector<PathName> paths(subTocPaths());
 
@@ -103,12 +111,12 @@ std::vector<PathName> TocDB::metadataPaths() const {
     return paths;
 }
 
-void TocDB::visitEntries(EntryVisitor& visitor, bool sorted) {
+void TocCatalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {
 
     std::vector<Index> all = indexes(sorted);
 
     // Allow the visitor to selectively reject this DB.
-    if (visitor.visitDatabase(*this)) {
+    if (visitor.visitDatabase(*this, store)) {
         if (visitor.visitIndexes()) {
             for (const Index& idx : all) {
                 if (visitor.visitEntries()) {
@@ -119,77 +127,77 @@ void TocDB::visitEntries(EntryVisitor& visitor, bool sorted) {
             }
         }
 
-        visitor.databaseComplete(*this);
+        visitor.catalogueComplete(*this);
     }
 
 }
 
-void TocDB::loadSchema() {
-    Timer timer("TocDB::loadSchema()", Log::debug<LibFdb5>());
+void TocCatalogue::loadSchema() {
+    Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
     schema_.load( schemaPath() );
 }
 
-DbStats TocDB::statistics() const
+/*DbStats TocCatalogue::statistics() const
 {
     return TocHandler::stats();
-}
+}*/
 
-StatsReportVisitor* TocDB::statsReportVisitor() const {
+StatsReportVisitor* TocCatalogue::statsReportVisitor() const {
     return new TocStatsReportVisitor(*this);
 }
 
-PurgeVisitor *TocDB::purgeVisitor() const {
+PurgeVisitor *TocCatalogue::purgeVisitor() const {
     return new TocPurgeVisitor(*this);
 }
 
-WipeVisitor* TocDB::wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
+WipeVisitor* TocCatalogue::wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
     return new TocWipeVisitor(*this, request, out, doit, porcelain, unsafeWipeAll);
 }
 
-void TocDB::maskIndexEntry(const Index &index) const {
+void TocCatalogue::maskIndexEntry(const Index &index) const {
     TocHandler handler(basePath());
     handler.writeClearRecord(index);
 }
 
-std::vector<Index> TocDB::indexes(bool sorted) const {
+std::vector<Index> TocCatalogue::indexes(bool sorted) const {
     return loadIndexes(sorted);
 }
 
-void TocDB::allMasked(std::set<std::pair<PathName, Offset>>& metadata,
+void TocCatalogue::allMasked(std::set<std::pair<PathName, Offset>>& metadata,
                       std::set<PathName>& data) const {
     enumerateMasked(metadata, data);
 }
 
-void TocDB::visit(DBVisitor &visitor) {
+/*void TocCatalogue::visit(DBVisitor &visitor) {
     visitor(*this);
-}
+}*/
 
-std::string TocDB::dbType() const
+std::string TocCatalogue::type() const
 {
-    return TocDB::dbTypeName();
+    return TocCatalogue::catalogueTypeName();
 }
 
-void TocDB::checkUID() const {
+void TocCatalogue::checkUID() const {
     TocHandler::checkUID();
 }
 
-void TocDB::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
+void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
     TocHandler::control(action, identifiers);
 }
 
-bool TocDB::retrieveLocked() const {
+bool TocCatalogue::retrieveLocked() const {
     return TocHandler::retrieveLocked();
 }
 
-bool TocDB::archiveLocked() const {
+bool TocCatalogue::archiveLocked() const {
     return TocHandler::archiveLocked();
 }
 
-bool TocDB::listLocked() const {
+bool TocCatalogue::listLocked() const {
     return TocHandler::listLocked();
 }
 
-bool TocDB::wipeLocked() const {
+bool TocCatalogue::wipeLocked() const {
     return TocHandler::wipeLocked();
 }
 

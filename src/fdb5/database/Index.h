@@ -24,8 +24,8 @@
 #include "eckit/types/Types.h"
 #include "eckit/memory/Counted.h"
 
+#include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Field.h"
-#include "fdb5/database/FileStore.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexLocation.h"
@@ -41,7 +41,6 @@ namespace fdb5 {
 class Key;
 class Index;
 class IndexLocationVisitor;
-class EntryVisitor;
 class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -97,7 +96,7 @@ public: // methods
 
     virtual const IndexLocation& location() const = 0;
 
-    virtual const std::vector<eckit::PathName> dataPaths() const = 0;
+    virtual const std::vector<eckit::URI> dataUris() const = 0;
 
     virtual bool dirty() const = 0;
 
@@ -163,7 +162,8 @@ public: // methods
 
     const IndexLocation& location() const { return content_->location(); }
 
-    const std::vector<eckit::PathName> dataPaths() const { return content_->dataPaths(); }
+    const std::vector<eckit::URI> dataUris() const { return content_->dataUris(); }
+    const std::vector<eckit::PathName> dataPaths() const;
 
     bool dirty() const { return content_->dirty(); }
 

@@ -21,18 +21,18 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocPurgeVisitor::TocPurgeVisitor(const TocDB& db) :
+TocPurgeVisitor::TocPurgeVisitor(const TocCatalogue& catalogue) :
     PurgeVisitor(),
-    TocStatsReportVisitor(db, false) {}
+    TocStatsReportVisitor(catalogue, false) {}
 
 TocPurgeVisitor::~TocPurgeVisitor() {}
 
-bool TocPurgeVisitor::visitDatabase(const DB &db) {
+bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 
     std::set<std::pair<PathName, Offset>> metadata;
     std::set<PathName> data;
 
-    db.allMasked(metadata, data);
+    catalogue.allMasked(metadata, data);
 
     for (const auto& entry : metadata) {
         const PathName& path = entry.first;
@@ -52,7 +52,7 @@ bool TocPurgeVisitor::visitDatabase(const DB &db) {
 
 void TocPurgeVisitor::report(std::ostream& out) const {
 
-    const eckit::PathName& directory(currentDatabase_->basePath());
+    const eckit::PathName& directory(((TocCatalogue*) currentCatalogue_)->basePath());
 
     out << std::endl;
     out << "Index Report:" << std::endl;
@@ -132,9 +132,9 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
     std::ostream& logAlways(out);
     std::ostream& logVerbose(porcelain ? Log::debug<LibFdb5>() : out);
 
-    currentDatabase_->checkUID();
+    currentCatalogue_->checkUID();
 
-    const eckit::PathName directory(currentDatabase_->basePath());
+    const eckit::PathName directory(((TocCatalogue*) currentCatalogue_)->basePath());
 
     for (const auto& it : indexStats_) { // <Index, IndexStats>
 

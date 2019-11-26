@@ -30,23 +30,25 @@ namespace fdb5 {
 class TocFieldLocation : public FieldLocation {
 public:
 
-    TocFieldLocation();
+    //TocFieldLocation();
     TocFieldLocation(const TocFieldLocation& rhs);
-    TocFieldLocation(const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
+    TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length);
+    TocFieldLocation(const eckit::URI &uri);
+    TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length);
     TocFieldLocation(const FileStore& store, const FieldRef& ref);
     TocFieldLocation(eckit::Stream&);
 
-    const eckit::PathName& path() const { return path_; }
-    const eckit::Offset&   offset() const { return offset_; }
+//    const eckit::PathName path() const { return uri_.name(); }
+//    const eckit::Offset&   offset() const { return offset_; }
 
-    virtual eckit::DataHandle* dataHandle() const;
-    virtual eckit::DataHandle* dataHandle(const Key& remapKey) const;
+    eckit::DataHandle* dataHandle() const override;
+    eckit::DataHandle* dataHandle(const Key& remapKey) const override;
 
-    virtual eckit::PathName url() const;
+    // eckit::URI uri() const override;
 
-    virtual std::shared_ptr<FieldLocation> make_shared() const;
+    virtual std::shared_ptr<FieldLocation> make_shared() const override;
 
-    virtual void visit(FieldLocationVisitor& visitor) const;
+    virtual void visit(FieldLocationVisitor& visitor) const override;
 
 public: // For Streamable
 
@@ -54,22 +56,24 @@ public: // For Streamable
 
 protected: // For Streamable
 
-    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
-    virtual void encode(eckit::Stream&) const;
+    virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    //virtual void encode(eckit::Stream&) const override;
 
     static eckit::ClassSpec                    classSpec_;
     static eckit::Reanimator<TocFieldLocation> reanimator_;
 
 private: // methods
 
-    virtual void dump(std::ostream &out) const;
+//    void dump(std::ostream &out) const override;
 
-    virtual void print(std::ostream &out) const;
+    void print(std::ostream &out) const override;
+
+    eckit::URI uri(const eckit::PathName &path);
 
 private: // members
 
-    eckit::PathName path_;
-    eckit::Offset offset_;
+//    eckit::PathName path_;
+//    eckit::Offset offset_;
 
     // For streamability
 };

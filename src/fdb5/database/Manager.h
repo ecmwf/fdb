@@ -20,7 +20,7 @@
 #include <set>
 #include <vector>
 
-#include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
 #include "metkit/MarsRequest.h"
 #include "fdb5/config/Config.h"
 
@@ -44,20 +44,20 @@ public: // methods
     std::set<std::string> engines(const Key &key);
     std::set<std::string> engines(const metkit::MarsRequest& rq, bool all);
 
-    /// Uniquely selects the engine that will handle this Path by checking possible handlers
-    std::string engine(const eckit::PathName& path);
+    /// Uniquely selects the engine that will handle this URI by checking possible handlers
+    std::string engine(const eckit::URI& uri);
 
     /// Uniquely selects a location where the Key will be put or already exists
-    eckit::PathName location(const Key &key);
+    eckit::URI location(const Key &key);
 
     /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::PathName> allLocations(const Key& key);
+    std::vector<eckit::URI> allLocations(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::PathName> visitableLocations(const metkit::MarsRequest& request, bool all);
+    std::vector<eckit::URI> visitableLocations(const metkit::MarsRequest& request, bool all);
 
     /// Lists the roots where a DB key would be able to be written
-    std::vector<eckit::PathName> writableLocations(const Key& key);
+    std::vector<eckit::URI> writableLocations(const Key& key);
 
 private: // members
 

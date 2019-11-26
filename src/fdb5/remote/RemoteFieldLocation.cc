@@ -27,23 +27,16 @@ namespace remote {
 
 
 RemoteFieldLocation::RemoteFieldLocation(const FieldLocation& internal, const std::string& hostname, int port) :
-    FieldLocation(internal.length()),
-    hostname_(hostname),
-    port_(port),
-    internal_(internal.make_shared()) {}
+    FieldLocation(eckit::URI("fdb", internal.uri(), hostname, port)) {}
 
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {
-    s >> hostname_;
-    s >> port_;
     internal_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
 }
 
 RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
-    FieldLocation(rhs.length()),
-    hostname_(rhs.hostname_),
-    port_(rhs.port_),
+    FieldLocation(rhs.uri_),
     internal_(rhs.internal_) {}
 
 
@@ -59,31 +52,29 @@ eckit::DataHandle* RemoteFieldLocation::dataHandle(const Key& remapKey) const {
     return internal_->dataHandle(remapKey);
 }
 
-eckit::PathName RemoteFieldLocation::url() const {
+/*eckit::PathName RemoteFieldLocation::url() const {
     return internal_->url();
-}
+}*/
 
 void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
 }
 
 void RemoteFieldLocation::print(std::ostream& out) const {
-    out << "[" << hostname_ << ":" << port_ << "]";
+//    out << "[" << hostname_ << ":" << port_ << "]";
     out << *internal_;
 }
 
 
 void RemoteFieldLocation::encode(eckit::Stream& s) const {
     FieldLocation::encode(s);
-    s << hostname_;
-    s << port_;
     s << *internal_;
 }
 
 void RemoteFieldLocation::dump(std::ostream& out) const
 {
-    out << "  hostname: " << hostname_ << std::endl;
-    out << "  port: " << hostname_ << std::endl;
+//    out << "  hostname: " << hostname_ << std::endl;
+//    out << "  port: " << hostname_ << std::endl;
     internal_->dump(out);
 }
 

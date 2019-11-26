@@ -53,7 +53,7 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
         eckit::PathName path(args(i));
 
         if (path.isDir()) {
-            std::unique_ptr<DB> db(DBFactory::buildReader(path));
+            std::unique_ptr<DB> db = DB::buildReader(eckit::URI("toc", path));
             ASSERT(db->open());
             db->schema().dump(std::cout);
         } else {

@@ -13,7 +13,7 @@
 #include "eckit/filesystem/FileSpaceStrategies.h"
 #include "eckit/exception/Exceptions.h"
 
-#include "fdb5/toc/TocDB.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/toc/FileSpaceHandler.h"
 #include "fdb5/database/Key.h"
 

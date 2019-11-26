@@ -44,8 +44,8 @@ public:
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
 
-    bool visitDatabase(const DB& db) override {
-        db.dump(out_, simple_);
+    bool visitDatabase(const Catalogue& catalogue, const Store& store) override {
+        catalogue.dump(out_, simple_);
         return true;
     }
     bool visitIndex(const Index&) override { NOTIMP; }

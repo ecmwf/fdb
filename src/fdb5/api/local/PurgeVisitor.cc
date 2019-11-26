@@ -39,28 +39,33 @@ PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
     doit_(doit),
     porcelain_(porcelain) {}
 
-bool PurgeVisitor::visitDatabase(const DB& db) {
+/*
+bool PurgeVisitor::visitCatalogue(const Catalogue& catalogue) {
+    return false;
+}*/
+
+bool PurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 
     // If the DB is locked for wiping, then it "doesn't exist"
-    if (db.wipeLocked()) return false;
+    if (catalogue.wipeLocked()) return false;
 
-    EntryVisitor::visitDatabase(db);
+    EntryVisitor::visitDatabase(catalogue, store);
 
     // If the request is overspecified relative to the DB key, then we
     // bail out here.
 
-    if (!db.key().match(request_)) {
+    if (!catalogue.key().match(request_)) {
         std::stringstream ss;
         ss << "Purging not supported for over-specified requests. "
-           << "db=" << db.key()
+           << "db=" << catalogue.key()
            << ", request=" << request_;
         throw eckit::UserError(ss.str(), Here());
     }
 
     ASSERT(!internalVisitor_);
-    internalVisitor_.reset(db.purgeVisitor());
+    internalVisitor_.reset(catalogue.purgeVisitor());
 
-    internalVisitor_->visitDatabase(db);
+    internalVisitor_->visitDatabase(catalogue, store);
 
     return true; // Explore contained indexes
 }
@@ -77,8 +82,8 @@ void PurgeVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
 
 void PurgeVisitor::visitDatum(const Field&, const Key&) { NOTIMP; }
 
-void PurgeVisitor::databaseComplete(const DB& db) {
-    internalVisitor_->databaseComplete(db);
+void PurgeVisitor::catalogueComplete(const Catalogue& catalogue) {
+    internalVisitor_->catalogueComplete(catalogue);
 
     if (!porcelain_) {
         internalVisitor_->report(out_);

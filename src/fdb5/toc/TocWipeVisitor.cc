@@ -8,18 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/toc/TocWipeVisitor.h"
 
 #include <algorithm>
 
 #include "eckit/os/Stat.h"
 
-#include "fdb5/toc/TocDB.h"
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/DB.h"
+#include "fdb5/toc/TocCatalogue.h"
+#include "fdb5/toc/TocWipeVisitor.h"
 
-#include <sys/types.h>
 #include <dirent.h>
 #include <errno.h>
+#include <fdb5/LibFdb5.h>
+#include <sys/types.h>
 #include <cstring>
 
 
@@ -83,27 +85,27 @@ public:
 
 // TODO: Warnings and errors form inside here back to the user.
 
-TocWipeVisitor::TocWipeVisitor(const TocDB& db,
+TocWipeVisitor::TocWipeVisitor(const TocCatalogue& catalogue,
                                const metkit::MarsRequest& request,
                                std::ostream& out,
                                bool doit,
                                bool porcelain,
                                bool unsafeWipeAll) :
     WipeVisitor(request, out, doit, porcelain, unsafeWipeAll),
-    db_(db),
+    catalogue_(catalogue),
     tocPath_(""),
     schemaPath_("") {}
 
 TocWipeVisitor::~TocWipeVisitor() {}
 
 
-bool TocWipeVisitor::visitDatabase(const DB& db) {
+bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 
     // Overall checks
 
-    ASSERT(&db_ == &db);
-    ASSERT(!db.wipeLocked());
-    WipeVisitor::visitDatabase(db);
+    ASSERT(&catalogue_ == &catalogue);
+    ASSERT(!catalogue.wipeLocked());
+    WipeVisitor::visitDatabase(catalogue, store);
 
     // Check that we are in a clean state (i.e. we only visit one DB).
 
@@ -121,7 +123,7 @@ bool TocWipeVisitor::visitDatabase(const DB& db) {
     // matching Index(es) -- which is relevant if there is subselection of the DB.
 
     indexRequest_ = request_;
-    for (const auto& kv : db.key()) {
+    for (const auto& kv : catalogue.key()) {
         indexRequest_.unsetValues(kv.first);
     }
 
@@ -131,7 +133,7 @@ bool TocWipeVisitor::visitDatabase(const DB& db) {
 bool TocWipeVisitor::visitIndex(const Index& index) {
 
     eckit::PathName location(index.location().url());
-    const auto& basePath(db_.basePath());
+    const auto& basePath(catalogue_.basePath());
 
     // Is this index matched by the supplied request?
     // n.b. If the request is over-specified (i.e. below the index level), nothing will be removed
@@ -175,9 +177,9 @@ void TocWipeVisitor::addMaskedPaths() {
 
     std::set<std::pair<eckit::PathName, Offset>> metadata;
     std::set<eckit::PathName> data;
-    db_.allMasked(metadata, data);
+    catalogue_.allMasked(metadata, data);
     for (const auto& entry : metadata) {
-        if (entry.first.dirName().sameAs(db_.basePath())) {
+        if (entry.first.dirName().sameAs(catalogue_.basePath())) {
             if (entry.first.baseName().asString().substr(0, 4) == "toc.") {
                 subtocPaths_.insert(entry.first);
             } else {
@@ -186,7 +188,7 @@ void TocWipeVisitor::addMaskedPaths() {
         }
     }
     for (const auto& path : data) {
-        if (path.dirName().sameAs(db_.basePath())) dataPaths_.insert(path);
+        if (path.dirName().sameAs(catalogue_.basePath())) dataPaths_.insert(path);
     }
 }
 
@@ -194,17 +196,17 @@ void TocWipeVisitor::addMetadataPaths() {
 
     // toc, schema
 
-    schemaPath_ = db_.schemaPath();
-    tocPath_ = db_.tocPath();
+    schemaPath_ = catalogue_.schemaPath();
+    tocPath_ = catalogue_.tocPath();
 
     // subtocs
 
-    const auto&& subtocs(db_.subTocPaths());
+    const auto&& subtocs(catalogue_.subTocPaths());
     subtocPaths_.insert(subtocs.begin(), subtocs.end());
 
     // lockfiles
 
-    const auto&& lockfiles(db_.lockfilePaths());
+    const auto&& lockfiles(catalogue_.lockfilePaths());
     lockfilePaths_.insert(lockfiles.begin(), lockfiles.end());
 }
 
@@ -249,7 +251,7 @@ void TocWipeVisitor::calculateResidualPaths() {
     if (schemaPath_.asString().size()) deletePaths.insert(schemaPath_);
 
     std::vector<eckit::PathName> allPathsVector;
-    StdDir(db_.basePath()).children(allPathsVector);
+    StdDir(catalogue_.basePath()).children(allPathsVector);
     std::set<eckit::PathName> allPaths(allPathsVector.begin(), allPathsVector.end());
 
     ASSERT(residualPaths_.empty());
@@ -287,7 +289,7 @@ void TocWipeVisitor::report() {
 
     ASSERT(anythingToWipe());
 
-    out_ << "FDB owner: " << db_.owner() << std::endl
+    out_ << "FDB owner: " << catalogue_.owner() << std::endl
          << std::endl;
 
     out_ << "Toc files to delete:" << std::endl;
@@ -345,22 +347,22 @@ void TocWipeVisitor::wipe(bool wipeAll) {
 
     // Sanity checks...
 
-    db_.checkUID();
+    catalogue_.checkUID();
 
     // If we are wiping the metadata files, then we need to lock the DB to ensure we don't get
     // into a state we don't like.
 
     if (wipeAll && doit_) {
-        db_.control(ControlAction::Lock, ControlIdentifier::List |
+        catalogue_.control(ControlAction::Lock, ControlIdentifier::List |
                                          ControlIdentifier::Retrieve |
                                          ControlIdentifier::Archive);
 
-        ASSERT(db_.listLocked());
-        ASSERT(db_.retrieveLocked());
-        ASSERT(db_.archiveLocked());
+        ASSERT(catalogue_.listLocked());
+        ASSERT(catalogue_.retrieveLocked());
+        ASSERT(catalogue_.archiveLocked());
 
         // The lock will have occurred after the visitation phase, so add the lockfiles.
-        const auto&& lockfiles(db_.lockfilePaths());
+        const auto&& lockfiles(catalogue_.lockfilePaths());
         lockfilePaths_.insert(lockfiles.begin(), lockfiles.end());
     }
 
@@ -372,7 +374,7 @@ void TocWipeVisitor::wipe(bool wipeAll) {
         for (const auto& index : indexesToMask_) {
             logVerbose << "Index to mask: ";
             logAlways << index << std::endl;
-            if (doit_) db_.maskIndexEntry(index);
+            if (doit_) catalogue_.maskIndexEntry(index);
         }
     }
 
@@ -382,7 +384,7 @@ void TocWipeVisitor::wipe(bool wipeAll) {
     for (const std::set<PathName>& pathset : {residualPaths_, dataPaths_, indexPaths_,
                                               std::set<PathName>{schemaPath_}, subtocPaths_,
                                               std::set<PathName>{tocPath_}, lockfilePaths_,
-                                              (wipeAll ? std::set<PathName>{db_.basePath()} : std::set<PathName>{})}) {
+                                              (wipeAll ? std::set<PathName>{catalogue_.basePath()} : std::set<PathName>{})}) {
 
         for (const PathName& path : pathset) {
             if (path.exists()) {
@@ -402,12 +404,15 @@ void TocWipeVisitor::wipe(bool wipeAll) {
 }
 
 
-void TocWipeVisitor::databaseComplete(const DB& db) {
-    WipeVisitor::databaseComplete(db);
+void TocWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
+    WipeVisitor::catalogueComplete(catalogue);
 
     // We wipe everything if there is nothingn within safePaths - i.e. there is
     // no data that wasn't matched by the request
 
+/*<<<<<<< HEAD
+    bool wipeAll = catalogue_.key().match(request_) && safePaths_.empty();
+=======*/
     bool wipeAll = safePaths_.empty();
 
     if (wipeAll) {
