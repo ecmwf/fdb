@@ -43,6 +43,7 @@ private: // methods
     void deselectIndex() override;
 
     bool open() override;
+    void clean() override {}
     void close() override;
 
     void axis(const std::string &keyword, eckit::StringSet &s) const override;

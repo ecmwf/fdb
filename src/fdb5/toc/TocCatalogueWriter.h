@@ -42,7 +42,7 @@ public: // methods
     virtual ~TocCatalogueWriter() override;
 
     /// Used for adopting & indexing external data to the TOC dir
-    void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
+    void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) override;
 
     void reconsolidateIndexesAndTocs() override;
 
@@ -63,6 +63,7 @@ protected: // methods
 
     virtual bool open() override;
     virtual void flush() override;
+    virtual void clean() override;
     virtual void close() override;
 
     void archive(const Key& key, const FieldLocation* fieldLocation) override;
@@ -75,21 +76,21 @@ protected: // methods
 private: // methods
 
 
-    eckit::DataHandle *getCachedHandle( const eckit::PathName &path ) const;
-    eckit::DataHandle *createDataHandle(const eckit::PathName &path);
-    eckit::DataHandle *createFileHandle(const eckit::PathName &path);
-    eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
+    //eckit::DataHandle *getCachedHandle( const eckit::PathName &path ) const;
+    //eckit::DataHandle *createDataHandle(const eckit::PathName &path);
+    //eckit::DataHandle *createFileHandle(const eckit::PathName &path);
+    //eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
 
     void closeIndexes();
-    void closeDataHandles();
+    //void closeDataHandles();
     void flushIndexes();
-    void flushDataHandles();
+    //void flushDataHandles();
     void compactSubTocIndexes();
 
-    eckit::DataHandle &getDataHandle( const eckit::PathName & );
-    eckit::PathName getDataPath(const Key &key);
+    //eckit::DataHandle &getDataHandle( const eckit::PathName & );
+    //eckit::PathName getDataPath(const Key &key);
     eckit::PathName generateIndexPath(const Key &key) const;
-    eckit::PathName generateDataPath(const Key &key) const;
+    //eckit::PathName generateDataPath(const Key &key) const;
 
 private: // types
 

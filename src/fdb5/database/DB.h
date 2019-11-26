@@ -74,6 +74,9 @@ public: // methods
     void overlayDB(const DB& otherDB, const std::set<std::string>& variableKeys, bool unmount);
     void reconsolidateIndexesAndTocs();
 
+    /// Used for adopting & indexing external data to the TOC dir
+    void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
+
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
     // TODO: *Locked to be implemented by a single enquire()

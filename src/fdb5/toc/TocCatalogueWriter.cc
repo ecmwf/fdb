@@ -104,17 +104,18 @@ bool TocCatalogueWriter::open() {
     return true;
 }
 
-void TocCatalogueWriter::close() {
+void TocCatalogueWriter::clean() {
 
     eckit::Log::debug<LibFdb5>() << "Closing path " << directory_ << std::endl;
 
-    flush(); // closes the TOC entries & indexes but not data files
+//    flush(); // closes the TOC entries & indexes but not data files
 
     compactSubTocIndexes();
 
     deselectIndex();
+}
 
-    closeDataHandles();
+void TocCatalogueWriter::close() {
 
     closeIndexes();
 }
@@ -331,7 +332,7 @@ void TocCatalogueWriter::flush() {
 
     // ensure consistent state before writing Toc entry
 
-    flushDataHandles();
+    //flushDataHandles();
     flushIndexes();
 
     dirty_ = false;
@@ -339,7 +340,7 @@ void TocCatalogueWriter::flush() {
     currentFull_ = Index();
 }
 
-
+/*
 eckit::DataHandle *TocCatalogueWriter::getCachedHandle( const eckit::PathName &path ) const {
     HandleStore::const_iterator j = handles_.find( path );
     if ( j != handles_.end() )
@@ -418,7 +419,7 @@ eckit::DataHandle& TocCatalogueWriter::getDataHandle( const eckit::PathName &pat
         dh->openForAppend(0);
     }
     return *dh;
-}
+}*/
 
 eckit::PathName TocCatalogueWriter::generateIndexPath(const Key &key) const {
     eckit::PathName tocPath ( directory_ );
@@ -427,7 +428,7 @@ eckit::PathName TocCatalogueWriter::generateIndexPath(const Key &key) const {
     return tocPath;
 }
 
-eckit::PathName TocCatalogueWriter::generateDataPath(const Key &key) const {
+/*eckit::PathName TocCatalogueWriter::generateDataPath(const Key &key) const {
     eckit::PathName dpath ( directory_ );
     dpath /=  key.valuesToString();
     dpath = eckit::PathName::unique(dpath) + ".data";
@@ -444,7 +445,7 @@ eckit::PathName TocCatalogueWriter::getDataPath(const Key &key) {
     dataPaths_[ key ] = dataPath;
 
     return dataPath;
-}
+}*/
 
 // n.b. We do _not_ flush the fullIndexes_ set of indexes.
 // The indexes pointed to in the indexes_ list get written out each time there is
@@ -479,13 +480,13 @@ void TocCatalogueWriter::closeIndexes() {
     fullIndexes_.clear(); // all indexes instances destroyed
 }
 
-void TocCatalogueWriter::flushDataHandles() {
+/*void TocCatalogueWriter::flushDataHandles() {
 
     for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
         eckit::DataHandle *dh = j->second;
         dh->flush();
     }
-}
+}*/
 
 void TocCatalogueWriter::compactSubTocIndexes() {
 

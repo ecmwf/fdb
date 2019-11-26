@@ -119,6 +119,7 @@ void DB::flush() {
 
 void DB::close() {
     flush();
+    catalogue_->clean();
     if (store_ != nullptr)
         store_->close();
     catalogue_->close();
@@ -141,14 +142,24 @@ eckit::URI DB::uri() const {
 void DB::overlayDB(const DB& otherDB, const std::set<std::string>& variableKeys, bool unmount) {
     if (catalogue_->type() == "toc" && otherDB.catalogue_->type() == "toc")  {
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
-        if (cat != nullptr)
-            cat->overlayDB(*(otherDB.catalogue_), variableKeys, unmount);
+        ASSERT(cat);
+
+        cat->overlayDB(*(otherDB.catalogue_), variableKeys, unmount);
     }
 }
 
 void DB::reconsolidateIndexesAndTocs() {
     if (catalogue_->type() == "toc") {
         catalogue_->reconsolidateIndexesAndTocs();
+    }
+}
+
+void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+    if (catalogue_->type() == "toc") {
+        CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
+        ASSERT(cat);
+
+        cat->index(key, path, offset, length);
     }
 }
 

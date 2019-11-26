@@ -96,6 +96,7 @@ public:
     virtual std::string type() const = 0;
     virtual bool open() = 0;
     virtual void flush() = 0;
+    virtual void clean() = 0;
     virtual void close() = 0;
 
 //    virtual std::string owner() const = 0;
@@ -144,6 +145,7 @@ public:
     virtual const Index& currentIndex() = 0;
     virtual void archive(const Key& key, const FieldLocation* fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
+    virtual void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

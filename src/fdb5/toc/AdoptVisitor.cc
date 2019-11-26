@@ -36,11 +36,11 @@ bool AdoptVisitor::selectDatum(const Key &key, const Key &full) {
 
     ASSERT(current());
 
-    TocCatalogueWriter *writer = dynamic_cast<TocCatalogueWriter *>(current());
+//    DB *writer = dynamic_cast<TocCatalogueWriter *>(current());
 
-    ASSERT(writer);
+//    ASSERT(writer);
 
-    writer->index(key, path_, offset_, length_);
+    current()->index(key, path_, offset_, length_);
 
     return true;
 }
