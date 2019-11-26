@@ -136,7 +136,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         throw UserError(ss.str(), Here());
     }
 
-    std::unique_ptr<DB> dbTarget = DB::buildWriter(target, config);
+    std::unique_ptr<DB> dbTarget = DB::buildReader(target, config);
 
     if (remove_) {
         if (!dbTarget->exists()) {
