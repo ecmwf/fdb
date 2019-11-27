@@ -56,8 +56,6 @@ public:
     virtual void deselectIndex() = 0;
 //    virtual const Index& currentIndex() = 0;
 
-    virtual void axis(const std::string& keyword, eckit::StringSet& s) const = 0;
-
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
 
     virtual void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted = false) = 0;
@@ -136,6 +134,7 @@ protected: // members
 class CatalogueReader {
 public:
     virtual DbStats stats() const = 0;
+    virtual void axis(const std::string& keyword, eckit::StringSet& s) const = 0;
     virtual bool retrieve(const Key& key, Field& field, Key& remapKey) const = 0;
 };
 

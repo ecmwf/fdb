@@ -36,8 +36,6 @@ TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
 TocStore::TocStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
     Store(schema), TocCommon(uri.path().dirName()) {}
 
-TocStore::~TocStore() {}
-
 eckit::URI TocStore::uri() const {
     return URI("file", directory_);
 }
@@ -85,12 +83,24 @@ void TocStore::close() {
     closeDataHandles();
 }
 
+void TocStore::remove(eckit::PathName path, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
+    if (path.isDir()) {
+        logVerbose << "rmdir: ";
+        logAlways << path << std::endl;
+        if (doit) path.rmdir(false);
+    } else {
+        logVerbose << "Unlinking: ";
+        logAlways << path << std::endl;
+        if (doit) path.unlink(false);
+    }
+}
+
 eckit::DataHandle *TocStore::getCachedHandle( const eckit::PathName &path ) const {
     HandleStore::const_iterator j = handles_.find( path );
     if ( j != handles_.end() )
         return j->second;
     else
-        return 0;
+        return nullptr;
 }
 
 void TocStore::closeDataHandles() {

@@ -38,20 +38,10 @@ eckit::PathName TocCommon::getDirectory(const Key& key, const Config& config) {
 
 TocCommon::TocCommon(const eckit::PathName& directory) :
     directory_(findRealPath(directory)),
-    dbUID_(-1),
-    userUID_(::getuid()),
     schemaPath_(directory_ / "schema"),
-//    tocPath_(directory_ / "toc"),
-//    useSubToc_(config.getBool("useSubToc", false)),
-//    isSubToc_(false),
-//    fd_(-1),
-//    cachedToc_(nullptr),
-//    count_(0),
-//    enumeratedMaskedEntries_(false),
-//    writeMode_(false),
-    dirty_(false) {
-}
-
+    dbUID_(static_cast<uid_t>(-1)),
+    userUID_(::getuid()),
+    dirty_(false) {}
 
 void TocCommon::checkUID() const {
     static bool fdbOnlyCreatorCanWrite = eckit::Resource<bool>("fdbOnlyCreatorCanWrite", true);
@@ -75,8 +65,8 @@ void TocCommon::checkUID() const {
     }
 }
 
-long TocCommon::dbUID() const {
-    if (dbUID_ == -1)
+uid_t TocCommon::dbUID() const {
+    if (dbUID_ == static_cast<uid_t>(-1))
         dbUID_ = directory_.owner();
 
     return dbUID_;

@@ -153,9 +153,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                logVerbose << "Unlinking: ";
-                logAlways << path << std::endl;
-                if (doit) path.unlink(false);
+                currentStore_->remove(path, logAlways, logVerbose, doit);
             }
         }
     }
@@ -164,9 +162,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                logVerbose << "Unlinking: ";
-                logAlways << path << std::endl;
-                if (doit) path.unlink(false);
+                currentStore_->remove(path, logAlways, logVerbose, doit);
             }
        }
     }

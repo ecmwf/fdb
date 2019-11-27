@@ -35,7 +35,7 @@ public: // methods
     TocCatalogue(const Key& key, const fdb5::Config& config);
     TocCatalogue(const eckit::PathName& directory, const fdb5::Config& config);
 
-    ~TocCatalogue() override;
+    ~TocCatalogue() override {}
 
     static const char* catalogueTypeName() { return TocEngine::typeName(); }
     const eckit::PathName& basePath() const override;
@@ -49,20 +49,11 @@ protected: // methods
     std::string type() const override;
 
     void checkUID() const override;
-    bool open() override;
-    void close() override;
-    void flush() override;
     bool exists() const override;
     void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) override;
-//    void visit(DBVisitor& visitor) override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
-//    std::string owner() const override;
     std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;
-
-//    eckit::DataHandle *retrieve(const Key &key) const override;
-//    void archive(const Key &key, const void *data, eckit::Length length) override;
-    void axis(const std::string &keyword, eckit::StringSet &s) const override;
 
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor() const override;
@@ -71,15 +62,12 @@ protected: // methods
 
     void loadSchema() override;
 
-//    DbStats statistics() const override;
-
     std::vector<Index> indexes(bool sorted=false) const override;
 
     void allMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
                    std::set<eckit::PathName>& data) const override;
 
     // Control access properties of the DB
-
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
     bool retrieveLocked() const override;

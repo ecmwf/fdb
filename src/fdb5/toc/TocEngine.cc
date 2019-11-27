@@ -49,7 +49,7 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
 {
     StdDir d(path.c_str());
 
-    if(d == 0)
+    if(d == nullptr)
     {
         // If fdb-wipe is running in parallel, it is perfectly legit for a (non-matching)
         // path to have disappeared
@@ -79,13 +79,13 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
             if(errno)
                 throw FailedSystemCall("readdir_r");
             else
-                e = 0;
+                e = nullptr;
         }
 #else
         e = ::readdir(d);
 #endif
 
-        if(e == 0)
+        if(e == nullptr)
             break;
 
         if(e->d_name[0] == '.') {

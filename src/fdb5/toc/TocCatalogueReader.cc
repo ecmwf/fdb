@@ -31,7 +31,6 @@ TocCatalogueReader::TocCatalogueReader(const eckit::URI& uri, const fdb5::Config
     loadIndexesAndRemap();
 }
 
-
 TocCatalogueReader::~TocCatalogueReader() {
     eckit::Log::debug<LibFdb5>() << "Closing DB " << *dynamic_cast<TocCatalogue*>(this) << std::endl;
 }
@@ -121,34 +120,6 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field, Key& remapKey) c
     }
     return false;
 }
-
-
-/*
-eckit::DataHandle *TocCatalogueReader::retrieve(const Key &key) const {
-
-    eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
-    eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
-
-    Field field;
-    for (auto m = matching_.begin(); m != matching_.end(); ++m) {
-        const Index& idx(m->first);
-        const Key& remapKey(m->second);
-
-        if (idx.mayContain(key)) {
-            const_cast<Index&>(idx).open();
-            if (idx.get(key, field)) {
-                if (remapKey.empty()) {
-                    return field.dataHandle();
-                } else {
-                    return field.dataHandle(remapKey);
-                }
-            }
-        }
-    }
-
-    return 0;
-}*/
-
 
 void TocCatalogueReader::print(std::ostream &out) const {
     out << "TocCatalogueReader(" << directory() << ")";

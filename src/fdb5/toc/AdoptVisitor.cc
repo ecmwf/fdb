@@ -11,8 +11,8 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 
+#include "fdb5/database/DB.h"
 #include "fdb5/toc/AdoptVisitor.h"
-#include "fdb5/toc/TocCatalogueWriter.h"
 
 using namespace eckit;
 
@@ -35,10 +35,6 @@ bool AdoptVisitor::selectDatum(const Key &key, const Key &full) {
     checkMissingKeys(full);
 
     ASSERT(current());
-
-//    DB *writer = dynamic_cast<TocCatalogueWriter *>(current());
-
-//    ASSERT(writer);
 
     current()->index(key, path_, offset_, length_);
 

@@ -55,10 +55,10 @@ public: // methods
     /// For initialising sub tocs or diagnostic interrogation.
     TocHandler(const eckit::PathName& path, const Key& parentKey);
 
-    ~TocHandler();
+    ~TocHandler() override;
 
     bool exists() const;
-    void checkUID() const;
+    void checkUID() const override;
 
     void writeInitRecord(const Key &tocKey);
     void writeClearRecord(const Index &);
@@ -123,11 +123,11 @@ private: // methods
 protected: // members
 
     //const eckit::PathName directory_;
-    mutable long dbUID_;
+//    mutable uid_t dbUID_;
     mutable Key parentKey_; // Contains the key of the first TOC explored in subtoc chain
-    long userUID_;
+//    long userUID_;
 
-    long dbUID() const;
+    uid_t dbUID() const override;
 
 protected: // methods
 

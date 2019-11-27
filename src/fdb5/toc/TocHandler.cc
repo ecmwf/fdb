@@ -195,8 +195,6 @@ bool TocHandler::exists() const {
 }
 
 void TocHandler::checkUID() const {
-    return;
-
     static bool fdbOnlyCreatorCanWrite = eckit::Resource<bool>("fdbOnlyCreatorCanWrite", true);
     if (!fdbOnlyCreatorCanWrite) {
         return;
@@ -871,9 +869,9 @@ public:
     }
 };
 
-long TocHandler::dbUID() const {
+uid_t TocHandler::dbUID() const {
 
-    if (dbUID_ != -1) {
+    if (dbUID_ != static_cast<uid_t>(-1)) {
         return dbUID_;
     }
 

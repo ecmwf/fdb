@@ -37,41 +37,8 @@ TocCatalogue::TocCatalogue(const eckit::PathName& directory, const fdb5::Config&
     dbKey_ = databaseKey();
 }
 
-TocCatalogue::~TocCatalogue() {
-}
-
-void TocCatalogue::axis(const std::string&, eckit::StringSet&) const {
-    Log::error() << "axis() not implemented for " << *this << std::endl;
-    NOTIMP;
-}
-
-bool TocCatalogue::open() {
-    Log::error() << "Open not implemented for " << *this << std::endl;
-    NOTIMP;
-}
-
 bool TocCatalogue::exists() const {
     return TocHandler::exists();
-}
-
-/*void TocCatalogue::archive(const Key&, const void*, Length) {
-    Log::error() << "Archive not implemented for " << *this << std::endl;
-    NOTIMP;
-}*/
-
-void TocCatalogue::flush() {
-    Log::error() << "Flush not implemented for " << *this << std::endl;
-    NOTIMP;
-}
-
-/*eckit::DataHandle *TocCatalogue::retrieve(const Key&) const {
-    Log::error() << "Retrieve not implemented for " << *this << std::endl;
-    NOTIMP;
-}*/
-
-void TocCatalogue::close() {
-    Log::error() << "Close not implemented for " << *this << std::endl;
-    NOTIMP;
 }
 
 const std::string TocCatalogue::DUMP_PARAM_WALKSUBTOC = "walk";
@@ -83,9 +50,6 @@ void TocCatalogue::dump(std::ostream& out, bool simple, const eckit::Configurati
     TocHandler::dump(out, simple, walkSubToc);
 }
 
-/*std::string TocCatalogue::owner() const {
-    return dbOwner();
-}*/
 eckit::URI TocCatalogue::uri() const {
     return eckit::URI(TocEngine::typeName(), basePath());
 }
@@ -137,11 +101,6 @@ void TocCatalogue::loadSchema() {
     schema_.load( schemaPath() );
 }
 
-/*DbStats TocCatalogue::statistics() const
-{
-    return TocHandler::stats();
-}*/
-
 StatsReportVisitor* TocCatalogue::statsReportVisitor() const {
     return new TocStatsReportVisitor(*this);
 }
@@ -167,10 +126,6 @@ void TocCatalogue::allMasked(std::set<std::pair<PathName, Offset>>& metadata,
                       std::set<PathName>& data) const {
     enumerateMasked(metadata, data);
 }
-
-/*void TocCatalogue::visit(DBVisitor &visitor) {
-    visitor(*this);
-}*/
 
 std::string TocCatalogue::type() const
 {

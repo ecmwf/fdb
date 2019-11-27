@@ -388,17 +388,8 @@ void TocWipeVisitor::wipe(bool wipeAll) {
 
         for (const PathName& path : pathset) {
             if (path.exists()) {
-                if (path.isDir()) {
-                    logVerbose << "rmdir: ";
-                    logAlways << path << std::endl;
-                    if (doit_) path.rmdir(false);
-                } else {
-                    logVerbose << "Unlinking: ";
-                    logAlways << path << std::endl;
-                    if (doit_) path.unlink(false);
-                }
+                currentStore_->remove(path, logAlways, logVerbose, doit_);
             }
-
         }
     }
 }
@@ -410,9 +401,6 @@ void TocWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
     // We wipe everything if there is nothingn within safePaths - i.e. there is
     // no data that wasn't matched by the request
 
-/*<<<<<<< HEAD
-    bool wipeAll = catalogue_.key().match(request_) && safePaths_.empty();
-=======*/
     bool wipeAll = safePaths_.empty();
 
     if (wipeAll) {

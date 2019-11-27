@@ -25,7 +25,9 @@ namespace fdb5 {
 class TocCommon {
 public:
 
-    TocCommon(const eckit::PathName& path);
+    TocCommon(const eckit::
+              PathName& path);
+    virtual ~TocCommon() {}
 
     static eckit::PathName getDirectory(const Key& key, const Config& config);
     static eckit::PathName findRealPath(const eckit::PathName& path);
@@ -39,7 +41,7 @@ public:
 
 protected: // methods
 
-    virtual long dbUID() const;
+    virtual uid_t dbUID() const;
     static bool stripeLustre();
 
 

@@ -61,36 +61,22 @@ protected: // methods
     virtual bool selectIndex(const Key &key) override;
     virtual void deselectIndex() override;
 
-    virtual bool open() override;
-    virtual void flush() override;
-    virtual void clean() override;
-    virtual void close() override;
+    bool open() override;
+    void flush() override;
+    void clean() override;
+    void close() override;
 
     void archive(const Key& key, const FieldLocation* fieldLocation) override;
-
-//    virtual void archive(const Key &key, const void *data, eckit::Length length);
-
 
     virtual void print( std::ostream &out ) const override;
 
 private: // methods
 
-
-    //eckit::DataHandle *getCachedHandle( const eckit::PathName &path ) const;
-    //eckit::DataHandle *createDataHandle(const eckit::PathName &path);
-    //eckit::DataHandle *createFileHandle(const eckit::PathName &path);
-    //eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
-
     void closeIndexes();
-    //void closeDataHandles();
     void flushIndexes();
-    //void flushDataHandles();
     void compactSubTocIndexes();
 
-    //eckit::DataHandle &getDataHandle( const eckit::PathName & );
-    //eckit::PathName getDataPath(const Key &key);
     eckit::PathName generateIndexPath(const Key &key) const;
-    //eckit::PathName generateDataPath(const Key &key) const;
 
 private: // types
 
@@ -114,8 +100,6 @@ private: // members
     Index currentFull_;
 
     eckit::AutoUmask umask_;
-
-//    bool dirty_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

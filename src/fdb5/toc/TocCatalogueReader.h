@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TocDBReader.h
+/// @file   TocCatalogueReader.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_TocDBReader_H
-#define fdb5_TocDBReader_H
+#ifndef fdb5_TocCatalogueReader_H
+#define fdb5_TocCatalogueReader_H
 
 #include "fdb5/toc/TocCatalogue.h"
 
@@ -43,6 +43,7 @@ private: // methods
     void deselectIndex() override;
 
     bool open() override;
+    void flush() override {}
     void clean() override {}
     void close() override;
 
@@ -53,7 +54,6 @@ private: // methods
     void print( std::ostream &out ) const override;
 
 private: // members
-
 
     // Indexes matching current key. If there is a key remapping for a mounted
     // SubToc, then this is stored alongside

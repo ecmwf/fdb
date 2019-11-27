@@ -36,6 +36,8 @@ public:
     virtual eckit::DataHandle* retrieve(Field& field, Key& remapKey) const = 0;
     virtual FieldLocation*  archive(const Key &key, const void *data, eckit::Length length) = 0;
 
+    virtual void remove(eckit::PathName path, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
+
     friend std::ostream &operator<<(std::ostream &s, const Store &x);
     virtual void print( std::ostream &out ) const = 0;
 

@@ -299,40 +299,11 @@ void TocCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocat
         currentFull_.put(key, field);
 }
 
-/*void TocCatalogueWriter::archive(const Key &key, const void *data, eckit::Length length) {
-    dirty_ = true;
-
-    if (current_.null()) {
-        ASSERT(!currentIndexKey_.empty());
-        selectIndex(currentIndexKey_);
-    }
-
-    eckit::PathName dataPath = getDataPath(current_.key());
-
-    eckit::DataHandle &dh = getDataHandle(dataPath);
-
-    eckit::Offset position = dh.position();
-
-    long len = dh.write( data, length );
-
-    ASSERT(len == length);
-
-    Field field (TocFieldLocation(dataPath, position, length));
-
-    current_.put(key, field);
-
-    if (useSubToc())
-        currentFull_.put(key, field);
-}*/
-
 void TocCatalogueWriter::flush() {
     if (!dirty_) {
         return;
     }
 
-    // ensure consistent state before writing Toc entry
-
-    //flushDataHandles();
     flushIndexes();
 
     dirty_ = false;
@@ -340,112 +311,12 @@ void TocCatalogueWriter::flush() {
     currentFull_ = Index();
 }
 
-/*
-eckit::DataHandle *TocCatalogueWriter::getCachedHandle( const eckit::PathName &path ) const {
-    HandleStore::const_iterator j = handles_.find( path );
-    if ( j != handles_.end() )
-        return j->second;
-    else
-        return 0;
-}
-
-void TocCatalogueWriter::closeDataHandles() {
-    for ( HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j ) {
-        eckit::DataHandle *dh = j->second;
-        dh->close();
-        delete dh;
-    }
-    handles_.clear();
-}
-
-
-eckit::DataHandle *TocCatalogueWriter::createFileHandle(const eckit::PathName &path) {
-
-    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
-
-    if(stripeLustre()) {
-
-        eckit::Log::debug<LibFdb5>() << "Creating LustreFileHandle<FDBFileHandle> to " << path
-                                    << " buffer size " << sizeBuffer
-                                    << std::endl;
-
-        return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeDataLustreSettings());
-    }
-
-    eckit::Log::debug<LibFdb5>() << "Creating FDBFileHandle to " << path
-                                << " with buffer of " << eckit::Bytes(sizeBuffer)
-                                << std::endl;
-
-    return new FDBFileHandle(path, sizeBuffer);
-}
-
-eckit::DataHandle *TocCatalogueWriter::createAsyncHandle(const eckit::PathName &path) {
-
-    static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
-    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
-
-    if(stripeLustre()) {
-
-        eckit::Log::debug<LibFdb5>() << "Creating LustreFileHandle<AIOHandle> to " << path
-                                     << " with " << nbBuffers
-                                     << " buffer each with " << eckit::Bytes(sizeBuffer)
-                                     << std::endl;
-
-        return new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeDataLustreSettings());
-    }
-
-    return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
-}
-
-eckit::DataHandle *TocCatalogueWriter::createDataHandle(const eckit::PathName &path) {
-
-    static bool fdbWriteToNull = eckit::Resource<bool>("fdbWriteToNull;$FDB_WRITE_TO_NULL", false);
-    if(fdbWriteToNull)
-        return new eckit::EmptyHandle();
-
-    static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite;$FDB_ASYNC_WRITE", false);
-    if(fdbAsyncWrite)
-        return createAsyncHandle(path);
-
-    return createFileHandle(path);
-}
-
-eckit::DataHandle& TocCatalogueWriter::getDataHandle( const eckit::PathName &path ) {
-    eckit::DataHandle *dh = getCachedHandle(path);
-    if ( !dh ) {
-        dh = createDataHandle(path);
-        ASSERT(dh);
-        handles_[path] = dh;
-        dh->openForAppend(0);
-    }
-    return *dh;
-}*/
-
 eckit::PathName TocCatalogueWriter::generateIndexPath(const Key &key) const {
     eckit::PathName tocPath ( directory_ );
     tocPath /= key.valuesToString();
     tocPath = eckit::PathName::unique(tocPath) + ".index";
     return tocPath;
 }
-
-/*eckit::PathName TocCatalogueWriter::generateDataPath(const Key &key) const {
-    eckit::PathName dpath ( directory_ );
-    dpath /=  key.valuesToString();
-    dpath = eckit::PathName::unique(dpath) + ".data";
-    return dpath;
-}
-
-eckit::PathName TocCatalogueWriter::getDataPath(const Key &key) {
-    PathStore::const_iterator j = dataPaths_.find(key);
-    if ( j != dataPaths_.end() )
-        return j->second;
-
-    eckit::PathName dataPath = generateDataPath(key);
-
-    dataPaths_[ key ] = dataPath;
-
-    return dataPath;
-}*/
 
 // n.b. We do _not_ flush the fullIndexes_ set of indexes.
 // The indexes pointed to in the indexes_ list get written out each time there is
@@ -479,14 +350,6 @@ void TocCatalogueWriter::closeIndexes() {
     indexes_.clear(); // all indexes instances destroyed
     fullIndexes_.clear(); // all indexes instances destroyed
 }
-
-/*void TocCatalogueWriter::flushDataHandles() {
-
-    for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
-        eckit::DataHandle *dh = j->second;
-        dh->flush();
-    }
-}*/
 
 void TocCatalogueWriter::compactSubTocIndexes() {
 

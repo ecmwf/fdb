@@ -74,7 +74,9 @@ void DB::deselectIndex() {
 }
 
 void DB::axis(const std::string &keyword, eckit::StringSet &s) const {
-    catalogue_->axis(keyword, s);
+    CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
+    ASSERT(cat);
+    cat->axis(keyword, s);
 }
 
 eckit::DataHandle *DB::retrieve(const Key& key) const {
@@ -82,12 +84,12 @@ eckit::DataHandle *DB::retrieve(const Key& key) const {
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
 
     CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
-    if (cat != nullptr) {
-        Field field;
-        Key remapKey;
-        if (cat->retrieve(key, field, remapKey)) {
-            return store().retrieve(field, remapKey);
-        }
+    ASSERT(cat);
+
+    Field field;
+    Key remapKey;
+    if (cat->retrieve(key, field, remapKey)) {
+        return store().retrieve(field, remapKey);
     }
 
     return nullptr;
