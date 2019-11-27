@@ -21,25 +21,23 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FileStore::FileStore(const eckit::URI &baseUri) :
+FileStore::FileStore(const eckit::PathName &directory) :
     next_(0),
     readOnly_(false),
-    uri_(baseUri) {
+    directory_(directory) {
 }
 
 FileStore::~FileStore() {
 }
 
-FileStore::FileStore(const eckit::URI &baseUri, eckit::Stream &s):
+
+FileStore::FileStore(const eckit::PathName &directory, eckit::Stream &s):
     next_(0),
     readOnly_(true),
-    uri_(baseUri) {
-
+    directory_(directory) {
     size_t n;
-    eckit::PathName directory = baseUri.path().dirName();
 
     s >> n;
-
     for (size_t i = 0; i < n ; i++) {
         FileStore::PathID id;
         std::string p;
@@ -47,67 +45,57 @@ FileStore::FileStore(const eckit::URI &baseUri, eckit::Stream &s):
         s >> id;
         s >> p;
 
-        eckit::URI uri(p);
+        eckit::PathName path(p);
 
-        if (uri.scheme() == "unix") { // backward compatibility - handling absolute and/or relative paths
-            eckit::PathName path(p);
-            if (!p.empty() && p[0] != '/') {
-                path = directory / path;
-            } else {
-                path = directory;
-            }
-            eckit::URI uriNewPath("file", path);
-
-            uris_[id] = uriNewPath;
-            ids_[uriNewPath] = id;
-        } else {
-            uris_[id] = uri;
-            ids_[uri] = id;
+        if (!p.empty() && p[0] != '/') {
+            path = directory_ / path;
         }
 
+        paths_[id] = path;
+        ids_[path] = id;
         next_ = std::max(id + 1, next_);
     }
+
 }
 
 
 void FileStore::encode(eckit::Stream &s) const {
-    s << uris_.size();
-    for ( UriStore::const_iterator i = uris_.begin(); i != uris_.end(); ++i ) {
+    s << paths_.size();
+    for ( PathStore::const_iterator i = paths_.begin(); i != paths_.end(); ++i ) {
         s << i->first;
-        const eckit::URI &uri = i->second;
-
-        s << uri.asRawString();
-//        s << ( (uri == uri_) ?  uri.asRawString() : path );
+        const eckit::PathName &path = i->second;
+        s << ( (path.dirName() == directory_) ?  path.baseName() : path );
     }
 }
 
-FileStore::PathID FileStore::insert( const eckit::URI &uri ) {
+
+FileStore::PathID FileStore::insert( const eckit::PathName &path ) {
     ASSERT(!readOnly_);
 
-    IdStore::iterator itr = ids_.find(uri);
+    IdStore::iterator itr = ids_.find(path);
     if ( itr != ids_.end() )
         return itr->second;
 
     FileStore::PathID current = next_;
     next_++;
-    ids_[uri] = current;
-    uris_[current] = uri;
+    ids_[path] = current;
+    paths_[current] = path;
 
     return current;
 }
 
-eckit::URI FileStore::get(const FileStore::PathID id) const {
-    UriStore::const_iterator itr = uris_.find(id);
-    ASSERT( itr != uris_.end() );
+eckit::PathName FileStore::get(const FileStore::PathID id) const {
+    PathStore::const_iterator itr = paths_.find(id);
+    ASSERT( itr != paths_.end() );
     return itr->second;
 }
 
-std::vector<eckit::URI> FileStore::uris() const {
-    std::vector<eckit::URI> p;
+std::vector<eckit::PathName> FileStore::paths() const {
+    std::vector<eckit::PathName> p;
 
-    p.reserve(uris_.size());
+    p.reserve(paths_.size());
 
-    for (const auto& kv : uris_) {
+    for (const auto& kv : paths_) {
         p.emplace_back(kv.second);
     }
 
@@ -115,14 +103,14 @@ std::vector<eckit::URI> FileStore::uris() const {
 }
 
 void FileStore::print( std::ostream &out ) const {
-    for ( UriStore::const_iterator itr = uris_.begin(); itr != uris_.end(); ++itr ) {
+    for ( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr ) {
         out << itr->first << " " << itr->second << std::endl;
     }
 }
 
 void FileStore::dump(std::ostream &out, const char* indent) const {
     out << indent << "Files:" << std::endl;
-    for ( UriStore::const_iterator itr = uris_.begin(); itr != uris_.end(); ++itr ) {
+    for ( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr ) {
         out << indent << indent << std::setw(3) << itr->first << " => " << itr->second << std::endl;
     }
 }

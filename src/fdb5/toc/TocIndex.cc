@@ -189,8 +189,8 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-const std::vector<eckit::URI> TocIndex::dataUris() const {
-    return files_.uris();
+const std::vector<eckit::PathName> TocIndex::dataPaths() const {
+    return files_.paths();
 }
 
 bool TocIndex::dirty() const {

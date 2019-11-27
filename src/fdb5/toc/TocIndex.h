@@ -43,10 +43,8 @@ class BTreeIndex;
 
 struct FileStoreWrapper {
 
-    FileStoreWrapper(const eckit::PathName& directory) : files_(eckit::URI("toc", directory)) {}
-    FileStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : files_(eckit::URI("toc", directory), s) {}
-    FileStoreWrapper(const eckit::URI& uri) : files_(uri) {}
-    FileStoreWrapper(const eckit::URI& uri, eckit::Stream& s) : files_(uri, s) {}
+    FileStoreWrapper(const eckit::PathName& directory) : files_(directory) {}
+    FileStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : files_(directory, s) {}
 
     FileStore files_;
 };
@@ -82,7 +80,8 @@ public: // methods
 private: // methods
 
     const IndexLocation& location() const override { return location_; }
-    const std::vector<eckit::URI> dataUris() const override;
+//    const std::vector<eckit::URI> dataUris() const override;
+    const std::vector<eckit::PathName> dataPaths() const override;
 
     bool dirty() const override;
 
