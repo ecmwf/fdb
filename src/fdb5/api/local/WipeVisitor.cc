@@ -55,7 +55,7 @@ bool WipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) 
     EntryVisitor::visitDatabase(catalogue, store);
 
     ASSERT(!internalVisitor_);
-    internalVisitor_.reset(catalogue.wipeVisitor(request_, out_, doit_, porcelain_, unsafeWipeAll_));
+    internalVisitor_.reset(catalogue.wipeVisitor(store, request_, out_, doit_, porcelain_, unsafeWipeAll_));
     internalVisitor_->visitDatabase(catalogue, store);
 
     return true; // Explore contained indexes

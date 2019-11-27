@@ -29,12 +29,16 @@ namespace fdb5 {
 class TocPurgeVisitor : public PurgeVisitor, public TocStatsReportVisitor {
 public:
 
-    TocPurgeVisitor(const TocCatalogue& catalogue);
+    TocPurgeVisitor(const TocCatalogue& catalogue, const Store& store);
     ~TocPurgeVisitor() override;
 
     bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     void report(std::ostream& out) const override;
     void purge(std::ostream& out, bool porcelain, bool doit) const override;
+
+private: // members
+
+    const Store& store_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -63,7 +63,7 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store)
     }
 
     ASSERT(!internalVisitor_);
-    internalVisitor_.reset(catalogue.purgeVisitor());
+    internalVisitor_.reset(catalogue.purgeVisitor(store));
 
     internalVisitor_->visitDatabase(catalogue, store);
 

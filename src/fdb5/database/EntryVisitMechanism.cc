@@ -101,12 +101,11 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
                 Log::debug<LibFdb5>() << "FDB processing Path " << path << std::endl;
 
-                std::unique_ptr<Catalogue> catalogue = CatalogueFactory::instance().build(eckit::URI(uri.scheme(), path), dbConfig_, true);
-                std::unique_ptr<Store> store = StoreFactory::instance().build(catalogue->schema(), eckit::URI("file", path), dbConfig_);
-                ASSERT(catalogue->open());
-                eckit::AutoCloser<Catalogue> closer(*catalogue);
+                std::unique_ptr<DB> db = DB::buildReader(eckit::URI(uri.scheme(), path));
+                ASSERT(db->open());
+                eckit::AutoCloser<DB> closer(*db);
 
-                catalogue->visitEntries(visitor, *store);
+                db->visitEntries(visitor, false);
             }
         }
 

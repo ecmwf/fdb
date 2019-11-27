@@ -53,28 +53,6 @@ public:
 
     virtual eckit::URI uri() const = 0;
 
-
-//    virtual eckit::DataHandle* retrieve(Field& field, Key& remapKey) const {NOTIMP;}
-//    virtual FieldLocation&  archive(const Key &key, const void *data, eckit::Length length) {NOTIMP;}
-
-//    virtual eckit::PathName basePath() const {NOTIMP;}
-//    virtual std::vector<eckit::PathName> metadataPaths() const {NOTIMP;}
-/*
-    // from DBCommon
-    std::string type() const override {NOTIMP;}
-    void checkUID() const override {NOTIMP;}
-    std::string owner() const override {NOTIMP;}
-    bool exists() const override {NOTIMP;}
-
-    bool open() override {NOTIMP;}
-    void flush() override {NOTIMP;}
-    void close() override {NOTIMP;}
-
-protected: // methods
-
-    // from DBCommon
-    void print( std::ostream &out ) const override {NOTIMP;}*/
-
 protected: // members
     const Schema* schema_;
 };

@@ -56,8 +56,8 @@ protected: // methods
     const Schema& schema() const override;
 
     StatsReportVisitor* statsReportVisitor() const override;
-    PurgeVisitor* purgeVisitor() const override;
-    WipeVisitor* wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
+    PurgeVisitor* purgeVisitor(const Store& store) const override;
+    WipeVisitor* wipeVisitor(const Store& store, const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
     void maskIndexEntry(const Index& index) const override;
 
     void loadSchema() override;

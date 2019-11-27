@@ -20,6 +20,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 
@@ -73,6 +74,8 @@ public: // methods
     eckit::URI uri() const;
     void overlayDB(const DB& otherDB, const std::set<std::string>& variableKeys, bool unmount);
     void reconsolidateIndexesAndTocs();
+
+    void visitEntries(EntryVisitor& visitor, bool sorted = false);
 
     /// Used for adopting & indexing external data to the TOC dir
     void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length);

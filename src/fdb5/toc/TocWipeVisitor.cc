@@ -58,7 +58,7 @@ public:
 
         struct dirent* e;
 
-        while ((e = readdir(d_)) != 0) {
+        while ((e = readdir(d_)) != nullptr) {
 
             if (e->d_name[0] == '.') {
                 if (e->d_name[1] == '\0' || (e->d_name[1] == '.' && e->d_name[2] == '\0')) continue;
@@ -86,6 +86,7 @@ public:
 // TODO: Warnings and errors form inside here back to the user.
 
 TocWipeVisitor::TocWipeVisitor(const TocCatalogue& catalogue,
+                               const Store& store,
                                const metkit::MarsRequest& request,
                                std::ostream& out,
                                bool doit,
@@ -93,6 +94,7 @@ TocWipeVisitor::TocWipeVisitor(const TocCatalogue& catalogue,
                                bool unsafeWipeAll) :
     WipeVisitor(request, out, doit, porcelain, unsafeWipeAll),
     catalogue_(catalogue),
+    store_(store),
     tocPath_(""),
     schemaPath_("") {}
 
@@ -104,6 +106,7 @@ bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
     // Overall checks
 
     ASSERT(&catalogue_ == &catalogue);
+//    ASSERT(&store_ == &store);
     ASSERT(!catalogue.wipeLocked());
     WipeVisitor::visitDatabase(catalogue, store);
 
@@ -388,7 +391,7 @@ void TocWipeVisitor::wipe(bool wipeAll) {
 
         for (const PathName& path : pathset) {
             if (path.exists()) {
-                currentStore_->remove(path, logAlways, logVerbose, doit_);
+                store_.remove(path, logAlways, logVerbose, doit_);
             }
         }
     }

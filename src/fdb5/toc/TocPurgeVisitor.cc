@@ -21,9 +21,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocPurgeVisitor::TocPurgeVisitor(const TocCatalogue& catalogue) :
+TocPurgeVisitor::TocPurgeVisitor(const TocCatalogue& catalogue, const Store& store) :
     PurgeVisitor(),
-    TocStatsReportVisitor(catalogue, false) {}
+    TocStatsReportVisitor(catalogue, false),
+    store_(store) {}
 
 TocPurgeVisitor::~TocPurgeVisitor() {}
 
@@ -153,7 +154,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                currentStore_->remove(path, logAlways, logVerbose, doit);
+                store_.remove(path, logAlways, logVerbose, doit);
             }
         }
     }
@@ -162,7 +163,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                currentStore_->remove(path, logAlways, logVerbose, doit);
+                store_.remove(path, logAlways, logVerbose, doit);
             }
        }
     }

@@ -27,6 +27,7 @@ class TocWipeVisitor : public WipeVisitor {
 public:
 
     TocWipeVisitor(const TocCatalogue& catalogue,
+                   const Store& store,
                    const metkit::MarsRequest& request,
                    std::ostream& out,
                    bool doit,
@@ -54,6 +55,7 @@ private: // members
 
     // What are the parameters of the wipe operation
     const TocCatalogue& catalogue_;
+    const Store& store_;
 
     metkit::MarsRequest indexRequest_;
 

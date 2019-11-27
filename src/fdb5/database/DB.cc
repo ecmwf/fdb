@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/utils/StringTools.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Field.h"
@@ -32,23 +34,24 @@ std::unique_ptr<DB> DB::buildWriter(const eckit::URI& uri, const fdb5::Config& c
 }
 
 DB::DB(const Key& key, const fdb5::Config& config, bool read) : buildByKey_(true) {
-
     catalogue_ = CatalogueFactory::instance().build(key, config, read);
-    //store_ = StoreFactory::instance().build(catalogue_->schema(), key, config);
 }
 
 DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) : buildByKey_(false) {
-
     catalogue_ = CatalogueFactory::instance().build(uri, config, read);
-    //store_ = StoreFactory::instance().build(catalogue_->schema(), uri, config);
 }
 
 Store& DB::store() const {
     if (store_ == nullptr) {
         if (buildByKey_)
             store_ = StoreFactory::instance().build(catalogue_->schema(), catalogue_->key(), catalogue_->config());
-        else
-            store_ = StoreFactory::instance().build(catalogue_->schema(), catalogue_->uri(), catalogue_->config());
+        else {
+            //auto config = catalogue_->config();
+            //std::string name = config.getString("store", "file");
+            std::string nameLowercase = "file"; //eckit::StringTools::lower(name);
+
+            store_ = StoreFactory::instance().build(catalogue_->schema(), eckit::URI(nameLowercase, catalogue_->uri()), catalogue_->config());
+        }
     }
 
     return *store_;
@@ -72,6 +75,11 @@ bool DB::selectIndex(const Key &key) {
 void DB::deselectIndex() {
     return catalogue_->deselectIndex();
 }
+
+void DB::visitEntries(EntryVisitor& visitor, bool sorted) {
+    catalogue_->visitEntries(visitor, store(), sorted);
+}
+
 
 void DB::axis(const std::string &keyword, eckit::StringSet &s) const {
     CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
@@ -98,11 +106,10 @@ eckit::DataHandle *DB::retrieve(const Key& key) const {
 void DB::archive(const Key& key, const void* data, eckit::Length length) {
 
     CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
+    ASSERT(cat);
 
-    if (cat != nullptr) {
-        const Index& idx = cat->currentIndex();
-        cat->archive(key, store().archive(idx.key(), data, length));
-    }
+    const Index& idx = cat->currentIndex();
+    cat->archive(key, store().archive(idx.key(), data, length));
 }
 
 bool DB::open() {
@@ -171,8 +178,9 @@ void DB::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) 
 
 DbStats DB::stats() const {
     CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
-    if (cat != nullptr)
-        return cat->stats();
+    ASSERT(cat);
+
+    return cat->stats();
 }
 
 void DB::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
