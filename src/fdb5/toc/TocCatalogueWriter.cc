@@ -108,7 +108,7 @@ void TocCatalogueWriter::clean() {
 
     eckit::Log::debug<LibFdb5>() << "Closing path " << directory_ << std::endl;
 
-//    flush(); // closes the TOC entries & indexes but not data files
+    flush(); // closes the TOC entries & indexes but not data files
 
     compactSubTocIndexes();
 
