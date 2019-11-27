@@ -76,12 +76,12 @@ public: // methods
     void reconsolidateIndexesAndTocs();
 
     void visitEntries(EntryVisitor& visitor, bool sorted = false);
-
     /// Used for adopting & indexing external data to the TOC dir
     void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
 
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
+
     // TODO: *Locked to be implemented by a single enquire()
     virtual bool retrieveLocked() const;
     virtual bool archiveLocked() const;
@@ -101,6 +101,7 @@ private: // members
     Store& store() const;
 
     bool buildByKey_ = false;
+    Config config_;
     std::unique_ptr<Catalogue> catalogue_;
     mutable std::unique_ptr<Store> store_ = nullptr;
 };

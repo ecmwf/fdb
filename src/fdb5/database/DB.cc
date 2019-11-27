@@ -33,24 +33,23 @@ std::unique_ptr<DB> DB::buildWriter(const eckit::URI& uri, const fdb5::Config& c
     return std::move(std::unique_ptr<DB>(new DB(uri, config, false)));
 }
 
-DB::DB(const Key& key, const fdb5::Config& config, bool read) : buildByKey_(true) {
+DB::DB(const Key& key, const fdb5::Config& config, bool read) : config_(config), buildByKey_(true) {
     catalogue_ = CatalogueFactory::instance().build(key, config, read);
 }
 
-DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) : buildByKey_(false) {
+DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) : config_(config), buildByKey_(false) {
     catalogue_ = CatalogueFactory::instance().build(uri, config, read);
 }
 
 Store& DB::store() const {
     if (store_ == nullptr) {
         if (buildByKey_)
-            store_ = StoreFactory::instance().build(catalogue_->schema(), catalogue_->key(), catalogue_->config());
+            store_ = StoreFactory::instance().build(catalogue_->schema(), catalogue_->key(), config_);
         else {
-            //auto config = catalogue_->config();
-            //std::string name = config.getString("store", "file");
-            std::string nameLowercase = "file"; //eckit::StringTools::lower(name);
+            std::string name = config_.getString("store", "file");
+            std::string nameLowercase = eckit::StringTools::lower(name);
 
-            store_ = StoreFactory::instance().build(catalogue_->schema(), eckit::URI(nameLowercase, catalogue_->uri()), catalogue_->config());
+            store_ = StoreFactory::instance().build(catalogue_->schema(), eckit::URI(nameLowercase, catalogue_->uri()), config_);
         }
     }
 

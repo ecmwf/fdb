@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include <iostream>
-
 #include "eckit/log/BigNum.h"
 
 #include "fdb5/LibFdb5.h"
@@ -72,7 +70,6 @@ TocIndex::~TocIndex() {
 }
 
 void TocIndex::encode(eckit::Stream &s) const {
-
     files_.encode(s);
     axes_.encode(s);
     s << key_;

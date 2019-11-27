@@ -45,7 +45,6 @@ void FDBReconsolidateToc::execute(const eckit::option::CmdArgs& args) {
     }
 
     // We want the directory associated with the
-
     eckit::PathName dbPath(args(0));
 
     if (!dbPath.isDir()) {
@@ -54,10 +53,6 @@ void FDBReconsolidateToc::execute(const eckit::option::CmdArgs& args) {
     }
 
     // TODO: In updated version, grab default Config() here;
-
-    //fdb5::TocDBWriter writer(dbPath, eckit::LocalConfiguration());
-    //writer.reconsolidateIndexesAndTocs();
-
     std::unique_ptr<fdb5::DB> db = fdb5::DB::buildWriter(eckit::URI("toc", dbPath), eckit::LocalConfiguration());
     db->reconsolidateIndexesAndTocs();
 }
