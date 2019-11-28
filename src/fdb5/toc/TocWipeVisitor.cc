@@ -176,8 +176,6 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
 
 void TocWipeVisitor::addMaskedPaths() {
 
-    //std::cout << indexRequest_ << std::endl;
-
     //ASSERT(indexRequest_.empty());
 
     std::set<std::pair<eckit::PathName, Offset>> metadata;
@@ -243,7 +241,9 @@ void TocWipeVisitor::calculateResidualPaths() {
         }
     }
     if (tocPath_.asString().size() && !tocPath_.exists()) tocPath_ = "";
-    if (schemaPath_.asString().size() && !schemaPath_.exists()) schemaPath_ = "";
+
+    if (schemaPath_.asString().size() && !schemaPath_.exists())
+        schemaPath_ = "";
 
     // Consider the total sets of paths
 
@@ -253,7 +253,8 @@ void TocWipeVisitor::calculateResidualPaths() {
     deletePaths.insert(indexPaths_.begin(), indexPaths_.end());
     deletePaths.insert(dataPaths_.begin(), dataPaths_.end());
     if (tocPath_.asString().size()) deletePaths.insert(tocPath_);
-    if (schemaPath_.asString().size()) deletePaths.insert(schemaPath_);
+    if (schemaPath_.asString().size())
+        deletePaths.insert(schemaPath_);
 
     std::vector<eckit::PathName> allPathsVector;
     StdDir(catalogue_.basePath()).children(allPathsVector);
@@ -261,7 +262,7 @@ void TocWipeVisitor::calculateResidualPaths() {
 
     ASSERT(residualPaths_.empty());
 
-    if (deletePaths != allPaths) {
+    if (!(deletePaths == allPaths)) {
 
         // First we check if there are paths marked to delete that don't exist. This is an error
 
