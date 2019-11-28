@@ -176,7 +176,9 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
 
 void TocWipeVisitor::addMaskedPaths() {
 
-    ASSERT(indexRequest_.empty());
+    //std::cout << indexRequest_ << std::endl;
+
+    //ASSERT(indexRequest_.empty());
 
     std::set<std::pair<eckit::PathName, Offset>> metadata;
     std::set<eckit::PathName> data;
