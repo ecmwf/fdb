@@ -39,12 +39,7 @@ off_t TocIndexLocation::offset() const {
     return offset_;
 }
 
-
-const PathName& TocIndexLocation::path() const {
-    return path_;
-}
-
-PathName TocIndexLocation::url() const
+PathName TocIndexLocation::path() const
 {
     return path_;
 }

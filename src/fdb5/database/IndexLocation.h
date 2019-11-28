@@ -28,7 +28,7 @@ public: // methods
     IndexLocation();
     virtual ~IndexLocation();
 
-    virtual eckit::PathName url() const = 0;
+    virtual eckit::PathName path() const = 0;
     virtual eckit::URI uri() const = 0;
 
     virtual IndexLocation* clone() const = 0;

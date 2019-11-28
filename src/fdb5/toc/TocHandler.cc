@@ -1204,7 +1204,7 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::PathName, Offset>>& m
 
                 std::vector<Index> indexes = h.loadIndexes();
                 for (const auto& i : indexes) {
-                    metadata.insert(std::make_pair<PathName, size_t>(i.location().url(), 0));
+                    metadata.insert(std::make_pair<eckit::PathName, size_t>(i.location().path(), 0));
                     for (const auto& dataPath : i.dataPaths()) {
                         data.insert(dataPath);
                     }

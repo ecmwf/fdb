@@ -47,6 +47,7 @@ TocCatalogueWriter::TocCatalogueWriter(const eckit::URI &uri, const fdb5::Config
 }
 
 TocCatalogueWriter::~TocCatalogueWriter() {
+    clean();
     close();
 }
 
@@ -108,7 +109,7 @@ void TocCatalogueWriter::clean() {
 
     eckit::Log::debug<LibFdb5>() << "Closing path " << directory_ << std::endl;
 
-//    flush(); // closes the TOC entries & indexes but not data files
+    flush(); // closes the TOC entries & indexes but not data files
 
     compactSubTocIndexes();
 
@@ -180,14 +181,14 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
         selectIndex(idx.key());
         idx.entries(visitor);
 
-        Log::info() << "Visiting index: " << idx.location().url() << std::endl;
+        Log::info() << "Visiting index: " << idx.location().path() << std::endl;
 
         // We need to explicitly mask indexes in the master TOC
         if (!indexInSubtoc[i]) maskable_indexes += 1;
     }
 
     // Flush the new indexes and add relevant entries!
-
+    clean();
     close();
 
     // Add masking entries for all the indexes and subtocs visited so far
@@ -201,7 +202,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
             Index& idx(readIndexes[i]);
             TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_CLEAR);
             combinedSize += roundRecord(*r, buildClearRecord(*r, idx));
-            Log::info() << "Masking index: " << idx.location().url() << std::endl;
+            Log::info() << "Masking index: " << idx.location().path() << std::endl;
         }
     }
 

@@ -135,7 +135,7 @@ bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
 
 bool TocWipeVisitor::visitIndex(const Index& index) {
 
-    eckit::PathName location(index.location().url());
+    eckit::PathName location(index.location().path());
     const auto& basePath(catalogue_.basePath());
 
     // Is this index matched by the supplied request?
