@@ -35,7 +35,7 @@ class TocStore : public Store, public TocCommon {
 public: // methods
 
     TocStore(const Schema& schema, const Key& key, const Config& config);
-    TocStore(const Schema& schema, const eckit::URI& uri, const Config& config);
+//    TocStore(const Schema& schema, const eckit::URI& uri, const Config& config);
 
     ~TocStore() override {}
 
