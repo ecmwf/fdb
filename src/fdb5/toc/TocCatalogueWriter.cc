@@ -213,7 +213,6 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
     }
 
     // And write all the TOC records in one go!
-
     appendBlock(buf, combinedSize);
 }
 

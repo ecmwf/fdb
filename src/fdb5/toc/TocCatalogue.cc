@@ -136,6 +136,18 @@ void TocCatalogue::checkUID() const {
     TocHandler::checkUID();
 }
 
+void TocCatalogue::remove(const eckit::PathName& path, std::ostream& logAlways, std::ostream& logVerbose, bool doit) {
+    if (path.isDir()) {
+        logVerbose << "rmdir: ";
+        logAlways << path << std::endl;
+        if (doit) path.rmdir(false);
+    } else {
+        logVerbose << "Unlinking: ";
+        logAlways << path << std::endl;
+        if (doit) path.unlink(false);
+    }
+}
+
 void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
     TocHandler::control(action, identifiers);
 }

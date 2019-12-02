@@ -41,6 +41,8 @@ public: // methods
     const eckit::PathName& basePath() const override;
     eckit::URI uri() const override;
 
+    static void remove(const eckit::PathName& path, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
+
 public: // constants
     static const std::string DUMP_PARAM_WALKSUBTOC;
 

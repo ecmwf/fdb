@@ -53,7 +53,7 @@ public: // methods
     const Schema& schema() const;
 
     void axis(const std::string &keyword, eckit::StringSet &s) const;
-    eckit::DataHandle *retrieve(const Key &key) const;
+    eckit::DataHandle *retrieve(const Key &key);
     void archive(const Key &key, const void *data, eckit::Length length);
 
     bool open();
@@ -98,12 +98,11 @@ private: // members
     DB(const Key &key, const fdb5::Config& config, bool read);
     DB(const eckit::URI &uri, const fdb5::Config& config, bool read);
 
-    Store& store() const;
+    Store& store();
 
-    bool buildByKey_ = false;
     Config config_;
     std::unique_ptr<Catalogue> catalogue_;
-    mutable std::unique_ptr<Store> store_ = nullptr;
+    std::unique_ptr<Store> store_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

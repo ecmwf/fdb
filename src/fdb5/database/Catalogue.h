@@ -50,6 +50,8 @@ public:
 
     const Key& key() const { return dbKey_; }
     const Config& config() const { return config_; }
+
+    std::unique_ptr<Store> buildStore(const Config& config);
     virtual const Schema& schema() const = 0;
 
     virtual bool selectIndex(const Key& key)  = 0;

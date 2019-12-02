@@ -29,32 +29,30 @@ namespace fdb5 {
 class Store {
 public:
 
-    Store(const Schema& schema) : schema_(&schema) {}
+    Store(const Schema& schema) : schema_(schema) {}
 
     virtual ~Store() {}
 
     virtual eckit::DataHandle* retrieve(Field& field, Key& remapKey) const = 0;
     virtual FieldLocation*  archive(const Key &key, const void *data, eckit::Length length) = 0;
 
-    virtual void remove(eckit::PathName path, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
+    virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const Store &x);
     virtual void print( std::ostream &out ) const = 0;
 
     virtual std::string type() const = 0;
-    void schema(const Schema& schema) {schema_ = &schema;}
     virtual bool open() = 0;
     virtual void flush() = 0;
     virtual void close() = 0;
 
-//    virtual std::string owner() const = 0;
     virtual bool exists() const = 0;
     virtual void checkUID() const = 0;
 
     virtual eckit::URI uri() const = 0;
 
 protected: // members
-    const Schema* schema_;
+    const Schema& schema_;  //<< schema is owned by catalogue which always outlives the store
 };
 
 

@@ -83,7 +83,10 @@ void TocStore::close() {
     closeDataHandles();
 }
 
-void TocStore::remove(eckit::PathName path, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
+void TocStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
+    ASSERT(uri.scheme() == "file");
+
+    eckit::PathName path = uri.path();
     if (path.isDir()) {
         logVerbose << "rmdir: ";
         logAlways << path << std::endl;

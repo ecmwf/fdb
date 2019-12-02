@@ -135,7 +135,10 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
 
     currentCatalogue_->checkUID();
 
-    const eckit::PathName directory(((TocCatalogue*) currentCatalogue_)->basePath());
+    const TocCatalogue* currentCatalogue = dynamic_cast<const TocCatalogue*>(currentCatalogue_);
+    ASSERT(currentCatalogue);
+
+    const eckit::PathName directory((currentCatalogue)->basePath());
 
     for (const auto& it : indexStats_) { // <Index, IndexStats>
 
@@ -154,7 +157,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                store_.remove(path, logAlways, logVerbose, doit);
+                store_.remove(eckit::URI("file", path), logAlways, logVerbose, doit);
             }
         }
     }
@@ -163,7 +166,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                store_.remove(path, logAlways, logVerbose, doit);
+                currentCatalogue->remove(path, logAlways, logVerbose, doit);
             }
        }
     }

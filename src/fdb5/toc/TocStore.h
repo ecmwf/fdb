@@ -56,7 +56,7 @@ protected: // methods
     eckit::DataHandle* retrieve(Field& field, Key& remapKey) const override;
     FieldLocation* archive(const Key &key, const void *data, eckit::Length length) override;
 
-    void remove(eckit::PathName path, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
+    void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
     eckit::DataHandle *getCachedHandle( const eckit::PathName &path ) const;
     void closeDataHandles();

@@ -33,16 +33,22 @@ std::unique_ptr<DB> DB::buildWriter(const eckit::URI& uri, const fdb5::Config& c
     return std::move(std::unique_ptr<DB>(new DB(uri, config, false)));
 }
 
-DB::DB(const Key& key, const fdb5::Config& config, bool read) : config_(config), buildByKey_(true) {
+DB::DB(const Key& key, const fdb5::Config& config, bool read) : config_(config) {
     catalogue_ = CatalogueFactory::instance().build(key, config, read);
 }
 
-DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) : config_(config), buildByKey_(false) {
+DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) : config_(config) {
     catalogue_ = CatalogueFactory::instance().build(uri, config, read);
 }
 
-Store& DB::store() const {
-    if (store_ == nullptr) {
+Store& DB::store() {
+    if (store_)
+        return *store_;
+
+    store_ = std::move(catalogue_->buildStore(config_));
+    return *store_;
+
+/*    if (!store_) {
         if (buildByKey_)
             store_ = StoreFactory::instance().build(catalogue_->schema(), catalogue_->key(), config_);
         else {
@@ -53,7 +59,7 @@ Store& DB::store() const {
         }
     }
 
-    return *store_;
+    return *store_;*/
 }
 
 std::string DB::dbType() const {
@@ -86,7 +92,7 @@ void DB::axis(const std::string &keyword, eckit::StringSet &s) const {
     cat->axis(keyword, s);
 }
 
-eckit::DataHandle *DB::retrieve(const Key& key) const {
+eckit::DataHandle *DB::retrieve(const Key& key) {
 
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
 
@@ -115,7 +121,6 @@ bool DB::open() {
     bool ret = catalogue_->open();
     if (!ret)
             return ret;
-    store().schema(catalogue_->schema());
     return store().open();
 }
 
