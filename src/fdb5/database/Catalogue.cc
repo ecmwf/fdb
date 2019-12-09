@@ -24,14 +24,15 @@ namespace fdb5 {
 
 std::unique_ptr<Store> Catalogue::buildStore(const Config& config) {
 
-    if (buildByKey_)
-        return std::move(StoreFactory::instance().build(schema(), key(), config));
-    else {
+    open();
+//    if (buildByKey_)
+        return StoreFactory::instance().build(schema(), key(), config);
+/*    else {
         std::string name = config_.getString("store", "file");
         std::string nameLowercase = eckit::StringTools::lower(name);
 
         return std::move(StoreFactory::instance().build(schema(), eckit::URI(nameLowercase, uri()), config));
-    }
+    }*/
 }
 
 std::ostream &operator<<(std::ostream &s, const Catalogue &x) {
