@@ -33,8 +33,8 @@ namespace fdb5 {
 TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
     Store(schema), TocCommon(TocCommon::getDirectory(key, config)) {}
 
-/*TocStore::TocStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), TocCommon(uri.path().dirName()) {}*/
+TocStore::TocStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
+    Store(schema), TocCommon(uri.path().dirName()) {}
 
 eckit::URI TocStore::uri() const {
     return URI("file", directory_);

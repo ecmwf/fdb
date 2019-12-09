@@ -65,13 +65,13 @@ public:
     StoreBuilderBase(const std::string&);
     virtual ~StoreBuilderBase();
     virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) = 0;
-//    virtual std::unique_ptr<Store> make(const Schema& schema, const eckit::URI& uri, const Config& config) = 0;
+    virtual std::unique_ptr<Store> make(const Schema& schema, const eckit::URI& uri, const Config& config) = 0;
 };
 
 template <class T>
 class StoreBuilder : public StoreBuilderBase {
     virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) { return std::unique_ptr<T>(new T(schema, key, config)); }
-//    virtual std::unique_ptr<Store> make(const Schema& schema, const eckit::URI& uri, const Config& config) { return std::unique_ptr<T>(new T(schema, uri, config)); }
+    virtual std::unique_ptr<Store> make(const Schema& schema, const eckit::URI& uri, const Config& config) { return std::unique_ptr<T>(new T(schema, uri, config)); }
 
 public:
     StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}
@@ -94,12 +94,12 @@ public:
     /// @returns         store built by specified builder
     std::unique_ptr<Store> build(const Schema& schema, const Key& key, const Config& config);
 
-/*    /// @param schema    the schema read by the catalog
+    /// @param schema    the schema read by the catalog
     /// @param uri       search uri
     /// @param config    the fdb config
     /// @returns         store built by specified builder
     std::unique_ptr<Store> build(const Schema& schema, const eckit::URI& uri, const Config& config);
-*/
+
 private:
     StoreFactory();
 

@@ -87,7 +87,7 @@ std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key,
     return (*j).second->make(schema, key, config);
 }
 
-/*std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const eckit::URI& uri, const Config& config) {
+std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const eckit::URI& uri, const Config& config) {
     std::string name = uri.scheme();
     std::string nameLowercase = eckit::StringTools::lower(name);
 
@@ -105,7 +105,7 @@ std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key,
     }
 
     return (*j).second->make(schema, uri, config);
-}*/
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
