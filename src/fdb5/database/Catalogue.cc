@@ -24,7 +24,7 @@ namespace fdb5 {
 
 std::unique_ptr<Store> Catalogue::buildStore(const Config& config) {
 
-    open();
+    loadSchema();
 //    if (buildByKey_)
         return StoreFactory::instance().build(schema(), key(), config);
 /*    else {
