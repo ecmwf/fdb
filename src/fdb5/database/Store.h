@@ -46,6 +46,7 @@ public:
     virtual void flush() = 0;
     virtual void close() = 0;
 
+//    virtual std::string owner() const = 0;
     virtual bool exists() const = 0;
     virtual void checkUID() const = 0;
 

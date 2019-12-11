@@ -157,7 +157,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                store_.remove(eckit::URI("file", path), logAlways, logVerbose, doit);
+                store_.remove(eckit::URI(store_.type(), path), logAlways, logVerbose, doit);
             }
         }
     }

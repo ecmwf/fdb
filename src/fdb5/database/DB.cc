@@ -42,24 +42,11 @@ DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) : config_(c
 }
 
 Store& DB::store() {
-    if (store_)
-        return *store_;
-
-    store_ = std::move(catalogue_->buildStore(config_));
-    return *store_;
-
-/*    if (!store_) {
-        if (buildByKey_)
-            store_ = StoreFactory::instance().build(catalogue_->schema(), catalogue_->key(), config_);
-        else {
-            std::string name = config_.getString("store", "file");
-            std::string nameLowercase = eckit::StringTools::lower(name);
-
-            store_ = StoreFactory::instance().build(catalogue_->schema(), eckit::URI(nameLowercase, catalogue_->uri()), config_);
-        }
+    if (store_ == nullptr) {
+        store_ = catalogue_->buildStore(config_);
     }
 
-    return *store_;*/
+    return *store_;
 }
 
 std::string DB::dbType() const {
@@ -121,6 +108,7 @@ bool DB::open() {
     bool ret = catalogue_->open();
     if (!ret)
             return ret;
+//    store().schema(catalogue_->schema());
     return store().open();
 }
 

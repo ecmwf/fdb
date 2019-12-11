@@ -84,7 +84,7 @@ void TocStore::close() {
 }
 
 void TocStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
-    ASSERT(uri.scheme() == "file");
+    ASSERT(uri.scheme() == type());
 
     eckit::PathName path = uri.path();
     if (path.isDir()) {

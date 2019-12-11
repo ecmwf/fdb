@@ -42,9 +42,7 @@ class Catalogue {
 public:
 
     Catalogue(const Key& key, const fdb5::Config& config)
-        : dbKey_(key), config_(config), buildByKey_(true) {}
-    Catalogue(const eckit::URI& uri, const fdb5::Config& config)
-        : dbKey_(Key()), config_(config), buildByKey_(false) {}
+        : dbKey_(key), config_(config), buildByKey_(key != Key()) {}
 
     virtual ~Catalogue() {}
 
@@ -130,8 +128,10 @@ protected: // members
 
     Key dbKey_;
     const Config& config_;
-    const bool buildByKey_;
 
+private: // members
+
+    bool buildByKey_ = false;
 };
 
 class CatalogueReader {

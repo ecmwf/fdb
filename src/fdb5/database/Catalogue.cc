@@ -12,7 +12,6 @@
 #include <map>
 
 #include "fdb5/database/Catalogue.h"
-#include "fdb5/database/Store.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
@@ -23,17 +22,15 @@
 namespace fdb5 {
 
 std::unique_ptr<Store> Catalogue::buildStore(const Config& config) {
-
-    loadSchema();
-//    if (buildByKey_)
+    if (buildByKey_)
         return StoreFactory::instance().build(schema(), key(), config);
-/*    else {
-        std::string name = config_.getString("store", "file");
-        std::string nameLowercase = eckit::StringTools::lower(name);
+    else {
+        std::string name = config.getString("store", "file");
 
-        return std::move(StoreFactory::instance().build(schema(), eckit::URI(nameLowercase, uri()), config));
-    }*/
+        return StoreFactory::instance().build(schema(), eckit::URI(name, uri()), config);
+    }
 }
+
 
 std::ostream &operator<<(std::ostream &s, const Catalogue &x) {
     x.print(s);

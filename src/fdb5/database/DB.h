@@ -102,7 +102,7 @@ private: // members
 
     Config config_;
     std::unique_ptr<Catalogue> catalogue_;
-    std::unique_ptr<Store> store_;
+    std::unique_ptr<Store> store_ = nullptr;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -386,14 +386,14 @@ void TocWipeVisitor::wipe(bool wipeAll) {
 
     // Now we want to do the actual deletion
     // n.b. We delete carefully in a order such that we can always access the DB by what is left
-        for (const PathName& path : residualPaths_) {
-            if (path.exists()) {
-                catalogue_.remove(path, logAlways, logVerbose, doit_);
-            }
+    for (const PathName& path : residualPaths_) {
+        if (path.exists()) {
+            catalogue_.remove(path, logAlways, logVerbose, doit_);
         }
+    }
 
     for (const PathName& path : dataPaths_) {
-            store_.remove(eckit::URI("file", path), logAlways, logVerbose, doit_);
+            store_.remove(eckit::URI(store_.type(), path), logAlways, logVerbose, doit_);
     }
 
     for (const std::set<PathName>& pathset : {indexPaths_,
