@@ -42,7 +42,7 @@ class Catalogue {
 public:
 
     Catalogue(const Key& key, const fdb5::Config& config)
-        : dbKey_(key), config_(config), buildByKey_(key != Key()) {}
+        : dbKey_(key), config_(config), buildByKey_(!key.empty()) {}
 
     virtual ~Catalogue() {}
 
@@ -62,7 +62,6 @@ public:
 
     virtual void hideContents() { NOTIMP; }
 //    virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) { NOTIMP; }
-    virtual void reconsolidateIndexesAndTocs() { NOTIMP; }
 
     virtual void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const = 0;
 
@@ -148,6 +147,7 @@ public:
     virtual void archive(const Key& key, const FieldLocation* fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
     virtual void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) = 0;
+    virtual void reconsolidate() = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

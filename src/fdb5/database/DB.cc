@@ -150,9 +150,10 @@ void DB::overlayDB(const DB& otherDB, const std::set<std::string>& variableKeys,
 }
 
 void DB::reconsolidateIndexesAndTocs() {
-    if (catalogue_->type() == "toc") {
-        catalogue_->reconsolidateIndexesAndTocs();
-    }
+    CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
+    ASSERT(cat);
+
+    cat->reconsolidate();
 }
 
 void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {

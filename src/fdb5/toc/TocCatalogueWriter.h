@@ -44,7 +44,7 @@ public: // methods
     /// Used for adopting & indexing external data to the TOC dir
     void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) override;
 
-    void reconsolidateIndexesAndTocs() override;
+    void reconsolidate() override { reconsolidateIndexesAndTocs(); }
 
     /// Mount an existing TocCatalogue, which has a different metadata key (within
     /// constraints) to allow on-line rebadging of data
@@ -67,6 +67,7 @@ protected: // methods
     void close() override;
 
     void archive(const Key& key, const FieldLocation* fieldLocation) override;
+    void reconsolidateIndexesAndTocs();
 
     virtual void print( std::ostream &out ) const override;
 
