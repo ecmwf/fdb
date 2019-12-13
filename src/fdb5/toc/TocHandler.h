@@ -92,7 +92,7 @@ public: // methods
 
     DbStats stats() const;
 
-    void enumerateMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
+    void enumerateMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                          std::set<eckit::PathName>& data) const;
 
     std::vector<eckit::PathName> subTocPaths() const;

@@ -232,7 +232,7 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
 
     // Exclude non-owned data if relevant
     if (!includeReferencedNonOwnedData_) {
-        if (!currentIndex_->location().path().dirName().sameAs(((TocCatalogue*) currentCatalogue_)->basePath())) return;
+        if (!currentIndex_->location().uri().path().dirName().sameAs(((TocCatalogue*) currentCatalogue_)->basePath())) return;
         if (!field.location().path().dirName().sameAs(((TocCatalogue*) currentCatalogue_)->basePath())) return;
     }
 
@@ -252,7 +252,7 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     stats.addFieldsSize(len);
 
     const eckit::PathName& dataPath  = field.location().path();
-    const eckit::PathName& indexPath = currentIndex_->location().path();
+    const eckit::PathName& indexPath = currentIndex_->location().uri().path();
 
     if (dataPath != lastDataPath_) {
 

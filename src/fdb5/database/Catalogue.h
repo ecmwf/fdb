@@ -61,7 +61,6 @@ public:
     virtual void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted = false) = 0;
 
     virtual void hideContents() { NOTIMP; }
-//    virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) { NOTIMP; }
 
     virtual void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const = 0;
 
@@ -82,10 +81,8 @@ public:
     virtual void maskIndexEntry(const Index& index) const = 0;
 
     /// For use by purge/wipe
-    virtual void allMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
-                           std::set<eckit::PathName>& data) const {}
-
-    //virtual void clean() = 0;
+    virtual void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
+                           std::set<eckit::PathName>& data) const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const Catalogue &x);
     virtual void print( std::ostream &out ) const = 0;
@@ -96,29 +93,11 @@ public:
     virtual void clean() = 0;
     virtual void close() = 0;
 
-//    virtual std::string owner() const = 0;
     virtual bool exists() const = 0;
     virtual void checkUID() const = 0;
 
     virtual eckit::URI uri() const = 0;
 
-//    friend class DB;
-
-    // from DBCommon
-/*    void checkUID() const override {NOTIMP;}
-    std::string type() const override {NOTIMP;}
-    std::string owner() const override {NOTIMP;}
-    bool exists() const override {NOTIMP;}
-
-    bool open() override {NOTIMP;}
-    void flush() override {NOTIMP;}
-    void close() override {NOTIMP;}
-
-protected: // methods
-
-    // from DBCommon
-    void print( std::ostream &out ) const override {NOTIMP;}
-*/
 protected: // methods
 
     virtual void loadSchema() = 0;

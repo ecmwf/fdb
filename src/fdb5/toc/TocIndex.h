@@ -73,7 +73,7 @@ public: // methods
 
     static std::string defaulType();
 
-    const eckit::PathName& path() const { return location_.path(); }
+    const eckit::PathName& path() const { return location_.uri().path(); }
     off_t offset() const { return location_.offset(); }
 
 private: // methods

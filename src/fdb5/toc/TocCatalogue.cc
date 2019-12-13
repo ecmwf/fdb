@@ -122,7 +122,7 @@ std::vector<Index> TocCatalogue::indexes(bool sorted) const {
     return loadIndexes(sorted);
 }
 
-void TocCatalogue::allMasked(std::set<std::pair<PathName, Offset>>& metadata,
+void TocCatalogue::allMasked(std::set<std::pair<URI, Offset>>& metadata,
                       std::set<PathName>& data) const {
     enumerateMasked(metadata, data);
 }

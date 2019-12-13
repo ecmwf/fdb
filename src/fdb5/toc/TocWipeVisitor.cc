@@ -135,7 +135,7 @@ bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
 
 bool TocWipeVisitor::visitIndex(const Index& index) {
 
-    eckit::PathName location(index.location().path());
+    eckit::PathName location(index.location().uri().path());
     const auto& basePath(catalogue_.basePath());
 
     // Is this index matched by the supplied request?
@@ -178,15 +178,16 @@ void TocWipeVisitor::addMaskedPaths() {
 
     //ASSERT(indexRequest_.empty());
 
-    std::set<std::pair<eckit::PathName, Offset>> metadata;
+    std::set<std::pair<eckit::URI, Offset>> metadata;
     std::set<eckit::PathName> data;
     catalogue_.allMasked(metadata, data);
     for (const auto& entry : metadata) {
-        if (entry.first.dirName().sameAs(catalogue_.basePath())) {
-            if (entry.first.baseName().asString().substr(0, 4) == "toc.") {
-                subtocPaths_.insert(entry.first);
+        eckit::PathName path = entry.first.path();
+        if (path.dirName().sameAs(catalogue_.basePath())) {
+            if (path.baseName().asString().substr(0, 4) == "toc.") {
+                subtocPaths_.insert(path);
             } else {
-                indexPaths_.insert(entry.first);
+                indexPaths_.insert(path);
             }
         }
     }

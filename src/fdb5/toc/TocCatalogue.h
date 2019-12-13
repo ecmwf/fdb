@@ -66,7 +66,7 @@ protected: // methods
 
     std::vector<Index> indexes(bool sorted=false) const override;
 
-    void allMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
+    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                    std::set<eckit::PathName>& data) const override;
 
     // Control access properties of the DB

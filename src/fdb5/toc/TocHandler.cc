@@ -781,14 +781,14 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
-            s << location.path().baseName();
+            s << location.uri().path().baseName();
             s << location.offset();
             s << index_.type();
 
             index_.encode(s);
             handler_.append(*r, s.position());
 
-            eckit::Log::debug<LibFdb5>() << "Write TOC_INDEX " << location.path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
+            eckit::Log::debug<LibFdb5>() << "Write TOC_INDEX " << location.uri().path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
         }
 
     private:
@@ -1182,7 +1182,7 @@ DbStats TocHandler::stats() const
 }
 
 
-void TocHandler::enumerateMasked(std::set<std::pair<eckit::PathName, Offset>>& metadata,
+void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metadata,
                                  std::set<eckit::PathName>& data) const {
 
     if (!enumeratedMaskedEntries_) {
@@ -1191,20 +1191,20 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::PathName, Offset>>& m
 
     for (const auto& entry : maskedEntries_) {
 
-        const PathName& path = entry.first;
-        if (path.exists()) {
-            metadata.insert(entry);
+        eckit::URI uri("toc", entry.first);
+        if (entry.first.exists()) {
+            metadata.insert(std::make_pair(uri, entry.second));
 
             // If this is a subtoc, then enumerate its contained indexes and data!
 
-            if (path.baseName().asString().substr(0, 4) == "toc.") {
-                TocHandler h(path, remapKey_);
+            if (uri.path().baseName().asString().substr(0, 4) == "toc.") {
+                TocHandler h(uri.path(), remapKey_);
 
                 h.enumerateMasked(metadata, data);
 
                 std::vector<Index> indexes = h.loadIndexes();
                 for (const auto& i : indexes) {
-                    metadata.insert(std::make_pair<eckit::PathName, size_t>(i.location().path(), 0));
+                    metadata.insert(std::make_pair<eckit::URI, Offset>(i.location().uri(), 0));
                     for (const auto& dataPath : i.dataPaths()) {
                         data.insert(dataPath);
                     }
@@ -1332,7 +1332,7 @@ size_t TocHandler::buildIndexRecord(TocRecord& r, const Index &index) {
 
     eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
 
-    s << tocLoc.path().baseName();
+    s << tocLoc.uri().path().baseName();
     s << tocLoc.offset();
     s << index.type();
     index.encode(s);
@@ -1352,11 +1352,11 @@ size_t TocHandler::buildClearRecord(TocRecord &r, const Index &index) {
 
             eckit::MemoryStream s(&r_.payload_[0], r_.maxPayloadSize);
 
-            s << location.path().baseName();
+            s << location.uri().path().baseName();
             s << location.offset();
             ASSERT(sz_ == 0);
             sz_ = s.position();
-            eckit::Log::debug<LibFdb5>() << "Write TOC_CLEAR " << location.path().baseName() << " - " << location.offset() << std::endl;
+            eckit::Log::debug<LibFdb5>() << "Write TOC_CLEAR " << location.uri().path().baseName() << " - " << location.offset() << std::endl;
         }
 
         size_t size() const { return sz_; }

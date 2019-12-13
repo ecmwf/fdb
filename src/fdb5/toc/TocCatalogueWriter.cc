@@ -181,7 +181,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
         selectIndex(idx.key());
         idx.entries(visitor);
 
-        Log::info() << "Visiting index: " << idx.location().path() << std::endl;
+        Log::info() << "Visiting index: " << idx.location().uri() << std::endl;
 
         // We need to explicitly mask indexes in the master TOC
         if (!indexInSubtoc[i]) maskable_indexes += 1;
@@ -202,7 +202,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
             Index& idx(readIndexes[i]);
             TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_CLEAR);
             combinedSize += roundRecord(*r, buildClearRecord(*r, idx));
-            Log::info() << "Masking index: " << idx.location().path() << std::endl;
+            Log::info() << "Masking index: " << idx.location().uri() << std::endl;
         }
     }
 
