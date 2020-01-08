@@ -191,7 +191,7 @@ private:
 RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
     config_(config),
     controlSocket_(socket),
-    dataSocket_(selectDataPort(), "", false),
+    dataSocket_(selectDataPort(), "", false, false), //< don't reuseAddress
     dataListenHostname_(config.getString("dataListenHostname", "")),
     fdb_(config),
     retrieveQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {}

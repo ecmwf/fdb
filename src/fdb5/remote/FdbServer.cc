@@ -69,8 +69,9 @@ void FdbServerBase::doRun() {
 #ifdef SO_REUSEPORT
     reusePort = true;
 #endif
+    bool reuseAddress = true;
 
-    eckit::TCPServer server(eckit::Port("fdb", port), "", reusePort);
+    eckit::TCPServer server(eckit::Port("fdb", port), "", reusePort, reuseAddress);
     server.closeExec(false);
 
     port_ = server.localPort();
