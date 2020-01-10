@@ -24,8 +24,8 @@
 #include <mutex>
 
 #include "eckit/io/Buffer.h"
-#include "eckit/net/TCPSocket.h"
 #include "eckit/net/TCPServer.h"
+#include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 
 #include "metkit/MarsRequest.h"
@@ -46,9 +46,7 @@ struct MessageHeader;
 //----------------------------------------------------------------------------------------------------------------------
 
 class RemoteHandler : private eckit::NonCopyable {
-
-public: // methods
-
+public:  // methods
     RemoteHandler(eckit::TCPSocket& socket, const Config& config = Config());
     ~RemoteHandler();
 
@@ -57,19 +55,20 @@ public: // methods
     std::string host() const { return controlSocket_.localHost(); }
     int port() const { return controlSocket_.localPort(); }
 
-private: // methods
-
+private:  // methods
     // Socket methods
 
     int selectDataPort();
     void initialiseConnections();
 
-    void controlWrite(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWrite(Message msg, uint32_t requestID, const void* payload = nullptr,
+                      uint32_t payloadLength = 0);
     void controlWrite(const void* data, size_t length);
     void socketRead(void* data, size_t length, eckit::TCPSocket& socket);
 
     // dataWrite is protected using a mutex, as we may have multiple workers.
-    void dataWrite(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void dataWrite(Message msg, uint32_t requestID, const void* payload = nullptr,
+                   uint32_t payloadLength = 0);
     void dataWriteUnsafe(const void* data, size_t length);
 
     eckit::Buffer receivePayload(const MessageHeader& hdr, eckit::TCPSocket& socket);
@@ -94,13 +93,12 @@ private: // methods
     size_t archiveThreadLoop(uint32_t id);
     void retrieveThreadLoop();
 
-private: // members
-
+private:  // members
     Config config_;
     eckit::SessionID sessionID_;
 
     eckit::TCPSocket controlSocket_;
-    eckit::TCPServer dataSocket_;
+    eckit::EphemeralTCPServer dataSocket_;
     std::string dataListenHostname_;
     std::mutex dataWriteMutex_;
 
@@ -121,7 +119,7 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
+}  // namespace remote
+}  // namespace fdb5
 
-#endif // fdb5_remote_Handler_H
+#endif  // fdb5_remote_Handler_H

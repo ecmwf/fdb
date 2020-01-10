@@ -65,13 +65,15 @@ void FdbServerBase::doRun() {
     startPortReaperThread(config);
 
     int port = config.getInt("serverPort", 7654);
-    bool reusePort = false;
-#ifdef SO_REUSEPORT
-    reusePort = true;
-#endif
-    bool reuseAddress = true;
 
-    eckit::TCPServer server(eckit::Port("fdb", port), "", reusePort, reuseAddress);
+    eckit::SocketOptions sockopts;
+    sockopts.reusePort = false;
+#ifdef SO_REUSEPORT
+    sockopts.reusePort = true;
+#endif
+    sockopts.reuseAddr = true;
+
+    eckit::TCPServer server(eckit::Port("fdb", port), "", sockopts);
     server.closeExec(false);
 
     port_ = server.localPort();
