@@ -182,7 +182,7 @@ private:
 // is a common idiom to queue _many_ requests behind each other (and then aggregate the
 // results in a MultiHandle/HandleGatherer).
 
-RemoteHandler::RemoteHandler(eckit::TCPSocket& socket, const Config& config) :
+RemoteHandler::RemoteHandler(eckit::net::TCPSocket& socket, const Config& config) :
     config_(config),
     controlSocket_(socket),
     dataSocket_(selectDataPort(), ""),
@@ -220,7 +220,7 @@ void RemoteHandler::initialiseConnections() {
 
     MemoryStream s1(payload1);
     SessionID clientSession(s1);
-    Endpoint endpointFromClient(s1);
+    net::Endpoint endpointFromClient(s1);
     LocalConfiguration clientAvailableFunctionality(Value(s1));
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
@@ -232,7 +232,7 @@ void RemoteHandler::initialiseConnections() {
     int dataport = dataSocket_.localPort();
     // std::string host = dataListenHostname_.empty() ? dataSocket_.localHost() :
     // dataListenHostname_;
-    Endpoint dataEndpoint(endpointFromClient.hostname(), dataport);
+    net::Endpoint dataEndpoint(endpointFromClient.hostname(), dataport);
 
     Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
 
@@ -418,7 +418,7 @@ void RemoteHandler::controlWrite(const void* data, size_t length) {
     }
 }
 
-void RemoteHandler::socketRead(void* data, size_t length, eckit::TCPSocket& socket) {
+void RemoteHandler::socketRead(void* data, size_t length, eckit::net::TCPSocket& socket) {
     size_t read = socket.read(data, length);
     if (length != read) {
         std::stringstream ss;
@@ -452,7 +452,7 @@ void RemoteHandler::dataWriteUnsafe(const void* data, size_t length) {
 }
 
 
-Buffer RemoteHandler::receivePayload(const MessageHeader& hdr, TCPSocket& socket) {
+Buffer RemoteHandler::receivePayload(const MessageHeader& hdr, net::TCPSocket& socket) {
     Buffer payload(hdr.payloadSize);
 
     ASSERT(hdr.payloadSize > 0);

@@ -47,7 +47,7 @@ struct MessageHeader;
 
 class RemoteHandler : private eckit::NonCopyable {
 public:  // methods
-    RemoteHandler(eckit::TCPSocket& socket, const Config& config = Config());
+    RemoteHandler(eckit::net::TCPSocket& socket, const Config& config = Config());
     ~RemoteHandler();
 
     void handle();
@@ -64,14 +64,14 @@ private:  // methods
     void controlWrite(Message msg, uint32_t requestID, const void* payload = nullptr,
                       uint32_t payloadLength = 0);
     void controlWrite(const void* data, size_t length);
-    void socketRead(void* data, size_t length, eckit::TCPSocket& socket);
+    void socketRead(void* data, size_t length, eckit::net::TCPSocket& socket);
 
     // dataWrite is protected using a mutex, as we may have multiple workers.
     void dataWrite(Message msg, uint32_t requestID, const void* payload = nullptr,
                    uint32_t payloadLength = 0);
     void dataWriteUnsafe(const void* data, size_t length);
 
-    eckit::Buffer receivePayload(const MessageHeader& hdr, eckit::TCPSocket& socket);
+    eckit::Buffer receivePayload(const MessageHeader& hdr, eckit::net::TCPSocket& socket);
 
     // Worker functionality
 
@@ -97,8 +97,8 @@ private:  // members
     Config config_;
     eckit::SessionID sessionID_;
 
-    eckit::TCPSocket controlSocket_;
-    eckit::EphemeralTCPServer dataSocket_;
+    eckit::net::TCPSocket controlSocket_;
+    eckit::net::EphemeralTCPServer dataSocket_;
     std::string dataListenHostname_;
     std::mutex dataWriteMutex_;
 

@@ -35,12 +35,13 @@
 #include "metkit/MarsRequest.h"
 
 using namespace eckit;
+using namespace eckit::net;
 using namespace fdb5::remote;
 
 
 namespace eckit {
 template<> struct Translator<Endpoint, std::string> {
-    std::string operator()(const Endpoint& e) {
+    std::string operator()(const net::Endpoint& e) {
         std::stringstream ss;
         ss << e;
         return ss.str();
@@ -66,7 +67,7 @@ public:
 
 class RemoteFDBException : public RemoteException {
 public:
-    RemoteFDBException(const std::string& msg, const Endpoint& endpoint):
+    RemoteFDBException(const std::string& msg, const net::Endpoint& endpoint):
         RemoteException(msg, eckit::Translator<Endpoint, std::string>()(endpoint)) {}
 };
 
@@ -878,7 +879,7 @@ public: // methods
 
     FDBRemoteDataHandle(uint32_t requestID,
                         RemoteFDB::MessageQueue& queue,
-                        const Endpoint& remoteEndpoint) :
+                        const net::Endpoint& remoteEndpoint) :
         requestID_(requestID),
         queue_(queue),
         remoteEndpoint_(remoteEndpoint),
@@ -980,7 +981,7 @@ private: // members
 
     uint32_t requestID_;
     RemoteFDB::MessageQueue& queue_;
-    Endpoint remoteEndpoint_;
+    net::Endpoint remoteEndpoint_;
     size_t pos_;
     Offset overallPosition_;
     Buffer currentBuffer_;
