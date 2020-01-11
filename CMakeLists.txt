@@ -20,13 +20,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit  VERSION 1.4.7 REQUIRED )
+ecbuild_use_package( PROJECT eckit  VERSION 1.6 REQUIRED )
 
 ### GRIB support
 
 ecbuild_use_package( PROJECT eccodes VERSION 2.10 REQUIRED )
 
-ecbuild_use_package( PROJECT metkit VERSION 0.17 REQUIRED ) ## metkit is now always needed
+ecbuild_use_package( PROJECT metkit VERSION 1.4 REQUIRED ) ## metkit is now always needed
 
 ### FDB remote front-end
 

@@ -46,14 +46,14 @@ class FDBForker : public eckit::ProcessControler {
 
 public: // methods
 
-    FDBForker(eckit::TCPSocket& socket, const Config& config = fdb5::Config());
+    FDBForker(eckit::net::TCPSocket& socket, const Config& config = fdb5::Config());
     virtual ~FDBForker();
 
 private: // methods
 
     virtual void run();
 
-    eckit::TCPSocket socket_;
+    eckit::net::TCPSocket socket_;
     eckit::LocalConfiguration config_;
 };
 

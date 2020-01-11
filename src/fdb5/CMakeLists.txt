@@ -32,7 +32,7 @@
 # - purge
 # Implement privilege users that can do everything
 
-ecbuild_generate_config_headers( ${INSTALL_INCLUDE_DIR}/fdb5 )
+ecbuild_generate_config_headers( DESTINATION ${INSTALL_INCLUDE_DIR}/fdb5 )
 
 configure_file( fdb5_config.h.in    fdb5_config.h   )
 configure_file( fdb5_version.h.in   fdb5_version.h  )

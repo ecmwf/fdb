@@ -128,11 +128,11 @@ private: // members
 
     eckit::SessionID sessionID_;
 
-    eckit::Endpoint controlEndpoint_;
-    eckit::Endpoint dataEndpoint_;
+    eckit::net::Endpoint controlEndpoint_;
+    eckit::net::Endpoint dataEndpoint_;
 
-    eckit::TCPClient controlClient_;
-    eckit::TCPClient dataClient_;
+    eckit::net::TCPClient controlClient_;
+    eckit::net::TCPClient dataClient_;
 
     FDBStats internalStats_;
 
