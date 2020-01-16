@@ -358,6 +358,13 @@ else()
     set( PMEM_INCLUDE_DIRS "" )
 endif()
 
+if( HAVE_RADOSFDB )
+    list( APPEND fdb5_srcs
+        rados/RadosStore.cc
+        rados/RadosStore.h
+    )
+endif()
+
 if(HAVE_FDB_REMOTE)
     list( APPEND fdb5_srcs
         api/RemoteFDB.cc

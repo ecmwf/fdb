@@ -41,6 +41,13 @@ ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
                     DESCRIPTION "Persistent memory (NVRAM) support for FDB"
                     REQUIRED_PACKAGES "PROJECT pmem" )
 
+### FDB backend in CEPH object store (using Rados)
+
+ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
+                    DEFAULT ON
+                    DESCRIPTION "Ceph/Rados support for FDB Store"
+                    REQUIRED_PACKAGES Rados )
+
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
 ### Supports Lustre parallel filesystem stripping control
 
