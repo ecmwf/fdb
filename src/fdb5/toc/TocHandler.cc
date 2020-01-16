@@ -952,6 +952,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
     std::unique_ptr<TocRecord> r(new TocRecord);
     count_ = 0;
 
+    bool debug = LibFdb5::instance().debug();
     bool walkSubTocs = true;
     bool hideSubTocEntries = true;
     bool hideClearEntries = true;
@@ -971,14 +972,14 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
 
         case TocRecord::TOC_INIT:
             dbUID_ = r->header_.uid_;
-            eckit::Log::debug<LibFdb5>() << "TocRecord TOC_INIT key is " << Key(s) << std::endl;
+            LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INIT key is " << Key(s) << std::endl;
             break;
 
         case TocRecord::TOC_INDEX:
             s >> path;
             s >> offset;
             s >> type;
-            eckit::Log::debug<LibFdb5>() << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
+            LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
             indexes.push_back( new TocIndex(s, currentDirectory(), currentDirectory() / path, offset) );
 
             if (subTocs != 0 && subTocRead_) {

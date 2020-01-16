@@ -26,7 +26,7 @@ namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDBForker::FDBForker(TCPSocket &socket, const Config &config) :
+FDBForker::FDBForker(net::TCPSocket &socket, const Config &config) :
     ProcessControler(true),
     socket_(socket),
     config_(config) {}
@@ -65,12 +65,15 @@ void FdbServerBase::doRun() {
     startPortReaperThread(config);
 
     int port = config.getInt("serverPort", 7654);
-    bool reusePort = false;
-#ifdef SO_REUSEPORT
-    reusePort = true;
-#endif
 
-    eckit::TCPServer server(eckit::Port("fdb", port), "", reusePort);
+    net::SocketOptions sockopts;
+    sockopts.reusePort(false);
+#ifdef SO_REUSEPORT
+    sockopts.reusePort(true);
+#endif
+    sockopts.reuseAddr(true);
+
+    net::TCPServer server(net::Port("fdb", port), "", sockopts);
     server.closeExec(false);
 
     port_ = server.localPort();
@@ -101,7 +104,7 @@ void FdbServerBase::startPortReaperThread(const Config &config) {
         AvailablePortList portList(startPort, count);
         portList.initialise();
 
-        reaperThread_ = std::thread([this, startPort, count]() {
+        reaperThread_ = std::thread([startPort, count]() {
 
             AvailablePortList portList(startPort, count);
 
