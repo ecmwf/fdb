@@ -149,7 +149,7 @@ void DB::overlayDB(const DB& otherDB, const std::set<std::string>& variableKeys,
     }
 }
 
-void DB::reconsolidateIndexesAndTocs() {
+void DB::reconsolidate() {
     CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
     ASSERT(cat);
 

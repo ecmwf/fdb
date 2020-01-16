@@ -68,12 +68,12 @@ public: // methods
     void deselectIndex();
 
     virtual DbStats stats() const;
+    void reconsolidate();
 
     // for ToC tools
     void hideContents();
     eckit::URI uri() const;
     void overlayDB(const DB& otherDB, const std::set<std::string>& variableKeys, bool unmount);
-    void reconsolidateIndexesAndTocs();
 
     void visitEntries(EntryVisitor& visitor, bool sorted = false);
     /// Used for adopting & indexing external data to the TOC dir
