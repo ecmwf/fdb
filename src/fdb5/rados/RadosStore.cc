@@ -9,18 +9,17 @@
  */
 
 #include "eckit/log/Timer.h"
+#include "eckit/log/Bytes.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/AIOHandle.h"
 #include "eckit/io/EmptyHandle.h"
+#include "eckit/io/rados/RadosWriteHandle.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/toc/TocFieldLocation.h"
-#include "fdb5/toc/RootManager.h"
-#include "fdb5/toc/TocPurgeVisitor.h"
-#include "fdb5/toc/TocStats.h"
+#include "fdb5/rados/RadosFieldLocation.h"
 #include "fdb5/rados/RadosStore.h"
 #include "fdb5/io/FDBFileHandle.h"
 
@@ -31,13 +30,13 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), prefix_("mars:"+key.valuesToString()) {}
+    Store(schema), directory_("mars:"+key.valuesToString()) {}
 
 RadosStore::RadosStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), prefix_("mars:"+uri.path().dirName()) {}
+    Store(schema), directory_("mars:"+uri.path().dirName()) {}
 
 eckit::URI RadosStore::uri() const {
-    return URI("rados", prefix_);
+    return URI("rados", directory_);
 }
 
 bool RadosStore::exists() const {
@@ -64,7 +63,7 @@ FieldLocation* RadosStore::archive(const Key &key, const void *data, eckit::Leng
 
     ASSERT(len == length);
 
-    return new TocFieldLocation(dataUri, position, length);
+    return new RadosFieldLocation(dataUri, position, length);
 }
 
 void RadosStore::flush() {
@@ -115,51 +114,24 @@ void RadosStore::closeDataHandles() {
     handles_.clear();
 }
 
-
-LustreStripe RadosStore::stripeDataLustreSettings() {
-
-    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB_DATA_LUSTRE_STRIPE_COUNT", 8);
-    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
-
-    return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
-}
-
 eckit::DataHandle *RadosStore::createFileHandle(const eckit::PathName &path) {
 
-    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
+//    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
 
-    if(stripeLustre()) {
-
-        eckit::Log::debug<LibFdb5>() << "Creating LustreFileHandle<FDBFileHandle> to " << path
-                                     << " buffer size " << sizeBuffer
-                                     << std::endl;
-
-        return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeDataLustreSettings());
-    }
-
-    eckit::Log::debug<LibFdb5>() << "Creating FDBFileHandle to " << path
-                                 << " with buffer of " << eckit::Bytes(sizeBuffer)
+    eckit::Log::debug<LibFdb5>() << "Creating RadosWriteHandle to " << path
+//                                 << " with buffer of " << eckit::Bytes(sizeBuffer)
                                  << std::endl;
 
-    return new FDBFileHandle(path, sizeBuffer);
+    return new RadosWriteHandle(path, 0);
 }
 
 eckit::DataHandle *RadosStore::createAsyncHandle(const eckit::PathName &path) {
+    NOTIMP;
 
-    static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
+/*    static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
     static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
 
-    if(stripeLustre()) {
-
-        eckit::Log::debug<LibFdb5>() << "Creating LustreFileHandle<AIOHandle> to " << path
-                                     << " with " << nbBuffers
-                                     << " buffer each with " << eckit::Bytes(sizeBuffer)
-                                     << std::endl;
-
-        return new LustreFileHandle<eckit::AIOHandle>(path, nbBuffers, sizeBuffer, stripeDataLustreSettings());
-    }
-
-    return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);
+    return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);*/
 }
 
 eckit::DataHandle *RadosStore::createDataHandle(const eckit::PathName &path) {

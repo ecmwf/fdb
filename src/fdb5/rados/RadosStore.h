@@ -64,8 +64,6 @@ protected: // methods
     eckit::PathName getDataPath(const Key &key);
     void flushDataHandles();
 
-    static LustreStripe stripeDataLustreSettings();
-
     void print( std::ostream &out ) const override;
 
 private: // types
@@ -78,7 +76,9 @@ private: // members
     HandleStore handles_;    ///< stores the DataHandles being used by the Session
 
     PathStore   dataPaths_;
-    std::string prefix_;
+    eckit::PathName directory_;
+
+    mutable bool dirty_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

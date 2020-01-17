@@ -360,6 +360,8 @@ endif()
 
 if( HAVE_RADOSFDB )
     list( APPEND fdb5_srcs
+        rados/RadosFieldLocation.cc
+        rados/RadosFieldLocation.h
         rados/RadosStore.cc
         rados/RadosStore.h
     )
