@@ -51,7 +51,7 @@ public: // methods
     FieldLocation& operator=(const FieldLocation&) = delete;
 
     const eckit::URI& uri() const { return uri_; }
-    eckit::PathName path() const { return eckit::PathName(uri_.name()); }
+    eckit::PathName path() const { return uri_.path(); }
     eckit::Offset offset() const;
     eckit::Length length() const;
 
@@ -103,12 +103,16 @@ private: // friends
         FieldLocationBuilderBase(const std::string &);
         virtual ~FieldLocationBuilderBase();
         virtual FieldLocation* make(const eckit::URI &uri) = 0;
+        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length) = 0;
     };
 
     template< class T>
     class FieldLocationBuilder : public FieldLocationBuilderBase {
         virtual FieldLocation* make(const eckit::URI &uri) {
             return new T(uri);
+        }
+        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
+            return new T(uri, offset, length);
         }
     public:
         FieldLocationBuilder(const std::string &name) : FieldLocationBuilderBase(name) {}
@@ -128,6 +132,7 @@ private: // friends
 
         /// @returns a specialized FieldLocation built by specified builder
         FieldLocation* build(const std::string &, const eckit::URI &);
+        FieldLocation* build(const std::string &, const eckit::URI &, eckit::Offset offset, eckit::Length length);
 
     private:
 

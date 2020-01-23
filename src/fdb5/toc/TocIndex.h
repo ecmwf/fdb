@@ -79,7 +79,7 @@ public: // methods
 private: // methods
 
     const IndexLocation& location() const override { return location_; }
-    const std::vector<eckit::PathName> dataPaths() const override;
+    const std::vector<eckit::URI> dataPaths() const override;
 
     bool dirty() const override;
 

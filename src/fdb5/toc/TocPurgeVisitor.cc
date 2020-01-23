@@ -31,7 +31,7 @@ TocPurgeVisitor::~TocPurgeVisitor() {}
 bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 
     std::set<std::pair<URI, Offset>> metadata;
-    std::set<PathName> data;
+    std::set<URI> data;
 
     catalogue.allMasked(metadata, data);
 
@@ -43,8 +43,8 @@ bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& sto
     }
 
     for (const auto& path : data) {
-        allDataFiles_.insert(path);
-        dataUsage_[path] += 0;
+        allDataFiles_.insert(path.path());
+        dataUsage_[path.path()] += 0;
     }
 
     return true;

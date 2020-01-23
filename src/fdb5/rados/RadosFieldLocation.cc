@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/io/rados/RadosReadHandle.h"
 #include "fdb5/rados/RadosFieldLocation.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/io/SingleGribMungePartFileHandle.h"
@@ -22,19 +23,22 @@ namespace fdb5 {
 //RadosFieldLocation::RadosFieldLocation() {}
 
 RadosFieldLocation::RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length ) :
-        FieldLocation(eckit::URI("file", path), offset, length) {}
+        FieldLocation(eckit::URI("rados", path), offset, length) {}
 
 RadosFieldLocation::RadosFieldLocation(const eckit::URI &uri) :
         FieldLocation(uri) {}
 
 RadosFieldLocation::RadosFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length ) :
-        FieldLocation(uri, offset, length) {}
+        FieldLocation(uri, offset, length) {
+
+//    std::cout << "RadosFieldLocation ctor " << uri << " " << offset << " " << length << std::endl;
+}
 
 RadosFieldLocation::RadosFieldLocation(const RadosFieldLocation& rhs) :
     FieldLocation(rhs.uri_) {}
 
 RadosFieldLocation::RadosFieldLocation(const FileStore &store, const FieldRef &ref) :
-    FieldLocation(eckit::URI("rados", store.get(ref.pathId())), ref.offset(), ref.length()) {}
+    FieldLocation(store.get(ref.pathId()), ref.offset(), ref.length()) {}
 
 RadosFieldLocation::RadosFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {}
@@ -44,11 +48,18 @@ std::shared_ptr<FieldLocation> RadosFieldLocation::make_shared() const {
     return std::make_shared<RadosFieldLocation>(*this);
 }
 
-eckit::DataHandle *RadosFieldLocation::dataHandle() const {
-    return path().partHandle(offset(), length());
+eckit::DataHandle* RadosFieldLocation::dataHandle() const {
+    eckit::RadosReadHandle* g = new eckit::RadosReadHandle(uri_.name(), offset(), length());
+//    std::cout << uri_.path() << "====> " << *g << std::endl;
+
+
+//    std::cout << "Size is " << g->openForRead() << std::endl;
+    return g;
+//    return path().partHandle(offset(), length());
 }
 
 eckit::DataHandle *RadosFieldLocation::dataHandle(const Key& remapKey) const {
+    std::cout << " RadosFieldLocation::dataHandle(remapKey) " << std::endl;
     return new SingleGribMungePartFileHandle(path(), offset(), length(), remapKey);
 }
 

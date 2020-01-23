@@ -35,7 +35,7 @@ TocFieldLocation::TocFieldLocation(const TocFieldLocation& rhs) :
     FieldLocation(rhs.uri_) {}
 
 TocFieldLocation::TocFieldLocation(const FileStore &store, const FieldRef &ref) :
-    FieldLocation(eckit::URI(TocEngine::typeName(), store.get(ref.pathId())), ref.offset(), ref.length()) {}
+    FieldLocation(store.get(ref.pathId()), ref.offset(), ref.length()) {}
 
 TocFieldLocation::TocFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {}

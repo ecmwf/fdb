@@ -82,7 +82,7 @@ public:
 
     /// For use by purge/wipe
     virtual void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                           std::set<eckit::PathName>& data) const = 0;
+                           std::set<eckit::URI>& data) const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const Catalogue &x);
     virtual void print( std::ostream &out ) const = 0;

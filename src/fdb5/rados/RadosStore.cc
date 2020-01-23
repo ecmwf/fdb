@@ -44,6 +44,8 @@ bool RadosStore::exists() const {
 }
 
 eckit::DataHandle* RadosStore::retrieve(Field& field, Key& remapKey) const {
+    //std::cout << "trying to read from " << field.location().uri() << std::endl;
+
     return remapKey.empty() ?
         field.dataHandle() :
         field.dataHandle(remapKey);
@@ -153,7 +155,7 @@ eckit::DataHandle& RadosStore::getDataHandle( const eckit::PathName &path ) {
         dh = createDataHandle(path);
         ASSERT(dh);
         handles_[path] = dh;
-        dh->openForAppend(0);
+        dh->openForWrite(0);
     }
     return *dh;
 }
