@@ -221,7 +221,7 @@ void RemoteHandler::initialiseConnections() {
     MemoryStream s1(payload1);
     SessionID clientSession(s1);
     net::Endpoint endpointFromClient(s1);
-    LocalConfiguration clientAvailableFunctionality(Value(s1));
+    LocalConfiguration clientAvailableFunctionality(s1);
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
     // n.b. FDB-192: we use the host communicated from the client endpoint. This
