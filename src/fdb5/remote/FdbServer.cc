@@ -66,14 +66,7 @@ void FdbServerBase::doRun() {
 
     int port = config.getInt("serverPort", 7654);
 
-    net::SocketOptions sockopts;
-    sockopts.reusePort(false);
-#ifdef SO_REUSEPORT
-    sockopts.reusePort(true);
-#endif
-    sockopts.reuseAddr(true);
-
-    net::TCPServer server(net::Port("fdb", port), "", sockopts);
+    net::TCPServer server(net::Port("fdb", port), net::SocketOptions::server().reusePort(true));
     server.closeExec(false);
 
     port_ = server.localPort();
