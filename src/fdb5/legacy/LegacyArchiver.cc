@@ -62,8 +62,7 @@ eckit::LocalConfiguration tweakedConfig(const eckit::Configuration& dbConfig) {
             return cfg;
         }
     }
-
-    return dbConfig;
+    return eckit::LocalConfiguration(dbConfig);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
