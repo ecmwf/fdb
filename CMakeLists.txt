@@ -72,7 +72,7 @@ ecbuild_add_option( FEATURE BUILD_TOOLS
                     DESCRIPTION "Build the command line tools" )
 
 ecbuild_add_option( FEATURE FDB_TOOLS
-                    DEFAULT ${HAVE_BUILD_TOOLS}
+                    DEFAULT ON
                     DESCRIPTION "Build the command line FDB tools" )
 
 ### find thread library ( preferably pthreads )
