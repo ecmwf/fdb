@@ -74,8 +74,18 @@ ecbuild_add_option( FEATURE SANDBOX
 
 ### build the tools
 
-ecbuild_add_option( FEATURE FDB_TOOLS
+ecbuild_add_option( FEATURE BUILD_TOOLS
                     DEFAULT ON
+                    DESCRIPTION "Build the command line tools" )
+
+if(HAVE_BUILD_TOOLS)
+    set(_default_fdb_tools ON)
+else()
+    set(_default_fdb_tools OFF)
+endif()
+
+ecbuild_add_option( FEATURE FDB_TOOLS
+                    DEFAULT ${_default_fdb_tools}
                     DESCRIPTION "Build the command line FDB tools" )
 
 ### find thread library ( preferably pthreads )
