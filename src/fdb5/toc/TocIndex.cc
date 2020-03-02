@@ -84,7 +84,9 @@ bool TocIndex::get(const Key &key, Field &field) const {
 
     bool found = btree_->get(key.valuesToString(), ref);
     if ( found ) {
-        field = Field(TocFieldLocation(files_, ref), ref.details());
+        const eckit::URI& uri = files_.get(ref.pathId());
+        FieldLocation* fl =FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length());
+        field = Field(*fl, ref.details());
         // field.path_     = files_.get( ref.pathId_ );
         // field.offset_   = ref.offset_;
         // field.length_   = ref.length_;
@@ -189,7 +191,7 @@ std::string TocIndex::defaulType() {
     return BTreeIndex::defaulType();
 }
 
-const std::vector<eckit::PathName> TocIndex::dataPaths() const {
+const std::vector<eckit::URI> TocIndex::dataPaths() const {
     return files_.paths();
 }
 

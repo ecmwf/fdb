@@ -1184,7 +1184,7 @@ DbStats TocHandler::stats() const
 
 
 void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metadata,
-                                 std::set<eckit::PathName>& data) const {
+                                 std::set<eckit::URI>& data) const {
 
     if (!enumeratedMaskedEntries_) {
         populateMaskedEntriesList();

@@ -34,7 +34,7 @@ FieldRefLocation::FieldRefLocation(FileStore &store, const Field& field) {
 
     const FieldLocation& loc = field.location();
 
-    pathId_ = store.insert(eckit::PathName(loc.uri().path()));
+    pathId_ = store.insert(loc.uri());
     length_ = loc.length();
 
     const FieldLocation* tocfloc = FieldLocationFactory::instance().build("file", loc.uri());

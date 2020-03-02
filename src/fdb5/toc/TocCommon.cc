@@ -92,14 +92,14 @@ class FdbFileURIManager : public eckit::URIManager {
     virtual bool query() override { return true; }
     virtual bool fragment() override { return true; }
 
-    virtual bool exists(const eckit::URI& f) override { return eckit::PathName(f.name()).exists(); }
+    virtual bool exists(const eckit::URI& f) override { return f.path().exists(); }
 
-    virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return eckit::PathName(f.name()).fileHandle(); }
+    virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
 
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return eckit::PathName(f.name()).fileHandle(); }
+    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
 
     virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
-        return eckit::PathName(f.name()).partHandle(ol, ll);
+        return f.path().partHandle(ol, ll);
     }
 
     virtual std::string asString(const eckit::URI& uri) const override {

@@ -68,7 +68,7 @@ void StoreFactory::list(std::ostream& out) {
 }
 
 std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key, const Config& config) {
-    std::string name = config.getString("store", "file");
+    std::string name = config.getString("store", "rados");
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);

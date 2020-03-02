@@ -162,12 +162,12 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
 
     // Enumerate data files.
 
-    std::vector<eckit::PathName> indexDataPaths(index.dataPaths());
-    for (const eckit::PathName& path : indexDataPaths) {
-        if (include && path.dirName().sameAs(basePath)) {
-            dataPaths_.insert(path);
+    std::vector<eckit::URI> indexDataPaths(index.dataPaths());
+    for (const eckit::URI& uri : indexDataPaths) {
+        if (include && uri.path().dirName().sameAs(basePath)) {
+            dataPaths_.insert(uri.path());
         } else {
-            safePaths_.insert(path);
+            safePaths_.insert(uri.path());
         }
     }
 
@@ -179,7 +179,7 @@ void TocWipeVisitor::addMaskedPaths() {
     //ASSERT(indexRequest_.empty());
 
     std::set<std::pair<eckit::URI, Offset>> metadata;
-    std::set<eckit::PathName> data;
+    std::set<eckit::URI> data;
     catalogue_.allMasked(metadata, data);
     for (const auto& entry : metadata) {
         eckit::PathName path = entry.first.path();
@@ -191,8 +191,8 @@ void TocWipeVisitor::addMaskedPaths() {
             }
         }
     }
-    for (const auto& path : data) {
-        if (path.dirName().sameAs(catalogue_.basePath())) dataPaths_.insert(path);
+    for (const auto& uri : data) {
+        if (uri.path().dirName().sameAs(catalogue_.basePath())) dataPaths_.insert(uri.path());
     }
 }
 

@@ -71,6 +71,25 @@ FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit:
     return (*j).second->make(uri);
 }
 
+FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
+
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+
+    auto j = builders_.find(name);
+
+    eckit::Log::debug() << "Looking for FieldLocationBuilder [" << name << "]" << std::endl;
+
+    if (j == builders_.end()) {
+        eckit::Log::error() << "No FieldLocationBuilder for [" << name << "]" << std::endl;
+        eckit::Log::error() << "FieldLocationBuilders are:" << std::endl;
+        for (j = builders_.begin(); j != builders_.end(); ++j)
+            eckit::Log::error() << "   " << (*j).first << std::endl;
+        throw eckit::SeriousBug(std::string("No FieldLocationBuilder called ") + name);
+    }
+
+    return (*j).second->make(uri, offset, length);
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 FieldLocationBuilderBase::FieldLocationBuilderBase(const std::string& name) : name_(name) {
