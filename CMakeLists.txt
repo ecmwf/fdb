@@ -20,7 +20,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit  VERSION 1.6 REQUIRED )
+ecbuild_use_package( PROJECT eckit  VERSION 1.7 REQUIRED )
 
 ### GRIB support
 
@@ -67,8 +67,18 @@ ecbuild_add_option( FEATURE SANDBOX
 
 ### build the tools
 
-ecbuild_add_option( FEATURE FDB_TOOLS
+ecbuild_add_option( FEATURE BUILD_TOOLS
                     DEFAULT ON
+                    DESCRIPTION "Build the command line tools" )
+
+if(HAVE_BUILD_TOOLS)
+    set(_default_fdb_tools ON)
+else()
+    set(_default_fdb_tools OFF)
+endif()
+
+ecbuild_add_option( FEATURE FDB_TOOLS
+                    DEFAULT ${_default_fdb_tools}
                     DESCRIPTION "Build the command line FDB tools" )
 
 ### find thread library ( preferably pthreads )

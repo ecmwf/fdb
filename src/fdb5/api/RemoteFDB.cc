@@ -212,7 +212,7 @@ SessionID RemoteFDB::verifyServerStartupResponse() {
     SessionID clientSession(s);
     SessionID serverSession(s);
     Endpoint dataEndpoint(s);
-    LocalConfiguration serverFunctionality(Value(s));
+    LocalConfiguration serverFunctionality(s);
 
     dataEndpoint_ = dataEndpoint;
 

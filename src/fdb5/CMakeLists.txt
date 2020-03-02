@@ -406,7 +406,7 @@ ecbuild_add_library(
         ${LUSTREAPI_LIBRARIES}
 )
 
-if(HAVE_FDB_TOOLS)
+if(HAVE_FDB_BUILD_TOOLS)
 
   list( APPEND fdb5_scripts fdb fdb-which )
 
@@ -444,7 +444,7 @@ endif()
 foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
-                          CONDITION HAVE_FDB_TOOLS
+                          CONDITION HAVE_FDB_BUILD_TOOLS
                           SOURCES   tools/${_tool}.cc
                           INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
                           LIBS      fdb5 )
@@ -453,25 +453,25 @@ endforeach()
 
 
 ecbuild_add_executable( TARGET    grib2fdb5
-                        CONDITION HAVE_FDB_TOOLS
+                        CONDITION HAVE_FDB_BUILD_TOOLS
                         SOURCES   compat/grib2fdb5.cc
                         INCLUDES  ${ECCODES_INCLUDE_DIRS} # Please don't remove me, I am needed
                         LIBS      fdb5 )
 
 ecbuild_add_executable(
-        CONDITION HAVE_FDB_TOOLS AND HAVE_FDB_REMOTE
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_FDB_REMOTE
         TARGET fdb-monitor
         SOURCES remote/fdb-monitor.cc
         LIBS eckit eckit_cmd )
 
 ecbuild_add_executable(
-        CONDITION HAVE_FDB_TOOLS AND HAVE_FDB_REMOTE
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_FDB_REMOTE
         TARGET fdb-server
         SOURCES
             remote/fdb-server.cc
         LIBS fdb5 )
 
-if ( HAVE_FDB_TOOLS )
+if ( HAVE_FDB_BUILD_TOOLS )
     target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
     target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
 endif()
