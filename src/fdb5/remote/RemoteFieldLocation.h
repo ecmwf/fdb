@@ -32,6 +32,8 @@ class RemoteFieldLocation : public FieldLocation {
 public:
 
     RemoteFieldLocation(const FieldLocation& internal, const std::string& hostname, int port);
+    RemoteFieldLocation(const eckit::URI &uri);
+    RemoteFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length);
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
 
