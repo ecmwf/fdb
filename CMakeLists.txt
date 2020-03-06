@@ -84,7 +84,7 @@ else()
     set(_default_fdb_tools OFF)
 endif()
 
-ecbuild_add_option( FEATURE FDB_TOOLS
+ecbuild_add_option( FEATURE FDB_BUILD_TOOLS
                     DEFAULT ${_default_fdb_tools}
                     DESCRIPTION "Build the command line FDB tools" )
 
