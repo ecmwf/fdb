@@ -27,16 +27,17 @@ namespace remote {
 
 
 RemoteFieldLocation::RemoteFieldLocation(const FieldLocation& internal, const std::string& hostname, int port) :
-    FieldLocation(eckit::URI("fdb", internal.uri(), hostname, port)) {}
-
-RemoteFieldLocation::RemoteFieldLocation(const eckit::URI &uri) : FieldLocation(uri) {
-    // internal_.reset(FieldLocationFactory::instance().build(uri.scheme(), uri));
-    // should we forbid this constructor ?
+    FieldLocation(eckit::URI("fdb", internal.uri(), hostname, port)) {
+    uri_.query("scheme", internal.uri().scheme());
 }
 
-RemoteFieldLocation::RemoteFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length) : FieldLocation(uri, offset, length) {
-    // internal_.reset(FieldLocationFactory::instance().build(uri.scheme(), uri, offset, length));
-    // should we forbid this constructor ?
+RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) : FieldLocation(eckit::URI("fdb", uri)) {
+    uri_.query("scheme", uri.scheme());
+}
+
+RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length) :
+    FieldLocation(eckit::URI("fdb", uri), offset, length) {
+    uri_.query("scheme", uri.scheme());
 }
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :
