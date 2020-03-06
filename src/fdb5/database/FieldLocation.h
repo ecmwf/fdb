@@ -35,12 +35,11 @@ namespace fdb5 {
 class FieldLocationVisitor;
 class Key;
 
-
 class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
 
 public: // methods
 
-    FieldLocation();
+    FieldLocation() {}
     FieldLocation(const eckit::URI &uri);
     FieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length);
     FieldLocation(eckit::Stream&);
