@@ -570,7 +570,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
 }
 
 
-eckit::PathName RootManager::directory(const Key& key) {
+eckit::PathName RootManager::directory(const Key& key, bool store) {
 
     PathName dbpath = dbPathName(key);
 
@@ -579,6 +579,9 @@ eckit::PathName RootManager::directory(const Key& key) {
     // override root location for testing purposes only
 
     static std::string fdbRootDirectory = eckit::Resource<std::string>("fdbRootDirectory;$FDB_ROOT_DIRECTORY", "");
+    if (store) {
+        fdbRootDirectory = eckit::Resource<std::string>("fdbStoreRootDirectory;$FDB_STORE_ROOT_DIRECTORY", "");
+    }
 
     if(!fdbRootDirectory.empty()) {
         return fdbRootDirectory + "/" + dbpath;

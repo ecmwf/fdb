@@ -19,10 +19,10 @@ using namespace eckit;
 
 namespace fdb5 {
 
-::eckit::ClassSpec TocDbStats::classSpec_ = {&FieldLocation::classSpec(), "TocDbStats",};
+::eckit::ClassSpec TocDbStats::classSpec_ = {&DbStatsContent::classSpec(), "TocDbStats",};
 ::eckit::Reanimator<TocDbStats> TocDbStats::reanimator_;
 
-::eckit::ClassSpec TocIndexStats::classSpec_ = {&FieldLocation::classSpec(), "TocIndexStats",};
+::eckit::ClassSpec TocIndexStats::classSpec_ = {&IndexStatsContent::classSpec(), "TocIndexStats",};
 ::eckit::Reanimator<TocIndexStats> TocIndexStats::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------

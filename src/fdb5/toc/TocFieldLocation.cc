@@ -65,6 +65,12 @@ eckit::URI TocFieldLocation::uri(const eckit::PathName &path) {
     return eckit::URI("file", path);
 }
 
+void TocFieldLocation::encode(eckit::Stream& s) const {
+    LOG_DEBUG(LibFdb5::instance().debug(), LibFdb5) << "TocFieldLocation encode URI " << uri_.asRawString() << std::endl;
+
+    FieldLocation::encode(s);
+}
+
 static FieldLocationBuilder<TocFieldLocation> builder("file");
 
 //----------------------------------------------------------------------------------------------------------------------

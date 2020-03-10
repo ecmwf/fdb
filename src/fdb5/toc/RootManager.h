@@ -38,7 +38,7 @@ public: // methods
     RootManager(const Config& config=Config());
 
     /// Uniquely selects a directory where the Key will be put or already exists
-    eckit::PathName directory(const Key &key);
+    eckit::PathName directory(const Key &key, bool store = false);
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> allRoots(const Key& key);

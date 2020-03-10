@@ -31,9 +31,9 @@ eckit::PathName TocCommon::findRealPath(const eckit::PathName& path) {
     return findRealPath(path.dirName()) / path.baseName();
 }
 
-eckit::PathName TocCommon::getDirectory(const Key& key, const Config& config) {
+eckit::PathName TocCommon::getDirectory(const Key& key, const Config& config, bool store) {
 
-    return RootManager(config).directory(key);
+    return RootManager(config).directory(key, store);
 }
 
 TocCommon::TocCommon(const eckit::PathName& directory) :
@@ -88,6 +88,7 @@ bool TocCommon::stripeLustre() {
     return fdb5LustreapiSupported() && handleLustreStripe;
 }
 
+/*
 class FdbFileURIManager : public eckit::URIManager {
     virtual bool query() override { return true; }
     virtual bool fragment() override { return true; }
@@ -117,5 +118,5 @@ public:
 };
 
 static FdbFileURIManager manager_fdb_file("fdbfile");
-
+*/
 }
