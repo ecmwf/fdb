@@ -86,7 +86,7 @@ Config Config::expandConfig() const {
     // If fdb_home is explicitly set in the config then use that not from
     // the Resource (as it has been overridden, or this is a _nested_ config).
 
-    std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "");
+    std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "server.yaml");
     if (!config_path.empty() && !has("fdb_home")) {
         actual_path = config_path;
         if (!actual_path.exists()) return *this;

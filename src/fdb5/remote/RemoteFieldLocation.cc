@@ -16,6 +16,7 @@
 #include "fdb5/remote/RemoteFieldLocation.h"
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URIManager.h"
 
 namespace fdb5 {
 namespace remote {
@@ -91,6 +92,37 @@ void RemoteFieldLocation::dump(std::ostream& out) const
 static FieldLocationBuilder<RemoteFieldLocation> builder("fdb");
 
 //----------------------------------------------------------------------------------------------------------------------
+
+
+class FdbURIManager : public eckit::URIManager {
+    virtual bool query() override { return true; }
+    virtual bool fragment() override { return true; }
+
+    virtual bool exists(const eckit::URI& f) override { return f.path().exists(); }
+
+    virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
+
+    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
+
+    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
+        return f.path().partHandle(ol, ll);
+    }
+
+    virtual std::string asString(const eckit::URI& uri) const override {
+        std::string q = uri.query();
+        if (!q.empty())
+            q = "?" + q;
+        std::string f = uri.fragment();
+        if (!f.empty())
+            f = "#" + f;
+
+        return uri.name() + q + f;
+    }
+public:
+    FdbURIManager(const std::string& name) : eckit::URIManager(name) {}
+};
+
+static FdbURIManager manager_fdb_file("fdb");
 
 } // namespace remote
 } // namespace fdb5

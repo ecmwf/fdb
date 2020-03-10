@@ -57,7 +57,7 @@ public: // For Streamable
 protected: // For Streamable
 
     virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-    //virtual void encode(eckit::Stream&) const override;
+    virtual void encode(eckit::Stream&) const override;
 
     static eckit::ClassSpec                    classSpec_;
     static eckit::Reanimator<TocFieldLocation> reanimator_;
