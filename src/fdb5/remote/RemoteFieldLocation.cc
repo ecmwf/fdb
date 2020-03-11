@@ -28,17 +28,16 @@ namespace remote {
 
 
 RemoteFieldLocation::RemoteFieldLocation(const FieldLocation& internal, const std::string& hostname, int port) :
-    FieldLocation(eckit::URI("fdb", internal.uri(), hostname, port)) {
-    uri_.query("scheme", internal.uri().scheme());
-}
+    FieldLocation(eckit::URI("fdb", hostname, port)),
+    internal_(internal.make_shared()) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) : FieldLocation(eckit::URI("fdb", uri)) {
-    uri_.query("scheme", uri.scheme());
+    //uri_.query("scheme", uri.scheme());
 }
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length) :
     FieldLocation(eckit::URI("fdb", uri), offset, length) {
-    uri_.query("scheme", uri.scheme());
+    //uri_.query("scheme", uri.scheme());
 }
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :
@@ -84,6 +83,7 @@ void RemoteFieldLocation::encode(eckit::Stream& s) const {
 
 void RemoteFieldLocation::dump(std::ostream& out) const
 {
+    out << "  uri: " << uri_ << std::endl;
 //    out << "  hostname: " << hostname_ << std::endl;
 //    out << "  port: " << hostname_ << std::endl;
     internal_->dump(out);
@@ -95,8 +95,8 @@ static FieldLocationBuilder<RemoteFieldLocation> builder("fdb");
 
 
 class FdbURIManager : public eckit::URIManager {
-    virtual bool query() override { return true; }
-    virtual bool fragment() override { return true; }
+    virtual bool query() override { return false; }
+    virtual bool fragment() override { return false; }
 
     virtual bool exists(const eckit::URI& f) override { return f.path().exists(); }
 
