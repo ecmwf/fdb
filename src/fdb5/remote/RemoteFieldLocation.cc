@@ -31,14 +31,11 @@ RemoteFieldLocation::RemoteFieldLocation(const FieldLocation& internal, const st
     FieldLocation(eckit::URI("fdb", hostname, port)),
     internal_(internal.make_shared()) {}
 
-RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) : FieldLocation(eckit::URI("fdb", uri)) {
-    //uri_.query("scheme", uri.scheme());
-}
+RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
+    FieldLocation(eckit::URI("fdb", uri)) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length) :
-    FieldLocation(eckit::URI("fdb", uri), offset, length) {
-    //uri_.query("scheme", uri.scheme());
-}
+    FieldLocation(eckit::URI("fdb", uri), offset, length) {}
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {
@@ -62,16 +59,12 @@ eckit::DataHandle* RemoteFieldLocation::dataHandle(const Key& remapKey) const {
     return internal_->dataHandle(remapKey);
 }
 
-/*eckit::PathName RemoteFieldLocation::url() const {
-    return internal_->url();
-}*/
-
 void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
 }
 
 void RemoteFieldLocation::print(std::ostream& out) const {
-//    out << "[" << hostname_ << ":" << port_ << "]";
+    out << "[" << uri_ << "]";
     out << *internal_;
 }
 
@@ -81,18 +74,14 @@ void RemoteFieldLocation::encode(eckit::Stream& s) const {
     s << *internal_;
 }
 
-void RemoteFieldLocation::dump(std::ostream& out) const
-{
+void RemoteFieldLocation::dump(std::ostream& out) const {
     out << "  uri: " << uri_ << std::endl;
-//    out << "  hostname: " << hostname_ << std::endl;
-//    out << "  port: " << hostname_ << std::endl;
     internal_->dump(out);
 }
 
 static FieldLocationBuilder<RemoteFieldLocation> builder("fdb");
 
 //----------------------------------------------------------------------------------------------------------------------
-
 
 class FdbURIManager : public eckit::URIManager {
     virtual bool query() override { return false; }

@@ -30,7 +30,6 @@ namespace fdb5 {
 class TocFieldLocation : public FieldLocation {
 public:
 
-    //TocFieldLocation();
     TocFieldLocation(const TocFieldLocation& rhs);
     TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length);
     TocFieldLocation(const eckit::URI &uri);
@@ -38,13 +37,8 @@ public:
     TocFieldLocation(const FileStore& store, const FieldRef& ref);
     TocFieldLocation(eckit::Stream&);
 
-//    const eckit::PathName path() const { return uri_.name(); }
-//    const eckit::Offset&   offset() const { return offset_; }
-
     eckit::DataHandle* dataHandle() const override;
     eckit::DataHandle* dataHandle(const Key& remapKey) const override;
-
-    // eckit::URI uri() const override;
 
     virtual std::shared_ptr<FieldLocation> make_shared() const override;
 
@@ -64,18 +58,10 @@ protected: // For Streamable
 
 private: // methods
 
-//    void dump(std::ostream &out) const override;
-
     void print(std::ostream &out) const override;
 
     eckit::URI uri(const eckit::PathName &path);
 
-private: // members
-
-//    eckit::PathName path_;
-//    eckit::Offset offset_;
-
-    // For streamability
 };
 
 
