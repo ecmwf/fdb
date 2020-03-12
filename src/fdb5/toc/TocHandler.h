@@ -122,10 +122,7 @@ private: // methods
 
 protected: // members
 
-    //const eckit::PathName directory_;
-//    mutable uid_t dbUID_;
     mutable Key parentKey_; // Contains the key of the first TOC explored in subtoc chain
-//    long userUID_;
 
     uid_t dbUID() const override;
 
@@ -209,7 +206,6 @@ private: // members
 
     mutable bool enumeratedMaskedEntries_;
     mutable bool writeMode_;
-    //mutable bool dirty_;
 };
 
 

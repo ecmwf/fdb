@@ -30,8 +30,6 @@ RadosFieldLocation::RadosFieldLocation(const eckit::URI &uri) :
 
 RadosFieldLocation::RadosFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length ) :
         FieldLocation(uri, offset, length) {
-
-//    std::cout << "RadosFieldLocation ctor " << uri << " " << offset << " " << length << std::endl;
 }
 
 RadosFieldLocation::RadosFieldLocation(const RadosFieldLocation& rhs) :
@@ -50,16 +48,11 @@ std::shared_ptr<FieldLocation> RadosFieldLocation::make_shared() const {
 
 eckit::DataHandle* RadosFieldLocation::dataHandle() const {
     eckit::RadosReadHandle* g = new eckit::RadosReadHandle(uri_.name(), offset(), length());
-//    std::cout << uri_.path() << "====> " << *g << std::endl;
 
-
-//    std::cout << "Size is " << g->openForRead() << std::endl;
     return g;
-//    return path().partHandle(offset(), length());
 }
 
 eckit::DataHandle *RadosFieldLocation::dataHandle(const Key& remapKey) const {
-    std::cout << " RadosFieldLocation::dataHandle(remapKey) " << std::endl;
     return new SingleGribMungePartFileHandle(path(), offset(), length(), remapKey);
 }
 

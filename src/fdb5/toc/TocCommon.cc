@@ -88,35 +88,4 @@ bool TocCommon::stripeLustre() {
     return fdb5LustreapiSupported() && handleLustreStripe;
 }
 
-/*
-class FdbFileURIManager : public eckit::URIManager {
-    virtual bool query() override { return true; }
-    virtual bool fragment() override { return true; }
-
-    virtual bool exists(const eckit::URI& f) override { return f.path().exists(); }
-
-    virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
-
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return f.path().fileHandle(); }
-
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
-        return f.path().partHandle(ol, ll);
-    }
-
-    virtual std::string asString(const eckit::URI& uri) const override {
-        std::string q = uri.query();
-        if (!q.empty())
-            q = "?" + q;
-        std::string f = uri.fragment();
-        if (!f.empty())
-            f = "#" + f;
-
-        return uri.name() + q + f;
-    }
-public:
-    FdbFileURIManager(const std::string& name) : eckit::URIManager(name) {}
-};
-
-static FdbFileURIManager manager_fdb_file("fdbfile");
-*/
 }

@@ -113,11 +113,7 @@ private: // members
 
 TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     TocCommon(directory),
-//    directory_(TocCommon::findRealPath(directory)),
-//    dbUID_(-1),
-//    userUID_(::getuid()),
     tocPath_(directory_ / "toc"),
-//    schemaPath_(directory_ / "schema"),
     dbConfig_(config),
     useSubToc_(config.getBool("useSubToc", false)),
     isSubToc_(false),
@@ -126,7 +122,6 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     count_(0),
     enumeratedMaskedEntries_(false),
     writeMode_(false)
-//    dirty_(false)
 {
 
     // An override to enable using sub tocs without configurations being passed in, for ease
@@ -139,12 +134,8 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
 
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     TocCommon(path.dirName()),
-//    directory_(TocCommon::findRealPath(path.dirName())),
-//    dbUID_(-1),
     parentKey_(parentKey),
-//    userUID_(::getuid()),
     tocPath_(TocCommon::findRealPath(path)),
-//    schemaPath_(directory_ / "schema"),
     useSubToc_(false),
     isSubToc_(true),
     fd_(-1),
@@ -152,7 +143,6 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     count_(0),
     enumeratedMaskedEntries_(false),
     writeMode_(false)
-//    dirty_(false)
 {
 
     /// Are we remapping a mounted DB?
