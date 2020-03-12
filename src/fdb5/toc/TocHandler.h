@@ -187,7 +187,6 @@ private: // methods
 private: // members
 
     eckit::PathName tocPath_;
-    //eckit::PathName schemaPath_;
     Config dbConfig_;
 
     bool useSubToc_;

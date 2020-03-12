@@ -12,6 +12,7 @@
 #include <map>
 
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Manager.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
@@ -80,7 +81,7 @@ void CatalogueFactory::list(std::ostream& out) {
 }
 
 std::unique_ptr<Catalogue> CatalogueFactory::build(const Key& key, const Config& config, bool read) {
-    std::string name = config.getString("catalogue", "toc");
+    std::string name = Manager(config).engine(key);
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     nameLowercase += read ? ".reader" : ".writer";
