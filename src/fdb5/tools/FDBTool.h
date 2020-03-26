@@ -16,6 +16,8 @@
 #ifndef fdb5_FDBTool_H
 #define fdb5_FDBTool_H
 
+#include <vector>
+
 #include "eckit/runtime/Tool.h"
 #include "eckit/filesystem/PathName.h"
 
@@ -47,7 +49,7 @@ protected: // methods
 
 public: // methods
 
-    virtual void usage(const std::string &tool) const = 0;
+    virtual void usage(const std::string &tool) const;
 
 protected: // members
 
