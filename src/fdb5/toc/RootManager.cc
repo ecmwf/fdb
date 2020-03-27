@@ -490,18 +490,18 @@ std::vector<LocalConfiguration> StoreRootManager::getSpaceRoots(const LocalConfi
     return space.getSubConfigurations("storeRoots");
 }
 
-FileSpaceTable RootManager::fileSpaces(const Config& config) {
+FileSpaceTable RootManager::fileSpaces() {
 
-    if (config.has("spaces")) {
+    if (config_.has("spaces")) {
         FileSpaceTable table;
-        std::vector<LocalConfiguration> spacesConfigs(config.getSubConfigurations("spaces"));
+        std::vector<LocalConfiguration> spacesConfigs(config_.getSubConfigurations("spaces"));
         for (const auto& space : spacesConfigs) {
 
             std::string name = space.getString("name", "");
             std::vector<Root> spaceRoots;
 
             if (space.getBool("marsDisks", false)) {
-                PathName file = config.expandPath(space.getString("path", "~fdb/etc/disks/fdb"));
+                PathName file = config_.expandPath(space.getString("path", "~fdb/etc/disks/fdb"));
                 spaceRoots = parseMarsDisks(file, name);
             }
             else {
@@ -529,7 +529,7 @@ FileSpaceTable RootManager::fileSpaces(const Config& config) {
         }
         return table;
     } else {
-        return parseFileSpacesFile(config.expandPath("~fdb/"));
+        return parseFileSpacesFile(config_.expandPath("~fdb/"));
     }
 }
 
@@ -537,7 +537,6 @@ FileSpaceTable RootManager::fileSpaces(const Config& config) {
 //----------------------------------------------------------------------------------------------------------------------
 
 RootManager::RootManager(const Config& config) :
-    spacesTable_(fileSpaces(config)),
     dbPathNamers_(readDbNamers(config)),
     config_(config) {
 
@@ -587,7 +586,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
 }
 
 
-eckit::PathName RootManager::directory(const Key& key, bool store) {
+eckit::PathName RootManager::directory(const Key& key) {
 
     PathName dbpath = dbPathName(key);
 
@@ -596,9 +595,6 @@ eckit::PathName RootManager::directory(const Key& key, bool store) {
     // override root location for testing purposes only
 
     static std::string fdbRootDirectory = eckit::Resource<std::string>("fdbRootDirectory;$FDB_ROOT_DIRECTORY", "");
-    if (store) {
-        fdbRootDirectory = eckit::Resource<std::string>("fdbStoreRootDirectory;$FDB_STORE_ROOT_DIRECTORY", "");
-    }
 
     if(!fdbRootDirectory.empty()) {
         return fdbRootDirectory + "/" + dbpath;

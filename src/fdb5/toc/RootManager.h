@@ -41,7 +41,7 @@ public: // methods
     RootManager(const Config& config);
 
     /// Uniquely selects a directory where the Key will be put or already exists
-    eckit::PathName directory(const Key &key, bool store = false);
+    eckit::PathName directory(const Key &key);
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> allRoots(const Key& key);
@@ -57,13 +57,18 @@ public: // methods
     std::string dbPathName(const Key& key);
 
     std::vector<std::string> possibleDbPathNames(const Key& key, const char* missing);
+
 protected: // methods
-    FileSpaceTable fileSpaces(const Config& config);
+
+    virtual FileSpaceTable fileSpaces();
     virtual std::vector<eckit::LocalConfiguration> getSpaceRoots(const eckit::LocalConfiguration& space) = 0;
+
+protected: // members
+
+    std::vector<FileSpace> spacesTable_;
 
 private: // members
 
-    const std::vector<FileSpace> spacesTable_;
     const std::vector<DbPathNamer>& dbPathNamers_;
     Config config_;
 };
@@ -72,7 +77,10 @@ class CatalogueRootManager : public RootManager {
 
 public: // methods
 
-    CatalogueRootManager(const Config& config=Config()) : RootManager(config) {}
+    CatalogueRootManager(const Config& config=Config()) :
+        RootManager(config) {
+        spacesTable_ = fileSpaces();
+    }
 
 protected: // methods
 
@@ -83,7 +91,10 @@ class StoreRootManager : public RootManager {
 
 public: // methods
 
-    StoreRootManager(const Config& config=Config()) : RootManager(config) {}
+    StoreRootManager(const Config& config=Config()) :
+        RootManager(config) {
+        spacesTable_ = fileSpaces();
+    }
 
 protected: // methods
 
