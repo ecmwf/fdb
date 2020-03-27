@@ -10,40 +10,36 @@
 
 #include "fdb5/toc/FileSpace.h"
 
-#include "eckit/filesystem/FileSpaceStrategies.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/FileSpaceStrategies.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/toc/FileSpaceHandler.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/toc/FileSpaceHandler.h"
 
 using eckit::Log;
 
 namespace eckit {
-template <> struct VectorPrintSelector<fdb5::Root> { typedef VectorPrintSimple selector; };
-}
+template <>
+struct VectorPrintSelector<fdb5::Root> {
+    typedef VectorPrintSimple selector;
+};
+}  // namespace eckit
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FileSpace::FileSpace(const std::string& name,
-                     const std::string& re,
-                     const std::string& handler,
+FileSpace::FileSpace(const std::string& name, const std::string& re, const std::string& handler,
                      const std::vector<Root>& roots) :
-    name_(name),
-    handler_(handler),
-    re_(re),
-    roots_(roots) {
-}
+    name_(name), handler_(handler), re_(re), roots_(roots) {}
 
-eckit::PathName FileSpace::filesystem(const Key& key, const eckit::PathName& db) const
-{
+eckit::PathName FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
     // check that the database isn't present already
     // if it is, then return that path
 
     eckit::PathName root;
-    if(existsDB(key, db, root)) {
+    if (existsDB(key, db, root)) {
         Log::debug<LibFdb5>() << "Found FDB root for key " << key << " -> " << root << std::endl;
         return root;
     }
@@ -53,50 +49,45 @@ eckit::PathName FileSpace::filesystem(const Key& key, const eckit::PathName& db)
     return FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this);
 }
 
-std::vector<eckit::PathName> FileSpace::writable() const
-{
+std::vector<eckit::PathName> FileSpace::writable() const {
     std::vector<eckit::PathName> result;
-    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
-        if(i->exists() and i->writable()) {
+    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
+        if (i->exists() and i->writable()) {
             result.push_back(i->path());
         }
     }
     return result;
 }
 
-std::vector<eckit::PathName> FileSpace::visitable() const
-{
+std::vector<eckit::PathName> FileSpace::visitable() const {
     std::vector<eckit::PathName> result;
-    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
-        if(i->exists() and i->visit()) {
+    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
+        if (i->exists() and i->visit()) {
             result.push_back(i->path());
         }
     }
     return result;
 }
 
-void FileSpace::all(eckit::StringSet& roots) const
-{
-    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
-        if(i->exists()) {
+void FileSpace::all(eckit::StringSet& roots) const {
+    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
+        if (i->exists()) {
             roots.insert(i->path());
         }
     }
 }
 
-void FileSpace::writable(eckit::StringSet& roots) const
-{
-    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
-        if(i->exists() and i->writable()) {
+void FileSpace::writable(eckit::StringSet& roots) const {
+    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
+        if (i->exists() and i->writable()) {
             roots.insert(i->path());
         }
     }
 }
 
-void FileSpace::visitable(eckit::StringSet& roots) const
-{
-    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end() ; ++i) {
-        if(i->exists() and i->visit()) {
+void FileSpace::visitable(eckit::StringSet& roots) const {
+    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
+        if (i->exists() and i->visit()) {
             roots.insert(i->path());
         }
     }
@@ -106,38 +97,42 @@ bool FileSpace::match(const std::string& s) const {
     return re_.match(s);
 }
 
-bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& root) const
-{
+bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& root) const {
     unsigned count = 0;
 
     std::vector<eckit::PathName> visitables = visitable();
     std::string matchList;
-    for (std::vector<eckit::PathName>::const_iterator j = visitables.begin(); j != visitables.end(); ++j) {
+    for (std::vector<eckit::PathName>::const_iterator j = visitables.begin(); j != visitables.end();
+         ++j) {
         eckit::PathName fullDB = *j / db;
-        if(fullDB.exists()) {
+        if (fullDB.exists()) {
             matchList += (count == 0 ? "" : ", ") + fullDB;
-            if(!count) {
+            if (!count) {
                 root = *j;
             }
             ++count;
         }
     }
 
-    if(count <= 1) return count;
+    if (count <= 1)
+        return count;
 
     std::ostringstream msg;
     msg << "Found multiple FDB roots matching key " << key << ", roots -> [" << matchList << "]";
     throw eckit::UserError(msg.str(), Here());
 }
 
-void FileSpace::print( std::ostream &out ) const  {
-
+void FileSpace::print(std::ostream& out) const {
     out << "FileSpace("
-        << "name=" << name_
-        << ",handler=" << handler_
-        << ",regex=" << re_
-        << ",roots=" << roots_
-        <<")";
+        << "name=" << name_ << ",handler=" << handler_ << ",regex=" << re_ << ",roots=" << roots_
+        << ")";
+}
+
+std::vector<eckit::PathName> FileSpace::roots() const {
+    std::vector<eckit::PathName> result;
+    std::transform(roots_.begin(), roots_.end(), std::back_inserter(result),
+                   [](const Root& r) { return r.path(); });
+    return result;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
