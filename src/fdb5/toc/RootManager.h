@@ -15,6 +15,7 @@
 #ifndef fdb5_RootManager_H
 #define fdb5_RootManager_H
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/utils/Regex.h"
 #include "eckit/filesystem/PathName.h"
 
@@ -31,11 +32,13 @@ class DbPathNamer;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+typedef std::vector<fdb5::FileSpace> FileSpaceTable;
+
 class RootManager  {
 
 public: // methods
 
-    RootManager(const Config& config=Config());
+    RootManager(const Config& config);
 
     /// Uniquely selects a directory where the Key will be put or already exists
     eckit::PathName directory(const Key &key, bool store = false);
@@ -54,12 +57,37 @@ public: // methods
     std::string dbPathName(const Key& key);
 
     std::vector<std::string> possibleDbPathNames(const Key& key, const char* missing);
+protected: // methods
+    FileSpaceTable fileSpaces(const Config& config);
+    virtual std::vector<eckit::LocalConfiguration> getSpaceRoots(const eckit::LocalConfiguration& space) = 0;
 
 private: // members
 
     const std::vector<FileSpace> spacesTable_;
     const std::vector<DbPathNamer>& dbPathNamers_;
     Config config_;
+};
+
+class CatalogueRootManager : public RootManager {
+
+public: // methods
+
+    CatalogueRootManager(const Config& config=Config()) : RootManager(config) {}
+
+protected: // methods
+
+    std::vector<eckit::LocalConfiguration> getSpaceRoots(const eckit::LocalConfiguration& space) override;
+};
+
+class StoreRootManager : public RootManager {
+
+public: // methods
+
+    StoreRootManager(const Config& config=Config()) : RootManager(config) {}
+
+protected: // methods
+
+    std::vector<eckit::LocalConfiguration> getSpaceRoots(const eckit::LocalConfiguration& space) override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

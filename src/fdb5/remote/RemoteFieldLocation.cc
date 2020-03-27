@@ -29,13 +29,17 @@ namespace remote {
 
 RemoteFieldLocation::RemoteFieldLocation(const FieldLocation& internal, const std::string& hostname, int port) :
     FieldLocation(eckit::URI("fdb", hostname, port)),
-    internal_(internal.make_shared()) {}
+    internal_(internal.make_shared()) {
+    ASSERT(internal.uri().scheme() != "fdb");
+}
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
-    FieldLocation(eckit::URI("fdb", uri)) {}
+    FieldLocation(eckit::URI("fdb", uri)) {
+}
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length) :
-    FieldLocation(eckit::URI("fdb", uri), offset, length) {}
+    FieldLocation(eckit::URI("fdb", uri), offset, length) {
+}
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {

@@ -287,7 +287,7 @@ static const DbPathNamerTable& readDbNamers(const Config& config) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-typedef std::vector<fdb5::FileSpace> FileSpaceTable;
+
 typedef std::map<eckit::PathName, FileSpaceTable> FileSpaceMap;
 
 eckit::Mutex fileSpacesMutex;
@@ -472,8 +472,25 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
     return table;
 }
 
+std::vector<LocalConfiguration> CatalogueRootManager::getSpaceRoots(const LocalConfiguration& space) {
+    ASSERT(space.has("roots") != space.has("catalogueRoots"));
 
-static FileSpaceTable fileSpaces(const Config& config) {
+    if (space.has("roots"))
+        return space.getSubConfigurations("roots");
+
+    return space.getSubConfigurations("catalogueRoots");
+}
+
+std::vector<LocalConfiguration> StoreRootManager::getSpaceRoots(const LocalConfiguration& space) {
+    ASSERT(space.has("roots") != space.has("storeRoots"));
+
+    if (space.has("roots"))
+        return space.getSubConfigurations("roots");
+
+    return space.getSubConfigurations("storeRoots");
+}
+
+FileSpaceTable RootManager::fileSpaces(const Config& config) {
 
     if (config.has("spaces")) {
         FileSpaceTable table;
@@ -488,7 +505,7 @@ static FileSpaceTable fileSpaces(const Config& config) {
                 spaceRoots = parseMarsDisks(file, name);
             }
             else {
-                std::vector<LocalConfiguration> roots(space.getSubConfigurations("roots"));
+                std::vector<LocalConfiguration> roots = getSpaceRoots(space);
                 for (const auto& root : roots) {
                     spaceRoots.emplace_back(
                         Root(

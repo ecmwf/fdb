@@ -31,11 +31,6 @@ eckit::PathName TocCommon::findRealPath(const eckit::PathName& path) {
     return findRealPath(path.dirName()) / path.baseName();
 }
 
-eckit::PathName TocCommon::getDirectory(const Key& key, const Config& config, bool store) {
-
-    return RootManager(config).directory(key, store);
-}
-
 TocCommon::TocCommon(const eckit::PathName& directory) :
     directory_(findRealPath(directory)),
     schemaPath_(directory_ / "schema"),

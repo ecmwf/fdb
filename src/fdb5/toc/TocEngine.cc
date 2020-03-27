@@ -137,7 +137,7 @@ std::string TocEngine::dbType() const {
 
 eckit::URI TocEngine::location(const Key& key, const Config& config) const
 {
-    return URI("toc", RootManager(config).directory(key));
+    return URI("toc", CatalogueRootManager(config).directory(key));
 }
 
 bool TocEngine::canHandle(const eckit::URI& uri) const
@@ -179,7 +179,7 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
 
         for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 
-            std::vector<std::string> dbpaths = RootManager(config).possibleDbPathNames(*i, regexForMissingValues);
+            std::vector<std::string> dbpaths = CatalogueRootManager(config).possibleDbPathNames(*i, regexForMissingValues);
 
             for(std::vector<std::string>::const_iterator dbpath = dbpaths.begin(); dbpath != dbpaths.end(); ++dbpath) {
 
@@ -271,22 +271,22 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::MarsRequest& request,
 
 std::vector<eckit::URI> TocEngine::allLocations(const Key& key, const Config& config) const
 {
-    return databases(key, RootManager(config).allRoots(key), config);
+    return databases(key, CatalogueRootManager(config).allRoots(key), config);
 }
 
 std::vector<eckit::URI> TocEngine::visitableLocations(const Key& key, const Config& config) const
 {
-    return databases(key, RootManager(config).visitableRoots(key), config);
+    return databases(key, CatalogueRootManager(config).visitableRoots(key), config);
 }
 
 std::vector<URI> TocEngine::visitableLocations(const metkit::MarsRequest& request, const Config& config) const
 {
-    return databases(request, RootManager(config).visitableRoots(request), config);
+    return databases(request, CatalogueRootManager(config).visitableRoots(request), config);
 }
 
 std::vector<eckit::URI> TocEngine::writableLocations(const Key& key, const Config& config) const
 {
-    return databases(key, RootManager(config).writableRoots(key), config);
+    return databases(key, CatalogueRootManager(config).writableRoots(key), config);
 }
 
 void TocEngine::print(std::ostream& out) const

@@ -29,7 +29,6 @@ public:
               PathName& path);
     virtual ~TocCommon() {}
 
-    static eckit::PathName getDirectory(const Key& key, const Config& config, bool store = false);
     static eckit::PathName findRealPath(const eckit::PathName& path);
     static std::string userName(uid_t uid);
 
