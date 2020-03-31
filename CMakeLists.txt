@@ -20,7 +20,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit  VERSION 1.7 REQUIRED )
+ecbuild_use_package( PROJECT eckit  VERSION 1.10 REQUIRED )
 
 ### GRIB support
 
