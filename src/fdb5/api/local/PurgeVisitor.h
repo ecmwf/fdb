@@ -22,6 +22,7 @@
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/database/PurgeVisitor.h"
+#include "fdb5/database/Store.h"
 
 #include "eckit/filesystem/PathName.h"
 
@@ -42,9 +43,10 @@ public:
                  bool doit,
                  bool porcelain);
 
-    bool visitDatabase(const DB& db) override;
+    //bool visitCatalogue(const Catalogue& catalogue) override;
+    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     bool visitIndex(const Index& index) override;
-    void databaseComplete(const DB& db) override;
+    void catalogueComplete(const Catalogue& catalogue) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(const Field&, const Key&) override;
 

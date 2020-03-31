@@ -7,6 +7,8 @@
 
 #cmakedefine HAVE_PMEMFDB
 
+#cmakedefine HAVE_RADOSFDB
+
 #cmakedefine HAVE_TOCFDB
 
 #endif // fdb5_fdb5_config_h

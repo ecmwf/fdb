@@ -21,29 +21,30 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocPurgeVisitor::TocPurgeVisitor(const TocDB& db) :
+TocPurgeVisitor::TocPurgeVisitor(const TocCatalogue& catalogue, const Store& store) :
     PurgeVisitor(),
-    TocStatsReportVisitor(db, false) {}
+    TocStatsReportVisitor(catalogue, false),
+    store_(store) {}
 
 TocPurgeVisitor::~TocPurgeVisitor() {}
 
-bool TocPurgeVisitor::visitDatabase(const DB &db) {
+bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 
-    std::set<std::pair<PathName, Offset>> metadata;
-    std::set<PathName> data;
+    std::set<std::pair<URI, Offset>> metadata;
+    std::set<URI> data;
 
-    db.allMasked(metadata, data);
+    catalogue.allMasked(metadata, data);
 
     for (const auto& entry : metadata) {
-        const PathName& path = entry.first;
+        const PathName& path = entry.first.path();
 
         allIndexFiles_.insert(path);
         indexUsage_[path] += 0;
     }
 
     for (const auto& path : data) {
-        allDataFiles_.insert(path);
-        dataUsage_[path] += 0;
+        allDataFiles_.insert(path.path());
+        dataUsage_[path.path()] += 0;
     }
 
     return true;
@@ -52,7 +53,7 @@ bool TocPurgeVisitor::visitDatabase(const DB &db) {
 
 void TocPurgeVisitor::report(std::ostream& out) const {
 
-    const eckit::PathName& directory(currentDatabase_->basePath());
+    const eckit::PathName& directory(((TocCatalogue*) currentCatalogue_)->basePath());
 
     out << std::endl;
     out << "Index Report:" << std::endl;
@@ -132,9 +133,12 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
     std::ostream& logAlways(out);
     std::ostream& logVerbose(porcelain ? Log::debug<LibFdb5>() : out);
 
-    currentDatabase_->checkUID();
+    currentCatalogue_->checkUID();
 
-    const eckit::PathName directory(currentDatabase_->basePath());
+    const TocCatalogue* currentCatalogue = dynamic_cast<const TocCatalogue*>(currentCatalogue_);
+    ASSERT(currentCatalogue);
+
+    const eckit::PathName directory((currentCatalogue)->basePath());
 
     for (const auto& it : indexStats_) { // <Index, IndexStats>
 
@@ -153,9 +157,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                logVerbose << "Unlinking: ";
-                logAlways << path << std::endl;
-                if (doit) path.unlink(false);
+                store_.remove(eckit::URI(store_.type(), path), logAlways, logVerbose, doit);
             }
         }
     }
@@ -164,9 +166,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         if (it.second == 0) {
             eckit::PathName path(it.first);
             if (path.dirName().sameAs(directory)) {
-                logVerbose << "Unlinking: ";
-                logAlways << path << std::endl;
-                if (doit) path.unlink(false);
+                currentCatalogue->remove(path, logAlways, logVerbose, doit);
             }
        }
     }

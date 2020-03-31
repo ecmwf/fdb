@@ -28,20 +28,17 @@ namespace eckit {
 
 namespace fdb5 {
 
-class DB;
+class Catalogue;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 /// Define a standard object which can be used to iterate the results of a
 /// where() call on an arbitrary FDB object
 
-/// @todo We might expand this to include host, port, etc, in an explicit where object.
-///       Or to use eckit::URL, ...
-
 struct StatusElement {
 
     StatusElement();
-    StatusElement(const DB& db);
+    StatusElement(const Catalogue& catalogue);
     StatusElement(eckit::Stream& s);
 
     // Database key

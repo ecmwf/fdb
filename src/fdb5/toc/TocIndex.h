@@ -25,6 +25,7 @@
 #include "eckit/types/FixedString.h"
 
 #include "fdb5/database/Index.h"
+#include "fdb5/database/FileStore.h"
 #include "fdb5/toc/TocIndexLocation.h"
 
 namespace fdb5 {
@@ -72,13 +73,13 @@ public: // methods
 
     static std::string defaulType();
 
-    const eckit::PathName& path() const { return location_.path(); }
+    eckit::PathName path() const { return location_.uri().path(); }
     off_t offset() const { return location_.offset(); }
 
 private: // methods
 
     const IndexLocation& location() const override { return location_; }
-    const std::vector<eckit::PathName> dataPaths() const override;
+    const std::vector<eckit::URI> dataPaths() const override;
 
     bool dirty() const override;
 

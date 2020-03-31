@@ -8,10 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 
+#include "fdb5/database/DB.h"
 #include "fdb5/toc/AdoptVisitor.h"
-#include "fdb5/toc/TocDBWriter.h"
 
 using namespace eckit;
 
@@ -35,11 +36,7 @@ bool AdoptVisitor::selectDatum(const Key &key, const Key &full) {
 
     ASSERT(current());
 
-    TocDBWriter *writer = dynamic_cast<TocDBWriter *>(current());
-
-    ASSERT(writer);
-
-    writer->index(key, path_, offset_, length_);
+    current()->index(key, path_, offset_, length_);
 
     return true;
 }

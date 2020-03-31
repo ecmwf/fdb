@@ -12,7 +12,7 @@
 
 #include "eckit/filesystem/PathName.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 
 namespace fdb5 {
 
@@ -21,13 +21,13 @@ namespace fdb5 {
 StatusElement::StatusElement() :
     location() {}
 
-StatusElement::StatusElement(const DB& db) :
-    key(db.key()),
-    location(std::string("file:") + db.basePath().asString()),
-    retrieveLocked(db.retrieveLocked()),
-    archiveLocked(db.archiveLocked()),
-    listLocked(db.listLocked()),
-    wipeLocked(db.wipeLocked()) {}
+StatusElement::StatusElement(const Catalogue& catalogue) :
+    key(catalogue.key()),
+    location(catalogue.uri()),
+    retrieveLocked(catalogue.retrieveLocked()),
+    archiveLocked(catalogue.archiveLocked()),
+    listLocked(catalogue.listLocked()),
+    wipeLocked(catalogue.wipeLocked()) {}
 
 StatusElement::StatusElement(eckit::Stream &s) :
     key(s),

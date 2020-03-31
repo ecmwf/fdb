@@ -10,6 +10,8 @@
 
 #include "fdb5/toc/FieldRef.h"
 
+#include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/serialisation/Stream.h"
 
 #include "fdb5/database/Field.h"
@@ -32,10 +34,12 @@ FieldRefLocation::FieldRefLocation(FileStore &store, const Field& field) {
 
     const FieldLocation& loc = field.location();
 
-    pathId_ = store.insert(loc.url());
+    pathId_ = store.insert(loc.uri());
     length_ = loc.length();
 
-    const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
+    const FieldLocation* tocfloc = FieldLocationFactory::instance().build("file", loc.uri());
+
+    //const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
     if(tocfloc) {
         offset_ = tocfloc->offset();
     }

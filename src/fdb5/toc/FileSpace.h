@@ -59,6 +59,8 @@ public: // methods
         return s;
     }
 
+    std::vector<eckit::PathName> roots() const;
+
 private: // methods
 
     bool existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& root) const;

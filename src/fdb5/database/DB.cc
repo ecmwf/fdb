@@ -8,14 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/thread/AutoLock.h"
-#include "eckit/filesystem/PathName.h"
-#include "eckit/exception/Exceptions.h"
+#include "eckit/utils/StringTools.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/DB.h"
-#include "fdb5/database/Engine.h"
-#include "fdb5/database/Manager.h"
+#include "fdb5/database/Field.h"
 
 using eckit::Log;
 
@@ -23,157 +20,182 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-namespace {
-eckit::Mutex *local_mutex = 0;
-std::map<std::string, DBFactory *> *m = 0;
-pthread_once_t once = PTHREAD_ONCE_INIT;
-void init() {
-    local_mutex = new eckit::Mutex();
-    m = new std::map<std::string, DBFactory *>();
+std::unique_ptr<DB> DB::buildReader(const Key &key, const fdb5::Config& config) {
+    return std::move(std::unique_ptr<DB>(new DB(key, config, true)));
 }
+std::unique_ptr<DB> DB::buildWriter(const Key &key, const fdb5::Config& config) {
+    return std::move(std::unique_ptr<DB>(new DB(key, config, false)));
 }
-
-/// When a concrete instance of a DBFactory is instantiated (in practice
-/// a DBBuilder<>) add it to the list of available factories.
-
-DBFactory::DBFactory(const std::string &name, bool read, bool write) :
-    name_(name),
-    read_(read),
-    write_(write) {
-
-    pthread_once(&once, init);
-
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
-
-    ASSERT(m->find(name) == m->end());
-    (*m)[name] = this;
+std::unique_ptr<DB> DB::buildReader(const eckit::URI& uri, const fdb5::Config& config) {
+    return std::move(std::unique_ptr<DB>(new DB(uri, config, true)));
+}
+std::unique_ptr<DB> DB::buildWriter(const eckit::URI& uri, const fdb5::Config& config) {
+    return std::move(std::unique_ptr<DB>(new DB(uri, config, false)));
 }
 
-DBFactory::~DBFactory() {
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
-    m->erase(name_);
+DB::DB(const Key& key, const fdb5::Config& config, bool read) : config_(config) {
+    catalogue_ = CatalogueFactory::instance().build(key, config, read);
 }
 
-void DBFactory::list(std::ostream &out) {
+DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) : config_(config) {
+    catalogue_ = CatalogueFactory::instance().build(uri, config, read);
+}
 
-    pthread_once(&once, init);
+Store& DB::store() {
+    if (store_ == nullptr) {
+        store_ = catalogue_->buildStore(config_);
+    }
 
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+    return *store_;
+}
 
-    const char *sep = "";
-    for (std::map<std::string, DBFactory *>::const_iterator j = m->begin(); j != m->end(); ++j) {
-        out << sep << (*j).first;
-        sep = ", ";
+std::string DB::dbType() const {
+    return catalogue_->type();// + ":" + store_->type();
+}
+
+const Key& DB::key() const {
+    return catalogue_->key();
+}
+const Schema& DB::schema() const {
+    return catalogue_->schema();
+}
+
+bool DB::selectIndex(const Key &key) {
+    return catalogue_->selectIndex(key);
+}
+
+void DB::deselectIndex() {
+    return catalogue_->deselectIndex();
+}
+
+void DB::visitEntries(EntryVisitor& visitor, bool sorted) {
+    catalogue_->visitEntries(visitor, store(), sorted);
+}
+
+
+void DB::axis(const std::string &keyword, eckit::StringSet &s) const {
+    CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
+    ASSERT(cat);
+    cat->axis(keyword, s);
+}
+
+eckit::DataHandle *DB::retrieve(const Key& key) {
+
+    eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
+
+    CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
+    ASSERT(cat);
+
+    Field field;
+    Key remapKey;
+    if (cat->retrieve(key, field, remapKey)) {
+        return store().retrieve(field, remapKey);
+    }
+
+    return nullptr;
+}
+
+void DB::archive(const Key& key, const void* data, eckit::Length length) {
+
+    CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
+    ASSERT(cat);
+
+    const Index& idx = cat->currentIndex();
+    cat->archive(key, store().archive(idx.key(), data, length));
+}
+
+bool DB::open() {
+    bool ret = catalogue_->open();
+    if (!ret)
+            return ret;
+//    store().schema(catalogue_->schema());
+    return store().open();
+}
+
+void DB::flush() {
+    if (store_ != nullptr)
+        store_->flush();
+    catalogue_->flush();
+}
+
+void DB::close() {
+    flush();
+    catalogue_->clean();
+    if (store_ != nullptr)
+        store_->close();
+    catalogue_->close();
+}
+
+bool DB::exists() const {
+    return (catalogue_->exists()/* && store_->exists()*/);
+}
+
+void DB::hideContents() {
+    if (catalogue_->type() == "toc") {
+        catalogue_->hideContents();
     }
 }
 
+eckit::URI DB::uri() const {
+    return catalogue_->uri();
+}
 
-const DBFactory &DBFactory::findFactory(const std::string &name) {
+void DB::overlayDB(const DB& otherDB, const std::set<std::string>& variableKeys, bool unmount) {
+    if (catalogue_->type() == "toc" && otherDB.catalogue_->type() == "toc")  {
+        CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
+        ASSERT(cat);
 
-    pthread_once(&once, init);
-
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
-
-    Log::debug<LibFdb5>() << "Looking for DBFactory [" << name << "]" << std::endl;
-
-    std::map<std::string, DBFactory *>::const_iterator j = m->find(name);
-    if (j == m->end()) {
-        Log::error() << "No DBFactory for [" << name << "]" << std::endl;
-        Log::error() << "DBFactories are:" << std::endl;
-        for (j = m->begin() ; j != m->end() ; ++j)
-            Log::error() << "   " << (*j).first << std::endl;
-        throw eckit::SeriousBug(std::string("No DBFactory called ") + name);
+        cat->overlayDB(*(otherDB.catalogue_), variableKeys, unmount);
     }
-
-    return *(*j).second;
 }
 
+void DB::reconsolidate() {
+    CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
+    ASSERT(cat);
 
-DB* DBFactory::buildWriter(const Key& key, const fdb5::Config& config) {
-
-    pthread_once(&once, init);
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
-
-    std::string name = Manager(config).engine(key);
-    name += ".writer";
-
-    Log::debug<LibFdb5>() << "Building FDB DB writer for key " << key << " = " << name << std::endl;
-
-    const DBFactory &factory( findFactory(name) );
-
-    return factory.make(key, config);
+    cat->reconsolidate();
 }
 
-DB* DBFactory::buildReader(const Key& key, const fdb5::Config& config) {
+void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+    if (catalogue_->type() == "toc") {
+        CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
+        ASSERT(cat);
 
-    pthread_once(&once, init);
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
-
-    std::string name = Manager(config).engine(key);
-    name += ".reader";
-
-    Log::debug<LibFdb5>() << "Building FDB DB reader for key " << key << " = " << name << std::endl;
-
-    const DBFactory& factory( findFactory(name) );
-
-    return factory.make(key, config);
+        cat->index(key, path, offset, length);
+    }
 }
 
-DB* DBFactory::buildReader(const eckit::PathName& path, const fdb5::Config& config) {
-
-    pthread_once(&once, init);
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
-
-    std::string name = Manager(config).engine(path);
-    name += ".reader";
-
-    Log::debug<LibFdb5>() << "Building FDB DB reader for path " << path << " = " << name << std::endl;
-
-    const DBFactory& factory( findFactory(name) );
-
-    return factory.make(path, config);
+void DB::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {
+    catalogue_->dump(out, simple, conf);
 }
 
+DbStats DB::stats() const {
+    CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
+    ASSERT(cat);
 
-bool DBFactory::read() const {
-    return read_;
+    return cat->stats();
 }
 
-bool DBFactory::write() const {
-    return write_;
+void DB::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
+    catalogue_->control(action, identifiers);
 }
 
-//----------------------------------------------------------------------------------------------------------------------
-
-DB::DB(const Key &key) :
-    dbKey_(key) {
-    touch();
+bool DB::retrieveLocked() const {
+    return catalogue_->retrieveLocked();
+}
+bool DB::archiveLocked() const {
+    return catalogue_->archiveLocked();
+}
+bool DB::listLocked() const {
+    return catalogue_->listLocked();
+}
+bool DB::wipeLocked() const {
+    return catalogue_->wipeLocked();
 }
 
-DB::~DB() {
+void DB::print( std::ostream &out ) const {
+    catalogue_->print(out);
 }
-
-StatsReportVisitor* DB::statsReportVisitor() const {
-    NOTIMP;
-}
-
-PurgeVisitor* DB::purgeVisitor() const {
-    NOTIMP;
-}
-
-WipeVisitor* DB::wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
-    NOTIMP;
-}
-
-time_t DB::lastAccess() const {
-    return lastAccess_;
-}
-
-void DB::touch() {
-    lastAccess_ = ::time(0);
-}
-
-void DB::maskIndexEntry(const Index &index) const { NOTIMP; }
 
 std::ostream &operator<<(std::ostream &s, const DB &x) {
     x.print(s);

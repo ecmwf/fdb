@@ -10,7 +10,7 @@
 
 #include "fdb5/api/local/ControlVisitor.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 
 namespace fdb5 {
 namespace api {
@@ -27,15 +27,15 @@ ControlVisitor::ControlVisitor(eckit::Queue<ControlElement>& queue,
     identifiers_(identifiers) {}
 
 
-bool ControlVisitor::visitDatabase(const DB& db) {
+bool ControlVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 
-    EntryVisitor::visitDatabase(db);
+    EntryVisitor::visitDatabase(catalogue, store);
 
     // Only lock/unlock things that match exactly.
 
-    if (db.key().match(request_)) {
-        db.control(action_, identifiers_);
-        queue_.emplace(db);
+    if (catalogue.key().match(request_)) {
+        catalogue.control(action_, identifiers_);
+        queue_.emplace(catalogue);
     }
 
     return true;

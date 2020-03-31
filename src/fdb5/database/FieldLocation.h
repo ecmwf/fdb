@@ -17,6 +17,7 @@
 #define fdb5_FieldLocation_H
 
 #include <memory>
+#include <eckit/filesystem/URI.h>
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
@@ -34,21 +35,24 @@ namespace fdb5 {
 class FieldLocationVisitor;
 class Key;
 
-
 class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
 
 public: // methods
 
-    FieldLocation();
-    FieldLocation(eckit::Length length );
+    FieldLocation() {}
+    FieldLocation(const eckit::URI &uri);
+    FieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length);
     FieldLocation(eckit::Stream&);
 
-    FieldLocation(const FieldLocation&) = delete;
+//    virtual const char *name() const = 0;
+
+//    FieldLocation(const FieldLocation&);
     FieldLocation& operator=(const FieldLocation&) = delete;
 
-    virtual eckit::PathName url() const = 0;
-
-    const eckit::Length &length() const { return length_; }
+    const eckit::URI& uri() const { return uri_; }
+    eckit::PathName path() const { return uri_.path(); }
+    eckit::Offset offset() const;
+    eckit::Length length() const;
 
     virtual eckit::DataHandle *dataHandle() const = 0;
     virtual eckit::DataHandle *dataHandle(const Key& remapKey) const = 0;
@@ -60,11 +64,11 @@ public: // methods
 
     virtual void visit(FieldLocationVisitor& visitor) const = 0;
 
-    virtual void dump(std::ostream &out) const = 0;
+    virtual void dump(std::ostream &out) const;
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const = 0;
+    virtual void print( std::ostream &out ) const;
 
 protected: // For Streamable
 
@@ -74,7 +78,9 @@ protected: // For Streamable
 
 protected: // members
 
-    eckit::Length length_;
+    eckit::URI uri_;
+//    eckit::Offset offset_;
+//    eckit::Length length_;
 
 private: // friends
 
@@ -84,6 +90,56 @@ private: // friends
     }
 };
 
+//----------------------------------------------------------------------------------------------------------------------
+
+/// A self-registering factory for producing FieldLocation instances.
+
+//----------------------------------------------------------------------------------------------------------------------
+
+    class FieldLocationBuilderBase {
+        std::string name_;
+    public:
+        FieldLocationBuilderBase(const std::string &);
+        virtual ~FieldLocationBuilderBase();
+        virtual FieldLocation* make(const eckit::URI &uri) = 0;
+        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length) = 0;
+    };
+
+    template< class T>
+    class FieldLocationBuilder : public FieldLocationBuilderBase {
+        virtual FieldLocation* make(const eckit::URI &uri) {
+            return new T(uri);
+        }
+        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
+            return new T(uri, offset, length);
+        }
+    public:
+        FieldLocationBuilder(const std::string &name) : FieldLocationBuilderBase(name) {}
+        virtual ~FieldLocationBuilder() = default;
+    };
+
+    class FieldLocationFactory {
+    public:
+
+        static FieldLocationFactory& instance();
+
+        void add(const std::string& name, FieldLocationBuilderBase* builder);
+        void remove(const std::string& name);
+
+        bool has(const std::string& name);
+        void list(std::ostream &);
+
+        /// @returns a specialized FieldLocation built by specified builder
+        FieldLocation* build(const std::string &, const eckit::URI &);
+        FieldLocation* build(const std::string &, const eckit::URI &, eckit::Offset offset, eckit::Length length);
+
+    private:
+
+        FieldLocationFactory();
+
+        std::map<std::string, FieldLocationBuilderBase*> builders_;
+        eckit::Mutex mutex_;
+    };
 
 //----------------------------------------------------------------------------------------------------------------------
 

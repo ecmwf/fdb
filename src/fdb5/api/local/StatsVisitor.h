@@ -22,6 +22,7 @@
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/database/StatsReportVisitor.h"
+#include "fdb5/database/Store.h"
 
 
 namespace fdb5 {
@@ -37,9 +38,9 @@ public:
 
     using QueryVisitor<StatsElement>::QueryVisitor;
 
-    bool visitDatabase(const DB& db) override;
+    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     bool visitIndex(const Index& index) override;
-    void databaseComplete(const DB& db) override;
+    void catalogueComplete(const Catalogue& catalogue) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(const Field&, const Key&) override;
 

@@ -18,6 +18,7 @@
 
 
 #include "fdb5/database/PurgeVisitor.h"
+#include "fdb5/database/Store.h"
 #include "fdb5/toc/TocStats.h"
 
 namespace fdb5 {
@@ -28,12 +29,16 @@ namespace fdb5 {
 class TocPurgeVisitor : public PurgeVisitor, public TocStatsReportVisitor {
 public:
 
-    TocPurgeVisitor(const TocDB& db);
+    TocPurgeVisitor(const TocCatalogue& catalogue, const Store& store);
     ~TocPurgeVisitor() override;
 
-    bool visitDatabase(const DB& db) override;
+    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     void report(std::ostream& out) const override;
     void purge(std::ostream& out, bool porcelain, bool doit) const override;
+
+private: // members
+
+    const Store& store_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

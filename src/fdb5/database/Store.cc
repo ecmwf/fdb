@@ -1,0 +1,122 @@
+/*
+ * (C) Copyright 1996- ECMWF.
+ *
+ * This software is licensed under the terms of the Apache Licence Version 2.0
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
+ * granted to it by virtue of its status as an intergovernmental organisation nor
+ * does it submit to any jurisdiction.
+ */
+
+#include <map>
+
+#include "fdb5/database/Store.h"
+
+#include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
+#include "eckit/utils/StringTools.h"
+
+namespace fdb5 {
+
+/*std::ostream &operator<<(std::ostream &s, const Store &x) {
+    x.print(s);
+    return s;
+}*/
+
+//----------------------------------------------------------------------------------------------------------------------
+
+StoreFactory::StoreFactory() {}
+
+StoreFactory& StoreFactory::instance() {
+    static StoreFactory theOne;
+    return theOne;
+}
+
+void StoreFactory::add(const std::string& name, StoreBuilderBase* builder) {
+    std::string nameLowercase = eckit::StringTools::lower(name);
+
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+    if (has(nameLowercase)) {
+        throw eckit::SeriousBug("Duplicate entry in StoreFactory: " + nameLowercase, Here());
+    }
+    builders_[nameLowercase] = builder;
+}
+
+void StoreFactory::remove(const std::string& name) {
+    std::string nameLowercase = eckit::StringTools::lower(name);
+
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+    builders_.erase(nameLowercase);
+}
+
+bool StoreFactory::has(const std::string& name) {
+    std::string nameLowercase = eckit::StringTools::lower(name);
+
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+    return builders_.find(nameLowercase) != builders_.end();
+}
+
+void StoreFactory::list(std::ostream& out) {
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+    const char* sep = "";
+    for (std::map<std::string, StoreBuilderBase*>::const_iterator j = builders_.begin(); j != builders_.end(); ++j) {
+        out << sep << (*j).first;
+        sep = ", ";
+    }
+}
+
+std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key, const Config& config) {
+    std::string name = config.getString("store", "file");
+    std::string nameLowercase = eckit::StringTools::lower(name);
+
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+    auto j = builders_.find(nameLowercase);
+
+    eckit::Log::debug() << "Looking for StoreBuilder [" << nameLowercase << "]" << std::endl;
+
+    if (j == builders_.end()) {
+        eckit::Log::error() << "No StoreBuilder for [" << nameLowercase << "]" << std::endl;
+        eckit::Log::error() << "StoreBuilders are:" << std::endl;
+        for (j = builders_.begin(); j != builders_.end(); ++j)
+            eckit::Log::error() << "   " << (*j).first << std::endl;
+        throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
+    }
+
+    return (*j).second->make(schema, key, config);
+}
+
+std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const eckit::URI& uri, const Config& config) {
+    std::string name = uri.scheme();
+    std::string nameLowercase = eckit::StringTools::lower(name);
+
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+    auto j = builders_.find(nameLowercase);
+
+    eckit::Log::debug() << "Looking for StoreBuilder [" << nameLowercase << "]" << std::endl;
+
+    if (j == builders_.end()) {
+        eckit::Log::error() << "No StoreBuilder for [" << nameLowercase << "]" << std::endl;
+        eckit::Log::error() << "StoreBuilders are:" << std::endl;
+        for (j = builders_.begin(); j != builders_.end(); ++j)
+            eckit::Log::error() << "   " << (*j).first << std::endl;
+        throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
+    }
+
+    return (*j).second->make(schema, uri, config);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+StoreBuilderBase::StoreBuilderBase(const std::string& name) : name_(name) {
+    StoreFactory::instance().add(name_, this);
+}
+
+StoreBuilderBase::~StoreBuilderBase() {
+    StoreFactory::instance().remove(name_);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace eckit

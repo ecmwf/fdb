@@ -66,7 +66,8 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     /* DB not yet open */
 
-    std::unique_ptr<DB> newDB( DBFactory::buildReader(key, config_) );
+    //std::unique_ptr<DB> newDB( DBFactory::buildReader(key, config_) );
+    std::unique_ptr<DB> newDB = DB::buildReader(key, config_);
 
     // If this database is locked for retrieval then it "does not exist"
     if (newDB->retrieveLocked()) {

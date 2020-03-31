@@ -39,17 +39,17 @@ public:
 
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
-    bool visitDatabase(const DB& db) override {
+    bool visitDatabase(const Catalogue& catalogue, const Store& store) override {
 
         // If the DB is locked for listing, then it "doesn't exist"
-        if (db.listLocked()) return false;
+        if (catalogue.listLocked()) return false;
 
-        bool ret = QueryVisitor::visitDatabase(db);
-        ASSERT(db.key().partialMatch(request_));
+        bool ret = QueryVisitor::visitDatabase(catalogue, store);
+        ASSERT(catalogue.key().partialMatch(request_));
 
         // Subselect the parts of the request
         indexRequest_ = request_;
-        for (const auto& kv : db.key()) {
+        for (const auto& kv : catalogue.key()) {
             indexRequest_.unsetValues(kv.first);
         }
 
@@ -78,11 +78,11 @@ public:
 
     /// Test if entry matches the current request. If so, add to the output queue.
     void visitDatum(const Field& field, const Key& key) override {
-        ASSERT(currentDatabase_);
+        ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 
         if (key.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentDatabase_->key(), currentIndex_->key(), key},
+            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key},
                                           field.stableLocation()));
         }
     }
