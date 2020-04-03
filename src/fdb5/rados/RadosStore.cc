@@ -12,7 +12,6 @@
 #include "eckit/log/Bytes.h"
 
 #include "eckit/config/Resource.h"
-#include "eckit/io/AIOHandle.h"
 #include "eckit/io/EmptyHandle.h"
 #include "eckit/io/rados/RadosWriteHandle.h"
 

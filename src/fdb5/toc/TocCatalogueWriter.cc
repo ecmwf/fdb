@@ -13,7 +13,6 @@
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Bytes.h"
-#include "eckit/io/AIOHandle.h"
 #include "eckit/io/EmptyHandle.h"
 
 #include "fdb5/database/EntryVisitMechanism.h"
