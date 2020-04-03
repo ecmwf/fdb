@@ -157,6 +157,10 @@ bool SingleGribMungePartFileHandle::merge(DataHandle*) {
     return false;
 }
 
+Length SingleGribMungePartFileHandle::size() {
+    return length_;
+}
+
 Length SingleGribMungePartFileHandle::estimate() {
     return length_;
 }
