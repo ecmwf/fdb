@@ -13,6 +13,7 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "eckit/thread/Thread.h"
 #include "eckit/thread/ThreadControler.h"
 
 #include "fdb5/remote/FdbServer.h"
@@ -48,6 +49,25 @@ void FDBForker::run() {
     RemoteHandler handler(socket_, config_);
     handler.handle();
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class FDBServerThread : public eckit::Thread {
+
+public: // methods
+
+    FDBServerThread(eckit::net::TCPSocket& socket, const Config& config = fdb5::Config());
+
+private: // methods
+
+    virtual void run();
+
+private: // members
+
+    eckit::net::TCPSocket socket_;
+    eckit::LocalConfiguration config_;
+
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

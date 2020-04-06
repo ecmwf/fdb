@@ -26,7 +26,6 @@
 #include "eckit/runtime/Monitorable.h"
 #include "eckit/runtime/Monitor.h"
 #include "eckit/runtime/ProcessControler.h"
-#include "eckit/thread/Thread.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/LibFdb5.h"
@@ -55,25 +54,6 @@ private: // methods
 
     eckit::net::TCPSocket socket_;
     eckit::LocalConfiguration config_;
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class FDBServerThread : public eckit::Thread {
-
-public: // methods
-
-    FDBServerThread(eckit::net::TCPSocket& socket, const Config& config = fdb5::Config());
-
-private: // methods
-
-    virtual void run();
-
-private: // members
-
-    eckit::net::TCPSocket socket_;
-    eckit::LocalConfiguration config_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
