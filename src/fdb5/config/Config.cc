@@ -45,7 +45,9 @@ public:
             return *it->second;
         }
 
-        schemas_[path] = std::unique_ptr<Schema>(new Schema(path));
+        Schema* p = new Schema(path);
+        ASSERT(p);
+        schemas_[path] = std::unique_ptr<Schema>(p);
         return *schemas_[path];
     }
 private:
