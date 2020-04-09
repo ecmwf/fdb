@@ -25,14 +25,14 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-bool StatsVisitor::visitDatabase(const DB& db) {
+bool StatsVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 
-    EntryVisitor::visitDatabase(db);
+    EntryVisitor::visitDatabase(catalogue, store);
 
     ASSERT(!internalVisitor_);
-    internalVisitor_.reset(db.statsReportVisitor());
+    internalVisitor_.reset(catalogue.statsReportVisitor());
 
-    internalVisitor_->visitDatabase(db);
+    internalVisitor_->visitDatabase(catalogue, store);
 
     return true; // Explore contained indexes
 }
@@ -49,8 +49,8 @@ void StatsVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
 
 void StatsVisitor::visitDatum(const Field&, const Key&) { NOTIMP; }
 
-void StatsVisitor::databaseComplete(const DB& db) {
-    internalVisitor_->databaseComplete(db);
+void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
+    internalVisitor_->catalogueComplete(catalogue);
 
     // Construct the object to push onto the queue
 

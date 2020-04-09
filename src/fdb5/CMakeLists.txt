@@ -102,6 +102,8 @@ list( APPEND fdb5_srcs
     database/AxisRegistry.h
     database/BaseArchiveVisitor.cc
     database/BaseArchiveVisitor.h
+    database/Catalogue.cc
+    database/Catalogue.h
     database/DB.cc
     database/DB.h
     database/DataStats.cc
@@ -130,6 +132,8 @@ list( APPEND fdb5_srcs
     database/IndexStats.h
     database/StatsReportVisitor.cc
     database/StatsReportVisitor.h
+    database/Store.cc
+    database/Store.h
     database/PurgeVisitor.cc
     database/PurgeVisitor.h
     database/WipeVisitor.cc
@@ -248,8 +252,6 @@ if( HAVE_TOCFDB )
         toc/AdoptVisitor.h
         toc/BTreeIndex.cc
         toc/BTreeIndex.h
-        toc/TocDB.cc
-        toc/TocDB.h
         toc/Root.cc
         toc/Root.h
         toc/FieldRef.cc
@@ -264,10 +266,14 @@ if( HAVE_TOCFDB )
         toc/EnvVarFileSpaceHandler.h
         toc/RootManager.cc
         toc/RootManager.h
-        toc/TocDBReader.cc
-        toc/TocDBReader.h
-        toc/TocDBWriter.cc
-        toc/TocDBWriter.h
+        toc/TocCommon.cc
+        toc/TocCommon.h
+        toc/TocCatalogue.cc
+        toc/TocCatalogue.h
+        toc/TocCatalogueReader.cc
+        toc/TocCatalogueReader.h
+        toc/TocCatalogueWriter.cc
+        toc/TocCatalogueWriter.h
         toc/TocFieldLocation.cc
         toc/TocFieldLocation.h
         toc/TocHandler.cc
@@ -284,6 +290,8 @@ if( HAVE_TOCFDB )
         toc/TocRecord.h
         toc/TocStats.cc
         toc/TocStats.h
+        toc/TocStore.cc
+        toc/TocStore.h
         toc/TocEngine.cc
         toc/TocEngine.h
         )
@@ -350,6 +358,15 @@ else()
     set( PMEM_INCLUDE_DIRS "" )
 endif()
 
+if( HAVE_RADOSFDB )
+    list( APPEND fdb5_srcs
+        rados/RadosFieldLocation.cc
+        rados/RadosFieldLocation.h
+        rados/RadosStore.cc
+        rados/RadosStore.h
+    )
+endif()
+
 if(HAVE_FDB_REMOTE)
     list( APPEND fdb5_srcs
         api/RemoteFDB.cc
@@ -398,7 +415,7 @@ ecbuild_add_library(
         ${LUSTREAPI_LIBRARIES}
 )
 
-if(HAVE_FDB_TOOLS)
+if(HAVE_FDB_BUILD_TOOLS)
 
   list( APPEND fdb5_scripts fdb fdb-which )
 
@@ -436,7 +453,7 @@ endif()
 foreach( _tool ${fdb5_tools} )
 
   ecbuild_add_executable( TARGET    ${_tool}
-                          CONDITION HAVE_FDB_TOOLS
+                          CONDITION HAVE_FDB_BUILD_TOOLS
                           SOURCES   tools/${_tool}.cc
                           INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
                           LIBS      fdb5 )
@@ -445,25 +462,25 @@ endforeach()
 
 
 ecbuild_add_executable( TARGET    grib2fdb5
-                        CONDITION HAVE_FDB_TOOLS
+                        CONDITION HAVE_FDB_BUILD_TOOLS
                         SOURCES   compat/grib2fdb5.cc
                         INCLUDES  ${ECCODES_INCLUDE_DIRS} # Please don't remove me, I am needed
                         LIBS      fdb5 )
 
 ecbuild_add_executable(
-        CONDITION HAVE_FDB_TOOLS AND HAVE_FDB_REMOTE
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_FDB_REMOTE
         TARGET fdb-monitor
         SOURCES remote/fdb-monitor.cc
         LIBS eckit eckit_cmd )
 
 ecbuild_add_executable(
-        CONDITION HAVE_FDB_TOOLS AND HAVE_FDB_REMOTE
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_FDB_REMOTE
         TARGET fdb-server
         SOURCES
             remote/fdb-server.cc
         LIBS fdb5 )
 
-if ( HAVE_FDB_TOOLS )
+if ( HAVE_FDB_BUILD_TOOLS )
     target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
     target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
 endif()

@@ -58,6 +58,7 @@ public:
     void print(std::ostream&) const override;
     bool merge(DataHandle*) override;
     bool compress(bool = false) override;
+    eckit::Length size() override;
     eckit::Length estimate() override;
 
     void restartReadFrom(const eckit::Offset&) override { NOTIMP; }

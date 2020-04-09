@@ -54,7 +54,7 @@ void FdbRoot::usage(const std::string &tool) const {
 
 void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
-    bool create_db;
+    bool create_db = false;
     args.get("create", create_db);
 
     for (size_t i = 0; i < args.count(); ++i) {
@@ -72,10 +72,10 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
             eckit::Log::info() << result << std::endl;
 
             // 'Touch' the database (which will create it if it doesn't exist)
-            std::unique_ptr<DB> db(DBFactory::buildReader(result, config));
+            std::unique_ptr<DB> db = DB::buildReader(result, config);
 
             if (!db->exists() && create_db) {
-                db.reset(DBFactory::buildWriter(result, config));
+                db = DB::buildWriter(result, config);
             }
 
             if (db->exists()) {

@@ -13,8 +13,6 @@
 #include "eckit/io/AutoCloser.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/database/Index.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/database/Manager.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
@@ -33,21 +31,23 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-EntryVisitor::EntryVisitor() : currentDatabase_(0), currentIndex_(0) {}
+EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr) {}
 
 EntryVisitor::~EntryVisitor() {}
 
-bool EntryVisitor::visitDatabase(const DB& db) {
-    currentDatabase_ = &db;
+bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+    currentCatalogue_ = &catalogue;
+    currentStore_ = &store;
     return true;
 }
 
-void EntryVisitor::databaseComplete(const DB& db) {
-    if (currentDatabase_ != 0) {
-        ASSERT(currentDatabase_ == &db);
+void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
+    if (currentCatalogue_ != nullptr) {
+        ASSERT(currentCatalogue_ == &catalogue);
     }
-    currentDatabase_ = 0;
-    currentIndex_ = 0;
+    currentCatalogue_ = nullptr;
+    currentStore_ = nullptr;
+    currentIndex_ = nullptr;
 }
 
 bool EntryVisitor::visitIndex(const Index& index) {
@@ -55,11 +55,11 @@ bool EntryVisitor::visitIndex(const Index& index) {
     return true;
 }
 
-void EntryVisitor::visitDatum(const Field &field, const std::string& keyFingerprint) {
-    ASSERT(currentDatabase_);
+void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
+    ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
 
-    Key key(keyFingerprint, currentDatabase_->schema().ruleFor(currentDatabase_->key(), currentIndex_->key()));
+    Key key(keyFingerprint, currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key()));
     visitDatum(field, key);
 }
 
@@ -85,21 +85,23 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     try {
 
-        std::vector<PathName> paths(Manager(dbConfig_).visitableLocations(request.request(), request.all()));
+        std::vector<URI> uris(Manager(dbConfig_).visitableLocations(request.request(), request.all()));
 
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
 
         // And do the visitation
 
-        for (PathName path : paths) {
+        for (URI uri : uris) {
 
+            PathName path(uri.path());
             if (path.exists()) {
-                if (!path.isDir()) path = path.dirName();
+                if (!path.isDir())
+                    path = path.dirName();
                 path = path.realName();
 
-                Log::debug<LibFdb5>() << "FDB processing path " << path << std::endl;
+                Log::debug<LibFdb5>() << "FDB processing Path " << path << std::endl;
 
-                std::unique_ptr<DB> db(DBFactory::buildReader(path));
+                std::unique_ptr<DB> db = DB::buildReader(eckit::URI(uri.scheme(), path));
                 ASSERT(db->open());
                 eckit::AutoCloser<DB> closer(*db);
 

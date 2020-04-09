@@ -39,14 +39,14 @@ off_t TocIndexLocation::offset() const {
     return offset_;
 }
 
-
-const PathName& TocIndexLocation::path() const {
-    return path_;
-}
-
-PathName TocIndexLocation::url() const
+/*PathName TocIndexLocation::path() const
 {
     return path_;
+}*/
+
+URI TocIndexLocation::uri() const
+{
+    return URI("toc", path_);
 }
 
 IndexLocation* TocIndexLocation::clone() const {

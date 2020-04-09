@@ -16,6 +16,9 @@
 #ifndef fdb5_Archiver_H
 #define fdb5_Archiver_H
 
+#include <time.h>
+#include <utility>
+
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/database/DB.h"
@@ -59,13 +62,13 @@ private: // methods
 
     void print(std::ostream &out) const;
 
-    DB &database(const Key &key);
+    DB& database(const Key &key);
 
 private: // members
 
     friend class BaseArchiveVisitor;
 
-    typedef std::map< Key, std::shared_ptr<DB> > store_t;
+    typedef std::map< Key, std::pair<time_t, std::unique_ptr<DB> > > store_t;
 
     Config dbConfig_;
 
@@ -73,7 +76,7 @@ private: // members
 
     std::vector<Key> prev_;
 
-    DB *current_;
+    DB* current_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

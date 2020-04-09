@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <sstream>
+
 #include "fdb5/toc/FileSpaceHandler.h"
 
 #include "eckit/filesystem/FileSpaceStrategies.h"
@@ -96,7 +98,11 @@ struct First : public FileSpaceHandler {
     First() {}
     eckit::PathName selectFileSystem(const Key&, const FileSpace& fs) const {
         std::vector<eckit::PathName> roots = fs.writable();
-        ASSERT(roots.size());
+        if (not roots.size()) {
+            std::ostringstream oss;
+            oss << "No writable roots available. Configured roots: " << fs.roots();
+            throw eckit::UnexpectedState(oss.str(), Here());
+        }
         return roots[0];
     }
 };

@@ -25,6 +25,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
@@ -110,22 +111,9 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::PathName findRealPath(const eckit::PathName& path) {
-
-    // realpath only works on existing paths, so work back up the path until
-    // we find one that does, get the realpath on that, then reconstruct.
-
-    if (path.exists()) return path.realName();
-
-    return findRealPath(path.dirName()) / path.baseName();
-}
-
 TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
-    directory_(findRealPath(directory)),
-    dbUID_(-1),
-    userUID_(::getuid()),
+    TocCommon(directory),
     tocPath_(directory_ / "toc"),
-    schemaPath_(directory_ / "schema"),
     dbConfig_(config),
     useSubToc_(config.getBool("useSubToc", false)),
     isSubToc_(false),
@@ -133,8 +121,8 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     cachedToc_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
-    writeMode_(false),
-    dirty_(false) {
+    writeMode_(false)
+{
 
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
@@ -145,20 +133,17 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
 }
 
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
-    directory_(findRealPath(path.dirName())),
-    dbUID_(-1),
+    TocCommon(path.dirName()),
     parentKey_(parentKey),
-    userUID_(::getuid()),
-    tocPath_(findRealPath(path)),
-    schemaPath_(directory_ / "schema"),
+    tocPath_(TocCommon::findRealPath(path)),
     useSubToc_(false),
     isSubToc_(true),
     fd_(-1),
     cachedToc_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
-    writeMode_(false),
-    dirty_(false) {
+    writeMode_(false)
+{
 
     /// Are we remapping a mounted DB?
     if (exists()) {
@@ -200,7 +185,6 @@ bool TocHandler::exists() const {
 }
 
 void TocHandler::checkUID() const {
-
     static bool fdbOnlyCreatorCanWrite = eckit::Resource<bool>("fdbOnlyCreatorCanWrite", true);
     if (!fdbOnlyCreatorCanWrite) {
         return;
@@ -787,14 +771,14 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
-            s << location.path().baseName();
+            s << location.uri().path().baseName();
             s << location.offset();
             s << index_.type();
 
             index_.encode(s);
             handler_.append(*r, s.position());
 
-            eckit::Log::debug<LibFdb5>() << "Write TOC_INDEX " << location.path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
+            eckit::Log::debug<LibFdb5>() << "Write TOC_INDEX " << location.uri().path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
         }
 
     private:
@@ -875,9 +859,9 @@ public:
     }
 };
 
-long TocHandler::dbUID() const {
+uid_t TocHandler::dbUID() const {
 
-    if (dbUID_ != -1) {
+    if (dbUID_ != static_cast<uid_t>(-1)) {
         return dbUID_;
     }
 
@@ -1189,8 +1173,8 @@ DbStats TocHandler::stats() const
 }
 
 
-void TocHandler::enumerateMasked(std::set<std::pair<eckit::PathName, Offset>>& metadata,
-                                 std::set<eckit::PathName>& data) const {
+void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metadata,
+                                 std::set<eckit::URI>& data) const {
 
     if (!enumeratedMaskedEntries_) {
         populateMaskedEntriesList();
@@ -1198,20 +1182,20 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::PathName, Offset>>& m
 
     for (const auto& entry : maskedEntries_) {
 
-        const PathName& path = entry.first;
-        if (path.exists()) {
-            metadata.insert(entry);
+        eckit::URI uri("toc", entry.first);
+        if (entry.first.exists()) {
+            metadata.insert(std::make_pair(uri, entry.second));
 
             // If this is a subtoc, then enumerate its contained indexes and data!
 
-            if (path.baseName().asString().substr(0, 4) == "toc.") {
-                TocHandler h(path, remapKey_);
+            if (uri.path().baseName().asString().substr(0, 4) == "toc.") {
+                TocHandler h(uri.path(), remapKey_);
 
                 h.enumerateMasked(metadata, data);
 
                 std::vector<Index> indexes = h.loadIndexes();
                 for (const auto& i : indexes) {
-                    metadata.insert(std::make_pair<PathName, size_t>(i.location().url(), 0));
+                    metadata.insert(std::make_pair<eckit::URI, Offset>(i.location().uri(), 0));
                     for (const auto& dataPath : i.dataPaths()) {
                         data.insert(dataPath);
                     }
@@ -1339,7 +1323,7 @@ size_t TocHandler::buildIndexRecord(TocRecord& r, const Index &index) {
 
     eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
 
-    s << tocLoc.path().baseName();
+    s << tocLoc.uri().path().baseName();
     s << tocLoc.offset();
     s << index.type();
     index.encode(s);
@@ -1359,11 +1343,11 @@ size_t TocHandler::buildClearRecord(TocRecord &r, const Index &index) {
 
             eckit::MemoryStream s(&r_.payload_[0], r_.maxPayloadSize);
 
-            s << location.path().baseName();
+            s << location.uri().path().baseName();
             s << location.offset();
             ASSERT(sz_ == 0);
             sz_ = s.position();
-            eckit::Log::debug<LibFdb5>() << "Write TOC_CLEAR " << location.path().baseName() << " - " << location.offset() << std::endl;
+            eckit::Log::debug<LibFdb5>() << "Write TOC_CLEAR " << location.uri().path().baseName() << " - " << location.offset() << std::endl;
         }
 
         size_t size() const { return sz_; }

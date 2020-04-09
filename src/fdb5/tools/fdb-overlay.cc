@@ -17,8 +17,8 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
-#include "fdb5/toc/TocDBWriter.h"
-#include "fdb5/toc/TocDBReader.h"
+/*#include "fdb5/toc/TocCatalogueWriter.h"
+#include "fdb5/toc/TocDBReader.h"*/
 #include "fdb5/toc/TocEngine.h"
 #include "fdb5/tools/FDBTool.h"
 
@@ -123,7 +123,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         }
     }
 
-    std::unique_ptr<DB> dbSource(DBFactory::buildReader(source, config));
+    std::unique_ptr<DB> dbSource = DB::buildReader(source, config);
     if (!dbSource->exists()) {
         std::stringstream ss;
         ss << "Source database not found: " << source << std::endl;
@@ -136,7 +136,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         throw UserError(ss.str(), Here());
     }
 
-    std::unique_ptr<DB> dbTarget(DBFactory::buildReader(target, config));
+    std::unique_ptr<DB> dbTarget = DB::buildReader(target, config);
 
     if (remove_) {
         if (!dbTarget->exists()) {
@@ -154,18 +154,18 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         }
     }
 
-    ASSERT(dbTarget->basePath() != dbSource->basePath());
+    ASSERT(dbTarget->uri() != dbSource->uri());
 
-    std::unique_ptr<DB> newDB(DBFactory::buildWriter(target, config));
+    std::unique_ptr<DB> newDB = DB::buildWriter(target, config);
 
     // This only works for tocDBs
 
-    TocDBReader* tocSourceDB = dynamic_cast<TocDBReader*>(dbSource.get());
+/*    TocDBReader* tocSourceDB = dynamic_cast<TocDBReader*>(dbSource.get());
     TocDBWriter* tocTargetDB = dynamic_cast<TocDBWriter*>(newDB.get());
     ASSERT(tocSourceDB);
-    ASSERT(tocTargetDB);
+    ASSERT(tocTargetDB);*/
 
-    tocTargetDB->overlayDB(*tocSourceDB, vkeys, remove_);
+    newDB->overlayDB(*dbSource, vkeys, remove_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -28,11 +28,11 @@ public: // methods
 
     static const char* typeName() { return "toc"; }
 
-    static std::vector<eckit::PathName> databases(const Key& key,
+    static std::vector<eckit::URI> databases(const Key& key,
                                                   const std::vector<eckit::PathName>& dirs,
                                                   const Config& config);
 
-    static std::vector<eckit::PathName> databases(const metkit::MarsRequest& rq,
+    static std::vector<eckit::URI> databases(const metkit::MarsRequest& rq,
                                                   const std::vector<eckit::PathName>& dirs,
                                                   const Config& config);
 
@@ -48,16 +48,16 @@ protected: // methods
 
     virtual std::string dbType() const;
 
-    virtual eckit::PathName location(const Key &key, const Config& config) const;
+    virtual eckit::URI location(const Key &key, const Config& config) const;
 
-    virtual bool canHandle(const eckit::PathName& path) const;
+    virtual bool canHandle(const eckit::URI& path) const;
 
-    virtual std::vector<eckit::PathName> allLocations(const Key& key, const Config& config) const;
+    virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const;
 
-    virtual std::vector<eckit::PathName> visitableLocations(const Key& key, const Config& config) const;
-    virtual std::vector<eckit::PathName> visitableLocations(const metkit::MarsRequest& rq, const Config& config) const;
+    virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const;
+    virtual std::vector<eckit::URI> visitableLocations(const metkit::MarsRequest& rq, const Config& config) const;
 
-    virtual std::vector<eckit::PathName> writableLocations(const Key& key, const Config& config) const;
+    virtual std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const;
 
     virtual void print( std::ostream &out ) const;
 

@@ -8,20 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TocDBWriter.h
+/// @file   TocCatalogueWriter.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_TocDBWriter_H
-#define fdb5_TocDBWriter_H
+#ifndef fdb5_TocCatalogueWriter_H
+#define fdb5_TocCatalogueWriter_H
 
 #include "eckit/os/AutoUmask.h"
 
 #include "fdb5/database/Index.h"
 #include "fdb5/toc/TocRecord.h"
 
-#include "fdb5/toc/TocDB.h"
+#include "fdb5/toc/TocCatalogue.h"
 
 namespace fdb5 {
 
@@ -32,60 +32,52 @@ class TocAddIndex;
 
 /// DB that implements the FDB on POSIX filesystems
 
-class TocDBWriter : public TocDB {
+class TocCatalogueWriter : public TocCatalogue, public CatalogueWriter {
 
 public: // methods
 
-    TocDBWriter(const Key &key, const fdb5::Config& config);
-    TocDBWriter(const eckit::PathName& directory, const fdb5::Config& config);
+    TocCatalogueWriter(const Key &key, const fdb5::Config& config);
+    TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
 
-    virtual ~TocDBWriter();
+    virtual ~TocCatalogueWriter() override;
 
     /// Used for adopting & indexing external data to the TOC dir
-    void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
+    void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) override;
 
-    void reconsolidateIndexesAndTocs();
+    void reconsolidate() override { reconsolidateIndexesAndTocs(); }
 
-    /// Mount an existing TocDB, which has a different metadata key (within
+    /// Mount an existing TocCatalogue, which has a different metadata key (within
     /// constraints) to allow on-line rebadging of data
     /// variableKeys: The keys that are allowed to differ between the two DBs
-    void overlayDB(const TocDB& db, const std::set<std::string>& variableKeys, bool unmount);
+    void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override;
 
     // Hide the contents of the DB!!!
-    void hideContents();
+    void hideContents() override;
+
+    const Index& currentIndex() override;
 
 protected: // methods
 
-    virtual bool selectIndex(const Key &key);
-    virtual void deselectIndex();
+    virtual bool selectIndex(const Key &key) override;
+    virtual void deselectIndex() override;
 
-    virtual bool open();
-    virtual void flush();
-    virtual void close();
+    bool open() override;
+    void flush() override;
+    void clean() override;
+    void close() override;
 
-    virtual void archive(const Key &key, const void *data, eckit::Length length);
+    void archive(const Key& key, const FieldLocation* fieldLocation) override;
+    void reconsolidateIndexesAndTocs();
 
-
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 
 private: // methods
 
-
-    eckit::DataHandle *getCachedHandle( const eckit::PathName &path ) const;
-    eckit::DataHandle *createDataHandle(const eckit::PathName &path);
-    eckit::DataHandle *createFileHandle(const eckit::PathName &path);
-    eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
-
     void closeIndexes();
-    void closeDataHandles();
     void flushIndexes();
-    void flushDataHandles();
     void compactSubTocIndexes();
 
-    eckit::DataHandle &getDataHandle( const eckit::PathName & );
-    eckit::PathName getDataPath(const Key &key);
     eckit::PathName generateIndexPath(const Key &key) const;
-    eckit::PathName generateDataPath(const Key &key) const;
 
 private: // types
 
@@ -107,11 +99,8 @@ private: // members
 
     Index current_;
     Index currentFull_;
-    Key currentIndexKey_;
 
     eckit::AutoUmask umask_;
-
-    bool dirty_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

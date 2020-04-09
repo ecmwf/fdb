@@ -44,7 +44,7 @@ protected: // methods
 
     virtual const Schema& databaseSchema() const;
 
-    fdb5::DB *current() const;
+    fdb5::DB* current() const;
 
 private: // members
 

@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   TocDB.h
+/// @file   TocCatalogue.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
@@ -28,54 +28,48 @@ namespace fdb5 {
 
 /// DB that implements the FDB on POSIX filesystems
 
-class TocDB : public DB, public TocHandler {
+class TocCatalogue : public Catalogue, public TocHandler {
 
 public: // methods
 
-    TocDB(const Key& key, const fdb5::Config& config);
-    TocDB(const eckit::PathName& directory, const fdb5::Config& config);
+    TocCatalogue(const Key& key, const fdb5::Config& config);
+    TocCatalogue(const eckit::PathName& directory, const fdb5::Config& config);
 
-    ~TocDB() override;
+    ~TocCatalogue() override {}
 
-    static const char* dbTypeName() { return TocEngine::typeName(); }
+    static const char* catalogueTypeName() { return TocEngine::typeName(); }
+    const eckit::PathName& basePath() const override;
+    eckit::URI uri() const override;
+
+    static void remove(const eckit::PathName& path, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
+
+public: // constants
+    static const std::string DUMP_PARAM_WALKSUBTOC;
 
 protected: // methods
 
-    std::string dbType() const override;
+    std::string type() const override;
 
     void checkUID() const override;
-    bool open() override;
-    void close() override;
-    void flush() override;
     bool exists() const override;
-    void visitEntries(EntryVisitor& visitor, bool sorted=false) override;
-    void visit(DBVisitor& visitor) override;
-    void dump(std::ostream& out, bool simple=false) const override;
-    std::string owner() const override;
-    const eckit::PathName& basePath() const override;
+    void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) override;
+    void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
     std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;
 
-    eckit::DataHandle *retrieve(const Key &key) const override;
-    void archive(const Key &key, const void *data, eckit::Length length) override;
-    void axis(const std::string &keyword, eckit::StringSet &s) const override;
-
     StatsReportVisitor* statsReportVisitor() const override;
-    PurgeVisitor* purgeVisitor() const override;
-    WipeVisitor* wipeVisitor(const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
+    PurgeVisitor* purgeVisitor(const Store& store) const override;
+    WipeVisitor* wipeVisitor(const Store& store, const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
     void maskIndexEntry(const Index& index) const override;
 
-    void loadSchema();
-
-    DbStats statistics() const override;
+    void loadSchema() override;
 
     std::vector<Index> indexes(bool sorted=false) const override;
 
-    void allMasked(std::set<std::pair<eckit::PathName, eckit::Offset>>& metadata,
-                   std::set<eckit::PathName>& data) const override;
+    void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
+                   std::set<eckit::URI>& data) const override;
 
     // Control access properties of the DB
-
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
     bool retrieveLocked() const override;
@@ -83,7 +77,9 @@ protected: // methods
     bool listLocked() const override;
     bool wipeLocked() const override;
 
-private: // members
+    Key currentIndexKey_;
+
+private: // members    
 
     friend class TocWipeVisitor;
 

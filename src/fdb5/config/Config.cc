@@ -45,7 +45,9 @@ public:
             return *it->second;
         }
 
-        schemas_[path] = std::unique_ptr<Schema>(new Schema(path));
+        Schema* p = new Schema(path);
+        ASSERT(p);
+        schemas_[path] = std::unique_ptr<Schema>(p);
         return *schemas_[path];
     }
 private:
@@ -63,7 +65,7 @@ Config::Config(const Configuration& config) :
 
 Config Config::expandConfig() const {
 
-    // If the config is already initialised, then use it directly.
+    // stops recursion on loading configuration of sub-fdb's
     if (has("type")) return *this;
 
     // If we have explicitly specified a config as an environment variable, use that
@@ -93,6 +95,7 @@ Config Config::expandConfig() const {
         found = true;
     }
 
+    // ~fdb is expanded from FDB_HOME (based on eckit::PathName::expandTilde()) or from the 'fdb_home' value in config
     if (!found) {
         PathName configDir = expandPath("~fdb/etc/fdb");
         for (const std::string& stem : {Main::instance().displayName(),

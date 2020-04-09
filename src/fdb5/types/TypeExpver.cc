@@ -9,11 +9,12 @@
  */
 
 #include <iomanip>
+#include <sstream>
 
 #include "eckit/utils/Translator.h"
+#include "eckit/utils/StringTools.h"
 
 #include "eckit/types/Date.h"
-#include "metkit/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeExpver.h"
@@ -32,8 +33,10 @@ TypeExpver::~TypeExpver() {
 
 std::string TypeExpver::tidy(const std::string&,
                              const std::string& value) const {
-    std::stringstream oss;
-    oss << std::setfill('0') << std::setw(4) << value;
+
+
+    std::ostringstream oss;
+    oss << std::setfill('0') << std::setw(4) << eckit::StringTools::trim(value);
     return oss.str();
 }
 

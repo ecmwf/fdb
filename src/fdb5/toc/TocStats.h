@@ -26,13 +26,13 @@
 #include "fdb5/database/DataStats.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/toc/TocCatalogueReader.h"
 
 #include <unordered_set>
 #include <unordered_map>
 
 namespace fdb5 {
 
-class TocDB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -151,7 +151,7 @@ public:
 class TocStatsReportVisitor : public virtual StatsReportVisitor {
 public:
 
-    TocStatsReportVisitor(const TocDB& reader, bool includeReferenced=true);
+    TocStatsReportVisitor(const TocCatalogue& catalogue, bool includeReferenced=true);
     virtual ~TocStatsReportVisitor() override;
 
     IndexStats indexStatistics() const override;
@@ -159,12 +159,12 @@ public:
 
 private: // methods
 
-    bool visitDatabase(const DB& db) override;
+    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(const Field& field, const Key& key) override { NOTIMP; }
 
     // This visitor is only legit for one DB - so don't reset database
-    void databaseComplete(const DB& db) override;
+    void catalogueComplete(const Catalogue& catalogue) override;
 
 
 protected: // members

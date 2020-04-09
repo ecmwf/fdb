@@ -21,25 +21,21 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static FDBTool* instance_ = 0;
+static FDBTool* instance_ = nullptr;
 
-FDBTool::FDBTool(int argc, char **argv) :
-    eckit::Tool(argc, argv, "FDB_HOME") {
-
-    ASSERT(instance_ == 0);    
+FDBTool::FDBTool(int argc, char** argv) : eckit::Tool(argc, argv, "FDB_HOME") {
+    ASSERT(instance_ == nullptr);
     instance_ = this;
 }
 
-static void usage(const std::string &tool) {
+static void usage(const std::string& tool) {
     ASSERT(instance_);
     instance_->usage(tool);
 }
 
 void FDBTool::run() {
-    eckit::option::CmdArgs args(&fdb5::usage,
-        options_,
-        numberOfPositionalArguments(),
-        minimumPositionalArguments());
+    eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(),
+                                minimumPositionalArguments());
 
     init(args);
     execute(args);
@@ -47,28 +43,20 @@ void FDBTool::run() {
 }
 
 
-void FDBTool::usage(const std::string&) const {
-}
+void FDBTool::usage(const std::string&) const {}
 
-void FDBTool::init(const eckit::option::CmdArgs& args) {
-}
+void FDBTool::init(const eckit::option::CmdArgs& args) {}
 
-void FDBTool::finish(const eckit::option::CmdArgs&) {
+void FDBTool::finish(const eckit::option::CmdArgs&) {}
 
-}
+//----------------------------------------------------------------------------------------------------------------------
 
-FDBToolException::FDBToolException(const std::string& w) :
-    Exception(w) {
-
-}
+FDBToolException::FDBToolException(const std::string& w) : Exception(w) {}
 
 FDBToolException::FDBToolException(const std::string& w, const eckit::CodeLocation& l) :
-    Exception(w, l) {
-
-}
+    Exception(w, l) {}
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
-
+}  // namespace fdb5

@@ -44,15 +44,20 @@ FileStore::FileStore(const eckit::PathName &directory, eckit::Stream &s):
 
         s >> id;
         s >> p;
+        eckit::URI uri(p);
 
-        eckit::PathName path(p);
+        if ((uri.scheme() == "unix") || (uri.scheme() == "file")) {
+            eckit::PathName path = uri.path();
+            std::string q = path.asString();
 
-        if (!p.empty() && p[0] != '/') {
-            path = directory_ / path;
+            if (!q.empty() && q[0] != '/')
+                path = directory_ / path;
+            uri = eckit::URI("file", path);
         }
 
-        paths_[id] = path;
-        ids_[path] = id;
+        paths_[id] = uri;
+        ids_[uri] = id;
+
         next_ = std::max(id + 1, next_);
     }
 
@@ -61,15 +66,20 @@ FileStore::FileStore(const eckit::PathName &directory, eckit::Stream &s):
 
 void FileStore::encode(eckit::Stream &s) const {
     s << paths_.size();
-    for ( PathStore::const_iterator i = paths_.begin(); i != paths_.end(); ++i ) {
+    for ( URIStore::const_iterator i = paths_.begin(); i != paths_.end(); ++i ) {
         s << i->first;
-        const eckit::PathName &path = i->second;
-        s << ( (path.dirName() == directory_) ?  path.baseName() : path );
+        const eckit::URI &uri = i->second;
+        if (uri.scheme() == "file") {
+            const eckit::PathName &path = uri.path();
+            s << ( (path.dirName() == directory_) ?  path.baseName() : path );
+        } else {
+            s << uri.asRawString();
+        }
     }
 }
 
 
-FileStore::PathID FileStore::insert( const eckit::PathName &path ) {
+FileStore::PathID FileStore::insert( const eckit::URI &path ) {
     ASSERT(!readOnly_);
 
     IdStore::iterator itr = ids_.find(path);
@@ -84,14 +94,14 @@ FileStore::PathID FileStore::insert( const eckit::PathName &path ) {
     return current;
 }
 
-eckit::PathName FileStore::get(const FileStore::PathID id) const {
-    PathStore::const_iterator itr = paths_.find(id);
+eckit::URI FileStore::get(const FileStore::PathID id) const {
+    URIStore::const_iterator itr = paths_.find(id);
     ASSERT( itr != paths_.end() );
     return itr->second;
 }
 
-std::vector<eckit::PathName> FileStore::paths() const {
-    std::vector<eckit::PathName> p;
+std::vector<eckit::URI> FileStore::paths() const {
+    std::vector<eckit::URI> p;
 
     p.reserve(paths_.size());
 
@@ -103,14 +113,14 @@ std::vector<eckit::PathName> FileStore::paths() const {
 }
 
 void FileStore::print( std::ostream &out ) const {
-    for ( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr ) {
+    for ( URIStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr ) {
         out << itr->first << " " << itr->second << std::endl;
     }
 }
 
 void FileStore::dump(std::ostream &out, const char* indent) const {
     out << indent << "Files:" << std::endl;
-    for ( PathStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr ) {
+    for ( URIStore::const_iterator itr = paths_.begin(); itr != paths_.end(); ++itr ) {
         out << indent << indent << std::setw(3) << itr->first << " => " << itr->second << std::endl;
     }
 }

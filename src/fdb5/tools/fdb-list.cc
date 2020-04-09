@@ -27,13 +27,6 @@
 using namespace eckit;
 using namespace eckit::option;
 
-/*
- * This is a test case
- *
- * TODO: Generalise to more cases
- *
- */
-
 namespace fdb5 {
 namespace tools {
 
@@ -82,7 +75,7 @@ void FDBList::init(const CmdArgs& args) {
         }
     }
 
-    // TODO: ignore-errors
+    /// @todo option ignore-errors
 }
 
 

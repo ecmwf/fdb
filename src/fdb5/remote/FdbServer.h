@@ -26,7 +26,6 @@
 #include "eckit/runtime/Monitorable.h"
 #include "eckit/runtime/Monitor.h"
 #include "eckit/runtime/ProcessControler.h"
-#include "eckit/thread/ThreadControler.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/LibFdb5.h"

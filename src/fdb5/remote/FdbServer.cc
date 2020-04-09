@@ -13,6 +13,9 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "eckit/thread/Thread.h"
+#include "eckit/thread/ThreadControler.h"
+
 #include "fdb5/remote/FdbServer.h"
 
 #include "fdb5/remote/AvailablePortList.h"
@@ -49,6 +52,38 @@ void FDBForker::run() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class FDBServerThread : public eckit::Thread {
+
+public: // methods
+
+    FDBServerThread(eckit::net::TCPSocket& socket, const Config& config = fdb5::Config());
+
+private: // methods
+
+    virtual void run();
+
+private: // members
+
+    eckit::net::TCPSocket socket_;
+    eckit::LocalConfiguration config_;
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+FDBServerThread::FDBServerThread(net::TCPSocket& socket, const Config& config) :
+    socket_(socket),
+    config_(config) {}
+
+void FDBServerThread::run() {
+    eckit::Log::info() << "FDB started handler thread" << std::endl;
+
+    RemoteHandler handler(socket_, config_);
+    handler.handle();
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 FdbServerBase::FdbServerBase() {}
 
 FdbServerBase::~FdbServerBase() {}
@@ -65,6 +100,7 @@ void FdbServerBase::doRun() {
     startPortReaperThread(config);
 
     int port = config.getInt("serverPort", 7654);
+    bool threaded = config.getBool("serverThreaded", false);
 
     net::TCPServer server(net::Port("fdb", port), net::SocketOptions::server().reusePort(true));
     server.closeExec(false);
@@ -73,8 +109,14 @@ void FdbServerBase::doRun() {
 
     while (true) {
         try {
-            FDBForker f(server.accept(), config);
-            f.start();
+            if (threaded) {
+                ThreadControler t(new FDBServerThread(server.accept(), config));
+                t.start();
+            }
+            else {
+                FDBForker f(server.accept(), config);
+                f.start();
+            }
         }
         catch (std::exception& e) {
             eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;

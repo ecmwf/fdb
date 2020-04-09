@@ -16,19 +16,18 @@
 
 
 #include "fdb5/database/WipeVisitor.h"
+#include "fdb5/toc/TocCatalogue.h"
 
 namespace fdb5 {
 
-class TocDB;
-
 //----------------------------------------------------------------------------------------------------------------------
-
 
 class TocWipeVisitor : public WipeVisitor {
 
 public:
 
-    TocWipeVisitor(const TocDB& db,
+    TocWipeVisitor(const TocCatalogue& catalogue,
+                   const Store& store,
                    const metkit::MarsRequest& request,
                    std::ostream& out,
                    bool doit,
@@ -38,9 +37,9 @@ public:
 
 private: // methods
 
-    bool visitDatabase(const DB& db) override;
+    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     bool visitIndex(const Index& index) override;
-    void databaseComplete(const DB& db) override;
+    void catalogueComplete(const Catalogue& catalogue) override;
 
     void addMaskedPaths();
     void addMetadataPaths();
@@ -55,7 +54,8 @@ private: // methods
 private: // members
 
     // What are the parameters of the wipe operation
-    const TocDB& db_;
+    const TocCatalogue& catalogue_;
+    const Store& store_;
 
     metkit::MarsRequest indexRequest_;
 

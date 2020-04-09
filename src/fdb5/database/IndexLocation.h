@@ -11,6 +11,7 @@
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/serialisation/Streamable.h"
 
 #ifndef fdb5_IndexLocation_H
@@ -27,7 +28,8 @@ public: // methods
     IndexLocation();
     virtual ~IndexLocation();
 
-    virtual eckit::PathName url() const = 0;
+//    virtual eckit::PathName path() const = 0;
+    virtual eckit::URI uri() const = 0;
 
     virtual IndexLocation* clone() const = 0;
 

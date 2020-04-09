@@ -20,7 +20,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit  VERSION 1.7 REQUIRED )
+ecbuild_use_package( PROJECT eckit  VERSION 1.10 REQUIRED )
 
 ### GRIB support
 
@@ -40,6 +40,13 @@ ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
                     DEFAULT OFF
                     DESCRIPTION "Persistent memory (NVRAM) support for FDB"
                     REQUIRED_PACKAGES "PROJECT pmem" )
+
+### FDB backend in CEPH object store (using Rados)
+
+ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
+                    DEFAULT ON
+                    DESCRIPTION "Ceph/Rados support for FDB Store"
+                    REQUIRED_PACKAGES Rados )
 
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
 ### Supports Lustre parallel filesystem stripping control
@@ -67,8 +74,18 @@ ecbuild_add_option( FEATURE SANDBOX
 
 ### build the tools
 
-ecbuild_add_option( FEATURE FDB_TOOLS
+ecbuild_add_option( FEATURE BUILD_TOOLS
                     DEFAULT ON
+                    DESCRIPTION "Build the command line tools" )
+
+if(HAVE_BUILD_TOOLS)
+    set(_default_fdb_tools ON)
+else()
+    set(_default_fdb_tools OFF)
+endif()
+
+ecbuild_add_option( FEATURE FDB_BUILD_TOOLS
+                    DEFAULT ${_default_fdb_tools}
                     DESCRIPTION "Build the command line FDB tools" )
 
 ### find thread library ( preferably pthreads )

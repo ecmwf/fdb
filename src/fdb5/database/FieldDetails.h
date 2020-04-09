@@ -24,7 +24,6 @@
 #include "eckit/types/Types.h"
 #include "eckit/types/FixedString.h"
 
-#include "fdb5/database/FileStore.h"
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
 

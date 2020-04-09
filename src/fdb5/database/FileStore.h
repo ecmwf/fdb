@@ -17,6 +17,7 @@
 
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
@@ -38,8 +39,8 @@ public: // types
 
     typedef size_t PathID;
 
-    typedef std::map< FileStore::PathID, eckit::PathName >     PathStore;
-    typedef std::map< eckit::PathName, FileStore::PathID >     IdStore;
+    typedef std::map< FileStore::PathID, eckit::URI >     URIStore;
+    typedef std::map< eckit::URI, FileStore::PathID >     IdStore;
 
 public: // methods
 
@@ -48,16 +49,16 @@ public: // methods
 
     ~FileStore();
 
-    /// Inserts the path in the store
-    /// @returns PathID associated to the provided eckit::PathName
-    FileStore::PathID insert( const eckit::PathName &path );
+    /// Inserts the URI in the store
+    /// @returns PathID associated to the provided eckit::URI
+    FileStore::PathID insert( const eckit::URI &path );
 
-    /// @returns a eckit::PathName associated to the provided id
+    /// @returns a eckit::URI associated to the provided id
     /// @pre assumes that the eckit::filesystem/PathName.has already been inserted
-    eckit::PathName get( const FileStore::PathID id ) const;
+    eckit::URI get( const FileStore::PathID id ) const;
 
     /// Return all of the paths used
-    std::vector<eckit::PathName> paths() const;
+    std::vector<eckit::URI> paths() const;
 
     void dump(std::ostream &out, const char* indent) const;
 
@@ -78,7 +79,7 @@ private: // members
     bool                readOnly_;
 
     eckit::PathName     directory_;
-    PathStore           paths_;
+    URIStore           paths_;
     IdStore             ids_;
 
 
