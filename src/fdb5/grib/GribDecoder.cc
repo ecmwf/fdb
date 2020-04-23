@@ -32,7 +32,7 @@ namespace fdb5 {
 static eckit::Mutex local_mutex;
 
 GribDecoder::GribDecoder(bool checkDuplicates):
-    buffer_(80 * 1024 * 1024),
+    buffer_(MetFile::gribBufferSize()),
     checkDuplicates_(checkDuplicates) {
 }
 
@@ -208,8 +208,6 @@ std::vector<metkit::MarsRequest> GribDecoder::gribToRequests(const eckit::PathNa
 
     return requests;
 }
-
-
 
 void GribDecoder::patch(grib_handle*) {
     // Give a chance to subclasses to modify the grib
