@@ -23,6 +23,8 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/LibFdb5.h"
 
+using metkit::grib::MetFile;
+
 class FDBWriteLegacy : public fdb5::FDBTool {
 
     virtual void usage(const std::string &tool) const;
@@ -53,8 +55,7 @@ void FDBWriteLegacy::execute(const eckit::option::CmdArgs &args) {
 
     fdb5::legacy::LegacyArchiver archiver;
 
-    static long gribBufferSize = eckit::Resource<long>("gribBufferSize", 64*1024*1024);
-    eckit::Buffer buffer(gribBufferSize);
+    eckit::Buffer buffer(MetFile::gribBufferSize());
     long len = 0;
 
     for (size_t i = 0; i < args.count(); i++) {
