@@ -47,9 +47,6 @@ namespace {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static eckit::StaticMutex local_mutex;
-
-
 class TocHandlerCloser {
     const TocHandler& handler_;
   public:
@@ -638,6 +635,8 @@ void TocHandler::populateMaskedEntriesList() const {
 
     enumeratedMaskedEntries_ = true;
 }
+
+static eckit::StaticMutex local_mutex;
 
 void TocHandler::writeInitRecord(const Key &key) {
 
