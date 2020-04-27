@@ -26,7 +26,7 @@ ecbuild_use_package( PROJECT eckit  VERSION 1.11 REQUIRED )
 
 ecbuild_use_package( PROJECT eccodes VERSION 2.10 REQUIRED )
 
-ecbuild_use_package( PROJECT metkit VERSION 1.4 REQUIRED ) ## metkit is now always needed
+ecbuild_use_package( PROJECT metkit VERSION 1.5 REQUIRED ) ## metkit is now always needed
 
 ### FDB remote front-end
 
