@@ -10,17 +10,17 @@
 
 #include "fdb5/config/Config.h"
 
+#include <algorithm>
 #include <map>
 #include <mutex>
-#include <algorithm>
 
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
-#include "eckit/runtime/Main.h"
 #include "eckit/filesystem/FileMode.h"
+#include "eckit/runtime/Main.h"
 
-#include "fdb5/rules/Schema.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/rules/Schema.h"
 
 using namespace eckit;
 
@@ -32,7 +32,6 @@ namespace fdb5 {
 ///
 class SchemaRegistry {
 public:
-
     static SchemaRegistry& instance() {
         static SchemaRegistry me;
         return me;
@@ -50,6 +49,7 @@ public:
         schemas_[path] = std::unique_ptr<Schema>(p);
         return *schemas_[path];
     }
+
 private:
     std::mutex m_;
     std::map<PathName, std::unique_ptr<Schema>> schemas_;
@@ -60,13 +60,12 @@ private:
 Config::Config() {}
 
 
-Config::Config(const Configuration& config) :
-    LocalConfiguration(config) {}
+Config::Config(const Configuration& config) : LocalConfiguration(config) {}
 
 Config Config::expandConfig() const {
-
     // stops recursion on loading configuration of sub-fdb's
-    if (has("type")) return *this;
+    if (has("type"))
+        return *this;
 
     // If we have explicitly specified a config as an environment variable, use that
 
@@ -91,17 +90,17 @@ Config Config::expandConfig() const {
     std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "");
     if (!config_path.empty() && !has("fdb_home")) {
         actual_path = config_path;
-        if (!actual_path.exists()) return *this;
+        if (!actual_path.exists())
+            return *this;
         found = true;
     }
 
-    // ~fdb is expanded from FDB_HOME (based on eckit::PathName::expandTilde()) or from the 'fdb_home' value in config
+    // ~fdb is expanded from FDB_HOME (based on eckit::PathName::expandTilde()) or from the
+    // 'fdb_home' value in config
     if (!found) {
         PathName configDir = expandPath("~fdb/etc/fdb");
-        for (const std::string& stem : {Main::instance().displayName(),
-                                        Main::instance().name(),
-                                        std::string("config")}) {
-
+        for (const std::string& stem :
+             {Main::instance().displayName(), Main::instance().name(), std::string("config")}) {
             for (const char* tail : {".yaml", ".json"}) {
                 actual_path = configDir / (stem + tail);
                 if (actual_path.exists()) {
@@ -109,12 +108,14 @@ Config Config::expandConfig() const {
                     break;
                 }
             }
-            if (found) break;
+            if (found)
+                break;
         }
     }
 
     if (found) {
-        eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << actual_path << std::endl;
+        eckit::Log::debug<LibFdb5>()
+            << "Using FDB configuration file: " << actual_path << std::endl;
         Config cfg{YAMLConfiguration(actual_path)};
         cfg.set("configSource", actual_path);
         return cfg;
@@ -131,7 +132,6 @@ Config::~Config() {}
 // TODO: We could add this to expandTilde.
 
 PathName Config::expandPath(const std::string& path) const {
-
     // If path starts with ~, split off the first component. If that is supplied in
     // the configuration, then use that instead!
 
@@ -142,7 +142,7 @@ PathName Config::expandPath(const std::string& path) const {
             if (slashpos == std::string::npos)
                 slashpos = path.length();
 
-            std::string key = path.substr(1, slashpos-1) + "_home";
+            std::string key = path.substr(1, slashpos - 1) + "_home";
             std::transform(key.begin(), key.end(), key.begin(), ::tolower);
 
             if (has(key)) {
@@ -150,7 +150,6 @@ PathName Config::expandPath(const std::string& path) const {
                 return PathName(newpath);
             }
         }
-
     }
 
     /// use the default expansion if unspecified (eckit::Main will expand FDB_HOME)
@@ -158,18 +157,26 @@ PathName Config::expandPath(const std::string& path) const {
 }
 
 PathName Config::schemaPath() const {
+    PathName schema;
 
     // If the user has specified the schema location in the FDB config, use that,
     // otherwise use the library-wide schema path.
 
     if (has("schema")) {
-        return expandPath(getString("schema"));
+        schema = expandPath(getString("schema"));
+    }
+    else {
+        // TODO: deduplicate this with the library-level schemaPath()
+        //       N.B. this uses Config expandPath()
+        static std::string fdbSchemaFile =
+            Resource<std::string>("fdbSchemaFile;$FDB_SCHEMA_FILE", "~fdb/etc/fdb/schema");
+
+        schema = expandPath(fdbSchemaFile);
     }
 
-    // TODO: deduplicate this with the library-level schemaPath() [n.b. this uses Config expandPath()]
-    static std::string fdbSchemaFile = Resource<std::string>("fdbSchemaFile;$FDB_SCHEMA_FILE", "~fdb/etc/fdb/schema");
+    eckit::Log::debug<LibFdb5>() << "Using FDB schema: " << schema << std::endl;
 
-    return expandPath(fdbSchemaFile);
+    return schema;
 }
 
 PathName Config::configPath() const {
@@ -182,13 +189,14 @@ const Schema& Config::schema() const {
 }
 
 mode_t Config::umask() const {
-    if(has("permissions")) {
+    if (has("permissions")) {
         return FileMode(getString("permissions")).mask();
     }
-    static eckit::FileMode fdbFileMode(eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
+    static eckit::FileMode fdbFileMode(
+        eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
