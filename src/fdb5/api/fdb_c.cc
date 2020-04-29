@@ -21,7 +21,7 @@
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
 
-#include "fdb5/api/fdc.h"
+#include "fdb5/api/fdb_c.h"
 
 using namespace fdb5;
 using namespace eckit;
@@ -31,19 +31,18 @@ extern "C" {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-struct fdc_t : public FDB {
+struct fdb_t : public FDB {
     using FDB::FDB;
 };
 
-
-struct fdc_Key_t : public Key {
+struct fdb_Key_t : public Key {
     using Key::Key;
 };
 
-struct fdc_MarsRequest_t {
+struct fdb_MarsRequest_t {
 public:
-    fdc_MarsRequest_t() : request_(metkit::MarsRequest()) {}
-    fdc_MarsRequest_t(std::string str) {
+    fdb_MarsRequest_t() : request_(metkit::MarsRequest()) {}
+    fdb_MarsRequest_t(std::string str) {
         request_ = metkit::MarsRequest(str);
     }
     void values(char* name, char* values[], int numValues) {
@@ -54,8 +53,8 @@ public:
         }
         request_.values(n, vv);
     }
-    static fdc_MarsRequest_t* parse(std::string str) {
-        fdc_MarsRequest_t* req = new fdc_MarsRequest_t();
+    static fdb_MarsRequest_t* parse(std::string str) {
+        fdb_MarsRequest_t* req = new fdb_MarsRequest_t();
         req->request_ = metkit::MarsRequest::parse(str);
         return req;
     }
@@ -65,16 +64,16 @@ private:
 };
 
 
-struct fdc_ToolRequest_t {
+struct fdb_ToolRequest_t {
 public:
-    fdc_ToolRequest_t(fdc_MarsRequest_t *req, bool all, fdc_KeySet_t *keySet) {
+    fdb_ToolRequest_t(fdb_MarsRequest_t *req, bool all, fdb_KeySet_t *keySet) {
         std::vector<std::string> minKeySet;
         for (int i=0; i<keySet->numKeys; i++)
             minKeySet.push_back(keySet->keySet[i]);
 
         request_ = new FDBToolRequest(req->request(), all, minKeySet);
     }
-    fdc_ToolRequest_t(char *str, bool all, fdc_KeySet_t *keySet) {
+    fdb_ToolRequest_t(char *str, bool all, fdb_KeySet_t *keySet) {
         std::vector<std::string> minKeySet;
         for (int i=0; i<keySet->numKeys; i++)
             minKeySet.push_back(keySet->keySet[i]);
@@ -89,19 +88,18 @@ private:
 };
 
 
-struct fdc_ListElement_t : public ListElement {
+struct fdb_ListElement_t : public ListElement {
     using ListElement::ListElement;
 };
 
-
-struct fdc_ListIterator_t {
+struct fdb_ListIterator_t {
 public:
-    fdc_ListIterator_t(std::unique_ptr<APIIteratorBase<ListElement>> iter) : iter_(std::move(iter)) {}
+    fdb_ListIterator_t(ListIterator&& iter) : iter_(std::move(iter)) {}
 
-    bool next(ListElement& elem) {return iter_->next(elem);}
+    bool next(ListElement& elem) { return iter_.next(elem); }
 
 private:
-    std::unique_ptr<APIIteratorBase<ListElement>> iter_;
+    ListIterator iter_;
 };
 
 
@@ -110,17 +108,17 @@ private:
 /* Error handling */
 
 static std::string g_current_error_str;
-static fdc_failure_handler_t g_failure_handler = nullptr;
+static fdb_failure_handler_t g_failure_handler = nullptr;
 static void* g_failure_handler_context = nullptr;
 
-const char* fdc_error_string(int err) {
+const char* fdb_error_string(int err) {
     switch (err) {
-    case FDC_SUCCESS:
+    case FDB_SUCCESS:
         return "Success";
-    case FDC_ERROR_GENERAL_EXCEPTION:
-    case FDC_ERROR_UNKNOWN_EXCEPTION:
+    case FDB_ERROR_GENERAL_EXCEPTION:
+    case FDB_ERROR_UNKNOWN_EXCEPTION:
         return g_current_error_str.c_str();
-//    case FDC_ITERATION_COMPLETE:
+//    case FDB_ITERATION_COMPLETE:
 //        return "Iteration complete";
     default:
         return "<unknown>";
@@ -142,7 +140,7 @@ int innerWrapFn(std::function<int()> f) {
 
 int innerWrapFn(std::function<void()> f) {
     f();
-    return FDC_SUCCESS;
+    return FDB_SUCCESS;
 }
 
 template <typename FN>
@@ -154,23 +152,23 @@ int wrapApiFunction(FN f) {
         Log::error() << "Caught exception on C-C++ API boundary: " << e.what() << std::endl;
         g_current_error_str = e.what();
         if (g_failure_handler) {
-            g_failure_handler(g_failure_handler_context, FDC_ERROR_GENERAL_EXCEPTION);
+            g_failure_handler(g_failure_handler_context, FDB_ERROR_GENERAL_EXCEPTION);
         }
-        return FDC_ERROR_GENERAL_EXCEPTION;
+        return FDB_ERROR_GENERAL_EXCEPTION;
     } catch (std::exception& e) {
         Log::error() << "Caught exception on C-C++ API boundary: " << e.what() << std::endl;
         g_current_error_str = e.what();
         if (g_failure_handler) {
-            g_failure_handler(g_failure_handler_context, FDC_ERROR_GENERAL_EXCEPTION);
+            g_failure_handler(g_failure_handler_context, FDB_ERROR_GENERAL_EXCEPTION);
         }
-        return FDC_ERROR_GENERAL_EXCEPTION;
+        return FDB_ERROR_GENERAL_EXCEPTION;
     } catch (...) {
         Log::error() << "Caught unknown on C-C++ API boundary" << std::endl;
         g_current_error_str = "Unrecognised and unknown exception";
         if (g_failure_handler) {
-            g_failure_handler(g_failure_handler_context, FDC_ERROR_UNKNOWN_EXCEPTION);
+            g_failure_handler(g_failure_handler_context, FDB_ERROR_UNKNOWN_EXCEPTION);
         }
-        return FDC_ERROR_UNKNOWN_EXCEPTION;
+        return FDB_ERROR_UNKNOWN_EXCEPTION;
     }
 
     ASSERT(false);
@@ -191,16 +189,16 @@ extern "C" {
  * @note This is only required if being used from a context where Main()
  *       is not otherwise initialised
 */
-int fdc_initialise_api() {
+int fdb_initialise_api() {
     return wrapApiFunction([] {
         static bool initialised = false;
 
         if (initialised) {
-            Log::warning() << "Initialising FDC library twice" << std::endl;
+            Log::warning() << "Initialising FDB library twice" << std::endl;
         }
 
         if (!initialised) {
-            const char* argv[2] = {"fdc-api", 0};
+            const char* argv[2] = {"fdb-api", 0};
             Main::initialise(1, const_cast<char**>(argv));
             initialised = true;
         }
@@ -208,73 +206,62 @@ int fdc_initialise_api() {
 }
 
 
-int fdc_set_failure_handler(fdc_failure_handler_t handler, void* context) {
+int fdb_set_failure_handler(fdb_failure_handler_t handler, void* context) {
     return wrapApiFunction([handler, context] {
         g_failure_handler = handler;
         g_failure_handler_context = context;
-        eckit::Log::info() << "FDC setting failure handler fn." << std::endl;
+        eckit::Log::info() << "FDB setting failure handler fn." << std::endl;
     });
 }
 
-int fdc_version(const char** version) {
+int fdb_version(const char** version) {
     return wrapApiFunction([version]{
         (*version) = fdb5_version_str();
     });
 }
 
-int fdc_vcs_version(const char** sha1) {
+int fdb_vcs_version(const char** sha1) {
     return wrapApiFunction([sha1]{
         (*sha1) = fdb5_git_sha1();
     });
 }
 
 
-int fdc_init(fdc_t** fdb) {
+int fdb_init(fdb_t** fdb) {
     return wrapApiFunction([fdb] {
-        *fdb = new fdc_t();
+        *fdb = new fdb_t();
     });
 }
 
-int fdc_clean(fdc_t* fdc) {
-    return wrapApiFunction([fdc]{
-        ASSERT(fdc);
-        delete fdc;
+int fdb_clean(fdb_t* fdb) {
+    return wrapApiFunction([fdb]{
+        ASSERT(fdb);
+        delete fdb;
     });
 }
 
-int fdc_cleanPtr(fdc_t** fdc) {
-    return wrapApiFunction([fdc]{
-        ASSERT(fdc);
-        ASSERT(*fdc);
-        delete *fdc;
+int fdb_list(fdb_t* fdb, const fdb_ToolRequest_t* req, fdb_ListIterator_t** it) {
+    return wrapApiFunction([fdb, req, it] {
+        *it = new fdb_ListIterator_t(fdb->list(req->request()));
     });
 }
-
-
-int fdc_list(fdc_ListIterator_t** it, fdc_t* fdc, const fdc_ToolRequest_t* req) {
-    return wrapApiFunction([fdc, req, it] {
-        ListIterator iter = fdc->list(req->request());
-
-        *it = new fdc_ListIterator_t(iter.move());
-    });
-}
-int fdc_list_clean(fdc_ListIterator_t* it) {
+int fdb_list_clean(fdb_ListIterator_t* it) {
     return wrapApiFunction([it]{
         ASSERT(it);
         delete it;
     });
 }
-int fdc_list_next(fdc_ListIterator_t* it, bool* exist, fdc_ListElement_t** el) {
+int fdb_list_next(fdb_ListIterator_t* it, bool* exist, fdb_ListElement_t** el) {
     return wrapApiFunction([it, exist, el]{
         *exist = it->next(**el);
     });
 }
 
-long fdc_dh_to_stream(DataHandle* dh, void* handle, fdc_stream_write_t write_fn) {
+long fdb_dh_to_stream(DataHandle* dh, void* handle, fdb_stream_write_t write_fn) {
 
     // Wrap the stream in a DataHandle
     struct WriteStreamDataHandle : public eckit::DataHandle {
-        WriteStreamDataHandle(void* handle, fdc_stream_write_t fn) : handle_(handle), fn_(fn), pos_(0) {}
+        WriteStreamDataHandle(void* handle, fdb_stream_write_t fn) : handle_(handle), fn_(fn), pos_(0) {}
         virtual ~WriteStreamDataHandle() {}
         void print(std::ostream& s) const override { s << "StreamReadHandle(" << fn_ << "(" << handle_ << "))"; }
         Length openForRead() override { NOTIMP; }
@@ -290,7 +277,7 @@ long fdc_dh_to_stream(DataHandle* dh, void* handle, fdc_stream_write_t write_fn)
         void close() override {}
 
         void* handle_;
-        fdc_stream_write_t fn_;
+        fdb_stream_write_t fn_;
         Offset pos_;
     };
 
@@ -301,7 +288,7 @@ long fdc_dh_to_stream(DataHandle* dh, void* handle, fdc_stream_write_t write_fn)
     return sdh.position();
 }
 
-long fdc_dh_to_file_descriptor(DataHandle* dh, int fd) {
+long fdb_dh_to_file_descriptor(DataHandle* dh, int fd) {
     FileDescHandle fdh(fd);
     fdh.openForWrite(0);
     AutoClose closer(fdh);
@@ -309,7 +296,7 @@ long fdc_dh_to_file_descriptor(DataHandle* dh, int fd) {
     return fdh.position();
 }
 
-long fdc_dh_to_buffer(DataHandle* dh, void* buffer, long length) {
+long fdb_dh_to_buffer(DataHandle* dh, void* buffer, long length) {
     MemoryHandle mdh(buffer, length);
     mdh.openForWrite(0);
     AutoClose closer(mdh);
@@ -317,26 +304,26 @@ long fdc_dh_to_buffer(DataHandle* dh, void* buffer, long length) {
     return mdh.position();
 }
 
-int fdc_retrieve_to_stream(fdc_t* fdc, fdc_MarsRequest_t* req, void* handle, fdc_stream_write_t write_fn, long* bytes_encoded) {
-    return wrapApiFunction([fdc, req, handle, write_fn, bytes_encoded] {
-        DataHandle* dh = fdc->retrieve(req->request());
-        long enc = fdc_dh_to_stream(dh, handle, write_fn);
+int fdb_retrieve_to_stream(fdb_t* fdb, fdb_MarsRequest_t* req, void* handle, fdb_stream_write_t write_fn, long* bytes_encoded) {
+    return wrapApiFunction([fdb, req, handle, write_fn, bytes_encoded] {
+        DataHandle* dh = fdb->retrieve(req->request());
+        long enc = fdb_dh_to_stream(dh, handle, write_fn);
         if (bytes_encoded)
             *bytes_encoded = enc;
     });
 }
-int fdc_retrieve_to_file_descriptor(fdc_t* fdc, fdc_MarsRequest_t* req, int fd, long* bytes_encoded) {
-    return wrapApiFunction([fdc, req, fd, bytes_encoded] {
-        DataHandle* dh = fdc->retrieve(req->request());
-        long enc = fdc_dh_to_file_descriptor(dh, fd);
+int fdb_retrieve_to_file_descriptor(fdb_t* fdb, fdb_MarsRequest_t* req, int fd, long* bytes_encoded) {
+    return wrapApiFunction([fdb, req, fd, bytes_encoded] {
+        DataHandle* dh = fdb->retrieve(req->request());
+        long enc = fdb_dh_to_file_descriptor(dh, fd);
         if (bytes_encoded)
             *bytes_encoded = enc;
     });
 }
-int fdc_retrieve_to_buffer(fdc_t* fdc, fdc_MarsRequest_t* req, void* buffer, long length, long* bytes_encoded) {
-    return wrapApiFunction([fdc, req, buffer, length, bytes_encoded] {
-        DataHandle* dh = fdc->retrieve(req->request());
-        long enc = fdc_dh_to_buffer(dh, buffer, length);
+int fdb_retrieve_to_buffer(fdb_t* fdb, fdb_MarsRequest_t* req, void* buffer, long length, long* bytes_encoded) {
+    return wrapApiFunction([fdb, req, buffer, length, bytes_encoded] {
+        DataHandle* dh = fdb->retrieve(req->request());
+        long enc = fdb_dh_to_buffer(dh, buffer, length);
         if (bytes_encoded)
             *bytes_encoded = enc;
     });
@@ -348,62 +335,74 @@ int fdc_retrieve_to_buffer(fdc_t* fdc, fdc_MarsRequest_t* req, void* buffer, lon
 
 
 
-/** ancillary functions for creating/destroying FDC objects */
+/** ancillary functions for creating/destroying FDB objects */
+
+int fdb_Key_init(fdb_Key_t** key) {
+    return wrapApiFunction([key] {
+        *key = new fdb_Key_t();
+    });
+}
+int fdb_Key_set(fdb_Key_t* key, char* k, char* v) {
+    return wrapApiFunction([key, k, v]{
+        key->set(std::string(k), std::string(v));
+        std::cout << *((Key*)key) << std::endl;
+    });
+}
 
 
-int fdc_Key_clean(fdc_Key_t* key) {
+int fdb_Key_clean(fdb_Key_t* key) {
     return wrapApiFunction([key]{
         ASSERT(key);
         delete key;
     });
 }
 
-int fdc_KeySet_clean(fdc_KeySet_t* keySet) {
+int fdb_KeySet_clean(fdb_KeySet_t* keySet) {
     return wrapApiFunction([keySet]{
         ASSERT(keySet);
         delete keySet;
     });
 }
-int fdc_MarsRequest_init(fdc_MarsRequest_t** req, char* str) {
+int fdb_MarsRequest_init(fdb_MarsRequest_t** req, char* str) {
     return wrapApiFunction([str, req] {
-        *req = new fdc_MarsRequest_t(str);
+        *req = new fdb_MarsRequest_t(str);
     });
 }
-int fdc_MarsRequest_value(fdc_MarsRequest_t* req, char* name, char* values[], int numValues) {
+int fdb_MarsRequest_value(fdb_MarsRequest_t* req, char* name, char* values[], int numValues) {
     return wrapApiFunction([name, values, numValues, req] {
         req->values(name, values, numValues);
 //        std::cout << req->request() << std::endl;
     });
 }
 
-int fdc_MarsRequest_parse(fdc_MarsRequest_t** req, char* str) {
+int fdb_MarsRequest_parse(fdb_MarsRequest_t** req, char* str) {
     return wrapApiFunction([str, req] {
-        *req = fdc_MarsRequest_t::parse(str);
+        *req = fdb_MarsRequest_t::parse(str);
     });
 }
-int fdc_MarsRequest_clean(fdc_MarsRequest_t* req) {
+int fdb_MarsRequest_clean(fdb_MarsRequest_t* req) {
     return wrapApiFunction([req]{
         ASSERT(req);
         delete req;
     });
 }
 
-int fdc_ToolRequest_init_all(fdc_ToolRequest_t** req, fdc_KeySet_t* keys) {
+int fdb_ToolRequest_init_all(fdb_ToolRequest_t** req, fdb_KeySet_t* keys) {
     return wrapApiFunction([keys, req] {
-        *req = new fdc_ToolRequest_t(new fdc_MarsRequest_t(), true, keys);
+        *req = new fdb_ToolRequest_t(new fdb_MarsRequest_t(), true, keys);
     });
 }
-int fdc_ToolRequest_init_str(fdc_ToolRequest_t** req, char *str, fdc_KeySet_t *keys) {
+int fdb_ToolRequest_init_str(fdb_ToolRequest_t** req, char *str, fdb_KeySet_t *keys) {
     return wrapApiFunction([str, keys, req] {
-        *req = new fdc_ToolRequest_t(str, false, keys);
+        *req = new fdb_ToolRequest_t(str, false, keys);
     });
 }
-int fdc_ToolRequest_init_mars(fdc_ToolRequest_t** req, fdc_MarsRequest_t* marsReq, fdc_KeySet_t* keys) {
+int fdb_ToolRequest_init_mars(fdb_ToolRequest_t** req, fdb_MarsRequest_t* marsReq, fdb_KeySet_t* keys) {
     return wrapApiFunction([marsReq, keys, req] {
-        *req = new fdc_ToolRequest_t(marsReq, false, keys);
+        *req = new fdb_ToolRequest_t(marsReq, false, keys);
     });
 }
-int fdc_ToolRequest_clean(fdc_ToolRequest_t* req) {
+int fdb_ToolRequest_clean(fdb_ToolRequest_t* req) {
     return wrapApiFunction([req]{
         //ASSERT(req);
         if (req)
@@ -411,19 +410,19 @@ int fdc_ToolRequest_clean(fdc_ToolRequest_t* req) {
     });
 }
 
-int fdc_ListElement_init(fdc_ListElement_t** el) {
+int fdb_ListElement_init(fdb_ListElement_t** el) {
     return wrapApiFunction([el] {
-        *el = new fdc_ListElement_t();
+        *el = new fdb_ListElement_t();
     });
 }
-int fdc_ListElement_str(fdc_ListElement_t* el, char **str) {
+int fdb_ListElement_str(fdb_ListElement_t* el, char **str) {
     return wrapApiFunction([el, str] {
         std::string s = (((ListElement*)el)->combinedKey().valuesToString());
         *str = (char*) malloc(sizeof(char) * s.length()+1);
         strcpy(*str, s.c_str());
     });
 }
-int fdc_ListElement_clean(fdc_ListElement_t** el) {
+int fdb_ListElement_clean(fdb_ListElement_t** el) {
     return wrapApiFunction([el]{
         ASSERT(el);
         ASSERT(*el);

@@ -66,10 +66,6 @@ public: // methods
         return impl_->next(elem);
     }
 
-    std::unique_ptr<APIIteratorBase<ValueType>> move() {
-        return std::move(impl_);
-    }
-
 private: // members
 
     std::unique_ptr<APIIteratorBase<ValueType>> impl_;

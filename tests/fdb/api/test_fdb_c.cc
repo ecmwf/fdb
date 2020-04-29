@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "fdb5/api/fdc.h"
+#include "fdb5/api/fdb_c.h"
 #include "fdb5/api/helpers/ListIterator.h"
 
 using namespace fdb5;
@@ -19,50 +19,50 @@ using namespace fdb5;
 
 int main(int argc, char **argv) {
 
-    fdc_initialise_api();
+    fdb_initialise_api();
 
-    fdc_t** fdb = new fdc_t*;
+    fdb_t** fdb = new fdb_t*;
     /** Creates a reader and opens the speficied file. */
-    fdc_init(fdb);
+    fdb_init(fdb);
 
-    fdc_KeySet_t keys;
+    fdb_KeySet_t keys;
     keys.numKeys = 0;
 
-    fdc_ToolRequest_t* toolreq;
-    fdc_ToolRequest_init_all(&toolreq, &keys);
+    fdb_ToolRequest_t* toolreq;
+    fdb_ToolRequest_init_all(&toolreq, &keys);
 
-    fdc_ListElement_t* el;
-    fdc_ListElement_init(&el);
+    fdb_ListElement_t** el = new fdb_ListElement_t*();
+    fdb_ListElement_init(el);
 
-    fdc_ListIterator_t* it;
+    fdb_ListIterator_t* it;
     bool exist = true;
 
-    fdc_list(&it, *fdb, toolreq);
+    fdb_list(*fdb, toolreq, &it);
 
     while (exist) {
-        fdc_list_next(it, &exist, &el);
+        fdb_list_next(it, &exist, el);
         if (exist) {
-            std::cout << *((ListElement*) el) << std::endl;
+            std::cout << *((ListElement*) *el) << std::endl;
         }
     }
 
     std::cout << "MarsRequest" << std::endl;
-    fdc_ToolRequest_init_str(&toolreq, "expver=xxxx", &keys);
-    fdc_list(&it, *fdb, toolreq);
+    fdb_ToolRequest_init_str(&toolreq, "expver=xxxx", &keys);
+    fdb_list(*fdb, toolreq, &it);
 
     exist = true;
     while (exist) {
-        fdc_list_next(it, &exist, &el);
+        fdb_list_next(it, &exist, el);
         if (exist) {
-            std::cout << *((ListElement*) el) << std::endl;
+            std::cout << *((ListElement*) *el) << std::endl;
         }
     }
 
-    fdc_ListElement_clean(&el);
-    fdc_list_clean(it);
-    fdc_ToolRequest_clean(toolreq);
+    fdb_ListElement_clean(el);
+    fdb_list_clean(it);
+    fdb_ToolRequest_clean(toolreq);
 
-    fdc_clean(*fdb);
+    fdb_clean(*fdb);
 
     return 0;
 }
