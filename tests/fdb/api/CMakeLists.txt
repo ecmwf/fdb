@@ -3,6 +3,7 @@ list( APPEND api_tests
     config
     select
     dist
+    fdc
 )
 
 foreach( _test ${api_tests} )

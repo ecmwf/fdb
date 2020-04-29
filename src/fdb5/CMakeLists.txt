@@ -49,6 +49,8 @@ list( APPEND fdb5_srcs
 	LibFdb5.h
 	LibFdb5.cc
 
+    api/fdc.cc
+    api/fdc.h
     api/DistFDB.cc
     api/DistFDB.h
     api/FDB.cc
