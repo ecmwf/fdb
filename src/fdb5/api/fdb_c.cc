@@ -102,6 +102,9 @@ private:
     ListIterator iter_;
 };
 
+struct fdb_DataReader_t : public DataHandle {
+    using DataHandle::DataHandle;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -257,82 +260,11 @@ int fdb_list_next(fdb_ListIterator_t* it, bool* exist, fdb_ListElement_t** el) {
     });
 }
 
-long fdb_dh_to_stream(DataHandle* dh, void* handle, fdb_stream_write_t write_fn) {
-
-    // Wrap the stream in a DataHandle
-    struct WriteStreamDataHandle : public eckit::DataHandle {
-        WriteStreamDataHandle(void* handle, fdb_stream_write_t fn) : handle_(handle), fn_(fn), pos_(0) {}
-        virtual ~WriteStreamDataHandle() {}
-        void print(std::ostream& s) const override { s << "StreamReadHandle(" << fn_ << "(" << handle_ << "))"; }
-        Length openForRead() override { NOTIMP; }
-        void openForWrite(const Length&) override {}
-        void openForAppend(const Length&) override {}
-        long read(void*, long) override { NOTIMP; }
-        long write(const void* buffer, long length) override {
-            long written = fn_(handle_, buffer, length);
-            pos_ += written;
-            return written;
-        }
-        Offset position() override { return pos_; }
-        void close() override {}
-
-        void* handle_;
-        fdb_stream_write_t fn_;
-        Offset pos_;
-    };
-
-    WriteStreamDataHandle sdh(handle, write_fn);
-    sdh.openForWrite(0);
-    AutoClose closer(sdh);
-    dh->copyTo(sdh);
-    return sdh.position();
-}
-
-long fdb_dh_to_file_descriptor(DataHandle* dh, int fd) {
-    FileDescHandle fdh(fd);
-    fdh.openForWrite(0);
-    AutoClose closer(fdh);
-    dh->copyTo(fdh);
-    return fdh.position();
-}
-
-long fdb_dh_to_buffer(DataHandle* dh, void* buffer, long length) {
-    MemoryHandle mdh(buffer, length);
-    mdh.openForWrite(0);
-    AutoClose closer(mdh);
-    dh->copyTo(mdh);
-    return mdh.position();
-}
-
-int fdb_retrieve_to_stream(fdb_t* fdb, fdb_MarsRequest_t* req, void* handle, fdb_stream_write_t write_fn, long* bytes_encoded) {
-    return wrapApiFunction([fdb, req, handle, write_fn, bytes_encoded] {
-        DataHandle* dh = fdb->retrieve(req->request());
-        long enc = fdb_dh_to_stream(dh, handle, write_fn);
-        if (bytes_encoded)
-            *bytes_encoded = enc;
+int fdb_retrieve(fdb_t* fdb, fdb_MarsRequest_t* req, fdb_DataReader_t** dr) {
+    return wrapApiFunction([fdb, req, dr] {
+        *dr = (fdb_DataReader_t*) fdb->retrieve(req->request());
     });
 }
-int fdb_retrieve_to_file_descriptor(fdb_t* fdb, fdb_MarsRequest_t* req, int fd, long* bytes_encoded) {
-    return wrapApiFunction([fdb, req, fd, bytes_encoded] {
-        DataHandle* dh = fdb->retrieve(req->request());
-        long enc = fdb_dh_to_file_descriptor(dh, fd);
-        if (bytes_encoded)
-            *bytes_encoded = enc;
-    });
-}
-int fdb_retrieve_to_buffer(fdb_t* fdb, fdb_MarsRequest_t* req, void* buffer, long length, long* bytes_encoded) {
-    return wrapApiFunction([fdb, req, buffer, length, bytes_encoded] {
-        DataHandle* dh = fdb->retrieve(req->request());
-        long enc = fdb_dh_to_buffer(dh, buffer, length);
-        if (bytes_encoded)
-            *bytes_encoded = enc;
-    });
-}
-
-
-
-
-
 
 
 /** ancillary functions for creating/destroying FDB objects */
@@ -430,136 +362,52 @@ int fdb_ListElement_clean(fdb_ListElement_t** el) {
     });
 }
 
-/*
-namespace fdb5 {
-
-//----------------------------------------------------------------------------------------------------------------------
-
-FDB::FDB(const Config &config) :
-    internal_(FDBFactory::instance().build(config)),
-    dirty_(false),
-    reportStats_(config.getBool("statistics", false)) {}
-
-
-FDB::~FDB() {
-    flush();
-    if (reportStats_ && internal_) {
-        stats_.report(eckit::Log::info(), (internal_->name() + " ").c_str());
-        internal_->stats().report(eckit::Log::info(), (internal_->name() + " internal ").c_str());
-    }
+int fdb_DataReader_open(fdb_DataReader_t* dr) {
+    return wrapApiFunction([dr]{
+        dr->openForRead();
+    });
+}
+int fdb_DataReader_close(fdb_DataReader_t* dr) {
+    return wrapApiFunction([dr]{
+        dr->close();
+    });
+}
+int fdb_DataReader_tell(fdb_DataReader_t* dr, long* pos) {
+    return wrapApiFunction([dr, pos]{
+        *pos = dr->position();
+    });
+}
+int fdb_DataReader_seek(fdb_DataReader_t* dr, long pos) {
+    return wrapApiFunction([dr, pos]{
+        dr->seek(pos);
+    });
+}
+int fdb_DataReader_skip(fdb_DataReader_t* dr, long count) {
+    return wrapApiFunction([dr, count]{
+        dr->skip(count);
+    });
+}
+int fdb_DataReader_read(fdb_DataReader_t* dr, void *buf, long count, long* read) {
+    return wrapApiFunction([dr, buf, count, read]{
+        *read = dr->read(buf, count);
+    });
+}
+int fdb_DataReader_saveTo(fdb_DataReader_t* dr, int fd, long* read) {
+    return wrapApiFunction([dr, fd, read]{
+        FileDescHandle fdh(fd);
+        fdh.openForWrite(0);
+        AutoClose closer(fdh);
+        dr->saveInto(fdh);
+        if (read)
+            *read = fdh.position();
+    });
 }
 
-void FDB::archive(const Key& key, const void* data, size_t length) {
-    eckit::Timer timer;
-    timer.start();
-
-    internal_->archive(key, data, length);
-    dirty_ = true;
-
-    timer.stop();
-    stats_.addArchive(length, timer);
+int fdb_DataReader_clean(fdb_DataReader_t* dr) {
+    return wrapApiFunction([dr]{
+        delete dr;
+    });
 }
-
-eckit::DataHandle* FDB::retrieve(const metkit::MarsRequest& request) {
-
-    eckit::Timer timer;
-    timer.start();
-    eckit::DataHandle* dh = internal_->retrieve(request);
-    timer.stop();
-    stats_.addRetrieve(dh->estimate(), timer);
-
-    return dh;
-}
-
-ListIterator FDB::list(const FDBToolRequest& request) {
-    return internal_->list(request);
-}
-
-DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
-    return internal_->dump(request, simple);
-}
-
-StatusIterator FDB::status(const FDBToolRequest& request) {
-    return internal_->status(request);
-}
-
-WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    return internal_->wipe(request, doit, porcelain, unsafeWipeAll);
-}
-
-PurgeIterator FDB::purge(const FDBToolRequest &request, bool doit, bool porcelain) {
-    return internal_->purge(request, doit, porcelain);
-}
-
-StatsIterator FDB::stats(const FDBToolRequest &request) {
-    return internal_->stats(request);
-}
-
-ControlIterator FDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
-    return internal_->control(request, action, identifiers);
-}
-
-const std::string FDB::id() const {
-    return internal_->id();
-}
-
-FDBStats FDB::stats() const {
-    return stats_;
-}
-
-FDBStats FDB::internalStats() const {
-    return internal_->stats();
-}
-
-const std::string& FDB::name() const {
-    return internal_->name();
-}
-
-const Config &FDB::config() const {
-    return internal_->config();
-}
-
-void FDB::print(std::ostream& s) const {
-    s << *internal_;
-}
-
-void FDB::flush() {
-    if (dirty_) {
-
-        eckit::Timer timer;
-        timer.start();
-
-        internal_->flush();
-        dirty_ = false;
-
-        timer.stop();
-        stats_.addFlush(timer);
-    }
-}
-
-bool FDB::dirty() const {
-    return dirty_;
-}
-
-void FDB::disable() {
-    internal_->disable();
-}
-
-bool FDB::disabled() const {
-    return internal_->disabled();
-}
-
-bool FDB::writable() const {
-    return internal_->writable();
-}
-
-bool FDB::visitable() const {
-    return internal_->visitable();
-}
-//----------------------------------------------------------------------------------------------------------------------
-
-} // namespace fdb5
-*/
 
 //----------------------------------------------------------------------------------------------------------------------
 

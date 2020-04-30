@@ -96,6 +96,9 @@ typedef struct fdb_ListElement_t fdb_ListElement_t;
 struct fdb_ListIterator_t;
 typedef struct fdb_ListIterator_t fdb_ListIterator_t;
 
+struct fdb_DataReader_t;
+typedef struct fdb_DataReader_t fdb_DataReader_t;
+
 struct fdb_t;
 typedef struct fdb_t fdb_t;
 
@@ -118,6 +121,15 @@ int fdb_ToolRequest_clean(fdb_ToolRequest_t* req);
 int fdb_ListElement_init(fdb_ListElement_t** el);
 int fdb_ListElement_str(fdb_ListElement_t* el, char **str);
 int fdb_ListElement_clean(fdb_ListElement_t** el);
+
+int fdb_DataReader_open(fdb_DataReader_t* dr);
+int fdb_DataReader_close(fdb_DataReader_t* dr);
+int fdb_DataReader_tell(fdb_DataReader_t* dr, long* pos);
+int fdb_DataReader_seek(fdb_DataReader_t* dr, long pos);
+int fdb_DataReader_skip(fdb_DataReader_t* dr, long count);
+int fdb_DataReader_read(fdb_DataReader_t* dr, void *buf, long count, long* read);
+int fdb_DataReader_saveTo(fdb_DataReader_t* dr, int fd, long* read);
+int fdb_DataReader_clean(fdb_DataReader_t* dr);
 
 ///@}
 
@@ -144,9 +156,7 @@ int fdb_list_clean(fdb_ListIterator_t* it);
 
 typedef long (*fdb_stream_write_t)(void* context, const void* buffer, long length);
 
-int fdb_retrieve_to_stream(fdb_t* fdb, fdb_MarsRequest_t* req, void* handle, fdb_stream_write_t write_fn, long* bytes_encoded);
-int fdb_retrieve_to_file_descriptor(fdb_t* fdb, fdb_MarsRequest_t* req, int fd, long* bytes_encoded);
-int fdb_retrieve_to_buffer(fdb_t* fdb, fdb_MarsRequest_t* req, void* buffer, long length, long* bytes_encoded);
+int fdb_retrieve(fdb_t* fdb, fdb_MarsRequest_t* req, fdb_DataReader_t** dr);
 
 /// Flushes all buffers and closes all data handles into a consistent DB state
 /// @note always safe to call
