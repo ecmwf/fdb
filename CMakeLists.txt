@@ -20,13 +20,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit  VERSION 1.10 REQUIRED )
+ecbuild_use_package( PROJECT eckit  VERSION 1.11 REQUIRED )
 
 ### GRIB support
 
 ecbuild_use_package( PROJECT eccodes VERSION 2.10 REQUIRED )
 
-ecbuild_use_package( PROJECT metkit VERSION 1.4 REQUIRED ) ## metkit is now always needed
+ecbuild_use_package( PROJECT metkit VERSION 1.5 REQUIRED ) ## metkit is now always needed
 
 ### FDB remote front-end
 
@@ -43,10 +43,11 @@ ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
 
 ### FDB backend in CEPH object store (using Rados)
 
+find_package( Rados )
 ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
+                    CONDITION ECKIT_HAVE_RADOS AND RADOS_FOUND
                     DEFAULT ON
-                    DESCRIPTION "Ceph/Rados support for FDB Store"
-                    REQUIRED_PACKAGES Rados )
+                    DESCRIPTION "Ceph/Rados support for FDB Store" )
 
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
 ### Supports Lustre parallel filesystem stripping control

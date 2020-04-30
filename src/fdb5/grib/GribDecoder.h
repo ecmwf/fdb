@@ -47,6 +47,8 @@ public:
     metkit::MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
     std::vector<metkit::MarsRequest> gribToRequests(const eckit::PathName &path, const char *verb = "retrieve");
 
+protected:
+
     const eckit::Buffer &buffer() const {
         return buffer_;
     }
