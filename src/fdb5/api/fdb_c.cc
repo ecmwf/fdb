@@ -349,11 +349,14 @@ int fdb_ListElement_init(fdb_ListElement_t** el) {
 }
 int fdb_ListElement_str(fdb_ListElement_t* el, char **str) {
     return wrapApiFunction([el, str] {
-        std::string s = (((ListElement*)el)->combinedKey().valuesToString());
+        std::stringstream ss;
+        ss << *((ListElement*)el);
+        std::string s = ss.str();
         *str = (char*) malloc(sizeof(char) * s.length()+1);
         strcpy(*str, s.c_str());
     });
 }
+
 int fdb_ListElement_clean(fdb_ListElement_t** el) {
     return wrapApiFunction([el]{
         ASSERT(el);
@@ -390,16 +393,6 @@ int fdb_DataReader_skip(fdb_DataReader_t* dr, long count) {
 int fdb_DataReader_read(fdb_DataReader_t* dr, void *buf, long count, long* read) {
     return wrapApiFunction([dr, buf, count, read]{
         *read = dr->read(buf, count);
-    });
-}
-int fdb_DataReader_saveTo(fdb_DataReader_t* dr, int fd, long* read) {
-    return wrapApiFunction([dr, fd, read]{
-        FileDescHandle fdh(fd);
-        fdh.openForWrite(0);
-        AutoClose closer(fdh);
-        dr->saveInto(fdh);
-        if (read)
-            *read = fdh.position();
     });
 }
 

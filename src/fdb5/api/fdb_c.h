@@ -128,7 +128,6 @@ int fdb_DataReader_tell(fdb_DataReader_t* dr, long* pos);
 int fdb_DataReader_seek(fdb_DataReader_t* dr, long pos);
 int fdb_DataReader_skip(fdb_DataReader_t* dr, long count);
 int fdb_DataReader_read(fdb_DataReader_t* dr, void *buf, long count, long* read);
-int fdb_DataReader_saveTo(fdb_DataReader_t* dr, int fd, long* read);
 int fdb_DataReader_clean(fdb_DataReader_t* dr);
 
 ///@}
