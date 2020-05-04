@@ -39,6 +39,7 @@ class FDBList : public FDBVisitTool {
     FDBList(int argc, char **argv) :
         FDBVisitTool(argc, argv, "class,expver"),
         location_(false),
+        full_(false),
         porcelain_(false),
         json_(false) {
 
