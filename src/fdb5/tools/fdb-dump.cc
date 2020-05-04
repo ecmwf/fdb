@@ -50,7 +50,7 @@ private: // members
 
 void FDBDump::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
-    args.get("simple", simple_);
+    simple_ = args.getBool("simple", false);
 }
 
 

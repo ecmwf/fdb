@@ -64,10 +64,10 @@ void FDBList::init(const CmdArgs& args) {
 
     FDBVisitTool::init(args);
 
-    args.get("location", location_);
-    args.get("full", full_);
-    args.get("porcelain", porcelain_);
-    args.get("json", json_);
+    location_ = args.getBool("location", false);
+    full_ = args.getBool("full", false);
+    porcelain_ = args.getBool("porcelain", false);
+    json_ = args.getBool("json", false);
 
     if (json_) {
         porcelain_ = true;

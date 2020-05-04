@@ -46,11 +46,9 @@ void FDBAdopt::execute(const eckit::option::CmdArgs &args) {
     std::string pattern = "/:*.";
     args.get("pattern", pattern);
 
-    bool compareToGrib = false;
-    args.get("check-keys", compareToGrib);
+    bool compareToGrib = args.getBool("check-keys", false);
 
-    bool checkValues = false;
-    args.get("check-values", checkValues);
+    bool checkValues = args.getBool("check-values", false);
     if(checkValues) { compareToGrib = true; }
 
     for (size_t i = 0; i < args.count(); i++) {

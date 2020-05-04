@@ -47,7 +47,7 @@ class FDBWhere : public FDBVisitTool {
 void FDBWhere::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
 
-    args.get("porcelain", porcelain_);
+    porcelain_ = args.getBool("porcelain", false);
 }
 
 
