@@ -48,8 +48,7 @@ void FDBRead::usage(const std::string &tool) const {
 
 void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
-    bool extract = false;
-    args.get("extract", extract);
+    bool extract = args.getBool("extract", false);
 
     std::vector<metkit::MarsRequest> requests;
 

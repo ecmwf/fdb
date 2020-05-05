@@ -71,8 +71,8 @@ void FdbOverlay::usage(const std::string &tool) const {
 void FdbOverlay::init(const option::CmdArgs& args) {
     FDBTool::init(args);
     args.get("variable-keys", variableKeys_);
-    args.get("remove", remove_);
-    args.get("force", force_);
+    remove_ = args.getBool("remove", false);
+    force_ = args.getBool("force", false);
 }
 
 void FdbOverlay::execute(const option::CmdArgs& args) {

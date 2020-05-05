@@ -32,7 +32,8 @@ public: // methods
         FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
         doit_(false),
         ignoreNoData_(false),
-        porcelain_(false) {
+        porcelain_(false),
+        unsafeWipeAll_(false) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
         options_.push_back(new SimpleOption<bool>("ignore-no-data", "No data available to delete is not an error"));
@@ -73,10 +74,10 @@ void FDBWipe::init(const CmdArgs &args) {
 
     FDBVisitTool::init(args);
 
-    args.get("doit", doit_);
-    args.get("ignore-no-data", ignoreNoData_);
-    args.get("porcelain", porcelain_);
-    args.get("unsafe-wipe-all", unsafeWipeAll_);
+    doit_ = args.getBool("doit", false);
+    ignoreNoData_ = args.getBool("ignore-no-data", false);
+    porcelain_ = args.getBool("porcelain", false);
+    unsafeWipeAll_ = args.getBool("unsafe-wipe-all", false);
 }
 
 void FDBWipe::execute(const CmdArgs& args) {

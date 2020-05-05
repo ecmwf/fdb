@@ -75,11 +75,11 @@ void FDBInfo::usage(const std::string &tool) const {
 }
 
 void FDBInfo::init(const eckit::option::CmdArgs &args) {
-    args.get("all", all_);
-    args.get("version", version_);
-    args.get("home", home_);
-    args.get("schema", schema_);
-    args.get("config", config_);
+    all_ = args.getBool("all", false);
+    version_ = args.getBool("version", false);
+    home_ = args.getBool("home", false);
+    schema_ = args.getBool("schema", false);
+    config_ = args.getBool("config", false);
 }
 
 void FDBInfo::execute(const eckit::option::CmdArgs&) {
