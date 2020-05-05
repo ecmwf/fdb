@@ -3,6 +3,15 @@ fdb
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/ecmwf/fdb/blob/develop/LICENSE)
 
+FDB (Fields DataBase) is a domain-specific object store developed at ECMWF for storing, indexing and retrieving GRIB data. Each GRIB message is stored as a field and indexed trough semantic metadata (i.e. physical variables such as temperature, pressure, ...).
+A set of fields can be retrieved specifying a request using a specific language developed for accessing [MARS Archive](MARS.md)
+
+FDB exposes a C++ API as well as CLI tools. Most common tools are the following:
+
+- [fdb-write](FDB-TOOLS.md##fdb-write) -- Inserts data into the FDB, creating a new databases if needed.
+- [fdb-list](FDB-TOOLS.md##fdb-list) -- Lists the contents of the FDB databases.
+- [fdb-read](FDB-TOOLS.md##fdb-read) -- Read data from the FDB and write this data into a specified target file.
+
 Requirements
 ------------
 
