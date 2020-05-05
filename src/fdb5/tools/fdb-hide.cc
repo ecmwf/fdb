@@ -63,7 +63,7 @@ void FdbHide::usage(const std::string &tool) const {
 
 void FdbHide::init(const option::CmdArgs& args) {
     FDBTool::init(args);
-    args.get("doit", doit_);
+    doit_ = args.getBool("doit", false);
 }
 
 void FdbHide::execute(const option::CmdArgs& args) {

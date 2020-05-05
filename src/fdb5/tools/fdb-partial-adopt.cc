@@ -98,8 +98,8 @@ void FDBPartialAdopt::usage(const std::string &tool) const {
 }
 
 void FDBPartialAdopt::init(const eckit::option::CmdArgs &args) {
-    args.get("verify", compareToGrib_);
-    args.get("continue", continueOnVerificationError_);
+    compareToGrib_ = args.getBool("verify", false);
+    continueOnVerificationError_ = args.getBool("continue", false);
 }
 
 

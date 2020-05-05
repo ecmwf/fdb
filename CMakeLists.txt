@@ -43,10 +43,11 @@ ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
 
 ### FDB backend in CEPH object store (using Rados)
 
+find_package( Rados )
 ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
+                    CONDITION ECKIT_HAVE_RADOS AND RADOS_FOUND
                     DEFAULT ON
-                    DESCRIPTION "Ceph/Rados support for FDB Store"
-                    REQUIRED_PACKAGES Rados )
+                    DESCRIPTION "Ceph/Rados support for FDB Store" )
 
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
 ### Supports Lustre parallel filesystem stripping control

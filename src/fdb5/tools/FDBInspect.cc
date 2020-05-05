@@ -64,16 +64,14 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
     eckit::Log::debug<LibFdb5>() << " FDBInspect minimum-keys " << minimumKeys_ << " @ " << Here() << std::endl;
 
-    bool all = false;
-    args.get("all", all);
+    bool all = args.getBool("all", false);
 
     if (all && args.count()) {
         usage(args.tool());
         exit(1);
     }
 
-    bool ignoreErrors = true;
-    args.get("ignore-errors", ignoreErrors);
+    bool ignoreErrors = args.getBool("ignore-errors", true);
     if (ignoreErrors) {
         Log::debug<LibFdb5>() << "Errors ignored where possible" << std::endl;
         fail_ = false;
@@ -109,8 +107,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
         try {
 
-            bool force = false;
-            args.get("force", force); //< bypass the check for minimum key set
+            bool force = args.getBool("force", false); //< bypass the check for minimum key set
 
             ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeys_);
 
