@@ -54,8 +54,7 @@ void FdbRoot::usage(const std::string &tool) const {
 
 void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
-    bool create_db = false;
-    args.get("create", create_db);
+    bool create_db = args.getBool("create", false);
 
     for (size_t i = 0; i < args.count(); ++i) {
 

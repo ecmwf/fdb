@@ -51,7 +51,7 @@ private: // members
 
 void FDBStats::init(const eckit::option::CmdArgs &args) {
     FDBVisitTool::init(args);
-    args.get("details", details_);
+    details_ = args.getBool("details", false);
 }
 
 void FDBStats::execute(const CmdArgs& args) {
