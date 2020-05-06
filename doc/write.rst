@@ -1,17 +1,17 @@
-# FDB Tools
-
-Description of the most common FDB CLI tools: [fdb-write](##fdb-write), [fdb-list](##fdb-list) and  [fdb-read](##fdb-read)
-
-## fdb-write
+fdb-write
+=========
 
 Inserts data into the FDB, creating a new databases if needed.  
 The data is copied into the FDB, and the tool reports the location where it was inserted.  
 This process is atomic and can be run concurrently to other processes reading or writing to the same FDB databases.
 
-### Usage
+Usage
+-----
+
 ``fdb-write [options] <gribfile1> [gribfile2] ...``
 
-### Options
+Options
+-------
 
   ` `                                    | ` `
   -------------------------------------- | -----------------------------------------------
@@ -164,8 +164,9 @@ The `--porcelain` option gives stable output for use in scripts and as input to 
 Read data from the FDB and write this data into a specified target file. This may involve visiting multiple databases if required by the request.
 
 ### Usage
-``fdb-read request.mars target.grib``
-``fdb-read --extract source.grib target.grib``
+```fdb-read request.mars target.grib
+fdb-read --extract source.grib target.grib```
+
 ### Options
 
   ` `                                    | ` `
