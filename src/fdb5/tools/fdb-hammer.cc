@@ -86,7 +86,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     ASSERT(args.has("nsteps"));
     ASSERT(args.has("nparams"));
 
-    args.get("verbose", verbose_);
+    verbose_ = args.getBool("verbose", false);
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {

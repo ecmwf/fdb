@@ -70,17 +70,16 @@ void FDBVisitTool::init(const option::CmdArgs& args) {
 
     args.get("minimum-keys", minimumKeys_);
 
-    bool ignore = false;;
-    args.get("ignore-errors", ignore);
+    bool ignore = args.getBool("ignore-errors", false);
     fail_ = !ignore;
 
-    args.get("all", all_);
+    all_ = args.getBool("all", false);
 
     if (!minimumKeys_.empty() && all_) {
         throw eckit::UserError("--all option (advanced for debugging) can only be used with no minimum keys", Here());
     }
 
-    args.get("raw", raw_);
+    raw_ = args.getBool("raw", false);
 
     if (all_ && args.count()) {
         usage(args.tool());

@@ -54,7 +54,7 @@ void FDBStats::usage(const std::string &tool) const {
 }
 
 void FDBStats::init(const eckit::option::CmdArgs &args) {
-    args.get("details", details_);
+    details_ = args.getBool("details", false);
 }
 
 void FDBStats::process(const eckit::PathName& path, const eckit::option::CmdArgs&) {

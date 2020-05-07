@@ -66,7 +66,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     FDBTool::init(args);
     args.get("include-filter", filterInclude_);
     args.get("exclude-filter", filterExclude_);
-    args.get("verbose", verbose_);
+    verbose_ = args.getBool("verbose", false);
 }
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
