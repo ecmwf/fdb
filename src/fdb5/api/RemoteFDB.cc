@@ -622,11 +622,10 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     // Return an AsyncIterator to allow the messages to be retrieved in the API
 
     return IteratorType(
-                // n.b. Don't worry about catching exceptions in lambda, as
-                // this is handled in the AsyncIterator.
-                new AsyncIterator (
-                    [messageQueue](eckit::Queue<ValueType>& queue) {
-                        StoredMessage msg = std::make_pair(remote::MessageHeader{}, 0);
+        // n.b. Don't worry about catching exceptions in lambda, as
+        // this is handled in the AsyncIterator.
+        new AsyncIterator([messageQueue](eckit::Queue<ValueType>& queue) {
+            StoredMessage msg = std::make_pair(remote::MessageHeader{}, eckit::Buffer{0});
                         while (true) {
                             if (messageQueue->pop(msg) == -1) {
                                 break;
@@ -910,12 +909,12 @@ private: // methods
 
         // If we are in the DataHandle, then there MUST be data to read
 
-        RemoteFDB::StoredMessage msg = std::make_pair(remote::MessageHeader{}, 0);
+        RemoteFDB::StoredMessage msg = std::make_pair(remote::MessageHeader{}, eckit::Buffer{0});
         ASSERT(queue_.pop(msg) != -1);
 
         // TODO; Error handling in the retrieve pathway
 
-        MessageHeader& hdr(msg.first);
+        const MessageHeader& hdr(msg.first);
 
         ASSERT(hdr.marker == StartMarker);
         ASSERT(hdr.version == CurrentVersion);
