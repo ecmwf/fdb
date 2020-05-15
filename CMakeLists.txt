@@ -46,7 +46,7 @@ ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
 find_package( Rados QUIET )
 ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
                     CONDITION ECKIT_HAVE_RADOS AND RADOS_FOUND
-                    DEFAULT ON
+                    DEFAULT OFF
                     DESCRIPTION "Ceph/Rados support for FDB Store" )
 
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
