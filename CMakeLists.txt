@@ -43,7 +43,7 @@ ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
 
 ### FDB backend in CEPH object store (using Rados)
 
-find_package( Rados )
+find_package( Rados QUIET )
 ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
                     CONDITION ECKIT_HAVE_RADOS AND RADOS_FOUND
                     DEFAULT ON
