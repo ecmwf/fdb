@@ -20,7 +20,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit  VERSION 1.11 REQUIRED )
+ecbuild_use_package( PROJECT eckit  VERSION 1.12 REQUIRED )
 
 ### GRIB support
 
@@ -43,10 +43,10 @@ ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
 
 ### FDB backend in CEPH object store (using Rados)
 
-find_package( Rados )
+find_package( Rados QUIET )
 ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
                     CONDITION ECKIT_HAVE_RADOS AND RADOS_FOUND
-                    DEFAULT ON
+                    DEFAULT OFF
                     DESCRIPTION "Ceph/Rados support for FDB Store" )
 
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
