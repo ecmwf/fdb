@@ -33,33 +33,6 @@ namespace test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class SetenvCleanup {
-
-public:
-    SetenvCleanup(const std::string& key, const std::string& value):
-        key_(key) {
-
-        char* old = ::getenv(key.c_str());
-        if (old) oldValue_ = std::string(old);
-
-        ::setenv(key.c_str(), value.c_str(), true);
-    }
-
-    ~SetenvCleanup() {
-        if (oldValue_.empty()) {
-            ::unsetenv(key_.c_str());
-        } else {
-            ::setenv(key_.c_str(), oldValue_.c_str(), true);
-        }
-    }
-
-private:
-    std::string key_;
-    std::string oldValue_;
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
 CASE( "config_expands_from_environment_variable_json" ) {
 
     const std::string config_str(R"XX(
@@ -74,7 +47,7 @@ CASE( "config_expands_from_environment_variable_json" ) {
         }
     )XX");
 
-    SetenvCleanup env("FDB5_CONFIG", config_str);
+    eckit::testing::SetEnv env("FDB5_CONFIG", config_str);
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
@@ -97,7 +70,7 @@ CASE( "config_expands_from_environment_variable_yaml" ) {
           - path: "/a/path/is/something"
     )XX");
 
-    SetenvCleanup env("FDB5_CONFIG", config_str);
+    eckit::testing::SetEnv env("FDB5_CONFIG", config_str);
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
@@ -129,7 +102,7 @@ CASE( "config_expands_explicit_path" ) {
         dh->write(config_str.c_str(), config_str.size());
     }
 
-    SetenvCleanup env("FDB5_CONFIG_FILE", tf.asString());
+    eckit::testing::SetEnv env("FDB5_CONFIG_FILE", tf.asString());
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
