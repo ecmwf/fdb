@@ -51,6 +51,22 @@ template<> struct Translator<Endpoint, std::string> {
 
 namespace fdb5 {
 
+ConnectionError::ConnectionError(const int retries) {
+    std::ostringstream s;
+    s << "Unable to create a connection with the FDB server after " << retries << " retries";
+    reason(s.str());
+    Log::status() << what() << std::endl;
+}
+
+
+
+ConnectionError::ConnectionError(const int retries, const eckit::net::Endpoint& endpoint) {
+    std::ostringstream s;
+    s << "Unable to create a connection with the FDB endpoint " << endpoint << " after " << retries << " retries";
+    reason(s.str());
+    Log::status() << what() << std::endl;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace {
@@ -142,23 +158,33 @@ void RemoteFDB::connect() {
 
     if (!connected_) {
 
-        // Connect to server, and check that the server is happy on the response
+        static int fdbMaxConnectRetries = eckit::Resource<int>("fdbMaxConnectRetries", 5);
 
-        Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
-        controlClient_.connect(controlEndpoint_);
-        writeControlStartupMessage();
-        SessionID serverSession = verifyServerStartupResponse();
+        try {
+            // Connect to server, and check that the server is happy on the response
 
-        // Connect to the specified data port
+            Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
+            controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries);
+            writeControlStartupMessage();
+            SessionID serverSession = verifyServerStartupResponse();
 
-        Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
-        dataClient_.connect(dataEndpoint_);
-        writeDataStartupMessage(serverSession);
+            // Connect to the specified data port
+            try {
 
-        // And the connections are set up. Let everything start up!
+                Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
+                dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries);
+                writeDataStartupMessage(serverSession);
 
-        listeningThread_ = std::thread([this] { listeningThreadLoop(); });
-        connected_ = true;
+                // And the connections are set up. Let everything start up!
+
+                listeningThread_ = std::thread([this] { listeningThreadLoop(); });
+                connected_ = true;
+            } catch(TooManyRetries e) {
+                throw ConnectionError(fdbMaxConnectRetries, dataEndpoint_);
+            }
+        } catch(TooManyRetries e) {
+            throw ConnectionError(fdbMaxConnectRetries, controlEndpoint_);
+        }
     }
 }
 
