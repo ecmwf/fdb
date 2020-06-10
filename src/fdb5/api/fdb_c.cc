@@ -260,12 +260,17 @@ int fdb_list_next(fdb_ListIterator_t* it, bool* exist, fdb_ListElement_t** el) {
     });
 }
 
+int fdb_archive(fdb_t* fdb, fdb_Key_t* key, const void* data, size_t length) {
+    return wrapApiFunction([fdb, key, data, length] {
+        fdb->archive(*key, data, length);
+    });
+}
+
 int fdb_retrieve(fdb_t* fdb, fdb_MarsRequest_t* req, fdb_DataReader_t** dr) {
     return wrapApiFunction([fdb, req, dr] {
         *dr = (fdb_DataReader_t*) fdb->retrieve(req->request());
     });
 }
-
 
 /** ancillary functions for creating/destroying FDB objects */
 

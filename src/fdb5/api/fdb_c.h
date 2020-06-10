@@ -151,9 +151,9 @@ int fdb_list(fdb_t* fdb, const fdb_ToolRequest_t* req, fdb_ListIterator_t** it);
 int fdb_list_next(fdb_ListIterator_t* it, bool* exist, fdb_ListElement_t** el);
 int fdb_list_clean(fdb_ListIterator_t* it);
 
-//int fdb_archive(fdb_t* fdb, fdb_Key_t key, const void* data, size_t length);
+int fdb_archive(fdb_t* fdb, fdb_Key_t* key, const void* data, size_t length);
 
-typedef long (*fdb_stream_write_t)(void* context, const void* buffer, long length);
+typedef long (*fdb_stream_write_t)(void* context, const void* data, long length);
 
 int fdb_retrieve(fdb_t* fdb, fdb_MarsRequest_t* req, fdb_DataReader_t** dr);
 
