@@ -260,9 +260,9 @@ int fdb_list_next(fdb_ListIterator_t* it, bool* exist, fdb_ListElement_t** el) {
     });
 }
 
-int fdb_archive(fdb_t* fdb, fdb_Key_t* key, const void* data, size_t length) {
+int fdb_archive(fdb_t* fdb, fdb_Key_t* key, const char* data, size_t length) {
     return wrapApiFunction([fdb, key, data, length] {
-        fdb->archive(*key, data, length);
+        fdb->archive(*key, static_cast<const void*>(data), length);
     });
 }
 
@@ -282,7 +282,7 @@ int fdb_Key_init(fdb_Key_t** key) {
 int fdb_Key_set(fdb_Key_t* key, char* k, char* v) {
     return wrapApiFunction([key, k, v]{
         key->set(std::string(k), std::string(v));
-        std::cout << *((Key*)key) << std::endl;
+//        std::cout << *((Key*)key) << std::endl;
     });
 }
 
