@@ -39,14 +39,6 @@ class FDB;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ConnectionError : public eckit::Exception {
-public:
-    ConnectionError(const int);
-    ConnectionError(const int, const eckit::net::Endpoint&);
-
-    bool retryOnClient() const override { return true; } 
-};
-
 class RemoteFDB : public FDBBase {
 
 public: // types

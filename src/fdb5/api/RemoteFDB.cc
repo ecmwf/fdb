@@ -51,14 +51,22 @@ template<> struct Translator<Endpoint, std::string> {
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
+class ConnectionError : public eckit::Exception {
+public:
+    ConnectionError(const int);
+    ConnectionError(const int, const eckit::net::Endpoint&);
+
+    bool retryOnClient() const override { return true; } 
+};
+
 ConnectionError::ConnectionError(const int retries) {
     std::ostringstream s;
     s << "Unable to create a connection with the FDB server after " << retries << " retries";
     reason(s.str());
     Log::status() << what() << std::endl;
 }
-
-
 
 ConnectionError::ConnectionError(const int retries, const eckit::net::Endpoint& endpoint) {
     std::ostringstream s;
