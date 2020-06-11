@@ -14,7 +14,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Notifier.h"
@@ -40,7 +40,7 @@ Retriever::Retriever(const Config& dbConfig) :
 Retriever::~Retriever() {
 }
 
-eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request,
+eckit::DataHandle *Retriever::retrieve(const metkit::mars::MarsRequest& request,
                                        const Schema& schema,
                                        bool sorted,
                                        const fdb5::Notifier& notifyee) const {
@@ -57,7 +57,7 @@ eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request,
     return result.dataHandle();
 }
 
-eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request) const {
+eckit::DataHandle *Retriever::retrieve(const metkit::mars::MarsRequest& request) const {
 
     class NullNotifier : public Notifier {
         void notifyWind() const override {}
@@ -66,7 +66,7 @@ eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request) const
     return retrieve(request, NullNotifier());
 }
 
-eckit::DataHandle *Retriever::retrieve(const metkit::MarsRequest& request, const Notifier& notifyee) const {
+eckit::DataHandle *Retriever::retrieve(const metkit::mars::MarsRequest& request, const Notifier& notifyee) const {
 
     bool sorted = false;
 

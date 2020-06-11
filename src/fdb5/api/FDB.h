@@ -65,7 +65,7 @@ public: // methods
     /// @note always safe to call
     void flush();
 
-    eckit::DataHandle* retrieve(const metkit::MarsRequest& request);
+    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
 
     ListIterator list(const FDBToolRequest& request);
 

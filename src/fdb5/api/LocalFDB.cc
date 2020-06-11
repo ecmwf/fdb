@@ -50,7 +50,7 @@ void LocalFDB::archive(const Key& key, const void* data, size_t length) {
     archiver_->archive(key, data, length);
 }
 
-DataHandle *LocalFDB::retrieve(const metkit::MarsRequest &request) {
+DataHandle *LocalFDB::retrieve(const metkit::mars::MarsRequest &request) {
 
     if (!retriever_) {
         Log::debug<LibFdb5>() << *this << ": Constructing new retriever" << std::endl;

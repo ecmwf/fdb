@@ -19,7 +19,7 @@
 #include "eckit/thread/Mutex.h"
 
 #include "metkit/grib/MetFile.h"
-#include "metkit/types/TypeAny.h"
+#include "metkit/mars/TypeAny.h"
 
 #include "fdb5/grib/GribDecoder.h"
 
@@ -153,8 +153,8 @@ size_t GribDecoder::gribToKey(MetFile& file, Key &key) {
     return len;
 }
 
-metkit::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *verb) {
-    metkit::MarsRequest r(verb);
+metkit::mars::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *verb) {
+    metkit::mars::MarsRequest r(verb);
 
     MetFile file(path);
     size_t len = 0;
@@ -174,16 +174,16 @@ metkit::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, cons
 
         // When deserialising requests, metkit uses Type Any. So we should
         // use that here to. This could probably be done better?
-        r.setValuesTyped(new metkit::TypeAny(j->first), v);
+        r.setValuesTyped(new metkit::mars::TypeAny(j->first), v);
     }
 
     return r;
 }
 
 
-std::vector<metkit::MarsRequest> GribDecoder::gribToRequests(const eckit::PathName &path, const char *verb) {
+std::vector<metkit::mars::MarsRequest> GribDecoder::gribToRequests(const eckit::PathName &path, const char *verb) {
 
-    std::vector<metkit::MarsRequest> requests;
+    std::vector<metkit::mars::MarsRequest> requests;
     MetFile file(path);
     size_t len = 0;
 
@@ -193,14 +193,14 @@ std::vector<metkit::MarsRequest> GribDecoder::gribToRequests(const eckit::PathNa
 
     while ( (len = gribToKey(file, key))  ) {
 
-        metkit::MarsRequest r(verb);
+        metkit::mars::MarsRequest r(verb);
         for (Key::const_iterator j = key.begin(); j != key.end(); ++j) {
             eckit::StringList s;
             s.push_back(j->second);
 
             // When deserialising requests, metkit uses Type Any. So we should
             // use that here to. This could probably be done better?
-            r.setValuesTyped(new metkit::TypeAny(j->first), s);
+            r.setValuesTyped(new metkit::mars::TypeAny(j->first), s);
         }
 
         requests.push_back(r);

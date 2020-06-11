@@ -18,7 +18,7 @@
 
 
 #include "eckit/io/Buffer.h"
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 #include <vector>
 
 struct grib_handle;
@@ -44,8 +44,8 @@ public:
     virtual ~GribDecoder();
 
     size_t gribToKey(metkit::grib::MetFile& file, Key &key);
-    metkit::MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
-    std::vector<metkit::MarsRequest> gribToRequests(const eckit::PathName &path, const char *verb = "retrieve");
+    metkit::mars::MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
+    std::vector<metkit::mars::MarsRequest> gribToRequests(const eckit::PathName &path, const char *verb = "retrieve");
 
 protected:
 

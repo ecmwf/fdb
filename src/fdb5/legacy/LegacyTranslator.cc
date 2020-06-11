@@ -14,7 +14,7 @@
 
 #include "eckit/utils/Translator.h"
 
-#include "metkit/Param.h"
+#include "metkit/mars/Param.h"
 
 #include "fdb5/database/Key.h"
 #include "fdb5/legacy/LegacyTranslator.h"

@@ -30,7 +30,7 @@ class ControlVisitor : public QueryVisitor<ControlElement> {
 public:
 
     ControlVisitor(eckit::Queue<ControlElement>& queue,
-                   const metkit::MarsRequest& request,
+                   const metkit::mars::MarsRequest& request,
                    ControlAction action,
                    ControlIdentifiers identifiers);
 

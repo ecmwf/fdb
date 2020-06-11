@@ -17,9 +17,9 @@
 
 #include <algorithm>
 
-#include "metkit/MarsExpension.h"
-#include "metkit/MarsParser.h"
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "eckit/exception/Exceptions.h"
 
@@ -39,12 +39,12 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
 
     std::string full_string = verb + "," + request_str; // Use a dummy verb
     std::istringstream in(full_string);
-    metkit::MarsParser parser(in);
+    metkit::mars::MarsParser parser(in);
     auto parsedRequests = parser.parse();
     ASSERT(parsedRequests.size() == 1);
 
     for (const auto& r : parsedRequests) {
-        eckit::Log::debug<LibFdb5>() << "Parsed request: " << static_cast<const metkit::MarsRequest&>(r) << std::endl;
+        eckit::Log::debug<LibFdb5>() << "Parsed request: " << static_cast<const metkit::mars::MarsRequest&>(r) << std::endl;
         checkMinimumKeys(r, minimumKeys);
     }
 
@@ -64,10 +64,10 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
                                         std::make_move_iterator(ps.end()));*/
 
         bool inherit = false;
-        metkit::MarsExpension expand(inherit);
+        metkit::mars::MarsExpension expand(inherit);
         auto expandedRequests = expand.expand(parsedRequests);
 
-        for (metkit::MarsRequest& request : expandedRequests) {
+        for (metkit::mars::MarsRequest& request : expandedRequests) {
 
             /*for (const auto& param : request.params()) {
                 if (std::find(setParams.begin(), setParams.end(), param) == setParams.end()) {
@@ -83,7 +83,7 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
 }
 
 
-FDBToolRequest::FDBToolRequest(const metkit::MarsRequest& r,
+FDBToolRequest::FDBToolRequest(const metkit::mars::MarsRequest& r,
                                bool all,
                                const std::vector<std::string>& minimumKeySet) :
     request_(r),
@@ -97,7 +97,7 @@ FDBToolRequest::FDBToolRequest(eckit::Stream& s) :
     s >> all_;
 }
 
-const metkit::MarsRequest& FDBToolRequest::request() const {
+const metkit::mars::MarsRequest& FDBToolRequest::request() const {
     return request_;
 }
 
@@ -120,7 +120,7 @@ void FDBToolRequest::encode(eckit::Stream& s) const {
     s << all_;
 }
 
-void FDBToolRequest::checkMinimumKeys(const metkit::MarsRequest& request, const std::vector<std::string>& minimumKeys) {
+void FDBToolRequest::checkMinimumKeys(const metkit::mars::MarsRequest& request, const std::vector<std::string>& minimumKeys) {
     for (std::vector<std::string>::const_iterator j = minimumKeys.begin(); j != minimumKeys.end(); ++j) {
         if (!request.has(*j)) {
             throw eckit::UserError("Please provide a value for '" + (*j) + "'");

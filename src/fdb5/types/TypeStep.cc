@@ -10,15 +10,16 @@
 
 #include "eckit/utils/Translator.h"
 
-#include "metkit/MarsRequest.h"
-#include "metkit/StepRange.h"
-#include "metkit/StepRangeNormalise.h"
+#include "metkit/mars/MarsRequest.h"
+#include "metkit/mars/StepRange.h"
+#include "metkit/mars/StepRangeNormalise.h"
 
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeStep.h"
 #include "fdb5/database/DB.h"
 
-using metkit::StepRange;
+using metkit::mars::StepRange;
+using metkit::mars::StepRangeNormalise;
 
 
 namespace fdb5 {
@@ -52,7 +53,7 @@ bool TypeStep::match(const std::string&, const std::string& value1, const std::s
     return false;
 }
 
-void TypeStep::getValues(const metkit::MarsRequest& request,
+void TypeStep::getValues(const metkit::mars::MarsRequest& request,
                          const std::string& keyword,
                          eckit::StringList& values,
                          const Notifier&,
@@ -63,7 +64,7 @@ void TypeStep::getValues(const metkit::MarsRequest& request,
     std::vector<std::string> steps;
     request.getValues(keyword, steps, true);
 
-    std::vector<metkit::StepRange> ranges;
+    std::vector<StepRange> ranges;
     std::copy(steps.begin(), steps.end(), std::back_inserter(ranges));
 
     // If this is before knowing the DB, we are constrained on what we can do.
@@ -75,22 +76,22 @@ void TypeStep::getValues(const metkit::MarsRequest& request,
         eckit::StringSet ax;
         db->axis("step", ax);
 
-        std::vector<metkit::StepRange> axis;
+        std::vector<StepRange> axis;
         std::copy(ax.begin(), ax.end(), std::back_inserter(axis));
         std::sort(axis.begin(), axis.end());
 
         // Match the step range to the axis
 
-        metkit::StepRangeNormalise::normalise(ranges, axis);
+        StepRangeNormalise::normalise(ranges, axis);
     }
 
     // Convert the ranges back into strings for the FDB
 
-    eckit::Translator<metkit::StepRange, std::string> t;
+    eckit::Translator<StepRange, std::string> t;
 
     values.reserve(ranges.size());
     std::transform(ranges.begin(), ranges.end(), std::back_inserter(values),
-                   [&](const metkit::StepRange& r) { return t(r); });
+                   [&](const StepRange& r) { return t(r); });
 }
 
 void TypeStep::print(std::ostream &out) const {

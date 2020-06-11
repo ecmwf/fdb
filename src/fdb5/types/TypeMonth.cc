@@ -12,7 +12,7 @@
 #include "eckit/utils/Translator.h"
 #include "eckit/types/Date.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeMonth.h"
@@ -37,7 +37,7 @@ void TypeMonth::toKey(std::ostream &out,
     out << date.year() * 100 + date.month();
 }
 
-void TypeMonth::getValues(const metkit::MarsRequest& request,
+void TypeMonth::getValues(const metkit::mars::MarsRequest& request,
                           const std::string& keyword,
                           eckit::StringList& values,
                           const Notifier&,

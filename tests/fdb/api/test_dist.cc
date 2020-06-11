@@ -21,7 +21,7 @@
 #include "eckit/testing/Test.h"
 #include "eckit/utils/Translator.h"
 
-#include "metkit/types/TypeAny.h"
+#include "metkit/mars/TypeAny.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -145,16 +145,16 @@ CASE( "retrieves_distributed_according_to_dist" ) {
 
     // Do some archiving
 
-    metkit::MarsRequest req;
-    req.setValuesTyped(new metkit::TypeAny("class"), std::vector<std::string>{"od"});
-    req.setValuesTyped(new metkit::TypeAny("expver"), std::vector<std::string>{"xxxx"});
+    metkit::mars::MarsRequest req;
+    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{"od"});
+    req.setValuesTyped(new metkit::mars::TypeAny("expver"), std::vector<std::string>{"xxxx"});
     fdb.retrieve(req);
 
     EXPECT(spy1.counts().retrieve == 1);
     EXPECT(spy2.counts().retrieve == 1);
     EXPECT(spy3.counts().retrieve == 1);
 
-    req.setValuesTyped(new metkit::TypeAny("class"), std::vector<std::string>{std::string("rd")});
+    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{std::string("rd")});
     fdb.retrieve(req);
 
     EXPECT(spy1.counts().retrieve == 2);
@@ -173,14 +173,14 @@ CASE( "retrieves_distributed_according_to_dist" ) {
 
     // Now match all the rd lanes
 
-    req.setValuesTyped(new metkit::TypeAny("expver"), std::vector<std::string>{"xx12", "yy21"});
+    req.setValuesTyped(new metkit::mars::TypeAny("expver"), std::vector<std::string>{"xx12", "yy21"});
     fdb.retrieve(req);
 
     EXPECT(spy1.counts().retrieve == 4);
     EXPECT(spy2.counts().retrieve == 4);
     EXPECT(spy3.counts().retrieve == 4);
 
-    req.setValuesTyped(new metkit::TypeAny("class"), std::vector<std::string>{"od", "rd"});
+    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{"od", "rd"});
     fdb.retrieve(req);
 
     EXPECT(spy1.counts().retrieve == 5);

@@ -41,7 +41,7 @@ const std::string &MatchHidden::value(const Key&, const std::string&) const {
     return default_[0];
 }
 
-const std::vector<std::string>& MatchHidden::values(const metkit::MarsRequest &rq, const std::string &keyword) const {
+const std::vector<std::string>& MatchHidden::values(const metkit::mars::MarsRequest &rq, const std::string &keyword) const {
     return default_;
 }
 

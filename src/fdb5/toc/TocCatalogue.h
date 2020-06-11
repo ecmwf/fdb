@@ -59,7 +59,7 @@ protected: // methods
 
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
+    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
     void maskIndexEntry(const Index& index) const override;
 
     void loadSchema() override;
@@ -79,7 +79,7 @@ protected: // methods
 
     Key currentIndexKey_;
 
-private: // members    
+private: // members
 
     friend class TocWipeVisitor;
 

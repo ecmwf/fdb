@@ -32,9 +32,9 @@
 
 #include "marslib/EmosFile.h"
 
-#include "metkit/MarsLanguage.h"
-#include "metkit/MarsRequest.h"
-#include "metkit/types/TypeParam.h"
+#include "metkit/mars/MarsLanguage.h"
+#include "metkit/mars/MarsRequest.h"
+#include "metkit/mars/TypeParam.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -203,7 +203,7 @@ long FDBPartialAdopt::adoptIndex(const PathName &indexPath, const Key &request, 
 
     legacy::LegacyTranslator translator;
 
-    metkit::MarsLanguage language("retrieve");
+    metkit::mars::MarsLanguage language("retrieve");
 
     /// Open the index file
 
@@ -481,7 +481,7 @@ Key FDBPartialAdopt::stringToFDB4Key(const std::string& str_key) {
 
 void FDBPartialAdopt::patchParam(Key& key) const {
 
-    static metkit::TypeParam typeParam("param", eckit::Value());
+    static metkit::mars::TypeParam typeParam("param", eckit::Value());
 
     // Some parameters are referred to with a 1,2 or 3 digit param, whereas they
     // have (standardised, MARS) parameters in the fdb5. Do the interconversion.

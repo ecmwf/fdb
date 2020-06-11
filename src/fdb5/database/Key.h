@@ -29,7 +29,9 @@ namespace eckit {
 }
 
 namespace metkit {
+namespace mars {
     class MarsRequest;
+}
 }
 
 namespace fdb5 {
@@ -64,7 +66,7 @@ public: // methods
     void clear();
 
     bool match(const Key& other) const;
-    bool match(const metkit::MarsRequest& request) const;
+    bool match(const metkit::mars::MarsRequest& request) const;
 
     bool match(const Key& other, const eckit::StringList& ignore) const;
 
@@ -73,7 +75,7 @@ public: // methods
 
     /// test that, if keys are present in the supplied request, they match the
     /// keys present in the key. Essentially implements a reject-filter
-    bool partialMatch(const metkit::MarsRequest& request) const;
+    bool partialMatch(const metkit::mars::MarsRequest& request) const;
 
     bool operator< (const Key &other) const {
         return keys_ < other.keys_;

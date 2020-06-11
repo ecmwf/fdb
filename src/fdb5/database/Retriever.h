@@ -30,7 +30,10 @@ namespace eckit {
 class DataHandle;
 }
 
-namespace metkit { class MarsRequest; }
+namespace metkit {
+namespace mars {
+    class MarsRequest;
+}}
 
 namespace fdb5 {
 
@@ -55,13 +58,13 @@ public: // methods
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from
 
-    eckit::DataHandle* retrieve(const metkit::MarsRequest& request) const;
+    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request) const;
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @param notifyee is an object that handles notifications for the client, e.g. wind conversion
     /// @returns  data handle to read from
 
-    eckit::DataHandle* retrieve(const metkit::MarsRequest& request, const Notifier& notifyee) const;
+    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request, const Notifier& notifyee) const;
 
     /// Give read access to a range of entries according to a request
 
@@ -76,7 +79,7 @@ private: // methods
 
     void print(std::ostream &out) const;
 
-    eckit::DataHandle* retrieve(const metkit::MarsRequest& request, const Schema &schema, bool sorted, const Notifier& notifyee) const;
+    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request, const Schema &schema, bool sorted, const Notifier& notifyee) const;
 
 private: // data
 

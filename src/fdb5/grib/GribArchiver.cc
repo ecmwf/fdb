@@ -16,9 +16,9 @@
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
 
-#include "metkit/MarsParser.h"
-#include "metkit/MarsExpension.h"
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsRequest.h"
 #include "metkit/grib/MetFile.h"
 
 #include "fdb5/LibFdb5.h"
@@ -43,7 +43,7 @@ GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers, bool ve
 }
 
 
-static std::vector<metkit::MarsRequest> str_to_requests(const std::string& str) {
+static std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
 
     // parse requests
 
@@ -52,9 +52,9 @@ static std::vector<metkit::MarsRequest> str_to_requests(const std::string& str) 
     Log::debug<LibFdb5>() << "Parsing request string : " << rs << std::endl;
 
     std::istringstream in(rs);
-    metkit::MarsParser parser(in);
+    metkit::mars::MarsParser parser(in);
 
-    std::vector<metkit::MarsParsedRequest> p = parser.parse();
+    std::vector<metkit::mars::MarsParsedRequest> p = parser.parse();
 
     Log::debug<LibFdb5>() << "Parsed requests:" << std::endl;
     for (auto j = p.begin(); j != p.end(); ++j) {
@@ -64,9 +64,9 @@ static std::vector<metkit::MarsRequest> str_to_requests(const std::string& str) 
     // expand requests
 
     bool inherit = true;
-    metkit::MarsExpension expand(inherit);
+    metkit::mars::MarsExpension expand(inherit);
 
-    std::vector<metkit::MarsRequest> v = expand.expand(p);
+    std::vector<metkit::mars::MarsRequest> v = expand.expand(p);
 
     Log::debug<LibFdb5>() << "Expanded requests:" << std::endl;
     for (auto j = v.begin(); j != v.end(); ++j) {
@@ -76,15 +76,15 @@ static std::vector<metkit::MarsRequest> str_to_requests(const std::string& str) 
     return v;
 }
 
-static std::vector<metkit::MarsRequest> make_filter_requests(const std::string& str) {
+static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::string& str) {
 
-    if(str.empty()) return std::vector<metkit::MarsRequest>();
+    if(str.empty()) return std::vector<metkit::mars::MarsRequest>();
 
     std::set<std::string> keys = fdb5::Key(str).keys(); //< keys to filter from that request
 
-    std::vector<metkit::MarsRequest> v = str_to_requests(str);
+    std::vector<metkit::mars::MarsRequest> v = str_to_requests(str);
 
-    std::vector<metkit::MarsRequest> r;
+    std::vector<metkit::mars::MarsRequest> r;
     for (auto j = v.begin(); j != v.end(); ++j) {
         r.push_back(j->subset(keys));
         r.back().dump(Log::debug<LibFdb5>());
@@ -100,7 +100,7 @@ void GribArchiver::filters(const std::string& include, const std::string& exclud
 
 }
 
-static bool matchAny(const metkit::MarsRequest& f, const std::vector<metkit::MarsRequest>& v) {
+static bool matchAny(const metkit::mars::MarsRequest& f, const std::vector<metkit::mars::MarsRequest>& v) {
     for (auto r = v.begin(); r != v.end(); ++r) {
         if(f.matches(*r)) return true;
     }
@@ -111,7 +111,7 @@ bool GribArchiver::filterOut(const Key& k) const {
 
     const bool out = true;
 
-    metkit::MarsRequest field;
+    metkit::mars::MarsRequest field;
     for (Key::const_iterator j = k.begin(); j != k.end(); ++j) {
         eckit::StringList s;
         s.push_back(j->second);

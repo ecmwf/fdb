@@ -28,7 +28,7 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/config/Config.h"
@@ -114,7 +114,7 @@ private:  // members
     // Retrieve helpers
 
     std::thread retrieveWorker_;
-    eckit::Queue<std::pair<uint32_t, metkit::MarsRequest>> retrieveQueue_;
+    eckit::Queue<std::pair<uint32_t, metkit::mars::MarsRequest>> retrieveQueue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

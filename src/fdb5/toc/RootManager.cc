@@ -22,7 +22,7 @@
 #include "eckit/thread/AutoLock.h"
 #include "eckit/filesystem/LocalPathName.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
@@ -666,7 +666,7 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
     return visitableRoots(std::set<Key>{ key });
 }
 
-std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::MarsRequest& request) {
+std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::MarsRequest& request) {
 
 //    Key key;
 //    config_.schema().expandFirstLevel(request, key);

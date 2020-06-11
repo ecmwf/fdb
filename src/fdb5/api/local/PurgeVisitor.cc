@@ -31,7 +31,7 @@ namespace local {
 
 
 PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
-                           const metkit::MarsRequest& request,
+                           const metkit::mars::MarsRequest& request,
                            bool doit,
                            bool porcelain) :
     QueryVisitor<PurgeElement>(queue, request),
