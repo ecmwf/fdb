@@ -40,18 +40,28 @@ public: // methods
 
 private: // methods
 
-    void patch(grib_handle* h) override;
+    grib_handle* patch(const grib_handle* h) override;
 
 private: // members
 
     const Key& key_;
 };
 
-void PatchArchiver::patch(grib_handle* h) {
-    for (Key::const_iterator j = key_.begin(); j != key_.end(); ++j) {
-        size_t len = j->second.size();
-        ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
+grib_handle* PatchArchiver::patch(const grib_handle* p) {
+    grib_handle *h = grib_handle_clone(p);
+
+    try {
+        for (Key::const_iterator j = key_.begin(); j != key_.end(); ++j) {
+            size_t len = j->second.size();
+            ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
+        }
     }
+    catch (...)
+    {
+        grib_handle_delete(h);
+        throw;
+    }
+    return h;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -168,18 +178,18 @@ void FDBPatch::execute(const CmdArgs& args) {
                 << "Summary" << std::endl
                 << "=======" << std::endl << std::endl;
     Log::info() << Plural(uniqueKeys.size(), "field")
-                       << " ("
-                       << Bytes(bytes)
-                       << ") copied to "
-                       << key_
-                       << std::endl;
+                << " ("
+                << Bytes(bytes)
+                << ") copied to "
+                << key_
+                << std::endl;
 
     Log::info() << "Rates: "
-                       << Bytes(bytes, timer)
-                       << ", "
-                       << uniqueKeys.size()  / timer.elapsed()
-                       << " fields/s"
-                       << std::endl;
+                << Bytes(bytes, timer)
+                << ", "
+                << uniqueKeys.size()  / timer.elapsed()
+                << " fields/s"
+                << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

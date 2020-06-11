@@ -16,16 +16,17 @@
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
 
+#include "metkit/codes/Reader.h"
+#include "metkit/codes/Message.h"
+
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsRequest.h"
-#include "metkit/grib/MetFile.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
-using metkit::grib::MetFile;
 
 namespace fdb5 {
 
@@ -141,8 +142,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
 
     eckit::Timer timer("fdb::service::archive");
 
-    MetFile file(source);
-    size_t len = 0;
+    metkit::codes::Reader reader(source);
 
     size_t count = 0;
     size_t total_size = 0;
@@ -152,8 +152,11 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
     try {
 
         Key key;
+        metkit::codes::Message msg;
 
-        while ( (len = gribToKey(file, key)) ) {
+        while ( (msg = reader.next()) ) {
+
+            gribToKey(msg, key);
 
             ASSERT(key.match(key_));
 
@@ -161,9 +164,9 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
 
             logVerbose() << "Archiving " << key << std::endl;
 
-            fdb_.archive(key, static_cast<const void *>(buffer()), len);
+            fdb_.archive(key, msg.data(), msg.length());
 
-            total_size += len;
+            total_size += msg.length();
             count++;
             progress(total_size);
 
@@ -175,8 +178,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
         if (completeTransfers_) {
             eckit::Log::error() << "Exception received. Completing transfer." << std::endl;
             // Consume rest of datahandle otherwise client retries for ever
-            eckit::Buffer buffer(MetFile::gribBufferSize());
-            while ( (len = size_t( file.readSome(buffer)) ) ) { /* empty */ }
+            while ( reader.next() ) { /* empty */ }
         }
         throw;
     }
