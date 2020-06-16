@@ -297,31 +297,7 @@ void TocEngine::print(std::ostream& out) const
 
 static EngineBuilder<TocEngine> toc_builder;
 
-//----------------------------------------------------------------------------------------------------------------------
-
-/// This is a copy of eckit LocalFileManager for backward compatibility
-
-class TocFileManager : public eckit::URIManager {
-    virtual bool exists(const URI& uri) override { return PathName(uri.name()).exists(); }
-
-    virtual DataHandle* newWriteHandle(const URI& uri) override { return PathName(uri.name()).fileHandle(); }
-
-    virtual DataHandle* newReadHandle(const URI& uri) override { return PathName(uri.name()).fileHandle(); }
-
-    virtual DataHandle* newReadHandle(const URI& uri, const OffsetList& ol, const LengthList& ll) override {
-        return PathName(uri.name()).partHandle(ol, ll);
-    }
-
-    virtual std::string asString(const URI& uri) const override {
-        return uri.name();
-    }
-
-public:
-    TocFileManager(const std::string& name) : URIManager(name) {}
-};
-
-
-static TocFileManager manager_toc("toc");
+static eckit::LocalFileManager manager_toc("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 

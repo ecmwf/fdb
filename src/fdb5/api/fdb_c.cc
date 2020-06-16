@@ -12,8 +12,7 @@
 #include "eckit/io/FileDescHandle.h"
 #include "eckit/runtime/Main.h"
 
-
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/fdb5_version.h"
 #include "fdb5/api/FDB.h"
@@ -41,9 +40,9 @@ struct fdb_Key_t : public Key {
 
 struct fdb_MarsRequest_t {
 public:
-    fdb_MarsRequest_t() : request_(metkit::MarsRequest()) {}
+    fdb_MarsRequest_t() : request_(metkit::mars::MarsRequest()) {}
     fdb_MarsRequest_t(std::string str) {
-        request_ = metkit::MarsRequest(str);
+        request_ = metkit::mars::MarsRequest(str);
     }
     void values(char* name, char* values[], int numValues) {
         std::string n(name);
@@ -55,12 +54,12 @@ public:
     }
     static fdb_MarsRequest_t* parse(std::string str) {
         fdb_MarsRequest_t* req = new fdb_MarsRequest_t();
-        req->request_ = metkit::MarsRequest::parse(str);
+        req->request_ = metkit::mars::MarsRequest::parse(str);
         return req;
     }
-    metkit::MarsRequest request() { return request_; }
+    metkit::mars::MarsRequest request() { return request_; }
 private:
-    metkit::MarsRequest request_;
+    metkit::mars::MarsRequest request_;
 };
 
 
