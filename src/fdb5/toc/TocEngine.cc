@@ -22,7 +22,7 @@
 #include "eckit/utils/Regex.h"
 #include "eckit/os/BackTrace.h"
 #include "eckit/os/Stat.h"
-#include "eckit/filesystem/URIManager.h"
+#include "eckit/filesystem/LocalFileManager.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
