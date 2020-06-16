@@ -22,7 +22,11 @@
 #include "eckit/memory/NonCopyable.h"
 
 class MarsTask;
-namespace metkit { class MarsRequest; }
+namespace metkit {
+namespace mars {
+    class MarsRequest;
+}
+}
 
 namespace fdb5 {
 
@@ -42,7 +46,7 @@ public: // methods
     virtual bool optional() const;
 
     virtual const std::string &value(const Key &, const std::string &keyword) const;
-    virtual const std::vector<std::string>& values(const metkit::MarsRequest& rq, const std::string& keyword) const;
+    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const;
     virtual const std::string &defaultValue() const;
 
     virtual bool match(const std::string &keyword, const Key &key) const = 0;

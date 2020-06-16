@@ -22,7 +22,7 @@
 #include "eckit/runtime/SessionID.h"
 #include "eckit/serialisation/MemoryStream.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -33,7 +33,7 @@
 #include "fdb5/remote/RemoteFieldLocation.h"
 
 using namespace eckit;
-using metkit::MarsRequest;
+using metkit::mars::MarsRequest;
 
 namespace fdb5 {
 namespace remote {

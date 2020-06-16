@@ -205,7 +205,7 @@ std::set<std::string> Manager::engines(const Key& key)
     return s;
 }
 
-std::set<std::string> Manager::engines(const metkit::MarsRequest& rq, bool all)
+std::set<std::string> Manager::engines(const metkit::mars::MarsRequest& rq, bool all)
 {
     std::set<std::string> s;
     std::string expanded;
@@ -294,7 +294,7 @@ std::vector<URI> Manager::allLocations(const Key& key)
 }
 
 
-std::vector<eckit::URI> Manager::visitableLocations(const metkit::MarsRequest& rq, bool all) {
+std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequest& rq, bool all) {
 
     std::set<std::string> engines = Manager::engines(rq, all);
 

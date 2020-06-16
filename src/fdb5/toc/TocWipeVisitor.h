@@ -28,7 +28,7 @@ public:
 
     TocWipeVisitor(const TocCatalogue& catalogue,
                    const Store& store,
-                   const metkit::MarsRequest& request,
+                   const metkit::mars::MarsRequest& request,
                    std::ostream& out,
                    bool doit,
                    bool porcelain,
@@ -57,7 +57,7 @@ private: // members
     const TocCatalogue& catalogue_;
     const Store& store_;
 
-    metkit::MarsRequest indexRequest_;
+    metkit::mars::MarsRequest indexRequest_;
 
     std::string owner_;
 

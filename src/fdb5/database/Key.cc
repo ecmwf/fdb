@@ -13,7 +13,7 @@
 #include "eckit/container/DenseSet.h"
 #include "eckit/utils/Tokenizer.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
@@ -204,7 +204,7 @@ bool Key::match(const Key& other) const {
 }
 
 
-bool Key::match(const metkit::MarsRequest& request) const {
+bool Key::match(const metkit::mars::MarsRequest& request) const {
 
     std::vector<std::string> p = request.params();
     std::vector<std::string>::const_iterator k = p.begin();
@@ -264,7 +264,7 @@ bool Key::match(const std::string &key, const eckit::DenseSet<std::string> &valu
     return values.find(i->second) != values.end();
 }
 
-bool Key::partialMatch(const metkit::MarsRequest& request) const {
+bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {
 
     for (const auto& kv : *this) {
 

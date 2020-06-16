@@ -48,7 +48,7 @@ public: // methods
 
     void archive(const Key& key, const void* data, size_t length) override;
 
-    eckit::DataHandle* retrieve(const metkit::MarsRequest& request) override;
+    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request) override;
 
     ListIterator list(const FDBToolRequest& request) override;
 
@@ -73,7 +73,7 @@ private: // methods
     void print(std::ostream& s) const override;
 
     bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
-    bool matches(const metkit::MarsRequest& request, const SelectMap& select, bool requireMissing) const;
+    bool matches(const metkit::mars::MarsRequest& request, const SelectMap& select, bool requireMissing) const;
 
     template <typename QueryFN>
     auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));

@@ -23,15 +23,15 @@
 #include "eckit/config/Resource.h"
 #include "eckit/io/StdFile.h"
 
-#include "metkit/grib/MetFile.h"
-
 #include "fdb5/toc/AdoptVisitor.h"
 #include "fdb5/grib/GribDecoder.h"
 #include "fdb5/legacy/FDBIndexScanner.h"
 #include "fdb5/legacy/LegacyTranslator.h"
 
+#include "metkit/codes/Reader.h"
+#include "metkit/codes/Message.h"
+
 using namespace eckit;
-using metkit::grib::MetFile;
 
 namespace fdb5 {
 namespace legacy {
@@ -255,11 +255,10 @@ void FDBIndexScanner::process(FILE *f) {
 
 
             if (compareToGrib_) {
-                std::unique_ptr<DataHandle> h(PathName(datapath).partHandle(offset, length));
-                MetFile file(*h);
+                metkit::codes::Reader reader(PathName(datapath).partHandle(offset, length));
                 GribDecoder decoder;
                 Key grib;
-                decoder.gribToKey(file, grib);
+                decoder.gribToKey(reader.next(), grib);
 
                 // if(checkValues_) { // FTM we know that param is not comparable in the old FDB
                 //     key.set("param", grib.get("param"));

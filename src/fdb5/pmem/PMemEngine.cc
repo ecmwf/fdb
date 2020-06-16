@@ -63,7 +63,7 @@ static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missin
     schema.matchFirstLevel(key, keys, missing);
 }
 
-static void matchRequestToDB(const metkit::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
+static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
     schema.matchFirstLevel(rq, keys, missing);
@@ -84,7 +84,7 @@ std::vector<eckit::PathName> PMemEngine::databases(const Key &key,
     return databases(keys, dirs, config);
 }
 
-std::vector<eckit::PathName> PMemEngine::databases(const metkit::MarsRequest& request,
+std::vector<eckit::PathName> PMemEngine::databases(const metkit::mars::MarsRequest& request,
                                                    const std::vector<eckit::PathName>& dirs,
                                                    const Config& config) {
 
@@ -166,7 +166,7 @@ std::vector<eckit::PathName> PMemEngine::visitableLocations(const Key& key, cons
     return databases(key, PoolManager(config).visitablePools(key), config);
 }
 
-std::vector<eckit::PathName> PMemEngine::visitableLocations(const metkit::MarsRequest& rq, const Config& config) const
+std::vector<eckit::PathName> PMemEngine::visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const
 {
     return databases(rq, PoolManager(config).visitablePools(rq), config);
 }

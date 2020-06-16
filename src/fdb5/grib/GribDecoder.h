@@ -18,7 +18,7 @@
 
 
 #include "eckit/io/Buffer.h"
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 #include <vector>
 
 struct grib_handle;
@@ -27,7 +27,12 @@ namespace eckit {
 class PathName;
 }
 
-namespace metkit { namespace grib { class MetFile; }}
+namespace metkit {
+namespace codes {
+class Reader;
+class Message;
+}
+}
 
 #include "fdb5/database/Key.h"
 
@@ -43,21 +48,15 @@ public:
 
     virtual ~GribDecoder();
 
-    size_t gribToKey(metkit::grib::MetFile& file, Key &key);
-    metkit::MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
-    std::vector<metkit::MarsRequest> gribToRequests(const eckit::PathName &path, const char *verb = "retrieve");
+    void gribToKey(const metkit::codes::Message& msg, Key &key);
+    metkit::mars::MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
+    std::vector<metkit::mars::MarsRequest> gribToRequests(const eckit::PathName &path, const char *verb = "retrieve");
 
-protected:
-
-    const eckit::Buffer &buffer() const {
-        return buffer_;
-    }
 
 private:
 
-    virtual void patch(grib_handle*);
+    virtual grib_handle* patch(const grib_handle*);
 
-    eckit::Buffer buffer_;
     std::set<Key> seen_;
     bool checkDuplicates_;
 };

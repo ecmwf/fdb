@@ -87,7 +87,7 @@ public:
 
 TocWipeVisitor::TocWipeVisitor(const TocCatalogue& catalogue,
                                const Store& store,
-                               const metkit::MarsRequest& request,
+                               const metkit::mars::MarsRequest& request,
                                std::ostream& out,
                                bool doit,
                                bool porcelain,

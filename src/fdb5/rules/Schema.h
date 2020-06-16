@@ -49,18 +49,18 @@ public: // methods
     ~Schema();
 
     void expand(const Key &field, WriteVisitor &visitor) const;
-    void expand(const metkit::MarsRequest &request, ReadVisitor &visitor) const;
+    void expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const;
 
     // Each database has its own internal schema. So expand() above results in
     // expandFurther being called on the relevant schema from the DB, to start
     // iterating on that schemas rules.
     void expandSecond(const Key& field, WriteVisitor &visitor, const Key& dbKey) const;
-    void expandSecond(const metkit::MarsRequest& request, ReadVisitor &visitor, const Key& dbKey) const;
+    void expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor &visitor, const Key& dbKey) const;
 
     bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
-    bool expandFirstLevel(const metkit::MarsRequest& request,  Key& result) const ;
+    bool expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result) const ;
     void matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const ;
-    void matchFirstLevel(const metkit::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
 
     const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
 

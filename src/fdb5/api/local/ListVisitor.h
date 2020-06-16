@@ -93,8 +93,8 @@ public:
 
 private: // members
 
-    metkit::MarsRequest indexRequest_;
-    metkit::MarsRequest datumRequest_;
+    metkit::mars::MarsRequest indexRequest_;
+    metkit::mars::MarsRequest datumRequest_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

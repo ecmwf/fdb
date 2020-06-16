@@ -21,7 +21,11 @@
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit {
+namespace mars {
+    class MarsRequest;
+}
+}
 
 namespace fdb5 {
 
@@ -44,7 +48,7 @@ public: // methods
     // Once we have selected a database, return its schema. Used for further iteration.
     virtual const Schema& databaseSchema() const = 0;
 
-    virtual void values(const metkit::MarsRequest &request,
+    virtual void values(const metkit::mars::MarsRequest &request,
                         const std::string &keyword,
                         const TypesRegistry &registry,
                         eckit::StringList &values) = 0;

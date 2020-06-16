@@ -10,7 +10,7 @@
 
 #include "fdb5/types/TypeAbbreviation.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
 
@@ -33,7 +33,7 @@ void TypeAbbreviation::toKey(std::ostream &out,
     out << value.substr(0, count_);
 }
 
-void TypeAbbreviation::getValues(const metkit::MarsRequest &request,
+void TypeAbbreviation::getValues(const metkit::mars::MarsRequest &request,
                                  const std::string &keyword,
                                  eckit::StringList &values,
                                  const Notifier&,

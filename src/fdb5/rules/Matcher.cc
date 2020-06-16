@@ -10,7 +10,7 @@
 
 #include "eckit/exception/Exceptions.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/rules/Matcher.h"
 #include "fdb5/database/Key.h"
@@ -33,7 +33,7 @@ const std::string &Matcher::value(const Key &key, const std::string &keyword) co
     return key.get(keyword);
 }
 
-const std::vector<std::string> &Matcher::values(const metkit::MarsRequest& rq, const std::string &keyword) const {
+const std::vector<std::string> &Matcher::values(const metkit::mars::MarsRequest& rq, const std::string &keyword) const {
     return rq.values(keyword);
 }
 

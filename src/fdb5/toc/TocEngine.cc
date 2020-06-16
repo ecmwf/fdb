@@ -157,7 +157,7 @@ static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missin
     schema.matchFirstLevel(key, keys, missing);
 }
 
-static void matchRequestToDB(const metkit::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
+static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
     schema.matchFirstLevel(rq, keys, missing);
@@ -240,7 +240,7 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key,
     return result;
 }
 
-std::vector<eckit::URI> TocEngine::databases(const metkit::MarsRequest& request,
+std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& request,
                                                   const std::vector<eckit::PathName>& roots,
                                                   const Config& config) {
 
@@ -280,7 +280,7 @@ std::vector<eckit::URI> TocEngine::visitableLocations(const Key& key, const Conf
     return databases(key, CatalogueRootManager(config).visitableRoots(key), config);
 }
 
-std::vector<URI> TocEngine::visitableLocations(const metkit::MarsRequest& request, const Config& config) const
+std::vector<URI> TocEngine::visitableLocations(const metkit::mars::MarsRequest& request, const Config& config) const
 {
     return databases(request, CatalogueRootManager(config).visitableRoots(request), config);
 }

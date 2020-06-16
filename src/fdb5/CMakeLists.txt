@@ -445,7 +445,6 @@ list( APPEND fdb5_tools
 if ( HAVE_TOCFDB )
     list(APPEND fdb5_tools
         fdb-adopt
-        fdb-write-legacy
         fdb-root
         fdb-overlay
         fdb-hide
