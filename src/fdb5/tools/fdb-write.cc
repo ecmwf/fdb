@@ -81,7 +81,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
         std::cout << "Processing " << path << std::endl;
 
-        std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
+        eckit::DataHandle* dh ( path.fileHandle() );
 
         archiver.archive( *dh );
     }
