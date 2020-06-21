@@ -71,67 +71,26 @@ int fdb_set_failure_handler(fdb_failure_handler_t handler, void* context);
 ///@}
 
 
-/** Types and ancillary functions */
+/** Types */
 
 ///@{
 
-struct fdb_Key_t;
-typedef struct fdb_Key_t fdb_Key_t;
+struct fdb_key_t;
+typedef struct fdb_key_t fdb_key_t;
 
-struct fdb_KeySet_t {
-    int numKeys;
-    char *keySet[];
-};
-typedef struct fdb_KeySet_t fdb_KeySet_t;
+struct fdb_request_t;
+typedef struct fdb_request_t fdb_request_t;
 
-struct fdb_MarsRequest_t;
-typedef struct fdb_MarsRequest_t fdb_MarsRequest_t;
+struct fdb_listiterator_t;
+typedef struct fdb_listiterator_t fdb_listiterator_t;
 
-struct fdb_ToolRequest_t;
-typedef struct fdb_ToolRequest_t fdb_ToolRequest_t;
-
-struct fdb_ListElement_t;
-typedef struct fdb_ListElement_t fdb_ListElement_t;
-
-struct fdb_ListIterator_t;
-typedef struct fdb_ListIterator_t fdb_ListIterator_t;
-
-struct fdb_DataReader_t;
-typedef struct fdb_DataReader_t fdb_DataReader_t;
+struct fdb_datareader_t;
+typedef struct fdb_datareader_t fdb_datareader_t;
 
 struct fdb_t;
 typedef struct fdb_t fdb_t;
 
-int fdb_Key_init(fdb_Key_t** key);
-int fdb_Key_set(fdb_Key_t* key, char* k, char* v);
-int fdb_Key_clean(fdb_Key_t* key);
-
-int fdb_KeySet_clean(fdb_KeySet_t* keySet);
-
-int fdb_MarsRequest_init(fdb_MarsRequest_t** req, char* str);
-int fdb_MarsRequest_value(fdb_MarsRequest_t* req, char* name, char* values[], int numValues);
-int fdb_MarsRequest_parse(fdb_MarsRequest_t** req, char* str);
-int fdb_MarsRequest_clean(fdb_MarsRequest_t* req);
-
-int fdb_ToolRequest_init_all(fdb_ToolRequest_t** req, fdb_KeySet_t *keys);
-int fdb_ToolRequest_init_mars(fdb_ToolRequest_t** req, fdb_MarsRequest_t *marsReq, fdb_KeySet_t *keys);
-int fdb_ToolRequest_init_str(fdb_ToolRequest_t** req, char *str, fdb_KeySet_t *keys);
-int fdb_ToolRequest_clean(fdb_ToolRequest_t* req);
-
-int fdb_ListElement_init(fdb_ListElement_t** el);
-int fdb_ListElement_str(fdb_ListElement_t* el, char **str);
-int fdb_ListElement_clean(fdb_ListElement_t** el);
-
-int fdb_DataReader_open(fdb_DataReader_t* dr);
-int fdb_DataReader_close(fdb_DataReader_t* dr);
-int fdb_DataReader_tell(fdb_DataReader_t* dr, long* pos);
-int fdb_DataReader_seek(fdb_DataReader_t* dr, long pos);
-int fdb_DataReader_skip(fdb_DataReader_t* dr, long count);
-int fdb_DataReader_read(fdb_DataReader_t* dr, void *buf, long count, long* read);
-int fdb_DataReader_clean(fdb_DataReader_t* dr);
-
 ///@}
-
 
 /** API */
 
@@ -139,27 +98,39 @@ int fdb_DataReader_clean(fdb_DataReader_t* dr);
 
 /** Creates a fdb instance. */
 int fdb_init(fdb_t** fdb);
-
+int fdb_archive(fdb_t* fdb, fdb_key_t* key, const char* data, size_t length);
+int fdb_list(fdb_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it);
+//typedef long (*fdb_stream_write_t)(void* context, const void* data, long length);
+int fdb_retrieve(fdb_t* fdb, fdb_request_t* req, fdb_datareader_t** dr);
 /** Closes and destroys the fdb instance.
  *  Must be called for every fdb_t created.
  */
 int fdb_clean(fdb_t* fdb);
 
-// -------------- Primary API functions ----------------------------
+///@}
 
-int fdb_list(fdb_t* fdb, const fdb_ToolRequest_t* req, fdb_ListIterator_t** it);
-int fdb_list_next(fdb_ListIterator_t* it, bool* exist, fdb_ListElement_t** el);
-int fdb_list_clean(fdb_ListIterator_t* it);
+/** Ancillary functions */
 
-int fdb_archive(fdb_t* fdb, fdb_Key_t* key, const char* data, size_t length);
+///@{
 
-typedef long (*fdb_stream_write_t)(void* context, const void* data, long length);
+int fdb_key_init(fdb_key_t** key);
+int fdb_key_add(fdb_key_t* key, char* k, char* v);
+int fdb_key_clean(fdb_key_t* key);
 
-int fdb_retrieve(fdb_t* fdb, fdb_MarsRequest_t* req, fdb_DataReader_t** dr);
+int fdb_request_init(fdb_request_t** req);
+int fdb_request_add(fdb_request_t* req, char* name, char* values[], int numValues);
+int fdb_request_clean(fdb_request_t* req);
 
-/// Flushes all buffers and closes all data handles into a consistent DB state
-/// @note always safe to call
-void flush();
+int fdb_listiterator_next(fdb_listiterator_t* it, bool* exist, char* str, size_t length);
+int fdb_listiterator_clean(fdb_listiterator_t* it);
+
+int fdb_datareader_open(fdb_datareader_t* dr);
+int fdb_datareader_close(fdb_datareader_t* dr);
+int fdb_datareader_tell(fdb_datareader_t* dr, long* pos);
+int fdb_datareader_seek(fdb_datareader_t* dr, long pos);
+int fdb_datareader_skip(fdb_datareader_t* dr, long count);
+int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read);
+int fdb_datareader_clean(fdb_datareader_t* dr);
 
 ///@}
 

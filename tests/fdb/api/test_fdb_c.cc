@@ -25,42 +25,38 @@ int main(int argc, char **argv) {
     /** Creates a reader and opens the speficied file. */
     fdb_init(fdb);
 
-    fdb_KeySet_t keys;
-    keys.numKeys = 0;
-
-    fdb_ToolRequest_t* toolreq;
-    fdb_ToolRequest_init_all(&toolreq, &keys);
-
-    fdb_ListElement_t** el = new fdb_ListElement_t*();
-    fdb_ListElement_init(el);
-
-    fdb_ListIterator_t* it;
+    char str[300];
+    fdb_listiterator_t* it;
     bool exist = true;
 
-    fdb_list(*fdb, toolreq, &it);
+    fdb_list(*fdb, nullptr, &it);
 
     while (exist) {
-        fdb_list_next(it, &exist, el);
+        fdb_listiterator_next(it, &exist, str, 300);
         if (exist) {
-            std::cout << *((ListElement*) *el) << std::endl;
+            std::cout << str << std::endl;
         }
     }
 
     std::cout << "MarsRequest" << std::endl;
-    fdb_ToolRequest_init_str(&toolreq, "expver=xxxx", &keys);
+    fdb_request_t* toolreq;
+    fdb_request_init(&toolreq);
+    char* val = "xxxx";
+    char* values[] = {val};
+
+    fdb_request_add(toolreq, "expver", values, 1);
     fdb_list(*fdb, toolreq, &it);
 
     exist = true;
     while (exist) {
-        fdb_list_next(it, &exist, el);
+        fdb_listiterator_next(it, &exist, str, 300);
         if (exist) {
-            std::cout << *((ListElement*) *el) << std::endl;
+            std::cout << str << std::endl;
         }
     }
 
-    fdb_ListElement_clean(el);
-    fdb_list_clean(it);
-    fdb_ToolRequest_clean(toolreq);
+    fdb_listiterator_clean(it);
+    fdb_request_clean(toolreq);
 
     fdb_clean(*fdb);
 
