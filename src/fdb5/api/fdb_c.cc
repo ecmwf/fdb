@@ -62,18 +62,66 @@ private:
     metkit::mars::MarsRequest request_;
 };
 
-struct fdb_listiterator_t {
-public:
-    fdb_listiterator_t(ListIterator&& iter) : iter_(std::move(iter)) {}
 
-    bool next(ListElement& elem) { return iter_.next(elem); }
+class ListIteratorHolder {
+public:
+    ListIteratorHolder(ListIterator&& iter) : iter_(std::move(iter)) {}
+
+    ListIterator& get() { return iter_; }
 
 private:
     ListIterator iter_;
 };
 
-struct fdb_datareader_t : public DataHandle {
-    using DataHandle::DataHandle;
+struct fdb_listiterator_t {
+public:
+    void set(ListIterator&& iter) {
+        if (iter_)
+            delete iter_;
+
+        iter_ = new ListIteratorHolder(std::move(iter));
+    }
+
+    bool next(ListElement& elem) { return iter_ ? iter_->get().next(elem) : false; }
+
+private:
+    ListIteratorHolder* iter_;
+};
+
+struct fdb_datareader_t {
+public:
+    long open() {
+        ASSERT(dh_);
+        return dh_->openForRead();
+    }
+    void close() {
+        ASSERT(dh_);
+        dh_->close();
+    }
+    long tell() {
+        ASSERT(dh_);
+        return dh_->position();
+    }
+    long seek(long pos) {
+        ASSERT(dh_);
+        return dh_->seek(pos);
+    }
+    void skip(long pos) {
+        ASSERT(dh_);
+        dh_->skip(pos);
+    }
+    long read(void* buf, long length) {
+        ASSERT(dh_);
+        return dh_->read(buf, length);
+    }
+    void set(DataHandle* dh) {
+        if (dh_)
+            delete dh_;
+        dh_ = dh;
+    }
+    
+private:
+    DataHandle* dh_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -207,23 +255,33 @@ int fdb_init(fdb_t** fdb) {
 }
 int fdb_archive(fdb_t* fdb, fdb_key_t* key, const char* data, size_t length) {
     return wrapApiFunction([fdb, key, data, length] {
+        ASSERT(fdb);
+        ASSERT(key);
+        ASSERT(data);
+
         fdb->archive(*key, static_cast<const void*>(data), length);
         fdb->flush();
     });
 }
-int fdb_list(fdb_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it) {
+int fdb_list(fdb_t* fdb, const fdb_request_t* req, fdb_listiterator_t* it) {
     return wrapApiFunction([fdb, req, it] {
+        ASSERT(fdb);
+        ASSERT(it);
+
         std::vector<std::string> minKeySet; // we consider an empty set
         const FDBToolRequest toolRequest(
-            req == nullptr ? metkit::mars::MarsRequest() : req->request(),
+            req ? req->request() : metkit::mars::MarsRequest(),
             req == nullptr, minKeySet);
 
-        *it = new fdb_listiterator_t(fdb->list(toolRequest));
+        it->set(fdb->list(toolRequest));
     });
 }
-int fdb_retrieve(fdb_t* fdb, fdb_request_t* req, fdb_datareader_t** dr) {
+int fdb_retrieve(fdb_t* fdb, fdb_request_t* req, fdb_datareader_t* dr) {
     return wrapApiFunction([fdb, req, dr] {
-        *dr = (fdb_datareader_t*) fdb->retrieve(req->request());
+        ASSERT(fdb);
+        ASSERT(req);
+        ASSERT(dr);
+        dr->set(fdb->retrieve(req->request()));
     });
 }
 int fdb_clean(fdb_t* fdb) {
@@ -240,10 +298,12 @@ int fdb_key_init(fdb_key_t** key) {
         *key = new fdb_key_t();
     });
 }
-int fdb_key_add(fdb_key_t* key, char* k, char* v) {
-    return wrapApiFunction([key, k, v]{
-        key->set(std::string(k), std::string(v));
-//        std::cout << *((Key*)key) << std::endl;
+int fdb_key_add(fdb_key_t* key, char* param, char* value) {
+    return wrapApiFunction([key, param, value]{
+        ASSERT(key);
+        ASSERT(param);
+        ASSERT(value);
+        key->set(std::string(param), std::string(value));
     });
 }
 int fdb_key_clean(fdb_key_t* key) {
@@ -258,10 +318,12 @@ int fdb_request_init(fdb_request_t** req) {
         *req = new fdb_request_t("retrieve");
     });
 }
-int fdb_request_add(fdb_request_t* req, char* name, char* values[], int numValues) {
-    return wrapApiFunction([name, values, numValues, req] {
-        req->values(name, values, numValues);
-//        std::cout << req->request() << std::endl;
+int fdb_request_add(fdb_request_t* req, char* param, char* values[], int numValues) {
+    return wrapApiFunction([req, param, values, numValues] {
+        ASSERT(req);
+        ASSERT(param);
+        ASSERT(values);
+        req->values(param, values, numValues);
     });
 }
 int fdb_request_clean(fdb_request_t* req) {
@@ -271,8 +333,17 @@ int fdb_request_clean(fdb_request_t* req) {
     });
 }
 
+int fdb_listiterator_init(fdb_listiterator_t** it) {
+    return wrapApiFunction([it]{
+        *it = new fdb_listiterator_t();
+    });
+}
 int fdb_listiterator_next(fdb_listiterator_t* it, bool* exist, char* str, size_t length) {
     return wrapApiFunction([it, exist, str, length] {
+        ASSERT(it);
+        ASSERT(exist);
+        ASSERT(str);
+
         ListElement* el = new ListElement();
         *exist = it->next(*el);
 
@@ -292,38 +363,54 @@ int fdb_listiterator_clean(fdb_listiterator_t* it) {
     });
 }
 
+int fdb_datareader_init(fdb_datareader_t** dr) {
+    return wrapApiFunction([dr]{
+        *dr = new fdb_datareader_t();
+    });
+}
 int fdb_datareader_open(fdb_datareader_t* dr) {
     return wrapApiFunction([dr]{
-        dr->openForRead();
+        ASSERT(dr);
+        dr->open();
     });
 }
 int fdb_datareader_close(fdb_datareader_t* dr) {
     return wrapApiFunction([dr]{
+        ASSERT(dr);
         dr->close();
     });
 }
 int fdb_datareader_tell(fdb_datareader_t* dr, long* pos) {
     return wrapApiFunction([dr, pos]{
-        *pos = dr->position();
+        ASSERT(dr);
+        ASSERT(pos);
+        *pos = dr->tell();
     });
 }
 int fdb_datareader_seek(fdb_datareader_t* dr, long pos) {
     return wrapApiFunction([dr, pos]{
+        ASSERT(dr);
         dr->seek(pos);
     });
 }
 int fdb_datareader_skip(fdb_datareader_t* dr, long count) {
     return wrapApiFunction([dr, count]{
+        ASSERT(dr);
         dr->skip(count);
     });
 }
 int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read) {
     return wrapApiFunction([dr, buf, count, read]{
+        ASSERT(dr);
+        ASSERT(buf);
+        ASSERT(read);
         *read = dr->read(buf, count);
     });
 }
 int fdb_datareader_clean(fdb_datareader_t* dr) {
     return wrapApiFunction([dr]{
+        ASSERT(dr);
+        dr->set(nullptr);
         delete dr;
     });
 }

@@ -27,9 +27,10 @@ int main(int argc, char **argv) {
 
     char str[300];
     fdb_listiterator_t* it;
+    fdb_listiterator_init(&it);
     bool exist = true;
 
-    fdb_list(*fdb, nullptr, &it);
+    fdb_list(*fdb, nullptr, it);
 
     while (exist) {
         fdb_listiterator_next(it, &exist, str, 300);
@@ -45,7 +46,7 @@ int main(int argc, char **argv) {
     char* values[] = {val};
 
     fdb_request_add(toolreq, "expver", values, 1);
-    fdb_list(*fdb, toolreq, &it);
+    fdb_list(*fdb, toolreq, it);
 
     exist = true;
     while (exist) {
