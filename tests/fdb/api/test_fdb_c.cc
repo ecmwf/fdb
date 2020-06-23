@@ -21,27 +21,27 @@ int main(int argc, char **argv) {
 
     fdb_initialise_api();
 
-    fdb_t** fdb = new fdb_t*;
+    fdb_handle_t** fdb = new fdb_handle_t*;
     /** Creates a reader and opens the speficied file. */
-    fdb_init(fdb);
+    fdb_new_handle(fdb);
 
-    char str[300];
+    const char** ptr = new const char*;
     fdb_listiterator_t* it;
-    fdb_listiterator_init(&it);
+    fdb_new_listiterator(&it);
     bool exist = true;
 
     fdb_list(*fdb, nullptr, it);
 
     while (exist) {
-        fdb_listiterator_next(it, &exist, str, 300);
+        fdb_listiterator_next(it, &exist, ptr);
         if (exist) {
-            std::cout << str << std::endl;
+            std::cout << *ptr << std::endl;
         }
     }
 
     std::cout << "MarsRequest" << std::endl;
     fdb_request_t* toolreq;
-    fdb_request_init(&toolreq);
+    fdb_new_request(&toolreq);
     char* val = "xxxx";
     char* values[] = {val};
 
@@ -50,16 +50,16 @@ int main(int argc, char **argv) {
 
     exist = true;
     while (exist) {
-        fdb_listiterator_next(it, &exist, str, 300);
+        fdb_listiterator_next(it, &exist, ptr);
         if (exist) {
-            std::cout << str << std::endl;
+            std::cout << *ptr << std::endl;
         }
     }
 
-    fdb_listiterator_clean(it);
-    fdb_request_clean(toolreq);
+    fdb_delete_listiterator(it);
+    fdb_delete_request(toolreq);
 
-    fdb_clean(*fdb);
+    fdb_delete_handle(*fdb);
 
     return 0;
 }
