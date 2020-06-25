@@ -22,7 +22,11 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/toc/FileSpace.h"
 
-namespace metkit { class MarsRequest; }
+namespace metkit {
+namespace mars {
+    class MarsRequest;
+}
+}
 
 namespace fdb5 {
 
@@ -49,7 +53,7 @@ public: // methods
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> visitableRoots(const Key& key);
     std::vector<eckit::PathName> visitableRoots(const std::set<Key>& keys);
-    std::vector<eckit::PathName> visitableRoots(const metkit::MarsRequest& request);
+    std::vector<eckit::PathName> visitableRoots(const metkit::mars::MarsRequest& request);
 
     /// Lists the roots where a DB key would be able to be written
     std::vector<eckit::PathName> writableRoots(const Key& key);

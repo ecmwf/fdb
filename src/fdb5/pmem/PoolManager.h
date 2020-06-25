@@ -50,7 +50,7 @@ public: // methods
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> visitablePools(const Key& key);
     std::vector<eckit::PathName> visitablePools(const std::set<Key>& keys);
-    std::vector<eckit::PathName> visitablePools(const metkit::MarsRequest& request);
+    std::vector<eckit::PathName> visitablePools(const metkit::mars::MarsRequest& request);
 
     /// Lists the roots where a DB key would be able to be written
     std::vector<eckit::PathName> writablePools(const Key& key);

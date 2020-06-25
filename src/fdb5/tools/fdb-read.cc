@@ -14,9 +14,9 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/option/CmdArgs.h"
 
-#include "metkit/MarsRequest.h"
-#include "metkit/MarsParser.h"
-#include "metkit/MarsExpension.h"
+#include "metkit/mars/MarsRequest.h"
+#include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsExpension.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/grib/GribDecoder.h"
@@ -50,7 +50,7 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     bool extract = args.getBool("extract", false);
 
-    std::vector<metkit::MarsRequest> requests;
+    std::vector<metkit::mars::MarsRequest> requests;
 
     // Build request(s) from input
 
@@ -67,9 +67,9 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
             throw eckit::ReadError(args(0));
         }
 
-        metkit::MarsParser parser(in);
+        metkit::mars::MarsParser parser(in);
         auto parsedRequests = parser.parse();
-        metkit::MarsExpension expand(/* inherit */ false);
+        metkit::mars::MarsExpension expand(/* inherit */ false);
         requests = expand.expand(parsedRequests);
     }
 

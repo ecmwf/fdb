@@ -14,7 +14,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeVisitor::WipeVisitor(const metkit::MarsRequest& request,
+WipeVisitor::WipeVisitor(const metkit::mars::MarsRequest& request,
                          std::ostream& out,
                          bool doit,
                          bool porcelain,

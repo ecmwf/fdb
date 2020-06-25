@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 
 namespace eckit {
@@ -44,13 +44,13 @@ public: // methods
                                                           bool raw=false,
                                                           const std::string& verb="retrieve");
 
-    FDBToolRequest(const metkit::MarsRequest& r,
+    FDBToolRequest(const metkit::mars::MarsRequest& r,
                    bool all=false,
                    const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
 
     FDBToolRequest(eckit::Stream&);
 
-    const metkit::MarsRequest& request() const;
+    const metkit::mars::MarsRequest& request() const;
 
     bool all() const;
 
@@ -74,11 +74,11 @@ protected: // methods
 
 private: // methods
 
-    static void checkMinimumKeys(const metkit::MarsRequest& request, const std::vector<std::string>& minimumKeys);
+    static void checkMinimumKeys(const metkit::mars::MarsRequest& request, const std::vector<std::string>& minimumKeys);
 
 private: // members
 
-    metkit::MarsRequest request_;
+    metkit::mars::MarsRequest request_;
 
     bool all_;
 };

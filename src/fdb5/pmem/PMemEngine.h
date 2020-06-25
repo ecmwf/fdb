@@ -37,7 +37,7 @@ public: // methods
                                                   const std::vector<eckit::PathName>& dirs,
                                                   const Config& config);
 
-    static std::vector<eckit::PathName> databases(const metkit::MarsRequest& request,
+    static std::vector<eckit::PathName> databases(const metkit::mars::MarsRequest& request,
                                                   const std::vector<eckit::PathName>& dirs,
                                                   const Config& config);
 
@@ -60,7 +60,7 @@ protected: // methods
     virtual std::vector<eckit::PathName> allLocations(const Key& key, const Config& config) const;
 
     virtual std::vector<eckit::PathName> visitableLocations(const Key& key, const Config& config) const;
-    virtual std::vector<eckit::PathName> visitableLocations(const metkit::MarsRequest& rq, const Config& config) const;
+    virtual std::vector<eckit::PathName> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const;
 
     virtual std::vector<eckit::PathName> writableLocations(const Key& key, const Config& config) const;
 

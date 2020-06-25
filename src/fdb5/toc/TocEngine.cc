@@ -22,7 +22,7 @@
 #include "eckit/utils/Regex.h"
 #include "eckit/os/BackTrace.h"
 #include "eckit/os/Stat.h"
-#include "eckit/filesystem/URIManager.h"
+#include "eckit/filesystem/LocalFileManager.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
@@ -157,7 +157,7 @@ static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missin
     schema.matchFirstLevel(key, keys, missing);
 }
 
-static void matchRequestToDB(const metkit::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
+static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
     schema.matchFirstLevel(rq, keys, missing);
@@ -240,7 +240,7 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key,
     return result;
 }
 
-std::vector<eckit::URI> TocEngine::databases(const metkit::MarsRequest& request,
+std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& request,
                                                   const std::vector<eckit::PathName>& roots,
                                                   const Config& config) {
 
@@ -280,7 +280,7 @@ std::vector<eckit::URI> TocEngine::visitableLocations(const Key& key, const Conf
     return databases(key, CatalogueRootManager(config).visitableRoots(key), config);
 }
 
-std::vector<URI> TocEngine::visitableLocations(const metkit::MarsRequest& request, const Config& config) const
+std::vector<URI> TocEngine::visitableLocations(const metkit::mars::MarsRequest& request, const Config& config) const
 {
     return databases(request, CatalogueRootManager(config).visitableRoots(request), config);
 }
@@ -297,31 +297,7 @@ void TocEngine::print(std::ostream& out) const
 
 static EngineBuilder<TocEngine> toc_builder;
 
-//----------------------------------------------------------------------------------------------------------------------
-
-/// This is a copy of eckit LocalFileManager for backward compatibility
-
-class TocFileManager : public eckit::URIManager {
-    virtual bool exists(const URI& uri) override { return PathName(uri.name()).exists(); }
-
-    virtual DataHandle* newWriteHandle(const URI& uri) override { return PathName(uri.name()).fileHandle(); }
-
-    virtual DataHandle* newReadHandle(const URI& uri) override { return PathName(uri.name()).fileHandle(); }
-
-    virtual DataHandle* newReadHandle(const URI& uri, const OffsetList& ol, const LengthList& ll) override {
-        return PathName(uri.name()).partHandle(ol, ll);
-    }
-
-    virtual std::string asString(const URI& uri) const override {
-        return uri.name();
-    }
-
-public:
-    TocFileManager(const std::string& name) : URIManager(name) {}
-};
-
-
-static TocFileManager manager_toc("toc");
+static eckit::LocalFileManager manager_toc("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 

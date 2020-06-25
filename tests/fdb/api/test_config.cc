@@ -47,7 +47,7 @@ CASE( "config_expands_from_environment_variable_json" ) {
         }
     )XX");
 
-    eckit::testing::SetEnv env("FDB5_CONFIG", config_str);
+    eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
@@ -70,7 +70,7 @@ CASE( "config_expands_from_environment_variable_yaml" ) {
           - path: "/a/path/is/something"
     )XX");
 
-    eckit::testing::SetEnv env("FDB5_CONFIG", config_str);
+    eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
@@ -102,7 +102,7 @@ CASE( "config_expands_explicit_path" ) {
         dh->write(config_str.c_str(), config_str.size());
     }
 
-    eckit::testing::SetEnv env("FDB5_CONFIG_FILE", tf.asString());
+    eckit::testing::SetEnv env("FDB5_CONFIG_FILE", tf.asString().c_str());
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 

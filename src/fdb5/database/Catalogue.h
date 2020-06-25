@@ -66,7 +66,7 @@ public:
 
     virtual StatsReportVisitor* statsReportVisitor() const = 0;
     virtual PurgeVisitor* purgeVisitor(const Store& store) const = 0;
-    virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
+    virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
 
     virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
 

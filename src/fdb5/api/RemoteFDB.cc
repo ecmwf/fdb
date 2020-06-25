@@ -32,7 +32,7 @@
 #include "eckit/runtime/Main.h"
 #include "eckit/os/BackTrace.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 using namespace eckit;
 using namespace eckit::net;
@@ -1025,7 +1025,7 @@ private: // members
 
 // Here we do (asynchronous) retrieving related stuff
 
-DataHandle* RemoteFDB::retrieve(const metkit::MarsRequest& request) {
+DataHandle* RemoteFDB::retrieve(const metkit::mars::MarsRequest& request) {
 
     connect();
 

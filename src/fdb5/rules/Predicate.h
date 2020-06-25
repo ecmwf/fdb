@@ -46,7 +46,7 @@ public: // methods
     void fill(Key &key, const std::string& value) const;
 
     const std::string &value(const Key &key) const;
-    const std::vector<std::string>& values(const metkit::MarsRequest& rq) const;
+    const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq) const;
     const std::string &defaultValue() const;
 
     bool optional() const;

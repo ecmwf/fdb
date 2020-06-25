@@ -36,7 +36,7 @@ namespace local {
 //----------------------------------------------------------------------------------------------------------------------
 
 WipeVisitor::WipeVisitor(eckit::Queue<WipeElement>& queue,
-                         const metkit::MarsRequest& request,
+                         const metkit::mars::MarsRequest& request,
                          bool doit,
                          bool porcelain,
                          bool unsafeWipeAll) :

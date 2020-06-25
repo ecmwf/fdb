@@ -50,7 +50,7 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     return 0;
 }
 
-void Schema::expand(const metkit::MarsRequest &request, ReadVisitor &visitor) const {
+void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const {
     Key full;
     std::vector<Key> keys(3);
 
@@ -72,7 +72,7 @@ void Schema::expand(const Key &field, WriteVisitor &visitor) const {
     }
 }
 
-void Schema::expandSecond(const metkit::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const {
+void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const {
 
     const Rule* dbRule;
     for (const Rule* r : rules_) {
@@ -120,7 +120,7 @@ bool Schema::expandFirstLevel(const Key &dbKey,  Key &result) const {
     return found;
 }
 
-bool Schema::expandFirstLevel(const metkit::MarsRequest& request, Key &result) const {
+bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key &result) const {
     bool found = false;
     for (const Rule* rule : rules_) {
         rule->expandFirstLevel(request, result, found);
@@ -135,7 +135,7 @@ void Schema::matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const cha
     }
 }
 
-void Schema::matchFirstLevel(const metkit::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
+void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->matchFirstLevel(request, result, missing);
     }

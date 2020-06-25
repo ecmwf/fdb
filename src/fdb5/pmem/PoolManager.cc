@@ -19,7 +19,7 @@
 #include "eckit/utils/Tokenizer.h"
 #include "eckit/utils/Translator.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
@@ -291,7 +291,7 @@ std::vector<PathName> PoolManager::visitablePools(const Key& key) {
     return visitablePools(std::set<Key> { key });
 }
 
-std::vector<PathName> PoolManager::visitablePools(const metkit::MarsRequest& request) {
+std::vector<PathName> PoolManager::visitablePools(const metkit::mars::MarsRequest& request) {
     std::set<Key> keys;
     config_.schema().matchFirstLevel(request, keys, "");
     return visitablePools(keys);

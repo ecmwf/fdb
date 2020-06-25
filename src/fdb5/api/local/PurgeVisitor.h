@@ -39,7 +39,7 @@ class PurgeVisitor : public QueryVisitor<PurgeElement> {
 public:
 
     PurgeVisitor(eckit::Queue<PurgeElement>& queue,
-                 const metkit::MarsRequest& request,
+                 const metkit::mars::MarsRequest& request,
                  bool doit,
                  bool porcelain);
 

@@ -10,7 +10,7 @@
 
 #include "eckit/utils/Translator.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeInteger.h"
@@ -26,7 +26,7 @@ TypeInteger::TypeInteger(const std::string &name, const std::string &type) :
 TypeInteger::~TypeInteger() {
 }
 
-void TypeInteger::getValues(const metkit::MarsRequest& request,
+void TypeInteger::getValues(const metkit::mars::MarsRequest& request,
                             const std::string& keyword,
                             eckit::StringList& values,
                             const Notifier&,

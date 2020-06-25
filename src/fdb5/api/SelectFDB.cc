@@ -100,7 +100,7 @@ void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 }
 
 
-eckit::DataHandle *SelectFDB::retrieve(const metkit::MarsRequest& request) {
+eckit::DataHandle *SelectFDB::retrieve(const metkit::mars::MarsRequest& request) {
 
 //    HandleGatherer result(true); // Sorted
     HandleGatherer result(false);
@@ -250,7 +250,7 @@ bool SelectFDB::matches(const Key &key, const SelectMap &select, bool requireMis
     return true;
 }
 
-bool SelectFDB::matches(const metkit::MarsRequest& request, const SelectMap &select, bool requireMissing) const {
+bool SelectFDB::matches(const metkit::mars::MarsRequest& request, const SelectMap &select, bool requireMissing) const {
 
     for (const auto& kv : select) {
 

@@ -58,7 +58,7 @@ public: // methods
 
     virtual void flush() = 0;
 
-    virtual eckit::DataHandle* retrieve(const metkit::MarsRequest& request) = 0;
+    virtual eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request) = 0;
 
     virtual ListIterator list(const FDBToolRequest& request) = 0;
 
