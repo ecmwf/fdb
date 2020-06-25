@@ -177,21 +177,20 @@ void RemoteFDB::connect() {
             SessionID serverSession = verifyServerStartupResponse();
 
             // Connect to the specified data port
-            try {
+            Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
+            dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries);
+            writeDataStartupMessage(serverSession);
 
-                Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
-                dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries);
-                writeDataStartupMessage(serverSession);
-
-                // And the connections are set up. Let everything start up!
-
-                listeningThread_ = std::thread([this] { listeningThreadLoop(); });
-                connected_ = true;
-            } catch(TooManyRetries e) {
-                throw ConnectionError(fdbMaxConnectRetries, dataEndpoint_);
-            }
+            // And the connections are set up. Let everything start up!
+            listeningThread_ = std::thread([this] { listeningThreadLoop(); });
+            connected_ = true;
         } catch(TooManyRetries e) {
-            throw ConnectionError(fdbMaxConnectRetries, controlEndpoint_);
+            if (controlClient_.isConnected()) {
+                controlClient_.close();
+                throw ConnectionError(fdbMaxConnectRetries, dataEndpoint_);
+            } else {
+                throw ConnectionError(fdbMaxConnectRetries, controlEndpoint_);
+            }
         }
     }
 }
