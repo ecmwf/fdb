@@ -117,11 +117,11 @@ int fdb_delete_handle(fdb_handle_t* fdb);
 ///@{
 
 int fdb_new_key(fdb_key_t** key);
-int fdb_key_add(fdb_key_t* key, char* param, char* value);
+int fdb_key_add(fdb_key_t* key, const char* param, const char* value);
 int fdb_delete_key(fdb_key_t* key);
 
 int fdb_new_request(fdb_request_t** req);
-int fdb_request_add(fdb_request_t* req, char* param, char* values[], int numValues);
+int fdb_request_add(fdb_request_t* req, const char* param, const char* values[], int numValues);
 int fdb_delete_request(fdb_request_t* req);
 
 int fdb_new_listiterator(fdb_listiterator_t** it);
@@ -129,7 +129,7 @@ int fdb_listiterator_next(fdb_listiterator_t* it, bool* exist, const char** str)
 int fdb_delete_listiterator(fdb_listiterator_t* it);
 
 int fdb_new_datareader(fdb_datareader_t** dr);
-int fdb_datareader_open(fdb_datareader_t* dr);
+int fdb_datareader_open(fdb_datareader_t* dr, long* size);
 int fdb_datareader_close(fdb_datareader_t* dr);
 int fdb_datareader_tell(fdb_datareader_t* dr, long* pos);
 int fdb_datareader_seek(fdb_datareader_t* dr, long pos);

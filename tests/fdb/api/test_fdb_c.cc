@@ -9,58 +9,230 @@
  */
 
 #include <cstdlib>
-#include <iostream>
+
+#include "eckit/config/Resource.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/TmpFile.h"
+#include "eckit/filesystem/TmpDir.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/testing/Test.h"
 
 #include "fdb5/api/fdb_c.h"
 #include "fdb5/api/helpers/ListIterator.h"
 
-using namespace fdb5;
+using namespace eckit::testing;
+using namespace eckit;
 
 
-int main(int argc, char **argv) {
+namespace fdb {
+namespace test {
 
-    fdb_initialise_api();
-
-    fdb_handle_t** fdb = new fdb_handle_t*;
-    /** Creates a reader and opens the speficied file. */
-    fdb_new_handle(fdb);
-
-    const char** ptr = new const char*;
-    fdb_listiterator_t* it;
-    fdb_new_listiterator(&it);
-    bool exist = true;
-
-    fdb_list(*fdb, nullptr, it);
-
-    while (exist) {
-        fdb_listiterator_next(it, &exist, ptr);
-        if (exist) {
-            std::cout << *ptr << std::endl;
-        }
-    }
-
-    std::cout << "MarsRequest" << std::endl;
-    fdb_request_t* toolreq;
-    fdb_new_request(&toolreq);
-    char* val = "xxxx";
-    char* values[] = {val};
-
-    fdb_request_add(toolreq, "expver", values, 1);
-    fdb_list(*fdb, toolreq, it);
-
-    exist = true;
-    while (exist) {
-        fdb_listiterator_next(it, &exist, ptr);
-        if (exist) {
-            std::cout << *ptr << std::endl;
-        }
-    }
-
-    fdb_delete_listiterator(it);
-    fdb_delete_request(toolreq);
-
-    fdb_delete_handle(*fdb);
-
-    return 0;
+//----------------------------------------------------------------------------------------------------------------------
+int fdb_request_add1(fdb_request_t* req, const char* param, const char* value) {
+    return fdb_request_add(req, param, &value, 1);
 }
 
+CASE( "fdb_c - archive & list" ) {
+    size_t length;
+    DataHandle *dh;
+
+    fdb_handle_t* fdb;
+    fdb_new_handle(&fdb);
+
+    fdb_key_t* key;
+    fdb_new_key(&key);
+    fdb_key_add(key, "domain", "g");
+    fdb_key_add(key, "stream", "oper");
+    fdb_key_add(key, "levtype", "pl");
+    fdb_key_add(key, "levelist", "300");
+    fdb_key_add(key, "date", "20191110");
+    fdb_key_add(key, "time", "0000");
+    fdb_key_add(key, "step", "0");
+    fdb_key_add(key, "param", "138");
+    fdb_key_add(key, "class", "rd");
+    fdb_key_add(key, "type", "an");
+    fdb_key_add(key, "expver", "xxxx");
+
+    eckit::PathName grib1("x138-300.grib");
+    length = grib1.size();
+    eckit::Buffer buf1(length);
+    dh = grib1.fileHandle();
+    dh->openForRead();
+    dh->read(buf1, length);
+    dh->close();
+
+    EXPECT_NO_THROW(fdb_archive(fdb, key, buf1, length));
+
+
+    fdb_request_t* request;
+    fdb_new_request(&request);
+    fdb_request_add1(request, "domain", "g");
+    fdb_request_add1(request, "stream", "oper");
+    fdb_request_add1(request, "levtype", "pl");
+    fdb_request_add1(request, "levelist", "300");
+    fdb_request_add1(request, "date", "20191110");
+    fdb_request_add1(request, "time", "0000");
+    fdb_request_add1(request, "step", "0");
+    fdb_request_add1(request, "param", "138");
+    fdb_request_add1(request, "class", "rd");
+    fdb_request_add1(request, "type", "an");
+    fdb_request_add1(request, "expver", "xxxx");
+
+    const char **item= new const char*;
+    bool exist;
+    fdb_listiterator_t* it;
+    fdb_new_listiterator(&it);
+    fdb_list(fdb, request, it);
+    fdb_listiterator_next(it, &exist, item);
+    ASSERT(exist);
+    EXPECT_EQUAL(std::string("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=300,param=138}"), std::string(*item));
+    fdb_delete_listiterator(it);
+
+    fdb_request_add1(request, "param", "139");
+    fdb_new_listiterator(&it);
+    fdb_list(fdb, request, it);
+    fdb_listiterator_next(it, &exist, item);
+    ASSERT(!exist);
+    fdb_delete_listiterator(it);
+
+
+    fdb_key_add(key, "levelist", "400");
+
+    eckit::PathName grib2("x138-400.grib");
+    length = grib2.size();
+    eckit::Buffer buf2(length);
+    dh = grib2.fileHandle();
+    dh->openForRead();
+    dh->read(buf2, length);
+    dh->close();
+
+    EXPECT_NO_THROW(fdb_archive(fdb, key, buf2, length));
+
+    fdb_request_add1(request, "levelist", "400");
+    fdb_new_listiterator(&it);
+    fdb_list(fdb, request, it);
+    fdb_listiterator_next(it, &exist, item);
+    ASSERT(!exist);
+    fdb_delete_listiterator(it);
+
+
+    fdb_request_add1(request, "param", "138");
+    fdb_new_listiterator(&it);
+    fdb_list(fdb, request, it);
+    fdb_listiterator_next(it, &exist, item);
+    ASSERT(exist);
+    EXPECT_EQUAL(std::string("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=400,param=138}"), std::string(*item));
+    fdb_delete_listiterator(it);
+
+    const char* values[] = {"400", "300"};
+    fdb_request_add(request, "levelist", values, 2);
+    fdb_new_listiterator(&it);
+    fdb_list(fdb, request, it);
+    fdb_listiterator_next(it, &exist, item);
+    ASSERT(exist);
+    EXPECT_EQUAL(std::string("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=400,param=138}"), std::string(*item));
+    fdb_listiterator_next(it, &exist, item);
+    ASSERT(exist);
+    EXPECT_EQUAL(std::string("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=300,param=138}"), std::string(*item));
+    fdb_delete_listiterator(it);
+ 
+
+    fdb_key_add(key, "expver", "xxxy");
+
+    eckit::PathName grib3("y138-400.grib");
+    length = grib3.size();
+    eckit::Buffer buf3(length);
+    dh = grib3.fileHandle();
+    dh->openForRead();
+    dh->read(buf3, length);
+    dh->close();
+
+    EXPECT_NO_THROW(fdb_archive(fdb, key, buf3, length));
+}
+
+CASE( "fdb_c - retrieve" ) {
+
+    fdb_handle_t* fdb;
+    fdb_new_handle(&fdb);
+    fdb_request_t* request;
+    fdb_new_request(&request);
+    fdb_request_add1(request, "domain", "g");
+    fdb_request_add1(request, "stream", "oper");
+    fdb_request_add1(request, "levtype", "pl");
+    fdb_request_add1(request, "levelist", "300");
+    fdb_request_add1(request, "date", "20191110");
+    fdb_request_add1(request, "time", "0000");
+    fdb_request_add1(request, "step", "0");
+    fdb_request_add1(request, "param", "139");
+    fdb_request_add1(request, "class", "rd");
+    fdb_request_add1(request, "type", "an");
+    fdb_request_add1(request, "expver", "xxxx");
+
+    char buf[1000];
+    char grib[4];
+    long read = 0;
+    long size;
+    fdb_datareader_t* dr;
+    fdb_new_datareader(&dr);
+    fdb_retrieve(fdb, request, dr);
+    fdb_datareader_open(dr, &size);
+    EXPECT_EQUAL(0, size);
+    fdb_datareader_read(dr, buf, 1000, &read);
+    EXPECT_EQUAL(0, read);
+    fdb_delete_datareader(dr);
+
+    fdb_request_add1(request, "param", "138");
+    fdb_new_datareader(&dr);
+    fdb_retrieve(fdb, request, dr);
+    fdb_datareader_open(dr, &size);
+    EXPECT_NOT_EQUAL(0, size);
+    fdb_datareader_read(dr, grib, 4, &read);
+    EXPECT_EQUAL(4, read);
+    EXPECT_EQUAL(0, strncmp(grib, "GRIB", 4));
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(4, read);
+    fdb_datareader_seek(dr, 3);
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(3, read);
+    fdb_datareader_skip(dr, 3);
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(6, read);
+    fdb_datareader_read(dr, buf, 1000, &read);
+    EXPECT_EQUAL(1000, read);
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(1006, read);
+    fdb_delete_datareader(dr);
+
+    long size2;
+    const char* values[] = {"400", "300"};
+    fdb_request_add(request, "levelist", values, 2);
+    fdb_new_datareader(&dr);
+    fdb_retrieve(fdb, request, dr);
+    fdb_datareader_open(dr, &size2);
+    EXPECT_EQUAL(2*size, size2);
+    fdb_datareader_seek(dr, size);
+    fdb_datareader_read(dr, grib, 4, &read);
+    EXPECT_EQUAL(4, read);
+    EXPECT_EQUAL(0, strncmp(grib, "GRIB", 4));
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(4+size, read);
+    fdb_datareader_seek(dr, size2);
+    fdb_datareader_read(dr, grib, 4, &read);
+    EXPECT_EQUAL(0, read);
+    fdb_delete_datareader(dr);
+
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace test
+}  // namespace fdb
+
+int main(int argc, char **argv)
+{
+    fdb_initialise_api();
+
+    return run_tests ( argc, argv );
+}

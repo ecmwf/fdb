@@ -44,7 +44,7 @@ public:
     fdb_request_t(std::string str) {
         request_ = metkit::mars::MarsRequest(str);
     }
-    void values(char* name, char* values[], int numValues) {
+    void values(const char* name, const char* values[], int numValues) {
         std::string n(name);
         std::vector<std::string> vv;
         for (int i=0; i<numValues; i++) {
@@ -323,7 +323,7 @@ int fdb_new_key(fdb_key_t** key) {
         *key = new fdb_key_t();
     });
 }
-int fdb_key_add(fdb_key_t* key, char* param, char* value) {
+int fdb_key_add(fdb_key_t* key, const char* param, const char* value) {
     return wrapApiFunction([key, param, value]{
         ASSERT(key);
         ASSERT(param);
@@ -343,7 +343,7 @@ int fdb_new_request(fdb_request_t** req) {
         *req = new fdb_request_t("retrieve");
     });
 }
-int fdb_request_add(fdb_request_t* req, char* param, char* values[], int numValues) {
+int fdb_request_add(fdb_request_t* req, const char* param, const char* values[], int numValues) {
     return wrapApiFunction([req, param, values, numValues] {
         ASSERT(req);
         ASSERT(param);
@@ -383,10 +383,13 @@ int fdb_new_datareader(fdb_datareader_t** dr) {
         *dr = new fdb_datareader_t();
     });
 }
-int fdb_datareader_open(fdb_datareader_t* dr) {
-    return wrapApiFunction([dr]{
+int fdb_datareader_open(fdb_datareader_t* dr, long* size) {
+    return wrapApiFunction([dr, size]{
         ASSERT(dr);
-        dr->open();
+        long tmp;
+        tmp = dr->open();
+        if (size)
+            *size = tmp;
     });
 }
 int fdb_datareader_close(fdb_datareader_t* dr) {
