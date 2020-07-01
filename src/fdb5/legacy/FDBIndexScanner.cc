@@ -28,8 +28,8 @@
 #include "fdb5/legacy/FDBIndexScanner.h"
 #include "fdb5/legacy/LegacyTranslator.h"
 
-#include "metkit/codes/Reader.h"
-#include "metkit/codes/Message.h"
+#include "metkit/data/Reader.h"
+#include "metkit/data/Message.h"
 
 using namespace eckit;
 
@@ -255,7 +255,7 @@ void FDBIndexScanner::process(FILE *f) {
 
 
             if (compareToGrib_) {
-                metkit::codes::Reader reader(PathName(datapath).partHandle(offset, length));
+                metkit::data::Reader reader(PathName(datapath).partHandle(offset, length));
                 GribDecoder decoder;
                 Key grib;
                 decoder.gribToKey(reader.next(), grib);

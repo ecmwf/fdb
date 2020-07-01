@@ -22,8 +22,8 @@
 
 #include "fdb5/grib/GribDecoder.h"
 
-#include "metkit/codes/Reader.h"
-#include "metkit/codes/Message.h"
+#include "metkit/data/Reader.h"
+#include "metkit/data/Message.h"
 
 
 namespace fdb5 {
@@ -52,7 +52,7 @@ public:
 
 };
 
-void GribDecoder::gribToKey(const metkit::codes::Message& msg, Key &key) {
+void GribDecoder::gribToKey(const metkit::data::Message& msg, Key &key) {
 
     static std::string gribToRequestNamespace = eckit::Resource<std::string>("gribToRequestNamespace", "mars");
 
@@ -154,8 +154,8 @@ void GribDecoder::gribToKey(const metkit::codes::Message& msg, Key &key) {
 metkit::mars::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *verb) {
     metkit::mars::MarsRequest r(verb);
 
-    metkit::codes::Reader reader(path);
-    metkit::codes::Message msg;
+    metkit::data::Reader reader(path);
+    metkit::data::Message msg;
 
     Key key;
 
@@ -185,8 +185,8 @@ metkit::mars::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path
 std::vector<metkit::mars::MarsRequest> GribDecoder::gribToRequests(const eckit::PathName &path, const char *verb) {
 
     std::vector<metkit::mars::MarsRequest> requests;
-    metkit::codes::Reader reader(path);
-    metkit::codes::Message msg;
+    metkit::data::Reader reader(path);
+    metkit::data::Message msg;
 
     Key key;
 
