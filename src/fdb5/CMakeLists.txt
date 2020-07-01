@@ -1,37 +1,3 @@
-### TODO
-#
-#  * Axis should consider Type
-#
-#  * client "database" for direct fdb5 read
-#
-#  * fdb5_list -class od -expver 0001
-#  * fdb5_list .
-#  * fdb5_purge -class rd -expver ghtf
-#
-#  * consider using more than a service node on the HPC
-#
-#  * marsadm tools:
-#    --  list roots
-#
-#  Understand 'invalid ioctl' error
-#  What happens if the mars client is killed in a mars2mars transfer
-#
-#
-# TESTS:
-# check effect on retrieve:
-#  * delete a json
-#  * delete a data
-#  * delete a index
-
-# MAYBE:
-# Confluence documentation on how to install
-# -- dont forget the ~/mars/wind
-#
-# Implement access control: only the user that create the toc can:
-# - Add new data
-# - purge
-# Implement privilege users that can do everything
-
 ecbuild_generate_config_headers( DESTINATION ${INSTALL_INCLUDE_DIR}/fdb5 )
 
 configure_file( fdb5_config.h.in    fdb5_config.h   )
@@ -174,12 +140,6 @@ list( APPEND fdb5_srcs
     io/LustreFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
-    legacy/FDBIndexScanner.cc
-    legacy/FDBIndexScanner.h
-    legacy/LegacyArchiver.cc
-    legacy/LegacyArchiver.h
-    legacy/LegacyTranslator.cc
-    legacy/LegacyTranslator.h
     rules/MatchAlways.cc
     rules/MatchAlways.h
     rules/MatchAny.cc
@@ -442,7 +402,6 @@ list( APPEND fdb5_tools
 
 if ( HAVE_TOCFDB )
     list(APPEND fdb5_tools
-        fdb-adopt
         fdb-root
         fdb-overlay
         fdb-hide
