@@ -14,9 +14,7 @@
 /// @author Simon Smart
 /// @date   Feb 2016
 
-#include "eckit/io/DataBlob.h"
 #include "eckit/log/Log.h"
-#include "eckit/parser/JSONDataBlob.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/types/Types.h"
 
