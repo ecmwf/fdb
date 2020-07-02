@@ -22,6 +22,8 @@
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBVisitTool.h"
+#include "metkit/codes/CodesContent.h"
+#include "metkit/data/Message.h"
 
 using namespace eckit;
 using namespace eckit::option;
@@ -40,28 +42,31 @@ public: // methods
 
 private: // methods
 
-    grib_handle* patch(const grib_handle* h) override;
+    virtual metkit::data::Message patch(const metkit::data::Message& msg) override;
 
 private: // members
 
     const Key& key_;
 };
 
-grib_handle* PatchArchiver::patch(const grib_handle* p) {
-    grib_handle *h = grib_handle_clone(p);
+metkit::data::Message PatchArchiver::patch(const metkit::data::Message& msg) {
+
+    codes_handle* h = codes_handle_new_from_message(nullptr, msg.data(), msg.length());
+    ASSERT(h);
 
     try {
         for (Key::const_iterator j = key_.begin(); j != key_.end(); ++j) {
             size_t len = j->second.size();
             ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
         }
+
+        return metkit::data::Message(new metkit::codes::CodesContent(h, true));
     }
     catch (...)
     {
         grib_handle_delete(h);
         throw;
     }
-    return h;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

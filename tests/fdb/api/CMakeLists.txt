@@ -1,8 +1,19 @@
+### test data files
+list( APPEND fdb_api_test_data_files
+x138-300.grib
+x138-400.grib
+y138-400.grib
+)
+
+ecbuild_get_test_multidata( TARGET get_fdb_api_test_data
+                            NAMES ${fdb_api_test_data_files}
+                            NOCHECK )
 
 list( APPEND api_tests
     config
     select
     dist
+    fdb_c
 )
 
 foreach( _test ${api_tests} )

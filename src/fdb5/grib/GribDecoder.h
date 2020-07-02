@@ -28,7 +28,7 @@ class PathName;
 }
 
 namespace metkit {
-namespace codes {
+namespace data {
 class Reader;
 class Message;
 }
@@ -48,14 +48,14 @@ public:
 
     virtual ~GribDecoder();
 
-    void gribToKey(const metkit::codes::Message& msg, Key &key);
+    void gribToKey(const metkit::data::Message& msg, Key &key);
     metkit::mars::MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
     std::vector<metkit::mars::MarsRequest> gribToRequests(const eckit::PathName &path, const char *verb = "retrieve");
 
 
 private:
 
-    virtual grib_handle* patch(const grib_handle*);
+    virtual metkit::data::Message patch(const metkit::data::Message& msg);
 
     std::set<Key> seen_;
     bool checkDuplicates_;
