@@ -55,7 +55,7 @@ public:
 
 private:
 
-    virtual grib_handle* patch(const grib_handle*);
+    virtual metkit::data::Message patch(const metkit::data::Message& msg);
 
     std::set<Key> seen_;
     bool checkDuplicates_;
