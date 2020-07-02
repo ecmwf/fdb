@@ -14,8 +14,8 @@
 #include "metkit/mars/TypeAny.h"
 #include "fdb5/grib/GribDecoder.h"
 
-#include "metkit/data/Reader.h"
-#include "metkit/data/Message.h"
+#include "eckit/message/Reader.h"
+#include "eckit/message/Message.h"
 
 
 namespace fdb5 {
@@ -29,7 +29,7 @@ GribDecoder::GribDecoder(bool checkDuplicates):
 GribDecoder::~GribDecoder() {}
 
 
-class KeySetter : public metkit::data::MetadataGatherer {
+class KeySetter : public eckit::message::MetadataGatherer {
 
     Key& key_;
 
@@ -52,9 +52,9 @@ public:
 
 };
 
-void GribDecoder::gribToKey(const metkit::data::Message& msg, Key &key) {
+void GribDecoder::gribToKey(const eckit::message::Message& msg, Key &key) {
 
-    metkit::data::Message patched = patch(msg);
+    eckit::message::Message patched = patch(msg);
 
     KeySetter setter(key);
     patched.getMetadata(setter);
@@ -76,8 +76,8 @@ void GribDecoder::gribToKey(const metkit::data::Message& msg, Key &key) {
 metkit::mars::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *verb) {
     metkit::mars::MarsRequest r(verb);
 
-    metkit::data::Reader reader(path);
-    metkit::data::Message msg;
+    eckit::message::Reader reader(path);
+    eckit::message::Message msg;
 
     Key key;
 
@@ -107,8 +107,8 @@ metkit::mars::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path
 std::vector<metkit::mars::MarsRequest> GribDecoder::gribToRequests(const eckit::PathName &path, const char *verb) {
 
     std::vector<metkit::mars::MarsRequest> requests;
-    metkit::data::Reader reader(path);
-    metkit::data::Message msg;
+    eckit::message::Reader reader(path);
+    eckit::message::Message msg;
 
     Key key;
 
@@ -134,7 +134,7 @@ std::vector<metkit::mars::MarsRequest> GribDecoder::gribToRequests(const eckit::
     return requests;
 }
 
-metkit::data::Message GribDecoder::patch(const metkit::data::Message& msg) {
+eckit::message::Message GribDecoder::patch(const eckit::message::Message& msg) {
     // Give a chance to subclasses to modify the grib
     return msg;
 }

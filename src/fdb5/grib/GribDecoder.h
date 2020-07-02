@@ -48,14 +48,14 @@ public:
 
     virtual ~GribDecoder();
 
-    void gribToKey(const metkit::data::Message& msg, Key &key);
+    void gribToKey(const eckit::message::Message& msg, Key &key);
     metkit::mars::MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
     std::vector<metkit::mars::MarsRequest> gribToRequests(const eckit::PathName &path, const char *verb = "retrieve");
 
 
 private:
 
-    virtual metkit::data::Message patch(const metkit::data::Message& msg);
+    virtual eckit::message::Message patch(const eckit::message::Message& msg);
 
     std::set<Key> seen_;
     bool checkDuplicates_;

@@ -14,8 +14,8 @@
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
 
-#include "metkit/data/Reader.h"
-#include "metkit/data/Message.h"
+#include "eckit/message/Reader.h"
+#include "eckit/message/Message.h"
 
 #include "fdb5/grib/GribIndexer.h"
 #include "fdb5/toc/AdoptVisitor.h"
@@ -32,7 +32,7 @@ GribIndexer::GribIndexer(bool checkDuplicates) :
 void GribIndexer::index(const eckit::PathName &path) {
     eckit::Timer timer("fdb::service::archive");
 
-    metkit::data::Reader reader(path);
+    eckit::message::Reader reader(path);
 
     size_t count = 0;
     eckit::Length total_size = 0;
@@ -45,7 +45,7 @@ void GribIndexer::index(const eckit::PathName &path) {
 
     eckit::PathName full(path.realName());
 
-    metkit::data::Message msg;
+    eckit::message::Message msg;
     while ( (msg = reader.next()) ) {
        gribToKey(msg, key);
 

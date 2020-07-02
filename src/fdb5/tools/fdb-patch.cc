@@ -23,7 +23,7 @@
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBVisitTool.h"
 #include "metkit/codes/CodesContent.h"
-#include "metkit/data/Message.h"
+#include "eckit/message/Message.h"
 
 using namespace eckit;
 using namespace eckit::option;
@@ -42,14 +42,14 @@ public: // methods
 
 private: // methods
 
-    virtual metkit::data::Message patch(const metkit::data::Message& msg) override;
+    virtual eckit::message::Message patch(const eckit::message::Message& msg) override;
 
 private: // members
 
     const Key& key_;
 };
 
-metkit::data::Message PatchArchiver::patch(const metkit::data::Message& msg) {
+eckit::message::Message PatchArchiver::patch(const eckit::message::Message& msg) {
 
     codes_handle* h = codes_handle_new_from_message(nullptr, msg.data(), msg.length());
     ASSERT(h);
@@ -60,7 +60,7 @@ metkit::data::Message PatchArchiver::patch(const metkit::data::Message& msg) {
             ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
         }
 
-        return metkit::data::Message(new metkit::codes::CodesContent(h, true));
+        return eckit::message::Message(new metkit::codes::CodesContent(h, true));
     }
     catch (...)
     {
