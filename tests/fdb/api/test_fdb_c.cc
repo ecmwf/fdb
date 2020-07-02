@@ -9,6 +9,7 @@
  */
 
 #include <cstdlib>
+#include <string.h>
 
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
@@ -232,7 +233,7 @@ CASE( "fdb_c - retrieve" ) {
 
 int main(int argc, char **argv)
 {
-    fdb_initialise_api();
+    fdb_initialise();
 
     return run_tests ( argc, argv );
 }

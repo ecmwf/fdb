@@ -235,7 +235,7 @@ extern "C" {
  * @note This is only required if being used from a context where Main()
  *       is not otherwise initialised
 */
-int fdb_initialise_api() {
+int fdb_initialise() {
     return wrapApiFunction([] {
         static bool initialised = false;
 
