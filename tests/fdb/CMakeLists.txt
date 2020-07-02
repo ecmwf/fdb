@@ -25,8 +25,7 @@ list( APPEND _test_environment
     ECCODES_SAMPLES_PATH=${ECCODES_SAMPLES_PATH} )
 
 list( APPEND fdb_tests
-    test_fdb5_service.cc
-    test_fdb5_LegacyArchiver.cc )
+    test_fdb5_service.cc )
 
 foreach( _tst ${fdb_tests} )
 
