@@ -17,17 +17,17 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
+#include "eckit/message/Message.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBVisitTool.h"
+
 #include "metkit/codes/CodesContent.h"
-#include "eckit/message/Message.h"
 
 using namespace eckit;
 using namespace eckit::option;
-
 
 namespace fdb5 {
 namespace tools {
@@ -38,7 +38,7 @@ class PatchArchiver : public GribArchiver {
 
 public: // methods
 
-    PatchArchiver(const Key& key) : key_(key) {}
+    explicit PatchArchiver(const Key& key) : key_(key) {}
 
 private: // methods
 
@@ -206,4 +206,3 @@ int main(int argc, char **argv) {
     fdb5::tools::FDBPatch app(argc, argv);
     return app.start();
 }
-
