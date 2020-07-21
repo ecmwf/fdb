@@ -16,8 +16,8 @@
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
 
-#include "metkit/data/Reader.h"
-#include "metkit/data/Message.h"
+#include "eckit/message/Reader.h"
+#include "eckit/message/Message.h"
 
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
@@ -142,7 +142,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
 
     eckit::Timer timer("fdb::service::archive");
 
-    metkit::data::Reader reader(source);
+    eckit::message::Reader reader(source);
 
     size_t count = 0;
     size_t total_size = 0;
@@ -152,7 +152,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
     try {
 
         Key key;
-        metkit::data::Message msg;
+        eckit::message::Message msg;
 
         while ( (msg = reader.next()) ) {
 

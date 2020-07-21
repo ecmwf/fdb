@@ -17,17 +17,17 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
+#include "eckit/message/Message.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBVisitTool.h"
+
 #include "metkit/codes/CodesContent.h"
-#include "metkit/data/Message.h"
 
 using namespace eckit;
 using namespace eckit::option;
-
 
 namespace fdb5 {
 namespace tools {
@@ -38,18 +38,18 @@ class PatchArchiver : public GribArchiver {
 
 public: // methods
 
-    PatchArchiver(const Key& key) : key_(key) {}
+    explicit PatchArchiver(const Key& key) : key_(key) {}
 
 private: // methods
 
-    virtual metkit::data::Message patch(const metkit::data::Message& msg) override;
+    virtual eckit::message::Message patch(const eckit::message::Message& msg) override;
 
 private: // members
 
     const Key& key_;
 };
 
-metkit::data::Message PatchArchiver::patch(const metkit::data::Message& msg) {
+eckit::message::Message PatchArchiver::patch(const eckit::message::Message& msg) {
 
     codes_handle* h = codes_handle_new_from_message(nullptr, msg.data(), msg.length());
     ASSERT(h);
@@ -60,7 +60,7 @@ metkit::data::Message PatchArchiver::patch(const metkit::data::Message& msg) {
             ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
         }
 
-        return metkit::data::Message(new metkit::codes::CodesContent(h, true));
+        return eckit::message::Message(new metkit::codes::CodesContent(h, true));
     }
     catch (...)
     {
@@ -206,4 +206,3 @@ int main(int argc, char **argv) {
     fdb5::tools::FDBPatch app(argc, argv);
     return app.start();
 }
-
