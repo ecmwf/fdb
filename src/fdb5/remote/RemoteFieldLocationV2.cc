@@ -13,7 +13,7 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include "fdb5/remote/RemoteFieldLocation.h"
+#include "fdb5/remote/RemoteFieldLocationV2.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URIManager.h"
@@ -21,69 +21,69 @@
 namespace fdb5 {
 namespace remote {
 
-::eckit::ClassSpec RemoteFieldLocation::classSpec_ = {&FieldLocation::classSpec(), "RemoteFieldLocation",};
-::eckit::Reanimator<RemoteFieldLocation> RemoteFieldLocation::reanimator_;
+::eckit::ClassSpec RemoteFieldLocationV2::classSpec_ = {&FieldLocation::classSpec(), "RemoteFieldLocationV2",};
+::eckit::Reanimator<RemoteFieldLocationV2> RemoteFieldLocationV2::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-RemoteFieldLocation::RemoteFieldLocation(const FieldLocation& internal, const std::string& hostname, int port) :
+RemoteFieldLocationV2::RemoteFieldLocationV2(const FieldLocation& internal, const std::string& hostname, int port) :
     FieldLocation(eckit::URI("fdb", hostname, port)),
     internal_(internal.make_shared()) {
     ASSERT(internal.uri().scheme() != "fdb");
 }
 
-RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
+RemoteFieldLocationV2::RemoteFieldLocationV2(const eckit::URI& uri) :
     FieldLocation(eckit::URI("fdb", uri)) {
 }
 
-RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length) :
+RemoteFieldLocationV2::RemoteFieldLocationV2(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length) :
     FieldLocation(eckit::URI("fdb", uri), offset, length) {
 }
 
-RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :
+RemoteFieldLocationV2::RemoteFieldLocationV2(eckit::Stream& s) :
     FieldLocation(s) {
     internal_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
 }
 
-RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
+RemoteFieldLocationV2::RemoteFieldLocationV2(const RemoteFieldLocationV2& rhs) :
     FieldLocation(rhs.uri_),
     internal_(rhs.internal_) {}
 
 
-std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
-    return std::make_shared<RemoteFieldLocation>(*this);
+std::shared_ptr<FieldLocation> RemoteFieldLocationV2::make_shared() const {
+    return std::make_shared<RemoteFieldLocationV2>(*this);
 }
 
-eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
+eckit::DataHandle* RemoteFieldLocationV2::dataHandle() const {
     return internal_->dataHandle();
 }
 
-eckit::DataHandle* RemoteFieldLocation::dataHandle(const Key& remapKey) const {
+eckit::DataHandle* RemoteFieldLocationV2::dataHandle(const Key& remapKey) const {
     return internal_->dataHandle(remapKey);
 }
 
-void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {
+void RemoteFieldLocationV2::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
 }
 
-void RemoteFieldLocation::print(std::ostream& out) const {
+void RemoteFieldLocationV2::print(std::ostream& out) const {
     out << "[" << uri_ << "]";
     out << *internal_;
 }
 
 
-void RemoteFieldLocation::encode(eckit::Stream& s) const {
+void RemoteFieldLocationV2::encode(eckit::Stream& s) const {
     FieldLocation::encode(s);
     s << *internal_;
 }
 
-void RemoteFieldLocation::dump(std::ostream& out) const {
+void RemoteFieldLocationV2::dump(std::ostream& out) const {
     out << "  uri: " << uri_ << std::endl;
     internal_->dump(out);
 }
 
-static FieldLocationBuilder<RemoteFieldLocation> builder("fdb");
+static FieldLocationBuilder<RemoteFieldLocationV2> builder("fdb");
 
 //----------------------------------------------------------------------------------------------------------------------
 

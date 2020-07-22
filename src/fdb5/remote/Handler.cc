@@ -30,7 +30,7 @@
 #include "fdb5/remote/AvailablePortList.h"
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
-#include "fdb5/remote/RemoteFieldLocation.h"
+#include "fdb5/remote/RemoteFieldLocationV1.h"
 
 using namespace eckit;
 using metkit::mars::MarsRequest;
@@ -94,7 +94,7 @@ struct ListHelper : public BaseHelper<ListElement> {
 
     // Create a derived RemoteFieldLocation which knows about this server
     Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
-        ListElement updated(elem.keyParts_, std::make_shared<RemoteFieldLocation>(
+        ListElement updated(elem.keyParts_, std::make_shared<RemoteFieldLocationV1>(
                                                 *elem.location_, handler.host(), handler.port()));
 
         return BaseHelper<ListElement>::encode(updated, handler);

@@ -335,8 +335,10 @@ if(HAVE_FDB_REMOTE)
         api/RemoteFDB.h
         remote/RemoteConfiguration.h
         remote/RemoteConfiguration.cc
-        remote/RemoteFieldLocation.h
-        remote/RemoteFieldLocation.cc
+        remote/RemoteFieldLocationV2.h
+        remote/RemoteFieldLocationV2.cc
+        remote/RemoteFieldLocationV1.h
+        remote/RemoteFieldLocationV1.cc
         remote/Messages.h
         remote/Messages.cc
         remote/Handler.h

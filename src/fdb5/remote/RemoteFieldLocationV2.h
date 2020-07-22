@@ -16,8 +16,8 @@
 /// @author Simon Smart
 /// @date Nov 2016
 
-#ifndef fdb5_RemoteFieldLocation_H
-#define fdb5_RemoteFieldLocation_H
+#ifndef fdb5_RemoteFieldLocationV2_H
+#define fdb5_RemoteFieldLocationV2_H
 
 
 #include "fdb5/database/FieldLocation.h"
@@ -28,14 +28,14 @@ namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class RemoteFieldLocation : public FieldLocation {
+class RemoteFieldLocationV2 : public FieldLocation {
 public:
 
-    RemoteFieldLocation(const FieldLocation& internal, const std::string& hostname, int port);
-    RemoteFieldLocation(const eckit::URI &uri);
-    RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length);
-    RemoteFieldLocation(eckit::Stream&);
-    RemoteFieldLocation(const RemoteFieldLocation&);
+    RemoteFieldLocationV2(const FieldLocation& internal, const std::string& hostname, int port);
+    RemoteFieldLocationV2(const eckit::URI &uri);
+    RemoteFieldLocationV2(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length);
+    RemoteFieldLocationV2(eckit::Stream&);
+    RemoteFieldLocationV2(const RemoteFieldLocationV2&);
 
     virtual eckit::DataHandle *dataHandle() const override;
     virtual eckit::DataHandle *dataHandle(const Key& remapKey) const override;
@@ -53,7 +53,7 @@ protected: // For Streamable
     virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static eckit::ClassSpec                       classSpec_;
-    static eckit::Reanimator<RemoteFieldLocation> reanimator_;
+    static eckit::Reanimator<RemoteFieldLocationV2> reanimator_;
 
 private: // methods
 
@@ -71,4 +71,4 @@ private: // members
 } // namespace remote
 } // namespace fdb5
 
-#endif // fdb5_RemoteFieldLocation_H
+#endif // fdb5_RemoteFieldLocationV2_H
