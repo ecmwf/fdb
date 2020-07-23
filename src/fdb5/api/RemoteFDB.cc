@@ -277,7 +277,10 @@ void RemoteFDB::writeDataStartupMessage(const eckit::SessionID& serverSession) {
 }
 
 eckit::LocalConfiguration RemoteFDB::availableFunctionality() const {
-    return LocalConfiguration();
+    eckit::LocalConfiguration conf;
+    std::vector<int> remoteFieldLocationVersions = {2,1};
+    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
+    return conf;
 }
 
 void RemoteFDB::listeningThreadLoop() {

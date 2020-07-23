@@ -20,7 +20,7 @@
 namespace fdb5 {
 namespace remote {
 
-::eckit::ClassSpec RemoteFieldLocationV1::classSpec_ = {&FieldLocation::classSpec(), "RemoteFieldLocation",};
+::eckit::ClassSpec RemoteFieldLocationV1::classSpec_ = {&FieldLocation::classSpec(), "RemoteFieldLocationV1",};
 ::eckit::Reanimator<RemoteFieldLocationV1> RemoteFieldLocationV1::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
