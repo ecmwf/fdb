@@ -54,12 +54,14 @@ public:  // methods
 
     std::string host() const { return controlSocket_.localHost(); }
     int port() const { return controlSocket_.localPort(); }
+    const eckit::LocalConfiguration& conf() const { return agreedConf_; }
 
 private:  // methods
     // Socket methods
 
     int selectDataPort();
     void initialiseConnections();
+    eckit::LocalConfiguration availableFunctionality() const;
 
     void controlWrite(Message msg, uint32_t requestID, const void* payload = nullptr,
                       uint32_t payloadLength = 0);
@@ -96,6 +98,8 @@ private:  // methods
 private:  // members
     Config config_;
     eckit::SessionID sessionID_;
+
+    eckit::LocalConfiguration agreedConf_;
 
     eckit::net::TCPSocket controlSocket_;
     eckit::net::EphemeralTCPServer dataSocket_;

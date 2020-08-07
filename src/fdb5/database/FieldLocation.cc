@@ -104,10 +104,6 @@ FieldLocationBuilderBase::~FieldLocationBuilderBase() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-/*FieldLocation::FieldLocation() {
-}*/
-
 FieldLocation::FieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length) : uri_(uri) {
     long long l = length;
     long long o = offset;
@@ -121,9 +117,7 @@ FieldLocation::FieldLocation(const eckit::URI &uri) :
     uri_(uri) {}
 
 FieldLocation::FieldLocation(eckit::Stream& s) {
-    std::string uri;
-    s >> uri;
-    uri_ = eckit::URI(uri);
+    s >> uri_;
 }
 
 eckit::Offset FieldLocation::offset() const {
@@ -137,7 +131,7 @@ eckit::Length FieldLocation::length() const {
 }
 
 void FieldLocation::encode(eckit::Stream& s) const {
-    s << uri_.asString();
+    s << uri_;
 }
 
 void FieldLocation::dump(std::ostream& out) const {
@@ -145,7 +139,7 @@ void FieldLocation::dump(std::ostream& out) const {
 }
 
 void FieldLocation::print(std::ostream& out) const {
-    out << "  FieldLocation[uri=" << uri_.asRawString() << "]";
+    out << "  FieldLocation[uri=" << uri_ << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

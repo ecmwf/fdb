@@ -46,16 +46,24 @@ Key ListElement::combinedKey() const {
 
 
 void ListElement::print(std::ostream &out, bool location) const {
+    if (location_ && !location) {
+        out << "host=" << location_->host() << ",";
+    }
     for (const auto& bit : keyParts_) {
         out << bit;
     }
-    if (location && location_) {
-        out << " " << *location_;
+    if (location_) {
+        if (location) {
+            out << " " << *location_;
+        } else {
+            out << ",length=" << location_->length();
+        }
     }
 }
 
 void ListElement::json(eckit::JSON& json) const {
     json << combinedKey().keyDict();
+    json << "length" << location_->length();
 }
 
 void ListElement::encode(eckit::Stream &s) const {
