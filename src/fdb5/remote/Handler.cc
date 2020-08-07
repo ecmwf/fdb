@@ -204,8 +204,8 @@ RemoteHandler::~RemoteHandler() {
 
 eckit::LocalConfiguration RemoteHandler::availableFunctionality() const {
     eckit::LocalConfiguration conf;
-    std::vector<int> remoteFieldLocationVersions = {2,1};
-    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
+    // std::vector<int> remoteFieldLocationVersions = {2,1};
+    // conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
     return conf;
 }
 
@@ -248,9 +248,10 @@ void RemoteHandler::initialiseConnections() {
     LocalConfiguration serverConf = availableFunctionality();
     agreedConf_ = LocalConfiguration();
 
-    std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
-    if (rflCommon.size() > 0)
-        agreedConf_.set("RemoteFieldLocation", rflCommon.back());
+    // agree on a common functionality by intersecting server and client version numbers
+    // std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
+    // if (rflCommon.size() > 0)
+    //    agreedConf_.set("RemoteFieldLocation", rflCommon.back());
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
     // n.b. FDB-192: we use the host communicated from the client endpoint. This
