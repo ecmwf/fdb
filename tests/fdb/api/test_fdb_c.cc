@@ -87,7 +87,8 @@ CASE( "fdb_c - archive & list" ) {
     fdb_list(fdb, request, it);
     fdb_listiterator_next(it, &exist, item);
     ASSERT(exist);
-    EXPECT_EQUAL(std::string("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=300,param=138}"), std::string(*item));
+    std::string s1("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=300,param=138}");
+    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
     fdb_delete_listiterator(it);
 
     fdb_request_add1(request, "param", "139");
@@ -123,7 +124,8 @@ CASE( "fdb_c - archive & list" ) {
     fdb_list(fdb, request, it);
     fdb_listiterator_next(it, &exist, item);
     ASSERT(exist);
-    EXPECT_EQUAL(std::string("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=400,param=138}"), std::string(*item));
+    std::string s2("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=400,param=138}");
+    EXPECT_NOT_EQUAL(std::string(*item).find(s2), std::string::npos);
     fdb_delete_listiterator(it);
 
     const char* values[] = {"400", "300"};
@@ -132,10 +134,10 @@ CASE( "fdb_c - archive & list" ) {
     fdb_list(fdb, request, it);
     fdb_listiterator_next(it, &exist, item);
     ASSERT(exist);
-    EXPECT_EQUAL(std::string("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=400,param=138}"), std::string(*item));
+    EXPECT_NOT_EQUAL(std::string(*item).find(s2), std::string::npos);
     fdb_listiterator_next(it, &exist, item);
     ASSERT(exist);
-    EXPECT_EQUAL(std::string("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=300,param=138}"), std::string(*item));
+    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
     fdb_delete_listiterator(it);
  
 
