@@ -62,7 +62,7 @@ void FDBWhere::execute(const CmdArgs&) {
         size_t count = 0;
         StatusElement elem;
         while (statusIterator.next(elem)) {
-            Log::info() << elem.location.asString() << std::endl;
+            Log::info() << elem.location.hostport() << elem.location.name() << std::endl;
             count++;
         }
 

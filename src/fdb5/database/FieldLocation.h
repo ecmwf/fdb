@@ -52,7 +52,8 @@ public: // methods
     const eckit::URI& uri() const { return uri_; }
     eckit::PathName path() const { return uri_.path(); }
     eckit::Offset offset() const;
-    eckit::Length length() const;
+    std::string host() const { return uri_.hostport(); }
+    virtual eckit::Length length() const;
 
     virtual eckit::DataHandle *dataHandle() const = 0;
     virtual eckit::DataHandle *dataHandle(const Key& remapKey) const = 0;

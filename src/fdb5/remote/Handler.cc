@@ -30,8 +30,7 @@
 #include "fdb5/remote/AvailablePortList.h"
 #include "fdb5/remote/Handler.h"
 #include "fdb5/remote/Messages.h"
-#include "fdb5/remote/RemoteFieldLocationV1.h"
-#include "fdb5/remote/RemoteFieldLocationV2.h"
+#include "fdb5/remote/RemoteFieldLocation.h"
 
 using namespace eckit;
 using metkit::mars::MarsRequest;
@@ -95,23 +94,9 @@ struct ListHelper : public BaseHelper<ListElement> {
 
     // Create a derived RemoteFieldLocation which knows about this server
     Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
-        int rfl = handler.conf().getInt("RemoteFieldLocation", 2);
+        ListElement updated(elem.keyParts_, std::make_shared<RemoteFieldLocation>(*elem.location_, handler.host(), handler.port()));
 
-        switch (rfl) {
-            case 2: {
-                ListElement updated(elem.keyParts_,
-                                    std::make_shared<RemoteFieldLocationV2>(*elem.location_, handler.host(), handler.port()));
-
-                return BaseHelper<ListElement>::encode(updated, handler);
-            }
-            case 1:
-            default: {
-                ListElement updated(elem.keyParts_,
-                                    std::make_shared<RemoteFieldLocationV1>(*elem.location_, handler.host(), handler.port()));
-
-                return BaseHelper<ListElement>::encode(updated, handler);
-            }
-        }
+        return BaseHelper<ListElement>::encode(updated, handler);
     }
 };
 
@@ -219,8 +204,8 @@ RemoteHandler::~RemoteHandler() {
 
 eckit::LocalConfiguration RemoteHandler::availableFunctionality() const {
     eckit::LocalConfiguration conf;
-    std::vector<int> remoteFieldLocationVersions = {2,1};
-    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
+    // std::vector<int> remoteFieldLocationVersions = {2,1};
+    // conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
     return conf;
 }
 
@@ -263,9 +248,10 @@ void RemoteHandler::initialiseConnections() {
     LocalConfiguration serverConf = availableFunctionality();
     agreedConf_ = LocalConfiguration();
 
-    std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
-    if (rflCommon.size() > 0)
-        agreedConf_.set("RemoteFieldLocation", rflCommon.back());
+    // agree on a common functionality by intersecting server and client version numbers
+    // std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
+    // if (rflCommon.size() > 0)
+    //    agreedConf_.set("RemoteFieldLocation", rflCommon.back());
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
     // n.b. FDB-192: we use the host communicated from the client endpoint. This

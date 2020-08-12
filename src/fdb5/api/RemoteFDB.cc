@@ -541,20 +541,27 @@ struct BaseAPIHelper {
     static Message message() { return msgID; }
 
     void encodeExtra(eckit::Stream& s) const {}
-    static ValueType valueFromStream(eckit::Stream& s) { return ValueType(s); }
+    static ValueType valueFromStream(eckit::Stream& s, const eckit::net::Endpoint& endpoint) { return ValueType(s); }
 };
 
 using ListHelper = BaseAPIHelper<ListElement, Message::List>;
 
 using StatsHelper = BaseAPIHelper<StatsElement, Message::Stats>;
 
-using StatusHelper = BaseAPIHelper<StatusElement, Message::Status>;
+struct StatusHelper : BaseAPIHelper<StatusElement, Message::Status> {
+
+    static StatusElement valueFromStream(eckit::Stream& s, const eckit::net::Endpoint& endpoint) {
+        StatusElement elem(s);
+        elem.location.endpoint(endpoint);
+        return elem;
+    }
+};
 
 struct DumpHelper : BaseAPIHelper<DumpElement, Message::Dump> {
 
     DumpHelper(bool simple) : simple_(simple) {}
     void encodeExtra(eckit::Stream& s) const { s << simple_; }
-    static DumpElement valueFromStream(eckit::Stream& s) {
+    static DumpElement valueFromStream(eckit::Stream& s, const eckit::net::Endpoint& endpoint) {
         DumpElement elem;
         s >> elem;
         return elem;
@@ -571,7 +578,7 @@ struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
         s << doit_;
         s << porcelain_;
     }
-    static PurgeElement valueFromStream(eckit::Stream& s) {
+    static PurgeElement valueFromStream(eckit::Stream& s, const eckit::net::Endpoint& endpoint) {
         PurgeElement elem;
         s >> elem;
         return elem;
@@ -591,7 +598,7 @@ struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
         s << porcelain_;
         s << unsafeWipeAll_;
     }
-    static WipeElement valueFromStream(eckit::Stream& s) {
+    static WipeElement valueFromStream(eckit::Stream& s, const eckit::net::Endpoint& endpoint) {
         WipeElement elem;
         s >> elem;
         return elem;
@@ -657,17 +664,18 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
 
     // Return an AsyncIterator to allow the messages to be retrieved in the API
 
+    const eckit::net::Endpoint& endpoint = controlEndpoint_;
     return IteratorType(
         // n.b. Don't worry about catching exceptions in lambda, as
         // this is handled in the AsyncIterator.
-        new AsyncIterator([messageQueue](eckit::Queue<ValueType>& queue) {
+        new AsyncIterator([messageQueue, endpoint](eckit::Queue<ValueType>& queue) {
             StoredMessage msg = std::make_pair(remote::MessageHeader{}, eckit::Buffer{0});
                         while (true) {
                             if (messageQueue->pop(msg) == -1) {
                                 break;
                             } else {
                                 MemoryStream s(msg.second);
-                                queue.emplace(HelperClass::valueFromStream(s));
+                                queue.emplace(HelperClass::valueFromStream(s, endpoint));
                             }
                         }
                         // messageQueue goes out of scope --> destructed
