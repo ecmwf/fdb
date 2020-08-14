@@ -62,6 +62,8 @@ list( APPEND fdb5_srcs
 
     config/Config.cc
     config/Config.h
+    database/AllVisitor.cc
+    database/AllVisitor.h
     database/Archiver.cc
     database/Archiver.h
     database/ArchiveVisitor.cc

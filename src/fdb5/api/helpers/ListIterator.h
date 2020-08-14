@@ -47,6 +47,7 @@ public: // methods
     ListElement(eckit::Stream& s);
 
     Key combinedKey() const;
+    std::shared_ptr<const FieldLocation> location() { return location_; }
 
     void print(std::ostream& out, bool location=false) const;
 

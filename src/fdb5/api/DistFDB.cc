@@ -23,6 +23,8 @@
 #include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/api/DistFDB.h"
+#include "fdb5/database/AllVisitor.h"
+#include "fdb5/database/Notifier.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -142,13 +144,57 @@ eckit::DataHandle* DistFDB::retrieve(const metkit::mars::MarsRequest &request) {
     // TODO: Error handling on read.
 
 //    HandleGatherer result(true); // Sorted
-    HandleGatherer result(false);
 
-    for (FDB& lane : lanes_) {
+    std::vector<Key> keys;
+    std::map<Key, std::shared_ptr<const FieldLocation> > fl;
+    ListElement el;
+    int count = 0;
+//    ListIterator li = list(FDBToolRequest(request));
+//    while (li.next(el)) {
+//        fl.emplace(el.combinedKey(), el.location());
+//    }
+
+    class NullNotifier : public Notifier {
+        void notifyWind() const override {}
+    };
+
+    if (lanes_.size() > 0) {
+        const Schema& schema = lanes_[0].config().schema();
+        std::cout << schema << std::endl;
+
+        AllVisitor visitor(keys, NullNotifier());
+        std::cout << visitor << std::endl;
+        schema.expand(request, visitor);
+        std::cout << "schema visitato" << std::endl;
+
+        for (Key k: keys) {
+            std::cout << "Sorted Keys: " << k << std::endl;
+        }
+
+        for (FDB& lane : lanes_) {
+            if (lane.visitable()) {
+                ListIterator li = lane.list(request);
+                while (li.next(el)) {
+                    std::cout << count++ << "TO GET: " << el << std::endl;
+                    // TODO: select most recent FieldLocation
+                    fl.emplace(el.combinedKey(), el.location());
+                }
+            }
+        }
+    }
+
+    HandleGatherer result(false);
+    for (const auto& kl : fl) {
+//        std::cout << kl.first << " " << std::endl;
+        std::cout << kl.first << " has value " << *(kl.second) << std::endl;
+        result.add(kl.second->dataHandle());
+    }
+
+/*    for (FDB& lane : lanes_) {
         if (lane.visitable()) {
             result.add(lane.retrieve(request));
         }
-    }
+    }*/
 
     return result.dataHandle();
 }

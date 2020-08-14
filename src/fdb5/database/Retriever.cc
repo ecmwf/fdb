@@ -51,6 +51,7 @@ eckit::DataHandle *Retriever::retrieve(const metkit::mars::MarsRequest& request,
     Log::debug<LibFdb5>() << "Using schema: " << schema << std::endl;
 
     schema.expand(request, visitor);
+    std::cout << "Retrieving " << eckit::Plural(int(result.count()), "field") << std::endl;
 
     eckit::Log::userInfo() << "Retrieving " << eckit::Plural(int(result.count()), "field") << std::endl;
 

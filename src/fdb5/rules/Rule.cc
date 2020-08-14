@@ -65,6 +65,9 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
 
         if (rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
+            std::cout << "pluto - " << keys[0] << ", "
+                      << keys[1] << ", "
+                      << keys[2] << std::endl;
             if (!visitor.selectDatum( keys[2], full)) {
                 return; // This it not useful
             }
@@ -168,6 +171,9 @@ void Rule::expand( const Key &field,
                 throw eckit::SeriousBug(oss.str());
             }
             visitor.rule(this);
+            std::cout << "pippo - " << keys[0] << ", "
+                      << keys[1] << ", "
+                      << keys[2] << std::endl;
             visitor.selectDatum( keys[2], full);
         } else {
 
