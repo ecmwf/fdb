@@ -143,58 +143,41 @@ eckit::DataHandle* DistFDB::retrieve(const metkit::mars::MarsRequest &request) {
     // TODO: Deduplication. Currently no masking.
     // TODO: Error handling on read.
 
-//    HandleGatherer result(true); // Sorted
-
     std::vector<Key> keys;
     std::map<Key, std::shared_ptr<const FieldLocation> > fl;
-    ListElement el;
-    int count = 0;
-//    ListIterator li = list(FDBToolRequest(request));
-//    while (li.next(el)) {
-//        fl.emplace(el.combinedKey(), el.location());
-//    }
 
-    class NullNotifier : public Notifier {
-        void notifyWind() const override {}
-    };
-
+    // compute all the user-required keys
     if (lanes_.size() > 0) {
         const Schema& schema = lanes_[0].config().schema();
-        std::cout << schema << std::endl;
 
-        AllVisitor visitor(keys, NullNotifier());
-        std::cout << visitor << std::endl;
+        AllVisitor visitor(&keys, schema);
         schema.expand(request, visitor);
-        std::cout << "schema visitato" << std::endl;
+    }
 
-        for (Key k: keys) {
-            std::cout << "Sorted Keys: " << k << std::endl;
-        }
-
-        for (FDB& lane : lanes_) {
-            if (lane.visitable()) {
-                ListIterator li = lane.list(request);
-                while (li.next(el)) {
-                    std::cout << count++ << "TO GET: " << el << std::endl;
-                    // TODO: select most recent FieldLocation
-                    fl.emplace(el.combinedKey(), el.location());
-                }
+    for (FDB& lane : lanes_) {
+        if (lane.visitable()) {
+            ListIterator li = lane.list(request);
+            ListElement el;
+            while (li.next(el)) {
+                // TODO: select most recent FieldLocation
+                fl.emplace(el.combinedKey(), el.location());
             }
         }
     }
 
-    HandleGatherer result(false);
-    for (const auto& kl : fl) {
-//        std::cout << kl.first << " " << std::endl;
-        std::cout << kl.first << " has value " << *(kl.second) << std::endl;
-        result.add(kl.second->dataHandle());
-    }
 
-/*    for (FDB& lane : lanes_) {
-        if (lane.visitable()) {
-            result.add(lane.retrieve(request));
+    HandleGatherer result(true);
+    for (Key k: keys) {
+        auto kl = fl.find(k);
+        if (kl != fl.end()) {
+            result.add(kl->second->dataHandle());
+        } else {
+            std::cout << "Field NOT availble: " << k << std::endl;
         }
-    }*/
+    }
+//    for (const auto& kl : fl) {
+//        result.add(kl.second->dataHandle());
+//    }
 
     return result.dataHandle();
 }
