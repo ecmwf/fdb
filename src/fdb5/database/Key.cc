@@ -372,6 +372,17 @@ const eckit::StringDict &Key::keyDict() const {
     return keys_;
 }
 
+metkit::mars::MarsRequest Key::request() const {
+    metkit::mars::MarsRequest req;
+
+    for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
+        req.setValue(i->first, i->second);
+    }
+
+    return req;
+}
+
+
 fdb5::Key::operator std::string() const {
     ASSERT(names_.size() == keys_.size());
     return toString();

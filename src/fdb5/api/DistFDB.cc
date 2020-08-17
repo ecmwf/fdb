@@ -22,8 +22,9 @@
 #include "eckit/log/Log.h"
 #include "eckit/utils/Tokenizer.h"
 
+#include "metkit/fieldset/HyperCube.h"
+
 #include "fdb5/api/DistFDB.h"
-#include "fdb5/database/AllVisitor.h"
 #include "fdb5/database/Notifier.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
@@ -143,41 +144,54 @@ eckit::DataHandle* DistFDB::retrieve(const metkit::mars::MarsRequest &request) {
     // TODO: Deduplication. Currently no masking.
     // TODO: Error handling on read.
 
-    std::vector<Key> keys;
-    std::map<Key, std::shared_ptr<const FieldLocation> > fl;
+    //std::vector<Key> keys;
+//    std::map<Key, std::shared_ptr<const FieldLocation> > fl;
 
     // compute all the user-required keys
-    if (lanes_.size() > 0) {
-        const Schema& schema = lanes_[0].config().schema();
+//    if (lanes_.size() > 0) {
+//        const Schema& schema = lanes_[0].config().schema();
 
-        AllVisitor visitor(&keys, schema);
-        schema.expand(request, visitor);
-    }
+//        AllVisitor visitor(&keys, schema);
+//        schema.expand(request, visitor);
+//    }
+
+    std::vector< std::shared_ptr<const FieldLocation> > fields;
+    metkit::fieldset::HyperCube order(request);
 
     for (FDB& lane : lanes_) {
         if (lane.visitable()) {
             ListIterator li = lane.list(request);
+            //replies.emplace_back(li);
             ListElement el;
             while (li.next(el)) {
+                metkit::mars::MarsRequest req = el.combinedKey().request();
+                size_t i = order.fieldOrder(req);
                 // TODO: select most recent FieldLocation
-                fl.emplace(el.combinedKey(), el.location());
+                while (i >= fields.size()) {
+                    fields.push_back(nullptr);
+                }
+                fields[i] = el.location();
             }
         }
     }
 
+//    std::vector<FieldLocation> locations = metkit::fieldset::assemble(request, replies);
 
-    HandleGatherer result(true);
-    for (Key k: keys) {
-        auto kl = fl.find(k);
-        if (kl != fl.end()) {
-            result.add(kl->second->dataHandle());
-        } else {
-            std::cout << "Field NOT availble: " << k << std::endl;
-        }
-    }
-//    for (const auto& kl : fl) {
-//        result.add(kl.second->dataHandle());
+    HandleGatherer result(true /* flag to control the order ?? */);
+//    for (Key k: keys) {
+//        auto kl = fl.find(k);
+//        if (kl != fl.end()) {
+//            result.add(kl->second->dataHandle());
+//        } else {
+//            std::cout << "Field NOT availble: " << k << std::endl;
+//        }
 //    }
+    for (const auto& loc : fields) {
+        if (loc != nullptr)
+            result.add(loc->dataHandle());
+        else
+            std::cout << "Field NOT availble: " << std::endl;
+    }
 
     return result.dataHandle();
 }

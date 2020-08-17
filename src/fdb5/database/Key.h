@@ -134,6 +134,8 @@ public: // methods
 
     const eckit::StringDict& keyDict() const;
 
+    metkit::mars::MarsRequest request() const;
+
     operator std::string() const;
 
     operator eckit::StringDict() const;
