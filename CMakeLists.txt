@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.1 FATAL_ERROR )
 
-project( fdb5 C CXX )
+project( fdb5 VERSION 5.6.4 LANGUAGES C CXX )
 
 set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild/cmake")
 
