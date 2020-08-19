@@ -39,7 +39,7 @@ ecbuild_add_option( FEATURE FDB_REMOTE
 ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
                     DEFAULT OFF
                     DESCRIPTION "Persistent memory (NVRAM) support for FDB"
-                    REQUIRED_PACKAGES "PROJECT pmem" )
+                    REQUIRED_PACKAGES "NAME pmem" )
 
 ### FDB backend in CEPH object store (using Rados)
 
