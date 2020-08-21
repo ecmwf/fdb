@@ -363,15 +363,16 @@ ecbuild_add_library(
     HEADER_DESTINATION
         ${INSTALL_INCLUDE_DIR}/fdb5
 
-    PRIVATE_INCLUDES
-        "${ECCODES_INCLUDE_DIRS}"
-        "${PMEM_INCLUDE_DIRS}"
-        "${LUSTREAPI_INCLUDE_DIRS}"
-
-    LIBS
+    PUBLIC_LIBS
         metkit
         eckit
         eckit_option
+
+    PRIVATE_INCLUDES
+        "${PMEM_INCLUDE_DIRS}"
+        "${LUSTREAPI_INCLUDE_DIRS}"
+
+    PRIVATE_LIBS
         ${grib_handling_pkg}
         ${PMEM_LIBRARIES}
         ${LUSTREAPI_LIBRARIES}

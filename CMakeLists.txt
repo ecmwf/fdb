@@ -43,9 +43,9 @@ ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
 
 ### FDB backend in CEPH object store (using Rados)
 
-find_package( Rados QUIET )
+find_package( RADOS QUIET )
 ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
-                    CONDITION ECKIT_HAVE_RADOS AND RADOS_FOUND
+                    CONDITION eckit_HAVE_RADOS AND RADOS_FOUND
                     DEFAULT OFF
                     DESCRIPTION "Ceph/Rados support for FDB Store" )
 
@@ -56,12 +56,14 @@ ecbuild_add_option( FEATURE TOCFDB  # option defined in fdb5_config.h
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
 
-find_package( LustreAPI QUIET )
+### support for Lustre API control of file stripping
+
+find_package( LUSTREAPI QUIET )
 
 ecbuild_add_option( FEATURE LUSTRE  # option defined in fdb5_config.h
                     CONDITION LUSTREAPI_FOUND
                     DEFAULT ON
-                    DESCRIPTION "Filesystem TOC support for FDB" )
+                    DESCRIPTION "Support for Lustre API control of file stripping " )
 
 ### experimental & sandbox features
 
@@ -105,15 +107,13 @@ endif()
 ########################################################################################################################
 # contents
 
-set( FDB5_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
+set( fdb5_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 
-include_directories( ${FDB5_INCLUDE_DIRS} )
-include_directories( ${ECKIT_INCLUDE_DIRS} )
-include_directories( ${METKIT_INCLUDE_DIRS} )
+include_directories( ${fdb5_INCLUDE_DIRS} )
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${ECCODES_DEFINITIONS};${ODB_API_DEFINITIONS}" )
 
-get_directory_property( FDB5_DEFINITIONS COMPILE_DEFINITIONS )
+get_directory_property( fdb5_DEFINITIONS COMPILE_DEFINITIONS )
 
 ### source files
 
