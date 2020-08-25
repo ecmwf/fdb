@@ -363,6 +363,10 @@ ecbuild_add_library(
     HEADER_DESTINATION
         ${INSTALL_INCLUDE_DIR}/fdb5
 
+    PUBLIC_INCLUDES
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/src>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
+
     PUBLIC_LIBS
         metkit
         eckit
