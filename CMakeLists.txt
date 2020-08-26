@@ -20,7 +20,7 @@ ecbuild_find_package( NAME eckit  VERSION 1.12 REQUIRED )
 
 ecbuild_find_package( NAME eccodes VERSION 2.10 REQUIRED )
 
-ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED ) ## metkit is now always needed
+ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
 
 ### FDB remote front-end
 
