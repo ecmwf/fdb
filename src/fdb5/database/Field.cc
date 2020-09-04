@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+// #include <iomanip>
+
 #include "fdb5/database/Field.h"
 
 namespace fdb5 {
@@ -17,9 +19,12 @@ namespace fdb5 {
 Field::Field() {
 }
 
-Field::Field(const FieldLocation& location, const FieldDetails& details):
+Field::Field(const FieldLocation& location, std::chrono::system_clock::time_point timestamp, const FieldDetails& details):
     location_(location.make_shared()),
+    timestamp_(timestamp),
     details_(details) {
+//    std::time_t tmp = std::chrono::system_clock::to_time_t(timestamp_);
+//    std::cout << std::put_time(std::localtime(&tmp), "%F %T") << std::endl;
 }
 
 void Field::print(std::ostream& out) const {

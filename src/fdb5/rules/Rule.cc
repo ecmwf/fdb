@@ -171,9 +171,9 @@ void Rule::expand( const Key &field,
                 throw eckit::SeriousBug(oss.str());
             }
             visitor.rule(this);
-            std::cout << "pippo - " << keys[0] << ", "
-                      << keys[1] << ", "
-                      << keys[2] << std::endl;
+//            std::cout << keys[0] << ", "
+//                      << keys[1] << ", "
+//                      << keys[2] << std::endl;
             visitor.selectDatum( keys[2], full);
         } else {
 

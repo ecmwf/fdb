@@ -83,7 +83,7 @@ public:
 
         if (key.match(datumRequest_)) {
             queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key},
-                                          field.stableLocation()));
+                                          field.stableLocation(), field.timestamp()));
         }
     }
 

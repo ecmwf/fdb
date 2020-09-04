@@ -75,6 +75,7 @@ void TocIndex::encode(eckit::Stream &s) const {
     s << key_;
     s << key_.valuesToString(); //< unused entry for legacy compatibility
     s << type_;
+    s << std::chrono::system_clock::to_time_t(timestamp_);
 }
 
 
@@ -86,7 +87,7 @@ bool TocIndex::get(const Key &key, Field &field) const {
     if ( found ) {
         const eckit::URI& uri = files_.get(ref.pathId());
         FieldLocation* fl =FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length());
-        field = Field(*fl, ref.details());
+        field = Field(*fl, timestamp_, ref.details());
         // field.path_     = files_.get( ref.pathId_ );
         // field.offset_   = ref.offset_;
         // field.length_   = ref.length_;
@@ -146,6 +147,7 @@ void TocIndex::flush() {
         ASSERT(btree_);
         btree_->flush();
         btree_->sync();
+        setTimestamp();
         dirty_ = false;
     }
 }
@@ -165,7 +167,7 @@ public:
         visitor_(visitor) {}
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
-        Field field(TocFieldLocation(files_, ref), ref.details());
+        Field field(TocFieldLocation(files_, ref), visitor_.currentIndex()->timestamp(), ref.details());
         visitor_.visitDatum(field, keyFingerprint);
     }
 };

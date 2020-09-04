@@ -22,7 +22,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/utils/Tokenizer.h"
 
-#include "metkit/fieldset/HyperCube.h"
+#include "metkit/hypercube/HyperCube.h"
 
 #include "fdb5/api/DistFDB.h"
 #include "fdb5/database/Notifier.h"
@@ -155,42 +155,28 @@ eckit::DataHandle* DistFDB::retrieve(const metkit::mars::MarsRequest &request) {
 //        schema.expand(request, visitor);
 //    }
 
-    std::vector< std::shared_ptr<const FieldLocation> > fields;
-    metkit::fieldset::HyperCube order(request);
+    std::set<std::vector<metkit::hypercube::HyperCubeData<std::shared_ptr<const FieldLocation>>>> fields;
 
     for (FDB& lane : lanes_) {
         if (lane.visitable()) {
             ListIterator li = lane.list(request);
-            //replies.emplace_back(li);
+            std::vector<metkit::hypercube::HyperCubeData<std::shared_ptr<const FieldLocation>>> items;
             ListElement el;
             while (li.next(el)) {
-                metkit::mars::MarsRequest req = el.combinedKey().request();
-                size_t i = order.fieldOrder(req);
-                // TODO: select most recent FieldLocation
-                while (i >= fields.size()) {
-                    fields.push_back(nullptr);
-                }
-                fields[i] = el.location();
+                items.emplace_back(metkit::hypercube::HyperCubeData<std::shared_ptr<const FieldLocation>>(el.combinedKey().request(), el.timestamp(), el.location()));
             }
+            fields.emplace(items);
         }
     }
 
-//    std::vector<FieldLocation> locations = metkit::fieldset::assemble(request, replies);
+    std::vector<metkit::hypercube::HyperCubeData<std::shared_ptr<const FieldLocation>>> locations = metkit::hypercube::HyperCubeData<std::shared_ptr<const FieldLocation>>::assemble(request, fields);
 
-    HandleGatherer result(true /* flag to control the order ?? */);
-//    for (Key k: keys) {
-//        auto kl = fl.find(k);
-//        if (kl != fl.end()) {
-//            result.add(kl->second->dataHandle());
-//        } else {
-//            std::cout << "Field NOT availble: " << k << std::endl;
-//        }
-//    }
-    for (const auto& loc : fields) {
-        if (loc != nullptr)
-            result.add(loc->dataHandle());
+    HandleGatherer result(false /* flag to control the order ?? */);
+    for (auto loc : locations) {
+        if (loc.data() != nullptr)
+            result.add(loc.data()->dataHandle());
         else
-            std::cout << "Field NOT availble: " << std::endl;
+            std::cout << "Field NOT availble: " << loc.request() << std::endl;
     }
 
     return result.dataHandle();

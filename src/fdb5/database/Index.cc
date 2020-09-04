@@ -31,6 +31,9 @@ IndexBase::IndexBase(eckit::Stream& s) :
     std::string dummy;
     s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
     s >> type_;
+    std::time_t tmp;
+    s >> tmp;
+    timestamp_ = std::chrono::system_clock::from_time_t(tmp);
 }
 
 IndexBase::~IndexBase() {

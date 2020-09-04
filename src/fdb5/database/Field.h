@@ -15,6 +15,8 @@
 #ifndef fdb5_Field_H
 #define fdb5_Field_H
 
+#include <chrono>
+
 #include "eckit/eckit.h"
 
 #include "eckit/filesystem/PathName.h"
@@ -43,12 +45,14 @@ public: // methods
 
     Field();
 
-    Field(const FieldLocation& location, const FieldDetails& details = FieldDetails());
+    Field(const FieldLocation& location, std::chrono::system_clock::time_point timestamp, const FieldDetails& details = FieldDetails());
 
     eckit::DataHandle* dataHandle() const { return location_->dataHandle(); }
     eckit::DataHandle* dataHandle(const Key& remapKey) const { return location_->dataHandle(remapKey); }
 
     const FieldLocation& location() const { return *location_; }
+
+    std::chrono::system_clock::time_point timestamp() const { return timestamp_; }
 
     /// stableLocation is an object with validity that extends longer than that of the
     /// owning DB. May need converting to a more static form --- or not.
@@ -60,6 +64,8 @@ public: // methods
 private: // members
 
     std::shared_ptr<FieldLocation> location_;
+
+    std::chrono::system_clock::time_point timestamp_;
 
     FieldDetails details_;
 

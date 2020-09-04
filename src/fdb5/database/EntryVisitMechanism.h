@@ -45,6 +45,8 @@ public:  // methods
     virtual void catalogueComplete(const Catalogue& catalogue);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
 
+    const Index* currentIndex() const { return currentIndex_; }
+
 private: // methods
 
     virtual void visitDatum(const Field& field, const Key& key) = 0;

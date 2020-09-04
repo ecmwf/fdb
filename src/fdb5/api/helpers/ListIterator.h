@@ -22,6 +22,7 @@
 #include <vector>
 #include <memory>
 #include <iosfwd>
+#include <chrono>
 
 #include "fdb5/database/Key.h"
 #include "fdb5/database/FieldLocation.h"
@@ -43,11 +44,12 @@ class ListElement {
 public: // methods
 
     ListElement() = default;
-    ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location);
+    ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, std::chrono::system_clock::time_point timestamp);
     ListElement(eckit::Stream& s);
 
     Key combinedKey() const;
     std::shared_ptr<const FieldLocation> location() { return location_; }
+    std::chrono::system_clock::time_point timestamp() { return timestamp_; }
 
     void print(std::ostream& out, bool location=false) const;
 
@@ -76,6 +78,7 @@ public: // members
 
     std::vector<Key> keyParts_;
     std::shared_ptr<const FieldLocation> location_;
+    std::chrono::system_clock::time_point timestamp_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -115,6 +115,8 @@ public: // methods
     const IndexAxis& axes() const;
     const Key& key() const;
 
+    std::chrono::system_clock::time_point timestamp() const { return timestamp_; }
+
     virtual bool get(const Key &key, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);
 
@@ -128,6 +130,9 @@ public: // methods
 
     virtual void print( std::ostream &out ) const = 0;
 
+protected: // methods
+    void setTimestamp() { timestamp_ = std::chrono::system_clock::now(); }
+
 private: // methods
 
     virtual void add(const Key &key, const Field &field) = 0;
@@ -139,6 +144,7 @@ protected: // members
     /// @note Order of members is important here ...
     IndexAxis     axes_;   ///< This Index spans along these axis
     const Key     key_;    ///< key that selected this index
+    std::chrono::system_clock::time_point timestamp_;
 
     Indexer indexer_;
 
@@ -179,6 +185,8 @@ public: // methods
 
     const IndexAxis& axes() const { return content_->axes(); }
     const Key& key() const { return content_->key(); }
+
+    std::chrono::system_clock::time_point timestamp() const { return content_->timestamp(); }
 
     bool get(const Key& key, Field& field) const { return content_->get(key, field); }
     void put(const Key& key, const Field& field) { content_->put(key, field); }

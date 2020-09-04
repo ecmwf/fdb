@@ -150,16 +150,16 @@ CASE( "retrieves_distributed_according_to_dist" ) {
     req.setValuesTyped(new metkit::mars::TypeAny("expver"), std::vector<std::string>{"xxxx"});
     fdb.retrieve(req);
 
-    EXPECT(spy1.counts().retrieve == 1);
-    EXPECT(spy2.counts().retrieve == 1);
-    EXPECT(spy3.counts().retrieve == 1);
+    EXPECT(spy1.counts().list == 1);
+    EXPECT(spy2.counts().list == 1);
+    EXPECT(spy3.counts().list == 1);
 
     req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{std::string("rd")});
     fdb.retrieve(req);
 
-    EXPECT(spy1.counts().retrieve == 2);
-    EXPECT(spy2.counts().retrieve == 2);
-    EXPECT(spy3.counts().retrieve == 2);
+    EXPECT(spy1.counts().list == 2);
+    EXPECT(spy2.counts().list == 2);
+    EXPECT(spy3.counts().list == 2);
 
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
@@ -167,25 +167,35 @@ CASE( "retrieves_distributed_according_to_dist" ) {
     req.unsetValues("expver");
     fdb.retrieve(req);
 
-    EXPECT(spy1.counts().retrieve == 3);
-    EXPECT(spy2.counts().retrieve == 3);
-    EXPECT(spy3.counts().retrieve == 3);
+    EXPECT(spy1.counts().list == 3);
+    EXPECT(spy2.counts().list == 3);
+    EXPECT(spy3.counts().list == 3);
 
     // Now match all the rd lanes
 
     req.setValuesTyped(new metkit::mars::TypeAny("expver"), std::vector<std::string>{"xx12", "yy21"});
     fdb.retrieve(req);
 
-    EXPECT(spy1.counts().retrieve == 4);
-    EXPECT(spy2.counts().retrieve == 4);
-    EXPECT(spy3.counts().retrieve == 4);
+    EXPECT(spy1.counts().list == 4);
+    EXPECT(spy2.counts().list == 4);
+    EXPECT(spy3.counts().list == 4);
 
     req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{"od", "rd"});
     fdb.retrieve(req);
 
-    EXPECT(spy1.counts().retrieve == 5);
-    EXPECT(spy2.counts().retrieve == 5);
-    EXPECT(spy3.counts().retrieve == 5);
+
+    std::cout << "spy1.counts().retrieve: " << spy1.counts().retrieve << std::endl;
+    std::cout << "spy2.counts().retrieve: " << spy2.counts().retrieve << std::endl;
+    std::cout << "spy3.counts().retrieve: " << spy3.counts().retrieve << std::endl;
+
+    std::cout << "spy1.counts().list: " << spy1.counts().list << std::endl;
+    std::cout << "spy2.counts().list: " << spy2.counts().list << std::endl;
+    std::cout << "spy3.counts().list: " << spy3.counts().list << std::endl;
+
+
+    EXPECT(spy1.counts().list == 5);
+    EXPECT(spy2.counts().list == 5);
+    EXPECT(spy3.counts().list == 5);
 
     // And unused functions
 
@@ -194,7 +204,7 @@ CASE( "retrieves_distributed_according_to_dist" ) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
-        EXPECT(spy->counts().list == 0);
+        //EXPECT(spy->counts().list == 0);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);
         EXPECT(spy->counts().wipe == 0);

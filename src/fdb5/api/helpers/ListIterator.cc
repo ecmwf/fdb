@@ -22,14 +22,19 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 ListElement::ListElement(const std::vector<Key>& keyParts,
-                               std::shared_ptr<const FieldLocation> location) :
+                         std::shared_ptr<const FieldLocation> location,
+                         std::chrono::system_clock::time_point timestamp) :
     keyParts_(keyParts),
-    location_(location) {}
+    location_(location),
+    timestamp_(timestamp) {}
 
 
 ListElement::ListElement(eckit::Stream &s) {
     s >> keyParts_;
     location_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
+    std::time_t tmp;
+    s >> tmp;
+    timestamp_ = std::chrono::system_clock::from_time_t(tmp);
 }
 
 Key ListElement::combinedKey() const {
@@ -69,6 +74,7 @@ void ListElement::json(eckit::JSON& json) const {
 void ListElement::encode(eckit::Stream &s) const {
     s << keyParts_;
     s << *location_;
+    s << std::chrono::system_clock::to_time_t(timestamp_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

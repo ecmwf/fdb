@@ -94,7 +94,7 @@ struct ListHelper : public BaseHelper<ListElement> {
 
     // Create a derived RemoteFieldLocation which knows about this server
     Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
-        ListElement updated(elem.keyParts_, std::make_shared<RemoteFieldLocation>(*elem.location_, handler.host(), handler.port()));
+        ListElement updated(elem.keyParts_, std::make_shared<RemoteFieldLocation>(*elem.location_, handler.host(), handler.port()), elem.timestamp_);
 
         return BaseHelper<ListElement>::encode(updated, handler);
     }
