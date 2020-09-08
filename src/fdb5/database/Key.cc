@@ -373,7 +373,7 @@ const eckit::StringDict &Key::keyDict() const {
 }
 
 metkit::mars::MarsRequest Key::request() const {
-    metkit::mars::MarsRequest req;
+    metkit::mars::MarsRequest req("retrieve");
 
     for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
         req.setValue(i->first, i->second);

@@ -141,42 +141,26 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
 eckit::DataHandle* DistFDB::retrieve(const metkit::mars::MarsRequest &request) {
 
-    // TODO: Deduplication. Currently no masking.
-    // TODO: Error handling on read.
 
-    //std::vector<Key> keys;
-//    std::map<Key, std::shared_ptr<const FieldLocation> > fl;
-
-    // compute all the user-required keys
-//    if (lanes_.size() > 0) {
-//        const Schema& schema = lanes_[0].config().schema();
-
-//        AllVisitor visitor(&keys, schema);
-//        schema.expand(request, visitor);
-//    }
-
-    std::set<std::vector<metkit::hypercube::HyperCubeData<std::shared_ptr<const FieldLocation>>>> fields;
+    metkit::hypercube::HyperCubePlusPayload<std::shared_ptr<const FieldLocation>> fields(request);
 
     for (FDB& lane : lanes_) {
         if (lane.visitable()) {
             ListIterator li = lane.list(request);
-            std::vector<metkit::hypercube::HyperCubeData<std::shared_ptr<const FieldLocation>>> items;
             ListElement el;
             while (li.next(el)) {
-                items.emplace_back(metkit::hypercube::HyperCubeData<std::shared_ptr<const FieldLocation>>(el.combinedKey().request(), el.timestamp(), el.location()));
+                fields.add(metkit::hypercube::HyperCubeEntry<std::shared_ptr<const FieldLocation>>(el.combinedKey().request(), el.timestamp(), el.location()));
             }
-            fields.emplace(items);
         }
     }
 
-    std::vector<metkit::hypercube::HyperCubeData<std::shared_ptr<const FieldLocation>>> locations = metkit::hypercube::HyperCubeData<std::shared_ptr<const FieldLocation>>::assemble(request, fields);
-
     HandleGatherer result(false /* flag to control the order ?? */);
-    for (auto loc : locations) {
-        if (loc.data() != nullptr)
-            result.add(loc.data()->dataHandle());
+    for (size_t i=0; i< fields.count(); i++) {
+        auto field = fields.at(i);
+        if (field.payload() != nullptr)
+            result.add(field.payload()->dataHandle());
         else
-            std::cout << "Field NOT availble: " << loc.request() << std::endl;
+            std::cout << "Field NOT availble: " << field.request() << std::endl;
     }
 
     return result.dataHandle();
