@@ -4,15 +4,15 @@
 extern "C" {
 #endif
 
-const char * fdb5_version()     { return FDB5_VERSION; }
-const char * fdb5_version_str() { return FDB5_VERSION_STR; }
+const char * fdb5_version()     { return fdb5_VERSION; }
+const char * fdb5_version_str() { return fdb5_VERSION_STR; }
 
 unsigned int fdb5_version_int()
 {
-  return 10000*FDB5_MAJOR_VERSION + 100*FDB5_MINOR_VERSION + 1*FDB5_PATCH_VERSION;
+  return 10000*fdb5_VERSION_MAJOR + 100*fdb5_VERSION_MINOR + 1*fdb5_VERSION_PATCH;
 }
 
-const char * fdb5_git_sha1() { return "@FDB5_GIT_SHA1@"; }
+const char * fdb5_git_sha1() { return "@fdb5_GIT_SHA1@"; }
 
 #ifdef __cplusplus
 }

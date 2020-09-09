@@ -23,7 +23,7 @@
 #  LUSTREAPI_PATH         - prefix path of the LustreAPI installation
 
 find_path( LUSTREAPI_INCLUDE_DIR lustre/lustreapi.h
-           PATHS ${LUSTREAPI_DIR} ${LUSTREAPI_PATH} ENV LUSTREAPI_DIR ENV LUSTREAPI_PATH
+           PATHS ${LUSTREAPI_DIR} ${LUSTREAPI_PATH} ENV LAPI_DIR ENV LUSTREAPI_PATH
            PATH_SUFFIXES include NO_DEFAULT_PATH )
 
 find_path( LUSTREAPI_INCLUDE_DIR lustre/lustreapi.h PATH_SUFFIXES include )

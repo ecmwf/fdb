@@ -1,12 +1,12 @@
 #ifndef fdb5_fdb5_version_h
 #define fdb5_fdb5_version_h
 
-#define FDB5_VERSION_STR "@FDB5_VERSION_STR@"
-#define FDB5_VERSION     "@FDB5_VERSION@"
+#define fdb5_VERSION_STR "@fdb5_VERSION_STR@"
+#define fdb5_VERSION     "@fdb5_VERSION@"
 
-#define FDB5_MAJOR_VERSION @FDB5_MAJOR_VERSION@
-#define FDB5_MINOR_VERSION @FDB5_MINOR_VERSION@
-#define FDB5_PATCH_VERSION @FDB5_PATCH_VERSION@
+#define fdb5_VERSION_MAJOR @fdb5_VERSION_MAJOR@
+#define fdb5_VERSION_MINOR @fdb5_VERSION_MINOR@
+#define fdb5_VERSION_PATCH @fdb5_VERSION_PATCH@
 
 #ifdef __cplusplus
 extern "C" {
