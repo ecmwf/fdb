@@ -159,8 +159,12 @@ eckit::DataHandle* DistFDB::retrieve(const metkit::mars::MarsRequest &request) {
         auto field = fields.at(i);
         if (field.payload() != nullptr)
             result.add(field.payload()->dataHandle());
-        else
-            std::cout << "Field NOT availble: " << field.request() << std::endl;
+        else {
+            std::stringstream ss;
+            ss << "No matching data for request: " << field.request();
+            throw eckit::UserError(ss.str(), Here());
+            // eckit::Log::warning() << ss << std::endl;
+        }
     }
 
     return result.dataHandle();

@@ -23,8 +23,6 @@ Field::Field(const FieldLocation& location, std::chrono::system_clock::time_poin
     location_(location.make_shared()),
     timestamp_(timestamp),
     details_(details) {
-//    std::time_t tmp = std::chrono::system_clock::to_time_t(timestamp_);
-//    std::cout << std::put_time(std::localtime(&tmp), "%F %T") << std::endl;
 }
 
 void Field::print(std::ostream& out) const {

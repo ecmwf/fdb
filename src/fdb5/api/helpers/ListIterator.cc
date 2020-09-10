@@ -50,15 +50,15 @@ Key ListElement::combinedKey() const {
 }
 
 
-void ListElement::print(std::ostream &out, bool location) const {
-    if (location_ && !location) {
+void ListElement::print(std::ostream &out, bool withLocation) const {
+    if (location_ && !withLocation) {
         out << "host=" << location_->host() << ",";
     }
     for (const auto& bit : keyParts_) {
         out << bit;
     }
     if (location_) {
-        if (location) {
+        if (withLocation) {
             out << " " << *location_;
         } else {
             out << ",length=" << location_->length();

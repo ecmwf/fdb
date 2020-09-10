@@ -183,16 +183,6 @@ CASE( "retrieves_distributed_according_to_dist" ) {
     req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{"od", "rd"});
     fdb.retrieve(req);
 
-
-    std::cout << "spy1.counts().retrieve: " << spy1.counts().retrieve << std::endl;
-    std::cout << "spy2.counts().retrieve: " << spy2.counts().retrieve << std::endl;
-    std::cout << "spy3.counts().retrieve: " << spy3.counts().retrieve << std::endl;
-
-    std::cout << "spy1.counts().list: " << spy1.counts().list << std::endl;
-    std::cout << "spy2.counts().list: " << spy2.counts().list << std::endl;
-    std::cout << "spy3.counts().list: " << spy3.counts().list << std::endl;
-
-
     EXPECT(spy1.counts().list == 5);
     EXPECT(spy2.counts().list == 5);
     EXPECT(spy3.counts().list == 5);
