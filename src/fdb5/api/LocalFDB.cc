@@ -60,16 +60,6 @@ ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest &request) {
     return retriever_->inspect(request);
 }
 
-//DataHandle *LocalFDB::retrieve(const metkit::mars::MarsRequest &request) {
-
-//    if (!retriever_) {
-//        Log::debug<LibFdb5>() << *this << ": Constructing new retriever" << std::endl;
-//        retriever_.reset(new Retriever(config_));
-//    }
-
-//    return retriever_->retrieve(request);
-//}
-
 template<typename VisitorType, typename ... Ts>
 APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBToolRequest& request, Ts ... args) {
 
@@ -85,7 +75,6 @@ APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBTo
 
     return QueryIterator(new AsyncIterator(async_worker));
 }
-
 
 ListIterator LocalFDB::list(const FDBToolRequest& request) {
     Log::debug<LibFdb5>() << "LocalFDB::list() : " << request << std::endl;

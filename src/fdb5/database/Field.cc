@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <iomanip>
-
 #include "fdb5/database/Field.h"
 
 namespace fdb5 {

@@ -31,6 +31,7 @@ IndexBase::IndexBase(eckit::Stream& s) :
     std::string dummy;
     s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
     s >> type_;
+    // backward compatibility: FDB on disk may miss the timestamp
     if (s.endObjectFound()) {
         timestamp_ = timestamp_t{};
     } else {

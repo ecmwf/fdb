@@ -206,8 +206,9 @@ RemoteHandler::~RemoteHandler() {
 
 eckit::LocalConfiguration RemoteHandler::availableFunctionality() const {
     eckit::LocalConfiguration conf;
-    // std::vector<int> remoteFieldLocationVersions = {2,1};
-    // conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
+//    Add to the configuration all the components that require to be versioned, as in the following example, with a vector of supported version numbers
+//    std::vector<int> remoteFieldLocationVersions = {1};
+//    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
     return conf;
 }
 
