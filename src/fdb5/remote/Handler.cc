@@ -94,7 +94,9 @@ struct ListHelper : public BaseHelper<ListElement> {
 
     // Create a derived RemoteFieldLocation which knows about this server
     Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
-        ListElement updated(elem.keyParts_, std::make_shared<RemoteFieldLocation>(*elem.location_, handler.host(), handler.port()), elem.timestamp_);
+        RemoteFieldLocation location(*elem.field_->stableLocation(), handler.host(), handler.port());
+
+        ListElement updated(elem.keyParts_, std::make_shared<Field>(location, elem.field_->timestamp()), elem.remapKey_);
 
         return BaseHelper<ListElement>::encode(updated, handler);
     }
@@ -209,7 +211,7 @@ eckit::LocalConfiguration RemoteHandler::availableFunctionality() const {
     return conf;
 }
 
-std::vector<int> intersection(LocalConfiguration& c1, LocalConfiguration& c2, std::string field){
+std::vector<int> intersection(const LocalConfiguration& c1, const LocalConfiguration& c2, const std::string& field){
 
     std::vector<int> v1 = c1.getIntVector(field);
     std::vector<int> v2 = c2.getIntVector(field);

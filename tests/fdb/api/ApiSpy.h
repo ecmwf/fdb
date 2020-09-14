@@ -37,10 +37,10 @@ private: // types
 
     struct Counts {
         Counts() :
-            archive(0), retrieve(0), list(0), dump(0), status(0), wipe(0),
+            archive(0), inspect(0), list(0), dump(0), status(0), wipe(0),
             purge(0), stats(0), flush(0), control(0) {}
         size_t archive;
-        size_t retrieve;
+        size_t inspect;
         size_t list;
         size_t dump;
         size_t status;
@@ -81,10 +81,10 @@ public: // methods
         archives_.push_back(std::make_tuple(key, data, length));
     }
 
-    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request) override {
-        counts_.retrieve += 1;
+    fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override {
+        counts_.inspect += 1;
         retrieves_.push_back(request);
-        return new FakeDataHandle;
+        return fdb5::ListIterator(0);
     }
 
     fdb5::ListIterator list(const fdb5::FDBToolRequest& request) override {

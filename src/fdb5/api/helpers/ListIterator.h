@@ -25,7 +25,7 @@
 #include <chrono>
 
 #include "fdb5/database/Key.h"
-#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Field.h"
 #include "fdb5/api/helpers/APIIterator.h"
 
 namespace eckit {
@@ -44,12 +44,12 @@ class ListElement {
 public: // methods
 
     ListElement() = default;
-    ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, std::chrono::system_clock::time_point timestamp);
+    ListElement(const std::vector<Key>& keyParts, std::shared_ptr<Field> field, const Key& remapKey);
     ListElement(eckit::Stream& s);
 
     Key combinedKey() const;
-    std::shared_ptr<const FieldLocation> location() { return location_; }
-    std::chrono::system_clock::time_point timestamp() { return timestamp_; }
+    std::shared_ptr<Field> field() { return field_; }
+    const Key& remapKey() { return remapKey_; }
 
     void print(std::ostream& out, bool location=false) const;
 
@@ -77,8 +77,8 @@ private: // methods
 public: // members
 
     std::vector<Key> keyParts_;
-    std::shared_ptr<const FieldLocation> location_;
-    std::chrono::system_clock::time_point timestamp_;
+    std::shared_ptr<Field> field_;
+    Key remapKey_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

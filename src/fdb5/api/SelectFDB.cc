@@ -99,11 +99,9 @@ void SelectFDB::archive(const Key& key, const void* data, size_t length) {
     throw eckit::UserError(ss.str(), Here());
 }
 
+ListIterator SelectFDB::inspect(const metkit::mars::MarsRequest& request) {
 
-eckit::DataHandle *SelectFDB::retrieve(const metkit::mars::MarsRequest& request) {
-
-//    HandleGatherer result(true); // Sorted
-    HandleGatherer result(false);
+    std::queue<ListIterator> lists;
 
     for (auto& iter : subFdbs_) {
 
@@ -112,33 +110,12 @@ eckit::DataHandle *SelectFDB::retrieve(const metkit::mars::MarsRequest& request)
 
         // If we want to allow non-fully-specified retrieves, make false here.
         if (matches(request, select, true)) {
-            result.add(fdb.retrieve(request));
+            lists.push(fdb.inspect(request));
         }
     }
 
-    return result.dataHandle();
+    return ListIterator(new ListAggregateIterator(std::move(lists)));
 }
-
-/*
- * This is the example structure for the template below
- *
- * ListIterator SelectFDB::list(const FDBToolRequest& request) {
- *
- *     std::queue<ListIterator> lists;
- *
- *     for (auto& iter : subFdbs_) {
- *
- *         const SelectMap& select(iter.first);
- *         FDB& fdb(iter.second);
- *
- *         if (matches(request.key(), select, false) || request.all()) {
- *             lists.push(fdb.list(request));
- *         }
- *     }
- *
- *     return ListIterator(new ListAggregateIterator(std::move(lists)));
- * }
- */
 
 template <typename QueryFN>
 auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request)) {

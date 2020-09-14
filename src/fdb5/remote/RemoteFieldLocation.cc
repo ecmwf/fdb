@@ -35,10 +35,12 @@ RemoteFieldLocation::RemoteFieldLocation(const FieldLocation& internal, const st
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
     FieldLocation(eckit::URI("fdb", uri)) {
+    NOTIMP;
 }
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length) :
     FieldLocation(eckit::URI("fdb", uri), offset, length) {
+    NOTIMP;
 }
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :

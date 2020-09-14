@@ -32,7 +32,7 @@ IndexBase::IndexBase(eckit::Stream& s) :
     s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
     s >> type_;
     if (s.endObjectFound()) {
-        timestamp_ = std::chrono::system_clock::time_point{};
+        timestamp_ = timestamp_t{};
     } else {
         std::time_t tmp;
         s >> tmp;

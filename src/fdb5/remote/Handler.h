@@ -54,7 +54,7 @@ public:  // methods
 
     std::string host() const { return controlSocket_.localHost(); }
     int port() const { return controlSocket_.localPort(); }
-    const eckit::LocalConfiguration& conf() const { return agreedConf_; }
+    const eckit::LocalConfiguration& agreedConf() const { return agreedConf_; }
 
 private:  // methods
     // Socket methods

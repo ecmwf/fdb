@@ -40,47 +40,51 @@ Retriever::Retriever(const Config& dbConfig) :
 Retriever::~Retriever() {
 }
 
-eckit::DataHandle *Retriever::retrieve(const metkit::mars::MarsRequest& request,
-                                       const Schema& schema,
-                                       bool sorted,
-                                       const fdb5::Notifier& notifyee) const {
+eckit::DataHandle* Retriever::retrieve(const metkit::mars::MarsRequest& request) const {
 
-    HandleGatherer result(sorted);
-    MultiRetrieveVisitor visitor(notifyee, result, databases_, dbConfig_);
+    ListIterator li = inspect(request);
 
-    Log::debug<LibFdb5>() << "Using schema: " << schema << std::endl;
-
-    schema.expand(request, visitor);
-    std::cout << "Retrieving " << eckit::Plural(int(result.count()), "field") << std::endl;
-
-    eckit::Log::userInfo() << "Retrieving " << eckit::Plural(int(result.count()), "field") << std::endl;
-
+    HandleGatherer result(true);
+    ListElement el;
+    while (li.next(el)) {
+        if (el.remapKey().empty())
+            result.add(el.field()->dataHandle());
+        else
+            result.add(el.field()->dataHandle(el.remapKey()));
+    }
     return result.dataHandle();
 }
 
-eckit::DataHandle *Retriever::retrieve(const metkit::mars::MarsRequest& request) const {
+ListIterator Retriever::inspect(const metkit::mars::MarsRequest& request,
+                                const Schema& schema,
+                                const fdb5::Notifier& notifyee) const {
+
+    auto async_worker = [this, &request, &schema, &notifyee] (Queue<ListElement>& queue) {
+        MultiRetrieveVisitor visitor(notifyee, queue, databases_, dbConfig_);
+
+        Log::debug<LibFdb5>() << "Using schema: " << schema << std::endl;
+
+        schema.expand(request, visitor);
+    };
+
+    using QueryIterator = APIIterator<ListElement>;
+    using AsyncIterator = APIAsyncIterator<ListElement>;
+
+    return QueryIterator(new AsyncIterator(async_worker));
+}
+
+ListIterator Retriever::inspect(const metkit::mars::MarsRequest& request) const {
 
     class NullNotifier : public Notifier {
         void notifyWind() const override {}
     };
 
-    return retrieve(request, NullNotifier());
+    return inspect(request, NullNotifier());
 }
 
-eckit::DataHandle *Retriever::retrieve(const metkit::mars::MarsRequest& request, const Notifier& notifyee) const {
+ListIterator Retriever::inspect(const metkit::mars::MarsRequest& request, const Notifier& notifyee) const {
 
-    bool sorted = false;
-
-    const std::vector<std::string>& sort = request.values("optimise", /* emptyOK */ true);
-
-    if (sort.size() == 1 && sort[0] == "on") {
-        sorted = true;
-        eckit::Log::userInfo() << "Using optimise" << std::endl;
-    }
-
-    Log::debug<LibFdb5>() << "fdb5::Retriever::retrieve() Sorted? " << sorted << std::endl;
-
-    return retrieve(request, dbConfig_.schema(), sorted, notifyee);
+    return inspect(request, dbConfig_.schema(), notifyee);
 }
 
 void Retriever::visitEntries(const FDBToolRequest &request, EntryVisitor &visitor) const {

@@ -56,6 +56,9 @@ std::string DB::dbType() const {
 const Key& DB::key() const {
     return catalogue_->key();
 }
+const Key& DB::indexKey() const {
+    return catalogue_->indexKey();
+}
 const Schema& DB::schema() const {
     return catalogue_->schema();
 }
@@ -79,16 +82,21 @@ void DB::axis(const std::string &keyword, eckit::StringSet &s) const {
     cat->axis(keyword, s);
 }
 
-eckit::DataHandle *DB::retrieve(const Key& key) {
+bool DB::inspect(const Key& key, Field& field, Key& remapKey) {
 
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
 
     CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
     ASSERT(cat);
 
+    return cat->retrieve(key, field, remapKey);
+}
+
+eckit::DataHandle *DB::retrieve(const Key& key) {
+
     Field field;
     Key remapKey;
-    if (cat->retrieve(key, field, remapKey)) {
+    if (inspect(key, field, remapKey)) {
         return store().retrieve(field, remapKey);
     }
 

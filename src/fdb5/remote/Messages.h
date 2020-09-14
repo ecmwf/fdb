@@ -59,6 +59,7 @@ enum class Message : uint16_t {
     Purge,
     Stats,
     Control,
+    Inspect,
 
     // Responses
     Received = 200,

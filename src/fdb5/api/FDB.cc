@@ -14,10 +14,16 @@
  */
 
 #include "eckit/io/DataHandle.h"
+#include "eckit/log/Log.h"
 
+#include "metkit/hypercube/HyperCube.h"
+
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/io/HandleGatherer.h"
 
 namespace fdb5 {
 
@@ -48,15 +54,54 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     stats_.addArchive(length, timer);
 }
 
-eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+bool FDB::sorted(const metkit::mars::MarsRequest &request) {
+
+    bool sorted = false;
+
+    const std::vector<std::string>& sort = request.values("optimise", /* emptyOK */ true);
+
+    if (sort.size() == 1 && sort[0] == "on") {
+        sorted = true;
+        eckit::Log::userInfo() << "Using optimise" << std::endl;
+    }
+
+    eckit::Log::debug<LibFdb5>() << "fdb5::FDB::retrieve() Sorted? " << sorted << std::endl;
+
+    return sorted;
+}
+
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest &request) {
 
     eckit::Timer timer;
     timer.start();
-    eckit::DataHandle* dh = internal_->retrieve(request);
-    timer.stop();
-    stats_.addRetrieve(dh->estimate(), timer);
 
-    return dh;
+    metkit::hypercube::HyperCubePlusPayload<std::shared_ptr<Field>> fields(request);
+
+    ListIterator li = inspect(request);
+    ListElement el;
+    while (li.next(el)) {
+        fields.add(metkit::hypercube::HyperCubeEntry<std::shared_ptr<Field> >(el.combinedKey().request(), el.field()->timestamp(), el.field()));
+    }
+
+    HandleGatherer result(sorted(request));
+    for (size_t i=0; i< fields.count(); i++) {
+        auto field = fields.at(i);
+        if (field.payload() != nullptr) {
+            result.add(field.payload()->dataHandle());
+        }
+        else {
+            std::stringstream ss;
+            ss << "No matching data for request: " << field.request();
+            eckit::Log::warning() << ss.str() << std::endl;
+            //throw eckit::UserError(ss.str(), Here());
+        }
+    }
+
+    return result.dataHandle();
+}
+
+ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
+    return internal_->inspect(request);
 }
 
 ListIterator FDB::list(const FDBToolRequest& request) {

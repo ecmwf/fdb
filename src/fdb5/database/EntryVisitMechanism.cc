@@ -63,6 +63,13 @@ void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
     visitDatum(field, key);
 }
 
+
+timestamp_t EntryVisitor::indexTimestamp() const {
+    return currentIndex_ == nullptr
+            ? timestamp_t{}
+            : currentIndex_->timestamp();
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 EntryVisitMechanism::EntryVisitMechanism(const Config& config) :

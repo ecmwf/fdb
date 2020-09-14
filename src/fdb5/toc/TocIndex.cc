@@ -147,7 +147,7 @@ void TocIndex::flush() {
         ASSERT(btree_);
         btree_->flush();
         btree_->sync();
-        setTimestamp();
+        takeTimestamp();
         dirty_ = false;
     }
 }
@@ -167,7 +167,7 @@ public:
         visitor_(visitor) {}
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
-        Field field(TocFieldLocation(files_, ref), visitor_.currentIndex()->timestamp(), ref.details());
+        Field field(TocFieldLocation(files_, ref), visitor_.indexTimestamp(), ref.details());
         visitor_.visitDatum(field, keyFingerprint);
     }
 };

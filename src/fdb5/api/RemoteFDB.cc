@@ -546,6 +546,8 @@ struct BaseAPIHelper {
 
 using ListHelper = BaseAPIHelper<ListElement, Message::List>;
 
+using InspectHelper = BaseAPIHelper<ListElement, Message::Inspect>;
+
 using StatsHelper = BaseAPIHelper<StatsElement, Message::Stats>;
 
 struct StatusHelper : BaseAPIHelper<StatusElement, Message::Status> {
@@ -686,6 +688,10 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
 
 ListIterator RemoteFDB::list(const FDBToolRequest& request) {
     return forwardApiCall(ListHelper(), request);
+}
+
+ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
+    return forwardApiCall(InspectHelper(), request);
 }
 
 
@@ -1035,20 +1041,20 @@ private: // members
 
 // Here we do (asynchronous) retrieving related stuff
 
-DataHandle* RemoteFDB::retrieve(const metkit::mars::MarsRequest& request) {
+//DataHandle* RemoteFDB::retrieve(const metkit::mars::MarsRequest& request) {
 
-    connect();
+//    connect();
 
-    Buffer encodeBuffer(4096);
-    MemoryStream s(encodeBuffer);
-    s << request;
+//    Buffer encodeBuffer(4096);
+//    MemoryStream s(encodeBuffer);
+//    s << request;
 
-    uint32_t id = generateRequestID();
+//    uint32_t id = generateRequestID();
 
-    controlWriteCheckResponse(Message::Retrieve, id, encodeBuffer, s.position());
+//    controlWriteCheckResponse(Message::Retrieve, id, encodeBuffer, s.position());
 
-    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
-}
+//    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
+//}
 
 
 void RemoteFDB::print(std::ostream &s) const {

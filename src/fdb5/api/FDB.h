@@ -67,6 +67,8 @@ public: // methods
 
     eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
 
+    ListIterator inspect(const metkit::mars::MarsRequest& request);
+
     ListIterator list(const FDBToolRequest& request);
 
     DumpIterator dump(const FDBToolRequest& request, bool simple=false);
@@ -111,6 +113,8 @@ private: // methods
         f.print(s);
         return s;
     }
+
+    bool sorted(const metkit::mars::MarsRequest &request);
 
 private: // members
 

@@ -50,15 +50,25 @@ void LocalFDB::archive(const Key& key, const void* data, size_t length) {
     archiver_->archive(key, data, length);
 }
 
-DataHandle *LocalFDB::retrieve(const metkit::mars::MarsRequest &request) {
+ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest &request) {
 
     if (!retriever_) {
         Log::debug<LibFdb5>() << *this << ": Constructing new retriever" << std::endl;
         retriever_.reset(new Retriever(config_));
     }
 
-    return retriever_->retrieve(request);
+    return retriever_->inspect(request);
 }
+
+//DataHandle *LocalFDB::retrieve(const metkit::mars::MarsRequest &request) {
+
+//    if (!retriever_) {
+//        Log::debug<LibFdb5>() << *this << ": Constructing new retriever" << std::endl;
+//        retriever_.reset(new Retriever(config_));
+//    }
+
+//    return retriever_->retrieve(request);
+//}
 
 template<typename VisitorType, typename ... Ts>
 APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBToolRequest& request, Ts ... args) {

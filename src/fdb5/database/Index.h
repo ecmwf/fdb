@@ -45,42 +45,6 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/*class EntryVisitor : private eckit::NonCopyable {
-public:
-
-    virtual ~EntryVisitor();
-
-    virtual void visit(const Index& index,
-                       const Field& field,
-                       const std::string& indexFingerprint,
-                       const std::string& fieldFingerprint) = 0;
-};
-
-
-//----------------------------------------------------------------------------------------------------------------------
-
-
-class DumpVisitor : public fdb5::EntryVisitor {
-
-public:
-    DumpVisitor(std::ostream& out, Schema& schema, Key& dbKey) :
-        out_(out), schema_(schema), dbKey_(dbKey) {}
-
-private:
-
-    virtual void visit(const Index& index,
-                       const Field& field,
-                       const std::string& indexFingerprint,
-                       const std::string& fieldFingerprint);
-
-private: // members
-    std::ostream& out_;
-    Schema& schema_;
-    Key& dbKey_;
-};*/
-
-//----------------------------------------------------------------------------------------------------------------------
-
 /// Base class for Indexing fields in the FDB
 ///
 /// Each concrete type of DB can implement a specific type of Index
@@ -115,7 +79,7 @@ public: // methods
     const IndexAxis& axes() const;
     const Key& key() const;
 
-    std::chrono::system_clock::time_point timestamp() const { return timestamp_; }
+    timestamp_t timestamp() const { return timestamp_; }
 
     virtual bool get(const Key &key, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);
@@ -131,7 +95,7 @@ public: // methods
     virtual void print( std::ostream &out ) const = 0;
 
 protected: // methods
-    void setTimestamp() { timestamp_ = std::chrono::system_clock::now(); }
+    void takeTimestamp() { timestamp_ = std::chrono::system_clock::now(); }
 
 private: // methods
 
@@ -144,7 +108,7 @@ protected: // members
     /// @note Order of members is important here ...
     IndexAxis     axes_;   ///< This Index spans along these axis
     const Key     key_;    ///< key that selected this index
-    std::chrono::system_clock::time_point timestamp_;
+    timestamp_t timestamp_;
 
     Indexer indexer_;
 
@@ -186,7 +150,7 @@ public: // methods
     const IndexAxis& axes() const { return content_->axes(); }
     const Key& key() const { return content_->key(); }
 
-    std::chrono::system_clock::time_point timestamp() const { return content_->timestamp(); }
+    timestamp_t timestamp() const { return content_->timestamp(); }
 
     bool get(const Key& key, Field& field) const { return content_->get(key, field); }
     void put(const Key& key, const Field& field) { content_->put(key, field); }

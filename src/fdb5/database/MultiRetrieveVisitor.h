@@ -18,10 +18,12 @@
 
 #include <string>
 
-#include "fdb5/database/ReadVisitor.h"
-#include "fdb5/config/Config.h"
-
 #include "eckit/container/CacheLRU.h"
+#include "eckit/container/Queue.h"
+
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/ReadVisitor.h"
 
 namespace fdb5 {
 
@@ -37,7 +39,7 @@ class MultiRetrieveVisitor : public ReadVisitor {
 public: // methods
 
     MultiRetrieveVisitor(const Notifier& wind,
-                         HandleGatherer& gatherer,
+                         eckit::Queue<ListElement>& queue,
                          eckit::CacheLRU<Key,DB*>& databases,
                          const Config& config);
 
@@ -68,9 +70,9 @@ private:
 
     const Notifier& wind_;
 
-    eckit::CacheLRU< Key,DB*>& databases_;
+    eckit::CacheLRU<Key,DB*>& databases_;
 
-    HandleGatherer &gatherer_;
+    eckit::Queue<ListElement>& queue_;
 
     Config config_;
 };

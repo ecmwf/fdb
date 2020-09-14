@@ -82,8 +82,7 @@ public:
         ASSERT(currentIndex_);
 
         if (key.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key},
-                                          field.stableLocation(), field.timestamp()));
+            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key}, std::make_shared<Field>(field), Key()));
         }
     }
 

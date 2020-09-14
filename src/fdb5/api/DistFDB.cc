@@ -139,36 +139,35 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
     throw DistributionError("No writable lanes available for archive", Here());
 }
 
-eckit::DataHandle* DistFDB::retrieve(const metkit::mars::MarsRequest &request) {
+//eckit::DataHandle* DistFDB::retrieve(const metkit::mars::MarsRequest &request) {
 
+//    metkit::hypercube::HyperCubePlusPayload<std::shared_ptr<const FieldLocation>> fields(request);
 
-    metkit::hypercube::HyperCubePlusPayload<std::shared_ptr<const FieldLocation>> fields(request);
+//    for (FDB& lane : lanes_) {
+//        if (lane.visitable()) {
+//            ListIterator li = lane.list(request);
+//            ListElement el;
+//            while (li.next(el)) {
+//                fields.add(metkit::hypercube::HyperCubeEntry<std::shared_ptr<const FieldLocation>>(el.combinedKey().request(), el.timestamp(), el.location()));
+//            }
+//        }
+//    }
 
-    for (FDB& lane : lanes_) {
-        if (lane.visitable()) {
-            ListIterator li = lane.list(request);
-            ListElement el;
-            while (li.next(el)) {
-                fields.add(metkit::hypercube::HyperCubeEntry<std::shared_ptr<const FieldLocation>>(el.combinedKey().request(), el.timestamp(), el.location()));
-            }
-        }
-    }
+//    HandleGatherer result(false /* flag to control the order ?? */);
+//    for (size_t i=0; i< fields.count(); i++) {
+//        auto field = fields.at(i);
+//        if (field.payload() != nullptr)
+//            result.add(field.payload()->dataHandle());
+//        else {
+//            std::stringstream ss;
+//            ss << "No matching data for request: " << field.request();
+//            throw eckit::UserError(ss.str(), Here());
+//            // eckit::Log::warning() << ss << std::endl;
+//        }
+//    }
 
-    HandleGatherer result(false /* flag to control the order ?? */);
-    for (size_t i=0; i< fields.count(); i++) {
-        auto field = fields.at(i);
-        if (field.payload() != nullptr)
-            result.add(field.payload()->dataHandle());
-        else {
-            std::stringstream ss;
-            ss << "No matching data for request: " << field.request();
-            throw eckit::UserError(ss.str(), Here());
-            // eckit::Log::warning() << ss << std::endl;
-        }
-    }
-
-    return result.dataHandle();
-}
+//    return result.dataHandle();
+//}
 
 /*
  * Exemplar for templated query functionality:
@@ -217,6 +216,14 @@ ListIterator DistFDB::list(const FDBToolRequest& request) {
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.list(request);
+                         });
+}
+
+ListIterator DistFDB::inspect(const metkit::mars::MarsRequest& request) {
+    Log::debug<LibFdb5>() << "DistFDB::inspect() : " << request << std::endl;
+    return queryInternal(request,
+                         [](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.inspect(request.request());
                          });
 }
 

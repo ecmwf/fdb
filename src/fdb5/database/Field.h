@@ -37,6 +37,7 @@ class DataHandle;
 
 namespace fdb5 {
 
+typedef std::chrono::system_clock::time_point timestamp_t;
 //----------------------------------------------------------------------------------------------------------------------
 
 class Field {
@@ -45,14 +46,14 @@ public: // methods
 
     Field();
 
-    Field(const FieldLocation& location, std::chrono::system_clock::time_point timestamp, const FieldDetails& details = FieldDetails());
+    Field(const FieldLocation& location, timestamp_t timestamp, const FieldDetails& details = FieldDetails());
 
     eckit::DataHandle* dataHandle() const { return location_->dataHandle(); }
     eckit::DataHandle* dataHandle(const Key& remapKey) const { return location_->dataHandle(remapKey); }
 
     const FieldLocation& location() const { return *location_; }
 
-    std::chrono::system_clock::time_point timestamp() const { return timestamp_; }
+    timestamp_t timestamp() const { return timestamp_; }
 
     /// stableLocation is an object with validity that extends longer than that of the
     /// owning DB. May need converting to a more static form --- or not.
@@ -65,7 +66,7 @@ private: // members
 
     std::shared_ptr<FieldLocation> location_;
 
-    std::chrono::system_clock::time_point timestamp_;
+    timestamp_t timestamp_;
 
     FieldDetails details_;
 

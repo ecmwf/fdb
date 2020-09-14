@@ -21,6 +21,7 @@
 #include <map>
 
 #include "fdb5/config/Config.h"
+#include "fdb5/api/helpers/ListIterator.h"
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/container/CacheLRU.h"
@@ -60,11 +61,13 @@ public: // methods
 
     eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request) const;
 
+    ListIterator inspect(const metkit::mars::MarsRequest& request) const;
+
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @param notifyee is an object that handles notifications for the client, e.g. wind conversion
     /// @returns  data handle to read from
 
-    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request, const Notifier& notifyee) const;
+    ListIterator inspect(const metkit::mars::MarsRequest& request, const Notifier& notifyee) const;
 
     /// Give read access to a range of entries according to a request
 
@@ -79,7 +82,7 @@ private: // methods
 
     void print(std::ostream &out) const;
 
-    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request, const Schema &schema, bool sorted, const Notifier& notifyee) const;
+    ListIterator inspect(const metkit::mars::MarsRequest& request, const Schema &schema, const Notifier& notifyee) const;
 
 private: // data
 

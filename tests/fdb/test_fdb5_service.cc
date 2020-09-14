@@ -169,8 +169,8 @@ CASE ( "test_fdb_service" ) {
 
 						::memset(buffer, 0, buffer.size());
 
-						dh->openForRead();
-						dh->read(buffer, buffer.size());
+                        dh->openForRead();
+                        dh->read(buffer, buffer.size());
 
 						Log::info() << (char*) buffer << std::endl;
 
