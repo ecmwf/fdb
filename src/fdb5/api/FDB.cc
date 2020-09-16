@@ -14,10 +14,11 @@
  */
 
 #include "eckit/io/DataHandle.h"
-
+#include "eckit/message/Message.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/KeySetter.h"
 
 namespace fdb5 {
 
@@ -35,6 +36,16 @@ FDB::~FDB() {
         stats_.report(eckit::Log::info(), (internal_->name() + " ").c_str());
         internal_->stats().report(eckit::Log::info(), (internal_->name() + " internal ").c_str());
     }
+}
+
+void FDB::archive(eckit::message::Message msg)
+{
+    fdb5::Key key;
+    KeySetter setter{key};
+
+    msg.getMetadata(setter);
+
+    archive(key, msg.data(), msg.length());
 }
 
 void FDB::archive(const Key& key, const void* data, size_t length) {

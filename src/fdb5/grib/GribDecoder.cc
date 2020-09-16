@@ -13,6 +13,7 @@
 
 #include "metkit/mars/TypeAny.h"
 #include "fdb5/grib/GribDecoder.h"
+#include "fdb5/database/KeySetter.h"
 
 #include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
@@ -27,30 +28,6 @@ GribDecoder::GribDecoder(bool checkDuplicates):
 }
 
 GribDecoder::~GribDecoder() {}
-
-
-class KeySetter : public eckit::message::MetadataGatherer {
-
-    Key& key_;
-
-    virtual void setValue(const std::string& key, const std::string& value) override {
-        key_.set(key, value);
-    }
-
-    virtual void setValue(const std::string& key, long value) override {
-    }
-
-    virtual void setValue(const std::string& key, double value) override  {
-    }
-
-public:
-
-    KeySetter(Key& key): key_(key) {
-        // The key must be clean at this point, as it is being returned (MARS-689)
-        key_.clear();
-    }
-
-};
 
 void GribDecoder::gribToKey(const eckit::message::Message& msg, Key &key) {
 
