@@ -811,17 +811,44 @@ void RemoteHandler::read(const MessageHeader& hdr) {
     else
         dh = location->dataHandle(remapKey);
 
-    // Write the data to the parent, in chunks if necessary.
-
-    Buffer writeBuffer(10 * 1024 * 1024);
-    long dataRead;
-
-    dh->openForRead();
-    while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
-        dataWrite(Message::Blob, hdr.requestID, writeBuffer, dataRead);
-    }
+    writeToParent(hdr.requestID, dh);
 }
 
+void RemoteHandler::writeToParent(const uint32_t requestID, eckit::DataHandle* dh) {
+    try {
+        Log::status() << "Retrieving: " << requestID << std::endl;
+
+        // Write the data to the parent, in chunks if necessary.
+
+        Buffer writeBuffer(10 * 1024 * 1024);
+        long dataRead;
+
+        dh->openForRead();
+        while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
+            dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
+        }
+
+        // And when we are done, add a complete message.
+
+        Log::debug<LibFdb5>() << "Writing retrieve complete message: " << requestID
+                              << std::endl;
+
+        dataWrite(Message::Complete, requestID);
+
+        Log::status() << "Done retrieve: " << requestID << std::endl;
+        Log::debug<LibFdb5>() << "Done retrieve: " << requestID << std::endl;
+    }
+    catch (std::exception& e) {
+        // n.b. more general than eckit::Exception
+        std::string what(e.what());
+        dataWrite(Message::Error, requestID, what.c_str(), what.length());
+    }
+    catch (...) {
+        // We really don't want to std::terminate the thread
+        std::string what("Caught unexpected, unknown exception in retrieve worker");
+        dataWrite(Message::Error, requestID, what.c_str(), what.length());
+    }
+}
 
 void RemoteHandler::retrieveThreadLoop() {
     std::pair<uint32_t, MarsRequest> elem;
@@ -833,44 +860,12 @@ void RemoteHandler::retrieveThreadLoop() {
         const uint32_t requestID(elem.first);
         const MarsRequest& request(elem.second);
 
-        try {
-            Log::status() << "Retrieving: " << requestID << std::endl;
-            Log::debug<LibFdb5>() << "Retrieving (" << requestID << ")" << request << std::endl;
+        Log::debug<LibFdb5>() << "Retrieving (" << requestID << ")" << request << std::endl;
 
-            // Forward the API call
+        // Forward the API call
 
-            std::unique_ptr<eckit::DataHandle> dh(fdb_.retrieve(request));
-
-            // Write the data to the parent, in chunks if necessary.
-
-            Buffer writeBuffer(10 * 1024 * 1024);
-            long dataRead;
-
-            dh->openForRead();
-            while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
-                dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
-            }
-
-            // And when we are done, add a complete message.
-
-            Log::debug<LibFdb5>() << "Writing retrieve complete message: " << requestID
-                                  << std::endl;
-
-            dataWrite(Message::Complete, requestID);
-
-            Log::status() << "Done retrieve: " << requestID << std::endl;
-            Log::debug<LibFdb5>() << "Done retrieve: " << requestID << std::endl;
-        }
-        catch (std::exception& e) {
-            // n.b. more general than eckit::Exception
-            std::string what(e.what());
-            dataWrite(Message::Error, requestID, what.c_str(), what.length());
-        }
-        catch (...) {
-            // We really don't want to std::terminate the thread
-            std::string what("Caught unexpected, unknown exception in retrieve worker");
-            dataWrite(Message::Error, requestID, what.c_str(), what.length());
-        }
+        std::unique_ptr<eckit::DataHandle> dh(fdb_.retrieve(request));
+        writeToParent(requestID, dh.get());
     }
 }
 

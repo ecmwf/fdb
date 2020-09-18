@@ -93,6 +93,8 @@ private:  // methods
     void retrieve(const MessageHeader& hdr);
     void read(const MessageHeader& hdr);
 
+    void writeToParent(const uint32_t requestID, eckit::DataHandle* dh);
+
     size_t archiveThreadLoop(uint32_t id);
     void retrieveThreadLoop();
 
