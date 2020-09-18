@@ -8,11 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eccodes.h"
+
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/FileDescHandle.h"
+#include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
 
 #include "metkit/mars/MarsRequest.h"
+#include "metkit/codes/CodesContent.h"
 
 #include "fdb5/fdb5_version.h"
 #include "fdb5/api/FDB.h"
@@ -284,7 +288,10 @@ int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t leng
         ASSERT(key);
         ASSERT(data);
 
-        fdb->archive(*key, static_cast<const void*>(data), length);
+        codes_handle* h = codes_handle_new_from_message(nullptr, data, length);
+        eckit::message::Message msg{new metkit::codes::CodesContent{h, true}};
+
+        fdb->archive(*key, msg);
         fdb->flush();
     });
 }

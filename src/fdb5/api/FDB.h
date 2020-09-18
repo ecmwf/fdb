@@ -66,7 +66,7 @@ public: // methods
     // -------------- Primary API functions ----------------------------
 
     void archive(eckit::message::Message msg);
-    void archive(const Key& key, const void* data, size_t length);
+    void archive(const Key& key, eckit::message::Message msg);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call

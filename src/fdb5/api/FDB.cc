@@ -18,7 +18,7 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/database/KeySetter.h"
+#include "fdb5/database/GribToKey.h"
 
 namespace fdb5 {
 
@@ -41,22 +41,20 @@ FDB::~FDB() {
 void FDB::archive(eckit::message::Message msg)
 {
     fdb5::Key key;
-    KeySetter setter{key};
+    GribToKey{}(msg, key);
 
-    msg.getMetadata(setter);
-
-    archive(key, msg.data(), msg.length());
+    archive(key, msg);
 }
 
-void FDB::archive(const Key& key, const void* data, size_t length) {
+void FDB::archive(const Key& key, eckit::message::Message msg) {
     eckit::Timer timer;
     timer.start();
 
-    internal_->archive(key, data, length);
+    internal_->archive(key, msg);
     dirty_ = true;
 
     timer.stop();
-    stats_.addArchive(length, timer);
+    stats_.addArchive(msg.length(), timer);
 }
 
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {

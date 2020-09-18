@@ -22,6 +22,7 @@
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/TypeAny.h"
+#include "metkit/codes/UserDataContent.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -103,7 +104,8 @@ CASE( "archives_distributed_according_to_dist" ) {
 
             size_t len = data.size()*sizeof(int);
 
-            fdb.archive(k, data.data(), len);
+            eckit::message::Message msg{new metkit::codes::UserDataContent{data.data(), len}};
+            fdb.archive(k, msg);
 
             EXPECT((spy1.counts().archive + spy2.counts().archive + spy3.counts().archive) == (1 + a + (narch * f)));
             EXPECT(spy1.counts().flush + spy2.counts().flush + spy3.counts().flush == flush_count);

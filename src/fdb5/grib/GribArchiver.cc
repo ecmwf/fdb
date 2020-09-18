@@ -164,7 +164,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
 
             logVerbose() << "Archiving " << key << std::endl;
 
-            fdb_.archive(key, msg.data(), msg.length());
+            fdb_.archive(msg);
 
             total_size += msg.length();
             count++;
