@@ -13,6 +13,7 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/api/RemoteFDB.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -26,11 +27,12 @@ namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-RemoteFieldLocation::RemoteFieldLocation(const FieldLocation& internal, const std::string& hostname, int port) :
-    FieldLocation(eckit::URI("fdb", hostname, port)),
-    internal_(internal.make_shared()) {
-    ASSERT(internal.uri().scheme() != "fdb");
+RemoteFieldLocation::RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocation& remoteLocation) :
+    FieldLocation(eckit::URI("fdb", remoteFDB->controlEndpoint().host(),  remoteFDB->controlEndpoint().port())),
+    remoteFDB_(remoteFDB),
+    internal_(remoteLocation.make_shared()) {
+    ASSERT(remoteFDB);
+    ASSERT(remoteLocation.uri().scheme() != "fdb");
 }
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
@@ -45,11 +47,13 @@ RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Off
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {
-    internal_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
+    //internal_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
+    NOTIMP;
 }
 
 RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
     FieldLocation(rhs.uri_),
+    remoteFDB_(rhs.remoteFDB_),
     internal_(rhs.internal_) {}
 
 
@@ -58,11 +62,15 @@ std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
 }
 
 eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
-    return internal_->dataHandle();
+    ASSERT(remoteFDB_);
+    ASSERT(internal_);
+    return remoteFDB_->dataHandle(*internal_, Key());
 }
 
 eckit::DataHandle* RemoteFieldLocation::dataHandle(const Key& remapKey) const {
-    return internal_->dataHandle(remapKey);
+    ASSERT(remoteFDB_);
+    ASSERT(internal_);
+    return remoteFDB_->dataHandle(*internal_, remapKey);
 }
 
 void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {
@@ -77,6 +85,9 @@ void RemoteFieldLocation::print(std::ostream& out) const {
 void RemoteFieldLocation::encode(eckit::Stream& s) const {
     FieldLocation::encode(s);
     s << *internal_;
+    std::stringstream ss;
+    ss << remoteFDB_->config();
+    s << ss.str();
 }
 
 void RemoteFieldLocation::dump(std::ostream& out) const {

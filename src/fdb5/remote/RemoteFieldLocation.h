@@ -19,19 +19,20 @@
 #ifndef fdb5_RemoteFieldLocation_H
 #define fdb5_RemoteFieldLocation_H
 
-
 #include "fdb5/database/FieldLocation.h"
 
 namespace fdb5 {
-namespace remote {
 
+class RemoteFDB;
+
+namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class RemoteFieldLocation : public FieldLocation {
 public:
 
-    RemoteFieldLocation(const FieldLocation& internal, const std::string& hostname, int port);
+    RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocation& remoteLocation);
     RemoteFieldLocation(const eckit::URI &uri);
     RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length);
     RemoteFieldLocation(eckit::Stream&);
@@ -66,6 +67,8 @@ private: // methods
 
 private: // members
 
+    // not Owning
+    RemoteFDB* remoteFDB_;
     std::shared_ptr<FieldLocation> internal_;
 };
 

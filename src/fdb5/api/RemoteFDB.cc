@@ -21,6 +21,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/api/RemoteFDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/database/Key.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/Buffer.h"
@@ -541,20 +542,27 @@ struct BaseAPIHelper {
     static Message message() { return msgID; }
 
     void encodeExtra(eckit::Stream& s) const {}
-    static ValueType valueFromStream(eckit::Stream& s, const eckit::net::Endpoint& endpoint) { return ValueType(s); }
+    static ValueType valueFromStream(eckit::Stream& s, RemoteFDB* fdb) { return ValueType(s); }
 };
 
 using ListHelper = BaseAPIHelper<ListElement, Message::List>;
 
-using InspectHelper = BaseAPIHelper<ListElement, Message::Inspect>;
+struct InspectHelper : BaseAPIHelper<ListElement, Message::Inspect> {
+
+    static ListElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
+        ListElement elem(s);
+        //elem.location(RemoteFieldLocation(fdb, elem.location()));
+        return elem;
+    }
+};
 
 using StatsHelper = BaseAPIHelper<StatsElement, Message::Stats>;
 
 struct StatusHelper : BaseAPIHelper<StatusElement, Message::Status> {
 
-    static StatusElement valueFromStream(eckit::Stream& s, const eckit::net::Endpoint& endpoint) {
+    static StatusElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         StatusElement elem(s);
-        elem.location.endpoint(endpoint);
+        elem.location.endpoint(fdb->controlEndpoint());
         return elem;
     }
 };
@@ -563,7 +571,7 @@ struct DumpHelper : BaseAPIHelper<DumpElement, Message::Dump> {
 
     DumpHelper(bool simple) : simple_(simple) {}
     void encodeExtra(eckit::Stream& s) const { s << simple_; }
-    static DumpElement valueFromStream(eckit::Stream& s, const eckit::net::Endpoint& endpoint) {
+    static DumpElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         DumpElement elem;
         s >> elem;
         return elem;
@@ -580,7 +588,7 @@ struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
         s << doit_;
         s << porcelain_;
     }
-    static PurgeElement valueFromStream(eckit::Stream& s, const eckit::net::Endpoint& endpoint) {
+    static PurgeElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         PurgeElement elem;
         s >> elem;
         return elem;
@@ -600,7 +608,7 @@ struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
         s << porcelain_;
         s << unsafeWipeAll_;
     }
-    static WipeElement valueFromStream(eckit::Stream& s, const eckit::net::Endpoint& endpoint) {
+    static WipeElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         WipeElement elem;
         s >> elem;
         return elem;
@@ -666,18 +674,18 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
 
     // Return an AsyncIterator to allow the messages to be retrieved in the API
 
-    const eckit::net::Endpoint& endpoint = controlEndpoint_;
+    RemoteFDB* remoteFDB = this;
     return IteratorType(
         // n.b. Don't worry about catching exceptions in lambda, as
         // this is handled in the AsyncIterator.
-        new AsyncIterator([messageQueue, endpoint](eckit::Queue<ValueType>& queue) {
+        new AsyncIterator([messageQueue, remoteFDB](eckit::Queue<ValueType>& queue) {
             StoredMessage msg = std::make_pair(remote::MessageHeader{}, eckit::Buffer{0});
                         while (true) {
                             if (messageQueue->pop(msg) == -1) {
                                 break;
                             } else {
                                 MemoryStream s(msg.second);
-                                queue.emplace(HelperClass::valueFromStream(s, endpoint));
+                                queue.emplace(HelperClass::valueFromStream(s, remoteFDB));
                             }
                         }
                         // messageQueue goes out of scope --> destructed
@@ -1056,6 +1064,24 @@ private: // members
 //    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
 //}
 
+
+// Here we do (asynchronous) read related stuff
+
+eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
+
+    connect();
+
+    Buffer encodeBuffer(4096);
+    MemoryStream s(encodeBuffer);
+    s << fieldLocation;
+    s << remapKey;
+
+    uint32_t id = generateRequestID();
+
+    controlWriteCheckResponse(Message::DataHandle, id, encodeBuffer, s.position());
+
+    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
+}
 
 void RemoteFDB::print(std::ostream &s) const {
     s << "RemoteFDB(host=" << controlEndpoint_ << ", data=" << dataEndpoint_ << ")";

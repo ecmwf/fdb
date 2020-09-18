@@ -70,31 +70,55 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
     return sorted;
 }
 
+
+typedef std::tuple<std::chrono::system_clock::time_point, std::shared_ptr<FieldLocation>, Key> InspectEl;
+
+class DFL : public metkit::hypercube::Deduplicator<InspectEl> {
+public:
+    bool empty(InspectEl el) const override { return std::get<1>(el) == nullptr; }
+    bool replace(InspectEl existing, InspectEl replacement) const override {
+        return std::get<0>(existing) < std::get<0>(replacement);
+    }
+};
+
+//typedef std::pair<std::chrono::system_clock::time_point, eckit::DataHandle*>
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest &request) {
 
     eckit::Timer timer;
     timer.start();
 
-    metkit::hypercube::HyperCubePlusPayload<std::shared_ptr<Field>> fields(request);
+    DFL dfl;
+    metkit::hypercube::HyperCubeContent<InspectEl> locations(request, dfl);
 
-    ListIterator li = inspect(request);
+    ListIterator it = inspect(request);
     ListElement el;
-    while (li.next(el)) {
-        fields.add(metkit::hypercube::HyperCubeEntry<std::shared_ptr<Field> >(el.combinedKey().request(), el.field()->timestamp(), el.field()));
+    while (it.next(el)) {
+        locations.add(el.combinedKey().request(), std::make_tuple(el.timestamp(), el.location(), el.remapKey()));
     }
 
     HandleGatherer result(sorted(request));
-    for (size_t i=0; i< fields.count(); i++) {
-        auto field = fields.at(i);
-        if (field.payload() != nullptr) {
-            result.add(field.payload()->dataHandle());
+    bool missing = false;
+    for (size_t i=0; i< locations.count(); i++) {
+        auto location = locations.at(i);
+        if (!dfl.empty(location.payload())) {
+            const FieldLocation& loc = *(std::get<1>(location.payload()));
+            const Key& remapKey = std::get<2>(location.payload());
+            if (remapKey.empty())
+                result.add(loc.dataHandle());
+            else
+                result.add(loc.dataHandle(remapKey));
         }
         else {
             std::stringstream ss;
-            ss << "No matching data for request: " << field.request();
+            ss << "No matching data for request: " << location.request();
             eckit::Log::warning() << ss.str() << std::endl;
-            //throw eckit::UserError(ss.str(), Here());
+            missing = true;
         }
+    }
+    if (missing) {
+        std::stringstream ss;
+        ss << "No matching data for request: " << request;
+        throw eckit::UserError(ss.str(), Here());
     }
 
     return result.dataHandle();

@@ -48,9 +48,9 @@ eckit::DataHandle* Retriever::retrieve(const metkit::mars::MarsRequest& request)
     ListElement el;
     while (li.next(el)) {
         if (el.remapKey().empty())
-            result.add(el.field()->dataHandle());
+            result.add(el.location()->dataHandle());
         else
-            result.add(el.field()->dataHandle(el.remapKey()));
+            result.add(el.location()->dataHandle(el.remapKey()));
     }
     return result.dataHandle();
 }

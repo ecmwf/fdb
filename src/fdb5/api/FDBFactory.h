@@ -27,6 +27,7 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"

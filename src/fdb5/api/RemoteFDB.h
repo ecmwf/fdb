@@ -36,6 +36,7 @@
 namespace fdb5 {
 
 class FDB;
+class RemoteFieldLocation;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -57,6 +58,8 @@ public: // method
     /// Archive writes data into aggregation buffer
     void archive(const Key& key, const void* data, size_t length) override;
 
+    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const Key& remapKey);
+
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
     ListIterator list(const FDBToolRequest& request) override;
@@ -76,6 +79,8 @@ public: // method
                             ControlIdentifiers identifiers) override;
 
     void flush() override;
+
+    const eckit::net::Endpoint& controlEndpoint() const { return controlEndpoint_; }
 
 private: // methods
 

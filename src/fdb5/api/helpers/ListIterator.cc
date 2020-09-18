@@ -21,19 +21,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ListElement::ListElement(const std::vector<Key>& keyParts, std::shared_ptr<Field> field, const Key& remapKey) :
-    keyParts_(keyParts), field_(field), remapKey_(remapKey) {}
-
+ListElement::ListElement(const std::vector<Key>& keyParts, std::shared_ptr<FieldLocation> location, std::chrono::system_clock::time_point timestamp, const Key& remapKey) :
+    keyParts_(keyParts), location_(location), timestamp_(timestamp), remapKey_(remapKey) {}
 
 ListElement::ListElement(eckit::Stream &s) {
     s >> keyParts_;
-
-    FieldLocation* location = eckit::Reanimator<FieldLocation>::reanimate(s);
+    location_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
     std::time_t tmp;
     s >> tmp;
-    timestamp_t timestamp = std::chrono::system_clock::from_time_t(tmp);
-
-    field_.reset(new Field(*location, timestamp));
+    timestamp_ = std::chrono::system_clock::from_time_t(tmp);
     s >> remapKey_;
 }
 
@@ -49,32 +45,31 @@ Key ListElement::combinedKey() const {
     return combined;
 }
 
-
 void ListElement::print(std::ostream &out, bool withLocation) const {
-    if (field_ && !withLocation) {
-        out << "host=" << field_->location().host() << ",";
+    if (!withLocation && location_ && !location_->host().empty()) {
+        out << "host=" << location_->host() << ",";
     }
     for (const auto& bit : keyParts_) {
         out << bit;
     }
-    if (field_) {
+    if (location_) {
         if (withLocation) {
-            out << " " << field_->location();
+            out << " " << location_;
         } else {
-            out << ",length=" << field_->location().length();
+            out << ",length=" << location_->length();
         }
     }
 }
 
 void ListElement::json(eckit::JSON& json) const {
     json << combinedKey().keyDict();
-    json << "length" << field_->location().length();
+    json << "length" << location_->length();
 }
 
 void ListElement::encode(eckit::Stream &s) const {
     s << keyParts_;
-    s << field_->location();
-    s << std::chrono::system_clock::to_time_t(field_->timestamp());
+    s << *location_;
+    s << std::chrono::system_clock::to_time_t(timestamp_);
     s << remapKey_;
 }
 

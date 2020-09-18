@@ -86,20 +86,37 @@ struct BaseHelper {
     }
 };
 
-
 struct ListHelper : public BaseHelper<ListElement> {
     ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
         return fdb.list(request);
     }
 
     // Create a derived RemoteFieldLocation which knows about this server
-    Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
-        RemoteFieldLocation location(*elem.field_->stableLocation(), handler.host(), handler.port());
+//    Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
+//        RemoteFieldLocation location(*elem.location_, handler.host(), handler.port());
 
-        ListElement updated(elem.keyParts_, std::make_shared<Field>(location, elem.field_->timestamp()), elem.remapKey_);
+//        ListElement updated(elem.keyParts_, std::make_shared<Field>(location, elem.field_->timestamp()), elem.remapKey_);
 
-        return BaseHelper<ListElement>::encode(updated, handler);
+//        return BaseHelper<ListElement>::encode(updated, handler);
+//    }
+};
+
+struct InspectHelper : public BaseHelper<ListElement> {
+    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.inspect(request.request());
     }
+
+    // Create a derived RemoteFieldLocation which knows about this server
+//    Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
+//        std::cout << "InspectHelper A - " << handler.host() << ":" << handler.port() << " " << elem.field_->stableLocation() << std::endl;
+//        RemoteFieldLocation location(*elem.field_->stableLocation(), handler.host(), handler.port());
+//        std::cout << "InspectHelper B - " << location << std::endl;
+
+//        ListElement updated(elem.keyParts_, std::make_shared<Field>(location, elem.field_->timestamp()), elem.remapKey_);
+//        std::cout << "InspectHelper C - " << updated << std::endl;
+
+//        return BaseHelper<ListElement>::encode(updated, handler);
+//    }
 };
 
 
@@ -370,6 +387,10 @@ void RemoteHandler::handle() {
 
                 case Message::Control:
                     forwardApiCall<ControlHelper>(hdr);
+                    break;
+
+                case Message::Inspect:
+                    forwardApiCall<InspectHelper>(hdr);
                     break;
 
                 case Message::Flush:

@@ -102,7 +102,7 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
     Field field;
     Key remapKey;
     if (db_->inspect(key, field, remapKey)) {
-        queue_.emplace(ListElement({db_->key(), db_->indexKey(), key}, std::make_shared<Field>(field), remapKey));
+        queue_.emplace(ListElement({db_->key(), db_->indexKey(), key}, field.stableLocation()->make_shared(), field.timestamp(), remapKey));
 
         return true;
     }

@@ -60,6 +60,7 @@ enum class Message : uint16_t {
     Stats,
     Control,
     Inspect,
+    DataHandle,
 
     // Responses
     Received = 200,
