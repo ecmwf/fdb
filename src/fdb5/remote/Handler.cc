@@ -393,6 +393,10 @@ void RemoteHandler::handle() {
                     forwardApiCall<InspectHelper>(hdr);
                     break;
 
+                case Message::DataHandle:
+                    read(hdr);
+                    break;
+
                 case Message::Flush:
                     flush(hdr);
                     break;
@@ -790,6 +794,32 @@ void RemoteHandler::retrieve(const MessageHeader& hdr) {
     MarsRequest request(s);
 
     retrieveQueue_.emplace(std::make_pair(hdr.requestID, std::move(request)));
+}
+
+
+void RemoteHandler::read(const MessageHeader& hdr) {
+
+    Buffer payload(receivePayload(hdr, controlSocket_));
+    MemoryStream s(payload);
+
+    FieldLocation* location = eckit::Reanimator<FieldLocation>::reanimate(s);
+    Key remapKey(s);
+
+    DataHandle* dh = nullptr;
+    if (remapKey.empty())
+        dh = location->dataHandle();
+    else
+        dh = location->dataHandle(remapKey);
+
+    // Write the data to the parent, in chunks if necessary.
+
+    Buffer writeBuffer(10 * 1024 * 1024);
+    long dataRead;
+
+    dh->openForRead();
+    while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
+        dataWrite(Message::Blob, hdr.requestID, writeBuffer, dataRead);
+    }
 }
 
 

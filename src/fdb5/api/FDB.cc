@@ -103,6 +103,7 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest &request) {
         if (!dfl.empty(location.payload())) {
             const FieldLocation& loc = *(std::get<1>(location.payload()));
             const Key& remapKey = std::get<2>(location.payload());
+            std::cout << "FDB::retrieve location - " << loc << " | Key - " << remapKey << std::endl;
             if (remapKey.empty())
                 result.add(loc.dataHandle());
             else

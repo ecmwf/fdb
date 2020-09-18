@@ -13,8 +13,8 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include "fdb5/api/RemoteFDB.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
+#include "fdb5/api/RemoteFDB.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URIManager.h"

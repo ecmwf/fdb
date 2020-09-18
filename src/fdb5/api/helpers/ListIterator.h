@@ -48,6 +48,7 @@ public: // methods
     ListElement(eckit::Stream& s);
 
     Key combinedKey() const;
+    void location(std::shared_ptr<FieldLocation> location) { location_ = location; }
     std::shared_ptr<FieldLocation> location() { return location_; }
     const std::chrono::system_clock::time_point& timestamp() { return timestamp_; }
     const Key& remapKey() const { return remapKey_; }

@@ -91,6 +91,7 @@ private:  // methods
     void flush(const MessageHeader& hdr);
     void archive(const MessageHeader& hdr);
     void retrieve(const MessageHeader& hdr);
+    void read(const MessageHeader& hdr);
 
     size_t archiveThreadLoop(uint32_t id);
     void retrieveThreadLoop();

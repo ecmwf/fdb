@@ -16,10 +16,11 @@
 #include <functional>
 #include <unistd.h>
 
+#include "fdb5/api/RemoteFDB.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/remote/Messages.h"
-#include "fdb5/api/RemoteFDB.h"
+#include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
 
@@ -551,7 +552,7 @@ struct InspectHelper : BaseAPIHelper<ListElement, Message::Inspect> {
 
     static ListElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         ListElement elem(s);
-        //elem.location(RemoteFieldLocation(fdb, elem.location()));
+        elem.location(RemoteFieldLocation(fdb, *elem.location()).make_shared());
         return elem;
     }
 };
@@ -1077,6 +1078,8 @@ eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation, con
     s << remapKey;
 
     uint32_t id = generateRequestID();
+
+    std::cout << "RemoteFDB::dataHandle " << fieldLocation << " " << remapKey << " " << id << std::endl;
 
     controlWriteCheckResponse(Message::DataHandle, id, encodeBuffer, s.position());
 
