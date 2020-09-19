@@ -206,7 +206,7 @@ RemoteHandler::RemoteHandler(eckit::net::TCPSocket& socket, const Config& config
     dataSocket_(selectDataPort()),
     dataListenHostname_(config.getString("dataListenHostname", "")),
     fdb_(config),
-    retrieveQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {}
+    readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {}
 
 RemoteHandler::~RemoteHandler() {
     // We don't want to die before the worker threads are cleaned up
@@ -393,7 +393,7 @@ void RemoteHandler::handle() {
                     forwardApiCall<InspectHelper>(hdr);
                     break;
 
-                case Message::DataHandle:
+                case Message::Read:
                     read(hdr);
                     break;
 
@@ -403,10 +403,6 @@ void RemoteHandler::handle() {
 
                 case Message::Archive:
                     archive(hdr);
-                    break;
-
-                case Message::Retrieve:
-                    retrieve(hdr);
                     break;
 
                 default: {
@@ -534,7 +530,7 @@ void RemoteHandler::tidyWorkers() {
 }
 
 void RemoteHandler::waitForWorkers() {
-    retrieveQueue_.close();
+    readLocationQueue_.close();
 
     tidyWorkers();
 
@@ -545,8 +541,8 @@ void RemoteHandler::waitForWorkers() {
         Log::error() << "Thread complete" << std::endl;
     }
 
-    if (retrieveWorker_.joinable()) {
-        retrieveWorker_.join();
+    if (readLocationWorker_.joinable()) {
+        readLocationWorker_.join();
     }
 }
 
@@ -779,51 +775,44 @@ void RemoteHandler::flush(const MessageHeader& hdr) {
     }
 }
 
+void RemoteHandler::read(const MessageHeader& hdr) {
 
-void RemoteHandler::retrieve(const MessageHeader& hdr) {
-    // If we have never done any retrieving before, then start the appropriate
-    // worker thread.
-
-    if (!retrieveWorker_.joinable()) {
-        retrieveWorker_ = std::thread([this] { retrieveThreadLoop(); });
+    if (!readLocationWorker_.joinable()) {
+        readLocationWorker_ = std::thread([this] { readLocationThreadLoop(); });
     }
 
     Buffer payload(receivePayload(hdr, controlSocket_));
     MemoryStream s(payload);
 
-    MarsRequest request(s);
-
-    retrieveQueue_.emplace(std::make_pair(hdr.requestID, std::move(request)));
-}
-
-
-void RemoteHandler::read(const MessageHeader& hdr) {
-
-    Buffer payload(receivePayload(hdr, controlSocket_));
-    MemoryStream s(payload);
-
-    FieldLocation* location = eckit::Reanimator<FieldLocation>::reanimate(s);
+    std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
     Key remapKey(s);
 
-    DataHandle* dh = nullptr;
-    if (remapKey.empty())
-        dh = location->dataHandle();
-    else
-        dh = location->dataHandle(remapKey);
+    Log::debug<LibFdb5>() << "Queuing for read: " << hdr.requestID << " " << *location << " " << remapKey << std::endl;
 
-    writeToParent(hdr.requestID, dh);
+    std::unique_ptr<eckit::DataHandle> dh;
+    if (remapKey.empty())
+        dh.reset(location->dataHandle());
+    else
+        dh.reset(location->dataHandle(remapKey));
+
+    // Forward the API call
+//    writeToParent(hdr.requestID, std::move(dh));
+    // enqueue the data transmission request
+    readLocationQueue_.emplace(std::make_pair(hdr.requestID, std::move(dh)));
 }
 
-void RemoteHandler::writeToParent(const uint32_t requestID, eckit::DataHandle* dh) {
+void RemoteHandler::writeToParent(const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh) {
     try {
-        Log::status() << "Retrieving: " << requestID << std::endl;
-
+        Log::status() << "Reading: " << requestID << std::endl;
         // Write the data to the parent, in chunks if necessary.
 
         Buffer writeBuffer(10 * 1024 * 1024);
         long dataRead;
 
         dh->openForRead();
+        Log::debug<LibFdb5>() << "Reading: " << requestID << " dh size: " << dh->size()
+                              << std::endl;
+
         while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
             dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
         }
@@ -850,22 +839,17 @@ void RemoteHandler::writeToParent(const uint32_t requestID, eckit::DataHandle* d
     }
 }
 
-void RemoteHandler::retrieveThreadLoop() {
-    std::pair<uint32_t, MarsRequest> elem;
+void RemoteHandler::readLocationThreadLoop() {
+    std::pair<uint32_t, std::unique_ptr<eckit::DataHandle>> elem;
 
-    while (retrieveQueue_.pop(elem) != -1) {
+    while (readLocationQueue_.pop(elem) != -1) {
         // Get the next MarsRequest in sequence to work on, do the retrieve, and
         // send the data back to the client.
 
         const uint32_t requestID(elem.first);
-        const MarsRequest& request(elem.second);
-
-        Log::debug<LibFdb5>() << "Retrieving (" << requestID << ")" << request << std::endl;
 
         // Forward the API call
-
-        std::unique_ptr<eckit::DataHandle> dh(fdb_.retrieve(request));
-        writeToParent(requestID, dh.get());
+        writeToParent(elem.first, std::move(elem.second));
     }
 }
 

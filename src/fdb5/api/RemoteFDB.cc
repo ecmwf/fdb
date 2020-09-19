@@ -1079,9 +1079,7 @@ eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation, con
 
     uint32_t id = generateRequestID();
 
-    std::cout << "RemoteFDB::dataHandle " << fieldLocation << " " << remapKey << " " << id << std::endl;
-
-    controlWriteCheckResponse(Message::DataHandle, id, encodeBuffer, s.position());
+    controlWriteCheckResponse(Message::Read, id, encodeBuffer, s.position());
 
     return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
 }

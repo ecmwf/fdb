@@ -96,19 +96,10 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest &request) {
         locations.add(el.combinedKey().request(), std::make_tuple(el.timestamp(), el.location(), el.remapKey()));
     }
 
-    HandleGatherer result(sorted(request));
     bool missing = false;
     for (size_t i=0; i< locations.count(); i++) {
         auto location = locations.at(i);
-        if (!dfl.empty(location.payload())) {
-            const FieldLocation& loc = *(std::get<1>(location.payload()));
-            const Key& remapKey = std::get<2>(location.payload());
-            if (remapKey.empty())
-                result.add(loc.dataHandle());
-            else
-                result.add(loc.dataHandle(remapKey));
-        }
-        else {
+        if (dfl.empty(location.payload())) {
             std::stringstream ss;
             ss << "No matching data for request: " << location.request();
             eckit::Log::warning() << ss.str() << std::endl;
@@ -121,7 +112,16 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest &request) {
         throw eckit::UserError(ss.str(), Here());
     }
 
-    std::cout << "FDB::retrieve - all fields found! " << std::endl;
+    HandleGatherer result(sorted(request));
+    for (size_t i=0; i< locations.count(); i++) {
+        auto location = locations.at(i);
+        const FieldLocation& loc = *(std::get<1>(location.payload()));
+        const Key& remapKey = std::get<2>(location.payload());
+        if (remapKey.empty())
+            result.add(loc.dataHandle());
+        else
+            result.add(loc.dataHandle(remapKey));
+    }
 
     return result.dataHandle();
 }

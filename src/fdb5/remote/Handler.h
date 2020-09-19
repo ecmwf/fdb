@@ -24,6 +24,7 @@
 #include <mutex>
 
 #include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/net/TCPServer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
@@ -93,10 +94,10 @@ private:  // methods
     void retrieve(const MessageHeader& hdr);
     void read(const MessageHeader& hdr);
 
-    void writeToParent(const uint32_t requestID, eckit::DataHandle* dh);
+    void writeToParent(const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
 
     size_t archiveThreadLoop(uint32_t id);
-    void retrieveThreadLoop();
+    void readLocationThreadLoop();
 
 private:  // members
     Config config_;
@@ -120,8 +121,8 @@ private:  // members
 
     // Retrieve helpers
 
-    std::thread retrieveWorker_;
-    eckit::Queue<std::pair<uint32_t, metkit::mars::MarsRequest>> retrieveQueue_;
+    std::thread readLocationWorker_;
+    eckit::Queue<std::pair<uint32_t, std::unique_ptr<eckit::DataHandle>>> readLocationQueue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
