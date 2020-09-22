@@ -81,7 +81,6 @@ public:
     }
 };
 
-//typedef std::pair<std::chrono::system_clock::time_point, eckit::DataHandle*>
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest &request) {
 
     eckit::Timer timer;
@@ -96,24 +95,18 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest &request) {
         locations.add(el.combinedKey().request(), std::make_tuple(el.timestamp(), el.location(), el.remapKey()));
     }
 
-    bool missing = false;
-    for (size_t i=0; i< locations.count(); i++) {
-        auto location = locations.at(i);
-        if (dfl.empty(location.payload())) {
-            std::stringstream ss;
-            ss << "No matching data for request: " << location.request();
-            eckit::Log::warning() << ss.str() << std::endl;
-            missing = true;
-        }
-    }
-    if (missing) {
+    if (locations.count()>0) {
         std::stringstream ss;
-        ss << "No matching data for request: " << request;
+        ss << "No matching data for requests:" << std::endl;
+        for (auto req: locations.request()) {
+            ss << "    " << req << std::endl;
+        }
+        eckit::Log::warning() << ss.str() << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }
 
     HandleGatherer result(sorted(request));
-    for (size_t i=0; i< locations.count(); i++) {
+    for (size_t i=0; i< locations.size(); i++) {
         auto location = locations.at(i);
         const FieldLocation& loc = *(std::get<1>(location.payload()));
         const Key& remapKey = std::get<2>(location.payload());
