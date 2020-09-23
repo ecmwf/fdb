@@ -1,5 +1,5 @@
-#ifndef fdb5_GribToKey_H
-#define fdb5_GribToKey_H
+#ifndef fdb5_MessageToKey_H
+#define fdb5_MessageToKey_H
 
 #include <set>
 
@@ -13,15 +13,15 @@ namespace fdb5 {
 
 class Key;
 
-class GribToKey {
+class MessageToKey {
     bool checkDuplicates_;
     std::set<Key> seen_;
 
 public:
-    GribToKey(bool checkDupes = false);
+    MessageToKey(bool checkDuplicates = false);
     void operator()(const eckit::message::Message& msg, Key& key);
 };
 
 }  // namespace fdb5
 
-#endif  // fdb5_GribToKey_H
+#endif  // fdb5_MessageToKey_H

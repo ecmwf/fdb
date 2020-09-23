@@ -18,7 +18,7 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/database/GribToKey.h"
+#include "fdb5/database/MessageToKey.h"
 
 namespace fdb5 {
 
@@ -41,7 +41,7 @@ FDB::~FDB() {
 void FDB::archive(eckit::message::Message msg)
 {
     fdb5::Key key;
-    GribToKey{}(msg, key);
+    MessageToKey{}(msg, key);
 
     archive(key, msg);
 }

@@ -112,8 +112,8 @@ list( APPEND fdb5_srcs
     database/IndexFactory.h
     database/Key.cc
     database/Key.h
-    database/GribToKey.cc
-    database/GribToKey.h
+    database/MessageToKey.cc
+    database/MessageToKey.h
     database/ReadVisitor.cc
     database/ReadVisitor.h
     database/Report.cc

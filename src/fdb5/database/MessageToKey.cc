@@ -1,5 +1,5 @@
 
-#include "GribToKey.h"
+#include "MessageToKey.h"
 
 #include <sstream>
 
@@ -34,9 +34,9 @@ public:
 }  // namespace
 
 
-GribToKey::GribToKey(bool checkDupes) : checkDuplicates_{checkDupes} {}
+MessageToKey::MessageToKey(bool checkDuplicates) : checkDuplicates_{checkDuplicates} {}
 
-void GribToKey::operator()(const eckit::message::Message& msg, Key& key) {
+void MessageToKey::operator()(const eckit::message::Message& msg, Key& key) {
     KeySetter setter(key);
     msg.getMetadata(setter);
 
@@ -45,7 +45,7 @@ void GribToKey::operator()(const eckit::message::Message& msg, Key& key) {
     if ( checkDuplicates_ ) {
         if ( seen_.find(key) != seen_.end() ) {
             std::ostringstream oss;
-            oss << "GRIB sent to FDB has duplicated parameters : " << key;
+            oss << "Message sent to FDB has duplicated parameters : " << key;
             throw eckit::SeriousBug( oss.str() );
         }
 
