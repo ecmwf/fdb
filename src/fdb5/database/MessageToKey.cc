@@ -45,7 +45,7 @@ void MessageToKey::operator()(const eckit::message::Message& msg, Key& key) {
     if ( checkDuplicates_ ) {
         if ( seen_.find(key) != seen_.end() ) {
             std::ostringstream oss;
-            oss << "Message sent to FDB has duplicated parameters : " << key;
+            oss << "Message has duplicate parameters in the same request: " << key;
             throw eckit::SeriousBug( oss.str() );
         }
 
