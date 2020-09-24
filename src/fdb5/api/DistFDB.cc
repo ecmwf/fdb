@@ -20,6 +20,7 @@
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
+#include "eckit/message/Message.h"
 #include "eckit/utils/Tokenizer.h"
 
 #include "metkit/hypercube/HyperCube.h"
@@ -72,8 +73,7 @@ DistFDB::DistFDB(const eckit::Configuration& config, const std::string& name) :
 
 DistFDB::~DistFDB() {}
 
-
-void DistFDB::archive(const Key& key, const void* data, size_t length) {
+void DistFDB::archive(const Key& key, eckit::message::Message msg) {
 
     std::vector<size_t> laneIndices;
 
@@ -109,7 +109,7 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
         try {
 
-            lane.archive(key, data, length);
+            lane.archive(key, msg);
             return;
 
         } catch (eckit::Exception& e) {

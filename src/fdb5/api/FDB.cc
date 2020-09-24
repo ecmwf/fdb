@@ -15,7 +15,9 @@
 
 #include "eckit/io/DataHandle.h"
 #include "eckit/log/Log.h"
+#include "eckit/message/Message.h"
 
+#include "metkit/codes/UserDataContent.h"
 #include "metkit/hypercube/HyperCube.h"
 
 #include "fdb5/LibFdb5.h"
@@ -24,6 +26,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
+#include "fdb5/database/messageToKey.h"
 
 namespace fdb5 {
 
@@ -43,15 +46,20 @@ FDB::~FDB() {
     }
 }
 
-void FDB::archive(const Key& key, const void* data, size_t length) {
+void FDB::archive(eckit::message::Message msg) {
+    fdb5::Key key = messageToKey(msg);
+    archive(key, msg);
+}
+
+void FDB::archive(const Key& key, eckit::message::Message msg) {
     eckit::Timer timer;
     timer.start();
 
-    internal_->archive(key, data, length);
+    internal_->archive(key, msg);
     dirty_ = true;
 
     timer.stop();
-    stats_.addArchive(length, timer);
+    stats_.addArchive(msg.length(), timer);
 }
 
 bool FDB::sorted(const metkit::mars::MarsRequest &request) {
@@ -81,8 +89,12 @@ public:
     }
 };
 
-eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest &request) {
+void FDB::archive(const Key& key, const void* data, size_t length) {
+    eckit::message::Message msg{new metkit::codes::UserDataContent{data, length}};
+    archive(key, msg);
+}
 
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     eckit::Timer timer;
     timer.start();
 

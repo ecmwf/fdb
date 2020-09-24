@@ -14,6 +14,7 @@
  */
 
 #include "eckit/log/Log.h"
+#include "eckit/message/Message.h"
 #include "eckit/utils/Tokenizer.h"
 #include "eckit/types/Types.h"
 
@@ -81,7 +82,7 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) :
 SelectFDB::~SelectFDB() {}
 
 
-void SelectFDB::archive(const Key& key, const void* data, size_t length) {
+void SelectFDB::archive(const Key& key, eckit::message::Message msg) {
 
     for (auto& iter : subFdbs_) {
 
@@ -89,7 +90,7 @@ void SelectFDB::archive(const Key& key, const void* data, size_t length) {
         FDB& fdb(iter.second);
 
         if (matches(key, select, true)) {
-            fdb.archive(key, data, length);
+            fdb.archive(key, msg);
             return;
         }
     }

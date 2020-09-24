@@ -46,7 +46,7 @@ public: // methods
 
     ~SelectFDB() override;
 
-    void archive(const Key& key, const void* data, size_t length) override;
+    void archive(const Key& key, eckit::message::Message msg) override;
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
