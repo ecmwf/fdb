@@ -21,6 +21,7 @@
 #include "eckit/testing/Test.h"
 
 #include "metkit/mars/TypeAny.h"
+#include "metkit/codes/UserDataContent.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -84,6 +85,7 @@ CASE( "archives_distributed_according_to_select" ) {
     fdb5::Key k;
     k.set("class", "od");
     k.set("expver", "xxxx");
+
     fdb.archive(k, (const void*)0x1234, 1234);
 
     EXPECT(spy_od.counts().archive == 1);
@@ -95,6 +97,7 @@ CASE( "archives_distributed_according_to_select" ) {
 
     k.set("class", "rd");
     k.set("expver", "yyyy");
+
     fdb.archive(k, (const void*)0x4321, 4321);
 
     EXPECT(spy_od.counts().archive == 1);
