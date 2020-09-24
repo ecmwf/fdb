@@ -28,6 +28,7 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Log.h"
+#include "eckit/message/Message.h"
 #include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Translator.h"
@@ -733,8 +734,7 @@ ControlIterator RemoteFDB::control(const FDBToolRequest& request,
 // -----------------------------------------------------------------------------------------------------
 
 // Here we do archive/flush related stuff
-
-void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
+void RemoteFDB::archive(const Key& key, eckit::message::Message msg) {
 
     connect();
 
@@ -764,7 +764,7 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
     {
         std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
         ASSERT(archiveQueue_);
-        archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
+        archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(msg.data()), msg.length())));
     }
 }
 

@@ -55,7 +55,7 @@ public: // method
     ~RemoteFDB() override;
 
     /// Archive writes data into aggregation buffer
-    void archive(const Key& key, const void* data, size_t length) override;
+    void archive(const Key& key, eckit::message::Message msg) override;
 
     eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const Key& remapKey);
 
