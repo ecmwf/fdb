@@ -795,10 +795,13 @@ void RemoteHandler::read(const MessageHeader& hdr) {
     else
         dh.reset(location->dataHandle(remapKey));
 
-    // Forward the API call
-//    writeToParent(hdr.requestID, std::move(dh));
-    // enqueue the data transmission request
-    readLocationQueue_.emplace(std::make_pair(hdr.requestID, std::move(dh)));
+    bool syncronous = true;
+    if (syncronous)
+        // Forward the API call
+        writeToParent(hdr.requestID, std::move(dh));
+    else
+        // enqueue the data transmission request
+        readLocationQueue_.emplace(std::make_pair(hdr.requestID, std::move(dh)));
 }
 
 void RemoteHandler::writeToParent(const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh) {
