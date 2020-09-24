@@ -1,5 +1,5 @@
 
-#include "MessageToKey.h"
+#include "messageToKey.h"
 
 #include <sstream>
 
@@ -33,24 +33,13 @@ public:
 };
 }  // namespace
 
+Key messageToKey(const eckit::message::Message& msg) {
+    Key key;
 
-MessageToKey::MessageToKey(bool checkDuplicates) : checkDuplicates_{checkDuplicates} {}
-
-void MessageToKey::operator()(const eckit::message::Message& msg, Key& key) {
     KeySetter setter(key);
     msg.getMetadata(setter);
 
-    // check for duplicated entries (within same request)
-
-    if ( checkDuplicates_ ) {
-        if ( seen_.find(key) != seen_.end() ) {
-            std::ostringstream oss;
-            oss << "Message has duplicate parameters in the same request: " << key;
-            throw eckit::SeriousBug( oss.str() );
-        }
-
-        seen_.insert(key);
-    }
+    return key;
 }
 
 }  // namespace fdb5

@@ -13,7 +13,7 @@
 
 #include "metkit/mars/TypeAny.h"
 #include "fdb5/grib/GribDecoder.h"
-#include "fdb5/database/MessageToKey.h"
+#include "fdb5/database/messageToKey.h"
 
 #include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
@@ -33,7 +33,17 @@ void GribDecoder::gribToKey(const eckit::message::Message& msg, Key &key) {
 
     eckit::message::Message patched = patch(msg);
 
-    MessageToKey{checkDuplicates_}(msg ,key);
+    key = messageToKey(msg);
+
+    if ( checkDuplicates_ ) {
+        if ( seen_.find(key) != seen_.end() ) {
+            std::ostringstream oss;
+            oss << "Message has duplicate parameters in the same request: " << key;
+            throw eckit::SeriousBug( oss.str() );
+        }
+
+        seen_.insert(key);
+    }
 }
 
 metkit::mars::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *verb) {

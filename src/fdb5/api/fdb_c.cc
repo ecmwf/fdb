@@ -288,10 +288,7 @@ int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t leng
         ASSERT(key);
         ASSERT(data);
 
-        codes_handle* h = codes_handle_new_from_message(nullptr, data, length);
-        eckit::message::Message msg{new metkit::codes::CodesContent{h, true}};
-
-        fdb->archive(*key, msg);
+        fdb->archive(*key, data, length);
         fdb->flush();
     });
 }

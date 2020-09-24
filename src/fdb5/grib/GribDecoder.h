@@ -58,6 +58,7 @@ private:
     virtual eckit::message::Message patch(const eckit::message::Message& msg);
 
     bool checkDuplicates_;
+    std::set<Key> seen_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

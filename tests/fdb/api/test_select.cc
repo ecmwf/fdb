@@ -85,8 +85,8 @@ CASE( "archives_distributed_according_to_select" ) {
     fdb5::Key k;
     k.set("class", "od");
     k.set("expver", "xxxx");
-    eckit::message::Message msg{new metkit::codes::UserDataContent{(const void*)0x1234, 1234}};
-    fdb.archive(k, msg);
+
+    fdb.archive(k, (const void*)0x1234, 1234);
 
     EXPECT(spy_od.counts().archive == 1);
     EXPECT(spy_od.counts().flush == 0);
@@ -97,8 +97,8 @@ CASE( "archives_distributed_according_to_select" ) {
 
     k.set("class", "rd");
     k.set("expver", "yyyy");
-    msg = eckit::message::Message{new metkit::codes::UserDataContent{(const void*)0x4321, 4321}};
-    fdb.archive(k, msg);
+
+    fdb.archive(k, (const void*)0x4321, 4321);
 
     EXPECT(spy_od.counts().archive == 1);
     EXPECT(spy_od.counts().flush == 0);

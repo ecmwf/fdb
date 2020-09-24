@@ -15,10 +15,13 @@
 
 #include "eckit/io/DataHandle.h"
 #include "eckit/message/Message.h"
+
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/database/MessageToKey.h"
+#include "fdb5/database/messageToKey.h"
+
+#include "metkit/codes/UserDataContent.h"
 
 namespace fdb5 {
 
@@ -38,11 +41,8 @@ FDB::~FDB() {
     }
 }
 
-void FDB::archive(eckit::message::Message msg)
-{
-    fdb5::Key key;
-    MessageToKey{}(msg, key);
-
+void FDB::archive(eckit::message::Message msg) {
+    fdb5::Key key = messageToKey(msg);
     archive(key, msg);
 }
 
@@ -57,8 +57,13 @@ void FDB::archive(const Key& key, eckit::message::Message msg) {
     stats_.addArchive(msg.length(), timer);
 }
 
-eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+void FDB::archive(const Key& key, const void* data, size_t length) {
+    eckit::message::Message msg{new metkit::codes::UserDataContent{data, length}};
+    archive(key, msg);
+}
 
+
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     eckit::Timer timer;
     timer.start();
     eckit::DataHandle* dh = internal_->retrieve(request);
