@@ -14,10 +14,11 @@
  */
 
 
+#include "eckit/config/YAMLConfiguration.h"
 #include "eckit/log/Log.h"
+#include "eckit/message/Message.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
-#include "eckit/config/YAMLConfiguration.h"
 
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/LibFdb5.h"

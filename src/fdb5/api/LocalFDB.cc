@@ -13,8 +13,9 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include "eckit/log/Log.h"
 #include "eckit/container/Queue.h"
+#include "eckit/log/Log.h"
+#include "eckit/message/Message.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -40,14 +41,14 @@ using namespace eckit;
 
 
 namespace fdb5 {
-void LocalFDB::archive(const Key& key, const void* data, size_t length) {
+void LocalFDB::archive(const Key& key, eckit::message::Message msg) {
 
     if (!archiver_) {
         Log::debug<LibFdb5>() << *this << ": Constructing new archiver" << std::endl;
         archiver_.reset(new Archiver(config_));
     }
 
-    archiver_->archive(key, data, length);
+    archiver_->archive(key, msg.data(), msg.length());
 }
 
 DataHandle *LocalFDB::retrieve(const metkit::mars::MarsRequest &request) {
