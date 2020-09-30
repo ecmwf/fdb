@@ -41,12 +41,9 @@ public: // methods
 
     FieldLocation() {}
     FieldLocation(const eckit::URI &uri);
-    FieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length);
+    FieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length, const Key& remapKey);
     FieldLocation(eckit::Stream&);
 
-//    virtual const char *name() const = 0;
-
-//    FieldLocation(const FieldLocation&);
     FieldLocation& operator=(const FieldLocation&) = delete;
 
     const eckit::URI& uri() const { return uri_; }
@@ -54,9 +51,10 @@ public: // methods
     eckit::Offset offset() const;
     std::string host() const { return uri_.hostport(); }
     virtual eckit::Length length() const;
+    void remapKey(const Key& key);
+    const Key& remapKey() const;
 
     virtual eckit::DataHandle *dataHandle() const = 0;
-    virtual eckit::DataHandle *dataHandle(const Key& remapKey) const = 0;
 
     /// Create a (shared) copy of the current object, for storage in a general container.
     virtual std::shared_ptr<FieldLocation> make_shared() const = 0;
@@ -80,8 +78,6 @@ protected: // For Streamable
 protected: // members
 
     eckit::URI uri_;
-//    eckit::Offset offset_;
-//    eckit::Length length_;
 
 private: // friends
 
@@ -102,17 +98,17 @@ private: // friends
     public:
         FieldLocationBuilderBase(const std::string &);
         virtual ~FieldLocationBuilderBase();
-        virtual FieldLocation* make(const eckit::URI &uri) = 0;
-        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length) = 0;
+//        virtual FieldLocation* make(const eckit::URI &uri) = 0;
+        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) = 0;
     };
 
     template< class T>
     class FieldLocationBuilder : public FieldLocationBuilderBase {
-        virtual FieldLocation* make(const eckit::URI &uri) {
-            return new T(uri);
-        }
-        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
-            return new T(uri, offset, length);
+//        virtual FieldLocation* make(const eckit::URI &uri) {
+//            return new T(uri);
+//        }
+        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) {
+            return new T(uri, offset, length, remapKey);
         }
     public:
         FieldLocationBuilder(const std::string &name) : FieldLocationBuilderBase(name) {}
@@ -131,8 +127,8 @@ private: // friends
         void list(std::ostream &);
 
         /// @returns a specialized FieldLocation built by specified builder
-        FieldLocation* build(const std::string &, const eckit::URI &);
-        FieldLocation* build(const std::string &, const eckit::URI &, eckit::Offset offset, eckit::Length length);
+//        FieldLocation* build(const std::string &, const eckit::URI &);
+        FieldLocation* build(const std::string &, const eckit::URI &, eckit::Offset offset, eckit::Length length, const Key& remapKey);
 
     private:
 

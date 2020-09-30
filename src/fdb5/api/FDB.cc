@@ -18,7 +18,7 @@
 #include "eckit/message/Message.h"
 
 #include "metkit/codes/UserDataContent.h"
-#include "metkit/hypercube/HyperCube.h"
+#include "metkit/hypercube/HyperCubeWithContent.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
@@ -62,6 +62,11 @@ void FDB::archive(const Key& key, eckit::message::Message msg) {
     stats_.addArchive(msg.length(), timer);
 }
 
+void FDB::archive(const Key& key, const void* data, size_t length) {
+    eckit::message::Message msg{new metkit::codes::UserDataContent{data, length}};
+    archive(key, msg);
+}
+
 bool FDB::sorted(const metkit::mars::MarsRequest &request) {
 
     bool sorted = false;
@@ -78,54 +83,41 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
     return sorted;
 }
 
-
-typedef std::tuple<std::chrono::system_clock::time_point, std::shared_ptr<FieldLocation>, Key> InspectEl;
-
-class DFL : public metkit::hypercube::Deduplicator<InspectEl> {
+class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
 public:
-    bool empty(InspectEl el) const override { return std::get<1>(el) == nullptr; }
-    bool replace(InspectEl existing, InspectEl replacement) const override {
-        return std::get<0>(existing) < std::get<0>(replacement);
+    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
+        return existing.timestamp() < replacement.timestamp();
     }
 };
-
-void FDB::archive(const Key& key, const void* data, size_t length) {
-    eckit::message::Message msg{new metkit::codes::UserDataContent{data, length}};
-    archive(key, msg);
-}
 
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     eckit::Timer timer;
     timer.start();
 
-    DFL dfl;
-    metkit::hypercube::HyperCubeContent<InspectEl> locations(request, dfl);
+    ListElementDeduplicator dedup;
+    metkit::hypercube::HyperCubeWithContent<ListElement> cube(request, dedup);
 
     ListIterator it = inspect(request);
     ListElement el;
     while (it.next(el)) {
-        locations.add(el.combinedKey().request(), std::make_tuple(el.timestamp(), el.location(), el.remapKey()));
+        cube.add(el.combinedKey().request(), el);
     }
 
-    if (locations.count()>0) {
+    if (cube.countVacant() > 0) {
         std::stringstream ss;
         ss << "No matching data for requests:" << std::endl;
-        for (auto req: locations.request()) {
+        for (auto req: cube.vacantRequests()) {
             ss << "    " << req << std::endl;
         }
-        eckit::Log::warning() << ss.str() << std::endl;
+        eckit::Log::userWarning() << ss.str() << std::endl;
+        // FIXME To be discussed
         throw eckit::UserError(ss.str(), Here());
     }
 
     HandleGatherer result(sorted(request));
-    for (size_t i=0; i< locations.size(); i++) {
-        auto location = locations.at(i);
-        const FieldLocation& loc = *(std::get<1>(location.payload()));
-        const Key& remapKey = std::get<2>(location.payload());
-        if (remapKey.empty())
-            result.add(loc.dataHandle());
-        else
-            result.add(loc.dataHandle(remapKey));
+    for (size_t i=0; i< cube.size(); i++) {
+        auto el = cube.at(i);
+        result.add(el.location()->dataHandle());
     }
 
     return result.dataHandle();

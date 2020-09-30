@@ -33,11 +33,9 @@ IndexBase::IndexBase(eckit::Stream& s) :
     s >> type_;
     // backward compatibility: FDB on disk may miss the timestamp
     if (s.endObjectFound()) {
-        timestamp_ = timestamp_t{};
+        timestamp_ = 0;
     } else {
-        std::time_t tmp;
-        s >> tmp;
-        timestamp_ = std::chrono::system_clock::from_time_t(tmp);
+        s >> timestamp_;
     }
 }
 

@@ -128,7 +128,7 @@ void TocCatalogueWriter::index(const Key &key, const eckit::PathName &path, ecki
         selectIndex(currentIndexKey_);
     }
 
-    Field field(TocFieldLocation(path, offset, length), currentIndex().timestamp());
+    Field field(TocFieldLocation(path, offset, length, Key()), currentIndex().timestamp());
 
     current_.put(key, field);
 

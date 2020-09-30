@@ -45,7 +45,7 @@ public:  // methods
     virtual void catalogueComplete(const Catalogue& catalogue);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
 
-    timestamp_t indexTimestamp() const;
+    time_t indexTimestamp() const;
 
 private: // methods
 

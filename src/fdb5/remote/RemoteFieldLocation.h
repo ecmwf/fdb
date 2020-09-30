@@ -33,8 +33,8 @@ class RemoteFieldLocation : public FieldLocation {
 public:
 
     RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocation& remoteLocation);
-    RemoteFieldLocation(const eckit::URI &uri);
-    RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length);
+//    RemoteFieldLocation(const eckit::URI &uri);
+    RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length, const Key& remapKey);
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
 
@@ -43,7 +43,6 @@ public:
     };
 
     virtual eckit::DataHandle *dataHandle() const override;
-    virtual eckit::DataHandle *dataHandle(const Key& remapKey) const override;
 
     virtual std::shared_ptr<FieldLocation> make_shared() const override;
     virtual void visit(FieldLocationVisitor& visitor) const override;

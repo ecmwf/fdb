@@ -785,15 +785,11 @@ void RemoteHandler::read(const MessageHeader& hdr) {
     MemoryStream s(payload);
 
     std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
-    Key remapKey(s);
 
-    Log::debug<LibFdb5>() << "Queuing for read: " << hdr.requestID << " " << *location << " " << remapKey << std::endl;
+    Log::debug<LibFdb5>() << "Queuing for read: " << hdr.requestID << " " << *location << std::endl;
 
     std::unique_ptr<eckit::DataHandle> dh;
-    if (remapKey.empty())
-        dh.reset(location->dataHandle());
-    else
-        dh.reset(location->dataHandle(remapKey));
+    dh.reset(location->dataHandle());
 
     bool syncronous = true;
     if (syncronous)

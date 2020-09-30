@@ -54,7 +54,26 @@ void FieldLocationFactory::list(std::ostream& out) {
     }
 }
 
-FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI &uri) {
+//FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI &uri) {
+
+//    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+
+//    auto j = builders_.find(name);
+
+//    eckit::Log::debug() << "Looking for FieldLocationBuilder [" << name << "]" << std::endl;
+
+//    if (j == builders_.end()) {
+//        eckit::Log::error() << "No FieldLocationBuilder for [" << name << "]" << std::endl;
+//        eckit::Log::error() << "FieldLocationBuilders are:" << std::endl;
+//        for (j = builders_.begin(); j != builders_.end(); ++j)
+//            eckit::Log::error() << "   " << (*j).first << std::endl;
+//        throw eckit::SeriousBug(std::string("No FieldLocationBuilder called ") + name);
+//    }
+
+//    return (*j).second->make(uri);
+//}
+
+FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) {
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
@@ -70,26 +89,7 @@ FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit:
         throw eckit::SeriousBug(std::string("No FieldLocationBuilder called ") + name);
     }
 
-    return (*j).second->make(uri);
-}
-
-FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
-
-    eckit::AutoLock<eckit::Mutex> lock(mutex_);
-
-    auto j = builders_.find(name);
-
-    eckit::Log::debug() << "Looking for FieldLocationBuilder [" << name << "]" << std::endl;
-
-    if (j == builders_.end()) {
-        eckit::Log::error() << "No FieldLocationBuilder for [" << name << "]" << std::endl;
-        eckit::Log::error() << "FieldLocationBuilders are:" << std::endl;
-        for (j = builders_.begin(); j != builders_.end(); ++j)
-            eckit::Log::error() << "   " << (*j).first << std::endl;
-        throw eckit::SeriousBug(std::string("No FieldLocationBuilder called ") + name);
-    }
-
-    return (*j).second->make(uri, offset, length);
+    return (*j).second->make(uri, offset, length, remapKey);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -104,30 +104,36 @@ FieldLocationBuilderBase::~FieldLocationBuilderBase() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FieldLocation::FieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length) : uri_(uri) {
+FieldLocation::FieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length, const Key& remapKey)
+    : uri_(uri) {
     long long l = length;
     long long o = offset;
     uri_.query("length", std::to_string(l));
+    uri_.query("remapKey", std::string(remapKey));
     uri_.fragment(std::to_string(o));
-    //uri_.query("length", eckit::Translator<eckit::Length, std::string>()(length));
-    //uri_.fragment(eckit::Translator<eckit::Offset, std::string>()(offset));
 }
 
-FieldLocation::FieldLocation(const eckit::URI &uri) :
-    uri_(uri) {}
+FieldLocation::FieldLocation(const eckit::URI &uri)
+    : uri_(uri) {}
 
 FieldLocation::FieldLocation(eckit::Stream& s) {
     s >> uri_;
 }
 
+void FieldLocation::remapKey(const Key& key) {
+    uri_.query("remapKey", std::string(key));
+}
+
 eckit::Offset FieldLocation::offset() const {
     return eckit::Offset(std::stoll(uri_.fragment()));
-//    return eckit::Translator<std::string, eckit::Offset>()(uri_.fragment());
 }
 
 eckit::Length FieldLocation::length() const {
     return eckit::Length(std::stoll(uri_.query("length")));
-//    return eckit::Translator<std::string, eckit::Length>()(uri_.query("length"));
+}
+
+const Key& FieldLocation::remapKey() const {
+    return std::move(Key(uri_.query("remapKey")));
 }
 
 void FieldLocation::encode(eckit::Stream& s) const {

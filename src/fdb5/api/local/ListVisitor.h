@@ -82,7 +82,7 @@ public:
         ASSERT(currentIndex_);
 
         if (key.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key}, field.stableLocation()->make_shared(), field.timestamp(), Key()));
+            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key}, field.stableLocation()->make_shared(), field.timestamp()));
         }
     }
 

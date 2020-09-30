@@ -44,10 +44,8 @@ bool TocStore::exists() const {
     return directory_.exists();
 }
 
-eckit::DataHandle* TocStore::retrieve(Field& field, Key& remapKey) const {
-    return remapKey.empty() ?
-        field.dataHandle() :
-        field.dataHandle(remapKey);
+eckit::DataHandle* TocStore::retrieve(Field& field) const {
+    field.dataHandle();
 }
 
 FieldLocation* TocStore::archive(const Key &key, const void *data, eckit::Length length) {
@@ -64,7 +62,7 @@ FieldLocation* TocStore::archive(const Key &key, const void *data, eckit::Length
 
     ASSERT(len == length);
 
-    return new TocFieldLocation(dataUri, position, length);
+    return new TocFieldLocation(dataUri, position, length, Key());
 }
 
 void TocStore::flush() {

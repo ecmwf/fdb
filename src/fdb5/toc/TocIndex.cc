@@ -75,7 +75,7 @@ void TocIndex::encode(eckit::Stream &s) const {
     s << key_;
     s << key_.valuesToString(); //< unused entry for legacy compatibility
     s << type_;
-    s << std::chrono::system_clock::to_time_t(timestamp_);
+    s << timestamp_;
 }
 
 
@@ -86,7 +86,7 @@ bool TocIndex::get(const Key &key, Field &field) const {
     bool found = btree_->get(key.valuesToString(), ref);
     if ( found ) {
         const eckit::URI& uri = files_.get(ref.pathId());
-        FieldLocation* fl =FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length());
+        FieldLocation* fl =FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), Key());
         field = Field(*fl, timestamp_, ref.details());
         // field.path_     = files_.get( ref.pathId_ );
         // field.offset_   = ref.offset_;

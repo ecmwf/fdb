@@ -1068,6 +1068,11 @@ private: // members
 
 // Here we do (asynchronous) read related stuff
 
+
+eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation) {
+    return dataHandle(fieldLocation, Key());
+}
+
 eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
 
     connect();

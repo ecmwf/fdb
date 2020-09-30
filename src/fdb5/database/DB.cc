@@ -82,22 +82,21 @@ void DB::axis(const std::string &keyword, eckit::StringSet &s) const {
     cat->axis(keyword, s);
 }
 
-bool DB::inspect(const Key& key, Field& field, Key& remapKey) {
+bool DB::inspect(const Key& key, Field& field) {
 
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
 
     CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
     ASSERT(cat);
 
-    return cat->retrieve(key, field, remapKey);
+    return cat->retrieve(key, field);
 }
 
 eckit::DataHandle *DB::retrieve(const Key& key) {
 
     Field field;
-    Key remapKey;
-    if (inspect(key, field, remapKey)) {
-        return store().retrieve(field, remapKey);
+    if (inspect(key, field)) {
+        return store().retrieve(field);
     }
 
     return nullptr;
