@@ -18,7 +18,7 @@
 #include "eckit/message/Message.h"
 
 #include "metkit/codes/UserDataContent.h"
-#include "metkit/hypercube/HyperCube.h"
+#include "metkit/hypercube/HyperCubePayloaded.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
@@ -78,39 +78,35 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
     return sorted;
 }
 
-
-typedef std::tuple<std::chrono::system_clock::time_point, std::shared_ptr<FieldLocation>, Key> InspectEl;
-
-class DFL : public metkit::hypercube::Deduplicator<InspectEl> {
-public:
-    bool empty(InspectEl el) const override { return std::get<1>(el) == nullptr; }
-    bool replace(InspectEl existing, InspectEl replacement) const override {
-        return std::get<0>(existing) < std::get<0>(replacement);
-    }
-};
-
 void FDB::archive(const Key& key, const void* data, size_t length) {
     eckit::message::Message msg{new metkit::codes::UserDataContent{data, length}};
     archive(key, msg);
 }
 
+class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
+public:
+    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
+        return existing.timestamp() < replacement.timestamp();
+    }
+};
+
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     eckit::Timer timer;
     timer.start();
 
-    DFL dfl;
-    metkit::hypercube::HyperCubeContent<InspectEl> locations(request, dfl);
+    ListElementDeduplicator dedup;
+    metkit::hypercube::HyperCubePayloaded<ListElement> cube(request, dedup);
 
     ListIterator it = inspect(request);
     ListElement el;
     while (it.next(el)) {
-        locations.add(el.combinedKey().request(), std::make_tuple(el.timestamp(), el.location(), el.remapKey()));
+        cube.add(el.combinedKey().request(), el);
     }
 
-    if (locations.count()>0) {
+    if (cube.countVacant()>0) {
         std::stringstream ss;
         ss << "No matching data for requests:" << std::endl;
-        for (auto req: locations.request()) {
+        for (auto req: cube.vacantRequests()) {
             ss << "    " << req << std::endl;
         }
         eckit::Log::warning() << ss.str() << std::endl;
@@ -118,14 +114,14 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     }
 
     HandleGatherer result(sorted(request));
-    for (size_t i=0; i< locations.size(); i++) {
-        auto location = locations.at(i);
-        const FieldLocation& loc = *(std::get<1>(location.payload()));
-        const Key& remapKey = std::get<2>(location.payload());
+    for (size_t i=0; i< cube.size(); i++) {
+        auto element = cube.at(i);
+        auto loc = element.location();
+        const Key& remapKey = element.remapKey());
         if (remapKey.empty())
-            result.add(loc.dataHandle());
+            result.add(loc->dataHandle());
         else
-            result.add(loc.dataHandle(remapKey));
+            result.add(loc->dataHandle(remapKey));
     }
 
     return result.dataHandle();
