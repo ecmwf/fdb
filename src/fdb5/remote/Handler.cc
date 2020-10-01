@@ -90,33 +90,12 @@ struct ListHelper : public BaseHelper<ListElement> {
     ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
         return fdb.list(request);
     }
-
-    // Create a derived RemoteFieldLocation which knows about this server
-//    Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
-//        RemoteFieldLocation location(*elem.location_, handler.host(), handler.port());
-
-//        ListElement updated(elem.keyParts_, std::make_shared<Field>(location, elem.field_->timestamp()), elem.remapKey_);
-
-//        return BaseHelper<ListElement>::encode(updated, handler);
-//    }
 };
 
 struct InspectHelper : public BaseHelper<ListElement> {
     ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
         return fdb.inspect(request.request());
     }
-
-    // Create a derived RemoteFieldLocation which knows about this server
-//    Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
-//        std::cout << "InspectHelper A - " << handler.host() << ":" << handler.port() << " " << elem.field_->stableLocation() << std::endl;
-//        RemoteFieldLocation location(*elem.field_->stableLocation(), handler.host(), handler.port());
-//        std::cout << "InspectHelper B - " << location << std::endl;
-
-//        ListElement updated(elem.keyParts_, std::make_shared<Field>(location, elem.field_->timestamp()), elem.remapKey_);
-//        std::cout << "InspectHelper C - " << updated << std::endl;
-
-//        return BaseHelper<ListElement>::encode(updated, handler);
-//    }
 };
 
 
@@ -791,13 +770,7 @@ void RemoteHandler::read(const MessageHeader& hdr) {
     std::unique_ptr<eckit::DataHandle> dh;
     dh.reset(location->dataHandle());
 
-    bool syncronous = true;
-    if (syncronous)
-        // Forward the API call
-        writeToParent(hdr.requestID, std::move(dh));
-    else
-        // enqueue the data transmission request
-        readLocationQueue_.emplace(std::make_pair(hdr.requestID, std::move(dh)));
+    readLocationQueue_.emplace(std::make_pair(hdr.requestID, std::move(dh)));
 }
 
 void RemoteHandler::writeToParent(const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh) {
