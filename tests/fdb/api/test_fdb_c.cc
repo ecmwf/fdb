@@ -139,7 +139,7 @@ CASE( "fdb_c - archive & list" ) {
     ASSERT(exist);
     EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
     fdb_delete_listiterator(it);
- 
+
 
     fdb_key_add(key, "expver", "xxxy");
 
