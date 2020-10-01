@@ -117,7 +117,7 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     for (size_t i=0; i< cube.size(); i++) {
         auto element = cube.at(i);
         auto loc = element.location();
-        const Key& remapKey = element.remapKey());
+        const Key& remapKey = element.remapKey();
         if (remapKey.empty())
             result.add(loc->dataHandle());
         else
