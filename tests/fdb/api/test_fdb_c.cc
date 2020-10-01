@@ -154,6 +154,34 @@ CASE( "fdb_c - archive & list" ) {
     EXPECT_NO_THROW(fdb_archive(fdb, key, buf3, length));
 }
 
+
+CASE( "fdb_c - retrieve bad request" ) {
+
+    fdb_handle_t* fdb;
+    fdb_new_handle(&fdb);
+    fdb_request_t* request;
+    fdb_new_request(&request);
+    fdb_request_add1(request, "domain", "g");
+    fdb_request_add1(request, "stream", "oper");
+    fdb_request_add1(request, "levtype", "pl");
+    fdb_request_add1(request, "levelist", "300");
+    fdb_request_add1(request, "date", "20191110");
+    fdb_request_add1(request, "time", "0000");
+    fdb_request_add1(request, "step", "0");
+    fdb_request_add1(request, "param", "138/139");
+    fdb_request_add1(request, "class", "rd");
+    fdb_request_add1(request, "type", "an");
+    fdb_request_add1(request, "expver", "xxxx");
+
+    char buf[1000];
+    char grib[4];
+    long read = 0;
+    long size;
+    fdb_datareader_t* dr;
+    fdb_new_datareader(&dr);
+    EXPECT(fdb_retrieve(fdb, request, dr) == FDB_ERROR_GENERAL_EXCEPTION);
+}
+
 CASE( "fdb_c - retrieve" ) {
 
     fdb_handle_t* fdb;
@@ -167,7 +195,7 @@ CASE( "fdb_c - retrieve" ) {
     fdb_request_add1(request, "date", "20191110");
     fdb_request_add1(request, "time", "0000");
     fdb_request_add1(request, "step", "0");
-    fdb_request_add1(request, "param", "139");
+    fdb_request_add1(request, "param", "138");
     fdb_request_add1(request, "class", "rd");
     fdb_request_add1(request, "type", "an");
     fdb_request_add1(request, "expver", "xxxx");
@@ -178,16 +206,7 @@ CASE( "fdb_c - retrieve" ) {
     long size;
     fdb_datareader_t* dr;
     fdb_new_datareader(&dr);
-    fdb_retrieve(fdb, request, dr);
-    fdb_datareader_open(dr, &size);
-    EXPECT_EQUAL(0, size);
-    fdb_datareader_read(dr, buf, 1000, &read);
-    EXPECT_EQUAL(0, read);
-    fdb_delete_datareader(dr);
-
-    fdb_request_add1(request, "param", "138");
-    fdb_new_datareader(&dr);
-    fdb_retrieve(fdb, request, dr);
+    EXPECT(fdb_retrieve(fdb, request, dr) == FDB_SUCCESS);
     fdb_datareader_open(dr, &size);
     EXPECT_NOT_EQUAL(0, size);
     fdb_datareader_read(dr, grib, 4, &read);
@@ -211,7 +230,7 @@ CASE( "fdb_c - retrieve" ) {
     const char* values[] = {"400", "300"};
     fdb_request_add(request, "levelist", values, 2);
     fdb_new_datareader(&dr);
-    fdb_retrieve(fdb, request, dr);
+    EXPECT(fdb_retrieve(fdb, request, dr) == FDB_SUCCESS);
     fdb_datareader_open(dr, &size2);
     EXPECT_EQUAL(2*size, size2);
     fdb_datareader_seek(dr, size);
