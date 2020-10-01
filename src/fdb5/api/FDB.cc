@@ -18,7 +18,7 @@
 #include "eckit/message/Message.h"
 
 #include "metkit/codes/UserDataContent.h"
-#include "metkit/hypercube/HyperCubeWithContent.h"
+#include "metkit/hypercube/HyperCubePayloaded.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
@@ -95,7 +95,7 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     timer.start();
 
     ListElementDeduplicator dedup;
-    metkit::hypercube::HyperCubeWithContent<ListElement> cube(request, dedup);
+    metkit::hypercube::HyperCubePayloaded<ListElement> cube(request, dedup);
 
     ListIterator it = inspect(request);
     ListElement el;
