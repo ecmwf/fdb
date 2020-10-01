@@ -32,13 +32,11 @@ public:
 
     TocFieldLocation(const TocFieldLocation& rhs);
     TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const Key& remapKey);
-//    TocFieldLocation(const eckit::URI &uri);
     TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     TocFieldLocation(const FileStore& store, const FieldRef& ref);
     TocFieldLocation(eckit::Stream&);
 
     eckit::DataHandle* dataHandle() const override;
-//    eckit::DataHandle* dataHandle(const Key& remapKey) const override;
 
     virtual std::shared_ptr<FieldLocation> make_shared() const override;
 

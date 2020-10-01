@@ -98,15 +98,11 @@ private: // friends
     public:
         FieldLocationBuilderBase(const std::string &);
         virtual ~FieldLocationBuilderBase();
-//        virtual FieldLocation* make(const eckit::URI &uri) = 0;
         virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) = 0;
     };
 
     template< class T>
     class FieldLocationBuilder : public FieldLocationBuilderBase {
-//        virtual FieldLocation* make(const eckit::URI &uri) {
-//            return new T(uri);
-//        }
         virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) {
             return new T(uri, offset, length, remapKey);
         }
@@ -127,7 +123,6 @@ private: // friends
         void list(std::ostream &);
 
         /// @returns a specialized FieldLocation built by specified builder
-//        FieldLocation* build(const std::string &, const eckit::URI &);
         FieldLocation* build(const std::string &, const eckit::URI &, eckit::Offset offset, eckit::Length length, const Key& remapKey);
 
     private:

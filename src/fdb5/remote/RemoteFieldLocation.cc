@@ -35,11 +35,6 @@ RemoteFieldLocation::RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocati
     ASSERT(remoteLocation.uri().scheme() != "fdb");
 }
 
-//RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
-//    FieldLocation(eckit::URI("fdb", uri)) {
-//    NOTIMP;
-//}
-
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length, const Key& remapKey) :
     FieldLocation(eckit::URI("fdb", uri), offset, length, remapKey) {
     NOTIMP;
@@ -74,7 +69,6 @@ void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {
 void RemoteFieldLocation::print(std::ostream& out) const {
     out << "RemoteFieldLocation[uri=" << uri_ << ",internal=" << *internal_ << "]";
 }
-
 
 void RemoteFieldLocation::encode(eckit::Stream& s) const {
     FieldLocation::encode(s);
