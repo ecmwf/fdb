@@ -117,7 +117,7 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     HandleGatherer result(sorted(request));
     for (size_t i=0; i< cube.size(); i++) {
         auto el = cube.at(i);
-        result.add(el.location()->dataHandle());
+        result.add(el.location().dataHandle());
     }
 
     return result.dataHandle();

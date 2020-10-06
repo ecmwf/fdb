@@ -40,18 +40,6 @@ Retriever::Retriever(const Config& dbConfig) :
 Retriever::~Retriever() {
 }
 
-eckit::DataHandle* Retriever::retrieve(const metkit::mars::MarsRequest& request) const {
-
-    ListIterator li = inspect(request);
-
-    HandleGatherer result(true);
-    ListElement el;
-    while (li.next(el)) {
-        result.add(el.location()->dataHandle());
-    }
-    return result.dataHandle();
-}
-
 ListIterator Retriever::inspect(const metkit::mars::MarsRequest& request,
                                 const Schema& schema,
                                 const fdb5::Notifier& notifyee) const {

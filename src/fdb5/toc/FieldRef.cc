@@ -15,7 +15,7 @@
 #include "eckit/serialisation/Stream.h"
 
 #include "fdb5/database/Field.h"
-#include "fdb5/database/FileStore.h"
+#include "fdb5/database/UriStore.h"
 
 #include "fdb5/toc/TocFieldLocation.h"
 
@@ -30,24 +30,21 @@ FieldRefLocation::FieldRefLocation() {
 }
 
 
-FieldRefLocation::FieldRefLocation(FileStore &store, const Field& field) {
+FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
 
     const FieldLocation& loc = field.location();
-
-    pathId_ = store.insert(loc.uri());
-    length_ = loc.length();
-
     const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
-    if(tocfloc) {
-        offset_ = tocfloc->offset();
-    }
-    else {
+    if(!tocfloc) {
         throw eckit::NotImplemented("Field location is not of TocFieldLocation type -- indexing other locations is not supported", Here());
     }
+
+    uriId_ = store.insert(tocfloc->uri());
+    length_ = tocfloc->length();
+    offset_ = tocfloc->offset();
 }
 
 void FieldRefLocation::print(std::ostream &s) const {
-    s << "FieldRefLocation(pathid=" << pathId_ << ",offset=" << offset_ << ")";
+    s << "FieldRefLocation(pathid=" << uriId_ << ",offset=" << offset_ << ",length=" << length_ << ")";
 }
 
 FieldRefReduced::FieldRefReduced() {
@@ -65,7 +62,7 @@ void FieldRefReduced::print(std::ostream &s) const {
 FieldRef::FieldRef() {
 }
 
-FieldRef::FieldRef(FileStore &store, const Field &field):
+FieldRef::FieldRef(UriStore &store, const Field &field):
     location_(store, field),
     details_(field.details()) {
 }

@@ -54,7 +54,9 @@ void FieldLocationFactory::list(std::ostream& out) {
     }
 }
 
-FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) {
+std::unique_ptr<FieldLocation> FieldLocationFactory::build(const std::string& name, const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) {
+
+    ASSERT (length != 0);
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
@@ -85,48 +87,71 @@ FieldLocationBuilderBase::~FieldLocationBuilderBase() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FieldLocation::FieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length, const Key& remapKey)
-    : uri_(uri) {
-    long long l = length;
-    long long o = offset;
-    uri_.query("length", std::to_string(l));
-    uri_.query("remapKey", std::string(remapKey));
-    uri_.fragment(std::to_string(o));
+FieldLocation::FieldLocation(const eckit::URI& uri) : uri_(uri) {
+    try {
+        offset_ = eckit::Offset(std::stoll(uri.fragment()));
+    } catch (std::invalid_argument e) {
+        offset_ = eckit::Offset(0);
+    }
+
+    std::string lengthStr = uri.query("length");
+    if (!lengthStr.empty()) {
+        try {
+            length_ = eckit::Length(std::stoll(lengthStr));
+        }  catch (std::invalid_argument e) {
+            length_ = eckit::Length(0);
+        }
+    } else {
+        length_ = eckit::Length(0);
+    }
+
+    std::string keyStr = uri.query("remapKey");
+    if (!keyStr.empty()) {
+        remapKey_ = Key(keyStr);
+    } else {
+        remapKey_ = Key();
+    }
 }
 
-FieldLocation::FieldLocation(const eckit::URI &uri)
-    : uri_(uri) {}
-
-FieldLocation::FieldLocation(eckit::Stream& s) {
-    s >> uri_;
-}
-
-void FieldLocation::remapKey(const Key& key) {
-    uri_.query("remapKey", std::string(key));
-}
-
-eckit::Offset FieldLocation::offset() const {
-    return eckit::Offset(std::stoll(uri_.fragment()));
-}
-
-eckit::Length FieldLocation::length() const {
-    return eckit::Length(std::stoll(uri_.query("length")));
-}
-
-const Key& FieldLocation::remapKey() const {
-    return std::move(Key(uri_.query("remapKey")));
-}
+FieldLocation::FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey)
+    : uri_(uri), offset_(offset), length_(length), remapKey_(remapKey) {}
 
 void FieldLocation::encode(eckit::Stream& s) const {
     s << uri_;
+    s << offset_;
+    s << length_;
+    s << remapKey_;
 }
 
+eckit::URI FieldLocation::uri() const {
+    eckit::URI out(uri_);
+
+    if (offset_ != eckit::Offset(0))
+        out.fragment(std::to_string(offset_));
+    if (length_ != eckit::Length(0))
+        out.query("length", std::to_string(length_));
+    if (!remapKey_.empty())
+        out.query("remapKey", std::string(remapKey_));
+
+    return out;
+}
+
+FieldLocation::FieldLocation(eckit::Stream& s) {
+    s >> uri_;
+    s >> offset_;
+    s >> length_;
+    s >> remapKey_;
+}
+
+//void FieldLocation::remapKey(const Key& key) { NOTIMP; }
+//const Key& FieldLocation::remapKey() const { NOTIMP; }
+
 void FieldLocation::dump(std::ostream& out) const {
-    out << "  uri: " << uri_.asRawString();
+    out << "  uri: " << uri().asRawString();
 }
 
 void FieldLocation::print(std::ostream& out) const {
-    out << "  FieldLocation[uri=" << uri_ << "]";
+    out << "  FieldLocation[uri=" << uri_ << ",offset=" << offset() << ",length=" << length() << ",remapKey=" << remapKey_ << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

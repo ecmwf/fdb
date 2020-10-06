@@ -45,14 +45,13 @@ bool TocStore::exists() const {
 }
 
 eckit::DataHandle* TocStore::retrieve(Field& field) const {
-    field.dataHandle();
+    return field.dataHandle();
 }
 
-FieldLocation* TocStore::archive(const Key &key, const void *data, eckit::Length length) {
+std::unique_ptr<FieldLocation> TocStore::archive(const Key &key, const void *data, eckit::Length length) {
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);
-    eckit::URI dataUri("file", dataPath);
 
     eckit::DataHandle &dh = getDataHandle(dataPath);
 
@@ -62,7 +61,7 @@ FieldLocation* TocStore::archive(const Key &key, const void *data, eckit::Length
 
     ASSERT(len == length);
 
-    return new TocFieldLocation(dataUri, position, length, Key());
+    return std::unique_ptr<FieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
 }
 
 void TocStore::flush() {

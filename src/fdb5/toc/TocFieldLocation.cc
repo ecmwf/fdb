@@ -23,42 +23,37 @@ namespace fdb5 {
 //TocFieldLocation::TocFieldLocation() {}
 
 TocFieldLocation::TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
-        FieldLocation(eckit::URI("file", path), offset, length, remapKey) {}
+    FieldLocation(eckit::URI("file", path), offset, length, remapKey) {}
 
 TocFieldLocation::TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
-        FieldLocation(uri, offset, length, remapKey) {}
+    FieldLocation(uri, offset, length, remapKey) {}
 
 TocFieldLocation::TocFieldLocation(const TocFieldLocation& rhs) :
     FieldLocation(rhs.uri_) {}
 
-TocFieldLocation::TocFieldLocation(const FileStore &store, const FieldRef &ref) :
-    FieldLocation(store.get(ref.pathId()), ref.offset(), ref.length(), Key()) {}
+TocFieldLocation::TocFieldLocation(const UriStore &store, const FieldRef &ref) :
+    FieldLocation(store.get(ref.uriId()), ref.offset(), ref.length(), Key()) {}
 
 TocFieldLocation::TocFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {}
-
 
 std::shared_ptr<FieldLocation> TocFieldLocation::make_shared() const {
     return std::make_shared<TocFieldLocation>(*this);
 }
 
 eckit::DataHandle *TocFieldLocation::dataHandle() const {
-    if (remapKey().empty())
-        return path().partHandle(offset(), length());
+    if (remapKey_.empty())
+        return uri_.path().partHandle(offset(), length());
     else
-        return new SingleGribMungePartFileHandle(path(), offset(), length(), remapKey());
+        return new SingleGribMungePartFileHandle(uri_.path(), offset(), length(), remapKey_);
 }
 
 void TocFieldLocation::print(std::ostream &out) const {
-    out << "TocFieldLocation[uri=" << uri_ << "]";
+    out << "TocFieldLocation[uri=" << uri_ << ",offset=" << offset() << ",length=" << length() << ",remapKey=" << remapKey_ << "]";
 }
 
 void TocFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
-}
-
-eckit::URI TocFieldLocation::uri(const eckit::PathName &path) {
-    return eckit::URI("file", path);
 }
 
 void TocFieldLocation::encode(eckit::Stream& s) const {

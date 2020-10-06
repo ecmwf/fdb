@@ -81,7 +81,7 @@ public: // methods
 
     time_t timestamp() const { return timestamp_; }
 
-    virtual bool get(const Key &key, Field &field) const = 0;
+    virtual bool get(const Key &key, const Key &remapKey, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);
 
     virtual void encode(eckit::Stream &s) const = 0;
@@ -152,7 +152,7 @@ public: // methods
 
     time_t timestamp() const { return content_->timestamp(); }
 
-    bool get(const Key& key, Field& field) const { return content_->get(key, field); }
+    bool get(const Key& key, const Key& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
     void put(const Key& key, const Field& field) { content_->put(key, field); }
 
     void encode(eckit::Stream& s) const { content_->encode(s); }

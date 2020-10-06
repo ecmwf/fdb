@@ -33,29 +33,29 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class FileStore : private eckit::NonCopyable {
+class UriStore : private eckit::NonCopyable {
 
 public: // types
 
-    typedef size_t PathID;
+    typedef size_t UriID;
 
-    typedef std::map< FileStore::PathID, eckit::URI >     URIStore;
-    typedef std::map< eckit::URI, FileStore::PathID >     IdStore;
+    typedef std::map< UriStore::UriID, eckit::URI >     URIStore;
+    typedef std::map< eckit::URI, UriStore::UriID >     IdStore;
 
 public: // methods
 
-    FileStore(const eckit::PathName &directory);
-    FileStore(const eckit::PathName &directory, eckit::Stream & );
+    UriStore(const eckit::PathName &directory);
+    UriStore(const eckit::PathName &directory, eckit::Stream & );
 
-    ~FileStore();
+    ~UriStore();
 
     /// Inserts the URI in the store
     /// @returns PathID associated to the provided eckit::URI
-    FileStore::PathID insert( const eckit::URI &path );
+    UriStore::UriID insert( const eckit::URI &path );
 
     /// @returns a eckit::URI associated to the provided id
     /// @pre assumes that the eckit::filesystem/PathName.has already been inserted
-    eckit::URI get( const FileStore::PathID id ) const;
+    eckit::URI get( const UriStore::UriID id ) const;
 
     /// Return all of the paths used
     std::vector<eckit::URI> paths() const;
@@ -64,7 +64,7 @@ public: // methods
 
     void encode(eckit::Stream &s) const;
 
-    friend std::ostream &operator<<(std::ostream &s, const FileStore &x) {
+    friend std::ostream &operator<<(std::ostream &s, const UriStore &x) {
         x.print(s);
         return s;
     }
@@ -75,12 +75,12 @@ private: // members
 
 private: // members
 
-    FileStore::PathID   next_;
-    bool                readOnly_;
+    UriStore::UriID    next_;
+    bool               readOnly_;
 
-    eckit::PathName     directory_;
+    eckit::PathName    directory_;
     URIStore           paths_;
-    IdStore             ids_;
+    IdStore            ids_;
 
 
 };

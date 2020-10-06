@@ -168,7 +168,7 @@ void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
         ASSERT(cat);
 
-        cat->index(key, path, offset, length);
+        cat->index(key, eckit::URI("file", path), offset, length);
     }
 }
 

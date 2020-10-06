@@ -88,8 +88,8 @@ list( APPEND fdb5_srcs
     database/FieldDetails.h
     database/FieldLocation.cc
     database/FieldLocation.h
-    database/FileStore.cc
-    database/FileStore.h
+    database/UriStore.cc
+    database/UriStore.h
     database/Indexer.cc
     database/Indexer.h
     database/Index.cc

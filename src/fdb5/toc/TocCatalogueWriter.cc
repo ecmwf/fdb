@@ -120,7 +120,7 @@ void TocCatalogueWriter::close() {
     closeIndexes();
 }
 
-void TocCatalogueWriter::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+void TocCatalogueWriter::index(const Key &key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
     dirty_ = true;
 
     if (current_.null()) {
@@ -128,7 +128,7 @@ void TocCatalogueWriter::index(const Key &key, const eckit::PathName &path, ecki
         selectIndex(currentIndexKey_);
     }
 
-    Field field(TocFieldLocation(path, offset, length, Key()), currentIndex().timestamp());
+    Field field(std::unique_ptr<FieldLocation>(new TocFieldLocation(uri, offset, length, Key())), currentIndex().timestamp());
 
     current_.put(key, field);
 
@@ -154,7 +154,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
             // TODO: Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
-            writer_.index(key, location.path(), location.offset(), location.length());
+            writer_.index(key, location.uri(), location.offset(), location.length());
 
         }
         void visitDatum(const Field& field, const std::string& keyFingerprint) override {
@@ -283,7 +283,7 @@ void TocCatalogueWriter::hideContents() {
     writeClearAllRecord();
 }
 
-void TocCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocation) {
+void TocCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
     dirty_ = true;
 
     if (current_.null()) {
@@ -291,7 +291,7 @@ void TocCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocat
         selectIndex(currentIndexKey_);
     }
 
-    Field field(*fieldLocation, currentIndex().timestamp());
+    Field field(std::move(fieldLocation), currentIndex().timestamp());
 
     current_.put(key, field);
 

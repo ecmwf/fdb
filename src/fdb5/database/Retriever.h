@@ -59,8 +59,6 @@ public: // methods
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from
 
-    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request) const;
-
     ListIterator inspect(const metkit::mars::MarsRequest& request) const;
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle

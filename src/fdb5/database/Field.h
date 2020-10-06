@@ -43,7 +43,7 @@ public: // methods
 
     Field();
 
-    Field(const FieldLocation& location, time_t timestamp, const FieldDetails& details = FieldDetails());
+    Field(std::unique_ptr<FieldLocation> location, time_t timestamp, const FieldDetails& details = FieldDetails());
 
     eckit::DataHandle* dataHandle() const { return location_->dataHandle(); }
 
@@ -51,14 +51,10 @@ public: // methods
 
     time_t timestamp() const { return timestamp_; }
 
-    void remapKey(const Key& key) {
-        location_->remapKey(key);
-    }
-
     /// stableLocation is an object with validity that extends longer than that of the
     /// owning DB. May need converting to a more static form --- or not.
     std::shared_ptr<const FieldLocation> stableLocation() const {
-        return std::const_pointer_cast<const FieldLocation>(location_->stableLocation());
+        return std::const_pointer_cast<const FieldLocation>(location_);
     }
     const FieldDetails& details() const { return details_; }
 

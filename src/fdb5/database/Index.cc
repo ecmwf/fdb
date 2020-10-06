@@ -109,7 +109,7 @@ private: // methods
 
     virtual void visit(IndexLocationVisitor&) const  { NOTIMP; }
 
-    virtual bool get( const Key&, Field&) const  { NOTIMP; }
+    virtual bool get( const Key&, const Key&, Field&) const  { NOTIMP; }
     virtual void add( const Key&, const Field&)  { NOTIMP; }
     virtual void flush()  { NOTIMP; }
     virtual void encode(eckit::Stream&) const { NOTIMP; }

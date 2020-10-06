@@ -113,8 +113,7 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
 
         if (idx.mayContain(key)) {
             const_cast<Index&>(idx).open();
-            if (idx.get(key, field)) {
-                field.remapKey(m->second);
+            if (idx.get(key, m->second, field)) {
                 return true;
             }
         }

@@ -21,7 +21,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ListElement::ListElement(const std::vector<Key>& keyParts, std::shared_ptr<FieldLocation> location, time_t timestamp) :
+ListElement::ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp) :
     keyParts_(keyParts), location_(location), timestamp_(timestamp) {}
 
 ListElement::ListElement(eckit::Stream &s) {

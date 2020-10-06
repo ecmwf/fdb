@@ -48,7 +48,7 @@ public:
 ///       the members of TocIndex
 
 TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
-    FileStoreWrapper(path.dirName()),
+    UriStoreWrapper(path.dirName()),
     IndexBase(key, type),
     btree_(nullptr),
     dirty_(false),
@@ -57,7 +57,7 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
 }
 
 TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
-    FileStoreWrapper(directory, s),
+    UriStoreWrapper(directory, s),
     IndexBase(s),
     btree_(nullptr),
     dirty_(false),
@@ -79,18 +79,14 @@ void TocIndex::encode(eckit::Stream &s) const {
 }
 
 
-bool TocIndex::get(const Key &key, Field &field) const {
+bool TocIndex::get(const Key &key, const Key &remapKey, Field &field) const {
     ASSERT(btree_);
     FieldRef ref;
 
     bool found = btree_->get(key.valuesToString(), ref);
     if ( found ) {
-        const eckit::URI& uri = files_.get(ref.pathId());
-        FieldLocation* fl =FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), Key());
-        field = Field(*fl, timestamp_, ref.details());
-        // field.path_     = files_.get( ref.pathId_ );
-        // field.offset_   = ref.offset_;
-        // field.length_   = ref.length_;
+        const eckit::URI& uri = files_.get(ref.uriId());
+        field = Field(FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), remapKey), timestamp_, ref.details());
     }
     return found;
 }
@@ -159,15 +155,15 @@ void TocIndex::visit(IndexLocationVisitor &visitor) const {
 
 
 class TocIndexVisitor : public BTreeIndexVisitor {
-    const FileStore &files_;
+    const UriStore &files_;
     EntryVisitor &visitor_;
 public:
-    TocIndexVisitor(const FileStore &files, EntryVisitor &visitor):
+    TocIndexVisitor(const UriStore &files, EntryVisitor &visitor):
         files_(files),
         visitor_(visitor) {}
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
-        Field field(TocFieldLocation(files_, ref), visitor_.indexTimestamp(), ref.details());
+        Field field(std::unique_ptr<FieldLocation>(new TocFieldLocation(files_, ref)), visitor_.indexTimestamp(), ref.details());
         visitor_.visitDatum(field, keyFingerprint);
     }
 };
