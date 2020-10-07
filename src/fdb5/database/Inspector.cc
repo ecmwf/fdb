@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/Retriever.h"
+#include "fdb5/database/Inspector.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
@@ -33,29 +33,14 @@ static void purgeDB(Key& key, DB*& db) {
     delete db;
 }
 
-Retriever::Retriever(const Config& dbConfig) :
+Inspector::Inspector(const Config& dbConfig) :
     databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeDB),
     dbConfig_(dbConfig) {}
 
-Retriever::~Retriever() {
+Inspector::~Inspector() {
 }
 
-eckit::DataHandle* Retriever::retrieve(const metkit::mars::MarsRequest& request) const {
-
-    ListIterator li = inspect(request);
-
-    HandleGatherer result(true);
-    ListElement el;
-    while (li.next(el)) {
-        if (el.remapKey().empty())
-            result.add(el.location()->dataHandle());
-        else
-            result.add(el.location()->dataHandle(el.remapKey()));
-    }
-    return result.dataHandle();
-}
-
-ListIterator Retriever::inspect(const metkit::mars::MarsRequest& request,
+ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request,
                                 const Schema& schema,
                                 const fdb5::Notifier& notifyee) const {
 
@@ -73,7 +58,7 @@ ListIterator Retriever::inspect(const metkit::mars::MarsRequest& request,
     return QueryIterator(new AsyncIterator(async_worker));
 }
 
-ListIterator Retriever::inspect(const metkit::mars::MarsRequest& request) const {
+ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request) const {
 
     class NullNotifier : public Notifier {
         void notifyWind() const override {}
@@ -82,17 +67,17 @@ ListIterator Retriever::inspect(const metkit::mars::MarsRequest& request) const 
     return inspect(request, NullNotifier());
 }
 
-ListIterator Retriever::inspect(const metkit::mars::MarsRequest& request, const Notifier& notifyee) const {
+ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request, const Notifier& notifyee) const {
 
     return inspect(request, dbConfig_.schema(), notifyee);
 }
 
-void Retriever::visitEntries(const FDBToolRequest &request, EntryVisitor &visitor) const {
+void Inspector::visitEntries(const FDBToolRequest &request, EntryVisitor &visitor) const {
 
 }
 
-void Retriever::print(std::ostream &out) const {
-    out << "Retriever[]";
+void Inspector::print(std::ostream &out) const {
+    out << "Inspector[]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

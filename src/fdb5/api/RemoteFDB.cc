@@ -553,8 +553,7 @@ struct InspectHelper : BaseAPIHelper<ListElement, Message::Inspect> {
 
     static ListElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         ListElement elem(s);
-        elem.location(RemoteFieldLocation(fdb, *elem.location()).make_shared());
-        return elem;
+        return ListElement(elem.key(), RemoteFieldLocation(fdb, elem.location()).make_shared(), elem.timestamp());
     }
 };
 
@@ -1067,6 +1066,11 @@ private: // members
 
 
 // Here we do (asynchronous) read related stuff
+
+
+eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation) {
+    return dataHandle(fieldLocation, Key());
+}
 
 eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
 

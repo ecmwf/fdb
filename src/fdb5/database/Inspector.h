@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Retriever.h
+/// @file   Inspector.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Retriever_H
-#define fdb5_Retriever_H
+#ifndef fdb5_Inspector_H
+#define fdb5_Inspector_H
 
 #include <iosfwd>
 #include <cstdlib>
@@ -48,18 +48,16 @@ class EntryVisitor;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Retriever : public eckit::NonCopyable {
+class Inspector : public eckit::NonCopyable {
 
 public: // methods
 
-    Retriever(const Config& dbConfig=Config());
+    Inspector(const Config& dbConfig=Config());
 
-    ~Retriever();
+    ~Inspector();
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from
-
-    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request) const;
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) const;
 
@@ -73,7 +71,7 @@ public: // methods
 
     void visitEntries(const FDBToolRequest& request, EntryVisitor& visitor) const;
 
-    friend std::ostream &operator<<(std::ostream &s, const Retriever &x) {
+    friend std::ostream &operator<<(std::ostream &s, const Inspector &x) {
         x.print(s);
         return s;
     }

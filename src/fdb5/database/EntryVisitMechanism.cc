@@ -64,10 +64,8 @@ void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
 }
 
 
-timestamp_t EntryVisitor::indexTimestamp() const {
-    return currentIndex_ == nullptr
-            ? timestamp_t{}
-            : currentIndex_->timestamp();
+time_t EntryVisitor::indexTimestamp() const {
+    return currentIndex_ == nullptr ? 0 : currentIndex_->timestamp();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

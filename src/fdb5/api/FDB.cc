@@ -62,6 +62,11 @@ void FDB::archive(const Key& key, eckit::message::Message msg) {
     stats_.addArchive(msg.length(), timer);
 }
 
+void FDB::archive(const Key& key, const void* data, size_t length) {
+    eckit::message::Message msg{new metkit::codes::UserDataContent{data, length}};
+    archive(key, msg);
+}
+
 bool FDB::sorted(const metkit::mars::MarsRequest &request) {
 
     bool sorted = false;
@@ -76,11 +81,6 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
     eckit::Log::debug<LibFdb5>() << "fdb5::FDB::retrieve() Sorted? " << sorted << std::endl;
 
     return sorted;
-}
-
-void FDB::archive(const Key& key, const void* data, size_t length) {
-    eckit::message::Message msg{new metkit::codes::UserDataContent{data, length}};
-    archive(key, msg);
 }
 
 class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
@@ -103,25 +103,21 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
         cube.add(el.combinedKey().request(), el);
     }
 
-    if (cube.countVacant()>0) {
+    if (cube.countVacant() > 0) {
         std::stringstream ss;
         ss << "No matching data for requests:" << std::endl;
         for (auto req: cube.vacantRequests()) {
             ss << "    " << req << std::endl;
         }
-        eckit::Log::warning() << ss.str() << std::endl;
-        throw eckit::UserError(ss.str(), Here());
+        eckit::Log::userWarning() << ss.str() << std::endl;
     }
 
     HandleGatherer result(sorted(request));
     for (size_t i=0; i< cube.size(); i++) {
-        auto element = cube.at(i);
-        auto loc = element.location();
-        const Key& remapKey = element.remapKey();
-        if (remapKey.empty())
-            result.add(loc->dataHandle());
-        else
-            result.add(loc->dataHandle(remapKey));
+        ListElement element;
+        if (cube.find(i, element)) {
+            result.add(element.location().dataHandle());
+        }
     }
 
     return result.dataHandle();

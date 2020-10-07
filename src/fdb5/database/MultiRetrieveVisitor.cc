@@ -100,10 +100,9 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
     eckit::Log::debug() << "selectDatum " << key << ", " << full << std::endl;
 
     Field field;
-    Key remapKey;
-    if (db_->inspect(key, field, remapKey)) {
-        queue_.emplace(ListElement({db_->key(), db_->indexKey(), key}, field.stableLocation()->make_shared(), field.timestamp(), remapKey));
+    if (db_->inspect(key, field)) {
 
+        queue_.emplace(ListElement({db_->key(), db_->indexKey(), key}, field.stableLocation(), field.timestamp()));
         return true;
     }
 
