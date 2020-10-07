@@ -23,7 +23,7 @@
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/database/Retriever.h"
+#include "fdb5/database/Inspector.h"
 #include "fdb5/LibFdb5.h"
 
 #include "fdb5/api/local/ControlVisitor.h"
@@ -53,12 +53,12 @@ void LocalFDB::archive(const Key& key, eckit::message::Message msg) {
 
 ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest &request) {
 
-    if (!retriever_) {
+    if (!inspector_) {
         Log::debug<LibFdb5>() << *this << ": Constructing new retriever" << std::endl;
-        retriever_.reset(new Retriever(config_));
+        inspector_.reset(new Inspector(config_));
     }
 
-    return retriever_->inspect(request);
+    return inspector_->inspect(request);
 }
 
 template<typename VisitorType, typename ... Ts>

@@ -33,11 +33,9 @@ IndexBase::IndexBase(eckit::Stream& s) :
     s >> type_;
     // backward compatibility: FDB on disk may miss the timestamp
     if (s.endObjectFound()) {
-        timestamp_ = timestamp_t{};
+        timestamp_ = 0;
     } else {
-        std::time_t tmp;
-        s >> tmp;
-        timestamp_ = std::chrono::system_clock::from_time_t(tmp);
+        s >> timestamp_;
     }
 }
 
@@ -111,7 +109,7 @@ private: // methods
 
     virtual void visit(IndexLocationVisitor&) const  { NOTIMP; }
 
-    virtual bool get( const Key&, Field&) const  { NOTIMP; }
+    virtual bool get( const Key&, const Key&, Field&) const  { NOTIMP; }
     virtual void add( const Key&, const Field&)  { NOTIMP; }
     virtual void flush()  { NOTIMP; }
     virtual void encode(eckit::Stream&) const { NOTIMP; }

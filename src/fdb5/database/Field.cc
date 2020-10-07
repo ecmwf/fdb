@@ -14,11 +14,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Field::Field() {
-}
+Field::Field() {}
 
-Field::Field(const FieldLocation& location, timestamp_t timestamp, const FieldDetails& details):
-    location_(location.make_shared()),
+Field::Field(const FieldLocation* location, time_t timestamp, const FieldDetails& details):
+    location_(location->make_shared()),
     timestamp_(timestamp),
     details_(details) {
 }

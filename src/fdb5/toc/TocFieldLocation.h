@@ -19,7 +19,7 @@
 #include "eckit/io/Offset.h"
 
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/database/FileStore.h"
+#include "fdb5/database/UriStore.h"
 #include "fdb5/toc/FieldRef.h"
 
 namespace fdb5 {
@@ -31,14 +31,12 @@ class TocFieldLocation : public FieldLocation {
 public:
 
     TocFieldLocation(const TocFieldLocation& rhs);
-    TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length);
-    TocFieldLocation(const eckit::URI &uri);
-    TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length);
-    TocFieldLocation(const FileStore& store, const FieldRef& ref);
+    TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const Key& remapKey);
+    TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
+    TocFieldLocation(const UriStore& store, const FieldRef& ref);
     TocFieldLocation(eckit::Stream&);
 
     eckit::DataHandle* dataHandle() const override;
-    eckit::DataHandle* dataHandle(const Key& remapKey) const override;
 
     virtual std::shared_ptr<FieldLocation> make_shared() const override;
 
@@ -59,8 +57,6 @@ protected: // For Streamable
 private: // methods
 
     void print(std::ostream &out) const override;
-
-    eckit::URI uri(const eckit::PathName &path);
 
 };
 
