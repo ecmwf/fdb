@@ -102,7 +102,13 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
     Field field;
     if (db_->inspect(key, field)) {
 
-        queue_.emplace(ListElement({db_->key(), db_->indexKey(), key}, field.stableLocation(), field.timestamp()));
+        Key simplifiedKey;
+        for (auto k = key.begin(); k != key.end(); k++) {
+            if (!k->second.empty())
+                simplifiedKey.set(k->first, k->second);
+        }
+
+        queue_.emplace(ListElement({db_->key(), db_->indexKey(), simplifiedKey}, field.stableLocation(), field.timestamp()));
         return true;
     }
 
