@@ -36,15 +36,12 @@ RemoteFieldLocation::RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocati
 }
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length, const Key& remapKey) :
-    FieldLocation(eckit::URI("fdb", uri), offset, length, remapKey) {
-    NOTIMP;
-}
+    FieldLocation(eckit::URI("fdb://" + uri.hostport())),
+    internal_(std::shared_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri, offset, length, remapKey))) {}
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :
-    FieldLocation(s) {
-    //internal_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
-    NOTIMP;
-}
+    FieldLocation(s),
+    internal_(std::shared_ptr<FieldLocation>(eckit::Reanimator<FieldLocation>::reanimate(s))) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
     FieldLocation(rhs.uri_),
@@ -58,7 +55,6 @@ std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
 
 eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
     ASSERT(remoteFDB_);
-    ASSERT(internal_);
     return remoteFDB_->dataHandle(*internal_);
 }
 

@@ -283,7 +283,7 @@ void TocCatalogueWriter::hideContents() {
     writeClearAllRecord();
 }
 
-void TocCatalogueWriter::archive(const Key& key, FieldLocation* fieldLocation) {
+void TocCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocation) {
     dirty_ = true;
 
     if (current_.null()) {
@@ -291,7 +291,7 @@ void TocCatalogueWriter::archive(const Key& key, FieldLocation* fieldLocation) {
         selectIndex(currentIndexKey_);
     }
 
-    Field field(std::move(fieldLocation), currentIndex().timestamp());
+    Field field(fieldLocation, currentIndex().timestamp());
 
     current_.put(key, field);
 

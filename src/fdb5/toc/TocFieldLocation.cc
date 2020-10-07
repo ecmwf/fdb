@@ -29,7 +29,7 @@ TocFieldLocation::TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, 
     FieldLocation(uri, offset, length, remapKey) {}
 
 TocFieldLocation::TocFieldLocation(const TocFieldLocation& rhs) :
-    FieldLocation(rhs.uri_) {}
+    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
 TocFieldLocation::TocFieldLocation(const UriStore &store, const FieldRef &ref) :
     FieldLocation(store.get(ref.uriId()), ref.offset(), ref.length(), Key()) {}

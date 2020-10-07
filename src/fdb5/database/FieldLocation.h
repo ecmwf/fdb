@@ -40,7 +40,7 @@ class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
 
 public: // methods
 
-    FieldLocation() {}
+    FieldLocation() : offset_(eckit::Offset(0)), length_(eckit::Length(0)), remapKey_(Key()) {}
     FieldLocation(const eckit::URI& uri);
     FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     FieldLocation(eckit::Stream&);
@@ -50,8 +50,9 @@ public: // methods
 
     virtual eckit::URI uri() const;
     std::string host() const { return uri_.hostport(); }
-    eckit::Offset offset() const { return offset_; }
+    virtual eckit::Offset offset() const { return offset_; }
     virtual eckit::Length length() const { return length_; }
+    const Key& remapKey() const { return remapKey_; }
 
     virtual eckit::DataHandle *dataHandle() const = 0;
 
