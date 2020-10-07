@@ -115,7 +115,7 @@ bool DB::open() {
     bool ret = catalogue_->open();
     if (!ret)
             return ret;
-//    store().schema(catalogue_->schema());
+
     return store().open();
 }
 

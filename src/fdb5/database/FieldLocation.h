@@ -100,13 +100,13 @@ private: // friends
     public:
         FieldLocationBuilderBase(const std::string &);
         virtual ~FieldLocationBuilderBase();
-        virtual std::unique_ptr<FieldLocation> make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) = 0;
+        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) = 0;
     };
 
     template< class T>
     class FieldLocationBuilder : public FieldLocationBuilderBase {
-        std::unique_ptr<FieldLocation> make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) {
-            return std::unique_ptr<FieldLocation>(new T(uri, offset, length, remapKey));
+        FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) {
+            return new T(uri, offset, length, remapKey);
         }
     public:
         FieldLocationBuilder(const std::string &name) : FieldLocationBuilderBase(name) {}
@@ -125,7 +125,7 @@ private: // friends
         void list(std::ostream &);
 
         /// @returns a specialized FieldLocation built by specified builder
-        std::unique_ptr<FieldLocation> build(const std::string &, const eckit::URI &, eckit::Offset offset, eckit::Length length, const Key& remapKey);
+        FieldLocation* build(const std::string &, const eckit::URI &, eckit::Offset offset, eckit::Length length, const Key& remapKey);
 
     private:
 

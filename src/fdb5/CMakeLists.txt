@@ -98,6 +98,8 @@ list( APPEND fdb5_srcs
     database/IndexLocation.h
     database/IndexStats.cc
     database/IndexStats.h
+    database/Inspector.cc
+    database/Inspector.h
     database/StatsReportVisitor.cc
     database/StatsReportVisitor.h
     database/Store.cc
@@ -118,8 +120,6 @@ list( APPEND fdb5_srcs
     database/ReadVisitor.h
     database/Report.cc
     database/Report.h
-    database/Retriever.cc
-    database/Retriever.h
     database/RetrieveVisitor.cc
     database/RetrieveVisitor.h
     database/MultiRetrieveVisitor.cc

@@ -54,7 +54,7 @@ void FieldLocationFactory::list(std::ostream& out) {
     }
 }
 
-std::unique_ptr<FieldLocation> FieldLocationFactory::build(const std::string& name, const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) {
+FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) {
 
     ASSERT (length != 0);
 

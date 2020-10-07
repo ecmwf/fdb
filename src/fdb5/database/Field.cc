@@ -17,8 +17,8 @@ namespace fdb5 {
 Field::Field() {
 }
 
-Field::Field(std::unique_ptr<FieldLocation> location, time_t timestamp, const FieldDetails& details):
-    location_(std::shared_ptr<FieldLocation>(std::move(location))),
+Field::Field(FieldLocation* location, time_t timestamp, const FieldDetails& details):
+    location_(std::shared_ptr<FieldLocation>(location)),
     timestamp_(timestamp),
     details_(details) {
 }

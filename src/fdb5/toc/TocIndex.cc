@@ -163,7 +163,7 @@ public:
         visitor_(visitor) {}
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
-        Field field(std::unique_ptr<FieldLocation>(new TocFieldLocation(files_, ref)), visitor_.indexTimestamp(), ref.details());
+        Field field(new TocFieldLocation(files_, ref), visitor_.indexTimestamp(), ref.details());
         visitor_.visitDatum(field, keyFingerprint);
     }
 };

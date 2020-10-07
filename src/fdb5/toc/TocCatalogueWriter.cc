@@ -128,7 +128,7 @@ void TocCatalogueWriter::index(const Key &key, const eckit::URI &uri, eckit::Off
         selectIndex(currentIndexKey_);
     }
 
-    Field field(std::unique_ptr<FieldLocation>(new TocFieldLocation(uri, offset, length, Key())), currentIndex().timestamp());
+    Field field(new TocFieldLocation(uri, offset, length, Key()), currentIndex().timestamp());
 
     current_.put(key, field);
 
@@ -283,7 +283,7 @@ void TocCatalogueWriter::hideContents() {
     writeClearAllRecord();
 }
 
-void TocCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void TocCatalogueWriter::archive(const Key& key, FieldLocation* fieldLocation) {
     dirty_ = true;
 
     if (current_.null()) {

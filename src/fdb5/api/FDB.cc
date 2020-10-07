@@ -110,14 +110,14 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
             ss << "    " << req << std::endl;
         }
         eckit::Log::userWarning() << ss.str() << std::endl;
-        // FIXME To be discussed
-        throw eckit::UserError(ss.str(), Here());
     }
 
     HandleGatherer result(sorted(request));
     for (size_t i=0; i< cube.size(); i++) {
-        auto el = cube.at(i);
-        result.add(el.location().dataHandle());
+        ListElement element;
+        if (cube.find(i, element)) {
+            result.add(element.location().dataHandle());
+        }
     }
 
     return result.dataHandle();
