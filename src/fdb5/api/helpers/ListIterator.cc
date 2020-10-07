@@ -54,7 +54,7 @@ void ListElement::print(std::ostream &out, bool withLocation) const {
     }
     if (location_) {
         if (withLocation) {
-            out << " " << location_;
+            out << " " << *location_;
         } else {
             out << ",length=" << location_->length();
         }
