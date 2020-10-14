@@ -21,10 +21,12 @@
 #include <vector>
 #include <tuple>
 
+#include "eckit/message/Message.h"
+
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/FDB.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 namespace fdb {
 namespace test {
@@ -37,10 +39,10 @@ private: // types
 
     struct Counts {
         Counts() :
-            archive(0), retrieve(0), list(0), dump(0), status(0), wipe(0),
+            archive(0), inspect(0), list(0), dump(0), status(0), wipe(0),
             purge(0), stats(0), flush(0), control(0) {}
         size_t archive;
-        size_t retrieve;
+        size_t inspect;
         size_t list;
         size_t dump;
         size_t status;
@@ -52,7 +54,7 @@ private: // types
     };
 
     using Archives = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
-    using Retrieves = std::vector<metkit::MarsRequest>;
+    using Retrieves = std::vector<metkit::mars::MarsRequest>;
 
     class FakeDataHandle : public eckit::DataHandle {
         void print(std::ostream& s) const override { s << "FakeDH"; }
@@ -76,15 +78,15 @@ public: // methods
         knownSpies().erase(std::find(knownSpies().begin(), knownSpies().end(), this));
     }
 
-    void archive(const fdb5::Key& key, const void* data, size_t length) override {
+    void archive(const fdb5::Key& key, eckit::message::Message msg) override {
         counts_.archive += 1;
-        archives_.push_back(std::make_tuple(key, data, length));
+        archives_.push_back(std::make_tuple(key, msg.data(), msg.length()));
     }
 
-    eckit::DataHandle* retrieve(const metkit::MarsRequest& request) override {
-        counts_.retrieve += 1;
+    fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override {
+        counts_.inspect += 1;
         retrieves_.push_back(request);
-        return new FakeDataHandle;
+        return fdb5::ListIterator(0);
     }
 
     fdb5::ListIterator list(const fdb5::FDBToolRequest& request) override {

@@ -1,37 +1,3 @@
-### TODO
-#
-#  * Axis should consider Type
-#
-#  * client "database" for direct fdb5 read
-#
-#  * fdb5_list -class od -expver 0001
-#  * fdb5_list .
-#  * fdb5_purge -class rd -expver ghtf
-#
-#  * consider using more than a service node on the HPC
-#
-#  * marsadm tools:
-#    --  list roots
-#
-#  Understand 'invalid ioctl' error
-#  What happens if the mars client is killed in a mars2mars transfer
-#
-#
-# TESTS:
-# check effect on retrieve:
-#  * delete a json
-#  * delete a data
-#  * delete a index
-
-# MAYBE:
-# Confluence documentation on how to install
-# -- dont forget the ~/mars/wind
-#
-# Implement access control: only the user that create the toc can:
-# - Add new data
-# - purge
-# Implement privilege users that can do everything
-
 ecbuild_generate_config_headers( DESTINATION ${INSTALL_INCLUDE_DIR}/fdb5 )
 
 configure_file( fdb5_config.h.in    fdb5_config.h   )
@@ -49,6 +15,8 @@ list( APPEND fdb5_srcs
 	LibFdb5.h
 	LibFdb5.cc
 
+    api/fdb_c.cc
+    api/fdb_c.h
     api/DistFDB.cc
     api/DistFDB.h
     api/FDB.cc
@@ -120,8 +88,8 @@ list( APPEND fdb5_srcs
     database/FieldDetails.h
     database/FieldLocation.cc
     database/FieldLocation.h
-    database/FileStore.cc
-    database/FileStore.h
+    database/UriStore.cc
+    database/UriStore.h
     database/Indexer.cc
     database/Indexer.h
     database/Index.cc
@@ -130,6 +98,8 @@ list( APPEND fdb5_srcs
     database/IndexLocation.h
     database/IndexStats.cc
     database/IndexStats.h
+    database/Inspector.cc
+    database/Inspector.h
     database/StatsReportVisitor.cc
     database/StatsReportVisitor.h
     database/Store.cc
@@ -144,12 +114,12 @@ list( APPEND fdb5_srcs
     database/IndexFactory.h
     database/Key.cc
     database/Key.h
+    database/messageToKey.cc
+    database/messageToKey.h
     database/ReadVisitor.cc
     database/ReadVisitor.h
     database/Report.cc
     database/Report.h
-    database/Retriever.cc
-    database/Retriever.h
     database/RetrieveVisitor.cc
     database/RetrieveVisitor.h
     database/MultiRetrieveVisitor.cc
@@ -174,12 +144,6 @@ list( APPEND fdb5_srcs
     io/LustreFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
-    legacy/FDBIndexScanner.cc
-    legacy/FDBIndexScanner.h
-    legacy/LegacyArchiver.cc
-    legacy/LegacyArchiver.h
-    legacy/LegacyTranslator.cc
-    legacy/LegacyTranslator.h
     rules/MatchAlways.cc
     rules/MatchAlways.h
     rules/MatchAny.cc
@@ -401,15 +365,20 @@ ecbuild_add_library(
     HEADER_DESTINATION
         ${INSTALL_INCLUDE_DIR}/fdb5
 
-    PRIVATE_INCLUDES
-        "${ECCODES_INCLUDE_DIRS}"
-        "${PMEM_INCLUDE_DIRS}"
-        "${LUSTREAPI_INCLUDE_DIRS}"
+    PUBLIC_INCLUDES
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/src>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
 
-    LIBS
+    PUBLIC_LIBS
         metkit
         eckit
         eckit_option
+
+    PRIVATE_INCLUDES
+        "${PMEM_INCLUDE_DIRS}"
+        "${LUSTREAPI_INCLUDE_DIRS}"
+
+    PRIVATE_LIBS
         ${grib_handling_pkg}
         ${PMEM_LIBRARIES}
         ${LUSTREAPI_LIBRARIES}
@@ -442,8 +411,6 @@ list( APPEND fdb5_tools
 
 if ( HAVE_TOCFDB )
     list(APPEND fdb5_tools
-        fdb-adopt
-        fdb-write-legacy
         fdb-root
         fdb-overlay
         fdb-hide

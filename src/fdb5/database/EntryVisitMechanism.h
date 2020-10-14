@@ -17,13 +17,13 @@
 #include "eckit/memory/NonCopyable.h"
 
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Field.h"
 
 namespace fdb5 {
 
 class Catalogue;
 class Store;
 class FDBToolRequest;
-class Field;
 class Index;
 class Key;
 
@@ -44,6 +44,8 @@ public:  // methods
     virtual bool visitIndex(const Index& index); // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
     virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
+
+    time_t indexTimestamp() const;
 
 private: // methods
 

@@ -40,6 +40,7 @@ public: // methods
     static const char* catalogueTypeName() { return TocEngine::typeName(); }
     const eckit::PathName& basePath() const override;
     eckit::URI uri() const override;
+    const Key& indexKey() const override { return currentIndexKey_; }
 
     static void remove(const eckit::PathName& path, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
 
@@ -59,7 +60,7 @@ protected: // methods
 
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
+    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
     void maskIndexEntry(const Index& index) const override;
 
     void loadSchema() override;
@@ -79,7 +80,7 @@ protected: // methods
 
     Key currentIndexKey_;
 
-private: // members    
+private: // members
 
     friend class TocWipeVisitor;
 

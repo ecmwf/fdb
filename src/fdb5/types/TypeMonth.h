@@ -34,7 +34,7 @@ public: // methods
                        const std::string &keyword,
                        const std::string &value) const ;
 
-    virtual void getValues(const metkit::MarsRequest &request,
+    virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,
                            eckit::StringList &values,
                            const Notifier &wind,

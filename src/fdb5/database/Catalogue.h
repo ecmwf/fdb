@@ -47,14 +47,14 @@ public:
     virtual ~Catalogue() {}
 
     const Key& key() const { return dbKey_; }
+    virtual const Key& indexKey() const { NOTIMP; }
     const Config& config() const { return config_; }
 
     std::unique_ptr<Store> buildStore(const Config& config);
     virtual const Schema& schema() const = 0;
 
-    virtual bool selectIndex(const Key& key)  = 0;
+    virtual bool selectIndex(const Key& key) = 0;
     virtual void deselectIndex() = 0;
-//    virtual const Index& currentIndex() = 0;
 
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
 
@@ -66,7 +66,7 @@ public:
 
     virtual StatsReportVisitor* statsReportVisitor() const = 0;
     virtual PurgeVisitor* purgeVisitor(const Store& store) const = 0;
-    virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
+    virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
 
     virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
 
@@ -116,7 +116,7 @@ class CatalogueReader {
 public:
     virtual DbStats stats() const = 0;
     virtual void axis(const std::string& keyword, eckit::StringSet& s) const = 0;
-    virtual bool retrieve(const Key& key, Field& field, Key& remapKey) const = 0;
+    virtual bool retrieve(const Key& key, Field& field) const = 0;
 };
 
 
@@ -125,7 +125,7 @@ public:
     virtual const Index& currentIndex() = 0;
     virtual void archive(const Key& key, const FieldLocation* fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
-    virtual void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) = 0;
+    virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate() = 0;
 };
 

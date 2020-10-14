@@ -22,7 +22,7 @@
 #include "eckit/runtime/SessionID.h"
 #include "eckit/serialisation/MemoryStream.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -33,7 +33,7 @@
 #include "fdb5/remote/RemoteFieldLocation.h"
 
 using namespace eckit;
-using metkit::MarsRequest;
+using metkit::mars::MarsRequest;
 
 namespace fdb5 {
 namespace remote {
@@ -86,18 +86,15 @@ struct BaseHelper {
     }
 };
 
-
 struct ListHelper : public BaseHelper<ListElement> {
     ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
         return fdb.list(request);
     }
+};
 
-    // Create a derived RemoteFieldLocation which knows about this server
-    Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
-        ListElement updated(elem.keyParts_, std::make_shared<RemoteFieldLocation>(
-                                                *elem.location_, handler.host(), handler.port()));
-
-        return BaseHelper<ListElement>::encode(updated, handler);
+struct InspectHelper : public BaseHelper<ListElement> {
+    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.inspect(request.request());
     }
 };
 
@@ -188,7 +185,7 @@ RemoteHandler::RemoteHandler(eckit::net::TCPSocket& socket, const Config& config
     dataSocket_(selectDataPort()),
     dataListenHostname_(config.getString("dataListenHostname", "")),
     fdb_(config),
-    retrieveQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {}
+    readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {}
 
 RemoteHandler::~RemoteHandler() {
     // We don't want to die before the worker threads are cleaned up
@@ -200,6 +197,30 @@ RemoteHandler::~RemoteHandler() {
     Log::info() << "Sending exit message to client" << std::endl;
     dataWrite(Message::Exit, 0);
     Log::info() << "Done" << std::endl;
+}
+
+
+eckit::LocalConfiguration RemoteHandler::availableFunctionality() const {
+    eckit::LocalConfiguration conf;
+//    Add to the configuration all the components that require to be versioned, as in the following example, with a vector of supported version numbers
+//    std::vector<int> remoteFieldLocationVersions = {1};
+//    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
+    return conf;
+}
+
+std::vector<int> intersection(const LocalConfiguration& c1, const LocalConfiguration& c2, const std::string& field){
+
+    std::vector<int> v1 = c1.getIntVector(field);
+    std::vector<int> v2 = c2.getIntVector(field);
+    std::vector<int> v3;
+
+    std::sort(v1.begin(), v1.end());
+    std::sort(v2.begin(), v2.end());
+
+    std::set_intersection(v1.begin(),v1.end(),
+                          v2.begin(),v2.end(),
+                          back_inserter(v3));
+    return v3;
 }
 
 void RemoteHandler::initialiseConnections() {
@@ -221,7 +242,15 @@ void RemoteHandler::initialiseConnections() {
     MemoryStream s1(payload1);
     SessionID clientSession(s1);
     net::Endpoint endpointFromClient(s1);
+
     LocalConfiguration clientAvailableFunctionality(s1);
+    LocalConfiguration serverConf = availableFunctionality();
+    agreedConf_ = LocalConfiguration();
+
+    // agree on a common functionality by intersecting server and client version numbers
+    // std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
+    // if (rflCommon.size() > 0)
+    //    agreedConf_.set("RemoteFieldLocation", rflCommon.back());
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
     // n.b. FDB-192: we use the host communicated from the client endpoint. This
@@ -244,9 +273,7 @@ void RemoteHandler::initialiseConnections() {
         s << sessionID_;
         s << dataEndpoint;
 
-        // TODO: Function to decide what functionality we will actually use. This just
-        //       sets up the components of the over-the-wire protocol
-        s << LocalConfiguration().get();
+        s << agreedConf_.get();
 
         controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
     }
@@ -341,16 +368,20 @@ void RemoteHandler::handle() {
                     forwardApiCall<ControlHelper>(hdr);
                     break;
 
+                case Message::Inspect:
+                    forwardApiCall<InspectHelper>(hdr);
+                    break;
+
+                case Message::Read:
+                    read(hdr);
+                    break;
+
                 case Message::Flush:
                     flush(hdr);
                     break;
 
                 case Message::Archive:
                     archive(hdr);
-                    break;
-
-                case Message::Retrieve:
-                    retrieve(hdr);
                     break;
 
                 default: {
@@ -478,7 +509,7 @@ void RemoteHandler::tidyWorkers() {
 }
 
 void RemoteHandler::waitForWorkers() {
-    retrieveQueue_.close();
+    readLocationQueue_.close();
 
     tidyWorkers();
 
@@ -489,8 +520,8 @@ void RemoteHandler::waitForWorkers() {
         Log::error() << "Thread complete" << std::endl;
     }
 
-    if (retrieveWorker_.joinable()) {
-        retrieveWorker_.join();
+    if (readLocationWorker_.joinable()) {
+        readLocationWorker_.join();
     }
 }
 
@@ -723,72 +754,74 @@ void RemoteHandler::flush(const MessageHeader& hdr) {
     }
 }
 
+void RemoteHandler::read(const MessageHeader& hdr) {
 
-void RemoteHandler::retrieve(const MessageHeader& hdr) {
-    // If we have never done any retrieving before, then start the appropriate
-    // worker thread.
-
-    if (!retrieveWorker_.joinable()) {
-        retrieveWorker_ = std::thread([this] { retrieveThreadLoop(); });
+    if (!readLocationWorker_.joinable()) {
+        readLocationWorker_ = std::thread([this] { readLocationThreadLoop(); });
     }
 
     Buffer payload(receivePayload(hdr, controlSocket_));
     MemoryStream s(payload);
 
-    MarsRequest request(s);
+    std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
 
-    retrieveQueue_.emplace(std::make_pair(hdr.requestID, std::move(request)));
+    Log::debug<LibFdb5>() << "Queuing for read: " << hdr.requestID << " " << *location << std::endl;
+
+    std::unique_ptr<eckit::DataHandle> dh;
+    dh.reset(location->dataHandle());
+
+    readLocationQueue_.emplace(std::make_pair(hdr.requestID, std::move(dh)));
 }
 
+void RemoteHandler::writeToParent(const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh) {
+    try {
+        Log::status() << "Reading: " << requestID << std::endl;
+        // Write the data to the parent, in chunks if necessary.
 
-void RemoteHandler::retrieveThreadLoop() {
-    std::pair<uint32_t, MarsRequest> elem;
+        Buffer writeBuffer(10 * 1024 * 1024);
+        long dataRead;
 
-    while (retrieveQueue_.pop(elem) != -1) {
+        dh->openForRead();
+        Log::debug<LibFdb5>() << "Reading: " << requestID << " dh size: " << dh->size()
+                              << std::endl;
+
+        while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
+            dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
+        }
+
+        // And when we are done, add a complete message.
+
+        Log::debug<LibFdb5>() << "Writing retrieve complete message: " << requestID
+                              << std::endl;
+
+        dataWrite(Message::Complete, requestID);
+
+        Log::status() << "Done retrieve: " << requestID << std::endl;
+        Log::debug<LibFdb5>() << "Done retrieve: " << requestID << std::endl;
+    }
+    catch (std::exception& e) {
+        // n.b. more general than eckit::Exception
+        std::string what(e.what());
+        dataWrite(Message::Error, requestID, what.c_str(), what.length());
+    }
+    catch (...) {
+        // We really don't want to std::terminate the thread
+        std::string what("Caught unexpected, unknown exception in retrieve worker");
+        dataWrite(Message::Error, requestID, what.c_str(), what.length());
+    }
+}
+
+void RemoteHandler::readLocationThreadLoop() {
+    std::pair<uint32_t, std::unique_ptr<eckit::DataHandle>> elem;
+
+    while (readLocationQueue_.pop(elem) != -1) {
         // Get the next MarsRequest in sequence to work on, do the retrieve, and
         // send the data back to the client.
 
         const uint32_t requestID(elem.first);
-        const MarsRequest& request(elem.second);
 
-        try {
-            Log::status() << "Retrieving: " << requestID << std::endl;
-            Log::debug<LibFdb5>() << "Retrieving (" << requestID << ")" << request << std::endl;
-
-            // Forward the API call
-
-            std::unique_ptr<eckit::DataHandle> dh(fdb_.retrieve(request));
-
-            // Write the data to the parent, in chunks if necessary.
-
-            Buffer writeBuffer(10 * 1024 * 1024);
-            long dataRead;
-
-            dh->openForRead();
-            while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
-                dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
-            }
-
-            // And when we are done, add a complete message.
-
-            Log::debug<LibFdb5>() << "Writing retrieve complete message: " << requestID
-                                  << std::endl;
-
-            dataWrite(Message::Complete, requestID);
-
-            Log::status() << "Done retrieve: " << requestID << std::endl;
-            Log::debug<LibFdb5>() << "Done retrieve: " << requestID << std::endl;
-        }
-        catch (std::exception& e) {
-            // n.b. more general than eckit::Exception
-            std::string what(e.what());
-            dataWrite(Message::Error, requestID, what.c_str(), what.length());
-        }
-        catch (...) {
-            // We really don't want to std::terminate the thread
-            std::string what("Caught unexpected, unknown exception in retrieve worker");
-            dataWrite(Message::Error, requestID, what.c_str(), what.length());
-        }
+        // Forward the API call
+        writeToParent(elem.first, std::move(elem.second));
     }
 }
 

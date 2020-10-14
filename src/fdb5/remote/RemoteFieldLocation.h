@@ -19,26 +19,28 @@
 #ifndef fdb5_RemoteFieldLocation_H
 #define fdb5_RemoteFieldLocation_H
 
-
 #include "fdb5/database/FieldLocation.h"
 
 namespace fdb5 {
-namespace remote {
 
+class RemoteFDB;
+
+namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class RemoteFieldLocation : public FieldLocation {
 public:
 
-    RemoteFieldLocation(const FieldLocation& internal, const std::string& hostname, int port);
-    RemoteFieldLocation(const eckit::URI &uri);
-    RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length);
+    RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocation& remoteLocation);
+    RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length, const Key& remapKey);
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
 
+    eckit::Offset offset() const override { return internal_->offset(); }
+    eckit::Length length() const override { return internal_->length(); }
+
     virtual eckit::DataHandle *dataHandle() const override;
-    virtual eckit::DataHandle *dataHandle(const Key& remapKey) const override;
 
     virtual std::shared_ptr<FieldLocation> make_shared() const override;
     virtual void visit(FieldLocationVisitor& visitor) const override;
@@ -62,7 +64,9 @@ private: // methods
 
 private: // members
 
-    std::shared_ptr<FieldLocation> internal_;
+    // not Owning
+    RemoteFDB* remoteFDB_;
+    std::shared_ptr<const FieldLocation> internal_;
 };
 
 

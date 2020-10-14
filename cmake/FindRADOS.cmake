@@ -44,6 +44,6 @@ include(FindPackageHandleStandardArgs)
 # handle the QUIET and REQUIRED arguments and set RADOS_FOUND to TRUE
 # if all listed variables are TRUE
 # Note: capitalisation of the package name must be the same as in the file name
-find_package_handle_standard_args(rados DEFAULT_MSG RADOS_LIBRARY RADOS_INCLUDE_DIR)
+find_package_handle_standard_args(RADOS DEFAULT_MSG RADOS_LIBRARY RADOS_INCLUDE_DIR)
 
 mark_as_advanced(RADOS_INCLUDE_DIR RADOS_LIBRARY)

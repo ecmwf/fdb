@@ -203,10 +203,10 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
 
 
     fdb5::GribDecoder decoder;
-    std::vector<metkit::MarsRequest> requests = decoder.gribToRequests(args(0));
+    std::vector<metkit::mars::MarsRequest> requests = decoder.gribToRequests(args(0));
 
     ASSERT(requests.size() == 1);
-    metkit::MarsRequest request = requests[0];
+    metkit::mars::MarsRequest request = requests[0];
 
     size_t nsteps = args.getLong("nsteps");
     size_t nensembles = args.getLong("nensembles", 1);

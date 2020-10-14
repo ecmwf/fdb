@@ -25,7 +25,7 @@
 #include "eckit/types/FixedString.h"
 
 #include "fdb5/database/Index.h"
-#include "fdb5/database/FileStore.h"
+#include "fdb5/database/UriStore.h"
 #include "fdb5/toc/TocIndexLocation.h"
 
 namespace fdb5 {
@@ -40,19 +40,19 @@ class BTreeIndex;
 /// to preserve the order that data is stored/read from streams from before the files_ object
 /// was moved into the TocIndex class.
 
-struct FileStoreWrapper {
+struct UriStoreWrapper {
 
-    FileStoreWrapper(const eckit::PathName& directory) : files_(directory) {}
-    FileStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : files_(directory, s) {}
+    UriStoreWrapper(const eckit::PathName& directory) : files_(directory) {}
+    UriStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : files_(directory, s) {}
 
-    FileStore files_;
+    UriStore files_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
 class TocIndex :
-        private FileStoreWrapper,
+        private UriStoreWrapper,
         public IndexBase {
 
 public: // types
@@ -89,7 +89,7 @@ private: // methods
 
     void visit(IndexLocationVisitor& visitor) const override;
 
-    bool get( const Key &key, Field &field ) const override;
+    bool get( const Key &key, const Key &remapKey, Field &field ) const override;
     void add( const Key &key, const Field &field ) override;
     void flush() override;
     void encode(eckit::Stream &s) const override;

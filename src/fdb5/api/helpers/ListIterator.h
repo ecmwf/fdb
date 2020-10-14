@@ -22,6 +22,7 @@
 #include <vector>
 #include <memory>
 #include <iosfwd>
+#include <chrono>
 
 #include "fdb5/database/Key.h"
 #include "fdb5/database/FieldLocation.h"
@@ -43,13 +44,16 @@ class ListElement {
 public: // methods
 
     ListElement() = default;
-    ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location);
+    ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp);
     ListElement(eckit::Stream& s);
+
+    const std::vector<Key>& key() const { return keyParts_; }
+    const FieldLocation& location() const { return *location_; }
+    const time_t& timestamp() const { return timestamp_; }
 
     Key combinedKey() const;
 
-    void print(std::ostream& out, bool location=false) const;
-
+    void print(std::ostream& out, bool withLocation=false) const;
     void json(eckit::JSON& json) const;
 
 private: // methods
@@ -74,7 +78,11 @@ private: // methods
 public: // members
 
     std::vector<Key> keyParts_;
+
+private: // members
+
     std::shared_ptr<const FieldLocation> location_;
+    time_t timestamp_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -8,19 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Retriever.h
+/// @file   Inspector.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Retriever_H
-#define fdb5_Retriever_H
+#ifndef fdb5_Inspector_H
+#define fdb5_Inspector_H
 
 #include <iosfwd>
 #include <cstdlib>
 #include <map>
 
 #include "fdb5/config/Config.h"
+#include "fdb5/api/helpers/ListIterator.h"
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/container/CacheLRU.h"
@@ -30,7 +31,10 @@ namespace eckit {
 class DataHandle;
 }
 
-namespace metkit { class MarsRequest; }
+namespace metkit {
+namespace mars {
+    class MarsRequest;
+}}
 
 namespace fdb5 {
 
@@ -44,30 +48,30 @@ class EntryVisitor;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Retriever : public eckit::NonCopyable {
+class Inspector : public eckit::NonCopyable {
 
 public: // methods
 
-    Retriever(const Config& dbConfig=Config());
+    Inspector(const Config& dbConfig=Config());
 
-    ~Retriever();
+    ~Inspector();
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from
 
-    eckit::DataHandle* retrieve(const metkit::MarsRequest& request) const;
+    ListIterator inspect(const metkit::mars::MarsRequest& request) const;
 
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @param notifyee is an object that handles notifications for the client, e.g. wind conversion
     /// @returns  data handle to read from
 
-    eckit::DataHandle* retrieve(const metkit::MarsRequest& request, const Notifier& notifyee) const;
+    ListIterator inspect(const metkit::mars::MarsRequest& request, const Notifier& notifyee) const;
 
     /// Give read access to a range of entries according to a request
 
     void visitEntries(const FDBToolRequest& request, EntryVisitor& visitor) const;
 
-    friend std::ostream &operator<<(std::ostream &s, const Retriever &x) {
+    friend std::ostream &operator<<(std::ostream &s, const Inspector &x) {
         x.print(s);
         return s;
     }
@@ -76,7 +80,7 @@ private: // methods
 
     void print(std::ostream &out) const;
 
-    eckit::DataHandle* retrieve(const metkit::MarsRequest& request, const Schema &schema, bool sorted, const Notifier& notifyee) const;
+    ListIterator inspect(const metkit::mars::MarsRequest& request, const Schema &schema, const Notifier& notifyee) const;
 
 private: // data
 

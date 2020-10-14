@@ -14,12 +14,12 @@
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
 
-#include "metkit/grib/MetFile.h"
+#include "eckit/message/Reader.h"
+#include "eckit/message/Message.h"
 
 #include "fdb5/grib/GribIndexer.h"
 #include "fdb5/toc/AdoptVisitor.h"
 
-using metkit::grib::MetFile;
 
 namespace fdb5 {
 
@@ -32,8 +32,7 @@ GribIndexer::GribIndexer(bool checkDuplicates) :
 void GribIndexer::index(const eckit::PathName &path) {
     eckit::Timer timer("fdb::service::archive");
 
-    MetFile file(path);
-    size_t len = 0;
+    eckit::message::Reader reader(path);
 
     size_t count = 0;
     eckit::Length total_size = 0;
@@ -46,19 +45,20 @@ void GribIndexer::index(const eckit::PathName &path) {
 
     eckit::PathName full(path.realName());
 
-
-    while ( (len = gribToKey(file, key))  ) {
+    eckit::message::Message msg;
+    while ( (msg = reader.next()) ) {
+       gribToKey(msg, key);
 
         // eckit::Log::info() << key << std::endl;
 
-        eckit::Length length = len;
-        eckit::Offset offset = file.position() - length;
+        eckit::Length length = msg.length();
+        eckit::Offset offset = reader.position() - length;
 
         AdoptVisitor visitor(*this, key, full, offset, length);
 
         archive(key, visitor);
 
-        total_size += len;
+        total_size += length;
         progress(total_size);
         count++;
     }

@@ -20,9 +20,13 @@
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
+#include "eckit/message/Message.h"
 #include "eckit/utils/Tokenizer.h"
 
+#include "metkit/hypercube/HyperCube.h"
+
 #include "fdb5/api/DistFDB.h"
+#include "fdb5/database/Notifier.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -69,8 +73,7 @@ DistFDB::DistFDB(const eckit::Configuration& config, const std::string& name) :
 
 DistFDB::~DistFDB() {}
 
-
-void DistFDB::archive(const Key& key, const void* data, size_t length) {
+void DistFDB::archive(const Key& key, eckit::message::Message msg) {
 
     std::vector<size_t> laneIndices;
 
@@ -106,7 +109,7 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
         try {
 
-            lane.archive(key, data, length);
+            lane.archive(key, msg);
             return;
 
         } catch (eckit::Exception& e) {
@@ -136,23 +139,6 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
     throw DistributionError("No writable lanes available for archive", Here());
 }
 
-eckit::DataHandle* DistFDB::retrieve(const metkit::MarsRequest &request) {
-
-    // TODO: Deduplication. Currently no masking.
-    // TODO: Error handling on read.
-
-//    HandleGatherer result(true); // Sorted
-    HandleGatherer result(false);
-
-    for (FDB& lane : lanes_) {
-        if (lane.visitable()) {
-            result.add(lane.retrieve(request));
-        }
-    }
-
-    return result.dataHandle();
-}
-
 /*
  * Exemplar for templated query functionality:
  *
@@ -169,7 +155,6 @@ eckit::DataHandle* DistFDB::retrieve(const metkit::MarsRequest &request) {
  *     return ListIterator(new ListAggregateIterator(std::move(lists)));
  * }
  */
-
 
 template <typename QueryFN>
 auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request)) {
@@ -200,6 +185,14 @@ ListIterator DistFDB::list(const FDBToolRequest& request) {
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.list(request);
+                         });
+}
+
+ListIterator DistFDB::inspect(const metkit::mars::MarsRequest& request) {
+    Log::debug<LibFdb5>() << "DistFDB::inspect() : " << request << std::endl;
+    return queryInternal(request,
+                         [](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.inspect(request.request());
                          });
 }
 

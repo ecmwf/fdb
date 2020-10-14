@@ -21,15 +21,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ListElement::ListElement(const std::vector<Key>& keyParts,
-                               std::shared_ptr<const FieldLocation> location) :
-    keyParts_(keyParts),
-    location_(location) {}
-
+ListElement::ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp) :
+    keyParts_(keyParts), location_(location), timestamp_(timestamp) {}
 
 ListElement::ListElement(eckit::Stream &s) {
     s >> keyParts_;
     location_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
+    s >> timestamp_;
 }
 
 Key ListElement::combinedKey() const {
@@ -44,23 +42,31 @@ Key ListElement::combinedKey() const {
     return combined;
 }
 
-
-void ListElement::print(std::ostream &out, bool location) const {
+void ListElement::print(std::ostream &out, bool withLocation) const {
+    if (!withLocation && location_ && !location_->host().empty()) {
+        out << "host=" << location_->host() << ",";
+    }
     for (const auto& bit : keyParts_) {
         out << bit;
     }
-    if (location && location_) {
-        out << " " << *location_;
+    if (location_) {
+        if (withLocation) {
+            out << " " << *location_;
+        } else {
+            out << ",length=" << location_->length();
+        }
     }
 }
 
 void ListElement::json(eckit::JSON& json) const {
     json << combinedKey().keyDict();
+    json << "length" << location_->length();
 }
 
 void ListElement::encode(eckit::Stream &s) const {
     s << keyParts_;
     s << *location_;
+    s << timestamp_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

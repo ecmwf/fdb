@@ -16,23 +16,26 @@
 #include <functional>
 #include <unistd.h>
 
+#include "fdb5/api/RemoteFDB.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/remote/Messages.h"
-#include "fdb5/api/RemoteFDB.h"
+#include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/database/Key.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Log.h"
+#include "eckit/message/Message.h"
 #include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Translator.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/os/BackTrace.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 using namespace eckit;
 using namespace eckit::net;
@@ -50,6 +53,30 @@ template<> struct Translator<Endpoint, std::string> {
 }
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ConnectionError : public eckit::Exception {
+public:
+    ConnectionError(const int);
+    ConnectionError(const int, const eckit::net::Endpoint&);
+
+    bool retryOnClient() const override { return true; } 
+};
+
+ConnectionError::ConnectionError(const int retries) {
+    std::ostringstream s;
+    s << "Unable to create a connection with the FDB server after " << retries << " retries";
+    reason(s.str());
+    Log::status() << what() << std::endl;
+}
+
+ConnectionError::ConnectionError(const int retries, const eckit::net::Endpoint& endpoint) {
+    std::ostringstream s;
+    s << "Unable to create a connection with the FDB endpoint " << endpoint << " after " << retries << " retries";
+    reason(s.str());
+    Log::status() << what() << std::endl;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -142,23 +169,32 @@ void RemoteFDB::connect() {
 
     if (!connected_) {
 
-        // Connect to server, and check that the server is happy on the response
+        static int fdbMaxConnectRetries = eckit::Resource<int>("fdbMaxConnectRetries", 5);
 
-        Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
-        controlClient_.connect(controlEndpoint_);
-        writeControlStartupMessage();
-        SessionID serverSession = verifyServerStartupResponse();
+        try {
+            // Connect to server, and check that the server is happy on the response
 
-        // Connect to the specified data port
+            Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
+            controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries);
+            writeControlStartupMessage();
+            SessionID serverSession = verifyServerStartupResponse();
 
-        Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
-        dataClient_.connect(dataEndpoint_);
-        writeDataStartupMessage(serverSession);
+            // Connect to the specified data port
+            Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
+            dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries);
+            writeDataStartupMessage(serverSession);
 
-        // And the connections are set up. Let everything start up!
-
-        listeningThread_ = std::thread([this] { listeningThreadLoop(); });
-        connected_ = true;
+            // And the connections are set up. Let everything start up!
+            listeningThread_ = std::thread([this] { listeningThreadLoop(); });
+            connected_ = true;
+        } catch(TooManyRetries e) {
+            if (controlClient_.isConnected()) {
+                controlClient_.close();
+                throw ConnectionError(fdbMaxConnectRetries, dataEndpoint_);
+            } else {
+                throw ConnectionError(fdbMaxConnectRetries, controlEndpoint_);
+            }
+        }
     }
 }
 
@@ -244,7 +280,10 @@ void RemoteFDB::writeDataStartupMessage(const eckit::SessionID& serverSession) {
 }
 
 eckit::LocalConfiguration RemoteFDB::availableFunctionality() const {
-    return LocalConfiguration();
+    eckit::LocalConfiguration conf;
+    std::vector<int> remoteFieldLocationVersions = {2,1};
+    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
+    return conf;
 }
 
 void RemoteFDB::listeningThreadLoop() {
@@ -505,20 +544,35 @@ struct BaseAPIHelper {
     static Message message() { return msgID; }
 
     void encodeExtra(eckit::Stream& s) const {}
-    static ValueType valueFromStream(eckit::Stream& s) { return ValueType(s); }
+    static ValueType valueFromStream(eckit::Stream& s, RemoteFDB* fdb) { return ValueType(s); }
 };
 
 using ListHelper = BaseAPIHelper<ListElement, Message::List>;
 
+struct InspectHelper : BaseAPIHelper<ListElement, Message::Inspect> {
+
+    static ListElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
+        ListElement elem(s);
+        return ListElement(elem.key(), RemoteFieldLocation(fdb, elem.location()).make_shared(), elem.timestamp());
+    }
+};
+
 using StatsHelper = BaseAPIHelper<StatsElement, Message::Stats>;
 
-using StatusHelper = BaseAPIHelper<StatusElement, Message::Status>;
+struct StatusHelper : BaseAPIHelper<StatusElement, Message::Status> {
+
+    static StatusElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
+        StatusElement elem(s);
+        elem.location.endpoint(fdb->controlEndpoint());
+        return elem;
+    }
+};
 
 struct DumpHelper : BaseAPIHelper<DumpElement, Message::Dump> {
 
     DumpHelper(bool simple) : simple_(simple) {}
     void encodeExtra(eckit::Stream& s) const { s << simple_; }
-    static DumpElement valueFromStream(eckit::Stream& s) {
+    static DumpElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         DumpElement elem;
         s >> elem;
         return elem;
@@ -535,7 +589,7 @@ struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
         s << doit_;
         s << porcelain_;
     }
-    static PurgeElement valueFromStream(eckit::Stream& s) {
+    static PurgeElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         PurgeElement elem;
         s >> elem;
         return elem;
@@ -555,7 +609,7 @@ struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
         s << porcelain_;
         s << unsafeWipeAll_;
     }
-    static WipeElement valueFromStream(eckit::Stream& s) {
+    static WipeElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         WipeElement elem;
         s >> elem;
         return elem;
@@ -621,17 +675,18 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
 
     // Return an AsyncIterator to allow the messages to be retrieved in the API
 
+    RemoteFDB* remoteFDB = this;
     return IteratorType(
         // n.b. Don't worry about catching exceptions in lambda, as
         // this is handled in the AsyncIterator.
-        new AsyncIterator([messageQueue](eckit::Queue<ValueType>& queue) {
+        new AsyncIterator([messageQueue, remoteFDB](eckit::Queue<ValueType>& queue) {
             StoredMessage msg = std::make_pair(remote::MessageHeader{}, eckit::Buffer{0});
                         while (true) {
                             if (messageQueue->pop(msg) == -1) {
                                 break;
                             } else {
                                 MemoryStream s(msg.second);
-                                queue.emplace(HelperClass::valueFromStream(s));
+                                queue.emplace(HelperClass::valueFromStream(s, remoteFDB));
                             }
                         }
                         // messageQueue goes out of scope --> destructed
@@ -642,6 +697,10 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
 
 ListIterator RemoteFDB::list(const FDBToolRequest& request) {
     return forwardApiCall(ListHelper(), request);
+}
+
+ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
+    return forwardApiCall(InspectHelper(), request);
 }
 
 
@@ -674,8 +733,7 @@ ControlIterator RemoteFDB::control(const FDBToolRequest& request,
 // -----------------------------------------------------------------------------------------------------
 
 // Here we do archive/flush related stuff
-
-void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
+void RemoteFDB::archive(const Key& key, eckit::message::Message msg) {
 
     connect();
 
@@ -705,7 +763,7 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
     {
         std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
         ASSERT(archiveQueue_);
-        archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
+        archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(msg.data()), msg.length())));
     }
 }
 
@@ -991,21 +1049,44 @@ private: // members
 
 // Here we do (asynchronous) retrieving related stuff
 
-DataHandle* RemoteFDB::retrieve(const metkit::MarsRequest& request) {
+//DataHandle* RemoteFDB::retrieve(const metkit::mars::MarsRequest& request) {
+
+//    connect();
+
+//    Buffer encodeBuffer(4096);
+//    MemoryStream s(encodeBuffer);
+//    s << request;
+
+//    uint32_t id = generateRequestID();
+
+//    controlWriteCheckResponse(Message::Retrieve, id, encodeBuffer, s.position());
+
+//    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
+//}
+
+
+// Here we do (asynchronous) read related stuff
+
+
+eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation) {
+    return dataHandle(fieldLocation, Key());
+}
+
+eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
 
     connect();
 
     Buffer encodeBuffer(4096);
     MemoryStream s(encodeBuffer);
-    s << request;
+    s << fieldLocation;
+    s << remapKey;
 
     uint32_t id = generateRequestID();
 
-    controlWriteCheckResponse(Message::Retrieve, id, encodeBuffer, s.position());
+    controlWriteCheckResponse(Message::Read, id, encodeBuffer, s.position());
 
     return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
 }
-
 
 void RemoteFDB::print(std::ostream &s) const {
     s << "RemoteFDB(host=" << controlEndpoint_ << ", data=" << dataEndpoint_ << ")";

@@ -24,7 +24,7 @@
 
 namespace fdb5 {
 
-class Retriever;
+class Inspector;
 class Archiver;
 class FDB;
 
@@ -37,9 +37,9 @@ public: // methods
     using FDBBase::FDBBase;
     using FDBBase::stats;
 
-    void archive(const Key& key, const void* data, size_t length) override;
+    void archive(const Key& key, eckit::message::Message msg) override;
 
-    eckit::DataHandle* retrieve(const metkit::MarsRequest& request) override;
+    ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
     ListIterator list(const FDBToolRequest& request) override;
 
@@ -71,7 +71,7 @@ private: // members
     std::string home_;
 
     std::unique_ptr<Archiver> archiver_;
-    std::unique_ptr<Retriever> retriever_;
+    std::unique_ptr<Inspector> inspector_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

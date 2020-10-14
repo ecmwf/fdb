@@ -27,12 +27,19 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
+
+namespace eckit {
+namespace message {
+class Message;
+}
+}  // namespace eckit
 
 namespace metkit { class MarsRequest; }
 
@@ -54,11 +61,11 @@ public: // methods
 
     // -------------- Primary API functions ----------------------------
 
-    virtual void archive(const Key& key, const void* data, size_t length) = 0;
+    virtual void archive(const Key& key, eckit::message::Message msg) = 0;
 
     virtual void flush() = 0;
 
-    virtual eckit::DataHandle* retrieve(const metkit::MarsRequest& request) = 0;
+    virtual ListIterator inspect(const metkit::mars::MarsRequest& request) = 0;
 
     virtual ListIterator list(const FDBToolRequest& request) = 0;
 

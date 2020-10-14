@@ -45,42 +45,6 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/*class EntryVisitor : private eckit::NonCopyable {
-public:
-
-    virtual ~EntryVisitor();
-
-    virtual void visit(const Index& index,
-                       const Field& field,
-                       const std::string& indexFingerprint,
-                       const std::string& fieldFingerprint) = 0;
-};
-
-
-//----------------------------------------------------------------------------------------------------------------------
-
-
-class DumpVisitor : public fdb5::EntryVisitor {
-
-public:
-    DumpVisitor(std::ostream& out, Schema& schema, Key& dbKey) :
-        out_(out), schema_(schema), dbKey_(dbKey) {}
-
-private:
-
-    virtual void visit(const Index& index,
-                       const Field& field,
-                       const std::string& indexFingerprint,
-                       const std::string& fieldFingerprint);
-
-private: // members
-    std::ostream& out_;
-    Schema& schema_;
-    Key& dbKey_;
-};*/
-
-//----------------------------------------------------------------------------------------------------------------------
-
 /// Base class for Indexing fields in the FDB
 ///
 /// Each concrete type of DB can implement a specific type of Index
@@ -115,7 +79,9 @@ public: // methods
     const IndexAxis& axes() const;
     const Key& key() const;
 
-    virtual bool get(const Key &key, Field &field) const = 0;
+    time_t timestamp() const { return timestamp_; }
+
+    virtual bool get(const Key &key, const Key &remapKey, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);
 
     virtual void encode(eckit::Stream &s) const = 0;
@@ -128,6 +94,9 @@ public: // methods
 
     virtual void print( std::ostream &out ) const = 0;
 
+protected: // methods
+    void takeTimestamp() { time(&timestamp_); }
+
 private: // methods
 
     virtual void add(const Key &key, const Field &field) = 0;
@@ -139,6 +108,7 @@ protected: // members
     /// @note Order of members is important here ...
     IndexAxis     axes_;   ///< This Index spans along these axis
     const Key     key_;    ///< key that selected this index
+    time_t timestamp_;
 
     Indexer indexer_;
 
@@ -180,7 +150,9 @@ public: // methods
     const IndexAxis& axes() const { return content_->axes(); }
     const Key& key() const { return content_->key(); }
 
-    bool get(const Key& key, Field& field) const { return content_->get(key, field); }
+    time_t timestamp() const { return content_->timestamp(); }
+
+    bool get(const Key& key, const Key& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
     void put(const Key& key, const Field& field) { content_->put(key, field); }
 
     void encode(eckit::Stream& s) const { content_->encode(s); }

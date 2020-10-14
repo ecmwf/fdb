@@ -31,6 +31,12 @@ IndexBase::IndexBase(eckit::Stream& s) :
     std::string dummy;
     s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
     s >> type_;
+    // backward compatibility: FDB on disk may miss the timestamp
+    if (s.endObjectFound()) {
+        timestamp_ = 0;
+    } else {
+        s >> timestamp_;
+    }
 }
 
 IndexBase::~IndexBase() {
@@ -103,7 +109,7 @@ private: // methods
 
     virtual void visit(IndexLocationVisitor&) const  { NOTIMP; }
 
-    virtual bool get( const Key&, Field&) const  { NOTIMP; }
+    virtual bool get( const Key&, const Key&, Field&) const  { NOTIMP; }
     virtual void add( const Key&, const Field&)  { NOTIMP; }
     virtual void flush()  { NOTIMP; }
     virtual void encode(eckit::Stream&) const { NOTIMP; }

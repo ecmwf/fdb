@@ -32,6 +32,12 @@
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 
+namespace eckit {
+namespace message {
+class Message;
+}
+}  // namespace eckit
+
 namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
@@ -59,13 +65,17 @@ public: // methods
 
     // -------------- Primary API functions ----------------------------
 
+    void archive(eckit::message::Message msg);
+    void archive(const Key& key, eckit::message::Message msg);
     void archive(const Key& key, const void* data, size_t length);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
     void flush();
 
-    eckit::DataHandle* retrieve(const metkit::MarsRequest& request);
+    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
+
+    ListIterator inspect(const metkit::mars::MarsRequest& request);
 
     ListIterator list(const FDBToolRequest& request);
 
@@ -111,6 +121,8 @@ private: // methods
         f.print(s);
         return s;
     }
+
+    bool sorted(const metkit::mars::MarsRequest &request);
 
 private: // members
 

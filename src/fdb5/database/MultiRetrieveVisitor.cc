@@ -28,13 +28,13 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind,
-                                           HandleGatherer& gatherer,
+                                           eckit::Queue<ListElement>& queue,
                                            eckit::CacheLRU<Key,DB*>& databases,
                                            const Config& config) :
     db_(0),
     wind_(wind),
     databases_(databases),
-    gatherer_(gatherer),
+    queue_(queue),
     config_(config) {
 }
 
@@ -99,16 +99,17 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
     ASSERT(db_);
     eckit::Log::debug() << "selectDatum " << key << ", " << full << std::endl;
 
-    eckit::DataHandle *dh = db_->retrieve(key);
+    Field field;
+    if (db_->inspect(key, field)) {
 
-    if (dh) {
-        gatherer_.add(dh);
+        queue_.emplace(ListElement({db_->key(), db_->indexKey(), key}, field.stableLocation(), field.timestamp()));
+        return true;
     }
 
-    return (dh != 0);
+    return false;
 }
 
-void MultiRetrieveVisitor::values(const metkit::MarsRequest &request, const std::string &keyword,
+void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request, const std::string &keyword,
                              const TypesRegistry &registry,
                              eckit::StringList &values) {
     registry.lookupType(keyword).getValues(request, keyword, values, wind_, db_);

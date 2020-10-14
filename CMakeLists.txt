@@ -1,14 +1,8 @@
-cmake_minimum_required( VERSION 3.1 FATAL_ERROR )
+cmake_minimum_required( VERSION 3.12 FATAL_ERROR )
 
-project( fdb5 C CXX )
+find_package( ecbuild 3.4 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild)
 
-set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild/cmake")
-
-include( ecbuild_system NO_POLICY_SCOPE )
-
-ecbuild_requires_macro_version( 2.9 )
-
-ecbuild_declare_project()
+project( fdb5 LANGUAGES C CXX )
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,13 +14,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_use_package( PROJECT eckit  VERSION 1.12 REQUIRED )
+ecbuild_find_package( NAME eckit  VERSION 1.12 REQUIRED )
 
 ### GRIB support
 
-ecbuild_use_package( PROJECT eccodes VERSION 2.10 REQUIRED )
+ecbuild_find_package( NAME eccodes VERSION 2.10 REQUIRED )
 
-ecbuild_use_package( PROJECT metkit VERSION 1.5 REQUIRED ) ## metkit is now always needed
+ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
 
 ### FDB remote front-end
 
@@ -39,13 +33,13 @@ ecbuild_add_option( FEATURE FDB_REMOTE
 ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
                     DEFAULT OFF
                     DESCRIPTION "Persistent memory (NVRAM) support for FDB"
-                    REQUIRED_PACKAGES "PROJECT pmem" )
+                    REQUIRED_PACKAGES "NAME pmem" )
 
 ### FDB backend in CEPH object store (using Rados)
 
-find_package( Rados QUIET )
+find_package( RADOS QUIET )
 ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
-                    CONDITION ECKIT_HAVE_RADOS AND RADOS_FOUND
+                    CONDITION eckit_HAVE_RADOS AND RADOS_FOUND
                     DEFAULT OFF
                     DESCRIPTION "Ceph/Rados support for FDB Store" )
 
@@ -56,12 +50,14 @@ ecbuild_add_option( FEATURE TOCFDB  # option defined in fdb5_config.h
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
 
-find_package( LustreAPI QUIET )
+### support for Lustre API control of file stripping
+
+find_package( LUSTREAPI QUIET )
 
 ecbuild_add_option( FEATURE LUSTRE  # option defined in fdb5_config.h
                     CONDITION LUSTREAPI_FOUND
                     DEFAULT ON
-                    DESCRIPTION "Filesystem TOC support for FDB" )
+                    DESCRIPTION "Support for Lustre API control of file stripping " )
 
 ### experimental & sandbox features
 
@@ -105,15 +101,13 @@ endif()
 ########################################################################################################################
 # contents
 
-set( FDB5_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
+set( fdb5_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 
-include_directories( ${FDB5_INCLUDE_DIRS} )
-include_directories( ${ECKIT_INCLUDE_DIRS} )
-include_directories( ${METKIT_INCLUDE_DIRS} )
+include_directories( ${fdb5_INCLUDE_DIRS} )
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${ECCODES_DEFINITIONS};${ODB_API_DEFINITIONS}" )
 
-get_directory_property( FDB5_DEFINITIONS COMPILE_DEFINITIONS )
+get_directory_property( fdb5_DEFINITIONS COMPILE_DEFINITIONS )
 
 ### source files
 

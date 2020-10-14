@@ -82,8 +82,7 @@ public:
         ASSERT(currentIndex_);
 
         if (key.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key},
-                                          field.stableLocation()));
+            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key}, field.stableLocation(), field.timestamp()));
         }
     }
 
@@ -93,8 +92,8 @@ public:
 
 private: // members
 
-    metkit::MarsRequest indexRequest_;
-    metkit::MarsRequest datumRequest_;
+    metkit::mars::MarsRequest indexRequest_;
+    metkit::mars::MarsRequest datumRequest_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

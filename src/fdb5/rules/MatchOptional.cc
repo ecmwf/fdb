@@ -13,7 +13,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/types/Types.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/database/Key.h"
 #include "fdb5/types/TypesRegistry.h"
@@ -56,7 +56,7 @@ const std::string &MatchOptional::value(const Key &key, const std::string &keywo
     return key.get(keyword);
 }
 
-const std::vector<std::string>& MatchOptional::values(const metkit::MarsRequest& rq, const std::string& keyword) const {
+const std::vector<std::string>& MatchOptional::values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const {
 
     if (rq.has(keyword)) {
         return rq.values(keyword);

@@ -24,11 +24,12 @@
 #include <mutex>
 
 #include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/net/TCPServer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/config/Config.h"
@@ -54,12 +55,14 @@ public:  // methods
 
     std::string host() const { return controlSocket_.localHost(); }
     int port() const { return controlSocket_.localPort(); }
+    const eckit::LocalConfiguration& agreedConf() const { return agreedConf_; }
 
 private:  // methods
     // Socket methods
 
     int selectDataPort();
     void initialiseConnections();
+    eckit::LocalConfiguration availableFunctionality() const;
 
     void controlWrite(Message msg, uint32_t requestID, const void* payload = nullptr,
                       uint32_t payloadLength = 0);
@@ -89,13 +92,18 @@ private:  // methods
     void flush(const MessageHeader& hdr);
     void archive(const MessageHeader& hdr);
     void retrieve(const MessageHeader& hdr);
+    void read(const MessageHeader& hdr);
+
+    void writeToParent(const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
 
     size_t archiveThreadLoop(uint32_t id);
-    void retrieveThreadLoop();
+    void readLocationThreadLoop();
 
 private:  // members
     Config config_;
     eckit::SessionID sessionID_;
+
+    eckit::LocalConfiguration agreedConf_;
 
     eckit::net::TCPSocket controlSocket_;
     eckit::net::EphemeralTCPServer dataSocket_;
@@ -113,8 +121,8 @@ private:  // members
 
     // Retrieve helpers
 
-    std::thread retrieveWorker_;
-    eckit::Queue<std::pair<uint32_t, metkit::MarsRequest>> retrieveQueue_;
+    std::thread readLocationWorker_;
+    eckit::Queue<std::pair<uint32_t, std::unique_ptr<eckit::DataHandle>>> readLocationQueue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

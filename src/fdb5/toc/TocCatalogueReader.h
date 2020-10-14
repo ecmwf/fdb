@@ -49,7 +49,7 @@ private: // methods
 
     void axis(const std::string &keyword, eckit::StringSet &s) const override;
 
-    bool retrieve(const Key& key, Field& field, Key& remapKey) const override;
+    bool retrieve(const Key& key, Field& field) const override;
 
     void print( std::ostream &out ) const override;
 

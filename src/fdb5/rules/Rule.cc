@@ -14,7 +14,7 @@
 
 #include "eckit/config/Resource.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Schema.h"
@@ -49,7 +49,7 @@ Rule::~Rule() {
     }
 }
 
-void Rule::expand( const metkit::MarsRequest &request,
+void Rule::expand( const metkit::mars::MarsRequest &request,
                    std::vector<Predicate *>::const_iterator cur,
                    size_t depth,
                    std::vector<Key> &keys,
@@ -130,7 +130,7 @@ void Rule::expand( const metkit::MarsRequest &request,
 
 }
 
-void Rule::expand(const metkit::MarsRequest &request, ReadVisitor &visitor, size_t depth, std::vector<Key> &keys, Key &full) const {
+void Rule::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor, size_t depth, std::vector<Key> &keys, Key &full) const {
     ASSERT(keys.size() == 3);
     expand(request, predicates_.begin(), depth, keys, full, visitor);
 }
@@ -256,7 +256,7 @@ void Rule::expandFirstLevel(const Key &dbKey,  Key &result, bool& found) const {
     expandFirstLevel(dbKey, predicates_.begin(), result, found);
 }
 
-void Rule::expandFirstLevel(const metkit::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, Key& result, bool& found) const {
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, Key& result, bool& found) const {
 
     if (cur == predicates_.end()) {
         found = true;
@@ -289,7 +289,7 @@ void Rule::expandFirstLevel(const metkit::MarsRequest& rq, std::vector<Predicate
     }
 }
 
-void Rule::expandFirstLevel(const metkit::MarsRequest& request, Key& result, bool& done) const {
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, Key& result, bool& done) const {
     expandFirstLevel(request, predicates_.begin(), result, done);
 }
 
@@ -331,7 +331,7 @@ void Rule::matchFirstLevel(const Key &dbKey,  std::set<Key>& result, const char*
 }
 
 
-void Rule::matchFirstLevel(const metkit::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
+void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
 
     if (cur == predicates_.end()) {
 //        if (tmp.match(request)) {
@@ -363,7 +363,7 @@ void Rule::matchFirstLevel(const metkit::MarsRequest& request, std::vector<Predi
     }
 }
 
-void Rule::matchFirstLevel(const metkit::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
+void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
     Key tmp;
     matchFirstLevel(request, predicates_.begin(), tmp, result, missing);
 }

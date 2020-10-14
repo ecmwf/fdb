@@ -16,7 +16,7 @@
 
 #include "eckit/exception/Exceptions.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/database/EntryVisitMechanism.h"
 
@@ -28,7 +28,7 @@ class WipeVisitor : public EntryVisitor {
 
 public: // methods
 
-    WipeVisitor(const metkit::MarsRequest& request,
+    WipeVisitor(const metkit::mars::MarsRequest& request,
                 std::ostream& out,
                 bool doit,
                 bool porcelain,
@@ -42,7 +42,7 @@ public: // methods
 
 protected: // members
 
-    const metkit::MarsRequest& request_;
+    const metkit::mars::MarsRequest& request_;
 
     std::ostream& out_;
     const bool doit_;

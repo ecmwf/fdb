@@ -13,8 +13,9 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include "eckit/log/Log.h"
 #include "eckit/container/Queue.h"
+#include "eckit/log/Log.h"
+#include "eckit/message/Message.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -22,7 +23,7 @@
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/database/Retriever.h"
+#include "fdb5/database/Inspector.h"
 #include "fdb5/LibFdb5.h"
 
 #include "fdb5/api/local/ControlVisitor.h"
@@ -40,24 +41,24 @@ using namespace eckit;
 
 
 namespace fdb5 {
-void LocalFDB::archive(const Key& key, const void* data, size_t length) {
+void LocalFDB::archive(const Key& key, eckit::message::Message msg) {
 
     if (!archiver_) {
         Log::debug<LibFdb5>() << *this << ": Constructing new archiver" << std::endl;
         archiver_.reset(new Archiver(config_));
     }
 
-    archiver_->archive(key, data, length);
+    archiver_->archive(key, msg.data(), msg.length());
 }
 
-DataHandle *LocalFDB::retrieve(const metkit::MarsRequest &request) {
+ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest &request) {
 
-    if (!retriever_) {
+    if (!inspector_) {
         Log::debug<LibFdb5>() << *this << ": Constructing new retriever" << std::endl;
-        retriever_.reset(new Retriever(config_));
+        inspector_.reset(new Inspector(config_));
     }
 
-    return retriever_->retrieve(request);
+    return inspector_->inspect(request);
 }
 
 template<typename VisitorType, typename ... Ts>
@@ -75,7 +76,6 @@ APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBTo
 
     return QueryIterator(new AsyncIterator(async_worker));
 }
-
 
 ListIterator LocalFDB::list(const FDBToolRequest& request) {
     Log::debug<LibFdb5>() << "LocalFDB::list() : " << request << std::endl;

@@ -16,7 +16,7 @@
 
 #include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/database/Field.h"
+
 #include <string>
 
 using namespace eckit;

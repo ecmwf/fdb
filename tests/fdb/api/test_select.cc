@@ -20,7 +20,8 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
 
-#include "metkit/types/TypeAny.h"
+#include "metkit/mars/TypeAny.h"
+#include "metkit/codes/UserDataContent.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -84,6 +85,7 @@ CASE( "archives_distributed_according_to_select" ) {
     fdb5::Key k;
     k.set("class", "od");
     k.set("expver", "xxxx");
+
     fdb.archive(k, (const void*)0x1234, 1234);
 
     EXPECT(spy_od.counts().archive == 1);
@@ -95,6 +97,7 @@ CASE( "archives_distributed_according_to_select" ) {
 
     k.set("class", "rd");
     k.set("expver", "yyyy");
+
     fdb.archive(k, (const void*)0x4321, 4321);
 
     EXPECT(spy_od.counts().archive == 1);
@@ -138,7 +141,7 @@ CASE( "archives_distributed_according_to_select" ) {
     ApiSpy* spies[] ={&spy_od, &spy_rd1, &spy_rd2};
     for (int i = 0; i < 3; i++) {
         ApiSpy* spy = spies[i];
-        EXPECT(spy->counts().retrieve == 0);
+        EXPECT(spy->counts().inspect == 0);
         EXPECT(spy->counts().list == 0);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);
@@ -162,47 +165,47 @@ CASE( "retrieves_distributed_according_to_select" ) {
 
     // Do some archiving
 
-    metkit::MarsRequest req;
-    req.setValuesTyped(new metkit::TypeAny("class"), std::vector<std::string>{"od"});
-    req.setValuesTyped(new metkit::TypeAny("expver"), std::vector<std::string>{"xxxx"});
-    fdb.retrieve(req);
+    metkit::mars::MarsRequest req;
+    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{"od"});
+    req.setValuesTyped(new metkit::mars::TypeAny("expver"), std::vector<std::string>{"xxxx"});
+    fdb.inspect(req);
 
-    EXPECT(spy_od.counts().retrieve == 1);
-    EXPECT(spy_rd1.counts().retrieve == 0);
-    EXPECT(spy_rd2.counts().retrieve == 0);
+    EXPECT(spy_od.counts().inspect == 1);
+    EXPECT(spy_rd1.counts().inspect == 0);
+    EXPECT(spy_rd2.counts().inspect == 0);
 
-    req.setValuesTyped(new metkit::TypeAny("class"), std::vector<std::string>{std::string("rd")});
-    fdb.retrieve(req);
+    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{std::string("rd")});
+    fdb.inspect(req);
 
-    EXPECT(spy_od.counts().retrieve == 1);
-    EXPECT(spy_rd1.counts().retrieve == 1);
-    EXPECT(spy_rd2.counts().retrieve == 0);
+    EXPECT(spy_od.counts().inspect == 1);
+    EXPECT(spy_rd1.counts().inspect == 1);
+    EXPECT(spy_rd2.counts().inspect == 0);
 
     // Under specified - matches nothing. Requests halted at this point, as FDB retrieves need
     // to be fully specified
 
     req.unsetValues("expver");
-    fdb.retrieve(req);
+    fdb.inspect(req);
 
-    EXPECT(spy_od.counts().retrieve == 1);
-    EXPECT(spy_rd1.counts().retrieve == 1);
-    EXPECT(spy_rd2.counts().retrieve == 0);
+    EXPECT(spy_od.counts().inspect == 1);
+    EXPECT(spy_rd1.counts().inspect == 1);
+    EXPECT(spy_rd2.counts().inspect == 0);
 
     // Now match all the rd lanes
 
-    req.setValuesTyped(new metkit::TypeAny("expver"), std::vector<std::string>{"xx12", "yy21"});
-    fdb.retrieve(req);
+    req.setValuesTyped(new metkit::mars::TypeAny("expver"), std::vector<std::string>{"xx12", "yy21"});
+    fdb.inspect(req);
 
-    EXPECT(spy_od.counts().retrieve == 1);
-    EXPECT(spy_rd1.counts().retrieve == 2);
-    EXPECT(spy_rd2.counts().retrieve == 1);
+    EXPECT(spy_od.counts().inspect == 1);
+    EXPECT(spy_rd1.counts().inspect == 2);
+    EXPECT(spy_rd2.counts().inspect == 1);
 
-    req.setValuesTyped(new metkit::TypeAny("class"), std::vector<std::string>{"od", "rd"});
-    fdb.retrieve(req);
+    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{"od", "rd"});
+    fdb.inspect(req);
 
-    EXPECT(spy_od.counts().retrieve == 2);
-    EXPECT(spy_rd1.counts().retrieve == 3);
-    EXPECT(spy_rd2.counts().retrieve == 2);
+    EXPECT(spy_od.counts().inspect == 2);
+    EXPECT(spy_rd1.counts().inspect == 3);
+    EXPECT(spy_rd2.counts().inspect == 2);
 
     // And unused functions
 
@@ -277,7 +280,7 @@ CASE( "lists_distributed_according_to_select" ) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
-        EXPECT(spy->counts().retrieve == 0);
+        EXPECT(spy->counts().inspect == 0);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);
         EXPECT(spy->counts().wipe == 0);
@@ -344,7 +347,7 @@ CASE( "dump_distributed_according_to_select" ) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
-        EXPECT(spy->counts().retrieve == 0);
+        EXPECT(spy->counts().inspect == 0);
         EXPECT(spy->counts().list == 0);
         EXPECT(spy->counts().status == 0);
         EXPECT(spy->counts().wipe == 0);
@@ -410,7 +413,7 @@ CASE( "status_distributed_according_to_select" ) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
-        EXPECT(spy->counts().retrieve == 0);
+        EXPECT(spy->counts().inspect == 0);
         EXPECT(spy->counts().list == 0);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().wipe == 0);
@@ -477,7 +480,7 @@ CASE( "wipe_distributed_according_to_select" ) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
-        EXPECT(spy->counts().retrieve == 0);
+        EXPECT(spy->counts().inspect == 0);
         EXPECT(spy->counts().list == 0);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);
@@ -544,7 +547,7 @@ CASE( "purge_distributed_according_to_select" ) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
-        EXPECT(spy->counts().retrieve == 0);
+        EXPECT(spy->counts().inspect == 0);
         EXPECT(spy->counts().list == 0);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);
@@ -611,7 +614,7 @@ CASE( "stats_distributed_according_to_select" ) {
         ApiSpy* spy = spies[i];
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
-        EXPECT(spy->counts().retrieve == 0);
+        EXPECT(spy->counts().inspect == 0);
         EXPECT(spy->counts().list == 0);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);
@@ -681,7 +684,7 @@ CASE( "control_distributed_according_to_select" ) {
     for (auto spy : {&spy_od, &spy_rd1, &spy_rd2}) {
         EXPECT(spy->counts().archive == 0);
         EXPECT(spy->counts().flush == 0);
-        EXPECT(spy->counts().retrieve == 0);
+        EXPECT(spy->counts().inspect == 0);
         EXPECT(spy->counts().list == 0);
         EXPECT(spy->counts().dump == 0);
         EXPECT(spy->counts().status == 0);

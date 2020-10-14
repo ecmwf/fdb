@@ -10,8 +10,8 @@
 
 #include <algorithm>
 
-#include "metkit/ParamID.h"
-#include "metkit/Param.h"
+#include "metkit/mars/ParamID.h"
+#include "metkit/mars/Param.h"
 
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Notifier.h"
@@ -31,7 +31,7 @@ TypeParam::TypeParam(const std::string &name, const std::string &type) :
 TypeParam::~TypeParam() {
 }
 
-void TypeParam::getValues(const metkit::MarsRequest &request,
+void TypeParam::getValues(const metkit::mars::MarsRequest &request,
                           const std::string &keyword,
                           eckit::StringList &values,
                           const Notifier &wind,

@@ -10,7 +10,7 @@
 
 #include "eckit/log/Log.h"
 
-#include "metkit/MarsRequest.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Matcher.h"
@@ -53,7 +53,7 @@ const std::string &Predicate::value(const Key &key) const {
     return matcher_->value(key, keyword_);
 }
 
-const std::vector<std::string>& Predicate::values(const metkit::MarsRequest& rq) const {
+const std::vector<std::string>& Predicate::values(const metkit::mars::MarsRequest& rq) const {
     return matcher_->values(rq, keyword_);
 }
 

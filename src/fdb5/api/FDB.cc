@@ -14,10 +14,19 @@
  */
 
 #include "eckit/io/DataHandle.h"
+#include "eckit/log/Log.h"
+#include "eckit/message/Message.h"
 
+#include "metkit/codes/UserDataContent.h"
+#include "metkit/hypercube/HyperCubePayloaded.h"
+
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/io/HandleGatherer.h"
+#include "fdb5/database/messageToKey.h"
 
 namespace fdb5 {
 
@@ -37,26 +46,85 @@ FDB::~FDB() {
     }
 }
 
-void FDB::archive(const Key& key, const void* data, size_t length) {
+void FDB::archive(eckit::message::Message msg) {
+    fdb5::Key key = messageToKey(msg);
+    archive(key, msg);
+}
+
+void FDB::archive(const Key& key, eckit::message::Message msg) {
     eckit::Timer timer;
     timer.start();
 
-    internal_->archive(key, data, length);
+    internal_->archive(key, msg);
     dirty_ = true;
 
     timer.stop();
-    stats_.addArchive(length, timer);
+    stats_.addArchive(msg.length(), timer);
 }
 
-eckit::DataHandle* FDB::retrieve(const metkit::MarsRequest& request) {
+void FDB::archive(const Key& key, const void* data, size_t length) {
+    eckit::message::Message msg{new metkit::codes::UserDataContent{data, length}};
+    archive(key, msg);
+}
 
+bool FDB::sorted(const metkit::mars::MarsRequest &request) {
+
+    bool sorted = false;
+
+    const std::vector<std::string>& sort = request.values("optimise", /* emptyOK */ true);
+
+    if (sort.size() == 1 && sort[0] == "on") {
+        sorted = true;
+        eckit::Log::userInfo() << "Using optimise" << std::endl;
+    }
+
+    eckit::Log::debug<LibFdb5>() << "fdb5::FDB::retrieve() Sorted? " << sorted << std::endl;
+
+    return sorted;
+}
+
+class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
+public:
+    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
+        return existing.timestamp() < replacement.timestamp();
+    }
+};
+
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     eckit::Timer timer;
     timer.start();
-    eckit::DataHandle* dh = internal_->retrieve(request);
-    timer.stop();
-    stats_.addRetrieve(dh->estimate(), timer);
 
-    return dh;
+    ListElementDeduplicator dedup;
+    metkit::hypercube::HyperCubePayloaded<ListElement> cube(request, dedup);
+
+    ListIterator it = inspect(request);
+    ListElement el;
+    while (it.next(el)) {
+        cube.add(el.combinedKey().request(), el);
+    }
+
+    if (cube.countVacant() > 0) {
+        std::stringstream ss;
+        ss << "No matching data for requests:" << std::endl;
+        for (auto req: cube.vacantRequests()) {
+            ss << "    " << req << std::endl;
+        }
+        eckit::Log::userWarning() << ss.str() << std::endl;
+    }
+
+    HandleGatherer result(sorted(request));
+    for (size_t i=0; i< cube.size(); i++) {
+        ListElement element;
+        if (cube.find(i, element)) {
+            result.add(element.location().dataHandle());
+        }
+    }
+
+    return result.dataHandle();
+}
+
+ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
+    return internal_->inspect(request);
 }
 
 ListIterator FDB::list(const FDBToolRequest& request) {

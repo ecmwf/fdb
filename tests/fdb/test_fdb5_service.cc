@@ -22,13 +22,13 @@
 #include "eckit/types/Types.h"
 #include "eckit/utils/Translator.h"
 
-#include "metkit/MarsRequest.h"
-#include "metkit/types/TypeAny.h"
+#include "metkit/mars/MarsRequest.h"
+#include "metkit/mars/TypeAny.h"
 
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
-#include "fdb5/database/Retriever.h"
+#include "fdb5/api/FDB.h"
 
 #include "eckit/testing/Test.h"
 
@@ -45,7 +45,7 @@ namespace test {
 
 struct FixtureService {
 
-    metkit::MarsRequest env;
+    metkit::mars::MarsRequest env;
     StringDict p;
 
 	std::vector<std::string> modelParams_;
@@ -106,7 +106,7 @@ CASE ( "test_fdb_service" ) {
 	SETUP("Fixture") {
 		FixtureService f;
 
-		SECTION( "test_fdb_service_write" )
+        SECTION( "test_fdb_service_write" )
 		{
 			fdb5::Archiver fdb;
 
@@ -138,12 +138,12 @@ CASE ( "test_fdb_service" ) {
 			f.p["type"] = "4v";
 
 			f.write_cycle(fdb, f.p);
-		}
+        }
 
 
-		SECTION( "test_fdb_service_readtobuffer" )
-		{
-			fdb5::Retriever retriever;
+        SECTION( "test_fdb_service_readtobuffer" )
+        {
+            fdb5::FDB retriever;
 
 			Buffer buffer(1024);
 
@@ -164,33 +164,32 @@ CASE ( "test_fdb_service" ) {
 
 						Log::info() << "Looking for: " << f.p << std::endl;
 
-                        metkit::MarsRequest r("retrieve", f.p);
+                        metkit::mars::MarsRequest r("retrieve", f.p);
                         std::unique_ptr<DataHandle> dh ( retriever.retrieve(r) );  AutoClose closer1(*dh);
 
-						::memset(buffer, 0, buffer.size());
+                        ::memset(buffer, 0, buffer.size());
 
-						dh->openForRead();
-						dh->read(buffer, buffer.size());
+                        dh->openForRead();
+                        dh->read(buffer, buffer.size());
 
-						Log::info() << (char*) buffer << std::endl;
+                        Log::info() << (char*) buffer << std::endl;
 
-						std::ostringstream data;
-						data << "Raining cats and dogs -- "
-							<< " param " << *param
-							<< " step "  << step
-							<< " level " << level
-							<< std::endl;
+                        std::ostringstream data;
+                        data << "Raining cats and dogs -- "
+                                << " param " << *param
+                                << " step "  << step
+                                << " level " << level
+                                << std::endl;
 
-						EXPECT(::memcmp(buffer, data.str().c_str(), data.str().size()) == 0);
-		//                EXPECT( std::string(buffer) == data.str() );
+                        EXPECT(::memcmp(buffer, data.str().c_str(), data.str().size()) == 0);
 					}
 				}
 			}
-		}
+        }
 
-		SECTION( "test_fdb_service_marsreques" )
-		{
-			std::vector<string> steps;
+        SECTION( "test_fdb_service_marsreques" )
+        {
+            std::vector<string> steps;
 			steps.push_back( "15" );
 			steps.push_back( "18" );
 			steps.push_back( "24" );
@@ -208,7 +207,7 @@ CASE ( "test_fdb_service" ) {
 			dates.push_back( "20120912" );
 
 
-            metkit::MarsRequest r("retrieve");
+            metkit::mars::MarsRequest r("retrieve");
 
             r.setValue("class","rd");
 			r.setValue("expver","0001");
@@ -218,14 +217,14 @@ CASE ( "test_fdb_service" ) {
 			r.setValue("domain","g");
 			r.setValue("levtype","pl");
 
-            r.setValuesTyped(new metkit::TypeAny("param"), params);
-            r.setValuesTyped(new metkit::TypeAny("step"), steps);
-            r.setValuesTyped(new metkit::TypeAny("levelist"), levels);
-            r.setValuesTyped(new metkit::TypeAny("date"), dates);
+            r.setValuesTyped(new metkit::mars::TypeAny("param"), params);
+            r.setValuesTyped(new metkit::mars::TypeAny("step"), steps);
+            r.setValuesTyped(new metkit::mars::TypeAny("levelist"), levels);
+            r.setValuesTyped(new metkit::mars::TypeAny("date"), dates);
 
 			Log::info() << r << std::endl;
 
-			fdb5::Retriever retriever;
+            fdb5::FDB retriever;
 
             std::unique_ptr<DataHandle> dh ( retriever.retrieve(r) );
 
@@ -233,7 +232,7 @@ CASE ( "test_fdb_service" ) {
 			path.unlink();
 
 			dh->saveInto(path);
-		}
+        }
 	}
 }
 
