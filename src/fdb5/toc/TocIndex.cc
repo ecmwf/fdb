@@ -71,11 +71,7 @@ TocIndex::~TocIndex() {
 
 void TocIndex::encode(eckit::Stream &s) const {
     files_.encode(s);
-    axes_.encode(s);
-    s << key_;
-    s << key_.valuesToString(); //< unused entry for legacy compatibility
-    s << type_;
-    s << timestamp_;
+    IndexBase::encode(s);
 }
 
 

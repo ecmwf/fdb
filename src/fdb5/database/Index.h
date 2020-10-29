@@ -84,7 +84,7 @@ public: // methods
     virtual bool get(const Key &key, const Key &remapKey, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);
 
-    virtual void encode(eckit::Stream &s) const = 0;
+    virtual void encode(eckit::Stream &s) const;
     virtual void entries(EntryVisitor &visitor) const = 0;
     virtual void dump(std::ostream &out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 

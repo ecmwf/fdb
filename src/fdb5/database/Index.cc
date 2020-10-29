@@ -28,18 +28,30 @@ IndexBase::IndexBase(const Key& key, const std::string& type) :
 IndexBase::IndexBase(eckit::Stream& s) :
     axes_(s),
     key_(s) {
-    std::string dummy;
-    s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
-    s >> type_;
-    // backward compatibility: FDB on disk may miss the timestamp
-    if (s.endObjectFound()) {
-        timestamp_ = 0;
-    } else {
+    if (s.startObjectFound()) { // new serialization
+        s.skipStartObject();
+        s >> type_;
         s >> timestamp_;
+        s.skipEndObject();
+    } else { // backward compatibility
+        std::string dummy;
+        s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
+        s >> type_;
+        timestamp_ = 0;
     }
 }
 
 IndexBase::~IndexBase() {
+}
+
+void IndexBase::encode(eckit::Stream &s) const {
+    axes_.encode(s);
+    s << key_;
+    s.startObject();
+//    s << key_.valuesToString(); we no longer write this field, required in the previous index format
+    s << type_;
+    s << timestamp_;
+    s.endObject();
 }
 
 void IndexBase::put(const Key &key, const Field &field) {
