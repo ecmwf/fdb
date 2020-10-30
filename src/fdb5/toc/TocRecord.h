@@ -51,15 +51,15 @@ struct TocRecord {
     static unsigned int currentVersion();
 
     struct Header {
-        unsigned char          tag_;           ///<  (1) tag identifying the TocRecord type
-        unsigned char          spare_[3];      /// padding
-        unsigned int           version_;       ///<  (1) tag version of the TocRecord type
-        unsigned int           fdbVersion_;    ///<  (4) version of FDB writing this entry
+        unsigned char          tag_;           ///<  (1)  tag identifying the TocRecord type
+        unsigned char          spare_[3];      ///<  (3)  padding
+        unsigned int           version_;       ///<  (4)  tag version of the TocRecord type serialization
+        unsigned int           fdbVersion_;    ///<  (4)  version of FDB writing this entry
         timeval                timestamp_;     ///<  (16) date & time of entry (in Unix seconds)
-        pid_t                  pid_;           ///<  (4) process PID
-        uid_t                  uid_;           ///<  (4) user ID
+        pid_t                  pid_;           ///<  (4)  process PID
+        uid_t                  uid_;           ///<  (4)  user ID
         eckit::FixedString<64> hostname_;      ///<  (64) hostname adding entry
-        size_t                 size_;          ///< Record size
+        size_t                 size_;          ///<  (8)  Record size
 
         Header(unsigned char tag);
     };

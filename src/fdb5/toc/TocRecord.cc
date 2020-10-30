@@ -12,6 +12,7 @@
 #include <pwd.h>
 
 #include "fdb5/fdb5_version.h"
+#include "fdb5/LibFdb5.h"
 
 #include <iomanip>
 
@@ -123,7 +124,7 @@ void TocRecord::print(std::ostream & out) const {
 }
 
 unsigned int TocRecord::currentVersion() {
-    return 2;
+    return LibFdb5::instance().streamVersion(); // Toc version follows the global FDB5 stream version (version for how we serialise objects)
 }
 
 //----------------------------------------------------------------------------------------------------------------------

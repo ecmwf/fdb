@@ -54,9 +54,12 @@ class IndexBase : public eckit::Counted {
 public: // methods
 
     IndexBase(const Key& key, const std::string& type);
-    IndexBase(eckit::Stream& s);
+    IndexBase(eckit::Stream& s, const int version);
 
     virtual ~IndexBase();
+
+    void decode(eckit::Stream& s);
+    void decodeLegacy(eckit::Stream& s, const int version);
 
     virtual const IndexLocation& location() const = 0;
 

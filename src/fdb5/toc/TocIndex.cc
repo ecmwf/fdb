@@ -56,9 +56,9 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
     location_(path, offset) {
 }
 
-TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
+TocIndex::TocIndex(eckit::Stream &s, const int version, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
     UriStoreWrapper(directory, s),
-    IndexBase(s),
+    IndexBase(s, version),
     btree_(nullptr),
     dirty_(false),
     mode_(TocIndex::READ),
