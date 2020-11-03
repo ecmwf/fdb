@@ -40,7 +40,7 @@ class IndexAxis : private eckit::NonCopyable {
 public: // methods
 
     IndexAxis();
-    IndexAxis(eckit::Stream &);
+    IndexAxis(eckit::Stream &s, const int version);
 
     ~IndexAxis();
 

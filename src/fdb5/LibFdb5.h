@@ -33,6 +33,8 @@ public:
 
     static LibFdb5& instance();
 
+    virtual int streamVersion() const;
+
     Config defaultConfig();
 
 protected:

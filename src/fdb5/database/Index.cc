@@ -24,22 +24,80 @@ IndexBase::IndexBase(const Key& key, const std::string& type) :
 {
 }
 
+enum IndexBaseStreamKeys {
+    IndexKeyUnrecognised,
+    IndexKey,
+    IndexType,
+    IndexTimestamp
+};
 
-IndexBase::IndexBase(eckit::Stream& s) :
-    axes_(s),
-    key_(s) {
+IndexBaseStreamKeys keyId(std::string s) {
+    static const std::map<std::string, IndexBaseStreamKeys> keys {
+        {"key" , IndexKey},
+        {"type", IndexType},
+        {"time", IndexTimestamp},
+    };
+
+    auto it = keys.find(s);
+    if( it != keys.end() ) {
+        return it->second;
+    }
+    return IndexKeyUnrecognised; 
+}
+
+
+void IndexBase::decode(eckit::Stream& s) {
+    ASSERT(s.next());
+
+    std::string k;
+    while (!s.endObjectFound()) {
+        s >> k;
+        switch (keyId(k)) {
+            case IndexKey:
+                s >> key_;
+                break;
+            case IndexType:
+                s >> type_;
+                break;
+            case IndexTimestamp:
+                s >> timestamp_;
+                break;
+            default:
+                std::cerr << "Errore!!!" << std::endl;
+        }
+    }
+    ASSERT(!key_.empty());
+    ASSERT(!type_.empty());
+    ASSERT(timestamp_);
+}
+
+void IndexBase::decodeLegacy(eckit::Stream& s) { // decoding of old Stream format, for backward compatibility
     std::string dummy;
+    s >> key_;
     s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
     s >> type_;
-    // backward compatibility: FDB on disk may miss the timestamp
-    if (s.endObjectFound()) {
-        timestamp_ = 0;
-    } else {
-        s >> timestamp_;
-    }
+    timestamp_ = 0;
+}
+
+
+IndexBase::IndexBase(eckit::Stream& s, const int version) :
+    axes_(s, version) {
+    if (version >= 3) 
+        decode(s);
+    else
+        decodeLegacy(s, version);
 }
 
 IndexBase::~IndexBase() {
+}
+
+void IndexBase::encode(eckit::Stream &s) const {
+    axes_.encode(s);
+    s.startObject();
+    s << "key" << key_;
+    s << "type" << type_;
+    s << "time" << timestamp_;
+    s.endObject();
 }
 
 void IndexBase::put(const Key &key, const Field &field) {

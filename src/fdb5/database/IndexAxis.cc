@@ -34,7 +34,7 @@ IndexAxis::~IndexAxis() {
     }
 }
 
-IndexAxis::IndexAxis(eckit::Stream &s) :
+IndexAxis::IndexAxis(eckit::Stream &s, const int version) :
     readOnly_(true),
     dirty_(false) {
 

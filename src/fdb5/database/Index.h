@@ -54,7 +54,8 @@ class IndexBase : public eckit::Counted {
 public: // methods
 
     IndexBase(const Key& key, const std::string& type);
-    IndexBase(eckit::Stream& s);
+
+    static IndexBase decode(eckit::Stream& s, const int version);
 
     virtual ~IndexBase();
 
@@ -84,7 +85,7 @@ public: // methods
     virtual bool get(const Key &key, const Key &remapKey, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);
 
-    virtual void encode(eckit::Stream &s) const = 0;
+    virtual void encode(eckit::Stream &s) const;
     virtual void entries(EntryVisitor &visitor) const = 0;
     virtual void dump(std::ostream &out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 
@@ -99,6 +100,10 @@ protected: // methods
 
 private: // methods
 
+
+    void decode(eckit::Stream& s);
+    void decodeLegacy(eckit::Stream& s);
+
     virtual void add(const Key &key, const Field &field) = 0;
 
 protected: // members
@@ -106,11 +111,11 @@ protected: // members
     std::string type_;
 
     /// @note Order of members is important here ...
-    IndexAxis     axes_;   ///< This Index spans along these axis
-    const Key     key_;    ///< key that selected this index
-    time_t timestamp_;
+    IndexAxis axes_;   ///< This Index spans along these axis
+    const Key key_;    ///< key that selected this index
+    time_t    timestamp_;
 
-    Indexer indexer_;
+    Indexer   indexer_;
 
     friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
         o.print(s); return s;
