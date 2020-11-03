@@ -124,7 +124,8 @@ void TocRecord::print(std::ostream & out) const {
 }
 
 unsigned int TocRecord::currentVersion() {
-    return LibFdb5::instance().streamVersion(); // Toc version follows the global FDB5 stream version (version for how we serialise objects)
+    // Toc version follows the global FDB5 stream version (version for how we serialise objects)
+    return LibFdb5::instance().serialisationVersion();  
 }
 
 //----------------------------------------------------------------------------------------------------------------------

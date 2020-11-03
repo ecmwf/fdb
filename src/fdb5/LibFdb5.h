@@ -33,7 +33,7 @@ public:
 
     static LibFdb5& instance();
 
-    virtual int streamVersion() const;
+    virtual int serialisationVersion() const;
 
     Config defaultConfig();
 
