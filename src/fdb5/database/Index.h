@@ -60,7 +60,6 @@ public: // methods
 
     virtual const IndexLocation& location() const = 0;
 
-//    virtual const std::vector<eckit::URI> dataUris() const = 0;
     virtual const std::vector<eckit::URI> dataPaths() const { NOTIMP; }
 
     virtual bool dirty() const = 0;
@@ -110,9 +109,9 @@ protected: // members
     std::string type_;
 
     /// @note Order of members is important here ...
-    IndexAxis axes_;   ///< This Index spans along these axis
-    Key       key_;    ///< key that selected this index
-    time_t    timestamp_;
+    IndexAxis axes_;      ///< This Index spans along these axis
+    Key       key_;       ///< key that selected this index
+    time_t    timestamp_; ///< timestamp when this Index was flushed
 
     Indexer   indexer_;
 
@@ -137,7 +136,6 @@ public: // methods
 
     const IndexLocation& location() const { return content_->location(); }
 
-//    const std::vector<eckit::URI> dataUris() const { return content_->dataUris(); }
     const std::vector<eckit::URI> dataPaths() const { return content_->dataPaths(); }
 
     bool dirty() const { return content_->dirty(); }
