@@ -774,7 +774,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
             s << location.offset();
             s << index_.type();
 
-            index_.encode(s);
+            index_.encode(s, r->currentVersion());
             handler_.append(*r, s.position());
 
             eckit::Log::debug<LibFdb5>() << "Write TOC_INDEX " << location.uri().path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
@@ -1325,7 +1325,7 @@ size_t TocHandler::buildIndexRecord(TocRecord& r, const Index &index) {
     s << tocLoc.uri().path().baseName();
     s << tocLoc.offset();
     s << index.type();
-    index.encode(s);
+    index.encode(s, r.currentVersion());
 
     return s.position();
 }

@@ -19,6 +19,8 @@ rm -rf $bindir/FDB-238
 cp -r $srcdir/FDB-238 $bindir/FDB-238
 cd $bindir/FDB-238
 
+mkdir localroot
+
 $gribset -s step=6 12.grib 6.grib
 $gribset -s step=9 12.grib 9.grib
 

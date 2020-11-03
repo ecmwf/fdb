@@ -69,9 +69,9 @@ TocIndex::~TocIndex() {
     close();
 }
 
-void TocIndex::encode(eckit::Stream &s) const {
+void TocIndex::encode(eckit::Stream& s, const int version) const {
     files_.encode(s);
-    IndexBase::encode(s);
+    IndexBase::encode(s, version);
 }
 
 

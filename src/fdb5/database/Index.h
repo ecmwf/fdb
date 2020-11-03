@@ -83,9 +83,9 @@ public: // methods
     virtual bool get(const Key &key, const Key &remapKey, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);
 
-    virtual void encode(eckit::Stream &s) const;
-    virtual void entries(EntryVisitor &visitor) const = 0;
-    virtual void dump(std::ostream &out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
+    virtual void encode(eckit::Stream& s, const int version) const;
+    virtual void entries(EntryVisitor& visitor) const = 0;
+    virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 
     virtual bool mayContain(const Key& key) const;
 
@@ -101,6 +101,7 @@ private: // methods
 
     void decode(eckit::Stream& s);
     void decodeLegacy(eckit::Stream& s);
+    void encodeLegacy(eckit::Stream& s) const;
 
     virtual void add(const Key &key, const Field &field) = 0;
 
@@ -157,7 +158,7 @@ public: // methods
     bool get(const Key& key, const Key& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
     void put(const Key& key, const Field& field) { content_->put(key, field); }
 
-    void encode(eckit::Stream& s) const { content_->encode(s); }
+    void encode(eckit::Stream& s, const int version) const { content_->encode(s, version); }
     void entries(EntryVisitor& v) const { content_->entries(v); }
     void dump(std::ostream &out, const char* indent, bool simple = false, bool dumpFields = false) const {
         content_->dump(out, indent, simple, dumpFields);

@@ -91,13 +91,23 @@ IndexBase::IndexBase(eckit::Stream& s, const int version) :
 IndexBase::~IndexBase() {
 }
 
-void IndexBase::encode(eckit::Stream &s) const {
+void IndexBase::encode(eckit::Stream& s, const int version) const {
+    if (version >= 3) {
+        axes_.encode(s);
+        s.startObject();
+        s << "key" << key_;
+        s << "type" << type_;
+        s << "time" << timestamp_;
+        s.endObject();
+    } else {
+        encodeLegacy(s);
+    }
+}
+void IndexBase::encodeLegacy(eckit::Stream& s) const {
     axes_.encode(s);
-    s.startObject();
-    s << "key" << key_;
-    s << "type" << type_;
-    s << "time" << timestamp_;
-    s.endObject();
+    s << key_;
+    s << key_.valuesToString(); // we no longer write this field, required in the previous index format
+    s << type_;
 }
 
 void IndexBase::put(const Key &key, const Field &field) {
