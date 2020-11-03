@@ -6,6 +6,7 @@ fdbread="$<TARGET_FILE:fdb-read>"
 fdbwrite="$<TARGET_FILE:fdb-write>"
 fdblist="$<TARGET_FILE:fdb-list>"
 gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
@@ -18,7 +19,22 @@ rm -rf $bindir/FDB-238
 cp -r $srcdir/FDB-238 $bindir/FDB-238
 cd $bindir/FDB-238
 
-### tests
+$gribset -s step=6 12.grib 6.grib
+$gribset -s step=9 12.grib 9.grib
+
+### recreate TOC with version 2 
+
+export FDB5_SERIALISATION_VERSION=2
+
+$fdbwrite 6.grib
+$fdbwrite 9.grib
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+[[ "$(wc -l < out)" != "2" ]] && echo "Incorrect number of entries read from FDB" && exit -1
+
+### tests with current version
+
+unset FDB5_SERIALISATION_VERSION
 
 export FDB5_CONFIG_FILE=local.yaml
 
@@ -29,10 +45,7 @@ $fdbread checkV2.req checkV2.grib
 $gribls checkV2.grib | tee out
 [[ "$(grep "1 of 1 messages in checkV2.grib" out | wc -l)" != 1 ]] && echo "Incorrect number of entries read from FDB" && exit -1
 
-$fdbwrite newField.grib
-$fdblist --all --minimum-keys="" --porcelain | tee out
-[[ "$(wc -l < out)" != "3" ]] && echo "Incorrect number of entries read from FDB" && exit -1
-
+$fdbwrite 12.grib
 $fdbread checkV3.req checkV3.grib
 $gribls checkV3.grib | tee out
 [[ "$(grep "1 of 1 messages in checkV3.grib" out | wc -l)" != 1 ]] && echo "Incorrect number of entries read from FDB" && exit -1

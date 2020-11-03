@@ -1,11 +1,11 @@
 retrieve,
-	class=od,
-	expver=0001,
+	class=rd,
+	expver=xxxx,
 	stream=oper,
 	date=20201102,
 	time=0000,
 	domain=g,
 	type=fc,
 	levtype=sfc,
-	step=12,
-	param=129
+	step=6,
+	param=166
