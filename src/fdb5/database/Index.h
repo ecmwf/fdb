@@ -54,8 +54,7 @@ class IndexBase : public eckit::Counted {
 public: // methods
 
     IndexBase(const Key& key, const std::string& type);
-
-    static IndexBase decode(eckit::Stream& s, const int version);
+    IndexBase(eckit::Stream& s, const int version);
 
     virtual ~IndexBase();
 
@@ -112,7 +111,7 @@ protected: // members
 
     /// @note Order of members is important here ...
     IndexAxis axes_;   ///< This Index spans along these axis
-    const Key key_;    ///< key that selected this index
+    Key       key_;    ///< key that selected this index
     time_t    timestamp_;
 
     Indexer   indexer_;

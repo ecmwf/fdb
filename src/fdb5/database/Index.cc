@@ -31,7 +31,7 @@ enum IndexBaseStreamKeys {
     IndexTimestamp
 };
 
-IndexBaseStreamKeys keyId(std::string s) {
+IndexBaseStreamKeys keyId(const std::string& s) {
     static const std::map<std::string, IndexBaseStreamKeys> keys {
         {"key" , IndexKey},
         {"type", IndexType},
@@ -63,7 +63,7 @@ void IndexBase::decode(eckit::Stream& s) {
                 s >> timestamp_;
                 break;
             default:
-                std::cerr << "Errore!!!" << std::endl;
+                throw eckit::SeriousBug("IndexBase de-serialization error: "+k+" field is not recognized");
         }
     }
     ASSERT(!key_.empty());
@@ -85,7 +85,7 @@ IndexBase::IndexBase(eckit::Stream& s, const int version) :
     if (version >= 3) 
         decode(s);
     else
-        decodeLegacy(s, version);
+        decodeLegacy(s);
 }
 
 IndexBase::~IndexBase() {
