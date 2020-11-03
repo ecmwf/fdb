@@ -2,34 +2,44 @@
 
 set -eux
 
-# cd @CMAKE_CURRENT_BINARY_DIR@
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+gribls="$<TARGET_FILE:grib_ls>"
 
-cd FDB-238
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+### cleanup and prepare test
+
+cd $bindir
+rm -rf $bindir/FDB-238
+
+cp -r $srcdir/FDB-238 $bindir/FDB-238
+cd $bindir/FDB-238
+
+### tests
+
 export FDB5_CONFIG_FILE=local.yaml
-@CMAKE_CURRENT_BINARY_DIR@/fdb-list --all --minimum-keys="" --porcelain | tee out
-[[ "$(wc -l < out)" != "2" ]] && echo "Incorrect number of entries read from FDB" && exit -1
-[[ "$(grep -E "$regex_0" out | wc -l)" != 2 ]] && echo "Incorrect number of entries read from FDB" && exit -1
 
-@CMAKE_CURRENT_BINARY_DIR@/fdb-read checkV2.req checkV2.grib
-grib_ls checkV2.grib | tee out
+$fdblist --all --minimum-keys="" --porcelain | tee out
+[[ "$(wc -l < out)" != "2" ]] && echo "Incorrect number of entries read from FDB" && exit -1
+
+$fdbread checkV2.req checkV2.grib
+$gribls checkV2.grib | tee out
 [[ "$(grep "1 of 1 messages in checkV2.grib" out | wc -l)" != 1 ]] && echo "Incorrect number of entries read from FDB" && exit -1
 
-@CMAKE_CURRENT_BINARY_DIR@/fdb-write newField.grib
-@CMAKE_CURRENT_BINARY_DIR@/fdb-list --all --minimum-keys="" --porcelain | tee out
+$fdbwrite newField.grib
+$fdblist --all --minimum-keys="" --porcelain | tee out
 [[ "$(wc -l < out)" != "3" ]] && echo "Incorrect number of entries read from FDB" && exit -1
-[[ "$(grep -E "$regex_0" out | wc -l)" != 3 ]] && echo "Incorrect number of entries read from FDB" && exit -1
 
-@CMAKE_CURRENT_BINARY_DIR@/fdb-read checkV3.req checkV3.grib
-grib_ls checkV3.grib | tee out
+$fdbread checkV3.req checkV3.grib
+$gribls checkV3.grib | tee out
 [[ "$(grep "1 of 1 messages in checkV3.grib" out | wc -l)" != 1 ]] && echo "Incorrect number of entries read from FDB" && exit -1
 
-@CMAKE_CURRENT_BINARY_DIR@/fdb-read checkV2.req checkV2_bis.grib
-grib_ls checkV2_bis.grib | tee out
+$fdbread checkV2.req checkV2_bis.grib
+$gribls checkV2_bis.grib | tee out
 [[ "$(grep "1 of 1 messages in checkV2_bis.grib" out | wc -l)" != 1 ]] && echo "Incorrect number of entries read from FDB" && exit -1
 
-diff checkV2.grib checkV2_bis.grib && echo "OK" && exit 0
-
-echo "File differs"
-exit -1
-
+cmp checkV2.grib checkV2_bis.grib
 
