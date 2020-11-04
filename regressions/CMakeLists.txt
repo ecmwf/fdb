@@ -1,12 +1,16 @@
-list( APPEND regressions FDB-238 )
+if (HAVE_FDB_BUILD_TOOLS) # test scripts use the fdb tools
 
-foreach( r ${regressions} )
+  list( APPEND regressions FDB-238 )
 
-  ecbuild_configure_file( ${r}.sh.in ${r}.sh @ONLY )
+  foreach( r ${regressions} )
 
-  ecbuild_add_test(
-    TYPE     SCRIPT
-    COMMAND  ${r}.sh )
+    ecbuild_configure_file( ${r}.sh.in ${r}.sh @ONLY )
 
-endforeach()
+    ecbuild_add_test(
+      TYPE     SCRIPT
+      COMMAND  ${r}.sh )
+
+  endforeach()
+
+endif()
 

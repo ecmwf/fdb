@@ -33,28 +33,48 @@ export FDB5_SERIALISATION_VERSION=2
 $fdbwrite 6.grib
 $fdbwrite 9.grib
 
+cat > list <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166},length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166},length=1476
+EOF
+
+cat > content.6 <<EOF
+g           sfc         20201102    0000        6           166.128     rd          fc          oper        xxxx
+EOF
+
+cat > content.12 <<EOF
+g           sfc         20201102    0000        12          166.128     rd          fc          oper        xxxx
+EOF
+
 $fdblist --all --minimum-keys="" --porcelain | tee out
-[[ "$(wc -l < out)" != "2" ]] && echo "Incorrect number of entries read from FDB" && exit -1
+cmp out list
 
 ### tests with current version
 
 unset FDB5_SERIALISATION_VERSION
 
+# list contents
 $fdblist --all --minimum-keys="" --porcelain | tee out
-[[ "$(wc -l < out)" != "2" ]] && echo "Incorrect number of entries read from FDB" && exit -1
+cmp out list
 
+# read contents
 $fdbread checkV2.req checkV2.grib
-$gribls checkV2.grib | tee out
-[[ "$(grep "1 of 1 messages in checkV2.grib" out | wc -l)" != 1 ]] && echo "Incorrect number of entries read from FDB" && exit -1
+$gribls -m checkV2.grib | tee out
+grep xxxx out | sed 's/ *$//' > checkv2
+cmp checkv2 content.6
 
+# write new field with current version (will have toc with mixed versions)
 $fdbwrite 12.grib
 $fdbread checkV3.req checkV3.grib
-$gribls checkV3.grib | tee out
-[[ "$(grep "1 of 1 messages in checkV3.grib" out | wc -l)" != 1 ]] && echo "Incorrect number of entries read from FDB" && exit -1
+$gribls -m checkV3.grib | tee out
+grep xxxx out | sed 's/ *$//' > checkv3
+cmp checkv3 content.12
 
-$fdbread checkV2.req checkV2_bis.grib
-$gribls checkV2_bis.grib | tee out
-[[ "$(grep "1 of 1 messages in checkV2_bis.grib" out | wc -l)" != 1 ]] && echo "Incorrect number of entries read from FDB" && exit -1
+# check still able to read previous v2 field
+$fdbread checkV2.req checkV2.again.grib
+$gribls -m checkV2.again.grib | tee out
+grep xxxx out | sed 's/ *$//' > checkv2.again
+cmp checkv2.again content.6
 
-cmp checkV2.grib checkV2_bis.grib
+cmp checkV2.grib checkV2.again.grib
 
