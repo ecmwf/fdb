@@ -47,6 +47,8 @@ IndexBaseStreamKeys keyId(const std::string& s) {
 
 
 void IndexBase::decodeCurrent(eckit::Stream& s, const int version) {
+    ASSERT(version >= 3);
+
     axes_.decode(s, version);
 
     ASSERT(s.next());
@@ -73,6 +75,8 @@ void IndexBase::decodeCurrent(eckit::Stream& s, const int version) {
 }
 
 void IndexBase::decodeLegacy(eckit::Stream& s, const int version) { // decoding of old Stream format, for backward compatibility
+    ASSERT(version <= 2);
+
     axes_.decode(s, version);
 
     std::string dummy;
@@ -102,6 +106,8 @@ void IndexBase::encode(eckit::Stream& s, const int version) const {
 }
 
 void IndexBase::encodeCurrent(eckit::Stream& s, const int version) const {
+    ASSERT(version >= 3);
+
     axes_.encode(s, version);
     s.startObject();
     s << "key" << key_;
@@ -111,6 +117,8 @@ void IndexBase::encodeCurrent(eckit::Stream& s, const int version) const {
 }
 
 void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
+    ASSERT(version <= 2);
+
     axes_.encode(s, version);
     s << key_;
     s << key_.valuesToString(); // we no longer write this field, required in the previous index format

@@ -50,6 +50,8 @@ void IndexAxis::encode(eckit::Stream &s, const int version) const {
 }
 
 void IndexAxis::encodeCurrent(eckit::Stream &s, const int version) const {
+    ASSERT(version >= 3);
+
     s.startObject();
     s << "size" << axis_.size();
     s << "axes";
@@ -65,6 +67,8 @@ void IndexAxis::encodeCurrent(eckit::Stream &s, const int version) const {
 }
 
 void IndexAxis::encodeLegacy(eckit::Stream &s, const int version) const {
+    ASSERT(version <= 2);
+
     s << axis_.size();
     for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
         s << (*i).first;
@@ -104,6 +108,8 @@ IndexAxisStreamKeys indexAxiskeyId(const std::string& s) {
 }
 
 void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
+    ASSERT(version >= 3);
+
     ASSERT(s.next());
     ASSERT(axis_.empty());
 
@@ -140,6 +146,7 @@ void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
 }
 
 void IndexAxis::decodeLegacy(eckit::Stream& s, const int version) {
+    ASSERT(version <= 2);
 
     size_t n;
     s >> n;
