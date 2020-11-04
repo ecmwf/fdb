@@ -6,6 +6,7 @@ foreach( r ${regressions} )
 
   ecbuild_add_test(
     TYPE     SCRIPT
+    CONDITION HAVE_FDB_BUILD_TOOLS
     COMMAND  ${r}.sh )
 
 endforeach()
