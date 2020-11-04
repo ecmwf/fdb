@@ -46,9 +46,10 @@ IndexBaseStreamKeys keyId(const std::string& s) {
 }
 
 
-void IndexBase::decode(eckit::Stream& s) {
-    ASSERT(s.next());
+void IndexBase::decodeCurrent(eckit::Stream& s, const int version) {
+    axes_.decode(s, version);
 
+    ASSERT(s.next());
     std::string k;
     while (!s.endObjectFound()) {
         s >> k;
@@ -71,7 +72,9 @@ void IndexBase::decode(eckit::Stream& s) {
     ASSERT(timestamp_);
 }
 
-void IndexBase::decodeLegacy(eckit::Stream& s) { // decoding of old Stream format, for backward compatibility
+void IndexBase::decodeLegacy(eckit::Stream& s, const int version) { // decoding of old Stream format, for backward compatibility
+    axes_.decode(s, version);
+
     std::string dummy;
     s >> key_;
     s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
@@ -80,27 +83,26 @@ void IndexBase::decodeLegacy(eckit::Stream& s) { // decoding of old Stream forma
 }
 
 
-IndexBase::IndexBase(eckit::Stream& s, const int version) :
-    axes_(s, version) {
+IndexBase::IndexBase(eckit::Stream& s, const int version) {
     if (version >= 3) 
-        decode(s);
+        decodeCurrent(s, version);
     else
-        decodeLegacy(s);
+        decodeLegacy(s, version);
 }
 
 IndexBase::~IndexBase() {
 }
 
 void IndexBase::encode(eckit::Stream& s, const int version) const {
-    axes_.encode(s, version);
     if (version >= 3) {
-        encode(s);
+        encodeCurrent(s, version);
     } else {
-        encodeLegacy(s);
+        encodeLegacy(s, version);
     }
 }
 
-void IndexBase::encode(eckit::Stream& s) const {
+void IndexBase::encodeCurrent(eckit::Stream& s, const int version) const {
+    axes_.encode(s, version);
     s.startObject();
     s << "key" << key_;
     s << "type" << type_;
@@ -108,7 +110,8 @@ void IndexBase::encode(eckit::Stream& s) const {
     s.endObject();
 }
 
-void IndexBase::encodeLegacy(eckit::Stream& s) const {
+void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
+    axes_.encode(s, version);
     s << key_;
     s << key_.valuesToString(); // we no longer write this field, required in the previous index format
     s << type_;

@@ -98,11 +98,11 @@ protected: // methods
 
 private: // methods
 
-    void encode(eckit::Stream& s) const;
-    void encodeLegacy(eckit::Stream& s) const;
+    void encodeCurrent(eckit::Stream& s, const int version) const;
+    void encodeLegacy(eckit::Stream& s, const int version) const;
 
-    void decode(eckit::Stream& s);
-    void decodeLegacy(eckit::Stream& s);
+    void decodeCurrent(eckit::Stream& s, const int version);
+    void decodeLegacy(eckit::Stream& s, const int version);
 
     virtual void add(const Key &key, const Field &field) = 0;
 
