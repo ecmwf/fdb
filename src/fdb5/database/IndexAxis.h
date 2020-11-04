@@ -45,10 +45,10 @@ public: // methods
     ~IndexAxis();
 
     void insert(const Key &key);
-    void encode(eckit::Stream &s) const;
+    void encode(eckit::Stream &s, const int version) const;
 
     // Decode can be used for two-stage initialisation (IndexAxis a; a.decode(s);)
-    void decode(eckit::Stream& s);
+    void decode(eckit::Stream& s, const int version);
 
     const eckit::DenseSet<std::string> &values(const std::string &keyword) const;
 
@@ -73,6 +73,12 @@ public: // methods
     }
 
 private: // methods
+
+    void encode(eckit::Stream &s) const;
+    void encodeLegacy(eckit::Stream &s) const;
+    
+    void decode(eckit::Stream& s);
+    void decodeLegacy(eckit::Stream& s);
 
     void print(std::ostream &out) const;
 

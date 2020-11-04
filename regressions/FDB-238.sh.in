@@ -26,6 +26,8 @@ $gribset -s step=9 12.grib 9.grib
 
 ### recreate TOC with version 2 
 
+export FDB5_CONFIG_FILE=local.yaml
+
 export FDB5_SERIALISATION_VERSION=2
 
 $fdbwrite 6.grib
@@ -37,8 +39,6 @@ $fdblist --all --minimum-keys="" --porcelain | tee out
 ### tests with current version
 
 unset FDB5_SERIALISATION_VERSION
-
-export FDB5_CONFIG_FILE=local.yaml
 
 $fdblist --all --minimum-keys="" --porcelain | tee out
 [[ "$(wc -l < out)" != "2" ]] && echo "Incorrect number of entries read from FDB" && exit -1
