@@ -98,8 +98,11 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
 
     ListIterator it = inspect(request);
     ListElement el;
-    if (it.next(el)) {
-        // 
+    while (it.next(el)) {
+        result.add(el.location().dataHandle());
+    }
+
+/*    if (it.next(el)) {
         metkit::mars::MarsRequest requestRestrictedAxis;
         
         Key fieldKey = el.combinedKey();
@@ -131,7 +134,7 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
                 result.add(element.location().dataHandle());
             }
         }
-    } 
+    } */
     return result.dataHandle();
 }
 
