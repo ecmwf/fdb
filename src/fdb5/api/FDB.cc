@@ -94,32 +94,44 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     eckit::Timer timer;
     timer.start();
 
-    ListElementDeduplicator dedup;
-    metkit::hypercube::HyperCubePayloaded<ListElement> cube(request, dedup);
+    HandleGatherer result(sorted(request));
 
     ListIterator it = inspect(request);
     ListElement el;
-    while (it.next(el)) {
-        cube.add(el.combinedKey().request(), el);
-    }
-
-    if (cube.countVacant() > 0) {
-        std::stringstream ss;
-        ss << "No matching data for requests:" << std::endl;
-        for (auto req: cube.vacantRequests()) {
-            ss << "    " << req << std::endl;
+    if (it.next(el)) {
+        // 
+        metkit::mars::MarsRequest requestRestrictedAxis;
+        
+        Key fieldKey = el.combinedKey();
+        for (auto k = fieldKey.begin(); k != fieldKey.end(); k++) {
+            requestRestrictedAxis.values(k->first, request.values(k->first, true));
         }
-        eckit::Log::userWarning() << ss.str() << std::endl;
-    }
 
-    HandleGatherer result(sorted(request));
-    for (size_t i=0; i< cube.size(); i++) {
-        ListElement element;
-        if (cube.find(i, element)) {
-            result.add(element.location().dataHandle());
+        ListElementDeduplicator dedup;
+        metkit::hypercube::HyperCubePayloaded<ListElement> cube(requestRestrictedAxis, dedup);
+
+        cube.add(fieldKey.request(), el);
+        while (it.next(el)) {
+            cube.add(el.combinedKey().request(), el);
         }
-    }
 
+        if (cube.countVacant() > 0) {
+            std::stringstream ss;
+            ss << "No matching data for requests:" << std::endl;
+            for (auto req: cube.vacantRequests()) {
+                ss << "    " << req << std::endl;
+            }
+            eckit::Log::userWarning() << ss.str() << std::endl;
+        }
+
+        
+        for (size_t i=0; i< cube.size(); i++) {
+            ListElement element;
+            if (cube.find(i, element)) {
+                result.add(element.location().dataHandle());
+            }
+        }
+    } 
     return result.dataHandle();
 }
 
