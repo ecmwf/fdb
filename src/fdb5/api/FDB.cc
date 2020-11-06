@@ -98,17 +98,10 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     HandleGatherer result(sorted(request));
     ListElement el;
 
-#if 0
-    metkit::mars::MarsExpension expand(/* inherit */ false);
+    //metkit::mars::MarsExpension expand(/* inherit */ false);
     //metkit::mars::MarsRequest expandedRequest = expand.expand(request);
     metkit::mars::MarsRequest expandedRequest = request;
-#endif
 
-    ListIterator it = inspect(request);
-    while (it.next(el))
-        result.add(el.location().dataHandle());
-
-#if 0
     ListIterator it = inspect(expandedRequest);
     ListElementDeduplicator dedup;
     metkit::hypercube::HyperCubePayloaded<ListElement> cube(expandedRequest, dedup);
@@ -131,7 +124,6 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
             result.add(element.location().dataHandle());
         }
     }
-#endif
 
     return result.dataHandle();
 }
