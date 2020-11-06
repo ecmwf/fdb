@@ -95,15 +95,26 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     eckit::Timer timer;
     timer.start();
 
-    metkit::mars::MarsExpension expand(/* inherit */ false);
-    metkit::mars::MarsRequest expandedRequest = expand.expand(request);
-
-    ListIterator it = inspect(expandedRequest);
+    HandleGatherer result(sorted(request));
     ListElement el;
+
+#if 0
+    metkit::mars::MarsExpension expand(/* inherit */ false);
+    //metkit::mars::MarsRequest expandedRequest = expand.expand(request);
+    metkit::mars::MarsRequest expandedRequest = request;
+#endif
+
+    ListIterator it = inspect(request);
+    while (it.next(el))
+        result.add(el.location().dataHandle());
+
+#if 0
+    ListIterator it = inspect(expandedRequest);
     ListElementDeduplicator dedup;
     metkit::hypercube::HyperCubePayloaded<ListElement> cube(expandedRequest, dedup);
     while (it.next(el))
-        cube.add(expand.expand(el.combinedKey().request()), el);
+        cube.add(el.combinedKey().request(), el);
+//        cube.add(expand.expand(el.combinedKey().request()), el);
 
     if (cube.countVacant() > 0) {
         std::stringstream ss;
@@ -114,13 +125,14 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
         eckit::Log::userWarning() << ss.str() << std::endl;
     }
     
-    HandleGatherer result(sorted(request));
     for (size_t i=0; i< cube.size(); i++) {
         ListElement element;
         if (cube.find(i, element)) {
             result.add(element.location().dataHandle());
         }
     }
+#endif
+
     return result.dataHandle();
 }
 
