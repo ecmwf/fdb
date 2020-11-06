@@ -103,7 +103,7 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     ListElementDeduplicator dedup;
     metkit::hypercube::HyperCubePayloaded<ListElement> cube(expandedRequest, dedup);
     while (it.next(el))
-        cube.add(el.combinedKey().request(), el);
+        cube.add(expand.expand(el.combinedKey().request()), el);
 
     if (cube.countVacant() > 0) {
         std::stringstream ss;
