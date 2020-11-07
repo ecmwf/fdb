@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-240
+
+### cleanup and prepare test
+
+cd $bindir
+rm -rf $wdir
+
+cp -r $srcdir/FDB-240 $wdir
+cd $wdir
+
+mkdir localroot
+
+### populate fdb with t/vo/d/z
+
+export FDB5_CONFIG_FILE=local.yaml
+
+$gribset -s level=400 sh.300.grib sh.400.grib
+$gribset -s level=500 sh.300.grib sh.500.grib
+
+cat sh.300.grib sh.400.grib sh.500.grib > all.grib
+
+$fdbwrite all.grib
+
+########################################################################################################################
+echo "retrieve t/vo/d/z (param=130/138/155/129)"
+
+cat > req <<EOF
+RETRIEVE,
+ CLASS = OD,
+ TYPE = CF,
+ STREAM = ENFO,
+ EXPVER = 0001,
+ LEVTYPE = PL,
+ LEVELIST = 300/400/500,
+ PARAM = 130/138/155/129,
+ DATE = 20201106,
+ TIME = 1200,
+ STEP = 00,
+ DOMAIN = G
+EOF
+
+$fdbread req out.grib
+
+cat > list <<EOF
+g            pl           300          20201106     1200         0            130.128      od           cf           enfo         0001         1
+g            pl           300          20201106     1200         0            138.128      od           cf           enfo         0001         1
+g            pl           300          20201106     1200         0            155.128      od           cf           enfo         0001         1
+g            pl           300          20201106     1200         0            129.128      od           cf           enfo         0001         1
+g            pl           400          20201106     1200         0            130.128      od           cf           enfo         0001         1
+g            pl           400          20201106     1200         0            138.128      od           cf           enfo         0001         1
+g            pl           400          20201106     1200         0            155.128      od           cf           enfo         0001         1
+g            pl           400          20201106     1200         0            129.128      od           cf           enfo         0001         1
+g            pl           500          20201106     1200         0            130.128      od           cf           enfo         0001         1
+g            pl           500          20201106     1200         0            138.128      od           cf           enfo         0001         1
+g            pl           500          20201106     1200         0            155.128      od           cf           enfo         0001         1
+g            pl           500          20201106     1200         0            129.128      od           cf           enfo         0001         1
+EOF
+
+$gribls -m out.grib | tee out
+grep enfo out | sed 's/ *$//' > content
+cmp list content
+
+########################################################################################################################
+echo "retrieve t/u/v/z (param=130/131/132/129)"
+
+cat > req <<EOF
+RETRIEVE,
+ CLASS = OD,
+ TYPE = CF,
+ STREAM = ENFO,
+ EXPVER = 0001,
+ LEVTYPE = PL,
+ LEVELIST = 500/400/300,
+ PARAM = 130/131/132/129,
+ DATE = 20201106,
+ TIME = 1200,
+ STEP = 00,
+ DOMAIN = G
+EOF
+
+$fdbread req out.grib
+
