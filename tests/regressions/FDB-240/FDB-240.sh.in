@@ -23,7 +23,7 @@ do
 done
 
 ### populate fdb with t/vo/d/z
-    
+
 export FDB5_CONFIG_FILE=local.yaml
 
 $gribset -s level=400 sh.300.grib sh.400.grib
@@ -90,5 +90,8 @@ RETRIEVE,
  DOMAIN = G
 EOF
 
+# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
 $fdbread req out.grib
+grep enfo out | sed 's/ *$//' > content
+cmp list content
 
