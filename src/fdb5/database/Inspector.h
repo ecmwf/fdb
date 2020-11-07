@@ -48,6 +48,20 @@ class EntryVisitor;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class InspectIterator : public APIIteratorBase<ListElement> {
+public:
+    InspectIterator();
+    ~InspectIterator();
+
+    void emplace(ListElement&& elem);
+    bool next(ListElement& elem) override;
+private:
+    std::vector<ListElement> queue_;
+    size_t index_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class Inspector : public eckit::NonCopyable {
 
 public: // methods

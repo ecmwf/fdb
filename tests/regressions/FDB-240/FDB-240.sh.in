@@ -1,0 +1,322 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-240
+
+### cleanup and prepare test
+
+rm -rf $bindir/localroot
+mkdir localroot
+
+for f in local.yaml schema 
+do
+    cp $srcdir/$f $bindir
+done
+
+### populate fdb with t/vo/d/z
+
+export FDB5_CONFIG_FILE=local.yaml
+
+$gribset -s level=400 sh.300.grib sh.400.grib
+$gribset -s level=500 sh.300.grib sh.500.grib
+
+cat sh.300.grib sh.400.grib sh.500.grib > all.grib
+
+$fdbwrite all.grib
+
+########################################################################################################################
+echo "retrieve t/vo/d/z (param=130/138/155/129)"
+
+cat > req <<EOF
+RETRIEVE,
+ CLASS = OD,
+ TYPE = CF,
+ STREAM = ENFO,
+ EXPVER = 0001,
+ LEVTYPE = PL,
+ LEVELIST = 300/400/500,
+ PARAM = 130/138/155/129,
+ DATE = 20201106,
+ TIME = 1200,
+ STEP = 00,
+ DOMAIN = G
+EOF
+
+$fdbread req out.grib
+
+cat > list <<EOF
+g            pl           300          20201106     1200         0            130.128      od           cf           enfo         0001         1
+g            pl           300          20201106     1200         0            138.128      od           cf           enfo         0001         1
+g            pl           300          20201106     1200         0            155.128      od           cf           enfo         0001         1
+g            pl           300          20201106     1200         0            129.128      od           cf           enfo         0001         1
+g            pl           400          20201106     1200         0            130.128      od           cf           enfo         0001         1
+g            pl           400          20201106     1200         0            138.128      od           cf           enfo         0001         1
+g            pl           400          20201106     1200         0            155.128      od           cf           enfo         0001         1
+g            pl           400          20201106     1200         0            129.128      od           cf           enfo         0001         1
+g            pl           500          20201106     1200         0            130.128      od           cf           enfo         0001         1
+g            pl           500          20201106     1200         0            138.128      od           cf           enfo         0001         1
+g            pl           500          20201106     1200         0            155.128      od           cf           enfo         0001         1
+g            pl           500          20201106     1200         0            129.128      od           cf           enfo         0001         1
+EOF
+
+$gribls -m out.grib | tee out
+grep enfo out | sed 's/ *$//' > content
+cmp list content
+
+########################################################################################################################
+echo "retrieve t/u/v/z (param=130/131/132/129)"
+
+cat > req <<EOF
+RETRIEVE,
+ CLASS = OD,
+ TYPE = CF,
+ STREAM = ENFO,
+ EXPVER = 0001,
+ LEVTYPE = PL,
+ LEVELIST = 500/400/300,
+ PARAM = 130/131/132/129,
+ DATE = 20201106,
+ TIME = 1200,
+ STEP = 00,
+ DOMAIN = G
+EOF
+
+# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
+$fdbread req out.grib
+grep enfo out | sed 's/ *$//' > content
+cmp list content
+
+########################################################################################################################
+echo "retrieve u (param=131) should return 138/155 (vo/d)"
+
+cat > req <<EOF
+retrieve,
+ CLASS = OD,
+ TYPE = CF,
+ STREAM = ENFO,
+ EXPVER = 0001,
+ LEVTYPE = PL,
+ LEVELIST = 400,
+ PARAM = 131,
+ DATE = 20201106,
+ TIME = 1200,
+ STEP = 00,
+ DOMAIN = G
+EOF
+
+# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
+$fdbread req out.grib
+
+$gribls out.grib | tee out
+
+cat > list <<EOF
+1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
+1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
+EOF
+
+grep ecmf out | sed 's/ *$//' > content
+cmp list content
+
+########################################################################################################################
+echo "retrieve v (param=132) should return 138/155 (vo/d)"
+
+cat > req <<EOF
+retrieve,
+ CLASS = OD,
+ TYPE = CF,
+ STREAM = ENFO,
+ EXPVER = 0001,
+ LEVTYPE = PL,
+ LEVELIST = 400,
+ PARAM = 132,
+ DATE = 20201106,
+ TIME = 1200,
+ STEP = 00,
+ DOMAIN = G
+EOF
+
+# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
+$fdbread req out.grib
+
+$gribls out.grib | tee out
+
+cat > list <<EOF
+1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
+1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
+EOF
+
+grep ecmf out | sed 's/ *$//' > content
+cmp list content
+
+########################################################################################################################
+echo "retrieve vo (param=138) should return 138 (vo)"
+
+cat > req <<EOF
+retrieve,
+ CLASS = OD,
+ TYPE = CF,
+ STREAM = ENFO,
+ EXPVER = 0001,
+ LEVTYPE = PL,
+ LEVELIST = 400,
+ PARAM = 138,
+ DATE = 20201106,
+ TIME = 1200,
+ STEP = 00,
+ DOMAIN = G
+EOF
+
+# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
+$fdbread req out.grib
+
+$gribls out.grib | tee out
+
+cat > list <<EOF
+1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
+EOF
+
+grep ecmf out | sed 's/ *$//' > content
+cmp list content
+
+########################################################################################################################
+echo "retrieve d (param=155) should return 155 (d)"
+
+cat > req <<EOF
+retrieve,
+ CLASS = OD,
+ TYPE = CF,
+ STREAM = ENFO,
+ EXPVER = 0001,
+ LEVTYPE = PL,
+ LEVELIST = 400,
+ PARAM = 155,
+ DATE = 20201106,
+ TIME = 1200,
+ STEP = 00,
+ DOMAIN = G
+EOF
+
+# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
+$fdbread req out.grib
+
+$gribls out.grib | tee out
+
+cat > list <<EOF
+1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
+EOF
+
+grep ecmf out | sed 's/ *$//' > content
+cmp list content
+
+########################################################################################################################
+echo "retrieve vo/u/d (param=138) should return 138 (vo)"
+
+cat > req <<EOF
+retrieve,
+ CLASS = OD,
+ TYPE = CF,
+ STREAM = ENFO,
+ EXPVER = 0001,
+ LEVTYPE = PL,
+ LEVELIST = 400,
+ PARAM = 138/131/155,
+ DATE = 20201106,
+ TIME = 1200,
+ STEP = 00,
+ DOMAIN = G
+EOF
+
+# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
+$fdbread req out.grib
+
+$gribls out.grib | tee out
+
+cat > list <<EOF
+1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
+1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
+EOF
+
+grep ecmf out | sed 's/ *$//' > content
+cmp list content
+
+########################################################################################################################
+echo "retrieve t/u/v/d should return t/d/vo"
+
+cat > req <<EOF
+retrieve,
+ CLASS = OD,
+ TYPE = CF,
+ STREAM = ENFO,
+ EXPVER = 0001,
+ LEVTYPE = PL,
+ LEVELIST = 300/400,
+ PARAM = 130/131/132/155,
+ DATE = 20201106,
+ TIME = 1200,
+ STEP = 00,
+ DOMAIN = G
+EOF
+
+# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
+$fdbread req out.grib
+
+$gribls out.grib | tee out
+
+cat > list <<EOF
+1            ecmf         isobaricInhPa  300          20201106     0            cf           t            spectral_complex  sh
+1            ecmf         isobaricInhPa  300          20201106     0            cf           d            spectral_complex  sh
+1            ecmf         isobaricInhPa  300          20201106     0            cf           vo           spectral_complex  sh
+1            ecmf         isobaricInhPa  400          20201106     0            cf           t            spectral_complex  sh
+1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
+1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
+EOF
+
+grep ecmf out | sed 's/ *$//' > content
+cmp list content
+
+########################################################################################################################
+echo "retrieve t/u/z/d (130/131/129/155) should return t/z/d/vo"
+
+cat > req <<EOF
+retrieve,
+ CLASS = OD,
+ TYPE = CF,
+ STREAM = ENFO,
+ EXPVER = 0001,
+ LEVTYPE = PL,
+ LEVELIST = 300/400,
+ PARAM = 130/131/129/155,
+ DATE = 20201106,
+ TIME = 1200,
+ STEP = 00,
+ DOMAIN = G
+EOF
+
+# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
+$fdbread req out.grib
+
+$gribls out.grib | tee out
+
+cat > list <<EOF
+1            ecmf         isobaricInhPa  300          20201106     0            cf           t            spectral_complex  sh
+1            ecmf         isobaricInhPa  300          20201106     0            cf           z            spectral_complex  sh
+1            ecmf         isobaricInhPa  300          20201106     0            cf           d            spectral_complex  sh
+1            ecmf         isobaricInhPa  300          20201106     0            cf           vo           spectral_complex  sh
+1            ecmf         isobaricInhPa  400          20201106     0            cf           t            spectral_complex  sh
+1            ecmf         isobaricInhPa  400          20201106     0            cf           z            spectral_complex  sh
+1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
+1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
+EOF
+
+grep ecmf out | sed 's/ *$//' > content
+cmp list content
+
