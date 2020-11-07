@@ -31,7 +31,7 @@ MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind,
                                            eckit::Queue<ListElement>& queue,
                                            eckit::CacheLRU<Key,DB*>& databases,
                                            const Config& config) :
-    db_(0),
+    db_(nullptr),
     wind_(wind),
     databases_(databases),
     queue_(queue),
