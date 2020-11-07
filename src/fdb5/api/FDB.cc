@@ -98,16 +98,14 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     HandleGatherer result(sorted(request));
     ListElement el;
 
-    //metkit::mars::MarsExpension expand(/* inherit */ false);
-    //metkit::mars::MarsRequest expandedRequest = expand.expand(request);
-    metkit::mars::MarsRequest expandedRequest = request;
+    metkit::mars::MarsExpension expand(/* inherit */ false);
+    metkit::mars::MarsRequest expandedRequest = expand.expand(request);
 
     ListIterator it = inspect(expandedRequest);
     ListElementDeduplicator dedup;
     metkit::hypercube::HyperCubePayloaded<ListElement> cube(expandedRequest, dedup);
     while (it.next(el))
-        cube.add(el.combinedKey().request(), el);
-//        cube.add(expand.expand(el.combinedKey().request()), el);
+        cube.add(expand.expand(el.combinedKey().request()), el);
 
     if (cube.countVacant() > 0) {
         std::stringstream ss;
