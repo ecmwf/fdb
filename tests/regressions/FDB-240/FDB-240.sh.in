@@ -14,16 +14,16 @@ wdir=$bindir/FDB-240
 
 ### cleanup and prepare test
 
-cd $bindir
-rm -rf $wdir
-
-cp -r $srcdir/FDB-240 $wdir
-cd $wdir
-
+rm -rf $bindir/localroot
 mkdir localroot
 
-### populate fdb with t/vo/d/z
+for f in local.yaml schema 
+do
+    cp $srcdir/$f $bindir
+done
 
+### populate fdb with t/vo/d/z
+    
 export FDB5_CONFIG_FILE=local.yaml
 
 $gribset -s level=400 sh.300.grib sh.400.grib
