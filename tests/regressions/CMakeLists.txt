@@ -1,6 +1,8 @@
 if (HAVE_FDB_BUILD_TOOLS) # test scripts use the fdb tools
 
-  list( APPEND regressions FDB-238 )
+  ecbuild_get_test_multidata(TARGET download_fdb5_regression_tests_files NAMES sh.300.grib )
+
+  list( APPEND regressions FDB-238 FDB-240 )
 
   foreach( r ${regressions} )
 
