@@ -56,9 +56,9 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
     location_(path, offset) {
 }
 
-TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
+TocIndex::TocIndex(eckit::Stream &s, const int version, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
     UriStoreWrapper(directory, s),
-    IndexBase(s),
+    IndexBase(s, version),
     btree_(nullptr),
     dirty_(false),
     mode_(TocIndex::READ),
@@ -69,13 +69,9 @@ TocIndex::~TocIndex() {
     close();
 }
 
-void TocIndex::encode(eckit::Stream &s) const {
+void TocIndex::encode(eckit::Stream& s, const int version) const {
     files_.encode(s);
-    axes_.encode(s);
-    s << key_;
-    s << key_.valuesToString(); //< unused entry for legacy compatibility
-    s << type_;
-    s << timestamp_;
+    IndexBase::encode(s, version);
 }
 
 

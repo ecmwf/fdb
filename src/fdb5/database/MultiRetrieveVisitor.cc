@@ -28,13 +28,13 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind,
-                                           eckit::Queue<ListElement>& queue,
+                                           InspectIterator& iterator,
                                            eckit::CacheLRU<Key,DB*>& databases,
                                            const Config& config) :
-    db_(0),
+    db_(nullptr),
     wind_(wind),
     databases_(databases),
-    queue_(queue),
+    iterator_(iterator),
     config_(config) {
 }
 
@@ -102,7 +102,13 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
     Field field;
     if (db_->inspect(key, field)) {
 
-        queue_.emplace(ListElement({db_->key(), db_->indexKey(), key}, field.stableLocation(), field.timestamp()));
+        Key simplifiedKey;
+        for (auto k = key.begin(); k != key.end(); k++) {
+            if (!k->second.empty())
+                simplifiedKey.set(k->first, k->second);
+        }
+
+        iterator_.emplace(ListElement({db_->key(), db_->indexKey(), simplifiedKey}, field.stableLocation(), field.timestamp()));
         return true;
     }
 

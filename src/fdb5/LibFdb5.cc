@@ -47,6 +47,12 @@ const void* LibFdb5::addr() const { return this; }
 
 std::string LibFdb5::version() const { return fdb5_version_str(); }
 
+int LibFdb5::serialisationVersion() const {
+    // version 2: TOC format originally used in first public release
+    // version 3: TOC serialisation format includes Stream objects
+    return 3;
+}
+
 std::string LibFdb5::gitsha1(unsigned int count) const {
     std::string sha1(fdb5_git_sha1());
     if(sha1.empty()) {

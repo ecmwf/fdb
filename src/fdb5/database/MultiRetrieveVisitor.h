@@ -23,6 +23,7 @@
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Inspector.h"
 #include "fdb5/database/ReadVisitor.h"
 
 namespace fdb5 {
@@ -39,7 +40,7 @@ class MultiRetrieveVisitor : public ReadVisitor {
 public: // methods
 
     MultiRetrieveVisitor(const Notifier& wind,
-                         eckit::Queue<ListElement>& queue,
+                         InspectIterator& queue,
                          eckit::CacheLRU<Key,DB*>& databases,
                          const Config& config);
 
@@ -72,7 +73,7 @@ private:
 
     eckit::CacheLRU<Key,DB*>& databases_;
 
-    eckit::Queue<ListElement>& queue_;
+    InspectIterator& iterator_;
 
     Config config_;
 };

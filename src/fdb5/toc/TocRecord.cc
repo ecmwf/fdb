@@ -12,6 +12,7 @@
 #include <pwd.h>
 
 #include "fdb5/fdb5_version.h"
+#include "fdb5/LibFdb5.h"
 
 #include <iomanip>
 
@@ -19,6 +20,7 @@
 
 #include "eckit/memory/Zero.h"
 #include "eckit/log/TimeStamp.h"
+#include "eckit/log/Log.h"
 #include "eckit/runtime/Main.h"
 
 namespace fdb5 {
@@ -123,7 +125,16 @@ void TocRecord::print(std::ostream & out) const {
 }
 
 unsigned int TocRecord::currentVersion() {
-    return 2;
+
+    if (::getenv("FDB5_SERIALISATION_VERSION")) {
+        const char* versionstr = ::getenv("FDB5_SERIALISATION_VERSION");
+        eckit::Log::debug() << "FDB5_SERIALISATION_VERSION overidde to version: " << versionstr << std::endl;
+        unsigned int version = ::atoi(versionstr);
+        return version;
+    }
+
+    // Toc version follows the global FDB5 stream version (version for how we serialise objects)
+    return LibFdb5::instance().serialisationVersion();  
 }
 
 //----------------------------------------------------------------------------------------------------------------------

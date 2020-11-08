@@ -67,7 +67,7 @@ public: // methods
              Mode mode,
              const std::string& type = defaulType());
 
-    TocIndex(eckit::Stream &, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
+    TocIndex(eckit::Stream &, const int version, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
 
     ~TocIndex() override;
 
@@ -92,8 +92,8 @@ private: // methods
     bool get( const Key &key, const Key &remapKey, Field &field ) const override;
     void add( const Key &key, const Field &field ) override;
     void flush() override;
-    void encode(eckit::Stream &s) const override;
-    void entries(EntryVisitor &visitor) const override;
+    void encode(eckit::Stream& s, const int version) const override;
+    void entries(EntryVisitor& visitor) const override;
 
     void print( std::ostream &out ) const override;
     void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const override;
