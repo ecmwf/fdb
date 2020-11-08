@@ -33,6 +33,8 @@ public:
 
     static LibFdb5& instance();
 
+    virtual int serialisationVersion() const;
+
     Config defaultConfig();
 
 protected:

@@ -82,8 +82,19 @@ Key::Key(const eckit::StringDict &keys) :
     }
 }
 
-Key::Key(eckit::Stream &s) :
-    rule_(0) {
+Key::Key(eckit::Stream& s) :
+    rule_(nullptr) {
+    decode(s);
+}
+
+void Key::decode(eckit::Stream& s) {
+
+    ASSERT(rule_ == nullptr);
+
+    keys_.clear();
+    names_.clear();
+
+
     size_t n;
 
     s >> n;
@@ -103,7 +114,7 @@ Key::Key(eckit::Stream &s) :
     }
 }
 
-void Key::encode(eckit::Stream &s) const {
+void Key::encode(eckit::Stream& s) const {
     const TypesRegistry& registry = this->registry();
 
     s << keys_.size();

@@ -774,7 +774,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
             s << location.offset();
             s << index_.type();
 
-            index_.encode(s);
+            index_.encode(s, r->currentVersion());
             handler_.append(*r, s.position());
 
             eckit::Log::debug<LibFdb5>() << "Write TOC_INDEX " << location.uri().path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
@@ -969,7 +969,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             s >> offset;
             s >> type;
             LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
-            indexes.push_back( new TocIndex(s, currentDirectory(), currentDirectory() / path, offset) );
+            indexes.push_back( new TocIndex(s, r->header_.version_, currentDirectory(), currentDirectory() / path, offset) );
 
             if (subTocs != 0 && subTocRead_) {
                 subTocs->insert(subTocRead_->tocPath());
@@ -1076,7 +1076,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
                 s >> type;
                 out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
                 if(!simple) { out << std::endl; }
-                Index index(new TocIndex(s, currentDirectory(), currentDirectory() / path, offset));
+                Index index(new TocIndex(s, r->header_.version_, currentDirectory(), currentDirectory() / path, offset));
                 index.dump(out, "  ", simple);
                 break;
             }
@@ -1131,7 +1131,7 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
 
                 if ((currentDirectory() / path).fullName() == indexFile.fullName()) {
                     out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
-                    Index index(new TocIndex(s, currentDirectory(), currentDirectory() / path, offset));
+                    Index index(new TocIndex(s, r->header_.version_, currentDirectory(), currentDirectory() / path, offset));
                     index.dump(out, "  ", false, true);
                 }
                 break;
@@ -1230,7 +1230,7 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
             std::pair<eckit::PathName, size_t> key(absPath, offset);
             if (maskedEntries_.find(key) != maskedEntries_.end()) {
                 if (absPath.exists()) {
-                    Index index(new TocIndex(s, directory_, absPath, offset));
+                    Index index(new TocIndex(s, r->header_.version_, directory_, absPath, offset));
                     for (const auto& dataPath : index.dataPaths()) data.insert(dataPath);
                 }
             }
@@ -1325,7 +1325,7 @@ size_t TocHandler::buildIndexRecord(TocRecord& r, const Index &index) {
     s << tocLoc.uri().path().baseName();
     s << tocLoc.offset();
     s << index.type();
-    index.encode(s);
+    index.encode(s, r.currentVersion());
 
     return s.position();
 }

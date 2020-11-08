@@ -40,15 +40,15 @@ class IndexAxis : private eckit::NonCopyable {
 public: // methods
 
     IndexAxis();
-    IndexAxis(eckit::Stream &);
+    IndexAxis(eckit::Stream &s, const int version);
 
     ~IndexAxis();
 
     void insert(const Key &key);
-    void encode(eckit::Stream &s) const;
+    void encode(eckit::Stream &s, const int version) const;
 
     // Decode can be used for two-stage initialisation (IndexAxis a; a.decode(s);)
-    void decode(eckit::Stream& s);
+    void decode(eckit::Stream& s, const int version);
 
     const eckit::DenseSet<std::string> &values(const std::string &keyword) const;
 
@@ -73,6 +73,12 @@ public: // methods
     }
 
 private: // methods
+
+    void encodeCurrent(eckit::Stream &s, const int version) const;
+    void encodeLegacy(eckit::Stream &s, const int version) const;
+
+    void decodeCurrent(eckit::Stream& s, const int version);
+    void decodeLegacy(eckit::Stream& s, const int version);
 
     void print(std::ostream &out) const;
 

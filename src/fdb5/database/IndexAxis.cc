@@ -34,14 +34,41 @@ IndexAxis::~IndexAxis() {
     }
 }
 
-IndexAxis::IndexAxis(eckit::Stream &s) :
+IndexAxis::IndexAxis(eckit::Stream &s, const int version) :
     readOnly_(true),
     dirty_(false) {
 
-    decode(s);
+    decode(s, version);
 }
 
-void IndexAxis::encode(eckit::Stream &s) const {
+void IndexAxis::encode(eckit::Stream &s, const int version) const {
+    if (version >= 3) {
+        encodeCurrent(s, version);
+    } else {
+        encodeLegacy(s, version);
+    }
+}
+
+void IndexAxis::encodeCurrent(eckit::Stream &s, const int version) const {
+    ASSERT(version >= 3);
+
+    s.startObject();
+    s << "size" << axis_.size();
+    s << "axes";
+    for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
+        s << (*i).first;
+        const eckit::DenseSet<std::string> &values = *(*i).second;
+        s << values.size();
+        for (eckit::DenseSet<std::string>::const_iterator j = values.begin(); j != values.end(); ++j) {
+            s << (*j);
+        }
+    }
+    s.endObject();
+}
+
+void IndexAxis::encodeLegacy(eckit::Stream &s, const int version) const {
+    ASSERT(version <= 2);
+
     s << axis_.size();
     for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
         s << (*i).first;
@@ -53,7 +80,73 @@ void IndexAxis::encode(eckit::Stream &s) const {
     }
 }
 
-void IndexAxis::decode(eckit::Stream &s) {
+
+void IndexAxis::decode(eckit::Stream &s, const int version) {
+    if (version >= 3)
+        decodeCurrent(s, version);
+    else
+        decodeLegacy(s, version);
+}
+
+enum IndexAxisStreamKeys {
+    IndexAxisKeyUnrecognised,
+    IndexAxisSize,
+    IndexAxes
+};
+
+IndexAxisStreamKeys indexAxiskeyId(const std::string& s) {
+    static const std::map<std::string, IndexAxisStreamKeys> keys {
+        {"size", IndexAxisSize},
+        {"axes", IndexAxes},
+    };
+
+    auto it = keys.find(s);
+    if( it != keys.end() ) {
+        return it->second;
+    }
+    return IndexAxisKeyUnrecognised; 
+}
+
+void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
+    ASSERT(version >= 3);
+
+    ASSERT(s.next());
+    ASSERT(axis_.empty());
+
+    std::string k;
+    std::string v;
+    size_t n = 0;
+    while (!s.endObjectFound()) {
+        s >> k;
+        switch (indexAxiskeyId(k)) {
+            case IndexAxisSize:
+                s >> n;
+                break;
+            case IndexAxes:
+                ASSERT(n);
+                for (size_t i = 0; i < n; i++) {
+                    s >> k;
+                    std::shared_ptr<eckit::DenseSet<std::string> >& values = axis_[k];
+                    values.reset(new eckit::DenseSet<std::string>);
+                    size_t m;
+                    s >> m;
+                    for (size_t j = 0; j < m; j++) {
+                        s >> v;
+                        values->insert(v);
+                    }
+                    values->sort();
+                    AxisRegistry::instance().deduplicate(k, values);
+                }
+                break;
+            default:
+                throw eckit::SeriousBug("IndexBase de-serialization error: "+k+" field is not recognized");
+        }
+    }
+    ASSERT(!axis_.empty());
+}
+
+void IndexAxis::decodeLegacy(eckit::Stream& s, const int version) {
+    ASSERT(version <= 2);
 
     size_t n;
     s >> n;

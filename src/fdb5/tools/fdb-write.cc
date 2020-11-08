@@ -15,6 +15,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
+#include "eckit/log/Log.h"
 
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/tools/FDBTool.h"
@@ -79,7 +80,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
         eckit::PathName path(args(i));
 
-        std::cout << "Processing " << path << std::endl;
+        eckit::Log::info() << "Processing " << path << std::endl;
 
         std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
 

@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+cd $bindir
+
+### cleanup and prepare test
+
+rm -rf $bindir/localroot
+mkdir localroot
+
+for f in 12.grib local.yaml schema checkV2.req checkV3.req 
+do
+    cp $srcdir/$f $bindir
+done
+
+$gribset -s step=6 12.grib 6.grib
+$gribset -s step=9 12.grib 9.grib
+
+### recreate TOC with version 2 
+
+export FDB5_CONFIG_FILE=local.yaml
+
+export FDB5_SERIALISATION_VERSION=2
+
+$fdbwrite 6.grib
+$fdbwrite 9.grib
+
+cat > list <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166},length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166},length=1476
+EOF
+
+cat > content.6 <<EOF
+g           sfc         20201102    0000        6           166.128     rd          fc          oper        xxxx
+EOF
+
+cat > content.12 <<EOF
+g           sfc         20201102    0000        12          166.128     rd          fc          oper        xxxx
+EOF
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+### tests with current version
+
+unset FDB5_SERIALISATION_VERSION
+
+# list contents
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+# read contents
+$fdbread checkV2.req checkV2.grib
+$gribls -m checkV2.grib | tee out
+grep xxxx out | sed 's/ *$//' > checkv2
+cmp checkv2 content.6
+
+# write new field with current version (will have toc with mixed versions)
+$fdbwrite 12.grib
+$fdbread checkV3.req checkV3.grib
+$gribls -m checkV3.grib | tee out
+grep xxxx out | sed 's/ *$//' > checkv3
+cmp checkv3 content.12
+
+# check still able to read previous v2 field
+$fdbread checkV2.req checkV2.again.grib
+$gribls -m checkV2.again.grib | tee out
+grep xxxx out | sed 's/ *$//' > checkv2.again
+cmp checkv2.again content.6
+
+cmp checkV2.grib checkV2.again.grib
+

@@ -28,6 +28,26 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+InspectIterator::InspectIterator() : index_(0) {}
+
+InspectIterator::~InspectIterator() {
+    queue_.clear();
+}
+
+void InspectIterator::emplace(ListElement&& elem) {
+    queue_.push_back(elem);
+}
+
+bool InspectIterator::next(ListElement& elem) {
+    if (index_ >= queue_.size())
+        return false;
+    elem = queue_[index_];
+    index_++;
+    return true;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 static void purgeDB(Key& key, DB*& db) {
     Log::debug() << "Purging DB with key " << key << std::endl;
     delete db;
@@ -44,18 +64,15 @@ ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request,
                                 const Schema& schema,
                                 const fdb5::Notifier& notifyee) const {
 
-    auto async_worker = [this, &request, &schema, &notifyee] (Queue<ListElement>& queue) {
-        MultiRetrieveVisitor visitor(notifyee, queue, databases_, dbConfig_);
+    InspectIterator* iterator = new InspectIterator();
+    MultiRetrieveVisitor visitor(notifyee, *iterator, databases_, dbConfig_);
 
-        Log::debug<LibFdb5>() << "Using schema: " << schema << std::endl;
+    Log::debug<LibFdb5>() << "Using schema: " << schema << std::endl;
 
-        schema.expand(request, visitor);
-    };
+    schema.expand(request, visitor);
 
     using QueryIterator = APIIterator<ListElement>;
-    using AsyncIterator = APIAsyncIterator<ListElement>;
-
-    return QueryIterator(new AsyncIterator(async_worker));
+    return QueryIterator(iterator);
 }
 
 ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request) const {

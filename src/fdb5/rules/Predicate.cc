@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Log.h"
-
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/rules/Predicate.h"
@@ -22,8 +20,8 @@ namespace fdb5 {
 Predicate::Predicate(const std::string &keyword, Matcher *matcher) :
     matcher_(matcher),
     keyword_(keyword) {
-    //    dump(std::cout);
-    //    std::cout << std::endl;
+    //    dump(eckit::Log::debug());
+    //    eckit::Log::debug() << std::endl;
 }
 
 Predicate::~Predicate() {

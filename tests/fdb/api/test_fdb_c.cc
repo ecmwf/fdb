@@ -179,7 +179,8 @@ CASE( "fdb_c - retrieve bad request" ) {
     long size;
     fdb_datareader_t* dr;
     fdb_new_datareader(&dr);
-    EXPECT(fdb_retrieve(fdb, request, dr) == FDB_ERROR_GENERAL_EXCEPTION);
+//  thrown by deduplication (now deactivted)
+//    EXPECT(fdb_retrieve(fdb, request, dr) == FDB_ERROR_GENERAL_EXCEPTION);
 }
 
 CASE( "fdb_c - retrieve" ) {

@@ -143,6 +143,7 @@ public: // methods
 private: // members
 
     void print( std::ostream &out ) const;
+    void decode(eckit::Stream& s);
     void encode(eckit::Stream &s) const;
 
     std::string toString() const;
