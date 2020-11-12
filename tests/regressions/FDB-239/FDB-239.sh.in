@@ -2,20 +2,22 @@
 
 set -eux
 
+fdbread="$<TARGET_FILE:fdb-read>"
 fdbwrite="$<TARGET_FILE:fdb-write>"
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-240
 
 ### cleanup and prepare test
 
-cd $bindir
-rm -rf $bindir/FDB-239
-
-cp -r $srcdir/FDB-239 $bindir/FDB-239
-cd $bindir/FDB-239
-
+rm -rf $bindir/localroot
 mkdir localroot
+
+for f in local.yaml schema mars.req in.grib
+do
+    cp $srcdir/$f $bindir
+done
 
 export FDB5_CONFIG_FILE=local.yaml
 
@@ -39,7 +41,7 @@ $fdbwrite in.grib
 
 ### tests with current version
 
-../FDB-239.x mars.req out.grib
+$fdbread --raw mars.req out.grib
 # read contents
 # $fdbread checkV2.req checkV2.grib
 # $gribls -m checkV2.grib | tee out

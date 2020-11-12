@@ -96,33 +96,40 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     timer.start();
 
     HandleGatherer result(sorted(request));
+    ListIterator it = inspect(request);
     ListElement el;
 
-    metkit::mars::MarsExpension expand(/* inherit */ false);
-    metkit::mars::MarsRequest expandedRequest = expand.expand(request);
+    if (it.next(el)) {
+        // build the request representing the tensor-product of all retrieved fields
+        metkit::mars::MarsRequest cubeRequest = el.combinedKey().request();
+        std::vector<ListElement> elements{std::move(el)};
 
-    ListIterator it = inspect(expandedRequest);
-    ListElementDeduplicator dedup;
-    metkit::hypercube::HyperCubePayloaded<ListElement> cube(expandedRequest, dedup);
-    while (it.next(el))
-        cube.add(expand.expand(el.combinedKey().request()), el);
-
-    if (cube.countVacant() > 0) {
-        std::stringstream ss;
-        ss << "No matching data for requests:" << std::endl;
-        for (auto req: cube.vacantRequests()) {
-            ss << "    " << req << std::endl;
+        while (it.next(el)) {
+            cubeRequest.merge(el.combinedKey().request());
+            elements.push_back(std::move(el));
         }
-        eckit::Log::userWarning() << ss.str() << std::endl;
-    }
-    
-    for (size_t i=0; i< cube.size(); i++) {
-        ListElement element;
-        if (cube.find(i, element)) {
-            result.add(element.location().dataHandle());
+
+        // checking all retrieved fields against the hypercube, to remove duplicates
+        metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, ListElementDeduplicator());
+        for(auto el: elements)
+            cube.add(el.combinedKey().request(), std::move(el));
+
+        if (cube.countVacant() > 0) {
+            std::stringstream ss;
+            ss << "No matching data for requests:" << std::endl;
+            for (auto req: cube.vacantRequests()) {
+                ss << "    " << req << std::endl;
+            }
+            eckit::Log::userWarning() << ss.str() << std::endl;
+        }
+
+        for (size_t i=0; i< cube.size(); i++) {
+            ListElement element;
+            if (cube.find(i, element)) {
+                result.add(element.location().dataHandle());
+            }
         }
     }
-
     return result.dataHandle();
 }
 
