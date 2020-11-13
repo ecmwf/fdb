@@ -5,17 +5,18 @@ set -eux
 fdbread="$<TARGET_FILE:fdb-read>"
 fdbwrite="$<TARGET_FILE:fdb-write>"
 gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
-wdir=$bindir/FDB-240
+wdir=$bindir/FDB-239
 
 ### cleanup and prepare test
 
 rm -rf $bindir/localroot
 mkdir localroot
 
-for f in local.yaml schema mars.req in.grib
+for f in local.yaml schema in.grib
 do
     cp $srcdir/$f $bindir
 done
@@ -23,6 +24,44 @@ done
 export FDB5_CONFIG_FILE=local.yaml
 
 $fdbwrite in.grib
+
+$gribset -s time=1200 in.grib in.1200.12.grib
+$gribset -s step=11 in.grib in.0000.11.grib
+$gribset -s step=13 in.grib in.0000.13.grib
+
+$fdbwrite in.1200.12.grib
+$fdbwrite in.0000.11.grib
+$fdbwrite in.0000.13.grib
+
+
+cat > mars.req <<EOF
+retrieve,
+   class=rd,
+   expver=xxxx,
+   stream=oper,
+   date=20201102,
+   time=0000,
+   type=fc,
+   levtype=sfc,
+   step=012,
+   domain=g,
+   param=166
+EOF
+
+
+cat > req <<EOF
+retrieve,
+   class=rd,
+   expver=xxxx,
+   stream=oper,
+   date=20201102,
+   time=0000/1200,
+   type=fc,
+   levtype=sfc,
+   step=11/012/13,
+   domain=g,
+   param=166
+EOF
 
 ### tests with expanded request
 
@@ -46,3 +85,17 @@ $fdbread --raw mars.req out.grib
 $gribls -m out.grib | tee out
 grep oper out | sed 's/ *$//' > content
 cmp list content
+
+
+### test warning missing fields
+rm -f out.grib
+
+$fdbread --raw req out.grib 2> out
+
+cat > missing <<EOF
+    retrieve,class=rd,type=fc,stream=oper,levtype=sfc,date=20201102,time=1200,step=11/13,expver=xxxx,domain=g,param=166
+EOF
+
+grep oper out | sed 's/ *$//' > content
+cmp missing content
+

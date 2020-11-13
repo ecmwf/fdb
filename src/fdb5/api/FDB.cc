@@ -120,7 +120,7 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
             for (auto req: cube.vacantRequests()) {
                 ss << "    " << req << std::endl;
             }
-            eckit::Log::userWarning() << ss.str() << std::endl;
+            eckit::Log::warning() << ss.str() << std::endl;
         }
 
         for (size_t i=0; i< cube.size(); i++) {
