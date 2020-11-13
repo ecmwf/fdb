@@ -4,6 +4,7 @@ set -eux
 
 fdbread="$<TARGET_FILE:fdb-read>"
 fdbwrite="$<TARGET_FILE:fdb-write>"
+gribls="$<TARGET_FILE:grib_ls>"
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
@@ -23,43 +24,25 @@ export FDB5_CONFIG_FILE=local.yaml
 
 $fdbwrite in.grib
 
-# cat > list <<EOF
-# {class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166},length=1476
-# {class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166},length=1476
-# EOF
+### tests with expanded request
 
-# cat > content.6 <<EOF
-# g           sfc         20201102    0000        6           166.128     rd          fc          oper        xxxx
-# EOF
+$fdbread mars.req out.grib
 
-# cat > content.12 <<EOF
-# g           sfc         20201102    0000        12          166.128     rd          fc          oper        xxxx
-# EOF
+cat > list <<EOF
+g           sfc         20201102    0000        12          166.128     rd          fc          oper        xxxx
+EOF
 
-# $fdblist --all --minimum-keys="" --porcelain | tee out
-# cmp out list
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp list content
 
-### tests with current version
+
+### tests with not expanded request
+
+rm -f out.grib
 
 $fdbread --raw mars.req out.grib
-# read contents
-# $fdbread checkV2.req checkV2.grib
-# $gribls -m checkV2.grib | tee out
-# grep xxxx out | sed 's/ *$//' > checkv2
-# cmp checkv2 content.6
 
-# # write new field with current version (will have toc with mixed versions)
-# $fdbwrite 12.grib
-# $fdbread checkV3.req checkV3.grib
-# $gribls -m checkV3.grib | tee out
-# grep xxxx out | sed 's/ *$//' > checkv3
-# cmp checkv3 content.12
-
-# # check still able to read previous v2 field
-# $fdbread checkV2.req checkV2.again.grib
-# $gribls -m checkV2.again.grib | tee out
-# grep xxxx out | sed 's/ *$//' > checkv2.again
-# cmp checkv2.again content.6
-
-# cmp checkV2.grib checkV2.again.grib
-
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp list content
