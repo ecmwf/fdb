@@ -31,7 +31,7 @@ class FDBRead : public fdb5::FDBTool {
   public:
     FDBRead(int argc, char **argv): fdb5::FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("extract", "Extract request from a GRIB file"));
-
+        options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
         options_.push_back(
                     new eckit::option::SimpleOption<bool>("statistics",
                                                           "Report timing statistics"));
@@ -41,6 +41,7 @@ class FDBRead : public fdb5::FDBTool {
 void FDBRead::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " request.mars target.grib" << std::endl
+                       << "       " << tool << " --raw request.mars target.grib" << std::endl
                        << "       " << tool << " --extract source.grib target.grib" << std::endl;
 
     fdb5::FDBTool::usage(tool);
@@ -49,6 +50,7 @@ void FDBRead::usage(const std::string &tool) const {
 void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     bool extract = args.getBool("extract", false);
+    bool raw = args.getBool("raw", false);
 
     std::vector<metkit::mars::MarsRequest> requests;
 
@@ -69,8 +71,13 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
         metkit::mars::MarsParser parser(in);
         auto parsedRequests = parser.parse();
-        metkit::mars::MarsExpension expand(/* inherit */ false);
-        requests = expand.expand(parsedRequests);
+        if (raw) {
+            for (auto r : parsedRequests)
+                requests.push_back(r);
+        } else {
+            metkit::mars::MarsExpension expand(/* inherit */ false);
+            requests = expand.expand(parsedRequests);
+        }
     }
 
     // Evaluate the requests to obtain data handles

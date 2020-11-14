@@ -1,0 +1,12 @@
+retrieve,
+   class=rd,
+   expver=xxxx,
+   stream=oper,
+   date=20201102,
+   time=0000,
+   type=fc,
+   levtype=sfc,
+   step=012,
+   domain=g,   
+   param=166,
+   target="out.grib"
