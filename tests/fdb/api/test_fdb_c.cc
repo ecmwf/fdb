@@ -240,9 +240,9 @@ CASE( "fdb_c - retrieve" ) {
     EXPECT_EQUAL(0, strncmp(grib, "GRIB", 4));
     fdb_datareader_tell(dr, &read);
     EXPECT_EQUAL(4+size, read);
-    fdb_datareader_seek(dr, size2);
-    fdb_datareader_read(dr, grib, 4, &read);
-    EXPECT_EQUAL(0, read);
+    fdb_datareader_seek(dr, size2-4);
+    fdb_datareader_read(dr, grib, 6, &read);
+    EXPECT_EQUAL(4, read);
     fdb_delete_datareader(dr);
 
 }
