@@ -57,6 +57,7 @@ public: // method
     /// Archive writes data into aggregation buffer
     void archive(const Key& key, eckit::message::Message msg) override;
 
+    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation);
     eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const Key& remapKey);
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;

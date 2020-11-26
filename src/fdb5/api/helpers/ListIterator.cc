@@ -21,16 +21,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ListElement::ListElement(const std::vector<Key>& keyParts, std::shared_ptr<FieldLocation> location, std::chrono::system_clock::time_point timestamp, const Key& remapKey) :
-    keyParts_(keyParts), location_(location), timestamp_(timestamp), remapKey_(remapKey) {}
+ListElement::ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp) :
+    keyParts_(keyParts), location_(location), timestamp_(timestamp) {}
 
 ListElement::ListElement(eckit::Stream &s) {
     s >> keyParts_;
     location_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
-    std::time_t tmp;
-    s >> tmp;
-    timestamp_ = std::chrono::system_clock::from_time_t(tmp);
-    s >> remapKey_;
+    s >> timestamp_;
 }
 
 Key ListElement::combinedKey() const {
@@ -54,7 +51,7 @@ void ListElement::print(std::ostream &out, bool withLocation) const {
     }
     if (location_) {
         if (withLocation) {
-            out << " " << location_;
+            out << " " << *location_;
         } else {
             out << ",length=" << location_->length();
         }
@@ -69,8 +66,7 @@ void ListElement::json(eckit::JSON& json) const {
 void ListElement::encode(eckit::Stream &s) const {
     s << keyParts_;
     s << *location_;
-    s << std::chrono::system_clock::to_time_t(timestamp_);
-    s << remapKey_;
+    s << timestamp_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -48,7 +48,7 @@ public:
 ///       the members of TocIndex
 
 TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
-    FileStoreWrapper(path.dirName()),
+    UriStoreWrapper(path.dirName()),
     IndexBase(key, type),
     btree_(nullptr),
     dirty_(false),
@@ -56,9 +56,9 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
     location_(path, offset) {
 }
 
-TocIndex::TocIndex(eckit::Stream &s, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
-    FileStoreWrapper(directory, s),
-    IndexBase(s),
+TocIndex::TocIndex(eckit::Stream &s, const int version, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
+    UriStoreWrapper(directory, s),
+    IndexBase(s, version),
     btree_(nullptr),
     dirty_(false),
     mode_(TocIndex::READ),
@@ -69,28 +69,20 @@ TocIndex::~TocIndex() {
     close();
 }
 
-void TocIndex::encode(eckit::Stream &s) const {
+void TocIndex::encode(eckit::Stream& s, const int version) const {
     files_.encode(s);
-    axes_.encode(s);
-    s << key_;
-    s << key_.valuesToString(); //< unused entry for legacy compatibility
-    s << type_;
-    s << std::chrono::system_clock::to_time_t(timestamp_);
+    IndexBase::encode(s, version);
 }
 
 
-bool TocIndex::get(const Key &key, Field &field) const {
+bool TocIndex::get(const Key &key, const Key &remapKey, Field &field) const {
     ASSERT(btree_);
     FieldRef ref;
 
     bool found = btree_->get(key.valuesToString(), ref);
     if ( found ) {
-        const eckit::URI& uri = files_.get(ref.pathId());
-        FieldLocation* fl =FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length());
-        field = Field(*fl, timestamp_, ref.details());
-        // field.path_     = files_.get( ref.pathId_ );
-        // field.offset_   = ref.offset_;
-        // field.length_   = ref.length_;
+        const eckit::URI& uri = files_.get(ref.uriId());
+        field = Field(FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), remapKey), timestamp_, ref.details());
     }
     return found;
 }
@@ -159,15 +151,15 @@ void TocIndex::visit(IndexLocationVisitor &visitor) const {
 
 
 class TocIndexVisitor : public BTreeIndexVisitor {
-    const FileStore &files_;
+    const UriStore &files_;
     EntryVisitor &visitor_;
 public:
-    TocIndexVisitor(const FileStore &files, EntryVisitor &visitor):
+    TocIndexVisitor(const UriStore &files, EntryVisitor &visitor):
         files_(files),
         visitor_(visitor) {}
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
-        Field field(TocFieldLocation(files_, ref), visitor_.indexTimestamp(), ref.details());
+        Field field(new TocFieldLocation(files_, ref), visitor_.indexTimestamp(), ref.details());
         visitor_.visitDatum(field, keyFingerprint);
     }
 };

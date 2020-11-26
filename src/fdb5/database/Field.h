@@ -15,8 +15,6 @@
 #ifndef fdb5_Field_H
 #define fdb5_Field_H
 
-#include <chrono>
-
 #include "eckit/eckit.h"
 
 #include "eckit/filesystem/PathName.h"
@@ -37,7 +35,6 @@ class DataHandle;
 
 namespace fdb5 {
 
-typedef std::chrono::system_clock::time_point timestamp_t;
 //----------------------------------------------------------------------------------------------------------------------
 
 class Field {
@@ -46,27 +43,26 @@ public: // methods
 
     Field();
 
-    Field(const FieldLocation& location, timestamp_t timestamp, const FieldDetails& details = FieldDetails());
+    Field(const FieldLocation* location, time_t timestamp, const FieldDetails& details = FieldDetails());
 
     eckit::DataHandle* dataHandle() const { return location_->dataHandle(); }
-    eckit::DataHandle* dataHandle(const Key& remapKey) const { return location_->dataHandle(remapKey); }
 
     const FieldLocation& location() const { return *location_; }
 
-    timestamp_t timestamp() const { return timestamp_; }
+    time_t timestamp() const { return timestamp_; }
 
     /// stableLocation is an object with validity that extends longer than that of the
     /// owning DB. May need converting to a more static form --- or not.
-    std::shared_ptr<const FieldLocation> stableLocation() const {
-        return std::const_pointer_cast<const FieldLocation>(location_->stableLocation());
+    std::shared_ptr<FieldLocation> stableLocation() const {
+        return location_->stableLocation();
     }
     const FieldDetails& details() const { return details_; }
 
 private: // members
 
-    std::shared_ptr<FieldLocation> location_;
+   std::shared_ptr<FieldLocation> location_;
 
-    timestamp_t timestamp_;
+    time_t timestamp_;
 
     FieldDetails details_;
 

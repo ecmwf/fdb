@@ -8,15 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eccodes.h"
-
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/FileDescHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
 
 #include "metkit/mars/MarsRequest.h"
-#include "metkit/codes/CodesContent.h"
 
 #include "fdb5/fdb5_version.h"
 #include "fdb5/api/FDB.h"

@@ -12,9 +12,12 @@
 
 #include "eckit/io/DataHandle.h"
 #include "eckit/option/CmdArgs.h"
+#include "eckit/log/Log.h"
 
 #include "fdb5/grib/GribArchiver.h"
 #include "fdb5/tools/FDBTool.h"
+
+using namespace eckit;
 
 class Grib2Fdb5 : public fdb5::FDBTool {
     virtual void execute(const eckit::option::CmdArgs &args);
@@ -51,13 +54,13 @@ void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
         }
 
         if (k == "-d") {
-            std::cout << "Option -d ignored: " << args(i + 1) << std::endl;
+            Log::info() << "Option -d ignored: " << args(i + 1) << std::endl;
             i += 2;
             continue;
         }
 
         if (k == "-1") {
-            std::cout << "Option -1 ignored" <<  std::endl;
+            Log::info() << "Option -1 ignored" <<  std::endl;
             i++;
             continue;
         }
@@ -95,8 +98,8 @@ void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
     fdb5::GribArchiver archiver(check);
 
     for (const auto& path : paths) {
-        std::cout << "Processing " << path << std::endl;
-        std::cout << "Key " << check << std::endl;
+        Log::info() << "Processing " << path << std::endl;
+        Log::info() << "Key " << check << std::endl;
         std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
         archiver.archive( *dh );
     }

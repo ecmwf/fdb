@@ -35,21 +35,13 @@ RemoteFieldLocation::RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocati
     ASSERT(remoteLocation.uri().scheme() != "fdb");
 }
 
-RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
-    FieldLocation(eckit::URI("fdb", uri)) {
-    NOTIMP;
-}
-
-RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length) :
-    FieldLocation(eckit::URI("fdb", uri), offset, length) {
-    NOTIMP;
-}
+RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length, const Key& remapKey) :
+    FieldLocation(eckit::URI("fdb://" + uri.hostport())),
+    internal_(std::shared_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri, offset, length, remapKey))) {}
 
 RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) :
-    FieldLocation(s) {
-    //internal_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
-    NOTIMP;
-}
+    FieldLocation(s),
+    internal_(std::shared_ptr<FieldLocation>(eckit::Reanimator<FieldLocation>::reanimate(s))) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
     FieldLocation(rhs.uri_),
@@ -63,14 +55,7 @@ std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
 
 eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
     ASSERT(remoteFDB_);
-    ASSERT(internal_);
-    return remoteFDB_->dataHandle(*internal_, Key());
-}
-
-eckit::DataHandle* RemoteFieldLocation::dataHandle(const Key& remapKey) const {
-    ASSERT(remoteFDB_);
-    ASSERT(internal_);
-    return remoteFDB_->dataHandle(*internal_, remapKey);
+    return remoteFDB_->dataHandle(*internal_);
 }
 
 void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {
@@ -80,7 +65,6 @@ void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {
 void RemoteFieldLocation::print(std::ostream& out) const {
     out << "RemoteFieldLocation[uri=" << uri_ << ",internal=" << *internal_ << "]";
 }
-
 
 void RemoteFieldLocation::encode(eckit::Stream& s) const {
     FieldLocation::encode(s);

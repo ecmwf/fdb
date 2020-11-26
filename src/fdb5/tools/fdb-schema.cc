@@ -11,11 +11,14 @@
 #include <memory>
 
 #include "eckit/option/CmdArgs.h"
+#include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBTool.h"
+
+using namespace eckit;
 
 namespace fdb5 {
 namespace tools {
@@ -42,7 +45,7 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
 
     if (args.count() == 0) {
         Config config = LibFdb5::instance().defaultConfig();
-        config.schema().dump(std::cout);
+        config.schema().dump(Log::info());
     }
 
     // If the argument specifies a schema file, then examine that. Otherwise load the DB which is
@@ -55,11 +58,11 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
         if (path.isDir()) {
             std::unique_ptr<DB> db = DB::buildReader(eckit::URI("toc", path));
             ASSERT(db->open());
-            db->schema().dump(std::cout);
+            db->schema().dump(Log::info());
         } else {
             Schema schema;
             schema.load(args(i));
-            schema.dump(std::cout);
+            schema.dump(Log::info());
         }
     }
 }

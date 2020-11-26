@@ -90,33 +90,12 @@ struct ListHelper : public BaseHelper<ListElement> {
     ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
         return fdb.list(request);
     }
-
-    // Create a derived RemoteFieldLocation which knows about this server
-//    Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
-//        RemoteFieldLocation location(*elem.location_, handler.host(), handler.port());
-
-//        ListElement updated(elem.keyParts_, std::make_shared<Field>(location, elem.field_->timestamp()), elem.remapKey_);
-
-//        return BaseHelper<ListElement>::encode(updated, handler);
-//    }
 };
 
 struct InspectHelper : public BaseHelper<ListElement> {
     ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
         return fdb.inspect(request.request());
     }
-
-    // Create a derived RemoteFieldLocation which knows about this server
-//    Encoded encode(const ListElement& elem, const RemoteHandler& handler) const {
-//        std::cout << "InspectHelper A - " << handler.host() << ":" << handler.port() << " " << elem.field_->stableLocation() << std::endl;
-//        RemoteFieldLocation location(*elem.field_->stableLocation(), handler.host(), handler.port());
-//        std::cout << "InspectHelper B - " << location << std::endl;
-
-//        ListElement updated(elem.keyParts_, std::make_shared<Field>(location, elem.field_->timestamp()), elem.remapKey_);
-//        std::cout << "InspectHelper C - " << updated << std::endl;
-
-//        return BaseHelper<ListElement>::encode(updated, handler);
-//    }
 };
 
 
@@ -785,23 +764,13 @@ void RemoteHandler::read(const MessageHeader& hdr) {
     MemoryStream s(payload);
 
     std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
-    Key remapKey(s);
 
-    Log::debug<LibFdb5>() << "Queuing for read: " << hdr.requestID << " " << *location << " " << remapKey << std::endl;
+    Log::debug<LibFdb5>() << "Queuing for read: " << hdr.requestID << " " << *location << std::endl;
 
     std::unique_ptr<eckit::DataHandle> dh;
-    if (remapKey.empty())
-        dh.reset(location->dataHandle());
-    else
-        dh.reset(location->dataHandle(remapKey));
+    dh.reset(location->dataHandle());
 
-    bool syncronous = true;
-    if (syncronous)
-        // Forward the API call
-        writeToParent(hdr.requestID, std::move(dh));
-    else
-        // enqueue the data transmission request
-        readLocationQueue_.emplace(std::make_pair(hdr.requestID, std::move(dh)));
+    readLocationQueue_.emplace(std::make_pair(hdr.requestID, std::move(dh)));
 }
 
 void RemoteHandler::writeToParent(const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh) {

@@ -104,18 +104,19 @@ void TocCatalogueReader::close() {
     }
 }
 
-bool TocCatalogueReader::retrieve(const Key& key, Field& field, Key& remapKey) const {
+bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
     eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
 
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         const Index& idx(m->first);
-        remapKey = m->second;
+        Key remapKey = m->second;
 
         if (idx.mayContain(key)) {
             const_cast<Index&>(idx).open();
-            if (idx.get(key, field))
+            if (idx.get(key, remapKey, field)) {
                 return true;
+            }
         }
     }
     return false;

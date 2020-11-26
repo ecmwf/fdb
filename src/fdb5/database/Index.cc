@@ -24,24 +24,105 @@ IndexBase::IndexBase(const Key& key, const std::string& type) :
 {
 }
 
+enum IndexBaseStreamKeys {
+    IndexKeyUnrecognised,
+    IndexKey,
+    IndexType,
+    IndexTimestamp
+};
 
-IndexBase::IndexBase(eckit::Stream& s) :
-    axes_(s),
-    key_(s) {
+IndexBaseStreamKeys keyId(const std::string& s) {
+    static const std::map<std::string, IndexBaseStreamKeys> keys {
+        {"key" , IndexKey},
+        {"type", IndexType},
+        {"time", IndexTimestamp},
+    };
+
+    auto it = keys.find(s);
+    if( it != keys.end() ) {
+        return it->second;
+    }
+    return IndexKeyUnrecognised; 
+}
+
+
+void IndexBase::decodeCurrent(eckit::Stream& s, const int version) {
+    ASSERT(version >= 3);
+
+    axes_.decode(s, version);
+
+    ASSERT(s.next());
+    std::string k;
+    while (!s.endObjectFound()) {
+        s >> k;
+        switch (keyId(k)) {
+            case IndexKey:
+                s >> key_;
+                break;
+            case IndexType:
+                s >> type_;
+                break;
+            case IndexTimestamp:
+                s >> timestamp_;
+                break;
+            default:
+                throw eckit::SeriousBug("IndexBase de-serialization error: "+k+" field is not recognized");
+        }
+    }
+    ASSERT(!key_.empty());
+    ASSERT(!type_.empty());
+    ASSERT(timestamp_);
+}
+
+void IndexBase::decodeLegacy(eckit::Stream& s, const int version) { // decoding of old Stream format, for backward compatibility
+    ASSERT(version <= 2);
+
+    axes_.decode(s, version);
+
     std::string dummy;
+    s >> key_;
     s >> dummy; ///< legacy entry, no longer used but stays here so we can read existing indexes
     s >> type_;
-    // backward compatibility: FDB on disk may miss the timestamp
-    if (s.endObjectFound()) {
-        timestamp_ = timestamp_t{};
-    } else {
-        std::time_t tmp;
-        s >> tmp;
-        timestamp_ = std::chrono::system_clock::from_time_t(tmp);
-    }
+    timestamp_ = 0;
+}
+
+
+IndexBase::IndexBase(eckit::Stream& s, const int version) {
+    if (version >= 3) 
+        decodeCurrent(s, version);
+    else
+        decodeLegacy(s, version);
 }
 
 IndexBase::~IndexBase() {
+}
+
+void IndexBase::encode(eckit::Stream& s, const int version) const {
+    if (version >= 3) {
+        encodeCurrent(s, version);
+    } else {
+        encodeLegacy(s, version);
+    }
+}
+
+void IndexBase::encodeCurrent(eckit::Stream& s, const int version) const {
+    ASSERT(version >= 3);
+
+    axes_.encode(s, version);
+    s.startObject();
+    s << "key" << key_;
+    s << "type" << type_;
+    s << "time" << timestamp_;
+    s.endObject();
+}
+
+void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
+    ASSERT(version <= 2);
+
+    axes_.encode(s, version);
+    s << key_;
+    s << key_.valuesToString(); // we no longer write this field, required in the previous index format
+    s << type_;
 }
 
 void IndexBase::put(const Key &key, const Field &field) {
@@ -111,7 +192,7 @@ private: // methods
 
     virtual void visit(IndexLocationVisitor&) const  { NOTIMP; }
 
-    virtual bool get( const Key&, Field&) const  { NOTIMP; }
+    virtual bool get( const Key&, const Key&, Field&) const  { NOTIMP; }
     virtual void add( const Key&, const Field&)  { NOTIMP; }
     virtual void flush()  { NOTIMP; }
     virtual void encode(eckit::Stream&) const { NOTIMP; }

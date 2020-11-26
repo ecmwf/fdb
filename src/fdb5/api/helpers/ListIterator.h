@@ -44,14 +44,14 @@ class ListElement {
 public: // methods
 
     ListElement() = default;
-    ListElement(const std::vector<Key>& keyParts, std::shared_ptr<FieldLocation> location, std::chrono::system_clock::time_point timestamp, const Key& remapKey);
+    ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp);
     ListElement(eckit::Stream& s);
 
+    const std::vector<Key>& key() const { return keyParts_; }
+    const FieldLocation& location() const { return *location_; }
+    const time_t& timestamp() const { return timestamp_; }
+
     Key combinedKey() const;
-    void location(std::shared_ptr<FieldLocation> location) { location_ = location; }
-    std::shared_ptr<FieldLocation> location() { return location_; }
-    const std::chrono::system_clock::time_point& timestamp() { return timestamp_; }
-    const Key& remapKey() const { return remapKey_; }
 
     void print(std::ostream& out, bool withLocation=false) const;
     void json(eckit::JSON& json) const;
@@ -81,9 +81,8 @@ public: // members
 
 private: // members
 
-    std::shared_ptr<FieldLocation> location_;
-    std::chrono::system_clock::time_point timestamp_;
-    Key remapKey_;
+    std::shared_ptr<const FieldLocation> location_;
+    time_t timestamp_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -28,7 +28,7 @@
 namespace fdb5 {
 
 class Field;
-class FileStore;
+class UriStore;
 
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -37,18 +37,18 @@ class FileStore;
 class FieldRefLocation {
 
 public:
-    typedef size_t PathID;
+    typedef size_t UriID;
 
     FieldRefLocation();
-    FieldRefLocation(FileStore &, const Field &);
+    FieldRefLocation(UriStore &, const Field &);
 
 
-    PathID pathId() const { return pathId_; }
+    UriID uriId() const { return uriId_; }
     const eckit::Offset &offset() const { return offset_; }
     const eckit::Length &length() const { return length_; }
 
 protected:
-    PathID          pathId_;
+    UriID           uriId_;
     eckit::Offset   offset_;
     eckit::Length   length_;
 
@@ -90,11 +90,11 @@ class FieldRef  {
 public:
 
     FieldRef();
-    FieldRef(FileStore &, const Field &);
+    FieldRef(UriStore &, const Field &);
 
     FieldRef(const FieldRefReduced&);
 
-    FieldRefLocation::PathID pathId() const { return location_.pathId(); }
+    FieldRefLocation::UriID uriId() const { return location_.uriId(); }
     const eckit::Offset &offset() const { return location_.offset(); }
     const eckit::Length &length() const { return location_.length(); }
 

@@ -24,7 +24,7 @@
 
 namespace fdb5 {
 
-class Retriever;
+class Inspector;
 class Archiver;
 class FDB;
 
@@ -71,7 +71,7 @@ private: // members
     std::string home_;
 
     std::unique_ptr<Archiver> archiver_;
-    std::unique_ptr<Retriever> retriever_;
+    std::unique_ptr<Inspector> inspector_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

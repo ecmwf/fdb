@@ -54,13 +54,12 @@ class IndexBase : public eckit::Counted {
 public: // methods
 
     IndexBase(const Key& key, const std::string& type);
-    IndexBase(eckit::Stream& s);
+    IndexBase(eckit::Stream& s, const int version);
 
     virtual ~IndexBase();
 
     virtual const IndexLocation& location() const = 0;
 
-//    virtual const std::vector<eckit::URI> dataUris() const = 0;
     virtual const std::vector<eckit::URI> dataPaths() const { NOTIMP; }
 
     virtual bool dirty() const = 0;
@@ -79,14 +78,14 @@ public: // methods
     const IndexAxis& axes() const;
     const Key& key() const;
 
-    timestamp_t timestamp() const { return timestamp_; }
+    time_t timestamp() const { return timestamp_; }
 
-    virtual bool get(const Key &key, Field &field) const = 0;
+    virtual bool get(const Key &key, const Key &remapKey, Field &field) const = 0;
     virtual void put(const Key &key, const Field &field);
 
-    virtual void encode(eckit::Stream &s) const = 0;
-    virtual void entries(EntryVisitor &visitor) const = 0;
-    virtual void dump(std::ostream &out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
+    virtual void encode(eckit::Stream& s, const int version) const;
+    virtual void entries(EntryVisitor& visitor) const = 0;
+    virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 
     virtual bool mayContain(const Key& key) const;
 
@@ -95,9 +94,15 @@ public: // methods
     virtual void print( std::ostream &out ) const = 0;
 
 protected: // methods
-    void takeTimestamp() { timestamp_ = std::chrono::system_clock::now(); }
+    void takeTimestamp() { time(&timestamp_); }
 
 private: // methods
+
+    void encodeCurrent(eckit::Stream& s, const int version) const;
+    void encodeLegacy(eckit::Stream& s, const int version) const;
+
+    void decodeCurrent(eckit::Stream& s, const int version);
+    void decodeLegacy(eckit::Stream& s, const int version);
 
     virtual void add(const Key &key, const Field &field) = 0;
 
@@ -106,11 +111,11 @@ protected: // members
     std::string type_;
 
     /// @note Order of members is important here ...
-    IndexAxis     axes_;   ///< This Index spans along these axis
-    const Key     key_;    ///< key that selected this index
-    timestamp_t timestamp_;
+    IndexAxis axes_;      ///< This Index spans along these axis
+    Key       key_;       ///< key that selected this index
+    time_t    timestamp_; ///< timestamp when this Index was flushed
 
-    Indexer indexer_;
+    Indexer   indexer_;
 
     friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
         o.print(s); return s;
@@ -133,7 +138,6 @@ public: // methods
 
     const IndexLocation& location() const { return content_->location(); }
 
-//    const std::vector<eckit::URI> dataUris() const { return content_->dataUris(); }
     const std::vector<eckit::URI> dataPaths() const { return content_->dataPaths(); }
 
     bool dirty() const { return content_->dirty(); }
@@ -150,12 +154,12 @@ public: // methods
     const IndexAxis& axes() const { return content_->axes(); }
     const Key& key() const { return content_->key(); }
 
-    timestamp_t timestamp() const { return content_->timestamp(); }
+    time_t timestamp() const { return content_->timestamp(); }
 
-    bool get(const Key& key, Field& field) const { return content_->get(key, field); }
+    bool get(const Key& key, const Key& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
     void put(const Key& key, const Field& field) { content_->put(key, field); }
 
-    void encode(eckit::Stream& s) const { content_->encode(s); }
+    void encode(eckit::Stream& s, const int version) const { content_->encode(s, version); }
     void entries(EntryVisitor& v) const { content_->entries(v); }
     void dump(std::ostream &out, const char* indent, bool simple = false, bool dumpFields = false) const {
         content_->dump(out, indent, simple, dumpFields);
