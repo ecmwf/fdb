@@ -10,9 +10,14 @@
 
 #include <algorithm>
 #include <cctype>
+#include <sstream>
+#include <iomanip>
 
+#include "metkit/codes/OdbDecoder.h"
 #include "metkit/mars/TypeAny.h"
-#include "fdb5/grib/GribDecoder.h"
+#include "metkit/odb/IdMapper.h"
+
+#include "fdb5/message/MessageDecoder.h"
 #include "fdb5/database/messageToKey.h"
 
 #include "eckit/message/Reader.h"
@@ -21,19 +26,72 @@
 
 namespace fdb5 {
 
+
+namespace  {
+class KeySetter : public eckit::message::MetadataGatherer {
+
+    void setValue(const std::string& key, const std::string& value) override {
+        key_.set(key, value);
+    }
+
+    void setValue(const std::string&, long) override {}
+
+    void setValue(const std::string&, double) override {}
+
+protected:
+    Key& key_;
+
+public:
+
+    KeySetter(Key& key): key_(key) {
+        // The key must be clean at this point, as it is being returned (MARS-689)
+        // TODO: asserting to ensure the the key is already cleared seems better
+        key_.clear();
+    }
+};
+
+class OdbKeySetter : public KeySetter {
+
+    void setValue(const std::string& key, long value) override {
+        std::string strValue;
+        if (metkit::odb::IdMapper::instance().alphanumeric(key, value, strValue)) {
+            key_.set(key, strValue);
+        } else {
+            if (key == "time") {
+                std::stringstream ss;
+                ss << std::setw(4) << std::setfill('0') << (value/100);
+                key_.set(key, ss.str());
+            } else {
+                key_.set(key, std::to_string(value));
+            }
+        }
+    }
+
+public:
+
+    OdbKeySetter(Key& key): KeySetter(key) {
+    }
+};
+}  // namespace
+
 //----------------------------------------------------------------------------------------------------------------------
 
-GribDecoder::GribDecoder(bool checkDuplicates):
+MessageDecoder::MessageDecoder(bool checkDuplicates):
     checkDuplicates_(checkDuplicates) {
 }
 
-GribDecoder::~GribDecoder() {}
+MessageDecoder::~MessageDecoder() {}
 
-void GribDecoder::gribToKey(const eckit::message::Message& msg, Key &key) {
+void MessageDecoder::messageToKey(const eckit::message::Message& msg, Key &key) {
 
     eckit::message::Message patched = patch(msg);
 
-    key = messageToKey(msg);
+    std::string isOdb = metkit::codes::OdbDecoder::isOdb(msg) ? "ODB" : "not ODB";
+    ECKIT_DEBUG_VAR( isOdb );
+
+    KeySetter* setter = metkit::codes::OdbDecoder::isOdb(msg) ? new OdbKeySetter(key) : new KeySetter(key);
+    msg.getMetadata(*setter);
+    delete setter;
 
     if ( checkDuplicates_ ) {
         if ( seen_.find(key) != seen_.end() ) {
@@ -46,7 +104,7 @@ void GribDecoder::gribToKey(const eckit::message::Message& msg, Key &key) {
     }
 }
 
-metkit::mars::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path, const char *verb) {
+metkit::mars::MarsRequest MessageDecoder::messageToRequest(const eckit::PathName &path, const char *verb) {
     metkit::mars::MarsRequest r(verb);
 
     eckit::message::Reader reader(path);
@@ -58,7 +116,7 @@ metkit::mars::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path
 
     while ( (msg = reader.next())  ) {
 
-        gribToKey(msg, key);
+        messageToKey(msg, key);
 
         for (Key::const_iterator j = key.begin(); j != key.end(); ++j) {
             s[j->first].insert(j->second);
@@ -77,7 +135,7 @@ metkit::mars::MarsRequest GribDecoder::gribToRequest(const eckit::PathName &path
 }
 
 
-std::vector<metkit::mars::MarsRequest> GribDecoder::gribToRequests(const eckit::PathName &path, const char *verb) {
+std::vector<metkit::mars::MarsRequest> MessageDecoder::messageToRequests(const eckit::PathName &path, const char *verb) {
 
     std::vector<metkit::mars::MarsRequest> requests;
     eckit::message::Reader reader(path);
@@ -89,7 +147,7 @@ std::vector<metkit::mars::MarsRequest> GribDecoder::gribToRequests(const eckit::
 
     while ( (msg = reader.next()) ) {
 
-        gribToKey(msg, key);
+        messageToKey(msg, key);
 
         metkit::mars::MarsRequest r(verb);
         for (Key::const_iterator j = key.begin(); j != key.end(); ++j) {
@@ -107,8 +165,8 @@ std::vector<metkit::mars::MarsRequest> GribDecoder::gribToRequests(const eckit::
     return requests;
 }
 
-eckit::message::Message GribDecoder::patch(const eckit::message::Message& msg) {
-    // Give a chance to subclasses to modify the grib
+eckit::message::Message MessageDecoder::patch(const eckit::message::Message& msg) {
+    // Give a chance to subclasses to modify the message
     return msg;
 }
 

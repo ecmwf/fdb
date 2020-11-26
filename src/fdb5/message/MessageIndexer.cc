@@ -17,7 +17,7 @@
 #include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
 
-#include "fdb5/grib/GribIndexer.h"
+#include "fdb5/message/MessageIndexer.h"
 #include "fdb5/toc/AdoptVisitor.h"
 
 
@@ -25,11 +25,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GribIndexer::GribIndexer(bool checkDuplicates) :
-    GribDecoder(checkDuplicates) {
+MessageIndexer::MessageIndexer(bool checkDuplicates) :
+    MessageDecoder(checkDuplicates) {
 }
 
-void GribIndexer::index(const eckit::PathName &path) {
+void MessageIndexer::index(const eckit::PathName &path) {
     eckit::Timer timer("fdb::service::archive");
 
     eckit::message::Reader reader(path);
@@ -47,7 +47,7 @@ void GribIndexer::index(const eckit::PathName &path) {
 
     eckit::message::Message msg;
     while ( (msg = reader.next()) ) {
-       gribToKey(msg, key);
+       messageToKey(msg, key);
 
         // eckit::Log::info() << key << std::endl;
 

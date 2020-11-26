@@ -24,7 +24,7 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/grib/GribArchiver.h"
+#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
 
@@ -34,8 +34,8 @@ using eckit::Log;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
-    GribDecoder(),
+MessageArchiver::MessageArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
+    MessageDecoder(),
     fdb_(config),
     key_(key),
     completeTransfers_(completeTransfers),
@@ -94,7 +94,7 @@ static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::st
     return r;
 }
 
-void GribArchiver::filters(const std::string& include, const std::string& exclude) {
+void MessageArchiver::filters(const std::string& include, const std::string& exclude) {
 
     include_ = make_filter_requests(include);
     exclude_ = make_filter_requests(exclude);
@@ -108,7 +108,7 @@ static bool matchAny(const metkit::mars::MarsRequest& f, const std::vector<metki
     return false;
 }
 
-bool GribArchiver::filterOut(const Key& k) const {
+bool MessageArchiver::filterOut(const Key& k) const {
 
     const bool out = true;
 
@@ -132,13 +132,13 @@ bool GribArchiver::filterOut(const Key& k) const {
     return !out;
 }
 
-eckit::Channel& GribArchiver::logVerbose() const {
+eckit::Channel& MessageArchiver::logVerbose() const {
 
     return verbose_ ? Log::info() : Log::debug<LibFdb5>();
 
 }
 
-eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
+eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
     eckit::Timer timer("fdb::service::archive");
 
@@ -156,7 +156,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
 
         while ( (msg = reader.next()) ) {
 
-            gribToKey(msg, key);
+            messageToKey(msg, key);
 
             ASSERT(key.match(key_));
 
@@ -193,7 +193,7 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
     return total_size;
 }
 
-void GribArchiver::flush() {
+void MessageArchiver::flush() {
     fdb_.flush();
 }
 

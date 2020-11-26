@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   GribDecoder.h
+/// @file   MessageDecoder.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_GribDecoder_H
-#define fdb5_GribDecoder_H
+#ifndef fdb5_MessageDecoder_H
+#define fdb5_MessageDecoder_H
 
 
 #include "eckit/io/Buffer.h"
@@ -41,16 +41,16 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-class GribDecoder {
+class MessageDecoder {
 public:
 
-    GribDecoder(bool checkDuplicates = false);
+    MessageDecoder(bool checkDuplicates = false);
 
-    virtual ~GribDecoder();
+    virtual ~MessageDecoder();
 
-    void gribToKey(const eckit::message::Message& msg, Key &key);
-    metkit::mars::MarsRequest gribToRequest(const eckit::PathName &path, const char *verb = "retrieve");
-    std::vector<metkit::mars::MarsRequest> gribToRequests(const eckit::PathName &path, const char *verb = "retrieve");
+    void messageToKey(const eckit::message::Message& msg, Key &key);
+    metkit::mars::MarsRequest messageToRequest(const eckit::PathName &path, const char *verb = "retrieve");
+    std::vector<metkit::mars::MarsRequest> messageToRequests(const eckit::PathName &path, const char *verb = "retrieve");
 
 
 private:

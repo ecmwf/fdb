@@ -130,12 +130,12 @@ list( APPEND fdb5_srcs
     database/Notifier.h
     database/Manager.cc
     database/Manager.h
-    grib/GribArchiver.cc
-    grib/GribArchiver.h
-    grib/GribDecoder.cc
-    grib/GribDecoder.h
-    grib/GribIndexer.cc
-    grib/GribIndexer.h
+    message/MessageArchiver.cc
+    message/MessageArchiver.h
+    message/MessageDecoder.cc
+    message/MessageDecoder.h
+    message/MessageIndexer.cc
+    message/MessageIndexer.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
     io/SingleGribMungePartFileHandle.cc

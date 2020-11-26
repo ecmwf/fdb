@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   GribArchiver.h
+/// @file   MessageArchiver.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_GribArchiver_H
-#define fdb5_GribArchiver_H
+#ifndef fdb5_MessageArchiver_H
+#define fdb5_MessageArchiver_H
 
 #include <iosfwd>
 
@@ -24,7 +24,7 @@
 
 #include "fdb5/database/Archiver.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/grib/GribDecoder.h"
+#include "fdb5/message/MessageDecoder.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/api/FDB.h"
 
@@ -36,12 +36,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class GribArchiver :
-    public GribDecoder {
+class MessageArchiver :
+    public MessageDecoder {
 
 public: // methods
 
-    GribArchiver(const fdb5::Key& key = Key(),
+    MessageArchiver(const fdb5::Key& key = Key(),
                  bool completeTransfers = false,
                  bool verbose = false,
                  const Config& config=Config());

@@ -14,7 +14,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/grib/GribArchiver.h"
+#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/tools/FDBTool.h"
 
 using namespace eckit;
@@ -95,7 +95,7 @@ void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
 
     // Do the archiving with the relevant checks
 
-    fdb5::GribArchiver archiver(check);
+    fdb5::MessageArchiver archiver(check);
 
     for (const auto& path : paths) {
         Log::info() << "Processing " << path << std::endl;

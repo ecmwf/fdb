@@ -20,7 +20,7 @@
 #include "eckit/message/Message.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/grib/GribArchiver.h"
+#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
@@ -34,7 +34,7 @@ namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class PatchArchiver : public GribArchiver {
+class PatchArchiver : public MessageArchiver {
 
 public: // methods
 

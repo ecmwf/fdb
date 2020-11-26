@@ -121,6 +121,11 @@ method:     Integer;
         [ step, levelist?, param ]]
 ]
 
+[ class=od, expver, stream, date, time
+        [ type
+        [ obsgroup, reportype ]]
+]
+
 ########################################################
 # The are the rules matching most of the fields
 # oper/dcda

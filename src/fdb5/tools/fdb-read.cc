@@ -19,7 +19,7 @@
 #include "metkit/mars/MarsExpension.h"
 
 #include "fdb5/api/FDB.h"
-#include "fdb5/grib/GribDecoder.h"
+#include "fdb5/message/MessageDecoder.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
 
@@ -60,8 +60,8 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     if (extract) {
 
-        fdb5::GribDecoder decoder;
-        requests = decoder.gribToRequests(args(0));
+        fdb5::MessageDecoder decoder;
+        requests = decoder.messageToRequests(args(0));
 
     } else {
         std::ifstream in(args(0).c_str());
