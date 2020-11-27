@@ -14,11 +14,9 @@
 #include <iomanip>
 
 #include "metkit/codes/OdbDecoder.h"
-#include "metkit/mars/TypeAny.h"
 #include "metkit/odb/IdMapper.h"
 
 #include "fdb5/message/MessageDecoder.h"
-#include "fdb5/database/messageToKey.h"
 
 #include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
@@ -44,9 +42,7 @@ protected:
 public:
 
     KeySetter(Key& key): key_(key) {
-        // The key must be clean at this point, as it is being returned (MARS-689)
-        // TODO: asserting to ensure the the key is already cleared seems better
-        key_.clear();
+        ASSERT(key_.empty());
     }
 };
 
@@ -82,16 +78,18 @@ MessageDecoder::MessageDecoder(bool checkDuplicates):
 
 MessageDecoder::~MessageDecoder() {}
 
-void MessageDecoder::messageToKey(const eckit::message::Message& msg, Key &key) {
-
-    eckit::message::Message patched = patch(msg);
-
-    std::string isOdb = metkit::codes::OdbDecoder::isOdb(msg) ? "ODB" : "not ODB";
-    ECKIT_DEBUG_VAR( isOdb );
+void msgToKey(const eckit::message::Message& msg, Key& key) {
 
     KeySetter* setter = metkit::codes::OdbDecoder::isOdb(msg) ? new OdbKeySetter(key) : new KeySetter(key);
     msg.getMetadata(*setter);
     delete setter;
+}
+
+void MessageDecoder::messageToKey(const eckit::message::Message& msg, Key& key) {
+
+    eckit::message::Message patched = patch(msg);
+
+    msgToKey(patched, key);
 
     if ( checkDuplicates_ ) {
         if ( seen_.find(key) != seen_.end() ) {
@@ -105,33 +103,12 @@ void MessageDecoder::messageToKey(const eckit::message::Message& msg, Key &key) 
 }
 
 metkit::mars::MarsRequest MessageDecoder::messageToRequest(const eckit::PathName &path, const char *verb) {
-    metkit::mars::MarsRequest r(verb);
+    metkit::mars::MarsRequest request(verb);
 
-    eckit::message::Reader reader(path);
-    eckit::message::Message msg;
+    for (auto& r: messageToRequests(path, verb))
+        request.merge(r);
 
-    Key key;
-
-    std::map<std::string, std::set<std::string> > s;
-
-    while ( (msg = reader.next())  ) {
-
-        messageToKey(msg, key);
-
-        for (Key::const_iterator j = key.begin(); j != key.end(); ++j) {
-            s[j->first].insert(j->second);
-        }
-    }
-
-    for (std::map<std::string, std::set<std::string> >::const_iterator j = s.begin(); j != s.end(); ++j) {
-        eckit::StringList v(j->second.begin(), j->second.end());
-
-        // When deserialising requests, metkit uses Type Any. So we should
-        // use that here to. This could probably be done better?
-        r.setValuesTyped(new metkit::mars::TypeAny(j->first), v);
-    }
-
-    return r;
+    return request;
 }
 
 
@@ -147,19 +124,11 @@ std::vector<metkit::mars::MarsRequest> MessageDecoder::messageToRequests(const e
 
     while ( (msg = reader.next()) ) {
 
+        key.clear();
+
         messageToKey(msg, key);
 
-        metkit::mars::MarsRequest r(verb);
-        for (Key::const_iterator j = key.begin(); j != key.end(); ++j) {
-            eckit::StringList s;
-            s.push_back(j->second);
-
-            // When deserialising requests, metkit uses Type Any. So we should
-            // use that here to. This could probably be done better?
-            r.setValuesTyped(new metkit::mars::TypeAny(j->first), s);
-        }
-
-        requests.push_back(r);
+        requests.push_back(key.request(verb));
     }
 
     return requests;

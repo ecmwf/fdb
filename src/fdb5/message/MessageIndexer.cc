@@ -47,7 +47,10 @@ void MessageIndexer::index(const eckit::PathName &path) {
 
     eckit::message::Message msg;
     while ( (msg = reader.next()) ) {
-       messageToKey(msg, key);
+
+        key.clear();
+
+        messageToKey(msg, key);
 
         // eckit::Log::info() << key << std::endl;
 

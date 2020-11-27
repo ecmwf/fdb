@@ -156,6 +156,8 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
         while ( (msg = reader.next()) ) {
 
+            key.clear();
+
             messageToKey(msg, key);
 
             ASSERT(key.match(key_));

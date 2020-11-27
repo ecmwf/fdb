@@ -27,7 +27,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
-#include "fdb5/database/messageToKey.h"
+#include "fdb5/message/MessageDecoder.h"
 
 namespace fdb5 {
 
@@ -48,11 +48,15 @@ FDB::~FDB() {
 }
 
 void FDB::archive(eckit::message::Message msg) {
-    fdb5::Key key = messageToKey(msg);
+    ECKIT_DEBUG_HERE;
+    fdb5::Key key;
+    msgToKey(msg, key);
+    ECKIT_DEBUG_VAR(key);
     archive(key, msg);
 }
 
 void FDB::archive(const Key& key, eckit::message::Message msg) {
+    ECKIT_DEBUG_HERE;
     eckit::Timer timer;
     timer.start();
 

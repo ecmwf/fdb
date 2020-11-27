@@ -14,6 +14,7 @@
 #include "eckit/utils/Tokenizer.h"
 
 #include "metkit/mars/MarsRequest.h"
+#include "metkit/mars/TypeAny.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
@@ -383,11 +384,14 @@ const eckit::StringDict &Key::keyDict() const {
     return keys_;
 }
 
-metkit::mars::MarsRequest Key::request() const {
-    metkit::mars::MarsRequest req("retrieve");
+metkit::mars::MarsRequest Key::request(std::string verb) const {
+    metkit::mars::MarsRequest req(verb);
 
     for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
-        req.setValue(i->first, i->second);
+
+        // When deserialising requests, metkit uses Type Any. So we should
+        // use that here to. This could probably be done better?
+        req.setValuesTyped(new metkit::mars::TypeAny(i->first), std::vector<std::string>{i->second});
     }
 
     return req;

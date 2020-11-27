@@ -40,6 +40,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+void msgToKey(const eckit::message::Message& msg, Key& key);
 
 class MessageDecoder {
 public:
