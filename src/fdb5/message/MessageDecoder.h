@@ -40,7 +40,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void msgToKey(const eckit::message::Message& msg, Key& key);
 
 class MessageDecoder {
 public:
@@ -49,6 +48,7 @@ public:
 
     virtual ~MessageDecoder();
 
+    static Key messageToKey(const eckit::message::Message& msg);
     void messageToKey(const eckit::message::Message& msg, Key &key);
     metkit::mars::MarsRequest messageToRequest(const eckit::PathName &path, const char *verb = "retrieve");
     std::vector<metkit::mars::MarsRequest> messageToRequests(const eckit::PathName &path, const char *verb = "retrieve");
@@ -57,6 +57,7 @@ public:
 private:
 
     virtual eckit::message::Message patch(const eckit::message::Message& msg);
+    static void msgToKey(const eckit::message::Message& msg, Key& key);
 
     bool checkDuplicates_;
     std::set<Key> seen_;

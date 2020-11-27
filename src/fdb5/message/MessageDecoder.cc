@@ -78,7 +78,14 @@ MessageDecoder::MessageDecoder(bool checkDuplicates):
 
 MessageDecoder::~MessageDecoder() {}
 
-void msgToKey(const eckit::message::Message& msg, Key& key) {
+Key MessageDecoder::messageToKey(const eckit::message::Message& msg) {
+    Key key;
+    MessageDecoder::msgToKey(msg, key);
+    return key;
+}
+
+
+void MessageDecoder::msgToKey(const eckit::message::Message& msg, Key& key) {
 
     KeySetter* setter = metkit::codes::OdbDecoder::isOdb(msg) ? new OdbKeySetter(key) : new KeySetter(key);
     msg.getMetadata(*setter);

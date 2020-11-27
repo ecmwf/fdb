@@ -48,15 +48,11 @@ FDB::~FDB() {
 }
 
 void FDB::archive(eckit::message::Message msg) {
-    ECKIT_DEBUG_HERE;
-    fdb5::Key key;
-    msgToKey(msg, key);
-    ECKIT_DEBUG_VAR(key);
+    fdb5::Key key = MessageDecoder::messageToKey(msg);
     archive(key, msg);
 }
 
 void FDB::archive(const Key& key, eckit::message::Message msg) {
-    ECKIT_DEBUG_HERE;
     eckit::Timer timer;
     timer.start();
 
