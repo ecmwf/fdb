@@ -47,7 +47,6 @@ public:  // methods
     virtual void   print(std::ostream &) const;
     virtual eckit::Offset position();
     virtual std::string title() const;
-    virtual std::string metrics() const;
 
 protected: // members
 
