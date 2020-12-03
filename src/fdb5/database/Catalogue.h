@@ -143,8 +143,8 @@ public:
 
 template <class T>
 class CatalogueBuilder : public CatalogueBuilderBase {
-    virtual std::unique_ptr<Catalogue> make(const fdb5::Key& key, const fdb5::Config& config) { return std::unique_ptr<T>(new T(key, config)); }
-    virtual std::unique_ptr<Catalogue> make(const eckit::URI& uri, const fdb5::Config& config) { return std::unique_ptr<T>(new T(uri, config)); }
+    virtual std::unique_ptr<Catalogue> make(const fdb5::Key& key, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(key, config)); }
+    virtual std::unique_ptr<Catalogue> make(const eckit::URI& uri, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(uri, config)); }
 
 public:
     CatalogueBuilder(const std::string& name) : CatalogueBuilderBase(name) {}

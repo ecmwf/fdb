@@ -31,7 +31,7 @@ class DbStatsContent : public eckit::Counted,
                        public eckit::Streamable {
 public:
 
-    virtual ~DbStatsContent();
+    virtual ~DbStatsContent() override;
 
     virtual void add(const DbStatsContent&) = 0;
 

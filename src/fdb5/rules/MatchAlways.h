@@ -30,7 +30,7 @@ public: // methods
 
     MatchAlways();
 
-    virtual ~MatchAlways();
+    virtual ~MatchAlways() override;
 
     virtual bool match(const std::string &keyword, const Key &key) const;
 
@@ -38,7 +38,7 @@ public: // methods
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 
 };
 

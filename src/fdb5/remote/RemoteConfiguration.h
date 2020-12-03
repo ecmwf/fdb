@@ -44,7 +44,7 @@ public: // methods
 
 private: // methods
 
-    void encode(eckit::Stream& s) const;
+    void encode(eckit::Stream& s) const override;
 
 private: // members
 

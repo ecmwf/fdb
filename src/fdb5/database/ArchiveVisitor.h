@@ -36,7 +36,7 @@ protected: // methods
 
     virtual bool selectDatum(const Key &key, const Key &full);
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 
 private: // members
 

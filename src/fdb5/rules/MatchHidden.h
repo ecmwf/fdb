@@ -31,7 +31,7 @@ public: // methods
 
     MatchHidden(const std::string &def);
 
-    virtual ~MatchHidden();
+    virtual ~MatchHidden() override;
 
     virtual bool match(const std::string &keyword, const Key &key) const;
 
@@ -42,7 +42,7 @@ private: // methods
     virtual bool optional() const;
     virtual const std::string &value(const Key &, const std::string &keyword) const;
     virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const;
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
     virtual const std::string &defaultValue() const;
 
 

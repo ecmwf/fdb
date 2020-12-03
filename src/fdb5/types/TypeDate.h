@@ -28,7 +28,7 @@ public: // methods
 
     TypeDate(const std::string &name, const std::string &type);
 
-    virtual ~TypeDate();
+    virtual ~TypeDate() override;
 
     virtual std::string tidy(const std::string &keyword,
                              const std::string &value) const ;
@@ -41,7 +41,7 @@ public: // methods
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 
 };
 

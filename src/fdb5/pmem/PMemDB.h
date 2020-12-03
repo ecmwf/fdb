@@ -47,7 +47,7 @@ public: // methods
     PMemDB(const Key& key, const Config& config);
     PMemDB(const eckit::PathName& directory, const Config& config);
 
-    virtual ~PMemDB();
+    virtual ~PMemDB() override;
 
     static const char* dbTypeName() { return PMemEngine::typeName(); }
 

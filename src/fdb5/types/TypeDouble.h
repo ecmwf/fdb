@@ -28,7 +28,7 @@ public: // methods
 
     TypeDouble(const std::string &name, const std::string &type);
 
-    virtual ~TypeDouble();
+    virtual ~TypeDouble() override;
 
     virtual void toKey(std::ostream &out,
                        const std::string &keyword,
@@ -42,7 +42,7 @@ public: // methods
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 
 };
 

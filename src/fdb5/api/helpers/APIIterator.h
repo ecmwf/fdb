@@ -136,7 +136,7 @@ public: // methods
         workerThread_ = std::thread(fullWorker);
     }
 
-    virtual ~APIAsyncIterator() {
+    virtual ~APIAsyncIterator() override {
         if (!queue_.closed()) {
             queue_.interrupt(std::make_exception_ptr(eckit::SeriousBug("Destructing incomplete async queue", Here())));
         }

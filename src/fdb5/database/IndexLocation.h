@@ -26,7 +26,7 @@ class IndexLocation : public eckit::Streamable {
 public: // methods
 
     IndexLocation();
-    virtual ~IndexLocation();
+    virtual ~IndexLocation() override;
 
 //    virtual eckit::PathName path() const = 0;
     virtual eckit::URI uri() const = 0;

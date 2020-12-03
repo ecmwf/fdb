@@ -28,7 +28,7 @@ public: // methods
 
     TypeIgnore(const std::string &name, const std::string &type);
 
-    virtual ~TypeIgnore();
+    virtual ~TypeIgnore() override;
 
     virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,
@@ -41,7 +41,7 @@ public: // methods
                        const std::string &value) const;
 private: // methods
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 
 };
 

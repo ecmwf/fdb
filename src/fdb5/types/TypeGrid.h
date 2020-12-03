@@ -28,7 +28,7 @@ public: // methods
 
     TypeGrid(const std::string &name, const std::string &type);
 
-    virtual ~TypeGrid();
+    virtual ~TypeGrid() override;
 
 private: // methods
 
@@ -42,7 +42,7 @@ private: // methods
                            const Notifier &wind,
                            const DB *db) const;
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 
 };
 

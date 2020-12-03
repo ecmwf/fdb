@@ -44,7 +44,7 @@ public:  // methods
     virtual long   write(const void *, long);
     virtual void   close();
     virtual void   flush();
-    virtual void   print(std::ostream &) const;
+    virtual void print(std::ostream &) const override;
     virtual eckit::Offset position();
     virtual std::string title() const;
 

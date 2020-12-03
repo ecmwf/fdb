@@ -59,7 +59,7 @@ protected: // methods
 
     virtual std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const;
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 
 };
 

@@ -43,7 +43,7 @@ class FDBTool : public eckit::Tool {
 protected: // methods
 
     FDBTool(int argc, char **argv);
-    virtual ~FDBTool() {}
+    virtual ~FDBTool() override {}
 
     virtual void run();
 

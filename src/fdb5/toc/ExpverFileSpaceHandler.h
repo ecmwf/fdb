@@ -37,7 +37,7 @@ public: // methods
 
     ExpverFileSpaceHandler();
 
-    virtual ~ExpverFileSpaceHandler();
+    virtual ~ExpverFileSpaceHandler() override;
 
     virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const;
 

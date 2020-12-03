@@ -70,7 +70,7 @@ public: // methods
     {
     }
 
-    virtual ~LustreFileHandle() {}
+    virtual ~LustreFileHandle() override {}
 
     virtual void openForAppend(const eckit::Length& len) {
 

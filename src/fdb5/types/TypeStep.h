@@ -28,7 +28,7 @@ public: // methods
 
     TypeStep(const std::string &name, const std::string &type);
 
-    virtual ~TypeStep();
+    virtual ~TypeStep() override;
 
     virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,
@@ -44,7 +44,7 @@ public: // methods
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 
 };
 

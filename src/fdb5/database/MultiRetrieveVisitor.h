@@ -61,7 +61,7 @@ private:  // methods
                         const TypesRegistry& registry,
                         eckit::StringList& values);
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 
     virtual const Schema& databaseSchema() const;
 
