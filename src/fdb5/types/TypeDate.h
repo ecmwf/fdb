@@ -31,13 +31,13 @@ public: // methods
     virtual ~TypeDate() override;
 
     virtual std::string tidy(const std::string &keyword,
-                             const std::string &value) const ;
+                             const std::string &value) const override;
 
     virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,
                            eckit::StringList &values,
                            const Notifier &wind,
-                           const DB *db) const;
+                           const DB *db) const override;
 
 private: // methods
 

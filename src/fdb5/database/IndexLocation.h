@@ -40,7 +40,7 @@ private: // methods
 
 protected: // For streamable
 
-    virtual void encode(eckit::Stream&) const = 0;
+    virtual void encode(eckit::Stream&) const override = 0;
 
     static eckit::ClassSpec classSpec_;
 

@@ -31,7 +31,7 @@ public: // methods
     virtual ~TypeTime() override;
 
     virtual std::string tidy(const std::string &keyword,
-                             const std::string &value) const ;
+                             const std::string &value) const override;
 
 private: // methods
 

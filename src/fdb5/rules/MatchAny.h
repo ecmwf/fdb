@@ -33,9 +33,9 @@ public: // methods
 
     virtual ~MatchAny() override;
 
-    virtual bool match(const std::string &keyword, const Key &key) const;
+    virtual bool match(const std::string &keyword, const Key &key) const override;
 
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const;
+    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
 
 private: // methods
 

@@ -34,13 +34,13 @@ public: // methods
                            const std::string &keyword,
                            eckit::StringList &values,
                            const Notifier &wind,
-                           const DB *db) const;
+                           const DB *db) const override;
 
     virtual void toKey(std::ostream &out,
                        const std::string &keyword,
-                       const std::string &value) const;
+                       const std::string &value) const override;
 
-    virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const;
+    virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const override;
 
 private: // methods
 

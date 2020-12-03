@@ -40,7 +40,7 @@ public: // methods
 
 protected: // methods
 
-    virtual bool selectDatum(const Key &key, const Key &full);
+    virtual bool selectDatum(const Key &key, const Key &full) override;
 
     virtual void print( std::ostream &out ) const override;
 

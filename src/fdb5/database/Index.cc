@@ -42,7 +42,7 @@ IndexBaseStreamKeys keyId(const std::string& s) {
     if( it != keys.end() ) {
         return it->second;
     }
-    return IndexKeyUnrecognised; 
+    return IndexKeyUnrecognised;
 }
 
 
@@ -88,7 +88,7 @@ void IndexBase::decodeLegacy(eckit::Stream& s, const int version) { // decoding 
 
 
 IndexBase::IndexBase(eckit::Stream& s, const int version) {
-    if (version >= 3) 
+    if (version >= 3)
         decodeCurrent(s, version);
     else
         decodeLegacy(s, version);
@@ -181,27 +181,27 @@ public: // methods
 
 private: // methods
 
-    virtual const IndexLocation& location() const { NOTIMP; }
+    virtual const IndexLocation& location() const override { NOTIMP; }
 //    virtual const std::vector<eckit::URI> dataUris() const { NOTIMP; }
 
-    virtual bool dirty() const { NOTIMP; }
+    virtual bool dirty() const override { NOTIMP; }
 
-    virtual void open()  { NOTIMP; }
-    virtual void close() { NOTIMP; }
-    virtual void reopen() { NOTIMP; }
+    virtual void open() override  { NOTIMP; }
+    virtual void close() override { NOTIMP; }
+    virtual void reopen() override { NOTIMP; }
 
-    virtual void visit(IndexLocationVisitor&) const  { NOTIMP; }
+    virtual void visit(IndexLocationVisitor&) const override  { NOTIMP; }
 
-    virtual bool get( const Key&, const Key&, Field&) const  { NOTIMP; }
-    virtual void add( const Key&, const Field&)  { NOTIMP; }
-    virtual void flush()  { NOTIMP; }
+    virtual bool get( const Key&, const Key&, Field&) const override  { NOTIMP; }
+    virtual void add( const Key&, const Field&) override  { NOTIMP; }
+    virtual void flush() override  { NOTIMP; }
     virtual void encode(eckit::Stream&) const { NOTIMP; }
-    virtual void entries(EntryVisitor&) const { NOTIMP; }
+    virtual void entries(EntryVisitor&) const override { NOTIMP; }
 
-    virtual void print( std::ostream& s) const  { s << "NullIndex()"; }
-    virtual void dump(std::ostream&, const char*, bool, bool) const  { NOTIMP; }
+    virtual void print( std::ostream& s) const override  { s << "NullIndex()"; }
+    virtual void dump(std::ostream&, const char*, bool, bool) const override  { NOTIMP; }
 
-    virtual IndexStats statistics() const { NOTIMP; }
+    virtual IndexStats statistics() const override { NOTIMP; }
 
 };
 

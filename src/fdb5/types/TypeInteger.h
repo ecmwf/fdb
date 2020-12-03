@@ -34,7 +34,7 @@ public: // methods
                            const std::string &keyword,
                            eckit::StringList &values,
                            const Notifier &wind,
-                           const DB *db) const;
+                           const DB *db) const override;
 
 private: // methods
 

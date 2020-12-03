@@ -45,7 +45,7 @@ protected: // methods
     FDBTool(int argc, char **argv);
     virtual ~FDBTool() override {}
 
-    virtual void run();
+    virtual void run() override;
 
 public: // methods
 

@@ -39,7 +39,7 @@ public:
 
 public: // For Streamable
 
-    virtual void encode(eckit::Stream& s) const = 0;
+    virtual void encode(eckit::Stream& s) const override = 0;
 
 protected: // For Streamable
 

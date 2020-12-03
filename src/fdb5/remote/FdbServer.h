@@ -50,7 +50,7 @@ public: // methods
 
 private: // methods
 
-    virtual void run();
+    virtual void run() override;
 
     eckit::net::TCPSocket socket_;
     eckit::LocalConfiguration config_;
@@ -88,9 +88,9 @@ public:
 
     virtual ~FdbServer() override;
 
-    virtual void run();
+    virtual void run() override;
 
-    void virtual hookUnique(); // non-unique
+    void virtual hookUnique() override; // non-unique
 
 };
 

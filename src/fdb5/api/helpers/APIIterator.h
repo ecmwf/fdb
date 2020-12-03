@@ -144,7 +144,7 @@ public: // methods
         workerThread_.join();
     }
 
-    virtual bool next(ValueType& elem) {
+    virtual bool next(ValueType& elem) override {
         return !(queue_.pop(elem) == -1);
     }
 
