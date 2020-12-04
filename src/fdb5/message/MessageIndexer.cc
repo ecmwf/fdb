@@ -41,14 +41,12 @@ void MessageIndexer::index(const eckit::PathName &path) {
 
     eckit::Progress progress("Scanning", 0, totalFileSize);
 
-    Key key;
-
     eckit::PathName full(path.realName());
 
     eckit::message::Message msg;
     while ( (msg = reader.next()) ) {
 
-        key.clear();
+        Key key;
 
         messageToKey(msg, key);
 

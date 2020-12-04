@@ -151,12 +151,11 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
     try {
 
-        Key key;
         eckit::message::Message msg;
 
         while ( (msg = reader.next()) ) {
 
-            key.clear();
+            Key key;
 
             messageToKey(msg, key);
 

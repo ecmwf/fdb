@@ -101,8 +101,8 @@ method:     Integer;
 # These rules must be first, otherwise fields of These
 # classes will be index with the default rule for oper
 [ class=ti/s2, expver, stream, date, time, model
-	[ origin, type, levtype, hdate?
-        [ step, number?, levelist?, param ]]
+       [ origin, type, levtype, hdate?
+               [ step, number?, levelist?, param ]]
 ]
 
 [ class=ms, expver, stream, date, time, country=de
@@ -112,18 +112,17 @@ method:     Integer;
 
 [ class=ms, expver, stream, date, time, country=it
        [ domain, type, levtype, model, bcmodel, icmodel:First3
-               [ step, levelist?, param ]
-	   ]
+               [ step, levelist?, param ]]
 ]
 
 [ class=el, expver, stream, date, time, domain
-	[ origin, type, levtype
-        [ step, levelist?, param ]]
+       [ origin, type, levtype
+               [ step, levelist?, param ]]
 ]
 
 [ class=od, expver, stream, date, time
-        [ type
-        [ obsgroup, reportype ]]
+       [ type
+               [ obsgroup, reportype ]]
 ]
 
 ########################################################

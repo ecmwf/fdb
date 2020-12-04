@@ -10,31 +10,48 @@
 
 #include <algorithm>
 #include <cctype>
-#include <sstream>
-#include <iomanip>
-
-#include "metkit/codes/OdbDecoder.h"
-#include "metkit/odb/IdMapper.h"
 
 #include "fdb5/message/MessageDecoder.h"
 
 #include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
 
+#include "metkit/mars/MarsExpandContext.h"
+#include "metkit/mars/MarsLanguage.h"
+#include "metkit/mars/Type.h"
 
 namespace fdb5 {
-
 
 namespace  {
 class KeySetter : public eckit::message::MetadataGatherer {
 
-    void setValue(const std::string& key, const std::string& value) override {
+    void set(const std::string& key, std::string value) {
+        static metkit::mars::DummyContext ctx;
+        static metkit::mars::MarsLanguage language("archive");
+
+        // Map the value via the metkit Type infrastructure --> any patching required is done.
+        metkit::mars::Type* t = language.type(key);
+        if (key != "param") // <-- TypeParam[name=param]:  expand not implemented
+            t->expand(ctx, value);
+
         key_.set(key, value);
     }
 
-    void setValue(const std::string&, long) override {}
+    void setValue(const std::string& key, const std::string& value) override {
+        set(key, value);
+    }
 
-    void setValue(const std::string&, double) override {}
+    void setValue(const std::string& key, long value) override {
+        if (key_.find(key) == key_.end()) {
+            set(key, std::to_string(value));
+        }
+    }
+
+    void setValue(const std::string& key, double value) override {
+        if (key_.find(key) == key_.end()) {
+            set(key, std::to_string(value));
+        }
+    }
 
 protected:
     Key& key_;
@@ -46,28 +63,6 @@ public:
     }
 };
 
-class OdbKeySetter : public KeySetter {
-
-    void setValue(const std::string& key, long value) override {
-        std::string strValue;
-        if (metkit::odb::IdMapper::instance().alphanumeric(key, value, strValue)) {
-            key_.set(key, strValue);
-        } else {
-            if (key == "time") {
-                std::stringstream ss;
-                ss << std::setw(4) << std::setfill('0') << (value/100);
-                key_.set(key, ss.str());
-            } else {
-                key_.set(key, std::to_string(value));
-            }
-        }
-    }
-
-public:
-
-    OdbKeySetter(Key& key): KeySetter(key) {
-    }
-};
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -87,9 +82,8 @@ Key MessageDecoder::messageToKey(const eckit::message::Message& msg) {
 
 void MessageDecoder::msgToKey(const eckit::message::Message& msg, Key& key) {
 
-    KeySetter* setter = metkit::codes::OdbDecoder::isOdb(msg) ? new OdbKeySetter(key) : new KeySetter(key);
-    msg.getMetadata(*setter);
-    delete setter;
+    KeySetter setter(key);
+    msg.getMetadata(setter);
 }
 
 void MessageDecoder::messageToKey(const eckit::message::Message& msg, Key& key) {
@@ -125,13 +119,11 @@ std::vector<metkit::mars::MarsRequest> MessageDecoder::messageToRequests(const e
     eckit::message::Reader reader(path);
     eckit::message::Message msg;
 
-    Key key;
-
     std::map<std::string, std::set<std::string> > s;
 
     while ( (msg = reader.next()) ) {
 
-        key.clear();
+        Key key;
 
         messageToKey(msg, key);
 
