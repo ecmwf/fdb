@@ -36,9 +36,9 @@ public: // methods
 
     EnvVarFileSpaceHandler();
 
-    virtual ~EnvVarFileSpaceHandler();
+    virtual ~EnvVarFileSpaceHandler() override;
 
-    virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const;
+    virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const override;
 
 protected: // methods
 

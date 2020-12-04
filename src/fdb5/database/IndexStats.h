@@ -31,7 +31,7 @@ class IndexStatsContent : public eckit::Counted,
                           public eckit::Streamable {
 public:
 
-    virtual ~IndexStatsContent();
+    virtual ~IndexStatsContent() override;
 
     virtual size_t fieldsCount() const = 0;
     virtual size_t duplicatesCount() const = 0;
@@ -51,7 +51,7 @@ public:
 
 public: // For Streamable
 
-    virtual void encode(eckit::Stream& s) const = 0;
+    virtual void encode(eckit::Stream& s) const override = 0;
 
 protected: // For Streamable
 

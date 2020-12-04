@@ -78,7 +78,7 @@ public:
     }
 
 private:
-    virtual FileSpaceHandler* make() const { return new T(); }
+    virtual FileSpaceHandler* make() const override { return new T(); }
 };
 
 //----------------------------------------------------------------------------------------------------------------------

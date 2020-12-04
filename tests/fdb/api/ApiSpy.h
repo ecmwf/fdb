@@ -60,7 +60,7 @@ private: // types
         void print(std::ostream& s) const override { s << "FakeDH"; }
         eckit::Length openForRead() override { return 999; }
         void openForWrite(const eckit::Length&) override { NOTIMP; }
-        void openForAppend(const eckit::Length&)  override { NOTIMP; }
+        void openForAppend(const eckit::Length&) override { NOTIMP; }
         eckit::Length estimate() override { return 999; }
         long read(void*,long) override { NOTIMP; }
         long write(const void*,long) override { NOTIMP; }

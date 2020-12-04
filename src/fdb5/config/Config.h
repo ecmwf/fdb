@@ -38,7 +38,7 @@ public:  // methods
     /// may involve loading a specific config.json
     Config expandConfig() const;
 
-    virtual ~Config();
+    virtual ~Config() override;
 
     /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration
     /// then do the expansion in here.

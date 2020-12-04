@@ -36,7 +36,7 @@ public: // methods
     PMemDBWriter(const Key &key, const eckit::Configuration& config);
     PMemDBWriter(const eckit::PathName& directory, const eckit::Configuration& config);
 
-    virtual ~PMemDBWriter();
+    virtual ~PMemDBWriter() override;
 
     virtual bool selectIndex(const Key &key);
     virtual void close();
@@ -44,7 +44,7 @@ public: // methods
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
