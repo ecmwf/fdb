@@ -48,7 +48,7 @@ struct TocRecord {
 
     TocRecord( unsigned char tag = TOC_NULL);
 
-    static unsigned int currentVersion();
+    static unsigned int writeVersion();
 
     struct Header {
         unsigned char          tag_;           ///<  (1)  tag identifying the TocRecord type

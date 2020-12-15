@@ -33,7 +33,7 @@ TocRecord::Header::Header(unsigned char tag):
     if (tag_ != TOC_NULL) {
         eckit::zero(*this);
         tag_        = tag;
-        version_    = currentVersion();
+        version_    = writeVersion();
 
         fdbVersion_ = ::fdb5_version_int();
 
@@ -124,17 +124,9 @@ void TocRecord::print(std::ostream & out) const {
         << "hostname=" << header_.hostname_ << "]";
 }
 
-unsigned int TocRecord::currentVersion() {
-
-    if (::getenv("FDB5_SERIALISATION_VERSION")) {
-        const char* versionstr = ::getenv("FDB5_SERIALISATION_VERSION");
-        eckit::Log::debug() << "FDB5_SERIALISATION_VERSION overidde to version: " << versionstr << std::endl;
-        unsigned int version = ::atoi(versionstr);
-        return version;
-    }
-
+unsigned int TocRecord::writeVersion() {
     // Toc version follows the global FDB5 stream version (version for how we serialise objects)
-    return LibFdb5::instance().serialisationVersion();  
+    return LibFdb5::instance().useSerialisationVersion();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

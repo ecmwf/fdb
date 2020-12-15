@@ -12,8 +12,10 @@
 /// @author Tiago Quintino
 /// @date   Nov 2016
 
-#ifndef fdb5_LibFdb5_H
-#define fdb5_LibFdb5_H
+#pragma once
+
+#include <string>
+#include <vector>
 
 #include "eckit/system/Library.h"
 
@@ -33,7 +35,20 @@ public:
 
     static LibFdb5& instance();
 
-    virtual int serialisationVersion() const;
+    /// Latest version of serialisation the software is capable to create
+    /// To be used as default
+    unsigned int latestSerialisationVersion() const;
+
+    /// Defines the serialisation version the software is meant to create new entries with
+    /// Normally is the latestSerialisationVersion()
+    /// But can be overriden by the variable FDB5_SERIALISATION_VERSION
+    /// Version 2: TOC format originally used in first public release
+    /// Version 3: TOC serialisation format includes Stream objects
+    unsigned int useSerialisationVersion() const;
+
+    /// Defines the serialisation versions the software is able to handle
+    /// Entries with these versions will not issue errors
+    std::vector<unsigned int> supportedSerialisationVersions() const;
 
     Config defaultConfig();
 
@@ -49,5 +64,3 @@ protected:
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

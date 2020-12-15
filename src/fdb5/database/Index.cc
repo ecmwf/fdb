@@ -186,20 +186,20 @@ private: // methods
 
     virtual bool dirty() const override { NOTIMP; }
 
-    virtual void open() override  { NOTIMP; }
+    virtual void open() override { NOTIMP; }
     virtual void close() override { NOTIMP; }
     virtual void reopen() override { NOTIMP; }
 
-    virtual void visit(IndexLocationVisitor&) const override  { NOTIMP; }
+    virtual void visit(IndexLocationVisitor&) const override { NOTIMP; }
 
-    virtual bool get( const Key&, const Key&, Field&) const override  { NOTIMP; }
-    virtual void add( const Key&, const Field&) override  { NOTIMP; }
-    virtual void flush() override  { NOTIMP; }
-    virtual void encode(eckit::Stream&) const { NOTIMP; }
+    virtual bool get( const Key&, const Key&, Field&) const override { NOTIMP; }
+    virtual void add( const Key&, const Field&) override { NOTIMP; }
+    virtual void flush() override { NOTIMP; }
+    virtual void encode(eckit::Stream&, const int version) const override { NOTIMP; }
     virtual void entries(EntryVisitor&) const override { NOTIMP; }
 
-    virtual void print( std::ostream& s) const override  { s << "NullIndex()"; }
-    virtual void dump(std::ostream&, const char*, bool, bool) const override  { NOTIMP; }
+    virtual void print( std::ostream& s) const override { s << "NullIndex()"; }
+    virtual void dump(std::ostream&, const char*, bool, bool) const override { NOTIMP; }
 
     virtual IndexStats statistics() const override { NOTIMP; }
 
