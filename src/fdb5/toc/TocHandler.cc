@@ -426,16 +426,6 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
     }
 }
 
-static void checkSupportedVersion(unsigned int toc_header_version) {
-    static std::vector<unsigned int> supported = LibFdb5::instance().supportedSerialisationVersions();
-    for (auto version: supported) {
-        if (toc_header_version == version) return;
-    }
-    std::ostringstream oss;
-    oss << "Record version mistach, software supports versions " << supported << " got " << toc_header_version;
-    throw eckit::SeriousBug(oss.str());
-}
-
 // readNext wraps readNextInternal.
 // readNextInternal reads the next TOC entry from this toc.
 bool TocHandler::readNextInternal(TocRecord& r) const {
@@ -451,7 +441,7 @@ bool TocHandler::readNextInternal(TocRecord& r) const {
     len = proxy.read(&r.payload_, r.header_.size_ - sizeof(TocRecord::Header));
     ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
 
-    checkSupportedVersion(r.header_.version_);
+    LibFdb5::instance().serialisationVersion().check(r.header_.version_);
 
     return true;
 }
