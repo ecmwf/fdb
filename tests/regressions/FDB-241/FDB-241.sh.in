@@ -16,7 +16,7 @@ wdir=$bindir/FDB-241
 rm -rf $bindir/localroot
 mkdir localroot
 
-for f in local.yaml schema 7.odb 5.odb 3.odb req
+for f in local.yaml schema 7.odb 5.odb 3.odb
 do
     cp $srcdir/$f $bindir
 done
@@ -40,6 +40,10 @@ EOF
 tail -2 out > shortOut
 cmp shortOut list
 
+cat > req <<EOF
+retrieve,class=od,expver=0001,stream=oper,date=20201125,time=0000,type=ofb,obsgroup=MHS,reportype=3001/3002
+EOF
+
 $fdbread req out.odb
 
 $odc count out.odb | tee out
@@ -62,3 +66,18 @@ cat > count <<EOF
 EOF
 
 cmp out count
+
+
+cat > req3001 <<EOF
+retrieve,class=od,expver=0001,stream=oper,date=20201125,time=0000,type=ofb,obsgroup=MHS,reportype=3001
+EOF
+
+$fdbread req3001 out.odb
+
+$odc count out.odb | tee out
+
+cat > count <<EOF
+10
+EOF
+
+$odc compare out.odb 10.odb
