@@ -35,6 +35,8 @@ export FDB5_SERIALISATION_VERSION=2
 $fdbwrite 6.grib
 $fdbwrite 9.grib
 
+unset FDB5_SERIALISATION_VERSION
+
 cat > list <<EOF
 {class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166},length=1476
 {class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166},length=1476
@@ -51,9 +53,7 @@ EOF
 $fdblist --all --minimum-keys="" --porcelain | tee out
 cmp out list
 
-### tests with current version
-
-unset FDB5_SERIALISATION_VERSION
+### test can read without setting version
 
 # list contents
 $fdblist --all --minimum-keys="" --porcelain | tee out
@@ -65,12 +65,14 @@ $gribls -m checkV2.grib | tee out
 grep xxxx out | sed 's/ *$//' > checkv2
 cmp checkv2 content.6
 
-# write new field with current version (will have toc with mixed versions)
+# write new field with version 3 (will have toc with mixed versions)
+export FDB5_SERIALISATION_VERSION=3
 $fdbwrite 12.grib
 $fdbread checkV3.req checkV3.grib
 $gribls -m checkV3.grib | tee out
 grep xxxx out | sed 's/ *$//' > checkv3
 cmp checkv3 content.12
+unset FDB5_SERIALISATION_VERSION
 
 # check still able to read previous v2 field
 $fdbread checkV2.req checkV2.again.grib

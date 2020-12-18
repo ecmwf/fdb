@@ -13,15 +13,15 @@
 /// @date   Nov 2016
 
 #include <algorithm>
-#include <string>
+
+#include "fdb5/LibFdb5.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/LibFdb5.h"
 #include "fdb5/config/Config.h"
-
 #include "fdb5/fdb5_version.h"
 
 namespace fdb5 {
@@ -32,8 +32,7 @@ REGISTER_LIBRARY(LibFdb5);
 
 LibFdb5::LibFdb5() : Library("fdb") {}
 
-LibFdb5& LibFdb5::instance()
-{
+LibFdb5& LibFdb5::instance() {
     static LibFdb5 libfdb;
     return libfdb;
 }
@@ -43,26 +42,96 @@ Config LibFdb5::defaultConfig() {
     return config.expandConfig();
 }
 
-const void* LibFdb5::addr() const { return this; }
-
-std::string LibFdb5::version() const { return fdb5_version_str(); }
-
-int LibFdb5::serialisationVersion() const {
-    // version 2: TOC format originally used in first public release
-    // version 3: TOC serialisation format includes Stream objects
-    return 3;
+std::string LibFdb5::version() const {
+    return fdb5_version_str();
 }
 
 std::string LibFdb5::gitsha1(unsigned int count) const {
     std::string sha1(fdb5_git_sha1());
-    if(sha1.empty()) {
+    if (sha1.empty()) {
         return "not available";
     }
 
-    return sha1.substr(0,std::min(count,40u));
+    return sha1.substr(0, std::min(count, 40u));
+}
+
+SerialisationVersion LibFdb5::serialisationVersion() const {
+    return SerialisationVersion{};
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+static unsigned int getUserEnv() {
+    if (::getenv("FDB5_SERIALISATION_VERSION")) {
+        const char* versionstr = ::getenv("FDB5_SERIALISATION_VERSION");
+        eckit::Log::debug() << "FDB5_SERIALISATION_VERSION overidde to version: " << versionstr << std::endl;
+        unsigned int version = ::atoi(versionstr);
+        return version;
+    }
+    return 0;  // no version override
+}
 
+SerialisationVersion::SerialisationVersion() {
+    static unsigned int user = getUserEnv();
+    // std::cout << "SerialisationVersion user = " << user << std::endl;
+    // std::cout << "SerialisationVersion supported = " << supportedStr() << std::endl;
+    if (user) {
+        bool valid = check(user, false);
+        if(not valid) {
+            std::ostringstream msg;
+            msg << "Unsupported FDB5 serialisation version " << user 
+            << " - supported: " << supportedStr()
+            << std::endl;
+            throw eckit::BadValue(msg.str(), Here());
+        }
+        used_ = user;
+    }
+    else
+        used_ = defaulted();
+}
+
+unsigned int SerialisationVersion::latest() const {
+    return 3;
+}
+
+unsigned int SerialisationVersion::defaulted() const {
+    return 2;
+}
+
+unsigned int SerialisationVersion::use() const {
+    return used_;
+}
+
+std::vector<unsigned int> SerialisationVersion::supported() const {
+    std::vector<unsigned int> versions = {3, 2, 1};
+    return versions;
+}
+
+std::string SerialisationVersion::supportedStr() const {
+    std::ostringstream oss;
+    char sep = '[';
+    for (auto v : supported()) {
+        oss << sep << v;
+        sep = ',';
+    }
+    oss << ']';
+    return oss.str();
+}
+
+bool SerialisationVersion::check(unsigned int version, bool throwOnFail) {
+    std::vector<unsigned int> versionsSupported = supported();
+    for (auto v : versionsSupported) {
+        if (version == v)
+            return true;
+    }
+    if (throwOnFail) {
+        std::ostringstream msg;
+        msg << "Record version mistach, software supports versions " << supportedStr() << " got " << version;
+        throw eckit::SeriousBug(msg.str());
+    }
+    return false;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace fdb5

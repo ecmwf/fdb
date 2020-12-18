@@ -428,7 +428,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
 // readNext wraps readNextInternal.
 // readNextInternal reads the next TOC entry from this toc.
-bool TocHandler::readNextInternal( TocRecord &r ) const {
+bool TocHandler::readNextInternal(TocRecord& r) const {
 
     CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
@@ -441,12 +441,7 @@ bool TocHandler::readNextInternal( TocRecord &r ) const {
     len = proxy.read(&r.payload_, r.header_.size_ - sizeof(TocRecord::Header));
     ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
 
-    if ( TocRecord::currentVersion() < r.header_.version_ ) {
-        std::ostringstream oss;
-        oss << "Record version mistach, software handles version <= " << TocRecord::currentVersion()
-            << ", got " << r.header_.version_;
-        throw eckit::SeriousBug(oss.str());
-    }
+    LibFdb5::instance().serialisationVersion().check(r.header_.version_);
 
     return true;
 }
@@ -774,7 +769,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
             s << location.offset();
             s << index_.type();
 
-            index_.encode(s, r->currentVersion());
+            index_.encode(s, r->writeVersion());
             handler_.append(*r, s.position());
 
             eckit::Log::debug<LibFdb5>() << "Write TOC_INDEX " << location.uri().path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
@@ -1325,7 +1320,7 @@ size_t TocHandler::buildIndexRecord(TocRecord& r, const Index &index) {
     s << tocLoc.uri().path().baseName();
     s << tocLoc.offset();
     s << index.type();
-    index.encode(s, r.currentVersion());
+    index.encode(s, r.writeVersion());
 
     return s.position();
 }
