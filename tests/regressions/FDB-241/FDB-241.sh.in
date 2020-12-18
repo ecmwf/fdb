@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+odc="$<TARGET_FILE:odc>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-241
+
+### cleanup and prepare test
+
+rm -rf $bindir/localroot
+mkdir localroot
+
+for f in local.yaml schema 7.odb 5.odb 3.odb req
+do
+    cp $srcdir/$f $bindir
+done
+
+cat  7.odb 3.odb > 10.odb
+
+### populate fdb
+
+export FDB5_CONFIG_FILE=local.yaml
+
+$fdbwrite 7.odb
+$fdbwrite 5.odb
+
+$fdblist class=od,expver=0001,stream=oper,date=20201125,time=0000,type=ofb,obsgroup=MHS,reportype=3001/3002 | tee out
+
+cat > list <<EOF
+{class=od,expver=0001,stream=oper,date=20201125,time=0000}{type=ofb}{obsgroup=MHS,reportype=3002},length=8262
+{class=od,expver=0001,stream=oper,date=20201125,time=0000}{type=ofb}{obsgroup=MHS,reportype=3001},length=8448
+EOF
+
+tail -2 out > shortOut
+cmp shortOut list
+
+$fdbread req out.odb
+
+$odc count out.odb | tee out
+
+cat > count <<EOF
+12
+EOF
+
+cmp out count
+
+
+$fdbwrite 10.odb
+
+$fdbread req out.odb
+
+$odc count out.odb | tee out
+
+cat > count <<EOF
+15
+EOF
+
+cmp out count

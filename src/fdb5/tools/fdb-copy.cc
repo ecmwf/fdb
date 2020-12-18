@@ -21,7 +21,6 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/grib/GribArchiver.h"
-#include "fdb5/grib/GribDecoder.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
 
