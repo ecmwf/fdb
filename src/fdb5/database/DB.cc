@@ -21,16 +21,16 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 std::unique_ptr<DB> DB::buildReader(const Key &key, const fdb5::Config& config) {
-    return std::move(std::unique_ptr<DB>(new DB(key, config, true)));
+    return std::unique_ptr<DB>(new DB(key, config, true));
 }
 std::unique_ptr<DB> DB::buildWriter(const Key &key, const fdb5::Config& config) {
-    return std::move(std::unique_ptr<DB>(new DB(key, config, false)));
+    return std::unique_ptr<DB>(new DB(key, config, false));
 }
 std::unique_ptr<DB> DB::buildReader(const eckit::URI& uri, const fdb5::Config& config) {
-    return std::move(std::unique_ptr<DB>(new DB(uri, config, true)));
+    return std::unique_ptr<DB>(new DB(uri, config, true));
 }
 std::unique_ptr<DB> DB::buildWriter(const eckit::URI& uri, const fdb5::Config& config) {
-    return std::move(std::unique_ptr<DB>(new DB(uri, config, false)));
+    return std::unique_ptr<DB>(new DB(uri, config, false));
 }
 
 DB::DB(const Key& key, const fdb5::Config& config, bool read) : config_(config) {

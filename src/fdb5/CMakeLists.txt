@@ -397,6 +397,7 @@ endif()
 list( APPEND fdb5_tools
     fdb-hammer
     fdb-write
+    fdb-copy
     fdb-dump
     fdb-list
     fdb-patch

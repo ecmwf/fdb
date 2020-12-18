@@ -56,7 +56,7 @@ public: // methods
     IndexBase(const Key& key, const std::string& type);
     IndexBase(eckit::Stream& s, const int version);
 
-    virtual ~IndexBase();
+    virtual ~IndexBase() override;
 
     virtual const IndexLocation& location() const = 0;
 

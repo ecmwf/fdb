@@ -71,7 +71,7 @@ private: // methods
 
 protected: // For Streamable
 
-    virtual void encode(eckit::Stream&) const;
+    virtual void encode(eckit::Stream&) const override;
 
     static eckit::ClassSpec                  classSpec_;
 
@@ -106,7 +106,7 @@ private: // friends
 
     template< class T>
     class FieldLocationBuilder : public FieldLocationBuilderBase {
-        FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) {
+        FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) override {
             return new T(uri, offset, length, remapKey);
         }
     public:
