@@ -31,19 +31,19 @@ public: // methods
 
     MatchHidden(const std::string &def);
 
-    virtual ~MatchHidden();
+    virtual ~MatchHidden() override;
 
-    virtual bool match(const std::string &keyword, const Key &key) const;
+    virtual bool match(const std::string &keyword, const Key &key) const override;
 
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const;
+    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
 
 private: // methods
 
-    virtual bool optional() const;
-    virtual const std::string &value(const Key &, const std::string &keyword) const;
-    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const;
-    virtual void print( std::ostream &out ) const;
-    virtual const std::string &defaultValue() const;
+    virtual bool optional() const override;
+    virtual const std::string &value(const Key &, const std::string &keyword) const override;
+    virtual const std::vector<std::string>& values(const metkit::mars::MarsRequest& rq, const std::string& keyword) const override;
+    virtual void print( std::ostream &out ) const override;
+    virtual const std::string &defaultValue() const override;
 
 
     std::vector<std::string> default_;

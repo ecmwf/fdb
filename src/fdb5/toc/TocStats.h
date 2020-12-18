@@ -60,9 +60,9 @@ public:
 
     TocDbStats& operator+= (const TocDbStats& rhs);
 
-    virtual void add(const DbStatsContent&);
+    virtual void add(const DbStatsContent&) override;
 
-    virtual void report(std::ostream &out, const char* indent) const;
+    virtual void report(std::ostream &out, const char* indent) const override;
 
 public: // For Streamable
 
@@ -70,8 +70,8 @@ public: // For Streamable
 
 protected: // For Streamable
 
-    virtual void encode(eckit::Stream&) const;
-    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
+    virtual void encode(eckit::Stream&) const override;
+    virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static eckit::ClassSpec                 classSpec_;
     static eckit::Reanimator<TocDbStats> reanimator_;
@@ -93,23 +93,23 @@ public:
     unsigned long long fieldsSize_;
     unsigned long long duplicatesSize_;
 
-    virtual size_t fieldsCount() const { return fieldsCount_; }
-    virtual size_t duplicatesCount() const { return duplicatesCount_; }
+    virtual size_t fieldsCount() const override { return fieldsCount_; }
+    virtual size_t duplicatesCount() const override { return duplicatesCount_; }
 
-    virtual size_t fieldsSize() const { return fieldsSize_; }
-    virtual size_t duplicatesSize() const { return duplicatesSize_; }
+    virtual size_t fieldsSize() const override { return fieldsSize_; }
+    virtual size_t duplicatesSize() const override { return duplicatesSize_; }
 
-    virtual size_t addFieldsCount(size_t i) { fieldsCount_ += i; return fieldsCount_; }
-    virtual size_t addDuplicatesCount(size_t i) { duplicatesCount_ += i; return duplicatesCount_; }
+    virtual size_t addFieldsCount(size_t i) override { fieldsCount_ += i; return fieldsCount_; }
+    virtual size_t addDuplicatesCount(size_t i) override { duplicatesCount_ += i; return duplicatesCount_; }
 
-    virtual size_t addFieldsSize(size_t i) { fieldsSize_ += i; return fieldsSize_; }
-    virtual size_t addDuplicatesSize(size_t i) { duplicatesSize_ += i; return duplicatesSize_; }
+    virtual size_t addFieldsSize(size_t i) override { fieldsSize_ += i; return fieldsSize_; }
+    virtual size_t addDuplicatesSize(size_t i) override { duplicatesSize_ += i; return duplicatesSize_; }
 
     TocIndexStats& operator+= (const TocIndexStats& rhs);
 
-    virtual void add(const IndexStatsContent&);
+    virtual void add(const IndexStatsContent&) override;
 
-    virtual void report(std::ostream &out, const char* indent = "") const;
+    virtual void report(std::ostream &out, const char* indent = "") const override;
 
 public: // For Streamable
 
@@ -117,8 +117,8 @@ public: // For Streamable
 
 protected: // For Streamable
 
-    virtual void encode(eckit::Stream&) const;
-    virtual const eckit::ReanimatorBase& reanimator() const { return reanimator_; }
+    virtual void encode(eckit::Stream&) const override;
+    virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static eckit::ClassSpec                 classSpec_;
     static eckit::Reanimator<TocIndexStats> reanimator_;

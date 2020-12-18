@@ -46,11 +46,11 @@ class FDBForker : public eckit::ProcessControler {
 public: // methods
 
     FDBForker(eckit::net::TCPSocket& socket, const Config& config = fdb5::Config());
-    virtual ~FDBForker();
+    virtual ~FDBForker() override;
 
 private: // methods
 
-    virtual void run();
+    virtual void run() override;
 
     eckit::net::TCPSocket socket_;
     eckit::LocalConfiguration config_;
@@ -86,11 +86,11 @@ class FdbServer : public eckit::Application, public FdbServerBase {
 public:
     FdbServer(int argc, char** argv, const char* home);
 
-    virtual ~FdbServer();
+    virtual ~FdbServer() override;
 
-    virtual void run();
+    virtual void run() override;
 
-    void virtual hookUnique(); // non-unique
+    void virtual hookUnique() override; // non-unique
 
 };
 

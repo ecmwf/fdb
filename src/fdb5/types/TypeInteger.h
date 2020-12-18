@@ -28,17 +28,17 @@ public: // methods
 
     TypeInteger(const std::string &name, const std::string &type);
 
-    virtual ~TypeInteger();
+    virtual ~TypeInteger() override;
 
     virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,
                            eckit::StringList &values,
                            const Notifier &wind,
-                           const DB *db) const;
+                           const DB *db) const override;
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
 
 };
 

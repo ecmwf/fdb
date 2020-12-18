@@ -40,7 +40,7 @@ public: // methods
 
     PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr, const std::string& type=defaulType());
 
-    virtual ~PMemIndex();
+    virtual ~PMemIndex() override;
 
     virtual void visit(IndexLocationVisitor& visitor) const;
 
@@ -60,10 +60,10 @@ protected: // methods
     virtual bool get( const Key &key, Field &field ) const;
     virtual void add( const Key &key, const Field &field );
     virtual void flush();
-    virtual void encode(eckit::Stream &s) const;
+    virtual void encode(eckit::Stream &s) const override;
     virtual void entries(EntryVisitor &visitor) const;
 
-    virtual void print( std::ostream &out ) const;
+    virtual void print( std::ostream &out ) const override;
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const;
 
     virtual IndexStats statistics() const;

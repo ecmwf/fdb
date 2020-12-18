@@ -36,17 +36,17 @@ public:  // methods
 
     ~FDBFileHandle();
 
-    virtual eckit::Length openForRead();
-    virtual void   openForWrite(const eckit::Length &);
-    virtual void   openForAppend(const eckit::Length &);
+    virtual eckit::Length openForRead() override;
+    virtual void   openForWrite(const eckit::Length &) override;
+    virtual void   openForAppend(const eckit::Length &) override;
 
-    virtual long   read(void *, long);
-    virtual long   write(const void *, long);
-    virtual void   close();
-    virtual void   flush();
-    virtual void   print(std::ostream &) const;
-    virtual eckit::Offset position();
-    virtual std::string title() const;
+    virtual long   read(void *, long) override;
+    virtual long   write(const void *, long) override;
+    virtual void   close() override;
+    virtual void   flush() override;
+    virtual void print(std::ostream &) const override;
+    virtual eckit::Offset position() override;
+    virtual std::string title() const override;
 
 protected: // members
 

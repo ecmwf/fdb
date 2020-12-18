@@ -59,6 +59,12 @@ private:
 
 Config::Config() {}
 
+Config Config::make(const eckit::PathName& path) {
+    eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << path << std::endl;
+    Config cfg{YAMLConfiguration(path)};
+    cfg.set("configSource", path);
+    return cfg;
+}
 
 Config::Config(const Configuration& config) : LocalConfiguration(config) {}
 
@@ -114,11 +120,7 @@ Config Config::expandConfig() const {
     }
 
     if (found) {
-        eckit::Log::debug<LibFdb5>()
-            << "Using FDB configuration file: " << actual_path << std::endl;
-        Config cfg{YAMLConfiguration(actual_path)};
-        cfg.set("configSource", actual_path);
-        return cfg;
+        return Config::make(actual_path);
     }
 
     // No expandable config available. Use the skeleton config.
