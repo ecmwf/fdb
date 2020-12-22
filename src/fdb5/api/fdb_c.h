@@ -16,9 +16,6 @@
 #ifndef fdb5_api_fdb_c_H
 #define fdb5_api_fdb_c_H
 
-#warning fdb_c.h interface is under construction and not currently considered a pubic API
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
