@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+gribcmp="$<TARGET_FILE:grib_compare>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-245
+
+### cleanup and prepare test
+
+rm -rf $bindir/root
+mkdir root
+
+for f in read.yaml write.yaml rw.yaml schema 12.grib 12.req 6.req
+do
+    cp $srcdir/$f $bindir
+done
+
+$gribset -s step=6 12.grib 6.grib
+
+cat > list <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166},length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166},length=1476
+EOF
+
+cat > empty <<EOF
+EOF
+
+### populate read fdb 
+
+export FDB5_CONFIG_FILE=read.yaml
+
+! $fdbwrite 6.grib
+
+export FDB5_CONFIG_FILE=write.yaml
+
+$fdbwrite 6.grib
+
+export FDB5_CONFIG_FILE=rw.yaml
+
+$fdbwrite 12.grib
+
+$fdbread 12.req ref.grib
+
+### read and check it
+
+export FDB5_CONFIG_FILE=read.yaml
+
+$fdbread 12.req out.grib
+$gribcmp -r ref.grib out.grib
+
+export FDB5_CONFIG_FILE=write.yaml
+
+! $fdbread 12.req ref.grib
+
+### list
+
+export FDB5_CONFIG_FILE=rw.yaml
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+export FDB5_CONFIG_FILE=write.yaml
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out empty
+
+export FDB5_CONFIG_FILE=read.yaml
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
