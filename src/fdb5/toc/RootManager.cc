@@ -586,7 +586,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
 }
 
 
-eckit::PathName RootManager::directory(const Key& key) {
+eckit::PathName RootManager::directory(const Key& key, bool enforceVisitable) {
 
     PathName dbpath = dbPathName(key);
 
@@ -603,9 +603,14 @@ eckit::PathName RootManager::directory(const Key& key) {
     // returns the first filespace that matches
 
     std::string keystr = key.valuesToString();
+
+    std::vector<eckit::PathName> visitable = visitableRoots(key);
+
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(keystr)) {
             PathName root = i->filesystem(key, dbpath);
+            if (enforceVisitable && find(visitable.begin(), visitable.end(), root) == visitable.end())
+                continue;
             eckit::Log::debug<LibFdb5>() << "Directory root " << root << " dbpath " << dbpath <<  std::endl;
             return root / dbpath;
         }
