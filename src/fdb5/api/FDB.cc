@@ -110,7 +110,8 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
         }
 
         // checking all retrieved fields against the hypercube, to remove duplicates
-        metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, ListElementDeduplicator());
+        ListElementDeduplicator dedup;
+        metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, dedup);
         for(auto el: elements)
             cube.add(el.combinedKey().request(), el);
 
