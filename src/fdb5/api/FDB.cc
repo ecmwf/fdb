@@ -13,13 +13,13 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "eckit/config/Resource.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
 
 #include "metkit/codes/UserDataContent.h"
 #include "metkit/hypercube/HyperCubePayloaded.h"
-#include "metkit/mars/MarsExpension.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
@@ -99,36 +99,46 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     ListIterator it = inspect(request);
     ListElement el;
 
-    if (it.next(el)) {
-        // build the request representing the tensor-product of all retrieved fields
-        metkit::mars::MarsRequest cubeRequest = el.combinedKey().request();
-        std::vector<ListElement> elements{el};
+    // TODO FDB-249 add an option to return the fields without deduplication
+    static bool dedup = eckit::Resource<bool>("fdbDeduplicate;$FDB_DEDUPLICATE", true);
+    if (dedup) {
+        if (it.next(el)) {
+            // build the request representing the tensor-product of all retrieved fields
+            metkit::mars::MarsRequest cubeRequest = el.combinedKey().request();
+            std::vector<ListElement> elements{el};
 
+            while (it.next(el)) {
+                cubeRequest.merge(el.combinedKey().request());
+                elements.push_back(el);
+            }
+
+            // checking all retrieved fields against the hypercube, to remove duplicates
+            ListElementDeduplicator dedup;
+            metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, dedup);
+            for(auto el: elements) {
+                cube.add(el.combinedKey().request(), el);
+            }
+
+            if (cube.countVacant() > 0) {
+                std::stringstream ss;
+                ss << "No matching data for requests:" << std::endl;
+                for (auto req: cube.vacantRequests()) {
+                    ss << "    " << req << std::endl;
+                }
+                eckit::Log::warning() << ss.str() << std::endl;
+            }
+
+            for (size_t i=0; i< cube.size(); i++) {
+                ListElement element;
+                if (cube.find(i, element)) {
+                    result.add(element.location().dataHandle());
+                }
+            }
+        }
+    }
+    else {
         while (it.next(el)) {
-            cubeRequest.merge(el.combinedKey().request());
-            elements.push_back(el);
-        }
-
-        // checking all retrieved fields against the hypercube, to remove duplicates
-        ListElementDeduplicator dedup;
-        metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, dedup);
-        for(auto el: elements)
-            cube.add(el.combinedKey().request(), el);
-
-        if (cube.countVacant() > 0) {
-            std::stringstream ss;
-            ss << "No matching data for requests:" << std::endl;
-            for (auto req: cube.vacantRequests()) {
-                ss << "    " << req << std::endl;
-            }
-            eckit::Log::warning() << ss.str() << std::endl;
-        }
-
-        for (size_t i=0; i< cube.size(); i++) {
-            ListElement element;
-            if (cube.find(i, element)) {
-                result.add(element.location().dataHandle());
-            }
+            result.add(el.location().dataHandle());
         }
     }
     return result.dataHandle();
