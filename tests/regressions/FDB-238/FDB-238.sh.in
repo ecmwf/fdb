@@ -46,6 +46,11 @@ cat > content.6 <<EOF
 g           sfc         20201102    0000        6           166.128     rd          fc          oper        xxxx
 EOF
 
+cat > content.6dup <<EOF
+g           sfc         20201102    0000        6           166.128     rd          fc          oper        xxxx
+g           sfc         20201102    0000        6           166.128     rd          fc          oper        xxxx
+EOF
+
 cat > content.12 <<EOF
 g           sfc         20201102    0000        12          166.128     rd          fc          oper        xxxx
 EOF
@@ -54,6 +59,8 @@ $fdblist --all --minimum-keys="" --porcelain | tee out
 cmp out list
 
 ### test can read without setting version
+
+unset FDB_DEDUPLICATE
 
 # list contents
 $fdblist --all --minimum-keys="" --porcelain | tee out
@@ -74,6 +81,8 @@ grep xxxx out | sed 's/ *$//' > checkv3
 cmp checkv3 content.12
 unset FDB5_SERIALISATION_VERSION
 
+export FDB_DEDUPLICATE=ON
+
 # check still able to read previous v2 field
 $fdbread checkV2.req checkV2.again.grib
 $gribls -m checkV2.again.grib | tee out
@@ -81,4 +90,16 @@ grep xxxx out | sed 's/ *$//' > checkv2.again
 cmp checkv2.again content.6
 
 cmp checkV2.grib checkV2.again.grib
+
+export FDB_DEDUPLICATE=OFF
+
+# check still able to read previous v2 field
+$fdbread checkV2.req checkV2.dup.grib
+$gribls -m checkV2.dup.grib | tee out
+grep xxxx out | sed 's/ *$//' > checkv2.dup
+cmp checkv2.dup content.6dup
+
+cmp checkV2.grib checkV2.again.grib
+
+unset FDB_DEDUPLICATE
 
