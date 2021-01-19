@@ -33,8 +33,10 @@ public: // methods
 
     Root(const std::string& path,
          const std::string& filespace,
-         bool writable = true,
-         bool visit  = true);
+         bool list = true,
+         bool retrieve  = true,
+         bool archive = true,
+         bool wipe = true);
 
     const eckit::PathName &path() const;
 
@@ -42,11 +44,18 @@ public: // methods
     /// This result is cached at construction
     bool exists() const {  return exists_; }
 
-    /// Root is in use, when archiving
-    bool writable() const { return writable_; }
-
+    /// Root is visited, when listing
+    bool list() const { return list_; }
     /// Root is visited, when retrieving
-    bool visit() const { return visit_; }
+    bool retrieve() const { return retrieve_; }
+
+    /// Root is in use, when archiving
+    bool archive() const { return archive_; }
+    /// Root is in use, when wiping
+    bool wipe() const { return wipe_; }
+
+    bool visit() const { return list_ || retrieve_; }
+    bool writable() const { return archive_ || wipe_; }
 
     const std::string& filespace() const;
 
@@ -65,8 +74,10 @@ private: // members
 
     std::string filespace_;
 
-    bool writable_;
-    bool visit_;
+    bool list_;
+    bool retrieve_;
+    bool archive_;
+    bool wipe_;
     bool exists_;
 };
 

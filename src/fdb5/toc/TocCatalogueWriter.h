@@ -54,6 +54,9 @@ public: // methods
     // Hide the contents of the DB!!!
     void hideContents() override;
 
+    bool listLocked() const override { return false; }
+    bool retrieveLocked() const override { return false; }
+
     const Index& currentIndex() override;
 
 protected: // methods

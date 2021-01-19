@@ -21,11 +21,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Root::Root(const std::string &path, const std::string& filespace, bool active, bool visit):
+Root::Root(const std::string &path, const std::string& filespace, bool list, bool retrieve, bool archive, bool wipe):
     path_(path),
     filespace_(filespace),
-    writable_(active),
-    visit_(visit)
+    list_(list),
+    retrieve_(retrieve),
+    archive_(archive),
+    wipe_(wipe)
 {
     errno = 0;
     Stat::Struct info;
@@ -52,8 +54,10 @@ void Root::print( std::ostream &out ) const  {
 
     out << "Root("
         << "path=" << path_
-        << ",writable=" << writable_
-        << ",visit=" << visit_
+        << ",list=" << list_
+        << ",retrieve=" << retrieve_
+        << ",archive=" << archive_
+        << ",wipe=" << wipe_
         <<")";
 }
 

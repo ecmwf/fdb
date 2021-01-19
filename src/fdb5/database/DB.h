@@ -69,7 +69,7 @@ public: // methods
     bool selectIndex(const Key &key);
     void deselectIndex();
 
-    virtual DbStats stats() const;
+    DbStats stats() const;
     void reconsolidate();
 
     // for ToC tools
@@ -85,10 +85,10 @@ public: // methods
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
 
     // TODO: *Locked to be implemented by a single enquire()
-    virtual bool retrieveLocked() const;
-    virtual bool archiveLocked() const;
-    virtual bool listLocked() const;
-    virtual bool wipeLocked() const;
+    bool retrieveLocked() const;
+    bool archiveLocked() const;
+    bool listLocked() const;
+    bool wipeLocked() const;
 
 protected: // methods
 

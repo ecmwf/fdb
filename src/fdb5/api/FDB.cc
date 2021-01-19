@@ -109,8 +109,9 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
             elements.push_back(el);
         }
 
+        ListElementDeduplicator dedup;
         // checking all retrieved fields against the hypercube, to remove duplicates
-        metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, ListElementDeduplicator());
+        metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, dedup);
         for(auto el: elements)
             cube.add(el.combinedKey().request(), el);
 
@@ -215,13 +216,27 @@ bool FDB::disabled() const {
     return internal_->disabled();
 }
 
-bool FDB::writable() const {
+bool FDB::canList() const {
+    return internal_->canList();
+}
+bool FDB::canRetrieve() const {
+    return internal_->canRetrieve();
+}
+bool FDB::canArchive() const {
+    return internal_->canArchive();
+}
+bool FDB::canWipe() const {
+    return internal_->canWipe();
+}
+
+
+/*bool FDB::writable() const {
     return internal_->writable();
 }
 
 bool FDB::visitable() const {
     return internal_->visitable();
-}
+}*/
 
 //----------------------------------------------------------------------------------------------------------------------
 

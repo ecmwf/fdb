@@ -100,7 +100,7 @@ void DistFDB::archive(const Key& key, eckit::message::Message msg) {
 
         FDB& lane = lanes_[idx];
 
-        if(not lane.writable()) continue;
+        if(not lane.canArchive()) continue;
 
         if (lane.disabled()) {
             eckit::Log::warning() << "FDB lane " << lane << " is disabled" << std::endl;
@@ -165,7 +165,7 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) ->
     std::queue<QueryIterator> iterQueue;
 
     for (FDB& lane : lanes_) {
-        if (lane.visitable()) {
+        if (lane.canRetrieve()) {
             futures.emplace_back(std::async(std::launch::async, [&lane, &fn, &request] {
                 return fn(lane, request);
             }));

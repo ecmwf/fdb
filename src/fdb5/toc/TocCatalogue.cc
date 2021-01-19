@@ -152,16 +152,16 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
     TocHandler::control(action, identifiers);
 }
 
+bool TocCatalogue::listLocked() const {
+    return TocHandler::listLocked();
+}
+
 bool TocCatalogue::retrieveLocked() const {
     return TocHandler::retrieveLocked();
 }
 
 bool TocCatalogue::archiveLocked() const {
     return TocHandler::archiveLocked();
-}
-
-bool TocCatalogue::listLocked() const {
-    return TocHandler::listLocked();
 }
 
 bool TocCatalogue::wipeLocked() const {

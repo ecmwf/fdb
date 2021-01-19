@@ -507,12 +507,16 @@ FileSpaceTable RootManager::fileSpaces() {
             else {
                 std::vector<LocalConfiguration> roots = getSpaceRoots(space);
                 for (const auto& root : roots) {
+                    bool writable = root.getBool("writable", true);
+                    bool visit = root.getBool("visit", true);
                     spaceRoots.emplace_back(
                         Root(
                             root.getString("path"),
                             root.getString("name", ""),
-                            root.getBool("writable", true),
-                            root.getBool("visit", true)
+                            root.getBool("list", visit),
+                            root.getBool("retrieve", visit),
+                            root.getBool("archive", writable),
+                            root.getBool("wipe", writable)
                         )
                     );
                 }
@@ -603,6 +607,7 @@ eckit::PathName RootManager::directory(const Key& key) {
     // returns the first filespace that matches
 
     std::string keystr = key.valuesToString();
+
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(keystr)) {
             PathName root = i->filesystem(key, dbpath);

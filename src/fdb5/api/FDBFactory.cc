@@ -32,9 +32,14 @@ namespace fdb5 {
 FDBBase::FDBBase(const Config& config, const std::string& name) :
     name_(name),
     config_(config),
-    writable_(config.getBool("writable", true)),
-    visitable_(config.getBool("visitable", true)),
     disabled_(false) {
+
+    bool writable = config.getBool("writable", true);
+    bool visitable = config.getBool("visitable", true);
+    list_ = config.getBool("list", visitable);
+    retrieve_ = config.getBool("retrieve", visitable);
+    archive_ = config.getBool("archive", writable);
+    wipe_ = config.getBool("wipe", writable);
 
     eckit::Log::debug<LibFdb5>() << "FDBBase: " << config << std::endl;
 }
@@ -61,13 +66,30 @@ const Config& FDBBase::config() const {
     return config_;
 }
 
+bool FDBBase::canList() const {
+    return list_;
+}
+
+bool FDBBase::canRetrieve() const {
+    return retrieve_;
+}
+
+bool FDBBase::canArchive() const {
+    return archive_;
+}
+
+bool FDBBase::canWipe() const {
+    return wipe_;
+}
+
+/*
 bool FDBBase::writable() {
     return writable_;
 }
 
 bool FDBBase::visitable() {
     return visitable_;
-}
+}*/
 
 void FDBBase::disable() {
     eckit::Log::warning() << "Disabling FDB " << *this << std::endl;

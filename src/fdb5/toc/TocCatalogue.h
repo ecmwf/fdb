@@ -44,6 +44,11 @@ public: // methods
 
     static void remove(const eckit::PathName& path, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
 
+    bool listLocked() const override;
+    bool retrieveLocked() const override;
+    bool archiveLocked() const override;
+    bool wipeLocked() const override;
+
 public: // constants
     static const std::string DUMP_PARAM_WALKSUBTOC;
 
@@ -72,11 +77,6 @@ protected: // methods
 
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
-
-    bool retrieveLocked() const override;
-    bool archiveLocked() const override;
-    bool listLocked() const override;
-    bool wipeLocked() const override;
 
     Key currentIndexKey_;
 

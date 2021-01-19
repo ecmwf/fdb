@@ -107,8 +107,13 @@ public: // methods
     const std::string& name() const;
     const Config& config() const;
 
-    bool writable() const;
-    bool visitable() const;
+    bool canList() const;
+    bool canRetrieve() const;
+    bool canArchive() const;
+    bool canWipe() const;
+
+//    bool writable() const;
+//    bool visitable() const;
     bool disabled() const;
 
     void disable();

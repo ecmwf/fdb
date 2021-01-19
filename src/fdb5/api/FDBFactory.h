@@ -95,8 +95,13 @@ public: // methods
 
     const Config& config() const;
 
-    bool writable();
-    bool visitable();
+    bool canList() const;
+    bool canRetrieve() const;
+    bool canArchive() const;
+    bool canWipe() const;
+
+//    bool writable();
+//    bool visitable();
     bool disabled();
 
     void disable();
@@ -116,8 +121,13 @@ protected: // members
 
     Config config_;
 
-    bool writable_;
-    bool visitable_;
+    bool list_;
+    bool retrieve_;
+    bool archive_;
+    bool wipe_;
+
+//    bool writable_;
+//    bool visitable_;
     bool disabled_;
 };
 
