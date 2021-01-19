@@ -100,7 +100,7 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     ListElement el;
 
     // TODO FDB-249 add an option to return the fields without deduplication
-    static bool dedup = eckit::Resource<bool>("fdbDeduplicate;$FDB_DEDUPLICATE", true);
+    static bool dedup = eckit::Resource<bool>("fdbDeduplicate;$FDB_DEDUPLICATE_FIELDS", false);
     if (dedup) {
         if (it.next(el)) {
             // build the request representing the tensor-product of all retrieved fields
