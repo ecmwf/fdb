@@ -24,9 +24,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocCatalogue::TocCatalogue(const Key& key, const fdb5::Config& config, bool enforceVisitable) :
+TocCatalogue::TocCatalogue(const Key& key, const fdb5::Config& config) :
     Catalogue(key, config),
-    TocHandler(CatalogueRootManager(config).directory(key, enforceVisitable), config) {
+    TocHandler(CatalogueRootManager(config).directory(key), config) {
 }
 
 TocCatalogue::TocCatalogue(const eckit::PathName& directory, const fdb5::Config& config) :

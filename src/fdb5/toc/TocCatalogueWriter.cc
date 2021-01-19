@@ -30,7 +30,7 @@ namespace fdb5 {
 
 
 TocCatalogueWriter::TocCatalogueWriter(const Key &key, const fdb5::Config& config) :
-    TocCatalogue(key, config, false),
+    TocCatalogue(key, config),
     umask_(config.umask()) {
     writeInitRecord(key);
     TocCatalogue::loadSchema();

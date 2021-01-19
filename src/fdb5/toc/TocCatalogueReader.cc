@@ -22,7 +22,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocCatalogueReader::TocCatalogueReader(const Key& key, const fdb5::Config& config) :
-    TocCatalogue(key, config, true) {
+    TocCatalogue(key, config) {
     loadIndexesAndRemap();
 }
 
