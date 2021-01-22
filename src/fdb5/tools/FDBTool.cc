@@ -34,8 +34,24 @@ static void usage(const std::string& tool) {
 }
 
 void FDBTool::run() {
+    options_.push_back(new eckit::option::SimpleOption<std::string>("conf", "FDB home folder or FDB configuration filename or full FDB configuration"));
+
     eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(),
                                 minimumPositionalArguments());
+
+    std::string conf = args.getString("conf", "");
+    if (!conf.empty()) {
+        eckit::PathName path(conf);
+        if (path.exists()) {
+            if (path.isDir()) {
+                ::setenv("FDB_HOME", conf.c_str(), 1);
+            } else {
+                ::setenv("FDB5_CONFIG_FILE", conf.c_str(), 1);
+            }
+        } else {
+            ::setenv("FDB5_CONFIG", conf.c_str(), 1);
+        }
+    }
 
     init(args);
     execute(args);
