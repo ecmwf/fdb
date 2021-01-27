@@ -510,7 +510,7 @@ FileSpaceTable RootManager::fileSpaces() {
                     spaceRoots.emplace_back(
                         Root(
                             root.getString("path"),
-                            "",
+                            root.getString("name", ""),
                             root.getBool("writable", true),
                             root.getBool("visit", true)
                         )

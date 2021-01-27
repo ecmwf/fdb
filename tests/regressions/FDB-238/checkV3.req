@@ -8,4 +8,4 @@ retrieve,
 	type=fc,
 	levtype=sfc,
 	step=12,
-	param=166
+        param=166/166

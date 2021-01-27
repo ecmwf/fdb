@@ -86,6 +86,7 @@ $gribls -m out.grib | tee out
 grep oper out | sed 's/ *$//' > content
 cmp list content
 
+export FDB_DEDUPLICATE_FIELDS=ON
 
 ### test warning missing fields
 rm -f out.grib
@@ -98,4 +99,6 @@ EOF
 
 grep oper out | sed 's/ *$//' > content
 cmp missing content
+
+unset FDB_DEDUPLICATE_FIELDS
 
