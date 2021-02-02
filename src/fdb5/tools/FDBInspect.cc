@@ -127,7 +127,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
         } catch (eckit::UserError&) {
             throw;
-        } catch (eckit::Exception &e) {
+        } catch (eckit::Exception& e) {
             Log::warning() << e.what() << std::endl;
             paths.push_back(path);
             if (fail_) // Possibly we want a separate catch block like eckit::UserError above

@@ -79,7 +79,7 @@ ControlIdentifiers::ControlIdentifiers() :
     value_(0) {}
 
 ControlIdentifiers::ControlIdentifiers(const ControlIdentifier& val) :
-    value_(static_cast<const value_type>(val)) {
+    value_(static_cast<value_type>(val)) {
 }
 
 ControlIdentifiers::ControlIdentifiers(eckit::Stream &s) {
@@ -87,7 +87,7 @@ ControlIdentifiers::ControlIdentifiers(eckit::Stream &s) {
 }
 
 ControlIdentifiers& ControlIdentifiers::operator|=(const ControlIdentifier& val) {
-    value_ |= static_cast<const value_type>(val);
+    value_ |= static_cast<value_type>(val);
     return *this;
 }
 
