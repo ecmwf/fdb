@@ -589,7 +589,7 @@ struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
         s << doit_;
         s << porcelain_;
     }
-    static PurgeElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
+    static PurgeElement valueFromStream(eckit::Stream& s, RemoteFDB*) {
         PurgeElement elem;
         s >> elem;
         return elem;
@@ -609,7 +609,7 @@ struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
         s << porcelain_;
         s << unsafeWipeAll_;
     }
-    static WipeElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
+    static WipeElement valueFromStream(eckit::Stream& s, RemoteFDB*) {
         WipeElement elem;
         s >> elem;
         return elem;
