@@ -77,7 +77,11 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request,
         db->axis("step", ax);
 
         std::vector<StepRange> axis;
-        std::copy(ax.begin(), ax.end(), std::back_inserter(axis));
+        for (auto step: ax) {
+            if (!step.empty()) {
+                axis.push_back(StepRange(step));
+            }
+        }
         std::sort(axis.begin(), axis.end());
 
         // Match the step range to the axis

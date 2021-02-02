@@ -78,7 +78,11 @@ struct MessageHeader {
 
 public: // methods
 
-    MessageHeader() {}
+    MessageHeader() :
+        message(Message::None),
+        version(CurrentVersion),
+        requestID(0),
+        payloadSize(0) {}
 
     MessageHeader(Message message, uint32_t requestID, uint32_t payloadSize=0) :
         marker(StartMarker),
