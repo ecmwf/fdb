@@ -74,7 +74,7 @@ void Schema::expand(const Key &field, WriteVisitor &visitor) const {
 
 void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const {
 
-    const Rule* dbRule;
+    const Rule* dbRule = nullptr;
     for (const Rule* r : rules_) {
         if (r->match(dbKey)) {
             dbRule = r;

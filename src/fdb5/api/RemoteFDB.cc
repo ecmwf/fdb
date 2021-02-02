@@ -187,7 +187,7 @@ void RemoteFDB::connect() {
             // And the connections are set up. Let everything start up!
             listeningThread_ = std::thread([this] { listeningThreadLoop(); });
             connected_ = true;
-        } catch(TooManyRetries e) {
+        } catch(TooManyRetries& e) {
             if (controlClient_.isConnected()) {
                 controlClient_.close();
                 throw ConnectionError(fdbMaxConnectRetries, dataEndpoint_);
