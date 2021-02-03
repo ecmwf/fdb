@@ -22,8 +22,6 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
 
-#include "metkit/grib/GribHandle.h"
-
 #include "fdb5/message/MessageArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
@@ -105,13 +103,6 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     int err;
     codes_handle* handle = codes_handle_new_from_file(nullptr, fin, PRODUCT_GRIB, &err);
     ASSERT(handle);
-
-    /*long value;
-    metkit::grib::GribHandle gh(*handle);
-    ASSERT(gh.hasKey("number"));
-    ASSERT(gh.hasKey("step"));
-    ASSERT(gh.hasKey("level"));
-    ASSERT(gh.hasKey("expver"));*/
 
     size_t nsteps = args.getLong("nsteps");
     size_t nensembles = args.getLong("nensembles", 1);
