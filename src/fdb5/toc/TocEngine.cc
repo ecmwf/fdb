@@ -73,7 +73,7 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
     for(;;)
     {
         struct dirent *e;
-#ifdef ECKIT_HAVE_READDIR_R
+#ifdef eckit_HAVE_READDIR_R
         errno = 0;
         if(::readdir_r(d,&buf,&e) != 0)
         {
@@ -104,7 +104,7 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
 
         bool do_stat = true;
 
-#if defined(ECKIT_HAVE_DIRENT_D_TYPE)
+#if defined(eckit_HAVE_DIRENT_D_TYPE)
         do_stat = false;
         if (e->d_type == DT_DIR) {
             scan_dbs(full.c_str(), dbs);
