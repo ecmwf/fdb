@@ -87,7 +87,9 @@ void FDBVisitTool::init(const option::CmdArgs& args) {
     }
 
     for (size_t i = 0; i < args.count(); ++i) {
-        requests_.emplace_back(args(i));
+        if (!args.has("config") || args(i) != args.getString("config")) {
+            requests_.emplace_back(args(i));
+        }
     }
 
     if (all_) {

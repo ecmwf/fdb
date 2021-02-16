@@ -42,7 +42,7 @@ class FDBInfo : public FDBTool {
         options_.push_back(new eckit::option::SimpleOption<bool>("version", "Print the version of the FDB being used"));
         options_.push_back(new eckit::option::SimpleOption<bool>("home", "Print the location of the FDB configuration files"));
         options_.push_back(new eckit::option::SimpleOption<bool>("schema", "Print the location of the FDB schema file"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("config", "Print the location of the FDB configuration file if being used"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("config-file", "Print the location of the FDB configuration file if being used"));
     }
 
   private: // methods
@@ -69,7 +69,7 @@ void FDBInfo::usage(const std::string &tool) const {
                 << tool << " --version" << std::endl
                 << tool << " --home" << std::endl
                 << tool << " --schema" << std::endl
-                << tool << " --config" << std::endl
+                << tool << " --config-file" << std::endl
                 << std::endl;
     FDBTool::usage(tool);
 }
@@ -79,10 +79,10 @@ void FDBInfo::init(const eckit::option::CmdArgs &args) {
     version_ = args.getBool("version", false);
     home_ = args.getBool("home", false);
     schema_ = args.getBool("schema", false);
-    config_ = args.getBool("config", false);
+    config_ = args.getBool("config-file", false);
 }
 
-void FDBInfo::execute(const eckit::option::CmdArgs&) {
+void FDBInfo::execute(const eckit::option::CmdArgs& args) {
 
     if(all_ || version_) {
         Log::info() << (all_ ? "Version: " : "") << fdb5_version_str() << std::endl;
@@ -95,7 +95,7 @@ void FDBInfo::execute(const eckit::option::CmdArgs&) {
         if(!all_) return;
     }
 
-    Config config = LibFdb5::instance().defaultConfig();
+    Config config = defaultConfig(args);
 
     if(all_ || schema_) {
         Log::info() << (all_ ? "Schema: " : "") << config.schemaPath() << std::endl;

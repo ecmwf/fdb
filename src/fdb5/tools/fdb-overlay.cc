@@ -92,7 +92,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     ASSERT(!sourceRequest.all());
     ASSERT(!targetRequest.all());
 
-    Config config = LibFdb5::instance().defaultConfig();
+    Config config = defaultConfig(args);
     const Schema& schema = config.schema();
 
     Key source;

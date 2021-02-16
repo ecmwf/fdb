@@ -43,26 +43,27 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
 
     // With no arguments, provide the current master configuration schema (i.e. that selected by FDB_HOME)
 
-    if (args.count() == 0) {
-        Config config = LibFdb5::instance().defaultConfig();
+    if (args.count() == 0 || (args.count() == 1 && args.has("config"))) {
+        Config config = defaultConfig(args);
         config.schema().dump(Log::info());
-    }
+    } else {
 
-    // If the argument specifies a schema file, then examine that. Otherwise load the DB which is
-    // pointed to, and return the schema presented by that.
+        // If the argument specifies a schema file, then examine that. Otherwise load the DB which is
+        // pointed to, and return the schema presented by that.
 
-    for (size_t i = 0; i < args.count(); i++) {
+        for (size_t i = 0; i < args.count(); i++) {
 
-        eckit::PathName path(args(i));
+            eckit::PathName path(args(i));
 
-        if (path.isDir()) {
-            std::unique_ptr<DB> db = DB::buildReader(eckit::URI("toc", path));
-            ASSERT(db->open());
-            db->schema().dump(Log::info());
-        } else {
-            Schema schema;
-            schema.load(args(i));
-            schema.dump(Log::info());
+            if (path.isDir()) {
+                std::unique_ptr<DB> db = DB::buildReader(eckit::URI("toc", path));
+                ASSERT(db->open());
+                db->schema().dump(Log::info());
+            } else {
+                Schema schema;
+                schema.load(args(i));
+                schema.dump(Log::info());
+            }
         }
     }
 }

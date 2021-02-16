@@ -56,7 +56,7 @@ void FDBStats::init(const eckit::option::CmdArgs &args) {
 
 void FDBStats::execute(const CmdArgs& args) {
 
-    FDB fdb;
+    FDB fdb(defaultConfig(args));
     IndexStats totalIndexStats;
     DbStats totaldbStats;
     size_t count = 0;

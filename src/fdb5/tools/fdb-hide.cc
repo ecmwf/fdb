@@ -68,7 +68,7 @@ void FdbHide::init(const option::CmdArgs& args) {
 
 void FdbHide::execute(const option::CmdArgs& args) {
 
-    Config config = LibFdb5::instance().defaultConfig();
+    Config config = defaultConfig(args);
 
     if (args.count() != 1) {
         usage("fdb-hide");

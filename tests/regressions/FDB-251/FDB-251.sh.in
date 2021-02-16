@@ -37,6 +37,14 @@ spaces:
   - path: home/root
 EOF
 
+cat > home/etc/fdb/dbnames <<EOF
+# regex     dbnamer
+# class=rd,expver=00**,stream=\(enfo\|efov\),domain,number ...
+
+class,expver,stream,date,time,domain,number          {class}:{expver}/{date}:{time}:{domain}/{stream}:{number}
+
+class,expver,stream,date,time,domain                 {class}:{expver}/{date}:{time}:{domain}/{stream}
+EOF
 
 rm -rf $bindir/home2
 mkdir -p home2/root2
@@ -55,6 +63,14 @@ spaces:
   - path: home2/root2
 EOF
 
+cat > home2/etc/fdb/dbnames <<EOF
+# regex     dbnamer
+# class=rd,expver=00**,stream=\(enfo\|efov\),domain,number ...
+
+class,expver,stream,date,time,domain,number          {class}:{expver}/{date}:{time}:{domain}/{stream}:{number}
+
+class,expver,stream,date,time,domain                 {class}:{expver}/{date}:{time}:{domain}/{stream}
+EOF
 
 rm -rf $bindir/localroot
 mkdir localroot
@@ -81,9 +97,10 @@ $gribset -s step=9 12.grib 9.grib
 unset FDB_HOME
 unset FDB5_CONFIG_FILE
 
-$fdbwrite --conf=home 6.grib
-$fdbwrite --conf=home2 9.grib
-$fdbwrite --conf=local.yaml 12.grib
+! $fdbwrite --config=home 6.grib
+$fdbwrite --config=home/etc/fdb/config.yaml 6.grib
+$fdbwrite --config=home2/etc/fdb/config.yaml 9.grib
+$fdbwrite --config=local.yaml 12.grib
 
 
 cat > list6 <<EOF
@@ -102,10 +119,9 @@ EOF
 unset FDB_HOME
 unset FDB5_CONFIG_FILE
 
-$fdblist --conf=home --all --minimum-keys="" --porcelain | tee out
-cmp out list6
+! $fdblist --config=home --all --minimum-keys="" --porcelain | tee out
 
-$fdblist --conf=home/etc/fdb/config.yaml --all --minimum-keys="" --porcelain | tee out
+$fdblist --config=home/etc/fdb/config.yaml --all --minimum-keys="" --porcelain | tee out
 cmp out list6
 
 export FDB_HOME=home
@@ -120,10 +136,9 @@ cmp out list6
 unset FDB_HOME
 unset FDB5_CONFIG_FILE
 
-$fdblist --conf=home2 --all --minimum-keys="" --porcelain | tee out
-cmp out list9
+! $fdblist --config=home2 --all --minimum-keys="" --porcelain | tee out
 
-$fdblist --conf=home2/etc/fdb/config.yaml --all --minimum-keys="" --porcelain | tee out
+$fdblist --config=home2/etc/fdb/config.yaml --all --minimum-keys="" --porcelain | tee out
 cmp out list9
 
 export FDB_HOME=home2
@@ -138,7 +153,7 @@ cmp out list9
 unset FDB_HOME
 unset FDB5_CONFIG_FILE
 
-$fdblist --conf=local.yaml --all --minimum-keys="" --porcelain | tee out
+$fdblist --config=local.yaml --all --minimum-keys="" --porcelain | tee out
 cmp out list12
 
 export FDB5_CONFIG_FILE=local.yaml

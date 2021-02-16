@@ -72,19 +72,24 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::GribArchiver archiver(fdb5::Key(), false, verbose_, args);
+    ECKIT_DEBUG_VAR(args);
+    fdb5::GribArchiver archiver(fdb5::Key(), false, verbose_, config(args));
+    ECKIT_DEBUG_VAR(config(args));
 
     archiver.filters(filterInclude_, filterExclude_);
 
     for (size_t i = 0; i < args.count(); i++) {
 
-        eckit::PathName path(args(i));
+        if (!args.has("config") || args(i) != args.getString("config")) {
 
-        eckit::Log::info() << "Processing " << path << std::endl;
+            eckit::PathName path(args(i));
 
-        std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
+            eckit::Log::info() << "Processing " << path << std::endl;
 
-        archiver.archive( *dh );
+            std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
+
+            archiver.archive( *dh );
+        }
     }
 }
 

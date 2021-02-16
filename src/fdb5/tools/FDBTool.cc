@@ -34,34 +34,56 @@ static void usage(const std::string& tool) {
 }
 
 void FDBTool::run() {
-    options_.push_back(new eckit::option::SimpleOption<std::string>("conf", "FDB home folder or FDB configuration filename or full FDB configuration"));
+    options_.push_back(new eckit::option::SimpleOption<std::string>("config", "FDB configuration filename"));
 
     eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(),
                                 minimumPositionalArguments());
 
-    std::string conf = args.getString("conf", "");
-    if (!conf.empty()) {
-        eckit::PathName path(conf);
-        if (path.exists()) {
-            if (path.isDir()) {
-                ::setenv("FDB_HOME", conf.c_str(), 1);
-            } else {
-                ::setenv("FDB5_CONFIG_FILE", conf.c_str(), 1);
-            }
-        } else {
-            ::setenv("FDB5_CONFIG", conf.c_str(), 1);
-        }
-    }
 
     init(args);
     execute(args);
     finish(args);
 }
 
+Config fileConfig(const eckit::option::CmdArgs& args) {
+    std::string config = args.getString("config", "");
+    if (config.empty()) {
+        throw eckit::UserError("Missing config file name", Here());
+    }
+    eckit::PathName configPath(config);
+    if (!configPath.exists()) {
+        std::ostringstream ss;
+        ss << "Path " << config << " does not exist";
+        throw eckit::UserError(ss.str(), Here());
+    }
+    if (configPath.isDir()) {
+        std::ostringstream ss;
+        ss << "Path " << config << " is a directory. Expecting a file";
+        throw eckit::UserError(ss.str(), Here());
+    }
+    return Config::make(configPath);
+
+}
+
+Config FDBTool::defaultConfig(const eckit::option::CmdArgs& args) const {
+    if (args.has("config")) {
+        return fileConfig(args);
+    }
+
+    return LibFdb5::instance().defaultConfig();
+}
+
+Config FDBTool::config(const eckit::option::CmdArgs& args) const {
+    if (args.has("config")) {
+        return fileConfig(args);
+    }
+
+    return Config(args);
+}
 
 void FDBTool::usage(const std::string&) const {}
 
-void FDBTool::init(const eckit::option::CmdArgs& args) {}
+void FDBTool::init(const eckit::option::CmdArgs&) {}
 
 void FDBTool::finish(const eckit::option::CmdArgs&) {}
 

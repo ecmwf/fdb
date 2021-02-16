@@ -99,41 +99,43 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
 
     for (size_t i = 0; i < args.count(); ++i) {
 
-        eckit::PathName path(args(i));
-        if (path.exists()) {
-            paths.push_back(path);
-            continue;
-        }
+        if (!args.has("config") || args(i) != args.getString("config")) {
 
-        try {
-
-            bool force = args.getBool("force", false); //< bypass the check for minimum key set
-
-            ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeys_);
-
-            Log::debug<LibFdb5>() << "KEY =====> " << req.key() << std::endl;
-            std::vector<eckit::PathName> dbs = Manager().visitableLocations(req.key());
-            for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
-                paths.push_back(*j);
+            eckit::PathName path(args(i));
+            if (path.exists()) {
+                paths.push_back(path);
+                continue;
             }
 
-            if (dbs.size() == 0) {
-                std::stringstream ss;
-                ss << "No FDB matches " << req.key();
-                Log::warning() << ss.str() << std::endl;
-                if (fail_)
-                    throw FDBToolException(ss.str(), Here());
-            }
+            try {
 
-        } catch (eckit::UserError&) {
-            throw;
-        } catch (eckit::Exception& e) {
-            Log::warning() << e.what() << std::endl;
-            paths.push_back(path);
-            if (fail_) // Possibly we want a separate catch block like eckit::UserError above
+                bool force = args.getBool("force", false); //< bypass the check for minimum key set
+
+                ToolRequest req(args(i), force ? std::vector<std::string>() : minimumKeys_);
+
+                Log::debug<LibFdb5>() << "KEY =====> " << req.key() << std::endl;
+                std::vector<eckit::PathName> dbs = Manager().visitableLocations(req.key());
+                for (std::vector<eckit::PathName>::const_iterator j = dbs.begin(); j != dbs.end(); ++j) {
+                    paths.push_back(*j);
+                }
+
+                if (dbs.size() == 0) {
+                    std::stringstream ss;
+                    ss << "No FDB matches " << req.key();
+                    Log::warning() << ss.str() << std::endl;
+                    if (fail_)
+                        throw FDBToolException(ss.str(), Here());
+                }
+
+            } catch (eckit::UserError&) {
                 throw;
+            } catch (eckit::Exception& e) {
+                Log::warning() << e.what() << std::endl;
+                paths.push_back(path);
+                if (fail_) // Possibly we want a separate catch block like eckit::UserError above
+                    throw;
+            }
         }
-
     }
 
     for (std::vector<eckit::PathName>::const_iterator j = paths.begin(); j != paths.end(); ++j) {
