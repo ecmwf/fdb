@@ -82,7 +82,7 @@ void FDBWipe::init(const CmdArgs &args) {
 
 void FDBWipe::execute(const CmdArgs& args) {
 
-    FDB fdb(defaultConfig(args));
+    FDB fdb(config(args));
 
     for (const FDBToolRequest& request : requests()) {
 

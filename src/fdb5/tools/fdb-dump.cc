@@ -56,7 +56,7 @@ void FDBDump::init(const CmdArgs& args) {
 
 void FDBDump::execute(const CmdArgs& args) {
 
-    FDB fdb(defaultConfig(args));
+    FDB fdb(config(args));
 
     for (const FDBToolRequest& request : requests()) {
 

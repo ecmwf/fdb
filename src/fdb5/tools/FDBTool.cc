@@ -45,40 +45,32 @@ void FDBTool::run() {
     finish(args);
 }
 
-Config fileConfig(const eckit::option::CmdArgs& args) {
-    std::string config = args.getString("config", "");
-    if (config.empty()) {
-        throw eckit::UserError("Missing config file name", Here());
-    }
-    eckit::PathName configPath(config);
-    if (!configPath.exists()) {
-        std::ostringstream ss;
-        ss << "Path " << config << " does not exist";
-        throw eckit::UserError(ss.str(), Here());
-    }
-    if (configPath.isDir()) {
-        std::ostringstream ss;
-        ss << "Path " << config << " is a directory. Expecting a file";
-        throw eckit::UserError(ss.str(), Here());
-    }
-    return Config::make(configPath);
+Config FDBTool::config(const eckit::option::CmdArgs& args, bool defaultConfig) const {
 
-}
-
-Config FDBTool::defaultConfig(const eckit::option::CmdArgs& args) const {
     if (args.has("config")) {
-        return fileConfig(args);
+        std::string config = args.getString("config", "");
+        if (config.empty()) {
+            throw eckit::UserError("Missing config file name", Here());
+        }
+        eckit::PathName configPath(config);
+        if (!configPath.exists()) {
+            std::ostringstream ss;
+            ss << "Path " << config << " does not exist";
+            throw eckit::UserError(ss.str(), Here());
+        }
+        if (configPath.isDir()) {
+            std::ostringstream ss;
+            ss << "Path " << config << " is a directory. Expecting a file";
+            throw eckit::UserError(ss.str(), Here());
+        }
+        return Config::make(configPath);
     }
 
-    return LibFdb5::instance().defaultConfig();
-}
-
-Config FDBTool::config(const eckit::option::CmdArgs& args) const {
-    if (args.has("config")) {
-        return fileConfig(args);
+    if (defaultConfig) {
+        return LibFdb5::instance().defaultConfig();
+    } else {
+        return Config(args);
     }
-
-    return Config(args);
 }
 
 void FDBTool::usage(const std::string&) const {}

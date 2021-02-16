@@ -95,15 +95,15 @@ void FDBInfo::execute(const eckit::option::CmdArgs& args) {
         if(!all_) return;
     }
 
-    Config config = defaultConfig(args);
+    Config conf = config(args);
 
     if(all_ || schema_) {
-        Log::info() << (all_ ? "Schema: " : "") << config.schemaPath() << std::endl;
+        Log::info() << (all_ ? "Schema: " : "") << conf.schemaPath() << std::endl;
         if(!all_) return;
     }
 
     if(all_ || config_) {
-        Log::info() << (all_ ? "Config: " : "") << config.configPath() << std::endl;
+        Log::info() << (all_ ? "Config: " : "") << conf.configPath() << std::endl;
         if(!all_) return;
     }
 }

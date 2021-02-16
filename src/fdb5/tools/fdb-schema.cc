@@ -43,9 +43,9 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
 
     // With no arguments, provide the current master configuration schema (i.e. that selected by FDB_HOME)
 
-    if (args.count() == 0 || (args.count() == 1 && args.has("config"))) {
-        Config config = defaultConfig(args);
-        config.schema().dump(Log::info());
+    if (args.count() == 0 || args.has("config")) {
+        Config conf = config(args);
+        conf.schema().dump(Log::info());
     } else {
 
         // If the argument specifies a schema file, then examine that. Otherwise load the DB which is

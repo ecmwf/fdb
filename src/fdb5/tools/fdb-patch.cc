@@ -123,7 +123,7 @@ void FDBPatch::init(const CmdArgs& args) {
 void FDBPatch::execute(const CmdArgs& args) {
 
 
-    FDB fdb(defaultConfig(args));
+    FDB fdb(config(args));
 
 
     Timer timer(args.tool());

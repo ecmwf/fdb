@@ -58,30 +58,27 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
     for (size_t i = 0; i < args.count(); ++i) {
 
-        if (!args.has("config") || args(i) != args.getString("config")) {
+        // domain add here as default
+        auto parsed = FDBToolRequest::requestsFromString("domain=g," + args(i), {}, false, "read");
 
-            // domain add here as default
-            auto parsed = FDBToolRequest::requestsFromString("domain=g," + args(i), {}, false, "read");
+        for (const auto& request : parsed) {
 
-            for (const auto& request : parsed) {
+            Config conf = config(args);
+            const Schema& schema = conf.schema();
+            Key result;
+            ASSERT( schema.expandFirstLevel(request.request(), result) );
 
-                Config config = defaultConfig(args);
-                const Schema& schema = config.schema();
-                Key result;
-                ASSERT( schema.expandFirstLevel(request.request(), result) );
+            eckit::Log::info() << result << std::endl;
 
-                eckit::Log::info() << result << std::endl;
+            // 'Touch' the database (which will create it if it doesn't exist)
+            std::unique_ptr<DB> db = DB::buildReader(result, conf);
 
-                // 'Touch' the database (which will create it if it doesn't exist)
-                std::unique_ptr<DB> db = DB::buildReader(result, config);
+            if (!db->exists() && create_db) {
+                db = DB::buildWriter(result, conf);
+            }
 
-                if (!db->exists() && create_db) {
-                    db = DB::buildWriter(result, config);
-                }
-
-                if (db->exists()) {
-                    eckit::Log::info() << (*db) << std::endl;
-                }
+            if (db->exists()) {
+                eckit::Log::info() << (*db) << std::endl;
             }
         }
     }

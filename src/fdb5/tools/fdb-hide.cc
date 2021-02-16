@@ -68,7 +68,7 @@ void FdbHide::init(const option::CmdArgs& args) {
 
 void FdbHide::execute(const option::CmdArgs& args) {
 
-    Config config = defaultConfig(args);
+    Config conf = config(args);
 
     if (args.count() != 1) {
         usage("fdb-hide");
@@ -81,12 +81,12 @@ void FdbHide::execute(const option::CmdArgs& args) {
     const auto& dbrequest = dbrequests.front();
     ASSERT(!dbrequest.all());
 
-    const Schema& schema = config.schema();
+    const Schema& schema = conf.schema();
 
     Key dbkey;
     ASSERT(schema.expandFirstLevel(dbrequest.request(), dbkey));
 
-    std::unique_ptr<Catalogue> db = CatalogueFactory::instance().build(dbkey, config, true);
+    std::unique_ptr<Catalogue> db = CatalogueFactory::instance().build(dbkey, conf, true);
     if (!db->exists()) {
         std::stringstream ss;
         ss << "Database not found: " << dbkey << std::endl;
@@ -101,7 +101,7 @@ void FdbHide::execute(const option::CmdArgs& args) {
 
     eckit::Log::info() << "Hide contents of DB: " << *db << std::endl;
     if (doit_) {
-        std::unique_ptr<Catalogue> dbWriter = CatalogueFactory::instance().build(dbkey, config, false);
+        std::unique_ptr<Catalogue> dbWriter = CatalogueFactory::instance().build(dbkey, conf, false);
         TocCatalogueWriter* tocDB = dynamic_cast<TocCatalogueWriter*>(dbWriter.get());
         tocDB->hideContents();
     } else {

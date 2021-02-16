@@ -60,7 +60,7 @@ void FDBLock::init(const CmdArgs& args) {
 
 void FDBLock::execute(const CmdArgs& args) {
 
-    FDB fdb(config(args));
+    FDB fdb(config(args, false));
 
     ControlAction action = unlock_ ? ControlAction::Unlock : ControlAction::Lock;
 

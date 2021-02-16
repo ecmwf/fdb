@@ -39,7 +39,7 @@ private: // methods
 
 void FDBStatus::execute(const CmdArgs& args) {
 
-    FDB fdb(defaultConfig(args));
+    FDB fdb(config(args));
 
     for (const FDBToolRequest& request : requests("read")) {
 
