@@ -46,7 +46,7 @@ protected: // methods
     virtual ~FDBTool() override {}
 
     virtual void run() override;
-    Config config(const eckit::option::CmdArgs& args, bool defaultConfig = true) const;
+    Config config(const eckit::option::CmdArgs& args) const;
 
 public: // methods
 

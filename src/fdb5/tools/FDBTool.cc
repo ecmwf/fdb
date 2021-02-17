@@ -45,7 +45,7 @@ void FDBTool::run() {
     finish(args);
 }
 
-Config FDBTool::config(const eckit::option::CmdArgs& args, bool defaultConfig) const {
+Config FDBTool::config(const eckit::option::CmdArgs& args) const {
 
     if (args.has("config")) {
         std::string config = args.getString("config", "");
@@ -66,11 +66,7 @@ Config FDBTool::config(const eckit::option::CmdArgs& args, bool defaultConfig) c
         return Config::make(configPath);
     }
 
-    if (defaultConfig) {
-        return LibFdb5::instance().defaultConfig();
-    } else {
-        return Config(args);
-    }
+    return LibFdb5::instance().defaultConfig();
 }
 
 void FDBTool::usage(const std::string&) const {}
