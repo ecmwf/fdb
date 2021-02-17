@@ -63,6 +63,7 @@ public:
 
     void restartReadFrom(const eckit::Offset&) override { NOTIMP; }
     eckit::Offset seek(const eckit::Offset&) override { NOTIMP; }
+    bool canSeek() const override { return false; }
 
     void toRemote(eckit::Stream&) const override { NOTIMP; }
     void cost(std::map<std::string,eckit::Length>&, bool) const override { NOTIMP; }

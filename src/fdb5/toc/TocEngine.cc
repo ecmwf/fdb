@@ -17,12 +17,13 @@
 
 #include "eckit/eckit.h"
 
-#include "eckit/log/Log.h"
+#include "eckit/filesystem/LocalFileManager.h"
 #include "eckit/filesystem/LocalPathName.h"
-#include "eckit/utils/Regex.h"
+#include "eckit/filesystem/StdDir.h"
+#include "eckit/log/Log.h"
 #include "eckit/os/BackTrace.h"
 #include "eckit/os/Stat.h"
-#include "eckit/filesystem/LocalFileManager.h"
+#include "eckit/utils/Regex.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
@@ -37,21 +38,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-namespace {
-class StdDir {
-    DIR *d_;
-public:
-    StdDir(const char* d) { d_ = ::opendir(d);}
-    ~StdDir()             { if(d_) ::closedir(d_); }
-    operator DIR*()       { return d_; }
-};
-
-static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
-{
-    StdDir d(path.c_str());
-
-    if(d == nullptr)
-    {
+void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) const {
+    eckit::StdDir d(path.c_str());
+    if (d == nullptr) {
         // If fdb-wipe is running in parallel, it is perfectly legit for a (non-matching)
         // path to have disappeared
         if (errno == ENOENT) {
@@ -68,31 +57,23 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
         throw FailedSystemCall("opendir");
     }
 
-    struct dirent buf;
+    // Once readdir_r finally gets deprecated and removed, we may need to 
+    // protecting readdir() as not yet guarranteed thread-safe by POSIX
+    // technically it should only be needed on a per-directory basis
+    // this should be a resursive mutex
+    // AutoLock<Mutex> lock(mutex_); 
 
     for(;;)
     {
-        struct dirent *e;
-#ifdef ECKIT_HAVE_READDIR_R
-        errno = 0;
-        if(::readdir_r(d,&buf,&e) != 0)
-        {
-            if(errno)
-                throw FailedSystemCall("readdir_r");
-            else
-                e = nullptr;
-        }
-#else
-        e = ::readdir(d);
-#endif
-
-        if(e == nullptr)
+        struct dirent* e = d.dirent();
+        if (e == nullptr) {
             break;
+        }
 
         if(e->d_name[0] == '.') {
             if(e->d_name[1] == 0 || (e->d_name[1] =='.' && e->d_name[2] == 0))
                 continue;
-	}
+        }
 
         if(::strcmp(e->d_name, "toc") == 0) {
             dbs.push_back(path);
@@ -104,7 +85,7 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
 
         bool do_stat = true;
 
-#if defined(ECKIT_HAVE_DIRENT_D_TYPE)
+#if defined(eckit_HAVE_DIRENT_D_TYPE)
         do_stat = false;
         if (e->d_type == DT_DIR) {
             scan_dbs(full.c_str(), dbs);
@@ -124,9 +105,6 @@ static void scan_dbs(const std::string& path, std::list<std::string>& dbs)
         }
     }
 }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 
 std::string TocEngine::name() const {
     return TocEngine::typeName();
@@ -167,7 +145,7 @@ static constexpr const char* regexForMissingValues = "[^:/]*";
 
 std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
                                                const std::vector<eckit::PathName>& roots,
-                                               const Config& config) {
+                                               const Config& config) const {
 
     std::set<eckit::PathName> result;
 
@@ -213,7 +191,7 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
 
 std::vector<eckit::URI> TocEngine::databases(const Key& key,
                                                   const std::vector<eckit::PathName>& roots,
-                                                  const Config& config) {
+                                                  const Config& config) const {
 
     std::set<Key> keys;
 
@@ -242,7 +220,7 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key,
 
 std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& request,
                                                   const std::vector<eckit::PathName>& roots,
-                                                  const Config& config) {
+                                                  const Config& config) const {
 
     std::set<Key> keys;
 

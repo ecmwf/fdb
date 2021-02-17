@@ -90,7 +90,7 @@ FieldLocationBuilderBase::~FieldLocationBuilderBase() {
 FieldLocation::FieldLocation(const eckit::URI& uri) : uri_(uri) {
     try {
         offset_ = eckit::Offset(std::stoll(uri.fragment()));
-    } catch (std::invalid_argument e) {
+    } catch (std::invalid_argument& e) {
         offset_ = eckit::Offset(0);
     }
 
@@ -98,7 +98,7 @@ FieldLocation::FieldLocation(const eckit::URI& uri) : uri_(uri) {
     if (!lengthStr.empty()) {
         try {
             length_ = eckit::Length(std::stoll(lengthStr));
-        }  catch (std::invalid_argument e) {
+        }  catch (std::invalid_argument& e) {
             length_ = eckit::Length(0);
         }
     } else {

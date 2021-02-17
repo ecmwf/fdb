@@ -58,9 +58,9 @@ void FDBLock::init(const CmdArgs& args) {
 }
 
 
-void FDBLock::execute(const CmdArgs&) {
+void FDBLock::execute(const CmdArgs& args) {
 
-    FDB fdb;
+    FDB fdb(config(args));
 
     ControlAction action = unlock_ ? ControlAction::Unlock : ControlAction::Lock;
 

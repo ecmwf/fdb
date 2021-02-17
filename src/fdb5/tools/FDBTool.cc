@@ -34,18 +34,44 @@ static void usage(const std::string& tool) {
 }
 
 void FDBTool::run() {
+    options_.push_back(new eckit::option::SimpleOption<std::string>("config", "FDB configuration filename"));
+
     eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(),
                                 minimumPositionalArguments());
+
 
     init(args);
     execute(args);
     finish(args);
 }
 
+Config FDBTool::config(const eckit::option::CmdArgs& args) const {
+
+    if (args.has("config")) {
+        std::string config = args.getString("config", "");
+        if (config.empty()) {
+            throw eckit::UserError("Missing config file name", Here());
+        }
+        eckit::PathName configPath(config);
+        if (!configPath.exists()) {
+            std::ostringstream ss;
+            ss << "Path " << config << " does not exist";
+            throw eckit::UserError(ss.str(), Here());
+        }
+        if (configPath.isDir()) {
+            std::ostringstream ss;
+            ss << "Path " << config << " is a directory. Expecting a file";
+            throw eckit::UserError(ss.str(), Here());
+        }
+        return Config::make(configPath);
+    }
+
+    return LibFdb5::instance().defaultConfig();
+}
 
 void FDBTool::usage(const std::string&) const {}
 
-void FDBTool::init(const eckit::option::CmdArgs& args) {}
+void FDBTool::init(const eckit::option::CmdArgs&) {}
 
 void FDBTool::finish(const eckit::option::CmdArgs&) {}
 
