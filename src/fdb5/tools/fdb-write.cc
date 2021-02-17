@@ -72,7 +72,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, args);
+    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args));
 
     archiver.filters(filterInclude_, filterExclude_);
 

@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+cd $bindir
+
+for f in 12.grib schema
+do
+    cp $srcdir/$f $bindir
+done
+
+### cleanup and prepare test
+
+rm -rf $bindir/home
+mkdir -p home/root
+mkdir -p home/etc/fdb
+
+cp schema home/etc/fdb/
+
+cat > home/etc/fdb/config.yaml <<EOF
+---
+type: local
+engine: toc
+schema: home/etc/fdb/schema
+spaces:
+- handler: Default
+  roots:
+  - path: home/root
+EOF
+
+cat > home/etc/fdb/dbnames <<EOF
+# regex     dbnamer
+# class=rd,expver=00**,stream=\(enfo\|efov\),domain,number ...
+
+class,expver,stream,date,time,domain,number          {class}:{expver}/{date}:{time}:{domain}/{stream}:{number}
+
+class,expver,stream,date,time,domain                 {class}:{expver}/{date}:{time}:{domain}/{stream}
+EOF
+
+rm -rf $bindir/home2
+mkdir -p home2/root2
+mkdir -p home2/etc/fdb
+
+cp schema home2/etc/fdb/schema2
+
+cat > home2/etc/fdb/config.yaml <<EOF
+---
+type: local
+engine: toc
+schema: home2/etc/fdb/schema2
+spaces:
+- handler: Default
+  roots:
+  - path: home2/root2
+EOF
+
+cat > home2/etc/fdb/dbnames <<EOF
+# regex     dbnamer
+# class=rd,expver=00**,stream=\(enfo\|efov\),domain,number ...
+
+class,expver,stream,date,time,domain,number          {class}:{expver}/{date}:{time}:{domain}/{stream}:{number}
+
+class,expver,stream,date,time,domain                 {class}:{expver}/{date}:{time}:{domain}/{stream}
+EOF
+
+rm -rf $bindir/localroot
+mkdir localroot
+
+mv schema localschema
+
+cat > local.yaml <<EOF
+---
+type: local
+engine: toc
+schema: ./localschema
+spaces:
+- handler: Default
+  roots:
+  - path: ./localroot
+EOF
+
+
+$gribset -s step=6 12.grib 6.grib
+$gribset -s step=9 12.grib 9.grib
+
+### write to different FDBs
+
+unset FDB_HOME
+unset FDB5_CONFIG_FILE
+
+! $fdbwrite --config=home 6.grib
+$fdbwrite --config=home/etc/fdb/config.yaml 6.grib
+$fdbwrite --config=home2/etc/fdb/config.yaml 9.grib
+$fdbwrite --config=local.yaml 12.grib
+
+
+cat > list6 <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166},length=1476
+EOF
+
+cat > list9 <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166},length=1476
+EOF
+
+cat > list12 <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166},length=1476
+EOF
+
+
+unset FDB_HOME
+unset FDB5_CONFIG_FILE
+
+! $fdblist --config=home --all --minimum-keys="" --porcelain | tee out
+
+$fdblist --config=home/etc/fdb/config.yaml --all --minimum-keys="" --porcelain | tee out
+cmp out list6
+
+export FDB_HOME=home
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list6
+
+export FDB5_CONFIG_FILE=home/etc/fdb/config.yaml
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list6
+
+
+unset FDB_HOME
+unset FDB5_CONFIG_FILE
+
+! $fdblist --config=home2 --all --minimum-keys="" --porcelain | tee out
+
+$fdblist --config=home2/etc/fdb/config.yaml --all --minimum-keys="" --porcelain | tee out
+cmp out list9
+
+export FDB_HOME=home2
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list9
+
+export FDB5_CONFIG_FILE=home2/etc/fdb/config.yaml
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list9
+
+
+unset FDB_HOME
+unset FDB5_CONFIG_FILE
+
+$fdblist --config=local.yaml --all --minimum-keys="" --porcelain | tee out
+cmp out list12
+
+export FDB5_CONFIG_FILE=local.yaml
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list12

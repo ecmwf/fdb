@@ -51,9 +51,9 @@ void FDBWhere::init(const CmdArgs& args) {
 }
 
 
-void FDBWhere::execute(const CmdArgs&) {
+void FDBWhere::execute(const CmdArgs& args) {
 
-    FDB fdb;
+    FDB fdb(config(args));
 
     for (const FDBToolRequest& request : requests("read")) {
 
