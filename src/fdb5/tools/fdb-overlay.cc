@@ -92,8 +92,8 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     ASSERT(!sourceRequest.all());
     ASSERT(!targetRequest.all());
 
-    Config config = LibFdb5::instance().defaultConfig();
-    const Schema& schema = config.schema();
+    Config conf = config(args);
+    const Schema& schema = conf.schema();
 
     Key source;
     Key target;
@@ -123,7 +123,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         }
     }
 
-    std::unique_ptr<DB> dbSource = DB::buildReader(source, config);
+    std::unique_ptr<DB> dbSource = DB::buildReader(source, conf);
     if (!dbSource->exists()) {
         std::stringstream ss;
         ss << "Source database not found: " << source << std::endl;
@@ -136,7 +136,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         throw UserError(ss.str(), Here());
     }
 
-    std::unique_ptr<DB> dbTarget = DB::buildReader(target, config);
+    std::unique_ptr<DB> dbTarget = DB::buildReader(target, conf);
 
     if (remove_) {
         if (!dbTarget->exists()) {
@@ -156,7 +156,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
 
     ASSERT(dbTarget->uri() != dbSource->uri());
 
-    std::unique_ptr<DB> newDB = DB::buildWriter(target, config);
+    std::unique_ptr<DB> newDB = DB::buildWriter(target, conf);
 
     // This only works for tocDBs
 

@@ -37,9 +37,9 @@ private: // methods
 };
 
 
-void FDBStatus::execute(const CmdArgs&) {
+void FDBStatus::execute(const CmdArgs& args) {
 
-    FDB fdb;
+    FDB fdb(config(args));
 
     for (const FDBToolRequest& request : requests("read")) {
 

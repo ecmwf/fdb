@@ -133,7 +133,6 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             if (fail_) // Possibly we want a separate catch block like eckit::UserError above
                 throw;
         }
-
     }
 
     for (std::vector<eckit::PathName>::const_iterator j = paths.begin(); j != paths.end(); ++j) {
