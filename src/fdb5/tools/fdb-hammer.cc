@@ -22,9 +22,7 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/VectorOption.h"
 
-#include "metkit/grib/GribHandle.h"
-
-#include "fdb5/grib/GribArchiver.h"
+#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
 
@@ -106,13 +104,6 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     codes_handle* handle = codes_handle_new_from_file(nullptr, fin, PRODUCT_GRIB, &err);
     ASSERT(handle);
 
-    /*long value;
-    metkit::grib::GribHandle gh(*handle);
-    ASSERT(gh.hasKey("number"));
-    ASSERT(gh.hasKey("step"));
-    ASSERT(gh.hasKey("level"));
-    ASSERT(gh.hasKey("expver"));*/
-
     size_t nsteps = args.getLong("nsteps");
     size_t nensembles = args.getLong("nensembles", 1);
     size_t nlevels = args.getLong("nlevels");
@@ -123,7 +114,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     const char* buffer = nullptr;
     size_t size = 0;
 
-    fdb5::GribArchiver archiver(fdb5::Key(), false, verbose_, args);
+    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, args);
 
     std::string expver = args.getString("expver");
     size = expver.length();
@@ -202,8 +193,8 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
 void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
 
 
-    fdb5::GribDecoder decoder;
-    std::vector<metkit::mars::MarsRequest> requests = decoder.gribToRequests(args(0));
+    fdb5::MessageDecoder decoder;
+    std::vector<metkit::mars::MarsRequest> requests = decoder.messageToRequests(args(0));
 
     ASSERT(requests.size() == 1);
     metkit::mars::MarsRequest request = requests[0];

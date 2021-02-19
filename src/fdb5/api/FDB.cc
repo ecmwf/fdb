@@ -27,7 +27,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
-#include "fdb5/database/messageToKey.h"
+#include "fdb5/message/MessageDecoder.h"
 
 namespace fdb5 {
 
@@ -48,7 +48,7 @@ FDB::~FDB() {
 }
 
 void FDB::archive(eckit::message::Message msg) {
-    fdb5::Key key = messageToKey(msg);
+    fdb5::Key key = MessageDecoder::messageToKey(msg);
     archive(key, msg);
 }
 

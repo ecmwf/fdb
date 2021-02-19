@@ -134,7 +134,7 @@ public: // methods
 
     const eckit::StringDict& keyDict() const;
 
-    metkit::mars::MarsRequest request() const;
+    metkit::mars::MarsRequest request(std::string verb = "retrieve") const;
 
     operator std::string() const;
 
