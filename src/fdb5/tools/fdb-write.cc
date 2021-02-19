@@ -17,7 +17,7 @@
 #include "eckit/option/VectorOption.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/grib/GribArchiver.h"
+#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/tools/FDBTool.h"
 
 
@@ -72,7 +72,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::GribArchiver archiver(fdb5::Key(), false, verbose_, config(args));
+    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args));
 
     archiver.filters(filterInclude_, filterExclude_);
 
