@@ -23,12 +23,6 @@ ecbuild_find_package( NAME eccodes VERSION 2.10 REQUIRED )
 
 ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
 
-### FDB remote front-end
-
-ecbuild_add_option( FEATURE FDB_REMOTE
-                    DEFAULT ON
-                    DESCRIPTION "Support distributed remote FDB" )
-
 ### FDB backend in persistent memory, i.e. pmem (NVRAM)
 
 ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
