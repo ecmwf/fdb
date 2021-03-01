@@ -944,6 +944,7 @@ public: // methods
         overallPosition_(0),
         currentBuffer_(0),
         complete_(false) {}
+    virtual bool canSeek() const override { return false; }
 
 private: // methods
 
