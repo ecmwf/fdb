@@ -130,7 +130,7 @@ void TocRecord::print(std::ostream & out) const {
 
 unsigned int TocRecord::writeVersion() {
     // Toc version follows the global FDB5 stream version (version for how we serialise objects)
-    static unsigned int writeVersion = LibFdb5::instance().serialisationVersion().use();
+    static unsigned int writeVersion = LibFdb5::instance().serialisationVersion().used();
     return writeVersion;
 }
 
