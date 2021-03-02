@@ -23,12 +23,6 @@ ecbuild_find_package( NAME eccodes VERSION 2.10 REQUIRED )
 
 ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
 
-### FDB remote front-end
-
-ecbuild_add_option( FEATURE FDB_REMOTE
-                    DEFAULT ON
-                    DESCRIPTION "Support distributed remote FDB" )
-
 ### FDB backend in persistent memory, i.e. pmem (NVRAM)
 
 ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
@@ -106,7 +100,7 @@ set( fdb5_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_D
 
 include_directories( ${fdb5_INCLUDE_DIRS} )
 
-set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${ECCODES_DEFINITIONS};${ODB_API_DEFINITIONS}" )
+set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${ECCODES_DEFINITIONS}" )
 
 get_directory_property( fdb5_DEFINITIONS COMPILE_DEFINITIONS )
 

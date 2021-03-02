@@ -11,6 +11,5 @@
 #cmakedefine fdb5_HAVE_PMEMFDB
 #cmakedefine fdb5_HAVE_RADOSFDB
 #cmakedefine fdb5_HAVE_TOCFDB
-#cmakedefine fdb5_HAVE_FDB_REMOTE
 
 #endif // fdb5_fdb5_config_h

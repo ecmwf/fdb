@@ -10,12 +10,13 @@ gribset="$<TARGET_FILE:grib_set>"
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
-wdir=$bindir/FDB-240
 
 ### cleanup and prepare test
 
-rm -rf $bindir/localroot
-mkdir localroot
+cd $bindir
+
+rm -rf root
+mkdir  root
 
 for f in local.yaml schema 
 do
