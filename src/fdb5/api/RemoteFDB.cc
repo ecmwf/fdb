@@ -219,6 +219,7 @@ void RemoteFDB::writeControlStartupMessage() {
     MemoryStream s(payload);
     s << sessionID_;
     s << controlEndpoint_;
+    s << LibFdb5::instance().remoteProtocolVersion().use();
 
     // TODO: Abstract this dictionary into a RemoteConfiguration object, which
     //       understands how to do the negotiation, etc, but uses Value (i.e.
@@ -281,7 +282,7 @@ void RemoteFDB::writeDataStartupMessage(const eckit::SessionID& serverSession) {
 
 eckit::LocalConfiguration RemoteFDB::availableFunctionality() const {
     eckit::LocalConfiguration conf;
-    std::vector<int> remoteFieldLocationVersions = {2,1};
+    std::vector<int> remoteFieldLocationVersions = {1};
     conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
     return conf;
 }

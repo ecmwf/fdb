@@ -59,6 +59,10 @@ SerialisationVersion LibFdb5::serialisationVersion() const {
     return SerialisationVersion{};
 }
 
+RemoteProtocolVersion LibFdb5::remoteProtocolVersion() const {
+    return RemoteProtocolVersion{};
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 static unsigned int getUserEnv() {
@@ -79,7 +83,7 @@ SerialisationVersion::SerialisationVersion() {
         bool valid = check(user, false);
         if(not valid) {
             std::ostringstream msg;
-            msg << "Unsupported FDB5 serialisation version " << user 
+            msg << "Unsupported FDB5 serialisation version " << user
             << " - supported: " << supportedStr()
             << std::endl;
             throw eckit::BadValue(msg.str(), Here());
@@ -127,6 +131,93 @@ bool SerialisationVersion::check(unsigned int version, bool throwOnFail) {
     if (throwOnFail) {
         std::ostringstream msg;
         msg << "Record version mistach, software supports versions " << supportedStr() << " got " << version;
+        throw eckit::SeriousBug(msg.str());
+    }
+    return false;
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+static unsigned int getUserEnvRemoteProtocol() {
+    if (::getenv("FDB5_REMOTE_PROTOCOL_VERSION")) {
+        const char* versionstr = ::getenv("FDB5_REMOTE_PROTOCOL_VERSION");
+        eckit::Log::debug() << "FDB5_REMOTE_PROTOCOL_VERSION overidde to version: " << versionstr << std::endl;
+        unsigned int version = ::atoi(versionstr);
+        return version;
+    }
+    return 0;  // no version override
+}
+
+static unsigned int getTestRemoteProtocolVersion() {
+    if (::getenv("FDB5_REMOTE_PROTOCOL_TEST_VERSION")) {
+        const char* versionstr = ::getenv("FDB5_REMOTE_PROTOCOL_TEST_VERSION");
+        eckit::Log::debug() << "FDB5_REMOTE_PROTOCOL_TEST_VERSION overidde to version: " << versionstr << std::endl;
+        unsigned int version = ::atoi(versionstr);
+        return version;
+    }
+    return 0;  // no version override
+}
+
+RemoteProtocolVersion::RemoteProtocolVersion() {
+    static unsigned int test = getTestRemoteProtocolVersion();
+    if (test) {
+        used_ = test;
+    } else {
+        static unsigned int user = getUserEnvRemoteProtocol();
+        if (user) {
+            bool valid = check(user, false);
+            if(not valid) {
+                std::ostringstream msg;
+                msg << "Unsupported FDB5 remote protocol version " << user
+                << " - supported: " << supportedStr()
+                << std::endl;
+                throw eckit::BadValue(msg.str(), Here());
+            }
+            used_ = user;
+        } else {
+            used_ = defaulted();
+        }
+    }
+}
+
+unsigned int RemoteProtocolVersion::latest() const {
+    return 3;
+}
+
+unsigned int RemoteProtocolVersion::defaulted() const {
+    return 3;
+}
+
+unsigned int RemoteProtocolVersion::use() const {
+    return used_;
+}
+
+std::vector<unsigned int> RemoteProtocolVersion::supported() const {
+    std::vector<unsigned int> versions = {3};
+    return versions;
+}
+
+std::string RemoteProtocolVersion::supportedStr() const {
+    std::ostringstream oss;
+    char sep = '[';
+    for (auto v : supported()) {
+        oss << sep << v;
+        sep = ',';
+    }
+    oss << ']';
+    return oss.str();
+}
+
+bool RemoteProtocolVersion::check(unsigned int version, bool throwOnFail) {
+    std::vector<unsigned int> versionsSupported = supported();
+    for (auto v : versionsSupported) {
+        if (version == v)
+            return true;
+    }
+    if (throwOnFail) {
+        std::ostringstream msg;
+        msg << "Remote protocol version mistach, software supports versions " << supportedStr() << " got " << version;
         throw eckit::SeriousBug(msg.str());
     }
     return false;

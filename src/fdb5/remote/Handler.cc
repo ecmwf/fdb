@@ -203,8 +203,8 @@ RemoteHandler::~RemoteHandler() {
 eckit::LocalConfiguration RemoteHandler::availableFunctionality() const {
     eckit::LocalConfiguration conf;
 //    Add to the configuration all the components that require to be versioned, as in the following example, with a vector of supported version numbers
-//    std::vector<int> remoteFieldLocationVersions = {1};
-//    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
+    std::vector<int> remoteFieldLocationVersions = {1};
+    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
     return conf;
 }
 
@@ -242,15 +242,28 @@ void RemoteHandler::initialiseConnections() {
     MemoryStream s1(payload1);
     SessionID clientSession(s1);
     net::Endpoint endpointFromClient(s1);
+    size_t remoteProtocolVersion = 0;
+    try {
+        s1.read(&remoteProtocolVersion, sizeof(int));
+    } catch (...) {}
+
+    LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion);
 
     LocalConfiguration clientAvailableFunctionality(s1);
     LocalConfiguration serverConf = availableFunctionality();
     agreedConf_ = LocalConfiguration();
 
     // agree on a common functionality by intersecting server and client version numbers
-    // std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
-    // if (rflCommon.size() > 0)
-    //    agreedConf_.set("RemoteFieldLocation", rflCommon.back());
+     std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
+     if (rflCommon.size() > 0) {
+         Log::debug() << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
+         agreedConf_.set("RemoteFieldLocation", rflCommon.back());
+     }
+     else {
+         std::stringstream ss;
+         ss << "Protocol negotiation failed - RemoteFieldLocation version mismatch" << std::endl;
+         throw eckit::UserError(ss.str(), Here());
+     }
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
     // n.b. FDB-192: we use the host communicated from the client endpoint. This
@@ -274,6 +287,8 @@ void RemoteHandler::initialiseConnections() {
         s << dataEndpoint;
 
         s << agreedConf_.get();
+
+        Log::debug() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
 
         controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
     }

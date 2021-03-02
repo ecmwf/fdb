@@ -63,6 +63,39 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class RemoteProtocolVersion {
+public:
+    RemoteProtocolVersion();
+
+    /// Defines the serialisation versions the software is able to handle
+    /// Entries with these versions will not issue errors
+    std::vector<unsigned int> supported() const;
+
+    /// List of supported versions as a string
+    std::string supportedStr() const;
+
+    /// Latest version of serialisation the software is capable to create
+    /// To be used as default
+    unsigned int latest() const;
+
+    /// Default version of serialisation the software will use
+    /// This may be behind the latest version
+    unsigned int defaulted() const;
+
+    /// Defines the serialisation version the software is meant to create new entries with
+    /// Normally is the latest()
+    /// But can be overriden by the variable FDB5_REMOTE_PROTOCOL_VERSION
+    unsigned int use() const;
+
+    /// Checks the serialisation version is supported by the software
+    bool check(unsigned int version, bool throwOnFail = true);
+
+private:
+    unsigned int used_; //< version to be used for remote protocol
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class LibFdb5 : public eckit::system::Library {
 public:
     LibFdb5();
@@ -71,6 +104,7 @@ public:
 
     /// Returns a manager object  configuration according to the rules of FDB configuration search
     SerialisationVersion serialisationVersion() const;
+    RemoteProtocolVersion remoteProtocolVersion() const;
 
     /// Returns the default configuration according to the rules of FDB configuration search
     Config defaultConfig();
