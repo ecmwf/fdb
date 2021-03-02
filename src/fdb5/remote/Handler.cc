@@ -25,6 +25,7 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/fdb5_version.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/remote/AvailablePortList.h"
@@ -243,31 +244,41 @@ void RemoteHandler::initialiseConnections() {
     SessionID clientSession(s1);
     net::Endpoint endpointFromClient(s1);
     unsigned int remoteProtocolVersion = 0;
+    std::string errorMsg;
+
     try {
         s1 >> remoteProtocolVersion;
     } catch (...) {
-        std::ostringstream msg;
-        msg << "Error retrieving remote protocol version";
-        throw eckit::SeriousBug(msg.str(), Here());
+        errorMsg = "Error retrieving client protocol version";
     }
 
-    LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion);
+    if (errorMsg.empty() && !LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion, false)) {
+        std::stringstream ss;
+        ss << "FDB server version " << fdb5_version_str() << " - remote protocol version not supported:" << std::endl;
+        ss << "    versions supported by server: " << LibFdb5::instance().remoteProtocolVersion().supportedStr() << std::endl;
+        ss << "    version requested by client: " << remoteProtocolVersion << std::endl;
+        errorMsg = ss.str();
+    }
 
-    LocalConfiguration clientAvailableFunctionality(s1);
-    LocalConfiguration serverConf = availableFunctionality();
-    agreedConf_ = LocalConfiguration();
+    if (errorMsg.empty()) {
+        LocalConfiguration clientAvailableFunctionality(s1);
+        LocalConfiguration serverConf = availableFunctionality();
+        agreedConf_ = LocalConfiguration();
 
-    // agree on a common functionality by intersecting server and client version numbers
-     std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
-     if (rflCommon.size() > 0) {
-         Log::debug() << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
-         agreedConf_.set("RemoteFieldLocation", rflCommon.back());
-     }
-     else {
-         std::stringstream ss;
-         ss << "Protocol negotiation failed - RemoteFieldLocation version mismatch" << std::endl;
-         throw eckit::UserError(ss.str(), Here());
-     }
+        // agree on a common functionality by intersecting server and client version numbers
+         std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
+         if (rflCommon.size() > 0) {
+             Log::debug() << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
+             agreedConf_.set("RemoteFieldLocation", rflCommon.back());
+         }
+         else {
+             std::stringstream ss;
+             ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client" << std::endl;
+             ss << "    server functionality: " << serverConf << std::endl;
+             ss << "    client functionality: " << clientAvailableFunctionality << std::endl;
+             errorMsg = ss.str();
+         }
+    }
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
     // n.b. FDB-192: we use the host communicated from the client endpoint. This
@@ -295,6 +306,11 @@ void RemoteHandler::initialiseConnections() {
         Log::debug() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
 
         controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
+    }
+
+    if (!errorMsg.empty()) {
+        controlWrite(Message::Error, 0, errorMsg.c_str(), errorMsg.length());
+        return;
     }
 
     dataSocket_.accept();

@@ -90,15 +90,11 @@ cmp list content
 
 ### test connecting with another protocol version
 
-export FDB5_REMOTE_PROTOCOL_TEST_VERSION=2
+export FDB5_REMOTE_PROTOCOL_VERSION=-2
 
 ! $fdbread mars.req out.grib
 
-killServer
-FDB5_CONFIG_FILE="server.yaml" $fdbsrv &
-SERVER_PID=$!
-
-unset FDB5_REMOTE_PROTOCOL_TEST_VERSION
+unset FDB5_REMOTE_PROTOCOL_VERSION
 
 $fdbread mars.req out.grib
 
@@ -110,6 +106,11 @@ export FDB5_REMOTE_PROTOCOL_VERSION=2
 
 ! $fdbread mars.req out.grib
 
-killServer
-FDB5_CONFIG_FILE="server.yaml" $fdbsrv &
-SERVER_PID=$!
+export FDB5_REMOTE_PROTOCOL_VERSION=3
+
+$fdbread mars.req out.grib
+
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp list content
+
