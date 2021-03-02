@@ -1,5 +1,0 @@
----
-schema: ./schema
-type: remote
-host: localhost
-port: 36604

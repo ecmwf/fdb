@@ -189,7 +189,7 @@ unsigned int RemoteProtocolVersion::defaulted() const {
     return 3;
 }
 
-unsigned int RemoteProtocolVersion::use() const {
+unsigned int RemoteProtocolVersion::used() const {
     return used_;
 }
 

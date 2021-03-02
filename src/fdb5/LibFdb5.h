@@ -85,7 +85,7 @@ public:
     /// Defines the serialisation version the software is meant to create new entries with
     /// Normally is the latest()
     /// But can be overriden by the variable FDB5_REMOTE_PROTOCOL_VERSION
-    unsigned int use() const;
+    unsigned int used() const;
 
     /// Checks the serialisation version is supported by the software
     bool check(unsigned int version, bool throwOnFail = true);

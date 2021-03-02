@@ -219,7 +219,7 @@ void RemoteFDB::writeControlStartupMessage() {
     MemoryStream s(payload);
     s << sessionID_;
     s << controlEndpoint_;
-    s << LibFdb5::instance().remoteProtocolVersion().use();
+    s << LibFdb5::instance().remoteProtocolVersion().used();
 
     // TODO: Abstract this dictionary into a RemoteConfiguration object, which
     //       understands how to do the negotiation, etc, but uses Value (i.e.

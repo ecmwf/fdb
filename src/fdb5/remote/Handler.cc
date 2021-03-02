@@ -242,10 +242,14 @@ void RemoteHandler::initialiseConnections() {
     MemoryStream s1(payload1);
     SessionID clientSession(s1);
     net::Endpoint endpointFromClient(s1);
-    size_t remoteProtocolVersion = 0;
+    unsigned int remoteProtocolVersion = 0;
     try {
-        s1.read(&remoteProtocolVersion, sizeof(int));
-    } catch (...) {}
+        s1 >> remoteProtocolVersion;
+    } catch (...) {
+        std::ostringstream msg;
+        msg << "Error retrieving remote protocol version";
+        throw eckit::SeriousBug(msg.str(), Here());
+    }
 
     LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion);
 
