@@ -65,7 +65,7 @@ RemoteProtocolVersion LibFdb5::remoteProtocolVersion() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static unsigned int getUserEnv() {
+static unsigned int getUserEnvSerialisationVersion() {
     if (::getenv("FDB5_SERIALISATION_VERSION")) {
         const char* versionstr = ::getenv("FDB5_SERIALISATION_VERSION");
         eckit::Log::debug() << "FDB5_SERIALISATION_VERSION overidde to version: " << versionstr << std::endl;
@@ -76,7 +76,7 @@ static unsigned int getUserEnv() {
 }
 
 SerialisationVersion::SerialisationVersion() {
-    static unsigned int user = getUserEnv();
+    static unsigned int user = getUserEnvSerialisationVersion();
     // std::cout << "SerialisationVersion user = " << user << std::endl;
     // std::cout << "SerialisationVersion supported = " << supportedStr() << std::endl;
     if (user) {
@@ -102,7 +102,7 @@ unsigned int SerialisationVersion::defaulted() const {
     return 2;
 }
 
-unsigned int SerialisationVersion::use() const {
+unsigned int SerialisationVersion::used() const {
     return used_;
 }
 
@@ -150,36 +150,28 @@ static unsigned int getUserEnvRemoteProtocol() {
 }
 
 static bool getUserEnvSkipSanityCheck() {
-    if (::getenv("FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK")) {
-        const char* skipcheckstr = ::getenv("FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK");
-        eckit::Log::debug() << "FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK overidde to: " << skipcheckstr << std::endl;
-        return eckit::Translator<std::string, bool>()(skipcheckstr);
-    }
-    return false;  //
+    return ::getenv("FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK");
 }
 
 RemoteProtocolVersion::RemoteProtocolVersion() {
     static unsigned int user = getUserEnvRemoteProtocol();
+    static bool skipcheck    = getUserEnvSkipSanityCheck();
 
-    if (user) {
-        static bool skipcheck = getUserEnvSkipSanityCheck();
-
-        if (skipcheck) { // to force a specific remote protocol version, without sanity checks
-            used_ = user;
-        } else {
-            bool valid = check(user, false);
-            if(not valid) {
-                std::ostringstream msg;
-                msg << "Unsupported FDB5 remote protocol version " << user
-                << " - supported: " << supportedStr()
-                << std::endl;
-                throw eckit::BadValue(msg.str(), Here());
-            }
-            used_ = user;
-        }
-    } else {
+    if(not user) {
         used_ = defaulted();
+        return;
     }
+
+    if (not skipcheck) {
+        bool valid = check(user, false);
+        if (not valid) {
+            std::ostringstream msg;
+            msg << "Unsupported FDB5 remote protocol version " << user << " - supported: " << supportedStr()
+                << std::endl;
+            throw eckit::BadValue(msg.str(), Here());
+        }
+    }
+    used_ = user;
 }
 
 unsigned int RemoteProtocolVersion::latest() const {

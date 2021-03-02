@@ -52,7 +52,7 @@ public:
     /// Defines the serialisation version the software is meant to create new entries with
     /// Normally is the latest()
     /// But can be overriden by the variable FDB5_SERIALISATION_VERSION
-    unsigned int use() const;
+    unsigned int used() const;
 
     /// Checks the serialisation version is supported by the software
     bool check(unsigned int version, bool throwOnFail = true);
@@ -102,8 +102,10 @@ public:
 
     static LibFdb5& instance();
 
-    /// Returns a manager object  configuration according to the rules of FDB configuration search
+    /// Returns an object describing the serialisation version
     SerialisationVersion serialisationVersion() const;
+
+    /// Returns an object describing the remote protocol version
     RemoteProtocolVersion remoteProtocolVersion() const;
 
     /// Returns the default configuration according to the rules of FDB configuration search
