@@ -139,29 +139,44 @@ bool SerialisationVersion::check(unsigned int version, bool throwOnFail) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static int getUserEnvRemoteProtocol() {
+static unsigned int getUserEnvRemoteProtocol() {
     if (::getenv("FDB5_REMOTE_PROTOCOL_VERSION")) {
         const char* versionstr = ::getenv("FDB5_REMOTE_PROTOCOL_VERSION");
         eckit::Log::debug() << "FDB5_REMOTE_PROTOCOL_VERSION overidde to version: " << versionstr << std::endl;
-        return ::atoi(versionstr);
+        unsigned int version = ::atoi(versionstr);
+        return version;
     }
     return 0;  // no version override
 }
 
+static bool getUserEnvSkipSanityCheck() {
+    if (::getenv("FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK")) {
+        const char* skipcheckstr = ::getenv("FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK");
+        eckit::Log::debug() << "FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK overidde to: " << skipcheckstr << std::endl;
+        return eckit::Translator<std::string, bool>()(skipcheckstr);
+    }
+    return false;  //
+}
+
 RemoteProtocolVersion::RemoteProtocolVersion() {
-    static int user = getUserEnvRemoteProtocol();
-    if (user < 0) { // to force a specific remote protocol version, without sanity checks
-        used_ = -user;
-    } else if (user) {
-        bool valid = check(user, false);
-        if(not valid) {
-            std::ostringstream msg;
-            msg << "Unsupported FDB5 remote protocol version " << user
-            << " - supported: " << supportedStr()
-            << std::endl;
-            throw eckit::BadValue(msg.str(), Here());
+    static unsigned int user = getUserEnvRemoteProtocol();
+
+    if (user) {
+        static bool skipcheck = getUserEnvSkipSanityCheck();
+
+        if (skipcheck) { // to force a specific remote protocol version, without sanity checks
+            used_ = user;
+        } else {
+            bool valid = check(user, false);
+            if(not valid) {
+                std::ostringstream msg;
+                msg << "Unsupported FDB5 remote protocol version " << user
+                << " - supported: " << supportedStr()
+                << std::endl;
+                throw eckit::BadValue(msg.str(), Here());
+            }
+            used_ = user;
         }
-        used_ = user;
     } else {
         used_ = defaulted();
     }

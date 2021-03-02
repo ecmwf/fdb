@@ -90,10 +90,15 @@ cmp list content
 
 ### test connecting with another protocol version
 
-export FDB5_REMOTE_PROTOCOL_VERSION=-2
+export FDB5_REMOTE_PROTOCOL_VERSION=2
 
 ! $fdbread mars.req out.grib
 
+export FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK=ON
+
+! $fdbread mars.req out.grib
+
+unset FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK
 unset FDB5_REMOTE_PROTOCOL_VERSION
 
 $fdbread mars.req out.grib
@@ -101,10 +106,6 @@ $fdbread mars.req out.grib
 $gribls -m out.grib | tee out
 grep oper out | sed 's/ *$//' > content
 cmp list content
-
-export FDB5_REMOTE_PROTOCOL_VERSION=2
-
-! $fdbread mars.req out.grib
 
 export FDB5_REMOTE_PROTOCOL_VERSION=3
 
