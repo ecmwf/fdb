@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbsrv="$<TARGET_FILE:fdb-server>"
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-258
+
+### cleanup and prepare test
+
+rm -rf $bindir/root
+mkdir root
+
+for f in server.yaml client.yaml schema in.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+
+FDB5_CONFIG_FILE="server.yaml" $fdbsrv &
+SERVER_PID=$!
+
+killServer() {
+    kill -9 $SERVER_PID
+}
+
+trap killServer EXIT
+
+
+
+export FDB5_CONFIG_FILE=client.yaml
+
+$fdbwrite in.grib
+
+$gribset -s time=1200 in.grib in.1200.12.grib
+$gribset -s step=11 in.grib in.0000.11.grib
+$gribset -s step=13 in.grib in.0000.13.grib
+
+$fdbwrite in.1200.12.grib
+$fdbwrite in.0000.11.grib
+$fdbwrite in.0000.13.grib
+
+cat > mars.req <<EOF
+retrieve,
+   class=rd,
+   expver=xxxx,
+   stream=oper,
+   date=20201102,
+   time=0000,
+   type=fc,
+   levtype=sfc,
+   step=012,
+   domain=g,
+   param=166
+EOF
+
+
+cat > req <<EOF
+retrieve,
+   class=rd,
+   expver=xxxx,
+   stream=oper,
+   date=20201102,
+   time=0000/1200,
+   type=fc,
+   levtype=sfc,
+   step=11/012/13,
+   domain=g,
+   param=166
+EOF
+
+### tests with expanded request
+
+$fdbread mars.req out.grib
+
+cat > list <<EOF
+g           sfc         20201102    0000        12          166.128     rd          fc          oper        xxxx
+EOF
+
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp list content
+
+
+### test connecting with another protocol version
+
+export FDB5_REMOTE_PROTOCOL_VERSION=2
+
+! $fdbread mars.req out.grib
+
+export FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK=ON
+
+! $fdbread mars.req out.grib
+
+unset FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK
+unset FDB5_REMOTE_PROTOCOL_VERSION
+
+$fdbread mars.req out.grib
+
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp list content
+
+export FDB5_REMOTE_PROTOCOL_VERSION=3
+
+$fdbread mars.req out.grib
+
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp list content
+
