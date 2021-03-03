@@ -65,18 +65,19 @@ RemoteProtocolVersion LibFdb5::remoteProtocolVersion() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static unsigned int getUserEnvSerialisationVersion() {
-    if (::getenv("FDB5_SERIALISATION_VERSION")) {
-        const char* versionstr = ::getenv("FDB5_SERIALISATION_VERSION");
-        eckit::Log::debug() << "FDB5_SERIALISATION_VERSION overidde to version: " << versionstr << std::endl;
-        unsigned int version = ::atoi(versionstr);
-        return version;
+static unsigned getUserEnvSerialisationVersion() {
+
+    static unsigned fdbSerialisationVersion =
+        eckit::Resource<unsigned>("fdbSerialisationVersion;$FDB5_SERIALISATION_VERSION", 0);
+    
+    if (fdbSerialisationVersion) {
+        eckit::Log::debug() << "fdbSerialisationVersion overidde to version: " << fdbSerialisationVersion << std::endl;
     }
-    return 0;  // no version override
+    return fdbSerialisationVersion; // default is 0 (not defined by user/service)
 }
 
 SerialisationVersion::SerialisationVersion() {
-    static unsigned int user = getUserEnvSerialisationVersion();
+    static unsigned user = getUserEnvSerialisationVersion();
     // std::cout << "SerialisationVersion user = " << user << std::endl;
     // std::cout << "SerialisationVersion supported = " << supportedStr() << std::endl;
     if (user) {
@@ -139,12 +140,13 @@ bool SerialisationVersion::check(unsigned int version, bool throwOnFail) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static unsigned int getUserEnvRemoteProtocol() {
-    if (::getenv("FDB5_REMOTE_PROTOCOL_VERSION")) {
-        const char* versionstr = ::getenv("FDB5_REMOTE_PROTOCOL_VERSION");
-        eckit::Log::debug() << "FDB5_REMOTE_PROTOCOL_VERSION overidde to version: " << versionstr << std::endl;
-        unsigned int version = ::atoi(versionstr);
-        return version;
+static unsigned getUserEnvRemoteProtocol() {
+
+    static unsigned fdbRemoteProtocolVersion =
+        eckit::Resource<unsigned>("fdbRemoteProtocolVersion;$FDB5_REMOTE_PROTOCOL_VERSION", 0);
+    if (fdbRemoteProtocolVersion) {
+        eckit::Log::debug() << "fdbRemoteProtocolVersion overidde to version: " << fdbRemoteProtocolVersion
+                            << std::endl;
     }
     return 0;  // no version override
 }
@@ -154,8 +156,8 @@ static bool getUserEnvSkipSanityCheck() {
 }
 
 RemoteProtocolVersion::RemoteProtocolVersion() {
-    static unsigned int user = getUserEnvRemoteProtocol();
-    static bool skipcheck    = getUserEnvSkipSanityCheck();
+    static unsigned  user = getUserEnvRemoteProtocol();
+    static bool skipcheck = getUserEnvSkipSanityCheck();
 
     if(not user) {
         used_ = defaulted();
