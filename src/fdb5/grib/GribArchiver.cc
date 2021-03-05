@@ -10,15 +10,11 @@
 
 #include <vector>
 
-#include "eckit/config/Resource.h"
-
 #include "eckit/log/Timer.h"
 #include "eckit/log/Plural.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
-
-#include "eckit/io/BufferedHandle.h"
 
 #include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
@@ -142,12 +138,9 @@ eckit::Channel& GribArchiver::logVerbose() const {
 
 }
 
-eckit::Length GribArchiver::archive(eckit::DataHandle& rawsource) {
+eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
 
     eckit::Timer timer("fdb::service::archive");
-
-    static size_t bufSize = eckit::Resource<size_t>("fdbArchiveReadBuffer;$FDB_ARCHIVE_READ_BUFFER", 4*1024*1024);
-    eckit::BufferedHandle source(stat, bufSize);
 
     eckit::message::Reader reader(source);
 
