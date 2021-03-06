@@ -46,14 +46,18 @@ public:
                     "List of comma separated key-values of what to exclude from the input data, e.g --exclude-filter=time=0000"));
 
         options_.push_back(
-                    new eckit::option::SimpleOption<bool>("statistics",
-                                                          "Report timing statistics"));
+            new eckit::option::SimpleOption<std::string>("modifiers",
+                                                         "List of comma separated key-values of modifiers to each message "
+                                                         "int input data, e.g --modifiers=packingType=grib_ccsds,expver=0042"));
+
+        options_.push_back(new eckit::option::SimpleOption<bool>("statistics", "Report timing statistics"));
 
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
     }
 
     std::string filterInclude_;
     std::string filterExclude_;
+    std::string modifiers_;
     bool verbose_;
 };
 
@@ -67,6 +71,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     FDBTool::init(args);
     args.get("include-filter", filterInclude_);
     args.get("exclude-filter", filterExclude_);
+    args.get("modifiers", modifiers_);
     verbose_ = args.getBool("verbose", false);
 }
 
@@ -75,6 +80,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
     fdb5::GribArchiver archiver(fdb5::Key(), false, verbose_, args);
 
     archiver.filters(filterInclude_, filterExclude_);
+    archiver.modifiers(modifiers_);
 
     for (size_t i = 0; i < args.count(); i++) {
 

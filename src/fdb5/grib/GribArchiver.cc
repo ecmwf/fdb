@@ -16,6 +16,8 @@
 #include "eckit/log/Seconds.h"
 #include "eckit/log/Progress.h"
 
+#include "eckit/utils/Tokenizer.h"
+
 #include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
 
@@ -95,10 +97,31 @@ static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::st
 }
 
 void GribArchiver::filters(const std::string& include, const std::string& exclude) {
-
     include_ = make_filter_requests(include);
     exclude_ = make_filter_requests(exclude);
+}
 
+void GribArchiver::modifiers(const std::string& modify) {
+    // split string in form k1=v1,k2=v2,...
+    eckit::Tokenizer comma(',');
+    eckit::Tokenizer equal('=');
+
+    std::vector<std::string> pairs = comma.tokenize(modify);
+
+    // Log::info() << "pairs : " << pairs << std::endl;
+
+    for(auto& pair: pairs) {
+        std::vector<std::string> kv = equal.tokenize(pair);
+        if(kv.size() != 2)
+            throw eckit::BadValue("Invalid key-value pair " + pair);
+        // Log::info() << "kv : " << kv[0] << " = " << kv[1] << std::endl;
+        modifiers_[kv[0]] = kv[1];
+    }
+    // Log::info() << "modifiers : " << modifiers_ << std::endl;
+}
+
+eckit::message::Message GribArchiver::transform(eckit::message::Message& msg) {
+    return msg.transform(modifiers_);
 }
 
 static bool matchAny(const metkit::mars::MarsRequest& f, const std::vector<metkit::mars::MarsRequest>& v) {
@@ -133,9 +156,7 @@ bool GribArchiver::filterOut(const Key& k) const {
 }
 
 eckit::Channel& GribArchiver::logVerbose() const {
-
     return verbose_ ? Log::info() : Log::debug<LibFdb5>();
-
 }
 
 eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
@@ -160,7 +181,13 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
 
             ASSERT(key.match(key_));
 
-            if( filterOut(key) ) continue;
+            if (filterOut(key))
+                continue;
+
+            if (modifiers_.size()) {
+                msg = transform(msg);
+                gribToKey(msg, key); // re-build the key, as it may have changed
+            }
 
             logVerbose() << "Archiving " << key << std::endl;
 
