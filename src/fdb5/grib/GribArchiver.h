@@ -58,7 +58,7 @@ private:  // protected
 
     bool filterOut(const Key& k) const;
 
-    void modify(eckit::message::Message&);
+    eckit::message::Message transform(eckit::message::Message&);
 
 private:       // members
     FDB fdb_;  //< FDB API object
