@@ -19,61 +19,63 @@
 #include <iosfwd>
 
 #include "eckit/io/Length.h"
+#include "eckit/types/Types.h"
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/database/Archiver.h"
-#include "fdb5/config/Config.h"
-#include "fdb5/grib/GribDecoder.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Archiver.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/grib/GribDecoder.h"
 
 namespace eckit {
 class DataHandle;
+namespace message {
+class Message;
 }
+}  // namespace eckit
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class GribArchiver :
-    public GribDecoder {
+class GribArchiver : public GribDecoder {
 
-public: // methods
-
-    GribArchiver(const fdb5::Key& key = Key(),
-                 bool completeTransfers = false,
-                 bool verbose = false,
-                 const Config& config=Config());
+public:  // methods
+    GribArchiver(const fdb5::Key& key = Key(), bool completeTransfers = false, bool verbose = false,
+                 const Config& config = Config());
 
     void filters(const std::string& include, const std::string& exclude);
+    void modifiers(const std::string& modify);
 
-    eckit::Length archive(eckit::DataHandle &source);
+    eckit::Length archive(eckit::DataHandle& source);
 
     void flush();
 
-private: // protected
-
+private:  // protected
     eckit::Channel& logVerbose() const;
 
     bool filterOut(const Key& k) const;
 
-private: // members
+    void modify(eckit::message::Message&);
 
-    FDB fdb_;
+private:       // members
+    FDB fdb_;  //< FDB API object
 
     fdb5::Key key_;
 
     std::vector<metkit::mars::MarsRequest> include_;
     std::vector<metkit::mars::MarsRequest> exclude_;
 
-    bool completeTransfers_;
+    eckit::StringDict modifiers_;
 
+    bool completeTransfers_;
     bool verbose_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif
