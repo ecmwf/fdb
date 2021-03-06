@@ -11,8 +11,7 @@
 /// @file   GribArchiver.h
 /// @date   December 2020
 
-#ifndef fdb5_GribArchiver_H
-#define fdb5_GribArchiver_H
+#pragma once
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
@@ -20,7 +19,10 @@
 
 namespace eckit {
 class DataHandle;
+namespace message {
+class Message;
 }
+}  // namespace eckit
 
 namespace fdb5 {
 
@@ -40,6 +42,4 @@ public: // methods
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
-
-#endif
+}  // namespace fdb5

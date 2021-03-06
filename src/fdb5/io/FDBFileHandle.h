@@ -47,6 +47,7 @@ public:  // methods
     virtual void print(std::ostream &) const override;
     virtual eckit::Offset position() override;
     virtual std::string title() const override;
+    virtual bool canSeek() const override { return false; }
 
 protected: // members
 

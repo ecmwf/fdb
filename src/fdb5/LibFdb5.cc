@@ -59,27 +59,32 @@ SerialisationVersion LibFdb5::serialisationVersion() const {
     return SerialisationVersion{};
 }
 
+RemoteProtocolVersion LibFdb5::remoteProtocolVersion() const {
+    return RemoteProtocolVersion{};
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
-static unsigned int getUserEnv() {
-    if (::getenv("FDB5_SERIALISATION_VERSION")) {
-        const char* versionstr = ::getenv("FDB5_SERIALISATION_VERSION");
-        eckit::Log::debug() << "FDB5_SERIALISATION_VERSION overidde to version: " << versionstr << std::endl;
-        unsigned int version = ::atoi(versionstr);
-        return version;
+static unsigned getUserEnvSerialisationVersion() {
+
+    static unsigned fdbSerialisationVersion =
+        eckit::Resource<unsigned>("fdbSerialisationVersion;$FDB5_SERIALISATION_VERSION", 0);
+    
+    if (fdbSerialisationVersion) {
+        eckit::Log::debug() << "fdbSerialisationVersion overidde to version: " << fdbSerialisationVersion << std::endl;
     }
-    return 0;  // no version override
+    return fdbSerialisationVersion; // default is 0 (not defined by user/service)
 }
 
 SerialisationVersion::SerialisationVersion() {
-    static unsigned int user = getUserEnv();
+    static unsigned user = getUserEnvSerialisationVersion();
     // std::cout << "SerialisationVersion user = " << user << std::endl;
     // std::cout << "SerialisationVersion supported = " << supportedStr() << std::endl;
     if (user) {
         bool valid = check(user, false);
         if(not valid) {
             std::ostringstream msg;
-            msg << "Unsupported FDB5 serialisation version " << user 
+            msg << "Unsupported FDB5 serialisation version " << user
             << " - supported: " << supportedStr()
             << std::endl;
             throw eckit::BadValue(msg.str(), Here());
@@ -98,7 +103,7 @@ unsigned int SerialisationVersion::defaulted() const {
     return 2;
 }
 
-unsigned int SerialisationVersion::use() const {
+unsigned int SerialisationVersion::used() const {
     return used_;
 }
 
@@ -126,7 +131,88 @@ bool SerialisationVersion::check(unsigned int version, bool throwOnFail) {
     }
     if (throwOnFail) {
         std::ostringstream msg;
-        msg << "Record version mistach, software supports versions " << supportedStr() << " got " << version;
+        msg << "Record version mismatch, software supports versions " << supportedStr() << " got " << version;
+        throw eckit::SeriousBug(msg.str());
+    }
+    return false;
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+static unsigned getUserEnvRemoteProtocol() {
+
+    static unsigned fdbRemoteProtocolVersion =
+        eckit::Resource<unsigned>("fdbRemoteProtocolVersion;$FDB5_REMOTE_PROTOCOL_VERSION", 0);
+    if (fdbRemoteProtocolVersion) {
+        eckit::Log::debug() << "fdbRemoteProtocolVersion overidde to version: " << fdbRemoteProtocolVersion
+                            << std::endl;
+    }
+    return 0;  // no version override
+}
+
+static bool getUserEnvSkipSanityCheck() {
+    return ::getenv("FDB5_SKIP_REMOTE_PROTOCOL_SANITY_CHECK");
+}
+
+RemoteProtocolVersion::RemoteProtocolVersion() {
+    static unsigned  user = getUserEnvRemoteProtocol();
+    static bool skipcheck = getUserEnvSkipSanityCheck();
+
+    if(not user) {
+        used_ = defaulted();
+        return;
+    }
+
+    if (not skipcheck) {
+        bool valid = check(user, false);
+        if (not valid) {
+            std::ostringstream msg;
+            msg << "Unsupported FDB5 remote protocol version " << user << " - supported: " << supportedStr()
+                << std::endl;
+            throw eckit::BadValue(msg.str(), Here());
+        }
+    }
+    used_ = user;
+}
+
+unsigned int RemoteProtocolVersion::latest() const {
+    return 3;
+}
+
+unsigned int RemoteProtocolVersion::defaulted() const {
+    return 3;
+}
+
+unsigned int RemoteProtocolVersion::used() const {
+    return used_;
+}
+
+std::vector<unsigned int> RemoteProtocolVersion::supported() const {
+    std::vector<unsigned int> versions = {3};
+    return versions;
+}
+
+std::string RemoteProtocolVersion::supportedStr() const {
+    std::ostringstream oss;
+    char sep = '[';
+    for (auto v : supported()) {
+        oss << sep << v;
+        sep = ',';
+    }
+    oss << ']';
+    return oss.str();
+}
+
+bool RemoteProtocolVersion::check(unsigned int version, bool throwOnFail) {
+    std::vector<unsigned int> versionsSupported = supported();
+    for (auto v : versionsSupported) {
+        if (version == v)
+            return true;
+    }
+    if (throwOnFail) {
+        std::ostringstream msg;
+        msg << "Remote protocol version mismaatch, software supports versions " << supportedStr() << " got " << version;
         throw eckit::SeriousBug(msg.str());
     }
     return false;
