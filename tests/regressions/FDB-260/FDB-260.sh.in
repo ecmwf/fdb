@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-260
+
+### cleanup and prepare test
+
+rm -rf $bindir/root
+mkdir root
+
+for f in config.yaml schema in.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+$gribset -s time=1200 in.grib in.1200.12.grib
+$gribset -s step=11 in.grib in.0000.11.grib
+$gribset -s step=13 in.grib in.0000.13.grib
+
+$fdbwrite --modifiers=expver=yyyy in.grib
+$fdbwrite --modifiers=expver=yyyy in.1200.12.grib
+
+cat in.0000.11.grib in.0000.13.grib > multi.grib
+
+$fdbwrite --modifiers=expver=yyyy,type=an multi.grib
+
+# should return nothing
+$fdblist --porcelain class=rd,expver=xxxx
+
+# should return 4 fields
+$fdblist --porcelain class=rd,expver=yyyy
+
+### test 1
+
+cat > req.1 <<EOF
+retrieve,
+   class=rd,
+   expver=yyyy,
+   stream=oper,
+   date=20201102,
+   time=0000,
+   type=an,
+   levtype=sfc,
+   step=11,
+   domain=g,
+   param=166
+EOF
+
+$fdbread req.1 out.grib
+
+cat > list <<EOF
+g           sfc         20201102    0000        11          166.128     rd          an          oper        yyyy
+EOF
+
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp list content
+
+
+### test 2
+
+cat > req.2 <<EOF
+retrieve,
+   class=rd,
+   expver=yyyy,
+   stream=oper,
+   date=20201102,
+   time=0000/1200,
+   type=fc,
+   levtype=sfc,
+   step=12,
+   domain=g,
+   param=166
+EOF
+
+$fdbread req.2 out.grib
+
+cat > list <<EOF
+g           sfc         20201102    0000        12          166.128     rd          fc          oper        yyyy
+g           sfc         20201102    1200        12          166.128     rd          fc          oper        yyyy
+EOF
+
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp list content
+
+
+# test grib packingType
+$gribset -s edition=2,step=24 in.grib 24.grib
+
+$fdbwrite --modifiers=packingType=grid_ieee,expver=zzzz,type=an 24.grib
+
+$fdblist --porcelain class=rd,expver=zzzz
+
+cat > req.3 <<EOF
+retrieve,
+   class=rd,
+   expver=zzzz,
+   stream=oper,
+   date=20201102,
+   time=0000,
+   type=an,
+   levtype=sfc,
+   step=24,
+   domain=g,
+   param=166
+EOF
+
+$fdbread req.3 out.grib
+
+cat > list <<EOF
+2            ecmf         20201102     an           regular_ll   24           heightAboveGround  10           10v          grid_ieee
+EOF
+
+$gribls out.grib | tee out
+grep ecmf out | sed 's/ *$//' > content
+cmp list content
+
+cat > list <<EOF
+g           20201102    0000        zzzz        rd          an          oper        24          sfc         166
+EOF
+
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp list content
