@@ -6,4 +6,4 @@ serverPort: 36604
 spaces:
 - handler: Default
   roots:
-  - path: ./localroot
+  - path: ./root
