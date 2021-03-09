@@ -180,6 +180,10 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
             messageToKey(msg, key);
 
+            LOG_DEBUG_LIB(LibFdb5) << "Archiving message "
+                                   << " key: " << key_ << " data: " << msg.data() << " length:" << msg.length()
+                                   << std::endl;
+
             ASSERT(key.match(key_));
 
             if (filterOut(key))
@@ -187,7 +191,8 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
             if (modifiers_.size()) {
                 msg = transform(msg);
-                messageToKey(msg, key); // re-build the key, as it may have changed
+                key.clear();
+                messageToKey(msg, key);  // re-build the key, as it may have changed
             }
 
             logVerbose() << "Archiving " << key << std::endl;
