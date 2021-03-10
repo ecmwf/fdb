@@ -26,6 +26,8 @@ done
 FDB5_CONFIG_FILE="server.yaml" $fdbsrv &
 SERVER_PID=$!
 
+sleep 2
+
 killServer() {
     kill -9 $SERVER_PID
 }
