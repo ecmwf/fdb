@@ -117,3 +117,4 @@ $gribls -m out.grib | tee out
 grep oper out | sed 's/ *$//' > content
 cmp list content
 
+killServer
