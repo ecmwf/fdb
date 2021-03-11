@@ -216,12 +216,12 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
         throw;
     }
 
-    eckit::Log::userInfo() << "Archived " << eckit::Plural(count, "field") << std::endl;
+    eckit::Log::userInfo() << "Archived " << eckit::Plural(count, "message") << std::endl;
 
-    eckit::Log::info() << "FDB archive " << eckit::Plural(count, "field") << ","
+    eckit::Log::info() << "FDB archive " << eckit::Plural(count, "message") << ","
                        << " size " << eckit::Bytes(total_size) << ","
-                       << " in " << eckit::Seconds(timer.elapsed())
-                       << " (" << eckit::Bytes(total_size, timer) << ")" <<  std::endl;
+                       << " in " << eckit::Seconds(timer.elapsed()) << " (" << eckit::Bytes(total_size, timer) << ")"
+                       << std::endl;
 
     return total_size;
 }
