@@ -89,7 +89,7 @@ struct KeyHasher {
 
 void FDBList::execute(const CmdArgs& args) {
 
-    FDB fdb;
+    FDB fdb(config(args));
 
     std::unordered_set<Key, KeyHasher> seenKeys_;
 

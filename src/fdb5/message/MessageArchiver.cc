@@ -26,7 +26,7 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/grib/GribArchiver.h"
+#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
 
@@ -36,8 +36,8 @@ using eckit::Log;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-GribArchiver::GribArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
-    GribDecoder(),
+MessageArchiver::MessageArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
+    MessageDecoder(),
     fdb_(config),
     key_(key),
     completeTransfers_(completeTransfers),
@@ -96,12 +96,12 @@ static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::st
     return r;
 }
 
-void GribArchiver::filters(const std::string& include, const std::string& exclude) {
+void MessageArchiver::filters(const std::string& include, const std::string& exclude) {
     include_ = make_filter_requests(include);
     exclude_ = make_filter_requests(exclude);
 }
 
-void GribArchiver::modifiers(const std::string& modify) {
+void MessageArchiver::modifiers(const std::string& modify) {
     // split string in form k1=v1,k2=v2,...
     eckit::Tokenizer comma(',');
     eckit::Tokenizer equal('=');
@@ -120,7 +120,7 @@ void GribArchiver::modifiers(const std::string& modify) {
     // Log::info() << "modifiers : " << modifiers_ << std::endl;
 }
 
-eckit::message::Message GribArchiver::transform(eckit::message::Message& msg) {
+eckit::message::Message MessageArchiver::transform(eckit::message::Message& msg) {
     return msg.transform(modifiers_);
 }
 
@@ -131,7 +131,7 @@ static bool matchAny(const metkit::mars::MarsRequest& f, const std::vector<metki
     return false;
 }
 
-bool GribArchiver::filterOut(const Key& k) const {
+bool MessageArchiver::filterOut(const Key& k) const {
 
     const bool out = true;
 
@@ -155,11 +155,11 @@ bool GribArchiver::filterOut(const Key& k) const {
     return !out;
 }
 
-eckit::Channel& GribArchiver::logVerbose() const {
+eckit::Channel& MessageArchiver::logVerbose() const {
     return verbose_ ? Log::info() : Log::debug<LibFdb5>();
 }
 
-eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
+eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
     eckit::Timer timer("fdb::service::archive");
 
@@ -172,12 +172,17 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
 
     try {
 
-        Key key;
         eckit::message::Message msg;
 
         while ( (msg = reader.next()) ) {
 
-            gribToKey(msg, key);
+            Key key;
+
+            messageToKey(msg, key);
+
+            LOG_DEBUG_LIB(LibFdb5) << "Archiving message "
+                                   << " key: " << key_ << " data: " << msg.data() << " length:" << msg.length()
+                                   << std::endl;
 
             ASSERT(key.match(key_));
 
@@ -186,7 +191,8 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
 
             if (modifiers_.size()) {
                 msg = transform(msg);
-                gribToKey(msg, key); // re-build the key, as it may have changed
+                key.clear();
+                messageToKey(msg, key);  // re-build the key, as it may have changed
             }
 
             logVerbose() << "Archiving " << key << std::endl;
@@ -210,17 +216,17 @@ eckit::Length GribArchiver::archive(eckit::DataHandle& source) {
         throw;
     }
 
-    eckit::Log::userInfo() << "Archived " << eckit::Plural(count, "field") << std::endl;
+    eckit::Log::userInfo() << "Archived " << eckit::Plural(count, "message") << std::endl;
 
-    eckit::Log::info() << "FDB archive " << eckit::Plural(count, "field") << ","
+    eckit::Log::info() << "FDB archive " << eckit::Plural(count, "message") << ","
                        << " size " << eckit::Bytes(total_size) << ","
-                       << " in " << eckit::Seconds(timer.elapsed())
-                       << " (" << eckit::Bytes(total_size, timer) << ")" <<  std::endl;
+                       << " in " << eckit::Seconds(timer.elapsed()) << " (" << eckit::Bytes(total_size, timer) << ")"
+                       << std::endl;
 
     return total_size;
 }
 
-void GribArchiver::flush() {
+void MessageArchiver::flush() {
     fdb_.flush();
 }
 

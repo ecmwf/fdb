@@ -181,10 +181,6 @@ namespace {
 
 // Template magic to provide a consistent error-handling approach
 
-int innerWrapFn(std::function<int()> f) {
-    return f();
-}
-
 int innerWrapFn(std::function<void()> f) {
     f();
     return FDB_SUCCESS;

@@ -187,7 +187,7 @@ void RemoteFDB::connect() {
             // And the connections are set up. Let everything start up!
             listeningThread_ = std::thread([this] { listeningThreadLoop(); });
             connected_ = true;
-        } catch(TooManyRetries e) {
+        } catch(TooManyRetries& e) {
             if (controlClient_.isConnected()) {
                 controlClient_.close();
                 throw ConnectionError(fdbMaxConnectRetries, dataEndpoint_);
@@ -590,7 +590,7 @@ struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
         s << doit_;
         s << porcelain_;
     }
-    static PurgeElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
+    static PurgeElement valueFromStream(eckit::Stream& s, RemoteFDB*) {
         PurgeElement elem;
         s >> elem;
         return elem;
@@ -610,7 +610,7 @@ struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
         s << porcelain_;
         s << unsafeWipeAll_;
     }
-    static WipeElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
+    static WipeElement valueFromStream(eckit::Stream& s, RemoteFDB*) {
         WipeElement elem;
         s >> elem;
         return elem;

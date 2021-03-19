@@ -129,8 +129,6 @@ list( APPEND fdb5_srcs
     database/IndexFactory.h
     database/Key.cc
     database/Key.h
-    database/messageToKey.cc
-    database/messageToKey.h
     database/ReadVisitor.cc
     database/ReadVisitor.h
     database/Report.cc
@@ -145,12 +143,13 @@ list( APPEND fdb5_srcs
     database/Notifier.h
     database/Manager.cc
     database/Manager.h
-    grib/GribArchiver.cc
+    message/MessageArchiver.cc
+    message/MessageArchiver.h
+    message/MessageDecoder.cc
+    message/MessageDecoder.h
+    message/MessageIndexer.cc
+    message/MessageIndexer.h
     grib/GribArchiver.h
-    grib/GribDecoder.cc
-    grib/GribDecoder.h
-    grib/GribIndexer.cc
-    grib/GribIndexer.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
     io/SingleGribMungePartFileHandle.cc

@@ -8,18 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   GribIndexer.h
+/// @file   MessageIndexer.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_GribIndexer_H
-#define fdb5_GribIndexer_H
+#ifndef fdb5_MessageIndexer_H
+#define fdb5_MessageIndexer_H
 
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/database/Archiver.h"
-#include "fdb5/grib/GribDecoder.h"
+#include "fdb5/message/MessageDecoder.h"
 
 namespace eckit   { class DataHandle; }
 
@@ -27,11 +27,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class GribIndexer : public Archiver, public GribDecoder {
+class MessageIndexer : public Archiver, public MessageDecoder {
 
 public: // methods
 
-    GribIndexer(bool checkDuplicates = false);
+    MessageIndexer(bool checkDuplicates = false);
 
     void index(const eckit::PathName& path);
 

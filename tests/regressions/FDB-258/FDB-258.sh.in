@@ -12,6 +12,8 @@ srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 wdir=$bindir/FDB-258
 
+export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+
 ### cleanup and prepare test
 
 rm -rf $bindir/root
@@ -25,6 +27,8 @@ done
 
 FDB5_CONFIG_FILE="server.yaml" $fdbsrv &
 SERVER_PID=$!
+
+sleep 2
 
 killServer() {
     kill -9 $SERVER_PID
@@ -115,3 +119,4 @@ $gribls -m out.grib | tee out
 grep oper out | sed 's/ *$//' > content
 cmp list content
 
+killServer

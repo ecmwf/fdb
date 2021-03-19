@@ -80,8 +80,6 @@ private: // methods
 class ControlIdentifiers {
     using value_type = typename std::underlying_type<ControlIdentifier>::type;
     value_type value_;
-    value_type remaining_;
-
 
 public:
     ControlIdentifiers();

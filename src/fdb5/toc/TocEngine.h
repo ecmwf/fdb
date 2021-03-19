@@ -28,19 +28,16 @@ public: // methods
 
     static const char* typeName() { return "toc"; }
 
-    static std::vector<eckit::URI> databases(const Key& key,
-                                                  const std::vector<eckit::PathName>& dirs,
-                                                  const Config& config);
+private:  // methods
+    std::set<eckit::PathName> databases(const std::set<Key>& keys, const std::vector<eckit::PathName>& dirs,
+                                        const Config& config) const;
 
-    static std::vector<eckit::URI> databases(const metkit::mars::MarsRequest& rq,
-                                                  const std::vector<eckit::PathName>& dirs,
-                                                  const Config& config);
+    std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs, const Config& config) const;
 
-private: // methods
+    std::vector<eckit::URI> databases(const metkit::mars::MarsRequest& rq, const std::vector<eckit::PathName>& dirs,
+                                      const Config& config) const;
 
-    static std::set<eckit::PathName> databases(const std::set<Key>& keys,
-                                               const std::vector<eckit::PathName>& dirs,
-                                               const Config& config);
+    void scan_dbs(const std::string& path, std::list<std::string>& dbs) const;
 
 protected: // methods
 

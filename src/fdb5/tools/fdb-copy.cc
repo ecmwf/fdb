@@ -20,8 +20,7 @@
 #include "metkit/mars/MarsExpension.h"
 
 #include "fdb5/api/FDB.h"
-#include "fdb5/grib/GribArchiver.h"
-#include "fdb5/grib/GribDecoder.h"
+#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
 
@@ -117,7 +116,7 @@ void FDBCopy::execute(const CmdArgs& args) {
 
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
-    fdb5::GribArchiver fdbWriter(fdb5::Key(), false, verbose, writeConfig);
+    fdb5::MessageArchiver fdbWriter(fdb5::Key(), false, verbose, writeConfig);
     fdbWriter.archive(*dh);
 }
              

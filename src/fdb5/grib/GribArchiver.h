@@ -9,25 +9,13 @@
  */
 
 /// @file   GribArchiver.h
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Mar 2016
+/// @date   December 2020
 
-#ifndef fdb5_GribArchiver_H
-#define fdb5_GribArchiver_H
+#pragma once
 
-#include <iosfwd>
-
-#include "eckit/io/Length.h"
-#include "eckit/types/Types.h"
-
-#include "metkit/mars/MarsRequest.h"
-
-#include "fdb5/api/FDB.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Archiver.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/grib/GribDecoder.h"
+#include "fdb5/message/MessageArchiver.h"
 
 namespace eckit {
 class DataHandle;
@@ -40,42 +28,18 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class GribArchiver : public GribDecoder {
+// TODO: remove as soon as mars-server has been updated to use MessageArchiver
 
-public:  // methods
-    GribArchiver(const fdb5::Key& key = Key(), bool completeTransfers = false, bool verbose = false,
-                 const Config& config = Config());
+class GribArchiver : public MessageArchiver {
 
-    void filters(const std::string& include, const std::string& exclude);
-    void modifiers(const std::string& modify);
+public: // methods
 
-    eckit::Length archive(eckit::DataHandle& source);
-
-    void flush();
-
-private:  // protected
-    eckit::Channel& logVerbose() const;
-
-    bool filterOut(const Key& k) const;
-
-    eckit::message::Message transform(eckit::message::Message&);
-
-private:       // members
-    FDB fdb_;  //< FDB API object
-
-    fdb5::Key key_;
-
-    std::vector<metkit::mars::MarsRequest> include_;
-    std::vector<metkit::mars::MarsRequest> exclude_;
-
-    eckit::StringDict modifiers_;
-
-    bool completeTransfers_;
-    bool verbose_;
+    GribArchiver(const fdb5::Key& key = Key(),
+                 bool completeTransfers = false,
+                 bool verbose = false,
+                 const Config& config=Config()) : MessageArchiver(key, completeTransfers, verbose, config) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif
