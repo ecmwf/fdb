@@ -440,8 +440,10 @@ std::string Key::toString() const {
     for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
         eckit::StringDict::const_iterator i = keys_.find(*j);
         ASSERT(i != keys_.end());
-        res += sep + *j + '=' + i->second;
-        sep = ",";
+        if (!i->second.empty()) {
+            res += sep + *j + '=' + i->second;
+            sep = ",";
+        }
     }
     return res;
 }
