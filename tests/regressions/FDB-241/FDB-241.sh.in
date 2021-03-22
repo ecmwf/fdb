@@ -12,8 +12,10 @@ bindir=@CMAKE_CURRENT_BINARY_DIR@
 
 ### cleanup and prepare test
 
-rm -rf $bindir/localroot
-mkdir localroot
+cd $bindir
+
+rm -rf $bindir/root
+mkdir root
 
 for f in local.yaml schema 7.odb 6.odb 5.odb 3.odb
 do

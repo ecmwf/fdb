@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_MessageArchiver_H
-#define fdb5_MessageArchiver_H
+#pragma once
 
 #include <iosfwd>
 
@@ -36,8 +35,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class MessageArchiver :
-    public MessageDecoder {
+class MessageArchiver : public MessageDecoder {
 
 public: // methods
 
@@ -47,6 +45,7 @@ public: // methods
                  const Config& config=Config());
 
     void filters(const std::string& include, const std::string& exclude);
+    void modifiers(const std::string& modify);
 
     eckit::Length archive(eckit::DataHandle &source);
 
@@ -58,6 +57,8 @@ private: // protected
 
     bool filterOut(const Key& k) const;
 
+    eckit::message::Message transform(eckit::message::Message&);
+
 private: // members
 
     FDB fdb_;
@@ -67,6 +68,8 @@ private: // members
     std::vector<metkit::mars::MarsRequest> include_;
     std::vector<metkit::mars::MarsRequest> exclude_;
 
+    eckit::StringDict modifiers_;
+
     bool completeTransfers_;
 
     bool verbose_;
@@ -75,5 +78,3 @@ private: // members
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

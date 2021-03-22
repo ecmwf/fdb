@@ -64,7 +64,7 @@ void MessageIndexer::index(const eckit::PathName &path) {
         count++;
     }
 
-    eckit::Log::info() << "FDB indexer " << eckit::Plural(count, "field") << ","
+    eckit::Log::info() << "FDB indexer " << eckit::Plural(count, "message") << ","
                        << " size " << eckit::Bytes(total_size) << ","
                        << " in " << eckit::Seconds(timer.elapsed())
                        << " (" << eckit::Bytes(total_size, timer) << ")" <<  std::endl;

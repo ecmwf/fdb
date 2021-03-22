@@ -2,7 +2,6 @@
 type: local
 engine: toc
 schema: ./schema
-serverPort: 36604
 spaces:
 - handler: Default
   roots:
