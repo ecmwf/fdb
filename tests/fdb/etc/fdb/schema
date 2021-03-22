@@ -157,7 +157,7 @@ method:     Integer;
 [ class, expver, stream=enfo/efov, date, time, domain
 
        [ type, levtype=dp, product?, section?
-                          [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
+              [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
 
        [ type=tu, levtype, reference
                [ step, number, levelist?, param ]]
@@ -302,7 +302,7 @@ method:     Integer;
 [ class, expver, stream=enfh, date, time, domain
 
        [ type, levtype=dp, hdate, product?, section?
-                          [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
+              [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
 
        [ type, levtype, hdate
                [ step, number?, levelist?, param ]]
@@ -368,7 +368,7 @@ method:     Integer;
 [ class, expver, stream=mmsf, date, time, domain
 
        [ type, levtype=dp, origin, product, section, system?, method
-                          [ step, number, levelist?, latitude?, longitude?, range?, param ]]
+              [ step, number, levelist?, latitude?, longitude?, range?, param ]]
 
        [ type, levtype, origin, system?, method
                [ step, number, levelist?, param ]]
@@ -378,7 +378,7 @@ method:     Integer;
 [ class, expver, stream=mnfc, date, time, domain
 
        [ type, levtype=dp, origin, product, section, system?, method
-                          [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
+              [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
 
        [ type, levtype, origin, system?, method
                [ step, number?, levelist?, param ]]
@@ -503,16 +503,16 @@ method:     Integer;
        [ type, levtype, origin
                [ step, levelist?, param ]]
 
-                           ]
+               ]
 
 [ class, expver, stream=mmaf, date, time, domain
        [ type, levtype, origin, system?, method
-                     [ step, number, levelist?, param ]]
+             [ step, number, levelist?, param ]]
 ]
 
 [ class, expver, stream=mmam, date, time, domain
        [ type, levtype, origin, system?, method
-                     [ fcmonth, number, levelist?, param ]]
+             [ fcmonth, number, levelist?, param ]]
 ]
 
 
