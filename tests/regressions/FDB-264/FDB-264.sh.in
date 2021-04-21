@@ -20,7 +20,7 @@ export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
 rm -rf $bindir/root
 mkdir root
 
-for f in config.yaml schema sens.grib
+for f in config.yaml schema sens.data
 do
     cp $srcdir/$f $bindir
 done
