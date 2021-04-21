@@ -27,7 +27,7 @@ done
 
 export FDB5_CONFIG_FILE=config.yaml
 
-$fdbwrite in.grib
+$fdbwrite sens.data
 
 $fdblist --porcelain class=od
 
