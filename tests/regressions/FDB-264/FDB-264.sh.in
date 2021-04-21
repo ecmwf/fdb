@@ -20,7 +20,7 @@ export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
 rm -rf $bindir/root
 mkdir root
 
-for f in config.yaml schema sens.data
+for f in config.yaml schema sens.data req
 do
     cp $srcdir/$f $bindir
 done
@@ -29,7 +29,7 @@ export FDB5_CONFIG_FILE=config.yaml
 
 $fdbwrite sens.data
 
-$fdblist --porcelain class=od
+$fdblist --porcelain class=od,expver=1
 
 ### test 1
 
