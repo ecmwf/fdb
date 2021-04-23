@@ -262,7 +262,14 @@ bool Key::match(const std::string &key, const std::set<std::string> &values) con
         return false;
     }
 
-    return values.find(i->second) != values.end();
+    if (i->second.empty()) {
+        return values.find(i->second) != values.end();
+    }
+    std::ostringstream oss;
+    const TypesRegistry &registry = this->registry();
+    registry.lookupType(key).toKey(oss, key, (*i).second);
+
+    return values.find(oss.str()) != values.end();
 }
 
 bool Key::match(const std::string &key, const eckit::DenseSet<std::string> &values) const {
@@ -272,7 +279,14 @@ bool Key::match(const std::string &key, const eckit::DenseSet<std::string> &valu
         return false;
     }
 
-    return values.find(i->second) != values.end();
+    if (i->second.empty()) {
+        return values.find(i->second) != values.end();
+    }
+    std::ostringstream oss;
+    const TypesRegistry &registry = this->registry();
+    registry.lookupType(key).toKey(oss, key, (*i).second);
+
+    return values.find(oss.str()) != values.end();
 }
 
 bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {

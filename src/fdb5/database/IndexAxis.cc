@@ -203,9 +203,7 @@ bool IndexAxis::contains(const Key &key) const {
 void IndexAxis::insert(const Key &key) {
     ASSERT(!readOnly_);
 
-
     const TypesRegistry &registry = key.registry();
-
 
     for (Key::const_iterator i = key.begin(); i  != key.end(); ++i) {
         const std::string &keyword = i->first;
