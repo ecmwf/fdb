@@ -4,7 +4,4 @@ type: dist
 lanes:
 - type: remote
   host: localhost
-  port: 36603
-- type: remote
-  host: localhost
   port: 36604
