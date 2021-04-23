@@ -40,8 +40,8 @@ $fdbwrite 9.grib
 unset FDB5_SERIALISATION_VERSION
 
 cat > list <<EOF
-{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166},length=1476
-{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166},length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166}
 EOF
 
 cat > content.6 <<EOF
