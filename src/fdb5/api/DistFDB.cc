@@ -184,7 +184,18 @@ ListIterator DistFDB::list(const FDBToolRequest& request) {
     Log::debug<LibFdb5>() << "DistFDB::list() : " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.list(request);
+                            try {
+                                return fdb.list(request);
+                            } catch (eckit::Exception& e) {
+                                // TODO: This will be messy and verbose. Reduce output if it has already failed.
+
+                                std::stringstream ss;
+                                ss << "Failure listing from lane: " << fdb << " - request: " << request;
+                                eckit::Log::error() << ss.str() << std::endl;
+                                eckit::Log::error() << "with exception: " << e << std::endl;
+
+                                return ListIterator(nullptr);
+                            }
                          });
 }
 
@@ -192,7 +203,18 @@ ListIterator DistFDB::inspect(const metkit::mars::MarsRequest& request) {
     Log::debug<LibFdb5>() << "DistFDB::inspect() : " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.inspect(request.request());
+                            try {
+                                return fdb.inspect(request.request());
+                            } catch (eckit::Exception& e) {
+                                // TODO: This will be messy and verbose. Reduce output if it has already failed.
+
+                                std::stringstream ss;
+                                ss << "Failure inspecting lane: " << fdb << " - request: " << request;
+                                eckit::Log::error() << ss.str() << std::endl;
+                                eckit::Log::error() << "with exception: " << e << std::endl;
+
+                                return ListIterator(nullptr);
+                            }
                          });
 }
 
