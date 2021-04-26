@@ -30,6 +30,9 @@ public: // methods
 
     virtual ~TypeClimateDaily() override;
 
+//    virtual std::string tidy(const std::string &keyword,
+//                             const std::string &value) const override;
+
     virtual void toKey(std::ostream &out,
                        const std::string &keyword,
                        const std::string &value) const override;
@@ -39,6 +42,10 @@ public: // methods
                            eckit::StringList &values,
                            const Notifier &wind,
                            const DB *db) const override;
+
+    virtual bool match(const std::string&,
+                       const std::string& value1,
+                       const std::string& value2) const override;
 
 private: // methods
 

@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-267
+
+export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+
+### cleanup and prepare test
+
+rm -rf $bindir/root
+mkdir root
+
+for f in config.yaml schema in.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+$gribset -s time=1200 in.grib in.1200.12.grib
+$gribset -s step=11 in.grib in.0000.11.grib
+$gribset -s step=13 in.grib in.0000.13.grib
+
+$fdbwrite --modifiers=expver=yyyy in.grib
+$fdbwrite --modifiers=expver=yyyy in.1200.12.grib
+
+cat in.0000.11.grib in.0000.13.grib > multi.grib
+
+$fdbwrite --modifiers=expver=yyyy,type=an multi.grib
+
+cat > list <<EOF
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=11,param=166}
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=13,param=166}
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=1200,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > listLength <<EOF
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=11,param=166},length=1476
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=13,param=166},length=1476
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166},length=1476
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=1200,domain=g}{type=fc,levtype=sfc}{step=12,param=166},length=1476
+EOF
+
+# should return 4 fields - no length
+$fdblist --porcelain class=rd,expver=yyyy | tee out
+cmp out list
+
+# should return 4 fields with length
+$fdblist class=rd,expver=yyyy | tee out
+tail -4 out > shortOut
+cmp shortOut listLength

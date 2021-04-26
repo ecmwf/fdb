@@ -8,4 +8,6 @@ if (HAVE_FDB_BUILD_TOOLS) # test scripts use the fdb tools
     add_subdirectory(FDB-258)
     add_subdirectory(FDB-260)
     add_subdirectory(FDB-264)
+    add_subdirectory(FDB-266)
+    add_subdirectory(FDB-267)
 endif()
