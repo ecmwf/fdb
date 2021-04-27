@@ -120,9 +120,7 @@ void Key::encode(eckit::Stream& s) const {
     s << keys_.size();
     for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
         const Type &t = registry.lookupType(i->first);
-        std::ostringstream oss;
-        t.toKey(oss, i->first, i->second);
-        s << i->first << oss.str();
+        s << i->first << canonicalise(i->first, i->second);
 
     }
 
@@ -265,11 +263,8 @@ bool Key::match(const std::string &key, const std::set<std::string> &values) con
     if (i->second.empty()) {
         return values.find(i->second) != values.end();
     }
-    std::ostringstream oss;
-    const TypesRegistry &registry = this->registry();
-    registry.lookupType(key).toKey(oss, key, (*i).second);
 
-    return values.find(oss.str()) != values.end();
+    return values.find(canonicalise(key, i->second)) != values.end();
 }
 
 bool Key::match(const std::string &key, const eckit::DenseSet<std::string> &values) const {
@@ -282,11 +277,8 @@ bool Key::match(const std::string &key, const eckit::DenseSet<std::string> &valu
     if (i->second.empty()) {
         return values.find(i->second) != values.end();
     }
-    std::ostringstream oss;
-    const TypesRegistry &registry = this->registry();
-    registry.lookupType(key).toKey(oss, key, (*i).second);
 
-    return values.find(oss.str()) != values.end();
+    return values.find(canonicalise(key, i->second)) != values.end();
 }
 
 bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {
@@ -316,13 +308,29 @@ const TypesRegistry& Key::registry() const {
     }
 }
 
+std::string Key::canonicalise(const std::string& keyword, const std::string& value) const {
+    std::ostringstream oss;
+    this->registry().lookupType(keyword).toKey(oss, keyword, value);
+    return oss.str();
+}
+
+std::string Key::canonicalValue(const std::string& keyword) const {
+
+    eckit::StringDict::const_iterator it = keys_.find(keyword);
+    ASSERT(it != keys_.end());
+
+    if (it->second.empty()) {
+        return it->second;
+    } else {
+        return canonicalise(keyword, it->second);
+    }
+}
+
 std::string Key::valuesToString() const {
 
     ASSERT(names_.size() == keys_.size());
 
     std::ostringstream oss;
-    const TypesRegistry &registry = this->registry();
-
     const char *sep = "";
 
     for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
@@ -330,8 +338,8 @@ std::string Key::valuesToString() const {
         ASSERT(i != keys_.end());
 
         oss << sep;
-        if (!(*i).second.empty()) {
-            registry.lookupType(*j).toKey(oss, *j, (*i).second);
+        if (!i->second.empty()) {
+            oss << canonicalise(*j, i->second);
         }
 
         sep = ":";
@@ -454,8 +462,10 @@ std::string Key::toString() const {
     for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
         eckit::StringDict::const_iterator i = keys_.find(*j);
         ASSERT(i != keys_.end());
-        res += sep + *j + '=' + i->second;
-        sep = ",";
+        if (!i->second.empty()) {
+            res += sep + *j + '=' + i->second;
+            sep = ",";
+        }
     }
     return res;
 }

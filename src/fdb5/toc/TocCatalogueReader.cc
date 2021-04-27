@@ -117,8 +117,6 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
             if (idx.get(key, remapKey, field)) {
                 return true;
             }
-        } else {
-            std::cout << idx << " does not contain " << key;
         }
     }
     return false;

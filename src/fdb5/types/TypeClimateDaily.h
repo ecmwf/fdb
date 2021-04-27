@@ -30,9 +30,6 @@ public: // methods
 
     virtual ~TypeClimateDaily() override;
 
-//    virtual std::string tidy(const std::string &keyword,
-//                             const std::string &value) const override;
-
     virtual void toKey(std::ostream &out,
                        const std::string &keyword,
                        const std::string &value) const override;
