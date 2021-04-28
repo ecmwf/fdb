@@ -26,16 +26,15 @@ TypeDouble::TypeDouble(const std::string &name, const std::string &type) :
 TypeDouble::~TypeDouble() {
 }
 
-void TypeDouble::toKey(std::ostream &out,
-                       const std::string&,
-                       const std::string& value) const {
+std::string TypeDouble::toKey(const std::string&,
+                              const std::string& value) const {
   double v = eckit::Translator<std::string, double>()(value);
   long long ll = static_cast<long long>(v);
 
   if (ll == v) {
-    out << ll;
+    return std::to_string(ll);
   } else {
-    out << v;
+    return std::to_string(v);
   }
 }
 

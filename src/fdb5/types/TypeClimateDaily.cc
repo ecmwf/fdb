@@ -34,44 +34,6 @@ TypeClimateDaily::TypeClimateDaily(const std::string &name, const std::string &t
 TypeClimateDaily::~TypeClimateDaily() {
 }
 
-//std::string TypeClimateDaily::tidy(const std::string&, const std::string &value) const {
-
-//    long out = 0;
-
-//    if (!value.empty() && (value[0] == '0' || value[0] == '-')) {
-//        eckit::Translator<std::string, long> t;
-//        long n = t(value);
-//        if (n <= 0) {
-//            eckit::Date now(n);
-//            eckit::Translator<long, std::string> t;
-//            out = now.yyyymmdd() % 10000;
-//        }
-//    } else {
-//        eckit::Translator<std::string, long> t;
-//        eckit::Tokenizer parse("-");
-//        eckit::StringList v;
-
-//        parse(value, v);
-//        if (v.size() == 2) {
-//            for (int i = 0; i < 12 ; i++ ) {
-//              if (v[0] == months[i]) {
-//                out = (i + 1) * 100 + t(v[1]);
-//              }
-//            }
-//        }
-//    }
-//    if (out) {
-//        eckit::Translator<long, std::string> t;
-//        std::string outStr = t(out);
-//        if (outStr.size() == 3)
-//            outStr = "0"+outStr;
-//        return outStr;
-
-//    }
-//    return value;
-
-//}
-
 static int month(const std::string &value) {
   if (isdigit(value[0])) {
     eckit::Date date(value);
@@ -97,13 +59,14 @@ static int month(const std::string &value) {
   }
 }
 
-void TypeClimateDaily::toKey(std::ostream &out,
-                             const std::string&,
-                             const std::string &value) const {
+std::string TypeClimateDaily::toKey(const std::string&,
+                                    const std::string &value) const {
+  std::ostringstream out;
   char prev = out.fill ('0');
   out.width(4);
   out << month(value);
   out.fill(prev);
+  return out.str();
 }
 
 void TypeClimateDaily::getValues(const metkit::mars::MarsRequest &request,

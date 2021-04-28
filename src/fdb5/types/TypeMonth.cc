@@ -29,12 +29,11 @@ TypeMonth::TypeMonth(const std::string &name, const std::string &type) :
 TypeMonth::~TypeMonth() {
 }
 
-void TypeMonth::toKey(std::ostream &out,
-                      const std::string&,
-                      const std::string& value) const {
+std::string TypeMonth::toKey(const std::string&,
+                             const std::string& value) const {
 
     eckit::Date date(value);
-    out << date.year() * 100 + date.month();
+    return std::to_string(date.year() * 100 + date.month());
 }
 
 void TypeMonth::getValues(const metkit::mars::MarsRequest& request,

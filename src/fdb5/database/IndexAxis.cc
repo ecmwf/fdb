@@ -203,23 +203,15 @@ bool IndexAxis::contains(const Key &key) const {
 void IndexAxis::insert(const Key &key) {
     ASSERT(!readOnly_);
 
-    const TypesRegistry &registry = key.registry();
-
     for (Key::const_iterator i = key.begin(); i  != key.end(); ++i) {
         const std::string &keyword = i->first;
-        const std::string &value   = i->second;
 
         std::shared_ptr<eckit::DenseSet<std::string> >& axis_set = axis_[keyword];
         if (!axis_set)
             axis_set.reset(new eckit::DenseSet<std::string>);
 
-        if (!value.empty()) {
-            std::ostringstream oss;
-            registry.lookupType(keyword).toKey(oss, keyword, value);
-            axis_set->insert(oss.str());
-        } else {
-            axis_set->insert(value);
-        }
+        axis_set->insert(key.canonicalValue(keyword));
+
         dirty_ = true;
     }
 }

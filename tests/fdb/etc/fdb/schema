@@ -101,8 +101,8 @@ method:     Integer;
 # These rules must be first, otherwise fields of These
 # classes will be index with the default rule for oper
 [ class=ti/s2, expver, stream, date, time, model
-       [ origin, type, levtype, hdate?
-               [ step, number?, levelist?, param ]]
+	[ origin, type, levtype, hdate?
+        [ step, number?, levelist?, param ]]
 ]
 
 [ class=ms, expver, stream, date, time, country=de
@@ -112,7 +112,8 @@ method:     Integer;
 
 [ class=ms, expver, stream, date, time, country=it
        [ domain, type, levtype, model, bcmodel, icmodel:First3
-               [ step, levelist?, param ]]
+               [ step, levelist?, param ]
+	   ]
 ]
 
 [ class=el, expver, stream, date, time, domain
@@ -191,7 +192,7 @@ method:     Integer;
 # ewda
 [ class, expver, stream=ewda, date, time, domain
        [ type, levtype
-               [ step, number, param, frequency?, direction? ]]
+               [ step, number?, param, frequency?, direction? ]]
 ]
 
 
@@ -402,12 +403,17 @@ method:     Integer;
        [ type, levtype, origin, system?, method
                [ step, number?, param ]]]
 
+# ea/mnth
+[ class=ea, expver, stream=mnth, date, domain
+       [ type, levtype
+               [ time, step?, levelist?, param ]]]
+
 # mnth
 [ class, expver, stream=mnth, domain
        [ type=cl, levtype
                [ date: ClimateMonthly, time, levelist?, param ]]
        [ type, levtype
-               [ date: Month, time, step?, levelist?, param ]]]
+               [ date , time, step?, levelist?, param ]]]
 
 # mofc
 [ class, expver, stream=mofc, date, time, domain
@@ -471,12 +477,23 @@ method:     Integer;
 [ class, expver, stream=wamf, date, time, domain
        [ type, levtype, system?, method
                [ step, number?, param ]]]
+
+# ea/wamo
+[ class=ea, expver, stream=wamo, date, domain
+       [ type, levtype
+               [ time, step?, param ]]]
+
 # wamo
 [ class, expver, stream=wamo, domain
        [ type=cl, levtype
                [ date: ClimateMonthly, time, param ]]
        [ type, levtype
-               [ date: Month, time, step?, param ]]]
+               [ date, time, step?, param ]]]
+
+# wamd
+[ class, expver, stream=wamd, date, domain
+       [ type, levtype
+               [ param ]]]
 
 # wasf
 [ class, expver, stream=wasf, date, time, domain
@@ -486,11 +503,18 @@ method:     Integer;
 [ class, expver, stream=wmfm, date, time, domain
        [ type, levtype, system?, method
                [ fcperiod, number, param ]]]
-#=
-[ class, expver, stream=moda/msdc/mdfa/msda, domain
+
+# moda
+[ class, expver, stream=moda, date, domain
        [ type, levtype
-               [ date: Month, time?, step?, levelist?, param ]]]
-               #[ step, leadtime?, opttime?, number?, levelist?, param ]]]
+               [ levelist?, param ]]]
+
+# msdc/mdfa/msda
+[ class, expver, stream=msdc/mdfa/msda, domain
+       [ type, levtype
+               [ date, time?, step?, levelist?, param ]]]
+
+
 
 # seap
 [ class, expver, stream=seap, date, time, domain
@@ -545,7 +569,7 @@ method:     Integer;
 ]
 
 # stream gfas
-[ class=mc, expver, stream=gfas, date, time, domain
+[ class=mc/rd, expver, stream=gfas, date, time, domain
        [ type=ga, levtype
                [ step, param ]]
 

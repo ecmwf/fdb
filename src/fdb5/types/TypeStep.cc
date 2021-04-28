@@ -34,10 +34,9 @@ TypeStep::~TypeStep() {
 }
 
 
-void TypeStep::toKey(std::ostream &out,
-                     const std::string&,
-                     const std::string& value) const {
-    out << StepRange(value);
+std::string TypeStep::toKey(const std::string&,
+                            const std::string& value) const {
+    return StepRange(value);
 }
 
 bool TypeStep::match(const std::string&, const std::string& value1, const std::string& value2) const
