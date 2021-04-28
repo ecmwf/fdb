@@ -309,9 +309,13 @@ const TypesRegistry& Key::registry() const {
 }
 
 std::string Key::canonicalise(const std::string& keyword, const std::string& value) const {
-    std::ostringstream oss;
-    this->registry().lookupType(keyword).toKey(oss, keyword, value);
-    return oss.str();
+    if (value.empty()) {
+        return value;
+    } else {
+        std::ostringstream oss;
+        this->registry().lookupType(keyword).toKey(oss, keyword, value);
+        return oss.str();
+    }
 }
 
 std::string Key::canonicalValue(const std::string& keyword) const {
@@ -319,11 +323,7 @@ std::string Key::canonicalValue(const std::string& keyword) const {
     eckit::StringDict::const_iterator it = keys_.find(keyword);
     ASSERT(it != keys_.end());
 
-    if (it->second.empty()) {
-        return it->second;
-    } else {
-        return canonicalise(keyword, it->second);
-    }
+    return canonicalise(keyword, it->second);
 }
 
 std::string Key::valuesToString() const {
