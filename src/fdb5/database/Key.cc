@@ -270,10 +270,6 @@ bool Key::match(const std::string &key, const eckit::DenseSet<std::string> &valu
         return false;
     }
 
-    if (i->second.empty()) {
-        return values.find(i->second) != values.end();
-    }
-
     return values.find(canonicalise(key, i->second)) != values.end();
 }
 
@@ -308,9 +304,7 @@ std::string Key::canonicalise(const std::string& keyword, const std::string& val
     if (value.empty()) {
         return value;
     } else {
-        std::ostringstream oss;
-        this->registry().lookupType(keyword).toKey(oss, keyword, value);
-        return oss.str();
+        return this->registry().lookupType(keyword).toKey(keyword, value);
     }
 }
 
@@ -334,9 +328,7 @@ std::string Key::valuesToString() const {
         ASSERT(i != keys_.end());
 
         oss << sep;
-        if (!i->second.empty()) {
-            oss << canonicalise(*j, i->second);
-        }
+        oss << canonicalise(*j, i->second);
 
         sep = ":";
     }

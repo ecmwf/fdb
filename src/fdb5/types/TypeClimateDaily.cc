@@ -59,13 +59,14 @@ static int month(const std::string &value) {
   }
 }
 
-void TypeClimateDaily::toKey(std::ostream &out,
-                             const std::string&,
-                             const std::string &value) const {
+std::string TypeClimateDaily::toKey(const std::string&,
+                                    const std::string &value) const {
+  std::ostringstream out;
   char prev = out.fill ('0');
   out.width(4);
   out << month(value);
   out.fill(prev);
+  return out.str();
 }
 
 void TypeClimateDaily::getValues(const metkit::mars::MarsRequest &request,

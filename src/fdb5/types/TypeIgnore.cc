@@ -25,9 +25,9 @@ TypeIgnore::~TypeIgnore() {
 }
 
 
-void TypeIgnore::toKey(std::ostream&,
-                       const std::string&,
-                       const std::string&) const {
+std::string TypeIgnore::toKey(const std::string&,
+                              const std::string&) const {
+    return "";
 }
 
 void TypeIgnore::getValues(const metkit::mars::MarsRequest&,
