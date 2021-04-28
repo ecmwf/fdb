@@ -260,10 +260,6 @@ bool Key::match(const std::string &key, const std::set<std::string> &values) con
         return false;
     }
 
-    if (i->second.empty()) {
-        return values.find(i->second) != values.end();
-    }
-
     return values.find(canonicalise(key, i->second)) != values.end();
 }
 
