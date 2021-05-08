@@ -40,10 +40,9 @@ std::string Type::tidy(const std::string&,
     return value;
 }
 
-void Type::toKey(std::ostream &out,
-                 const std::string&,
-                 const std::string &value) const {
-    out << value;
+std::string Type::toKey(const std::string&,
+                        const std::string &value) const {
+    return value;
 }
 
 std::ostream &operator<<(std::ostream &s, const Type &x) {

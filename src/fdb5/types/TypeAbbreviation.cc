@@ -26,11 +26,10 @@ TypeAbbreviation::TypeAbbreviation(const std::string &name, const std::string &t
 TypeAbbreviation::~TypeAbbreviation() {
 }
 
-void TypeAbbreviation::toKey(std::ostream &out,
-                             const std::string&,
-                             const std::string &value) const {
+std::string TypeAbbreviation::toKey(const std::string&,
+                                    const std::string &value) const {
 
-    out << value.substr(0, count_);
+    return value.substr(0, count_);
 }
 
 void TypeAbbreviation::getValues(const metkit::mars::MarsRequest &request,

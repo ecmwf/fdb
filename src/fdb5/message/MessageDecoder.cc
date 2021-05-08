@@ -25,31 +25,19 @@ namespace fdb5 {
 namespace  {
 class KeySetter : public eckit::message::MetadataGatherer {
 
-    void set(const std::string& key, std::string value) {
-        static metkit::mars::DummyContext ctx;
-        static metkit::mars::MarsLanguage language("archive");
-
-        // Map the value via the metkit Type infrastructure --> any patching required is done.
-        metkit::mars::Type* t = language.type(key);
-        if (key != "param") // <-- TypeParam[name=param]:  expand not implemented
-            t->expand(ctx, value);
-
-        key_.set(key, value);
-    }
-
     void setValue(const std::string& key, const std::string& value) override {
-        set(key, value);
+        key_.set(key, value);
     }
 
     void setValue(const std::string& key, long value) override {
         if (key_.find(key) == key_.end()) {
-            set(key, std::to_string(value));
+            key_.set(key, std::to_string(value));
         }
     }
 
     void setValue(const std::string& key, double value) override {
         if (key_.find(key) == key_.end()) {
-            set(key, std::to_string(value));
+            key_.set(key, std::to_string(value));
         }
     }
 

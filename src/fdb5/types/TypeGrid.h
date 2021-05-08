@@ -32,9 +32,8 @@ public: // methods
 
 private: // methods
 
-    virtual void toKey(std::ostream &out,
-                       const std::string &keyword,
-                       const std::string &value) const override;
+    virtual std::string toKey(const std::string& keyword,
+                              const std::string& value) const override;
 
     virtual void getValues(const metkit::mars::MarsRequest &request,
                            const std::string &keyword,

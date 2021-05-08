@@ -59,13 +59,14 @@ static int month(const std::string &value) {
   }
 }
 
-void TypeClimateDaily::toKey(std::ostream &out,
-                             const std::string&,
-                             const std::string &value) const {
+std::string TypeClimateDaily::toKey(const std::string&,
+                                    const std::string &value) const {
+  std::ostringstream out;
   char prev = out.fill ('0');
   out.width(4);
   out << month(value);
   out.fill(prev);
+  return out.str();
 }
 
 void TypeClimateDaily::getValues(const metkit::mars::MarsRequest &request,
@@ -84,6 +85,14 @@ void TypeClimateDaily::getValues(const metkit::mars::MarsRequest &request,
   for (std::vector<eckit::Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
     values.push_back(t(*i));
   }
+}
+
+bool TypeClimateDaily::match(const std::string&,
+                   const std::string& value1,
+                   const std::string& value2) const {
+    std::cout << value1 << " vs. " << value2 << " are " << (month(value1) == month(value2)) << std::endl;
+
+    return month(value1) == month(value2);
 }
 
 void TypeClimateDaily::print(std::ostream &out) const {

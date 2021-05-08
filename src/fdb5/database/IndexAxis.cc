@@ -15,6 +15,8 @@
 #include "fdb5/database/AxisRegistry.h"
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/types/TypesRegistry.h"
+#include "fdb5/types/Type.h"
 
 namespace fdb5 {
 
@@ -201,15 +203,15 @@ bool IndexAxis::contains(const Key &key) const {
 void IndexAxis::insert(const Key &key) {
     ASSERT(!readOnly_);
 
-
     for (Key::const_iterator i = key.begin(); i  != key.end(); ++i) {
         const std::string &keyword = i->first;
-        const std::string &value   = i->second;
 
         std::shared_ptr<eckit::DenseSet<std::string> >& axis_set = axis_[keyword];
         if (!axis_set)
             axis_set.reset(new eckit::DenseSet<std::string>);
-        axis_set->insert(value);
+
+        axis_set->insert(key.canonicalValue(keyword));
+
         dirty_ = true;
     }
 }
