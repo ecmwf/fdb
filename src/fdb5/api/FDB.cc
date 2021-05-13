@@ -65,15 +65,18 @@ void FDB::archive(const Key& key, eckit::message::Message msg) {
     stats_.addArchive(msg.length(), timer);
 }
 
-void FDB::archive(const void* data, size_t length) {
-
+void FDB::archive(eckit::DataHandle& handle) {
     eckit::message::Message msg;
-    eckit::MemoryHandle source(data, length);
-    eckit::message::Reader reader(source);
+    eckit::message::Reader reader(handle);
 
     while ( (msg = reader.next()) ) {
         archive(msg);
     }
+}
+
+void FDB::archive(const void* data, size_t length) {
+    eckit::MemoryHandle handle(data, length);
+    archive(handle);
 }
 
 void FDB::archive(const Key& key, const void* data, size_t length) {
