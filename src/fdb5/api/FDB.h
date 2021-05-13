@@ -67,6 +67,7 @@ public: // methods
 
     void archive(eckit::message::Message msg);
     void archive(const Key& key, eckit::message::Message msg);
+    void archive(const void* data, size_t length);
     void archive(const Key& key, const void* data, size_t length);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state

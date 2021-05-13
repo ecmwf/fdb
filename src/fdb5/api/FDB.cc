@@ -15,8 +15,10 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/io/MemoryHandle.h"
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
+#include "eckit/message/Reader.h"
 
 #include "metkit/codes/UserDataContent.h"
 #include "metkit/hypercube/HyperCubePayloaded.h"
@@ -61,6 +63,17 @@ void FDB::archive(const Key& key, eckit::message::Message msg) {
 
     timer.stop();
     stats_.addArchive(msg.length(), timer);
+}
+
+void FDB::archive(const void* data, size_t length) {
+
+    eckit::message::Message msg;
+    eckit::MemoryHandle source(data, length);
+    eckit::message::Reader reader(source);
+
+    while ( (msg = reader.next()) ) {
+        archive(msg);
+    }
 }
 
 void FDB::archive(const Key& key, const void* data, size_t length) {
