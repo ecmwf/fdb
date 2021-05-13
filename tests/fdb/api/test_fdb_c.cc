@@ -64,7 +64,7 @@ CASE( "fdb_c - archive & list" ) {
     dh->close();
 
     EXPECT_NO_THROW(fdb_archive(fdb, key, buf1, length));
-
+    EXPECT_NO_THROW(fdb_flush(fdb));
 
     fdb_request_t* request;
     fdb_new_request(&request);
@@ -98,7 +98,6 @@ CASE( "fdb_c - archive & list" ) {
     ASSERT(!exist);
     fdb_delete_listiterator(it);
 
-
     fdb_key_add(key, "levelist", "400");
 
     eckit::PathName grib2("x138-400.grib");
@@ -110,6 +109,7 @@ CASE( "fdb_c - archive & list" ) {
     dh->close();
 
     EXPECT_NO_THROW(fdb_archive(fdb, key, buf2, length));
+    EXPECT_NO_THROW(fdb_flush(fdb));
 
     fdb_request_add1(request, "levelist", "400");
     fdb_new_listiterator(&it);
@@ -151,7 +151,6 @@ CASE( "fdb_c - archive & list" ) {
     dh->read(buf3, length);
     dh->close();
 
-    EXPECT_NO_THROW(fdb_archive(fdb, key, buf3, length));
 }
 
 
@@ -189,6 +188,7 @@ CASE( "fdb_c - multiple archive & list" ) {
     dh->close();
 
     EXPECT_NO_THROW(fdb_multi_archive(fdb, buf, length1+length2+length3));
+    EXPECT_NO_THROW(fdb_flush(fdb));
 
     fdb_request_t* request;
     fdb_new_request(&request);
