@@ -270,7 +270,7 @@ bool Key::match(const std::string &key, const eckit::DenseSet<std::string> &valu
         return false;
     }
 
-    return values.find(canonicalise(key, i->second)) != values.end();
+    return values.find(canonicalise(key, i->second)) != values.end() || values.find(i->second) != values.end();
 }
 
 bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {
