@@ -9,4 +9,5 @@ if (HAVE_FDB_BUILD_TOOLS) # test scripts use the fdb tools
     add_subdirectory(FDB-260)
     add_subdirectory(FDB-266)
     add_subdirectory(FDB-267)
+    add_subdirectory(FDB-268)
 endif()
