@@ -82,6 +82,70 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.valuesToString() == "0427:dacl:ei:7799:g:pb:pl:0000:2-12:99:100:50:129.128");
 }
 
+
+CASE( "Levelist" ) {
+    eckit::DenseSet<std::string> values;
+    values.insert("100");
+    values.insert("200");
+    values.insert("925");
+    values.insert("0.05");
+    values.insert("0.7");
+    values.insert("0.333333");
+    values.sort();
+
+    fdb5::Key key;
+    EXPECT(key.valuesToString() == "");
+    EXPECT_THROWS(key.canonicalValue("levelist"));
+
+    key.set("levelist", "925");
+    EXPECT_NO_THROW(key.canonicalValue("levelist"));
+    EXPECT(key.canonicalValue("levelist") == "925");
+    EXPECT(key.match("levelist", values));
+
+    key.set("levelist", "200.0");
+    EXPECT(key.canonicalValue("levelist") == "200");
+    EXPECT(key.match("levelist", values));
+
+    key.set("levelist", "200.0000000");
+    EXPECT(key.canonicalValue("levelist") == "200");
+    EXPECT(key.match("levelist", values));
+
+    key.set("levelist", "200.1");
+    EXPECT(key.canonicalValue("levelist") == "200.1");
+    EXPECT(!key.match("levelist", values));
+
+    key.set("levelist", "300");
+    EXPECT(key.canonicalValue("levelist") == "300");
+    EXPECT(!key.match("levelist", values));
+
+    key.set("levelist", "0.7");
+    EXPECT(key.canonicalValue("levelist") == "0.7");
+    EXPECT(key.match("levelist", values));
+
+    key.set("levelist", "0.7000");
+    EXPECT(key.canonicalValue("levelist") == "0.7");
+    EXPECT(key.match("levelist", values));
+
+    key.set("levelist", "0.5");
+    EXPECT(key.canonicalValue("levelist") == "0.5");
+    EXPECT(!key.match("levelist", values));
+
+    key.set("levelist", "0.333");
+    EXPECT(key.canonicalValue("levelist") == "0.333");
+    EXPECT(!key.match("levelist", values));
+
+    key.set("levelist", "0.333333");
+    EXPECT(key.canonicalValue("levelist") == "0.333333");
+    EXPECT(key.match("levelist", values));
+
+    // this works (probably shouldn't), simply becasue to_string uses the same precision as printf %f (default 6)
+    /// @note don't use to_string when canonicalising Keys
+    key.set("levelist", std::to_string(double(1./3.)));
+    std::cout << key.canonicalValue("levelist") << std::endl;
+    EXPECT(key.canonicalValue("levelist") == "0.333333");
+    EXPECT(key.match("levelist", values));
+}
+
 CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
 
     fdb5::Key key("class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date=20210427,time=6,step=0,quantile=99:100,levelist=50,param=129.128");

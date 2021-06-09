@@ -32,9 +32,9 @@ std::string TypeDouble::toKey(const std::string&,
   long long ll = static_cast<long long>(v);
 
   if (ll == v) {
-    return std::to_string(ll);
+    return eckit::Translator<long long, std::string>()(ll);
   } else {
-    return std::to_string(v);
+    return eckit::Translator<double, std::string>()(v);
   }
 }
 
