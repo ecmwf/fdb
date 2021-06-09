@@ -82,6 +82,38 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.valuesToString() == "0427:dacl:ei:7799:g:pb:pl:0000:2-12:99:100:50:129.128");
 }
 
+
+CASE( "Levelist" ) {
+    eckit::DenseSet<std::string> values;
+    values.insert("100");
+    values.insert("200");
+    values.insert("925");
+    values.insert("0.05");
+    values.insert("0.7");
+    values.sort();
+
+    fdb5::Key key;
+    EXPECT(key.valuesToString() == "");
+    EXPECT_THROWS(key.canonicalValue("levelist"));
+
+    key.set("levelist", "925");
+    EXPECT_NO_THROW(key.canonicalValue("levelist"));
+    EXPECT(key.canonicalValue("levelist") == "925");
+    EXPECT(key.match("levelist", values));
+
+    key.set("levelist", "300");
+    EXPECT(key.canonicalValue("levelist") == "300");
+    EXPECT(!key.match("levelist", values));
+
+    key.set("levelist", "0.7");
+    EXPECT(key.canonicalValue("levelist") == "0.7");
+    EXPECT(key.match("levelist", values));
+
+    key.set("levelist", "0.5");
+    EXPECT(key.canonicalValue("levelist") == "0.5");
+    EXPECT(!key.match("levelist", values));
+}
+
 CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
 
     fdb5::Key key("class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date=20210427,time=6,step=0,quantile=99:100,levelist=50,param=129.128");
