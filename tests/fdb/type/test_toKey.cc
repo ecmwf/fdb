@@ -90,6 +90,7 @@ CASE( "Levelist" ) {
     values.insert("925");
     values.insert("0.05");
     values.insert("0.7");
+    values.insert("0.333333");
     values.sort();
 
     fdb5::Key key;
@@ -101,6 +102,18 @@ CASE( "Levelist" ) {
     EXPECT(key.canonicalValue("levelist") == "925");
     EXPECT(key.match("levelist", values));
 
+    key.set("levelist", "200.0");
+    EXPECT(key.canonicalValue("levelist") == "200");
+    EXPECT(key.match("levelist", values));
+
+    key.set("levelist", "200.0000000");
+    EXPECT(key.canonicalValue("levelist") == "200");
+    EXPECT(key.match("levelist", values));
+
+    key.set("levelist", "200.1");
+    EXPECT(key.canonicalValue("levelist") == "200.1");
+    EXPECT(!key.match("levelist", values));
+
     key.set("levelist", "300");
     EXPECT(key.canonicalValue("levelist") == "300");
     EXPECT(!key.match("levelist", values));
@@ -109,9 +122,28 @@ CASE( "Levelist" ) {
     EXPECT(key.canonicalValue("levelist") == "0.7");
     EXPECT(key.match("levelist", values));
 
+    key.set("levelist", "0.7000");
+    EXPECT(key.canonicalValue("levelist") == "0.7");
+    EXPECT(key.match("levelist", values));
+
     key.set("levelist", "0.5");
     EXPECT(key.canonicalValue("levelist") == "0.5");
     EXPECT(!key.match("levelist", values));
+
+    key.set("levelist", "0.333");
+    EXPECT(key.canonicalValue("levelist") == "0.333");
+    EXPECT(!key.match("levelist", values));
+
+    key.set("levelist", "0.333333");
+    EXPECT(key.canonicalValue("levelist") == "0.333333");
+    EXPECT(key.match("levelist", values));
+
+    // this works (probably shouldn't), simply becasue to_string uses the same precision as printf %f (default 6)
+    /// @note don't use to_string when canonicalising Keys
+    key.set("levelist", std::to_string(double(1./3.)));
+    std::cout << key.canonicalValue("levelist") << std::endl;
+    EXPECT(key.canonicalValue("levelist") == "0.333333");
+    EXPECT(key.match("levelist", values));
 }
 
 CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
