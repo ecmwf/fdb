@@ -20,12 +20,12 @@ export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
 rm -rf $bindir/root
 mkdir -p root/rd\:xxxx/20201102\:0000\:g/oper
 
-for f in config.yaml schema fc:pl.20210608.141152.M15.broadband.22325240004610.data
+for f in config.yaml schema fc:pl.20210610.143554.titania.57951993724930.data 
 do
     cp $srcdir/$f $bindir
 done
 
-for f in fc:pl.20210608.141152.M15.broadband.22325240004610.data fc:pl.20210608.141152.M15.broadband.22325240004609.index toc schema
+for f in fc:pl.20210610.143554.titania.57951993724930.data fc:pl.20210610.143554.titania.57951993724929.index toc schema
 do
     cp $srcdir/$f $bindir/root/rd\:xxxx/20201102\:0000\:g/oper
 done
@@ -91,7 +91,7 @@ cmp griblist content
 rm -rf $bindir/root
 mkdir -p root
 
-$fdbwrite fc:pl.20210608.141152.M15.broadband.22325240004610.data
+$fdbwrite fc:pl.20210610.143554.titania.57951993724930.data
 
 # should return 3 fields - no length
 $fdblist --porcelain class=rd,expver=xxxx | tee out
