@@ -17,12 +17,22 @@ export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
 
 ### cleanup and prepare test
 
-for f in config.yaml schema fc:pl.20210610.143554.titania.57951993724930.data 
+rm -rf $bindir/old
+mkdir -p old/rd\:xxxx/20201102\:0000\:g/oper
+
+for f in old.yaml schema
 do
     cp $srcdir/$f $bindir
 done
 
-export FDB5_CONFIG_FILE=config.yaml
+for f in fc:pl.20210610.143554.titania.57951993724930.data fc:pl.20210610.143554.titania.57951993724929.index toc schema
+do
+    cp $srcdir/$f $bindir/old/rd\:xxxx/20201102\:0000\:g/oper
+done
+
+export FDB5_CONFIG_FILE=old.yaml
+
+# reading from an index with levelist not in canonical form
 
 cat > list <<EOF
 {class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.05,param=166}
@@ -50,13 +60,6 @@ cat > griblist <<EOF
 g           pl          925         20201102    0000        12          166.128     rd          fc          oper        xxxx
 g           pl          0.7         20201102    0000        12          166.128     rd          fc          oper        xxxx
 EOF
-
-### cleanup and prepare new index
-
-rm -rf $bindir/root
-mkdir -p root
-
-$fdbwrite fc:pl.20210610.143554.titania.57951993724930.data
 
 # should return 3 fields - no length
 $fdblist --porcelain class=rd,expver=xxxx | tee out
