@@ -79,8 +79,8 @@ struct MessageHeader {
 public: // methods
 
     MessageHeader() :
-        message(Message::None),
         version(CurrentVersion),
+        message(Message::None),
         requestID(0),
         payloadSize(0) {}
 
