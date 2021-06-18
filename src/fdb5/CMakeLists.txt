@@ -30,21 +30,6 @@ list( APPEND fdb5_srcs
     api/RandomFDB.cc
     api/SelectFDB.cc
     api/SelectFDB.h
-    api/RemoteFDB.cc
-    api/RemoteFDB.h
-
-    remote/RemoteConfiguration.h
-    remote/RemoteConfiguration.cc
-    remote/RemoteFieldLocation.h
-    remote/RemoteFieldLocation.cc
-    remote/Messages.h
-    remote/Messages.cc
-    remote/Handler.h
-    remote/Handler.cc
-    remote/AvailablePortList.cc
-    remote/AvailablePortList.h
-    remote/FdbServer.h
-    remote/FdbServer.cc
 
     api/helpers/APIIterator.h
     api/helpers/ControlIterator.cc
@@ -219,6 +204,26 @@ list( APPEND fdb5_srcs
     types/TypeTime.cc
     types/TypeTime.h
 )
+
+if(HAVE_FDB_REMOTE)
+    list( APPEND fdb5_srcs 
+        api/RemoteFDB.cc
+        api/RemoteFDB.h
+
+        remote/RemoteConfiguration.h
+        remote/RemoteConfiguration.cc
+        remote/RemoteFieldLocation.h
+        remote/RemoteFieldLocation.cc
+        remote/Messages.h
+        remote/Messages.cc
+        remote/Handler.h
+        remote/Handler.cc
+        remote/AvailablePortList.cc
+        remote/AvailablePortList.h
+        remote/FdbServer.h
+        remote/FdbServer.cc
+    )
+endif()
 
 if(HAVE_LUSTRE)
   list( APPEND fdb5_srcs io/fdb5_lustreapi_file_create.c )
@@ -431,13 +436,13 @@ ecbuild_add_executable( TARGET    grib2fdb5
                         LIBS      fdb5 )
 
 ecbuild_add_executable(
-        CONDITION HAVE_FDB_BUILD_TOOLS
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_FDB_REMOTE
         TARGET fdb-monitor
         SOURCES remote/fdb-monitor.cc
         LIBS eckit eckit_cmd )
 
 ecbuild_add_executable(
-        CONDITION HAVE_FDB_BUILD_TOOLS
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_FDB_REMOTE
         TARGET fdb-server
         SOURCES
             remote/fdb-server.cc
