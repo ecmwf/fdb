@@ -55,6 +55,10 @@ ecbuild_add_option( FEATURE LUSTRE  # option defined in fdb5_config.h
 
 ### experimental & sandbox features
 
+ecbuild_add_option( FEATURE FDB_REMOTE
+                    DEFAULT ON
+                    DESCRIPTION "Support for FDB remote access" )
+
 ecbuild_add_option( FEATURE EXPERIMENTAL
                     DEFAULT OFF
                     DESCRIPTION "Experimental features" )
