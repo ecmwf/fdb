@@ -206,21 +206,23 @@ list( APPEND fdb5_srcs
 )
 
 if(HAVE_FDB_REMOTE)
-    api/RemoteFDB.cc
-    api/RemoteFDB.h
+    list( APPEND fdb5_srcs 
+        api/RemoteFDB.cc
+        api/RemoteFDB.h
 
-    remote/RemoteConfiguration.h
-    remote/RemoteConfiguration.cc
-    remote/RemoteFieldLocation.h
-    remote/RemoteFieldLocation.cc
-    remote/Messages.h
-    remote/Messages.cc
-    remote/Handler.h
-    remote/Handler.cc
-    remote/AvailablePortList.cc
-    remote/AvailablePortList.h
-    remote/FdbServer.h
-    remote/FdbServer.cc
+        remote/RemoteConfiguration.h
+        remote/RemoteConfiguration.cc
+        remote/RemoteFieldLocation.h
+        remote/RemoteFieldLocation.cc
+        remote/Messages.h
+        remote/Messages.cc
+        remote/Handler.h
+        remote/Handler.cc
+        remote/AvailablePortList.cc
+        remote/AvailablePortList.h
+        remote/FdbServer.h
+        remote/FdbServer.cc
+    )
 endif()
 
 if(HAVE_LUSTRE)
