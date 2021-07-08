@@ -47,11 +47,6 @@ std::string TypeTime::tidy(const std::string&,
 std::string TypeTime::toKey(const std::string& keyword,
                            const std::string& value) const {
 
-    if (std::string::npos == value.find_first_of("0123456789")) {
-        // value does not contains digits. It may be part of a regex, simply pass it
-        return value;
-    }
-
     // if value just contains a digit, add a leading zero to be compliant with eckit::Time
     std::string t = value.size() < 2 ? "0"+value : value;
     eckit::Time time(t);
