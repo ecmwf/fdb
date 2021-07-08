@@ -61,6 +61,12 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.canonicalValue("date") == "20210427");
     EXPECT(key.valuesToString() == "20210427:dacl");
 
+    // key.set("time", "12:aa");
+    // EXPECT_THROWS(key.canonicalValue("time"));
+
+    // key.set("time", "12am");
+    // EXPECT_THROWS(key.canonicalValue("time"));
+
     key.set("time", "123");
     EXPECT_THROWS(key.canonicalValue("time"));
 
@@ -74,6 +80,9 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.canonicalValue("time") == "0123");
 
     key.set("time", "12:99");
+    EXPECT_THROWS(key.canonicalValue("time"));
+
+    key.set("time", "7700");
     EXPECT_THROWS(key.canonicalValue("time"));
 
     key.set("time", "01:23:45:67");
