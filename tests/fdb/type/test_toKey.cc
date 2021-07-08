@@ -61,12 +61,58 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.canonicalValue("date") == "20210427");
     EXPECT(key.valuesToString() == "20210427:dacl");
 
+    key.set("time", "123");
+    EXPECT_THROWS(key.canonicalValue("time"));
+
+    key.set("time", "1:23");
+    EXPECT_THROWS(key.canonicalValue("time"));
+
+    key.set("time", "01::23::45");
+    EXPECT(key.canonicalValue("time") == "0123");
+
+    key.set("time", ":01:23:45:");
+    EXPECT(key.canonicalValue("time") == "0123");
+
+    key.set("time", "12:99");
+    EXPECT_THROWS(key.canonicalValue("time"));
+
+    key.set("time", "01:23:45:67");
+    EXPECT_THROWS(key.canonicalValue("time"));
+
+    key.set("time", "12");
+    EXPECT(key.canonicalValue("time") == "1200");
+
+    key.set("time", "6");
+    EXPECT(key.canonicalValue("time") == "0600");
+
+    key.set("time", "06:21");
+    EXPECT(key.canonicalValue("time") == "0621");
+
+    key.set("time", "00:18:00");
+    EXPECT(key.canonicalValue("time") == "0018");
+
+    key.set("time", "00");
+    EXPECT(key.canonicalValue("time") == "0000");
+
+    key.set("time", "0");
+    EXPECT(key.canonicalValue("time") == "0000");
+
+    key.set("time", "00:00");
+    EXPECT(key.canonicalValue("time") == "0000");
+
+    key.set("time", "00:00:00");
+    EXPECT(key.canonicalValue("time") == "0000");
+
+    key.set("time", "00");
+    EXPECT(key.canonicalValue("time") == "0000");
+
+    EXPECT(key.valuesToString() == "20210427:dacl:0000");
+    
     key.set("class", "ei");
     key.set("expver", "7799");
     key.set("domain", "g");
     key.set("type", "pb");
     key.set("levtype", "pl");
-    key.set("time", "0000");
     key.set("step", "02-12");
     key.set("quantile", "99:100");
     key.set("levelist", "50");
@@ -79,7 +125,7 @@ CASE( "Step & ClimateDaily - expansion" ) {
 
     EXPECT(key.canonicalValue("date") == "0427");
     EXPECT(key.canonicalValue("time") == "0000");
-    EXPECT(key.valuesToString() == "0427:dacl:ei:7799:g:pb:pl:0000:2-12:99:100:50:129.128");
+    EXPECT(key.valuesToString() == "0427:dacl:0000:ei:7799:g:pb:pl:2-12:99:100:50:129.128");
 }
 
 
@@ -141,7 +187,7 @@ CASE( "Levelist" ) {
     // this works (probably shouldn't), simply becasue to_string uses the same precision as printf %f (default 6)
     /// @note don't use to_string when canonicalising Keys
     key.set("levelist", std::to_string(double(1./3.)));
-    std::cout << key.canonicalValue("levelist") << std::endl;
+//    std::cout << key.canonicalValue("levelist") << std::endl;
     EXPECT(key.canonicalValue("levelist") == "0.333333");
     EXPECT(key.match("levelist", values));
 }
