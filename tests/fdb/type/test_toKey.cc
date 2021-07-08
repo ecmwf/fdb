@@ -61,6 +61,9 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.canonicalValue("date") == "20210427");
     EXPECT(key.valuesToString() == "20210427:dacl");
 
+    // TODO - the following two test cases (12:aa and 12am) returns 1200 instead of failing
+    // fix requires eckit::Time changes
+    
     // key.set("time", "12:aa");
     // EXPECT_THROWS(key.canonicalValue("time"));
 
