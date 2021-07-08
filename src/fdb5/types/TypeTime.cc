@@ -43,6 +43,11 @@ std::string TypeTime::tidy(const std::string&,
     return oss.str();
 }
 
+std::string TypeTime::toKey(const std::string& keyword,
+                           const std::string& value) const {
+    return tidy(keyword, value);
+}
+
 void TypeTime::print(std::ostream &out) const {
     out << "TypeTime[name=" << name_ << "]";
 }
