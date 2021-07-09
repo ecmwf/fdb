@@ -579,7 +579,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
 
     for (auto& kv : key) {
         oss << sep;
-        oss << (kv.second.empty() ? missing : key.canonicalValue(kv.first));
+        oss << (kv.second != missing ? key.canonicalValue(kv.first) : missing);
         sep = ":";
     }
     result.push_back(oss.str());
