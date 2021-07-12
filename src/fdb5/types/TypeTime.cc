@@ -31,6 +31,7 @@ TypeTime::~TypeTime() {
 
 std::string TypeTime::tidy(const std::string&,
                            const std::string& value) const {
+
     eckit::Translator<std::string, long> t;
 
     long n = t(value);
@@ -40,6 +41,18 @@ std::string TypeTime::tidy(const std::string&,
 
     std::ostringstream oss;
     oss << std::setfill('0') << std::setw(4) << n;
+    return oss.str();
+}
+
+std::string TypeTime::toKey(const std::string& keyword,
+                           const std::string& value) const {
+
+    // if value just contains a digit, add a leading zero to be compliant with eckit::Time
+    std::string t = value.size() < 2 ? "0"+value : value;
+    eckit::Time time(t);
+
+    std::ostringstream oss;
+    oss << std::setfill('0') << std::setw(2) << time.hours() << std::setfill('0') << std::setw(2) << time.minutes();
     return oss.str();
 }
 

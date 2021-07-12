@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-275
+
+export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+
+### cleanup and prepare test
+
+for f in config.yaml schemaCDS in.grib 
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+cat > list <<EOF
+{class=c3,stream=msmm,date=20210601,domain=g}{type=fcmean,levtype=sfc,origin=egrr,system=600,method=1}{time=0000,fcmonth=1,number=0,param=139}
+EOF
+
+cat > r1 <<EOF
+retrieve,class=c3,stream=msmm,date=20210601,time=0,domain=g,type=fcmean,levtype=sfc,origin=egrr,system=600,method=1,fcmonth=1,number=0,param=139
+EOF
+cat > r2 <<EOF
+retrieve,class=c3,stream=msmm,date=20210601,time=0000,domain=g,type=fcmean,levtype=sfc,origin=egrr,system=600,method=1,fcmonth=1,number=0,param=139
+EOF
+
+cat > griblist <<EOF
+g           egrr        sfc         139.128     c3          fcmean      msmm        0001        0           600         1           1           20210601    0
+EOF
+
+### cleanup and prepare new index
+
+rm -rf $bindir/root
+mkdir -p root
+
+$fdbwrite in.grib
+
+# should return 1 fields - no length
+$fdblist --porcelain --minimum-keys=class class=c3 | tee out
+cmp out list
+
+
+# should return 1 fields - no length
+$fdblist --porcelain --minimum-keys="" --all | tee out
+cmp out list
+
+# should read 1 field
+$fdbread --raw r1 out.grib
+$gribls -m out.grib | tee out
+grep msmm out | sed 's/ *$//' > content
+cmp griblist content
+
+$fdbread --raw r2 out.grib
+$gribls -m out.grib | tee out
+grep msmm out | sed 's/ *$//' > content
+cmp griblist content
+
+$fdbread r1 out.grib
+$gribls -m out.grib | tee out
+grep msmm out | sed 's/ *$//' > content
+cmp griblist content

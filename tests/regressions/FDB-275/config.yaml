@@ -1,0 +1,8 @@
+---
+type: local
+engine: toc
+schema: ./schemaCDS
+spaces:
+- handler: Default
+  roots:
+  - path: ./root
