@@ -574,11 +574,16 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
 
     // default naming convention for DB's
 
-    Key missingKey = key;
-    for (auto& kv : missingKey) {
-        if (kv.second.empty()) missingKey.set(kv.first, missing);
+    std::ostringstream oss;
+    const char *sep = "";
+
+    for (auto& k : key.names()) {
+        auto& v = key.get(k);
+        oss << sep;
+        oss << (v == missing || v.empty() ? missing : key.canonicalValue(k));
+        sep = ":";
     }
-    result.push_back(missingKey.valuesToString());
+    result.push_back(oss.str());
 
     eckit::Log::debug<LibFdb5>() << "Using default naming convention for key " << key << " -> " << result.back() <<  std::endl;
 
