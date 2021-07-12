@@ -30,19 +30,16 @@ namespace fdb5 {
 
 REGISTER_LIBRARY(LibFdb5);
 
-LibFdb5::LibFdb5() : Library("fdb"), config_(nullptr) {}
+LibFdb5::LibFdb5() : Library("fdb") {}
 
 LibFdb5& LibFdb5::instance() {
     static LibFdb5 libfdb;
     return libfdb;
 }
 
-Config& LibFdb5::defaultConfig() { 
-    if(!config_) {
-        Config cfg;
-        config_.reset( new Config( std::move(cfg.expandConfig()) ) );
-    }
-    return *config_;
+Config LibFdb5::defaultConfig() {
+    Config config;
+    return config.expandConfig();
 }
 
 std::string LibFdb5::version() const {

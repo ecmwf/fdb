@@ -296,7 +296,8 @@ const TypesRegistry& Key::registry() const {
         return rule_->registry();
     }
     else {
-        return LibFdb5::instance().defaultConfig().schema().registry();
+        Config config = LibFdb5::instance().defaultConfig();
+        return config.schema().registry();
     }
 }
 

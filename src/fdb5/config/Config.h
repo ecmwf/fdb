@@ -47,18 +47,12 @@ public:  // methods
     /// then do the expansion in here.
     eckit::PathName expandPath(const std::string& path) const;
 
-    const eckit::PathName& schemaPath() const;
+    eckit::PathName schemaPath() const;
     eckit::PathName configPath() const;
 
     const Schema& schema() const;
 
     mode_t umask() const;
-
-private:  // methods
-    void initializeSchemaPath() const;
-
-private:  // members
-    mutable eckit::PathName schemaPath_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
