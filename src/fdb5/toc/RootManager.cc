@@ -580,7 +580,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
     for (auto& k : key.names()) {
         auto& v = key.get(k);
         oss << sep;
-        oss << (v != missing ? key.canonicalValue(k) : missing);
+        oss << (v == missing || v.empty() ? missing : key.canonicalValue(k));
         sep = ":";
     }
     result.push_back(oss.str());

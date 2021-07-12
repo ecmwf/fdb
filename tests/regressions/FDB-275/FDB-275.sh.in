@@ -47,6 +47,11 @@ mkdir -p root
 $fdbwrite in.grib
 
 # should return 1 fields - no length
+$fdblist --porcelain --minimum-keys=class class=c3 | tee out
+cmp out list
+
+
+# should return 1 fields - no length
 $fdblist --porcelain --minimum-keys="" --all | tee out
 cmp out list
 
