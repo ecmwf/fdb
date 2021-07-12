@@ -109,12 +109,15 @@ public:
     RemoteProtocolVersion remoteProtocolVersion() const;
 
     /// Returns the default configuration according to the rules of FDB configuration search
-    Config defaultConfig();
+    const Config& defaultConfig();
 
 protected:
     virtual std::string version() const;
 
     virtual std::string gitsha1(unsigned int count) const;
+
+private:
+    std::unique_ptr<Config> config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

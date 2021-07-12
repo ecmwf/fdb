@@ -57,7 +57,7 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Config::Config() {}
+Config::Config() : schemaPath_("") {}
 
 Config Config::make(const eckit::PathName& path) {
     eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << path << std::endl;
@@ -66,7 +66,9 @@ Config Config::make(const eckit::PathName& path) {
     return cfg;
 }
 
-Config::Config(const Configuration& config) : LocalConfiguration(config) {}
+Config::Config(const Configuration& config) : LocalConfiguration(config) {
+    initializeSchemaPath();
+}
 
 Config Config::expandConfig() const {
     // stops recursion on loading configuration of sub-fdb's
@@ -158,14 +160,20 @@ PathName Config::expandPath(const std::string& path) const {
     return PathName(path);
 }
 
-PathName Config::schemaPath() const {
-    PathName schema;
+const PathName& Config::schemaPath() const {
+    if (schemaPath_.path().empty()) {
+        initializeSchemaPath();
+    }
+    return schemaPath_;
+}
+
+void Config::initializeSchemaPath() const {
 
     // If the user has specified the schema location in the FDB config, use that,
     // otherwise use the library-wide schema path.
 
     if (has("schema")) {
-        schema = expandPath(getString("schema"));
+        schemaPath_ = expandPath(getString("schema"));
     }
     else {
         // TODO: deduplicate this with the library-level schemaPath()
@@ -173,12 +181,10 @@ PathName Config::schemaPath() const {
         static std::string fdbSchemaFile =
             Resource<std::string>("fdbSchemaFile;$FDB_SCHEMA_FILE", "~fdb/etc/fdb/schema");
 
-        schema = expandPath(fdbSchemaFile);
+        schemaPath_ = expandPath(fdbSchemaFile);
     }
 
-    eckit::Log::debug<LibFdb5>() << "Using FDB schema: " << schema << std::endl;
-
-    return schema;
+    eckit::Log::debug<LibFdb5>() << "Using FDB schema: " << schemaPath_ << std::endl;
 }
 
 PathName Config::configPath() const {
@@ -186,8 +192,7 @@ PathName Config::configPath() const {
 }
 
 const Schema& Config::schema() const {
-    PathName path(schemaPath());
-    return SchemaRegistry::instance().get(path);
+    return SchemaRegistry::instance().get(schemaPath());
 }
 
 mode_t Config::umask() const {
