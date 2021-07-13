@@ -64,7 +64,7 @@ CASE( "fdb_c - archive & list" ) {
     dh->close();
 
     EXPECT_NO_THROW(fdb_archive(fdb, key, buf1, length));
-
+    EXPECT_NO_THROW(fdb_flush(fdb));
 
     fdb_request_t* request;
     fdb_new_request(&request);
@@ -98,7 +98,6 @@ CASE( "fdb_c - archive & list" ) {
     ASSERT(!exist);
     fdb_delete_listiterator(it);
 
-
     fdb_key_add(key, "levelist", "400");
 
     eckit::PathName grib2("x138-400.grib");
@@ -110,6 +109,7 @@ CASE( "fdb_c - archive & list" ) {
     dh->close();
 
     EXPECT_NO_THROW(fdb_archive(fdb, key, buf2, length));
+    EXPECT_NO_THROW(fdb_flush(fdb));
 
     fdb_request_add1(request, "levelist", "400");
     fdb_new_listiterator(&it);
@@ -151,9 +151,89 @@ CASE( "fdb_c - archive & list" ) {
     dh->read(buf3, length);
     dh->close();
 
-    EXPECT_NO_THROW(fdb_archive(fdb, key, buf3, length));
 }
 
+
+CASE( "fdb_c - multiple archive & list" ) {
+    size_t length1, length2, length3;
+    DataHandle *dh;
+
+    fdb_handle_t* fdb;
+    fdb_new_handle(&fdb);
+
+    std::string s1("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=300,param=138}");
+    std::string s2("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=400,param=138}");
+
+    eckit::PathName grib1("x138-300.grib");
+    length1 = grib1.size();
+    eckit::PathName grib2("x138-400.grib");
+    length2 = grib2.size();
+    eckit::PathName grib3("y138-400.grib");
+    length3 = grib3.size();
+
+    eckit::Buffer buf(length1+length2+length3);
+    dh = grib1.fileHandle();
+    dh->openForRead();
+    dh->read(buf, length1);
+    dh->close();
+
+    dh = grib2.fileHandle();
+    dh->openForRead();
+    dh->read(buf+length1, length2);
+    dh->close();
+
+    dh = grib3.fileHandle();
+    dh->openForRead();
+    dh->read(buf+length1+length2, length3);
+    dh->close();
+
+    EXPECT_NO_THROW(fdb_multi_archive(fdb, buf, length1+length2+length3));
+    EXPECT_NO_THROW(fdb_flush(fdb));
+
+    fdb_request_t* request;
+    fdb_new_request(&request);
+    fdb_request_add1(request, "domain", "g");
+    fdb_request_add1(request, "stream", "oper");
+    fdb_request_add1(request, "levtype", "pl");
+    fdb_request_add1(request, "levelist", "300");
+    fdb_request_add1(request, "date", "20191110");
+    fdb_request_add1(request, "time", "0000");
+    fdb_request_add1(request, "step", "0");
+    fdb_request_add1(request, "param", "138");
+    fdb_request_add1(request, "class", "rd");
+    fdb_request_add1(request, "type", "an");
+    fdb_request_add1(request, "expver", "xxxx");
+
+    const char **item= new const char*;
+    bool exist;
+    fdb_listiterator_t* it;
+    fdb_new_listiterator(&it);
+    fdb_list(fdb, request, it);
+    fdb_listiterator_next(it, &exist, item);
+    ASSERT(exist);
+    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
+    fdb_delete_listiterator(it);
+
+    fdb_request_add1(request, "step", "1");
+    fdb_new_listiterator(&it);
+    fdb_list(fdb, request, it);
+    fdb_listiterator_next(it, &exist, item);
+    ASSERT(!exist);
+    fdb_delete_listiterator(it);
+
+    fdb_request_add1(request, "step", "0");
+    const char* values[] = {"400", "300"};
+    fdb_request_add(request, "levelist", values, 2);
+    fdb_new_listiterator(&it);
+    fdb_list(fdb, request, it);
+    fdb_listiterator_next(it, &exist, item);
+    ASSERT(exist);
+    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
+    fdb_listiterator_next(it, &exist, item);
+    ASSERT(exist);
+    EXPECT_NOT_EQUAL(std::string(*item).find(s2), std::string::npos);
+    fdb_delete_listiterator(it);
+}
 
 CASE( "fdb_c - retrieve bad request" ) {
 

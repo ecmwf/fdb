@@ -101,8 +101,8 @@ method:     Integer;
 # These rules must be first, otherwise fields of These
 # classes will be index with the default rule for oper
 [ class=ti/s2, expver, stream, date, time, model
-       [ origin, type, levtype, hdate?
-               [ step, number?, levelist?, param ]]
+	[ origin, type, levtype, hdate?
+        [ step, number?, levelist?, param ]]
 ]
 
 [ class=ms, expver, stream, date, time, country=de
@@ -112,7 +112,8 @@ method:     Integer;
 
 [ class=ms, expver, stream, date, time, country=it
        [ domain, type, levtype, model, bcmodel, icmodel:First3
-               [ step, levelist?, param ]]
+               [ step, levelist?, param ]
+	   ]
 ]
 
 [ class=el, expver, stream, date, time, domain
@@ -120,15 +121,10 @@ method:     Integer;
                [ step, levelist?, param ]]
 ]
 
-[ class=od, expver, stream, date, time
-       [ type
-               [ obsgroup, reportype ]]
-]
-
 ########################################################
 # The are the rules matching most of the fields
 # oper/dcda
-[ class, expver, stream=oper/dcda/scda, date, time, domain
+[ class, expver, stream=oper/dcda/scda, date, time, domain?
 
        [ type=im/sim
                [ step?, ident, instrument, channel ]]
@@ -145,6 +141,9 @@ method:     Integer;
        [ type=ef, levtype
                [ step, levelist?, param, channel? ]]
 
+       [ type=ofb/mfb
+               [ obsgroup, reportype ]]
+
        [ type, levtype
                [ step, levelist?, param ]]
 
@@ -159,7 +158,7 @@ method:     Integer;
 [ class, expver, stream=enfo/efov, date, time, domain
 
        [ type, levtype=dp, product?, section?
-	   		  [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
+              [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
 
        [ type=tu, levtype, reference
                [ step, number, levelist?, param ]]
@@ -193,13 +192,16 @@ method:     Integer;
 # ewda
 [ class, expver, stream=ewda, date, time, domain
        [ type, levtype
-               [ step, number, param, frequency?, direction? ]]
+               [ step, number?, param, frequency?, direction? ]]
 ]
 
 
 ########################################################
 # elda
-[ class, expver, stream=elda, date, time, domain
+[ class, expver, stream=elda, date, time, domain?
+
+       [ type=ofb/mfb
+               [ obsgroup, reportype ]]
 
        [ type, levtype, anoffset
                [ step, number?, levelist?, iteration?, param, channel? ]]
@@ -213,7 +215,7 @@ method:     Integer;
 
 ########################################################
 # elda
-[ class, expver, stream=lwda, date, time, domain
+[ class, expver, stream=lwda, date, time, domain?
 
        [ type=ssd, anoffset
                [ step, param, ident, instrument, channel ]]
@@ -223,6 +225,9 @@ method:     Integer;
 
        [ type=4i, levtype, anoffset
                [ step, iteration, levelist, param ]]
+
+       [ type=ofb/mfb
+               [ obsgroup, reportype ]]
 
        [ type, levtype, anoffset
                [ step, levelist?, param]]
@@ -298,7 +303,7 @@ method:     Integer;
 [ class, expver, stream=enfh, date, time, domain
 
        [ type, levtype=dp, hdate, product?, section?
-	   		  [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
+              [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
 
        [ type, levtype, hdate
                [ step, number?, levelist?, param ]]
@@ -364,7 +369,7 @@ method:     Integer;
 [ class, expver, stream=mmsf, date, time, domain
 
        [ type, levtype=dp, origin, product, section, system?, method
-	   		  [ step, number, levelist?, latitude?, longitude?, range?, param ]]
+              [ step, number, levelist?, latitude?, longitude?, range?, param ]]
 
        [ type, levtype, origin, system?, method
                [ step, number, levelist?, param ]]
@@ -374,7 +379,7 @@ method:     Integer;
 [ class, expver, stream=mnfc, date, time, domain
 
        [ type, levtype=dp, origin, product, section, system?, method
-	   		  [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
+              [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
 
        [ type, levtype, origin, system?, method
                [ step, number?, levelist?, param ]]
@@ -398,12 +403,17 @@ method:     Integer;
        [ type, levtype, origin, system?, method
                [ step, number?, param ]]]
 
+# ea/mnth
+[ class=ea, expver, stream=mnth, date, domain
+       [ type, levtype
+               [ time, step?, levelist?, param ]]]
+
 # mnth
 [ class, expver, stream=mnth, domain
        [ type=cl, levtype
                [ date: ClimateMonthly, time, levelist?, param ]]
        [ type, levtype
-               [ date: Month, time, step?, levelist?, param ]]]
+               [ date , time, step?, levelist?, param ]]]
 
 # mofc
 [ class, expver, stream=mofc, date, time, domain
@@ -467,12 +477,23 @@ method:     Integer;
 [ class, expver, stream=wamf, date, time, domain
        [ type, levtype, system?, method
                [ step, number?, param ]]]
+
+# ea/wamo
+[ class=ea, expver, stream=wamo, date, domain
+       [ type, levtype
+               [ time, step?, param ]]]
+
 # wamo
 [ class, expver, stream=wamo, domain
        [ type=cl, levtype
                [ date: ClimateMonthly, time, param ]]
        [ type, levtype
-               [ date: Month, time, step?, param ]]]
+               [ date, time, step?, param ]]]
+
+# wamd
+[ class, expver, stream=wamd, date, domain
+       [ type, levtype
+               [ param ]]]
 
 # wasf
 [ class, expver, stream=wasf, date, time, domain
@@ -482,11 +503,18 @@ method:     Integer;
 [ class, expver, stream=wmfm, date, time, domain
        [ type, levtype, system?, method
                [ fcperiod, number, param ]]]
-#=
-[ class, expver, stream=moda/msdc/mdfa/msda, domain
+
+# moda
+[ class, expver, stream=moda, date, domain
        [ type, levtype
-               [ date: Month, time?, step?, levelist?, param ]]]
-               #[ step, leadtime?, opttime?, number?, levelist?, param ]]]
+               [ levelist?, param ]]]
+
+# msdc/mdfa/msda
+[ class, expver, stream=msdc/mdfa/msda, domain
+       [ type, levtype
+               [ date, time?, step?, levelist?, param ]]]
+
+
 
 # seap
 [ class, expver, stream=seap, date, time, domain
@@ -499,16 +527,16 @@ method:     Integer;
        [ type, levtype, origin
                [ step, levelist?, param ]]
 
-			   ]
+               ]
 
 [ class, expver, stream=mmaf, date, time, domain
        [ type, levtype, origin, system?, method
-	   	     [ step, number, levelist?, param ]]
+             [ step, number, levelist?, param ]]
 ]
 
 [ class, expver, stream=mmam, date, time, domain
        [ type, levtype, origin, system?, method
-	   	     [ fcmonth, number, levelist?, param ]]
+             [ fcmonth, number, levelist?, param ]]
 ]
 
 
@@ -541,7 +569,7 @@ method:     Integer;
 ]
 
 # stream gfas
-[ class=mc, expver, stream=gfas, date, time, domain
+[ class=mc/rd, expver, stream=gfas, date, time, domain
        [ type=ga, levtype
                [ step, param ]]
 

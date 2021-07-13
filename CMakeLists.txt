@@ -6,7 +6,6 @@ project( fdb5 LANGUAGES C CXX )
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-reorder -Wno-sign-compare")
 
 ########################################################################################################################
 ### dependencies and options
@@ -56,6 +55,10 @@ ecbuild_add_option( FEATURE LUSTRE  # option defined in fdb5_config.h
 
 ### experimental & sandbox features
 
+ecbuild_add_option( FEATURE FDB_REMOTE
+                    DEFAULT ON
+                    DESCRIPTION "Support for FDB remote access" )
+
 ecbuild_add_option( FEATURE EXPERIMENTAL
                     DEFAULT OFF
                     DESCRIPTION "Experimental features" )
@@ -95,6 +98,8 @@ endif()
 
 ########################################################################################################################
 # contents
+
+include(cmake/compiler_warnings.cmake) # optionally handle compiler specific warnings
 
 set( fdb5_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 

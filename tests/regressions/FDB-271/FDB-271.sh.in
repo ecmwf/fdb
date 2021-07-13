@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-271
+
+export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+
+### cleanup and prepare test
+
+rm -rf $bindir/old
+mkdir -p old/rd\:xxxx/20201102\:0000\:g/oper
+
+for f in old.yaml schema
+do
+    cp $srcdir/$f $bindir
+done
+
+for f in fc:pl.20210610.143554.titania.57951993724930.data fc:pl.20210610.143554.titania.57951993724929.index toc schema
+do
+    cp $srcdir/$f $bindir/old/rd\:xxxx/20201102\:0000\:g/oper
+done
+
+export FDB5_CONFIG_FILE=old.yaml
+
+# reading from an index with levelist not in canonical form
+
+cat > old_list <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.05,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.7,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=925,param=166}
+EOF
+
+cat > old_listLength <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.05,param=166},length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.7,param=166},length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=925,param=166},length=1476
+EOF
+
+cat > old_r1 <<EOF
+retrieve,class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=pl,step=12,levelist=925/.7,param=166
+EOF
+cat > old_r2 <<EOF
+retrieve,class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=pl,step=12,levelist=925/0.7,param=166
+EOF
+cat > old_r3 <<EOF
+retrieve,class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=pl,step=12,levelist=925/0.700000,param=166
+EOF
+
+cat > old_griblist <<EOF
+g           pl          925         20201102    0000        12          166.128     rd          fc          oper        xxxx
+g           pl          0.7         20201102    0000        12          166.128     rd          fc          oper        xxxx
+EOF
+
+# should return 3 fields - no length
+$fdblist --porcelain class=rd,expver=xxxx | tee old_out
+cmp old_out old_list
+
+# should return 3 fields with length
+$fdblist class=rd,expver=xxxx | tee old_out
+tail -3 old_out > old_shortOut
+cmp old_shortOut old_listLength
+
+# should read 2 fields
+$fdbread --raw old_r1 old_out.grib
+$gribls -m old_out.grib | tee old_out
+grep oper old_out | sed 's/ *$//' > old_content
+cmp old_griblist old_content
+
+$fdbread --raw old_r2 old_out.grib
+$gribls -m old_out.grib | tee old_out
+grep oper old_out | sed 's/ *$//' > old_content
+cmp old_griblist old_content
+
+$fdbread --raw old_r3 old_out.grib
+$gribls -m old_out.grib | tee old_out
+grep oper old_out | sed 's/ *$//' > old_content
+cmp old_griblist old_content

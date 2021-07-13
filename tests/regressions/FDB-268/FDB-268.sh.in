@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-268
+
+export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+
+### cleanup and prepare test
+
+for f in config.yaml schema fc:pl.20210610.143554.titania.57951993724930.data 
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+cat > list <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.05,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.7,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=925,param=166}
+EOF
+
+cat > listLength <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.05,param=166},length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=0.7,param=166},length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=pl}{step=12,levelist=925,param=166},length=1476
+EOF
+
+cat > r1 <<EOF
+retrieve,class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=pl,step=12,levelist=925/.7,param=166
+EOF
+cat > r2 <<EOF
+retrieve,class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=pl,step=12,levelist=925/0.7,param=166
+EOF
+cat > r3 <<EOF
+retrieve,class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=pl,step=12,levelist=925/0.700000,param=166
+EOF
+
+cat > griblist <<EOF
+g           pl          925         20201102    0000        12          166.128     rd          fc          oper        xxxx
+g           pl          0.7         20201102    0000        12          166.128     rd          fc          oper        xxxx
+EOF
+
+### cleanup and prepare new index
+
+rm -rf $bindir/root
+mkdir -p root
+
+$fdbwrite fc:pl.20210610.143554.titania.57951993724930.data
+
+# should return 3 fields - no length
+$fdblist --porcelain class=rd,expver=xxxx | tee out
+cmp out list
+
+# should return 3 fields with length
+$fdblist class=rd,expver=xxxx | tee out
+tail -3 out > shortOut
+cmp shortOut listLength
+
+# should read 2 fields
+$fdbread --raw r1 out.grib
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp griblist content
+
+$fdbread --raw r2 out.grib
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp griblist content
+
+$fdbread --raw r3 out.grib
+$gribls -m out.grib | tee out
+grep oper out | sed 's/ *$//' > content
+cmp griblist content

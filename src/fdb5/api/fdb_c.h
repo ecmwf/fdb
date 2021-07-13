@@ -99,9 +99,11 @@ typedef struct fdb_handle_t fdb_handle_t;
 
 /** Creates a fdb instance. */
 int fdb_new_handle(fdb_handle_t** fdb);
+int fdb_multi_archive(fdb_handle_t* fdb, const char* data, size_t length);
 int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t length);
 int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t* it);
 int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr);
+int fdb_flush(fdb_handle_t* fdb);
 /** Closes and destroys the fdb instance.
  *  Must be called for every fdb_t created.
  */

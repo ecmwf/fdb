@@ -48,11 +48,10 @@ static int month(const std::string &value) {
     }
 }
 
-void TypeClimateMonthly::toKey(std::ostream &out,
-                               const std::string&,
-                               const std::string &value) const {
+std::string TypeClimateMonthly::toKey(const std::string&,
+                                      const std::string &value) const {
 
-    out << month(value);
+    return std::to_string(month(value));
 }
 
 void TypeClimateMonthly::getValues(const metkit::mars::MarsRequest &request,

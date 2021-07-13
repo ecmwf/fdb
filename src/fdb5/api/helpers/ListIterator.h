@@ -53,7 +53,7 @@ public: // methods
 
     Key combinedKey() const;
 
-    void print(std::ostream& out, bool withLocation=false) const;
+    void print(std::ostream& out, bool withLocation=false, bool withLength=false) const;
     void json(eckit::JSON& json) const;
 
 private: // methods

@@ -1,0 +1,523 @@
+#########################
+## FDB SCHEMA FOR THE CDS
+#########################
+
+# * Format of the rules is:
+
+# [a1, a2, a3 ...[b1, b2, b3... [c1, c2, c3...]]]
+
+# - The first level (a) defines which attributes are used to name the top level directory
+# - The second level (b) defines which attributes are used to name the data files
+# - The third level (c) defines which attributes are used as index keys
+
+# * Rules can be grouped
+
+# [a1, a2, a3 ...
+#   [b1, b2, b3... [c1, c2, c3...]]
+#   [B1, B2, B3... [C1, C2, C3...]]
+# ]
+
+# * A list of values can be given for an attribute
+# [ ..., stream=enfo/efov, ... ]
+# This will be used when matching rules.
+
+# * Attributes can be typed
+#   Globally, at the begining of this file:
+
+#   refdate: Date;
+
+#   or in the context of a rule:
+#   [type=cl, ... [date:ClimateMonth, ...]]
+
+# Typing attributes is done when the user's requests or the GRIB values need to be modified before directories, files and indexes are created. For example, ClimateMonth will transform 2010-04-01 to 'may' internally.
+
+# * Attributes can be optional
+# [ time, step, levelist?, param ]
+# They will be replaced internally by an empty value. It is also posiible to provide a default subtitution value: e.g. [domain?g] will consider the domain to be 'g' if missing.
+
+# * Attributes can be removed:
+# [grid-]
+# This is useful to remove attributes present in the GRIB that should not be ignored
+
+# * Rules are matched:
+
+# - If the attributes are present in the GRIB/Request, or marked optional or ignored
+# - If a list of possible value is provided, one of them must match, for example
+#   [ class, expver-, stream=enfo/efov, date, domain ]
+#   will match either stream=enfo or stream=efov, all other attributes will be matched if they exist in the GRIB or user's request
+
+# * On archive:
+# - Attributes are extracted from the GRIB (namespace 'mars'), possibly modified by the attribute type
+# - Only the first rule is used, so order is important
+# - All GRIB attributes must be used by the rules, otherwise an error is raised
+
+# * On retrieve:
+# - Attributes are extracted from the user's request, possibly modified by the attribute type (e.g. for handling of U/V)
+# - All the matching rules are considered
+# - Only attributes listed in the rules are used to extract values from the user's request
+
+
+# Default types
+
+param:      Param;
+step:       Step;
+date:       Date;
+hdate:      Date;
+refdate:    Date;
+latitude:   Double;
+longitude:  Double;
+levelist:   Double;
+grid:       Grid;
+expver:     Expver;
+
+time:       Time;
+fcmonth:    Integer;
+
+number:     Integer;
+frequency:  Integer;
+direction:  Integer;
+channel:    Integer;
+
+instrument: Integer;
+ident:      Integer;
+
+diagnostic: Integer;
+iteration:  Integer;
+system:     Integer;
+method:     Integer;
+
+########################################################
+# The are the rules matching most of the fields
+# oper/dcda
+[ class, expver-, stream=oper/dcda/scda, date, domain
+
+       [ type=im/sim
+               [ time, step?, ident, instrument, channel ]]
+
+       [ type=ssd
+               [ time, step, param, ident, instrument, channel ]]
+
+       [ type=4i, levtype
+               [ time, step, iteration, levelist, param ]]
+
+       [ type=me, levtype
+               [ time, step, number, levelist?, param ]]
+
+       [ type=ef, levtype
+               [ time, step, levelist?, param, channel? ]]
+
+       [ type, levtype
+               [ time, step, levelist?, param ]]
+
+]
+
+# dcwv/scwv/wave
+[ class, expver-, stream=dcwv/scwv/wave, date, domain
+       [ type, levtype
+               [ time, step, param, frequency?, direction? ]]]
+
+# enfo
+[ class, expver-, stream=enfo/efov, date, domain
+
+       [ type, levtype=dp, product?, section?
+	   		  [ time, step, number?, levelist?, latitude?, longitude?, range?, param ]]
+
+       [ type=tu, levtype, reference
+               [ time, step, number, levelist?, param ]]
+
+       [ type, levtype
+               [ time, step, quantile?, number?, levelist?, param ]]
+
+]
+
+# waef/weov
+[ class, expver-, stream=waef/weov, date, domain
+       [ type, levtype
+               [ time, step, number?, param, frequency?, direction? ]]
+]
+
+########################################################
+# enda
+[ class, expver-, stream=enda, date, domain
+
+       [ type=ef/em/es/ses, levtype
+               [ time, step, number?, levelist?, param, channel? ]]
+
+       [ type=ssd
+               [ time, step, number, param, ident, instrument, channel ]]
+
+
+       [ type, levtype
+               [ time, step, number?, levelist?, param ]]
+]
+
+# ewda
+[ class, expver-, stream=ewda, date, domain
+       [ type, levtype
+               [ time, step, number?, param, frequency?, direction? ]]
+]
+
+
+########################################################
+# elda
+[ class, expver-, stream=elda, date, domain
+
+       [ type, levtype, anoffset
+               [ time, step, number?, levelist?, iteration?, param, channel? ]]
+]
+
+# ewda
+[ class, expver-, stream=ewla, date, domain
+       [ type, levtype, anoffset
+               [ time, step, number?, param, frequency?, direction? ]]
+]
+
+########################################################
+# elda
+[ class, expver-, stream=lwda, date, domain
+
+       [ type=ssd, anoffset
+               [ time, step, param, ident, instrument, channel ]]
+
+       [type=me, levtype, anoffset
+               [ number, step, levelist?, param]]
+
+       [ type=4i, levtype, anoffset
+               [ time, step, iteration, levelist, param ]]
+
+       [ type, levtype, anoffset
+               [ time, step, levelist?, param]]
+]
+
+# ewda
+[ class, expver-, stream=lwwv, date, domain
+       [ type, levtype, anoffset
+               [ time, step, param, frequency?, direction? ]]
+]
+########################################################
+# amap
+[ class, expver-, stream=amap, date, domain
+       [ type, levtype, origin
+               [ time, step, levelist?, param ]]]
+
+# maed
+[ class, expver-, stream=maed, date, domain
+       [ type, levtype, origin
+               [ time, step, levelist?, param ]]]
+
+# mawv
+[ class, expver-, stream=mawv, date, domain
+       [ type, levtype, origin
+               [ time, step, param, frequency?, direction? ]]]
+
+# cher
+[ class, expver-, stream=cher, date, domain
+       [ type, levtype
+               [ time, step, levelist, param ]]]
+
+
+# efhc
+[ class, expver-, stream=efhc, refdate, domain
+       [ type, levtype, date
+               [ time, step, number?, levelist?, param ]]]
+
+# efho
+[ class, expver-, stream=efho, date, domain
+       [ type, levtype, hdate
+               [ time, step, number?, levelist?, param ]]]
+
+
+# efhs
+[ class, expver-, stream=efhs, date, domain
+       [ type, levtype
+               [ time, step, quantile?, number?, levelist?, param ]]]
+
+# wehs
+[ class, expver-, stream=wehs, date, domain
+       [ type, levtype
+               [ time, step, quantile?, number?, levelist?, param ]]]
+
+# kwbc
+[ class, expver-, stream=kwbc, date, domain
+       [ type, levtype
+               [ time, step, number?, levelist?, param ]]]
+
+# ehmm
+[ class, expver-, stream=ehmm, date, domain
+       [ type, levtype, hdate
+               [ time, fcmonth, levelist?, param ]]]
+
+
+# ammc/cwao/edzw/egrr/lfpw/rjtd/toga
+[ class, expver-, stream=ammc/cwao/edzw/egrr/lfpw/rjtd/toga/fgge, date, domain
+       [ type, levtype
+               [ time, step, levelist?, param ]]]
+
+########################################################################
+
+# enfh
+[ class, expver-, stream=enfh, date, domain
+
+       [ type, levtype=dp, hdate, product?, section?
+	   		  [ time, step, number?, levelist?, latitude?, longitude?, range?, param ]]
+
+       [ type, levtype, hdate
+               [ time, step, number?, levelist?, param ]]
+]
+
+# enwh
+[ class, expver-, stream=enwh, date, domain
+       [ type, levtype, hdate
+               [ time, step, number?, param, frequency?, direction? ]]
+]
+
+########################################################################
+# sens
+[ class, expver-, stream=sens, date, domain
+       [ type, levtype
+               [ time, step, diagnostic, iteration, levelist?, param ]]]
+
+########################################################################
+# esmm
+[ class, expver-, stream=esmm, date, domain
+       [ type, levtype
+               [ time, fcmonth, levelist?, param ]]]
+# ewhc
+[ class, expver-, stream=ewhc, refdate, domain
+       [ type, levtype, date
+               [ time, step, number?, param,  frequency?, direction? ]]]
+
+########################################################################
+# ewho
+[ class, expver-, stream=ewho, date, domain
+       [ type, levtype, hdate
+               [ time, step, number?, param, frequency?, direction? ]]]
+
+# mfam
+[ class, expver-, stream=mfam, date, domain
+
+       [ type=pb/pd, levtype, origin, system?, method
+               [ time, fcperiod, quantile, levelist?, param ]]
+
+       [ type, levtype, origin, system?, method
+               [ time, fcperiod, number?, levelist?, param ]]
+
+]
+
+# mfhm
+[ class, expver-, stream=mfhm, refdate, domain
+       [ type, levtype, origin, system?, method, date?
+               [ time, fcperiod, number?, levelist?, param ]]]
+# mfhw
+[ class, expver-, stream=mfhw, refdate, domain
+       [ type, levtype, origin, system?, method, date
+               [ time, step, number?, param ]]]
+# mfwm
+[ class, expver-, stream=mfwm, date, domain
+       [ type, levtype, origin, system?, method
+               [ time, fcperiod, number, param ]]]
+# mhwm
+[ class, expver-, stream=mhwm, refdate, domain
+       [ type, levtype, origin, system?, method, date
+               [ time, fcperiod, number, param ]]]
+
+# mmsf
+[ class, expver-, stream=mmsf, date, domain
+
+       [ type, levtype=dp, origin, product, section, system?, method
+	   		  [ time, step, number, levelist?, latitude?, longitude?, range?, param ]]
+
+       [ type, levtype, origin, system?, method
+               [ time, step, number, levelist?, param ]]
+]
+
+# mnfc
+[ class, expver-, stream=mnfc, date, domain
+
+       [ type, levtype=dp, origin, product, section, system?, method
+	   		  [ time, step, number?, levelist?, latitude?, longitude?, range?, param ]]
+
+       [ type, levtype, origin, system?, method
+               [ time, step, number?, levelist?, param ]]
+]
+
+# mnfh
+[ class, expver-, stream=mnfh, refdate, domain
+       [ type, levtype=dp, origin, product, section, system?, method, date
+               [ time, step, number?, levelist?,  latitude?, longitude?, range?, param ]]
+       [ type, levtype, origin, system?, method, date?
+               [ time, step, number?, levelist?, param ]]
+]
+
+# mnfm
+[ class, expver-, stream=mnfm, date, domain
+       [ type, levtype, origin, system?, method
+               [ time, fcperiod, number?, levelist?, param ]]]
+
+# mnfw
+[ class, expver-, stream=mnfw, date, domain
+       [ type, levtype, origin, system?, method
+               [ time, step, number?, param ]]]
+
+# mnth
+[ class, expver-, stream=mnth, domain
+       [ type=cl, levtype
+               [ date: ClimateMonthly, time, levelist?, param ]]
+       [ type, levtype
+               [ date: Month, time, step?, levelist?, param ]]]
+
+# mofc
+[ class, expver-, stream=mofc, date, domain
+       [ type, levtype=dp, product, section, system?, method
+               [ time, step, number?, levelist?, latitude?, longitude?, range?, param ]]
+       [ type, levtype, system?, method
+               [ time, step, number?, levelist?,  param ]]
+]
+
+# mofm
+[ class, expver-, stream=mofm, date, domain
+       [ type, levtype, system?, method
+               [ time, fcperiod, number, levelist?, param ]]]
+
+# mmsa/msmm
+[ class, expver-, stream=mmsa, date, domain
+       [ type, levtype, origin, system?, method
+               [ time, fcmonth, number?, levelist?, param ]]]
+
+[ class, expver-, stream=msmm, date, domain
+       [ type, levtype, origin, system?, method
+               [ time, fcmonth, number?, levelist?, param ]]]
+
+# ocea
+[ class, expver-, stream=ocea, date, domain
+       [ type, levtype, product, section, system?, method
+               [ time, step, number, levelist?, latitude?, longitude?, range?, param ]]
+]
+
+#=# seas
+[ class, expver-, stream=seas, date, domain
+
+       [ type, levtype=dp, product, section, system?, method
+               [ time, step, number, levelist?, latitude?, longitude?, range?, param ]]
+
+       [ type, levtype, system?, method
+               [ time, step, number, levelist?, param ]]
+]
+
+# sfmm/smma
+[ class, expver-, stream=sfmm/smma, date, domain
+       [ type, levtype, system?, method
+               [ time, fcmonth, number?, levelist?, param ]]]
+
+# supd
+[ class=od, expver-, stream=supd, date, domain
+       [ type, levtype, origin?, grid
+               [ time, step, levelist?, param ]]]
+
+# For era
+[ class, expver-, stream=supd, date, domain
+       [ type, levtype, grid- # The minus sign is here to consume 'grid', but don't index it
+               [ time, step, levelist?, param ]]]
+
+# swmm
+[ class, expver-, stream=swmm, date, domain
+       [ type, levtype, system?, method
+               [ time, fcmonth, number, param ]]]
+
+# wamf
+[ class, expver-, stream=wamf, date, domain
+       [ type, levtype, system?, method
+               [ time, step, number?, param ]]]
+# wamo
+[ class, expver-, stream=wamo, domain
+       [ type=cl, levtype
+               [ date: ClimateMonthly, time, param ]]
+       [ type, levtype
+               [ date: Month, time, step?, param ]]]
+
+# wasf
+[ class, expver-, stream=wasf, date, domain
+       [ type, levtype, system?, method
+               [ time, step, number, param ]]]
+# wmfm
+[ class, expver-, stream=wmfm, date, domain
+       [ type, levtype, system?, method
+               [ time, fcperiod, number, param ]]]
+#=
+[ class, expver-, stream=moda/msdc/mdfa/msda, domain
+       [ type, levtype
+               [ date: Month, time?, step?, levelist?, param ]]]
+               #[ time, step, leadtime?, opttime?, number?, levelist?, param ]]]
+
+# seap
+[ class, expver-, stream=seap, date, domain
+       [ type=sv/svar, levtype, origin, method?
+               [ time, step, leadtime, opttime, number, levelist?, param ]]
+
+       [ type=ef, levtype, origin
+               [ time, step, levelist?, param, channel? ]]
+
+       [ type, levtype, origin
+               [ time, step, levelist?, param ]]
+
+			   ]
+
+[ class, expver-, stream=mmaf, date, domain
+       [ type, levtype, origin, system?, method
+	   	     [ time, step, number, levelist?, param ]]
+]
+
+[ class, expver-, stream=mmam, date, domain
+       [ type, levtype, origin, system?, method
+	   	     [ time, fcmonth, number, levelist?, param ]]
+]
+
+
+[ class, expver-, stream=dacl, domain
+       [ type=pb, levtype
+               [ date: ClimateDaily, time, step, quantile, levelist?, param ]]
+       [ type, levtype
+               [ date: ClimateDaily, time, step, levelist?, param ]]
+
+]
+
+[ class, expver-, stream=dacw, domain
+       [ type=pb, levtype
+               [ date: ClimateDaily, time, step, quantile, param ]]
+       [ type, levtype
+               [ date: ClimateDaily, time, step, param ]]
+
+]
+
+[ class, expver-, stream=edmm/ewmm, date, domain
+       [ type=ssd
+               [ time, step, number, param, ident, instrument, channel ]]
+       [ type, levtype
+               [ time, step, number, levelist?, param ]]
+]
+
+[ class, expver-, stream=edmo/ewmo, date, domain
+       [ type, levtype
+               [ number, levelist?, param ]]
+]
+
+# stream gfas
+[ class=mc, expver-, stream=gfas, date, domain
+       [ type=ga, levtype
+               [ time, step, param ]]
+
+       [ type=gsd
+               [ time, param, ident, instrument ]]
+
+]
+
+# class is e2
+[ class, expver-, stream=espd, date, domain
+       [ type, levtype, origin, grid
+               [ time, step, number, levelist?, param ]]]
+
+[ class=cs, expver-, stream, date:Default, time, domain
+       [ type, levtype
+               [ time, step, levelist?, param ]]]
+
+

@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-266
+
+export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+
+### cleanup and prepare test
+
+rm -rf $bindir/root
+mkdir root
+
+for f in config.yaml schema climatology.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+$fdbwrite climatology.grib
+
+### test 1
+
+cat > req.1 <<EOF
+retrieve,
+ class=ei,
+ expver=0001,
+ stream=dacl,
+ domain=g,
+ type=pb,
+ levtype=pl,
+ date=JAN-01,
+ time=0000,
+ step=0,
+ quantile=99:100,
+ levelist=50,
+ param=129/130
+EOF
+
+# $fdbread req.1 out.grib
+
+cat > list <<EOF
+g           pl          50          jan-01      0000        0           129.128     ei          pb          dacl        0001        99:100
+g           pl          50          jan-01      0000        0           130.128     ei          pb          dacl        0001        99:100
+EOF
+
+# $gribls -m out.grib | tee out
+# grep dacl out | sed 's/ *$//' > content
+# cmp list content
+
+
+### test 2
+
+cat > req.2 <<EOF
+retrieve,
+ class=ei,
+ expver=0001,
+ stream=dacl,
+ domain=g,
+ type=pb,
+ levtype=pl,
+ date=0101,
+ time=0000,
+ step=0,
+ quantile=99:100,
+ levelist=50,
+ param=129/130
+EOF
+
+# $fdbread req.2 out.grib
+
+# $gribls -m out.grib | tee out
+# grep dacl out | sed 's/ *$//' > content
+# cmp list content
+
+
+### test 3
+
+cat > req.3 <<EOF
+retrieve,
+ class=ei,
+ expver=0001,
+ stream=dacl,
+ domain=g,
+ type=pb,
+ levtype=pl,
+ date=20210101,
+ time=0000,
+ step=0,
+ quantile=99:100,
+ levelist=50,
+ param=129/130
+EOF
+
+$fdbread --raw req.3 out.grib
+
+$gribls -m out.grib | tee out
+grep dacl out | sed 's/ *$//' > content
+cmp list content

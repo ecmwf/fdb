@@ -112,7 +112,8 @@ public: // methods
 
     const eckit::StringList& names() const;
 
-    std::string value(const std::string& key) const;
+    std::string value(const std::string& keyword) const;
+    std::string canonicalValue(const std::string& keyword) const;
 
     typedef eckit::StringDict::const_iterator const_iterator;
     typedef eckit::StringDict::const_reverse_iterator const_reverse_iterator;
@@ -141,6 +142,9 @@ public: // methods
     operator eckit::StringDict() const;
 
 private: // members
+
+    //TODO add unit test for each type
+    std::string canonicalise(const std::string& keyword, const std::string& value) const;
 
     void print( std::ostream &out ) const;
     void decode(eckit::Stream& s);

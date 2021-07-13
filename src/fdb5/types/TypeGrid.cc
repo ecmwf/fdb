@@ -27,13 +27,12 @@ TypeGrid::TypeGrid(const std::string &name, const std::string &type) :
 TypeGrid::~TypeGrid() {
 }
 
-void TypeGrid::toKey(std::ostream &out,
-                     const std::string&,
-                     const std::string& value) const {
+std::string TypeGrid::toKey(const std::string&,
+                            const std::string& value) const {
 
     std::string s(value);
     std::replace( s.begin(), s.end(), '/', '+');
-    out << s;
+    return s;
 }
 
 void TypeGrid::getValues(const metkit::mars::MarsRequest& request,
