@@ -33,10 +33,10 @@ public: // methods
 
     Root(const std::string& path,
          const std::string& filespace,
-         bool list = true,
-         bool retrieve  = true,
-         bool archive = true,
-         bool wipe = true);
+         bool list,
+         bool retrieve,
+         bool archive,
+         bool wipe);
 
     const eckit::PathName &path() const;
 

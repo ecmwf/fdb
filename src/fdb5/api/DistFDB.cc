@@ -100,8 +100,10 @@ void DistFDB::archive(const Key& key, eckit::message::Message msg) {
 
         FDB& lane = lanes_[idx];
 
-        if(not lane.canArchive()) continue;
-
+        if(not lane.canArchive()) {
+            eckit::Log::warning() << "Archive on FDB lane " << lane << " is disabled" << std::endl;
+            continue;
+        }
         if (lane.disabled()) {
             eckit::Log::warning() << "FDB lane " << lane << " is disabled" << std::endl;
             continue;

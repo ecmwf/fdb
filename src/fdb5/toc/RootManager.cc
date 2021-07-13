@@ -336,7 +336,8 @@ static std::vector<Root> readRoots(const eckit::PathName& fdbRootsFile) {
                 bool writable        = str2bool(s[2]);
                 bool visit           = str2bool(s[3]);
 
-                result.push_back(Root(path, filespace, writable, visit));
+                //                                     list   retrieve  archive   wipe
+                result.push_back(Root(path, filespace, visit, visit,    writable, writable));
                 break;
             }
 
@@ -388,7 +389,8 @@ static std::vector<Root> parseMarsDisks(const eckit::PathName& file, const std::
             std::vector<std::string> tokens;
             tokenize(line, tokens);
             if (tokens.size() == 1) {
-                spaceRoots.emplace_back(Root(tokens[0], name, writable, visitable));
+                //                                            list       retrieve   archive   wipe
+                spaceRoots.emplace_back(Root(tokens[0], name, visitable, visitable, writable, writable));
             }
         }
     }
@@ -694,9 +696,12 @@ std::vector<eckit::PathName> RootManager::writableRoots(const Key& key) {
 
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(k)) {
+
             i->writable(roots);
         }
     }
+
+    Log::debug<LibFdb5>() << "Writable Roots " << roots << std::endl;
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }

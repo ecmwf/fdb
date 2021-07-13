@@ -39,6 +39,7 @@ Root::Root(const std::string &path, const std::string& filespace, bool list, boo
         Log::warning() << "FDB root " << path_ << " " << Log::syserr << std::endl;
         exists_ = false;
     }
+    Log::debug<LibFdb5>() << "Root " << *this << (exists_ ? " exists" : " does NOT exists") << std::endl;
 }
 
 const eckit::PathName& Root::path() const {

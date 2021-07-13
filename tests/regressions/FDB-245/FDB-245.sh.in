@@ -26,10 +26,14 @@ done
 $gribset -s step=6 12.grib 6.grib
 $gribset -s step=9 12.grib 9.grib
 
+cat > list6 <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166}
+EOF
+
 cat > list <<EOF
-{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166},length=1476
-{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166},length=1476
-{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166},length=1476
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166}
 EOF
 
 cat > empty <<EOF
@@ -40,17 +44,37 @@ EOF
 export FDB5_CONFIG_FILE=visit.yaml
 ! $fdbwrite 6.grib
 
+export FDB5_CONFIG_FILE=rw.yaml
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out empty
+
 export FDB5_CONFIG_FILE=write.yaml
 $fdbwrite 6.grib
+
+export FDB5_CONFIG_FILE=rw.yaml
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list6
 
 export FDB5_CONFIG_FILE=list.yaml
 ! $fdbwrite 9.grib
 
+export FDB5_CONFIG_FILE=rw.yaml
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list6
+
 export FDB5_CONFIG_FILE=retrieve.yaml
 ! $fdbwrite 9.grib
 
+export FDB5_CONFIG_FILE=rw.yaml
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list6
+
 export FDB5_CONFIG_FILE=wipe.yaml
 ! $fdbwrite 9.grib
+
+export FDB5_CONFIG_FILE=rw.yaml
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list6
 
 export FDB5_CONFIG_FILE=archive.yaml
 $fdbwrite 9.grib
