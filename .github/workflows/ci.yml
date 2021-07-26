@@ -1,0 +1,481 @@
+##########################################################
+# CI workflow file generated using Cookiecutter          #
+# DO NOT EDIT MANUALLY, ANY CHANGES WILL BE OVERWRITTEN! #
+##########################################################
+
+name: Continuous Integration
+
+# Controls when the action will run
+on:
+
+  # Trigger the workflow on all pushes, except on tag creation
+  push:
+    branches:
+    - '**'
+    tags-ignore:
+    - '**'
+
+  # Trigger the workflow on all pull requests
+  pull_request: ~
+
+  # Allow workflow to be dispatched on demand
+  workflow_dispatch: ~
+
+jobs:
+
+  ci:
+    name: Build & Test
+    strategy:
+      matrix:
+        name:
+        - gnu-10@ubuntu-20.04
+        - clang-12@ubuntu-20.04
+        - gnu-10@ubuntu-18.04
+        - clang-9@ubuntu-18.04
+        - gnu-10@macos-10.15
+        - clang-12@macos-10.15
+        include:
+        - name: gnu-10@ubuntu-20.04
+          os: ubuntu-20.04
+          compiler: gnu-10
+          compiler_cc: gcc-10
+          compiler_cxx: g++-10
+          compiler_fc: gfortran-10
+        - name: clang-12@ubuntu-20.04
+          os: ubuntu-20.04
+          compiler: clang-12
+          compiler_cc: clang-12
+          compiler_cxx: clang++-12
+          compiler_fc: gfortran-10
+        - name: gnu-10@ubuntu-18.04
+          os: ubuntu-18.04
+          compiler: gnu-10
+          compiler_cc: gcc-10
+          compiler_cxx: g++-10
+          compiler_fc: gfortran-10
+        - name: clang-9@ubuntu-18.04
+          os: ubuntu-18.04
+          compiler: clang-9
+          compiler_cc: clang-9
+          compiler_cxx: clang++-9
+          compiler_fc: gfortran-9
+        - name: gnu-10@macos-10.15
+          os: macos-10.15
+          compiler: gnu-10
+          compiler_cc: gcc-10
+          compiler_cxx: g++-10
+          compiler_fc: gfortran-10
+        # Xcode compiler requires empty environment variables, so we pass null (~) here
+        - name: clang-12@macos-10.15
+          os: macos-10.15
+          compiler: clang-12
+          compiler_cc: ~
+          compiler_cxx: ~
+          compiler_fc: gfortran-10
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Setup Environment
+      env:
+        OS: ${{ matrix.os }}
+      shell: bash -eux {0}
+      run: |
+        # Get installed CMake version number.
+        CMAKE_VERSION="$( cmake -E capabilities | jq .version.string | tr -d '"' )"
+        echo "CMAKE_VERSION=$CMAKE_VERSION" >> $GITHUB_ENV
+
+        # Linking against system OpenSSL library is not permitted on macOS.
+        #   Instead, we link against Homebrew version.
+        if [[ "${OS}" == "macos-10.15" ]]; then
+            OPENSSL_ROOT_DIR="$(brew --prefix openssl@1.1)"
+            OPENSSL_INCLUDE_DIR="$(brew --prefix openssl@1.1)/include"
+            echo "OPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR" >> $GITHUB_ENV
+            echo "OPENSSL_INCLUDE_DIR=$OPENSSL_INCLUDE_DIR" >> $GITHUB_ENV
+        fi
+
+    - name: Download ecbuild Artifact
+      id: download-ecbuild-artifact
+      uses: dawidd6/action-download-artifact@v2
+      continue-on-error: true
+      with:
+        repo: ecmwf/ecbuild
+        branch: develop
+        workflow: ci.yml
+        name: ecbuild-${{ matrix.os }}-cmake-${{ env.CMAKE_VERSION }}
+
+    - name: Extract ecbuild Artifact
+      if: steps.download-ecbuild-artifact.outcome == 'success'
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/ecbuild
+      shell: bash -eux {0}
+      run: |
+        mkdir -p $INSTALL_DIR
+        tar -C $INSTALL_DIR -xvf ecbuild-${{ matrix.os }}-cmake-${{ env.CMAKE_VERSION }}.tar
+
+    # Calculates a cache key for the dependency as an SHA digest from a string that includes:
+    #   - current CMake release version
+    #   - the latest commit hash of the branch in dependency repository
+    #   In case any of these parameters changes, cache will be invalidated.
+    #   We do this by fetching commit SHA via GitHub REST API and reading environment variable, and piping their output
+    #   to the checksum utility. This step will set a number of output variables for later use.
+    - name: Calculate ecbuild Cache Key
+      id: cache-key-ecbuild
+      if: steps.download-ecbuild-artifact.outcome != 'success'
+      shell: bash -eux {0}
+      run: |
+        ECBUILD_SHA=$( curl https://api.github.com/repos/ecmwf/ecbuild/git/ref/heads/develop | jq .object.sha | tr -d '"' )
+        CACHE_KEY_STR="v=1.0.0::cmake=$CMAKE_VERSION::ecbuild=$ECBUILD_SHA"
+        CACHE_KEY_SHA=$( echo -n $CACHE_KEY_STR | shasum | awk '{print $1}' )
+        echo ::set-output name=ecbuild-sha::$ECBUILD_SHA
+        echo ::set-output name=cache-key-str::$CACHE_KEY_STR
+        echo ::set-output name=cache-key-sha::$CACHE_KEY_SHA
+
+    # Checks if the dependency cache exists for the current cache key.
+    #   If found, cache will be restored to the correct local directory.
+    #   Otherwise, this step is skipped, but if the job is successful, cache will saved for later.
+    - name: Check for ecbuild Cache
+      id: ecbuild-cache
+      if: steps.download-ecbuild-artifact.outcome != 'success'
+      uses: actions/cache@v2
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/ecbuild
+      with:
+        path: ${{ env.INSTALL_DIR }}
+        key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ steps.cache-key-ecbuild.outputs.cache-key-sha }}
+
+    - name: Checkout ecbuild Repository
+      if: steps.download-ecbuild-artifact.outcome != 'success' && steps.ecbuild-cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v2
+      with:
+        repository: ecmwf/ecbuild
+        ref: develop
+        path: ./ecbuild
+
+    - name: Install ecbuild
+      if: steps.download-ecbuild-artifact.outcome != 'success' && steps.ecbuild-cache.outputs.cache-hit != 'true'
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/ecbuild
+        LOCAL_PATH: ''
+        CC: ${{ matrix.compiler_cc }}
+        CXX: ${{ matrix.compiler_cxx }}
+        FC: ${{ matrix.compiler_fc }}
+      working-directory: ./ecbuild
+      shell: bash -eux {0}
+      run: |
+        export PATH="$LOCAL_PATH:$PATH"
+
+        SRC_DIR=$(pwd)
+        BUILD_DIR=build
+        COMPILER_FLAGS=$(cat .github/.compiler-flags || true)
+
+        rm -rf $BUILD_DIR
+        mkdir $BUILD_DIR
+        cd $BUILD_DIR
+
+        ../bin/ecbuild --prefix=$INSTALL_DIR -- -DENABLE_TESTS=OFF $COMPILER_FLAGS $SRC_DIR
+        make install
+
+    - name: Cleanup ecbuild Repository
+      if: steps.download-ecbuild-artifact.outcome != 'success' && steps.ecbuild-cache.outputs.cache-hit != 'true'
+      run: rm -rvf ./ecbuild
+
+    - name: Download eckit Artifact
+      id: download-eckit-artifact
+      uses: dawidd6/action-download-artifact@v2
+      continue-on-error: true
+      with:
+        repo: ecmwf/eckit
+        branch: develop
+        workflow: ci.yml
+        name: eckit-${{ matrix.os }}-${{ matrix.compiler }}
+
+    - name: Extract eckit Artifact
+      if: steps.download-eckit-artifact.outcome == 'success'
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/eckit
+      shell: bash -eux {0}
+      run: |
+        mkdir -p $INSTALL_DIR
+        tar -C $INSTALL_DIR -xvf eckit-${{ matrix.os }}-${{ matrix.compiler }}.tar
+
+    # Calculates a cache key for the dependency as an SHA digest from a string that includes:
+    #   - current CMake release version
+    #   - the latest commit hash of the branch in dependency repository
+    #   In case any of these parameters changes, cache will be invalidated.
+    #   We do this by fetching commit SHA via GitHub REST API and reading environment variable, and piping their output
+    #   to the checksum utility. This step will set a number of output variables for later use.
+    - name: Calculate eckit Cache Key
+      id: cache-key-eckit
+      if: steps.download-eckit-artifact.outcome != 'success'
+      shell: bash -eux {0}
+      run: |
+        ECKIT_SHA=$( curl https://api.github.com/repos/ecmwf/eckit/git/ref/heads/develop | jq .object.sha | tr -d '"' )
+        CACHE_KEY_STR="v=1.0.0::cmake=$CMAKE_VERSION::eckit=$ECKIT_SHA"
+        CACHE_KEY_SHA=$( echo -n $CACHE_KEY_STR | shasum | awk '{print $1}' )
+        echo ::set-output name=eckit-sha::$ECKIT_SHA
+        echo ::set-output name=cache-key-str::$CACHE_KEY_STR
+        echo ::set-output name=cache-key-sha::$CACHE_KEY_SHA
+
+    # Checks if the dependency cache exists for the current cache key.
+    #   If found, cache will be restored to the correct local directory.
+    #   Otherwise, this step is skipped, but if the job is successful, cache will saved for later.
+    - name: Check for eckit Cache
+      id: eckit-cache
+      if: steps.download-eckit-artifact.outcome != 'success'
+      uses: actions/cache@v2
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/eckit
+      with:
+        path: ${{ env.INSTALL_DIR }}
+        key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ steps.cache-key-eckit.outputs.cache-key-sha }}
+
+    - name: Checkout eckit Repository
+      if: steps.download-eckit-artifact.outcome != 'success' && steps.eckit-cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v2
+      with:
+        repository: ecmwf/eckit
+        ref: develop
+        path: ./eckit
+
+    - name: Install eckit
+      if: steps.download-eckit-artifact.outcome != 'success' && steps.eckit-cache.outputs.cache-hit != 'true'
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/eckit
+        LOCAL_PATH: '${{ runner.temp }}/ecbuild/bin'
+        CC: ${{ matrix.compiler_cc }}
+        CXX: ${{ matrix.compiler_cxx }}
+        FC: ${{ matrix.compiler_fc }}
+      working-directory: ./eckit
+      shell: bash -eux {0}
+      run: |
+        export PATH="$LOCAL_PATH:$PATH"
+
+        SRC_DIR=$(pwd)
+        BUILD_DIR=build
+        COMPILER_FLAGS=$(cat .github/.compiler-flags || true)
+
+        rm -rf $BUILD_DIR
+        mkdir $BUILD_DIR
+        cd $BUILD_DIR
+
+        ecbuild --prefix=$INSTALL_DIR -- -DENABLE_TESTS=OFF $COMPILER_FLAGS $SRC_DIR
+        make -j2
+        make install
+
+    - name: Cleanup eckit Repository
+      if: steps.download-eckit-artifact.outcome != 'success' && steps.eckit-cache.outputs.cache-hit != 'true'
+      run: rm -rvf ./eckit
+
+    - name: Download eccodes Artifact
+      id: download-eccodes-artifact
+      uses: dawidd6/action-download-artifact@v2
+      continue-on-error: true
+      with:
+        repo: ecmwf/eccodes
+        branch: develop
+        workflow: ci.yml
+        name: eccodes-${{ matrix.os }}-${{ matrix.compiler }}
+
+    - name: Extract eccodes Artifact
+      if: steps.download-eccodes-artifact.outcome == 'success'
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/eccodes
+      shell: bash -eux {0}
+      run: |
+        mkdir -p $INSTALL_DIR
+        tar -C $INSTALL_DIR -xvf eccodes-${{ matrix.os }}-${{ matrix.compiler }}.tar
+
+    # Calculates a cache key for the dependency as an SHA digest from a string that includes:
+    #   - current CMake release version
+    #   - the latest commit hash of the branch in dependency repository
+    #   In case any of these parameters changes, cache will be invalidated.
+    #   We do this by fetching commit SHA via GitHub REST API and reading environment variable, and piping their output
+    #   to the checksum utility. This step will set a number of output variables for later use.
+    - name: Calculate eccodes Cache Key
+      id: cache-key-eccodes
+      if: steps.download-eccodes-artifact.outcome != 'success'
+      shell: bash -eux {0}
+      run: |
+        ECCODES_SHA=$( curl https://api.github.com/repos/ecmwf/eccodes/git/ref/heads/develop | jq .object.sha | tr -d '"' )
+        CACHE_KEY_STR="v=1.0.0::cmake=$CMAKE_VERSION::eccodes=$ECCODES_SHA"
+        CACHE_KEY_SHA=$( echo -n $CACHE_KEY_STR | shasum | awk '{print $1}' )
+        echo ::set-output name=eccodes-sha::$ECCODES_SHA
+        echo ::set-output name=cache-key-str::$CACHE_KEY_STR
+        echo ::set-output name=cache-key-sha::$CACHE_KEY_SHA
+
+    # Checks if the dependency cache exists for the current cache key.
+    #   If found, cache will be restored to the correct local directory.
+    #   Otherwise, this step is skipped, but if the job is successful, cache will saved for later.
+    - name: Check for eccodes Cache
+      id: eccodes-cache
+      if: steps.download-eccodes-artifact.outcome != 'success'
+      uses: actions/cache@v2
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/eccodes
+      with:
+        path: ${{ env.INSTALL_DIR }}
+        key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ steps.cache-key-eccodes.outputs.cache-key-sha }}
+
+    - name: Checkout eccodes Repository
+      if: steps.download-eccodes-artifact.outcome != 'success' && steps.eccodes-cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v2
+      with:
+        repository: ecmwf/eccodes
+        ref: develop
+        path: ./eccodes
+
+    - name: Install eccodes
+      if: steps.download-eccodes-artifact.outcome != 'success' && steps.eccodes-cache.outputs.cache-hit != 'true'
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/eccodes
+        LOCAL_PATH: '${{ runner.temp }}/ecbuild/bin:${{ runner.temp }}/eckit/bin'
+        CC: ${{ matrix.compiler_cc }}
+        CXX: ${{ matrix.compiler_cxx }}
+        FC: ${{ matrix.compiler_fc }}
+      working-directory: ./eccodes
+      shell: bash -eux {0}
+      run: |
+        export PATH="$LOCAL_PATH:$PATH"
+
+        SRC_DIR=$(pwd)
+        BUILD_DIR=build
+        COMPILER_FLAGS=$(cat .github/.compiler-flags || true)
+
+        rm -rf $BUILD_DIR
+        mkdir $BUILD_DIR
+        cd $BUILD_DIR
+
+        ecbuild --prefix=$INSTALL_DIR -- -DENABLE_TESTS=OFF $COMPILER_FLAGS $SRC_DIR
+        make -j2
+        make install
+
+    - name: Cleanup eccodes Repository
+      if: steps.download-eccodes-artifact.outcome != 'success' && steps.eccodes-cache.outputs.cache-hit != 'true'
+      run: rm -rvf ./eccodes
+
+    - name: Download metkit Artifact
+      id: download-metkit-artifact
+      uses: dawidd6/action-download-artifact@v2
+      continue-on-error: true
+      with:
+        repo: ecmwf/metkit
+        branch: develop
+        workflow: ci.yml
+        name: metkit-${{ matrix.os }}-${{ matrix.compiler }}
+
+    - name: Extract metkit Artifact
+      if: steps.download-metkit-artifact.outcome == 'success'
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/metkit
+      shell: bash -eux {0}
+      run: |
+        mkdir -p $INSTALL_DIR
+        tar -C $INSTALL_DIR -xvf metkit-${{ matrix.os }}-${{ matrix.compiler }}.tar
+
+    # Calculates a cache key for the dependency as an SHA digest from a string that includes:
+    #   - current CMake release version
+    #   - the latest commit hash of the branch in dependency repository
+    #   In case any of these parameters changes, cache will be invalidated.
+    #   We do this by fetching commit SHA via GitHub REST API and reading environment variable, and piping their output
+    #   to the checksum utility. This step will set a number of output variables for later use.
+    - name: Calculate metkit Cache Key
+      id: cache-key-metkit
+      if: steps.download-metkit-artifact.outcome != 'success'
+      shell: bash -eux {0}
+      run: |
+        METKIT_SHA=$( curl https://api.github.com/repos/ecmwf/metkit/git/ref/heads/develop | jq .object.sha | tr -d '"' )
+        CACHE_KEY_STR="v=1.0.0::cmake=$CMAKE_VERSION::metkit=$METKIT_SHA"
+        CACHE_KEY_SHA=$( echo -n $CACHE_KEY_STR | shasum | awk '{print $1}' )
+        echo ::set-output name=metkit-sha::$METKIT_SHA
+        echo ::set-output name=cache-key-str::$CACHE_KEY_STR
+        echo ::set-output name=cache-key-sha::$CACHE_KEY_SHA
+
+    # Checks if the dependency cache exists for the current cache key.
+    #   If found, cache will be restored to the correct local directory.
+    #   Otherwise, this step is skipped, but if the job is successful, cache will saved for later.
+    - name: Check for metkit Cache
+      id: metkit-cache
+      if: steps.download-metkit-artifact.outcome != 'success'
+      uses: actions/cache@v2
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/metkit
+      with:
+        path: ${{ env.INSTALL_DIR }}
+        key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ steps.cache-key-metkit.outputs.cache-key-sha }}
+
+    - name: Checkout metkit Repository
+      if: steps.download-metkit-artifact.outcome != 'success' && steps.metkit-cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v2
+      with:
+        repository: ecmwf/metkit
+        ref: develop
+        path: ./metkit
+
+    - name: Install metkit
+      if: steps.download-metkit-artifact.outcome != 'success' && steps.metkit-cache.outputs.cache-hit != 'true'
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/metkit
+        LOCAL_PATH: '${{ runner.temp }}/ecbuild/bin:${{ runner.temp }}/eckit/bin:${{ runner.temp }}/eccodes/bin'
+        CC: ${{ matrix.compiler_cc }}
+        CXX: ${{ matrix.compiler_cxx }}
+        FC: ${{ matrix.compiler_fc }}
+      working-directory: ./metkit
+      shell: bash -eux {0}
+      run: |
+        export PATH="$LOCAL_PATH:$PATH"
+
+        SRC_DIR=$(pwd)
+        BUILD_DIR=build
+        COMPILER_FLAGS=$(cat .github/.compiler-flags || true)
+
+        rm -rf $BUILD_DIR
+        mkdir $BUILD_DIR
+        cd $BUILD_DIR
+
+        ecbuild --prefix=$INSTALL_DIR -- -DENABLE_TESTS=OFF $COMPILER_FLAGS $SRC_DIR
+        make -j2
+        make install
+
+    - name: Cleanup metkit Repository
+      if: steps.download-metkit-artifact.outcome != 'success' && steps.metkit-cache.outputs.cache-hit != 'true'
+      run: rm -rvf ./metkit
+
+    - name: Build & Test
+      env:
+        LOCAL_PATH: '${{ runner.temp }}/ecbuild/bin:${{ runner.temp }}/eckit/bin:${{ runner.temp }}/eccodes/bin:${{ runner.temp }}/metkit/bin'
+        INSTALL_DIR: ${{ runner.temp }}/install
+        CC: ${{ matrix.compiler_cc }}
+        CXX: ${{ matrix.compiler_cxx }}
+        FC: ${{ matrix.compiler_fc }}
+      shell: bash -eux {0}
+      run: |
+        export PATH="$LOCAL_PATH:$PATH"
+
+        SRC_DIR=$(pwd)
+        BUILD_DIR=build
+        COMPILER_FLAGS=$(cat .github/.compiler-flags || true)
+
+        rm -rf $BUILD_DIR
+        mkdir $BUILD_DIR
+        cd $BUILD_DIR
+
+        ecbuild --prefix=$INSTALL_DIR -- $COMPILER_FLAGS $SRC_DIR
+        make -j2
+        make test -j2
+        make install
+
+    - name: Archive Build Artifact
+      env:
+        INSTALL_DIR: ${{ runner.temp }}/install
+        TMP_DIR: ${{ runner.temp }}
+      run: tar -C $INSTALL_DIR -cvf $TMP_DIR/fdb-${{ matrix.os }}-${{ matrix.compiler }}.tar .
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v2
+      env:
+        TMP_DIR: ${{ runner.temp }}
+      with:
+        name: fdb-${{ matrix.os }}-${{ matrix.compiler }}
+        path: ${{ env.TMP_DIR }}/fdb-${{ matrix.os }}-${{ matrix.compiler }}.tar
