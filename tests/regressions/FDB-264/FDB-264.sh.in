@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-264
+
+export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+
+### cleanup and prepare test
+
+rm -rf $bindir/root
+mkdir root
+
+for f in config.yaml schema sens.data req
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+$fdbwrite sens.data
+
+$fdblist --porcelain class=od,expver=1
+
+### test 1
+
+$fdbread req out.grib
+
+cat > list <<EOF
+g           ml          1           20050601    1200        0           155.129     od          sg          sens        0001        0           1
+EOF
+
+$gribls -m out.grib | tee out
+grep sens out | sed 's/ *$//' > content
+cmp list content
+
+
