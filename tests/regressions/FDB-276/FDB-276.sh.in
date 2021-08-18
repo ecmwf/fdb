@@ -24,7 +24,7 @@ export ECKIT_DEBUG=1
 
 ### cleanup and prepare test
 
-rm out.*
+rm -f out.*
 rm -rf $FDB5_ROOT
 mkdir -p $FDB5_ROOT
 
