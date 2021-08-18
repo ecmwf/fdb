@@ -10,6 +10,7 @@
 
 #include "ExpverFileSpaceHandler.h"
 
+#include <cctype> 
 #include <sys/file.h>
 
 #include <algorithm>
@@ -169,6 +170,11 @@ PathName ExpverFileSpaceHandler::select(const Key& key, const FileSpace& fs) con
     return FileSpaceHandler::lookup("WeightedRandom").selectFileSystem(key, fs);
 }
 
+static bool expver_is_valid(const std::string& str) {
+    Log::debug<LibFdb5>() << "Validating expver string [" << str << "]" << std::endl;
+    return (str.size() == 4) and std::find_if_not(str.begin(), str.end(), isalnum) == str.end();
+}
+
 eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const FileSpace& fs) const {
 
     AutoLock<Mutex> lock(mutex_);
@@ -182,6 +188,11 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
     if(table_.empty()) load();
 
     std::string expver = key.get("expver");
+
+    // we can NOT use the type system here because we haven't opened a DB yet
+    // so we have to do validation directly on string 
+    if(not expver_is_valid(expver))
+        throw eckit::BadValue("Invalid expver value " + expver, Here());
 
     Log::debug<LibFdb5>() << "Selecting file system for expver [" << expver << "]" << std::endl;
 

@@ -2,7 +2,7 @@ ecbuild_generate_config_headers( DESTINATION ${INSTALL_INCLUDE_DIR}/fdb5 )
 
 configure_file( fdb5_config.h.in    fdb5_config.h   )
 configure_file( fdb5_version.h.in   fdb5_version.h  )
-configure_file( fdb5_version.c.in   fdb5_version.c   )
+configure_file( fdb5_version.c.in   ${CMAKE_CURRENT_BINARY_DIR}/fdb5_version.c   )
 
 install( FILES ${CMAKE_CURRENT_BINARY_DIR}/fdb5_config.h
                ${CMAKE_CURRENT_BINARY_DIR}/fdb5_version.h
@@ -11,7 +11,7 @@ install( FILES ${CMAKE_CURRENT_BINARY_DIR}/fdb5_config.h
 # fdb5 library
 
 list( APPEND fdb5_srcs
-    fdb5_version.c
+    ${CMAKE_CURRENT_BINARY_DIR}/fdb5_version.c
 	LibFdb5.h
 	LibFdb5.cc
 
@@ -356,9 +356,6 @@ ecbuild_add_library(
 
     SOURCES
         ${fdb5_srcs}
-
-    GENERATED
-        fdb5_version.c
 
     INSTALL_HEADERS LISTED
 
