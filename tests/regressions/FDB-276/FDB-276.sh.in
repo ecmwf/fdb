@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+
+export FDB5_HOME=$bindir
+export FDB5_ROOT=./root
+export FDB_EXPVER_FILE=$bindir/expver_to_fdb_root.map
+
+export FDB_DEBUG=1
+export ECKIT_DEBUG=1
+# export METKIT_DEBUG=1
+
+### cleanup and prepare test
+
+rm -f out.*
+rm -rf $FDB5_ROOT
+mkdir -p $FDB5_ROOT
+
+rm -rf $FDB_EXPVER_FILE
+cat > $FDB_EXPVER_FILE <<EOF
+abcd ${FDB5_ROOT}
+EOF
+
+for f in config.yaml schema 12.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+
+### run test
+
+$fdbwrite 12.grib
+
+$fdblist class=rd,expver=xxxx | tee out.1
+
+$fdblist class=rd,expver=123456
+
+
+### TEST 1 - data present
+
+cat > req.1 <<EOF
+retrieve,
+   class=rd,
+   expver=xxxx,
+   stream=oper,
+   date=20201102,
+   time=0000,
+   type=fc,
+   levtype=sfc,
+   step=12,
+   domain=g,
+   param=166
+EOF
+
+$fdbread --raw req.1 out.grib >> out.1 2>&1
+
+set +e
+grep "Invalid expver value xxxx" out.1 # should fail
+set -e
+
+### TEST 2 - invalid expver: more than 4 characters
+
+cat > req.2 <<EOF
+retrieve,
+   class=rd,
+   expver=777777,
+   stream=oper,
+   date=20201102,
+   time=0000,
+   type=fc,
+   levtype=sfc,
+   step=12,
+   domain=g,
+   param=166
+EOF
+
+set +e
+$fdbread --raw req.2 out.grib >> out.2 2>&1 # should fail
+set -e
+
+grep "Invalid expver value 777777" out.2
+
+### TEST 3 - invalid expver: non-alphanumeric character
+
+cat > req.3 <<EOF
+retrieve,
+   class=rd,
+   expver=rq.t,
+   stream=oper,
+   date=20201102,
+   time=0000,
+   type=fc,
+   levtype=sfc,
+   step=12,
+   domain=g,
+   param=166
+EOF
+
+set +e
+$fdbread --raw req.3 out.grib >> out.3 2>&1 # should fail
+set -e
+
+grep "Invalid expver value rq.t" out.3
+
+### TEST 4 - invalid expver: too short
+
+cat > req.4 <<EOF
+retrieve,
+   class=rd,
+   expver=abc,
+   stream=oper,
+   date=20201102,
+   time=0000,
+   type=fc,
+   levtype=sfc,
+   step=12,
+   domain=g,
+   param=166
+EOF
+
+set +e
+$fdbread --raw req.4 out.grib >> out.4 2>&1 # should fail
+set -e
+
+grep "Invalid expver value abc" out.4
+
+### TEST 5 - entry abcd is in map file, but data not present in FDB
+
+cat > req.5 <<EOF
+retrieve,
+   class=rd,
+   expver=abcd,
+   stream=oper,
+   date=20201102,
+   time=0000,
+   type=fc,
+   levtype=sfc,
+   step=12,
+   domain=g,
+   param=166
+EOF
+
+$fdbread --raw req.5 out.grib >> out.5 2>&1
+
+set +e
+grep "Invalid expver value abcd" out.5 # should fail
+set -e
+
+### TEST 6 - entry yyyy is NOT in map file, neither data is present in FDB. check that map file is unchanged
+###        NOTE: This test currently is not failing when it shoould. The code needs to be adapted not to change the expver map file on retrieve
+###              Unfortunetly this is a deep change in the code at the moment.
+
+cat > req.6 <<EOF
+retrieve,
+   class=rd,
+   expver=yyyy,
+   stream=oper,
+   date=20201102,
+   time=0000,
+   type=fc,
+   levtype=sfc,
+   step=12,
+   domain=g,
+   param=166
+EOF
+
+unset FDB5_ROOT
+$fdbread --raw req.6 out.grib >> out.6 2>&1
+cat $FDB_EXPVER_FILE | wc -l

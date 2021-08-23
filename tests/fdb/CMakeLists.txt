@@ -29,10 +29,10 @@ list( APPEND fdb_tests
 
 foreach( _tst ${fdb_tests} )
 
-  get_filename_component(_tst ${_tst} NAME_WE)
+  get_filename_component(_test_name ${_tst} NAME_WE)
 
   ecbuild_add_test(
-      TARGET  fdb5_${_tst}
+      TARGET  fdb5_${_test_name}
       SOURCES  ${_tst}
       INCLUDES ${ECCODES_INCLUDE_DIRS}
       ENVIRONMENT "${_test_environment}"
