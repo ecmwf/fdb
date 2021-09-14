@@ -20,7 +20,6 @@
 #include "eckit/testing/Test.h"
 
 #include "fdb5/api/fdb_c.h"
-#include "fdb5/api/helpers/ListIterator.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -63,8 +62,8 @@ CASE( "fdb_c - archive & list" ) {
     dh->read(buf1, length);
     dh->close();
 
-    EXPECT_NO_THROW(fdb_archive(fdb, key, buf1, length));
-    EXPECT_NO_THROW(fdb_flush(fdb));
+    EXPECT(FDB_SUCCESS == fdb_archive(fdb, key, buf1, length));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_t* request;
     fdb_new_request(&request);
@@ -108,8 +107,8 @@ CASE( "fdb_c - archive & list" ) {
     dh->read(buf2, length);
     dh->close();
 
-    EXPECT_NO_THROW(fdb_archive(fdb, key, buf2, length));
-    EXPECT_NO_THROW(fdb_flush(fdb));
+    EXPECT(FDB_SUCCESS == fdb_archive(fdb, key, buf2, length));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_add1(request, "levelist", "400");
     fdb_new_listiterator(&it);
@@ -182,13 +181,40 @@ CASE( "fdb_c - multiple archive & list" ) {
     dh->read(buf+length1, length2);
     dh->close();
 
+    fdb_request_t* req;
+    fdb_new_request(&req);
+    fdb_request_add1(req, "domain", "g");
+    fdb_request_add1(req, "stream", "oper");
+    fdb_request_add1(req, "levtype", "pl");
+    const char* levels[] = {"400", "300"};
+    fdb_request_add(req, "levelist", levels, 2);
+    fdb_request_add1(req, "date", "20191110");
+    fdb_request_add1(req, "time", "0000");
+    fdb_request_add1(req, "step", "0");
+    fdb_request_add1(req, "param", "138");
+    fdb_request_add1(req, "class", "rd");
+    fdb_request_add1(req, "type", "an");
+    fdb_request_add1(req, "expver", "xxxx");
+
+    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_and_check(fdb, req, buf, length1));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
+
+    EXPECT(FDB_SUCCESS == fdb_archive_and_check(fdb, req, buf, length1+length2));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
+
     dh = grib3.fileHandle();
     dh->openForRead();
     dh->read(buf+length1+length2, length3);
     dh->close();
 
-    EXPECT_NO_THROW(fdb_multi_archive(fdb, buf, length1+length2+length3));
-    EXPECT_NO_THROW(fdb_flush(fdb));
+    const char* expvers[] = {"xxxx", "xxxy"};
+    fdb_request_add(req, "expver", expvers, 2);
+
+    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_and_check(fdb, req, buf, length1+length2+length3));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
+
+    EXPECT(FDB_SUCCESS == fdb_multi_archive(fdb, buf, length1+length2+length3));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_t* request;
     fdb_new_request(&request);

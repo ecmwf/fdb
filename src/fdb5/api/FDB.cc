@@ -51,20 +51,8 @@ FDB::~FDB() {
 
 void FDB::archive(eckit::message::Message msg) {
     fdb5::Key key = MessageDecoder::messageToKey(msg);
-    archive(key, msg);
+    archive(key, msg.data(), msg.length());
 }
-
-void FDB::archive(const Key& key, eckit::message::Message msg) {
-    eckit::Timer timer;
-    timer.start();
-
-    internal_->archive(key, msg);
-    dirty_ = true;
-
-    timer.stop();
-    stats_.addArchive(msg.length(), timer);
-}
-
 void FDB::archive(eckit::DataHandle& handle) {
     eckit::message::Message msg;
     eckit::message::Reader reader(handle);
@@ -73,15 +61,44 @@ void FDB::archive(eckit::DataHandle& handle) {
         archive(msg);
     }
 }
-
 void FDB::archive(const void* data, size_t length) {
     eckit::MemoryHandle handle(data, length);
     archive(handle);
 }
 
+void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle) {
+    eckit::message::Message msg;
+    eckit::message::Reader reader(handle);
+
+    metkit::hypercube::HyperCube cube(request);
+
+    while ( (msg = reader.next()) ) {
+        fdb5::Key key = MessageDecoder::messageToKey(msg);
+        cube.clear(key.request());
+        archive(key, msg.data(), msg.length());
+    }
+    if (cube.countVacant()) {
+        std::stringstream ss;
+        ss << "FDB archive - missing " << cube.countVacant() << " fields" << std::endl;
+        ss << "  user request:"  << std::endl << "    " << request << std::endl;
+        ss << "  missing fields:" << std::endl;
+        for (auto vacantRequest : cube.vacantRequests()) {
+            ss << "    " << vacantRequest << std::endl;
+        }
+        eckit::Log::debug<LibFdb5>() << ss.str();
+        throw eckit::UserError(ss.str(), Here());
+    }
+}
+
 void FDB::archive(const Key& key, const void* data, size_t length) {
-    eckit::message::Message msg{new metkit::codes::UserDataContent{data, length}};
-    archive(key, msg);
+    eckit::Timer timer;
+    timer.start();
+
+    internal_->archive(key, data, length);
+    dirty_ = true;
+
+    timer.stop();
+    stats_.addArchive(length, timer);
 }
 
 bool FDB::sorted(const metkit::mars::MarsRequest &request) {

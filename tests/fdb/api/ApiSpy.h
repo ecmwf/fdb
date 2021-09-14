@@ -78,9 +78,9 @@ public: // methods
         knownSpies().erase(std::find(knownSpies().begin(), knownSpies().end(), this));
     }
 
-    void archive(const fdb5::Key& key, eckit::message::Message msg) override {
+    void archive(const fdb5::Key& key, const void* data, size_t length) override {
         counts_.archive += 1;
-        archives_.push_back(std::make_tuple(key, msg.data(), msg.length()));
+        archives_.push_back(std::make_tuple(key, data, length));
     }
 
     fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override {
