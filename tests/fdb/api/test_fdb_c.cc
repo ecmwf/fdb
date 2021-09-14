@@ -196,10 +196,10 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_request_add1(req, "type", "an");
     fdb_request_add1(req, "expver", "xxxx");
 
-    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_and_check(fdb, req, buf, length1));
+    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
-    EXPECT(FDB_SUCCESS == fdb_archive_and_check(fdb, req, buf, length1+length2));
+    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, req, buf, length1+length2));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     dh = grib3.fileHandle();
@@ -210,10 +210,10 @@ CASE( "fdb_c - multiple archive & list" ) {
     const char* expvers[] = {"xxxx", "xxxy"};
     fdb_request_add(req, "expver", expvers, 2);
 
-    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_and_check(fdb, req, buf, length1+length2+length3));
+    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1+length2+length3));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
-    EXPECT(FDB_SUCCESS == fdb_multi_archive(fdb, buf, length1+length2+length3));
+    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, nullptr, buf, length1+length2+length3));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_t* request;
