@@ -102,7 +102,7 @@ int fdb_new_handle(fdb_handle_t** fdb);
 /** disclaimer: this is a low-level API. The provided key and the corresponding data are not checked for consistency */
 int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t length);
 /** Archives multiple messages.
- * If mars request @req is not nullptr, number of messages and their metadata are compared with the provided request */
+ * If mars request @req is not nullptr, number of messages and their metadata are checked against the provided request */
 int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data, size_t length);
 int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t* it);
 int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr);
