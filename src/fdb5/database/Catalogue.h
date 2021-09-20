@@ -12,8 +12,7 @@
 /// @author Emanuele Danovaro
 /// @date   August 2019
 
-#ifndef fdb5_Catalogue_H
-#define fdb5_Catalogue_H
+#pragma once
 
 #include <memory>
 
@@ -174,4 +173,3 @@ private:
 };
 
 }
-#endif  // fdb5_Catalogue_H
