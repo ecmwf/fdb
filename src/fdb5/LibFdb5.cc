@@ -16,13 +16,15 @@
 
 #include "fdb5/LibFdb5.h"
 
+#include "eckit/config/LibEcKit.h"
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/config/Config.h"
 #include "fdb5/fdb5_version.h"
+
+#include "fdb5/config/Config.h"
 
 namespace fdb5 {
 
@@ -43,6 +45,10 @@ const Config& LibFdb5::defaultConfig() {
         config_.reset( new Config( std::move(cfg.expandConfig()) ) );
     }
     return *config_;
+}
+
+bool LibFdb5::dontDeregisterFactories() const {
+    return eckit::LibEcKit::instance().dontDeregisterFactories();
 }
 
 std::string LibFdb5::version() const {

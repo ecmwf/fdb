@@ -111,6 +111,8 @@ public:
     /// Returns the default configuration according to the rules of FDB configuration search
     const Config& defaultConfig();
 
+    bool dontDeregisterFactories() const;
+
 protected:
     virtual std::string version() const;
 
