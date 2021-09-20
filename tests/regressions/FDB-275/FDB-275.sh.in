@@ -36,7 +36,7 @@ retrieve,class=c3,stream=msmm,date=20210601,time=0000,domain=g,type=fcmean,levty
 EOF
 
 cat > griblist <<EOF
-g           egrr        sfc         139.128     c3          fcmean      msmm        0001        0           600         1           1           20210601    0000
+g           egrr        sfc         139.128     c3          fcmean      msmm        0001        0           600         1           1           20210601    0
 EOF
 
 ### cleanup and prepare new index

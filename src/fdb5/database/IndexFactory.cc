@@ -10,6 +10,8 @@
 
 #include "eckit/thread/AutoLock.h"
 #include "eckit/exception/Exceptions.h"
+
+#include "fdb5/LibFdb5.h"
 #include "fdb5/database/IndexFactory.h"
 
 namespace fdb5 {
@@ -36,6 +38,7 @@ BTreeIndexFactory::BTreeIndexFactory(const std::string &name) :
 }
 
 BTreeIndexFactory::~BTreeIndexFactory() {
+    if(LibFdb5::instance().dontDeregisterFactories()) return;
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
     m->erase(name_);
 }
