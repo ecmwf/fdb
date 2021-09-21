@@ -74,14 +74,21 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
 
     while ( (msg = reader.next()) ) {
         fdb5::Key key = MessageDecoder::messageToKey(msg);
-        cube.clear(key.request());
+        if (!cube.clear(key.request())) {
+            std::stringstream ss;
+            ss << "FDB archive - found unexpected message" << std::endl;
+            ss << "  user request:"  << std::endl << "    " << request << std::endl;
+            ss << "  unexpected message:" << std::endl << "    " << key << std::endl;
+            eckit::Log::debug<LibFdb5>() << ss.str();
+            throw eckit::UserError(ss.str(), Here());
+        }
         archive(key, msg.data(), msg.length());
     }
     if (cube.countVacant()) {
         std::stringstream ss;
-        ss << "FDB archive - missing " << cube.countVacant() << " fields" << std::endl;
+        ss << "FDB archive - missing " << cube.countVacant() << " messages" << std::endl;
         ss << "  user request:"  << std::endl << "    " << request << std::endl;
-        ss << "  missing fields:" << std::endl;
+        ss << "  missing messages:" << std::endl;
         for (auto vacantRequest : cube.vacantRequests()) {
             ss << "    " << vacantRequest << std::endl;
         }

@@ -202,6 +202,16 @@ CASE( "fdb_c - multiple archive & list" ) {
     EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, req, buf, length1+length2));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
+    fdb_request_add1(req, "levelist", "300");
+
+    EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1+length2));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
+
+    fdb_request_add(req, "levelist", levels, 2);
+
+    EXPECT(FDB_SUCCESS == fdb_archive_multiple(fdb, req, buf, length1+length2));
+    EXPECT(FDB_SUCCESS == fdb_flush(fdb));
+
     dh = grib3.fileHandle();
     dh->openForRead();
     dh->read(buf+length1+length2, length3);
@@ -209,6 +219,9 @@ CASE( "fdb_c - multiple archive & list" ) {
 
     const char* expvers[] = {"xxxx", "xxxy"};
     fdb_request_add(req, "expver", expvers, 2);
+
+    const char* levels3[] = {"300", "400", "500"};
+    fdb_request_add(req, "levelist", levels3, 3);
 
     EXPECT(FDB_ERROR_GENERAL_EXCEPTION == fdb_archive_multiple(fdb, req, buf, length1+length2+length3));
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
