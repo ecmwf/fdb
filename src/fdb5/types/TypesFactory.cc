@@ -11,6 +11,7 @@
 #include "eckit/thread/AutoLock.h"
 #include "eckit/exception/Exceptions.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/types/TypesFactory.h"
 
 namespace fdb5 {
@@ -37,6 +38,7 @@ TypesFactory::TypesFactory(const std::string &name) :
 }
 
 TypesFactory::~TypesFactory() {
+    if(LibFdb5::instance().dontDeregisterFactories()) return;
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
     m->erase(name_);
 }

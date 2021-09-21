@@ -18,12 +18,9 @@
 #include "eckit/thread/Mutex.h"
 #include "eckit/utils/StringTools.h"
 
-namespace fdb5 {
+#include "fdb5/LibFdb5.h"
 
-/*std::ostream &operator<<(std::ostream &s, const Store &x) {
-    x.print(s);
-    return s;
-}*/
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -114,6 +111,7 @@ StoreBuilderBase::StoreBuilderBase(const std::string& name) : name_(name) {
 }
 
 StoreBuilderBase::~StoreBuilderBase() {
+    if(LibFdb5::instance().dontDeregisterFactories()) return;
     StoreFactory::instance().remove(name_);
 }
 
