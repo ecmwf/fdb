@@ -8,6 +8,10 @@ fdblist="$<TARGET_FILE:fdb-list>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
@@ -132,16 +136,16 @@ cmp out list
 
 # read contents
 $fdbread checkV2.req checkV2.grib
-$gribls -jm checkV2.grib       | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat content.6dup               | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee checkv2
+$gribls -jm checkV2.grib       | post_process | tee out
+cat content.6dup               | post_process | tee checkv2
 diff out checkv2
 
 # write new field with version 3 (will have toc with mixed versions)
 export FDB5_SERIALISATION_VERSION=3
 $fdbwrite 12.grib
 $fdbread checkV3.req checkV3.grib
-$gribls -jm checkV3.grib       | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat content.12dup              | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee checkv3
+$gribls -jm checkV3.grib       | post_process | tee out
+cat content.12dup              | post_process | tee checkv3
 diff out checkv3
 
 unset FDB5_SERIALISATION_VERSION
@@ -150,8 +154,8 @@ export FDB_DEDUPLICATE_FIELDS=ON
 
 # check still able to read previous v2 field
 $fdbread checkV2.req checkV2.again.grib
-$gribls -jm checkV2.again.grib | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat content.6                  | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee checkv2.again
+$gribls -jm checkV2.again.grib | post_process | tee out
+cat content.6                  | post_process | tee checkv2.again
 diff out checkv2.again
 
 cmp 6.grib checkV2.again.grib
@@ -160,8 +164,8 @@ export FDB_DEDUPLICATE_FIELDS=OFF
 
 # check still able to read previous v2 field
 $fdbread checkV2.req checkV2.dup.grib
-$gribls -jm checkV2.dup.grib   | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat content.6dup               | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee checkv2.dup
+$gribls -jm checkV2.dup.grib   | post_process | tee out
+cat content.6dup               | post_process | tee checkv2.dup
 diff out checkv2.dup
 
 cat 6.grib 6.grib > 6dup.grib

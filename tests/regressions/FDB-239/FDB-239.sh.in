@@ -7,6 +7,10 @@ fdbwrite="$<TARGET_FILE:fdb-write>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
@@ -85,8 +89,8 @@ cat > inlist <<EOF
 ]}
 EOF
 
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat inlist                     | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm out.grib           | post_process | tee out
+cat inlist                     | post_process | tee list
 diff out list
 
 
@@ -96,7 +100,7 @@ rm -f out.grib
 
 $fdbread --raw mars.req out.grib
 
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+$gribls -jm out.grib           | post_process | tee out
 diff out list
 
 export FDB_DEDUPLICATE_FIELDS=ON

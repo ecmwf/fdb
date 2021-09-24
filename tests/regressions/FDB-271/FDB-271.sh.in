@@ -9,6 +9,10 @@ fdblist="$<TARGET_FILE:fdb-list>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 wdir=$bindir/FDB-271
@@ -98,14 +102,14 @@ cmp old_shortOut old_listLength
 
 # should read 2 fields
 $fdbread --raw old_r1 old_out.grib
-$gribls -jm old_out.grib       | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat old_griblist               | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm old_out.grib       | post_process | tee out
+cat old_griblist               | post_process | tee list
 diff out list
 
 $fdbread --raw old_r2 old_out.grib
-$gribls -jm old_out.grib       | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+$gribls -jm old_out.grib       | post_process | tee out
 diff out list
 
 $fdbread --raw old_r3 old_out.grib
-$gribls -jm old_out.grib       | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+$gribls -jm old_out.grib       | post_process | tee out
 diff out list

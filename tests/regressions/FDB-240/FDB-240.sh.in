@@ -8,6 +8,10 @@ fdblist="$<TARGET_FILE:fdb-list>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
@@ -229,8 +233,8 @@ cat > listall <<EOF
 ]}
 EOF
 
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat listall                    | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm out.grib           | post_process | tee out
+cat listall                    | post_process | tee list
 diff out list
 
 ########################################################################################################################
@@ -253,7 +257,7 @@ EOF
 
 # note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
 $fdbread req out.grib
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+$gribls -jm out.grib           | post_process | tee out
 diff out list
 
 ########################################################################################################################
@@ -309,8 +313,8 @@ EOF
 
 # note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
 $fdbread req out.grib
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat list400                    | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm out.grib           | post_process | tee out
+cat list400                    | post_process | tee list
 diff out list
 
 
@@ -334,7 +338,7 @@ EOF
 
 # note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
 $fdbread req out.grib
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+$gribls -jm out.grib           | post_process | tee out
 diff out list
 
 ########################################################################################################################
@@ -376,8 +380,8 @@ EOF
 
 # note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
 $fdbread req out.grib
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat list400vo                  | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm out.grib           | post_process | tee out
+cat list400vo                  | post_process | tee list
 diff out list
 
 
@@ -420,8 +424,8 @@ EOF
 
 # note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
 $fdbread req out.grib
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat list400d                   | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm out.grib           | post_process | tee out
+cat list400d                   | post_process | tee list
 diff out list
 
 
@@ -444,8 +448,8 @@ retrieve,
 EOF
 
 $fdbread req out.grib
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat list400                    | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm out.grib           | post_process | tee out
+cat list400                    | post_process | tee list
 diff out list
 
 
@@ -557,8 +561,8 @@ cat > list300400 <<EOF
 EOF
 
 $fdbread req out.grib
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat list300400                 | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm out.grib           | post_process | tee out
+cat list300400                 | post_process | tee list
 diff out list
 
 ########################################################################################################################
@@ -697,6 +701,6 @@ cat > list300400z <<EOF
 EOF
 
 $fdbread req out.grib
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat list300400z                | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm out.grib           | post_process | tee out
+cat list300400z                | post_process | tee list
 diff out list

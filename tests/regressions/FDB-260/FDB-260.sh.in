@@ -9,6 +9,10 @@ fdblist="$<TARGET_FILE:fdb-list>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 wdir=$bindir/FDB-260
@@ -79,8 +83,8 @@ cat > list1 <<EOF
 ]}
 EOF
 
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat list1                      | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm out.grib           | post_process | tee out
+cat list1                      | post_process | tee list
 diff out list
 
 
@@ -132,8 +136,8 @@ cat > list2 <<EOF
 ]}
 EOF
 
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat list2                      | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm out.grib           | post_process | tee out
+cat list2                      | post_process | tee list
 diff out list
 
 
@@ -177,8 +181,8 @@ cat > list3enc <<EOF
 ]}
 EOF
 
-$gribls -j out.grib            | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat list3enc                   | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -j out.grib            | post_process | tee out
+cat list3enc                   | post_process | tee list
 diff out list
 
 
@@ -199,6 +203,6 @@ cat > list3 <<EOF
 ]}
 EOF
 
-$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
-cat list3                      | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+$gribls -jm out.grib           | post_process | tee out
+cat list3                      | post_process | tee list
 diff out list
