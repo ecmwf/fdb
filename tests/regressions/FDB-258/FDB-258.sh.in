@@ -83,13 +83,26 @@ EOF
 
 $fdbread mars.req out.grib
 
-cat > list <<EOF
-g           sfc         20201102    0000        12          166.128     rd          fc          oper        xxxx
+cat > listJson <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  }
+]}
 EOF
 
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+cat listjson                   | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+diff out list
 
 
 ### test connecting with another protocol version
@@ -107,16 +120,14 @@ unset FDB5_REMOTE_PROTOCOL_VERSION
 
 $fdbread mars.req out.grib
 
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+diff out list
 
 export FDB5_REMOTE_PROTOCOL_VERSION=3
 
 $fdbread mars.req out.grib
 
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+diff out list
 
 killServer

@@ -56,24 +56,182 @@ EOF
 
 $fdbread req out.grib
 
-cat > list <<EOF
-g            pl           300          20201106     1200         0            130.128      od           cf           enfo         0001         1
-g            pl           300          20201106     1200         0            138.128      od           cf           enfo         0001         1
-g            pl           300          20201106     1200         0            155.128      od           cf           enfo         0001         1
-g            pl           300          20201106     1200         0            129.128      od           cf           enfo         0001         1
-g            pl           400          20201106     1200         0            130.128      od           cf           enfo         0001         1
-g            pl           400          20201106     1200         0            138.128      od           cf           enfo         0001         1
-g            pl           400          20201106     1200         0            155.128      od           cf           enfo         0001         1
-g            pl           400          20201106     1200         0            129.128      od           cf           enfo         0001         1
-g            pl           500          20201106     1200         0            130.128      od           cf           enfo         0001         1
-g            pl           500          20201106     1200         0            138.128      od           cf           enfo         0001         1
-g            pl           500          20201106     1200         0            155.128      od           cf           enfo         0001         1
-g            pl           500          20201106     1200         0            129.128      od           cf           enfo         0001         1
+cat > listall <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  }
+]}
 EOF
 
-$gribls -m out.grib | tee out
-grep enfo out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+cat listall                    | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+diff out list
 
 ########################################################################################################################
 echo "retrieve t/u/v/z (param=130/131/132/129)"
@@ -95,8 +253,8 @@ EOF
 
 # note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
 $fdbread req out.grib
-grep enfo out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+diff out list
 
 ########################################################################################################################
 echo "retrieve u (param=131) should return 138/155 (vo/d)"
@@ -116,18 +274,45 @@ retrieve,
  DOMAIN = G
 EOF
 
-# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
-$fdbread req out.grib
-
-$gribls out.grib | tee out
-
-cat > list <<EOF
-1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
-1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
+cat > list400 <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  }
+]}
 EOF
 
-grep ecmf out | sed 's/ *$//' > content
-cmp list content
+# note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
+$fdbread req out.grib
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+cat list400                    | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+diff out list
+
 
 ########################################################################################################################
 echo "retrieve v (param=132) should return 138/155 (vo/d)"
@@ -147,18 +332,10 @@ retrieve,
  DOMAIN = G
 EOF
 
-# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
+# note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
 $fdbread req out.grib
-
-$gribls out.grib | tee out
-
-cat > list <<EOF
-1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
-1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
-EOF
-
-grep ecmf out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+diff out list
 
 ########################################################################################################################
 echo "retrieve vo (param=138) should return 138 (vo)"
@@ -178,17 +355,31 @@ retrieve,
  DOMAIN = G
 EOF
 
-# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
-$fdbread req out.grib
-
-$gribls out.grib | tee out
-
-cat > list <<EOF
-1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
+cat > list400vo <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  }
+]}
 EOF
 
-grep ecmf out | sed 's/ *$//' > content
-cmp list content
+# note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
+$fdbread req out.grib
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+cat list400vo                  | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+diff out list
+
 
 ########################################################################################################################
 echo "retrieve d (param=155) should return 155 (d)"
@@ -208,20 +399,34 @@ retrieve,
  DOMAIN = G
 EOF
 
-# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
-$fdbread req out.grib
-
-$gribls out.grib | tee out
-
-cat > list <<EOF
-1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
+cat > list400d <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  }
+]}
 EOF
 
-grep ecmf out | sed 's/ *$//' > content
-cmp list content
+# note that we get vo/d fields instead of u/v -- fdb-read does not perform the VO/D -> U/V transformation
+$fdbread req out.grib
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+cat list400d                   | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+diff out list
+
 
 ########################################################################################################################
-echo "retrieve vo/u/d (param=138) should return 138 (vo)"
+echo "retrieve vo/u/d should return (vo/d)"
 
 cat > req <<EOF
 retrieve,
@@ -238,18 +443,11 @@ retrieve,
  DOMAIN = G
 EOF
 
-# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
 $fdbread req out.grib
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+cat list400                    | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+diff out list
 
-$gribls out.grib | tee out
-
-cat > list <<EOF
-1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
-1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
-EOF
-
-grep ecmf out | sed 's/ *$//' > content
-cmp list content
 
 ########################################################################################################################
 echo "retrieve t/u/v/d should return t/d/vo"
@@ -269,22 +467,99 @@ retrieve,
  DOMAIN = G
 EOF
 
-# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
-$fdbread req out.grib
-
-$gribls out.grib | tee out
-
-cat > list <<EOF
-1            ecmf         isobaricInhPa  300          20201106     0            cf           t            spectral_complex  sh
-1            ecmf         isobaricInhPa  300          20201106     0            cf           d            spectral_complex  sh
-1            ecmf         isobaricInhPa  300          20201106     0            cf           vo           spectral_complex  sh
-1            ecmf         isobaricInhPa  400          20201106     0            cf           t            spectral_complex  sh
-1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
-1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
+cat > list300400 <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  }
+]}
 EOF
 
-grep ecmf out | sed 's/ *$//' > content
-cmp list content
+$fdbread req out.grib
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+cat list300400                 | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+diff out list
 
 ########################################################################################################################
 echo "retrieve t/u/z/d (130/131/129/155) should return t/z/d/vo"
@@ -304,22 +579,124 @@ retrieve,
  DOMAIN = G
 EOF
 
-# note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
-$fdbread req out.grib
-
-$gribls out.grib | tee out
-
-cat > list <<EOF
-1            ecmf         isobaricInhPa  300          20201106     0            cf           t            spectral_complex  sh
-1            ecmf         isobaricInhPa  300          20201106     0            cf           z            spectral_complex  sh
-1            ecmf         isobaricInhPa  300          20201106     0            cf           d            spectral_complex  sh
-1            ecmf         isobaricInhPa  300          20201106     0            cf           vo           spectral_complex  sh
-1            ecmf         isobaricInhPa  400          20201106     0            cf           t            spectral_complex  sh
-1            ecmf         isobaricInhPa  400          20201106     0            cf           z            spectral_complex  sh
-1            ecmf         isobaricInhPa  400          20201106     0            cf           d            spectral_complex  sh
-1            ecmf         isobaricInhPa  400          20201106     0            cf           vo           spectral_complex  sh
+cat > list300400z <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  }
+]}
 EOF
 
-grep ecmf out | sed 's/ *$//' > content
-cmp list content
-
+$fdbread req out.grib
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+cat list300400z                | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+diff out list

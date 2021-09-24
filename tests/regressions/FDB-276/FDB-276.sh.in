@@ -6,7 +6,6 @@ fdbread="$<TARGET_FILE:fdb-read>"
 fdbwrite="$<TARGET_FILE:fdb-write>"
 fdblist="$<TARGET_FILE:fdb-list>"
 
-gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
