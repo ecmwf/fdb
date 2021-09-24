@@ -47,8 +47,34 @@ retrieve,class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=
 EOF
 
 cat > griblist <<EOF
-g           pl          925         20201102    0000        12          166.128     rd          fc          oper        xxxx
-g           pl          0.7         20201102    0000        12          166.128     rd          fc          oper        xxxx
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 925,
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 0.7,
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  }
+]}
 EOF
 
 ### cleanup and prepare new index
@@ -69,16 +95,14 @@ cmp shortOut listLength
 
 # should read 2 fields
 $fdbread --raw r1 out.grib
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp griblist content
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+cat griblist                   | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+diff out list
 
 $fdbread --raw r2 out.grib
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp griblist content
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+diff out list
 
 $fdbread --raw r3 out.grib
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp griblist content
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+diff out list

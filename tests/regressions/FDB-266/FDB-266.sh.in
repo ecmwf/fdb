@@ -49,9 +49,37 @@ EOF
 
 # $fdbread req.1 out.grib
 
-cat > list <<EOF
-g           pl          50          jan-01      0000        0           129.128     ei          pb          dacl        0001        99:100
-g           pl          50          jan-01      0000        0           130.128     ei          pb          dacl        0001        99:100
+cat > listjson <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 50,
+    "date": "jan-01",
+    "time": "0000",
+    "step": 0,
+    "param": 129.128,
+    "class": "ei",
+    "type": "pb",
+    "stream": "dacl",
+    "expver": "0001",
+    "quantile": "99:100"
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 50,
+    "date": "jan-01",
+    "time": "0000",
+    "step": 0,
+    "param": 130.128,
+    "class": "ei",
+    "type": "pb",
+    "stream": "dacl",
+    "expver": "0001",
+    "quantile": "99:100"
+  }
+]}
 EOF
 
 # $gribls -m out.grib | tee out
@@ -104,6 +132,6 @@ EOF
 
 $fdbread --raw req.3 out.grib
 
-$gribls -m out.grib | tee out
-grep dacl out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee out
+cat listjson                   | while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort | tee list
+diff out list
