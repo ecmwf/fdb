@@ -9,6 +9,10 @@ fdblist="$<TARGET_FILE:fdb-list>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 wdir=$bindir/FDB-260
@@ -62,13 +66,26 @@ EOF
 
 $fdbread req.1 out.grib
 
-cat > list <<EOF
-g           sfc         20201102    0000        11          166.128     rd          an          oper        yyyy
+cat > list1 <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 11,
+    "param": 166.128,
+    "class": "rd",
+    "type": "an",
+    "stream": "oper",
+    "expver": "yyyy"
+  }
+]}
 EOF
 
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | post_process | tee out
+cat list1                      | post_process | tee list
+diff out list
 
 
 ### test 2
@@ -90,13 +107,38 @@ EOF
 $fdbread req.2 out.grib
 
 cat > list <<EOF
-g           sfc         20201102    0000        12          166.128     rd          fc          oper        yyyy
-g           sfc         20201102    1200        12          166.128     rd          fc          oper        yyyy
+cat > list2 <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "an",
+    "stream": "oper",
+    "expver": "yyyy"
+  },
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "1200",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "an",
+    "stream": "oper",
+    "expver": "yyyy"
+  }
+]}
 EOF
 
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | post_process | tee out
+cat list2                      | post_process | tee list
+diff out list
 
 
 # test grib packingType
@@ -122,18 +164,45 @@ EOF
 
 $fdbread req.3 out.grib
 
-cat > list <<EOF
-2            ecmf         20201102     an           regular_ll   24           heightAboveGround  10           10v          grid_ieee
+cat > list3enc <<EOF
+{ "messages" : [
+  {
+    "edition": 2,
+    "centre": "ecmf",
+    "date": 20201102,
+    "dataType": "an",
+    "gridType": "regular_ll",
+    "stepRange": 24,
+    "typeOfLevel": "heightAboveGround",
+    "level": 10,
+    "shortName": "10v",
+    "packingType": "grid_ieee"
+  }
+]}
 EOF
 
-$gribls out.grib | tee out
-grep ecmf out | sed 's/ *$//' > content
-cmp list content
+$gribls -j out.grib            | post_process | tee out
+cat list3enc                   | post_process | tee list
+diff out list
 
-cat > list <<EOF
-g           20201102    0000        zzzz        rd          an          oper        24          sfc         166
+
+cat > list3 <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "date": 20201102,
+    "time": "0000",
+    "expver": "zzzz",
+    "class": "rd",
+    "type": "an",
+    "stream": "oper",
+    "step": 24,
+    "levtype": "sfc",
+    "param": 166
+  }
+]}
 EOF
 
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | post_process | tee out
+cat list3                      | post_process | tee list
+diff out list
