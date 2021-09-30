@@ -9,6 +9,10 @@ fdblist="$<TARGET_FILE:fdb-list>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 wdir=$bindir/FDB-264
@@ -35,12 +39,28 @@ $fdblist --porcelain class=od,expver=1
 
 $fdbread req out.grib
 
-cat > list <<EOF
-g           ml          1           20050601    1200        0           155.129     od          sg          sens        0001        0           1
+cat > listjson <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "ml",
+    "levelist": 1,
+    "date": 20050601,
+    "time": 1200,
+    "step": 0,
+    "param": 155.129,
+    "class": "od",
+    "type": "sg",
+    "stream": "sens",
+    "expver": "0001",
+    "iteration": 0,
+    "diagnostic": 1
+  }
+]}
 EOF
 
-$gribls -m out.grib | tee out
-grep sens out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | post_process | tee out
+cat listjson                   | post_process | tee list
+diff out list
 
 

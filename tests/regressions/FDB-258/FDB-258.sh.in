@@ -8,6 +8,10 @@ fdbwrite="$<TARGET_FILE:fdb-write>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 wdir=$bindir/FDB-258
@@ -83,13 +87,26 @@ EOF
 
 $fdbread mars.req out.grib
 
-cat > list <<EOF
-g           sfc         20201102    0000        12          166.128     rd          fc          oper        xxxx
+cat > listJson <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  }
+]}
 EOF
 
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | post_process | tee out
+cat listjson                   | post_process | tee list
+diff out list
 
 
 ### test connecting with another protocol version
@@ -107,16 +124,14 @@ unset FDB5_REMOTE_PROTOCOL_VERSION
 
 $fdbread mars.req out.grib
 
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | post_process | tee out
+diff out list
 
 export FDB5_REMOTE_PROTOCOL_VERSION=3
 
 $fdbread mars.req out.grib
 
-$gribls -m out.grib | tee out
-grep oper out | sed 's/ *$//' > content
-cmp list content
+$gribls -jm out.grib           | post_process | tee out
+diff out list
 
 killServer

@@ -9,6 +9,10 @@ fdblist="$<TARGET_FILE:fdb-list>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 wdir=$bindir/FDB-275
@@ -36,7 +40,24 @@ retrieve,class=c3,stream=msmm,date=20210601,time=0000,domain=g,type=fcmean,levty
 EOF
 
 cat > griblist <<EOF
-g           egrr        sfc         139.128     c3          fcmean      msmm        0001        0           600         1           1           20210601    0000
+{ "messages" : [
+  {
+    "domain": "g",
+    "origin": "egrr",
+    "levtype": "sfc",
+    "param": 139.128,
+    "class": "c3",
+    "type": "fcmean",
+    "stream": "msmm",
+    "expver": "0001",
+    "number": 0,
+    "system": 600,
+    "method": 1,
+    "fcmonth": 1,
+    "date": 20210601,
+    "time": 0
+  }
+]}
 EOF
 
 ### cleanup and prepare new index
@@ -57,16 +78,14 @@ cmp out list
 
 # should read 1 field
 $fdbread --raw r1 out.grib
-$gribls -m out.grib | tee out
-grep msmm out | sed 's/ *$//' > content
-cmp griblist content
+$gribls -jm out.grib           | post_process | tee out
+cat griblist                   | post_process | tee list
+diff out list
 
 $fdbread --raw r2 out.grib
-$gribls -m out.grib | tee out
-grep msmm out | sed 's/ *$//' > content
-cmp griblist content
+$gribls -jm out.grib           | post_process | tee out
+diff out list
 
 $fdbread r1 out.grib
-$gribls -m out.grib | tee out
-grep msmm out | sed 's/ *$//' > content
-cmp griblist content
+$gribls -jm out.grib           | post_process | tee out
+diff out list
