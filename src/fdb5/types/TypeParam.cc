@@ -57,57 +57,13 @@ void TypeParam::getValues(const metkit::mars::MarsRequest &request,
     metkit::ParamID::normalise(request, user, axis, windConversion);
 
     std::set<Param> axisSet;
-    std::set<long> tables;
 
     for (std::vector<Param>::const_iterator i = axis.begin(); i != axis.end(); ++i) {
         axisSet.insert(*i);
-        tables.insert((*i).table());
-        tables.insert((*i).value() / 1000);
     }
 
     for (std::vector<Param>::const_iterator i = user.begin(); i != user.end(); ++i) {
-
-        bool found = false;
-        // User request in axis
         if (axisSet.find(*i) != axisSet.end()) {
-            values.push_back(*i);
-            continue;
-        }
-
-        long table = (*i).table();
-        long value = (*i).value();
-
-        // User has specified the table
-        if (table) {
-
-            // Try 140.xxx
-            Param p(0, table * 1000 + value);
-            if (axisSet.find(p) != axisSet.end()) {
-                values.push_back(p);
-                continue;
-            }
-
-            // Try xxxx
-            Param q(0, value);
-            if (axisSet.find(q) != axisSet.end()) {
-                values.push_back(q);
-                continue;
-            }
-        } else {
-
-            // The user did not specify a table, try known tables
-
-            for (std::set<long>::const_iterator j = tables.begin(); j != tables.end() && !found; ++j) {
-                Param p(0, (*j) * 1000 + value);
-                if (axisSet.find(p) != axisSet.end()) {
-                    values.push_back(p);
-                    found = true;;
-                }
-            }
-
-        }
-
-        if (!found) {
             values.push_back(*i);
         }
     }

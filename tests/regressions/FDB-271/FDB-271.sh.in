@@ -9,6 +9,10 @@ fdblist="$<TARGET_FILE:fdb-list>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 wdir=$bindir/FDB-271
@@ -57,8 +61,34 @@ retrieve,class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=
 EOF
 
 cat > old_griblist <<EOF
-g           pl          925         20201102    0000        12          166.128     rd          fc          oper        xxxx
-g           pl          0.7         20201102    0000        12          166.128     rd          fc          oper        xxxx
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 925,
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 0.7,
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  }
+]}
 EOF
 
 # should return 3 fields - no length
@@ -72,16 +102,14 @@ cmp old_shortOut old_listLength
 
 # should read 2 fields
 $fdbread --raw old_r1 old_out.grib
-$gribls -m old_out.grib | tee old_out
-grep oper old_out | sed 's/ *$//' > old_content
-cmp old_griblist old_content
+$gribls -jm old_out.grib       | post_process | tee out
+cat old_griblist               | post_process | tee list
+diff out list
 
 $fdbread --raw old_r2 old_out.grib
-$gribls -m old_out.grib | tee old_out
-grep oper old_out | sed 's/ *$//' > old_content
-cmp old_griblist old_content
+$gribls -jm old_out.grib       | post_process | tee out
+diff out list
 
 $fdbread --raw old_r3 old_out.grib
-$gribls -m old_out.grib | tee old_out
-grep oper old_out | sed 's/ *$//' > old_content
-cmp old_griblist old_content
+$gribls -jm old_out.grib       | post_process | tee out
+diff out list
