@@ -197,7 +197,7 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
             logVerbose() << "Archiving " << key << std::endl;
 
-            fdb_.archive(key, msg);
+            fdb_.archive(key, msg.data(), msg.length());
 
             total_size += msg.length();
             count++;

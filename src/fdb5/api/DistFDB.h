@@ -41,7 +41,7 @@ public: // method
     DistFDB(const eckit::Configuration& config, const std::string& name);
     ~DistFDB() override;
 
-    void archive(const Key& key, eckit::message::Message msg) override;
+    void archive(const Key& key, const void* data, size_t length) override;
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 

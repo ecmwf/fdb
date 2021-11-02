@@ -275,14 +275,7 @@ int fdb_new_handle(fdb_handle_t** fdb) {
         *fdb = new fdb_handle_t();
     });
 }
-int fdb_multi_archive(fdb_handle_t* fdb, const char* data, size_t length) {
-    return wrapApiFunction([fdb, data, length] {
-        ASSERT(fdb);
-        ASSERT(data);
 
-        fdb->archive(data, length);
-    });
-}
 int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t length) {
     return wrapApiFunction([fdb, key, data, length] {
         ASSERT(fdb);
@@ -292,6 +285,21 @@ int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t leng
         fdb->archive(*key, data, length);
     });
 }
+int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data, size_t length) {
+    return wrapApiFunction([fdb, req, data, length] {
+        ASSERT(fdb);
+        ASSERT(data);
+
+        eckit::MemoryHandle handle(data, length);
+        if (req) {
+            fdb->archive(req->request(), handle);
+        }
+        else {
+            fdb->archive(handle);
+        }
+    });
+}
+
 int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t* it) {
     return wrapApiFunction([fdb, req, it] {
         ASSERT(fdb);
