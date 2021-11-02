@@ -1,0 +1,290 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+
+export FDB5_HOME=$bindir
+export FDB5_ROOT=./root
+
+export FDB_DEBUG=0
+export ECKIT_DEBUG=0
+# export METKIT_DEBUG=1
+
+### cleanup and prepare test
+
+rm -f out.*
+rm -rf $FDB5_ROOT
+mkdir -p $FDB5_ROOT
+
+for f in config.yaml schema in.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+
+cat > list <<EOF
+{class=mc,expver=0001,stream=oper,date=20211015,time=0000,domain=g}{type=fc,levtype=ml}{step=12,levelist=1,param=138}
+{class=mc,expver=0001,stream=oper,date=20211015,time=0000,domain=g}{type=fc,levtype=ml}{step=12,levelist=1,param=155}
+{class=mc,expver=0001,stream=oper,date=20211015,time=0000,domain=g}{type=fc,levtype=ml}{step=12,levelist=1,param=210131}
+EOF
+
+cat > griblistWind <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "date": 20211015,
+    "time": "0000",
+    "expver": "0001",
+    "class": "mc",
+    "type": "fc",
+    "stream": "oper",
+    "step": 12,
+    "levtype": "ml",
+    "levelist": 1,
+    "param": 138
+  },
+  {
+    "domain": "g",
+    "date": 20211015,
+    "time": "0000",
+    "expver": "0001",
+    "class": "mc",
+    "type": "fc",
+    "stream": "oper",
+    "step": 12,
+    "levtype": "ml",
+    "levelist": 1,
+    "param": 155
+  }
+]}
+EOF
+cat > griblistDVo <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "date": 20211015,
+    "time": "0000",
+    "expver": "0001",
+    "class": "mc",
+    "type": "fc",
+    "stream": "oper",
+    "step": 12,
+    "levtype": "ml",
+    "levelist": 1,
+    "param": 155
+  },
+  {
+    "domain": "g",
+    "date": 20211015,
+    "time": "0000",
+    "expver": "0001",
+    "class": "mc",
+    "type": "fc",
+    "stream": "oper",
+    "step": 12,
+    "levtype": "ml",
+    "levelist": 1,
+    "param": 138
+  }
+]}
+EOF
+
+cat > griblist210 <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "date": 20211015,
+    "time": "0000",
+    "expver": "0001",
+    "class": "mc",
+    "type": "fc",
+    "stream": "oper",
+    "step": 12,
+    "levtype": "ml",
+    "levelist": 1,
+    "param": 210131
+  }
+]}
+EOF
+
+### run test
+
+$fdbwrite in.grib
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+diff out list
+
+
+cat > reqWind <<EOF
+retrieve,
+        class=mc,
+        type=fc,
+        stream=oper,
+        expver=0001,
+        repres=sh,
+        levtype=ml,
+        levelist=1,
+        param=u/v,
+        date=20211015,
+        time=0000,
+        step=12,
+        domain=g
+EOF
+
+cat > reqParam <<EOF
+retrieve,
+        class=mc,
+        type=fc,
+        stream=oper,
+        expver=0001,
+        repres=sh,
+        levtype=ml,
+        levelist=1,
+        param=131.128,
+        date=20211015,
+        time=0000,
+        step=12,
+        domain=g
+EOF
+
+cat > reqParamID <<EOF
+retrieve,
+        class=mc,
+        type=fc,
+        stream=oper,
+        expver=0001,
+        repres=sh,
+        levtype=ml,
+        levelist=1,
+        param=131,
+        date=20211015,
+        time=0000,
+        step=12,
+        domain=g
+EOF
+
+cat > reqDVo <<EOF
+retrieve,
+        class=mc,
+        type=fc,
+        stream=oper,
+        expver=0001,
+        repres=sh,
+        levtype=ml,
+        levelist=1,
+        param=d/vo,
+        date=20211015,
+        time=0000,
+        step=12,
+        domain=g
+EOF
+
+
+cat > req210Param <<EOF
+retrieve,
+        class=mc,
+        type=fc,
+        stream=oper,
+        expver=0001,
+        repres=sh,
+        levtype=ml,
+        levelist=1,
+        param=131.210,
+        date=20211015,
+        time=0000,
+        step=12,
+        domain=g
+EOF
+
+cat > req210ParamID <<EOF
+retrieve,
+        class=mc,
+        type=fc,
+        stream=oper,
+        expver=0001,
+        repres=sh,
+        levtype=ml,
+        levelist=1,
+        param=210131,
+        date=20211015,
+        time=0000,
+        step=12,
+        domain=g
+EOF
+
+
+cat > reqAll <<EOF
+retrieve,
+        class=mc,
+        type=fc,
+        stream=oper,
+        expver=0001,
+        repres=sh,
+        levtype=ml,
+        levelist=1,
+        param=210131/132,
+        date=20211015,
+        time=0000,
+        step=12,
+        domain=g
+EOF
+
+# should read 2 fields
+$fdbread reqWind out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat griblistWind               | post_process | tee list
+diff out list
+
+# should read 2 fields
+$fdbread reqParam out.grib
+$gribls -jm out.grib           | post_process | tee out
+diff out list
+
+# should read 2 fields
+$fdbread reqParamID out.grib
+$gribls -jm out.grib           | post_process | tee out
+diff out list
+
+
+
+# should read 2 fields
+$fdbread reqDVo out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat griblistDVo                | post_process | tee list
+diff out list
+
+
+# should read 1 field
+$fdbread --raw req210Param out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat griblist210                | post_process | tee list
+diff out list
+
+# should read 1 field
+$fdbread --raw req210ParamID out.grib
+$gribls -jm out.grib           | post_process | tee out
+diff out list
+
+
+# should read 1 field
+$fdbread --raw reqAll out.grib
+$gribls -jm out.grib           | post_process | tee out
+$gribls -jm in.grib            | post_process | tee list
+diff out list
