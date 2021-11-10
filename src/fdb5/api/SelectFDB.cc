@@ -81,8 +81,7 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) :
 
 SelectFDB::~SelectFDB() {}
 
-
-void SelectFDB::archive(const Key& key, eckit::message::Message msg) {
+void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 
     for (auto& iter : subFdbs_) {
 
@@ -90,7 +89,7 @@ void SelectFDB::archive(const Key& key, eckit::message::Message msg) {
         FDB& fdb(iter.second);
 
         if (matches(key, select, true)) {
-            fdb.archive(key, msg);
+            fdb.archive(key, data, length);
             return;
         }
     }

@@ -73,7 +73,7 @@ DistFDB::DistFDB(const eckit::Configuration& config, const std::string& name) :
 
 DistFDB::~DistFDB() {}
 
-void DistFDB::archive(const Key& key, eckit::message::Message msg) {
+void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     std::vector<size_t> laneIndices;
 
@@ -109,7 +109,7 @@ void DistFDB::archive(const Key& key, eckit::message::Message msg) {
 
         try {
 
-            lane.archive(key, msg);
+            lane.archive(key, data, length);
             return;
 
         } catch (eckit::Exception& e) {
