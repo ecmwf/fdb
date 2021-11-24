@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "eckit/system/Library.h"
+#include "eckit/config/Configuration.h"
 
 #include "fdb5/database/DB.h"
 #include "fdb5/types/TypesRegistry.h"
@@ -111,6 +112,10 @@ public:
     /// Returns the default configuration according to the rules of FDB configuration search
     const Config& defaultConfig();
 
+    /// Returns the user configuration
+    const eckit::Configuration& userConfig();
+    void setUserConfig(const eckit::Configuration& userConfig);
+
     bool dontDeregisterFactories() const;
 
 protected:
@@ -120,6 +125,7 @@ protected:
 
 private:
     std::unique_ptr<Config> config_;
+    std::unique_ptr<const eckit::Configuration> userConfig_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

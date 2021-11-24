@@ -35,10 +35,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDB::FDB(const Config &config) :
+FDB::FDB(const Config& config, const eckit::Configuration& userConfig) :
     internal_(FDBFactory::instance().build(config)),
     dirty_(false),
-    reportStats_(config.getBool("statistics", false)) {}
+    reportStats_(config.getBool("statistics", false)) {
+        LibFdb5::instance().setUserConfig(userConfig);
+}
 
 
 FDB::~FDB() {
@@ -234,6 +236,10 @@ const std::string& FDB::name() const {
 
 const Config &FDB::config() const {
     return internal_->config();
+}
+
+const eckit::Configuration& FDB::userConfig() const {
+    return LibFdb5::instance().userConfig();
 }
 
 void FDB::print(std::ostream& s) const {

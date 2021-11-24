@@ -112,7 +112,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     TocCommon(directory),
     tocPath_(directory_ / "toc"),
     dbConfig_(config),
-    useSubToc_(config.getBool("useSubToc", false)),
+    useSubToc_(LibFdb5::instance().userConfig().getBool("useSubToc", false)),
     isSubToc_(false),
     fd_(-1),
     cachedToc_(nullptr),

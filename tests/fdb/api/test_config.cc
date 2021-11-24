@@ -22,7 +22,7 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
 
-#include "fdb5/config/Config.h"
+#include "fdb5/api/FDB.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -148,6 +148,37 @@ CASE( "config_expands_override_fdb_home" ) {
     EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 2);
     EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == "/a/path/is/first");
     EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[1].getString("path") == "/a/path/is/second");
+}
+
+CASE( "userConfig" ) {
+
+    const std::string config_str(R"XX(
+        ---
+        type: local
+        engine: toc
+        useSubToc: false
+        spaces:
+        - roots:
+          - path: "/a/path/is/something"
+    )XX");
+
+    eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
+
+    fdb5::Config expanded = fdb5::Config().expandConfig();
+    {
+        fdb5::FDB fdb(expanded);
+
+        const eckit::Configuration& userConfig = fdb.userConfig();
+        EXPECT(userConfig.getBool("useSubToc", false) == false);
+    }
+    {
+        eckit::LocalConfiguration userConf;
+        userConf.set("useSubToc", true);
+        fdb5::FDB fdb(expanded, userConf);
+
+        const eckit::Configuration& userConfig = fdb.userConfig();
+        EXPECT(userConfig.getBool("useSubToc", false) == true);
+    }
 }
 
 
