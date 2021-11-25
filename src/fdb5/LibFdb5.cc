@@ -47,17 +47,6 @@ const Config& LibFdb5::defaultConfig() {
     return *config_;
 }
 
-const eckit::Configuration& LibFdb5::userConfig() {
-    if(!userConfig_) {
-        userConfig_.reset( new eckit::LocalConfiguration() );
-    }
-    return *userConfig_;
-}
-
-void LibFdb5::setUserConfig(const eckit::Configuration& userConfig) {
-    userConfig_.reset(new eckit::LocalConfiguration(std::move(userConfig)));
-}
-
 bool LibFdb5::dontDeregisterFactories() const {
     return eckit::LibEcKit::instance().dontDeregisterFactories();
 }

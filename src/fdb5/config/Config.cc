@@ -63,10 +63,17 @@ Config Config::make(const eckit::PathName& path) {
     eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << path << std::endl;
     Config cfg{YAMLConfiguration(path)};
     cfg.set("configSource", path);
+
+    // for backward compatibility
+    if (cfg.has("useSubToc")) {
+        cfg.userConfig_.set("useSubToc", cfg.getBool("useSubToc"));
+    }
+
     return cfg;
 }
 
-Config::Config(const Configuration& config) : LocalConfiguration(config) {
+Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
+    LocalConfiguration(config), userConfig_(userConfig) {
     initializeSchemaPath();
 }
 
@@ -82,6 +89,16 @@ Config Config::expandConfig() const {
         std::string s(config_str);
         Config cfg{YAMLConfiguration(s)};
         cfg.set("configSource", "environment");
+
+        // for backward compatibility
+        if (cfg.has("useSubToc")) {
+            cfg.userConfig_.set("useSubToc", cfg.getBool("useSubToc"));
+        } else {
+            if (has("useSubToc")) {
+                cfg.userConfig_.set("useSubToc", getBool("useSubToc"));
+            }
+        }
+
         return cfg;
     }
 
@@ -202,6 +219,12 @@ mode_t Config::umask() const {
     static eckit::FileMode fdbFileMode(
         eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();
+}
+
+void Config::setUserConfig(const eckit::Configuration& userConfig) {
+    if (!userConfig.empty()) {
+        userConfig_ = eckit::LocalConfiguration{userConfig};
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

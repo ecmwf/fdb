@@ -181,6 +181,54 @@ CASE( "userConfig" ) {
     }
 }
 
+CASE( "userConfig_backward_compatibility" ) {
+
+    const std::string config_str(R"XX(
+        ---
+        type: local
+        engine: toc
+        useSubToc: true
+        spaces:
+        - roots:
+          - path: "/a/path/is/something"
+    )XX");
+
+    eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
+
+    fdb5::Config expanded = fdb5::Config().expandConfig();
+    {
+        fdb5::FDB fdb(expanded);
+
+        const eckit::Configuration& userConfig = fdb.userConfig();
+        EXPECT(userConfig.getBool("useSubToc", false) == true);
+    }
+    {
+        eckit::LocalConfiguration userConf; // empty userConfig - ignore it
+        fdb5::FDB fdb(expanded, userConf);
+
+        const eckit::Configuration& userConfig = fdb.userConfig();
+        EXPECT(userConfig.getBool("useSubToc", false) == true);
+    }
+    {
+        eckit::LocalConfiguration userConf; // meaningful userConfig - use it
+        userConf.set("uselessValue", 123);
+        fdb5::FDB fdb(expanded, userConf);
+
+        const eckit::Configuration& userConfig = fdb.userConfig();
+        EXPECT(!userConfig.has("useSubToc"));
+    }
+    {
+        eckit::LocalConfiguration userConf; // meaningful userConfig - use it
+        userConf.set("useSubToc", false);
+        userConf.set("uselessValue", 123);
+        fdb5::FDB fdb(expanded, userConf);
+
+        const eckit::Configuration& userConfig = fdb.userConfig();
+        EXPECT(userConfig.has("useSubToc"));
+        EXPECT(userConfig.getBool("useSubToc", false) == false);
+    }
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

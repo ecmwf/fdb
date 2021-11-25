@@ -93,12 +93,13 @@ void FDBFactory::add(const std::string& name, const FDBBuilderBase* b)
     registry_[name] = b;
 }
 
-std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
+std::unique_ptr<FDBBase> FDBFactory::build(const Config& config, const eckit::Configuration& userConfig) {
 
     // Allow expanding of the config to make use of fdb_home supplied in a previous
     // configuration file, or to pick up the default configuration from ~fdb/etc/fdb/...
 
     Config actualConfig = config.expandConfig();
+    actualConfig.setUserConfig(userConfig);
 
     /// We use "local" as a default type if not otherwise configured.
 

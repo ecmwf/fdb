@@ -35,7 +35,7 @@ public:  // static methods
 
 public:  // methods
     Config();
-    Config(const eckit::Configuration& config);
+    Config(const eckit::Configuration& config, const eckit::Configuration& userConfig = LocalConfiguration());
 
     /// Given a (potentially skeleton) configuration, expand it fully. This
     /// may involve loading a specific config.json
@@ -54,11 +54,15 @@ public:  // methods
 
     mode_t umask() const;
 
+    void setUserConfig(const eckit::Configuration& userConfig);
+    const eckit::Configuration& userConfig() const { return userConfig_; }
+
 private:  // methods
     void initializeSchemaPath() const;
 
 private:  // members
     mutable eckit::PathName schemaPath_;
+    eckit::LocalConfiguration userConfig_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

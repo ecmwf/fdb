@@ -59,7 +59,7 @@ private:
         ASSERT(choice >= 0);
         ASSERT(choice < fdbConfigs.size());
 
-        return FDBFactory::instance().build(fdbConfigs[choice]);
+        return FDBFactory::instance().build(fdbConfigs[choice], LocalConfiguration());
     }
 };
 
