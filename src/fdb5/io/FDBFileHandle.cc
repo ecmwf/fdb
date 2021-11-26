@@ -75,7 +75,8 @@ long FDBFileHandle::write(const void* buffer, long length) {
 }
 
 void FDBFileHandle::flush() {
-    static bool fdbDataSyncOnFlush = eckit::LibResource<bool, LibFdb5>("$FDB_DATA_SYNC_ON_FLUSH;fdbDataSyncOnFlush", true);
+    static bool fdbDataSyncOnFlush =
+        eckit::LibResource<bool, LibFdb5>("$FDB_DATA_SYNC_ON_FLUSH;fdbDataSyncOnFlush", true);
 
     if (file_) {
         if (::fflush(file_))

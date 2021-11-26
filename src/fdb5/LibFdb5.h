@@ -18,7 +18,6 @@
 #include <vector>
 
 #include "eckit/system/Library.h"
-#include "eckit/config/Configuration.h"
 
 #include "fdb5/database/DB.h"
 #include "fdb5/types/TypesRegistry.h"
