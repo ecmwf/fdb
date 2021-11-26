@@ -55,7 +55,7 @@ class FDB {
 
 public: // methods
 
-    FDB(const Config& config = Config(), const eckit::Configuration& userConfig = eckit::LocalConfiguration());
+    FDB(const Config& config = Config());
     ~FDB();
 
     FDB(const FDB&) = delete;
@@ -111,7 +111,6 @@ public: // methods
 
     const std::string& name() const;
     const Config& config() const;
-    const eckit::Configuration& userConfig() const;
 
     bool writable() const;
     bool visitable() const;

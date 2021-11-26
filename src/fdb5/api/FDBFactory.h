@@ -132,7 +132,7 @@ public:
 
     void add(const std::string& name, const FDBBuilderBase*);
 
-    std::unique_ptr<FDBBase> build(const Config& config, const eckit::Configuration& userConfig);
+    std::unique_ptr<FDBBase> build(const Config& config);
 
 private:
 

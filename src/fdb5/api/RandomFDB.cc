@@ -43,8 +43,7 @@ private:
 
         if (!config.has("fdbs")) throw UserError("No FDBs configured for random FDB frontend", Here());
 
-        std::vector<eckit::LocalConfiguration> fdbConfigs;
-        fdbConfigs = config.getSubConfigurations("fdbs");
+        auto fdbConfigs = config.getSubConfigurations("fdbs");
 
         if (fdbConfigs.empty()) throw UserError("No FDBs configured for random FDB frontend", Here());
 
@@ -59,7 +58,7 @@ private:
         ASSERT(choice >= 0);
         ASSERT(choice < fdbConfigs.size());
 
-        return FDBFactory::instance().build(fdbConfigs[choice], LocalConfiguration());
+        return FDBFactory::instance().build(fdbConfigs[choice]);
     }
 };
 

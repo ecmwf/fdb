@@ -22,7 +22,7 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
 
-#include "fdb5/api/FDB.h"
+#include "fdb5/config/Config.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -165,70 +165,14 @@ CASE( "userConfig" ) {
     eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
-    {
-        fdb5::FDB fdb(expanded);
+    EXPECT(expanded.userConfig().getBool("useSubToc", false) == false);
 
-        const eckit::Configuration& userConfig = fdb.userConfig();
-        EXPECT(userConfig.getBool("useSubToc", false) == false);
-    }
-    {
-        eckit::LocalConfiguration userConf;
-        userConf.set("useSubToc", true);
-        fdb5::FDB fdb(expanded, userConf);
+    eckit::LocalConfiguration userConf;
+    userConf.set("useSubToc", true);
+    fdb5::Config config(expanded, userConf);
 
-        const eckit::Configuration& userConfig = fdb.userConfig();
-        EXPECT(userConfig.getBool("useSubToc", false) == true);
-    }
+    EXPECT(config.userConfig().getBool("useSubToc", false) == true);
 }
-
-CASE( "userConfig_backward_compatibility" ) {
-
-    const std::string config_str(R"XX(
-        ---
-        type: local
-        engine: toc
-        useSubToc: true
-        spaces:
-        - roots:
-          - path: "/a/path/is/something"
-    )XX");
-
-    eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
-
-    fdb5::Config expanded = fdb5::Config().expandConfig();
-    {
-        fdb5::FDB fdb(expanded);
-
-        const eckit::Configuration& userConfig = fdb.userConfig();
-        EXPECT(userConfig.getBool("useSubToc", false) == true);
-    }
-    {
-        eckit::LocalConfiguration userConf; // empty userConfig - ignore it
-        fdb5::FDB fdb(expanded, userConf);
-
-        const eckit::Configuration& userConfig = fdb.userConfig();
-        EXPECT(userConfig.getBool("useSubToc", false) == true);
-    }
-    {
-        eckit::LocalConfiguration userConf; // meaningful userConfig - use it
-        userConf.set("uselessValue", 123);
-        fdb5::FDB fdb(expanded, userConf);
-
-        const eckit::Configuration& userConfig = fdb.userConfig();
-        EXPECT(!userConfig.has("useSubToc"));
-    }
-    {
-        eckit::LocalConfiguration userConf; // meaningful userConfig - use it
-        userConf.set("useSubToc", false);
-        userConf.set("uselessValue", 123);
-        fdb5::FDB fdb(expanded, userConf);
-
-        const eckit::Configuration& userConfig = fdb.userConfig();
-        EXPECT(userConfig.has("useSubToc"));
-        EXPECT(userConfig.getBool("useSubToc", false) == false);
-    }
-}
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

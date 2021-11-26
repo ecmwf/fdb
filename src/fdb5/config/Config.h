@@ -35,7 +35,7 @@ public:  // static methods
 
 public:  // methods
     Config();
-    Config(const eckit::Configuration& config, const eckit::Configuration& userConfig = LocalConfiguration());
+    Config(const eckit::Configuration& config, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
     /// Given a (potentially skeleton) configuration, expand it fully. This
     /// may involve loading a specific config.json
@@ -55,14 +55,17 @@ public:  // methods
     mode_t umask() const;
 
     void setUserConfig(const eckit::Configuration& userConfig);
-    const eckit::Configuration& userConfig() const { return userConfig_; }
+    const eckit::Configuration& userConfig() const { return *userConfig_; }
+
+    std::vector<Config> getSubConfigs(const std::string& name) const;
+    std::vector<Config> getSubConfigs() const;
 
 private:  // methods
     void initializeSchemaPath() const;
 
 private:  // members
     mutable eckit::PathName schemaPath_;
-    eckit::LocalConfiguration userConfig_;
+    std::shared_ptr<eckit::LocalConfiguration> userConfig_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -49,7 +49,7 @@ struct DistributionError : public eckit::Exception {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DistFDB::DistFDB(const eckit::Configuration& config, const std::string& name) :
+DistFDB::DistFDB(const Config& config, const std::string& name) :
     FDBBase(config, name) {
 
     ASSERT(config.getString("type", "") == "dist");
@@ -58,10 +58,7 @@ DistFDB::DistFDB(const eckit::Configuration& config, const std::string& name) :
 
     if (!config.has("lanes")) throw eckit::UserError("No lanes configured for pool", Here());
 
-    std::vector<eckit::LocalConfiguration> laneConfigs;
-    laneConfigs = config.getSubConfigurations("lanes");
-
-    for(const eckit::LocalConfiguration& laneCfg : laneConfigs) {
+    for(const auto& laneCfg : config.getSubConfigs("lanes")) {
         lanes_.push_back(FDB(laneCfg));
         if (!hash_.addNode(lanes_.back().id())) {
             std::stringstream ss;
