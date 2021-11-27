@@ -211,10 +211,6 @@ mode_t Config::umask() const {
     return fdbFileMode.mask();
 }
 
-void Config::setUserConfig(const eckit::Configuration& userConfig) {
-    userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
-}
-
 std::vector<Config> Config::getSubConfigs(const std::string& name) const {
     std::vector<Config> out;
 

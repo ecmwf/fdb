@@ -54,7 +54,6 @@ public:  // methods
 
     mode_t umask() const;
 
-    void setUserConfig(const eckit::Configuration& userConfig);
     const eckit::Configuration& userConfig() const { return *userConfig_; }
 
     std::vector<Config> getSubConfigs(const std::string& name) const;

@@ -172,6 +172,45 @@ CASE( "userConfig" ) {
     fdb5::Config config(expanded, userConf);
 
     EXPECT(config.userConfig().getBool("useSubToc", false) == true);
+
+    eckit::LocalConfiguration cfg_od;
+    cfg_od.set("type", "spy");
+    cfg_od.set("id", "1");
+
+    eckit::LocalConfiguration cfg_rd1;
+    cfg_rd1.set("type", "spy");
+    cfg_rd1.set("id", "2");
+
+    eckit::LocalConfiguration cfg_rd2;
+    cfg_rd2.set("type", "spy");
+    cfg_rd2.set("id", "3");
+
+    {
+        fdb5::Config cfg;
+        cfg.set("type", "dist");
+        cfg.set("lanes", { cfg_od, cfg_rd1, cfg_rd2 });
+
+        EXPECT(cfg.userConfig().getBool("useSubToc", false) == false);
+
+        std::vector<fdb5::Config> configs = cfg.getSubConfigs("lanes");
+        ASSERT(configs.size() == 3);
+        for (const auto& c: configs) {
+            EXPECT(c.userConfig().getBool("useSubToc", false) == false);
+        }
+    }
+    {
+        fdb5::Config cfg(eckit::LocalConfiguration(), userConf);
+        cfg.set("type", "dist");
+        cfg.set("lanes", { cfg_od, cfg_rd1, cfg_rd2 });
+
+        EXPECT(cfg.userConfig().getBool("useSubToc", false) == true);
+
+        std::vector<fdb5::Config> configs = cfg.getSubConfigs("lanes");
+        ASSERT(configs.size() == 3);
+        for (const auto& c: configs) {
+            EXPECT(c.userConfig().getBool("useSubToc", false) == true);
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
