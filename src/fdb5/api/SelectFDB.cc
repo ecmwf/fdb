@@ -72,8 +72,7 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) :
         throw eckit::UserError("fdbs not specified for select FDB", Here());
     }
 
-    std::vector<eckit::LocalConfiguration> fdbs(config.getSubConfigurations("fdbs"));
-    for (const eckit::LocalConfiguration& c : fdbs) {
+    for (const auto& c : config.getSubConfigs("fdbs")) {
         subFdbs_.emplace_back(std::make_pair(parseFDBSelect(c), FDB(c)));
     }
 }

@@ -43,8 +43,7 @@ private:
 
         if (!config.has("fdbs")) throw UserError("No FDBs configured for random FDB frontend", Here());
 
-        std::vector<eckit::LocalConfiguration> fdbConfigs;
-        fdbConfigs = config.getSubConfigurations("fdbs");
+        auto fdbConfigs = config.getSubConfigurations("fdbs");
 
         if (fdbConfigs.empty()) throw UserError("No FDBs configured for random FDB frontend", Here());
 

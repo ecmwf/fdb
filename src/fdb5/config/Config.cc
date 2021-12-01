@@ -57,17 +57,23 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Config::Config() : schemaPath_("") {}
+Config::Config() : schemaPath_("") {
+    userConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
+}
 
 Config Config::make(const eckit::PathName& path) {
     eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << path << std::endl;
     Config cfg{YAMLConfiguration(path)};
     cfg.set("configSource", path);
+    cfg.userConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
+
     return cfg;
 }
 
-Config::Config(const Configuration& config) : LocalConfiguration(config) {
+Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
+    LocalConfiguration(config) {
     initializeSchemaPath();
+    userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 }
 
 Config Config::expandConfig() const {
@@ -82,6 +88,7 @@ Config Config::expandConfig() const {
         std::string s(config_str);
         Config cfg{YAMLConfiguration(s)};
         cfg.set("configSource", "environment");
+
         return cfg;
     }
 
@@ -203,6 +210,29 @@ mode_t Config::umask() const {
         eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();
 }
+
+std::vector<Config> Config::getSubConfigs(const std::string& name) const {
+    std::vector<Config> out;
+
+    for (auto configuration : getSubConfigurations(name)) {
+        Config config{configuration};
+        config.userConfig_ = userConfig_;
+        out.push_back(config);
+    }
+    return out;
+}
+
+std::vector<Config> Config::getSubConfigs() const {
+    std::vector<Config> out;
+
+    for (auto configuration : getSubConfigurations()) {
+        Config config{configuration};
+        config.userConfig_ = userConfig_;
+        out.push_back(config);
+    }
+    return out;
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
