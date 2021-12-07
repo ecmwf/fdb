@@ -32,7 +32,7 @@ class Schema;
 class Config : public eckit::LocalConfiguration {
 public:  // methods
     Config();
-    Config(const eckit::Configuration& config);
+    Config(const eckit::Configuration& config, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
     /// Given a (potentially skeleton) configuration, expand it fully. This
     /// may involve loading a specific config.json
@@ -50,6 +50,15 @@ public:  // methods
     const Schema& schema() const;
 
     mode_t umask() const;
+
+    const eckit::Configuration& userConfig() const { return *userConfig_; }
+
+    std::vector<Config> getSubConfigs(const std::string& name) const;
+    std::vector<Config> getSubConfigs() const;
+
+private:  // members
+    std::shared_ptr<eckit::LocalConfiguration> userConfig_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

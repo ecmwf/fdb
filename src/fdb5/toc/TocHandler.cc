@@ -127,7 +127,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     tocPath_(directory_ / "toc"),
     schemaPath_(directory_ / "schema"),
     dbConfig_(config),
-    useSubToc_(config.getBool("useSubToc", false)),
+    useSubToc_(config.userConfig().getBool("useSubToc", false)),
     isSubToc_(false),
     fd_(-1),
     cachedToc_(nullptr),

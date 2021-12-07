@@ -16,6 +16,7 @@
 #include "eckit/value/Value.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
 namespace fdb5 {
@@ -66,10 +67,21 @@ eckit::LocalConfiguration tweakedConfig(const eckit::Configuration& dbConfig) {
     return dbConfig;
 }
 
+Config subTocConfig(const eckit::Configuration& fdb_configuration) {
+    eckit::LocalConfiguration userConfig;
+    if (fdb_configuration.has("userConfig")) {
+        userConfig = fdb_configuration.getSubConfiguration("userConfig");
+    }
+    else {
+        userConfig.set("useSubToc", true);
+    }
+
+    return Config(fdb_configuration, userConfig);
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 LegacyArchiver::LegacyArchiver(const eckit::Configuration& dbConfig) :
-    fdb_(tweakedConfig(dbConfig)),
+    fdb_(subTocConfig(tweakedConfig(dbConfig))),
     translator_(),
     legacy_() {
 }

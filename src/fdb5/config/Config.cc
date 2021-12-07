@@ -55,11 +55,15 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Config::Config() {}
+Config::Config() {
+    userConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
+}
 
+Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
+    LocalConfiguration(config) {
+    userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
+}
 
-Config::Config(const Configuration& config) :
-    LocalConfiguration(config) {}
 
 Config Config::expandConfig() const {
 
@@ -184,6 +188,28 @@ mode_t Config::umask() const {
     }
     static eckit::FileMode fdbFileMode(eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();
+}
+
+std::vector<Config> Config::getSubConfigs(const std::string& name) const {
+    std::vector<Config> out;
+
+    for (auto configuration : getSubConfigurations(name)) {
+        Config config{configuration};
+        config.userConfig_ = userConfig_;
+        out.push_back(config);
+    }
+    return out;
+}
+
+std::vector<Config> Config::getSubConfigs() const {
+    std::vector<Config> out;
+
+    for (auto configuration : getSubConfigurations()) {
+        Config config{configuration};
+        config.userConfig_ = userConfig_;
+        out.push_back(config);
+    }
+    return out;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
