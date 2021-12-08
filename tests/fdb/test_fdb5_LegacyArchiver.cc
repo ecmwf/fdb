@@ -54,6 +54,8 @@ CASE ( "test_set_subtoc" ) {
     ASSERT(la.fdb().name() == "local");
     ASSERT(la.fdb().config().has("useSubToc"));
     ASSERT(la.fdb().config().getBool("useSubToc") == true);
+    ASSERT(la.fdb().config().userConfig().has("useSubToc"));
+    ASSERT(la.fdb().config().userConfig().getBool("useSubToc") == true);
 }
 
 
@@ -78,6 +80,8 @@ CASE("test_set_subtoc_orderedmap") {
     ASSERT(la.fdb().name() == "local");
     ASSERT(la.fdb().config().has("useSubToc"));
     ASSERT(la.fdb().config().getBool("useSubToc") == true);
+    ASSERT(la.fdb().config().userConfig().has("useSubToc"));
+    ASSERT(la.fdb().config().userConfig().getBool("useSubToc") == true);
 }
 
 CASE("test_set_subtoc_yaml") {
@@ -90,6 +94,8 @@ CASE("test_set_subtoc_yaml") {
     ASSERT(la.fdb().name() == "local");
     ASSERT(la.fdb().config().has("useSubToc"));
     ASSERT(la.fdb().config().getBool("useSubToc") == true);
+    ASSERT(la.fdb().config().userConfig().has("useSubToc"));
+    ASSERT(la.fdb().config().userConfig().getBool("useSubToc") == true);
 }
 
 //-----------------------------------------------------------------------------

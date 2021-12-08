@@ -23,6 +23,7 @@
 #include "eckit/testing/Test.h"
 
 #include "fdb5/config/Config.h"
+#include "fdb5/legacy/LegacyArchiver.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -177,6 +178,62 @@ CASE( "config_expands_override_fdb_home" ) {
     EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[1].getString("path") == "/a/path/is/second");
 }
 
+
+CASE( "legacy_archiver_subtoc" ) {
+
+    eckit::TmpDir td;
+
+    (td / "etc/fdb").mkdir();
+    (td / "root").mkdir();
+
+    const std::string config_str(R"XX(
+        ---
+        type: local
+        engine: toc
+        spaces:
+        - roots:
+          - path: )XX" + (td / "root").path());
+
+    {
+        std::unique_ptr<eckit::DataHandle> dh((td / "etc/fdb/config.yaml").fileHandle());
+        eckit::AutoClose close(*dh);
+        eckit::Length estimate;
+        dh->openForWrite(estimate);
+        dh->write(config_str.c_str(), config_str.size());
+    }
+
+    eckit::LocalConfiguration applicationConfig;
+    applicationConfig.set("fdb_home", td.asString());
+    applicationConfig.set("type", "fdb5");
+    applicationConfig.set("useSubToc", false);
+
+    {    
+        fdb5::legacy::LegacyArchiver archiver(applicationConfig);
+        const fdb5::Config& config = archiver.fdb().config();
+
+        EXPECT(config.getString("type") == "local");
+        EXPECT(config.getString("engine") == "toc");
+        EXPECT(config.getSubConfigurations("spaces").size() == 1);
+        EXPECT(config.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
+        EXPECT(config.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == (td / "root").path());
+        EXPECT(config.userConfig().has("useSubToc"));
+        EXPECT(config.userConfig().getBool("useSubToc") == false);
+    }
+    applicationConfig.set("useSubToc", true);
+    {    
+        fdb5::legacy::LegacyArchiver archiver(applicationConfig);
+        const fdb5::Config& config = archiver.fdb().config();
+
+        EXPECT(config.getString("type") == "local");
+        EXPECT(config.getString("engine") == "toc");
+        EXPECT(config.getSubConfigurations("spaces").size() == 1);
+        EXPECT(config.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
+        EXPECT(config.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == (td / "root").path());
+        EXPECT(config.userConfig().has("useSubToc"));
+        EXPECT(config.userConfig().getBool("useSubToc") == true);
+    }
+
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

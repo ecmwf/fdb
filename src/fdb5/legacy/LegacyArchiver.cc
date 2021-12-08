@@ -73,10 +73,10 @@ Config subTocConfig(const eckit::Configuration& fdb_configuration) {
         userConfig = fdb_configuration.getSubConfiguration("userConfig");
     }
     else {
-        userConfig.set("useSubToc", true);
+        userConfig.set("useSubToc", fdb_configuration.getBool("useSubToc", true));
     }
 
-    return Config(fdb_configuration, userConfig);
+    return Config(Config(fdb_configuration).expandConfig(), userConfig);
 }
 //----------------------------------------------------------------------------------------------------------------------
 
