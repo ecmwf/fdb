@@ -21,17 +21,7 @@ function usage {
 }
 
 function fdb_builtin_version {
-    echo @MARS_SERVER_VERSION_STR@
-}
-
-function fdb_builtin_roots {
-    FDB_HOME=$($BINDIR/fdb-info --home)
-    cat $FDB_HOME/etc/fdb/roots
-}
-
-function fdb_builtin_spaces {
-    FDB_HOME=$($BINDIR/fdb-info --home)
-    cat $FDB_HOME/etc/fdb/spaces
+    echo @fdb5_VERSION_STR@
 }
 
 function fdb_builtin_home {
