@@ -109,6 +109,7 @@ protected: // members
 private: // members
 
     bool buildByKey_ = false;
+
 };
 
 class CatalogueReader {

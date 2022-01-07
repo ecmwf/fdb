@@ -64,86 +64,8 @@ std::string LibFdb5::gitsha1(unsigned int count) const {
     return sha1.substr(0, std::min(count, 40u));
 }
 
-SerialisationVersion LibFdb5::serialisationVersion() const {
-    return SerialisationVersion{};
-}
-
 RemoteProtocolVersion LibFdb5::remoteProtocolVersion() const {
     return RemoteProtocolVersion{};
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-static unsigned getUserEnvSerialisationVersion() {
-
-    static unsigned fdbSerialisationVersion =
-        eckit::Resource<unsigned>("fdbSerialisationVersion;$FDB5_SERIALISATION_VERSION", 0);
-    
-    if (fdbSerialisationVersion) {
-        eckit::Log::debug() << "fdbSerialisationVersion overidde to version: " << fdbSerialisationVersion << std::endl;
-    }
-    return fdbSerialisationVersion; // default is 0 (not defined by user/service)
-}
-
-SerialisationVersion::SerialisationVersion() {
-    static unsigned user = getUserEnvSerialisationVersion();
-    // std::cout << "SerialisationVersion user = " << user << std::endl;
-    // std::cout << "SerialisationVersion supported = " << supportedStr() << std::endl;
-    if (user) {
-        bool valid = check(user, false);
-        if(not valid) {
-            std::ostringstream msg;
-            msg << "Unsupported FDB5 serialisation version " << user
-            << " - supported: " << supportedStr()
-            << std::endl;
-            throw eckit::BadValue(msg.str(), Here());
-        }
-        used_ = user;
-    }
-    else
-        used_ = defaulted();
-}
-
-unsigned int SerialisationVersion::latest() const {
-    return 3;
-}
-
-unsigned int SerialisationVersion::defaulted() const {
-    return 2;
-}
-
-unsigned int SerialisationVersion::used() const {
-    return used_;
-}
-
-std::vector<unsigned int> SerialisationVersion::supported() const {
-    std::vector<unsigned int> versions = {3, 2, 1};
-    return versions;
-}
-
-std::string SerialisationVersion::supportedStr() const {
-    std::ostringstream oss;
-    char sep = '[';
-    for (auto v : supported()) {
-        oss << sep << v;
-        sep = ',';
-    }
-    oss << ']';
-    return oss.str();
-}
-
-bool SerialisationVersion::check(unsigned int version, bool throwOnFail) {
-    std::vector<unsigned int> versionsSupported = supported();
-    for (auto v : versionsSupported) {
-        if (version == v)
-            return true;
-    }
-    if (throwOnFail) {
-        std::ostringstream msg;
-        msg << "Record version mismatch, software supports versions " << supportedStr() << " got " << version;
-        throw eckit::SeriousBug(msg.str());
-    }
-    return false;
 }
 
 

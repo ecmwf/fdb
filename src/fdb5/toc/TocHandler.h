@@ -24,6 +24,7 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/io/LustreFileHandle.h"
+#include "fdb5/toc/TocSerialisationVersion.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocRecord.h"
 
@@ -152,6 +153,8 @@ protected: // methods
 
     void appendBlock(const void* data, size_t size);
 
+    const TocSerialisationVersion& serialisationVersion() const;
+
 private: // methods
 
     friend class TocHandlerCloser;
@@ -185,6 +188,8 @@ private: // members
 
     eckit::PathName tocPath_;
     Config dbConfig_;
+
+    TocSerialisationVersion serialisationVersion_;
 
     bool useSubToc_;
     bool isSubToc_;

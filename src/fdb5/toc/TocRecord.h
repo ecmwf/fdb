@@ -46,10 +46,10 @@ struct TocRecord {
 
     static const size_t maxPayloadSize = 1024 * 1024;
 
-    TocRecord( unsigned char tag = TOC_NULL);
+    TocRecord(unsigned int version, unsigned char tag = TOC_NULL);
 
-    static unsigned int writeVersion();
-
+    // unsigned int writeVersion();
+    
     struct Header {
         unsigned char          tag_;           ///<  (1)  tag identifying the TocRecord type
         unsigned char          spare_[3];      ///<  (3)  padding
@@ -61,7 +61,7 @@ struct TocRecord {
         eckit::FixedString<64> hostname_;      ///<  (64) hostname adding entry
         size_t                 size_;          ///<  (8)  Record size
 
-        Header(unsigned char tag);
+        Header(unsigned int version, unsigned char tag);
     };
 
     Header                 header_;
@@ -77,7 +77,6 @@ struct TocRecord {
         r.print(s);
         return s;
     }
-
 };
 
 //-----------------------------------------------------------------------------

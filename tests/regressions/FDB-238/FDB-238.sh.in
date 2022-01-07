@@ -24,7 +24,7 @@ cd $bindir
 rm -rf $bindir/localroot
 mkdir localroot
 
-for f in 12.grib local.yaml schema checkV2.req checkV3.req 
+for f in 12.grib local.yaml version2.yaml version3.yaml schema checkV2.req checkV3.req 
 do
     cp $srcdir/$f $bindir
 done
@@ -39,9 +39,14 @@ export FDB5_CONFIG_FILE=local.yaml
 export FDB5_SERIALISATION_VERSION=2
 
 $fdbwrite 6.grib
-$fdbwrite 9.grib
 
 unset FDB5_SERIALISATION_VERSION
+
+
+export FDB5_CONFIG_FILE=version2.yaml
+
+$fdbwrite 9.grib
+
 
 cat > list <<EOF
 {class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166}
@@ -141,14 +146,14 @@ cat content.6dup               | post_process | tee checkv2
 diff out checkv2
 
 # write new field with version 3 (will have toc with mixed versions)
-export FDB5_SERIALISATION_VERSION=3
+
+export FDB5_CONFIG_FILE=version3.yaml
+
 $fdbwrite 12.grib
 $fdbread checkV3.req checkV3.grib
 $gribls -jm checkV3.grib       | post_process | tee out
 cat content.12dup              | post_process | tee checkv3
 diff out checkv3
-
-unset FDB5_SERIALISATION_VERSION
 
 export FDB_DEDUPLICATE_FIELDS=ON
 

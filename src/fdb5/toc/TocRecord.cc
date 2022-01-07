@@ -27,17 +27,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocRecord::Header::Header(unsigned char tag):
+TocRecord::Header::Header(unsigned int version, unsigned char tag):
     tag_(tag) {
-
-    unsigned int wv = writeVersion();
-
-    // std::cout << "Header() writeVersion() = " << wv << std::endl;
 
     if (tag_ != TOC_NULL) {
         eckit::zero(*this);
         tag_        = tag;
-        version_    = writeVersion();
+        version_    = version;
 
         fdbVersion_ = ::fdb5_version_int();
 
@@ -54,9 +50,8 @@ TocRecord::Header::Header(unsigned char tag):
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocRecord::TocRecord(unsigned char tag):
-    header_(tag) {
-}
+TocRecord::TocRecord(unsigned int version, unsigned char tag):
+    header_(version, tag) {}
 
 void TocRecord::dump(std::ostream& out, bool simple) const {
 
@@ -128,11 +123,9 @@ void TocRecord::print(std::ostream & out) const {
         << "hostname=" << header_.hostname_ << "]";
 }
 
-unsigned int TocRecord::writeVersion() {
-    // Toc version follows the global FDB5 stream version (version for how we serialise objects)
-    static unsigned int writeVersion = LibFdb5::instance().serialisationVersion().used();
-    return writeVersion;
-}
+// unsigned int TocRecord::writeVersion() {
+//     return header_.version_;
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

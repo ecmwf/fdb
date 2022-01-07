@@ -24,8 +24,6 @@
 
 namespace fdb5 {
 
-//----------------------------------------------------------------------------------------------------------------------
-
 /// DB that implements the FDB on POSIX filesystems
 
 class TocCatalogue : public Catalogue, public TocHandler {
