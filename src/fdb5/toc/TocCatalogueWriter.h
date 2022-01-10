@@ -55,6 +55,7 @@ public: // methods
     void hideContents() override;
 
     const Index& currentIndex() override;
+    const SerialisationVersion& serialisationVersion() const override;
 
 protected: // methods
 

@@ -22,6 +22,8 @@ using namespace eckit;
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 TocCatalogue::TocCatalogue(const Key& key, const fdb5::Config& config) :
     Catalogue(key, config),
     TocHandler(CatalogueRootManager(config).directory(key), config) {

@@ -24,9 +24,9 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/io/LustreFileHandle.h"
-#include "fdb5/toc/TocSerialisationVersion.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocRecord.h"
+#include "fdb5/toc/TocSerialisationVersion.h"
 
 
 namespace eckit {
@@ -153,7 +153,7 @@ protected: // methods
 
     void appendBlock(const void* data, size_t size);
 
-    const TocSerialisationVersion& serialisationVersion() const;
+    const SerialisationVersion& serialisationVersion() const;
 
 private: // methods
 

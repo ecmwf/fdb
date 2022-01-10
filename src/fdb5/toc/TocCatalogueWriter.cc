@@ -226,6 +226,9 @@ const Index& TocCatalogueWriter::currentIndex() {
     return current_;
 }
 
+const SerialisationVersion& TocCatalogueWriter::serialisationVersion() const {
+    return TocHandler::serialisationVersion();
+}
 
 void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std::string>& variableKeys, bool unmount) {
 
