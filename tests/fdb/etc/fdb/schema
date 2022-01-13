@@ -117,8 +117,8 @@ method:     Integer;
 ]
 
 [ class=el, expver, stream, date, time, domain
-	[ origin, type, levtype
-        [ step, levelist?, param ]]
+       [ origin, type, levtype
+               [ step, levelist?, param ]]
 ]
 
 ########################################################
