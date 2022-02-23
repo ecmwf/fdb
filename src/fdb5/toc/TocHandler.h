@@ -23,7 +23,6 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
-#include "fdb5/io/LustreFileHandle.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocRecord.h"
 

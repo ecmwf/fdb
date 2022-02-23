@@ -22,7 +22,6 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocEngine.h"
-#include "fdb5/io/LustreFileHandle.h"
 
 namespace fdb5 {
 

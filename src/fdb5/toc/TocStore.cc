@@ -23,6 +23,7 @@
 #include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocStore.h"
 #include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/io/LustreFileHandle.h"
 
 using namespace eckit;
 

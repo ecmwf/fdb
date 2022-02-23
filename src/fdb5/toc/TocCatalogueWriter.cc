@@ -17,6 +17,7 @@
 
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/io/LustreFileHandle.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocFieldLocation.h"
