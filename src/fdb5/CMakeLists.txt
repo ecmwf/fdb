@@ -225,7 +225,7 @@ if(HAVE_FDB_REMOTE)
     )
 endif()
 
-if(HAVE_LUSTRE)
+if(fdb5_HAVE_LUSTRE)
   list( APPEND fdb5_srcs io/fdb5_lustreapi_file_create.c )
 endif()
 
