@@ -17,7 +17,7 @@
 #include "fdb5/io/LustreFileHandle.h"
 
 
-#if defined(HAVE_LUSTRE)
+#if defined(fdb5_HAVE_LUSTRE)
 extern "C" {
 void fdb5_lustreapi_silence_msg();
 int  fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stripecount);
@@ -29,7 +29,7 @@ int  fdb5_lustreapi_file_create(const char* path, size_t stripesize, size_t stri
 namespace fdb5 {
 
 bool fdb5LustreapiSupported() {
-#if defined(HAVE_LUSTRE)
+#if defined(fdb5_HAVE_LUSTRE)
     return true;
 #else
     return false;
@@ -38,7 +38,7 @@ bool fdb5LustreapiSupported() {
 
 int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripecount) {
 
-#if defined(HAVE_LUSTRE)
+#if defined(fdb5_HAVE_LUSTRE)
 
     static bool lustreapi_silence = false;
 
@@ -54,7 +54,7 @@ int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripeco
     /// @note since fdb5LustreapiSupported() should be guarding all calls to this function,
     ///       the code below should never be executed
 
-    ASSERT_MSG(fdb5LustreapiSupported(), "fdb5LustreapiFileCreate() called yet HAVE_LUSTRE is not defined");
+    ASSERT_MSG(fdb5LustreapiSupported(), "fdb5LustreapiFileCreate() called yet fdb5_HAVE_LUSTRE is not defined");
 
     return 0; /* should never be executed */
 }
