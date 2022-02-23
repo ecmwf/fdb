@@ -44,6 +44,7 @@ class FDBInfo : public FDBTool {
         options_.push_back(new eckit::option::SimpleOption<bool>("home", "Print the location of the FDB configuration files"));
         options_.push_back(new eckit::option::SimpleOption<bool>("schema", "Print the location of the FDB schema file"));
         options_.push_back(new eckit::option::SimpleOption<bool>("config-file", "Print the location of the FDB configuration file if being used"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("lustre-api", "Indicate if the Lustre API is supported or disabled in this build"));
     }
 
   private: // methods
@@ -83,7 +84,7 @@ void FDBInfo::init(const eckit::option::CmdArgs &args) {
     home_ = args.getBool("home", false);
     schema_ = args.getBool("schema", false);
     config_ = args.getBool("config-file", false);
-    lustreApi_ = args.getBool("lustre", false);
+    lustreApi_ = args.getBool("lustre-api", false);
 }
 
 void FDBInfo::execute(const eckit::option::CmdArgs& args) {
