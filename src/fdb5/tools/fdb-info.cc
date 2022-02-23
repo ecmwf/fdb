@@ -15,6 +15,7 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/tools/FDBInspect.h"
+#include "fdb5/io/LustreFileHandle.h"
 
 #include "fdb5/fdb5_config.h"
 #include "fdb5/fdb5_version.h"
@@ -56,6 +57,7 @@ class FDBInfo : public FDBTool {
     bool home_;
     bool schema_;
     bool config_;
+    bool lustreApi_;
 };
 
 void FDBInfo::usage(const std::string &tool) const {
@@ -70,6 +72,7 @@ void FDBInfo::usage(const std::string &tool) const {
                 << tool << " --home" << std::endl
                 << tool << " --schema" << std::endl
                 << tool << " --config-file" << std::endl
+                << tool << " --lustre-api" << std::endl
                 << std::endl;
     FDBTool::usage(tool);
 }
@@ -80,6 +83,7 @@ void FDBInfo::init(const eckit::option::CmdArgs &args) {
     home_ = args.getBool("home", false);
     schema_ = args.getBool("schema", false);
     config_ = args.getBool("config-file", false);
+    lustreApi_ = args.getBool("lustre", false);
 }
 
 void FDBInfo::execute(const eckit::option::CmdArgs& args) {
@@ -105,6 +109,10 @@ void FDBInfo::execute(const eckit::option::CmdArgs& args) {
     if(all_ || config_) {
         Log::info() << (all_ ? "Config: " : "") << conf.configPath() << std::endl;
         if(!all_) return;
+    }
+
+    if(all_ || lustreApi_) {
+        Log::info() << (all_ ? "Lustre-API: " : "") << (fdb5LustreapiSupported() ? "enabled" : "disabled") << std::endl;
     }
 }
 
