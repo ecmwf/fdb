@@ -15,7 +15,7 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/tools/FDBInspect.h"
-#include "fdb5/io/LustreFileHandle.h"
+#include "fdb5/io/LustreSettings.h"
 
 #include "fdb5/fdb5_config.h"
 #include "fdb5/fdb5_version.h"

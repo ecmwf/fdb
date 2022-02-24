@@ -67,8 +67,6 @@ protected: // methods
     eckit::PathName getDataPath(const Key &key);
     void flushDataHandles();
 
-    static LustreStripe stripeDataLustreSettings();
-
     void print( std::ostream &out ) const override;
 
 private: // types

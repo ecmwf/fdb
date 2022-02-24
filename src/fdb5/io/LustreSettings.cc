@@ -8,13 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/io/LustreSettings.h"
+
+#include "eckit/config/Resource.h"
+
 #include "fdb5/fdb5_config.h"
-
-#include "eckit/log/Log.h"
-#include "eckit/exception/Exceptions.h"
-
 #include "fdb5/LibFdb5.h"
-#include "fdb5/io/LustreFileHandle.h"
 
 
 #if defined(fdb5_HAVE_LUSTRE)
@@ -36,7 +35,7 @@ bool fdb5LustreapiSupported() {
 #endif
 }
 
-int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripecount) {
+int fdb5LustreapiFileCreate(const char* path, LustreStripe stripe) {
 
 #if defined(fdb5_HAVE_LUSTRE)
 
@@ -47,7 +46,7 @@ int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripeco
         lustreapi_silence = true;
     }
 
-    return fdb5_lustreapi_file_create(path, stripesize, stripecount);
+    return fdb5_lustreapi_file_create(path, stripe.size_, stripe.count_);
 
 #endif
 
@@ -57,6 +56,28 @@ int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripeco
     ASSERT_MSG(fdb5LustreapiSupported(), "fdb5LustreapiFileCreate() called yet fdb5_HAVE_LUSTRE is not defined");
 
     return 0; /* should never be executed */
+}
+
+bool stripeLustre() {
+    static bool handleLustreStripe = eckit::Resource<bool>("fdbHandleLustreStripe;$FDB_HANDLE_LUSTRE_STRIPE", true);
+    return fdb5LustreapiSupported() && handleLustreStripe;
+}
+
+LustreStripe stripeIndexLustreSettings() {
+
+    static unsigned int fdbIndexLustreStripeCount = eckit::Resource<unsigned int>("fdbIndexLustreStripeCount;$FDB_INDEX_LUSTRE_STRIPE_COUNT", 1);
+    static size_t fdbIndexLustreStripeSize = eckit::Resource<size_t>("fdbIndexLustreStripeSize;$FDB_INDEX_LUSTRE_STRIPE_SIZE", 8*1024*1024);
+
+    return LustreStripe(fdbIndexLustreStripeCount, fdbIndexLustreStripeSize);
+}
+
+
+LustreStripe stripeDataLustreSettings() {
+
+    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB_DATA_LUSTRE_STRIPE_COUNT", 8);
+    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
+
+    return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -11,8 +11,7 @@
 /// @author Simon Smart
 /// @date   June 2019
 
-#ifndef fdb5_api_ControlIterator_H
-#define fdb5_api_ControlIterator_H
+#pragma once
 
 #include <cstdint>
 
@@ -119,5 +118,3 @@ using ControlAsyncIterator = APIAsyncIterator<ControlElement>;
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif
