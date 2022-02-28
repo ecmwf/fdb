@@ -77,7 +77,7 @@ public:
             return false;
 
         ListElement* el = new ListElement();
-        bool exist = iter_->next(*el);
+        bool exist = iter_().next(*el);
 
         if (exist) {
             std::stringstream ss;
