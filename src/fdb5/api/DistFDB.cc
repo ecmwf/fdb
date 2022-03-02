@@ -248,10 +248,7 @@ void DistFDB::flush() {
 
     std::vector<std::future<void>> futures;
 
-    for (size_t i = 0; i < lanes_.size(); i++) {
-
-        FDB& lane(lanes_[i]);
-
+    for (FDB& lane : lanes_) {
         futures.emplace_back(std::async(std::launch::async, [&lane] {
             lane.flush();
         }));
