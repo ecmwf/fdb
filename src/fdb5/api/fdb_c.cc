@@ -12,7 +12,6 @@
 #include "eckit/io/FileDescHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/runtime/Main.h"
-#include "eckit/utils/Optional.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -64,12 +63,23 @@ private:
     metkit::mars::MarsRequest request_;
 };
 
+
+class ListIteratorHolder {
+public:
+    ListIteratorHolder(ListIterator&& iter) : iter_(std::move(iter)) {}
+
+    ListIterator& get() { return iter_; }
+
+private:
+    ListIterator iter_;
+};
+
 struct fdb_listiterator_t {
 public:
-    fdb_listiterator_t() : str_(nullptr), strLength_(0) {}
+    fdb_listiterator_t() : str_(nullptr), strLength_(0), iter_(nullptr) {}
 
     void set(ListIterator&& iter) {
-        iter_ = std::move(iter);
+        iter_.reset(new ListIteratorHolder(std::move(iter)));
     }
 
     bool next(const char** str) {
@@ -77,7 +87,7 @@ public:
             return false;
 
         ListElement* el = new ListElement();
-        bool exist = iter_().next(*el);
+        bool exist = iter_->get().next(*el);
 
         if (exist) {
             std::stringstream ss;
@@ -98,7 +108,7 @@ public:
 private:
     char* str_;
     size_t strLength_;
-    eckit::Optional<ListIterator> iter_;
+    std::unique_ptr<ListIteratorHolder> iter_;
 };
 
 struct fdb_datareader_t {
