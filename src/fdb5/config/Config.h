@@ -31,7 +31,7 @@ class Schema;
 
 class Config : public eckit::LocalConfiguration {
 public:  // static methods
-    static Config make(const eckit::PathName& path);
+    static Config make(const eckit::PathName& path, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
 public:  // methods
     Config();
