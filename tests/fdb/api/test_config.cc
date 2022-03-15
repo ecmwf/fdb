@@ -169,8 +169,18 @@ CASE( "userConfig" ) {
 
     eckit::LocalConfiguration userConf;
     userConf.set("useSubToc", true);
-    fdb5::Config config(expanded, userConf);
 
+    fdb5::Config empty;
+    EXPECT(!empty.has("type"));
+    EXPECT(empty.userConfig().getBool("useSubToc", false) == false);
+    fdb5::Config user(empty, userConf);
+    EXPECT(!user.has("type"));
+    EXPECT(user.userConfig().getBool("useSubToc", false) == true);
+    fdb5::Config userExpanded = user.expandConfig();
+    EXPECT(userExpanded.has("type"));
+    EXPECT(userExpanded.userConfig().getBool("useSubToc", false) == false);
+
+    fdb5::Config config(expanded, userConf);
     EXPECT(config.userConfig().getBool("useSubToc", false) == true);
 
     eckit::LocalConfiguration cfg_od;
