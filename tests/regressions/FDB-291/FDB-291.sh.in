@@ -1,0 +1,270 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+
+export FDB5_HOME=$bindir
+
+export FDB_DEBUG=0
+export ECKIT_DEBUG=0
+# export METKIT_DEBUG=1
+
+### cleanup and prepare test
+
+rm -f out.*
+rm -rf ${bindir}/root[123]
+mkdir -p ${bindir}/root1
+mkdir -p ${bindir}/root2
+mkdir -p ${bindir}/root3
+
+for f in config.yaml schema x.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+$gribset -s expver=xxxy x.grib y.grib
+$gribset -s expver=xxxz x.grib z.grib
+$gribset -s expver=xxxw x.grib w.grib
+$gribset -s step=6 x.grib x6.grib
+$gribset -s step=6 y.grib y6.grib
+$gribset -s step=6 z.grib z6.grib
+$gribset -s step=6 w.grib w6.grib
+
+cat x.grib y.grib z.grib > 12.grib
+$fdbwrite 12.grib
+
+if [ ! $(ls -1q root1 | wc -l) -eq 1 ] || [ ! $(ls -1q root2 | wc -l) -eq 1 ] || [ ! $(ls -1q root3 | wc -l) -eq 1 ]; then
+  echo Databases are not distributed correctly over the 3 roots
+  exit 1
+fi
+
+$fdbwrite x6.grib
+$fdbwrite y6.grib
+$fdbwrite z6.grib
+
+if [ ! $(ls -1q root1 | wc -l) -eq 1 ] || [ ! $(ls -1q root2 | wc -l) -eq 1 ] || [ ! $(ls -1q root3 | wc -l) -eq 1 ]; then
+  echo Databases are not distributed correctly over the 3 roots
+  exit 1
+fi
+
+$fdbwrite w.grib
+$fdbwrite w6.grib
+
+SUM=$(ls -1q root1 | wc -l)
+SUM=$(( $SUM + $(ls -1q root2 | wc -l) ))
+SUM=$(( $SUM + $(ls -1q root3 | wc -l) ))
+
+if [ ! $SUM -eq 4 ]; then
+  echo Databases are not distributed correctly over the 3 roots
+  exit 1
+fi
+
+cat > reqX <<EOF
+retrieve,
+	class=rd,
+	expver=xxxx,
+	stream=oper,
+	date=20201102,
+	time=0000,
+	domain=g,
+	type=fc,
+	levtype=sfc,
+	step=6/12,
+  param=166
+EOF
+
+cat > contentX <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  },
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 6,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  }
+]}
+EOF
+
+cat > reqY <<EOF
+retrieve,
+	class=rd,
+	expver=xxxy,
+	stream=oper,
+	date=20201102,
+	time=0000,
+	domain=g,
+	type=fc,
+	levtype=sfc,
+	step=6/12,
+  param=166
+EOF
+
+cat > contentY <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxy"
+  },
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 6,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxy"
+  }
+]}
+EOF
+
+cat > reqZ <<EOF
+retrieve,
+	class=rd,
+	expver=xxxz,
+	stream=oper,
+	date=20201102,
+	time=0000,
+	domain=g,
+	type=fc,
+	levtype=sfc,
+	step=6/12,
+  param=166
+EOF
+
+cat > contentZ <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxz"
+  },
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 6,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxz"
+  }
+]}
+EOF
+
+cat > reqW <<EOF
+retrieve,
+	class=rd,
+	expver=xxxw,
+	stream=oper,
+	date=20201102,
+	time=0000,
+	domain=g,
+	type=fc,
+	levtype=sfc,
+	step=6/12,
+  param=166
+EOF
+
+cat > contentW <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxw"
+  },
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 6,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxw"
+  }
+]}
+EOF
+
+$fdbread reqX gribX
+$gribls -jm gribX       | post_process | tee out
+cat contentX            | post_process | tee checkX
+diff out checkX
+
+$fdbread reqY gribY
+$gribls -jm gribY       | post_process | tee out
+cat contentY            | post_process | tee checkY
+diff out checkY
+
+$fdbread reqZ gribZ
+$gribls -jm gribZ       | post_process | tee out
+cat contentZ            | post_process | tee checkZ
+diff out checkZ
+
+$fdbread reqY gribW
+$gribls -jm gribW       | post_process | tee out
+cat contentW            | post_process | tee checkW
+diff out checkW
+
