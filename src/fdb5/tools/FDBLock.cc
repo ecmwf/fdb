@@ -29,12 +29,17 @@ namespace tools {
 FDBLock::FDBLock(int argc, char **argv, bool unlock) :
     FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
     unlock_(unlock),
-    list_(false) {
+    list_(false),
+    retrieve_(false),
+    archive_(false),
+    wipe_(false) {
 
-    options_.push_back(new SimpleOption<bool>("list", "(Un)Lock matching databases for listing"));
-    options_.push_back(new SimpleOption<bool>("retrieve", "(Un)Lock matching databases for retrieval"));
-    options_.push_back(new SimpleOption<bool>("archive", "(Un)Lock matching databases for archival"));
-    options_.push_back(new SimpleOption<bool>("wipe", "(Un)Lock matching databases for wipe"));
+    std::string prefix = std::string(unlock?"Unl":"L") + "ock matching databases for ";
+
+    options_.push_back(new SimpleOption<bool>("list", prefix + "listing"));
+    options_.push_back(new SimpleOption<bool>("retrieve", prefix + "retrieval"));
+    options_.push_back(new SimpleOption<bool>("archive", prefix + "archival"));
+    options_.push_back(new SimpleOption<bool>("wipe", prefix + "wipe"));
 }
 
 
