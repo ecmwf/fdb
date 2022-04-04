@@ -1,0 +1,10 @@
+---
+type: local
+engine: toc
+schema: ./schema
+spaces:
+- handler: RoundRobin
+  roots:
+  - path: ./root1
+  - path: ./root2
+  - path: ./root3
