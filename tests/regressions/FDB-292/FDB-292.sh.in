@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdblock="$<TARGET_FILE:fdb-lock>"
+fdbunlock="$<TARGET_FILE:fdb-unlock>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+
+export FDB5_HOME=$bindir
+
+export FDB_DEBUG=0
+export ECKIT_DEBUG=0
+
+### cleanup and prepare test
+
+rm -f out.*
+rm -rf ${bindir}/root
+mkdir -p ${bindir}/root
+
+for f in config.yaml schema x.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+$gribset -s expver=xxxy x.grib y.grib
+$gribset -s expver=xxxz x.grib z.grib
+$gribset -s expver=xxxw x.grib w.grib
+$gribset -s step=6 x.grib x6.grib
+$gribset -s step=6 y.grib y6.grib
+$gribset -s step=6 z.grib z6.grib
+$gribset -s step=6 w.grib w6.grib
+
+cat > list <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+{class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > listX <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > listX6 <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > listY <<EOF
+{class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+$fdbwrite x.grib
+$fdbwrite y.grib
+#$fdbwrite z.grib
+#$fdbwrite w.grib
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+! $fdblock class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g
+if [ ! $(find root -name "*.lock" | wc -l) -eq 0 ]; then
+  echo Unexpected lock
+  exit 1
+fi
+
+$fdblock --list class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g
+if [ ! $(find root -name "*.lock" | wc -l) -eq 1 ] || [ ! $(find root/*xxxx* -name list.lock | wc -l) -eq 1 ]; then
+  echo Error locking database
+  exit 1
+fi
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out listY
+
+$fdbunlock --list class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g
+if [ ! $(find root -name "*.lock" | wc -l) -eq 0 ]; then
+  echo Error unlocking database
+  exit 1
+fi
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+
+$fdblock --archive class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g
+if [ ! $(find root -name "*.lock" | wc -l) -eq 1 ] || [ ! $(find root/*xxxx* -name archive.lock | wc -l) -eq 1 ]; then
+  echo Error locking database
+  exit 1
+fi
+
+$fdblock --wipe --list class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g
+if [ ! $(find root -name "*.lock" | wc -l) -eq 3 ] || [ ! $(find root/*xxxy* -name wipe.lock | wc -l) -eq 1 ]; then
+  echo Error locking database
+  exit 1
+fi
+
+
+! $fdbwrite x6.grib
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out listX
+
+
+$fdbunlock --archive class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g
+if [ ! $(find root/*xxxx* -name archive.lock | wc -l) -eq 0 ]; then
+  echo Error unlocking database
+  exit 1
+fi
+
+$fdbwrite x6.grib
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out listX6
+
+cat > r <<EOF
+retrieve,class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=12,param=166
+EOF
+
+cat > readY <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 11,
+    "param": 166.128,
+    "class": "rd",
+    "type": "an",
+    "stream": "oper",
+    "expver": "yyyy"
+  }
+]}
+EOF
+
+$fdbread r out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat readY                      | post_process | tee expected
+diff out expected
