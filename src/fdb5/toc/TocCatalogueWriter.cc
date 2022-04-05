@@ -21,6 +21,7 @@
 #include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocIndex.h"
+#include "fdb5/io/LustreSettings.h"
 
 using namespace eckit;
 
@@ -58,8 +59,7 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
         // Enforce lustre striping if requested
         if (stripeLustre()) {
-            LustreStripe stripe = stripeIndexLustreSettings();
-            fdb5LustreapiFileCreate(indexPath.localPath(), stripe.size_, stripe.count_);
+            fdb5LustreapiFileCreate(indexPath.localPath(), stripeIndexLustreSettings());
         }
 
         indexes_[key] = Index(new TocIndex(key, indexPath, 0, TocIndex::WRITE));
@@ -80,8 +80,7 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
             // Enforce lustre striping if requested
             if (stripeLustre()) {
-                LustreStripe stripe = stripeIndexLustreSettings();
-                fdb5LustreapiFileCreate(indexPath.localPath(), stripe.size_, stripe.count_);
+                fdb5LustreapiFileCreate(indexPath.localPath(), stripeIndexLustreSettings());
             }
 
             fullIndexes_[key] = Index(new TocIndex(key, indexPath, 0, TocIndex::WRITE));

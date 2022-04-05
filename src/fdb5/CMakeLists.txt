@@ -141,7 +141,8 @@ list( APPEND fdb5_srcs
     io/FDBFileHandle.h
     io/SingleGribMungePartFileHandle.cc
     io/SingleGribMungePartFileHandle.h
-    io/LustreFileHandle.cc
+    io/LustreSettings.cc
+    io/LustreSettings.h
     io/LustreFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
@@ -227,7 +228,7 @@ if(HAVE_FDB_REMOTE)
     )
 endif()
 
-if(HAVE_LUSTRE)
+if(fdb5_HAVE_LUSTRE)
   list( APPEND fdb5_srcs io/fdb5_lustreapi_file_create.c )
 endif()
 

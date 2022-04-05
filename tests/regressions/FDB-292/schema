@@ -117,8 +117,8 @@ method:     Integer;
 ]
 
 [ class=el, expver, stream, date, time, domain
-       [ origin, type, levtype
-               [ step, levelist?, param ]]
+	[ origin, type, levtype
+        [ step, levelist?, param ]]
 ]
 
 ########################################################
@@ -155,7 +155,7 @@ method:     Integer;
                [ step, param, frequency?, direction? ]]]
 
 # enfo
-[ class, expver, stream=enfo/efov/eefo, date, time, domain
+[ class, expver, stream=enfo/efov, date, time, domain
 
        [ type, levtype=dp, product?, section?
 	   		  [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
@@ -169,7 +169,7 @@ method:     Integer;
 ]
 
 # waef/weov
-[ class, expver, stream=waef/weov/weef, date, time, domain
+[ class, expver, stream=waef/weov, date, time, domain
        [ type, levtype
                [ step, number?, param, frequency?, direction? ]]
 ]
@@ -272,12 +272,12 @@ method:     Integer;
 
 
 # efhs
-[ class, expver, stream=efhs/eehs, date, time, domain
+[ class, expver, stream=efhs, date, time, domain
        [ type, levtype
                [ step, quantile?, number?, levelist?, param ]]]
 
 # wehs
-[ class, expver, stream=wehs/wees, date, time, domain
+[ class, expver, stream=wehs, date, time, domain
        [ type, levtype
                [ step, quantile?, number?, levelist?, param ]]]
 
@@ -300,7 +300,7 @@ method:     Integer;
 ########################################################################
 
 # enfh
-[ class, expver, stream=enfh/eefh, date, time, domain
+[ class, expver, stream=enfh, date, time, domain
 
        [ type, levtype=dp, hdate, product?, section?
 	   		  [ step, number?, levelist?, latitude?, longitude?, range?, param ]]
@@ -310,7 +310,7 @@ method:     Integer;
 ]
 
 # enwh
-[ class, expver, stream=enwh/weeh, date, time, domain
+[ class, expver, stream=enwh, date, time, domain
        [ type, levtype, hdate
                [ step, number?, param, frequency?, direction? ]]
 ]

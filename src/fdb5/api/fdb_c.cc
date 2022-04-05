@@ -79,14 +79,11 @@ public:
     fdb_listiterator_t() : str_(nullptr), strLength_(0), iter_(nullptr) {}
 
     void set(ListIterator&& iter) {
-        if (iter_)
-            delete iter_;
-
-        iter_ = new ListIteratorHolder(std::move(iter));
+        iter_.reset(new ListIteratorHolder(std::move(iter)));
     }
 
     bool next(const char** str) {
-        if (iter_ == nullptr)
+        if (!iter_)
             return false;
 
         ListElement* el = new ListElement();
@@ -111,7 +108,7 @@ public:
 private:
     char* str_;
     size_t strLength_;
-    ListIteratorHolder* iter_;
+    std::unique_ptr<ListIteratorHolder> iter_;
 };
 
 struct fdb_datareader_t {

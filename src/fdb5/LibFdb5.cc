@@ -16,6 +16,7 @@
 
 #include "fdb5/LibFdb5.h"
 
+#include "eckit/eckit_version.h"
 #include "eckit/config/LibEcKit.h"
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
@@ -48,7 +49,11 @@ const Config& LibFdb5::defaultConfig() {
 }
 
 bool LibFdb5::dontDeregisterFactories() const {
+#if eckit_VERSION_MAJOR > 1 || (eckit_VERSION_MAJOR == 1 && (eckit_VERSION_MINOR > 17 || (eckit_VERSION_MINOR == 17 && eckit_VERSION_PATCH >0)))
     return eckit::LibEcKit::instance().dontDeregisterFactories();
+#else
+    return false;
+#endif
 }
 
 std::string LibFdb5::version() const {

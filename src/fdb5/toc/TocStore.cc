@@ -23,6 +23,7 @@
 #include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocStore.h"
 #include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/io/LustreFileHandle.h"
 
 using namespace eckit;
 
@@ -110,15 +111,6 @@ void TocStore::closeDataHandles() {
         delete dh;
     }
     handles_.clear();
-}
-
-
-LustreStripe TocStore::stripeDataLustreSettings() {
-
-    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB_DATA_LUSTRE_STRIPE_COUNT", 8);
-    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
-
-    return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
 }
 
 eckit::DataHandle *TocStore::createFileHandle(const eckit::PathName &path) {

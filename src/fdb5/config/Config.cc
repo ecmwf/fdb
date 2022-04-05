@@ -61,11 +61,11 @@ Config::Config() : schemaPath_("") {
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
 }
 
-Config Config::make(const eckit::PathName& path) {
+Config Config::make(const eckit::PathName& path, const eckit::Configuration& userConfig) {
     eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << path << std::endl;
     Config cfg{YAMLConfiguration(path)};
     cfg.set("configSource", path);
-    cfg.userConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
+    cfg.userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 
     return cfg;
 }
@@ -88,7 +88,9 @@ Config Config::expandConfig() const {
         std::string s(config_str);
         Config cfg{YAMLConfiguration(s)};
         cfg.set("configSource", "environment");
-
+        if (!cfg.userConfig_) {
+            cfg.userConfig_ = userConfig_;
+        }
         return cfg;
     }
 
@@ -129,7 +131,7 @@ Config Config::expandConfig() const {
     }
 
     if (found) {
-        return Config::make(actual_path);
+        return Config::make(actual_path, userConfig_ ? *userConfig_ : eckit::LocalConfiguration());
     }
 
     // No expandable config available. Use the skeleton config.
