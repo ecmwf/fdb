@@ -22,7 +22,6 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocEngine.h"
-#include "fdb5/io/LustreFileHandle.h"
 
 namespace fdb5 {
 
@@ -67,8 +66,6 @@ protected: // methods
     eckit::PathName generateDataPath(const Key &key) const;
     eckit::PathName getDataPath(const Key &key);
     void flushDataHandles();
-
-    static LustreStripe stripeDataLustreSettings();
 
     void print( std::ostream &out ) const override;
 

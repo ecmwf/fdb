@@ -82,6 +82,7 @@ FieldLocationBuilderBase::FieldLocationBuilderBase(const std::string& name) : na
 }
 
 FieldLocationBuilderBase::~FieldLocationBuilderBase() {
+    if(LibFdb5::instance().dontDeregisterFactories()) return;
     FieldLocationFactory::instance().remove(name_);
 }
 

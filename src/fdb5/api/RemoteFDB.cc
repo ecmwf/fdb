@@ -734,7 +734,7 @@ ControlIterator RemoteFDB::control(const FDBToolRequest& request,
 // -----------------------------------------------------------------------------------------------------
 
 // Here we do archive/flush related stuff
-void RemoteFDB::archive(const Key& key, eckit::message::Message msg) {
+void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
 
     connect();
 
@@ -764,7 +764,7 @@ void RemoteFDB::archive(const Key& key, eckit::message::Message msg) {
     {
         std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
         ASSERT(archiveQueue_);
-        archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(msg.data()), msg.length())));
+        archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
     }
 }
 

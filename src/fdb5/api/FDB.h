@@ -67,9 +67,11 @@ public: // methods
     // -------------- Primary API functions ----------------------------
 
     void archive(eckit::message::Message msg);
-    void archive(const Key& key, eckit::message::Message msg);
     void archive(eckit::DataHandle& handle);
     void archive(const void* data, size_t length);
+    // warning: not high-perf API - makes sure that all the requested fields are archived and there are no data exceeding the request
+    void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
+    // disclaimer: this is a low-level API. The provided key and the corresponding data are not checked for consistency
     void archive(const Key& key, const void* data, size_t length);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state

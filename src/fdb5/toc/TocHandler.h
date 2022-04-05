@@ -18,14 +18,16 @@
 #include <memory>
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/MemoryHandle.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
-#include "fdb5/io/LustreFileHandle.h"
+#include "fdb5/database/DB.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocRecord.h"
+
 
 
 namespace eckit {
@@ -127,12 +129,6 @@ protected: // members
     uid_t dbUID() const override;
 
 protected: // methods
-
-    static bool stripeLustre();
-
-    static LustreStripe stripeIndexLustreSettings();
-
-    static LustreStripe stripeDataLustreSettings();
 
     // Handle location and remapping information if using a mounted TocCatalogue
     const eckit::PathName& currentDirectory() const;

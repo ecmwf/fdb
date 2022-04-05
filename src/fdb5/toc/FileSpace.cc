@@ -10,6 +10,7 @@
 
 #include "fdb5/toc/FileSpace.h"
 
+#include "eckit/os/BackTrace.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/FileSpaceStrategies.h"
 
@@ -45,6 +46,7 @@ eckit::PathName FileSpace::filesystem(const Key& key, const eckit::PathName& db)
     }
 
     Log::debug<LibFdb5>() << "FDB for key " << key << " not found, selecting a root" << std::endl;
+    // Log::debug<LibFdb5>() << eckit::BackTrace::dump() << std::endl;
 
     return FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this);
 }

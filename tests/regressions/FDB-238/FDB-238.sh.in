@@ -8,6 +8,10 @@ fdblist="$<TARGET_FILE:fdb-list>"
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
+function post_process {
+   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
@@ -45,17 +49,78 @@ cat > list <<EOF
 EOF
 
 cat > content.6 <<EOF
-g           sfc         20201102    0000        6           166.128     rd          fc          oper        xxxx
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 6,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  }
+]}
 EOF
 
 cat > content.6dup <<EOF
-g           sfc         20201102    0000        6           166.128     rd          fc          oper        xxxx
-g           sfc         20201102    0000        6           166.128     rd          fc          oper        xxxx
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 6,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  },
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 6,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  }
+]}
 EOF
 
 cat > content.12dup <<EOF
-g           sfc         20201102    0000        12          166.128     rd          fc          oper        xxxx
-g           sfc         20201102    0000        12          166.128     rd          fc          oper        xxxx
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  },
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  }
+]}
 EOF
 
 $fdblist --all --minimum-keys="" --porcelain | tee out
@@ -71,26 +136,27 @@ cmp out list
 
 # read contents
 $fdbread checkV2.req checkV2.grib
-$gribls -m checkV2.grib | tee out
-grep xxxx out | sed 's/ *$//' > checkv2
-cmp checkv2 content.6dup
+$gribls -jm checkV2.grib       | post_process | tee out
+cat content.6dup               | post_process | tee checkv2
+diff out checkv2
 
 # write new field with version 3 (will have toc with mixed versions)
 export FDB5_SERIALISATION_VERSION=3
 $fdbwrite 12.grib
 $fdbread checkV3.req checkV3.grib
-$gribls -m checkV3.grib | tee out
-grep xxxx out | sed 's/ *$//' > checkv3
-cmp checkv3 content.12dup
+$gribls -jm checkV3.grib       | post_process | tee out
+cat content.12dup              | post_process | tee checkv3
+diff out checkv3
+
 unset FDB5_SERIALISATION_VERSION
 
 export FDB_DEDUPLICATE_FIELDS=ON
 
 # check still able to read previous v2 field
 $fdbread checkV2.req checkV2.again.grib
-$gribls -m checkV2.again.grib | tee out
-grep xxxx out | sed 's/ *$//' > checkv2.again
-cmp checkv2.again content.6
+$gribls -jm checkV2.again.grib | post_process | tee out
+cat content.6                  | post_process | tee checkv2.again
+diff out checkv2.again
 
 cmp 6.grib checkV2.again.grib
 
@@ -98,9 +164,9 @@ export FDB_DEDUPLICATE_FIELDS=OFF
 
 # check still able to read previous v2 field
 $fdbread checkV2.req checkV2.dup.grib
-$gribls -m checkV2.dup.grib | tee out
-grep xxxx out | sed 's/ *$//' > checkv2.dup
-cmp checkv2.dup content.6dup
+$gribls -jm checkV2.dup.grib   | post_process | tee out
+cat content.6dup               | post_process | tee checkv2.dup
+diff out checkv2.dup
 
 cat 6.grib 6.grib > 6dup.grib
 cmp checkV2.dup.grib 6dup.grib

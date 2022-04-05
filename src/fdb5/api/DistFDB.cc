@@ -49,7 +49,7 @@ struct DistributionError : public eckit::Exception {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DistFDB::DistFDB(const eckit::Configuration& config, const std::string& name) :
+DistFDB::DistFDB(const Config& config, const std::string& name) :
     FDBBase(config, name) {
 
     ASSERT(config.getString("type", "") == "dist");
@@ -58,10 +58,7 @@ DistFDB::DistFDB(const eckit::Configuration& config, const std::string& name) :
 
     if (!config.has("lanes")) throw eckit::UserError("No lanes configured for pool", Here());
 
-    std::vector<eckit::LocalConfiguration> laneConfigs;
-    laneConfigs = config.getSubConfigurations("lanes");
-
-    for(const eckit::LocalConfiguration& laneCfg : laneConfigs) {
+    for(const auto& laneCfg : config.getSubConfigs("lanes")) {
         lanes_.push_back(FDB(laneCfg));
         if (!hash_.addNode(lanes_.back().id())) {
             std::stringstream ss;
@@ -73,7 +70,7 @@ DistFDB::DistFDB(const eckit::Configuration& config, const std::string& name) :
 
 DistFDB::~DistFDB() {}
 
-void DistFDB::archive(const Key& key, eckit::message::Message msg) {
+void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     std::vector<size_t> laneIndices;
 
@@ -111,7 +108,7 @@ void DistFDB::archive(const Key& key, eckit::message::Message msg) {
 
         try {
 
-            lane.archive(key, msg);
+            lane.archive(key, data, length);
             return;
 
         } catch (eckit::Exception& e) {
@@ -253,10 +250,7 @@ void DistFDB::flush() {
 
     std::vector<std::future<void>> futures;
 
-    for (size_t i = 0; i < lanes_.size(); i++) {
-
-        FDB& lane(lanes_[i]);
-
+    for (FDB& lane : lanes_) {
         futures.emplace_back(std::async(std::launch::async, [&lane] {
             lane.flush();
         }));

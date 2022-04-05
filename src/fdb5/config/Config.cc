@@ -57,17 +57,23 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Config::Config() : schemaPath_("") {}
+Config::Config() : schemaPath_("") {
+    userConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
+}
 
-Config Config::make(const eckit::PathName& path) {
+Config Config::make(const eckit::PathName& path, const eckit::Configuration& userConfig) {
     eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << path << std::endl;
     Config cfg{YAMLConfiguration(path)};
     cfg.set("configSource", path);
+    cfg.userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
+
     return cfg;
 }
 
-Config::Config(const Configuration& config) : LocalConfiguration(config) {
+Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
+    LocalConfiguration(config) {
     initializeSchemaPath();
+    userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 }
 
 Config Config::expandConfig() const {
@@ -82,6 +88,9 @@ Config Config::expandConfig() const {
         std::string s(config_str);
         Config cfg{YAMLConfiguration(s)};
         cfg.set("configSource", "environment");
+        if (!cfg.userConfig_) {
+            cfg.userConfig_ = userConfig_;
+        }
         return cfg;
     }
 
@@ -122,7 +131,7 @@ Config Config::expandConfig() const {
     }
 
     if (found) {
-        return Config::make(actual_path);
+        return Config::make(actual_path, userConfig_ ? *userConfig_ : eckit::LocalConfiguration());
     }
 
     // No expandable config available. Use the skeleton config.
@@ -203,6 +212,29 @@ mode_t Config::umask() const {
         eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();
 }
+
+std::vector<Config> Config::getSubConfigs(const std::string& name) const {
+    std::vector<Config> out;
+
+    for (auto configuration : getSubConfigurations(name)) {
+        Config config{configuration};
+        config.userConfig_ = userConfig_;
+        out.push_back(config);
+    }
+    return out;
+}
+
+std::vector<Config> Config::getSubConfigs() const {
+    std::vector<Config> out;
+
+    for (auto configuration : getSubConfigurations()) {
+        Config config{configuration};
+        config.userConfig_ = userConfig_;
+        out.push_back(config);
+    }
+    return out;
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -31,6 +31,7 @@
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/io/LustreSettings.h"
 
 using namespace eckit;
 
@@ -112,7 +113,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     TocCommon(directory),
     tocPath_(directory_ / "toc"),
     dbConfig_(config),
-    useSubToc_(config.getBool("useSubToc", false)),
+    useSubToc_(config.userConfig().getBool("useSubToc", false)),
     isSubToc_(false),
     fd_(-1),
     cachedToc_(nullptr),
@@ -643,8 +644,7 @@ void TocHandler::writeInitRecord(const Key &key) {
 
     // enforce lustre striping if requested
     if (stripeLustre() && !tocPath_.exists()) {
-        LustreStripe stripe = stripeIndexLustreSettings();
-        fdb5LustreapiFileCreate(tocPath_.localPath(), stripe.size_, stripe.count_);
+        fdb5LustreapiFileCreate(tocPath_.localPath(), stripeIndexLustreSettings());
     }
 
     ASSERT(fd_ == -1);
@@ -682,8 +682,7 @@ void TocHandler::writeInitRecord(const Key &key) {
             // LustreFileHandle<eckit::FileHandle> out(tmp, stripeIndexLustreSettings());
 
             if (stripeLustre()) {
-                LustreStripe stripe = stripeIndexLustreSettings();
-                fdb5LustreapiFileCreate(tmp.localPath(), stripe.size_, stripe.count_);
+                fdb5LustreapiFileCreate(tmp.localPath(), stripeIndexLustreSettings());
             }
             eckit::FileHandle out(tmp);
             in.copyTo(out);
@@ -1259,29 +1258,6 @@ std::string TocHandler::userName(long id) const {
   } else {
     return eckit::Translator<long, std::string>()(id);
   }
-}
-
-bool TocHandler::stripeLustre() {
-    static bool handleLustreStripe = eckit::Resource<bool>("fdbHandleLustreStripe;$FDB_HANDLE_LUSTRE_STRIPE", true);
-    return fdb5LustreapiSupported() && handleLustreStripe;
-}
-
-
-LustreStripe TocHandler::stripeIndexLustreSettings() {
-
-    static unsigned int fdbIndexLustreStripeCount = eckit::Resource<unsigned int>("fdbIndexLustreStripeCount;$FDB_INDEX_LUSTRE_STRIPE_COUNT", 1);
-    static size_t fdbIndexLustreStripeSize = eckit::Resource<size_t>("fdbIndexLustreStripeSize;$FDB_INDEX_LUSTRE_STRIPE_SIZE", 8*1024*1024);
-
-    return LustreStripe(fdbIndexLustreStripeCount, fdbIndexLustreStripeSize);
-}
-
-
-LustreStripe TocHandler::stripeDataLustreSettings() {
-
-    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB_DATA_LUSTRE_STRIPE_COUNT", 8);
-    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
-
-    return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
 }
 
 const Key &TocHandler::currentRemapKey() const {

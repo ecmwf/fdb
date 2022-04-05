@@ -12,13 +12,15 @@
 #include <map>
 
 #include "fdb5/database/Catalogue.h"
-#include "fdb5/database/Manager.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
 #include "eckit/utils/StringTools.h"
+
+#include "fdb5/LibFdb5.h"
+#include "fdb5/database/Manager.h"
 
 namespace fdb5 {
 
@@ -131,6 +133,7 @@ CatalogueBuilderBase::CatalogueBuilderBase(const std::string& name) : name_(name
 }
 
 CatalogueBuilderBase::~CatalogueBuilderBase() {
+    if(LibFdb5::instance().dontDeregisterFactories()) return;
     CatalogueFactory::instance().remove(name_);
 }
 

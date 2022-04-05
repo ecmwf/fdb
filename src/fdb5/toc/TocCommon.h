@@ -12,8 +12,7 @@
 /// @author Emanuele Danovaro
 /// @date   August 2019
 
-#ifndef fdb5_TocCommon_H
-#define fdb5_TocCommon_H
+#pragma once
 
 #include "eckit/filesystem/PathName.h"
 
@@ -41,8 +40,6 @@ public:
 protected: // methods
 
     virtual uid_t dbUID() const;
-    static bool stripeLustre();
-
 
 protected: // members
 
@@ -56,5 +53,3 @@ protected: // members
 };
 
 }
-
-#endif  // fdb5_TocCommon_H
