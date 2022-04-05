@@ -275,6 +275,9 @@ void TocHandler::openForRead() const {
         long buffersize = 4*1024*1024;
         toc.copyTo(*cachedToc_, buffersize);
 
+        eckit::FileHandle dump("dump_of_"+tocPath_.baseName());
+        cachedToc_->copyTo(dump);
+
         cachedToc_->openForRead();
     }
 }
