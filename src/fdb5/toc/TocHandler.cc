@@ -277,7 +277,8 @@ void TocHandler::openForRead() const {
 
         cachedToc_->openForRead();
 
-        eckit::FileHandle dump("dump_of_"+tocPath_.baseName());
+        eckit::PathName tocDumpFile("dump_of_"+tocPath_.baseName());
+        eckit::FileHandle dump(eckit::PathName::unique(tocDumpFile));
         cachedToc_->copyTo(dump);
         dump.close();
 
