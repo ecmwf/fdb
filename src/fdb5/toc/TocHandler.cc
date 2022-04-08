@@ -276,14 +276,19 @@ void TocHandler::openForRead() const {
         toc.copyTo(*cachedToc_, buffersize);
 
         cachedToc_->openForRead();
-
-        eckit::PathName tocDumpFile("dump_of_"+tocPath_.baseName());
-        eckit::FileHandle dump(eckit::PathName::unique(tocDumpFile));
-        cachedToc_->copyTo(dump);
-        dump.close();
-
-        cachedToc_->openForRead();
     }
+}
+
+void TocHandler::dumpCache() const {
+    eckit::Offset offset = cachedToc_->position();
+    cachedToc_->seek(0);
+
+    eckit::PathName tocDumpFile("dump_of_"+tocPath_.baseName());
+    eckit::FileHandle dump(eckit::PathName::unique(tocDumpFile));
+    cachedToc_->copyTo(dump);
+    dump.close();
+
+    cachedToc_->seek(offset);
 }
 
 void TocHandler::append(TocRecord &r, size_t payloadSize ) {
@@ -439,14 +444,24 @@ bool TocHandler::readNextInternal(TocRecord& r) const {
 
     CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
-    long len = proxy.read(&r, sizeof(TocRecord::Header));
-    if (len == 0) {
-        return false;
+    try {
+        long len = proxy.read(&r, sizeof(TocRecord::Header));
+        if (len == 0) {
+            return false;
+        }
+        ASSERT(len == sizeof(TocRecord::Header));
+    } catch(std::exception& e) {
+        dumpCache();
+        throw e;
     }
-    ASSERT(len == sizeof(TocRecord::Header));
 
-    len = proxy.read(&r.payload_, r.header_.size_ - sizeof(TocRecord::Header));
-    ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
+    try {
+        long len = proxy.read(&r.payload_, r.header_.size_ - sizeof(TocRecord::Header));
+        ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
+    } catch(std::exception& e) {
+        dumpCache();
+        throw e;
+    }
 
     LibFdb5::instance().serialisationVersion().check(r.header_.version_);
 

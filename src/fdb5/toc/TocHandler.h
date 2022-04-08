@@ -181,6 +181,8 @@ private: // methods
 
     static size_t recordRoundSize();
 
+    void dumpCache() const;
+
 private: // members
 
     eckit::PathName tocPath_;
