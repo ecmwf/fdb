@@ -286,7 +286,6 @@ void TocHandler::dumpCache() const {
     eckit::PathName tocDumpFile("dump_of_"+tocPath_.baseName());
     eckit::FileHandle dump(eckit::PathName::unique(tocDumpFile));
     cachedToc_->copyTo(dump);
-    dump.close();
 
     cachedToc_->seek(offset);
 }
@@ -450,17 +449,17 @@ bool TocHandler::readNextInternal(TocRecord& r) const {
             return false;
         }
         ASSERT(len == sizeof(TocRecord::Header));
-    } catch(std::exception& e) {
+    } catch(...) {
         dumpCache();
-        throw e;
+        throw;
     }
 
     try {
         long len = proxy.read(&r.payload_, r.header_.size_ - sizeof(TocRecord::Header));
         ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
-    } catch(std::exception& e) {
+    } catch(...) {
         dumpCache();
-        throw e;
+        throw;
     }
 
     LibFdb5::instance().serialisationVersion().check(r.header_.version_);
