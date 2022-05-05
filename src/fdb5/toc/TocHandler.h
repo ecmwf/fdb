@@ -20,6 +20,7 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/MemoryHandle.h"
+#include "eckit/log/Timer.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
@@ -36,6 +37,43 @@ namespace fdb5 {
 
 class Key;
 class Index;
+
+//----------------------------------------------------------------------------------------------------------------------
+class TocCopyWatcher : public eckit::TransferWatcher {
+
+    void fromHandleOpened() override {
+        timer_.start();
+    }
+
+    void watch(const void*, long len) override {
+        tocCopyStats_.push_back(std::make_pair(timer_.elapsed(), len));
+    }
+    
+public:
+    TocCopyWatcher(): idx_(0) {}
+
+    size_t size() const {
+        return tocCopyStats_.size();
+    }
+
+    bool next(double& time, eckit::Length& len) {
+        if (tocCopyStats_.size()>idx_) {
+            time = tocCopyStats_[idx_].first;
+            len = tocCopyStats_[idx_].second;
+
+            idx_++;
+            return true;
+        }
+        return false;
+    }
+
+private:
+    eckit::Timer timer_;
+
+    size_t idx_;
+    std::vector<std::pair<double, eckit::Length>> tocCopyStats_;
+
+};
 
 //-----------------------------------------------------------------------------
 
@@ -181,7 +219,7 @@ private: // methods
 
     static size_t recordRoundSize();
 
-    void dumpCache() const;
+    void dumpTocCache() const;
 
 private: // members
 
@@ -197,6 +235,7 @@ private: // members
 
     mutable int fd_;      ///< file descriptor, if zero file is not yet open.
 
+    mutable TocCopyWatcher tocReadStats_;
     mutable std::unique_ptr<eckit::MemoryHandle> cachedToc_; ///< this is only for read path
 
     /// The sub toc is initialised in the read or write pathways for maintaining state.

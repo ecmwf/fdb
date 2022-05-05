@@ -258,6 +258,7 @@ void TocHandler::openForRead() const {
     }
 #endif
     SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
+    eckit::Length tocSize = tocPath_.size();
 
     // The masked subtocs and indexes could be updated each time, so reset this.
     enumeratedMaskedEntries_ = false;
@@ -269,23 +270,31 @@ void TocHandler::openForRead() const {
         AutoClose closer1(toc);
         fd_ = -1;
 
+
         bool grow = true;
-        cachedToc_.reset( new eckit::MemoryHandle(tocPath().size(), grow) );
+        cachedToc_.reset( new eckit::MemoryHandle(tocSize, grow) );
 
-        long buffersize = 4*1024*1024;
-        toc.copyTo(*cachedToc_, buffersize);
-
+        toc.copyTo(*cachedToc_, tocSize, tocReadStats_);
         cachedToc_->openForRead();
     }
 }
 
-void TocHandler::dumpCache() const {
+void TocHandler::dumpTocCache() const {
     eckit::Offset offset = cachedToc_->position();
     cachedToc_->seek(0);
 
     eckit::PathName tocDumpFile("dump_of_"+tocPath_.baseName());
     eckit::FileHandle dump(eckit::PathName::unique(tocDumpFile));
     cachedToc_->copyTo(dump);
+
+    std::ostringstream ss;
+    ss << tocPath_.baseName() << " read in " << tocReadStats_.size() << " step" << ((tocReadStats_.size()>1)?"s":"") << std::endl;
+    double time;
+    eckit::Length len;
+    while (tocReadStats_.next(time, len)) {
+        ss << "  step duration: " << time << " ms, size: " << len << " bytes"<< std::endl;
+    }
+    Log::error() << ss.str();
 
     cachedToc_->seek(offset);
 }
@@ -450,7 +459,7 @@ bool TocHandler::readNextInternal(TocRecord& r) const {
         }
         ASSERT(len == sizeof(TocRecord::Header));
     } catch(...) {
-        dumpCache();
+        dumpTocCache();
         throw;
     }
 
@@ -458,7 +467,7 @@ bool TocHandler::readNextInternal(TocRecord& r) const {
         long len = proxy.read(&r.payload_, r.header_.size_ - sizeof(TocRecord::Header));
         ASSERT(size_t(len) == r.header_.size_ - sizeof(TocRecord::Header));
     } catch(...) {
-        dumpCache();
+        dumpTocCache();
         throw;
     }
 
