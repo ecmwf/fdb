@@ -274,7 +274,8 @@ void TocHandler::openForRead() const {
         bool grow = true;
         cachedToc_.reset( new eckit::MemoryHandle(tocSize, grow) );
 
-        toc.copyTo(*cachedToc_, tocSize, tocReadStats_);
+        long buffersize = 4*1024*1024;
+        toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
         cachedToc_->openForRead();
     }
 }
