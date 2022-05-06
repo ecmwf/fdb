@@ -293,7 +293,7 @@ void TocHandler::dumpTocCache() const {
     double time;
     eckit::Length len;
     while (tocReadStats_.next(time, len)) {
-        ss << "  step duration: " << time << " ms, size: " << len << " bytes"<< std::endl;
+        ss << "  step duration: " << (time*1000) << " ms, size: " << len << " bytes"<< std::endl;
     }
     Log::error() << ss.str();
 

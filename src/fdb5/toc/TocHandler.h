@@ -43,10 +43,18 @@ class TocCopyWatcher : public eckit::TransferWatcher {
 
     void fromHandleOpened() override {
         timer_.start();
+        time_ = timer_.elapsed();
+    }
+
+    void toHandleOpened() override {
+        timer_.start();
+        time_ = timer_.elapsed();
     }
 
     void watch(const void*, long len) override {
-        tocCopyStats_.push_back(std::make_pair(timer_.elapsed(), len));
+        double now = timer_.elapsed();
+        tocCopyStats_.push_back(std::make_pair(now - time_, len));
+        time_ = now;
     }
     
 public:
@@ -69,6 +77,7 @@ public:
 
 private:
     eckit::Timer timer_;
+    double time_;
 
     size_t idx_;
     std::vector<std::pair<double, eckit::Length>> tocCopyStats_;
