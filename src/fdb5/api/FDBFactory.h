@@ -95,16 +95,13 @@ public: // methods
 
     const Config& config() const;
 
+    void disable();
+    bool disabled();
+
     bool canList() const;
     bool canRetrieve() const;
     bool canArchive() const;
     bool canWipe() const;
-
-//    bool writable();
-//    bool visitable();
-    bool disabled();
-
-    void disable();
 
 private: // methods
 

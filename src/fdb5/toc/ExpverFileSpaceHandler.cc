@@ -214,7 +214,7 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
         maybe = select(key, fs);
     } else {
         // Before we allow an override, ensure that it is one of the available filesystems.
-        std::vector<PathName> writable(fs.writable());
+        std::vector<PathName> writable(fs.canArchive());
 
         if(std::find(writable.begin(), writable.end(), fdbRootDirectory) == writable.end()) {
             std::ostringstream msg;

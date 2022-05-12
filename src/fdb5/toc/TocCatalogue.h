@@ -33,7 +33,7 @@ class TocCatalogue : public Catalogue, public TocHandler {
 public: // methods
 
     TocCatalogue(const Key& key, const fdb5::Config& config);
-    TocCatalogue(const eckit::PathName& directory, const fdb5::Config& config);
+    TocCatalogue(const eckit::PathName& directory, const TocPermission& permission, const fdb5::Config& config);
 
     ~TocCatalogue() override {}
 
@@ -83,6 +83,8 @@ protected: // methods
 private: // members
 
     friend class TocWipeVisitor;
+
+    const TocPermission& permission_;
 
     Schema schema_;
 };

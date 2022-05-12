@@ -34,7 +34,7 @@ class PoolEntry  {
 public: // methods
 
     PoolEntry(const std::string& path,
-         const std::string& poolgroup,
+        const std::string& poolgroup,
           bool list = true,
           bool retrieve  = true,
           bool archive = true,

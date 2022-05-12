@@ -51,8 +51,10 @@ public: // methods
 
     bool match(const std::string& s) const;
 
-    std::vector<eckit::PathName> writable() const;
-    std::vector<eckit::PathName> visitable() const;
+    std::vector<eckit::PathName> canList() const;
+    std::vector<eckit::PathName> canRetrieve() const;
+    std::vector<eckit::PathName> canArchive() const;
+    std::vector<eckit::PathName> canWipe() const;
 
     friend std::ostream& operator<<(std::ostream &s, const FileSpace& x) {
         x.print(s);

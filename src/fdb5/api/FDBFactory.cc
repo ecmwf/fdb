@@ -82,15 +82,6 @@ bool FDBBase::canWipe() const {
     return wipe_;
 }
 
-/*
-bool FDBBase::writable() {
-    return writable_;
-}
-
-bool FDBBase::visitable() {
-    return visitable_;
-}*/
-
 void FDBBase::disable() {
     eckit::Log::warning() << "Disabling FDB " << *this << std::endl;
     disabled_ = true;

@@ -29,8 +29,9 @@ TocCatalogue::TocCatalogue(const Key& key, const fdb5::Config& config) :
     TocHandler(CatalogueRootManager(config).directory(key), config) {
 }
 
-TocCatalogue::TocCatalogue(const eckit::PathName& directory, const fdb5::Config& config) :
+TocCatalogue::TocCatalogue(const eckit::PathName& directory, const TocPermission& permission, const fdb5::Config& config) :
     Catalogue(Key(), config),
+    permission_(permission),
     TocHandler(directory, config) {
 
     // Read the real DB key into the DB base object
@@ -153,19 +154,19 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
 }
 
 bool TocCatalogue::listLocked() const {
-    return TocHandler::listLocked();
+    return !permission_.list() || TocHandler::listLocked();
 }
 
 bool TocCatalogue::retrieveLocked() const {
-    return TocHandler::retrieveLocked();
+    return !permission_.retrieve() || TocHandler::retrieveLocked();
 }
 
 bool TocCatalogue::archiveLocked() const {
-    return TocHandler::archiveLocked();
+    return !permission_.archive() || TocHandler::archiveLocked();
 }
 
 bool TocCatalogue::wipeLocked() const {
-    return TocHandler::wipeLocked();
+    return !permission_.wipe() || TocHandler::wipeLocked();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

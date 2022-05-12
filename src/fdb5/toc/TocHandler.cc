@@ -109,8 +109,8 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
-    TocCommon(directory),
+TocHandler::TocHandler(const eckit::PathName& directory, const TocPermission& permission, const Config& config) :
+    TocCommon(directory, permission),
     tocPath_(directory_ / "toc"),
     dbConfig_(config),
     useSubToc_(config.userConfig().getBool("useSubToc", false)),
@@ -130,8 +130,8 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     }
 }
 
-TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
-    TocCommon(path.dirName()),
+TocHandler::TocHandler(const eckit::PathName& path, const TocPermission& permission, const Key& parentKey) :
+    TocCommon(path.dirName(), permission),
     parentKey_(parentKey),
     tocPath_(TocCommon::findRealPath(path)),
     useSubToc_(false),

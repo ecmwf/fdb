@@ -29,6 +29,10 @@ struct VectorPrintSelector<fdb5::Root> {
 
 namespace fdb5 {
 
+namespace {
+    constexpr const char* hide_file = "db.hide";
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 FileSpace::FileSpace(const std::string& name, const std::string& re, const std::string& handler,
@@ -51,21 +55,41 @@ eckit::PathName FileSpace::filesystem(const Key& key, const eckit::PathName& db)
     return FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this);
 }
 
-std::vector<eckit::PathName> FileSpace::writable() const {
+std::vector<eckit::PathName> FileSpace::canList() const {
     std::vector<eckit::PathName> result;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() and i->writable()) {
+        if (i->exists() and i->canList()) {
             result.push_back(i->path());
         }
     }
     return result;
 }
 
-std::vector<eckit::PathName> FileSpace::visitable() const {
+std::vector<eckit::PathName> FileSpace::canRetrieve() const {
     std::vector<eckit::PathName> result;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() and i->visit()) {
+        if (i->exists() and i->canRetrieve()) {
+            result.push_back(i);
+        }
+    }
+    return result;
+}
+
+std::vector<eckit::PathName> FileSpace::canArchive() const {
+    std::vector<eckit::PathName> result;
+    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
+        if (i->exists() and i->canArchive()) {
             result.push_back(i->path());
+        }
+    }
+    return result;
+}
+
+std::vector<eckit::PathName> FileSpace::canWipe() const {
+    std::vector<eckit::PathName> result;
+    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
+        if (i->exists() and i->canWipe()) {
+            result.push_back(i);
         }
     }
     return result;
@@ -99,18 +123,19 @@ bool FileSpace::match(const std::string& s) const {
     return re_.match(s);
 }
 
-bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& root) const {
+bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& root) const {
     unsigned count = 0;
 
-    std::vector<eckit::PathName> visitables = visitable();
+    std::vector<const Root&> visitables = visitable();
     std::string matchList;
     for (std::vector<eckit::PathName>::const_iterator j = visitables.begin(); j != visitables.end();
          ++j) {
-        eckit::PathName fullDB = *j / db;
-        if (fullDB.exists()) {
+        eckit::PathName fullDB = j->path() / db;
+        if (fullDB.exists() && !(fullDB / hide_file).exists()) {
             matchList += (count == 0 ? "" : ", ") + fullDB;
             if (!count) {
-                root = *j;
+                root.path = j->path();
+                root.permission = j->permission();
             }
             ++count;
         }

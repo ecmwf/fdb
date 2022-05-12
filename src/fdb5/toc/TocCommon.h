@@ -18,14 +18,14 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/toc/TocPermission.h"
 
 namespace fdb5 {
 
 class TocCommon {
 public:
 
-    TocCommon(const eckit::
-              PathName& path);
+    TocCommon(const eckit::PathName& path);
     virtual ~TocCommon() {}
 
     static eckit::PathName findRealPath(const eckit::PathName& path);

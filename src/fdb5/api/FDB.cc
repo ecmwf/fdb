@@ -278,15 +278,6 @@ bool FDB::canWipe() const {
     return internal_->canWipe();
 }
 
-
-/*bool FDB::writable() const {
-    return internal_->writable();
-}
-
-bool FDB::visitable() const {
-    return internal_->visitable();
-}*/
-
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

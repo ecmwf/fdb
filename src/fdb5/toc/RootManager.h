@@ -21,6 +21,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/toc/FileSpace.h"
+#include "fdb5/toc/TocPermission.h"
 
 namespace metkit {
 namespace mars {
@@ -36,6 +37,13 @@ class DbPathNamer;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+struct TocPath {
+    eckit::PathName directory;
+    TocPermission permission;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 typedef std::vector<fdb5::FileSpace> FileSpaceTable;
 
 class RootManager  {
@@ -45,7 +53,7 @@ public: // methods
     RootManager(const Config& config);
 
     /// Uniquely selects a directory where the Key will be put or already exists
-    eckit::PathName directory(const Key &key);
+    TocPath directory(const Key &key);
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> allRoots(const Key& key);

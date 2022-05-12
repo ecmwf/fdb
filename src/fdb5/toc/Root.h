@@ -21,6 +21,8 @@
 
 #include "eckit/filesystem/PathName.h"
 
+#include "fdb5/toc/TocPermission.h"
+
 namespace fdb5 {
 
 class Key;
@@ -45,18 +47,17 @@ public: // methods
     bool exists() const {  return exists_; }
 
     /// Root is visited, when listing
-    bool list() const { return list_; }
+    bool canList() const { return permission_.list(); }
     /// Root is visited, when retrieving
-    bool retrieve() const { return retrieve_; }
+    bool canRetrieve() const { return permission_.retrieve(); }
 
     /// Root is in use, when archiving
-    bool archive() const { return archive_; }
+    bool canArchive() const { return permission_.archive(); }
     /// Root is in use, when wiping
-    bool wipe() const { return wipe_; }
+    bool canWipe() const { return permission_.wipe(); }
 
-    bool visit() const { return list_ || retrieve_; }
-    bool writable() const { return archive_ || wipe_; }
-
+    const TocPermission& permission() const { return permission_; }
+    
     const std::string& filespace() const;
 
     friend std::ostream& operator<<(std::ostream &s, const Root& x) {
@@ -74,10 +75,7 @@ private: // members
 
     std::string filespace_;
 
-    bool list_;
-    bool retrieve_;
-    bool archive_;
-    bool wipe_;
+    const TocPermission permission_;
     bool exists_;
 };
 
