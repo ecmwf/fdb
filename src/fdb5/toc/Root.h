@@ -21,7 +21,7 @@
 
 #include "eckit/filesystem/PathName.h"
 
-#include "fdb5/toc/TocPermission.h"
+#include "fdb5/database/Permission.h"
 
 namespace fdb5 {
 
@@ -40,6 +40,9 @@ public: // methods
          bool archive,
          bool wipe);
 
+    // Root(const Root&) = default;
+    // Root& operator=(const Root&) = default;
+
     const eckit::PathName &path() const;
 
     /// Root exists in the filesystem, use this check to avoid errors when accessing
@@ -56,7 +59,7 @@ public: // methods
     /// Root is in use, when wiping
     bool canWipe() const { return permission_.wipe(); }
 
-    const TocPermission& permission() const { return permission_; }
+    const Permission& permission() const { return permission_; }
     
     const std::string& filespace() const;
 
@@ -75,7 +78,7 @@ private: // members
 
     std::string filespace_;
 
-    const TocPermission permission_;
+    Permission permission_;
     bool exists_;
 };
 

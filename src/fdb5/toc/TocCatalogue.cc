@@ -25,15 +25,15 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocCatalogue::TocCatalogue(const Key& key, const fdb5::Config& config) :
-    Catalogue(key, config),
-    TocHandler(CatalogueRootManager(config).directory(key), config) {
-}
+    TocCatalogue(key, CatalogueRootManager(config).directory(key), config) {}
 
-TocCatalogue::TocCatalogue(const eckit::PathName& directory, const TocPermission& permission, const fdb5::Config& config) :
-    Catalogue(Key(), config),
-    permission_(permission),
+TocCatalogue::TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config) :
+    Catalogue(key, tocPath.permission, config),
+    TocHandler(tocPath.directory, config) {}
+
+TocCatalogue::TocCatalogue(const eckit::PathName& directory, const Permission& permission, const fdb5::Config& config) :
+    Catalogue(Key(), permission, config),
     TocHandler(directory, config) {
-
     // Read the real DB key into the DB base object
     dbKey_ = databaseKey();
 }
@@ -154,19 +154,19 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
 }
 
 bool TocCatalogue::listLocked() const {
-    return !permission_.list() || TocHandler::listLocked();
+    return (!permission_.list()) || TocHandler::listLocked();
 }
 
 bool TocCatalogue::retrieveLocked() const {
-    return !permission_.retrieve() || TocHandler::retrieveLocked();
+    return (!permission_.retrieve()) || TocHandler::retrieveLocked();
 }
 
 bool TocCatalogue::archiveLocked() const {
-    return !permission_.archive() || TocHandler::archiveLocked();
+    return (!permission_.archive()) || TocHandler::archiveLocked();
 }
 
 bool TocCatalogue::wipeLocked() const {
-    return !permission_.wipe() || TocHandler::wipeLocked();
+    return (!permission_.wipe()) || TocHandler::wipeLocked();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -99,10 +99,10 @@ public: // methods
 
     TocHandler( const Key &key, const Config& config=Config());
 
-    TocHandler( const eckit::PathName &dir, const TocPermission& permission, const Config& config=Config());
+    TocHandler( const eckit::PathName &dir, const Config& config=Config());
 
     /// For initialising sub tocs or diagnostic interrogation.
-    TocHandler(const eckit::PathName& path, const TocPermission& permission, const Key& parentKey);
+    TocHandler(const eckit::PathName& path, const Key& parentKey);
 
     ~TocHandler() override;
 

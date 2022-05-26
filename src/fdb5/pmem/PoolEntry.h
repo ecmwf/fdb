@@ -34,23 +34,14 @@ class PoolEntry  {
 public: // methods
 
     PoolEntry(const std::string& path,
-        const std::string& poolgroup,
-          bool list = true,
-          bool retrieve  = true,
-          bool archive = true,
-          bool wipe = true);
+         const std::string& poolgroup,
+         bool writable = true,
+         bool visit  = true);
 
     const eckit::PathName &path() const;
 
-    /// Pool is visited, when listing
-    bool list() const { return list_; }
-    /// Pool is visited, when retrieving
-    bool retrieve() const { return retrieve_; }
-
-    /// Pool is in use, when archiving
-    bool archive() const { return archive_; }
-    /// Pool is in use, when wiping
-    bool wipe() const { return wipe_; }
+    bool writable() const; ///< PoolEntry is in use, when archiving
+    bool visit() const;    ///< PoolEntry is visited, when retrievind
 
     const std::string& poolgroup() const;
 
@@ -60,10 +51,8 @@ private: // members
 
     std::string poolgroup_;
 
-    bool list_;
-    bool retrieve_;
-    bool archive_;
-    bool wipe_;
+    bool writable_;
+    bool visit_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

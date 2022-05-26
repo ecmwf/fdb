@@ -198,16 +198,12 @@ static PoolGroupTable poolGroups(const Config& config) {
             std::vector<PoolEntry> poolEntries;
             std::vector<LocalConfiguration> pools(group.getSubConfigurations("pools"));
             for (const auto& pool : pools) {
-                bool writable = pool.getBool("writable", true);
-                bool visit = pool.getBool("visit", true);
                 poolEntries.emplace_back(
                     PoolEntry(
                         pool.getString("path"),
                         "",
-                        pool.getBool("list", visit),
-                        pool.getBool("retrieve", visit),
-                        pool.getBool("archive", writable),
-                        pool.getBool("wipe", writable)
+                        pool.getBool("writable", true),
+                        pool.getBool("visit", true)
                     )
                 );
             }

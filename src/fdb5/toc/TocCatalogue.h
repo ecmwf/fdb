@@ -19,6 +19,7 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/toc/FileSpace.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocEngine.h"
 
@@ -33,7 +34,7 @@ class TocCatalogue : public Catalogue, public TocHandler {
 public: // methods
 
     TocCatalogue(const Key& key, const fdb5::Config& config);
-    TocCatalogue(const eckit::PathName& directory, const TocPermission& permission, const fdb5::Config& config);
+    TocCatalogue(const eckit::PathName& directory, const Permission& permission, const fdb5::Config& config);
 
     ~TocCatalogue() override {}
 
@@ -53,6 +54,8 @@ public: // constants
     static const std::string DUMP_PARAM_WALKSUBTOC;
 
 protected: // methods
+
+    TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config);
 
     std::string type() const override;
 
@@ -83,8 +86,6 @@ protected: // methods
 private: // members
 
     friend class TocWipeVisitor;
-
-    const TocPermission& permission_;
 
     Schema schema_;
 };

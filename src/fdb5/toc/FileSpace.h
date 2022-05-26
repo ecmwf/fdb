@@ -22,11 +22,20 @@
 
 #include "eckit/utils/Regex.h"
 #include "eckit/types/Types.h"
+
 #include "fdb5/toc/Root.h"
+#include "fdb5/database/Permission.h"
 
 namespace fdb5 {
 
 class FileSpaceHandler;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+struct TocPath {
+    eckit::PathName directory;
+    Permission permission;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -43,11 +52,11 @@ public: // methods
     /// @note This method must be idempotent -- it returns always the same value after the first call
     /// @param key is a complete identifier for the first level of the schema
     /// @param db part of the full path
-    eckit::PathName filesystem(const Key& key, const eckit::PathName& db) const;
+    TocPath filesystem(const Key& key, const eckit::PathName& db) const;
 
     void all(eckit::StringSet&) const;
-    void writable(eckit::StringSet&) const;
-    void visitable(eckit::StringSet&) const;
+    void canArchive(eckit::StringSet&) const;
+    void canList(eckit::StringSet&) const;
 
     bool match(const std::string& s) const;
 
@@ -65,7 +74,7 @@ public: // methods
 
 private: // methods
 
-    bool existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& root) const;
+    bool existsDB(const Key& key, const eckit::PathName& db, TocPath& root) const;
 
     void print( std::ostream &out ) const;
 

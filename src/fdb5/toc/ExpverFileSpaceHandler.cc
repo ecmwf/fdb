@@ -214,11 +214,11 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
         maybe = select(key, fs);
     } else {
         // Before we allow an override, ensure that it is one of the available filesystems.
-        std::vector<PathName> writable(fs.canArchive());
+        std::vector<PathName> canArchive(fs.canArchive());
 
-        if(std::find(writable.begin(), writable.end(), fdbRootDirectory) == writable.end()) {
+        if(std::find(canArchive.begin(), canArchive.end(), fdbRootDirectory) == canArchive.end()) {
             std::ostringstream msg;
-            msg << "FDB root directory " << fdbRootDirectory << " was not in the list of writable roots " << writable;
+            msg << "FDB root directory " << fdbRootDirectory << " was not in the list of roots supporting archival " << canArchive;
             throw BadParameter(msg.str());
         }
 

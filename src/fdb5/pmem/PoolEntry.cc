@@ -22,15 +22,21 @@ namespace fdb5 {
 PoolEntry::PoolEntry(const std::string &path, const std::string& poolgroup, bool active, bool visit):
     path_(path),
     poolgroup_(poolgroup),
-    list_(list),
-    retrieve_(retrieve),
-    archive_(archive),
-    wipe_(wipe) {
+    writable_(active),
+    visit_(visit) {
 
 }
 
 const eckit::PathName& PoolEntry::path() const {
     return path_;
+}
+
+bool PoolEntry::writable() const {
+    return writable_;
+}
+
+bool PoolEntry::visit() const {
+    return visit_;
 }
 
 const std::string& PoolEntry::poolgroup() const

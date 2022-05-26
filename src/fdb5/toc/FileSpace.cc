@@ -30,7 +30,7 @@ struct VectorPrintSelector<fdb5::Root> {
 namespace fdb5 {
 
 namespace {
-    constexpr const char* hide_file = "db.hide";
+    constexpr const char* allow_multiple_db = "allow_multiple_db";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -39,20 +39,20 @@ FileSpace::FileSpace(const std::string& name, const std::string& re, const std::
                      const std::vector<Root>& roots) :
     name_(name), handler_(handler), re_(re), roots_(roots) {}
 
-eckit::PathName FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
+TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
     // check that the database isn't present already
     // if it is, then return that path
 
-    eckit::PathName root;
+    TocPath root;
     if (existsDB(key, db, root)) {
-        Log::debug<LibFdb5>() << "Found FDB root for key " << key << " -> " << root << std::endl;
+        Log::debug<LibFdb5>() << "Found FDB root for key " << key << " -> " << root.directory << std::endl;
         return root;
     }
 
     Log::debug<LibFdb5>() << "FDB for key " << key << " not found, selecting a root" << std::endl;
     // Log::debug<LibFdb5>() << eckit::BackTrace::dump() << std::endl;
 
-    return FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this);
+    return TocPath{FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this), Permission()};
 }
 
 std::vector<eckit::PathName> FileSpace::canList() const {
@@ -69,7 +69,7 @@ std::vector<eckit::PathName> FileSpace::canRetrieve() const {
     std::vector<eckit::PathName> result;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
         if (i->exists() and i->canRetrieve()) {
-            result.push_back(i);
+            result.push_back(i->path());
         }
     }
     return result;
@@ -89,7 +89,7 @@ std::vector<eckit::PathName> FileSpace::canWipe() const {
     std::vector<eckit::PathName> result;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
         if (i->exists() and i->canWipe()) {
-            result.push_back(i);
+            result.push_back(i->path());
         }
     }
     return result;
@@ -103,17 +103,17 @@ void FileSpace::all(eckit::StringSet& roots) const {
     }
 }
 
-void FileSpace::writable(eckit::StringSet& roots) const {
+void FileSpace::canArchive(eckit::StringSet& roots) const {
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() and i->writable()) {
+        if (i->exists() && i->canArchive()) {
             roots.insert(i->path());
         }
     }
 }
 
-void FileSpace::visitable(eckit::StringSet& roots) const {
+void FileSpace::canList(eckit::StringSet& roots) const {
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() and i->visit()) {
+        if (i->exists() and i->canList()) {
             roots.insert(i->path());
         }
     }
@@ -125,24 +125,29 @@ bool FileSpace::match(const std::string& s) const {
 
 bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& root) const {
     unsigned count = 0;
+    bool found = false;
 
-    std::vector<const Root&> visitables = visitable();
+//    std::vector<const Root&> visitables = visitable();
     std::string matchList;
-    for (std::vector<eckit::PathName>::const_iterator j = visitables.begin(); j != visitables.end();
-         ++j) {
-        eckit::PathName fullDB = j->path() / db;
-        if (fullDB.exists() && !(fullDB / hide_file).exists()) {
-            matchList += (count == 0 ? "" : ", ") + fullDB;
-            if (!count) {
-                root.path = j->path();
-                root.permission = j->permission();
+    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
+        if (i->exists() && i->canList()) {
+            eckit::PathName fullDB = i->path() / db;
+            if (fullDB.exists()) {
+                matchList += (count == 0 ? "" : ", ") + fullDB;
+                bool allowMultipleDbs = (fullDB / allow_multiple_db).exists();
+                if (!count || allowMultipleDbs) { // take last
+                    root.directory = i->path();
+                    root.permission = i->permission();
+                    found = true;
+                }
+                if (!allowMultipleDbs)
+                    ++count;
             }
-            ++count;
         }
     }
 
     if (count <= 1)
-        return count;
+        return found;
 
     std::ostringstream msg;
     msg << "Found multiple FDB roots matching key " << key << ", roots -> [" << matchList << "]";

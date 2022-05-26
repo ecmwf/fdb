@@ -18,7 +18,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/toc/TocPermission.h"
+#include "fdb5/database/Permission.h"
 
 namespace fdb5 {
 

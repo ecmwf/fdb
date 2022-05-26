@@ -21,7 +21,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/toc/FileSpace.h"
-#include "fdb5/toc/TocPermission.h"
+#include "fdb5/database/Permission.h"
 
 namespace metkit {
 namespace mars {
@@ -34,13 +34,6 @@ namespace fdb5 {
 class Key;
 class FileSpace;
 class DbPathNamer;
-
-//----------------------------------------------------------------------------------------------------------------------
-
-struct TocPath {
-    eckit::PathName directory;
-    TocPermission permission;
-};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -64,7 +57,7 @@ public: // methods
     std::vector<eckit::PathName> visitableRoots(const metkit::mars::MarsRequest& request);
 
     /// Lists the roots where a DB key would be able to be written
-    std::vector<eckit::PathName> writableRoots(const Key& key);
+    std::vector<eckit::PathName> canArchiveRoots(const Key& key);
 
     std::string dbPathName(const Key& key);
 

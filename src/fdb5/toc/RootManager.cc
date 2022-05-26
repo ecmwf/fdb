@@ -597,7 +597,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
 }
 
 
-TocPath RootManager::directory(const Key& key, ) {
+TocPath RootManager::directory(const Key& key) {
 
     PathName dbpath = dbPathName(key);
 
@@ -608,7 +608,7 @@ TocPath RootManager::directory(const Key& key, ) {
     static std::string fdbRootDirectory = eckit::Resource<std::string>("fdbRootDirectory;$FDB_ROOT_DIRECTORY", "");
 
     if(!fdbRootDirectory.empty()) {
-        return TocPath{fdbRootDirectory + "/" + dbpath, TocPermission()};
+        return TocPath{fdbRootDirectory + "/" + dbpath, Permission()};
     }
 
     // returns the first filespace that matches
@@ -617,9 +617,9 @@ TocPath RootManager::directory(const Key& key, ) {
 
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(keystr)) {
-            PathName root = i->filesystem(key, dbpath);
-            eckit::Log::debug<LibFdb5>() << "Directory root " << root << " dbpath " << dbpath <<  std::endl;
-            return root / dbpath;
+            TocPath root = i->filesystem(key, dbpath);
+            eckit::Log::debug<LibFdb5>() << "Directory root " << root.directory << " dbpath " << dbpath <<  std::endl;
+            return TocPath{root.directory / dbpath, root.permission};
         }
     }
 
@@ -659,7 +659,7 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
         for (const std::string& k : keystrings) {
             if (space.match(k) || k.empty()) {
                 Log::debug<LibFdb5>() << "MATCH space " << space << std::endl;
-                space.visitable(roots);
+                space.canList(roots);
                 matched = true;
                 break;
             }
@@ -688,7 +688,7 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::Mar
 }
 
 
-std::vector<eckit::PathName> RootManager::writableRoots(const Key& key) {
+std::vector<eckit::PathName> RootManager::canArchiveRoots(const Key& key) {
 
     eckit::StringSet roots;
 
@@ -697,11 +697,11 @@ std::vector<eckit::PathName> RootManager::writableRoots(const Key& key) {
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(k)) {
 
-            i->writable(roots);
+            i->canArchive(roots);
         }
     }
 
-    Log::debug<LibFdb5>() << "Writable Roots " << roots << std::endl;
+    Log::debug<LibFdb5>() << "Roots supporting archival " << roots << std::endl;
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
