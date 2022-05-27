@@ -24,7 +24,7 @@
 #include "eckit/types/Types.h"
 
 #include "fdb5/toc/Root.h"
-#include "fdb5/database/Permission.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 
 namespace fdb5 {
 
@@ -34,7 +34,7 @@ class FileSpaceHandler;
 
 struct TocPath {
     eckit::PathName directory;
-    Permission permission;
+    ControlIdentifiers permission;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

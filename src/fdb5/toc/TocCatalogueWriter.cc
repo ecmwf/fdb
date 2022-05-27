@@ -38,11 +38,11 @@ TocCatalogueWriter::TocCatalogueWriter(const Key &key, const fdb5::Config& confi
     TocCatalogue::checkUID();
 
     std::cout << *this << std::endl;
-    
+
 }
 
 TocCatalogueWriter::TocCatalogueWriter(const eckit::URI &uri, const fdb5::Config& config) :
-    TocCatalogue(uri.path(), Permission{}, config),
+    TocCatalogue(uri.path(), ControlIdentifiers::all(), config),
     umask_(config.umask()) {
     writeInitRecord(TocCatalogue::key());
     TocCatalogue::loadSchema();

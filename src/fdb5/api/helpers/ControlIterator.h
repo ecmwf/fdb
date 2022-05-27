@@ -89,8 +89,17 @@ public:
     ControlIdentifiers& operator|=(const ControlIdentifier& val);
     ControlIdentifiers operator|(const ControlIdentifier& val);
 
+    bool has(const ControlIdentifier& val) const;
+
     ControlIdentifierIterator begin() const;
     ControlIdentifierIterator end() const;
+
+    static ControlIdentifiers all();
+
+protected: // methods
+
+    friend std::ostream &operator<<(std::ostream &s, const ControlIdentifiers &x);
+    void print( std::ostream &out ) const;
 
 private:
     void encode(eckit::Stream& s) const;

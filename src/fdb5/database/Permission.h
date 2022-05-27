@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   Permission.h
+/// @file   ControlIdentifiers.h
 /// @author Emanuele Danovaro
 /// @date   May 2022
 
@@ -26,22 +26,22 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Permission {
+class ControlIdentifiers {
 
 public: // methods
 
-    Permission() :
+    ControlIdentifiers() :
         permission_(TOC_PERMISSION_LIST | TOC_PERMISSION_RETRIEVE | TOC_PERMISSION_ARCHIVE | TOC_PERMISSION_WIPE) {}
 
-    Permission(bool list, bool retrieve, bool archive, bool wipe) :
+    ControlIdentifiers(bool list, bool retrieve, bool archive, bool wipe) :
         permission_(
             (list ? TOC_PERMISSION_LIST : 0) |
             (retrieve ? TOC_PERMISSION_RETRIEVE : 0) |
             (archive ? TOC_PERMISSION_ARCHIVE : 0) |
             (wipe ? TOC_PERMISSION_WIPE : 0)) {}
 
-    Permission(const Permission&) = default;
-    Permission& operator=(const Permission&) = default;
+    ControlIdentifiers(const ControlIdentifiers&) = default;
+    ControlIdentifiers& operator=(const ControlIdentifiers&) = default;
 
     /// Root is visited, when listing
     bool list() const { return (permission_ & TOC_PERMISSION_LIST); }
@@ -53,7 +53,7 @@ public: // methods
     /// Root is in use, when wiping
     bool wipe() const { return (permission_ & TOC_PERMISSION_WIPE); }
 
-    friend std::ostream& operator<<(std::ostream &s, const Permission& x) {
+    friend std::ostream& operator<<(std::ostream &s, const ControlIdentifiers& x) {
         x.print(s);
         return s;
     }
@@ -61,7 +61,7 @@ public: // methods
 private: // methods
 
     void print( std::ostream &out ) const {
-        out << "Permission("
+        out << "ControlIdentifiers("
         << "list=" << list()
         << ",retrieve=" << retrieve()
         << ",archive=" << archive()

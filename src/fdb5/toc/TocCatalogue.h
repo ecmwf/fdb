@@ -34,7 +34,7 @@ class TocCatalogue : public Catalogue, public TocHandler {
 public: // methods
 
     TocCatalogue(const Key& key, const fdb5::Config& config);
-    TocCatalogue(const eckit::PathName& directory, const Permission& permission, const fdb5::Config& config);
+    TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& permission, const fdb5::Config& config);
 
     ~TocCatalogue() override {}
 

@@ -21,7 +21,7 @@
 
 #include "eckit/filesystem/PathName.h"
 
-#include "fdb5/database/Permission.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 
 namespace fdb5 {
 
@@ -50,16 +50,16 @@ public: // methods
     bool exists() const {  return exists_; }
 
     /// Root is visited, when listing
-    bool canList() const { return permission_.list(); }
+    bool canList() const { return controlIdentifiers_.has(ControlIdentifier::List); }
     /// Root is visited, when retrieving
-    bool canRetrieve() const { return permission_.retrieve(); }
+    bool canRetrieve() const { return controlIdentifiers_.has(ControlIdentifier::Retrieve); }
 
     /// Root is in use, when archiving
-    bool canArchive() const { return permission_.archive(); }
+    bool canArchive() const { return controlIdentifiers_.has(ControlIdentifier::Archive); }
     /// Root is in use, when wiping
-    bool canWipe() const { return permission_.wipe(); }
+    bool canWipe() const { return controlIdentifiers_.has(ControlIdentifier::Wipe); }
 
-    const Permission& permission() const { return permission_; }
+    const ControlIdentifiers& controlIdentifiers() const { return controlIdentifiers_; }
     
     const std::string& filespace() const;
 
@@ -78,7 +78,7 @@ private: // members
 
     std::string filespace_;
 
-    Permission permission_;
+    ControlIdentifiers controlIdentifiers_;
     bool exists_;
 };
 

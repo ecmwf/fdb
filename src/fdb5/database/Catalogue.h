@@ -26,7 +26,7 @@
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/database/Permission.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/WipeVisitor.h"
@@ -41,7 +41,7 @@ typedef std::map<Key, Index> IndexStore;
 class Catalogue {
 public:
 
-    Catalogue(const Key& key, Permission permission, const fdb5::Config& config)
+    Catalogue(const Key& key, ControlIdentifiers permission, const fdb5::Config& config)
         : dbKey_(key), config_(config), permission_(permission), buildByKey_(!key.empty()) {}
 
     virtual ~Catalogue() {}
@@ -106,7 +106,7 @@ protected: // members
 
     Key dbKey_;
     const Config& config_;
-    Permission permission_;
+    ControlIdentifiers permission_;
 
 
 private: // members

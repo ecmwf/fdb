@@ -26,7 +26,6 @@
 #include "metkit/mars/TypeAny.h"
 
 #include "fdb5/database/Key.h"
-#include "fdb5/database/Permission.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/api/FDB.h"
@@ -101,81 +100,6 @@ struct FixtureService {
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-
-CASE ( "test_fdb_permission" ) {
-	SECTION( "default" )
-	{
-		Permission p{};
-
-		EXPECT(p.list());
-		EXPECT(p.retrieve());
-		EXPECT(p.archive());
-		EXPECT(p.wipe());
-	}
-	SECTION( "list" )
-	{
-		Permission p{true, false, false, false};
-
-		EXPECT(p.list());
-		EXPECT(!p.retrieve());
-		EXPECT(!p.archive());
-		EXPECT(!p.wipe());
-	}
-	SECTION( "retrieve" )
-	{
-		Permission p{false, true, false, false};
-
-		EXPECT(!p.list());
-		EXPECT(p.retrieve());
-		EXPECT(!p.archive());
-		EXPECT(!p.wipe());
-	}
-	SECTION( "archive" )
-	{
-		Permission p{false, false, true, false};
-
-		EXPECT(!p.list());
-		EXPECT(!p.retrieve());
-		EXPECT(p.archive());
-		EXPECT(!p.wipe());
-	}
-	SECTION( "wipe" )
-	{
-		Permission p{false, false, false, true};
-
-		EXPECT(!p.list());
-		EXPECT(!p.retrieve());
-		EXPECT(!p.archive());
-		EXPECT(p.wipe());
-	}
-	SECTION( "list & wipe" )
-	{
-		Permission p{true, false, false, true};
-
-		EXPECT(p.list());
-		EXPECT(!p.retrieve());
-		EXPECT(!p.archive());
-		EXPECT(p.wipe());
-	}
-	SECTION( "retrieve & archive" )
-	{
-		Permission p{false, true, true, false};
-
-		EXPECT(!p.list());
-		EXPECT(p.retrieve());
-		EXPECT(p.archive());
-		EXPECT(!p.wipe());
-	}
-	SECTION( "all" )
-	{
-		Permission p{true, true, true, true};
-
-		EXPECT(p.list());
-		EXPECT(p.retrieve());
-		EXPECT(p.archive());
-		EXPECT(p.wipe());
-	}
-}
 
 CASE ( "test_fdb_service" ) {
 

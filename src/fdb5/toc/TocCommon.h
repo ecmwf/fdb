@@ -18,7 +18,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/database/Permission.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 
 namespace fdb5 {
 

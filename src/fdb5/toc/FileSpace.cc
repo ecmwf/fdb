@@ -30,7 +30,7 @@ struct VectorPrintSelector<fdb5::Root> {
 namespace fdb5 {
 
 namespace {
-    constexpr const char* allow_multiple_db = "allow_multiple_db";
+    constexpr const char* allow_multiple_dbs = "allow_multiple_dbs";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -52,7 +52,7 @@ TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
     Log::debug<LibFdb5>() << "FDB for key " << key << " not found, selecting a root" << std::endl;
     // Log::debug<LibFdb5>() << eckit::BackTrace::dump() << std::endl;
 
-    return TocPath{FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this), Permission()};
+    return TocPath{FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this), ControlIdentifiers::all()};
 }
 
 std::vector<eckit::PathName> FileSpace::canList() const {
@@ -134,10 +134,10 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& roo
             eckit::PathName fullDB = i->path() / db;
             if (fullDB.exists()) {
                 matchList += (count == 0 ? "" : ", ") + fullDB;
-                bool allowMultipleDbs = (fullDB / allow_multiple_db).exists();
+                bool allowMultipleDbs = (fullDB / allow_multiple_dbs).exists();
                 if (!count || allowMultipleDbs) { // take last
                     root.directory = i->path();
-                    root.permission = i->permission();
+                    root.permission = i->controlIdentifiers();
                     found = true;
                 }
                 if (!allowMultipleDbs)

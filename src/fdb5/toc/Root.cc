@@ -25,8 +25,13 @@ Root::Root(const std::string &path, const std::string& filespace,
            bool list, bool retrieve, bool archive, bool wipe):
     path_(path),
     filespace_(filespace),
-    permission_(list, retrieve, archive, wipe)
+    controlIdentifiers_()
 {
+    if (list) controlIdentifiers_ |= ControlIdentifier::List;
+    if (retrieve) controlIdentifiers_ |= ControlIdentifier::Retrieve;
+    if (archive) controlIdentifiers_ |= ControlIdentifier::Archive;
+    if (wipe) controlIdentifiers_ |= ControlIdentifier::Wipe;
+
     errno = 0;
     Stat::Struct info;
     int err = Stat::stat(path_.asString().c_str(),&info);
@@ -53,7 +58,7 @@ void Root::print( std::ostream &out ) const  {
 
     out << "Root("
         << "path=" << path_
-        << ",permission=" << permission_
+        << ",permission=" << controlIdentifiers_
         <<")";
 }
 

@@ -99,6 +99,10 @@ void ControlIdentifiers::encode(eckit::Stream& s) const {
     s << value_;
 }
 
+bool ControlIdentifiers::has(const ControlIdentifier& val) const {
+    return (value_ & static_cast<value_type>(val)) == static_cast<value_type>(val);
+}
+
 ControlIdentifierIterator ControlIdentifiers::begin() const {
     return ControlIdentifierIterator(*this);
 }
@@ -107,10 +111,37 @@ ControlIdentifierIterator ControlIdentifiers::end() const {
     return ControlIdentifierIterator(ControlIdentifier::None);
 }
 
+ControlIdentifiers ControlIdentifiers::all() {
+    ControlIdentifiers out(ControlIdentifier::List);
+    out |= ControlIdentifier::Retrieve;
+    out |= ControlIdentifier::Archive;
+    out |= ControlIdentifier::Wipe;
+    
+    return out;
+}
+
 ControlIdentifiers operator|(const ControlIdentifier& lhs, const ControlIdentifier& rhs) {
     return (ControlIdentifiers(lhs) |= rhs);
 }
 
+void ControlIdentifiers::print( std::ostream &out ) const {
+    std::string separator="";
+
+    out << "ControlIdentifiers[";
+
+    auto it = begin();
+    while (it != end()) {
+        out << separator << static_cast<value_type>(*it);
+        separator = ",";
+        ++it;
+    }
+    out << "]";
+}
+
+std::ostream &operator<<(std::ostream &s, const ControlIdentifiers &x) {
+    x.print(s);
+    return s;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

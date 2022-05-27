@@ -31,7 +31,7 @@ TocCatalogue::TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::C
     Catalogue(key, tocPath.permission, config),
     TocHandler(tocPath.directory, config) {}
 
-TocCatalogue::TocCatalogue(const eckit::PathName& directory, const Permission& permission, const fdb5::Config& config) :
+TocCatalogue::TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& permission, const fdb5::Config& config) :
     Catalogue(Key(), permission, config),
     TocHandler(directory, config) {
     // Read the real DB key into the DB base object
@@ -154,19 +154,19 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
 }
 
 bool TocCatalogue::listLocked() const {
-    return (!permission_.list()) || TocHandler::listLocked();
+    return (!permission_.has(ControlIdentifier::List)) || TocHandler::listLocked();
 }
 
 bool TocCatalogue::retrieveLocked() const {
-    return (!permission_.retrieve()) || TocHandler::retrieveLocked();
+    return (!permission_.has(ControlIdentifier::Retrieve)) || TocHandler::retrieveLocked();
 }
 
 bool TocCatalogue::archiveLocked() const {
-    return (!permission_.archive()) || TocHandler::archiveLocked();
+    return (!permission_.has(ControlIdentifier::Archive)) || TocHandler::archiveLocked();
 }
 
 bool TocCatalogue::wipeLocked() const {
-    return (!permission_.wipe()) || TocHandler::wipeLocked();
+    return (!permission_.has(ControlIdentifier::Wipe)) || TocHandler::wipeLocked();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
