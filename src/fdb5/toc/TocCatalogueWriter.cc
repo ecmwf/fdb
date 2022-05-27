@@ -36,9 +36,6 @@ TocCatalogueWriter::TocCatalogueWriter(const Key &key, const fdb5::Config& confi
     writeInitRecord(key);
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
-
-    std::cout << *this << std::endl;
-
 }
 
 TocCatalogueWriter::TocCatalogueWriter(const eckit::URI &uri, const fdb5::Config& config) :

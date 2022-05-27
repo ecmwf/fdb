@@ -186,19 +186,9 @@ DbStats DB::stats() const {
 void DB::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
     catalogue_->control(action, identifiers);
 }
-
-bool DB::retrieveLocked() const {
-    return catalogue_->retrieveLocked();
-}
-bool DB::archiveLocked() const {
-    return catalogue_->archiveLocked();
-}
-bool DB::listLocked() const {
-    return catalogue_->listLocked();
-}
-bool DB::wipeLocked() const {
-    return catalogue_->wipeLocked();
-}
+bool DB::enabled(const ControlIdentifier& controlIdentifier) {
+    return catalogue_->enabled(controlIdentifier);
+};
 
 void DB::print( std::ostream &out ) const {
     catalogue_->print(out);

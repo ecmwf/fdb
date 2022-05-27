@@ -83,12 +83,7 @@ public: // methods
 
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
-
-    // TODO: *Locked to be implemented by a single enquire()
-    bool retrieveLocked() const;
-    bool archiveLocked() const;
-    bool listLocked() const;
-    bool wipeLocked() const;
+    bool enabled(const ControlIdentifier& controlIdentifier) const;
 
 protected: // methods
 
