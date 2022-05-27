@@ -98,10 +98,7 @@ public: // methods
     void disable();
     bool disabled();
 
-    bool canList() const;
-    bool canRetrieve() const;
-    bool canArchive() const;
-    bool canWipe() const;
+    bool enabled(const ControlIdentifier& controlIdentifier) const;
 
 private: // methods
 

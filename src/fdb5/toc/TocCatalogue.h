@@ -45,10 +45,7 @@ public: // methods
 
     static void remove(const eckit::PathName& path, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
 
-    bool listLocked() const override;
-    bool retrieveLocked() const override;
-    bool archiveLocked() const override;
-    bool wipeLocked() const override;
+    bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
 public: // constants
     static const std::string DUMP_PARAM_WALKSUBTOC;

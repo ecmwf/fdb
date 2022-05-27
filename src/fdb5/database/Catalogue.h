@@ -70,10 +70,7 @@ public:
 
     virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
 
-    virtual bool listLocked() const = 0;
-    virtual bool retrieveLocked() const = 0;
-    virtual bool archiveLocked() const = 0;
-    virtual bool wipeLocked() const = 0;
+    virtual bool enabled(const ControlIdentifier& controlIdentifier) const = 0;
 
     virtual std::vector<fdb5::Index> indexes(bool sorted=false) const = 0;
 

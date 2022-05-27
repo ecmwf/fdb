@@ -67,7 +67,7 @@ void FDBLock::execute(const CmdArgs& args) {
 
     FDB fdb(config(args));
 
-    ControlAction action = unlock_ ? ControlAction::Unlock : ControlAction::Lock;
+    ControlAction action = unlock_ ? ControlAction::Enable : ControlAction::Disable;
 
     ControlIdentifiers identifiers;
     if (list_) identifiers |= ControlIdentifier::List;

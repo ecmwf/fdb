@@ -36,8 +36,7 @@ public: // methods
     std::vector<Index> indexes(bool sorted) const override;
     DbStats stats() const override { return TocHandler::stats(); }
 
-    bool archiveLocked() const override { return false; }
-    bool wipeLocked() const override { return false; }
+    bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
 private: // methods
 

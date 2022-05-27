@@ -157,17 +157,13 @@ protected: // methods
 
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
 
-    bool retrieveLocked() const;
-    bool archiveLocked() const;
-    bool listLocked() const;
-    bool wipeLocked() const;
-
+    bool enabled(const ControlIdentifier& controlIdentifier) const;
 
 private: // methods
 
-    eckit::PathName fullLockFilePath(const std::string& name) const;
-    void createLockFile(const std::string& name) const;
-    void removeLockFile(const std::string& name) const;
+    eckit::PathName fullControlFilePath(const std::string& name) const;
+    void createControlFile(const std::string& name) const;
+    void removeControlFile(const std::string& name) const;
 
 protected: // members
 

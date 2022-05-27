@@ -98,6 +98,7 @@ public: // methods
     ControlIterator control(const FDBToolRequest& request,
                             ControlAction action,
                             ControlIdentifiers identifiers);
+    bool enabled(const ControlIdentifier& controlIdentifier) const;
 
     bool dirty() const;
 
@@ -114,11 +115,6 @@ public: // methods
 
     void disable();
     bool disabled() const;
-
-    bool canList() const;
-    bool canRetrieve() const;
-    bool canArchive() const;
-    bool canWipe() const;
 
 private: // methods
 

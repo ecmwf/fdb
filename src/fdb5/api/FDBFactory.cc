@@ -74,20 +74,8 @@ const Config& FDBBase::config() const {
     return config_;
 }
 
-bool FDBBase::canList() const {
-    return !controlIdentifiers_.has(ControlIdentifier::List);
-}
-
-bool FDBBase::canRetrieve() const {
-    return !controlIdentifiers_.has(ControlIdentifier::Retrieve);
-}
-
-bool FDBBase::canArchive() const {
-    return !controlIdentifiers_.has(ControlIdentifier::Archive);
-}
-
-bool FDBBase::canWipe() const {
-    return !controlIdentifiers_.has(ControlIdentifier::Wipe);
+bool FDBBase::enabled(const ControlIdentifier& controlIdentifier) const {
+    return !controlIdentifiers_.has(controlIdentifier);
 }
 
 void FDBBase::disable() {

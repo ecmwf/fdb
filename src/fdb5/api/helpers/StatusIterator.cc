@@ -24,10 +24,10 @@ StatusElement::StatusElement() :
 StatusElement::StatusElement(const Catalogue& catalogue) :
     key(catalogue.key()),
     location(catalogue.uri()),
-    retrieveLocked(catalogue.retrieveLocked()),
-    archiveLocked(catalogue.archiveLocked()),
-    listLocked(catalogue.listLocked()),
-    wipeLocked(catalogue.wipeLocked()) {}
+    retrieveLocked(!catalogue.enabled(ControlIdentifier::Retrieve)),
+    archiveLocked(!catalogue.enabled(ControlIdentifier::Archive)),
+    listLocked(!catalogue.enabled(ControlIdentifier::List)),
+    wipeLocked(!catalogue.enabled(ControlIdentifier::Wipe)) {}
 
 StatusElement::StatusElement(eckit::Stream &s) :
     key(s),

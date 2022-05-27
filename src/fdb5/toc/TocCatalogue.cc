@@ -153,20 +153,8 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
     TocHandler::control(action, identifiers);
 }
 
-bool TocCatalogue::listLocked() const {
-    return (controlIdentifiers_.has(ControlIdentifier::List)) || TocHandler::listLocked();
-}
-
-bool TocCatalogue::retrieveLocked() const {
-    return (controlIdentifiers_.has(ControlIdentifier::Retrieve)) || TocHandler::retrieveLocked();
-}
-
-bool TocCatalogue::archiveLocked() const {
-    return (controlIdentifiers_.has(ControlIdentifier::Archive)) || TocHandler::archiveLocked();
-}
-
-bool TocCatalogue::wipeLocked() const {
-    return (controlIdentifiers_.has(ControlIdentifier::Wipe)) || TocHandler::wipeLocked();
+bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
+    return !(controlIdentifiers_.has(controlIdentifier)) && TocHandler::enabled(controlIdentifier);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

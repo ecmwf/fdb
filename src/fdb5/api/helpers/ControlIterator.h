@@ -26,8 +26,8 @@ namespace fdb5 {
 enum class ControlAction : uint16_t {
     None = 0,
 
-    Lock,
-    Unlock
+    Disable,
+    Enable
 };
 
 eckit::Stream& operator<<(eckit::Stream& s, const ControlAction& a);
@@ -38,10 +38,11 @@ eckit::Stream& operator>>(eckit::Stream& s, ControlAction& a);
 enum class ControlIdentifier : uint16_t {
     None = 0,
 
-    List      = 1 << 0,
-    Retrieve  = 1 << 1,
-    Archive   = 1 << 2,
-    Wipe      = 1 << 3
+    List       = 1 << 0,
+    Retrieve   = 1 << 1,
+    Archive    = 1 << 2,
+    Wipe       = 1 << 3,
+    UniqueRoot = 1 << 4
 };
 
 //----------------------------------------------------------------------------------------------------------------------

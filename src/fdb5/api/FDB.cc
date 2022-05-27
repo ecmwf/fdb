@@ -265,17 +265,8 @@ bool FDB::disabled() const {
     return internal_->disabled();
 }
 
-bool FDB::canList() const {
-    return internal_->canList();
-}
-bool FDB::canRetrieve() const {
-    return internal_->canRetrieve();
-}
-bool FDB::canArchive() const {
-    return internal_->canArchive();
-}
-bool FDB::canWipe() const {
-    return internal_->canWipe();
+bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {
+    return internal_->enabled(controlIdentifier);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

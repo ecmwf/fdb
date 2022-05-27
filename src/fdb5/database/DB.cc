@@ -186,7 +186,7 @@ DbStats DB::stats() const {
 void DB::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
     catalogue_->control(action, identifiers);
 }
-bool DB::enabled(const ControlIdentifier& controlIdentifier) {
+bool DB::enabled(const ControlIdentifier& controlIdentifier) const {
     return catalogue_->enabled(controlIdentifier);
 };
 

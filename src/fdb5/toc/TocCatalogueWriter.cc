@@ -282,6 +282,13 @@ void TocCatalogueWriter::hideContents() {
     writeClearAllRecord();
 }
 
+bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) const {
+    if (controlIdentifier == ControlIdentifier::List || controlIdentifier == ControlIdentifier::Retrieve) {
+        return false;
+    }
+    return TocCatalogue::enabled(controlIdentifier);
+}
+
 void TocCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocation) {
     dirty_ = true;
 
