@@ -608,7 +608,7 @@ TocPath RootManager::directory(const Key& key) {
     static std::string fdbRootDirectory = eckit::Resource<std::string>("fdbRootDirectory;$FDB_ROOT_DIRECTORY", "");
 
     if(!fdbRootDirectory.empty()) {
-        return TocPath{fdbRootDirectory + "/" + dbpath, ControlIdentifiers::all()};
+        return TocPath{fdbRootDirectory + "/" + dbpath, ControlIdentifiers{}};
     }
 
     // returns the first filespace that matches

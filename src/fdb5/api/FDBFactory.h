@@ -118,13 +118,8 @@ protected: // members
 
     Config config_;
 
-    bool list_;
-    bool retrieve_;
-    bool archive_;
-    bool wipe_;
+    ControlIdentifiers controlIdentifiers_;
 
-//    bool writable_;
-//    bool visitable_;
     bool disabled_;
 };
 

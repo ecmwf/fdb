@@ -27,7 +27,7 @@ TocCatalogueReader::TocCatalogueReader(const Key& key, const fdb5::Config& confi
 }
 
 TocCatalogueReader::TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
-    TocCatalogue(uri.path(), ControlIdentifiers::all(), config) {
+    TocCatalogue(uri.path(), ControlIdentifiers{}, config) {
     loadIndexesAndRemap();
 }
 

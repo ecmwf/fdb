@@ -42,7 +42,7 @@ class Catalogue {
 public:
 
     Catalogue(const Key& key, ControlIdentifiers permission, const fdb5::Config& config)
-        : dbKey_(key), config_(config), permission_(permission), buildByKey_(!key.empty()) {}
+        : dbKey_(key), config_(config), controlIdentifiers_(permission), buildByKey_(!key.empty()) {}
 
     virtual ~Catalogue() {}
 
@@ -106,7 +106,7 @@ protected: // members
 
     Key dbKey_;
     const Config& config_;
-    ControlIdentifiers permission_;
+    ControlIdentifiers controlIdentifiers_;
 
 
 private: // members

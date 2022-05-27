@@ -36,10 +36,18 @@ FDBBase::FDBBase(const Config& config, const std::string& name) :
 
     bool writable = config.getBool("writable", true);
     bool visitable = config.getBool("visitable", true);
-    list_ = config.getBool("list", visitable);
-    retrieve_ = config.getBool("retrieve", visitable);
-    archive_ = config.getBool("archive", writable);
-    wipe_ = config.getBool("wipe", writable);
+    if (!config.getBool("list", visitable)) {
+        controlIdentifiers_ |= ControlIdentifier::List;
+    }
+    if (!config.getBool("retrieve", visitable)) {
+        controlIdentifiers_ |= ControlIdentifier::Retrieve;
+    }
+    if (!config.getBool("archive", writable)) {
+        controlIdentifiers_ |= ControlIdentifier::Archive;
+    }
+    if (!config.getBool("wipe", writable)) {
+        controlIdentifiers_ |= ControlIdentifier::Wipe;
+    }
 
     eckit::Log::debug<LibFdb5>() << "FDBBase: " << config << std::endl;
 }
@@ -67,19 +75,19 @@ const Config& FDBBase::config() const {
 }
 
 bool FDBBase::canList() const {
-    return list_;
+    return !controlIdentifiers_.has(ControlIdentifier::List);
 }
 
 bool FDBBase::canRetrieve() const {
-    return retrieve_;
+    return !controlIdentifiers_.has(ControlIdentifier::Retrieve);
 }
 
 bool FDBBase::canArchive() const {
-    return archive_;
+    return !controlIdentifiers_.has(ControlIdentifier::Archive);
 }
 
 bool FDBBase::canWipe() const {
-    return wipe_;
+    return !controlIdentifiers_.has(ControlIdentifier::Wipe);
 }
 
 void FDBBase::disable() {

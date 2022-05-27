@@ -94,8 +94,6 @@ public:
     ControlIdentifierIterator begin() const;
     ControlIdentifierIterator end() const;
 
-    static ControlIdentifiers all();
-
 protected: // methods
 
     friend std::ostream &operator<<(std::ostream &s, const ControlIdentifiers &x);

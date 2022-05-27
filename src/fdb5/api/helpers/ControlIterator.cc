@@ -111,15 +111,6 @@ ControlIdentifierIterator ControlIdentifiers::end() const {
     return ControlIdentifierIterator(ControlIdentifier::None);
 }
 
-ControlIdentifiers ControlIdentifiers::all() {
-    ControlIdentifiers out(ControlIdentifier::List);
-    out |= ControlIdentifier::Retrieve;
-    out |= ControlIdentifier::Archive;
-    out |= ControlIdentifier::Wipe;
-    
-    return out;
-}
-
 ControlIdentifiers operator|(const ControlIdentifier& lhs, const ControlIdentifier& rhs) {
     return (ControlIdentifiers(lhs) |= rhs);
 }

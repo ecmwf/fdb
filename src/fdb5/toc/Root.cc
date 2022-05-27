@@ -27,10 +27,10 @@ Root::Root(const std::string &path, const std::string& filespace,
     filespace_(filespace),
     controlIdentifiers_()
 {
-    if (list) controlIdentifiers_ |= ControlIdentifier::List;
-    if (retrieve) controlIdentifiers_ |= ControlIdentifier::Retrieve;
-    if (archive) controlIdentifiers_ |= ControlIdentifier::Archive;
-    if (wipe) controlIdentifiers_ |= ControlIdentifier::Wipe;
+    if (!list) controlIdentifiers_ |= ControlIdentifier::List;
+    if (!retrieve) controlIdentifiers_ |= ControlIdentifier::Retrieve;
+    if (!archive) controlIdentifiers_ |= ControlIdentifier::Archive;
+    if (!wipe) controlIdentifiers_ |= ControlIdentifier::Wipe;
 
     errno = 0;
     Stat::Struct info;

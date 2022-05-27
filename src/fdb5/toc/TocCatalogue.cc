@@ -154,19 +154,19 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
 }
 
 bool TocCatalogue::listLocked() const {
-    return (!permission_.has(ControlIdentifier::List)) || TocHandler::listLocked();
+    return (controlIdentifiers_.has(ControlIdentifier::List)) || TocHandler::listLocked();
 }
 
 bool TocCatalogue::retrieveLocked() const {
-    return (!permission_.has(ControlIdentifier::Retrieve)) || TocHandler::retrieveLocked();
+    return (controlIdentifiers_.has(ControlIdentifier::Retrieve)) || TocHandler::retrieveLocked();
 }
 
 bool TocCatalogue::archiveLocked() const {
-    return (!permission_.has(ControlIdentifier::Archive)) || TocHandler::archiveLocked();
+    return (controlIdentifiers_.has(ControlIdentifier::Archive)) || TocHandler::archiveLocked();
 }
 
 bool TocCatalogue::wipeLocked() const {
-    return (!permission_.has(ControlIdentifier::Wipe)) || TocHandler::wipeLocked();
+    return (controlIdentifiers_.has(ControlIdentifier::Wipe)) || TocHandler::wipeLocked();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

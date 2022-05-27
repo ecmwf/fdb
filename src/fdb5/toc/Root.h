@@ -50,14 +50,14 @@ public: // methods
     bool exists() const {  return exists_; }
 
     /// Root is visited, when listing
-    bool canList() const { return controlIdentifiers_.has(ControlIdentifier::List); }
+    bool canList() const { return !controlIdentifiers_.has(ControlIdentifier::List); }
     /// Root is visited, when retrieving
-    bool canRetrieve() const { return controlIdentifiers_.has(ControlIdentifier::Retrieve); }
+    bool canRetrieve() const { return !controlIdentifiers_.has(ControlIdentifier::Retrieve); }
 
     /// Root is in use, when archiving
-    bool canArchive() const { return controlIdentifiers_.has(ControlIdentifier::Archive); }
+    bool canArchive() const { return !controlIdentifiers_.has(ControlIdentifier::Archive); }
     /// Root is in use, when wiping
-    bool canWipe() const { return controlIdentifiers_.has(ControlIdentifier::Wipe); }
+    bool canWipe() const { return !controlIdentifiers_.has(ControlIdentifier::Wipe); }
 
     const ControlIdentifiers& controlIdentifiers() const { return controlIdentifiers_; }
     

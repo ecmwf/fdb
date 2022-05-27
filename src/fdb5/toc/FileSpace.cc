@@ -52,7 +52,7 @@ TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
     Log::debug<LibFdb5>() << "FDB for key " << key << " not found, selecting a root" << std::endl;
     // Log::debug<LibFdb5>() << eckit::BackTrace::dump() << std::endl;
 
-    return TocPath{FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this), ControlIdentifiers::all()};
+    return TocPath{FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this), ControlIdentifiers{}};
 }
 
 std::vector<eckit::PathName> FileSpace::canList() const {

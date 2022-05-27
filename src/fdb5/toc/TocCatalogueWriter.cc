@@ -42,7 +42,7 @@ TocCatalogueWriter::TocCatalogueWriter(const Key &key, const fdb5::Config& confi
 }
 
 TocCatalogueWriter::TocCatalogueWriter(const eckit::URI &uri, const fdb5::Config& config) :
-    TocCatalogue(uri.path(), ControlIdentifiers::all(), config),
+    TocCatalogue(uri.path(), ControlIdentifiers{}, config),
     umask_(config.umask()) {
     writeInitRecord(TocCatalogue::key());
     TocCatalogue::loadSchema();
