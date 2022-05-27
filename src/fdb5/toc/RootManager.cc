@@ -618,8 +618,8 @@ TocPath RootManager::directory(const Key& key) {
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(keystr)) {
             TocPath root = i->filesystem(key, dbpath);
-            eckit::Log::debug<LibFdb5>() << "Directory root " << root.directory << " dbpath " << dbpath <<  std::endl;
-            return TocPath{root.directory / dbpath, root.permission};
+            eckit::Log::debug<LibFdb5>() << "Directory root " << root.directory_ << " dbpath " << dbpath <<  std::endl;
+            return TocPath{root.directory_ / dbpath, root.controlIdentifiers_};
         }
     }
 

@@ -33,8 +33,8 @@ class FileSpaceHandler;
 //----------------------------------------------------------------------------------------------------------------------
 
 struct TocPath {
-    eckit::PathName directory;
-    ControlIdentifiers permission;
+    eckit::PathName directory_;
+    ControlIdentifiers controlIdentifiers_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

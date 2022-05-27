@@ -41,8 +41,8 @@ typedef std::map<Key, Index> IndexStore;
 class Catalogue {
 public:
 
-    Catalogue(const Key& key, ControlIdentifiers permission, const fdb5::Config& config)
-        : dbKey_(key), config_(config), controlIdentifiers_(permission), buildByKey_(!key.empty()) {}
+    Catalogue(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
+        : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers), buildByKey_(!key.empty()) {}
 
     virtual ~Catalogue() {}
 

@@ -82,7 +82,7 @@ class ControlIdentifiers {
 
 public:
     ControlIdentifiers();
-    ControlIdentifiers(const ControlIdentifiers& val) = default;
+//    ControlIdentifiers(const ControlIdentifiers& val) = default;
     ControlIdentifiers(const ControlIdentifier& val);
     ControlIdentifiers(eckit::Stream& s);
 

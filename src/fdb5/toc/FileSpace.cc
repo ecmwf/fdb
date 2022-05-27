@@ -45,7 +45,7 @@ TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
 
     TocPath root;
     if (existsDB(key, db, root)) {
-        Log::debug<LibFdb5>() << "Found FDB root for key " << key << " -> " << root.directory << std::endl;
+        Log::debug<LibFdb5>() << "Found FDB root for key " << key << " -> " << root.directory_ << std::endl;
         return root;
     }
 
@@ -136,8 +136,8 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& roo
                 matchList += (count == 0 ? "" : ", ") + fullDB;
                 bool allowMultipleDbs = (fullDB / allow_multiple_dbs).exists();
                 if (!count || allowMultipleDbs) { // take last
-                    root.directory = i->path();
-                    root.permission = i->controlIdentifiers();
+                    root.directory_ = i->path();
+                    root.controlIdentifiers_ = i->controlIdentifiers();
                     found = true;
                 }
                 if (!allowMultipleDbs)

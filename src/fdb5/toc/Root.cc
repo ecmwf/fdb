@@ -58,7 +58,7 @@ void Root::print( std::ostream &out ) const  {
 
     out << "Root("
         << "path=" << path_
-        << ",permission=" << controlIdentifiers_
+        << ",controlIdentifiers=" << controlIdentifiers_
         <<")";
 }
 
