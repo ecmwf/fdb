@@ -55,40 +55,10 @@ TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
     return TocPath{FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this), ControlIdentifiers{}};
 }
 
-std::vector<eckit::PathName> FileSpace::canList() const {
+std::vector<eckit::PathName> FileSpace::enabled(const ControlIdentifier& controlIdentifier) const {
     std::vector<eckit::PathName> result;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() and i->canList()) {
-            result.push_back(i->path());
-        }
-    }
-    return result;
-}
-
-std::vector<eckit::PathName> FileSpace::canRetrieve() const {
-    std::vector<eckit::PathName> result;
-    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() and i->canRetrieve()) {
-            result.push_back(i->path());
-        }
-    }
-    return result;
-}
-
-std::vector<eckit::PathName> FileSpace::canArchive() const {
-    std::vector<eckit::PathName> result;
-    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() and i->canArchive()) {
-            result.push_back(i->path());
-        }
-    }
-    return result;
-}
-
-std::vector<eckit::PathName> FileSpace::canWipe() const {
-    std::vector<eckit::PathName> result;
-    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() and i->canWipe()) {
+        if (i->exists() and i->enabled(controlIdentifier)) {
             result.push_back(i->path());
         }
     }
@@ -103,17 +73,9 @@ void FileSpace::all(eckit::StringSet& roots) const {
     }
 }
 
-void FileSpace::canArchive(eckit::StringSet& roots) const {
+void FileSpace::enabled(const ControlIdentifier& controlIdentifier, eckit::StringSet& roots) const {
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() && i->canArchive()) {
-            roots.insert(i->path());
-        }
-    }
-}
-
-void FileSpace::canList(eckit::StringSet& roots) const {
-    for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() and i->canList()) {
+        if (i->exists() && i->enabled(controlIdentifier)) {
             roots.insert(i->path());
         }
     }
@@ -130,7 +92,7 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& roo
 //    std::vector<const Root&> visitables = visitable();
     std::string matchList;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() && i->canList()) {
+        if (i->exists() && i->enabled(ControlIdentifier::List)) {
             eckit::PathName fullDB = i->path() / db;
             if (fullDB.exists()) {
                 matchList += (count == 0 ? "" : ", ") + fullDB;

@@ -659,7 +659,7 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
         for (const std::string& k : keystrings) {
             if (space.match(k) || k.empty()) {
                 Log::debug<LibFdb5>() << "MATCH space " << space << std::endl;
-                space.canList(roots);
+                space.enabled(ControlIdentifier::List,roots);
                 matched = true;
                 break;
             }
@@ -697,7 +697,7 @@ std::vector<eckit::PathName> RootManager::canArchiveRoots(const Key& key) {
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(k)) {
 
-            i->canArchive(roots);
+            i->enabled(ControlIdentifier::Archive, roots);
         }
     }
 

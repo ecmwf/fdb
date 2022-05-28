@@ -55,16 +55,11 @@ public: // methods
     TocPath filesystem(const Key& key, const eckit::PathName& db) const;
 
     void all(eckit::StringSet&) const;
-    void canArchive(eckit::StringSet&) const;
-    void canList(eckit::StringSet&) const;
+    void enabled(const ControlIdentifier& controlIdentifier, eckit::StringSet&) const;
+    std::vector<eckit::PathName> enabled(const ControlIdentifier& controlIdentifier) const;
 
     bool match(const std::string& s) const;
-
-    std::vector<eckit::PathName> canList() const;
-    std::vector<eckit::PathName> canRetrieve() const;
-    std::vector<eckit::PathName> canArchive() const;
-    std::vector<eckit::PathName> canWipe() const;
-
+    
     friend std::ostream& operator<<(std::ostream &s, const FileSpace& x) {
         x.print(s);
         return s;
