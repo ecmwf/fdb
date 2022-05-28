@@ -48,8 +48,6 @@ struct TocRecord {
 
     TocRecord(unsigned int version, unsigned char tag = TOC_NULL);
 
-    // unsigned int writeVersion();
-    
     struct Header {
         unsigned char          tag_;           ///<  (1)  tag identifying the TocRecord type
         unsigned char          spare_[3];      ///<  (3)  padding

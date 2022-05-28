@@ -196,7 +196,7 @@ protected: // methods
 
     void appendBlock(const void* data, size_t size);
 
-    const SerialisationVersion& serialisationVersion() const;
+    const TocSerialisationVersion& serialisationVersion() const;
 
 private: // methods
 

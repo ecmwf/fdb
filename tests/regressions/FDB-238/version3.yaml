@@ -3,7 +3,6 @@ type: local
 engine: toc
 tocSerialisationVersion: 3
 schema: ./schema
-serverPort: 36604
 spaces:
 - handler: Default
   roots:

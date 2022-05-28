@@ -337,7 +337,7 @@ void TocHandler::appendBlock(const void *data, size_t size) {
     ASSERT( len == size );
 }
 
-const SerialisationVersion& TocHandler::serialisationVersion() const {
+const TocSerialisationVersion& TocHandler::serialisationVersion() const {
     return serialisationVersion_;
 }
 

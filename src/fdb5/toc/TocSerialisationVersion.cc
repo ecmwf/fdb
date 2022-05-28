@@ -70,6 +70,35 @@ unsigned int TocSerialisationVersion::defaulted() const {
     return 2;
 }
 
+unsigned int TocSerialisationVersion::used() const {
+    return used_;
+}
+
+std::string TocSerialisationVersion::supportedStr() const {
+    std::ostringstream oss;
+    char sep = '[';
+    for (auto v : supported()) {
+        oss << sep << v;
+        sep = ',';
+    }
+    oss << ']';
+    return oss.str();
+}
+
+bool TocSerialisationVersion::check(unsigned int version, bool throwOnFail) const {
+    std::vector<unsigned int> versionsSupported = supported();
+    for (auto v : versionsSupported) {
+        if (version == v)
+            return true;
+    }
+    if (throwOnFail) {
+        std::ostringstream msg;
+        msg << "Record version mismatch, software supports versions " << supportedStr() << " got " << version;
+        throw eckit::SeriousBug(msg.str());
+    }
+    return false;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

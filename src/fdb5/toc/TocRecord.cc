@@ -123,10 +123,6 @@ void TocRecord::print(std::ostream & out) const {
         << "hostname=" << header_.hostname_ << "]";
 }
 
-// unsigned int TocRecord::writeVersion() {
-//     return header_.version_;
-// }
-
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

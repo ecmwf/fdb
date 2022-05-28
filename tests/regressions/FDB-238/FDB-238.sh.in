@@ -24,11 +24,12 @@ cd $bindir
 rm -rf $bindir/localroot
 mkdir localroot
 
-for f in 12.grib local.yaml version2.yaml version3.yaml schema checkV2.req checkV3.req 
+for f in 12.grib local.yaml version2.yaml version3.yaml schema checkV2.req checkV3.req checkV3bis.req 
 do
     cp $srcdir/$f $bindir
 done
 
+$gribset -s step=3 12.grib 3.grib
 $gribset -s step=6 12.grib 6.grib
 $gribset -s step=9 12.grib 9.grib
 
@@ -128,6 +129,23 @@ cat > content.12dup <<EOF
 ]}
 EOF
 
+cat > content.3 <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 3,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  }
+]}
+EOF
+
 $fdblist --all --minimum-keys="" --porcelain | tee out
 cmp out list
 
@@ -156,6 +174,21 @@ cat content.12dup              | post_process | tee checkv3
 diff out checkv3
 
 export FDB_DEDUPLICATE_FIELDS=ON
+
+export FDB5_CONFIG_FILE=version2.yaml
+
+export FDB5_SERIALISATION_VERSION=3
+
+$fdbwrite 3.grib
+
+unset FDB5_SERIALISATION_VERSION
+
+$fdbread checkV3bis.req checkV3bis.grib
+$gribls -jm checkV3bis.grib    | post_process | tee out
+cat content.3                  | post_process | tee checkv3bis
+diff out checkv3bis
+
+export FDB5_CONFIG_FILE=version3.yaml
 
 # check still able to read previous v2 field
 $fdbread checkV2.req checkV2.again.grib

@@ -225,7 +225,7 @@ const Index& TocCatalogueWriter::currentIndex() {
     return current_;
 }
 
-const SerialisationVersion& TocCatalogueWriter::serialisationVersion() const {
+const TocSerialisationVersion& TocCatalogueWriter::serialisationVersion() const {
     return TocHandler::serialisationVersion();
 }
 

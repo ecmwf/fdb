@@ -27,7 +27,6 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/PurgeVisitor.h"
-#include "fdb5/database/SerialisationVersion.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/WipeVisitor.h"
 #include "fdb5/rules/Schema.h"
@@ -127,7 +126,6 @@ public:
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
     virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate() = 0;
-    virtual const SerialisationVersion& serialisationVersion() const = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

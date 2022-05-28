@@ -100,8 +100,6 @@ list( APPEND fdb5_srcs
     database/IndexStats.h
     database/Inspector.cc
     database/Inspector.h
-    database/SerialisationVersion.cc
-    database/SerialisationVersion.h
     database/StatsReportVisitor.cc
     database/StatsReportVisitor.h
     database/Store.cc
