@@ -19,6 +19,7 @@
 #include "eckit/filesystem/URI.h"
 
 #include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/Key.h"
 
 namespace eckit {
@@ -47,10 +48,7 @@ struct StatusElement {
     // The location of the Database this response is for
     eckit::URI location;
 
-    bool retrieveLocked;
-    bool archiveLocked;
-    bool listLocked;
-    bool wipeLocked;
+    ControlIdentifiers controlIdentifiers;
 
 private: // methods
 
@@ -67,6 +65,16 @@ using StatusIterator = APIIterator<StatusElement>;
 using StatusAggregateIterator = APIAggregateIterator<StatusElement>;
 
 using StatusAsyncIterator = APIAsyncIterator<StatusElement>;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+using ControlElement = StatusElement;
+
+using ControlIterator = APIIterator<ControlElement>;
+
+using ControlAggregateIterator = APIAggregateIterator<ControlElement>;
+
+using ControlAsyncIterator = APIAsyncIterator<ControlElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 

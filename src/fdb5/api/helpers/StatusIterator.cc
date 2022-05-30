@@ -18,33 +18,29 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+using value_type = typename std::underlying_type<ControlIdentifier>::type;
+
 StatusElement::StatusElement() :
     location() {}
 
 StatusElement::StatusElement(const Catalogue& catalogue) :
-    key(catalogue.key()),
-    location(catalogue.uri()),
-    retrieveLocked(!catalogue.enabled(ControlIdentifier::Retrieve)),
-    archiveLocked(!catalogue.enabled(ControlIdentifier::Archive)),
-    listLocked(!catalogue.enabled(ControlIdentifier::List)),
-    wipeLocked(!catalogue.enabled(ControlIdentifier::Wipe)) {}
+    key(catalogue.key()), location(catalogue.uri()) {
+        
+    controlIdentifiers = ControlIdentifier::None;
+    for (auto id : ControlIdentifierList) {
+        if (!catalogue.enabled(id)) controlIdentifiers |= id;
+    }
+}
 
 StatusElement::StatusElement(eckit::Stream &s) :
     key(s),
-    location(s) {
-    s >> retrieveLocked;
-    s >> archiveLocked;
-    s >> listLocked;
-    s >> wipeLocked;
-}
+    location(s),
+    controlIdentifiers(s) {}
 
 void StatusElement::encode(eckit::Stream& s) const {
     s << key;
     s << location;
-    s << retrieveLocked;
-    s << archiveLocked;
-    s << listLocked;
-    s << wipeLocked;
+    s << controlIdentifiers;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

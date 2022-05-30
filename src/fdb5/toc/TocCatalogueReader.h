@@ -36,8 +36,6 @@ public: // methods
     std::vector<Index> indexes(bool sorted) const override;
     DbStats stats() const override { return TocHandler::stats(); }
 
-    bool enabled(const ControlIdentifier& controlIdentifier) const override;
-
 private: // methods
 
     void loadIndexesAndRemap();

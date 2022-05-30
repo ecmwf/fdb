@@ -122,14 +122,6 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
     return false;
 }
 
-
-bool TocCatalogueReader::enabled(const ControlIdentifier& controlIdentifier) const {
-    if (controlIdentifier == ControlIdentifier::Archive || controlIdentifier == ControlIdentifier::Wipe) {
-        return false;
-    }
-    return TocCatalogue::enabled(controlIdentifier);
-}
-
 void TocCatalogueReader::print(std::ostream &out) const {
     out << "TocCatalogueReader(" << directory() << ")";
 }

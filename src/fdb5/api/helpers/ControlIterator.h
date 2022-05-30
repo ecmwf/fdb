@@ -17,7 +17,10 @@
 
 #include "fdb5/api/helpers/APIIterator.h"
 
-#include "fdb5/api/helpers/StatusIterator.h"
+namespace eckit {
+    class Stream;
+    class PathName;
+}
 
 namespace fdb5 {
 
@@ -45,6 +48,13 @@ enum class ControlIdentifier : uint16_t {
     UniqueRoot = 1 << 4
 };
 
+static const std::initializer_list<ControlIdentifier> ControlIdentifierList {
+    ControlIdentifier::List,
+    ControlIdentifier::Retrieve,
+    ControlIdentifier::Archive,
+    ControlIdentifier::Wipe,
+    ControlIdentifier::UniqueRoot
+};
 //----------------------------------------------------------------------------------------------------------------------
 
 // An iterator to facilitate working with the ControlIdentifiers structure
@@ -111,16 +121,6 @@ private:
 };
 
 ControlIdentifiers operator|(const ControlIdentifier& lhs, const ControlIdentifier& rhs);
-
-//----------------------------------------------------------------------------------------------------------------------
-
-using ControlElement = StatusElement;
-
-using ControlIterator = APIIterator<ControlElement>;
-
-using ControlAggregateIterator = APIAggregateIterator<ControlElement>;
-
-using ControlAsyncIterator = APIAsyncIterator<ControlElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 

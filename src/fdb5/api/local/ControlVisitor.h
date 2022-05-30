@@ -15,7 +15,7 @@
 #define fdb5_api_local_ControlVisitor_H
 
 #include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/StatusIterator.h"
 
 
 namespace fdb5 {

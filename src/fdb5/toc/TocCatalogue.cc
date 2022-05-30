@@ -154,7 +154,7 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
 }
 
 bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
-    return !(controlIdentifiers_.has(controlIdentifier)) && TocHandler::enabled(controlIdentifier);
+    return Catalogue::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
