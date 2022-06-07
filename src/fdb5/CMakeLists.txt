@@ -282,6 +282,7 @@ if( HAVE_TOCFDB )
 
     list( APPEND fdb5_tools
         fdb-wipe
+        fdb-move
         fdb-stats
         fdb-purge
         fdb-dump-toc
