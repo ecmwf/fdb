@@ -7,5 +7,5 @@ retrieve,
 	domain=g,
 	type=fc,
 	levtype=sfc,
-	step=12,
-    param=166/166
+	step=3,
+    param=166

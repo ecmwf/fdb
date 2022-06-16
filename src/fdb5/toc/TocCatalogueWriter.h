@@ -22,6 +22,7 @@
 #include "fdb5/toc/TocRecord.h"
 
 #include "fdb5/toc/TocCatalogue.h"
+#include "fdb5/toc/TocSerialisationVersion.h"
 
 namespace fdb5 {
 
@@ -55,6 +56,7 @@ public: // methods
     void hideContents() override;
 
     const Index& currentIndex() override;
+    const TocSerialisationVersion& serialisationVersion() const;
 
 protected: // methods
 

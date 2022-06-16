@@ -139,4 +139,4 @@ CatalogueBuilderBase::~CatalogueBuilderBase() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace eckit
+}  // namespace fdb5

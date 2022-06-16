@@ -1,6 +1,7 @@
 ---
 type: local
 engine: toc
+tocSerialisationVersion: 3
 schema: ./schema
 spaces:
 - handler: Default
