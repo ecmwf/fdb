@@ -268,6 +268,8 @@ if( HAVE_TOCFDB )
         toc/TocIndexLocation.h
         toc/TocPurgeVisitor.cc
         toc/TocPurgeVisitor.h
+        toc/TocSerialisationVersion.cc
+        toc/TocSerialisationVersion.h
         toc/TocWipeVisitor.cc
         toc/TocWipeVisitor.h
         toc/TocRecord.cc

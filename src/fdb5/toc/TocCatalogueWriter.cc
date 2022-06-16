@@ -198,14 +198,14 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
         // We need to explicitly mask indexes in the master TOC
         if (!indexInSubtoc[i]) {
             Index& idx(readIndexes[i]);
-            TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_CLEAR);
+            TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_CLEAR);
             combinedSize += roundRecord(*r, buildClearRecord(*r, idx));
             Log::info() << "Masking index: " << idx.location().uri() << std::endl;
         }
     }
 
     for (const std::string& subtoc_path : subtocs) {
-        TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_CLEAR);
+        TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_CLEAR);
         combinedSize += roundRecord(*r, buildSubTocMaskRecord(*r, subtoc_path));
         Log::info() << "Masking sub-toc: " << subtoc_path << std::endl;
     }
@@ -225,6 +225,9 @@ const Index& TocCatalogueWriter::currentIndex() {
     return current_;
 }
 
+const TocSerialisationVersion& TocCatalogueWriter::serialisationVersion() const {
+    return TocHandler::serialisationVersion();
+}
 
 void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std::string>& variableKeys, bool unmount) {
 
@@ -377,14 +380,14 @@ void TocCatalogueWriter::compactSubTocIndexes() {
             if (idx.dirty()) {
 
                 idx.flush();
-                TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_INDEX);
+                TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_INDEX);
                 combinedSize += roundRecord(*r, buildIndexRecord(*r, idx));
             }
         }
 
         // And add the masking record for the subtoc
 
-        TocRecord* r = new (&buf[combinedSize]) TocRecord(TocRecord::TOC_CLEAR);
+        TocRecord* r = new (&buf[combinedSize]) TocRecord(serialisationVersion().used(), TocRecord::TOC_CLEAR);
         combinedSize += roundRecord(*r, buildSubTocMaskRecord(*r));
 
         // Write all of these  records to the toc in one go.
