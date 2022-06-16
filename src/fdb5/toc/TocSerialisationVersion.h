@@ -28,18 +28,18 @@ public:
 
     /// Defines the serialisation versions the software is able to handle
     /// Entries with these versions will not issue errors
-    std::vector<unsigned int> supported() const;
+    static std::vector<unsigned int> supported();
 
     /// Latest version of serialisation the software is capable to create
     /// To be used as default
-    unsigned int latest() const;
+    static unsigned int latest();
 
     /// Default version of serialisation the software will use
     /// This may be behind the latest version
-    unsigned int defaulted() const;
+    static unsigned int defaulted();
 
     /// List of supported versions as a string
-    std::string supportedStr() const;
+    static std::string supportedStr();
 
     /// Defines the serialisation version the software is meant to create new entries with
     /// Normally is the latest()

@@ -27,13 +27,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocRecord::Header::Header(unsigned int version, unsigned char tag):
+TocRecord::Header::Header(unsigned int serialisationVersion, unsigned char tag):
     tag_(tag) {
 
     if (tag_ != TOC_NULL) {
         eckit::zero(*this);
-        tag_        = tag;
-        version_    = version;
+        tag_                  = tag;
+        serialisationVersion_ = serialisationVersion;
 
         fdbVersion_ = ::fdb5_version_int();
 
@@ -50,8 +50,8 @@ TocRecord::Header::Header(unsigned int version, unsigned char tag):
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocRecord::TocRecord(unsigned int version, unsigned char tag):
-    header_(version, tag) {}
+TocRecord::TocRecord(unsigned int serialisationVersion, unsigned char tag):
+    header_(serialisationVersion, tag) {}
 
 void TocRecord::dump(std::ostream& out, bool simple) const {
 
@@ -89,7 +89,7 @@ void TocRecord::dump(std::ostream& out, bool simple) const {
         << oss.str().substr(2)
         << std::setfill(' ')
         << ", version:"
-        << header_.version_
+        << header_.serialisationVersion_
         << ", fdb: "
         << header_.fdbVersion_
         << ", uid: "
@@ -115,7 +115,7 @@ void TocRecord::dump(std::ostream& out, bool simple) const {
 void TocRecord::print(std::ostream & out) const {
     out << "TocRecord["
         << "tag=" << header_.tag_ << ","
-        << "tocVersion=" << header_.version_ << ","
+        << "tocVersion=" << header_.serialisationVersion_ << ","
         << "fdbVersion=" << header_.fdbVersion_ << ","
         << "timestamp=" << header_.timestamp_.tv_sec << "." << header_.timestamp_.tv_usec << ","
         << "pid=" << header_.pid_ << ","
