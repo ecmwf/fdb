@@ -91,7 +91,8 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& roo
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
         if (i->exists() && i->enabled(ControlIdentifier::List)) {
             eckit::PathName fullDB = i->path() / db;
-            if (fullDB.exists()) {
+            eckit::PathName dbToc = i->path() / db / "toc";
+            if (fullDB.exists() && dbToc.exists()) {
                 matchList += (count == 0 ? "" : ", ") + fullDB;
 
                 bool allowMultipleDbs = (fullDB / (controlfile_lookup.find(ControlIdentifier::UniqueRoot)->second)).exists();
