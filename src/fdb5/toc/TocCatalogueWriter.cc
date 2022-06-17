@@ -67,6 +67,7 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
     current_ = indexes_[key];
     current_.open();
+    current_.flock();
 
     // If we are using subtocs, then we need to maintain a duplicate index that doesn't get flushed
     // each step.
@@ -88,6 +89,7 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
         currentFull_ = fullIndexes_[key];
         currentFull_.open();
+        currentFull_.flock();
     }
 
     return true;

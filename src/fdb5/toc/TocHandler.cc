@@ -45,15 +45,15 @@ namespace {
     constexpr const char* list_lock_file = "list.lock";
     constexpr const char* wipe_lock_file = "wipe.lock";
     constexpr const char* allow_duplicates_file = "duplicates.allow";
-
-    const std::map<ControlIdentifier, std::string> controlfile_lookup {
-        {ControlIdentifier::Retrieve, retrieve_lock_file},
-        {ControlIdentifier::Archive, archive_lock_file},
-        {ControlIdentifier::List, list_lock_file},
-        {ControlIdentifier::Wipe, wipe_lock_file},
-        {ControlIdentifier::UniqueRoot, allow_duplicates_file}
-    };
 }
+
+const std::map<ControlIdentifier, const char*> controlfile_lookup {
+    {ControlIdentifier::Retrieve, retrieve_lock_file},
+    {ControlIdentifier::Archive, archive_lock_file},
+    {ControlIdentifier::List, list_lock_file},
+    {ControlIdentifier::Wipe, wipe_lock_file},
+    {ControlIdentifier::UniqueRoot, allow_duplicates_file}
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

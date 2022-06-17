@@ -76,6 +76,9 @@ public: // methods
     eckit::PathName path() const { return location_.uri().path(); }
     off_t offset() const { return location_.offset(); }
 
+    void flock() const override;
+    void funlock() const override;
+    
 private: // methods
 
     const IndexLocation& location() const override { return location_; }

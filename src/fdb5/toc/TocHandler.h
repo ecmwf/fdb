@@ -42,6 +42,10 @@ class Key;
 class Index;
 
 //----------------------------------------------------------------------------------------------------------------------
+
+extern const std::map<ControlIdentifier, const char*> controlfile_lookup;
+
+//----------------------------------------------------------------------------------------------------------------------
 class TocCopyWatcher : public eckit::TransferWatcher {
 
     void fromHandleOpened() override {

@@ -17,6 +17,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/FileSpaceHandler.h"
+#include "fdb5/toc/TocHandler.h"
 
 using eckit::Log;
 
@@ -28,10 +29,6 @@ struct VectorPrintSelector<fdb5::Root> {
 }  // namespace eckit
 
 namespace fdb5 {
-
-namespace {
-    constexpr const char* allow_multiple_dbs = "allow_multiple_dbs";
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -96,7 +93,8 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& roo
             eckit::PathName fullDB = i->path() / db;
             if (fullDB.exists()) {
                 matchList += (count == 0 ? "" : ", ") + fullDB;
-                bool allowMultipleDbs = (fullDB / allow_multiple_dbs).exists();
+
+                bool allowMultipleDbs = (fullDB / (controlfile_lookup.find(ControlIdentifier::UniqueRoot)->second)).exists();
                 if (!count || allowMultipleDbs) { // take last
                     root.directory_ = i->path();
                     root.controlIdentifiers_ = i->controlIdentifiers();

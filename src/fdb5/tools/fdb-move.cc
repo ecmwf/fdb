@@ -9,6 +9,7 @@
  */
 
 #include <dirent.h>
+#include <sys/file.h>
 
 #include "eckit/io/FileHandle.h"
 #include "eckit/option/CmdArgs.h"
@@ -98,12 +99,23 @@ void FDBMove::execute(const CmdArgs& args) {
 
         auto statusIterator = fdb.control(request, ControlAction::Disable, ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
 
-
         size_t count = 0;
         ControlElement elem;
         while (statusIterator.next(elem)) {
+            eckit::PathName db = elem.location.path().baseName(true);
+
+            eckit::PathName dest_db = destination_ / db;
+            if(dest_db.exists()) {
+                std::stringstream ss;
+                ss << "Destination folder " << dest_db << " already exist";
+                throw UserError(ss.str(), Here());
+            }
+            dest_db.mkdir();
+
             Log::info() << "Database: " << elem.key << std::endl
-                        << "  location: " << elem.location.asString() << std::endl;
+                        << "  location: " << elem.location.asString() << std::endl
+                        << "  new location: " << dest_db << std::endl;
+
 
             ASSERT(elem.controlIdentifiers.has(ControlIdentifier::Archive));
             ASSERT(elem.controlIdentifiers.has(ControlIdentifier::Wipe));
@@ -114,16 +126,36 @@ void FDBMove::execute(const CmdArgs& args) {
             DIR* dirp = ::opendir(elem.location.asString().c_str());
             struct dirent* dp;
             while ((dp = readdir(dirp)) != NULL) {
-                if (strstr( dp->d_name, ".data") ||
-                    strstr( dp->d_name, ".index") ||
-                    strstr( dp->d_name, "toc.")) {
-                    pool.push(new FileCopy(elem.location.path(), destination_, dp->d_name));
+                if (strstr( dp->d_name, ".index")) {
+
+                    eckit::PathName src_ = elem.location.path() / dp->d_name;
+                    int fd = ::open(src_.asString().c_str(), O_RDWR);
+                    if(::flock(fd, LOCK_EX)) {
+                        std::stringstream ss;
+                        ss << "Index file " << dp->d_name << " is locked";
+                        throw UserError(ss.str(), Here());
+                    }
+
+                    eckit::FileHandle src(src_);
+                    eckit::FileHandle dest(dest_db / dp->d_name);
+                    src.copyTo(dest);
                 }
             }
-            (void)closedir(dirp);
+            closedir(dirp);
+
+            dirp = ::opendir(elem.location.asString().c_str());
+            while ((dp = readdir(dirp)) != NULL) {
+                if (strstr( dp->d_name, ".data") ||
+                    strstr( dp->d_name, "toc.") ||
+                    strstr( dp->d_name, "schema")) {
+
+                    pool.push(new FileCopy(elem.location.path(), dest_db, dp->d_name));
+                }
+            }
+            closedir(dirp);
 
             pool.wait();
-            pool.push(new FileCopy(elem.location.path(), destination_, "toc"));
+            pool.push(new FileCopy(elem.location.path(), dest_db, "toc"));
             pool.wait();
 
             count++;
