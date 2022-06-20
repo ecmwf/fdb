@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 #include <unordered_set>
+#include <string.h>
 
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/FileDescHandle.h"
@@ -83,7 +84,7 @@ struct KeyHasher {
 };
 struct fdb_listiterator_t {
 public:
-    fdb_listiterator_t() : el_(nullptr), iter_(nullptr), full_(false) {}
+    fdb_listiterator_t(bool duplicates) : el_(nullptr), iter_(nullptr), full_(duplicates) {}
 
     void set(ListIterator&& iter) {
         iter_.reset(new ListIteratorHolder(std::move(iter)));
@@ -382,6 +383,25 @@ int fdb_key_add(fdb_key_t* key, const char* param, const char* value) {
         key->set(std::string(param), std::string(value));
     });
 }
+int fdb_key_dict(fdb_key_t* key, key_dict_t** dict, size_t* lenght) {
+    return wrapApiFunction([key, dict, lenght]{
+        ASSERT(key);
+        ASSERT(dict);
+        ASSERT(lenght);
+        const eckit::StringDict& keyDict = key->keyDict();
+        *lenght = keyDict.size();
+        *dict = (key_dict_t*) malloc((*lenght) * sizeof(key_dict_t));
+        int i=0;
+        for (auto k: keyDict) {
+            (*dict)[i].key = (char*)malloc(k.first.length()+1);
+            strcpy((*dict)[i].key, k.first.c_str());
+            (*dict)[i].value = (char*)malloc(k.second.length()+1);
+            strcpy((*dict)[i].value, k.second.c_str());
+            i++;
+        }
+    });
+}
+
 int fdb_delete_key(fdb_key_t* key) {
     return wrapApiFunction([key]{
         ASSERT(key);
@@ -409,9 +429,9 @@ int fdb_delete_request(fdb_request_t* req) {
     });
 }
 
-int fdb_new_listiterator(fdb_listiterator_t** it) {
-    return wrapApiFunction([it]{
-        *it = new fdb_listiterator_t();
+int fdb_new_listiterator(fdb_listiterator_t** it, bool duplicates) {
+    return wrapApiFunction([it, duplicates]{
+        *it = new fdb_listiterator_t(duplicates);
     });
 }
 int fdb_listiterator_next(fdb_listiterator_t* it) {
