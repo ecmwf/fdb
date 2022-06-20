@@ -7,6 +7,7 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
+#include <unordered_set>
 
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/FileDescHandle.h"
@@ -72,43 +73,73 @@ public:
 
 private:
     ListIterator iter_;
+
 };
 
+struct KeyHasher {
+    size_t operator() (const Key& key) const {
+        return std::hash<std::string>()(key.valuesToString());
+    }
+};
 struct fdb_listiterator_t {
 public:
-    fdb_listiterator_t() : str_(nullptr), strLength_(0), iter_(nullptr) {}
+    fdb_listiterator_t() : el_(nullptr), iter_(nullptr), full_(false) {}
 
     void set(ListIterator&& iter) {
         iter_.reset(new ListIteratorHolder(std::move(iter)));
     }
 
-    bool next(const char** str) {
-        if (!iter_)
-            return false;
-
-        ListElement* el = new ListElement();
-        bool exist = iter_->get().next(*el);
-
-        if (exist) {
-            std::stringstream ss;
-            ss << *el;
-            std::string s = ss.str();
-
-            if (str_ == nullptr || strLength_ < s.length()+1) {
-                strLength_ = s.length()+20;
-                str_ = (char*) realloc(str_, strLength_);
-            }
-            strcpy(str_, s.c_str());
-            (*str) = str_;
+    int next() {
+        ASSERT(iter_);
+        
+        if (!el_) {
+            el_ = new ListElement();
         }
-        delete(el);
-        return exist;
+        
+        while (iter_->get().next(*el_)) {
+        
+            bool include = false;
+            if (full_) {
+                include = true;
+            } else {
+                Key combinedKey = el_->combinedKey();
+
+                if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
+                    include = true;
+                    seenKeys_.emplace(std::move(combinedKey));
+                }
+            }
+
+            if (include) {
+                return FDB_SUCCESS;
+            }
+        }
+        delete(el_);
+        return FDB_ITERATION_COMPLETE;
+    }
+
+    void attrs(char** uri, size_t* off, size_t* len) {
+        ASSERT(el_);
+
+        const FieldLocation& loc = el_->location();
+        strcpy(*uri, loc.uri().name().c_str());
+        *off = loc.offset();
+        *len = loc.length();
+    }
+
+    void key(fdb_key_t *key) {
+        ASSERT(el_);
+
+        for (auto k : el_->combinedKey()) {
+            key->set(k.first, k.second);
+        }
     }
 
 private:
-    char* str_;
-    size_t strLength_;
+    ListElement* el_;
     std::unique_ptr<ListIteratorHolder> iter_;
+    bool full_;
+    std::unordered_set<Key, KeyHasher> seenKeys_;
 };
 
 struct fdb_datareader_t {
@@ -162,8 +193,8 @@ const char* fdb_error_string(int err) {
     case FDB_ERROR_GENERAL_EXCEPTION:
     case FDB_ERROR_UNKNOWN_EXCEPTION:
         return g_current_error_str.c_str();
-//    case FDB_ITERATION_COMPLETE:
-//        return "Iteration complete";
+    case FDB_ITERATION_COMPLETE:
+        return "Iteration complete";
     default:
         return "<unknown>";
     };
@@ -177,6 +208,9 @@ const char* fdb_error_string(int err) {
 namespace {
 
 // Template magic to provide a consistent error-handling approach
+int innerWrapFn(std::function<int()> f) {
+    return f();
+}
 
 int innerWrapFn(std::function<void()> f) {
     f();
@@ -380,14 +414,29 @@ int fdb_new_listiterator(fdb_listiterator_t** it) {
         *it = new fdb_listiterator_t();
     });
 }
-int fdb_listiterator_next(fdb_listiterator_t* it, bool* exist, const char** str) {
-    return wrapApiFunction([it, exist, str] {
+int fdb_listiterator_next(fdb_listiterator_t* it) {
+    return wrapApiFunction(std::function<int()> {[it] {
         ASSERT(it);
-        ASSERT(exist);
-        ASSERT(str);
-        *exist = it->next(str);
+        return it->next();
+    }});
+}
+int fdb_listiterator_attrs(fdb_listiterator_t* it, char** uri, size_t* off, size_t* len) {
+    return wrapApiFunction([it, uri, off, len] {
+        ASSERT(it);
+        ASSERT(uri);
+        ASSERT(off);
+        ASSERT(len);
+        it->attrs(uri, off, len);
     });
 }
+int fdb_listiterator_key(fdb_listiterator_t* it, fdb_key_t* key) {
+    return wrapApiFunction([it, key] {
+        ASSERT(it);
+        ASSERT(key);
+        it->key(key);
+    });
+}
+
 int fdb_delete_listiterator(fdb_listiterator_t* it) {
     return wrapApiFunction([it]{
         ASSERT(it);

@@ -18,6 +18,7 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
+#include "fdb5/database/Key.h"
 
 #include "fdb5/api/fdb_c.h"
 
@@ -80,21 +81,39 @@ CASE( "fdb_c - archive & list" ) {
     fdb_request_add1(request, "expver", "xxxx");
 
     const char **item= new const char*;
-    bool exist;
     fdb_listiterator_t* it;
     fdb_new_listiterator(&it);
     fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    std::string s1("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=300,param=138}");
-    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
+    int err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+    
+    fdb_key_t* k;
+    fdb_new_key(&k);
+    fdb_listiterator_key(it, k);
+
+    fdb5::Key k1test{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g,type=an,levtype=pl,step=0,levelist=300,param=138"};
+    EXPECT(((fdb5::Key*) k)->match(k1test));
+    EXPECT(k1test.match(*((fdb5::Key*) k)));
+    fdb_delete_key(k);
+
+    err = fdb_listiterator_next(it);
+    std::cout << err << " expecting " << FDB_ITERATION_COMPLETE << std::endl;
+
+    int i=1;
+    while (err == FDB_SUCCESS) {
+        err = fdb_listiterator_next(it);
+        std::cout << "iter: " << i << " - " << err << " expecting " << FDB_ITERATION_COMPLETE << std::endl;
+        i++;
+    }
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
+
 
     fdb_request_add1(request, "param", "139");
     fdb_new_listiterator(&it);
     fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(!exist);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
     fdb_key_add(key, "levelist", "400");
@@ -113,32 +132,53 @@ CASE( "fdb_c - archive & list" ) {
     fdb_request_add1(request, "levelist", "400");
     fdb_new_listiterator(&it);
     fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(!exist);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
 
     fdb_request_add1(request, "param", "138");
     fdb_new_listiterator(&it);
     fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    std::string s2("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=400,param=138}");
-    EXPECT_NOT_EQUAL(std::string(*item).find(s2), std::string::npos);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+    
+    fdb_new_key(&k);
+    fdb_listiterator_key(it, k);
+    fdb5::Key k2test{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g,type=an,levtype=pl,step=0,levelist=400,param=138"};
+    EXPECT(((fdb5::Key*) k)->match(k2test));
+    EXPECT(k2test.match(*((fdb5::Key*) k)));
+    fdb_delete_key(k);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
     const char* values[] = {"400", "300"};
     fdb_request_add(request, "levelist", values, 2);
     fdb_new_listiterator(&it);
     fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    EXPECT_NOT_EQUAL(std::string(*item).find(s2), std::string::npos);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
-    fdb_delete_listiterator(it);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
 
+    fdb_new_key(&k);
+    fdb_listiterator_key(it, k);
+    EXPECT(((fdb5::Key*) k)->match(k2test));
+    EXPECT(k2test.match(*((fdb5::Key*) k)));
+    fdb_delete_key(k);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+
+    fdb_new_key(&k);
+    fdb_listiterator_key(it, k);
+    EXPECT(((fdb5::Key*) k)->match(k1test));
+    EXPECT(k1test.match(*((fdb5::Key*) k)));
+    fdb_delete_key(k);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
+    fdb_delete_listiterator(it);
 
     fdb_key_add(key, "expver", "xxxy");
 
@@ -160,8 +200,8 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_handle_t* fdb;
     fdb_new_handle(&fdb);
 
-    std::string s1("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=300,param=138}");
-    std::string s2("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=400,param=138}");
+    fdb5::Key k1{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g,type=an,levtype=pl,step=0,levelist=300,param=138"};
+    fdb5::Key k2{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g,type=an,levtype=pl,step=0,levelist=400,param=138"};
 
     eckit::PathName grib1("x138-300.grib");
     length1 = grib1.size();
@@ -248,16 +288,25 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_listiterator_t* it;
     fdb_new_listiterator(&it);
     fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
+    int err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+    
+    fdb_key_t* k;
+    fdb_new_key(&k);
+    fdb_listiterator_key(it, k);
+    EXPECT(((fdb5::Key*) k)->match(k1));
+    EXPECT(k1.match(*((fdb5::Key*) k)));
+    fdb_delete_key(k);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
     fdb_request_add1(request, "step", "1");
     fdb_new_listiterator(&it);
     fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(!exist);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
     fdb_request_add1(request, "step", "0");
@@ -265,12 +314,26 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_request_add(request, "levelist", values, 2);
     fdb_new_listiterator(&it);
     fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    EXPECT_NOT_EQUAL(std::string(*item).find(s2), std::string::npos);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+    
+    fdb_new_key(&k);
+    fdb_listiterator_key(it, k);
+    EXPECT(((fdb5::Key*) k)->match(k1));
+    EXPECT(k1.match(*((fdb5::Key*) k)));
+    fdb_delete_key(k);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+    
+    fdb_new_key(&k);
+    fdb_listiterator_key(it, k);
+    EXPECT(((fdb5::Key*) k)->match(k2));
+    EXPECT(k2.match(*((fdb5::Key*) k)));
+    fdb_delete_key(k);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 }
 

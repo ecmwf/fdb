@@ -56,7 +56,8 @@ int fdb_vcs_version(const char** version);
 enum FdbErrorValues {
     FDB_SUCCESS                  = 0,
     FDB_ERROR_GENERAL_EXCEPTION  = 1,
-    FDB_ERROR_UNKNOWN_EXCEPTION  = 2
+    FDB_ERROR_UNKNOWN_EXCEPTION  = 2,
+    FDB_ITERATION_COMPLETE       = 3
 };
 
 const char* fdb_error_string(int err);
@@ -127,7 +128,10 @@ int fdb_request_add(fdb_request_t* req, const char* param, const char* values[],
 int fdb_delete_request(fdb_request_t* req);
 
 int fdb_new_listiterator(fdb_listiterator_t** it);
-int fdb_listiterator_next(fdb_listiterator_t* it, bool* exist, const char** str);
+int fdb_listiterator_next(fdb_listiterator_t* it);
+int fdb_listiterator_attrs(fdb_listiterator_t* it, char** uri, size_t* off, size_t* len);
+int fdb_listiterator_key(fdb_listiterator_t* it, fdb_key_t* key);
+
 int fdb_delete_listiterator(fdb_listiterator_t* it);
 
 int fdb_new_datareader(fdb_datareader_t** dr);
