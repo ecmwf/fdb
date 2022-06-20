@@ -9,7 +9,7 @@
  */
 
 #include <dirent.h>
-#include <sys/file.h>
+#include <fcntl.h>
 
 #include "eckit/io/FileHandle.h"
 #include "eckit/option/CmdArgs.h"
