@@ -123,7 +123,9 @@ public:
         ASSERT(el_);
 
         const FieldLocation& loc = el_->location();
-        strcpy(*uri, loc.uri().name().c_str());
+        const std::string path = loc.uri().name();
+        *uri = (char *) malloc((path.length()+1) * sizeof(char));
+        strcpy(*uri, path.c_str());
         *off = loc.offset();
         *len = loc.length();
     }
@@ -383,14 +385,15 @@ int fdb_key_add(fdb_key_t* key, const char* param, const char* value) {
         key->set(std::string(param), std::string(value));
     });
 }
-int fdb_key_dict(fdb_key_t* key, key_dict_t** dict, size_t* lenght) {
-    return wrapApiFunction([key, dict, lenght]{
+
+int fdb_key_dict(fdb_key_t* key, fdb_key_dict_t** dict, size_t* length) {
+    return wrapApiFunction([key, dict, length]{
         ASSERT(key);
         ASSERT(dict);
-        ASSERT(lenght);
+        ASSERT(length);
         const eckit::StringDict& keyDict = key->keyDict();
-        *lenght = keyDict.size();
-        *dict = (key_dict_t*) malloc((*lenght) * sizeof(key_dict_t));
+        *length = keyDict.size();
+        *dict = (fdb_key_dict_t*) malloc((*length) * sizeof(fdb_key_dict_t));
         int i=0;
         for (auto k: keyDict) {
             (*dict)[i].key = (char*)malloc(k.first.length()+1);
@@ -399,6 +402,16 @@ int fdb_key_dict(fdb_key_t* key, key_dict_t** dict, size_t* lenght) {
             strcpy((*dict)[i].value, k.second.c_str());
             i++;
         }
+    });
+}
+int fdb_delete_key_dict(fdb_key_dict_t* dict, size_t length) {
+    return wrapApiFunction([dict, length]{
+        ASSERT(dict);
+        for (size_t i=0; i<length; i++) {
+            free(dict[i].key);
+            free(dict[i].value);
+        }
+        free(dict);
     });
 }
 

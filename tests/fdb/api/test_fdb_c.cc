@@ -95,14 +95,15 @@ CASE( "fdb_c - archive & list" ) {
     EXPECT(((fdb5::Key*) k)->match(k1test));
     EXPECT(k1test.match(*((fdb5::Key*) k)));
 
-    key_dict_t* dict;
-    size_t lenght;
-    fdb_key_dict(k, &dict, &lenght);
-    EXPECT(lenght == 11);
+    fdb_key_dict_t* dict;
+    size_t len;
+    fdb_key_dict(k, &dict, &len);
+    EXPECT(len == 11);
     EXPECT(0 == strcmp(dict[0].key, "class"));
     EXPECT(0 == strcmp(dict[0].value, "rd"));
     EXPECT(0 == strcmp(dict[10].key, "type"));
     EXPECT(0 == strcmp(dict[10].value, "an"));
+    fdb_delete_key_dict(dict, len);
     fdb_delete_key(k);
 
     err = fdb_listiterator_next(it);

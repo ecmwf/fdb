@@ -92,10 +92,11 @@ typedef struct fdb_datareader_t fdb_datareader_t;
 struct fdb_handle_t;
 typedef struct fdb_handle_t fdb_handle_t;
 
-struct key_dict_t {
+struct fdb_key_dict_t {
     char* key;
     char* value;
 };
+typedef struct fdb_key_dict_t fdb_key_dict_t;
 ///@}
 
 /** API */
@@ -125,7 +126,8 @@ int fdb_delete_handle(fdb_handle_t* fdb);
 
 int fdb_new_key(fdb_key_t** key);
 int fdb_key_add(fdb_key_t* key, const char* param, const char* value);
-int fdb_key_dict(fdb_key_t* key, key_dict_t** dict, size_t* lenght);
+int fdb_key_dict(fdb_key_t* key, fdb_key_dict_t** dict, size_t* length);
+int fdb_delete_key_dict(fdb_key_dict_t* dict, size_t length);
 int fdb_delete_key(fdb_key_t* key);
 
 int fdb_new_request(fdb_request_t** req);
