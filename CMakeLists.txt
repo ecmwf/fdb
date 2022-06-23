@@ -59,6 +59,23 @@ ecbuild_add_option( FEATURE FDB_REMOTE
                     DEFAULT ON
                     DESCRIPTION "Support for FDB remote access" )
 
+ecbuild_add_option( FEATURE DUMMY_DAOS
+                    #CONDITION fdb5_HAVE_DAOSFDB
+                    DEFAULT OFF
+                    DESCRIPTION "Use dummy DAOS library emulating DAOS with a file system" )
+
+if(HAVE_DUMMY_DAOS)
+    set(DAOS_FOUND TRUE)
+    set(DAOS_LIBRARIES daos)
+else()
+#    find_package(DAOS QUIET)
+endif()
+
+ecbuild_add_option( FEATURE DAOSFDB
+                    CONDITION DAOS_FOUND 
+                    DEFAULT ON
+                    DESCRIPTION "DAOS support for FDB Store" )
+
 ecbuild_add_option( FEATURE EXPERIMENTAL
                     DEFAULT OFF
                     DESCRIPTION "Experimental features" )
