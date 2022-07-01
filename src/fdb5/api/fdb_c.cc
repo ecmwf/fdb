@@ -68,81 +68,54 @@ private:
 
 class ListIteratorHolder {
 public:
-    ListIteratorHolder(ListIterator&& iter) : iter_(std::move(iter)) {}
+    ListIteratorHolder(ListDedupIterator& iter) : iter_(std::move(iter)) {}
 
-    ListIterator& get() { return iter_; }
+    ListDedupIterator& get() { return iter_; }
 
 private:
-    ListIterator iter_;
+    ListDedupIterator iter_;
 
 };
 
-struct KeyHasher {
-    size_t operator() (const Key& key) const {
-        return std::hash<std::string>()(key.valuesToString());
-    }
-};
 struct fdb_listiterator_t {
 public:
-    fdb_listiterator_t(bool duplicates) : el_(nullptr), iter_(nullptr), full_(duplicates) {}
+    fdb_listiterator_t() : validEl_(false), iter_(nullptr) {}
 
-    void set(ListIterator&& iter) {
-        iter_.reset(new ListIteratorHolder(std::move(iter)));
+    void set(ListDedupIterator* iter) {
+        iter_.reset(iter);
     }
 
     int next() {
         ASSERT(iter_);
         
-        if (!el_) {
-            el_ = new ListElement();
-        }
-        
-        while (iter_->get().next(*el_)) {
-        
-            bool include = false;
-            if (full_) {
-                include = true;
-            } else {
-                Key combinedKey = el_->combinedKey();
+        validEl_ = iter_->next(el_);
 
-                if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
-                    include = true;
-                    seenKeys_.emplace(std::move(combinedKey));
-                }
-            }
-
-            if (include) {
-                return FDB_SUCCESS;
-            }
-        }
-        delete(el_);
-        return FDB_ITERATION_COMPLETE;
+        return validEl_ ? FDB_SUCCESS : FDB_ITERATION_COMPLETE;
     }
 
     void attrs(char** uri, size_t* off, size_t* len) {
-        ASSERT(el_);
+        ASSERT(validEl_);
 
-        const FieldLocation& loc = el_->location();
+        const FieldLocation& loc = el_.location();
         const std::string path = loc.uri().name();
-        *uri = (char *) malloc((path.length()+1) * sizeof(char));
+        *uri = new char[path.length()+1];
         strcpy(*uri, path.c_str());
         *off = loc.offset();
         *len = loc.length();
     }
 
     void key(fdb_key_t *key) {
-        ASSERT(el_);
+        ASSERT(validEl_);
 
-        for (auto k : el_->combinedKey()) {
+        for (auto k : el_.combinedKey()) {
             key->set(k.first, k.second);
         }
     }
 
 private:
-    ListElement* el_;
-    std::unique_ptr<ListIteratorHolder> iter_;
-    bool full_;
-    std::unordered_set<Key, KeyHasher> seenKeys_;
+    bool validEl_;
+    ListElement el_;
+    std::unique_ptr<ListDedupIterator> iter_;
 };
 
 struct fdb_datareader_t {
@@ -334,8 +307,8 @@ int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data
     });
 }
 
-int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t* it) {
-    return wrapApiFunction([fdb, req, it] {
+int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, bool duplicates, fdb_listiterator_t* it) {
+    return wrapApiFunction([fdb, req, duplicates, it] {
         ASSERT(fdb);
         ASSERT(it);
 
@@ -344,7 +317,7 @@ int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t* it
             req ? req->request() : metkit::mars::MarsRequest(),
             req == nullptr, minKeySet);
 
-        it->set(fdb->list(toolRequest));
+        it->set(new ListDedupIterator(fdb->list(toolRequest), duplicates));
     });
 }
 int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr) {
@@ -393,12 +366,12 @@ int fdb_key_dict(fdb_key_t* key, fdb_key_dict_t** dict, size_t* length) {
         ASSERT(length);
         const eckit::StringDict& keyDict = key->keyDict();
         *length = keyDict.size();
-        *dict = (fdb_key_dict_t*) malloc((*length) * sizeof(fdb_key_dict_t));
+        *dict = new fdb_key_dict_t[*length];
         int i=0;
         for (auto k: keyDict) {
-            (*dict)[i].key = (char*)malloc(k.first.length()+1);
+            (*dict)[i].key = new char[k.first.length()+1];
             strcpy((*dict)[i].key, k.first.c_str());
-            (*dict)[i].value = (char*)malloc(k.second.length()+1);
+            (*dict)[i].value = new char[k.second.length()+1];
             strcpy((*dict)[i].value, k.second.c_str());
             i++;
         }
@@ -408,10 +381,17 @@ int fdb_delete_key_dict(fdb_key_dict_t* dict, size_t length) {
     return wrapApiFunction([dict, length]{
         ASSERT(dict);
         for (size_t i=0; i<length; i++) {
-            free(dict[i].key);
-            free(dict[i].value);
+            delete dict[i].key;
+            delete dict[i].value;
         }
-        free(dict);
+        delete dict;
+    });
+}
+
+int fdb_delete_uri(char* uri) {
+    return wrapApiFunction([uri]{
+        ASSERT(uri);
+        delete uri;
     });
 }
 
@@ -442,9 +422,9 @@ int fdb_delete_request(fdb_request_t* req) {
     });
 }
 
-int fdb_new_listiterator(fdb_listiterator_t** it, bool duplicates) {
-    return wrapApiFunction([it, duplicates]{
-        *it = new fdb_listiterator_t(duplicates);
+int fdb_new_listiterator(fdb_listiterator_t** it) {
+    return wrapApiFunction([it]{
+        *it = new fdb_listiterator_t();
     });
 }
 int fdb_listiterator_next(fdb_listiterator_t* it) {

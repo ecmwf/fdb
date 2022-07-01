@@ -79,19 +79,9 @@ void FDBList::init(const CmdArgs& args) {
     /// @todo option ignore-errors
 }
 
-
-struct KeyHasher {
-    size_t operator() (const Key& key) const {
-        return std::hash<std::string>()(key.valuesToString());
-    }
-};
-
-
 void FDBList::execute(const CmdArgs& args) {
 
     FDB fdb(config(args));
-
-    std::unordered_set<Key, KeyHasher> seenKeys_;
 
     std::unique_ptr<JSON> json;
     if (json_) {
@@ -107,38 +97,19 @@ void FDBList::execute(const CmdArgs& args) {
             Log::info() << std::endl;
         }
 
-        auto listObject = fdb.list(request);
+        // If --full is supplied, then include all entries including duplicates.
+        auto listObject = ListDedupIterator(fdb.list(request), full_);
 
         size_t count = 0;
         ListElement elem;
         while (listObject.next(elem)) {
 
-            // If --full is supplied, then include all entries including duplicates.
-            // If --full is not supplied, then test for duplicates
-            // @note we do this check here, not in the ListVisitor, as we may have multiple
-            //       list visitors (e.g. with DistFDB), and we need to deduplicate the
-            //       resultant stream.
-
-            bool include = false;
-            if (full_) {
-                include = true;
+            if (json_) {
+                (*json) << elem;
             } else {
-                Key combinedKey = elem.combinedKey();
-
-                if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
-                    include = true;
-                    seenKeys_.emplace(std::move(combinedKey));
-                }
-            }
-
-            if (include) {
-                if (json_) {
-                    (*json) << elem;
-                } else {
-                    elem.print(Log::info(), location_, !porcelain_);
-                    Log::info() << std::endl;
-                    count++;
-                }
+                elem.print(Log::info(), location_, !porcelain_);
+                Log::info() << std::endl;
+                count++;
             }
         }
 

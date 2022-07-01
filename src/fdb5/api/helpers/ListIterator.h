@@ -20,6 +20,7 @@
 #define fdb5_ListIterator_H
 
 #include <vector>
+#include <unordered_set>
 #include <memory>
 #include <iosfwd>
 #include <chrono>
@@ -92,6 +93,43 @@ using ListIterator = APIIterator<ListElement>;
 using ListAggregateIterator = APIAggregateIterator<ListElement>;
 
 using ListAsyncIterator = APIAsyncIterator<ListElement>;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+struct KeyHasher {
+    size_t operator() (const Key& key) const {
+        return std::hash<std::string>()(key.valuesToString());
+    }
+};
+
+class ListDedupIterator {
+
+public: // methods
+
+    ListDedupIterator(ListIterator&& iter, bool full = true) :
+        iter_(std::move(iter)), seenKeys_({}), full_(full) {}
+        
+    bool next(ListElement& elem) {
+        bool found = false;
+        do {
+            found = iter_.next(elem);
+            if (full_ || !found)
+                return found;
+
+            Key combinedKey = elem.combinedKey();
+            if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
+                seenKeys_.emplace(std::move(combinedKey));
+                return true;
+            }
+        } while(!found);
+        return false;
+    }
+
+private: // members
+    ListIterator iter_;
+    std::unordered_set<Key, KeyHasher> seenKeys_;
+    bool full_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
