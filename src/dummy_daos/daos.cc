@@ -8,19 +8,25 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   daos.cc
-/// @author Nicolau Manubens
-/// @date   Jun 2022
+/*
+ * @file   daos.cc
+ * @author Nicolau Manubens
+ * @date   Jun 2022
+ */
 
 #include <string>
 #include <iomanip>
 #include <unistd.h>
+#include <limits.h>
+#include <uuid/uuid.h>
 
+#include "eckit/runtime/Main.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/FileHandle.h"
+#include "eckit/types/UUID.h"
 
 #include "dummy_daos/daos.h"
 #include "dummy_daos/dummy_daos.h"
@@ -33,13 +39,16 @@ typedef struct daos_handle_internal_t {
     PathName path;
 } daos_handle_internal_t;
 
-// struct daos_handle_internal_t {
-//    PathName root;
-//    PathName path;
-// };
+/* struct daos_handle_internal_t {
+ *    PathName root;
+ *    PathName path;
+ * };
+ */
 
 int
 daos_init() {
+    const char* argv[2] = {"dummy-daos-api", 0};
+    eckit::Main::initialise(1, const_cast<char**>(argv));
     PathName root = dummy_daos_root();
     root.mkdir();
     return 0;
@@ -51,8 +60,8 @@ daos_fini() {
 }
 
 int
-daos_pool_connect(const char *pool, const char *sys, unsigned int flags,
-                  daos_handle_t *poh, daos_pool_info_t *info, daos_event_t *ev) {
+daos_pool_connect2(const char *pool, const char *sys, unsigned int flags,
+                   daos_handle_t *poh, daos_pool_info_t *info, daos_event_t *ev) {
 
     poh->impl = nullptr;
 
@@ -85,8 +94,19 @@ daos_pool_disconnect(daos_handle_t poh, daos_event_t *ev) {
 }
 
 int
+daos_cont_create(daos_handle_t poh, const uuid_t uuid, daos_prop_t *cont_prop, daos_event_t *ev) {
+
+    char label[37];
+
+    uuid_unparse(uuid, label);
+
+    return daos_cont_create_with_label(poh, label, cont_prop, NULL, ev);
+
+}
+
+int
 daos_cont_create_with_label(daos_handle_t poh, const char *label,
-                            daos_prop_t *cont_prop, void *uuid,
+                            daos_prop_t *cont_prop, uuid_t *uuid,
                             daos_event_t *ev) {
 
     if (cont_prop != NULL) NOTIMP;
@@ -100,8 +120,8 @@ daos_cont_create_with_label(daos_handle_t poh, const char *label,
 }
 
 int
-daos_cont_open(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
-               daos_cont_info_t *info, daos_event_t *ev) {
+daos_cont_open2(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
+                daos_cont_info_t *info, daos_event_t *ev) {
 
     if (flags != DAOS_COO_RW) NOTIMP;
     if (info != NULL) NOTIMP;
@@ -139,8 +159,24 @@ daos_cont_alloc_oids(daos_handle_t coh, daos_size_t num_oids, uint64_t *oid,
     if (ev != NULL) NOTIMP;
     ASSERT(num_oids > (uint64_t) 0);
 
+    char hostname[_POSIX_HOST_NAME_MAX + 1];
+    int res = gethostname(hostname, _POSIX_HOST_NAME_MAX + 1);
+    ASSERT(res == 0);
+    std::string hoststr(hostname);
+    eckit::UUID nid;
+    nid.fromString(hoststr);
+
     pid_t pid = getpid();
-    *oid = (((uint64_t) pid) << 48) | next_oid;
+
+    uint64_t pid_mask = 0x000000000000FFFF;
+    uint64_t oid_mask = 0x00000000FFFFFFFF;
+    ASSERT(oid_mask >= next_oid);
+
+    *oid = next_oid;
+    *oid |= ((uint64_t) (*(nid.end() - 1)) << 56);
+    *oid |= ((uint64_t) (*(nid.end())) << 48);
+    *oid |= (((uint64_t) pid) & pid_mask) << 32;
+
     next_oid += num_oids;
 
     return 0;
@@ -206,10 +242,10 @@ daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
     if (flags != 0) NOTIMP;
     if (ev != NULL) NOTIMP;
 
-    std::unique_ptr<eckit::FileHandle> fh(new eckit::FileHandle(oh.impl->path / key));
-    fh->openForWrite(eckit::Length());
-    fh->write(buf, (long) size);
-    fh->close();
+    eckit::FileHandle fh(oh.impl->path / key);
+    fh.openForWrite(eckit::Length(size));
+    eckit::AutoClose closer(fh);
+    fh.write(buf, (long) size);
 
     return 0;
 
@@ -223,15 +259,23 @@ daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
     if (flags != 0) NOTIMP;
     if (ev != NULL) NOTIMP;
 
-    std::unique_ptr<eckit::FileHandle> fh(new eckit::FileHandle(oh.impl->path / key));
-    eckit::Length len = fh->size();
+    bool exists = (oh.impl->path / key).exists();
+
+    if (!exists && buf != NULL) return 1;
+
+    *size = 0;
+    if (!exists) return 0;
+
+    eckit::FileHandle fh(oh.impl->path / key);
+    eckit::Length len = fh.size();
     *size = len;
 
     if (buf == NULL) return 0;
 
-    fh->openForRead();
-    fh->read(buf, len);
-    fh->close();
+    fh.openForRead();
+    eckit::AutoClose closer(fh);
+    long res = fh.read(buf, len);
+    ASSERT(eckit::Length(res) == len);
 
     return 0;
 
@@ -258,6 +302,10 @@ daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
                   daos_handle_t *oh, daos_event_t *ev) {
 
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
+    // the following values for cell_size and chunk_size are the only ones
+    // used so far in our tests. Using dummy DAOS with other values would require
+    // thought and implementation of a sensible mapping of these values to 
+    // corresponding behavior in the filesystem-backed dummy DAOS.
     if (cell_size != 1) NOTIMP;
     if (chunk_size != (uint64_t) 1048576) NOTIMP;
     if (ev != NULL) NOTIMP;
@@ -336,10 +384,14 @@ daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
     //sgl->sg_iovs[0].iov_buf is a void * with the data to write
     //sgl->sg_iovs[0].iov_buf_len is a size_t with the source len
 
-    std::unique_ptr<eckit::FileHandle> fh(new eckit::FileHandle(oh.impl->path));
-    fh->openForWrite(eckit::Length());
-    fh->write(sgl->sg_iovs[0].iov_buf, (long) sgl->sg_iovs[0].iov_buf_len);
-    fh->close();
+    eckit::FileHandle fh(oh.impl->path);
+
+    eckit::Length existing_len = fh.size();
+    if (eckit::Length(sgl->sg_iovs[0].iov_buf_len) < existing_len) NOTIMP;
+
+    fh.openForWrite(eckit::Length(sgl->sg_iovs[0].iov_buf_len));
+    eckit::AutoClose closer(fh);
+    fh.write(sgl->sg_iovs[0].iov_buf, (long) sgl->sg_iovs[0].iov_buf_len);
 
     return 0;
 
@@ -352,9 +404,7 @@ daos_array_get_size(daos_handle_t oh, daos_handle_t th, daos_size_t *size,
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (ev != NULL) NOTIMP;
 
-    std::unique_ptr<eckit::FileHandle> fh(new eckit::FileHandle(oh.impl->path));
-    eckit::Length len = fh->size();
-    *size = len;
+    *size = (daos_size_t) oh.impl->path.size();
 
     return 0;
     
@@ -379,13 +429,14 @@ daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
     //sgl->sg_iovs[0].iov_buf is a void * where to read the data into
     //iod->arr_rgs[0].rg_len is a size_t with the source size
 
-    std::unique_ptr<eckit::FileHandle> fh(new eckit::FileHandle(oh.impl->path));
+    eckit::FileHandle fh(oh.impl->path);
+    eckit::Length len = fh.size();
+    fh.openForRead();
+    eckit::AutoClose closer(fh);
+    long res = fh.read(sgl->sg_iovs[0].iov_buf, iod->arr_rgs[0].rg_len);
+    ASSERT(eckit::Length(res) == len);
 
-    fh->openForRead();
-    int len = fh->read(sgl->sg_iovs[0].iov_buf, iod->arr_rgs[0].rg_len);
-    fh->close();
-
-    return len;
+    return 0;
 
 }
 

@@ -2,6 +2,10 @@ ecbuild_add_library(
 
     TARGET  daos
 
+    INSTALL_HEADERS LISTED
+
+    HEADER_DESTINATION ${INSTALL_INCLUDE_DIR}
+
     SOURCES
         daos.h
         daos.cc

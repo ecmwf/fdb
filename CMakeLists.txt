@@ -67,6 +67,7 @@ ecbuild_add_option( FEATURE DUMMY_DAOS
 if(HAVE_DUMMY_DAOS)
     set(DAOS_FOUND TRUE)
     set(DAOS_LIBRARIES daos)
+    #set(DAOS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
 else()
 #    find_package(DAOS QUIET)
 endif()

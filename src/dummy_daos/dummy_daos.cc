@@ -8,9 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   dummy_daos.cc
-/// @author Nicolau Manubens
-/// @date   Jun 2022
+/*
+ * @file   dummy_daos.cc
+ * @author Nicolau Manubens
+ * @date   Jun 2022
+ */
 
 #include "dummy_daos/dummy_daos.h"
 
@@ -23,15 +25,10 @@ typedef struct daos_handle_internal_t {
     PathName path;
 } daos_handle_internal_t;
 
-// struct daos_handle_internal_t {
-//     PathName root;
-//     PathName path;
-// };
-
 const PathName& dummy_daos_root() {
 
     static PathName tmpdir = eckit::Resource<PathName>("$TMPDIR", "/tmp");
-    static PathName daos_root = eckit::Resource<PathName>("$DUMMY_DAOS_ROOT", tmpdir / "fdb5_dummy_daos");
+    static PathName daos_root = eckit::Resource<PathName>("$DUMMY_DAOS_DATA_ROOT", tmpdir / "fdb5_dummy_daos");
     return daos_root;
 
 }
