@@ -11,6 +11,7 @@
 // avoid having include dummy_daos/daos.h
 
 #include <cstdlib>
+#include <cstring>
 #include <iomanip>
 #include <unistd.h>
 #include <uuid/uuid.h>
@@ -120,18 +121,18 @@ CASE( "dummy_daos_write_then_read" ) {
     EXPECT(rc == 0);
     EXPECT(size == (daos_size_t) 0);
 
-    rc = daos_kv_put(oh_kv, DAOS_TX_NONE, 0, key.c_str(), strlen(value.c_str()), value.c_str(), NULL);
+    rc = daos_kv_put(oh_kv, DAOS_TX_NONE, 0, key.c_str(), std::strlen(value.c_str()), value.c_str(), NULL);
     EXPECT(rc == 0);
     EXPECT((dummy_daos_get_handle_path(oh_kv) / key).exists());
 
     char kv_get_buf[100] = "";
     rc = daos_kv_get(oh_kv, DAOS_TX_NONE, 0, key.c_str(), &size, NULL, NULL);
     EXPECT(rc == 0);
-    EXPECT(size == (daos_size_t) strlen(value.c_str()));
+    EXPECT(size == (daos_size_t) std::strlen(value.c_str()));
     rc = daos_kv_get(oh_kv, DAOS_TX_NONE, 0, key.c_str(), &size, kv_get_buf, NULL);
     EXPECT(rc == 0);
-    EXPECT(size == (daos_size_t) strlen(value.c_str()));
-    EXPECT(strlen(kv_get_buf) == strlen(value.c_str()));
+    EXPECT(size == (daos_size_t) std::strlen(value.c_str()));
+    EXPECT(std::strlen(kv_get_buf) == std::strlen(value.c_str()));
     EXPECT(std::string(kv_get_buf) == value);
 
     daos_obj_close(oh_kv, NULL);
