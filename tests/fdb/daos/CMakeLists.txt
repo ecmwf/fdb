@@ -8,7 +8,7 @@ if (HAVE_DUMMY_DAOS)
   
       ecbuild_add_test( TARGET test_fdb5_dummy_daos_${_test}
                         SOURCES test_dummy_daos_${_test}.cc
-                        LIBS fdb5 daos uuid
+                        LIBS daos fdb5
                         ENVIRONMENT DUMMY_DAOS_DATA_ROOT=${CMAKE_CURRENT_BINARY_DIR}/tmp_dir_fdb5_dummy_daos )
   
   endforeach()

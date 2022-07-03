@@ -14,5 +14,6 @@ ecbuild_add_library(
 
     PUBLIC_LIBS
         eckit
+        uuid
 
 )
