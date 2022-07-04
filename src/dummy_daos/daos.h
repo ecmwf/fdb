@@ -63,7 +63,6 @@ typedef void daos_event_t;
 typedef void daos_pool_info_t;
 typedef void daos_prop_t;
 typedef void daos_cont_info_t;
-/* typedef void uuid_t; */
 
 /* describe object-space target range */
 typedef uint64_t daos_off_t;

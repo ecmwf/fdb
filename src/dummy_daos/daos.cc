@@ -39,12 +39,6 @@ typedef struct daos_handle_internal_t {
     PathName path;
 } daos_handle_internal_t;
 
-/* struct daos_handle_internal_t {
- *    PathName root;
- *    PathName path;
- * };
- */
-
 int
 daos_init() {
     const char* argv[2] = {"dummy-daos-api", 0};
@@ -159,6 +153,8 @@ daos_cont_alloc_oids(daos_handle_t coh, daos_size_t num_oids, uint64_t *oid,
     if (ev != NULL) NOTIMP;
     ASSERT(num_oids > (uint64_t) 0);
 
+    // support for multi-node clients running dummy DAOS backed by a 
+    // distributed file system
     char hostname[_POSIX_HOST_NAME_MAX + 1];
     int res = gethostname(hostname, _POSIX_HOST_NAME_MAX + 1);
     ASSERT(res == 0);

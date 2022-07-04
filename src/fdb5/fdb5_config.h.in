@@ -11,7 +11,7 @@
 #cmakedefine fdb5_HAVE_PMEMFDB
 #cmakedefine fdb5_HAVE_RADOSFDB
 #cmakedefine fdb5_HAVE_TOCFDB
-#cmakedefine fdb5_HAVE_DAOSFDB
 #cmakedefine fdb5_HAVE_DUMMY_DAOS
+//#cmakedefine fdb5_HAVE_DAOSFDB
 
 #endif // fdb5_fdb5_config_h

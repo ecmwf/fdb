@@ -73,10 +73,10 @@ else()
 #    find_package(DAOS QUIET)
 endif()
 
-ecbuild_add_option( FEATURE DAOSFDB
-                    CONDITION DAOS_FOUND 
-                    DEFAULT ON
-                    DESCRIPTION "DAOS support for FDB Store" )
+#ecbuild_add_option( FEATURE DAOSFDB
+#                    CONDITION DAOS_FOUND 
+#                    DEFAULT ON
+#                    DESCRIPTION "DAOS support for FDB Store" )
 
 ecbuild_add_option( FEATURE EXPERIMENTAL
                     DEFAULT OFF

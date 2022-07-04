@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-// avoid having include dummy_daos/daos.h
-
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
