@@ -14,7 +14,7 @@
  * @date   Jun 2022
  */
 
-#include "dummy_daos/dummy_daos.h"
+#include "dummy_daos.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"

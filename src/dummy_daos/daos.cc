@@ -28,8 +28,8 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/types/UUID.h"
 
-#include "dummy_daos/daos.h"
-#include "dummy_daos/dummy_daos.h"
+#include "daos.h"
+#include "dummy_daos.h"
 
 using eckit::PathName;
 

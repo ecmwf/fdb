@@ -17,7 +17,7 @@
 #ifndef fdb5_dummy_daos_dummy_daos_dev_H
 #define fdb5_dummy_daos_dummy_daos_dev_H
 
-#include "dummy_daos/daos.h"
+#include "daos.h"
 
 #include "eckit/filesystem/PathName.h"
 

@@ -16,10 +16,8 @@
 
 #include "eckit/testing/Test.h"
 
-#include "fdb5/fdb5_config.h"
-
-#include "dummy_daos/daos.h"
-#include "dummy_daos/dummy_daos.h"
+#include "daos.h"
+#include "dummy_daos.h"
 
 using namespace eckit::testing;
 using namespace eckit;
