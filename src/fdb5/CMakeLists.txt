@@ -350,6 +350,18 @@ if( HAVE_RADOSFDB )
     )
 endif()
 
+if( HAVE_DAOSFDB )
+    list( APPEND fdb5_srcs
+        daos/DaosCluster.cc
+        daos/DaosCluster.h
+        daos/DaosHandle.cc
+        daos/DaosHandle.h
+    )
+else()
+    set( DAOS_LIBRARIES "" )
+    set( DAOS_INCLUDE_DIRS "" )
+endif()
+
 ecbuild_add_library(
 
     TARGET  fdb5
@@ -374,11 +386,13 @@ ecbuild_add_library(
     PRIVATE_INCLUDES
         "${PMEM_INCLUDE_DIRS}"
         "${LUSTREAPI_INCLUDE_DIRS}"
+        "${DAOS_INCLUDE_DIRS}"
 
     PRIVATE_LIBS
         ${grib_handling_pkg}
         ${PMEM_LIBRARIES}
         ${LUSTREAPI_LIBRARIES}
+        ${DAOS_LIBRARIES}
 )
 
 if(HAVE_FDB_BUILD_TOOLS)
