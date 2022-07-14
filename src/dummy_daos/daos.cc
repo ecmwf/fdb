@@ -68,7 +68,7 @@ daos_pool_connect2(const char *pool, const char *sys, unsigned int flags,
     impl->path = dummy_daos_root() / pool;
 
     if (!(impl->path).exists()) {
-        return 1;
+        return -1;
     }
 
     poh->impl = impl.release();
@@ -125,7 +125,7 @@ daos_cont_open2(daos_handle_t poh, const char *cont, unsigned int flags, daos_ha
     impl->path = poh.impl->path / cont;
 
     if (!(impl->path).exists()) {
-        return 1;
+        return -1;
     }
 
     coh->impl = impl.release();
@@ -257,7 +257,7 @@ daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
 
     bool exists = (oh.impl->path / key).exists();
 
-    if (!exists && buf != NULL) return 1;
+    if (!exists && buf != NULL) return -1;
 
     *size = 0;
     if (!exists) return 0;
@@ -342,7 +342,7 @@ daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
     impl->path = coh.impl->path / os.str();
 
     if (!impl->path.exists()) {
-        return 1;
+        return -1;
     }
 
     oh->impl = impl.release();
@@ -369,7 +369,6 @@ daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
     if (ev != NULL) NOTIMP;
 
     if (iod->arr_nr != 1) NOTIMP;
-    if (iod->arr_rgs[0].rg_idx != 0) NOTIMP;  // target offset
 
     if (sgl->sg_nr != 1) NOTIMP;
     // source memory len
@@ -379,14 +378,19 @@ daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
 
     //sgl->sg_iovs[0].iov_buf is a void * with the data to write
     //sgl->sg_iovs[0].iov_buf_len is a size_t with the source len
+    //iod->arr_rgs[0].rg_idx is a uint64_t with the offset to write from
 
     eckit::FileHandle fh(oh.impl->path);
 
-    eckit::Length existing_len = fh.size();
-    if (eckit::Length(sgl->sg_iovs[0].iov_buf_len) < existing_len) NOTIMP;
+    //eckit::Length existing_len = fh.size();
 
-    fh.openForWrite(eckit::Length(sgl->sg_iovs[0].iov_buf_len));
+    // if writing data to an already existing and populated file, if the data to write
+    // is smaller than the file or the data has an offset, the holes will be left with
+    // pre-existing data (openForAppend) rather than zero-d out (openForWrite)
+
+    fh.openForAppend(eckit::Length(sgl->sg_iovs[0].iov_buf_len));
     eckit::AutoClose closer(fh);
+    fh.seek(iod->arr_rgs[0].rg_idx);
     fh.write(sgl->sg_iovs[0].iov_buf, (long) sgl->sg_iovs[0].iov_buf_len);
 
     return 0;
@@ -414,7 +418,6 @@ daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
     if (ev != NULL) NOTIMP;
 
     if (iod->arr_nr != 1) NOTIMP;
-    if (iod->arr_rgs[0].rg_idx != 0) NOTIMP;  // source offset
 
     if (sgl->sg_nr != 1) NOTIMP;
     // target memory len
@@ -424,13 +427,15 @@ daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
 
     //sgl->sg_iovs[0].iov_buf is a void * where to read the data into
     //iod->arr_rgs[0].rg_len is a size_t with the source size
+    //iod->arr_rgs[0].rg_idx is a uint64_t with the offset to read from
 
     eckit::FileHandle fh(oh.impl->path);
     eckit::Length len = fh.size();
     fh.openForRead();
     eckit::AutoClose closer(fh);
+    fh.seek(iod->arr_rgs[0].rg_idx);
     long res = fh.read(sgl->sg_iovs[0].iov_buf, iod->arr_rgs[0].rg_len);
-    ASSERT(eckit::Length(res) == len);
+    ASSERT(eckit::Length(res) == eckit::Length(iod->arr_rgs[0].rg_len));
 
     return 0;
 
