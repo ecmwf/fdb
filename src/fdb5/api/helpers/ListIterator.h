@@ -102,33 +102,32 @@ struct KeyHasher {
     }
 };
 
-class ListDedupIterator {
+class DedupListIterator : public ListIterator {
+public:
+    DedupListIterator(ListIterator& iter, bool deduplicate=false) :
+        ListIterator(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
 
-public: // methods
-
-    ListDedupIterator(ListIterator&& iter, bool full = true) :
-        iter_(std::move(iter)), seenKeys_({}), full_(full) {}
-        
     bool next(ListElement& elem) {
-        bool found = false;
-        do {
-            found = iter_.next(elem);
-            if (full_ || !found)
-                return found;
-
-            Key combinedKey = elem.combinedKey();
-            if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
-                seenKeys_.emplace(std::move(combinedKey));
+        ListElement tmp;
+        while (ListIterator::next(tmp)) {
+            if(deduplicate_) {
+                Key combinedKey = tmp.combinedKey();
+                if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
+                    seenKeys_.emplace(std::move(combinedKey));
+                    elem = tmp;
+                    return true;
+                }
+            } else {
+                elem = tmp;
                 return true;
             }
-        } while(!found);
+        }
         return false;
     }
 
-private: // members
-    ListIterator iter_;
+private:
     std::unordered_set<Key, KeyHasher> seenKeys_;
-    bool full_;
+    bool deduplicate_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

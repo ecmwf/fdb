@@ -98,7 +98,7 @@ void FDBList::execute(const CmdArgs& args) {
         }
 
         // If --full is supplied, then include all entries including duplicates.
-        auto listObject = ListDedupIterator(fdb.list(request), full_);
+        auto listObject = fdb.list(request, !full_);
 
         size_t count = 0;
         ListElement elem;

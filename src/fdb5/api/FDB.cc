@@ -192,6 +192,11 @@ ListIterator FDB::list(const FDBToolRequest& request) {
     return internal_->list(request);
 }
 
+DedupListIterator FDB::list(const FDBToolRequest& request, bool deduplicate) {
+    ListIterator it = internal_->list(request);
+    return DedupListIterator(it, deduplicate);
+}
+
 DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
     return internal_->dump(request, simple);
 }

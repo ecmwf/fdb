@@ -68,27 +68,28 @@ private:
 
 class ListIteratorHolder {
 public:
-    ListIteratorHolder(ListDedupIterator& iter) : iter_(std::move(iter)) {}
+    ListIteratorHolder(DedupListIterator& iter) : iter_(std::move(iter)) {}
 
-    ListDedupIterator& get() { return iter_; }
+    DedupListIterator& get() { return iter_; }
 
 private:
-    ListDedupIterator iter_;
+    DedupListIterator iter_;
 
 };
+
 
 struct fdb_listiterator_t {
 public:
     fdb_listiterator_t() : validEl_(false), iter_(nullptr) {}
 
-    void set(ListDedupIterator* iter) {
-        iter_.reset(iter);
+    void set(DedupListIterator&& iter) {
+        iter_.reset(new ListIteratorHolder(iter));
     }
 
     int next() {
         ASSERT(iter_);
         
-        validEl_ = iter_->next(el_);
+        validEl_ = iter_->get().next(el_);
 
         return validEl_ ? FDB_SUCCESS : FDB_ITERATION_COMPLETE;
     }
@@ -115,7 +116,7 @@ public:
 private:
     bool validEl_;
     ListElement el_;
-    std::unique_ptr<ListDedupIterator> iter_;
+    std::unique_ptr<ListIteratorHolder> iter_;
 };
 
 struct fdb_datareader_t {
@@ -317,7 +318,7 @@ int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, bool duplicates, fdb_l
             req ? req->request() : metkit::mars::MarsRequest(),
             req == nullptr, minKeySet);
 
-        it->set(new ListDedupIterator(fdb->list(toolRequest), duplicates));
+        it->set(fdb->list(toolRequest, duplicates));
     });
 }
 int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr) {
