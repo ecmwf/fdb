@@ -33,6 +33,21 @@ namespace test {
 int fdb_request_add1(fdb_request_t* req, const char* param, const char* value) {
     return fdb_request_add(req, param, &value, 1);
 }
+ 
+void key_compare(const fdb5::Key& key, fdb_listiterator_t *it) {
+    const char *k;
+    const char *v;
+    bool found;
+
+    for (auto k1: key) {
+        fdb_listiterator_key_next(it, &found, &k, &v);
+        EXPECT(found);
+        EXPECT(k1.first == k);
+        EXPECT(k1.second == v);
+    }
+    fdb_listiterator_key_next(it, &found, &k, &v);
+    EXPECT(!found);
+}
 
 CASE( "fdb_c - archive & list" ) {
     size_t length;
@@ -87,31 +102,17 @@ CASE( "fdb_c - archive & list" ) {
     int err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
     
-    char *uri;
+    const char *uri;
     size_t off, attr_len;
-    fdb_key_t* k;
+
+// int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off, size_t* len);
+// int fdb_listiterator_key_next(fdb_listiterator_t* it, bool* found, const char** key, const char** value);
 
     fdb_listiterator_attrs(it, &uri, &off, &attr_len);
     EXPECT(attr_len == 3280398);
-    EXPECT_NO_THROW(fdb_delete_uri(uri));
-
-    fdb_new_key(&k);
-    fdb_listiterator_key(it, k);
 
     fdb5::Key k1test{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g,type=an,levtype=pl,step=0,levelist=300,param=138"};
-    EXPECT(((fdb5::Key*) k)->match(k1test));
-    EXPECT(k1test.match(*((fdb5::Key*) k)));
-
-    fdb_key_dict_t* dict;
-    size_t len;
-    fdb_key_dict(k, &dict, &len);
-    EXPECT(len == 11);
-    EXPECT(0 == strcmp(dict[0].key, "class"));
-    EXPECT(0 == strcmp(dict[0].value, "rd"));
-    EXPECT(0 == strcmp(dict[10].key, "type"));
-    EXPECT(0 == strcmp(dict[10].value, "an"));
-    fdb_delete_key_dict(dict, len);
-    fdb_delete_key(k);
+    key_compare(k1test, it);
 
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
@@ -154,14 +155,9 @@ CASE( "fdb_c - archive & list" ) {
     
     fdb_listiterator_attrs(it, &uri, &off, &attr_len);
     EXPECT(attr_len == 3280398);
-    EXPECT_NO_THROW(fdb_delete_uri(uri));
 
-    fdb_new_key(&k);
-    fdb_listiterator_key(it, k);
     fdb5::Key k2test{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g,type=an,levtype=pl,step=0,levelist=400,param=138"};
-    EXPECT(((fdb5::Key*) k)->match(k2test));
-    EXPECT(k2test.match(*((fdb5::Key*) k)));
-    fdb_delete_key(k);
+    key_compare(k2test, it);
 
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
@@ -176,26 +172,16 @@ CASE( "fdb_c - archive & list" ) {
 
     fdb_listiterator_attrs(it, &uri, &off, &attr_len);
     EXPECT(attr_len == 3280398);
-    EXPECT_NO_THROW(fdb_delete_uri(uri));
 
-    fdb_new_key(&k);
-    fdb_listiterator_key(it, k);
-    EXPECT(((fdb5::Key*) k)->match(k2test));
-    EXPECT(k2test.match(*((fdb5::Key*) k)));
-    fdb_delete_key(k);
+    key_compare(k2test, it);
 
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
 
     fdb_listiterator_attrs(it, &uri, &off, &length);
     EXPECT(length == 3280398);
-    EXPECT_NO_THROW(fdb_delete_uri(uri));
 
-    fdb_new_key(&k);
-    fdb_listiterator_key(it, k);
-    EXPECT(((fdb5::Key*) k)->match(k1test));
-    EXPECT(k1test.match(*((fdb5::Key*) k)));
-    fdb_delete_key(k);
+    key_compare(k1test, it);
 
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
@@ -311,13 +297,8 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_list(fdb, request, true, it);
     int err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
-    
-    fdb_key_t* k;
-    fdb_new_key(&k);
-    fdb_listiterator_key(it, k);
-    EXPECT(((fdb5::Key*) k)->match(k1));
-    EXPECT(k1.match(*((fdb5::Key*) k)));
-    fdb_delete_key(k);
+
+    key_compare(k1, it);
 
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);
@@ -338,20 +319,12 @@ CASE( "fdb_c - multiple archive & list" ) {
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
     
-    fdb_new_key(&k);
-    fdb_listiterator_key(it, k);
-    EXPECT(((fdb5::Key*) k)->match(k1));
-    EXPECT(k1.match(*((fdb5::Key*) k)));
-    fdb_delete_key(k);
+    key_compare(k1, it);
 
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_SUCCESS);
     
-    fdb_new_key(&k);
-    fdb_listiterator_key(it, k);
-    EXPECT(((fdb5::Key*) k)->match(k2));
-    EXPECT(k2.match(*((fdb5::Key*) k)));
-    fdb_delete_key(k);
+    key_compare(k2, it);
 
     err = fdb_listiterator_next(it);
     ASSERT(err == FDB_ITERATION_COMPLETE);

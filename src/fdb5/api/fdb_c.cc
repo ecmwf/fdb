@@ -41,6 +41,24 @@ struct fdb_key_t : public Key {
     using Key::Key;
 };
 
+// struct fdb_metadata_t {
+// public:
+//     fdb_metadata_t(Key* key) :
+//         it(key->begin()) {}
+
+//     bool next(const char** key, const char** value) {
+//         if (it == Key::const_iterator::end()) {
+//             return false;
+//         }
+//         *key = it->first;
+//         *value = it->second;
+//         it++;
+//         return true;
+//     }
+
+// }
+
+
 struct fdb_request_t {
 public:
     fdb_request_t() : request_(metkit::mars::MarsRequest()) {}
@@ -90,33 +108,46 @@ public:
         ASSERT(iter_);
         
         validEl_ = iter_->get().next(el_);
+        metadata.clear();
 
         return validEl_ ? FDB_SUCCESS : FDB_ITERATION_COMPLETE;
     }
 
-    void attrs(char** uri, size_t* off, size_t* len) {
+    void attrs(const char** uri, size_t* off, size_t* len) {
         ASSERT(validEl_);
 
         const FieldLocation& loc = el_.location();
-        const std::string path = loc.uri().name();
-        *uri = new char[path.length()+1];
-        strcpy(*uri, path.c_str());
+        *uri = loc.uri().name().c_str();
         *off = loc.offset();
         *len = loc.length();
     }
 
-    void key(fdb_key_t *key) {
+    bool key_metadata(const char** k, const char** v) {
         ASSERT(validEl_);
 
-        for (auto k : el_.combinedKey()) {
-            key->set(k.first, k.second);
+        if (metadata.empty()) {
+            for (auto k : el_.combinedKey()) {
+                metadata.set(k.first, k.second);
+            }
+            metaIter_ = metadata.begin();
         }
+
+        if (metaIter_ == metadata.end()) {
+            return false;
+        }
+        *k = metaIter_->first.c_str();
+        *v = metaIter_->second.c_str();
+        metaIter_++;
+        //*key = &(el_.combinedKey());
+        return true;
     }
 
 private:
     bool validEl_;
     ListElement el_;
     std::unique_ptr<ListIteratorHolder> iter_;
+    Key metadata;
+    Key::const_iterator metaIter_;
 };
 
 struct fdb_datareader_t {
@@ -360,35 +391,6 @@ int fdb_key_add(fdb_key_t* key, const char* param, const char* value) {
     });
 }
 
-int fdb_key_dict(fdb_key_t* key, fdb_key_dict_t** dict, size_t* length) {
-    return wrapApiFunction([key, dict, length]{
-        ASSERT(key);
-        ASSERT(dict);
-        ASSERT(length);
-        const eckit::StringDict& keyDict = key->keyDict();
-        *length = keyDict.size();
-        *dict = new fdb_key_dict_t[*length];
-        int i=0;
-        for (auto k: keyDict) {
-            (*dict)[i].key = new char[k.first.length()+1];
-            strcpy((*dict)[i].key, k.first.c_str());
-            (*dict)[i].value = new char[k.second.length()+1];
-            strcpy((*dict)[i].value, k.second.c_str());
-            i++;
-        }
-    });
-}
-int fdb_delete_key_dict(fdb_key_dict_t* dict, size_t length) {
-    return wrapApiFunction([dict, length]{
-        ASSERT(dict);
-        for (size_t i=0; i<length; i++) {
-            delete dict[i].key;
-            delete dict[i].value;
-        }
-        delete dict;
-    });
-}
-
 int fdb_delete_uri(char* uri) {
     return wrapApiFunction([uri]{
         ASSERT(uri);
@@ -434,7 +436,7 @@ int fdb_listiterator_next(fdb_listiterator_t* it) {
         return it->next();
     }});
 }
-int fdb_listiterator_attrs(fdb_listiterator_t* it, char** uri, size_t* off, size_t* len) {
+int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off, size_t* len) {
     return wrapApiFunction([it, uri, off, len] {
         ASSERT(it);
         ASSERT(uri);
@@ -443,11 +445,13 @@ int fdb_listiterator_attrs(fdb_listiterator_t* it, char** uri, size_t* off, size
         it->attrs(uri, off, len);
     });
 }
-int fdb_listiterator_key(fdb_listiterator_t* it, fdb_key_t* key) {
-    return wrapApiFunction([it, key] {
+int fdb_listiterator_key_next(fdb_listiterator_t* it, bool* found, const char** key, const char** value) {
+    return wrapApiFunction([it, found, key, value] {
         ASSERT(it);
+        ASSERT(found);
         ASSERT(key);
-        it->key(key);
+        ASSERT(value);
+        *found = it->key_metadata(key, value);
     });
 }
 
