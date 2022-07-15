@@ -157,9 +157,10 @@ template <typename QueryFN>
 auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request)) {
 
     using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
+    using ValueType = typename QueryIterator::value_type;
 
     std::vector<std::future<QueryIterator>> futures;
-    std::queue<QueryIterator> iterQueue;
+    std::queue<APIIterator<ValueType>> iterQueue;
 
     for (FDB& lane : lanes_) {
         if (lane.visitable()) {
@@ -173,7 +174,7 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) ->
         iterQueue.push(f.get());
     }
 
-    return QueryIterator(new APIAggregateIterator<typename QueryIterator::value_type>(std::move(iterQueue)));
+    return QueryIterator(new APIAggregateIterator<ValueType>(std::move(iterQueue)));
 }
 
 

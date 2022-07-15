@@ -88,7 +88,7 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using ListIterator = APIIterator<ListElement>;
+//using ListIterator = APIIterator<ListElement>;
 
 using ListAggregateIterator = APIAggregateIterator<ListElement>;
 
@@ -102,23 +102,26 @@ struct KeyHasher {
     }
 };
 
-class DedupListIterator : public ListIterator {
+class ListIterator : public APIIterator<ListElement> {
 public:
-    DedupListIterator(ListIterator& iter, bool deduplicate=false) :
-        ListIterator(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
+    ListIterator(APIIterator<ListElement>&& iter, bool deduplicate=false) :
+        APIIterator<ListElement>(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
+
+    ListIterator(ListIterator&& iter) :
+        APIIterator<ListElement>(std::move(iter)), seenKeys_(std::move(iter.seenKeys_)), deduplicate_(iter.deduplicate_) {}
 
     bool next(ListElement& elem) {
         ListElement tmp;
-        while (ListIterator::next(tmp)) {
+        while (APIIterator<ListElement>::next(tmp)) {
             if(deduplicate_) {
                 Key combinedKey = tmp.combinedKey();
                 if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
                     seenKeys_.emplace(std::move(combinedKey));
-                    elem = tmp;
+                    std::swap(elem, tmp);
                     return true;
                 }
             } else {
-                elem = tmp;
+                std::swap(elem, tmp);
                 return true;
             }
         }

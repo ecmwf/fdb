@@ -188,13 +188,8 @@ ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
     return internal_->inspect(request);
 }
 
-ListIterator FDB::list(const FDBToolRequest& request) {
-    return internal_->list(request);
-}
-
-DedupListIterator FDB::list(const FDBToolRequest& request, bool deduplicate) {
-    ListIterator it = internal_->list(request);
-    return DedupListIterator(it, deduplicate);
+ListIterator FDB::list(const FDBToolRequest& request, bool deduplicate) {
+    return ListIterator(internal_->list(request), deduplicate);
 }
 
 DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {

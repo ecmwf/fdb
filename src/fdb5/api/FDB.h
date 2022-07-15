@@ -82,8 +82,7 @@ public: // methods
 
     ListIterator inspect(const metkit::mars::MarsRequest& request);
 
-    ListIterator list(const FDBToolRequest& request);
-    DedupListIterator list(const FDBToolRequest& request, bool deduplicate);
+    ListIterator list(const FDBToolRequest& request, bool deduplicate=false);
 
     DumpIterator dump(const FDBToolRequest& request, bool simple=false);
 

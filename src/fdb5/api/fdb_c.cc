@@ -41,24 +41,6 @@ struct fdb_key_t : public Key {
     using Key::Key;
 };
 
-// struct fdb_metadata_t {
-// public:
-//     fdb_metadata_t(Key* key) :
-//         it(key->begin()) {}
-
-//     bool next(const char** key, const char** value) {
-//         if (it == Key::const_iterator::end()) {
-//             return false;
-//         }
-//         *key = it->first;
-//         *value = it->second;
-//         it++;
-//         return true;
-//     }
-
-// }
-
-
 struct fdb_request_t {
 public:
     fdb_request_t() : request_(metkit::mars::MarsRequest()) {}
@@ -86,12 +68,12 @@ private:
 
 class ListIteratorHolder {
 public:
-    ListIteratorHolder(DedupListIterator& iter) : iter_(std::move(iter)) {}
+    ListIteratorHolder(ListIterator&& iter) : iter_(std::move(iter)) {}
 
-    DedupListIterator& get() { return iter_; }
+    ListIterator& get() { return iter_; }
 
 private:
-    DedupListIterator iter_;
+    ListIterator iter_;
 
 };
 
@@ -100,8 +82,8 @@ struct fdb_listiterator_t {
 public:
     fdb_listiterator_t() : validEl_(false), iter_(nullptr) {}
 
-    void set(DedupListIterator&& iter) {
-        iter_.reset(new ListIteratorHolder(iter));
+    void set(ListIterator&& iter) {
+        iter_.reset(new ListIteratorHolder(std::move(iter)));
     }
 
     int next() {
@@ -138,7 +120,6 @@ public:
         *k = metaIter_->first.c_str();
         *v = metaIter_->second.c_str();
         metaIter_++;
-        //*key = &(el_.combinedKey());
         return true;
     }
 
