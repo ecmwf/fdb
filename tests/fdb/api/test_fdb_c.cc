@@ -37,16 +37,16 @@ int fdb_request_add1(fdb_request_t* req, const char* param, const char* value) {
 void key_compare(const fdb5::Key& key, fdb_listiterator_t *it) {
     const char *k;
     const char *v;
-    bool found;
+    int err;
 
     for (auto k1: key) {
-        fdb_listiterator_key_next(it, &found, &k, &v);
-        EXPECT(found);
+        int err = fdb_listiterator_key_next(it, &k, &v);
+        EXPECT(err == FDB_SUCCESS);
         EXPECT(k1.first == k);
         EXPECT(k1.second == v);
     }
-    fdb_listiterator_key_next(it, &found, &k, &v);
-    EXPECT(!found);
+    err = fdb_listiterator_key_next(it, &k, &v);
+    EXPECT(err == FDB_ITERATION_COMPLETE);
 }
 
 CASE( "fdb_c - archive & list" ) {

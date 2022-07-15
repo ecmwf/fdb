@@ -92,9 +92,6 @@ typedef struct fdb_datareader_t fdb_datareader_t;
 struct fdb_handle_t;
 typedef struct fdb_handle_t fdb_handle_t;
 
-struct fdb_metadata_t;
-typedef struct fdb_metadata_t fdb_metadata_t;
-
 ///@}
 
 /** API */
@@ -133,7 +130,7 @@ int fdb_delete_request(fdb_request_t* req);
 int fdb_new_listiterator(fdb_listiterator_t** it);
 int fdb_listiterator_next(fdb_listiterator_t* it);
 int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off, size_t* len);
-int fdb_listiterator_key_next(fdb_listiterator_t* it, bool* found, const char** key, const char** value);
+int fdb_listiterator_key_next(fdb_listiterator_t* it, const char** key, const char** value);
 int fdb_delete_listiterator(fdb_listiterator_t* it);
 
 int fdb_new_datareader(fdb_datareader_t** dr);

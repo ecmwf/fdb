@@ -104,7 +104,7 @@ public:
         *len = loc.length();
     }
 
-    bool key_metadata(const char** k, const char** v) {
+    int key_metadata(const char** k, const char** v) {
         ASSERT(validEl_);
 
         if (metadata.empty()) {
@@ -115,12 +115,12 @@ public:
         }
 
         if (metaIter_ == metadata.end()) {
-            return false;
+            return FDB_ITERATION_COMPLETE;
         }
         *k = metaIter_->first.c_str();
         *v = metaIter_->second.c_str();
         metaIter_++;
-        return true;
+        return FDB_SUCCESS;
     }
 
 private:
@@ -426,14 +426,13 @@ int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off
         it->attrs(uri, off, len);
     });
 }
-int fdb_listiterator_key_next(fdb_listiterator_t* it, bool* found, const char** key, const char** value) {
-    return wrapApiFunction([it, found, key, value] {
+int fdb_listiterator_key_next(fdb_listiterator_t* it, const char** key, const char** value) {
+    return wrapApiFunction(std::function<int()> {[it, key, value] {
         ASSERT(it);
-        ASSERT(found);
         ASSERT(key);
         ASSERT(value);
-        *found = it->key_metadata(key, value);
-    });
+        return it->key_metadata(key, value);
+    }});
 }
 
 int fdb_delete_listiterator(fdb_listiterator_t* it) {
