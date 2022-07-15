@@ -88,8 +88,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-//using ListIterator = APIIterator<ListElement>;
-
 using ListAggregateIterator = APIAggregateIterator<ListElement>;
 
 using ListAsyncIterator = APIAsyncIterator<ListElement>;

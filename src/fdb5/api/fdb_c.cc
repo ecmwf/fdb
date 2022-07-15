@@ -7,8 +7,6 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-#include <unordered_set>
-#include <string.h>
 
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/FileDescHandle.h"
