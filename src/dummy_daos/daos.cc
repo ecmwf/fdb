@@ -155,10 +155,7 @@ daos_cont_alloc_oids(daos_handle_t coh, daos_size_t num_oids, uint64_t *oid,
 
     // support for multi-node clients running dummy DAOS backed by a 
     // distributed file system
-    char hostname[_POSIX_HOST_NAME_MAX + 1];
-    int res = gethostname(hostname, _POSIX_HOST_NAME_MAX + 1);
-    ASSERT(res == 0);
-    std::string hoststr(hostname);
+    std::string hoststr = eckit::Main::instance().hostname();
     eckit::UUID nid;
     nid.fromString(hoststr);
 
@@ -210,9 +207,7 @@ daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode,
     std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
     impl->path = coh.impl->path / os.str();
 
-    if (!impl->path.exists()) {
-        impl->path.mkdir();
-    }
+    impl->path.mkdir();
 
     oh->impl = impl.release();
     return 0;
@@ -298,12 +293,6 @@ daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
                   daos_handle_t *oh, daos_event_t *ev) {
 
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
-    // the following values for cell_size and chunk_size are the only ones
-    // used so far in our tests. Using dummy DAOS with other values would require
-    // thought and implementation of a sensible mapping of these values to 
-    // corresponding behavior in the filesystem-backed dummy DAOS.
-    if (cell_size != 1) NOTIMP;
-    if (chunk_size != (uint64_t) 1048576) NOTIMP;
     if (ev != NULL) NOTIMP;
 
     std::stringstream os;

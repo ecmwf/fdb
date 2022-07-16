@@ -59,17 +59,17 @@ ecbuild_add_option( FEATURE FDB_REMOTE
                     DEFAULT ON
                     DESCRIPTION "Support for FDB remote access" )
 
+find_package(UUID QUIET)
+
 ecbuild_add_option( FEATURE DUMMY_DAOS
                     DEFAULT OFF
+                    CONDITION UUID_FOUND
                     DESCRIPTION "Use dummy DAOS library emulating DAOS with a file system" )
 
 if(HAVE_DUMMY_DAOS)
     set(DAOS_LIBRARIES daos)
     set(DAOS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
-    find_package(UUID QUIET)
-    if(UUID_FOUND)
-        set(DAOS_FOUND TRUE)
-    endif()
+    set(DAOS_FOUND TRUE)
 else()
     find_package(DAOS QUIET)
 endif()

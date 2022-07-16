@@ -89,92 +89,70 @@ typedef struct {
     d_iov_t *sg_iovs;
 } d_sg_list_t;
 
-int
-daos_init(void);
+int daos_init(void);
 
-int
-daos_fini(void);
+int daos_fini(void);
 
-int
-daos_pool_connect2(const char *pool, const char *sys, unsigned int flags,
-                   daos_handle_t *poh, daos_pool_info_t *info, daos_event_t *ev);
+int daos_pool_connect2(const char *pool, const char *sys, unsigned int flags,
+                       daos_handle_t *poh, daos_pool_info_t *info, daos_event_t *ev);
 
-int
-daos_pool_disconnect(daos_handle_t poh, daos_event_t *ev);
+int daos_pool_disconnect(daos_handle_t poh, daos_event_t *ev);
 
-int
-daos_cont_create(daos_handle_t poh, const uuid_t uuid, daos_prop_t *cont_prop, daos_event_t *ev);
+int daos_cont_create(daos_handle_t poh, const uuid_t uuid, daos_prop_t *cont_prop, daos_event_t *ev);
 
-int
-daos_cont_create_with_label(daos_handle_t poh, const char *label,
-                            daos_prop_t *cont_prop, uuid_t *uuid,
-                            daos_event_t *ev);
+int daos_cont_create_with_label(daos_handle_t poh, const char *label,
+                                daos_prop_t *cont_prop, uuid_t *uuid,
+                                daos_event_t *ev);
 
-int
-daos_cont_open2(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
-                daos_cont_info_t *info, daos_event_t *ev);
+int daos_cont_open2(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
+                    daos_cont_info_t *info, daos_event_t *ev);
 
-int
-daos_cont_close(daos_handle_t coh, daos_event_t *ev);
+int daos_cont_close(daos_handle_t coh, daos_event_t *ev);
 
-int
-daos_cont_alloc_oids(daos_handle_t coh, daos_size_t num_oids, uint64_t *oid,
-                     daos_event_t *ev);
+int daos_cont_alloc_oids(daos_handle_t coh, daos_size_t num_oids, uint64_t *oid,
+                         daos_event_t *ev);
 
-int
-daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t *oid,
-                      enum daos_otype_t type, daos_oclass_id_t cid,
-                      daos_oclass_hints_t hints, uint32_t args);
+int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t *oid,
+                          enum daos_otype_t type, daos_oclass_id_t cid,
+                          daos_oclass_hints_t hints, uint32_t args);
 
-int
-daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode,
-             daos_handle_t *oh, daos_event_t *ev);
+int daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode,
+                 daos_handle_t *oh, daos_event_t *ev);
 
-int
-daos_obj_close(daos_handle_t oh, daos_event_t *ev);
+int daos_obj_close(daos_handle_t oh, daos_event_t *ev);
 
-int
-daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
-            daos_size_t size, const void *buf, daos_event_t *ev);
+int daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
+                daos_size_t size, const void *buf, daos_event_t *ev);
 
-int
-daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
-            daos_size_t *size, void *buf, daos_event_t *ev);
+int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
+                daos_size_t *size, void *buf, daos_event_t *ev);
 
-int
-daos_array_generate_oid(daos_handle_t coh, daos_obj_id_t *oid, bool add_attr, daos_oclass_id_t cid,
-                        daos_oclass_hints_t hints, uint32_t args);
+int daos_array_generate_oid(daos_handle_t coh, daos_obj_id_t *oid, bool add_attr, daos_oclass_id_t cid,
+                            daos_oclass_hints_t hints, uint32_t args);
 
-int
-daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
-                  daos_size_t cell_size, daos_size_t chunk_size,
-                  daos_handle_t *oh, daos_event_t *ev);
+int daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
+                      daos_size_t cell_size, daos_size_t chunk_size,
+                      daos_handle_t *oh, daos_event_t *ev);
 
-int
-daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
-                unsigned int mode, daos_size_t *cell_size,
-                daos_size_t *chunk_size, daos_handle_t *oh, daos_event_t *ev);
+int daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
+                    unsigned int mode, daos_size_t *cell_size,
+                    daos_size_t *chunk_size, daos_handle_t *oh, daos_event_t *ev);
 
-int
-daos_array_close(daos_handle_t oh, daos_event_t *ev);
+int daos_array_close(daos_handle_t oh, daos_event_t *ev);
 
-static inline void
-d_iov_set(d_iov_t *iov, void *buf, size_t size) {
+static inline void d_iov_set(d_iov_t *iov, void *buf, size_t size) {
     iov->iov_buf = buf;
     iov->iov_len = iov->iov_buf_len = size;
 }
 
-int
-daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
-                 d_sg_list_t *sgl, daos_event_t *ev);
+int daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
+                     d_sg_list_t *sgl, daos_event_t *ev);
 
-int
-daos_array_get_size(daos_handle_t oh, daos_handle_t th, daos_size_t *size,
-                    daos_event_t *ev);
+int daos_array_get_size(daos_handle_t oh, daos_handle_t th, daos_size_t *size,
+                        daos_event_t *ev);
 
-int
-daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
-                d_sg_list_t *sgl, daos_event_t *ev);
+int daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
+                    d_sg_list_t *sgl, daos_event_t *ev);
 
 /*
  * The following is code for backwards-compatibility with older DAOS API versions where
@@ -186,16 +164,14 @@ daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
 }  // extern "C"
 
 #define daos_pool_connect daos_pool_connect_cpp
-static inline int
-daos_pool_connect_cpp(const char *pool, const char *sys, unsigned int flags, daos_handle_t *poh,
-                      daos_pool_info_t *info, daos_event_t *ev)
+static inline int daos_pool_connect_cpp(const char *pool, const char *sys, unsigned int flags, daos_handle_t *poh,
+                                        daos_pool_info_t *info, daos_event_t *ev)
 {
         return daos_pool_connect2(pool, sys, flags, poh, info, ev);
 }
 
-static inline int
-daos_pool_connect_cpp(const uuid_t pool, const char *sys, unsigned int flags, daos_handle_t *poh,
-                      daos_pool_info_t *info, daos_event_t *ev)
+static inline int daos_pool_connect_cpp(const uuid_t pool, const char *sys, unsigned int flags, daos_handle_t *poh,
+                                        daos_pool_info_t *info, daos_event_t *ev)
 {
         char str[37];
 
@@ -204,17 +180,15 @@ daos_pool_connect_cpp(const uuid_t pool, const char *sys, unsigned int flags, da
 }
 
 #define daos_cont_open daos_cont_open_cpp
-static inline int
-daos_cont_open_cpp(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
-                   daos_cont_info_t *info, daos_event_t *ev) {
+static inline int daos_cont_open_cpp(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
+                                     daos_cont_info_t *info, daos_event_t *ev) {
 
     return daos_cont_open2(poh, cont, flags, coh, info, ev);
 
 }
 
-static inline int
-daos_cont_open_cpp(daos_handle_t poh, const uuid_t cont, unsigned int flags, daos_handle_t *coh,
-                   daos_cont_info_t *info, daos_event_t *ev) {
+static inline int daos_cont_open_cpp(daos_handle_t poh, const uuid_t cont, unsigned int flags, daos_handle_t *coh,
+                                     daos_cont_info_t *info, daos_event_t *ev) {
 
     char str[37];
 
@@ -238,19 +212,19 @@ daos_cont_open_cpp(daos_handle_t poh, const uuid_t cont, unsigned int flags, dao
      __builtin_types_compatible_p(__typeof__(var), char []))
 
 #define daos_pool_connect(po, ...)                                      \
-        ({                                                              \
-                int _ret;                                               \
-                char _str[37];                                          \
-                const char *__str = NULL;                               \
-                if (d_is_string(po)) {                                  \
-                        __str = (const char *)(po);                     \
-                } else if (d_is_uuid(po)) {                             \
-                        uuid_unparse((unsigned char *)(po), _str);      \
-                        __str = _str;                                   \
-                }                                                       \
-                _ret = daos_pool_connect2(__str, __VA_ARGS__);          \
-                _ret;                                                   \
-        })
+    ({                                                              \
+            int _ret;                                               \
+            char _str[37];                                          \
+            const char *__str = NULL;                               \
+            if (d_is_string(po)) {                                  \
+                    __str = (const char *)(po);                     \
+            } else if (d_is_uuid(po)) {                             \
+                    uuid_unparse((unsigned char *)(po), _str);      \
+                    __str = _str;                                   \
+            }                                                       \
+            _ret = daos_pool_connect2(__str, __VA_ARGS__);          \
+            _ret;                                                   \
+    })
 
 #define daos_cont_open(poh, co, ...)                        \
     ({                                                      \

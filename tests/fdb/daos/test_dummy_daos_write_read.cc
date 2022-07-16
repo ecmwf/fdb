@@ -49,7 +49,7 @@ void deldir(eckit::PathName& p) {
 
 CASE( "dummy_daos_write_then_read" ) {
 
-    std::string pool = "a";
+    std::string pool = "test_pool_" + std::to_string(getpid());
     int rc;
     
     // create a dummy daos pool manually
