@@ -18,6 +18,7 @@
 
 #include "daos.h"
 #include "dummy_daos.h"
+#include "daos/tests_lib.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -28,34 +29,24 @@ namespace test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
-
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
-
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
-
-    p.rmdir();
-}
-
 CASE( "dummy_daos_write_then_read" ) {
 
-    std::string pool = "a";
     int rc;
-    
-    // create a dummy daos pool manually
-    PathName root = dummy_daos_root();
-    PathName pool_path = root / pool;
-    pool_path.mkdir();
+
+    d_rank_list_t svcl;
+    svcl.rl_nr = 3;
+    D_ALLOC_ARRAY(svcl.rl_ranks, svcl.rl_nr);
+    ASSERT(svcl.rl_ranks);
+
+    uuid_t pool_uuid;
+    rc = dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, 10ULL << 30, 40ULL << 30, NULL, &svcl, pool_uuid);
+    ASSERT(rc == 0);
+
+    char uuid_str[37] = "";
+    uuid_unparse(pool_uuid, uuid_str);
+    std::string pool(uuid_str);
+
+    eckit::PathName pool_path = dummy_daos_root() / pool;
 
     daos_init();
 
@@ -65,9 +56,9 @@ CASE( "dummy_daos_write_then_read" ) {
     EXPECT(rc == 0);
     EXPECT(dummy_daos_get_handle_path(poh) == pool_path);
     
-    char cont_uuid_label[37] = "00000000-0000-0000-0000-000000000000";
-    uuid_t cont_uuid;
-    uuid_parse(cont_uuid_label, cont_uuid);
+    uuid_t cont_uuid = {0};
+    char cont_uuid_label[37] = "";
+    uuid_unparse(cont_uuid, cont_uuid_label);
     rc = daos_cont_create(poh, cont_uuid, NULL, NULL);
     EXPECT(rc == 0);
     EXPECT((dummy_daos_get_handle_path(poh) / cont_uuid_label).exists());
@@ -218,8 +209,10 @@ CASE( "dummy_daos_write_then_read" ) {
 
     daos_fini();
 
-    // destroy the container and pool manually
-    deldir(pool_path);
+    rc = dmg_pool_destroy(NULL, pool_uuid, NULL, 1);
+    ASSERT(rc == 0);
+
+    D_FREE(svcl.rl_ranks);
     
 }
 
