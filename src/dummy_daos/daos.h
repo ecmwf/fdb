@@ -14,13 +14,13 @@
  * @date   Jun 2022
  */
 
-#ifndef fdb5_dummy_daos_dummy_daos_H
-#define fdb5_dummy_daos_dummy_daos_H
+#ifndef fdb5_dummy_daos_daos_H
+#define fdb5_dummy_daos_daos_H
 
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 #include <stdbool.h>
 
 #define DAOS_PC_RW 0
@@ -243,5 +243,5 @@ static inline int daos_cont_open_cpp(daos_handle_t poh, const uuid_t cont, unsig
 
 #endif /* end not __cplusplus */
 
-#endif /* fdb5_dummy_daos_dummy_daos_H */
+#endif /* fdb5_dummy_daos_daos_H */
 
