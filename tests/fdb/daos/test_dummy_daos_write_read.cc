@@ -38,6 +38,22 @@ CASE( "dummy_daos_write_then_read" ) {
     D_ALLOC_ARRAY(svcl.rl_ranks, svcl.rl_nr);
     ASSERT(svcl.rl_ranks);
 
+    // create a pool with user-defined label
+
+    std::string label = "test_pool";
+    daos_prop_t *prop = NULL;
+    prop = daos_prop_alloc(1);
+    prop->dpp_entries[0].dpe_type = DAOS_PROP_PO_LABEL;
+    D_STRNDUP(prop->dpp_entries[0].dpe_str, label.c_str(), DAOS_PROP_LABEL_MAX_LEN);
+
+    uuid_t test_pool_uuid;
+    rc = dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, 10ULL << 30, 40ULL << 30, prop, &svcl, test_pool_uuid);
+    ASSERT(rc == 0);
+
+    daos_prop_free(prop);
+
+    // create a pool without label
+
     uuid_t pool_uuid;
     rc = dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, 10ULL << 30, 40ULL << 30, NULL, &svcl, pool_uuid);
     ASSERT(rc == 0);
@@ -52,10 +68,14 @@ CASE( "dummy_daos_write_then_read" ) {
 
     daos_handle_t poh;
 
+    // connect to the pool, create and open a container
+
     rc = daos_pool_connect(pool.c_str(), NULL, DAOS_PC_RW, &poh, NULL, NULL);
     EXPECT(rc == 0);
     EXPECT(dummy_daos_get_handle_path(poh) == pool_path);
     
+    // create, open and close a container with user-defined uuid
+
     uuid_t cont_uuid = {0};
     char cont_uuid_label[37] = "";
     uuid_unparse(cont_uuid, cont_uuid_label);
@@ -68,6 +88,11 @@ CASE( "dummy_daos_write_then_read" ) {
     rc = daos_cont_open(poh, cont_uuid, DAOS_COO_RW, &coh, NULL, NULL);
     EXPECT(rc == 0);
     EXPECT(dummy_daos_get_handle_path(coh) == pool_path / cont_uuid_label);
+
+    rc = daos_cont_close(coh, NULL);
+    EXPECT(rc == 0);
+
+    // create and open a container with user-defined label
 
     std::string cont = "b";
 
@@ -201,6 +226,8 @@ CASE( "dummy_daos_write_then_read" ) {
     rc = daos_array_close(oh, NULL);
     EXPECT(rc == 0);
 
+    // close container and pool, finalize DAOS client
+
     rc = daos_cont_close(coh, NULL);
     EXPECT(rc == 0);
 
@@ -209,7 +236,11 @@ CASE( "dummy_daos_write_then_read" ) {
 
     daos_fini();
 
+    // destroy the pools
+
     rc = dmg_pool_destroy(NULL, pool_uuid, NULL, 1);
+    ASSERT(rc == 0);
+    rc = dmg_pool_destroy(NULL, test_pool_uuid, NULL, 1);
     ASSERT(rc == 0);
 
     D_FREE(svcl.rl_ranks);

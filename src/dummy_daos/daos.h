@@ -31,6 +31,13 @@
 #define OC_SX ((1 << 16UL) - 1)
 #define OC_RESERVED 1 << 30
 #define DAOS_TX_NONE (daos_handle_t){NULL}
+#define DAOS_PROP_LABEL_MAX_LEN	(127)
+#define DAOS_PROP_ENTRIES_MAX_NR (128)
+
+#define D_ALLOC_ARRAY(ptr, count) (ptr) = (__typeof__(ptr))calloc((count), (sizeof(*ptr)));
+#define D_ALLOC_PTR(ptr) D_ALLOC_ARRAY(ptr, 1)
+#define D_FREE(ptr) ({ free(ptr); (ptr) = NULL; })
+#define D_STRNDUP(ptr, s, n) (ptr) = strndup(s, n);
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,7 +68,6 @@ typedef uint16_t daos_oclass_hints_t;
 
 typedef void daos_event_t;
 typedef void daos_pool_info_t;
-typedef void daos_prop_t;
 typedef void daos_cont_info_t;
 
 /* describe object-space target range */
@@ -88,6 +94,32 @@ typedef struct {
     uint32_t sg_nr_out;
     d_iov_t *sg_iovs;
 } d_sg_list_t;
+
+/* pool properties */
+
+typedef char* d_string_t;
+
+struct daos_prop_entry {
+    uint32_t dpe_type;
+    uint32_t dpe_reserv;
+    union {
+        uint64_t dpe_val;
+        d_string_t dpe_str;
+        void *dpe_val_ptr;
+    };
+};
+
+typedef struct {
+    uint32_t dpp_nr;
+    uint32_t dpp_reserv;
+    struct daos_prop_entry *dpp_entries;
+} daos_prop_t;
+
+enum daos_pool_props {
+    DAOS_PROP_PO_LABEL
+};
+
+/* functions */
 
 int daos_init(void);
 
@@ -153,6 +185,10 @@ int daos_array_get_size(daos_handle_t oh, daos_handle_t th, daos_size_t *size,
 
 int daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
                     d_sg_list_t *sgl, daos_event_t *ev);
+
+daos_prop_t* daos_prop_alloc(uint32_t entries_nr);
+
+void daos_prop_free(daos_prop_t *prop);
 
 /*
  * The following is code for backwards-compatibility with older DAOS API versions where
