@@ -25,10 +25,6 @@
 extern "C" {
 #endif
 
-#define D_ALLOC_ARRAY(ptr, count) (ptr) = (__typeof__(ptr))calloc((count), (sizeof(*ptr)));
-
-#define D_FREE(ptr) ({ free(ptr); (ptr) = NULL; })
-
 typedef uint32_t d_rank_t;
 
 typedef struct {
