@@ -31,7 +31,7 @@
 #define OC_SX ((1 << 16UL) - 1)
 #define OC_RESERVED 1 << 30
 #define DAOS_TX_NONE (daos_handle_t){NULL}
-#define DAOS_PROP_LABEL_MAX_LEN	(127)
+#define DAOS_PROP_LABEL_MAX_LEN (127)
 #define DAOS_PROP_ENTRIES_MAX_NR (128)
 
 #define D_ALLOC_ARRAY(ptr, count) (ptr) = (__typeof__(ptr))calloc((count), (sizeof(*ptr)));

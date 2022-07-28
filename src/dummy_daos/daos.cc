@@ -59,7 +59,7 @@ int daos_pool_connect2(const char *pool, const char *sys, unsigned int flags,
     if (sys != NULL) NOTIMP;
     if (flags != DAOS_PC_RW) NOTIMP;
     if (info != NULL) NOTIMP;
-    if (ev != NULL) NOTIMP;    
+    if (ev != NULL) NOTIMP;
 
     std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
     impl->path = dummy_daos_root() / pool;
@@ -100,6 +100,12 @@ int daos_cont_create_with_label(daos_handle_t poh, const char *label,
     if (cont_prop != NULL) NOTIMP;
     if (uuid != NULL) NOTIMP;
     if (ev != NULL) NOTIMP;
+
+    //TODO: make a random directory as in pool create, and create symlink.
+    //      This would not be trivial as that method requires generating a
+    //      random uuid and then attempting creating a directory with that
+    //      uuid as name, and it would imply losing atomicity and leaving room
+    //      for race conditions in container creation.
 
     (poh.impl->path / label).mkdir();
 

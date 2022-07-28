@@ -14,6 +14,8 @@
  * @date   Jun 2022
  */
 
+#include <unistd.h>
+
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/exception/Exceptions.h"
 
@@ -59,20 +61,20 @@ int dmg_pool_create(const char *dmg_config_file,
 
         if (entry == NULL) NOTIMP;
 
-        pool_name = entry->dpe_str;
-
-    } else {
-
-        pool_name = eckit::TmpDir().baseName().path();
-        pool_name += "_" + std::to_string(getpid());
+        pool_name = std::string(entry->dpe_str);
 
     }
 
-    const char *pool_name_cstr = pool_name.c_str();
+    std::string random_name;
+
+    random_name = eckit::TmpDir().baseName().path();
+    random_name += "_" + std::to_string(getpid());
+
+    const char *random_name_cstr = random_name.c_str();
 
     uuid_t seed = {0};
 
-    uuid_generate_md5(uuid, seed, pool_name_cstr, strlen(pool_name_cstr));
+    uuid_generate_md5(uuid, seed, random_name_cstr, strlen(random_name_cstr));
 
     char pool_uuid_cstr[37] = "";
     uuid_unparse(uuid, pool_uuid_cstr);
@@ -82,6 +84,14 @@ int dmg_pool_create(const char *dmg_config_file,
     if (pool_path.exists()) return -1;
 
     pool_path.mkdir();
+
+    if (prop != NULL) {
+
+        eckit::PathName label_symlink_path = dummy_daos_root() / pool_name;
+
+        ::symlink(pool_path.path().c_str(), label_symlink_path.path().c_str());
+
+    }
 
     return 0;
 
@@ -97,6 +107,16 @@ int dmg_pool_destroy(const char *dmg_config_file,
     eckit::PathName pool_path = dummy_daos_root() / uuid_str;
 
     if (!pool_path.exists()) return -1;
+
+    std::vector<eckit::PathName> files;
+    std::vector<eckit::PathName> dirs;
+    dummy_daos_root().children(files, dirs);
+
+    for (auto& f : files) {
+        if (f.isLink() && f.realName() == pool_path) {
+            f.unlink();
+        }
+    }
 
     deldir(pool_path);
 
