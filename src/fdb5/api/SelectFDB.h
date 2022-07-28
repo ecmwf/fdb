@@ -65,6 +65,8 @@ public: // methods
     ControlIterator control(const FDBToolRequest& request,
                             ControlAction action,
                             ControlIdentifiers identifiers) override;
+    
+    bool canMove(const FDBToolRequest& request) override;
 
     void flush() override;
 

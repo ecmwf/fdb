@@ -83,6 +83,9 @@ public: // methods
                                     ControlAction action,
                                     ControlIdentifiers identifier) = 0;
 
+    virtual bool canMove(const FDBToolRequest& request) = 0;
+    virtual void move(const ControlElement& elem, const eckit::PathName& dest) { NOTIMP; }
+
     // -------------- API management ----------------------------
 
     /// ID used for hashing in the Rendezvous hash. Should be unique amongst those used

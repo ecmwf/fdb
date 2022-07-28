@@ -196,6 +196,10 @@ ControlIterator SelectFDB::control(const FDBToolRequest& request,
     });
 }
 
+bool SelectFDB::canMove(const FDBToolRequest& request) {
+    return false;
+}
+
 void SelectFDB::flush() {
     for (auto& iter : subFdbs_) {
         FDB& fdb(iter.second);

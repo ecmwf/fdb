@@ -100,6 +100,9 @@ public: // methods
                             ControlIdentifiers identifiers);
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
+    bool canMove(const FDBToolRequest& request);
+    void move(const ControlElement& elem, const eckit::PathName& dest);
+
     bool dirty() const;
 
     // -------------- API management ----------------------------

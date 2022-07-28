@@ -13,6 +13,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Field.h"
+#include "fdb5/toc/TocEngine.h"
 
 using eckit::Log;
 
@@ -137,8 +138,18 @@ bool DB::exists() const {
     return (catalogue_->exists()/* && store_->exists()*/);
 }
 
+bool DB::canMove() const {
+    if (catalogue_->type() == TocEngine::typeName()) {
+        return catalogue_->canMove();
+    } else {
+        std::stringstream ss;
+        ss << "Only TOC DBs currently supported" << std::endl;
+        throw eckit::UserError(ss.str(), Here());
+    }
+}
+
 void DB::hideContents() {
-    if (catalogue_->type() == "toc") {
+    if (catalogue_->type() == TocEngine::typeName()) {
         catalogue_->hideContents();
     }
 }
@@ -148,7 +159,7 @@ eckit::URI DB::uri() const {
 }
 
 void DB::overlayDB(const DB& otherDB, const std::set<std::string>& variableKeys, bool unmount) {
-    if (catalogue_->type() == "toc" && otherDB.catalogue_->type() == "toc")  {
+    if (catalogue_->type() == TocEngine::typeName() && otherDB.catalogue_->type() == TocEngine::typeName())  {
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
         ASSERT(cat);
 
@@ -164,7 +175,7 @@ void DB::reconsolidate() {
 }
 
 void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
-    if (catalogue_->type() == "toc") {
+    if (catalogue_->type() == TocEngine::typeName()) {
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
         ASSERT(cat);
 

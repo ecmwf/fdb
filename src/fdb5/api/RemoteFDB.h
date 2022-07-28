@@ -78,6 +78,8 @@ public: // method
                             ControlAction action,
                             ControlIdentifiers identifiers) override;
 
+    bool canMove(const FDBToolRequest& request) override;
+
     void flush() override;
 
     const eckit::net::Endpoint& controlEndpoint() const { return controlEndpoint_; }

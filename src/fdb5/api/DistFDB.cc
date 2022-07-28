@@ -245,6 +245,9 @@ ControlIterator DistFDB::control(const FDBToolRequest& request,
     });
 }
 
+bool DistFDB::canMove(const FDBToolRequest& request) {
+    return false;
+}
 
 void DistFDB::flush() {
 

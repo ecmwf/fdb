@@ -85,6 +85,9 @@ public: // methods
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
+    bool canMove() const;
+    bool moveTo(const DB& target);
+
 protected: // methods
 
     friend std::ostream &operator<<(std::ostream &s, const DB &x);

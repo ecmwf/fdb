@@ -219,6 +219,13 @@ const std::string FDB::id() const {
     return internal_->id();
 }
 
+bool FDB::canMove(const FDBToolRequest& request) {
+    return internal_->canMove(request);
+}
+void FDB::move(const ControlElement& elem, const eckit::PathName& dest) {
+    return internal_->move(elem, dest);
+}
+
 FDBStats FDB::stats() const {
     return stats_;
 }

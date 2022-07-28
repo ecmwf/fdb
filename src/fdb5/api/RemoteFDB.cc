@@ -731,6 +731,10 @@ ControlIterator RemoteFDB::control(const FDBToolRequest& request,
     return forwardApiCall(ControlHelper(action, identifiers), request);
 };
 
+bool RemoteFDB::canMove(const FDBToolRequest& request) {
+    return false;
+}
+
 // -----------------------------------------------------------------------------------------------------
 
 // Here we do archive/flush related stuff

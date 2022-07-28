@@ -57,6 +57,9 @@ public: // methods
                             ControlAction action,
                             ControlIdentifiers identifiers) override;
 
+    bool canMove(const FDBToolRequest& request) override;
+    void move(const ControlElement& elem, const eckit::PathName& dest) override;
+
     void flush() override;
 
 private: // methods

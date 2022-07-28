@@ -13,17 +13,26 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include <dirent.h>
+#include <fcntl.h>
+
 #include "eckit/container/Queue.h"
+#include "eckit/io/FileHandle.h"
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
+#include "eckit/thread/ThreadPool.h"
+
 
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/LocalFDB.h"
 #include "fdb5/database/Archiver.h"
+#include "fdb5/database/DB.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Inspector.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/rules/Schema.h"
 #include "fdb5/LibFdb5.h"
 
 #include "fdb5/api/local/ControlVisitor.h"
@@ -114,6 +123,78 @@ ControlIterator LocalFDB::control(const FDBToolRequest& request,
     return queryInternal<ControlVisitor>(request, action, identifiers);
 }
 
+bool LocalFDB::canMove(const FDBToolRequest& request) {
+
+    const Schema& schema = config_.schema();
+
+    Key source;
+    ASSERT(schema.expandFirstLevel(request.request(), source));
+
+    std::unique_ptr<DB> dbSource = DB::buildReader(source, config_);
+    if (!dbSource->exists()) {
+        std::stringstream ss;
+        ss << "Source database not found: " << source << std::endl;
+        throw UserError(ss.str(), Here());
+    }
+
+    return dbSource->canMove();
+}
+
+// class for writing a chunk of the user buffer - used to perform multiple simultaneous writes
+class FileCopy : public eckit::ThreadPoolTask {
+    eckit::PathName src_;
+    eckit::PathName dest_;
+
+    void execute() {
+        eckit::FileHandle src(src_);
+        eckit::FileHandle dest(dest_);
+        src.copyTo(dest);
+    }
+
+public:
+    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName):
+        src_(srcPath / fileName), dest_(destPath / fileName) {}
+};
+
+void LocalFDB::move(const ControlElement& elem, const eckit::PathName& dest) {
+
+    eckit::PathName db = elem.location.path().baseName(true);
+
+    eckit::PathName dest_db = dest / db;
+
+    eckit::URI destURI("toc", dest_db);
+
+    if(dest_db.exists()) {
+        std::stringstream ss;
+        ss << "Target folder already exist!" << std::endl;
+        throw UserError(ss.str(), Here());
+    }
+
+    dest_db.mkdir();
+
+    Log::info() << "Database: " << elem.key << std::endl
+                << "  location: " << elem.location.asString() << std::endl
+                << "  new location: " << dest_db << std::endl;
+
+    eckit::ThreadPool pool(elem.location.asString(), 4);
+
+    DIR* dirp = ::opendir(elem.location.asString().c_str());
+    struct dirent* dp;
+    while ((dp = readdir(dirp)) != NULL) {
+        if (strstr( dp->d_name, ".index") ||
+            strstr( dp->d_name, ".data") ||
+            strstr( dp->d_name, "toc.") ||
+            strstr( dp->d_name, "schema")) {
+
+            pool.push(new FileCopy(elem.location.path(), dest_db, dp->d_name));
+        }
+    }
+    closedir(dirp);
+
+    pool.wait();
+    pool.push(new FileCopy(elem.location.path(), dest_db, "toc"));
+    pool.wait();
+}
 
 void LocalFDB::flush() {
     if (archiver_) {

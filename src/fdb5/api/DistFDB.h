@@ -61,6 +61,8 @@ public: // method
                             ControlAction action,
                             ControlIdentifiers identifiers) override;
 
+    bool canMove(const FDBToolRequest& request) override;
+
     void flush() override;
 
     FDBStats stats() const override;

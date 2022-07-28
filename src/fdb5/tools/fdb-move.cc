@@ -8,13 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include <dirent.h>
-#include <fcntl.h>
-
-#include "eckit/io/FileHandle.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
-#include "eckit/thread/ThreadPool.h"
 
 #include "fdb5/tools/FDBVisitTool.h"
 #include "fdb5/api/FDB.h"
@@ -43,22 +38,6 @@ private: // methods
 private: // members
 
     eckit::PathName destination_;
-};
-
-// class for writing a chunk of the user buffer - used to perform multiple simultaneous writes
-class FileCopy : public eckit::ThreadPoolTask {
-    eckit::PathName src_;
-    eckit::PathName dest_;
-
-    void execute() {
-        eckit::FileHandle src(src_);
-        eckit::FileHandle dest(dest_);
-        src.copyTo(dest);
-    }
-
-public:
-    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName):
-        src_(srcPath / fileName), dest_(destPath / fileName) {}
 };
 
 FDBMove::FDBMove(int argc, char **argv) :
@@ -95,81 +74,36 @@ void FDBMove::execute(const CmdArgs& args) {
 
     FDB fdb(config(args));
 
+    
     for (const FDBToolRequest& request : requests("read")) {
+        if (fdb.canMove(request)) {
 
-        auto statusIterator = fdb.control(request, ControlAction::Disable, ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
+            size_t count = 0;
+            auto statusIterator = fdb.control(request, ControlAction::Disable, ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
 
-        size_t count = 0;
-        ControlElement elem;
-        while (statusIterator.next(elem)) {
-            eckit::PathName db = elem.location.path().baseName(true);
+            ControlElement elem;
+            while (statusIterator.next(elem)) {
 
-            eckit::PathName dest_db = destination_ / db;
-            if(dest_db.exists()) {
+                ASSERT(elem.controlIdentifiers.has(ControlIdentifier::Archive));
+                ASSERT(elem.controlIdentifiers.has(ControlIdentifier::Wipe));
+                ASSERT(elem.controlIdentifiers.has(ControlIdentifier::UniqueRoot));
+
+                fdb.move(elem, destination_);
+                count++;
+            }
+            if (count == 0 && fail()) {
                 std::stringstream ss;
-                ss << "Destination folder " << dest_db << " already exist";
-                throw UserError(ss.str(), Here());
+                ss << "No FDB entries found for: " << request << std::endl;
+                throw FDBToolException(ss.str());
             }
-            dest_db.mkdir();
-
-            Log::info() << "Database: " << elem.key << std::endl
-                        << "  location: " << elem.location.asString() << std::endl
-                        << "  new location: " << dest_db << std::endl;
-
-
-            ASSERT(elem.controlIdentifiers.has(ControlIdentifier::Archive));
-            ASSERT(elem.controlIdentifiers.has(ControlIdentifier::Wipe));
-            ASSERT(elem.controlIdentifiers.has(ControlIdentifier::UniqueRoot));
-
-            eckit::ThreadPool pool(elem.location.asString(), 4);
-
-            DIR* dirp = ::opendir(elem.location.asString().c_str());
-            struct dirent* dp;
-            while ((dp = readdir(dirp)) != NULL) {
-                if (strstr( dp->d_name, ".index")) {
-
-                    eckit::PathName src_ = elem.location.path() / dp->d_name;
-                    int fd = ::open(src_.asString().c_str(), O_RDWR);
-                    if(::flock(fd, LOCK_EX)) {
-                        std::stringstream ss;
-                        ss << "Index file " << dp->d_name << " is locked";
-                        throw UserError(ss.str(), Here());
-                    }
-
-                    eckit::FileHandle src(src_);
-                    eckit::FileHandle dest(dest_db / dp->d_name);
-                    src.copyTo(dest);
-                }
-            }
-            closedir(dirp);
-
-            dirp = ::opendir(elem.location.asString().c_str());
-            while ((dp = readdir(dirp)) != NULL) {
-                if (strstr( dp->d_name, ".data") ||
-                    strstr( dp->d_name, "toc.") ||
-                    strstr( dp->d_name, "schema")) {
-
-                    pool.push(new FileCopy(elem.location.path(), dest_db, dp->d_name));
-                }
-            }
-            closedir(dirp);
-
-            pool.wait();
-            pool.push(new FileCopy(elem.location.path(), dest_db, "toc"));
-            pool.wait();
-
-            count++;
-        }
-
-        if (count == 0 && fail()) {
+        } else {
             std::stringstream ss;
-            ss << "No FDB entries found for: " << request << std::endl;
-            throw FDBToolException(ss.str());
+            ss << "Source DB cannot be moved" << std::endl;
+            throw UserError(ss.str(), Here());
         }
-
-        
     }
 }
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace tools
