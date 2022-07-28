@@ -12,37 +12,19 @@
 ///
 /// @date Jul 2022
 
+#include <daos.h>
+
 #include "eckit/config/Resource.h"
 #include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/daos/DaosHandle.h"
 #include "fdb5/daos/DaosCluster.h"
 
+using eckit::Length;
+using eckit::Offset;
+using eckit::URI;
+
 namespace fdb5 {
-
-std::string oidToStr(const daos_obj_id_t& oid) {
-    std::stringstream os;
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.hi << ".";
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
-    return os.str();
-}
-
-bool strToOid(const std::string& x, daos_obj_id_t *oid) {
-    if (x.length() != 33)
-        return false;
-    // TODO: do better checks and avoid copy
-    std::string y(x);
-    y[16] = '0';
-    if (!std::all_of(y.begin(), y.end(), ::isxdigit))
-        return false;
-
-    std::string hi = x.substr(0, 16);
-    std::string lo = x.substr(17, 16);
-    oid->hi = std::stoull(hi, nullptr, 16);
-    oid->lo = std::stoull(lo, nullptr, 16);
-
-    return true;
-}
 
 void DaosHandle::construct(std::string& title) {
 
@@ -56,15 +38,17 @@ void DaosHandle::construct(std::string& title) {
 
     ASSERT(bits.size() == 1 || bits.size() == 2 || bits.size() == 3);
 
-    bool get_oid = false;
+    bool known_oid = true;
     daos_obj_id_t oid;
     bool last_is_oid;
+    std::string pool_label;
+    std::string cont_label;
 
     if (bits.size() == 1) {
 
-        pool_ = defaultDaosPool;
-        cont_ = title;
-        get_oid = true;
+        pool_label = defaultDaosPool;
+        cont_label = title;
+        known_oid = false;
 
     } else if (bits.size() == 2) {
 
@@ -72,53 +56,75 @@ void DaosHandle::construct(std::string& title) {
 
         if (last_is_oid) {
 
-            pool_ = defaultDaosPool;
-            cont_ = bits[0];
-            oid_ = oid;
+            pool_label = defaultDaosPool;
+            cont_label = bits[0];
 
         } else {
 
-            pool_ = bits[0];
-            cont_ = bits[1];
-            get_oid = true;
+            pool_label = bits[0];
+            cont_label = bits[1];
+            known_oid = false;
 
         }
 
     } else {
 
-        pool_ = bits[0];
-        cont_ = bits[1];
-        ASSERT(strToOid(bits[2], &oid_));
+        pool_label = bits[0];
+        cont_label = bits[1];
+        ASSERT(strToOid(bits[2], &oid));
 
     }
 
-    if (get_oid) {
-        oid_ = DaosCluster::instance().getNextOid(pool_, cont_);
+    uuid_t pool_uuid;
+    if (uuid_parse(pool_label.c_str(), pool_uuid) == 0) {
+
+        pool_ = new DaosPool(pool_uuid);
+
+    } else {
+
+        pool_ = new DaosPool(pool_label);
+
+    }
+
+    // TODO: here DaosCluster::instance() should be called to initialize DAOS.
+    //       At the moment it is only called upon obj_->create() below (getNextOid).
+    pool_->connect();
+
+    cont_ = pool_->declareContainer(cont_label);
+
+    if (!known_oid) {
+        
+        obj_ = cont_->declareObject();
+    
+    } else {
+
+        obj_ = cont_->declareObject(oid);
+
     }
 
 }
 
-DaosHandle::DaosHandle(std::string& title) : open_(false), offset_(0) {
+DaosHandle::DaosHandle(std::string title) : open_(false), offset_(0) {
 
     construct(title);
 
 }
 
-DaosHandle::DaosHandle(std::string& pool, std::string& cont) : open_(false), offset_(0) {
+DaosHandle::DaosHandle(std::string pool, std::string cont) : open_(false), offset_(0) {
 
     std::string title = pool + ":" + cont;
     construct(title);
 
 }
 
-DaosHandle::DaosHandle(std::string& pool, std::string& cont, std::string& oid) : open_(false), offset_(0) {
+DaosHandle::DaosHandle(std::string pool, std::string cont, std::string oid) : open_(false), offset_(0) {
 
     std::string title = pool + ":" + cont + ":" + oid;
     construct(title);
 
 }
 
-DaosHandle::DaosHandle(URI& uri) : open_(false), offset_(0) {
+DaosHandle::DaosHandle(URI uri) : open_(false), offset_(0) {
 
     std::string title = uri.name();
     construct(title);
@@ -128,6 +134,9 @@ DaosHandle::DaosHandle(URI& uri) : open_(false), offset_(0) {
 DaosHandle::~DaosHandle() {
 
     if (open_) close();
+    delete obj_;
+    delete cont_;
+    delete pool_;
 
 }
 
@@ -137,31 +146,29 @@ void DaosHandle::openForWrite(const Length& len) {
 
     offset_ = eckit::Offset(0);
 
-    DaosCluster::instance().poolConnect(pool_, &poh_);
+    pool_->connect();
 
     // TODO: improve this
-    DaosCluster::instance().contCreateWithLabel(poh_, cont_);
+    cont_->create();
+    cont_->open();
 
-    DaosCluster::instance().contOpen(poh_, cont_, &coh_);
-
-    DaosCluster::instance().arrayCreate(coh_, oid_, &oh_);
+    obj_->create();
 
     open_ = true;
 
 }
 
-void DaosHandle::openForAppend(const Length&) {
+void DaosHandle::openForAppend(const Length& len) {
 
     if (open_) NOTIMP;
 
-    DaosCluster::instance().poolConnect(pool_, &poh_);
+    pool_->connect();
 
     // TODO: should this opener crash if object not exists?
-    DaosCluster::instance().contCreateWithLabel(poh_, cont_);
+    cont_->create();
+    cont_->open();
 
-    DaosCluster::instance().contOpen(poh_, cont_, &coh_);
-
-    DaosCluster::instance().arrayCreate(coh_, oid_, &oh_);
+    obj_->create();
 
     open_ = true;
 
@@ -173,15 +180,15 @@ Length DaosHandle::openForRead() {
 
     offset_ = eckit::Offset(0);
 
-    DaosCluster::instance().poolConnect(pool_, &poh_);
+    pool_->connect();
 
-    DaosCluster::instance().contOpen(poh_, cont_, &coh_);
+    cont_->open();
 
-    DaosCluster::instance().arrayOpen(coh_, oid_, &oh_);
+    obj_->open();
 
     open_ = true;
 
-    return Length(DaosCluster::instance().arrayGetSize(oh_));
+    return Length(obj_->getSize());
 
 }
 
@@ -189,27 +196,11 @@ long DaosHandle::write(const void* buf, long len) {
 
     ASSERT(open_);
 
-    daos_array_iod_t iod;
-    daos_range_t rg;
+    long written = obj_->write(buf, len, offset_);
 
-    d_sg_list_t sgl;
-    d_iov_t iov;
+    offset_ += written;
 
-    iod.arr_nr = 1;
-    rg.rg_len = (daos_size_t) len;
-    rg.rg_idx = (daos_off_t) offset_;
-    //rg.rg_idx = (daos_off_t) 0;
-    iod.arr_rgs = &rg;
-
-    sgl.sg_nr = 1;
-    d_iov_set(&iov, (void*) buf, (size_t) len);
-    sgl.sg_iovs = &iov;
-
-    DAOS_CALL(daos_array_write(oh_, DAOS_TX_NONE, &iod, &sgl, NULL));
-
-    offset_ += len;
-
-    return len;
+    return written;
 
 }
 
@@ -217,37 +208,21 @@ long DaosHandle::read(void* buf, long len) {
 
     ASSERT(open_);
 
-    daos_array_iod_t iod;
-    daos_range_t rg;
+    long read = obj_->read(buf, len, offset_);
 
-    d_sg_list_t sgl;
-    d_iov_t iov;
+    offset_ += read;
 
-    iod.arr_nr = 1;
-    rg.rg_len = len;
-    rg.rg_idx = (daos_off_t) offset_;
-    //rg.rg_idx = (daos_off_t) 0;
-    iod.arr_rgs = &rg;
-
-    sgl.sg_nr = 1;
-    d_iov_set(&iov, buf, (size_t) len);
-    sgl.sg_iovs = &iov;
-
-    DAOS_CALL(daos_array_read(oh_, DAOS_TX_NONE, &iod, &sgl, NULL));
-
-    offset_ += len;
-
-    return len;
+    return read;
 
 }
 
 void DaosHandle::close() {
 
-    DaosCluster::instance().arrayClose(oh_);
+    obj_->close();
 
-    DaosCluster::instance().contClose(coh_);
+    cont_->close();
 
-    DaosCluster::instance().poolDisconnect(poh_);
+    pool_->disconnect();
 
     open_ = false;
 
@@ -262,7 +237,13 @@ void DaosHandle::flush() {
 Length DaosHandle::size() {
 
     ASSERT(open_);
-    return Length(DaosCluster::instance().arrayGetSize(oh_));
+    return Length(obj_->getSize());
+
+}
+
+Length DaosHandle::estimate() {
+
+    return size();
 
 }
 
@@ -294,7 +275,7 @@ void DaosHandle::skip(const Length& len) {
 
 std::string DaosHandle::title() const {
     
-    return pool_ + ':' + cont_ + ':' + oidToStr(oid_);
+    return pool_->name() + ':' + cont_->name() + ':' + obj_->name();
 
 }
 

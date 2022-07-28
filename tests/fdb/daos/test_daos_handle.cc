@@ -8,20 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <cstdlib>
-// #include <cstring>
-// #include <iomanip>
-// #include <unistd.h>
-// #include <uuid/uuid.h>
-
 #include "eckit/testing/Test.h"
 #include "eckit/filesystem/URI.h"
 
-//TODO: remove once pool_create is implemented
-#include "dummy_daos.h"
-
 #include "fdb5/daos/DaosCluster.h"
 #include "fdb5/daos/DaosHandle.h"
+#include "fdb5/daos/DaosPool.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -29,45 +21,18 @@ using namespace eckit;
 namespace fdb {
 namespace test {
 
-void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
-
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
-
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
-
-    p.rmdir();
-}
-
+// TODO: any way to catch exceptions and signals and destroy the pools as cleanup?
+//       may be doable via test definition in cmake?
 CASE( "daos_handle" ) {
 
-    std::string pool = "pool";
-
-    // TODO: the following manual creation of a test pool is only valid for dummy daos.
-    //       For this test to work with real daos, fdb5::DaosManager::create_pool(pool)
-    //       should be implemented, which calls dmg_pool_create, declared in daos/tests_lib.h
-    //       and defined in common/tests_dmg_helpers.c. It should be implemented in dummy daos
-    //       as well, and remove the manual pool folder creation.
-    // create a dummy daos pool manually
-    PathName root = dummy_daos_root();
-    PathName pool_path = root / pool;
-    pool_path.mkdir();
-    //fdb5::DaosManager::create_pool(pool);
+    fdb5::DaosPool pool(std::string("pool"));
+    pool.create();
 
     std::string cont = "cont";
 
     // create a new daos object, with an automatically allocated oid, and write 5 bytes into it
 
-    fdb5::DaosHandle dh(pool, cont);
+    fdb5::DaosHandle dh(pool.name(), cont);
 
     char data[] = "test";
 
@@ -128,7 +93,7 @@ CASE( "daos_handle" ) {
     // attempt open for read of a non-existing object
 
     std::string oid = "0000000000000001.0000000000000000";
-    fdb5::DaosHandle dh_fail(pool, cont, oid);
+    fdb5::DaosHandle dh_fail(pool.name(), cont, oid);
     bool caughtException = false;
     try {
         t = dh_fail.openForRead();
@@ -145,10 +110,7 @@ CASE( "daos_handle" ) {
     EXPECT(t == Length(2 * sizeof(data)));
     dh_uri.close();
 
-    // TODO:
-    //fdb5::DaosCluster::destroy_pool(pool);
-    // destroy the container and pool manually
-    deldir(pool_path);
+    pool.destroy();
 
 }
 

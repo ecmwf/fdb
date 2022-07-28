@@ -12,8 +12,7 @@
 ///
 /// @date Jul 2022
 
-#ifndef fdb5_daos_DaosCluster_h
-#define fdb5_daos_DaosCluster_h
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -21,13 +20,20 @@
 #include <sstream>
 #include <map>
 
-#include "eckit/exception/Exceptions.h"
-
 #include <daos.h>
+
+#include "eckit/exception/Exceptions.h"
 
 #define OIDS_PER_ALLOC 1024
 
 namespace fdb5 {
+
+// TODO: really necessary?
+// TODO: naming? oid_to_string
+std::string oidToStr(const daos_obj_id_t&);
+bool strToOid(const std::string&, daos_obj_id_t*);
+
+class DaosContainer;
 
 // struct OidAlloc;
 
@@ -39,16 +45,7 @@ public:
 
     static DaosCluster& instance();
 
-    void poolConnect(std::string&, daos_handle_t*) const;
-    void poolDisconnect(daos_handle_t&) const;
-    void contCreateWithLabel(daos_handle_t&, std::string&) const;
-    void contOpen(daos_handle_t&, std::string&, daos_handle_t*) const;
-    void contClose(daos_handle_t&) const;
-    daos_obj_id_t getNextOid(std::string&, std::string&);
-    void arrayCreate(daos_handle_t&, daos_obj_id_t&, daos_handle_t*) const;
-    void arrayOpen(daos_handle_t&, daos_obj_id_t&, daos_handle_t*) const;
-    daos_size_t arrayGetSize(daos_handle_t&) const;
-    void arrayClose(daos_handle_t&) const;
+    daos_obj_id_t getNextOid(fdb5::DaosContainer*);
 
     static void error(int code, const char* msg, const char* file, int line, const char* func);
 
@@ -78,5 +75,3 @@ static inline int daos_call(int code, const char* msg, const char* file, int lin
 }
 
 }  // namespace fdb5
-
-#endif

@@ -13,8 +13,33 @@
 /// @date Jul 2022
 
 #include "fdb5/daos/DaosCluster.h"
+#include "fdb5/daos/DaosContainer.h"
 
 namespace fdb5 {
+
+std::string oidToStr(const daos_obj_id_t& oid) {
+    std::stringstream os;
+    os << std::setw(16) << std::setfill('0') << std::hex << oid.hi << ".";
+    os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
+    return os.str();
+}
+
+bool strToOid(const std::string& x, daos_obj_id_t *oid) {
+    if (x.length() != 33)
+        return false;
+    // TODO: do better checks and avoid copy
+    std::string y(x);
+    y[16] = '0';
+    if (!std::all_of(y.begin(), y.end(), ::isxdigit))
+        return false;
+
+    std::string hi = x.substr(0, 16);
+    std::string lo = x.substr(17, 16);
+    oid->hi = std::stoull(hi, nullptr, 16);
+    oid->lo = std::stoull(lo, nullptr, 16);
+
+    return true;
+}
 
 // struct OidAlloc {
 //     OidAlloc() : num_oids_(0) {}
@@ -39,37 +64,7 @@ DaosCluster::~DaosCluster() {
 
 }
 
-void DaosCluster::poolConnect(std::string& pool, daos_handle_t* poh) const {
-
-    DAOS_CALL(daos_pool_connect(pool.c_str(), NULL, DAOS_PC_RW, poh, NULL, NULL));
-
-}
-
-void DaosCluster::poolDisconnect(daos_handle_t& poh) const {
-
-    DAOS_CALL(daos_pool_disconnect(poh, NULL));
-
-}
-
-void DaosCluster::contCreateWithLabel(daos_handle_t& poh, std::string& label) const {
-
-    DAOS_CALL(daos_cont_create_with_label(poh, label.c_str(), NULL, NULL, NULL));
-
-}
-
-void DaosCluster::contOpen(daos_handle_t& poh, std::string& cont, daos_handle_t *coh) const {
-
-    DAOS_CALL(daos_cont_open(poh, cont.c_str(), DAOS_COO_RW, coh, NULL, NULL));
-
-}
-
-void DaosCluster::contClose(daos_handle_t& coh) const {
-
-    DAOS_CALL(daos_cont_close(coh, NULL));
-
-}
-
-daos_obj_id_t DaosCluster::getNextOid(std::string& pool, std::string& cont) {
+daos_obj_id_t DaosCluster::getNextOid(DaosContainer* cont) {
 
     // OidAlloc *alloc = nullptr;
 
@@ -85,11 +80,13 @@ daos_obj_id_t DaosCluster::getNextOid(std::string& pool, std::string& cont) {
     //     alloc = oid_allocs_[pool][0][cont];
     // }
 
-    daos_handle_t poh, coh;
-    poolConnect(pool, &poh);
     // TODO: improve this
-    contCreateWithLabel(poh, cont);
-    contOpen(poh, cont, &coh);
+    cont->create();
+
+    cont->open();
+
+    daos_handle_t coh;
+    coh = cont->getHandle();
 
     // if (alloc->num_oids_ == 0) {
     //     alloc->num_oids_ = OIDS_PER_ALLOC;
@@ -99,6 +96,7 @@ daos_obj_id_t DaosCluster::getNextOid(std::string& pool, std::string& cont) {
     //     alloc->num_oids_--;
     // }
 
+    // TODO: move to container and/or array
     daos_obj_id_t next;
     DAOS_CALL(daos_cont_alloc_oids(coh, (daos_size_t) 1, &(next.lo), NULL));
     DAOS_CALL(daos_array_generate_oid(coh, &next, true, OC_S1, 0, 0));
@@ -106,38 +104,10 @@ daos_obj_id_t DaosCluster::getNextOid(std::string& pool, std::string& cont) {
     // next.lo = alloc->next_oid_;
     // DAOS_CALL(daos_array_generate_oid(coh, &next, true, OC_S1, 0, 0));
 
-    contClose(coh);
-    poolDisconnect(poh);
+    // TODO: think about connecting and disconnecting pools
+    //pool->disconnect();
 
     return next;
-}
-
-void DaosCluster::arrayCreate(daos_handle_t& coh, daos_obj_id_t& oid, daos_handle_t *oh) const {
-
-    DAOS_CALL(daos_array_create(coh, oid, DAOS_TX_NONE, 1, 1048576, oh, NULL));
-
-}
-
-void DaosCluster::arrayOpen(daos_handle_t& coh, daos_obj_id_t& oid, daos_handle_t *oh) const {
-
-    daos_size_t cell_size, csize;
-    DAOS_CALL(daos_array_open(coh, oid, DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, oh, NULL));
-
-}
-
-daos_size_t DaosCluster::arrayGetSize(daos_handle_t& oh) const {
-
-    daos_size_t array_size;
-    DAOS_CALL(daos_array_get_size(oh, DAOS_TX_NONE, &array_size, NULL));
-
-    return array_size;
-
-}
-
-void DaosCluster::arrayClose(daos_handle_t& oh) const {
-
-    DAOS_CALL(daos_array_close(oh, NULL));
-
 }
 
 void DaosCluster::error(int code, const char* msg, const char* file, int line, const char* func) {

@@ -13,57 +13,44 @@
 /// @date Jul 2022
 
 #pragma once
-// TODO: pragma once everywhere
 
 #include "eckit/io/DataHandle.h"
 #include "eckit/filesystem/URI.h"
-
-#include <daos.h>
-
-// TODO: never do that
-using eckit::Length;
-using eckit::Offset;
-using eckit::URI;
+#include "fdb5/daos/DaosPool.h"
+#include "fdb5/daos/DaosContainer.h"
 
 // TODO: comment separators and labels
 namespace fdb5 {
-
-// TODO: really necessary?
-// TODO: naming? oid_to_string
-std::string oidToStr(const daos_obj_id_t&);
-bool strToOid(const std::string&, daos_obj_id_t*);
 
 class DaosHandle : public eckit::DataHandle {
 
 public:
 
-    // TODO: please include relevant names
-    // TODO: add classes for daos pool, cont and object
-    DaosHandle(std::string&, std::string&);
-    DaosHandle(std::string&, std::string&, std::string&);
-    DaosHandle(std::string&);
-    DaosHandle(URI&);
+    // TODO: i'd rather pass references in all constructors of DaosHandle and DaosPool, but then I get errors when creating such objects using expressions in the constructor arguments
+    DaosHandle(std::string pool, std::string cont);
+    DaosHandle(std::string pool, std::string cont, std::string oid);
+    DaosHandle(std::string title);
+    DaosHandle(eckit::URI);
 
     ~DaosHandle();
 
-    virtual void print(std::ostream& s) const override;
+    virtual void print(std::ostream&) const override;
 
-    virtual Length openForRead() override;
-    virtual void openForWrite(const Length&) override;
-    virtual void openForAppend(const Length&) override;
+    virtual eckit::Length openForRead() override;
+    virtual void openForWrite(const eckit::Length&) override;
+    virtual void openForAppend(const eckit::Length&) override;
 
     virtual long read(void*, long) override;
     virtual long write(const void*, long) override;
     virtual void close() override;
     virtual void flush() override;
 
-    virtual Length size() override;
-    // TODO: implement this one as size()
-    //virtual Length estimate() override;
-    virtual Offset position() override;
-    virtual Offset seek(const Offset&) override;
+    virtual eckit::Length size() override;
+    virtual eckit::Length estimate() override;
+    virtual eckit::Offset position() override;
+    virtual eckit::Offset seek(const eckit::Offset&) override;
     virtual bool canSeek() const override;
-    virtual void skip(const Length&) override;
+    virtual void skip(const eckit::Length&) override;
 
     //virtual void rewind() override;
     //virtual void restartReadFrom(const Offset&) override;
@@ -78,16 +65,14 @@ public:
 
 private:
 
-    std::string pool_;
-    std::string cont_;
-    daos_obj_id_t oid_;
-    daos_handle_t poh_;
-    daos_handle_t coh_;
-    daos_handle_t oh_;
+    // TODO: make it a smart pointer?
+    fdb5::DaosPool* pool_;
+    fdb5::DaosContainer* cont_;
+    fdb5::DaosObject* obj_;
     bool open_;
     eckit::Offset offset_;
 
-    void construct(std::string&);
+    void construct(std::string& title);
 
     //static ClassSpec classSpec_;
     //static Reanimator<DataHandle> reanimator_;
