@@ -370,13 +370,6 @@ int fdb_key_add(fdb_key_t* key, const char* param, const char* value) {
     });
 }
 
-int fdb_delete_uri(char* uri) {
-    return wrapApiFunction([uri]{
-        ASSERT(uri);
-        delete uri;
-    });
-}
-
 int fdb_delete_key(fdb_key_t* key) {
     return wrapApiFunction([key]{
         ASSERT(key);
