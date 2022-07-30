@@ -75,10 +75,44 @@ private:
 
 };
 
+struct fdb_split_key_t {
+public:
+    fdb_split_key_t(const std::vector<Key>& key) : key_(key), level_(-1) {}
+
+    int next_metadata(const char** k, const char** v, int* level) {
+        if (level_ == -1) {
+            if (0 < key_.size()) {
+                level_ = 0;
+                it_ = key_[0].begin();
+            } else {
+                return FDB_ITERATION_COMPLETE;
+            }
+        } 
+        while (it_ == key_[level_].end()) {
+            if (level_<key_.size()-1) {
+                level_++;
+                it_ = key_[level_].begin();
+            } else {
+                return FDB_ITERATION_COMPLETE;
+            }
+        }
+
+        *k = it_->first.c_str();
+        *v = it_->second.c_str();
+        *level = level_;
+        it_++;
+        return FDB_SUCCESS;
+    }
+
+private:
+    const std::vector<Key>& key_;
+    int level_;
+    Key::const_iterator it_;
+};
 
 struct fdb_listiterator_t {
 public:
-    fdb_listiterator_t() : validEl_(false), iter_(nullptr) {}
+    fdb_listiterator_t() : iter_(nullptr), validEl_(false) {}
 
     void set(ListIterator&& iter) {
         iter_.reset(new ListIteratorHolder(std::move(iter)));
@@ -88,7 +122,6 @@ public:
         ASSERT(iter_);
         
         validEl_ = iter_->get().next(el_);
-        metadata.clear();
 
         return validEl_ ? FDB_SUCCESS : FDB_ITERATION_COMPLETE;
     }
@@ -102,31 +135,16 @@ public:
         *len = loc.length();
     }
 
-    int key_metadata(const char** k, const char** v) {
+    void key(fdb_split_key_t** key) {
         ASSERT(validEl_);
 
-        if (metadata.empty()) {
-            for (auto k : el_.combinedKey()) {
-                metadata.set(k.first, k.second);
-            }
-            metaIter_ = metadata.begin();
-        }
-
-        if (metaIter_ == metadata.end()) {
-            return FDB_ITERATION_COMPLETE;
-        }
-        *k = metaIter_->first.c_str();
-        *v = metaIter_->second.c_str();
-        metaIter_++;
-        return FDB_SUCCESS;
+        *key = new fdb_split_key_t(el_.key());
     }
 
 private:
+    std::unique_ptr<ListIteratorHolder> iter_;
     bool validEl_;
     ListElement el_;
-    std::unique_ptr<ListIteratorHolder> iter_;
-    Key metadata;
-    Key::const_iterator metaIter_;
 };
 
 struct fdb_datareader_t {
@@ -417,14 +435,31 @@ int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off
         it->attrs(uri, off, len);
     });
 }
-int fdb_listiterator_key_next(fdb_listiterator_t* it, const char** key, const char** value) {
-    return wrapApiFunction(std::function<int()> {[it, key, value] {
+int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t** key){
+    return wrapApiFunction([it, key] {
+        ASSERT(it);
+        ASSERT(key);
+        it->key(key);
+    });
+}
+
+int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, int* level) {
+    return wrapApiFunction(std::function<int()> {[it, key, value, level] {
         ASSERT(it);
         ASSERT(key);
         ASSERT(value);
-        return it->key_metadata(key, value);
+        ASSERT(level);
+        return it->next_metadata(key, value, level);
     }});
 }
+
+int fdb_delete_splitkey(fdb_split_key_t* key) {
+    return wrapApiFunction([key]{
+        ASSERT(key);
+        delete key;
+    });
+}
+
 
 int fdb_delete_listiterator(fdb_listiterator_t* it) {
     return wrapApiFunction([it]{
