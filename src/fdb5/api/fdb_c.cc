@@ -79,7 +79,7 @@ struct fdb_split_key_t {
 public:
     fdb_split_key_t(const std::vector<Key>& key) : key_(key), level_(-1) {}
 
-    int next_metadata(const char** k, const char** v, int* level) {
+    int next_metadata(const char** k, const char** v, size_t* level) {
         if (level_ == -1) {
             if (0 < key_.size()) {
                 level_ = 0;
@@ -443,7 +443,7 @@ int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t** key){
     });
 }
 
-int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, int* level) {
+int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level) {
     return wrapApiFunction(std::function<int()> {[it, key, value, level] {
         ASSERT(it);
         ASSERT(key);

@@ -37,7 +37,7 @@ int fdb_request_add1(fdb_request_t* req, const char* param, const char* value) {
 void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it) {
     const char *k;
     const char *v;
-    int l;
+    size_t l;
     int err;
 
     fdb_split_key_t* sk;

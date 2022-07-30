@@ -136,7 +136,7 @@ int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off
 int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t** key);
 int fdb_delete_listiterator(fdb_listiterator_t* it);
 
-int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, int* level);
+int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level);
 int fdb_delete_splitkey(fdb_split_key_t* key);
 
 int fdb_new_datareader(fdb_datareader_t** dr);
