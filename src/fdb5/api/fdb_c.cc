@@ -63,18 +63,6 @@ private:
     metkit::mars::MarsRequest request_;
 };
 
-
-class ListIteratorHolder {
-public:
-    ListIteratorHolder(ListIterator&& iter) : iter_(std::move(iter)) {}
-
-    ListIterator& get() { return iter_; }
-
-private:
-    ListIterator iter_;
-
-};
-
 struct fdb_split_key_t {
 public:
     fdb_split_key_t(const std::vector<Key>& key) : key_(key), level_(-1) {}
@@ -112,16 +100,10 @@ private:
 
 struct fdb_listiterator_t {
 public:
-    fdb_listiterator_t() : iter_(nullptr), validEl_(false) {}
-
-    void set(ListIterator&& iter) {
-        iter_.reset(new ListIteratorHolder(std::move(iter)));
-    }
+    fdb_listiterator_t(ListIterator&& iter) : iter_(std::move(iter)), validEl_(false) {}
 
     int next() {
-        ASSERT(iter_);
-        
-        validEl_ = iter_->get().next(el_);
+        validEl_ = iter_.next(el_);
 
         return validEl_ ? FDB_SUCCESS : FDB_ITERATION_COMPLETE;
     }
@@ -142,7 +124,7 @@ public:
     }
 
 private:
-    std::unique_ptr<ListIteratorHolder> iter_;
+    ListIterator iter_;
     bool validEl_;
     ListElement el_;
 };
@@ -336,8 +318,8 @@ int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data
     });
 }
 
-int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, bool duplicates, fdb_listiterator_t* it) {
-    return wrapApiFunction([fdb, req, duplicates, it] {
+int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates) {
+    return wrapApiFunction([fdb, req, it, duplicates] {
         ASSERT(fdb);
         ASSERT(it);
 
@@ -346,7 +328,7 @@ int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, bool duplicates, fdb_l
             req ? req->request() : metkit::mars::MarsRequest(),
             req == nullptr, minKeySet);
 
-        it->set(fdb->list(toolRequest, duplicates));
+        *it = new fdb_listiterator_t(fdb->list(toolRequest, duplicates));
     });
 }
 int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr) {
@@ -415,11 +397,6 @@ int fdb_delete_request(fdb_request_t* req) {
     });
 }
 
-int fdb_new_listiterator(fdb_listiterator_t** it) {
-    return wrapApiFunction([it]{
-        *it = new fdb_listiterator_t();
-    });
-}
 int fdb_listiterator_next(fdb_listiterator_t* it) {
     return wrapApiFunction(std::function<int()> {[it] {
         ASSERT(it);
@@ -442,6 +419,12 @@ int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t** key){
         it->key(key);
     });
 }
+int fdb_delete_listiterator(fdb_listiterator_t* it) {
+    return wrapApiFunction([it]{
+        ASSERT(it);
+        delete it;
+    });
+}
 
 int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level) {
     return wrapApiFunction(std::function<int()> {[it, key, value, level] {
@@ -452,19 +435,10 @@ int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char
         return it->next_metadata(key, value, level);
     }});
 }
-
 int fdb_delete_splitkey(fdb_split_key_t* key) {
     return wrapApiFunction([key]{
         ASSERT(key);
         delete key;
-    });
-}
-
-
-int fdb_delete_listiterator(fdb_listiterator_t* it) {
-    return wrapApiFunction([it]{
-        ASSERT(it);
-        delete it;
     });
 }
 

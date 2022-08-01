@@ -108,7 +108,7 @@ int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t leng
 /** Archives multiple messages.
  * If mars request @req is not nullptr, number of messages and their metadata are checked against the provided request */
 int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data, size_t length);
-int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, bool duplicates, fdb_listiterator_t* it);
+int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates);
 int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr);
 int fdb_flush(fdb_handle_t* fdb);
 /** Closes and destroys the fdb instance.
@@ -130,7 +130,6 @@ int fdb_new_request(fdb_request_t** req);
 int fdb_request_add(fdb_request_t* req, const char* param, const char* values[], int numValues);
 int fdb_delete_request(fdb_request_t* req);
 
-int fdb_new_listiterator(fdb_listiterator_t** it);
 int fdb_listiterator_next(fdb_listiterator_t* it);
 int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off, size_t* len);
 int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t** key);
