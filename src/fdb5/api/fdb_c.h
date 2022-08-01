@@ -132,10 +132,16 @@ int fdb_delete_request(fdb_request_t* req);
 
 int fdb_listiterator_next(fdb_listiterator_t* it);
 int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off, size_t* len);
+/** lazy extraction of the key of a list element,
+ * key metadata can be retrieved with fdb_splitkey_next_metadata. */
 int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t** key);
 int fdb_delete_listiterator(fdb_listiterator_t* it);
 
+/** to retrieve key metadata
+ * supports multiple fdb_split_key_t iterating over the same key. */
 int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level);
+/** Closes and destroys the fdb key instance.
+ *  Must be called for every fdb_split_key_t returned by fdb_listiterator_splitkey. */
 int fdb_delete_splitkey(fdb_split_key_t* key);
 
 int fdb_new_datareader(fdb_datareader_t** dr);
