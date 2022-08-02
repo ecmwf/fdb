@@ -20,18 +20,18 @@
 
 namespace fdb5 {
 
-DaosPool::DaosPool() : known_uuid_(false), connected_(false) {}
+DaosPool::DaosPool() : known_uuid_(false), open_(false) {}
 
-DaosPool::DaosPool(std::string pool_label) : known_uuid_(false), label_(pool_label), connected_(false) {}
+DaosPool::DaosPool(std::string pool_label) : known_uuid_(false), label_(pool_label), open_(false) {}
 
-DaosPool::DaosPool(uuid_t pool_uuid) : known_uuid_(true), connected_(false) {
+DaosPool::DaosPool(uuid_t pool_uuid) : known_uuid_(true), open_(false) {
 
     uuid_copy(uuid_, pool_uuid);
 
 }
 
-// TODO: cpp uuid wrapper?
-DaosPool::DaosPool(std::string pool_label, uuid_t pool_uuid) : known_uuid_(true), label_(pool_label), connected_(false) {
+// TODO: cpp uuid wrapper? to avoid weird headers?
+DaosPool::DaosPool(std::string pool_label, uuid_t pool_uuid) : known_uuid_(true), label_(pool_label), open_(false) {
 
     uuid_copy(uuid_, pool_uuid);
 
@@ -40,18 +40,18 @@ DaosPool::DaosPool(std::string pool_label, uuid_t pool_uuid) : known_uuid_(true)
 // TODO: remove exceptions from destructors.
 // put a warning if connected_
 // check DataHandle for ideas. AutoClose?
-// possibly rename connect/disconnect to open/close?
 DaosPool::~DaosPool() {
 
-    if (connected_) disconnect();
+    if (open_) close();
 
 }
 
 void DaosPool::create() {
 
     // TODO: change all pre-condition checks to ASSERTs
-    if (connected_) throw eckit::Exception("Cannot create a connected pool.");
-    if (known_uuid_) throw eckit::Exception("Cannot create a pool with a user-specified UUID.");
+    // question: in the future ASSERTs will default to EcKit abortion. Not what we want in many pre-condition checks
+    ASSERT(!open_, "Cannot create a connected pool.");
+    ASSERT(!known_uuid_, "Cannot create a pool with a user-specified UUID.");
 
     // TODO: ensure deallocation. Either try catch or make a wrapper.
     // not application code. Library code. Shared resources. Need to handle as cleanly as possible.
@@ -89,7 +89,7 @@ void DaosPool::create() {
 void DaosPool::destroy() {
 
     if (!known_uuid_) NOTIMP;
-    if (connected_) disconnect();
+    if (open_) close();
 
     DAOS_CALL(dmg_pool_destroy(NULL, uuid_, NULL, default_destroy_force));
     
@@ -97,11 +97,11 @@ void DaosPool::destroy() {
 
 }
 
-void DaosPool::connect() {
+void DaosPool::open() {
 
-    if (connected_) return;
+    if (open_) return;
 
-    if (!known_uuid_ && label_.size() == 0) throw eckit::Exception("Cannot attempt connecting to an unidentified pool. Either create it or provide a label upon construction.");
+    ASSERT(known_uuid_ || label_.size() > 0, "Cannot attempt connecting to an unidentified pool. Either create it or provide a label upon construction.");
 
     if (label_.size() > 0) {
 
@@ -113,27 +113,27 @@ void DaosPool::connect() {
 
     }
     
-    connected_ = true;
+    open_ = true;
 
 }
 
-void DaosPool::disconnect() {
+void DaosPool::close() {
 
-    if (!connected_) {
+    if (!open_) {
         eckit::Log::warning() << "Disconnecting DaosPool " << name() << ", pool is not open" << std::endl;
         return;
     }
 
     DAOS_CALL(daos_pool_disconnect(poh_, NULL));
-    connected_ = false;
+    open_ = false;
 
 }
 
 std::string DaosPool::name() {
 
-    if (label_.size() > 0) return label_;
+    ASSERT(label_.size() > 0 || known_uuid_, "Cannot generate a name for an unidentified pool. Either create it or provide a label upon construction.");
 
-    if (!known_uuid_) throw eckit::Exception("Cannot generate a name for an unidentified pool. Either create it or provide a label upon construction.");
+    if (label_.size() > 0) return label_;
 
     char name_cstr[37];
     uuid_unparse(uuid_, name_cstr);
@@ -143,8 +143,8 @@ std::string DaosPool::name() {
 
 daos_handle_t& DaosPool::getHandle() {
     
-    if (connected_) return poh_;
-    throw eckit::Exception("Cannot get handle of a unconnected pool.");
+    ASSERT(open_, "Cannot get handle of a unconnected pool.");
+    return poh_;
 
 };
 

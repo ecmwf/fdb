@@ -119,15 +119,19 @@ DaosHandle::DaosHandle(std::string pool, std::string cont) : open_(false), offse
 
 DaosHandle::DaosHandle(std::string pool, std::string cont, std::string oid) : open_(false), offset_(0) {
 
-    std::string title = pool + ":" + cont + ":" + oid;
-    construct(title);
+    obj_ = new DaosObject(pool, cont, oid);
+    pool_ = obj_->getPool();
+    cont_ = obj_->getCont();
+    pool_->connect();
 
 }
 
 DaosHandle::DaosHandle(URI uri) : open_(false), offset_(0) {
 
-    std::string title = uri.name();
-    construct(title);
+    obj_ = new DaosObject(uri);
+    pool_ = obj_->getPool();
+    cont_ = obj_->getCont();
+    pool_->connect();
 
 }
 
@@ -188,7 +192,7 @@ Length DaosHandle::openForRead() {
 
     open_ = true;
 
-    return Length(obj_->getSize());
+    return Length(obj_->size());
 
 }
 
@@ -237,7 +241,7 @@ void DaosHandle::flush() {
 Length DaosHandle::size() {
 
     ASSERT(open_);
-    return Length(obj_->getSize());
+    return Length(obj_->size());
 
 }
 

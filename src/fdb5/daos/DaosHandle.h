@@ -27,10 +27,9 @@ class DaosHandle : public eckit::DataHandle {
 public:
 
     // TODO: i'd rather pass references in all constructors of DaosHandle and DaosPool, but then I get errors when creating such objects using expressions in the constructor arguments
-    DaosHandle(std::string pool, std::string cont);
-    DaosHandle(std::string pool, std::string cont, std::string oid);
-    DaosHandle(std::string title);
-    DaosHandle(eckit::URI);
+    // try using const ref?
+    DaosHandle(fdb5::DaosObject*);
+    DaosHandle(std::string pool, std::string cont, daos_obj_id_t oid);
 
     ~DaosHandle();
 

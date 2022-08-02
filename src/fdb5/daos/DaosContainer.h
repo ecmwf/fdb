@@ -34,6 +34,7 @@ public:
 
     //TODO: address this
     DaosContainer();
+    // TODO: add constructors where pool is a string or uuid?
     DaosContainer(fdb5::DaosPool*);
     DaosContainer(fdb5::DaosPool*, uuid_t);
     DaosContainer(fdb5::DaosPool*, std::string);
@@ -47,6 +48,7 @@ public:
 
     std::string name();
     daos_handle_t& getHandle();
+    DaosPool* getPool();
 
     fdb5::DaosObject* declareObject();
     fdb5::DaosObject* declareObject(daos_obj_id_t);

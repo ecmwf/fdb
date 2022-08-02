@@ -37,8 +37,8 @@ public:
     void create();
     void destroy();
 
-    void connect();
-    void disconnect();
+    void open();
+    void close();
     // TODO: AutoClose?
 
     std::string name();
@@ -58,7 +58,7 @@ private:
     bool known_uuid_;
     std::string label_;
     daos_handle_t poh_;
-    bool connected_;
+    bool open_;
 
 };
 

@@ -32,7 +32,8 @@ CASE( "daos_handle" ) {
 
     // create a new daos object, with an automatically allocated oid, and write 5 bytes into it
 
-    fdb5::DaosHandle dh(pool.name(), cont);
+    fdb5::DaosObject obj(pool.name(), cont);
+    fdb5::DaosHandle* dh = obj.daosHandle();
 
     char data[] = "test";
 

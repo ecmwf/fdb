@@ -117,11 +117,13 @@ void DaosContainer::close() {
 
 std::string DaosContainer::name() {
 
-    if (label_.size() > 0) return label_;
+    ASSERT(label_.size() > 0 || known_uuid_, "Cannot generate a name for an unidentified container. Either create it or provide a UUID or label upon construction.");
+
+    if (label_.size() > 0) return pool_->name() + ":" + label_;
 
     char name_cstr[37];
     uuid_unparse(uuid_, name_cstr);
-    return std::string(name_cstr);
+    return pool_->name() + ":" + std::string(name_cstr);
 
 }
 
@@ -131,6 +133,12 @@ daos_handle_t& DaosContainer::getHandle() {
     throw eckit::Exception("Cannot get handle of unopened container.");
     
 };
+
+DaosPool* DaosContainer::getPool() {
+
+    return pool_;
+
+}
 
 fdb5::DaosObject* DaosContainer::declareObject() {
 

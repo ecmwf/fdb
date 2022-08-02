@@ -14,34 +14,51 @@
 
 #pragma once
 
+#include "fdb5/daos/DaosPool.h"
 #include "eckit/io/Offset.h"
 
 namespace fdb5 {
 
 class DaosContainer;
 
-// TODO: redistribute things. We should have an equivalent to PathName (description, DaosObject) and FileHandle (actions - open, write), DaosHandle)
 class DaosObject {
 
 public:
 
     //TODO: address this
     DaosObject();
+    DaosObject(fdb5::DaosPool*);
     DaosObject(fdb5::DaosContainer*);
     DaosObject(fdb5::DaosContainer*, daos_obj_id_t);
+    DaosObject(fdb5::DaosContainer*, std::string);
+    DaosObject(std::string title);
+    DaosObject(std::string pool, std::string cont);
+    DaosObject(std::string pool, std::string cont, std::string oid);
+    DaosObject(eckit::URI);
     ~DaosObject();
 
     void create();
     void destroy();
+    // exists
+    // owner
+    // empty
+    daos_size_t size();
+
+    std::string name();
+    eckit::URI URI();
+
+    eckit::DataHandle* daosHandle(bool overwrite = false) const;
+
     void open();
     void close();
     // TODO: AutoClose?
+    // TODO: rename to handle()
+    daos_handle_t& getHandle();
+    DaosContainer* getContainer();
+    DaosPool* getPool();
+
     long write(const void*, long, eckit::Offset);
     long read(void*, long, eckit::Offset);
-
-    daos_size_t getSize();
-    std::string name();
-    daos_handle_t& getHandle();
 
     static const daos_size_t default_create_cell_size = 1;
     static const daos_size_t default_create_chunk_size = 1048576;
@@ -53,6 +70,8 @@ private:
     bool known_oid_;
     daos_handle_t oh_;
     bool open_;
+
+    void construct(std::string& title);
 
 };
 
