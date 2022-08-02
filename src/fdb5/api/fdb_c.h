@@ -148,6 +148,32 @@ int fdb_delete_request(fdb_request_t* req);
 /** @} */
 
 
+/** \defgroup SplitKey */
+/** @{ */
+
+struct fdb_split_key_t;
+/** Opaque type for the SplitKey object. Holds the Keys associated with a ListElement. */
+typedef struct fdb_split_key_t fdb_split_key_t;
+
+/** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys associated with each level of the FDB index.
+ * Supports multiple fdb_split_key_t iterating over the same key.
+ * \param it SplitKey instance
+ * \param key Key metadata name
+ * \param value Key metadata value
+ * \param level level in the iondex of the current Key
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level);
+
+/** Deallocates SplitKey object and associated resources.
+ * \param key SplitKey instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_splitkey(fdb_split_key_t* key);
+
+/** @} */
+
+
 /** \defgroup ListIterator */
 /** @{ */
 
@@ -179,32 +205,6 @@ int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t** key);
  * \returns Return code (#FdbErrorValues)
  */
 int fdb_delete_listiterator(fdb_listiterator_t* it);
-
-/** @} */
-
-
-/** \defgroup SplitKey */
-/** @{ */
-
-struct fdb_split_key_t;
-/** Opaque type for the SplitKey object. Holds the Keys associated with a ListElement. */
-typedef struct fdb_split_key_t fdb_split_key_t;
-
-/** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys associated with each level of the FDB index.
- * Supports multiple fdb_split_key_t iterating over the same key.
- * \param it SplitKey instance
- * \param key Key metadata name
- * \param value Key metadata value
- * \param level level in the iondex of the current Key
- * \returns Return code (#FdbErrorValues)
- */
-int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level);
-
-/** Deallocates SplitKey object and associated resources.
- * \param key SplitKey instance
- * \returns Return code (#FdbErrorValues)
- */
-int fdb_delete_splitkey(fdb_split_key_t* key);
 
 /** @} */
 
