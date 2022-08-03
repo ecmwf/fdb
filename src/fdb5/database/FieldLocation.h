@@ -48,7 +48,7 @@ public: // methods
     FieldLocation(const FieldLocation&) = delete;
     FieldLocation& operator=(const FieldLocation&) = delete;
 
-    virtual eckit::URI uri() const;
+    virtual const eckit::URI& uri() const { return uri_; }
     std::string host() const { return uri_.hostport(); }
     virtual eckit::Offset offset() const { return offset_; }
     virtual eckit::Length length() const { return length_; }

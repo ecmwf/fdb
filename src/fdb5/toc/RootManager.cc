@@ -492,6 +492,28 @@ std::vector<LocalConfiguration> StoreRootManager::getSpaceRoots(const LocalConfi
 
 FileSpaceTable RootManager::fileSpaces() {
 
+    static std::string fdbRootDirectory = eckit::Resource<std::string>("fdbRootDirectory;$FDB_ROOT_DIRECTORY", "");
+    if (!fdbRootDirectory.empty()) {
+
+        std::vector<Root> spaceRoots;
+        spaceRoots.emplace_back(
+            Root(
+                fdbRootDirectory,
+                "",
+                true,
+                true));
+
+        FileSpaceTable table;
+        table.emplace_back(
+            FileSpace(
+                "",
+                ".*",
+                "Default",
+                spaceRoots));
+
+        return table;
+    }
+
     if (config_.has("spaces")) {
         FileSpaceTable table;
         std::vector<LocalConfiguration> spacesConfigs(config_.getSubConfigurations("spaces"));
