@@ -124,19 +124,6 @@ void FieldLocation::encode(eckit::Stream& s) const {
     s << remapKey_;
 }
 
-eckit::URI FieldLocation::uri() const {
-    eckit::URI out(uri_);
-
-    if (offset_ != eckit::Offset(0))
-        out.fragment(std::to_string(offset_));
-    if (length_ != eckit::Length(0))
-        out.query("length", std::to_string(length_));
-    if (!remapKey_.empty())
-        out.query("remapKey", std::string(remapKey_));
-
-    return out;
-}
-
 FieldLocation::FieldLocation(eckit::Stream& s) {
     s >> uri_;
     s >> offset_;
