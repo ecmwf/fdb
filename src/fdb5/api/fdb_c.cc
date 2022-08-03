@@ -65,21 +65,31 @@ private:
 
 struct fdb_split_key_t {
 public:
-    fdb_split_key_t(const std::vector<Key>& key) : key_(key), level_(-1) {}
+    fdb_split_key_t() : key_(nullptr), level_(-1) {}
+
+    void set(const std::vector<Key>& key) {
+        key_ = &key;
+        level_ = -1;
+    }
 
     int next_metadata(const char** k, const char** v, size_t* level) {
+        if (key_ == nullptr) {
+            std::stringstream ss;
+            ss << "fdb_split_key_t not valid. Key not configured";
+            throw eckit::UserError(ss.str(), Here());
+        }
         if (level_ == -1) {
-            if (0 < key_.size()) {
+            if (0 < key_->size()) {
                 level_ = 0;
-                it_ = key_[0].begin();
+                it_ = key_->at(0).begin();
             } else {
                 return FDB_ITERATION_COMPLETE;
             }
         } 
-        while (it_ == key_[level_].end()) {
-            if (level_<key_.size()-1) {
+        while (it_ == key_->at(level_).end()) {
+            if (level_<key_->size()-1) {
                 level_++;
-                it_ = key_[level_].begin();
+                it_ = key_->at(level_).begin();
             } else {
                 return FDB_ITERATION_COMPLETE;
             }
@@ -93,7 +103,7 @@ public:
     }
 
 private:
-    const std::vector<Key>& key_;
+    const std::vector<Key>* key_;
     int level_;
     Key::const_iterator it_;
 };
@@ -117,10 +127,11 @@ public:
         *len = loc.length();
     }
 
-    void key(fdb_split_key_t** key) {
+    void key(fdb_split_key_t* key) {
         ASSERT(validEl_);
+        ASSERT(key);
 
-        *key = new fdb_split_key_t(el_.key());
+        key->set(el_.key());
     }
 
 private:
@@ -412,7 +423,7 @@ int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off
         it->attrs(uri, off, len);
     });
 }
-int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t** key){
+int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t* key){
     return wrapApiFunction([it, key] {
         ASSERT(it);
         ASSERT(key);
@@ -423,6 +434,12 @@ int fdb_delete_listiterator(fdb_listiterator_t* it) {
     return wrapApiFunction([it]{
         ASSERT(it);
         delete it;
+    });
+}
+
+int fdb_new_splitkey(fdb_split_key_t** key) {
+    return wrapApiFunction([key] {
+        *key = new fdb_split_key_t();
     });
 }
 

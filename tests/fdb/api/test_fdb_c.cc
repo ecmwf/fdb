@@ -40,8 +40,9 @@ void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it) {
     size_t l;
     int err;
 
-    fdb_split_key_t* sk;
-    err = fdb_listiterator_splitkey(it, &sk);
+    fdb_split_key_t* sk = nullptr;
+    fdb_new_splitkey(&sk);
+    err = fdb_listiterator_splitkey(it, sk);
     EXPECT(err == FDB_SUCCESS);
 
     size_t level = 0;

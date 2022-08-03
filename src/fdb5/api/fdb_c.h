@@ -155,6 +155,12 @@ struct fdb_split_key_t;
 /** Opaque type for the SplitKey object. Holds the Keys associated with a ListElement. */
 typedef struct fdb_split_key_t fdb_split_key_t;
 
+/** Creates a SplitKey instance.
+ * \param key SplitKey instance. Returned instance must be deleted using #fdb_delete_splitkey.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_new_splitkey(fdb_split_key_t** key);
+
 /** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys associated with each level of the FDB index.
  * Supports multiple fdb_split_key_t iterating over the same key.
  * \param it SplitKey instance
@@ -196,9 +202,11 @@ int fdb_listiterator_next(fdb_listiterator_t* it);
  */
 int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off, size_t* len);
 
-/** lazy extraction of the key of a list element,
- * key metadata can be retrieved with fdb_splitkey_next_metadata. */
-int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t** key);
+/** Lazy extraction of the key of a list element, key metadata can be retrieved with fdb_splitkey_next_metadata.
+ * \param it SplitKey instance (must be already initialised by #fdb_new_splitkey)
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t* key);
 
 /** Deallocates ListIterator object and associated resources.
  * \param it ListIterator instance

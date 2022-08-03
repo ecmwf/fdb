@@ -94,12 +94,6 @@ using ListAsyncIterator = APIAsyncIterator<ListElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-struct KeyHasher {
-    size_t operator() (const Key& key) const {
-        return std::hash<std::string>()(key.valuesToString());
-    }
-};
-
 class ListIterator : public APIIterator<ListElement> {
 public:
     ListIterator(APIIterator<ListElement>&& iter, bool deduplicate=false) :
@@ -127,7 +121,7 @@ public:
     }
 
 private:
-    std::unordered_set<Key, KeyHasher> seenKeys_;
+    std::unordered_set<Key> seenKeys_;
     bool deduplicate_;
 };
 
