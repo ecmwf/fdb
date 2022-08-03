@@ -97,7 +97,9 @@ public:
 
         *k = it_->first.c_str();
         *v = it_->second.c_str();
-        *level = level_;
+        if (level != nullptr) {
+            *level = level_;
+        }
         it_++;
         return FDB_SUCCESS;
     }
@@ -448,7 +450,6 @@ int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char
         ASSERT(it);
         ASSERT(key);
         ASSERT(value);
-        ASSERT(level);
         return it->next_metadata(key, value, level);
     }});
 }
