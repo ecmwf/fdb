@@ -60,10 +60,6 @@ public: // methods
     const Index& currentIndex() override;
     const TocSerialisationVersion& serialisationVersion() const;
 
-    bool canMove() const override {
-        return false;
-    }
-
 protected: // methods
 
     virtual bool selectIndex(const Key &key) override;

@@ -119,16 +119,17 @@ public: // methods
         counts_.stats += 1;
         return fdb5::StatsIterator(0);
     }
-    bool canMove(const fdb5::FDBToolRequest& request) override {
+
+    std::unique_ptr<fdb5::DB> canMove(const metkit::mars::MarsRequest& request, const eckit::URI& dest) override {
         counts_.canMove += 1;
-        return true;
+        return  nullptr;
     }
 
-    fdb5::ControlIterator control(const fdb5::FDBToolRequest& request,
+    fdb5::StatusIterator control(const fdb5::FDBToolRequest& request,
                                   fdb5::ControlAction action,
                                   fdb5::ControlIdentifiers identifiers) override {
         counts_.control += 1;
-        return fdb5::ControlIterator(0);
+        return fdb5::StatusIterator(0);
     }
 
     void flush() override {

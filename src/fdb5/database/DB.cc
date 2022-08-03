@@ -42,7 +42,7 @@ DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) : config_(c
     catalogue_ = CatalogueFactory::instance().build(uri, config, read);
 }
 
-Store& DB::store() {
+Store& DB::store() const {
     if (store_ == nullptr) {
         store_ = catalogue_->buildStore(config_);
     }
@@ -138,14 +138,13 @@ bool DB::exists() const {
     return (catalogue_->exists()/* && store_->exists()*/);
 }
 
-bool DB::canMove() const {
-    if (catalogue_->type() == TocEngine::typeName()) {
-        return catalogue_->canMove();
-    } else {
-        std::stringstream ss;
-        ss << "Only TOC DBs currently supported" << std::endl;
-        throw eckit::UserError(ss.str(), Here());
-    }
+bool DB::canMoveTo(const eckit::URI& dest) const {
+    return catalogue_->canMoveTo(dest) && store().canMoveTo(catalogue_->key(), config_, dest);
+}
+
+void DB::moveTo(const eckit::URI& dest) {
+    store().moveTo(catalogue_->key(), config_, dest);
+    catalogue_->moveTo(dest);
 }
 
 void DB::hideContents() {

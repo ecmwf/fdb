@@ -90,7 +90,8 @@ public:
     virtual void clean() = 0;
     virtual void close() = 0;
 
-    virtual bool canMove() const = 0;
+    virtual bool canMoveTo(const eckit::URI& dest) const;
+    virtual void moveTo(const eckit::URI& dest) = 0;
 
     virtual bool exists() const = 0;
     virtual void checkUID() const = 0;

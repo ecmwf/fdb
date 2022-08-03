@@ -99,8 +99,8 @@ void ControlIdentifiers::encode(eckit::Stream& s) const {
     s << value_;
 }
 
-bool ControlIdentifiers::has(const ControlIdentifier& val) const {
-    return (value_ & static_cast<value_type>(val)) == static_cast<value_type>(val);
+bool ControlIdentifiers::enabled(const ControlIdentifier& val) const {
+    return !(value_ & static_cast<value_type>(val));
 }
 
 ControlIdentifierIterator ControlIdentifiers::begin() const {

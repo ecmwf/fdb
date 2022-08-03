@@ -62,12 +62,10 @@ public: // methods
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
+    StatusIterator control(const FDBToolRequest& request,
                             ControlAction action,
                             ControlIdentifiers identifiers) override;
     
-    bool canMove(const FDBToolRequest& request) override;
-
     void flush() override;
 
 private: // methods

@@ -99,7 +99,7 @@ public:
     ControlIdentifiers& operator|=(const ControlIdentifier& val);
     ControlIdentifiers operator|(const ControlIdentifier& val);
 
-    bool has(const ControlIdentifier& val) const;
+    bool enabled(const ControlIdentifier& val) const;
 
     ControlIdentifierIterator begin() const;
     ControlIdentifierIterator end() const;

@@ -68,16 +68,6 @@ using StatusAsyncIterator = APIAsyncIterator<StatusElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using ControlElement = StatusElement;
-
-using ControlIterator = APIIterator<ControlElement>;
-
-using ControlAggregateIterator = APIAggregateIterator<ControlElement>;
-
-using ControlAsyncIterator = APIAsyncIterator<ControlElement>;
-
-//----------------------------------------------------------------------------------------------------------------------
-
 } // namespace fdb5
 
 #endif

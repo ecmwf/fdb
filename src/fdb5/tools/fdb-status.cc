@@ -52,11 +52,11 @@ void FDBStatus::execute(const CmdArgs& args) {
             Log::info() << "Database: " << elem.key << std::endl
                         << "  location: " << elem.location.asString() << std::endl;
 
-            if (elem.controlIdentifiers.has(ControlIdentifier::Retrieve))   Log::info() << "  retrieve: LOCKED" << std::endl;
-            if (elem.controlIdentifiers.has(ControlIdentifier::Archive))    Log::info() << "  archive: LOCKED" << std::endl;
-            if (elem.controlIdentifiers.has(ControlIdentifier::List))       Log::info() << "  list: LOCKED" << std::endl;
-            if (elem.controlIdentifiers.has(ControlIdentifier::Wipe))       Log::info() << "  wipe: LOCKED" << std::endl;
-            if (elem.controlIdentifiers.has(ControlIdentifier::UniqueRoot)) Log::info() << "  multi-root: PERMITTED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Retrieve))   Log::info() << "  retrieve: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Archive))    Log::info() << "  archive: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::List))       Log::info() << "  list: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Wipe))       Log::info() << "  wipe: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot)) Log::info() << "  multi-root: PERMITTED" << std::endl;
 
             count++;
         }

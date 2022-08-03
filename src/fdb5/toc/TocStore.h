@@ -46,6 +46,9 @@ public: // methods
 
     void checkUID() const override { TocCommon::checkUID(); }
 
+    bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override;
+    void moveTo(const Key& key, const Config& config, const eckit::URI& dest) override;
+
 protected: // methods
 
     std::string type() const override { return "file"; }

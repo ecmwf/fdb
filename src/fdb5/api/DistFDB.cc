@@ -236,7 +236,7 @@ StatsIterator DistFDB::stats(const FDBToolRequest &request) {
     });
 }
 
-ControlIterator DistFDB::control(const FDBToolRequest& request,
+StatusIterator DistFDB::control(const FDBToolRequest& request,
                                  ControlAction action,
                                  ControlIdentifiers identifiers) {
     Log::debug<LibFdb5>() << "DistFDB::control() : " << request << std::endl;
@@ -244,10 +244,6 @@ ControlIterator DistFDB::control(const FDBToolRequest& request,
                          [action, identifiers](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.control(request, action, identifiers);
     });
-}
-
-bool DistFDB::canMove(const FDBToolRequest& request) {
-    return false;
 }
 
 void DistFDB::flush() {

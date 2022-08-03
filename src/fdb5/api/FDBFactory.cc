@@ -75,7 +75,7 @@ const Config& FDBBase::config() const {
 }
 
 bool FDBBase::enabled(const ControlIdentifier& controlIdentifier) const {
-    return !controlIdentifiers_.has(controlIdentifier);
+    return controlIdentifiers_.enabled(controlIdentifier);
 }
 
 void FDBBase::disable() {
@@ -85,6 +85,27 @@ void FDBBase::disable() {
 
 bool FDBBase::disabled() {
     return disabled_;
+}
+
+
+std::unique_ptr<DB> FDBBase::canMove(const metkit::mars::MarsRequest& request, const eckit::URI& dest) {
+
+    const Schema& schema = config_.schema();
+    Key source;
+    ASSERT(schema.expandFirstLevel(request, source));
+
+    std::unique_ptr<DB> dbSource = DB::buildReader(source, config_);
+    if (!dbSource->exists()) {
+        std::stringstream ss;
+        ss << "Source database not found: " << source << std::endl;
+        throw eckit::UserError(ss.str(), Here());
+    }
+
+    if (dbSource->canMoveTo(dest)) {
+        return dbSource;
+    } else {
+        return nullptr;
+    }
 }
 
 FDBFactory& FDBFactory::instance()

@@ -24,6 +24,7 @@
 #include "eckit/utils/Regex.h"
 #include "eckit/memory/NonCopyable.h"
 
+#include "fdb5/database/DB.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/ListIterator.h"
@@ -79,12 +80,12 @@ public: // methods
 
     virtual StatsIterator stats(const FDBToolRequest& request) = 0;
 
-    virtual ControlIterator control(const FDBToolRequest& request,
+    virtual StatusIterator control(const FDBToolRequest& request,
                                     ControlAction action,
                                     ControlIdentifiers identifier) = 0;
 
-    virtual bool canMove(const FDBToolRequest& request) = 0;
-    virtual void move(const ControlElement& elem, const eckit::PathName& dest) { NOTIMP; }
+    virtual std::unique_ptr<DB> canMove(const metkit::mars::MarsRequest& request, const eckit::URI& dest);
+    // virtual void move(const metkit::mars::MarsRequest& request, const eckit::URI& dest) { NOTIMP; }
 
     // -------------- API management ----------------------------
 

@@ -95,13 +95,12 @@ public: // methods
 
     StatsIterator stats(const FDBToolRequest& request);
 
-    ControlIterator control(const FDBToolRequest& request,
+    StatusIterator control(const FDBToolRequest& request,
                             ControlAction action,
                             ControlIdentifiers identifiers);
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
-    bool canMove(const FDBToolRequest& request);
-    void move(const ControlElement& elem, const eckit::PathName& dest);
+    void move(const FDBToolRequest& request, const eckit::URI& dest);
 
     bool dirty() const;
 

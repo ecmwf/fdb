@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include <dirent.h>
-#include <fcntl.h>
 #include <algorithm>
 
 #include "eckit/log/Log.h"
@@ -122,25 +120,6 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
         }
     }
     return false;
-}
-
-bool TocCatalogueReader::canMove() const {
-    DIR* dirp = ::opendir(currentDirectory().asString().c_str());
-    struct dirent* dp;
-    while ((dp = readdir(dirp)) != NULL) {
-        if (strstr( dp->d_name, ".index")) {
-            eckit::PathName src_ = directory_ / dp->d_name;
-            int fd = ::open(src_.asString().c_str(), O_RDWR);
-            if(::flock(fd, LOCK_EX)) {
-                std::stringstream ss;
-                ss << "Index file " << dp->d_name << " is locked";
-                throw eckit::UserError(ss.str(), Here());
-            }
-        }
-    }
-    closedir(dirp);
-
-    return true;
 }
 
 void TocCatalogueReader::print(std::ostream &out) const {

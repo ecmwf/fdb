@@ -157,13 +157,13 @@ private:
     bool unsafeWipeAll_;
 };
 
-struct ControlHelper : public BaseHelper<ControlElement> {
+struct ControlHelper : public BaseHelper<StatusElement> {
     void extraDecode(eckit::Stream& s) {
         s >> action_;
         identifiers_ = ControlIdentifiers(s);
     }
 
-    ControlIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+    StatusIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
         return fdb.control(request, action_, identifiers_);
     }
 

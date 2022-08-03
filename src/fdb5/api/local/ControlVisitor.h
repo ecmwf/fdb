@@ -26,10 +26,10 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ControlVisitor : public QueryVisitor<ControlElement> {
+class ControlVisitor : public QueryVisitor<StatusElement> {
 public:
 
-    ControlVisitor(eckit::Queue<ControlElement>& queue,
+    ControlVisitor(eckit::Queue<StatusElement>& queue,
                    const metkit::mars::MarsRequest& request,
                    ControlAction action,
                    ControlIdentifiers identifiers);

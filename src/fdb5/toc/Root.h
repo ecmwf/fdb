@@ -50,7 +50,7 @@ public: // methods
     bool exists() const {  return exists_; }
 
     bool enabled(const ControlIdentifier& controlIdentifier) const {
-        return !controlIdentifiers_.has(controlIdentifier);
+        return controlIdentifiers_.enabled(controlIdentifier);
     };
 
     const ControlIdentifiers& controlIdentifiers() const { return controlIdentifiers_; }

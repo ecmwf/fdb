@@ -85,8 +85,8 @@ public: // methods
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
-    bool canMove() const;
-    bool moveTo(const DB& target);
+    bool canMoveTo(const eckit::URI& dest) const;
+    void moveTo(const eckit::URI& dest);
 
 protected: // methods
 
@@ -98,11 +98,11 @@ private: // members
     DB(const Key &key, const fdb5::Config& config, bool read);
     DB(const eckit::URI &uri, const fdb5::Config& config, bool read);
 
-    Store& store();
+    Store& store() const;
 
     Config config_;
     std::unique_ptr<Catalogue> catalogue_;
-    std::unique_ptr<Store> store_ = nullptr;
+    mutable std::unique_ptr<Store> store_ = nullptr;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

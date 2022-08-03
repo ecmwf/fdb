@@ -211,7 +211,7 @@ StatsIterator FDB::stats(const FDBToolRequest &request) {
     return internal_->stats(request);
 }
 
-ControlIterator FDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
+StatusIterator FDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
     return internal_->control(request, action, identifiers);
 }
 
@@ -219,11 +219,44 @@ const std::string FDB::id() const {
     return internal_->id();
 }
 
-bool FDB::canMove(const FDBToolRequest& request) {
-    return internal_->canMove(request);
-}
-void FDB::move(const ControlElement& elem, const eckit::PathName& dest) {
-    return internal_->move(elem, dest);
+void FDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
+    if (request.all()) {
+        std::stringstream ss;
+        ss << "Move ALL not supported. Please specify a single database." << std::endl;
+        throw eckit::UserError(ss.str(), Here());
+    }
+    StatsIterator it = stats(request);
+    StatsElement se;
+    if (!it.next(se)) {
+        std::stringstream ss;
+        ss << "Request " << request.request() << " does not matches with an existing database. Please specify a single database." << std::endl;
+        throw eckit::UserError(ss.str(), Here());
+    }
+    if (it.next(se)) {
+        std::stringstream ss;
+        ss << "Request " << request.request() << " matches with more than one existing database. Please specify a single database." << std::endl;
+        throw eckit::UserError(ss.str(), Here());
+    }
+
+    auto statusIterator = control(request, ControlAction::Disable, ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
+    StatusElement elem;
+
+    bool locked = statusIterator.next(elem);
+
+    locked = locked && !elem.controlIdentifiers.enabled(ControlIdentifier::Archive);
+    locked = locked && !elem.controlIdentifiers.enabled(ControlIdentifier::Wipe);
+    locked = locked && !elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot);
+
+    if (!locked) {
+        std::stringstream ss;
+        ss << "Source DB cannot be locked for moving" << std::endl;
+        throw eckit::UserError(ss.str(), Here());
+
+    }
+    std::unique_ptr<DB> srcDB = internal_->canMove(request.request(), dest);
+    if (srcDB) {
+        srcDB->moveTo(dest);
+    }
 }
 
 FDBStats FDB::stats() const {

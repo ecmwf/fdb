@@ -51,8 +51,6 @@ private: // methods
 
     bool retrieve(const Key& key, Field& field) const override;
 
-    bool canMove() const override;
-
     void print( std::ostream &out ) const override;
 
 private: // members

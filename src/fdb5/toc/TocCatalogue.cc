@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <dirent.h>
+#include <fcntl.h>
 #include "eckit/log/Timer.h"
 
 #include "fdb5/LibFdb5.h"
@@ -155,6 +157,79 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
 
 bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
     return Catalogue::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
+}
+
+bool TocCatalogue::canMoveTo(const eckit::URI& dest) const {
+    
+    DIR* dirp = ::opendir(currentDirectory().asString().c_str());
+    struct dirent* dp;
+    while ((dp = readdir(dirp)) != NULL) {
+        if (strstr( dp->d_name, ".index")) {
+            eckit::PathName src_ = directory_ / dp->d_name;
+            int fd = ::open(src_.asString().c_str(), O_RDWR);
+            if(::flock(fd, LOCK_EX)) {
+                std::stringstream ss;
+                ss << "Index file " << dp->d_name << " is locked";
+                throw eckit::UserError(ss.str(), Here());
+            }
+        }
+    }
+    closedir(dirp);
+
+    if (dest.scheme().empty() || dest.scheme() == "toc" || dest.scheme() == "file" || dest.scheme() == "unix") {
+        eckit::PathName destPath = dest.path();
+        for (const eckit::PathName& root: CatalogueRootManager(config_).canArchiveRoots(dbKey_)) {
+            if (root.sameAs(destPath)) {
+                eckit::PathName dest_db = destPath / currentDirectory().baseName(true);
+
+                if(dest_db.exists()) {
+                    std::stringstream ss;
+                    ss << "Target folder already exist!" << std::endl;
+                    throw UserError(ss.str(), Here());
+                }
+                return true;
+            }
+        }
+        std::stringstream ss;
+        ss << "Destination " << dest << " cannot be uses to archive a DB with key: " << dbKey_ << std::endl;
+        throw eckit::UserError(ss.str(), Here());
+    }
+
+    std::stringstream ss;
+    ss << "Destination " << dest << " not supported." << std::endl;
+    throw eckit::UserError(ss.str(), Here());
+}
+
+
+void TocCatalogue::moveTo(const eckit::URI& dest) {
+    eckit::PathName destPath = dest.path();
+    for (const eckit::PathName& root: CatalogueRootManager(config_).canArchiveRoots(dbKey_)) {
+        if (root.sameAs(destPath)) {
+            eckit::PathName dest_db = destPath / currentDirectory().baseName(true);
+
+            if(!dest_db.exists()) {
+                dest_db.mkdir();
+            }
+            
+            eckit::ThreadPool pool(currentDirectory().asString(), 4);
+
+            DIR* dirp = ::opendir(currentDirectory().asString().c_str());
+            struct dirent* dp;
+            while ((dp = readdir(dirp)) != NULL) {
+                if (strstr( dp->d_name, ".index") ||
+                    strstr( dp->d_name, "toc.") ||
+                    strstr( dp->d_name, "schema")) {
+
+                    pool.push(new FileCopy(currentDirectory().path(), dest_db, dp->d_name));
+                }
+            }
+            closedir(dirp);
+
+            pool.wait();
+            pool.push(new FileCopy(currentDirectory().path(), dest_db, "toc"));
+            pool.wait();
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

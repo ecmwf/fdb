@@ -53,12 +53,9 @@ public: // methods
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
+    StatusIterator control(const FDBToolRequest& request,
                             ControlAction action,
                             ControlIdentifiers identifiers) override;
-
-    bool canMove(const FDBToolRequest& request) override;
-    void move(const ControlElement& elem, const eckit::PathName& dest) override;
 
     void flush() override;
 

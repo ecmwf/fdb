@@ -622,7 +622,7 @@ private:
     bool unsafeWipeAll_;
 };
 
-struct ControlHelper : BaseAPIHelper<ControlElement, Message::Control> {
+struct ControlHelper : BaseAPIHelper<StatusElement, Message::Control> {
 
     ControlHelper(ControlAction action, ControlIdentifiers identifiers) :
         action_(action),
@@ -725,15 +725,11 @@ StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
 }
 
-ControlIterator RemoteFDB::control(const FDBToolRequest& request,
+StatusIterator RemoteFDB::control(const FDBToolRequest& request,
                                    ControlAction action,
                                    ControlIdentifiers identifiers) {
     return forwardApiCall(ControlHelper(action, identifiers), request);
 };
-
-bool RemoteFDB::canMove(const FDBToolRequest& request) {
-    return false;
-}
 
 // -----------------------------------------------------------------------------------------------------
 

@@ -8,6 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include <dirent.h>
+#include <fcntl.h>
+
 #include "eckit/log/Timer.h"
 
 #include "eckit/config/Resource.h"
@@ -200,6 +203,45 @@ void TocStore::flushDataHandles() {
     for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
         eckit::DataHandle *dh = j->second;
         dh->flush();
+    }
+}
+
+bool TocStore::canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const {
+    if (dest.scheme().empty() || dest.scheme() == "toc" || dest.scheme() == "file" || dest.scheme() == "unix") {
+        eckit::PathName destPath = dest.path();
+        for (const eckit::PathName& root: StoreRootManager(config).canArchiveRoots(key)) {
+            if (root.sameAs(destPath)) {
+                return true;
+            }
+        }
+    }
+    std::stringstream ss;
+    ss << "Destination " << dest << " cannot be uses to archive a DB with key: " << key << std::endl;
+    throw eckit::UserError(ss.str(), Here());
+}
+
+void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest) {
+    eckit::PathName destPath = dest.path();
+    for (const eckit::PathName& root: StoreRootManager(config).canArchiveRoots(key)) {
+        if (root.sameAs(destPath)) {
+            eckit::PathName dest_db = destPath / directory_.baseName(true);
+
+            dest_db.mkdir();
+            
+            eckit::ThreadPool pool(directory_.asString(), 4);
+
+            DIR* dirp = ::opendir(directory_.asString().c_str());
+            struct dirent* dp;
+            while ((dp = readdir(dirp)) != NULL) {
+                if (strstr( dp->d_name, ".data")) {
+
+                    pool.push(new FileCopy(directory_.path(), dest_db, dp->d_name));
+                }
+            }
+            closedir(dirp);
+
+            pool.wait();
+        }
     }
 }
 

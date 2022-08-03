@@ -37,7 +37,7 @@ private: // methods
 
 private: // members
 
-    eckit::PathName destination_;
+    eckit::URI destination_;
 };
 
 FDBMove::FDBMove(int argc, char **argv) :
@@ -60,12 +60,7 @@ void FDBMove::init(const CmdArgs& args) {
         ss << "No destination root specified.";
         throw UserError(ss.str(), Here());
     } else {
-        destination_ = eckit::PathName(dest);
-        if (!destination_.exists()) {
-            std::stringstream ss;
-            ss << "Destination root does not exist";
-            throw UserError(ss.str(), Here());
-        }
+        destination_ = eckit::URI(dest);
     }
 }
 
@@ -74,33 +69,16 @@ void FDBMove::execute(const CmdArgs& args) {
 
     FDB fdb(config(args));
 
-    
+    size_t count = 0;
     for (const FDBToolRequest& request : requests("read")) {
-        if (fdb.canMove(request)) {
+        fdb.move(request, destination_);
+        count++;
+    }
 
-            size_t count = 0;
-            auto statusIterator = fdb.control(request, ControlAction::Disable, ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
-
-            ControlElement elem;
-            while (statusIterator.next(elem)) {
-
-                ASSERT(elem.controlIdentifiers.has(ControlIdentifier::Archive));
-                ASSERT(elem.controlIdentifiers.has(ControlIdentifier::Wipe));
-                ASSERT(elem.controlIdentifiers.has(ControlIdentifier::UniqueRoot));
-
-                fdb.move(elem, destination_);
-                count++;
-            }
-            if (count == 0 && fail()) {
-                std::stringstream ss;
-                ss << "No FDB entries found for: " << request << std::endl;
-                throw FDBToolException(ss.str());
-            }
-        } else {
-            std::stringstream ss;
-            ss << "Source DB cannot be moved" << std::endl;
-            throw UserError(ss.str(), Here());
-        }
+    if (count == 0 && fail()) {
+        std::stringstream ss;
+        ss << "No FDB entries found" << std::endl;
+        throw FDBToolException(ss.str());
     }
 }
 
