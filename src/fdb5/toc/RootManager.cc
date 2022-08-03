@@ -499,19 +499,11 @@ FileSpaceTable RootManager::fileSpaces() {
 
         std::vector<Root> spaceRoots;
         spaceRoots.emplace_back(
-            Root(
-                fdbRootDirectory,
-                "",
-                true,
-                true));
+            Root(fdbRootDirectory, "", true, true, true, true));
 
         FileSpaceTable table;
         table.emplace_back(
-            FileSpace(
-                "",
-                ".*",
-                "Default",
-                spaceRoots));
+            FileSpace("", ".*", "Default", spaceRoots));
 
         return table;
     }
