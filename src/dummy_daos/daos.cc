@@ -14,6 +14,7 @@
  * @date   Jun 2022
  */
 
+#include <cstring>
 #include <string>
 #include <iomanip>
 #include <unistd.h>
