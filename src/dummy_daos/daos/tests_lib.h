@@ -17,7 +17,7 @@
 #ifndef fdb5_dummy_daos_daos_tests_lib_H
 #define fdb5_dummy_daos_daos_tests_lib_H
 
-#include <uuid.h>
+#include <uuid/uuid.h>
 
 #include "../daos.h"
 
