@@ -15,7 +15,10 @@
 
 #include <cstdint>
 
+#include "eckit/filesystem/URI.h"
+
 #include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/database/Key.h"
 
 namespace eckit {
     class Stream;
@@ -24,6 +27,7 @@ namespace eckit {
 
 namespace fdb5 {
 
+class Catalogue;
 //----------------------------------------------------------------------------------------------------------------------
 
 enum class ControlAction : uint16_t {
@@ -82,7 +86,6 @@ private: // methods
     void nextValue();
 };
 
-
 //----------------------------------------------------------------------------------------------------------------------
 
 // A collection of the identified ControlIdentifier objects
@@ -121,6 +124,41 @@ private:
 };
 
 ControlIdentifiers operator|(const ControlIdentifier& lhs, const ControlIdentifier& rhs);
+
+//----------------------------------------------------------------------------------------------------------------------
+
+/// Define a standard object which can be used to iterate the results of a
+/// where() call on an arbitrary FDB object
+
+struct ControlElement {
+
+    ControlElement();
+    ControlElement(const Catalogue& catalogue);
+    ControlElement(eckit::Stream& s);
+
+    // Database key
+    Key key;
+
+    // The location of the Database this response is for
+    eckit::URI location;
+
+    ControlIdentifiers controlIdentifiers;
+
+protected: // methods
+
+    void encode(eckit::Stream& s) const;
+
+    friend eckit::Stream& operator<<(eckit::Stream& s, const ControlElement& e) {
+        e.encode(s);
+        return s;
+    }
+};
+
+using ControlIterator = APIIterator<ControlElement>;
+
+using ControlAggregateIterator = APIAggregateIterator<ControlElement>;
+
+using ControlAsyncIterator = APIAsyncIterator<ControlElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 

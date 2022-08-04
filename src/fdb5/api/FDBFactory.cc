@@ -21,6 +21,7 @@
 #include "eckit/thread/Mutex.h"
 
 #include "fdb5/api/FDBFactory.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/LibFdb5.h"
 
 
@@ -88,23 +89,25 @@ bool FDBBase::disabled() {
 }
 
 
-std::unique_ptr<DB> FDBBase::canMove(const metkit::mars::MarsRequest& request, const eckit::URI& dest) {
+void FDBBase::move(const FDBToolRequest& request, const eckit::URI& dest) {
 
-    const Schema& schema = config_.schema();
-    Key source;
-    ASSERT(schema.expandFirstLevel(request, source));
+    // assert it is locked for archival...
+    StatusIterator it = status(request);
+    StatusElement elem;
+    ASSERT(it.next(elem));
+    ASSERT(!elem.controlIdentifiers.enabled(ControlIdentifier::Archive));
+    ASSERT(!elem.controlIdentifiers.enabled(ControlIdentifier::Wipe));
+    ASSERT(!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot));
 
-    std::unique_ptr<DB> dbSource = DB::buildReader(source, config_);
+    std::unique_ptr<DB> dbSource = DB::buildReader(elem.key, config_);
     if (!dbSource->exists()) {
         std::stringstream ss;
-        ss << "Source database not found: " << source << std::endl;
+        ss << "Source database not found: " << dbSource << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }
 
     if (dbSource->canMoveTo(dest)) {
-        return dbSource;
-    } else {
-        return nullptr;
+        dbSource->moveTo(dest);
     }
 }
 

@@ -98,7 +98,6 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
         FDB& lane = lanes_[idx];
 
         if(!lane.enabled(ControlIdentifier::Archive)) {
-            eckit::Log::warning() << "Archive on FDB lane " << lane << " is disabled" << std::endl;
             continue;
         }
         if (lane.disabled()) {
@@ -236,7 +235,7 @@ StatsIterator DistFDB::stats(const FDBToolRequest &request) {
     });
 }
 
-StatusIterator DistFDB::control(const FDBToolRequest& request,
+ControlIterator DistFDB::control(const FDBToolRequest& request,
                                  ControlAction action,
                                  ControlIdentifiers identifiers) {
     Log::debug<LibFdb5>() << "DistFDB::control() : " << request << std::endl;

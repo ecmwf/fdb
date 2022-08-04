@@ -11,54 +11,15 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_StatusIterator_H
-#define fdb5_api_StatusIterator_H
+#pragma once
 
-#include <string>
-
-#include "eckit/filesystem/URI.h"
-
-#include "fdb5/api/helpers/APIIterator.h"
 #include "fdb5/api/helpers/ControlIterator.h"
-#include "fdb5/database/Key.h"
-
-namespace eckit {
-    class Stream;
-    class PathName;
-}
 
 namespace fdb5 {
 
-class Catalogue;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Define a standard object which can be used to iterate the results of a
-/// where() call on an arbitrary FDB object
-
-struct StatusElement {
-
-    StatusElement();
-    StatusElement(const Catalogue& catalogue);
-    StatusElement(eckit::Stream& s);
-
-    // Database key
-    Key key;
-
-    // The location of the Database this response is for
-    eckit::URI location;
-
-    ControlIdentifiers controlIdentifiers;
-
-private: // methods
-
-    void encode(eckit::Stream& s) const;
-
-    friend eckit::Stream& operator<<(eckit::Stream& s, const StatusElement& e) {
-        e.encode(s);
-        return s;
-    }
-};
+using StatusElement = ControlElement;
 
 using StatusIterator = APIIterator<StatusElement>;
 
@@ -69,5 +30,3 @@ using StatusAsyncIterator = APIAsyncIterator<StatusElement>;
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

@@ -18,11 +18,11 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ControlVisitor::ControlVisitor(eckit::Queue<StatusElement>& queue,
+ControlVisitor::ControlVisitor(eckit::Queue<ControlElement>& queue,
                                const metkit::mars::MarsRequest& request,
                                ControlAction action,
                                ControlIdentifiers identifiers) :
-    QueryVisitor<StatusElement>(queue, request),
+    QueryVisitor<ControlElement>(queue, request),
     action_(action),
     identifiers_(identifiers) {}
 

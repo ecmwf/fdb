@@ -95,7 +95,7 @@ public: // methods
 
     StatsIterator stats(const FDBToolRequest& request);
 
-    StatusIterator control(const FDBToolRequest& request,
+    ControlIterator control(const FDBToolRequest& request,
                             ControlAction action,
                             ControlIdentifiers identifiers);
     bool enabled(const ControlIdentifier& controlIdentifier) const;

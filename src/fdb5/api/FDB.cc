@@ -211,7 +211,7 @@ StatsIterator FDB::stats(const FDBToolRequest &request) {
     return internal_->stats(request);
 }
 
-StatusIterator FDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
+ControlIterator FDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
     return internal_->control(request, action, identifiers);
 }
 
@@ -225,38 +225,53 @@ void FDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
         ss << "Move ALL not supported. Please specify a single database." << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }
+
+    // check that the request is only referring a single DB - no ranges of values
+    const metkit::mars::MarsRequest& req = request.request();
+    std::vector<std::string> params = req.params();
+    for (const std::string& param: params) {
+        const std::vector<std::string>& values = req.values(param);
+
+        if (values.size() != 1) {
+            std::stringstream ss;
+            ss << "Move requires a single value for each parameter in the request." << std::endl << "Parameter " << param << "=" << values << " not supported." << std::endl;
+            throw eckit::UserError(ss.str(), Here());
+        }
+    }
+
     StatsIterator it = stats(request);
     StatsElement se;
     if (!it.next(se)) {
         std::stringstream ss;
-        ss << "Request " << request.request() << " does not matches with an existing database. Please specify a single database." << std::endl;
+        ss << "Request " << req << " does not matches with an existing database. Please specify a single database." << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }
     if (it.next(se)) {
         std::stringstream ss;
-        ss << "Request " << request.request() << " matches with more than one existing database. Please specify a single database." << std::endl;
+        ss << "Request " << req << " matches with more than one existing database. Please specify a single database." << std::endl;
         throw eckit::UserError(ss.str(), Here());
     }
 
-    auto statusIterator = control(request, ControlAction::Disable, ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
-    StatusElement elem;
-
-    bool locked = statusIterator.next(elem);
-
+    // lock the database (and check it is locked)
+    ControlIterator controlIter = control(request, ControlAction::Disable, ControlIdentifier::Archive | ControlIdentifier::Wipe | ControlIdentifier::UniqueRoot);
+    
+    ControlElement elem;
+    bool locked = controlIter.next(elem);
     locked = locked && !elem.controlIdentifiers.enabled(ControlIdentifier::Archive);
     locked = locked && !elem.controlIdentifiers.enabled(ControlIdentifier::Wipe);
     locked = locked && !elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot);
-
     if (!locked) {
         std::stringstream ss;
         ss << "Source DB cannot be locked for moving" << std::endl;
         throw eckit::UserError(ss.str(), Here());
 
     }
-    std::unique_ptr<DB> srcDB = internal_->canMove(request.request(), dest);
-    if (srcDB) {
-        srcDB->moveTo(dest);
-    }
+
+    // check that reqest and DB key are matching (request is not more specific)
+    ASSERT(req.matches(elem.key.request()));
+    ASSERT(elem.key.request().matches(req));
+
+    internal_->move(request, dest);
 }
 
 FDBStats FDB::stats() const {

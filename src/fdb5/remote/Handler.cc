@@ -157,7 +157,7 @@ private:
     bool unsafeWipeAll_;
 };
 
-struct ControlHelper : public BaseHelper<StatusElement> {
+struct ControlHelper : public BaseHelper<ControlElement> {
     void extraDecode(eckit::Stream& s) {
         s >> action_;
         identifiers_ = ControlIdentifiers(s);

@@ -80,12 +80,11 @@ public: // methods
 
     virtual StatsIterator stats(const FDBToolRequest& request) = 0;
 
-    virtual StatusIterator control(const FDBToolRequest& request,
+    virtual ControlIterator control(const FDBToolRequest& request,
                                     ControlAction action,
                                     ControlIdentifiers identifier) = 0;
 
-    virtual std::unique_ptr<DB> canMove(const metkit::mars::MarsRequest& request, const eckit::URI& dest);
-    // virtual void move(const metkit::mars::MarsRequest& request, const eckit::URI& dest) { NOTIMP; }
+    virtual void move(const FDBToolRequest& request, const eckit::URI& dest);
 
     // -------------- API management ----------------------------
 

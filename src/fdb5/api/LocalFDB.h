@@ -53,7 +53,7 @@ public: // methods
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    StatusIterator control(const FDBToolRequest& request,
+    ControlIterator control(const FDBToolRequest& request,
                             ControlAction action,
                             ControlIdentifiers identifiers) override;
 

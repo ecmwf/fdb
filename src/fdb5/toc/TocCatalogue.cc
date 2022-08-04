@@ -200,7 +200,6 @@ bool TocCatalogue::canMoveTo(const eckit::URI& dest) const {
     throw eckit::UserError(ss.str(), Here());
 }
 
-
 void TocCatalogue::moveTo(const eckit::URI& dest) {
     eckit::PathName destPath = dest.path();
     for (const eckit::PathName& root: CatalogueRootManager(config_).canArchiveRoots(dbKey_)) {

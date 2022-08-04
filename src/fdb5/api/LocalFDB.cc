@@ -110,7 +110,7 @@ StatsIterator LocalFDB::stats(const FDBToolRequest& request) {
     return queryInternal<StatsVisitor>(request);
 }
 
-StatusIterator LocalFDB::control(const FDBToolRequest& request,
+ControlIterator LocalFDB::control(const FDBToolRequest& request,
                                   ControlAction action,
                                   ControlIdentifiers identifiers) {
     Log::debug<LibFdb5>() << "LocalFDB::control() : " << request << std::endl;

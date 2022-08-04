@@ -15,7 +15,7 @@
 #define fdb5_api_local_ControlVisitor_H
 
 #include "fdb5/api/local/QueryVisitor.h"
-#include "fdb5/api/helpers/StatusIterator.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 
 
 namespace fdb5 {
@@ -26,10 +26,10 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ControlVisitor : public QueryVisitor<StatusElement> {
+class ControlVisitor : public QueryVisitor<ControlElement> {
 public:
 
-    ControlVisitor(eckit::Queue<StatusElement>& queue,
+    ControlVisitor(eckit::Queue<ControlElement>& queue,
                    const metkit::mars::MarsRequest& request,
                    ControlAction action,
                    ControlIdentifiers identifiers);

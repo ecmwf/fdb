@@ -12,6 +12,8 @@
 
 #include "eckit/serialisation/Stream.h"
 
+#include "fdb5/database/Catalogue.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -132,6 +134,33 @@ void ControlIdentifiers::print( std::ostream &out ) const {
 std::ostream &operator<<(std::ostream &s, const ControlIdentifiers &x) {
     x.print(s);
     return s;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+using value_type = typename std::underlying_type<ControlIdentifier>::type;
+
+ControlElement::ControlElement() : 
+    location() {}
+
+ControlElement::ControlElement(const Catalogue& catalogue) :
+    key(catalogue.key()), location(catalogue.uri()) {
+        
+    controlIdentifiers = ControlIdentifier::None;
+    for (auto id : ControlIdentifierList) {
+        if (!catalogue.enabled(id)) controlIdentifiers |= id;
+    }
+}
+
+ControlElement::ControlElement(eckit::Stream &s) :
+    key(s),
+    location(s),
+    controlIdentifiers(s) {}
+
+void ControlElement::encode(eckit::Stream& s) const {
+    s << key;
+    s << location;
+    s << controlIdentifiers;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

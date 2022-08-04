@@ -40,7 +40,7 @@ private: // types
     struct Counts {
         Counts() :
             archive(0), inspect(0), list(0), dump(0), status(0), wipe(0),
-            purge(0), stats(0), flush(0), control(0), canMove(0) {}
+            purge(0), stats(0), flush(0), control(0), move(0) {}
         size_t archive;
         size_t inspect;
         size_t list;
@@ -51,7 +51,7 @@ private: // types
         size_t stats;
         size_t flush;
         size_t control;
-        size_t canMove;
+        size_t move;
     };
 
     using Archives = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
@@ -120,9 +120,8 @@ public: // methods
         return fdb5::StatsIterator(0);
     }
 
-    std::unique_ptr<fdb5::DB> canMove(const metkit::mars::MarsRequest& request, const eckit::URI& dest) override {
-        counts_.canMove += 1;
-        return  nullptr;
+    void move(const fdb5::FDBToolRequest& request, const eckit::URI& dest) override {
+        counts_.move += 1;
     }
 
     fdb5::StatusIterator control(const fdb5::FDBToolRequest& request,

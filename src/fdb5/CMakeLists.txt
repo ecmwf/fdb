@@ -39,7 +39,6 @@ list( APPEND fdb5_srcs
     api/helpers/DumpIterator.h
     api/helpers/ListIterator.cc
     api/helpers/ListIterator.h
-    api/helpers/StatusIterator.cc
     api/helpers/StatusIterator.h
     api/helpers/WipeIterator.h
     api/helpers/PurgeIterator.h

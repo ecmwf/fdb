@@ -725,7 +725,7 @@ StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
 }
 
-StatusIterator RemoteFDB::control(const FDBToolRequest& request,
+ControlIterator RemoteFDB::control(const FDBToolRequest& request,
                                    ControlAction action,
                                    ControlIdentifiers identifiers) {
     return forwardApiCall(ControlHelper(action, identifiers), request);
