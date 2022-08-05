@@ -245,6 +245,14 @@ ControlIterator DistFDB::control(const FDBToolRequest& request,
     });
 }
 
+MoveIterator DistFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
+    Log::debug<LibFdb5>() << "DistFDB::move() : " << request << std::endl;
+    return queryInternal(request,
+                         [dest](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.move(request, dest);
+    });
+}
+
 void DistFDB::flush() {
 
     std::vector<std::future<void>> futures;

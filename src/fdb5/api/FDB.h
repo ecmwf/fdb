@@ -30,6 +30,7 @@
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
 
 namespace eckit {
@@ -91,6 +92,8 @@ public: // methods
 
     WipeIterator wipe(const FDBToolRequest& request, bool doit=false, bool porcelain=false, bool unsafeWipeAll=false);
 
+    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest);
+
     PurgeIterator purge(const FDBToolRequest& request, bool doit=false, bool porcelain=false);
 
     StatsIterator stats(const FDBToolRequest& request);
@@ -99,8 +102,6 @@ public: // methods
                             ControlAction action,
                             ControlIdentifiers identifiers);
     bool enabled(const ControlIdentifier& controlIdentifier) const;
-
-    void move(const FDBToolRequest& request, const eckit::URI& dest);
 
     bool dirty() const;
 

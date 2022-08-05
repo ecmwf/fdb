@@ -30,6 +30,7 @@
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/WipeVisitor.h"
+#include "fdb5/database/MoveVisitor.h"
 #include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
@@ -67,6 +68,7 @@ public:
     virtual StatsReportVisitor* statsReportVisitor() const = 0;
     virtual PurgeVisitor* purgeVisitor(const Store& store) const = 0;
     virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
+    virtual MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest) const = 0;
 
     virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
 
@@ -90,9 +92,6 @@ public:
     virtual void clean() = 0;
     virtual void close() = 0;
 
-    virtual bool canMoveTo(const eckit::URI& dest) const;
-    virtual void moveTo(const eckit::URI& dest) = 0;
-
     virtual bool exists() const = 0;
     virtual void checkUID() const = 0;
 
@@ -105,7 +104,7 @@ protected: // methods
 protected: // members
 
     Key dbKey_;
-    const Config& config_;
+    Config config_;
     ControlIdentifiers controlIdentifiers_;
 
 

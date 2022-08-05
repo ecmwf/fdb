@@ -186,7 +186,7 @@ eckit::PathName TocStore::generateDataPath(const Key &key) const {
     return dpath;
 }
 
-eckit::PathName TocStore::getDataPath(const Key &key) {
+eckit::PathName TocStore::getDataPath(const Key &key) const {
     PathStore::const_iterator j = dataPaths_.find(key);
     if ( j != dataPaths_.end() )
         return j->second;
@@ -220,22 +220,23 @@ bool TocStore::canMoveTo(const Key& key, const Config& config, const eckit::URI&
     throw eckit::UserError(ss.str(), Here());
 }
 
-void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest) {
+void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest) const {
     eckit::PathName destPath = dest.path();
     for (const eckit::PathName& root: StoreRootManager(config).canArchiveRoots(key)) {
-        if (root.sameAs(destPath)) {
-            eckit::PathName dest_db = destPath / directory_.baseName(true);
+        if (root.sameAs(destPath)) {      
+            eckit::PathName src_db = directory_ / key.valuesToString();
+            eckit::PathName dest_db = destPath / key.valuesToString();
 
             dest_db.mkdir();
             
-            eckit::ThreadPool pool(directory_.asString(), 4);
+            eckit::ThreadPool pool("store"+dest_db.asString(), 4);
 
-            DIR* dirp = ::opendir(directory_.asString().c_str());
+            DIR* dirp = ::opendir(src_db.asString().c_str());
             struct dirent* dp;
             while ((dp = readdir(dirp)) != NULL) {
                 if (strstr( dp->d_name, ".data")) {
 
-                    pool.push(new FileCopy(directory_.path(), dest_db, dp->d_name));
+                    pool.push(new FileCopy(src_db.path(), dest_db, dp->d_name));
                 }
             }
             closedir(dirp);

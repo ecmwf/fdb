@@ -8,37 +8,42 @@
  * does it submit to any jurisdiction.
  */
 
-/*
- * This software was developed as part of the EC H2020 funded project NextGenIO
- * (Project ID: 671951) www.nextgenio.eu
- */
-
 /// @author Simon Smart
-/// @date   November 2018
+/// @date   August 2019
 
-#ifndef fdb5_api_WipeIterator_H
-#define fdb5_api_WipeIterator_H
+#ifndef fdb5_TocMoveVisitor_H
+#define fdb5_TocMoveVisitor_H
 
-#include "fdb5/api/helpers/APIIterator.h"
 
-#include <string>
-
-/*
- * Define a standard object which can be used to iterate the results of a
- * wipe() call on an arbitrary FDB object
- */
+#include "fdb5/database/MoveVisitor.h"
+#include "fdb5/toc/TocCatalogue.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using WipeElement = std::string;
+class TocMoveVisitor : public MoveVisitor {
 
-using WipeIterator = APIIterator<WipeElement>;
+public:
 
-using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
+    TocMoveVisitor(const TocCatalogue& catalogue,
+                   const Store& store,
+                   const metkit::mars::MarsRequest& request,
+                   const eckit::URI& dest);
+    ~TocMoveVisitor() override;
 
-using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
+private: // methods
+
+    bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
+
+    void move();
+
+private: // members
+
+    // What are the parameters of the move operation
+    const TocCatalogue& catalogue_;
+    const Store& store_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

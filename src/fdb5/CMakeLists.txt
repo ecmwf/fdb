@@ -53,6 +53,8 @@ list( APPEND fdb5_srcs
     api/local/DumpVisitor.h
     api/local/WipeVisitor.cc
     api/local/WipeVisitor.h
+    api/local/MoveVisitor.cc
+    api/local/MoveVisitor.h
     api/local/PurgeVisitor.cc
     api/local/PurgeVisitor.h
     api/local/StatsVisitor.cc
@@ -107,6 +109,8 @@ list( APPEND fdb5_srcs
     database/PurgeVisitor.h
     database/WipeVisitor.cc
     database/WipeVisitor.h
+    database/MoveVisitor.cc
+    database/MoveVisitor.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc
@@ -271,6 +275,8 @@ if( HAVE_TOCFDB )
         toc/TocSerialisationVersion.h
         toc/TocWipeVisitor.cc
         toc/TocWipeVisitor.h
+        toc/TocMoveVisitor.cc
+        toc/TocMoveVisitor.h
         toc/TocRecord.cc
         toc/TocRecord.h
         toc/TocStats.cc

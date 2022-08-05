@@ -120,8 +120,9 @@ public: // methods
         return fdb5::StatsIterator(0);
     }
 
-    void move(const fdb5::FDBToolRequest& request, const eckit::URI& dest) override {
+    fdb5::MoveIterator move(const fdb5::FDBToolRequest& request, const eckit::URI& dest) override {
         counts_.move += 1;
+        return fdb5::MoveIterator(0);
     }
 
     fdb5::StatusIterator control(const fdb5::FDBToolRequest& request,

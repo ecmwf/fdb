@@ -51,7 +51,7 @@ public:
     virtual void checkUID() const = 0;
 
     virtual bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const;
-    virtual void moveTo(const Key& key, const Config& config, const eckit::URI& dest) { NOTIMP; }
+    virtual void moveTo(const Key& key, const Config& config, const eckit::URI& dest) const { NOTIMP; }
 
     virtual eckit::URI uri() const = 0;
 

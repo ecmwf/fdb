@@ -85,9 +85,6 @@ public: // methods
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
-    bool canMoveTo(const eckit::URI& dest) const;
-    void moveTo(const eckit::URI& dest);
-
 protected: // methods
 
     friend std::ostream &operator<<(std::ostream &s, const DB &x);

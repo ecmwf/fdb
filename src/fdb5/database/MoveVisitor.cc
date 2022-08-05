@@ -8,40 +8,21 @@
  * does it submit to any jurisdiction.
  */
 
-/*
- * This software was developed as part of the EC H2020 funded project NextGenIO
- * (Project ID: 671951) www.nextgenio.eu
- */
-
-/// @author Simon Smart
-/// @date   November 2018
-
-#ifndef fdb5_api_WipeIterator_H
-#define fdb5_api_WipeIterator_H
-
-#include "fdb5/api/helpers/APIIterator.h"
-
-#include <string>
-
-/*
- * Define a standard object which can be used to iterate the results of a
- * wipe() call on an arbitrary FDB object
- */
+#include "fdb5/database/MoveVisitor.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using WipeElement = std::string;
+MoveVisitor::MoveVisitor(const metkit::mars::MarsRequest& request,
+                         const eckit::URI& dest) :
+    EntryVisitor(),
+    request_(request),
+    dest_(dest) {}
 
-using WipeIterator = APIIterator<WipeElement>;
 
-using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
-
-using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
+MoveVisitor::~MoveVisitor() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

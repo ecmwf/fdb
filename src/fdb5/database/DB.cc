@@ -138,15 +138,6 @@ bool DB::exists() const {
     return (catalogue_->exists()/* && store_->exists()*/);
 }
 
-bool DB::canMoveTo(const eckit::URI& dest) const {
-    return catalogue_->canMoveTo(dest) && store().canMoveTo(catalogue_->key(), config_, dest);
-}
-
-void DB::moveTo(const eckit::URI& dest) {
-    store().moveTo(catalogue_->key(), config_, dest);
-    catalogue_->moveTo(dest);
-}
-
 void DB::hideContents() {
     if (catalogue_->type() == TocEngine::typeName()) {
         catalogue_->hideContents();

@@ -88,29 +88,6 @@ bool FDBBase::disabled() {
     return disabled_;
 }
 
-
-void FDBBase::move(const FDBToolRequest& request, const eckit::URI& dest) {
-
-    // assert it is locked for archival...
-    StatusIterator it = status(request);
-    StatusElement elem;
-    ASSERT(it.next(elem));
-    ASSERT(!elem.controlIdentifiers.enabled(ControlIdentifier::Archive));
-    ASSERT(!elem.controlIdentifiers.enabled(ControlIdentifier::Wipe));
-    ASSERT(!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot));
-
-    std::unique_ptr<DB> dbSource = DB::buildReader(elem.key, config_);
-    if (!dbSource->exists()) {
-        std::stringstream ss;
-        ss << "Source database not found: " << dbSource << std::endl;
-        throw eckit::UserError(ss.str(), Here());
-    }
-
-    if (dbSource->canMoveTo(dest)) {
-        dbSource->moveTo(dest);
-    }
-}
-
 FDBFactory& FDBFactory::instance()
 {
     static FDBFactory fdbfactory;

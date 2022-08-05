@@ -32,6 +32,7 @@
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
@@ -84,7 +85,7 @@ public: // methods
                                     ControlAction action,
                                     ControlIdentifiers identifier) = 0;
 
-    virtual void move(const FDBToolRequest& request, const eckit::URI& dest);
+    virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
 
     // -------------- API management ----------------------------
 

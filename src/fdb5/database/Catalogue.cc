@@ -38,12 +38,6 @@ bool Catalogue::enabled(const ControlIdentifier& controlIdentifier) const {
     return controlIdentifiers_.enabled(controlIdentifier);
 }
 
-bool Catalogue::canMoveTo(const eckit::URI& dest) const {
-    std::stringstream ss;
-    ss << "Catalogue type " << type() << " does not support move" << std::endl;
-    throw eckit::UserError(ss.str(), Here());
-}
-
 std::ostream &operator<<(std::ostream &s, const Catalogue &x) {
     x.print(s);
     return s;

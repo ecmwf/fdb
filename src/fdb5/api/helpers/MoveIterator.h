@@ -8,16 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-/*
- * This software was developed as part of the EC H2020 funded project NextGenIO
- * (Project ID: 671951) www.nextgenio.eu
- */
-
+/// @author Emanuele Danovaro
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_WipeIterator_H
-#define fdb5_api_WipeIterator_H
+#ifndef fdb5_api_MoveIterator_H
+#define fdb5_api_MoveIterator_H
 
 #include "fdb5/api/helpers/APIIterator.h"
 
@@ -32,13 +28,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using WipeElement = std::string;
+using MoveElement = std::string;
 
-using WipeIterator = APIIterator<WipeElement>;
+using MoveIterator = APIIterator<MoveElement>;
 
-using WipeAggregateIterator = APIAggregateIterator<WipeElement>;
+using MoveAggregateIterator = APIAggregateIterator<MoveElement>;
 
-using WipeAsyncIterator = APIAsyncIterator<WipeElement>;
+using MoveAsyncIterator = APIAsyncIterator<MoveElement>;
 
 //----------------------------------------------------------------------------------------------------------------------
 

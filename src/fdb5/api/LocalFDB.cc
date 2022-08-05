@@ -37,6 +37,7 @@
 #include "fdb5/api/local/StatsVisitor.h"
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
+#include "fdb5/api/local/MoveVisitor.h"
 
 
 using namespace fdb5::api::local;
@@ -98,6 +99,11 @@ StatusIterator LocalFDB::status(const FDBToolRequest &request) {
 WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit, bool porcelain, bool unsafeWipeAll) {
     Log::debug<LibFdb5>() << "LocalFDB::wipe() : " << request << std::endl;
     return queryInternal<fdb5::api::local::WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
+}
+
+MoveIterator LocalFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
+    Log::debug<LibFdb5>() << "LocalFDB::move() : " << request << std::endl;
+    return queryInternal<fdb5::api::local::MoveVisitor>(request, dest);
 }
 
 PurgeIterator LocalFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

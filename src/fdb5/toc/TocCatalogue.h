@@ -47,9 +47,6 @@ public: // methods
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
-    bool canMoveTo(const eckit::URI& dest) const override;
-    void moveTo(const eckit::URI& dest) override;
-
 public: // constants
     static const std::string DUMP_PARAM_WALKSUBTOC;
 
@@ -69,6 +66,7 @@ protected: // methods
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
     WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
+    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest) const override;
     void maskIndexEntry(const Index& index) const override;
 
     void loadSchema() override;
@@ -81,11 +79,14 @@ protected: // methods
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
+protected: // members
+
     Key currentIndexKey_;
 
 private: // members
 
     friend class TocWipeVisitor;
+    friend class TocMoveVisitor;
 
     Schema schema_;
 };

@@ -7,7 +7,6 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
@@ -71,7 +70,50 @@ void FDBMove::execute(const CmdArgs& args) {
 
     size_t count = 0;
     for (const FDBToolRequest& request : requests("read")) {
-        fdb.move(request, destination_);
+        if (count) {
+            std::stringstream ss;
+            ss << "Multiple requests are not supported" << std::endl;
+            throw eckit::UserError(ss.str());
+        }
+
+        if (request.all()) {
+            std::stringstream ss;
+            ss << "Move ALL not supported. Please specify a single database." << std::endl;
+            throw eckit::UserError(ss.str(), Here());
+        }
+
+        // check that the request is only referring a single DB - no ranges of values
+        const metkit::mars::MarsRequest& req = request.request();
+        std::vector<std::string> params = req.params();
+        for (const std::string& param: params) {
+            const std::vector<std::string>& values = req.values(param);
+
+            if (values.size() != 1) {
+                std::stringstream ss;
+                ss << "Move requires a single value for each parameter in the request." << std::endl << "Parameter " << param << "=" << values << " not supported." << std::endl;
+                throw eckit::UserError(ss.str(), Here());
+            }
+        }
+
+        // check that exaclty one DB matches
+        StatsIterator it = fdb.stats(request);
+        StatsElement se;
+        if (!it.next(se)) {
+            std::stringstream ss;
+            ss << "Request " << req << " does not matches with an existing database. Please specify a single database." << std::endl;
+            throw eckit::UserError(ss.str(), Here());
+        }
+        if (it.next(se)) {
+            std::stringstream ss;
+            ss << "Request " << req << " matches with more than one existing database. Please specify a single database." << std::endl;
+            throw eckit::UserError(ss.str(), Here());
+        }
+
+        MoveIterator list = fdb.move(request, destination_);
+        MoveElement elem;
+        while (list.next(elem)) {
+            Log::info() << elem << std::endl;
+        }
         count++;
     }
 

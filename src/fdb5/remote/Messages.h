@@ -61,6 +61,7 @@ enum class Message : uint16_t {
     Control,
     Inspect,
     Read,
+    Move,
 
     // Responses
     Received = 200,
