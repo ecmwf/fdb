@@ -46,6 +46,9 @@ public: // methods
 
     void checkUID() const override { TocCommon::checkUID(); }
 
+    bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override;
+    void moveTo(const Key& key, const Config& config, const eckit::URI& dest) const override;
+
 protected: // methods
 
     std::string type() const override { return "file"; }
@@ -64,7 +67,7 @@ protected: // methods
     eckit::DataHandle *createDataHandle(const eckit::PathName &path);
     eckit::DataHandle& getDataHandle( const eckit::PathName &path );
     eckit::PathName generateDataPath(const Key &key) const;
-    eckit::PathName getDataPath(const Key &key);
+    eckit::PathName getDataPath(const Key &key) const;
     void flushDataHandles();
 
     void print( std::ostream &out ) const override;
@@ -78,7 +81,7 @@ private: // members
 
     HandleStore handles_;    ///< stores the DataHandles being used by the Session
 
-    PathStore   dataPaths_;
+    mutable PathStore   dataPaths_;
 
 };
 

@@ -97,8 +97,9 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
         FDB& lane = lanes_[idx];
 
-        if(not lane.writable()) continue;
-
+        if(!lane.enabled(ControlIdentifier::Archive)) {
+            continue;
+        }
         if (lane.disabled()) {
             eckit::Log::warning() << "FDB lane " << lane << " is disabled" << std::endl;
             continue;
@@ -163,7 +164,7 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) ->
     std::queue<APIIterator<ValueType>> iterQueue;
 
     for (FDB& lane : lanes_) {
-        if (lane.visitable()) {
+        if (lane.enabled(ControlIdentifier::Retrieve)) {
             futures.emplace_back(std::async(std::launch::async, [&lane, &fn, &request] {
                 return fn(lane, request);
             }));
@@ -244,6 +245,13 @@ ControlIterator DistFDB::control(const FDBToolRequest& request,
     });
 }
 
+MoveIterator DistFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
+    Log::debug<LibFdb5>() << "DistFDB::move() : " << request << std::endl;
+    return queryInternal(request,
+                         [dest](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.move(request, dest);
+    });
+}
 
 void DistFDB::flush() {
 

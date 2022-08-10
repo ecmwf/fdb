@@ -44,7 +44,16 @@ namespace {
     constexpr const char* archive_lock_file = "archive.lock";
     constexpr const char* list_lock_file = "list.lock";
     constexpr const char* wipe_lock_file = "wipe.lock";
+    constexpr const char* allow_duplicates_file = "duplicates.allow";
 }
+
+const std::map<ControlIdentifier, const char*> controlfile_lookup {
+    {ControlIdentifier::Retrieve, retrieve_lock_file},
+    {ControlIdentifier::Archive, archive_lock_file},
+    {ControlIdentifier::List, list_lock_file},
+    {ControlIdentifier::Wipe, wipe_lock_file},
+    {ControlIdentifier::UniqueRoot, allow_duplicates_file}
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -1405,27 +1414,22 @@ size_t TocHandler::buildSubTocMaskRecord(TocRecord& r, const eckit::PathName& pa
 
 void TocHandler::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
 
-    const std::map<ControlIdentifier, std::string> lockfile_lookup {
-        {ControlIdentifier::Retrieve, retrieve_lock_file},
-        {ControlIdentifier::Archive, archive_lock_file},
-        {ControlIdentifier::List, list_lock_file},
-        {ControlIdentifier::Wipe, wipe_lock_file},
-    };
+    
 
     for (ControlIdentifier identifier : identifiers) {
 
-        auto it = lockfile_lookup.find(identifier);
-        ASSERT(it != lockfile_lookup.end());
+        auto it = controlfile_lookup.find(identifier);
+        ASSERT(it != controlfile_lookup.end());
 
         const std::string& lock_file(it->second);
 
         switch (action) {
-        case ControlAction::Lock:
-            createLockFile(lock_file);
+        case ControlAction::Disable:
+            createControlFile(lock_file);
             break;
 
-        case ControlAction::Unlock:
-            removeLockFile(lock_file);
+        case ControlAction::Enable:
+            removeControlFile(lock_file);
             break;
 
         default:
@@ -1436,21 +1440,13 @@ void TocHandler::control(const ControlAction& action, const ControlIdentifiers& 
     }
 }
 
-bool TocHandler::retrieveLocked() const {
-    return fullLockFilePath(retrieve_lock_file).exists();
-}
+bool TocHandler::enabled(const ControlIdentifier& controlIdentifier) const {
+    auto it = controlfile_lookup.find(controlIdentifier);
+    ASSERT(it != controlfile_lookup.end());
 
-bool TocHandler::archiveLocked() const {
-    return fullLockFilePath(archive_lock_file).exists();
-}
-
-bool TocHandler::listLocked() const {
-    return fullLockFilePath(list_lock_file).exists();
-}
-
-bool TocHandler::wipeLocked() const {
-    return fullLockFilePath(wipe_lock_file).exists();
-}
+    const std::string& control_file(it->second);
+    return !fullControlFilePath(control_file).exists();
+};
 
 std::vector<PathName> TocHandler::lockfilePaths() const {
 
@@ -1461,34 +1457,34 @@ std::vector<PathName> TocHandler::lockfilePaths() const {
                               list_lock_file,
                               wipe_lock_file }) {
 
-        PathName fullPath = fullLockFilePath(name);
+        PathName fullPath = fullControlFilePath(name);
         if (fullPath.exists()) paths.emplace_back(std::move(fullPath));
     }
 
     return paths;
 }
 
-PathName TocHandler::fullLockFilePath(const std::string& name) const {
+PathName TocHandler::fullControlFilePath(const std::string& name) const {
     return directory_ / name;
 }
 
-void TocHandler::createLockFile(const std::string& name) const {
+void TocHandler::createControlFile(const std::string& name) const {
 
     checkUID();
 
     // It is not an error to lock something that is already locked
-    PathName fullPath(fullLockFilePath(name));
+    PathName fullPath(fullControlFilePath(name));
     if (!fullPath.exists()) {
         fullPath.touch();
     }
 }
 
-void TocHandler::removeLockFile(const std::string& name) const {
+void TocHandler::removeControlFile(const std::string& name) const {
 
     checkUID();
 
     // It is not an error to unlock something that is already unlocked
-    PathName fullPath(fullLockFilePath(name));
+    PathName fullPath(fullControlFilePath(name));
     if (fullPath.exists()) {
         bool verbose = false;
         fullPath.unlink(verbose);

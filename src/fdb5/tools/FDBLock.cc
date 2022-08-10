@@ -67,7 +67,7 @@ void FDBLock::execute(const CmdArgs& args) {
 
     FDB fdb(config(args));
 
-    ControlAction action = unlock_ ? ControlAction::Unlock : ControlAction::Lock;
+    ControlAction action = unlock_ ? ControlAction::Enable : ControlAction::Disable;
 
     ControlIdentifiers identifiers;
     if (list_) identifiers |= ControlIdentifier::List;
@@ -80,15 +80,16 @@ void FDBLock::execute(const CmdArgs& args) {
         auto statusIterator = fdb.control(request, action, identifiers);
 
         size_t count = 0;
-        ControlElement elem;
+        StatusElement elem;
         while (statusIterator.next(elem)) {
             Log::info() << "Database: " << elem.key << std::endl
                         << "  location: " << elem.location.asString() << std::endl;
 
-            if (elem.retrieveLocked)  Log::info() << "  retrieve: LOCKED" << std::endl;
-            if (elem.archiveLocked)   Log::info() << "  archive: LOCKED" << std::endl;
-            if (elem.listLocked)      Log::info() << "  list: LOCKED" << std::endl;
-            if (elem.wipeLocked)      Log::info() << "  wipe: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Retrieve))   Log::info() << "  retrieve: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Archive))    Log::info() << "  archive: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::List))       Log::info() << "  list: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::Wipe))       Log::info() << "  wipe: LOCKED" << std::endl;
+            if (!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot)) Log::info() << "  multi-root: PERMITTED" << std::endl;
 
             count++;
         }

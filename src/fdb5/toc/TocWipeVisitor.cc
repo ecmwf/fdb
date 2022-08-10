@@ -107,7 +107,7 @@ bool TocWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
 
     ASSERT(&catalogue_ == &catalogue);
 //    ASSERT(&store_ == &store);
-    ASSERT(!catalogue.wipeLocked());
+    ASSERT(catalogue.enabled(ControlIdentifier::Wipe));
     WipeVisitor::visitDatabase(catalogue, store);
 
     // Check that we are in a clean state (i.e. we only visit one DB).
@@ -360,13 +360,13 @@ void TocWipeVisitor::wipe(bool wipeAll) {
     // into a state we don't like.
 
     if (wipeAll && doit_) {
-        catalogue_.control(ControlAction::Lock, ControlIdentifier::List |
+        catalogue_.control(ControlAction::Disable, ControlIdentifier::List |
                                          ControlIdentifier::Retrieve |
                                          ControlIdentifier::Archive);
 
-        ASSERT(catalogue_.listLocked());
-        ASSERT(catalogue_.retrieveLocked());
-        ASSERT(catalogue_.archiveLocked());
+        ASSERT(!catalogue_.enabled(ControlIdentifier::List));
+        ASSERT(!catalogue_.enabled(ControlIdentifier::Retrieve));
+        ASSERT(!catalogue_.enabled(ControlIdentifier::Archive));
 
         // The lock will have occurred after the visitation phase, so add the lockfiles.
         const auto&& lockfiles(catalogue_.lockfilePaths());

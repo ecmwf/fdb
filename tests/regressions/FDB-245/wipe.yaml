@@ -1,0 +1,15 @@
+---
+type: local
+engine: toc
+schema: ./schema
+spaces:
+- handler: Default
+  roots:
+  - path: ./root
+    writable: false
+    visit: true
+    list: false
+    retrieve: false
+    archive: false
+    wipe: true
+

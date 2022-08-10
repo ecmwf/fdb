@@ -34,6 +34,9 @@ std::unique_ptr<Store> Catalogue::buildStore(const Config& config) {
     }
 }
 
+bool Catalogue::enabled(const ControlIdentifier& controlIdentifier) const {
+    return controlIdentifiers_.enabled(controlIdentifier);
+}
 
 std::ostream &operator<<(std::ostream &s, const Catalogue &x) {
     x.print(s);

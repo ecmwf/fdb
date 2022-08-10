@@ -39,7 +39,7 @@ TocCatalogueWriter::TocCatalogueWriter(const Key &key, const fdb5::Config& confi
 }
 
 TocCatalogueWriter::TocCatalogueWriter(const eckit::URI &uri, const fdb5::Config& config) :
-    TocCatalogue(uri.path(), config),
+    TocCatalogue(uri.path(), ControlIdentifiers{}, config),
     umask_(config.umask()) {
     writeInitRecord(TocCatalogue::key());
     TocCatalogue::loadSchema();
@@ -67,6 +67,7 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
     current_ = indexes_[key];
     current_.open();
+    current_.flock();
 
     // If we are using subtocs, then we need to maintain a duplicate index that doesn't get flushed
     // each step.
@@ -88,6 +89,7 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
         currentFull_ = fullIndexes_[key];
         currentFull_.open();
+        currentFull_.flock();
     }
 
     return true;
@@ -283,6 +285,13 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
 
 void TocCatalogueWriter::hideContents() {
     writeClearAllRecord();
+}
+
+bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) const {
+    if (controlIdentifier == ControlIdentifier::List || controlIdentifier == ControlIdentifier::Retrieve) {
+        return false;
+    }
+    return TocCatalogue::enabled(controlIdentifier);
 }
 
 void TocCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocation) {

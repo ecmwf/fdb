@@ -21,6 +21,7 @@
 #include "eckit/thread/Mutex.h"
 
 #include "fdb5/api/FDBFactory.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/LibFdb5.h"
 
 
@@ -32,9 +33,22 @@ namespace fdb5 {
 FDBBase::FDBBase(const Config& config, const std::string& name) :
     name_(name),
     config_(config),
-    writable_(config.getBool("writable", true)),
-    visitable_(config.getBool("visitable", true)),
     disabled_(false) {
+
+    bool writable = config.getBool("writable", true);
+    bool visitable = config.getBool("visitable", true);
+    if (!config.getBool("list", visitable)) {
+        controlIdentifiers_ |= ControlIdentifier::List;
+    }
+    if (!config.getBool("retrieve", visitable)) {
+        controlIdentifiers_ |= ControlIdentifier::Retrieve;
+    }
+    if (!config.getBool("archive", writable)) {
+        controlIdentifiers_ |= ControlIdentifier::Archive;
+    }
+    if (!config.getBool("wipe", writable)) {
+        controlIdentifiers_ |= ControlIdentifier::Wipe;
+    }
 
     eckit::Log::debug<LibFdb5>() << "FDBBase: " << config << std::endl;
 }
@@ -61,12 +75,8 @@ const Config& FDBBase::config() const {
     return config_;
 }
 
-bool FDBBase::writable() {
-    return writable_;
-}
-
-bool FDBBase::visitable() {
-    return visitable_;
+bool FDBBase::enabled(const ControlIdentifier& controlIdentifier) const {
+    return controlIdentifiers_.enabled(controlIdentifier);
 }
 
 void FDBBase::disable() {

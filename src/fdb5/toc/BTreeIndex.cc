@@ -34,6 +34,7 @@ public: // types
 public: // methods
 
     TBTreeIndex(const eckit::PathName &path, bool readOnly, off_t offset );
+    ~TBTreeIndex();
 
 private: // methods
 
@@ -41,6 +42,8 @@ private: // methods
     virtual bool set(const std::string& key, const FieldRef& data);
     virtual void flush();
     virtual void sync();
+    virtual void flock();
+    virtual void funlock();
     virtual void visit(BTreeIndexVisitor& visitor) const;
 
 private: // members
@@ -53,6 +56,11 @@ private: // members
 template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
 TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::TBTreeIndex(const eckit::PathName &path, bool readOnly, off_t offset):
     btree_( path, readOnly, offset) {
+}
+
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
+TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::~TBTreeIndex() {
+    btree_.funlock();
 }
 
 template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
@@ -82,6 +90,16 @@ void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::flush() {
 template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
 void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::sync() {
     btree_.sync();
+}
+
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
+void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::flock() {
+    btree_.flock();
+}
+
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
+void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::funlock() {
+    btree_.funlock();
 }
 
 template<int KEYSIZE, int RECSIZE, typename PAYLOAD>

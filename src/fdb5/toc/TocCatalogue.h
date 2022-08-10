@@ -19,6 +19,7 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/toc/FileSpace.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocEngine.h"
 
@@ -33,7 +34,7 @@ class TocCatalogue : public Catalogue, public TocHandler {
 public: // methods
 
     TocCatalogue(const Key& key, const fdb5::Config& config);
-    TocCatalogue(const eckit::PathName& directory, const fdb5::Config& config);
+    TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
 
     ~TocCatalogue() override {}
 
@@ -44,10 +45,14 @@ public: // methods
 
     static void remove(const eckit::PathName& path, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
 
+    bool enabled(const ControlIdentifier& controlIdentifier) const override;
+
 public: // constants
     static const std::string DUMP_PARAM_WALKSUBTOC;
 
 protected: // methods
+
+    TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config);
 
     std::string type() const override;
 
@@ -61,6 +66,7 @@ protected: // methods
     StatsReportVisitor* statsReportVisitor() const override;
     PurgeVisitor* purgeVisitor(const Store& store) const override;
     WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
+    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest) const override;
     void maskIndexEntry(const Index& index) const override;
 
     void loadSchema() override;
@@ -73,16 +79,14 @@ protected: // methods
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
 
-    bool retrieveLocked() const override;
-    bool archiveLocked() const override;
-    bool listLocked() const override;
-    bool wipeLocked() const override;
+protected: // members
 
     Key currentIndexKey_;
 
 private: // members
 
     friend class TocWipeVisitor;
+    friend class TocMoveVisitor;
 
     Schema schema_;
 };

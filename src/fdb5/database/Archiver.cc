@@ -95,7 +95,7 @@ DB& Archiver::database(const Key &key) {
     ASSERT(db);
 
     // If this database is locked for writing then this is an error
-    if (db->archiveLocked()) {
+    if (!db->enabled(ControlIdentifier::Archive)) {
         std::ostringstream ss;
         ss << "Database " << *db << " matched for archived is LOCKED against archiving";
         throw eckit::UserError(ss.str(), Here());

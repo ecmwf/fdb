@@ -21,9 +21,12 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/LocalFDB.h"
 #include "fdb5/database/Archiver.h"
+#include "fdb5/database/DB.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Inspector.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/rules/Schema.h"
 #include "fdb5/LibFdb5.h"
 
 #include "fdb5/api/local/ControlVisitor.h"
@@ -34,6 +37,7 @@
 #include "fdb5/api/local/StatsVisitor.h"
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
+#include "fdb5/api/local/MoveVisitor.h"
 
 
 using namespace fdb5::api::local;
@@ -97,6 +101,11 @@ WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit, bool porce
     return queryInternal<fdb5::api::local::WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
 }
 
+MoveIterator LocalFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
+    Log::debug<LibFdb5>() << "LocalFDB::move() : " << request << std::endl;
+    return queryInternal<fdb5::api::local::MoveVisitor>(request, dest);
+}
+
 PurgeIterator LocalFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
     Log::debug<LibFdb5>() << "LocalFDB::purge() : " << request << std::endl;
     return queryInternal<fdb5::api::local::PurgeVisitor>(request, doit, porcelain);
@@ -113,7 +122,6 @@ ControlIterator LocalFDB::control(const FDBToolRequest& request,
     Log::debug<LibFdb5>() << "LocalFDB::control() : " << request << std::endl;
     return queryInternal<ControlVisitor>(request, action, identifiers);
 }
-
 
 void LocalFDB::flush() {
     if (archiver_) {

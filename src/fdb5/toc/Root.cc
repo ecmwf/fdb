@@ -21,12 +21,17 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Root::Root(const std::string &path, const std::string& filespace, bool active, bool visit):
+Root::Root(const std::string &path, const std::string& filespace,
+           bool list, bool retrieve, bool archive, bool wipe):
     path_(path),
     filespace_(filespace),
-    writable_(active),
-    visit_(visit)
+    controlIdentifiers_()
 {
+    if (!list) controlIdentifiers_ |= ControlIdentifier::List;
+    if (!retrieve) controlIdentifiers_ |= ControlIdentifier::Retrieve;
+    if (!archive) controlIdentifiers_ |= ControlIdentifier::Archive;
+    if (!wipe) controlIdentifiers_ |= ControlIdentifier::Wipe;
+
     errno = 0;
     Stat::Struct info;
     int err = Stat::stat(path_.asString().c_str(),&info);
@@ -37,6 +42,7 @@ Root::Root(const std::string &path, const std::string& filespace, bool active, b
         Log::warning() << "FDB root " << path_ << " " << Log::syserr << std::endl;
         exists_ = false;
     }
+    Log::debug<LibFdb5>() << "Root " << *this << (exists_ ? " exists" : " does NOT exists") << std::endl;
 }
 
 const eckit::PathName& Root::path() const {
@@ -52,8 +58,7 @@ void Root::print( std::ostream &out ) const  {
 
     out << "Root("
         << "path=" << path_
-        << ",writable=" << writable_
-        << ",visit=" << visit_
+        << ",controlIdentifiers=" << controlIdentifiers_
         <<")";
 }
 
