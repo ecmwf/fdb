@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <fdb5/LibFdb5.h>
 #include <sys/types.h>
+#include <sys/file.h>
 #include <cstring>
 
 
@@ -101,6 +102,8 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
     if (store_.canMoveTo(catalogue_.key(), catalogue_.config(), dest_)) {
         move();
     }
+
+    return false; // Don't explore indexes, etc. We have already moved them away...
 }
 
 void TocMoveVisitor::move() {
