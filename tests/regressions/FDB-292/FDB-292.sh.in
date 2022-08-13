@@ -12,7 +12,8 @@ gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
 function post_process {
-   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+  num=0
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
 }
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
@@ -138,12 +139,12 @@ cat > readY <<EOF
     "levtype": "sfc",
     "date": 20201102,
     "time": "0000",
-    "step": 11,
+    "step": 12,
     "param": 166.128,
     "class": "rd",
-    "type": "an",
+    "type": "fc",
     "stream": "oper",
-    "expver": "yyyy"
+    "expver": "xxxy"
   }
 ]}
 EOF
