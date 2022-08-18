@@ -190,7 +190,7 @@ int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t *oid,
     if (hints != 0) NOTIMP;
     if (args != 0) NOTIMP;
 
-    oid->hi = (uint64_t) 0;
+    oid->hi &= (uint64_t) 0x00000000FFFFFFFF;
 
     return 0;
 
@@ -234,7 +234,7 @@ int daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
     if (flags != 0) NOTIMP;
     if (ev != NULL) NOTIMP;
 
-    eckit::FileHandle fh(oh.impl->path / key);
+    eckit::FileHandle fh(oh.impl->path / key, true);
     fh.openForWrite(eckit::Length(size));
     eckit::AutoClose closer(fh);
     fh.write(buf, (long) size);
@@ -364,7 +364,7 @@ int daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
     //sgl->sg_iovs[0].iov_buf_len is a size_t with the source len
     //iod->arr_rgs[0].rg_idx is a uint64_t with the offset to write from
 
-    eckit::FileHandle fh(oh.impl->path);
+    eckit::FileHandle fh(oh.impl->path, true);
 
     //eckit::Length existing_len = fh.size();
 
