@@ -1,6 +1,6 @@
 ecbuild_add_library(
 
-    TARGET daos TYPE STATIC
+    TARGET daos
 
     INSTALL_HEADERS LISTED
 
