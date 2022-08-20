@@ -12,21 +12,22 @@
 /// @author Emanuele Danovaro
 /// @date   August 2019
 
-#ifndef fdb5_TocCommon_H
-#define fdb5_TocCommon_H
+#pragma once
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/io/FileHandle.h"
+#include "eckit/thread/ThreadPool.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 
 namespace fdb5 {
 
 class TocCommon {
 public:
 
-    TocCommon(const eckit::
-              PathName& path);
+    TocCommon(const eckit::PathName& path);
     virtual ~TocCommon() {}
 
     static eckit::PathName findRealPath(const eckit::PathName& path);
@@ -41,8 +42,6 @@ public:
 protected: // methods
 
     virtual uid_t dbUID() const;
-    static bool stripeLustre();
-
 
 protected: // members
 
@@ -55,6 +54,20 @@ protected: // members
     mutable bool dirty_;
 };
 
-}
+// class for writing a chunk of the user buffer - used to perform multiple simultaneous writes
+class FileCopy : public eckit::ThreadPoolTask {
+    eckit::PathName src_;
+    eckit::PathName dest_;
 
-#endif  // fdb5_TocCommon_H
+    void execute() {
+        eckit::FileHandle src(src_);
+        eckit::FileHandle dest(dest_);
+        src.copyTo(dest);
+    }
+
+public:
+    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName):
+        src_(srcPath / fileName), dest_(destPath / fileName) {}
+};
+
+}

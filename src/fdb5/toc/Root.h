@@ -21,6 +21,8 @@
 
 #include "eckit/filesystem/PathName.h"
 
+#include "fdb5/api/helpers/ControlIterator.h"
+
 namespace fdb5 {
 
 class Key;
@@ -33,8 +35,13 @@ public: // methods
 
     Root(const std::string& path,
          const std::string& filespace,
-         bool writable = true,
-         bool visit  = true);
+         bool list,
+         bool retrieve,
+         bool archive,
+         bool wipe);
+
+    // Root(const Root&) = default;
+    // Root& operator=(const Root&) = default;
 
     const eckit::PathName &path() const;
 
@@ -42,12 +49,12 @@ public: // methods
     /// This result is cached at construction
     bool exists() const {  return exists_; }
 
-    /// Root is in use, when archiving
-    bool writable() const { return writable_; }
+    bool enabled(const ControlIdentifier& controlIdentifier) const {
+        return controlIdentifiers_.enabled(controlIdentifier);
+    };
 
-    /// Root is visited, when retrieving
-    bool visit() const { return visit_; }
-
+    const ControlIdentifiers& controlIdentifiers() const { return controlIdentifiers_; }
+    
     const std::string& filespace() const;
 
     friend std::ostream& operator<<(std::ostream &s, const Root& x) {
@@ -65,8 +72,7 @@ private: // members
 
     std::string filespace_;
 
-    bool writable_;
-    bool visit_;
+    ControlIdentifiers controlIdentifiers_;
     bool exists_;
 };
 

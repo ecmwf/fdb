@@ -39,7 +39,8 @@ list( APPEND fdb5_srcs
     api/helpers/DumpIterator.h
     api/helpers/ListIterator.cc
     api/helpers/ListIterator.h
-    api/helpers/StatusIterator.cc
+    api/helpers/LockIterator.h
+    api/helpers/MoveIterator.h
     api/helpers/StatusIterator.h
     api/helpers/WipeIterator.h
     api/helpers/PurgeIterator.h
@@ -54,6 +55,8 @@ list( APPEND fdb5_srcs
     api/local/DumpVisitor.h
     api/local/WipeVisitor.cc
     api/local/WipeVisitor.h
+    api/local/MoveVisitor.cc
+    api/local/MoveVisitor.h
     api/local/PurgeVisitor.cc
     api/local/PurgeVisitor.h
     api/local/StatsVisitor.cc
@@ -108,6 +111,8 @@ list( APPEND fdb5_srcs
     database/PurgeVisitor.h
     database/WipeVisitor.cc
     database/WipeVisitor.h
+    database/MoveVisitor.cc
+    database/MoveVisitor.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc
@@ -139,7 +144,8 @@ list( APPEND fdb5_srcs
     io/FDBFileHandle.h
     io/SingleGribMungePartFileHandle.cc
     io/SingleGribMungePartFileHandle.h
-    io/LustreFileHandle.cc
+    io/LustreSettings.cc
+    io/LustreSettings.h
     io/LustreFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
@@ -267,8 +273,12 @@ if( HAVE_TOCFDB )
         toc/TocIndexLocation.h
         toc/TocPurgeVisitor.cc
         toc/TocPurgeVisitor.h
+        toc/TocSerialisationVersion.cc
+        toc/TocSerialisationVersion.h
         toc/TocWipeVisitor.cc
         toc/TocWipeVisitor.h
+        toc/TocMoveVisitor.cc
+        toc/TocMoveVisitor.h
         toc/TocRecord.cc
         toc/TocRecord.h
         toc/TocStats.cc
@@ -281,6 +291,7 @@ if( HAVE_TOCFDB )
 
     list( APPEND fdb5_tools
         fdb-wipe
+        fdb-move
         fdb-stats
         fdb-purge
         fdb-dump-toc

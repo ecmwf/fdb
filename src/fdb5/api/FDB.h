@@ -30,6 +30,7 @@
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
 
 namespace eckit {
@@ -82,7 +83,7 @@ public: // methods
 
     ListIterator inspect(const metkit::mars::MarsRequest& request);
 
-    ListIterator list(const FDBToolRequest& request);
+    ListIterator list(const FDBToolRequest& request, bool deduplicate=false);
 
     DumpIterator dump(const FDBToolRequest& request, bool simple=false);
 
@@ -91,6 +92,8 @@ public: // methods
 
     WipeIterator wipe(const FDBToolRequest& request, bool doit=false, bool porcelain=false, bool unsafeWipeAll=false);
 
+    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest);
+
     PurgeIterator purge(const FDBToolRequest& request, bool doit=false, bool porcelain=false);
 
     StatsIterator stats(const FDBToolRequest& request);
@@ -98,6 +101,7 @@ public: // methods
     ControlIterator control(const FDBToolRequest& request,
                             ControlAction action,
                             ControlIdentifiers identifiers);
+    bool enabled(const ControlIdentifier& controlIdentifier) const;
 
     bool dirty() const;
 
@@ -112,11 +116,8 @@ public: // methods
     const std::string& name() const;
     const Config& config() const;
 
-    bool writable() const;
-    bool visitable() const;
-    bool disabled() const;
-
     void disable();
+    bool disabled() const;
 
 private: // methods
 

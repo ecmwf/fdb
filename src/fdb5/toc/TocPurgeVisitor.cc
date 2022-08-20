@@ -14,6 +14,7 @@
 #include "eckit/log/Plural.h"
 
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 

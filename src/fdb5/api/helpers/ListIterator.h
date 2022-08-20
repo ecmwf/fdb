@@ -20,6 +20,7 @@
 #define fdb5_ListIterator_H
 
 #include <vector>
+#include <unordered_set>
 #include <memory>
 #include <iosfwd>
 #include <chrono>
@@ -87,11 +88,42 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using ListIterator = APIIterator<ListElement>;
-
 using ListAggregateIterator = APIAggregateIterator<ListElement>;
 
 using ListAsyncIterator = APIAsyncIterator<ListElement>;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ListIterator : public APIIterator<ListElement> {
+public:
+    ListIterator(APIIterator<ListElement>&& iter, bool deduplicate=false) :
+        APIIterator<ListElement>(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
+
+    ListIterator(ListIterator&& iter) :
+        APIIterator<ListElement>(std::move(iter)), seenKeys_(std::move(iter.seenKeys_)), deduplicate_(iter.deduplicate_) {}
+
+    bool next(ListElement& elem) {
+        ListElement tmp;
+        while (APIIterator<ListElement>::next(tmp)) {
+            if(deduplicate_) {
+                Key combinedKey = tmp.combinedKey();
+                if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
+                    seenKeys_.emplace(std::move(combinedKey));
+                    std::swap(elem, tmp);
+                    return true;
+                }
+            } else {
+                std::swap(elem, tmp);
+                return true;
+            }
+        }
+        return false;
+    }
+
+private:
+    std::unordered_set<Key> seenKeys_;
+    bool deduplicate_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

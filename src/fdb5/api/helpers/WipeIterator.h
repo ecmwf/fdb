@@ -21,8 +21,6 @@
 
 #include "fdb5/api/helpers/APIIterator.h"
 
-#include "eckit/filesystem/PathName.h"
-
 #include <string>
 
 /*
@@ -31,8 +29,6 @@
  */
 
 namespace fdb5 {
-
-class IndexLocation;
 
 //----------------------------------------------------------------------------------------------------------------------
 

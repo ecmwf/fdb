@@ -201,6 +201,9 @@ private: // methods
     virtual void print( std::ostream& s) const override { s << "NullIndex()"; }
     virtual void dump(std::ostream&, const char*, bool, bool) const override { NOTIMP; }
 
+    virtual void flock() const override { NOTIMP; }
+    virtual void funlock() const override { NOTIMP; }
+
     virtual IndexStats statistics() const override { NOTIMP; }
 
 };

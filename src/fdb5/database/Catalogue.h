@@ -26,9 +26,11 @@
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/WipeVisitor.h"
+#include "fdb5/database/MoveVisitor.h"
 #include "fdb5/rules/Schema.h"
 
 namespace fdb5 {
@@ -40,8 +42,8 @@ typedef std::map<Key, Index> IndexStore;
 class Catalogue {
 public:
 
-    Catalogue(const Key& key, const fdb5::Config& config)
-        : dbKey_(key), config_(config), buildByKey_(!key.empty()) {}
+    Catalogue(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
+        : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers), buildByKey_(!key.empty()) {}
 
     virtual ~Catalogue() {}
 
@@ -66,13 +68,11 @@ public:
     virtual StatsReportVisitor* statsReportVisitor() const = 0;
     virtual PurgeVisitor* purgeVisitor(const Store& store) const = 0;
     virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
+    virtual MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest) const = 0;
 
     virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
 
-    virtual bool retrieveLocked() const = 0;
-    virtual bool archiveLocked() const = 0;
-    virtual bool listLocked() const = 0;
-    virtual bool wipeLocked() const = 0;
+    virtual bool enabled(const ControlIdentifier& controlIdentifier) const;
 
     virtual std::vector<fdb5::Index> indexes(bool sorted=false) const = 0;
 
@@ -104,7 +104,9 @@ protected: // methods
 protected: // members
 
     Key dbKey_;
-    const Config& config_;
+    Config config_;
+    ControlIdentifiers controlIdentifiers_;
+
 
 private: // members
 

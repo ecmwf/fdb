@@ -4,11 +4,11 @@ configure_file( etc/fdb/schema   ${CMAKE_BINARY_DIR}/etc/fdb/schema    @ONLY )
 configure_file( etc/fdb/engines  ${CMAKE_BINARY_DIR}/etc/fdb/engines   @ONLY )
 
 # for file based FDB
-configure_file( etc/fdb/dbnames  ${CMAKE_BINARY_DIR}/etc/fdb/dbnames   @ONLY )
 configure_file( etc/fdb/roots    ${CMAKE_BINARY_DIR}/etc/fdb/roots     @ONLY )
 configure_file( etc/fdb/spaces   ${CMAKE_BINARY_DIR}/etc/fdb/spaces    @ONLY )
 
 file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tests/fdb/root ) # as defined in ${CMAKE_BINARY_DIR}/etc/fdb/roots file
+file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tests/fdb/root2 ) # as defined in ${CMAKE_BINARY_DIR}/etc/fdb/roots file
 
 # for pmem based FDB
 configure_file( etc/fdb/pools      ${CMAKE_BINARY_DIR}/etc/fdb/pools       @ONLY )

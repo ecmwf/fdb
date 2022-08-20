@@ -26,41 +26,6 @@ namespace fdb5 {
 
 class Config;
 
-/// Manages the serialisation version for FDB objects on storage
-/// This object is copyable
-/// Version 2: TOC format originally used in first public release
-/// Version 3: TOC serialisation format includes Stream objects
-class SerialisationVersion {
-public:
-    SerialisationVersion();
-
-    /// Defines the serialisation versions the software is able to handle
-    /// Entries with these versions will not issue errors
-    std::vector<unsigned int> supported() const;
-
-    /// List of supported versions as a string
-    std::string supportedStr() const;
-
-    /// Latest version of serialisation the software is capable to create
-    /// To be used as default
-    unsigned int latest() const;
-
-    /// Default version of serialisation the software will use
-    /// This may be behind the latest version
-    unsigned int defaulted() const;
-
-    /// Defines the serialisation version the software is meant to create new entries with
-    /// Normally is the latest()
-    /// But can be overriden by the variable FDB5_SERIALISATION_VERSION
-    unsigned int used() const;
-
-    /// Checks the serialisation version is supported by the software
-    bool check(unsigned int version, bool throwOnFail = true);
-
-private:
-    unsigned int used_; //< version to be used for serialisation on write
-};
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class RemoteProtocolVersion {
@@ -101,9 +66,6 @@ public:
     LibFdb5();
 
     static LibFdb5& instance();
-
-    /// Returns an object describing the serialisation version
-    SerialisationVersion serialisationVersion() const;
 
     /// Returns an object describing the remote protocol version
     RemoteProtocolVersion remoteProtocolVersion() const;

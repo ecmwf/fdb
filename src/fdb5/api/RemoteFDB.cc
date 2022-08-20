@@ -622,7 +622,24 @@ private:
     bool unsafeWipeAll_;
 };
 
-struct ControlHelper : BaseAPIHelper<ControlElement, Message::Control> {
+struct MoveHelper : BaseAPIHelper<MoveElement, Message::Move> {
+
+    MoveHelper(const eckit::URI& dest) :
+        dest_(dest) {}
+    void encodeExtra(eckit::Stream& s) const {
+        s << dest_;
+    }
+    static MoveElement valueFromStream(eckit::Stream& s, RemoteFDB*) {
+        MoveElement elem;
+        s >> elem;
+        return elem;
+    }
+
+private:
+    const eckit::URI& dest_;
+};
+
+struct ControlHelper : BaseAPIHelper<StatusElement, Message::Control> {
 
     ControlHelper(ControlAction action, ControlIdentifiers identifiers) :
         action_(action),
@@ -730,6 +747,10 @@ ControlIterator RemoteFDB::control(const FDBToolRequest& request,
                                    ControlIdentifiers identifiers) {
     return forwardApiCall(ControlHelper(action, identifiers), request);
 };
+
+MoveIterator RemoteFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
+    return forwardApiCall(MoveHelper(dest), request);
+}
 
 // -----------------------------------------------------------------------------------------------------
 

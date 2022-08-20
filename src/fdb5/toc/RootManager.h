@@ -21,6 +21,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/toc/FileSpace.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 
 namespace metkit {
 namespace mars {
@@ -45,7 +46,7 @@ public: // methods
     RootManager(const Config& config);
 
     /// Uniquely selects a directory where the Key will be put or already exists
-    eckit::PathName directory(const Key &key);
+    TocPath directory(const Key &key);
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::PathName> allRoots(const Key& key);
@@ -56,7 +57,7 @@ public: // methods
     std::vector<eckit::PathName> visitableRoots(const metkit::mars::MarsRequest& request);
 
     /// Lists the roots where a DB key would be able to be written
-    std::vector<eckit::PathName> writableRoots(const Key& key);
+    std::vector<eckit::PathName> canArchiveRoots(const Key& key);
 
     std::string dbPathName(const Key& key);
 

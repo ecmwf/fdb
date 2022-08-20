@@ -18,6 +18,7 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
+#include "fdb5/database/Key.h"
 
 #include "fdb5/api/fdb_c.h"
 
@@ -31,6 +32,36 @@ namespace test {
 //----------------------------------------------------------------------------------------------------------------------
 int fdb_request_add1(fdb_request_t* req, const char* param, const char* value) {
     return fdb_request_add(req, param, &value, 1);
+}
+
+void key_compare(const std::vector<fdb5::Key>& keys, fdb_listiterator_t *it, bool checkLevel = true) {
+    const char *k;
+    const char *v;
+    size_t l;
+    int err;
+
+    fdb_split_key_t* sk = nullptr;
+    fdb_new_splitkey(&sk);
+    err = fdb_listiterator_splitkey(it, sk);
+    EXPECT(err == FDB_SUCCESS);
+
+    size_t level = 0;
+    for (auto key: keys) {
+        for (auto k1: key) {
+            int err = fdb_splitkey_next_metadata(sk, &k, &v, checkLevel ? &l : nullptr);
+            EXPECT(err == FDB_SUCCESS);
+            EXPECT(k1.first == k);
+            EXPECT(k1.second == v);
+            if (checkLevel) {
+                EXPECT(level == l);
+            }
+        }
+        level++;
+    }
+    err = fdb_splitkey_next_metadata(sk, &k, &v, &l);
+    EXPECT(err == FDB_ITERATION_COMPLETE);
+    
+    err = fdb_delete_splitkey(sk);
 }
 
 CASE( "fdb_c - archive & list" ) {
@@ -80,21 +111,29 @@ CASE( "fdb_c - archive & list" ) {
     fdb_request_add1(request, "expver", "xxxx");
 
     const char **item= new const char*;
-    bool exist;
     fdb_listiterator_t* it;
-    fdb_new_listiterator(&it);
-    fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    std::string s1("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=300,param=138}");
-    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
+    fdb_list(fdb, request, &it, true);
+    int err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+    
+    const char *uri;
+    size_t off, attr_len;
+
+    fdb_listiterator_attrs(it, &uri, &off, &attr_len);
+    EXPECT(attr_len == 3280398);
+
+    std::vector<fdb5::Key> k1test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=300,param=138"}};
+    key_compare(k1test, it);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
+
     fdb_request_add1(request, "param", "139");
-    fdb_new_listiterator(&it);
-    fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(!exist);
+    fdb_list(fdb, request, &it, true);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
     fdb_key_add(key, "levelist", "400");
@@ -111,34 +150,50 @@ CASE( "fdb_c - archive & list" ) {
     EXPECT(FDB_SUCCESS == fdb_flush(fdb));
 
     fdb_request_add1(request, "levelist", "400");
-    fdb_new_listiterator(&it);
-    fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(!exist);
+    fdb_list(fdb, request, &it, true);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
 
     fdb_request_add1(request, "param", "138");
-    fdb_new_listiterator(&it);
-    fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    std::string s2("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=400,param=138}");
-    EXPECT_NOT_EQUAL(std::string(*item).find(s2), std::string::npos);
+    fdb_list(fdb, request, &it, true);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+    
+    fdb_listiterator_attrs(it, &uri, &off, &attr_len);
+    EXPECT(attr_len == 3280398);
+
+    std::vector<fdb5::Key> k2test{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=400,param=138"}};
+    key_compare(k2test, it, false);
+    key_compare(k2test, it);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
     const char* values[] = {"400", "300"};
     fdb_request_add(request, "levelist", values, 2);
-    fdb_new_listiterator(&it);
-    fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    EXPECT_NOT_EQUAL(std::string(*item).find(s2), std::string::npos);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
-    fdb_delete_listiterator(it);
+    fdb_list(fdb, request, &it, true);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
 
+    fdb_listiterator_attrs(it, &uri, &off, &attr_len);
+    EXPECT(attr_len == 3280398);
+
+    key_compare(k2test, it);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+
+    fdb_listiterator_attrs(it, &uri, &off, &length);
+    EXPECT(length == 3280398);
+
+    key_compare(k1test, it);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
+    fdb_delete_listiterator(it);
 
     fdb_key_add(key, "expver", "xxxy");
 
@@ -160,8 +215,8 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_handle_t* fdb;
     fdb_new_handle(&fdb);
 
-    std::string s1("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=300,param=138}");
-    std::string s2("{class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g}{type=an,levtype=pl}{step=0,levelist=400,param=138}");
+    std::vector<fdb5::Key> k1{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=300,param=138"}};
+    std::vector<fdb5::Key> k2{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=400,param=138"}};
 
     eckit::PathName grib1("x138-300.grib");
     length1 = grib1.size();
@@ -246,31 +301,38 @@ CASE( "fdb_c - multiple archive & list" ) {
     const char **item= new const char*;
     bool exist;
     fdb_listiterator_t* it;
-    fdb_new_listiterator(&it);
-    fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
+    fdb_list(fdb, request, &it, true);
+    int err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+
+    key_compare(k1, it);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
     fdb_request_add1(request, "step", "1");
-    fdb_new_listiterator(&it);
-    fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(!exist);
+    fdb_list(fdb, request, &it, true);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 
     fdb_request_add1(request, "step", "0");
     const char* values[] = {"400", "300"};
     fdb_request_add(request, "levelist", values, 2);
-    fdb_new_listiterator(&it);
-    fdb_list(fdb, request, it);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    EXPECT_NOT_EQUAL(std::string(*item).find(s1), std::string::npos);
-    fdb_listiterator_next(it, &exist, item);
-    ASSERT(exist);
-    EXPECT_NOT_EQUAL(std::string(*item).find(s2), std::string::npos);
+    fdb_list(fdb, request, &it, true);
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+    
+    key_compare(k1, it);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_SUCCESS);
+    
+    key_compare(k2, it);
+
+    err = fdb_listiterator_next(it);
+    ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 }
 

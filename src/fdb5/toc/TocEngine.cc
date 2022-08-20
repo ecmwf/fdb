@@ -116,7 +116,7 @@ std::string TocEngine::dbType() const {
 
 eckit::URI TocEngine::location(const Key& key, const Config& config) const
 {
-    return URI("toc", CatalogueRootManager(config).directory(key));
+    return URI("toc", CatalogueRootManager(config).directory(key).directory_);
 }
 
 bool TocEngine::canHandle(const eckit::URI& uri) const
@@ -265,7 +265,7 @@ std::vector<URI> TocEngine::visitableLocations(const metkit::mars::MarsRequest& 
 
 std::vector<eckit::URI> TocEngine::writableLocations(const Key& key, const Config& config) const
 {
-    return databases(key, CatalogueRootManager(config).writableRoots(key), config);
+    return databases(key, CatalogueRootManager(config).canArchiveRoots(key), config);
 }
 
 void TocEngine::print(std::ostream& out) const

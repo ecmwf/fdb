@@ -100,7 +100,7 @@ void SelectFDB::archive(const Key& key, const void* data, size_t length) {
 
 ListIterator SelectFDB::inspect(const metkit::mars::MarsRequest& request) {
 
-    std::queue<ListIterator> lists;
+    std::queue<APIIterator<ListElement>> lists;
 
     for (auto& iter : subFdbs_) {
 
@@ -122,7 +122,7 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) 
     using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
     using ValueType = typename QueryIterator::value_type;
 
-    std::queue<QueryIterator> iterQueue;
+    std::queue<APIIterator<ValueType>> iterQueue;
 
     for (auto& iter : subFdbs_) {
 

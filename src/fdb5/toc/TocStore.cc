@@ -8,6 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#include <dirent.h>
+#include <fcntl.h>
+
 #include "eckit/log/Timer.h"
 
 #include "eckit/config/Resource.h"
@@ -23,6 +26,7 @@
 #include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocStore.h"
 #include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/io/LustreFileHandle.h"
 
 using namespace eckit;
 
@@ -31,7 +35,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), TocCommon(StoreRootManager(config).directory(key)) {}
+    Store(schema), TocCommon(StoreRootManager(config).directory(key).directory_) {}
 
 TocStore::TocStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
     Store(schema), TocCommon(uri.path().dirName()) {}
@@ -112,15 +116,6 @@ void TocStore::closeDataHandles() {
     handles_.clear();
 }
 
-
-LustreStripe TocStore::stripeDataLustreSettings() {
-
-    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB_DATA_LUSTRE_STRIPE_COUNT", 8);
-    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
-
-    return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
-}
-
 eckit::DataHandle *TocStore::createFileHandle(const eckit::PathName &path) {
 
     static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
@@ -191,7 +186,7 @@ eckit::PathName TocStore::generateDataPath(const Key &key) const {
     return dpath;
 }
 
-eckit::PathName TocStore::getDataPath(const Key &key) {
+eckit::PathName TocStore::getDataPath(const Key &key) const {
     PathStore::const_iterator j = dataPaths_.find(key);
     if ( j != dataPaths_.end() )
         return j->second;
@@ -208,6 +203,46 @@ void TocStore::flushDataHandles() {
     for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
         eckit::DataHandle *dh = j->second;
         dh->flush();
+    }
+}
+
+bool TocStore::canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const {
+    if (dest.scheme().empty() || dest.scheme() == "toc" || dest.scheme() == "file" || dest.scheme() == "unix") {
+        eckit::PathName destPath = dest.path();
+        for (const eckit::PathName& root: StoreRootManager(config).canArchiveRoots(key)) {
+            if (root.sameAs(destPath)) {
+                return true;
+            }
+        }
+    }
+    std::stringstream ss;
+    ss << "Destination " << dest << " cannot be uses to archive a DB with key: " << key << std::endl;
+    throw eckit::UserError(ss.str(), Here());
+}
+
+void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest) const {
+    eckit::PathName destPath = dest.path();
+    for (const eckit::PathName& root: StoreRootManager(config).canArchiveRoots(key)) {
+        if (root.sameAs(destPath)) {      
+            eckit::PathName src_db = directory_ / key.valuesToString();
+            eckit::PathName dest_db = destPath / key.valuesToString();
+
+            dest_db.mkdir();
+            
+            eckit::ThreadPool pool("store"+dest_db.asString(), 4);
+
+            DIR* dirp = ::opendir(src_db.asString().c_str());
+            struct dirent* dp;
+            while ((dp = readdir(dirp)) != NULL) {
+                if (strstr( dp->d_name, ".data")) {
+
+                    pool.push(new FileCopy(src_db.path(), dest_db, dp->d_name));
+                }
+            }
+            closedir(dirp);
+
+            pool.wait();
+        }
     }
 }
 

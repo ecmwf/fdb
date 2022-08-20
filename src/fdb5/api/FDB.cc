@@ -139,7 +139,6 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     ListIterator it = inspect(request);
     ListElement el;
 
-    // TODO FDB-249 add an option to return the fields without deduplication
     static bool dedup = eckit::Resource<bool>("fdbDeduplicate;$FDB_DEDUPLICATE_FIELDS", false);
     if (dedup) {
         if (it.next(el)) {
@@ -188,8 +187,8 @@ ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
     return internal_->inspect(request);
 }
 
-ListIterator FDB::list(const FDBToolRequest& request) {
-    return internal_->list(request);
+ListIterator FDB::list(const FDBToolRequest& request, bool deduplicate) {
+    return ListIterator(internal_->list(request), deduplicate);
 }
 
 DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
@@ -218,6 +217,10 @@ ControlIterator FDB::control(const FDBToolRequest& request, ControlAction action
 
 const std::string FDB::id() const {
     return internal_->id();
+}
+
+MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
+    return internal_->move(request, dest);
 }
 
 FDBStats FDB::stats() const {
@@ -266,12 +269,8 @@ bool FDB::disabled() const {
     return internal_->disabled();
 }
 
-bool FDB::writable() const {
-    return internal_->writable();
-}
-
-bool FDB::visitable() const {
-    return internal_->visitable();
+bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {
+    return internal_->enabled(controlIdentifier);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
