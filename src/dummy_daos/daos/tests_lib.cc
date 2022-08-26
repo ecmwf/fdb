@@ -15,6 +15,7 @@
  */
 
 #include <unistd.h>
+#include <cstring>
 
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/exception/Exceptions.h"
@@ -113,7 +114,7 @@ int dmg_pool_destroy(const char *dmg_config_file,
     dummy_daos_root().children(files, dirs);
 
     for (auto& f : files) {
-        if (f.isLink() && f.realName() == pool_path) {
+        if (f.isLink() && f.realName().baseName() == pool_path.baseName()) {
             f.unlink();
         }
     }

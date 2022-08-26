@@ -36,7 +36,7 @@ CASE( "dummy_daos_write_then_read" ) {
     d_rank_list_t svcl;
     svcl.rl_nr = 3;
     D_ALLOC_ARRAY(svcl.rl_ranks, svcl.rl_nr);
-    ASSERT(svcl.rl_ranks);
+    EXPECT(svcl.rl_ranks != NULL);
 
     // create a pool with user-defined label
 
@@ -48,7 +48,7 @@ CASE( "dummy_daos_write_then_read" ) {
 
     uuid_t test_pool_uuid;
     rc = dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, 10ULL << 30, 40ULL << 30, prop, &svcl, test_pool_uuid);
-    ASSERT(rc == 0);
+    EXPECT(rc == 0);
 
     daos_prop_free(prop);
 
@@ -56,7 +56,7 @@ CASE( "dummy_daos_write_then_read" ) {
 
     uuid_t pool_uuid;
     rc = dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, 10ULL << 30, 40ULL << 30, NULL, &svcl, pool_uuid);
-    ASSERT(rc == 0);
+    EXPECT(rc == 0);
 
     char uuid_str[37] = "";
     uuid_unparse(pool_uuid, uuid_str);
@@ -239,9 +239,9 @@ CASE( "dummy_daos_write_then_read" ) {
     // destroy the pools
 
     rc = dmg_pool_destroy(NULL, pool_uuid, NULL, 1);
-    ASSERT(rc == 0);
+    EXPECT(rc == 0);
     rc = dmg_pool_destroy(NULL, test_pool_uuid, NULL, 1);
-    ASSERT(rc == 0);
+    EXPECT(rc == 0);
 
     D_FREE(svcl.rl_ranks);
     

@@ -14,11 +14,11 @@
  * @date   Jun 2022
  */
 
+#include <cstring>
 #include <string>
 #include <iomanip>
 #include <unistd.h>
 #include <limits.h>
-#include <uuid.h>
 
 #include "eckit/runtime/Main.h"
 #include "eckit/filesystem/PathName.h"
@@ -152,19 +152,27 @@ int daos_cont_alloc_oids(daos_handle_t coh, daos_size_t num_oids, uint64_t *oid,
 
     // support for multi-node clients running dummy DAOS backed by a 
     // distributed file system
-    std::string hoststr = eckit::Main::instance().hostname();
-    eckit::UUID nid;
-    nid.fromString(hoststr);
+    std::string host = eckit::Main::instance().hostname();
+
+    const char *host_cstr = host.c_str();
+
+    uuid_t seed = {0};
+    uuid_t uuid;
+
+    uuid_generate_md5(uuid, seed, host_cstr, strlen(host_cstr));
+
+    char uuid_cstr[37] = "";
+    uuid_unparse(uuid, uuid_cstr);
 
     pid_t pid = getpid();
 
     uint64_t pid_mask = 0x000000000000FFFF;
     uint64_t oid_mask = 0x00000000FFFFFFFF;
-    ASSERT(oid_mask >= next_oid);
+    ASSERT(next_oid <= oid_mask);
 
     *oid = next_oid;
-    *oid |= ((uint64_t) (*(nid.end() - 1)) << 56);
-    *oid |= ((uint64_t) (*(nid.end())) << 48);
+    *oid |= (((uint64_t) *((unsigned char *) uuid)) << 56);
+    *oid |= (((uint64_t) *(((unsigned char *) uuid) + 1)) << 48);
     *oid |= (((uint64_t) pid) & pid_mask) << 32;
 
     next_oid += num_oids;
@@ -182,7 +190,7 @@ int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t *oid,
     if (hints != 0) NOTIMP;
     if (args != 0) NOTIMP;
 
-    oid->hi = (uint64_t) 0;
+    oid->hi &= (uint64_t) 0x00000000FFFFFFFF;
 
     return 0;
 
@@ -226,7 +234,7 @@ int daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
     if (flags != 0) NOTIMP;
     if (ev != NULL) NOTIMP;
 
-    eckit::FileHandle fh(oh.impl->path / key);
+    eckit::FileHandle fh(oh.impl->path / key, true);
     fh.openForWrite(eckit::Length(size));
     eckit::AutoClose closer(fh);
     fh.write(buf, (long) size);
@@ -356,7 +364,7 @@ int daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
     //sgl->sg_iovs[0].iov_buf_len is a size_t with the source len
     //iod->arr_rgs[0].rg_idx is a uint64_t with the offset to write from
 
-    eckit::FileHandle fh(oh.impl->path);
+    eckit::FileHandle fh(oh.impl->path, true);
 
     //eckit::Length existing_len = fh.size();
 

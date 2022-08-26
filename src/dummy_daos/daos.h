@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <uuid.h>
+#include <uuid/uuid.h>
 #include <stdbool.h>
 
 #define DAOS_PC_RW 0
