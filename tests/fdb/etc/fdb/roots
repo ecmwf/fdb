@@ -1,4 +1,0 @@
-# filesystem                              filespace         writable visit
-
-@CMAKE_BINARY_DIR@/tests/fdb/root         all               yes      yes
-@CMAKE_BINARY_DIR@/tests/fdb/root2        all               yes      yes

@@ -42,7 +42,7 @@ class Archiver : public eckit::NonCopyable {
 
 public: // methods
 
-    Archiver(const Config& dbConfig=Config());
+    Archiver(const Config& dbConfig = Config().expandConfig());
 
     virtual ~Archiver();
 

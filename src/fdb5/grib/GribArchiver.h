@@ -37,7 +37,7 @@ public: // methods
     GribArchiver(const fdb5::Key& key = Key(),
                  bool completeTransfers = false,
                  bool verbose = false,
-                 const Config& config=Config()) : MessageArchiver(key, completeTransfers, verbose, config) {}
+                 const Config& config) : MessageArchiver(key, completeTransfers, verbose, config) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------

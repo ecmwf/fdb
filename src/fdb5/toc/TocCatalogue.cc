@@ -120,7 +120,7 @@ MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::M
 }
 
 void TocCatalogue::maskIndexEntry(const Index &index) const {
-    TocHandler handler(basePath());
+    TocHandler handler(basePath(), config_);
     handler.writeClearRecord(index);
 }
 

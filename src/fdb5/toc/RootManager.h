@@ -58,6 +58,7 @@ public: // methods
 
     /// Lists the roots where a DB key would be able to be written
     std::vector<eckit::PathName> canArchiveRoots(const Key& key);
+    std::vector<eckit::PathName> canMoveToRoots(const Key& key);
 
     std::string dbPathName(const Key& key);
 
@@ -82,7 +83,7 @@ class CatalogueRootManager : public RootManager {
 
 public: // methods
 
-    CatalogueRootManager(const Config& config=Config()) :
+    CatalogueRootManager(const Config& config) :
         RootManager(config) {
         spacesTable_ = fileSpaces();
     }
@@ -96,7 +97,7 @@ class StoreRootManager : public RootManager {
 
 public: // methods
 
-    StoreRootManager(const Config& config=Config()) :
+    StoreRootManager(const Config& config) :
         RootManager(config) {
         spacesTable_ = fileSpaces();
     }

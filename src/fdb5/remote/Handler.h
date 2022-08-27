@@ -48,7 +48,7 @@ struct MessageHeader;
 
 class RemoteHandler : private eckit::NonCopyable {
 public:  // methods
-    RemoteHandler(eckit::net::TCPSocket& socket, const Config& config = Config());
+    RemoteHandler(eckit::net::TCPSocket& socket, const Config& config);
     ~RemoteHandler();
 
     void handle();
