@@ -34,17 +34,17 @@ std::unique_ptr<DB> DB::buildWriter(const eckit::URI& uri, const fdb5::Config& c
     return std::unique_ptr<DB>(new DB(uri, config, false));
 }
 
-DB::DB(const Key& key, const fdb5::Config& config, bool read) : config_(config) {
-    catalogue_ = CatalogueFactory::instance().build(key, config, read);
+DB::DB(const Key& key, const fdb5::Config& config, bool read) {
+    catalogue_ = CatalogueFactory::instance().build(key, config.expandConfig(), read);
 }
 
-DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) : config_(config) {
-    catalogue_ = CatalogueFactory::instance().build(uri, config, read);
+DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) {
+    catalogue_ = CatalogueFactory::instance().build(uri, config.expandConfig(), read);
 }
 
 Store& DB::store() const {
     if (store_ == nullptr) {
-        store_ = catalogue_->buildStore(config_);
+        store_ = catalogue_->buildStore();
     }
 
     return *store_;

@@ -102,9 +102,9 @@ public: // typedefs
 
 public: // methods
 
-    TocHandler( const Key &key, const Config& config=Config());
+    TocHandler( const Key &key, const Config& config);
 
-    TocHandler( const eckit::PathName &dir, const Config& config=Config());
+    TocHandler( const eckit::PathName &dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
     TocHandler(const eckit::PathName& path, const Key& parentKey);

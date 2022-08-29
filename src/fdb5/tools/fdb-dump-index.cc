@@ -53,7 +53,7 @@ void FDBDumpToc::execute(const option::CmdArgs& args) {
         PathName idxPath(args(i));
         Log::info() << "Dumping contents of index file " << idxPath << std::endl;
 
-        fdb5::TocHandler toc(idxPath.dirName());
+        fdb5::TocHandler toc(idxPath.dirName(), fdb5::Config().expandConfig());
 
         toc.dumpIndexFile(Log::info(), idxPath);
     }

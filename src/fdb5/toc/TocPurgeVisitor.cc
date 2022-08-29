@@ -148,7 +148,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         if (stats.fieldsCount() == stats.duplicatesCount()) {
             logVerbose << "Removing: " << it.first << std::endl;
             if (doit) {
-                fdb5::TocHandler handler(directory);
+                fdb5::TocHandler handler(directory, Config().expandConfig());
                 handler.writeClearRecord(it.first);
             }
         }

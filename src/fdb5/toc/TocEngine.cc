@@ -204,7 +204,7 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key,
     std::vector<eckit::URI> result;
     for (const auto& path : databasesMatchRegex) {
         try {
-            TocHandler toc(path);
+            TocHandler toc(path, config);
             if (toc.databaseKey().match(key)) {
                 Log::debug<LibFdb5>() << " found match with " << path << std::endl;
                 result.push_back(eckit::URI("toc", path));
@@ -234,7 +234,7 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
     std::vector<eckit::URI> result;
     for (const auto& path : databasesMatchRegex) {
         try {
-            TocHandler toc(path);
+            TocHandler toc(path, config);
             if (toc.databaseKey().partialMatch(request)) {
                 Log::debug<LibFdb5>() << " found match with " << path << std::endl;
                 result.push_back(eckit::URI("toc", path));

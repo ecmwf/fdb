@@ -56,7 +56,7 @@ class FDB {
 
 public: // methods
 
-    FDB(const Config& config = Config());
+    FDB(const Config& config = Config().expandConfig());
     ~FDB();
 
     FDB(const FDB&) = delete;
