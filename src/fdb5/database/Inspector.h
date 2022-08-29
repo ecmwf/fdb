@@ -66,7 +66,7 @@ class Inspector : public eckit::NonCopyable {
 
 public: // methods
 
-    Inspector(const Config& dbConfig=Config());
+    Inspector(const Config& dbConfig);
 
     ~Inspector();
 

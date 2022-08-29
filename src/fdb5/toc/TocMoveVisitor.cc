@@ -74,7 +74,8 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
         eckit::PathName destPath = dest_.path();
 
         bool found = false;
-        for (const eckit::PathName& root: CatalogueRootManager(catalogue_.config()).canArchiveRoots(catalogue_.key())) {
+        
+        for (const eckit::PathName& root: CatalogueRootManager(catalogue_.config()).canMoveToRoots(catalogue_.key())) {
 
             if (root.sameAs(destPath)) {
                 eckit::PathName dest_db = destPath / catalogue_.basePath().baseName(true);
@@ -90,7 +91,7 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
         }
         if (!found) {
             std::stringstream ss;
-            ss << "Destination " << dest_ << " cannot be uses to archive a DB with key: " << catalogue_.key() << std::endl;
+            ss << "Destination " << dest_ << " cannot be used to archive a DB with key: " << catalogue_.key() << std::endl;
             throw eckit::UserError(ss.str(), Here());
         }
     } else {

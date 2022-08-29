@@ -97,7 +97,6 @@ private: // members
 
     Store& store() const;
 
-    Config config_;
     std::unique_ptr<Catalogue> catalogue_;
     mutable std::unique_ptr<Store> store_ = nullptr;
 };

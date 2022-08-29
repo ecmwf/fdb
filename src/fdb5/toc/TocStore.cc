@@ -209,20 +209,20 @@ void TocStore::flushDataHandles() {
 bool TocStore::canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const {
     if (dest.scheme().empty() || dest.scheme() == "toc" || dest.scheme() == "file" || dest.scheme() == "unix") {
         eckit::PathName destPath = dest.path();
-        for (const eckit::PathName& root: StoreRootManager(config).canArchiveRoots(key)) {
+        for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
             if (root.sameAs(destPath)) {
                 return true;
             }
         }
     }
     std::stringstream ss;
-    ss << "Destination " << dest << " cannot be uses to archive a DB with key: " << key << std::endl;
+    ss << "Destination " << dest << " cannot be used to archive a DB with key: " << key << std::endl;
     throw eckit::UserError(ss.str(), Here());
 }
 
 void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest) const {
     eckit::PathName destPath = dest.path();
-    for (const eckit::PathName& root: StoreRootManager(config).canArchiveRoots(key)) {
+    for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {      
             eckit::PathName src_db = directory_ / key.valuesToString();
             eckit::PathName dest_db = destPath / key.valuesToString();

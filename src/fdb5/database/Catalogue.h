@@ -51,7 +51,7 @@ public:
     virtual const Key& indexKey() const { NOTIMP; }
     const Config& config() const { return config_; }
 
-    std::unique_ptr<Store> buildStore(const Config& config);
+    std::unique_ptr<Store> buildStore();
     virtual const Schema& schema() const = 0;
 
     virtual bool selectIndex(const Key& key) = 0;

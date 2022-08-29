@@ -720,6 +720,24 @@ std::vector<eckit::PathName> RootManager::canArchiveRoots(const Key& key) {
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
 
+std::vector<eckit::PathName> RootManager::canMoveToRoots(const Key& key) {
+
+    eckit::StringSet roots;
+
+    std::string k = key.valuesToString();
+
+    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
+        if(i->match(k)) {
+
+            i->enabled(ControlIdentifier::Wipe, roots);
+        }
+    }
+
+    Log::debug<LibFdb5>() << "Roots supporting wiping " << roots << std::endl;
+
+    return std::vector<eckit::PathName>(roots.begin(), roots.end());
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
