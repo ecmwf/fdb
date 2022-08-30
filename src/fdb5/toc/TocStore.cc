@@ -246,6 +246,22 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
     }
 }
 
+void TocStore::remove(const Key& key) const {
+
+    eckit::PathName src_db = directory_ / key.valuesToString();
+        
+    DIR* dirp = ::opendir(src_db.asString().c_str());
+    struct dirent* dp;
+    while ((dp = readdir(dirp)) != NULL) {
+        if (strstr( dp->d_name, ".data")) {
+            eckit::PathName dataFile = src_db / dp->d_name;
+            eckit::Log::debug<LibFdb5>() << "Removing " << dataFile << std::endl;
+            dataFile.unlink(false);
+        }
+    }
+    closedir(dirp);
+}
+
 void TocStore::print(std::ostream &out) const {
     out << "TocStore(" << directory_ << ")";
 }

@@ -35,7 +35,8 @@ public: // methods
 
     MoveVisitor(eckit::Queue<MoveElement>& queue,
                 const metkit::mars::MarsRequest& request,
-                const eckit::URI& dest);
+                const eckit::URI& dest,
+                bool removeSrc);
 
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
@@ -48,7 +49,7 @@ public: // methods
 private: // members
 
     const eckit::URI& dest_;
-
+    bool removeSrc_;
     std::unique_ptr<fdb5::MoveVisitor> internalVisitor_;
 };
 

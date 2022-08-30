@@ -624,8 +624,8 @@ private:
 
 struct MoveHelper : BaseAPIHelper<MoveElement, Message::Move> {
 
-    MoveHelper(const eckit::URI& dest) :
-        dest_(dest) {}
+    MoveHelper(const eckit::URI& dest, bool removeSrc) :
+        dest_(dest), removeSrc_(removeSrc) {}
     void encodeExtra(eckit::Stream& s) const {
         s << dest_;
     }
@@ -637,6 +637,7 @@ struct MoveHelper : BaseAPIHelper<MoveElement, Message::Move> {
 
 private:
     const eckit::URI& dest_;
+    bool removeSrc_;
 };
 
 struct ControlHelper : BaseAPIHelper<StatusElement, Message::Control> {
@@ -748,8 +749,8 @@ ControlIterator RemoteFDB::control(const FDBToolRequest& request,
     return forwardApiCall(ControlHelper(action, identifiers), request);
 };
 
-MoveIterator RemoteFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
-    return forwardApiCall(MoveHelper(dest), request);
+MoveIterator RemoteFDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc) {
+    return forwardApiCall(MoveHelper(dest, removeSrc), request);
 }
 
 // -----------------------------------------------------------------------------------------------------

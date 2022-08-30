@@ -15,10 +15,12 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 MoveVisitor::MoveVisitor(const metkit::mars::MarsRequest& request,
-                         const eckit::URI& dest) :
+                         const eckit::URI& dest,
+                         bool removeSrc) :
     EntryVisitor(),
     request_(request),
-    dest_(dest) {}
+    dest_(dest),
+    removeSrc_(removeSrc) {}
 
 
 MoveVisitor::~MoveVisitor() {}
