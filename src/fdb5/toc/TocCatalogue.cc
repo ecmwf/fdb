@@ -115,8 +115,8 @@ WipeVisitor* TocCatalogue::wipeVisitor(const Store& store, const metkit::mars::M
     return new TocWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
 }
 
-MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest) const {
-    return new TocMoveVisitor(*this, store, request, dest);
+MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, bool removeSrc) const {
+    return new TocMoveVisitor(*this, store, request, dest, removeSrc);
 }
 
 void TocCatalogue::maskIndexEntry(const Index &index) const {

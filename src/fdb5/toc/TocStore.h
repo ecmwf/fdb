@@ -48,6 +48,7 @@ public: // methods
 
     bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override;
     void moveTo(const Key& key, const Config& config, const eckit::URI& dest) const override;
+    void remove(const Key& key) const override;
 
 protected: // methods
 

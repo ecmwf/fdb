@@ -29,7 +29,8 @@ public:
     TocMoveVisitor(const TocCatalogue& catalogue,
                    const Store& store,
                    const metkit::mars::MarsRequest& request,
-                   const eckit::URI& dest);
+                   const eckit::URI& dest,
+                   bool removeSrc);
     ~TocMoveVisitor() override;
 
 private: // methods

@@ -39,8 +39,9 @@ namespace fdb5 {
 TocMoveVisitor::TocMoveVisitor(const TocCatalogue& catalogue,
                                const Store& store,
                                const metkit::mars::MarsRequest& request,
-                               const eckit::URI& dest) :
-    MoveVisitor(request, dest),
+                               const eckit::URI& dest,
+                               bool removeSrc) :
+    MoveVisitor(request, dest, removeSrc),
     catalogue_(catalogue),
     store_(store) {}
 
@@ -112,7 +113,7 @@ void TocMoveVisitor::move() {
     store_.moveTo(catalogue_.key(), catalogue_.config(), dest_);
 
     eckit::PathName destPath = dest_.path();
-    for (const eckit::PathName& root: CatalogueRootManager(catalogue_.config()).canArchiveRoots(catalogue_.key())) {
+    for (const eckit::PathName& root: CatalogueRootManager(catalogue_.config()).canMoveToRoots(catalogue_.key())) {
         if (root.sameAs(destPath)) {
             eckit::PathName dest_db = destPath / catalogue_.basePath().baseName(true);
 
@@ -129,14 +130,40 @@ void TocMoveVisitor::move() {
                     strstr( dp->d_name, "toc.") ||
                     strstr( dp->d_name, "schema")) {
 
-                    pool.push(new FileCopy(catalogue_.basePath().path(), dest_db, dp->d_name));
+                    pool.push(new FileCopy(catalogue_.basePath(), dest_db, dp->d_name));
                 }
             }
             closedir(dirp);
 
             pool.wait();
-            pool.push(new FileCopy(catalogue_.basePath().path(), dest_db, "toc"));
+            pool.push(new FileCopy(catalogue_.basePath(), dest_db, "toc"));
             pool.wait();
+
+            if (removeSrc_) {
+                eckit::PathName catalogueFile = catalogue_.basePath() / "toc";
+                eckit::Log::debug<LibFdb5>() << "Removing " << catalogueFile << std::endl;
+                catalogueFile.unlink(false);
+
+                dirp = ::opendir(catalogue_.basePath().asString().c_str());
+                while ((dp = readdir(dirp)) != NULL) {
+                    if (strstr( dp->d_name, ".index") ||
+                        strstr( dp->d_name, "toc.") ||
+                        strstr( dp->d_name, "schema") ||
+                        strstr( dp->d_name, ".lock") ||
+                        strstr( dp->d_name, "duplicates.allow")) {
+
+                        catalogueFile = catalogue_.basePath() / dp->d_name;
+                        eckit::Log::debug<LibFdb5>() << "Removing " << catalogueFile << std::endl;
+                        catalogueFile.unlink(false);
+                    }
+                }
+                closedir(dirp);
+
+                store_.remove(catalogue_.key());
+                
+                eckit::Log::debug<LibFdb5>() << "Removing " << catalogue_.basePath() << std::endl;
+                catalogue_.basePath().rmdir(false);
+            }
         }
     }
 }

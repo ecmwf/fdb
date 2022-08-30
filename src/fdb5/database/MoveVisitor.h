@@ -29,7 +29,8 @@ class MoveVisitor : public EntryVisitor {
 public: // methods
 
     MoveVisitor(const metkit::mars::MarsRequest& request,
-                const eckit::URI& dest);
+                const eckit::URI& dest,
+                bool removeSrc);
 
     ~MoveVisitor() override;
 
@@ -45,6 +46,7 @@ protected: // members
     const metkit::mars::MarsRequest& request_;
 
     const eckit::URI& dest_;
+    bool removeSrc_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

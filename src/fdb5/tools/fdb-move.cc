@@ -37,23 +37,28 @@ private: // methods
 private: // members
 
     eckit::URI destination_;
+    bool remove_;
 };
 
 FDBMove::FDBMove(int argc, char **argv) :
     FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
-    destination_("") {
+    destination_(""),
+    remove_(false) {
 
     options_.push_back(new SimpleOption<std::string>("dest", "Destination root"));
+    options_.push_back(new SimpleOption<bool>("remove", "Remove src DB"));
 }
 
 FDBMove::~FDBMove() {}
 
 
 void FDBMove::init(const CmdArgs& args) {
+
     FDBVisitTool::init(args);
 
-    std::string dest = args.getString("dest");
+    remove_ = args.getBool("remove", false);
 
+    std::string dest = args.getString("dest");
     if (dest.empty()) {
         std::stringstream ss;
         ss << "No destination root specified.";
@@ -109,7 +114,7 @@ void FDBMove::execute(const CmdArgs& args) {
             throw eckit::UserError(ss.str(), Here());
         }
 
-        MoveIterator list = fdb.move(request, destination_);
+        MoveIterator list = fdb.move(request, destination_, remove_);
         MoveElement elem;
         while (list.next(elem)) {
             Log::info() << elem << std::endl;
