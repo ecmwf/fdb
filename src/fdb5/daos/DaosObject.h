@@ -16,6 +16,7 @@
 
 #include "fdb5/daos/DaosPool.h"
 #include "eckit/io/Offset.h"
+#include "eckit/filesystem/URI.h"
 
 namespace fdb5 {
 

@@ -16,7 +16,7 @@
 
 #include <string>
 
-#include <uuid.h>
+#include <uuid/uuid.h>
 
 // TODO: including daos.h here indirectly.
 //       Necessary due to the getHandle(). Find a way to avoid? 

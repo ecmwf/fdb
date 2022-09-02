@@ -15,6 +15,7 @@
 #include "fdb5/daos/DaosContainer.h"
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/config/Resource.h"
 
 namespace fdb5 {
 
@@ -23,7 +24,7 @@ DaosObject::DaosObject() {}
 
 DaosObject::DaosObject(fdb5::DaosPool* pool) : known_oid_(false), open_(false) {
 
-    cont_ = pool.declareContainer();
+    cont_ = pool->declareContainer();
 
 }
 
@@ -102,7 +103,7 @@ void DaosObject::construct(std::string& title) {
 
     oid_ = oid;
 
-    TODO connect pool when? everywhere in this class where actions are done
+    // TODO connect pool when? everywhere in this class where actions are done
 
 }
 
@@ -168,8 +169,8 @@ void DaosObject::destroy() {
 
 }
 
-TODO think if this overwrite makes sense in DAOS 
-TODO look where data was being zerod and try to use overwrite
+// TODO think if this overwrite makes sense in DAOS 
+// TODO look where data was being zerod and try to use overwrite
 
 eckit::DataHandle* DaosObject::daosHandle(bool overwrite = false) {
 
@@ -264,7 +265,8 @@ daos_size_t DaosObject::size() {
 
 std::string DaosObject::name() {
 
-    ASSERT(known_oid_, "Cannot generate a name for an unidentified object. Either create it or provide a OID upon construction.");
+    ASSERT(known_oid_);
+    // "Cannot generate a name for an unidentified object. Either create it or provide a OID upon construction."
     return cont_->name() + ":" + oidToStr(oid_);
 
 }

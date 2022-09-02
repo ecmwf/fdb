@@ -117,7 +117,8 @@ void DaosContainer::close() {
 
 std::string DaosContainer::name() {
 
-    ASSERT(label_.size() > 0 || known_uuid_, "Cannot generate a name for an unidentified container. Either create it or provide a UUID or label upon construction.");
+    ASSERT(label_.size() > 0 || known_uuid_);
+    // "Cannot generate a name for an unidentified container. Either create it or provide a UUID or label upon construction."
 
     if (label_.size() > 0) return pool_->name() + ":" + label_;
 

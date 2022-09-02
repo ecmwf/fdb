@@ -50,8 +50,10 @@ void DaosPool::create() {
 
     // TODO: change all pre-condition checks to ASSERTs
     // question: in the future ASSERTs will default to EcKit abortion. Not what we want in many pre-condition checks
-    ASSERT(!open_, "Cannot create a connected pool.");
-    ASSERT(!known_uuid_, "Cannot create a pool with a user-specified UUID.");
+    ASSERT(!open_);
+    // "Cannot create a connected pool."
+    ASSERT(!known_uuid_);
+    // "Cannot create a pool with a user-specified UUID."
 
     // TODO: ensure deallocation. Either try catch or make a wrapper.
     // not application code. Library code. Shared resources. Need to handle as cleanly as possible.
@@ -101,7 +103,8 @@ void DaosPool::open() {
 
     if (open_) return;
 
-    ASSERT(known_uuid_ || label_.size() > 0, "Cannot attempt connecting to an unidentified pool. Either create it or provide a label upon construction.");
+    ASSERT(known_uuid_ || label_.size() > 0);
+    // "Cannot attempt connecting to an unidentified pool. Either create it or provide a label upon construction."
 
     if (label_.size() > 0) {
 
@@ -131,7 +134,8 @@ void DaosPool::close() {
 
 std::string DaosPool::name() {
 
-    ASSERT(label_.size() > 0 || known_uuid_, "Cannot generate a name for an unidentified pool. Either create it or provide a label upon construction.");
+    ASSERT(label_.size() > 0 || known_uuid_);
+    // "Cannot generate a name for an unidentified pool. Either create it or provide a label upon construction."
 
     if (label_.size() > 0) return label_;
 
@@ -143,7 +147,8 @@ std::string DaosPool::name() {
 
 daos_handle_t& DaosPool::getHandle() {
     
-    ASSERT(open_, "Cannot get handle of a unconnected pool.");
+    ASSERT(open_);
+    // "Cannot get handle of a unconnected pool."
     return poh_;
 
 };

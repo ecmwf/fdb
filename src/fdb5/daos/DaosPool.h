@@ -16,7 +16,7 @@
 
 #include <string>
 
-#include <uuid.h>
+#include <uuid/uuid.h>
 #include <daos/tests_lib.h>
 
 #include "fdb5/daos/DaosContainer.h"
