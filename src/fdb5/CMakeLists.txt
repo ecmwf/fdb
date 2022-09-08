@@ -139,7 +139,6 @@ list( APPEND fdb5_srcs
     message/MessageDecoder.h
     message/MessageIndexer.cc
     message/MessageIndexer.h
-    grib/GribArchiver.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
     io/SingleGribMungePartFileHandle.cc
