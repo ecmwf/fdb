@@ -20,7 +20,6 @@
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
-#include "metkit/codes/UserDataContent.h"
 #include "metkit/hypercube/HyperCubePayloaded.h"
 
 #include "fdb5/LibFdb5.h"

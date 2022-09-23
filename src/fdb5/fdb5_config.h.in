@@ -11,5 +11,6 @@
 #cmakedefine fdb5_HAVE_PMEMFDB
 #cmakedefine fdb5_HAVE_RADOSFDB
 #cmakedefine fdb5_HAVE_TOCFDB
+#cmakedefine01 fdb5_HAVE_GRIB
 
 #endif // fdb5_fdb5_config_h

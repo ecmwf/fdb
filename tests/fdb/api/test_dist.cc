@@ -15,14 +15,10 @@
 
 #include <cstdlib>
 
-#include "eckit/config/Resource.h"
-#include "eckit/filesystem/PathName.h"
-#include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/TypeAny.h"
-#include "metkit/codes/UserDataContent.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"

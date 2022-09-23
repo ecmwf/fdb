@@ -18,7 +18,12 @@ ecbuild_find_package( NAME eckit  VERSION 1.12 REQUIRED )
 
 ### GRIB support
 
-ecbuild_find_package( NAME eccodes VERSION 2.10 REQUIRED )
+ecbuild_find_package( NAME eccodes VERSION 2.10 QUIET )
+
+ecbuild_add_option( FEATURE GRIB
+                    DEFAULT ON
+                    CONDITION eccode_FOUND
+                    DESCRIPTION "Support for GRIB via eccodes")
 
 ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
 
