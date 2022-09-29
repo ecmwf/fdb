@@ -220,7 +220,7 @@ bool TocStore::canMoveTo(const Key& key, const Config& config, const eckit::URI&
     throw eckit::UserError(ss.str(), Here());
 }
 
-void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest) const {
+void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest, int threads) const {
     eckit::PathName destPath = dest.path();
     for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {      
@@ -229,7 +229,7 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
 
             dest_db.mkdir();
             
-            eckit::ThreadPool pool("store"+dest_db.asString(), 4);
+            eckit::ThreadPool pool("store"+dest_db.asString(), threads);
 
             DIR* dirp = ::opendir(src_db.asString().c_str());
             struct dirent* dp;

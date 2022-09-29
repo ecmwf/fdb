@@ -8,8 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+/// @author Emanuele Danovaro
 /// @author Simon Smart
-/// @date   August 2019
+/// @date   August 2022
 
 #ifndef fdb5_TocMoveVisitor_H
 #define fdb5_TocMoveVisitor_H
@@ -30,7 +31,9 @@ public:
                    const Store& store,
                    const metkit::mars::MarsRequest& request,
                    const eckit::URI& dest,
-                   bool removeSrc);
+                   bool removeSrc,
+                   int removeDelay,
+                   int threads);
     ~TocMoveVisitor() override;
 
 private: // methods

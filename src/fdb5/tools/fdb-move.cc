@@ -15,6 +15,8 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/LibFdb5.h"
 
+#define MAX_THREADS 256
+
 using namespace eckit::option;
 using namespace eckit;
 
@@ -38,15 +40,21 @@ private: // members
 
     eckit::URI destination_;
     bool keep_;
+    int removeDelay_;
+    int threads_;
 };
 
 FDBMove::FDBMove(int argc, char **argv) :
     FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
     destination_(""),
-    keep_(false) {
+    keep_(false),
+    removeDelay_(0),
+    threads_(1) {
 
     options_.push_back(new SimpleOption<std::string>("dest", "Destination root"));
     options_.push_back(new SimpleOption<bool>("keep", "Keep source DB"));
+    options_.push_back(new SimpleOption<long>("delay", "Delay in seconds before deleting source (default: 0)"));
+    options_.push_back(new SimpleOption<long>("threads", "Number of concurrent threads for data move (default: 1)"));
 }
 
 FDBMove::~FDBMove() {}
@@ -57,6 +65,8 @@ void FDBMove::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
 
     keep_ = args.getBool("keep", false);
+    removeDelay_ = args.getInt("delay", 0);
+    threads_ = args.getInt("threads", 1);
 
     std::string dest = args.getString("dest");
     if (dest.empty()) {
@@ -66,6 +76,15 @@ void FDBMove::init(const CmdArgs& args) {
     } else {
         destination_ = eckit::URI(dest);
     }
+
+    if (threads_ < 1 || threads_ > MAX_THREADS) {
+        std::stringstream ss;
+        ss << "Unsupported number of threads. please specify a value between 1 and " << MAX_THREADS;
+        throw UserError(ss.str(), Here());
+    } else {
+        destination_ = eckit::URI(dest);
+    }
+
 }
 
 
@@ -114,7 +133,7 @@ void FDBMove::execute(const CmdArgs& args) {
             throw eckit::UserError(ss.str(), Here());
         }
 
-        MoveIterator list = fdb.move(request, destination_, !keep_);
+        MoveIterator list = fdb.move(request, destination_, !keep_, removeDelay_, threads_);
         MoveElement elem;
         while (list.next(elem)) {
             Log::info() << elem << std::endl;
