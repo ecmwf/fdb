@@ -228,19 +228,23 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
             eckit::PathName dest_db = destPath / key.valuesToString();
 
             dest_db.mkdir();
-            
-            eckit::ThreadPool pool("store"+dest_db.asString(), threads);
-
             DIR* dirp = ::opendir(src_db.asString().c_str());
             struct dirent* dp;
-            while ((dp = readdir(dirp)) != NULL) {
+            std::multimap<long, FileCopy*, std::greater<long>> files;
+            while ((dp = ::readdir(dirp)) != NULL) {
                 if (strstr( dp->d_name, ".data")) {
-
-                    pool.push(new FileCopy(src_db.path(), dest_db, dp->d_name));
+                    eckit::PathName file(src_db / dp->d_name);
+                    struct stat fileStat;
+                    ::stat(file.asString().c_str(), &fileStat);
+                    files.emplace(fileStat.st_size, new FileCopy(src_db.path(), dest_db, dp->d_name));
                 }
             }
             closedir(dirp);
 
+            eckit::ThreadPool pool("store"+dest_db.asString(), threads);
+            for (auto it = files.begin(); it != files.end(); it++) {
+                    pool.push(it->second);
+            }
             pool.wait();
         }
     }
@@ -252,7 +256,7 @@ void TocStore::remove(const Key& key) const {
         
     DIR* dirp = ::opendir(src_db.asString().c_str());
     struct dirent* dp;
-    while ((dp = readdir(dirp)) != NULL) {
+    while ((dp = ::readdir(dirp)) != NULL) {
         if (strstr( dp->d_name, ".data")) {
             eckit::PathName dataFile = src_db / dp->d_name;
             eckit::Log::debug<LibFdb5>() << "Removing " << dataFile << std::endl;
