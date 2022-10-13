@@ -1,3 +1,3 @@
 # filesystem                              poolgroup        writable visit
 
-@CMAKE_BINARY_DIR@/tests/fdb/pool         all              yes      yes
+@CMAKE_BINARY_DIR@/fdb5/tests/fdb/pool         all              yes      yes
