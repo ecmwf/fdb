@@ -8,139 +8,38 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Nicolau Manubens
-///
-/// @date Jul 2022
+// #include <daos.h>
 
-#include <daos.h>
+#include <memory>
 
-#include "eckit/config/Resource.h"
-#include "eckit/utils/Tokenizer.h"
+// #include "eckit/config/Resource.h"
+// #include "eckit/utils/Tokenizer.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "fdb5/daos/DaosHandle.h"
-#include "fdb5/daos/DaosCluster.h"
+#include "fdb5/daos/DaosPool.h"
+#include "fdb5/daos/DaosContainer.h"
+#include "fdb5/daos/DaosObject.h"
+// #include "fdb5/daos/DaosCluster.h"
 
 using eckit::Length;
 using eckit::Offset;
-using eckit::URI;
 
 namespace fdb5 {
 
-void DaosHandle::construct(std::string& title) {
+// TODO: do we really want to allow this? handle now manages an also user-managed object. Should we std::move it?
+DaosHandle::DaosHandle(fdb5::DaosObject& obj) : obj_(obj), open_(false), offset_(0) {}
 
-    static const std::string defaultDaosPool = eckit::Resource<std::string>("defaultDaosPool", "default");
-
-    eckit::Tokenizer parse(":");
-
-    std::vector<std::string> bits;
-    // pool:cont:oidhi.oidlo
-    parse(title, bits);
-
-    ASSERT(bits.size() == 1 || bits.size() == 2 || bits.size() == 3);
-
-    bool known_oid = true;
-    daos_obj_id_t oid;
-    bool last_is_oid;
-    std::string pool_label;
-    std::string cont_label;
-
-    if (bits.size() == 1) {
-
-        pool_label = defaultDaosPool;
-        cont_label = title;
-        known_oid = false;
-
-    } else if (bits.size() == 2) {
-
-        last_is_oid = strToOid(bits[1], &oid);
-
-        if (last_is_oid) {
-
-            pool_label = defaultDaosPool;
-            cont_label = bits[0];
-
-        } else {
-
-            pool_label = bits[0];
-            cont_label = bits[1];
-            known_oid = false;
-
-        }
-
-    } else {
-
-        pool_label = bits[0];
-        cont_label = bits[1];
-        ASSERT(strToOid(bits[2], &oid));
-
-    }
-
-    uuid_t pool_uuid;
-    if (uuid_parse(pool_label.c_str(), pool_uuid) == 0) {
-
-        pool_ = new DaosPool(pool_uuid);
-
-    } else {
-
-        pool_ = new DaosPool(pool_label);
-
-    }
-
-    // TODO: here DaosCluster::instance() should be called to initialize DAOS.
-    //       At the moment it is only called upon obj_->create() below (getNextOid).
-    pool_->connect();
-
-    cont_ = pool_->declareContainer(cont_label);
-
-    if (!known_oid) {
-        
-        obj_ = cont_->declareObject();
-    
-    } else {
-
-        obj_ = cont_->declareObject(oid);
-
-    }
-
-}
-
-DaosHandle::DaosHandle(std::string title) : open_(false), offset_(0) {
-
-    construct(title);
-
-}
-
-DaosHandle::DaosHandle(std::string pool, std::string cont) : open_(false), offset_(0) {
-
-    std::string title = pool + ":" + cont;
-    construct(title);
-
-}
-
-DaosHandle::DaosHandle(std::string pool, std::string cont, std::string oid) : open_(false), offset_(0) {
-
-    obj_ = new DaosObject(pool, cont, oid);
-    pool_ = obj_->getPool();
-    cont_ = obj_->getCont();
-    pool_->connect();
-
-}
-
-DaosHandle::DaosHandle(URI uri) : open_(false), offset_(0) {
-
-    obj_ = new DaosObject(uri);
-    pool_ = obj_->getPool();
-    cont_ = obj_->getCont();
-    pool_->connect();
-
-}
+DaosHandle::DaosHandle(const fdb5::DaosName& name) : 
+    managed_obj_(std::unique_ptr<fdb5::DaosObject>(new DaosObject(name))), 
+    obj_(*(managed_obj_.get())), 
+    open_(false), 
+    offset_(0) {}
 
 DaosHandle::~DaosHandle() {
 
+    // TODO: do we really want to close? in cases where an object is managed by the user and multiple data handles are built from it, the handles may repeatedly open and close a same object
     if (open_) close();
-    delete obj_;
-    delete cont_;
-    delete pool_;
 
 }
 
@@ -150,13 +49,9 @@ void DaosHandle::openForWrite(const Length& len) {
 
     offset_ = eckit::Offset(0);
 
-    pool_->connect();
+    // TODO: should wipe object content?
 
-    // TODO: improve this
-    cont_->create();
-    cont_->open();
-
-    obj_->create();
+    obj_.create();
 
     open_ = true;
 
@@ -166,15 +61,13 @@ void DaosHandle::openForAppend(const Length& len) {
 
     if (open_) NOTIMP;
 
-    pool_->connect();
+    // TODO: should the open crash if object does not exist?
 
-    // TODO: should this opener crash if object not exists?
-    cont_->create();
-    cont_->open();
-
-    obj_->create();
+    obj_.open();
 
     open_ = true;
+
+    // TODO: should offset be set to size()?
 
 }
 
@@ -184,15 +77,11 @@ Length DaosHandle::openForRead() {
 
     offset_ = eckit::Offset(0);
 
-    pool_->connect();
-
-    cont_->open();
-
-    obj_->open();
+    obj_.open();
 
     open_ = true;
 
-    return Length(obj_->size());
+    return Length(obj_.size());
 
 }
 
@@ -200,7 +89,7 @@ long DaosHandle::write(const void* buf, long len) {
 
     ASSERT(open_);
 
-    long written = obj_->write(buf, len, offset_);
+    long written = obj_.write(buf, len, offset_);
 
     offset_ += written;
 
@@ -212,7 +101,7 @@ long DaosHandle::read(void* buf, long len) {
 
     ASSERT(open_);
 
-    long read = obj_->read(buf, len, offset_);
+    long read = obj_.read(buf, len, offset_);
 
     offset_ += read;
 
@@ -222,11 +111,7 @@ long DaosHandle::read(void* buf, long len) {
 
 void DaosHandle::close() {
 
-    obj_->close();
-
-    cont_->close();
-
-    pool_->disconnect();
+    obj_.close();
 
     open_ = false;
 
@@ -240,8 +125,9 @@ void DaosHandle::flush() {
 
 Length DaosHandle::size() {
 
+    // TODO: is this assert needed? As long as obj is open, should be ok
     ASSERT(open_);
-    return Length(obj_->size());
+    return Length(obj_.size());
 
 }
 
@@ -253,6 +139,7 @@ Length DaosHandle::estimate() {
 
 Offset DaosHandle::position() {
 
+    // TODO: should position() crash if unopened?
     return offset_;
 
 }
@@ -279,7 +166,7 @@ void DaosHandle::skip(const Length& len) {
 
 std::string DaosHandle::title() const {
     
-    return pool_->name() + ':' + cont_->name() + ':' + obj_->name();
+    return obj_.name().asString();
 
 }
 

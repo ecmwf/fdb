@@ -8,131 +8,72 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Nicolau Manubens
-///
-/// @date Jul 2022
-
-#include "fdb5/daos/DaosContainer.h"
+// #include <iostream>
+#include <iomanip>
 
 #include "eckit/exception/Exceptions.h"
-#include "eckit/config/Resource.h"
+#include "eckit/utils/Translator.h"
+// #include "eckit/config/Resource.h"
+
+#include "fdb5/daos/DaosCluster.h"
+#include "fdb5/daos/DaosContainer.h"
+#include "fdb5/daos/DaosObject.h"
+
+daos_obj_id_t str_to_oid(const std::string& s) {
+    ASSERT(s.length() == 33);
+    ASSERT(s[16] == '.');
+    ASSERT(std::all_of(s.begin(), s.begin()+16, ::isxdigit));
+    ASSERT(std::all_of(s.end()-16, s.end(), ::isxdigit));
+
+    eckit::Translator<std::string, unsigned long long> stoull;
+    return {stoull(s.substr(0, 16)), stoull(s.substr(17, 16))};
+}
+
+std::string oid_to_str(const daos_obj_id_t& oid) {
+    std::stringstream os;
+    os << std::setw(16) << std::setfill('0') << std::hex << oid.hi << ".";
+    os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
+    return os.str();
+}
+
+fdb5::DaosContainer& name_to_cont_ref(const fdb5::DaosName& name) {
+
+    uuid_t uuid = {0};
+
+    fdb5::DaosPool* pool;
+    if (uuid_parse(name.poolName().c_str(), uuid) == 0) {
+        pool = &(fdb5::DaosCluster::instance().declarePool(uuid));
+    } else {
+        pool = &(fdb5::DaosCluster::instance().declarePool(name.poolName()));
+    }
+
+    if (uuid_parse(name.contName().c_str(), uuid) == 0) {
+        return pool->declareContainer(uuid);
+    } else {
+        return pool->declareContainer(name.contName());
+    }
+    
+}
 
 namespace fdb5 {
 
-// TODO: adddress this.
-DaosObject::DaosObject() {}
+//----------------------------------------------------------------------------------------------------------------------
 
-DaosObject::DaosObject(fdb5::DaosPool* pool) : known_oid_(false), open_(false) {
+DaosObject::DaosObject(fdb5::DaosContainer& cont, daos_obj_id_t oid) : cont_(cont), oid_(oid), open_(false) {}
 
-    cont_ = pool->declareContainer();
+DaosObject::DaosObject(fdb5::DaosContainer& cont, const std::string& oid) : cont_(cont), open_(false) {
 
-}
-
-DaosObject::DaosObject(fdb5::DaosContainer* cont) : cont_(cont), known_oid_(false), open_(false) {}
-
-DaosObject::DaosObject(fdb5::DaosContainer* cont, daos_obj_id_t oid) : cont_(cont), oid_(oid), known_oid_(true), open_(false) {}
-
-DaosObject::DaosObject(fdb5::DaosContainer* cont, std::string oid) : cont_(cont), known_oid_(true), open_(false) {
-
-    ASSERT(strToOid(oid, &oid_));
+    oid_ = str_to_oid(oid);
 
 }
 
-void DaosObject::construct(std::string& title) {
+DaosObject::DaosObject(const fdb5::DaosName& name) : cont_(name_to_cont_ref(name)), open_(false) {
 
-    static const std::string defaultDaosPool = eckit::Resource<std::string>("defaultDaosPool", "default");
-
-    eckit::Tokenizer parse(":");
-
-    std::vector<std::string> bits;
-    // pool:cont:oidhi.oidlo
-    parse(title, bits);
-
-    ASSERT(bits.size() == 1 || bits.size() == 2 || bits.size() == 3);
-
-    bool known_oid = true;
-    daos_obj_id_t oid;
-    bool last_is_oid;
-    std::string pool_label;
-    std::string cont_label;
-
-    if (bits.size() == 1) {
-
-        pool_label = defaultDaosPool;
-        cont_label = title;
-        known_oid = false;
-
-    } else if (bits.size() == 2) {
-
-        last_is_oid = strToOid(bits[1], &oid);
-
-        if (last_is_oid) {
-
-            pool_label = defaultDaosPool;
-            cont_label = bits[0];
-
-        } else {
-
-            pool_label = bits[0];
-            cont_label = bits[1];
-            known_oid = false;
-
-        }
-
-    } else {
-
-        pool_label = bits[0];
-        cont_label = bits[1];
-        ASSERT(strToOid(bits[2], &oid));
-
-    }
-
-    uuid_t pool_uuid;
-    fdb5::DaosPool* pool;
-    if (uuid_parse(pool_label.c_str(), pool_uuid) == 0) {
-
-        pool = new DaosPool(pool_uuid);
-
-    } else {
-
-        pool = new DaosPool(pool_label);
-
-    }
-
-    cont_ = pool->declareContainer(cont_label);
-
-    oid_ = oid;
-
-    // TODO connect pool when? everywhere in this class where actions are done
+    oid_ = str_to_oid(name.oid());
 
 }
 
-DaosObject::DaosObject(std::string title) : open_(false), offset_(0) {
-
-    construct(title);
-
-}
-
-DaosObject::DaosObject(std::string pool, std::string cont) : open_(false), offset_(0) {
-
-    std::string title = pool + ":" + cont;
-    construct(title);
-
-}
-
-DaosObject::DaosObject(std::string pool, std::string cont, std::string oid) : open_(false), offset_(0) {
-
-    std::string title = pool + ":" + cont + ":" + oid;
-    construct(title);
-
-}
-
-DaosObject::DaosObject(URI uri) : open_(false), offset_(0) {
-
-    std::string title = uri.name();
-    construct(title);
-
-}
+DaosObject::DaosObject(const eckit::URI& uri) : DaosObject(DaosName(uri)) {}
 
 DaosObject::~DaosObject() {
 
@@ -142,22 +83,14 @@ DaosObject::~DaosObject() {
 
 void DaosObject::create() {
 
-    // TODO: not sure what to do here. Should probably keep track of whether 
-    //       the object has been created or not via this DaosObject instance,
-    //       and return accordingly. But the object may be destroyed by another 
-    //       process or DaosObject instance.
-    //if (open_) return;
+    // TODO: is this shortcut too much? See DaosContainer::create()
+    if (open_) return;
 
-    if (!known_oid_) {
+    cont_.create();
 
-        oid_ = DaosCluster::instance().getNextOid(cont_);
-        known_oid_ = true;
+    const daos_handle_t& coh = cont_.getOpenHandle();
 
-    }
-
-    daos_handle_t coh = cont_->getHandle();
-
-    DAOS_CALL(daos_array_create(coh, oid_, DAOS_TX_NONE, default_create_cell_size, default_create_chunk_size, &oh_, NULL));
+    DAOS_CALL(daos_array_create(coh, oid_, DAOS_TX_NONE, DaosCluster::default_object_create_cell_size, DaosCluster::default_object_create_chunk_size, &oh_, NULL));
 
     open_ = true;
 
@@ -169,23 +102,12 @@ void DaosObject::destroy() {
 
 }
 
-// TODO think if this overwrite makes sense in DAOS 
-// TODO look where data was being zerod and try to use overwrite
-
-eckit::DataHandle* DaosObject::daosHandle(bool overwrite = false) {
-
-    return new DaosHandle(this);
-
-}
-
 void DaosObject::open() {
 
     if (open_) return;
 
-    if (!known_oid_) throw eckit::Exception("Cannot attempt connecting to an unidentified object. Either create it or provide a OID upon construction.");
-
     daos_size_t cell_size, csize;
-    daos_handle_t coh = cont_->getHandle();
+    const daos_handle_t& coh = cont_.getOpenHandle();
     DAOS_CALL(daos_array_open(coh, oid_, DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, &oh_, NULL));
     
     open_ = true;
@@ -195,7 +117,7 @@ void DaosObject::open() {
 void DaosObject::close() {
 
     if (!open_) {
-        eckit::Log::warning() << "Closing DaosObject " << name() << ", object is not open" << std::endl;
+        eckit::Log::warning() << "Closing DaosObject " << name().asString() << ", object is not open" << std::endl;
         return;
     }
 
@@ -206,7 +128,7 @@ void DaosObject::close() {
 
 long DaosObject::write(const void* buf, long len, eckit::Offset off) {
 
-    ASSERT(open_);
+    open();
 
     daos_array_iod_t iod;
     daos_range_t rg;
@@ -231,7 +153,7 @@ long DaosObject::write(const void* buf, long len, eckit::Offset off) {
 
 long DaosObject::read(void* buf, long len, eckit::Offset off) {
 
-    ASSERT(open_);
+    open();
 
     daos_array_iod_t iod;
     daos_range_t rg;
@@ -256,6 +178,8 @@ long DaosObject::read(void* buf, long len, eckit::Offset off) {
 
 daos_size_t DaosObject::size() {
 
+    open();
+
     daos_size_t array_size;
     DAOS_CALL(daos_array_get_size(oh_, DAOS_TX_NONE, &array_size, NULL));
 
@@ -263,40 +187,31 @@ daos_size_t DaosObject::size() {
 
 }
 
-std::string DaosObject::name() {
+const daos_handle_t& DaosObject::getOpenHandle() {
+    
+    open();
+    return oh_;
+    
+};
 
-    ASSERT(known_oid_);
-    // "Cannot generate a name for an unidentified object. Either create it or provide a OID upon construction."
-    return cont_->name() + ":" + oidToStr(oid_);
+fdb5::DaosName DaosObject::name() const {
+
+    return fdb5::DaosName(cont_.getPool().name(), cont_.name(), oid_to_str(oid_));
 
 }
 
-eckit::URI DaosObject::URI() {
+eckit::URI DaosObject::URI() const {
 
-    return eckit::URI("daos", eckit::PathName(name()));
+    return name().URI();
 
 }
 
-
-DaosContainer* DaosObject::getContainer() {
+fdb5::DaosContainer& DaosObject::getContainer() const {
 
     return cont_;
 
 }
 
-DaosPool* DaosObject::getPool() {
-
-    return cont_->getPool();
-
-}
-
-daos_handle_t& DaosObject::getHandle() {
-    
-    // TODO: should this be an ASSERT or an Exception? I'd say exception so
-    // that user can try retrieving handle
-    if (open_) return oh_;
-    throw eckit::Exception("Cannot get handle of unopened object.");
-    
-};
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

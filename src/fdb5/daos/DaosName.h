@@ -9,43 +9,63 @@
  */
 
 /// @author Nicolau Manubens
-///
 /// @date Sept 2022
 
 #pragma once
 
-//#include "eckit/filesystem/URI.h"
-//#include "fdb5/daos/DaosObject.h"
+#include <daos.h>
 
+#include <string>
 //#include <memory>
+
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/DataHandle.h"
 
 namespace fdb5 {
 
-//class DaosObject;
+//----------------------------------------------------------------------------------------------------------------------
+
+class DaosPool;
+class DaosContainer;
+class DaosObject;
 
 class DaosName {
 
-public:
+public: // methods
 
-    //DaosName(std::string title);
-    //DaosName(std::string pool, std::string cont);
-    //DaosName(std::string pool, std::string cont, std::string oid);
-    //DaosName(eckit::URI);
-    //~DaosName();
+    DaosName(const std::string& pool, const std::string& cont, const std::string& oid);
+    DaosName(const std::string& name);
+    DaosName(const eckit::URI&);
 
+    //void create();
     //void destroy();
+    // TODO: return eckit::Length?
+    daos_size_t size();
     //bool exists();
-    //daos_size_t size();
 
-    //std::string name();
-    //eckit::URI URI();
+    std::string asString() const;
+    eckit::URI URI() const;
+    std::string poolName() const;
+    std::string contName() const;
+    std::string oid() const;
 
-    //eckit::DataHandle* dataHandle(bool overwrite = false) const;
+    // TODO: think if this overwrite parameter makes sense in DAOS
+    eckit::DataHandle* dataHandle(bool overwrite = false) const;
 
-private:
+private: // methods
 
-    //std::unique_ptr<fdb5::DaosObject> private_object;
+    void createManagedObject();
+
+private: // members
+
+    std::string pool_;
+    std::string cont_;
+    std::string oid_;
+    // TODO: cleaner way to initialise?
+    std::unique_ptr<fdb5::DaosObject> obj_ = nullptr;
 
 };
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

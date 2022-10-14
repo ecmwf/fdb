@@ -8,44 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Nicolau Manubens
-///
-/// @date Jul 2022
+#include <daos/tests_lib.h>
+
+#include <sstream>
 
 #include "fdb5/daos/DaosCluster.h"
-#include "fdb5/daos/DaosContainer.h"
 
 namespace fdb5 {
 
-std::string oidToStr(const daos_obj_id_t& oid) {
-    std::stringstream os;
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.hi << ".";
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
-    return os.str();
-}
-
-bool strToOid(const std::string& x, daos_obj_id_t *oid) {
-    if (x.length() != 33)
-        return false;
-    // TODO: do better checks and avoid copy
-    std::string y(x);
-    y[16] = '0';
-    if (!std::all_of(y.begin(), y.end(), ::isxdigit))
-        return false;
-
-    std::string hi = x.substr(0, 16);
-    std::string lo = x.substr(17, 16);
-    oid->hi = std::stoull(hi, nullptr, 16);
-    oid->lo = std::stoull(lo, nullptr, 16);
-
-    return true;
-}
-
-// struct OidAlloc {
-//     OidAlloc() : num_oids_(0) {}
-//     uint64_t next_oid_;
-//     int num_oids_;
-// };
+//----------------------------------------------------------------------------------------------------------------------
 
 DaosCluster& DaosCluster::instance() {
     static DaosCluster instance_;
@@ -64,50 +35,141 @@ DaosCluster::~DaosCluster() {
 
 }
 
-daos_obj_id_t DaosCluster::getNextOid(DaosContainer* cont) {
+std::deque<fdb5::DaosPool>::iterator DaosCluster::getCachedPool(uuid_t uuid) {
 
-    // OidAlloc *alloc = nullptr;
+    uuid_t other = {0};
 
-    // auto j = oid_allocs_.find(pool);
-    // if (j != oid_allocs_.end()) {
-    //     auto k = j->second->find(cont);
-    //     if (k != j->second->end())
-    //         alloc = k->second;
-    // }
+    std::deque<fdb5::DaosPool>::iterator it;
+    for (it = pool_cache_.begin(); it != pool_cache_.end(); ++it) {
 
-    // if (!alloc) {
-    //     oid_allocs_[pool][0][cont] = new OidAlloc();
-    //     alloc = oid_allocs_[pool][0][cont];
-    // }
+        it->uuid(other);
+        if (uuid_compare(uuid, other) == 0) break;
 
-    // TODO: improve this
-    cont->create();
+    }
 
-    cont->open();
+    return it;
 
-    daos_handle_t coh;
-    coh = cont->getHandle();
+}
 
-    // if (alloc->num_oids_ == 0) {
-    //     alloc->num_oids_ = OIDS_PER_ALLOC;
-    //     DAOS_CALL(daos_cont_alloc_oids(coh, alloc->num_oids_ + 1, &(alloc->next_oid_), NULL));
-    // } else {
-    //     alloc->next_oid_++;
-    //     alloc->num_oids_--;
-    // }
+std::deque<fdb5::DaosPool>::iterator DaosCluster::getCachedPool(const std::string& label) {
 
-    // TODO: move to container and/or array
-    daos_obj_id_t next;
-    DAOS_CALL(daos_cont_alloc_oids(coh, (daos_size_t) 1, &(next.lo), NULL));
-    DAOS_CALL(daos_array_generate_oid(coh, &next, true, OC_S1, 0, 0));
+    std::deque<fdb5::DaosPool>::iterator it;
+    for (it = pool_cache_.begin(); it != pool_cache_.end(); ++it) {
 
-    // next.lo = alloc->next_oid_;
-    // DAOS_CALL(daos_array_generate_oid(coh, &next, true, OC_S1, 0, 0));
+        if (it->label() == label) break;
 
-    // TODO: think about connecting and disconnecting pools
-    //pool->disconnect();
+    }
 
-    return next;
+    return it;
+
+}
+
+fdb5::DaosPool& DaosCluster::declarePool(uuid_t uuid) {
+
+    std::deque<fdb5::DaosPool>::iterator it = getCachedPool(uuid);
+
+    if (it != pool_cache_.end()) return *it;
+
+    pool_cache_.push_front(fdb5::DaosPool(uuid));
+    
+    return pool_cache_.at(0);
+
+}
+
+fdb5::DaosPool& DaosCluster::declarePool(const std::string& label) {
+
+    std::deque<fdb5::DaosPool>::iterator it = getCachedPool(label);
+
+    if (it != pool_cache_.end()) return *it;
+    
+    pool_cache_.push_front(fdb5::DaosPool(label));
+    
+    return pool_cache_.at(0);
+
+}
+
+DaosPool& DaosCluster::declarePool(uuid_t uuid, const std::string& label) {
+
+    // When both pool uuid and label are known, using this method to declare
+    // a pool is preferred to avoid the following inconsistencies and/or 
+    // inefficiencies:
+    // - when a user declares a pool by label in a process where that pool 
+    //   has not been created, that pool will live in the cache with only a 
+    //   label and no uuid. If the user later declares the same pool from its 
+    //   uuid, two DaosPool instances will exist in the cache for the same 
+    //   DAOS pool, each with their connection handle.
+    // - these two instances will be incomplete and the user may not be able 
+    //   to retrieve the label/uuid information.
+
+    std::deque<fdb5::DaosPool>::iterator it = getCachedPool(uuid);
+    if (it != pool_cache_.end()) {
+
+        if (it->label() == label) return *it;
+
+        pool_cache_.push_front(fdb5::DaosPool(uuid, label));
+        return pool_cache_.at(0);
+
+    }
+
+    it = getCachedPool(label);
+    if (it != pool_cache_.end()) return *it;
+
+    pool_cache_.push_front(fdb5::DaosPool(label));
+    return pool_cache_.at(0);
+
+}
+
+fdb5::DaosPool& DaosCluster::createPool() {
+
+    pool_cache_.push_front(fdb5::DaosPool());
+
+    fdb5::DaosPool& p = pool_cache_.at(0);
+
+    p.create();
+
+    return p;
+
+}
+
+fdb5::DaosPool& DaosCluster::createPool(const std::string& label) {
+
+    fdb5::DaosPool& p = declarePool(label);
+    
+    p.create();
+
+    return p;
+
+}
+
+void DaosCluster::destroyPool(uuid_t uuid) {
+
+    // TODO: make getCachedPool return a *DaosPool rather than an iterator?
+    // and check it == nullptr rather than it == pool_cache_.end().
+    std::deque<fdb5::DaosPool>::iterator it = getCachedPool(uuid);
+
+    if (it == pool_cache_.end()) {
+        char uuid_cstr[37];
+        uuid_unparse(uuid, uuid_cstr);
+        std::string uuid_str(uuid_cstr);
+        throw eckit::Exception("Pool with uuid " + uuid_str + " not found in cache, cannot destroy.");
+    }
+
+    it->destroy();
+
+}
+
+void DaosCluster::closePool(uuid_t uuid) {
+
+    uuid_t other = {0};
+
+    std::deque<fdb5::DaosPool>::iterator it;
+    for (it = pool_cache_.begin(); it != pool_cache_.end(); ++it) {
+
+        it->uuid(other);
+        if (uuid_compare(uuid, other) == 0) it->close();
+
+    }
+
 }
 
 void DaosCluster::error(int code, const char* msg, const char* file, int line, const char* func) {
@@ -117,5 +179,7 @@ void DaosCluster::error(int code, const char* msg, const char* file, int line, c
         << "] (" << strerror(-code) << ")";
     throw eckit::SeriousBug(oss.str());
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

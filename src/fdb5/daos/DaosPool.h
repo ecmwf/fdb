@@ -9,28 +9,27 @@
  */
 
 /// @author Nicolau Manubens
-///
 /// @date Jul 2022
 
 #pragma once
 
-#include <string>
-
 #include <uuid/uuid.h>
-#include <daos/tests_lib.h>
+#include <daos.h>
 
+#include <string>
+#include <deque>
+
+// #include "fdb5/daos/DaosCluster.h"
 #include "fdb5/daos/DaosContainer.h"
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 class DaosPool {
 
-public:
+public: // methods
 
-    DaosPool();
-    DaosPool(std::string);
-    DaosPool(uuid_t);
-    DaosPool(std::string, uuid_t);
     ~DaosPool();
 
     // administrative
@@ -39,27 +38,50 @@ public:
 
     void open();
     void close();
-    // TODO: AutoClose?
 
-    std::string name();
-    daos_handle_t& getHandle();
+    fdb5::DaosContainer& declareContainer(uuid_t);
+    fdb5::DaosContainer& declareContainer(const std::string&);
+    fdb5::DaosContainer& declareContainer(uuid_t, const std::string&);
 
-    fdb5::DaosContainer* declareContainer();
-    fdb5::DaosContainer* declareContainer(uuid_t);
-    fdb5::DaosContainer* declareContainer(std::string);
+    fdb5::DaosContainer& createContainer(uuid_t);
+    fdb5::DaosContainer& createContainer(const std::string&);
+    fdb5::DaosContainer& createContainer(uuid_t, const std::string&);
 
-    static const daos_size_t default_create_scm_size = 10ULL << 30;
-    static const daos_size_t default_create_nvme_size = 40ULL << 30;
-    static const int default_destroy_force = 1;
+    void destroyContainer(uuid_t);
+    void destroyContainer(const std::string&);
 
-private:
+    void closeContainer(uuid_t);
+    void closeContainer(const std::string&);
+
+    const daos_handle_t& getOpenHandle();
+
+    std::string name() const;
+    void uuid(uuid_t) const;
+    std::string label() const;
+
+private: // methods
+
+    DaosPool();
+    DaosPool(uuid_t);
+    DaosPool(const std::string&);
+    DaosPool(uuid_t, const std::string&);
+    friend class DaosCluster;
+
+    std::deque<fdb5::DaosContainer>::iterator getCachedContainer(uuid_t);
+    std::deque<fdb5::DaosContainer>::iterator getCachedContainer(const std::string&);
+
+private: // members
 
     uuid_t uuid_;
     bool known_uuid_;
-    std::string label_;
+    std::string label_ = std::string();
     daos_handle_t poh_;
     bool open_;
 
+    std::deque<fdb5::DaosContainer> cont_cache_;
+
 };
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

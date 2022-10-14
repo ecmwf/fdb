@@ -9,35 +9,32 @@
  */
 
 /// @author Nicolau Manubens
-///
 /// @date Jul 2022
 
 #pragma once
 
+#include <uuid/uuid.h>
+#include <daos.h>
+
 #include <string>
 
-#include <uuid/uuid.h>
-
-// TODO: including daos.h here indirectly.
-//       Necessary due to the getHandle(). Find a way to avoid? 
-//       These handles are not needed by the user in fact.
-#include "fdb5/daos/DaosCluster.h"
 #include "fdb5/daos/DaosObject.h"
 
+struct OidAlloc {
+    uint64_t next_oid;
+    int num_oids;
+};
+
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
 
 class DaosPool;
 
 class DaosContainer {
 
-public:
+public: // methods
 
-    //TODO: address this
-    DaosContainer();
-    // TODO: add constructors where pool is a string or uuid?
-    DaosContainer(fdb5::DaosPool*);
-    DaosContainer(fdb5::DaosPool*, uuid_t);
-    DaosContainer(fdb5::DaosPool*, std::string);
     ~DaosContainer();
 
     void create();
@@ -46,22 +43,40 @@ public:
     void close();
     // TODO: AutoClose?
 
-    std::string name();
-    daos_handle_t& getHandle();
-    DaosPool* getPool();
+    fdb5::DaosObject createObject();
+    fdb5::DaosObject createObject(daos_obj_id_t);
+    fdb5::DaosObject createObject(const std::string& oid);
 
-    fdb5::DaosObject* declareObject();
-    fdb5::DaosObject* declareObject(daos_obj_id_t);
+    const daos_handle_t& getOpenHandle();
 
-private:
+    std::string name() const;
+    void uuid(uuid_t) const;
+    std::string label() const;
+    fdb5::DaosPool& getPool() const;
 
-    fdb5::DaosPool* pool_;
+private: // methods
+
+    DaosContainer(fdb5::DaosPool&, uuid_t);
+    DaosContainer(fdb5::DaosPool&, const std::string&);
+    DaosContainer(fdb5::DaosPool&, uuid_t, const std::string&);
+    friend class DaosPool;
+
+private: // members
+
+    fdb5::DaosPool& pool_;
     uuid_t uuid_;
     bool known_uuid_;
-    std::string label_;
+    std::string label_ = std::string();
     daos_handle_t coh_;
     bool open_;
 
+    // TODO: is OidAlloc declared and defined properly?
+    // TODO: is oid_alloc_ initialised in the cleanest/clearest way possible?
+    // TODO: is it OK to enforce allocation of oid ranges?
+    OidAlloc oid_alloc_{};
+
 };
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

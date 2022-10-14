@@ -8,32 +8,31 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Nicolau Manubens
-///
-/// @date Jul 2022
-
-#include "fdb5/daos/DaosPool.h"
+#include <daos/tests_lib.h>
 
 #include "eckit/exception/Exceptions.h"
 
+#include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosCluster.h"
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 DaosPool::DaosPool() : known_uuid_(false), open_(false) {}
 
-DaosPool::DaosPool(std::string pool_label) : known_uuid_(false), label_(pool_label), open_(false) {}
+DaosPool::DaosPool(uuid_t uuid) : known_uuid_(true), open_(false) {
 
-DaosPool::DaosPool(uuid_t pool_uuid) : known_uuid_(true), open_(false) {
-
-    uuid_copy(uuid_, pool_uuid);
+    uuid_copy(uuid_, uuid);
 
 }
 
-// TODO: cpp uuid wrapper? to avoid weird headers?
-DaosPool::DaosPool(std::string pool_label, uuid_t pool_uuid) : known_uuid_(true), label_(pool_label), open_(false) {
+DaosPool::DaosPool(const std::string& label) : known_uuid_(false), label_(label), open_(false) {}
 
-    uuid_copy(uuid_, pool_uuid);
+
+DaosPool::DaosPool(uuid_t uuid, const std::string& label) : known_uuid_(true), label_(label), open_(false) {
+
+    uuid_copy(uuid_, uuid);
 
 }
 
@@ -48,12 +47,8 @@ DaosPool::~DaosPool() {
 
 void DaosPool::create() {
 
-    // TODO: change all pre-condition checks to ASSERTs
-    // question: in the future ASSERTs will default to EcKit abortion. Not what we want in many pre-condition checks
-    ASSERT(!open_);
-    // "Cannot create a connected pool."
-    ASSERT(!known_uuid_);
     // "Cannot create a pool with a user-specified UUID."
+    ASSERT(!known_uuid_);
 
     // TODO: ensure deallocation. Either try catch or make a wrapper.
     // not application code. Library code. Shared resources. Need to handle as cleanly as possible.
@@ -76,7 +71,7 @@ void DaosPool::create() {
     }
 
     // TODO: add parameters or resources to adjust these fixed values
-    DAOS_CALL(dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, default_create_scm_size, default_create_nvme_size, prop, &svcl, uuid_));
+    DAOS_CALL(dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, DaosCluster::default_pool_create_scm_size, DaosCluster::default_pool_create_nvme_size, prop, &svcl, uuid_));
 
     // TODO: query the pool to ensure it's ready
 
@@ -90,12 +85,24 @@ void DaosPool::create() {
 
 void DaosPool::destroy() {
 
-    if (!known_uuid_) NOTIMP;
-    if (open_) close();
+    // TODO: this will result in a invalid DaosPool instance, we want to avoid this
 
-    DAOS_CALL(dmg_pool_destroy(NULL, uuid_, NULL, default_destroy_force));
-    
-    known_uuid_ = false;
+    if (!known_uuid_) NOTIMP;
+
+    fdb5::DaosCluster::instance().closePool(uuid_);
+
+    // TODO: cached DaosPools declared with a label only, pointing to the pool
+    // being destroyed may still exist and should be closed.
+
+    DAOS_CALL(dmg_pool_destroy(NULL, uuid_, NULL, fdb5::DaosCluster::default_pool_destroy_force));
+
+    // TODO: the DaosPools pointing to the destroyed DAOS pool are now invalid
+    // and cannot be reopened unless a new pool with the same label or uuid 
+    // is created.
+    // They could be removed from the cache and deleted but then the user would 
+    // be left with invalid references. They could be removed from the cache 
+    // without deleting. Or they could be marked as invalid, and act 
+    // accordingly elsewhere.
 
 }
 
@@ -103,8 +110,8 @@ void DaosPool::open() {
 
     if (open_) return;
 
-    ASSERT(known_uuid_ || label_.size() > 0);
     // "Cannot attempt connecting to an unidentified pool. Either create it or provide a label upon construction."
+    ASSERT(known_uuid_ || label_.size() > 0);
 
     if (label_.size() > 0) {
 
@@ -123,7 +130,7 @@ void DaosPool::open() {
 void DaosPool::close() {
 
     if (!open_) {
-        eckit::Log::warning() << "Disconnecting DaosPool " << name() << ", pool is not open" << std::endl;
+        // eckit::Log::warning() << "Disconnecting DaosPool " << name() << ", pool is not open" << std::endl;
         return;
     }
 
@@ -132,10 +139,183 @@ void DaosPool::close() {
 
 }
 
-std::string DaosPool::name() {
+std::deque<fdb5::DaosContainer>::iterator DaosPool::getCachedContainer(uuid_t uuid) {
 
-    ASSERT(label_.size() > 0 || known_uuid_);
+    uuid_t other = {0};
+
+    std::deque<fdb5::DaosContainer>::iterator it;
+    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) {
+
+        it->uuid(other);
+        if (uuid_compare(uuid, other) == 0) break;
+
+    }
+
+    return it;
+
+}
+
+std::deque<fdb5::DaosContainer>::iterator DaosPool::getCachedContainer(const std::string& label) {
+
+    std::deque<fdb5::DaosContainer>::iterator it;
+    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) {
+
+        if (it->label() == label) break;
+
+    }
+
+    return it;
+
+}
+
+fdb5::DaosContainer& DaosPool::declareContainer(uuid_t uuid) {
+
+    std::deque<fdb5::DaosContainer>::iterator it = getCachedContainer(uuid);
+
+    if (it != cont_cache_.end()) return *it;
+
+    cont_cache_.push_front(fdb5::DaosContainer(*this, uuid));
+    
+    return cont_cache_.at(0);
+
+}
+
+fdb5::DaosContainer& DaosPool::declareContainer(const std::string& label) {
+
+    std::deque<fdb5::DaosContainer>::iterator it = getCachedContainer(label);
+
+    if (it != cont_cache_.end()) return *it;
+    
+    cont_cache_.push_front(fdb5::DaosContainer(*this, label));
+    
+    return cont_cache_.at(0);
+
+}
+
+fdb5::DaosContainer& DaosPool::declareContainer(uuid_t uuid, const std::string& label) {
+
+    // When both pool uuid and label are known, using this method to declare
+    // a pool is preferred to avoid the following inconsistencies and/or 
+    // inefficiencies:
+    // - when a user declares a pool by label in a process where that pool 
+    //   has not been created, that pool will live in the cache with only a 
+    //   label and no uuid. If the user later declares the same pool from its 
+    //   uuid, two DaosPool instances will exist in the cache for the same 
+    //   DAOS pool, each with their connection handle.
+    // - these two instances will be incomplete and the user may not be able 
+    //   to retrieve the label/uuid information.
+
+    std::deque<fdb5::DaosContainer>::iterator it = getCachedContainer(uuid);
+    if (it != cont_cache_.end()) {
+
+        if (it->label() == label) return *it;
+
+        cont_cache_.push_front(fdb5::DaosContainer(*this, uuid, label));
+        return cont_cache_.at(0);
+
+    }
+
+    it = getCachedContainer(label);
+    if (it != cont_cache_.end()) return *it;
+
+    cont_cache_.push_front(fdb5::DaosContainer(*this, label));
+    return cont_cache_.at(0);
+
+}
+
+fdb5::DaosContainer& DaosPool::createContainer(uuid_t uuid) {
+
+    fdb5::DaosContainer& c = declareContainer(uuid);
+    
+    c.create();
+
+    return c;
+
+}
+
+fdb5::DaosContainer& DaosPool::createContainer(const std::string& label) {
+
+    fdb5::DaosContainer& c = declareContainer(label);
+    
+    c.create();
+
+    return c;
+
+}
+
+fdb5::DaosContainer& DaosPool::createContainer(uuid_t uuid, const std::string& label) {
+
+    fdb5::DaosContainer& c = declareContainer(uuid, label);
+    
+    c.create();
+
+    return c;
+
+}
+
+void DaosPool::destroyContainer(uuid_t uuid) {
+
+    std::deque<fdb5::DaosContainer>::iterator it = getCachedContainer(uuid);
+
+    if (it == cont_cache_.end()) {
+        char uuid_cstr[37];
+        uuid_unparse(uuid, uuid_cstr);
+        std::string uuid_str(uuid_cstr);
+        throw eckit::Exception("Container with uuid " + uuid_str + " not found in cache, cannot destroy.");
+    }
+
+    it->destroy();
+
+}
+
+void DaosPool::destroyContainer(const std::string& label) {
+
+    std::deque<fdb5::DaosContainer>::iterator it = getCachedContainer(label);
+
+    if (it == cont_cache_.end()) throw eckit::Exception("Container with label " + label + " not found in cache, cannot destroy.");
+
+    it->destroy();
+
+}
+
+void DaosPool::closeContainer(uuid_t uuid) {
+
+    uuid_t other = {0};
+
+    std::deque<fdb5::DaosContainer>::iterator it;
+    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) {
+
+        it->uuid(other);
+        if (uuid_compare(uuid, other) == 0) it->close();
+
+    }
+
+}
+
+void DaosPool::closeContainer(const std::string& label) {
+
+    uuid_t other = {0};
+
+    std::deque<fdb5::DaosContainer>::iterator it;
+    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) {
+
+        if (it->label() == label) it->close();
+
+    }
+
+}
+
+const daos_handle_t& DaosPool::getOpenHandle() {
+    
+    open();
+    return poh_;
+
+}
+
+std::string DaosPool::name() const {
+
     // "Cannot generate a name for an unidentified pool. Either create it or provide a label upon construction."
+    ASSERT(label_.size() > 0 || known_uuid_);
 
     if (label_.size() > 0) return label_;
 
@@ -145,30 +325,18 @@ std::string DaosPool::name() {
 
 }
 
-daos_handle_t& DaosPool::getHandle() {
-    
-    ASSERT(open_);
-    // "Cannot get handle of a unconnected pool."
-    return poh_;
+void DaosPool::uuid(uuid_t uuid) const {
 
-};
-
-fdb5::DaosContainer* DaosPool::declareContainer() {
-
-    return new fdb5::DaosContainer(this);
+    uuid_copy(uuid, uuid_);
 
 }
 
-fdb5::DaosContainer* DaosPool::declareContainer(uuid_t cont_uuid) {
+std::string DaosPool::label() const {
 
-    return new fdb5::DaosContainer(this, cont_uuid);
-
-}
-
-fdb5::DaosContainer* DaosPool::declareContainer(std::string cont_label) {
-
-    return new fdb5::DaosContainer(this, cont_label);
+    return label_;
 
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

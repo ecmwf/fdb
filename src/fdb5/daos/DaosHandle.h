@@ -9,27 +9,29 @@
  */
 
 /// @author Nicolau Manubens
-///
 /// @date Jul 2022
 
 #pragma once
 
 #include "eckit/io/DataHandle.h"
-#include "eckit/filesystem/URI.h"
-#include "fdb5/daos/DaosPool.h"
-#include "fdb5/daos/DaosContainer.h"
+// #include "eckit/filesystem/URI.h"
+// #include "fdb5/daos/DaosPool.h"
+// #include "fdb5/daos/DaosContainer.h"
 
-// TODO: comment separators and labels
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class DaosName;
+
+class DaosObject;
 
 class DaosHandle : public eckit::DataHandle {
 
-public:
+public: // methods
 
-    // TODO: i'd rather pass references in all constructors of DaosHandle and DaosPool, but then I get errors when creating such objects using expressions in the constructor arguments
-    // try using const ref?
-    DaosHandle(fdb5::DaosObject*);
-    DaosHandle(std::string pool, std::string cont, daos_obj_id_t oid);
+    DaosHandle(fdb5::DaosObject&);
+    DaosHandle(const fdb5::DaosName&);
 
     ~DaosHandle();
 
@@ -51,31 +53,29 @@ public:
     virtual bool canSeek() const override;
     virtual void skip(const eckit::Length&) override;
 
-    //virtual void rewind() override;
-    //virtual void restartReadFrom(const Offset&) override;
-    //virtual void restartWriteFrom(const Offset&) override;
+//     //virtual void rewind() override;
+//     //virtual void restartReadFrom(const Offset&) override;
+//     //virtual void restartWriteFrom(const Offset&) override;
 
     virtual std::string title() const override;
 
-    //virtual void encode(Stream&) const override;
-    //virtual const ReanimatorBase& reanimator() const override { return reanimator_; }
+//     //virtual void encode(Stream&) const override;
+//     //virtual const ReanimatorBase& reanimator() const override { return reanimator_; }
 
-    //static const ClassSpec& classSpec() { return classSpec_; }
+//     //static const ClassSpec& classSpec() { return classSpec_; }
 
-private:
+private: // members
 
-    // TODO: make it a smart pointer?
-    fdb5::DaosPool* pool_;
-    fdb5::DaosContainer* cont_;
-    fdb5::DaosObject* obj_;
+    std::unique_ptr<fdb5::DaosObject> managed_obj_ = nullptr;
+    fdb5::DaosObject& obj_;
     bool open_;
     eckit::Offset offset_;
 
-    void construct(std::string& title);
-
-    //static ClassSpec classSpec_;
-    //static Reanimator<DataHandle> reanimator_;
+//     //static ClassSpec classSpec_;
+//     //static Reanimator<DataHandle> reanimator_;
 
 };
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

@@ -9,54 +9,66 @@
  */
 
 /// @author Nicolau Manubens
-///
 /// @date Jul 2022
 
 #pragma once
 
-#include <iostream>
-#include <string>
-#include <iomanip>
-#include <sstream>
-#include <map>
-
 #include <daos.h>
+
+#include <string>
+#include <deque>
 
 #include "eckit/exception/Exceptions.h"
 
-#define OIDS_PER_ALLOC 1024
+#include "fdb5/daos/DaosPool.h"
 
 namespace fdb5 {
 
-// TODO: really necessary?
-// TODO: naming? oid_to_string
-std::string oidToStr(const daos_obj_id_t&);
-bool strToOid(const std::string&, daos_obj_id_t*);
-
-class DaosContainer;
-
-// struct OidAlloc;
+//----------------------------------------------------------------------------------------------------------------------
 
 #define DAOS_CALL(a) fdb5::daos_call(a, #a, __FILE__, __LINE__, __func__)
 
 class DaosCluster {
 
-public:
+public: // methods
 
     static DaosCluster& instance();
 
-    daos_obj_id_t getNextOid(fdb5::DaosContainer*);
+    fdb5::DaosPool& declarePool(uuid_t);
+    fdb5::DaosPool& declarePool(const std::string&);
+    fdb5::DaosPool& declarePool(uuid_t, const std::string&);
+
+    fdb5::DaosPool& createPool();
+    fdb5::DaosPool& createPool(const std::string& label);
+
+    void destroyPool(uuid_t);
+
+    void closePool(uuid_t);
 
     static void error(int code, const char* msg, const char* file, int line, const char* func);
 
-private:
+private: // methods
 
     DaosCluster();
     ~DaosCluster();
 
-    // typedef std::map< std::string, OidAlloc * > SinglePoolOidAllocStore;
-    // typedef std::map< std::string, SinglePoolOidAllocStore * > OidAllocStore;
-    // mutable OidAllocStore oid_allocs_;
+    std::deque<fdb5::DaosPool>::iterator getCachedPool(uuid_t);
+    std::deque<fdb5::DaosPool>::iterator getCachedPool(const std::string&);
+
+public: //members
+
+    static const daos_size_t default_pool_create_scm_size = 10ULL << 30;
+    static const daos_size_t default_pool_create_nvme_size = 40ULL << 30;
+    static const int default_pool_destroy_force = 1;
+
+    static const int default_container_oids_per_alloc = 100;
+
+    static const daos_size_t default_object_create_cell_size = 1;
+    static const daos_size_t default_object_create_chunk_size = 1048576;
+
+private: // members
+
+    std::deque<fdb5::DaosPool> pool_cache_;
 
 };
 
@@ -73,5 +85,7 @@ static inline int daos_call(int code, const char* msg, const char* file, int lin
 
     return code;
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

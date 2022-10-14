@@ -9,71 +9,71 @@
  */
 
 /// @author Nicolau Manubens
-///
 /// @date Jul 2022
 
 #pragma once
 
-#include "fdb5/daos/DaosPool.h"
-#include "eckit/io/Offset.h"
+#include <daos.h>
+
+#include <string>
+
 #include "eckit/filesystem/URI.h"
 
+#include "fdb5/daos/DaosName.h"
+
+// #include "eckit/io/Offset.h"
+
+daos_obj_id_t str_to_oid(const std::string&);
+std::string oid_to_str(const daos_obj_id_t&);
+fdb5::DaosContainer& name_to_cont_ref(const fdb5::DaosName&);
+
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+// class DaosPool;
 
 class DaosContainer;
 
 class DaosObject {
 
-public:
+public: // methods
 
-    //TODO: address this
-    DaosObject();
-    DaosObject(fdb5::DaosPool*);
-    DaosObject(fdb5::DaosContainer*);
-    DaosObject(fdb5::DaosContainer*, daos_obj_id_t);
-    DaosObject(fdb5::DaosContainer*, std::string);
-    DaosObject(std::string title);
-    DaosObject(std::string pool, std::string cont);
-    DaosObject(std::string pool, std::string cont, std::string oid);
-    DaosObject(eckit::URI);
+    DaosObject(fdb5::DaosContainer&, daos_obj_id_t);
+    DaosObject(fdb5::DaosContainer&, const std::string&);
+    DaosObject(const fdb5::DaosName&);
+    DaosObject(const eckit::URI&);
     ~DaosObject();
 
     void create();
     void destroy();
-    // exists
-    // owner
-    // empty
+//     // exists
+//     // owner
+//     // empty
     daos_size_t size();
-
-    std::string name();
-    eckit::URI URI();
-
-    eckit::DataHandle* daosHandle(bool overwrite = false) const;
 
     void open();
     void close();
-    // TODO: AutoClose?
-    // TODO: rename to handle()
-    daos_handle_t& getHandle();
-    DaosContainer* getContainer();
-    DaosPool* getPool();
+//     // TODO: AutoClose?
+
+    const daos_handle_t& getOpenHandle();
+
+    fdb5::DaosName name() const;
+    eckit::URI URI() const;
+    fdb5::DaosContainer& getContainer() const;
 
     long write(const void*, long, eckit::Offset);
     long read(void*, long, eckit::Offset);
 
-    static const daos_size_t default_create_cell_size = 1;
-    static const daos_size_t default_create_chunk_size = 1048576;
+private: // members
 
-private:
-
-    fdb5::DaosContainer* cont_;
+    fdb5::DaosContainer& cont_;
     daos_obj_id_t oid_;
-    bool known_oid_;
     daos_handle_t oh_;
     bool open_;
 
-    void construct(std::string& title);
-
 };
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
