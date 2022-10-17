@@ -51,7 +51,17 @@ int dmg_pool_create(const char *dmg_config_file,
                     daos_prop_t *prop,
                     d_rank_list_t *svc, uuid_t uuid) {
 
+    // TODO: in the current implementation, there is a race condition 
+    // in concurrent creation of labelled pools as a random uuid is generated 
+    // first, and then a directory is created. It could result in dangling empty
+    // pool directories.
+    // There is also a race condition in concurrent creation plus destruction of
+    // labelled pools due to the symlink creation.
+    // However these issues are not critical as pool creation should be an 
+    // administrative task not intended to be run massively in parallel.
+
     std::string pool_name;
+    eckit::PathName label_symlink_path;
 
     if (prop != NULL) {
 
@@ -63,6 +73,10 @@ int dmg_pool_create(const char *dmg_config_file,
         if (entry == NULL) NOTIMP;
 
         pool_name = std::string(entry->dpe_str);
+
+        label_symlink_path = dummy_daos_root() / pool_name;
+
+        if (label_symlink_path.exists()) return -1;
 
     }
 
@@ -86,13 +100,7 @@ int dmg_pool_create(const char *dmg_config_file,
 
     pool_path.mkdir();
 
-    if (prop != NULL) {
-
-        eckit::PathName label_symlink_path = dummy_daos_root() / pool_name;
-
-        ::symlink(pool_path.path().c_str(), label_symlink_path.path().c_str());
-
-    }
+    if (prop != NULL) ::symlink(pool_path.path().c_str(), label_symlink_path.path().c_str());
 
     return 0;
 
@@ -114,8 +122,15 @@ int dmg_pool_destroy(const char *dmg_config_file,
     dummy_daos_root().children(files, dirs);
 
     for (auto& f : files) {
-        if (f.isLink() && f.realName().baseName() == pool_path.baseName()) {
-            f.unlink();
+        try {
+
+            if (f.isLink() && f.realName().baseName() == pool_path.baseName()) f.unlink();
+
+        } catch (eckit::FailedSystemCall& e) {
+
+            std::string message(e.what());
+            if (message.find("No such file or directory") == std::string::npos && message.find("Invalid argument") == std::string::npos) throw;
+
         }
     }
 

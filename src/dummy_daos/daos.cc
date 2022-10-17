@@ -102,10 +102,14 @@ int daos_cont_create_with_label(daos_handle_t poh, const char *label,
     if (ev != NULL) NOTIMP;
 
     //TODO: make a random directory as in pool create, and create symlink.
-    //      This would not be trivial as that method requires generating a
-    //      random uuid and then attempting creating a directory with that
+    //      This would allow to implement the uuid parameter of this function,
+    //      thus having containers with both a uuid and a label.
+    //      This would not be straightforward as that method requires generating
+    //      a random uuid and then attempting creating a directory with that
     //      uuid as name, and it would imply losing atomicity and leaving room
-    //      for race conditions in container creation.
+    //      for race conditions in parallel container creation.
+    //      The symlink creation would also leave room for race conditions in
+    //      concurrent container creation plus destruction.
 
     (poh.impl->path / label).mkdir();
 
