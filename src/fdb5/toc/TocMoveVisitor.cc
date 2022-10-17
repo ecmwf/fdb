@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <algorithm>
 
+#include "eckit/config/Resource.h"
 #include "eckit/os/Stat.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -40,8 +41,10 @@ TocMoveVisitor::TocMoveVisitor(const TocCatalogue& catalogue,
                                const Store& store,
                                const metkit::mars::MarsRequest& request,
                                const eckit::URI& dest,
-                               bool removeSrc) :
-    MoveVisitor(request, dest, removeSrc),
+                               bool removeSrc,
+                               int removeDelay,
+                               int threads) :
+    MoveVisitor(request, dest, removeSrc, removeDelay, threads),
     catalogue_(catalogue),
     store_(store) {}
 
@@ -110,7 +113,9 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
 
 void TocMoveVisitor::move() {
 
-    store_.moveTo(catalogue_.key(), catalogue_.config(), dest_);
+    int numThreads = eckit::Resource<int>("fdbMoveThreads;$FDB_MOVE_THREADS", threads_);
+
+    store_.moveTo(catalogue_.key(), catalogue_.config(), dest_, numThreads);
 
     eckit::PathName destPath = dest_.path();
     for (const eckit::PathName& root: CatalogueRootManager(catalogue_.config()).canMoveToRoots(catalogue_.key())) {
@@ -121,7 +126,7 @@ void TocMoveVisitor::move() {
                 dest_db.mkdir();
             }
             
-            eckit::ThreadPool pool("catalogue"+catalogue_.basePath().asString(), 4);
+            eckit::ThreadPool pool("catalogue"+catalogue_.basePath().asString(), numThreads);
 
             DIR* dirp = ::opendir(catalogue_.basePath().asString().c_str());
             struct dirent* dp;
@@ -140,6 +145,8 @@ void TocMoveVisitor::move() {
             pool.wait();
 
             if (removeSrc_) {
+                sleep(removeDelay_);
+
                 eckit::PathName catalogueFile = catalogue_.basePath() / "toc";
                 eckit::Log::debug<LibFdb5>() << "Removing " << catalogueFile << std::endl;
                 catalogueFile.unlink(false);

@@ -30,7 +30,9 @@ public: // methods
 
     MoveVisitor(const metkit::mars::MarsRequest& request,
                 const eckit::URI& dest,
-                bool removeSrc);
+                bool removeSrc,
+                int removeDelay,
+                int threads);
 
     ~MoveVisitor() override;
 
@@ -47,6 +49,8 @@ protected: // members
 
     const eckit::URI& dest_;
     bool removeSrc_;
+    int removeDelay_;
+    int threads_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

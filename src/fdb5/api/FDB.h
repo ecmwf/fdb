@@ -92,7 +92,7 @@ public: // methods
 
     WipeIterator wipe(const FDBToolRequest& request, bool doit=false, bool porcelain=false, bool unsafeWipeAll=false);
 
-    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc);
+    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads);
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit=false, bool porcelain=false);
 
