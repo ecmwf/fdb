@@ -245,11 +245,11 @@ ControlIterator DistFDB::control(const FDBToolRequest& request,
     });
 }
 
-MoveIterator DistFDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc) {
+MoveIterator DistFDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) {
     Log::debug<LibFdb5>() << "DistFDB::move() : " << request << std::endl;
     return queryInternal(request,
-                         [dest, removeSrc](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.move(request, dest, removeSrc);
+                         [dest, removeSrc, removeDelay, threads](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.move(request, dest, removeSrc, removeDelay, threads);
     });
 }
 

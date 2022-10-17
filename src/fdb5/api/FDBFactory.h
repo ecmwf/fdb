@@ -85,7 +85,7 @@ public: // methods
                                     ControlAction action,
                                     ControlIdentifiers identifier) = 0;
 
-    virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc) = 0;
+    virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) = 0;
 
     // -------------- API management ----------------------------
 
