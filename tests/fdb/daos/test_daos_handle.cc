@@ -190,9 +190,9 @@ CASE( "daos_handle" ) {
     {
         eckit::AutoClose closer(h);
         res = h.write(data, (long) sizeof(data));
+        EXPECT(res == (long) sizeof(data));
         EXPECT(h.position() == Offset(sizeof(data)));
     }
-    EXPECT(res == (long) sizeof(data));
 
     h.openForAppend(Length(sizeof(data)));
     {
@@ -213,7 +213,7 @@ CASE( "daos_handle" ) {
     {
         eckit::AutoClose closer(h2);
         for (int i = 0; i < 2; ++i) {
-            res = h2.read(read_data, (long) sizeof(data));
+            res = h2.read(read_data + i * sizeof(data), (long) sizeof(data));
             EXPECT(res == (long) sizeof(data));
         }
         EXPECT(h2.position() == Offset(2 * sizeof(data)));
@@ -229,7 +229,7 @@ CASE( "daos_handle" ) {
     {
         eckit::AutoClose closer(*h3);
         for (int i = 0; i < 2; ++i) {
-            h3->read(read_data2, (long) sizeof(data));
+            h3->read(read_data2 + i * sizeof(data), (long) sizeof(data));
         }
     }
 

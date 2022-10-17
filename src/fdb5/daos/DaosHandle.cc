@@ -67,7 +67,8 @@ void DaosHandle::openForAppend(const Length& len) {
 
     open_ = true;
 
-    // TODO: should offset be set to size()?
+    // TODO: should offset be set to size() or be left to its current value?
+    offset_ = eckit::Offset(obj_.size());
 
 }
 
@@ -114,6 +115,8 @@ void DaosHandle::close() {
     obj_.close();
 
     open_ = false;
+
+    // TODO: should offset be set to 0?
 
 }
 
