@@ -81,10 +81,6 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
                 continue;
         }
 
-        if(::strcmp(e->d_name, "toc") == 0) {
-            dbs.push_back(path);
-        }
-
         std::string full = path;
         if (path[path.length()-1] != '/') full += "/";
         full += e->d_name;
