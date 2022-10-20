@@ -39,6 +39,12 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) const {
+
+    if ((eckit::PathName(path) / "toc").exists()) {
+        dbs.push_back(path);
+        return;
+    }
+
     eckit::StdDir d(path.c_str());
     if (d == nullptr) {
         // If fdb-wipe is running in parallel, it is perfectly legit for a (non-matching)
