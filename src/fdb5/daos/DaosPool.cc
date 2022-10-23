@@ -13,24 +13,24 @@
 #include "eckit/exception/Exceptions.h"
 
 #include "fdb5/daos/DaosPool.h"
-#include "fdb5/daos/DaosCluster.h"
+#include "fdb5/daos/DaosSession.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosPool::DaosPool() : known_uuid_(false), open_(false) {}
+DaosPool::DaosPool(fdb5::DaosSession& session) : session_(session), known_uuid_(false), open_(false) {}
 
-DaosPool::DaosPool(uuid_t uuid) : known_uuid_(true), open_(false) {
+DaosPool::DaosPool(fdb5::DaosSession& session, uuid_t uuid) : session_(session), known_uuid_(true), open_(false) {
 
     uuid_copy(uuid_, uuid);
 
 }
 
-DaosPool::DaosPool(const std::string& label) : known_uuid_(false), label_(label), open_(false) {}
+DaosPool::DaosPool(fdb5::DaosSession& session, const std::string& label) : session_(session), known_uuid_(false), label_(label), open_(false) {}
 
 
-DaosPool::DaosPool(uuid_t uuid, const std::string& label) : known_uuid_(true), label_(label), open_(false) {
+DaosPool::DaosPool(fdb5::DaosSession& session, uuid_t uuid, const std::string& label) : session_(session), known_uuid_(true), label_(label), open_(false) {
 
     uuid_copy(uuid_, uuid);
 
@@ -71,7 +71,7 @@ void DaosPool::create() {
     }
 
     // TODO: add parameters or resources to adjust these fixed values
-    DAOS_CALL(dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, DaosCluster::default_pool_create_scm_size, DaosCluster::default_pool_create_nvme_size, prop, &svcl, uuid_));
+    DAOS_CALL(dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, DaosSession::default_pool_create_scm_size, DaosSession::default_pool_create_nvme_size, prop, &svcl, uuid_));
 
     // TODO: query the pool to ensure it's ready
 
@@ -89,12 +89,12 @@ void DaosPool::destroy() {
 
     if (!known_uuid_) NOTIMP;
 
-    fdb5::DaosCluster::instance().closePool(uuid_);
+    session_.closePool(uuid_);
 
     // TODO: cached DaosPools declared with a label only, pointing to the pool
     // being destroyed may still exist and should be closed.
 
-    DAOS_CALL(dmg_pool_destroy(NULL, uuid_, NULL, fdb5::DaosCluster::default_pool_destroy_force));
+    DAOS_CALL(dmg_pool_destroy(NULL, uuid_, NULL, fdb5::DaosSession::default_pool_destroy_force));
 
     // TODO: the DaosPools pointing to the destroyed DAOS pool are now invalid
     // and cannot be reopened unless a new pool with the same label or uuid 
@@ -309,6 +309,12 @@ const daos_handle_t& DaosPool::getOpenHandle() {
     
     open();
     return poh_;
+
+}
+
+fdb5::DaosSession& DaosPool::getSession() const {
+
+    return session_;
 
 }
 

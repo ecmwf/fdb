@@ -20,7 +20,7 @@
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosObject.h"
-// #include "fdb5/daos/DaosCluster.h"
+#include "fdb5/daos/DaosSession.h"
 
 using eckit::Length;
 using eckit::Offset;
@@ -30,8 +30,8 @@ namespace fdb5 {
 // TODO: do we really want to allow this? handle now manages an also user-managed object. Should we std::move it?
 DaosHandle::DaosHandle(fdb5::DaosObject& obj) : obj_(obj), open_(false), offset_(0) {}
 
-DaosHandle::DaosHandle(const fdb5::DaosName& name) : 
-    managed_obj_(std::unique_ptr<fdb5::DaosObject>(new DaosObject(name))), 
+DaosHandle::DaosHandle(fdb5::DaosSession& session, const fdb5::DaosName& name) : 
+    managed_obj_(std::unique_ptr<fdb5::DaosObject>(new DaosObject(session, name))), 
     obj_(*(managed_obj_.get())), 
     open_(false), 
     offset_(0) {}

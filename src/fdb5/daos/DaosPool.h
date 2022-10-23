@@ -19,12 +19,14 @@
 #include <string>
 #include <deque>
 
-// #include "fdb5/daos/DaosCluster.h"
+// #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosContainer.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+
+class DaosSession;
 
 class DaosPool {
 
@@ -54,24 +56,26 @@ public: // methods
     void closeContainer(const std::string&);
 
     const daos_handle_t& getOpenHandle();
-
+    
+    fdb5::DaosSession& getSession() const;
     std::string name() const;
     void uuid(uuid_t) const;
     std::string label() const;
 
 private: // methods
 
-    DaosPool();
-    DaosPool(uuid_t);
-    DaosPool(const std::string&);
-    DaosPool(uuid_t, const std::string&);
-    friend class DaosCluster;
+    DaosPool(fdb5::DaosSession&);
+    DaosPool(fdb5::DaosSession&, uuid_t);
+    DaosPool(fdb5::DaosSession&, const std::string&);
+    DaosPool(fdb5::DaosSession&, uuid_t, const std::string&);
+    friend class DaosSession;
 
     std::deque<fdb5::DaosContainer>::iterator getCachedContainer(uuid_t);
     std::deque<fdb5::DaosContainer>::iterator getCachedContainer(const std::string&);
 
 private: // members
 
+    fdb5::DaosSession& session_;
     uuid_t uuid_;
     bool known_uuid_;
     std::string label_ = std::string();

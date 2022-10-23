@@ -12,30 +12,31 @@
 
 #include <sstream>
 
-#include "fdb5/daos/DaosCluster.h"
+#include "fdb5/daos/DaosSession.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosCluster& DaosCluster::instance() {
-    static DaosCluster instance_;
-    return instance_;
-}
+DaosSession::DaosSession() {
 
-DaosCluster::DaosCluster() {
-
+    // daos_init can be called multiple times, an internal reference count is maintained by the library
     DAOS_CALL(daos_init());
 
 }
 
-DaosCluster::~DaosCluster() {
+DaosSession::~DaosSession() {
 
-    DAOS_CALL(daos_fini());
+    std::cout << "DAOS_CALL => daos_fini()" << std::endl;
+    int code = daos_fini();
+    if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_fini(), file " 
+        << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
+        << strerror(-code) << ")" << std::endl;
+    std::cout << "DAOS_CALL <= daos_fini()" << std::endl;
 
 }
 
-std::deque<fdb5::DaosPool>::iterator DaosCluster::getCachedPool(uuid_t uuid) {
+std::deque<fdb5::DaosPool>::iterator DaosSession::getCachedPool(uuid_t uuid) {
 
     uuid_t other = {0};
 
@@ -51,7 +52,7 @@ std::deque<fdb5::DaosPool>::iterator DaosCluster::getCachedPool(uuid_t uuid) {
 
 }
 
-std::deque<fdb5::DaosPool>::iterator DaosCluster::getCachedPool(const std::string& label) {
+std::deque<fdb5::DaosPool>::iterator DaosSession::getCachedPool(const std::string& label) {
 
     std::deque<fdb5::DaosPool>::iterator it;
     for (it = pool_cache_.begin(); it != pool_cache_.end(); ++it) {
@@ -64,31 +65,31 @@ std::deque<fdb5::DaosPool>::iterator DaosCluster::getCachedPool(const std::strin
 
 }
 
-fdb5::DaosPool& DaosCluster::declarePool(uuid_t uuid) {
+fdb5::DaosPool& DaosSession::declarePool(uuid_t uuid) {
 
     std::deque<fdb5::DaosPool>::iterator it = getCachedPool(uuid);
 
     if (it != pool_cache_.end()) return *it;
 
-    pool_cache_.push_front(fdb5::DaosPool(uuid));
+    pool_cache_.push_front(fdb5::DaosPool(*this, uuid));
     
     return pool_cache_.at(0);
 
 }
 
-fdb5::DaosPool& DaosCluster::declarePool(const std::string& label) {
+fdb5::DaosPool& DaosSession::declarePool(const std::string& label) {
 
     std::deque<fdb5::DaosPool>::iterator it = getCachedPool(label);
 
     if (it != pool_cache_.end()) return *it;
     
-    pool_cache_.push_front(fdb5::DaosPool(label));
+    pool_cache_.push_front(fdb5::DaosPool(*this, label));
     
     return pool_cache_.at(0);
 
 }
 
-DaosPool& DaosCluster::declarePool(uuid_t uuid, const std::string& label) {
+DaosPool& DaosSession::declarePool(uuid_t uuid, const std::string& label) {
 
     // When both pool uuid and label are known, using this method to declare
     // a pool is preferred to avoid the following inconsistencies and/or 
@@ -106,7 +107,7 @@ DaosPool& DaosCluster::declarePool(uuid_t uuid, const std::string& label) {
 
         if (it->label() == label) return *it;
 
-        pool_cache_.push_front(fdb5::DaosPool(uuid, label));
+        pool_cache_.push_front(fdb5::DaosPool(*this, uuid, label));
         return pool_cache_.at(0);
 
     }
@@ -114,14 +115,14 @@ DaosPool& DaosCluster::declarePool(uuid_t uuid, const std::string& label) {
     it = getCachedPool(label);
     if (it != pool_cache_.end()) return *it;
 
-    pool_cache_.push_front(fdb5::DaosPool(label));
+    pool_cache_.push_front(fdb5::DaosPool(*this, label));
     return pool_cache_.at(0);
 
 }
 
-fdb5::DaosPool& DaosCluster::createPool() {
+fdb5::DaosPool& DaosSession::createPool() {
 
-    pool_cache_.push_front(fdb5::DaosPool());
+    pool_cache_.push_front(fdb5::DaosPool(*this));
 
     fdb5::DaosPool& p = pool_cache_.at(0);
 
@@ -131,7 +132,7 @@ fdb5::DaosPool& DaosCluster::createPool() {
 
 }
 
-fdb5::DaosPool& DaosCluster::createPool(const std::string& label) {
+fdb5::DaosPool& DaosSession::createPool(const std::string& label) {
 
     fdb5::DaosPool& p = declarePool(label);
     
@@ -141,7 +142,7 @@ fdb5::DaosPool& DaosCluster::createPool(const std::string& label) {
 
 }
 
-void DaosCluster::destroyPool(uuid_t uuid) {
+void DaosSession::destroyPool(uuid_t uuid) {
 
     // TODO: make getCachedPool return a *DaosPool rather than an iterator?
     // and check it == nullptr rather than it == pool_cache_.end().
@@ -158,7 +159,7 @@ void DaosCluster::destroyPool(uuid_t uuid) {
 
 }
 
-void DaosCluster::closePool(uuid_t uuid) {
+void DaosSession::closePool(uuid_t uuid) {
 
     uuid_t other = {0};
 
@@ -172,7 +173,7 @@ void DaosCluster::closePool(uuid_t uuid) {
 
 }
 
-void DaosCluster::error(int code, const char* msg, const char* file, int line, const char* func) {
+void DaosSession::error(int code, const char* msg, const char* file, int line, const char* func) {
 
     std::ostringstream oss;
     oss << "DAOS error " << msg << ", file " << file << ", line " << line << ", function " << func << " [" << code

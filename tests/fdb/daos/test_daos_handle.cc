@@ -14,7 +14,7 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/filesystem/PathName.h"
 
-#include "fdb5/daos/DaosCluster.h"
+#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosObject.h"
@@ -38,7 +38,7 @@ CASE( "daos_handle" ) {
 
     // TODO: currently, all pool and container connections are cached and kept open for the duration of the process. Would
     // be nice to close container connections as they become unused. However the DaosContainer instances are managed by the 
-    // DaosPools/DaosCluster, so we never know when the user has finished using a certain container. My current thought is
+    // DaosPools/DaosSession, so we never know when the user has finished using a certain container. My current thought is
     // we don't need to fix this, as each process will only use a single pool and 2 * (indices involved) containers.
     // However in a large parallel application, while all client processes are running, there may be a large number of
     // open containers in the DAOS system. One idea would be to use shared pointers to count number of uses.
@@ -70,27 +70,29 @@ CASE( "daos_handle" ) {
     // TODO: implement missing methods in DaosName and DaosHandle
 
 
-    fdb5::DaosCluster::instance();
+    // TODO: config
+
+    fdb5::DaosSession s{};
 
 
     // UNNAMED POOL
 
-    fdb5::DaosPool& unnamed_pool = fdb5::DaosCluster::instance().createPool();
+    fdb5::DaosPool& unnamed_pool = s.createPool();
     // unnamed_pool.open();  // optional
 
 
 
     // NAMED POOL
 
-    fdb5::DaosPool& pool2 = fdb5::DaosCluster::instance().createPool(std::string("pool2"));
+    fdb5::DaosPool& pool2 = s.createPool(std::string("pool2"));
     // pool2.open();  // optional
 
-    fdb5::DaosPool& pool3 = fdb5::DaosCluster::instance().declarePool(std::string("pool2"));
+    fdb5::DaosPool& pool3 = s.declarePool(std::string("pool2"));
     // pool3.open();  // optional
 
     EXPECT(&pool2 == &pool3);
 
-    fdb5::DaosPool& pool4 = fdb5::DaosCluster::instance().declarePool(std::string("pool4"));
+    fdb5::DaosPool& pool4 = s.declarePool(std::string("pool4"));
     pool4.create();
     // pool4.open();  // optional
 
@@ -175,8 +177,11 @@ CASE( "daos_handle" ) {
 
     // alternative to deserialisation if name is known remotely:
     fdb5::DaosName deserialisedname(std::string("pool2"), std::string("cont2"), test_oid);
+    
+    deserialisedname.setSession(&s);
+    std::cout << "Object size is: " << deserialisedname.size() << std::endl;
 
-    fdb5::DaosObject readobj(deserialisedname);
+    fdb5::DaosObject readobj(s, deserialisedname);
 
 
 
@@ -224,6 +229,7 @@ CASE( "daos_handle" ) {
 
     char read_data2[10] = "";
 
+    deserialisedname.setSession(&s);
     std::unique_ptr<fdb5::DaosHandle> h3((fdb5::DaosHandle*) deserialisedname.dataHandle());
     h3->openForRead();
     {
@@ -268,7 +274,7 @@ CASE( "daos_handle" ) {
 
     uuid_t pool3_uuid = {0};
     pool3.uuid(pool3_uuid);
-    fdb5::DaosCluster::instance().destroyPool(pool3_uuid);
+    s.destroyPool(pool3_uuid);
 
     pool2.close();  // optional
     // pool2.destroy();  // this fails as the pool has already been destroyed in destruction of pool3

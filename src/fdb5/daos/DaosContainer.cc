@@ -12,7 +12,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/TmpDir.h"
 
-#include "fdb5/daos/DaosCluster.h"
+#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosObject.h"
@@ -132,7 +132,7 @@ fdb5::DaosObject DaosContainer::createObject() {
     open();
 
     if (oid_alloc_.num_oids == 0) {
-        oid_alloc_.num_oids = fdb5::DaosCluster::default_container_oids_per_alloc;
+        oid_alloc_.num_oids = fdb5::DaosSession::default_container_oids_per_alloc;
         DAOS_CALL(daos_cont_alloc_oids(coh_, oid_alloc_.num_oids + 1, &(oid_alloc_.next_oid), NULL));
     } else {
         ++oid_alloc_.next_oid;

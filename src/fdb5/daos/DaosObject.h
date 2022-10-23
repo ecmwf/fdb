@@ -23,10 +23,6 @@
 
 // #include "eckit/io/Offset.h"
 
-daos_obj_id_t str_to_oid(const std::string&);
-std::string oid_to_str(const daos_obj_id_t&);
-fdb5::DaosContainer& name_to_cont_ref(const fdb5::DaosName&);
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -35,14 +31,20 @@ namespace fdb5 {
 
 class DaosContainer;
 
+class DaosSession;
+
+daos_obj_id_t str_to_oid(const std::string&);
+std::string oid_to_str(const daos_obj_id_t&);
+fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession&, const fdb5::DaosName&);
+
 class DaosObject {
 
 public: // methods
 
     DaosObject(fdb5::DaosContainer&, daos_obj_id_t);
     DaosObject(fdb5::DaosContainer&, const std::string&);
-    DaosObject(const fdb5::DaosName&);
-    DaosObject(const eckit::URI&);
+    DaosObject(fdb5::DaosSession&, const fdb5::DaosName&);
+    DaosObject(fdb5::DaosSession&, const eckit::URI&);
     ~DaosObject();
 
     void create();

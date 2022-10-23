@@ -15,9 +15,13 @@
 #include "eckit/utils/Translator.h"
 // #include "eckit/config/Resource.h"
 
-#include "fdb5/daos/DaosCluster.h"
+#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosObject.h"
+
+namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
 
 daos_obj_id_t str_to_oid(const std::string& s) {
     ASSERT(s.length() == 33);
@@ -36,15 +40,15 @@ std::string oid_to_str(const daos_obj_id_t& oid) {
     return os.str();
 }
 
-fdb5::DaosContainer& name_to_cont_ref(const fdb5::DaosName& name) {
+fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession& session, const fdb5::DaosName& name) {
 
     uuid_t uuid = {0};
 
     fdb5::DaosPool* pool;
     if (uuid_parse(name.poolName().c_str(), uuid) == 0) {
-        pool = &(fdb5::DaosCluster::instance().declarePool(uuid));
+        pool = &(session.declarePool(uuid));
     } else {
-        pool = &(fdb5::DaosCluster::instance().declarePool(name.poolName()));
+        pool = &(session.declarePool(name.poolName()));
     }
 
     if (uuid_parse(name.contName().c_str(), uuid) == 0) {
@@ -55,10 +59,6 @@ fdb5::DaosContainer& name_to_cont_ref(const fdb5::DaosName& name) {
     
 }
 
-namespace fdb5 {
-
-//----------------------------------------------------------------------------------------------------------------------
-
 DaosObject::DaosObject(fdb5::DaosContainer& cont, daos_obj_id_t oid) : cont_(cont), oid_(oid), open_(false) {}
 
 DaosObject::DaosObject(fdb5::DaosContainer& cont, const std::string& oid) : cont_(cont), open_(false) {
@@ -67,13 +67,13 @@ DaosObject::DaosObject(fdb5::DaosContainer& cont, const std::string& oid) : cont
 
 }
 
-DaosObject::DaosObject(const fdb5::DaosName& name) : cont_(name_to_cont_ref(name)), open_(false) {
+DaosObject::DaosObject(fdb5::DaosSession& session, const fdb5::DaosName& name) : cont_(name_to_cont_ref(session, name)), open_(false) {
 
     oid_ = str_to_oid(name.oid());
 
 }
 
-DaosObject::DaosObject(const eckit::URI& uri) : DaosObject(DaosName(uri)) {}
+DaosObject::DaosObject(fdb5::DaosSession& session, const eckit::URI& uri) : DaosObject(session, DaosName(uri)) {}
 
 DaosObject::~DaosObject() {
 
@@ -90,7 +90,7 @@ void DaosObject::create() {
 
     const daos_handle_t& coh = cont_.getOpenHandle();
 
-    DAOS_CALL(daos_array_create(coh, oid_, DAOS_TX_NONE, DaosCluster::default_object_create_cell_size, DaosCluster::default_object_create_chunk_size, &oh_, NULL));
+    DAOS_CALL(daos_array_create(coh, oid_, DAOS_TX_NONE, DaosSession::default_object_create_cell_size, DaosSession::default_object_create_chunk_size, &oh_, NULL));
 
     open_ = true;
 

@@ -22,16 +22,18 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DaosName;
+class DaosSession;
 
 class DaosObject;
+
+class DaosName;
 
 class DaosHandle : public eckit::DataHandle {
 
 public: // methods
 
     DaosHandle(fdb5::DaosObject&);
-    DaosHandle(const fdb5::DaosName&);
+    DaosHandle(fdb5::DaosSession&, const fdb5::DaosName&);
 
     ~DaosHandle();
 

@@ -360,8 +360,8 @@ if( HAVE_DAOSFDB )
         daos/DaosContainer.h
         daos/DaosPool.cc
         daos/DaosPool.h
-        daos/DaosCluster.cc
-        daos/DaosCluster.h
+        daos/DaosSession.cc
+        daos/DaosSession.h
         daos/DaosHandle.cc
         daos/DaosHandle.h
     )

@@ -28,11 +28,12 @@ namespace fdb5 {
 
 #define DAOS_CALL(a) fdb5::daos_call(a, #a, __FILE__, __LINE__, __func__)
 
-class DaosCluster {
+class DaosSession : eckit::NonCopyable {
 
 public: // methods
 
-    static DaosCluster& instance();
+    DaosSession();
+    ~DaosSession();
 
     fdb5::DaosPool& declarePool(uuid_t);
     fdb5::DaosPool& declarePool(const std::string&);
@@ -48,9 +49,6 @@ public: // methods
     static void error(int code, const char* msg, const char* file, int line, const char* func);
 
 private: // methods
-
-    DaosCluster();
-    ~DaosCluster();
 
     std::deque<fdb5::DaosPool>::iterator getCachedPool(uuid_t);
     std::deque<fdb5::DaosPool>::iterator getCachedPool(const std::string&);
@@ -78,7 +76,7 @@ static inline int daos_call(int code, const char* msg, const char* file, int lin
 
     if (code < 0) {
         std::cout << "DAOS_FAIL !! " << msg << std::endl;
-        DaosCluster::error(code, msg, file, line, func);
+        DaosSession::error(code, msg, file, line, func);
     }
 
     std::cout << "DAOS_CALL <= " << msg << std::endl;

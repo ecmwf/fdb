@@ -14,6 +14,7 @@
 // #include "eckit/io/DataHandle.h"
 
 #include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosObject.h"
@@ -49,7 +50,12 @@ DaosName::DaosName(const eckit::URI& uri) : DaosName(uri.name()) {}
 
 void DaosName::createManagedObject() {
 
-    if (obj_.get() == nullptr) obj_ = std::unique_ptr<fdb5::DaosObject>(new fdb5::DaosObject(*this));
+    if (session_ == nullptr) throw eckit::Exception(
+        "DaosName instance cannot create a managed DaosObject without a known DaosSession "
+        "instance. Use name_instance.setSession beforehand."
+        );
+
+    if (obj_.get() == nullptr) obj_ = std::unique_ptr<fdb5::DaosObject>(new fdb5::DaosObject(*session_, *this));
 
 }
 
@@ -57,6 +63,12 @@ daos_size_t DaosName::size() {
 
     createManagedObject();
     return obj_->size();
+
+}
+
+void DaosName::setSession(fdb5::DaosSession* session) {
+
+    session_ = session;
 
 }
 
@@ -92,7 +104,15 @@ std::string DaosName::oid() const {
 
 eckit::DataHandle* DaosName::dataHandle(bool overwrite) const {
 
-    return new fdb5::DaosHandle(*this);
+    if (session_ == nullptr) throw eckit::Exception(
+        "DaosName instance cannot create a DaosHandle without a known DaosSession "
+        "instance. Use name_instance.setSession or session_instance.getDataHandle(name_instance)."
+        );
+
+    // TODO: implement what's in the exception message.
+    // TODO: OK to serialise pointers in DaosName?
+
+    return new fdb5::DaosHandle(*session_, *this);
 
 }
 

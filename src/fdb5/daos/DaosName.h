@@ -25,6 +25,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class DaosSession;
 class DaosPool;
 class DaosContainer;
 class DaosObject;
@@ -42,6 +43,8 @@ public: // methods
     // TODO: return eckit::Length?
     daos_size_t size();
     //bool exists();
+
+    void setSession(fdb5::DaosSession*);
 
     std::string asString() const;
     eckit::URI URI() const;
@@ -63,6 +66,7 @@ private: // members
     std::string oid_;
     // TODO: cleaner way to initialise?
     std::unique_ptr<fdb5::DaosObject> obj_ = nullptr;
+    fdb5::DaosSession* session_ = nullptr;
 
 };
 
