@@ -130,11 +130,20 @@ void DaosPool::open() {
 void DaosPool::close() {
 
     if (!open_) {
-        // eckit::Log::warning() << "Disconnecting DaosPool " << name() << ", pool is not open" << std::endl;
+        eckit::Log::warning() << "Disconnecting DaosPool " << name() << ", pool is not open" << std::endl;
         return;
     }
 
-    DAOS_CALL(daos_pool_disconnect(poh_, NULL));
+    std::cout << "DAOS_CALL => daos_pool_disconnect()" << std::endl;
+
+    int code = daos_pool_disconnect(poh_, NULL);
+
+    if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_pool_disconnect(), file " 
+        << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
+        << strerror(-code) << ")" << std::endl;
+        
+    std::cout << "DAOS_CALL <= daos_pool_disconnect()" << std::endl;
+
     open_ = false;
 
 }

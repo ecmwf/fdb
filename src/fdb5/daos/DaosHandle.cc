@@ -38,8 +38,7 @@ DaosHandle::DaosHandle(fdb5::DaosSession& session, const fdb5::DaosName& name) :
 
 DaosHandle::~DaosHandle() {
 
-    // TODO: do we really want to close? in cases where an object is managed by the user and multiple data handles are built from it, the handles may repeatedly open and close a same object
-    if (open_) close();
+    if (open_) eckit::Log::error() << "DaosHandle not closed before destruction." << std::endl;
 
 }
 

@@ -120,8 +120,17 @@ void DaosObject::close() {
         eckit::Log::warning() << "Closing DaosObject " << name().asString() << ", object is not open" << std::endl;
         return;
     }
+    
+    std::cout << "DAOS_CALL => daos_array_close()" << std::endl;
 
-    DAOS_CALL(daos_array_close(oh_, NULL));
+    int code = daos_array_close(oh_, NULL);
+
+    if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_array_close(), file " 
+        << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
+        << strerror(-code) << ")" << std::endl;
+        
+    std::cout << "DAOS_CALL <= daos_array_close()" << std::endl;
+
     open_ = false;
 
 }

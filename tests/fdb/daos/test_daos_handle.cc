@@ -70,8 +70,8 @@ CASE( "daos_handle" ) {
     // TODO: implement missing methods in DaosName and DaosHandle
 
 
-    // TODO: config
 
+    // TODO: make DaosSession take configuration, and have some defaults if no config is provided
     fdb5::DaosSession s{};
 
 

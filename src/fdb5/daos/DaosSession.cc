@@ -20,7 +20,7 @@ namespace fdb5 {
 
 DaosSession::DaosSession() {
 
-    // daos_init can be called multiple times, an internal reference count is maintained by the library
+    // daos_init can be called multiple times. An internal reference count is maintained by the library
     DAOS_CALL(daos_init());
 
 }
@@ -28,10 +28,13 @@ DaosSession::DaosSession() {
 DaosSession::~DaosSession() {
 
     std::cout << "DAOS_CALL => daos_fini()" << std::endl;
+
     int code = daos_fini();
+
     if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_fini(), file " 
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
         << strerror(-code) << ")" << std::endl;
+
     std::cout << "DAOS_CALL <= daos_fini()" << std::endl;
 
 }
