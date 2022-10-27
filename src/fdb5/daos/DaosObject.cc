@@ -10,6 +10,7 @@
 
 // #include <iostream>
 #include <iomanip>
+#include <utility>
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
@@ -74,6 +75,14 @@ DaosObject::DaosObject(fdb5::DaosSession& session, const fdb5::DaosName& name) :
 }
 
 DaosObject::DaosObject(fdb5::DaosSession& session, const eckit::URI& uri) : DaosObject(session, DaosName(uri)) {}
+
+DaosObject::DaosObject(DaosObject&& rhs) noexcept : cont_(rhs.cont_), open_(rhs.open_) {
+
+    std::swap(oid_, rhs.oid_);
+    std::swap(oh_, rhs.oh_);
+    rhs.open_ = false;
+
+}
 
 DaosObject::~DaosObject() {
 

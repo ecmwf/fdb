@@ -190,7 +190,7 @@ CASE( "daos_handle" ) {
     char data[] = "test";
     long res;
 
-    fdb5::DaosHandle h(obj2);
+    fdb5::DaosHandle h(std::move(obj2));
     h.openForWrite(Length(sizeof(data)));
     {
         eckit::AutoClose closer(h);
@@ -211,7 +211,7 @@ CASE( "daos_handle" ) {
 
     char read_data[10] = "";
 
-    fdb5::DaosHandle h2(readobj);
+    fdb5::DaosHandle h2(std::move(readobj));
     Length t = h2.openForRead();
     EXPECT(t == Length(2 * sizeof(data)));
     EXPECT(h2.position() == Offset(0));
@@ -254,8 +254,8 @@ CASE( "daos_handle" ) {
     obj4.close();  // optional
     // obj4.destroy();  // NOTIMP
 
-    obj2.close();  // optional
-    // obj2.destroy()  // NOTIMP
+    //obj2.close();  // optional
+    // obj2.destroy()  // lost ownership
 
     obj.close();  // optional
     // obj.destroy();  // NOTIMP

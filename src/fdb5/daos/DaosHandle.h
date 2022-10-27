@@ -32,7 +32,7 @@ class DaosHandle : public eckit::DataHandle {
 
 public: // methods
 
-    DaosHandle(fdb5::DaosObject&);
+    DaosHandle(fdb5::DaosObject&&);
     DaosHandle(fdb5::DaosSession&, const fdb5::DaosName&);
 
     ~DaosHandle();
@@ -68,8 +68,7 @@ public: // methods
 
 private: // members
 
-    std::unique_ptr<fdb5::DaosObject> managed_obj_ = nullptr;
-    fdb5::DaosObject& obj_;
+    std::unique_ptr<fdb5::DaosObject> obj_;
     bool open_;
     eckit::Offset offset_;
 

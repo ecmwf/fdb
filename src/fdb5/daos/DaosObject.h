@@ -45,6 +45,7 @@ public: // methods
     DaosObject(fdb5::DaosContainer&, const std::string&);
     DaosObject(fdb5::DaosSession&, const fdb5::DaosName&);
     DaosObject(fdb5::DaosSession&, const eckit::URI&);
+    DaosObject(DaosObject&&) noexcept;
     ~DaosObject();
 
     void create();

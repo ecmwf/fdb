@@ -27,17 +27,17 @@ using eckit::Offset;
 
 namespace fdb5 {
 
-// TODO: do we really want to allow this? handle now manages an also user-managed object. Should we std::move it?
-DaosHandle::DaosHandle(fdb5::DaosObject& obj) : obj_(obj), open_(false), offset_(0) {}
+DaosHandle::DaosHandle(fdb5::DaosObject&& obj) : 
+    obj_(std::unique_ptr<fdb5::DaosObject>(new DaosObject(std::move(obj)))),
+    open_(false), offset_(0) {}
 
 DaosHandle::DaosHandle(fdb5::DaosSession& session, const fdb5::DaosName& name) : 
-    managed_obj_(std::unique_ptr<fdb5::DaosObject>(new DaosObject(session, name))), 
-    obj_(*(managed_obj_.get())), 
-    open_(false), 
-    offset_(0) {}
+    obj_(std::unique_ptr<fdb5::DaosObject>(new DaosObject(session, name))),
+    open_(false), offset_(0) {}
 
 DaosHandle::~DaosHandle() {
 
+    // TODO: logging could throw?
     if (open_) eckit::Log::error() << "DaosHandle not closed before destruction." << std::endl;
 
 }
@@ -50,7 +50,7 @@ void DaosHandle::openForWrite(const Length& len) {
 
     // TODO: should wipe object content?
 
-    obj_.create();
+    obj_->create();
 
     open_ = true;
 
@@ -62,12 +62,12 @@ void DaosHandle::openForAppend(const Length& len) {
 
     // TODO: should the open crash if object does not exist?
 
-    obj_.open();
+    obj_->open();
 
     open_ = true;
 
     // TODO: should offset be set to size() or be left to its current value?
-    offset_ = eckit::Offset(obj_.size());
+    offset_ = eckit::Offset(obj_->size());
 
 }
 
@@ -77,11 +77,11 @@ Length DaosHandle::openForRead() {
 
     offset_ = eckit::Offset(0);
 
-    obj_.open();
+    obj_->open();
 
     open_ = true;
 
-    return Length(obj_.size());
+    return Length(obj_->size());
 
 }
 
@@ -89,7 +89,7 @@ long DaosHandle::write(const void* buf, long len) {
 
     ASSERT(open_);
 
-    long written = obj_.write(buf, len, offset_);
+    long written = obj_->write(buf, len, offset_);
 
     offset_ += written;
 
@@ -101,7 +101,7 @@ long DaosHandle::read(void* buf, long len) {
 
     ASSERT(open_);
 
-    long read = obj_.read(buf, len, offset_);
+    long read = obj_->read(buf, len, offset_);
 
     offset_ += read;
 
@@ -111,7 +111,7 @@ long DaosHandle::read(void* buf, long len) {
 
 void DaosHandle::close() {
 
-    obj_.close();
+    obj_->close();
 
     open_ = false;
 
@@ -129,7 +129,7 @@ Length DaosHandle::size() {
 
     // TODO: is this assert needed? As long as obj is open, should be ok
     ASSERT(open_);
-    return Length(obj_.size());
+    return Length(obj_->size());
 
 }
 
@@ -168,7 +168,7 @@ void DaosHandle::skip(const Length& len) {
 
 std::string DaosHandle::title() const {
     
-    return obj_.name().asString();
+    return obj_->name().asString();
 
 }
 
