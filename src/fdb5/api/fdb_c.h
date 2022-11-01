@@ -323,6 +323,14 @@ int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data
  */
 int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates);
 
+/** Return metadata of all available data whose metadata matches a given user request.
+ * \param fdb FDB instance.
+ * \param req User Request
+ * \param it ListIterator than can be used to retrieve metadata and attributes of all ListElement matching the user Request #req
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_inspect(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it);
+
 /** Return all available data whose metadata matches a given user request.
  * \param fdb FDB instance.
  * \param req User Request. Metadata of retrieved data must match with the user Request

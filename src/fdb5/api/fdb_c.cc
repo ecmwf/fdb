@@ -344,6 +344,15 @@ int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** i
         *it = new fdb_listiterator_t(fdb->list(toolRequest, duplicates));
     });
 }
+int fdb_inspect(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it) {
+    return wrapApiFunction([fdb, req, it] {
+        ASSERT(fdb);
+        ASSERT(req);
+        ASSERT(it);
+
+        *it = new fdb_listiterator_t(fdb->inspect(req->request()));
+    });
+}
 int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr) {
     return wrapApiFunction([fdb, req, dr] {
         ASSERT(fdb);
