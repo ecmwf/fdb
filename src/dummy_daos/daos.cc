@@ -284,7 +284,7 @@ int daos_array_generate_oid(daos_handle_t coh, daos_obj_id_t *oid, bool add_attr
     if (hints != 0) NOTIMP;
     if (args != 0) NOTIMP;
 
-    oid->hi = (uint64_t) 0;
+    oid->hi &= (uint64_t) 0x00000000FFFFFFFF;
 
     return 0;
 
