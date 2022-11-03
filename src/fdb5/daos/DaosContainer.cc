@@ -16,6 +16,7 @@
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosObject.h"
+#include "fdb5/daos/DaosOID.h"
 
 namespace fdb5 {
 
@@ -138,6 +139,7 @@ void DaosContainer::close() {
 
 fdb5::DaosObject DaosContainer::createObject() {
 
+    create();
     open();
 
     if (oid_alloc_.num_oids == 0) {
@@ -152,25 +154,21 @@ fdb5::DaosObject DaosContainer::createObject() {
     next.lo = oid_alloc_.next_oid;
     DAOS_CALL(daos_array_generate_oid(coh_, &next, true, OC_S1, 0, 0));
 
-    fdb5::DaosObject obj(*this, next);
+    fdb5::DaosObject obj(*this, fdb5::DaosOID{next.hi, next.lo}, false);
     obj.create();
     return obj;
 
 }
 
-fdb5::DaosObject DaosContainer::createObject(daos_obj_id_t oid) {
+fdb5::DaosObject DaosContainer::createObject(uint32_t hi, uint64_t lo) {
 
-    fdb5::DaosObject obj(*this, oid);
-    obj.create();
-    return obj;
+    create();
+    open();
 
-}
-
-fdb5::DaosObject DaosContainer::createObject(const std::string& oid) {
-
-    // TODO: assert in container creation that the provided label has size > 0?
-
-    fdb5::DaosObject obj(*this, oid);
+    daos_obj_id_t id{(uint64_t) hi, lo};
+    DAOS_CALL(daos_array_generate_oid(coh_, &id, true, OC_S1, 0, 0));
+    
+    fdb5::DaosObject obj(*this, fdb5::DaosOID{id.hi, id.lo}, false);
     obj.create();
     return obj;
 
@@ -182,6 +180,23 @@ const daos_handle_t& DaosContainer::getOpenHandle() {
     return coh_;
     
 };
+
+bool DaosContainer::exists() {
+
+    // TODO: implement this with more appropriate DAOS API functions
+    try {
+
+        open();
+
+    } catch (eckit::SeriousBug& e) {
+
+        return false;
+
+    }
+    
+    return true;
+
+}
 
 std::string DaosContainer::name() const {
 

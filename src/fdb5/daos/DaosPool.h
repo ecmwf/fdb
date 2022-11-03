@@ -35,22 +35,22 @@ public: // methods
     ~DaosPool();
 
     // administrative
-    void create();
     void destroy();
 
     void open();
     void close();
 
-    fdb5::DaosContainer& declareContainer(uuid_t);
-    fdb5::DaosContainer& declareContainer(const std::string&);
-    fdb5::DaosContainer& declareContainer(uuid_t, const std::string&);
+    fdb5::DaosContainer& getContainer(uuid_t);
+    fdb5::DaosContainer& getContainer(const std::string&);
+    fdb5::DaosContainer& getContainer(uuid_t, const std::string&);
 
     fdb5::DaosContainer& createContainer(uuid_t);
     fdb5::DaosContainer& createContainer(const std::string&);
     fdb5::DaosContainer& createContainer(uuid_t, const std::string&);
 
-    void destroyContainer(uuid_t);
-    void destroyContainer(const std::string&);
+    fdb5::DaosContainer& ensureContainer(uuid_t);
+    fdb5::DaosContainer& ensureContainer(const std::string&);
+    fdb5::DaosContainer& ensureContainer(uuid_t, const std::string&);
 
     void closeContainer(uuid_t);
     void closeContainer(const std::string&);
@@ -64,11 +64,20 @@ public: // methods
 
 private: // methods
 
+    friend class DaosSession;
+
     DaosPool(fdb5::DaosSession&);
     DaosPool(fdb5::DaosSession&, uuid_t);
     DaosPool(fdb5::DaosSession&, const std::string&);
     DaosPool(fdb5::DaosSession&, uuid_t, const std::string&);
-    friend class DaosSession;
+
+    void create();
+
+    fdb5::DaosContainer& getContainer(uuid_t, bool);
+    fdb5::DaosContainer& getContainer(const std::string&, bool);
+    fdb5::DaosContainer& getContainer(uuid_t, const std::string&, bool);
+
+    bool exists();
 
     std::deque<fdb5::DaosContainer>::iterator getCachedContainer(uuid_t);
     std::deque<fdb5::DaosContainer>::iterator getCachedContainer(const std::string&);

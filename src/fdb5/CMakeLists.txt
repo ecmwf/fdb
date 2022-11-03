@@ -352,6 +352,8 @@ endif()
 
 if( HAVE_DAOSFDB )
     list( APPEND fdb5_srcs
+        daos/DaosOID.cc
+        daos/DaosOID.h
         daos/DaosName.cc
         daos/DaosName.h
         daos/DaosObject.cc

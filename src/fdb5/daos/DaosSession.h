@@ -35,14 +35,13 @@ public: // methods
     DaosSession();
     ~DaosSession();
 
-    fdb5::DaosPool& declarePool(uuid_t);
-    fdb5::DaosPool& declarePool(const std::string&);
-    fdb5::DaosPool& declarePool(uuid_t, const std::string&);
-
+    // administrative
     fdb5::DaosPool& createPool();
     fdb5::DaosPool& createPool(const std::string& label);
 
-    void destroyPool(uuid_t);
+    fdb5::DaosPool& getPool(uuid_t);
+    fdb5::DaosPool& getPool(const std::string&);
+    fdb5::DaosPool& getPool(uuid_t, const std::string&);
 
     void closePool(uuid_t);
 

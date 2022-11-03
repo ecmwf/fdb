@@ -37,15 +37,13 @@ public: // methods
 
     ~DaosContainer();
 
-    void create();
     void destroy();
     void open();
     void close();
     // TODO: AutoClose?
 
     fdb5::DaosObject createObject();
-    fdb5::DaosObject createObject(daos_obj_id_t);
-    fdb5::DaosObject createObject(const std::string& oid);
+    fdb5::DaosObject createObject(uint32_t, uint64_t);
 
     const daos_handle_t& getOpenHandle();
 
@@ -56,10 +54,15 @@ public: // methods
 
 private: // methods
 
+    friend class DaosPool;
+
     DaosContainer(fdb5::DaosPool&, uuid_t);
     DaosContainer(fdb5::DaosPool&, const std::string&);
     DaosContainer(fdb5::DaosPool&, uuid_t, const std::string&);
-    friend class DaosPool;
+
+    void create();
+
+    bool exists();
 
 private: // members
 

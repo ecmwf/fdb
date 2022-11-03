@@ -9,11 +9,9 @@
  */
 
 // #include <iostream>
-#include <iomanip>
 #include <utility>
 
 #include "eckit/exception/Exceptions.h"
-#include "eckit/utils/Translator.h"
 // #include "eckit/config/Resource.h"
 
 #include "fdb5/daos/DaosSession.h"
@@ -24,55 +22,30 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-daos_obj_id_t str_to_oid(const std::string& s) {
-    ASSERT(s.length() == 33);
-    ASSERT(s[16] == '.');
-    ASSERT(std::all_of(s.begin(), s.begin()+16, ::isxdigit));
-    ASSERT(std::all_of(s.end()-16, s.end(), ::isxdigit));
-
-    eckit::Translator<std::string, unsigned long long> stoull;
-    return {stoull(s.substr(0, 16)), stoull(s.substr(17, 16))};
-}
-
-std::string oid_to_str(const daos_obj_id_t& oid) {
-    std::stringstream os;
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.hi << ".";
-    os << std::setw(16) << std::setfill('0') << std::hex << oid.lo;
-    return os.str();
-}
-
 fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession& session, const fdb5::DaosName& name) {
 
     uuid_t uuid = {0};
 
     fdb5::DaosPool* pool;
     if (uuid_parse(name.poolName().c_str(), uuid) == 0) {
-        pool = &(session.declarePool(uuid));
+        pool = &(session.getPool(uuid));
     } else {
-        pool = &(session.declarePool(name.poolName()));
+        pool = &(session.getPool(name.poolName()));
     }
 
     if (uuid_parse(name.contName().c_str(), uuid) == 0) {
-        return pool->declareContainer(uuid);
+        return pool->getContainer(uuid);
     } else {
-        return pool->declareContainer(name.contName());
+        return pool->getContainer(name.contName());
     }
     
 }
 
-DaosObject::DaosObject(fdb5::DaosContainer& cont, daos_obj_id_t oid) : cont_(cont), oid_(oid), open_(false) {}
+DaosObject::DaosObject(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid, bool verify) : cont_(cont), oid_(oid), open_(false) { if (verify) ASSERT(exists()); }
 
-DaosObject::DaosObject(fdb5::DaosContainer& cont, const std::string& oid) : cont_(cont), open_(false) {
+DaosObject::DaosObject(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid) : DaosObject(cont, oid, true) {}
 
-    oid_ = str_to_oid(oid);
-
-}
-
-DaosObject::DaosObject(fdb5::DaosSession& session, const fdb5::DaosName& name) : cont_(name_to_cont_ref(session, name)), open_(false) {
-
-    oid_ = str_to_oid(name.oid());
-
-}
+DaosObject::DaosObject(fdb5::DaosSession& session, const fdb5::DaosName& name) : cont_(name_to_cont_ref(session, name)), oid_(name.OID()), open_(false) { ASSERT(exists()); }
 
 DaosObject::DaosObject(fdb5::DaosSession& session, const eckit::URI& uri) : DaosObject(session, DaosName(uri)) {}
 
@@ -92,14 +65,11 @@ DaosObject::~DaosObject() {
 
 void DaosObject::create() {
 
-    // TODO: is this shortcut too much? See DaosContainer::create()
-    if (open_) return;
-
-    cont_.create();
+    if (open_) throw eckit::SeriousBug("Attempted create() on an open DaosObject");
 
     const daos_handle_t& coh = cont_.getOpenHandle();
 
-    DAOS_CALL(daos_array_create(coh, oid_, DAOS_TX_NONE, DaosSession::default_object_create_cell_size, DaosSession::default_object_create_chunk_size, &oh_, NULL));
+    DAOS_CALL(daos_array_create(coh, oid_.asDaosObjIdT(), DAOS_TX_NONE, DaosSession::default_object_create_cell_size, DaosSession::default_object_create_chunk_size, &oh_, NULL));
 
     open_ = true;
 
@@ -117,7 +87,7 @@ void DaosObject::open() {
 
     daos_size_t cell_size, csize;
     const daos_handle_t& coh = cont_.getOpenHandle();
-    DAOS_CALL(daos_array_open(coh, oid_, DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, &oh_, NULL));
+    DAOS_CALL(daos_array_open(coh, oid_.asDaosObjIdT(), DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, &oh_, NULL));
     
     open_ = true;
 
@@ -126,7 +96,7 @@ void DaosObject::open() {
 void DaosObject::close() {
 
     if (!open_) {
-        eckit::Log::warning() << "Closing DaosObject " << name().asString() << ", object is not open" << std::endl;
+        eckit::Log::warning() << "Closing DaosObject " << name() << ", object is not open" << std::endl;
         return;
     }
     
@@ -212,15 +182,38 @@ const daos_handle_t& DaosObject::getOpenHandle() {
     
 };
 
-fdb5::DaosName DaosObject::name() const {
+bool DaosObject::exists() {
 
-    return fdb5::DaosName(cont_.getPool().name(), cont_.name(), oid_to_str(oid_));
+    // TODO: implement this with more appropriate DAOS API functions
+    try {
+
+        open();
+
+    } catch (eckit::SeriousBug& e) {
+
+        return false;
+        
+    }
+    
+    return true;
+
+}
+
+std::string DaosObject::name() const {
+
+    return oid_.asString();
+
+}
+
+fdb5::DaosOID DaosObject::OID() const {
+
+    return oid_;
 
 }
 
 eckit::URI DaosObject::URI() const {
 
-    return name().URI();
+    return fdb5::DaosName(*this).URI();
 
 }
 

@@ -46,21 +46,24 @@ void DaosHandle::openForWrite(const Length& len) {
 
     if (open_) NOTIMP;
 
-    offset_ = eckit::Offset(0);
+    // no need to create obj_ in case it doesn't exist, it always exists due to imperative approach
+
+    // if the handle has been created from a DaosName/URI which contains a fully specified OID which
+    // does not exist, it won't be created
+
+    obj_->open();
 
     // TODO: should wipe object content?
 
-    obj_->create();
-
     open_ = true;
+
+    offset_ = eckit::Offset(0);
 
 }
 
 void DaosHandle::openForAppend(const Length& len) {
 
     if (open_) NOTIMP;
-
-    // TODO: should the open crash if object does not exist?
 
     obj_->open();
 
@@ -75,11 +78,11 @@ Length DaosHandle::openForRead() {
 
     if (open_) NOTIMP;
 
-    offset_ = eckit::Offset(0);
-
     obj_->open();
 
     open_ = true;
+
+    offset_ = eckit::Offset(0);
 
     return Length(obj_->size());
 
@@ -168,7 +171,7 @@ void DaosHandle::skip(const Length& len) {
 
 std::string DaosHandle::title() const {
     
-    return obj_->name().asString();
+    return obj_->name();
 
 }
 

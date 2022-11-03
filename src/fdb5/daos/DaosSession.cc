@@ -39,6 +39,8 @@ DaosSession::~DaosSession() {
 
 }
 
+// TODO: make getCachedPool return a *DaosPool rather than an iterator?
+// and check it == nullptr rather than it == pool_cache_.end().
 std::deque<fdb5::DaosPool>::iterator DaosSession::getCachedPool(uuid_t uuid) {
 
     uuid_t other = {0};
@@ -68,31 +70,39 @@ std::deque<fdb5::DaosPool>::iterator DaosSession::getCachedPool(const std::strin
 
 }
 
-fdb5::DaosPool& DaosSession::declarePool(uuid_t uuid) {
+fdb5::DaosPool& DaosSession::getPool(uuid_t uuid) {
 
     std::deque<fdb5::DaosPool>::iterator it = getCachedPool(uuid);
 
     if (it != pool_cache_.end()) return *it;
 
     pool_cache_.push_front(fdb5::DaosPool(*this, uuid));
-    
-    return pool_cache_.at(0);
+
+    fdb5::DaosPool& p = pool_cache_.at(0);
+
+    ASSERT(p.exists());
+
+    return p;
 
 }
 
-fdb5::DaosPool& DaosSession::declarePool(const std::string& label) {
+fdb5::DaosPool& DaosSession::getPool(const std::string& label) {
 
     std::deque<fdb5::DaosPool>::iterator it = getCachedPool(label);
 
     if (it != pool_cache_.end()) return *it;
     
     pool_cache_.push_front(fdb5::DaosPool(*this, label));
-    
-    return pool_cache_.at(0);
+
+    fdb5::DaosPool& p = pool_cache_.at(0);
+
+    ASSERT(p.exists());
+
+    return p;
 
 }
 
-DaosPool& DaosSession::declarePool(uuid_t uuid, const std::string& label) {
+DaosPool& DaosSession::getPool(uuid_t uuid, const std::string& label) {
 
     // When both pool uuid and label are known, using this method to declare
     // a pool is preferred to avoid the following inconsistencies and/or 
@@ -119,7 +129,12 @@ DaosPool& DaosSession::declarePool(uuid_t uuid, const std::string& label) {
     if (it != pool_cache_.end()) return *it;
 
     pool_cache_.push_front(fdb5::DaosPool(*this, label));
-    return pool_cache_.at(0);
+
+    fdb5::DaosPool& p = pool_cache_.at(0);
+
+    ASSERT(p.exists());
+
+    return p;
 
 }
 
@@ -137,7 +152,9 @@ fdb5::DaosPool& DaosSession::createPool() {
 
 fdb5::DaosPool& DaosSession::createPool(const std::string& label) {
 
-    fdb5::DaosPool& p = declarePool(label);
+    pool_cache_.push_front(fdb5::DaosPool(*this, label));
+
+    fdb5::DaosPool& p = pool_cache_.at(0);
     
     p.create();
 
@@ -145,23 +162,8 @@ fdb5::DaosPool& DaosSession::createPool(const std::string& label) {
 
 }
 
-void DaosSession::destroyPool(uuid_t uuid) {
-
-    // TODO: make getCachedPool return a *DaosPool rather than an iterator?
-    // and check it == nullptr rather than it == pool_cache_.end().
-    std::deque<fdb5::DaosPool>::iterator it = getCachedPool(uuid);
-
-    if (it == pool_cache_.end()) {
-        char uuid_cstr[37];
-        uuid_unparse(uuid, uuid_cstr);
-        std::string uuid_str(uuid_cstr);
-        throw eckit::Exception("Pool with uuid " + uuid_str + " not found in cache, cannot destroy.");
-    }
-
-    it->destroy();
-
-}
-
+// intended for DaosPool::destroy(), where all potentially cached pools with 
+// a given uuid need to be closed
 void DaosSession::closePool(uuid_t uuid) {
 
     uuid_t other = {0};

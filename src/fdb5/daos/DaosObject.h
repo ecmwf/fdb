@@ -19,6 +19,7 @@
 
 #include "eckit/filesystem/URI.h"
 
+#include "fdb5/daos/DaosOID.h"
 #include "fdb5/daos/DaosName.h"
 
 // #include "eckit/io/Offset.h"
@@ -33,45 +34,48 @@ class DaosContainer;
 
 class DaosSession;
 
-daos_obj_id_t str_to_oid(const std::string&);
-std::string oid_to_str(const daos_obj_id_t&);
 fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession&, const fdb5::DaosName&);
 
 class DaosObject {
 
 public: // methods
 
-    DaosObject(fdb5::DaosContainer&, daos_obj_id_t);
-    DaosObject(fdb5::DaosContainer&, const std::string&);
+    DaosObject(fdb5::DaosContainer&, const fdb5::DaosOID&);
     DaosObject(fdb5::DaosSession&, const fdb5::DaosName&);
     DaosObject(fdb5::DaosSession&, const eckit::URI&);
     DaosObject(DaosObject&&) noexcept;
     ~DaosObject();
 
-    void create();
     void destroy();
-//     // exists
-//     // owner
-//     // empty
     daos_size_t size();
 
     void open();
     void close();
-//     // TODO: AutoClose?
 
     const daos_handle_t& getOpenHandle();
 
-    fdb5::DaosName name() const;
+    std::string name() const;
+    fdb5::DaosOID OID() const;
     eckit::URI URI() const;
     fdb5::DaosContainer& getContainer() const;
 
     long write(const void*, long, eckit::Offset);
     long read(void*, long, eckit::Offset);
 
+private: // methods
+
+    friend DaosContainer;
+
+    DaosObject(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
+
+    void create();
+
+    bool exists();
+
 private: // members
 
     fdb5::DaosContainer& cont_;
-    daos_obj_id_t oid_;
+    fdb5::DaosOID oid_;
     daos_handle_t oh_;
     bool open_;
 

@@ -24,7 +24,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosName::DaosName(const std::string& pool, const std::string& cont, const std::string& oid) : pool_(pool), cont_(cont), oid_(oid) {}
+DaosName::DaosName(const std::string& pool, const std::string& cont, const fdb5::DaosOID& oid) : pool_(pool), cont_(cont), oid_(oid) {}
 
 DaosName::DaosName(const std::string& name) {
 
@@ -42,11 +42,20 @@ DaosName::DaosName(const std::string& name) {
 
     pool_ = bits[0];
     cont_ = bits[1];
-    oid_ = bits[2];
+    oid_ = DaosOID(bits[2]);
 
 }
 
 DaosName::DaosName(const eckit::URI& uri) : DaosName(uri.name()) {}
+
+DaosName::DaosName(const fdb5::DaosObject& obj) : 
+    pool_(obj.getContainer().getPool().name()), 
+    cont_(obj.getContainer().name()), 
+    oid_(obj.OID()) {
+
+    session_ = &(obj.getContainer().getPool().getSession());
+
+}
 
 void DaosName::createManagedObject() {
 
@@ -74,7 +83,7 @@ void DaosName::setSession(fdb5::DaosSession* session) {
 
 std::string DaosName::asString() const {
 
-    return pool_ + ':' + cont_ + ':' + oid_;
+    return pool_ + ':' + cont_ + ':' + oid_.asString();
 
 }
 
@@ -96,7 +105,7 @@ std::string DaosName::contName() const {
     
 }
 
-std::string DaosName::oid() const {
+fdb5::DaosOID DaosName::OID() const {
 
     return oid_;
     
