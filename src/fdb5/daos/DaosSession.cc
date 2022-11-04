@@ -27,6 +27,8 @@ DaosSession::DaosSession() {
 
 DaosSession::~DaosSession() {
 
+    pool_cache_.clear();
+
     std::cout << "DAOS_CALL => daos_fini()" << std::endl;
 
     int code = daos_fini();
@@ -173,6 +175,20 @@ void DaosSession::closePool(uuid_t uuid) {
 
         it->uuid(other);
         if (uuid_compare(uuid, other) == 0) it->close();
+
+    }
+
+}
+
+void DaosSession::destroyPoolContainers(uuid_t uuid) {
+
+    uuid_t other = {0};
+
+    std::deque<fdb5::DaosPool>::iterator it;
+    for (it = pool_cache_.begin(); it != pool_cache_.end(); ++it) {
+
+        it->uuid(other);
+        if (uuid_compare(uuid, other) == 0) it->destroyContainers();
 
     }
 

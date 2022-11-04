@@ -44,6 +44,7 @@ public: // methods
     fdb5::DaosPool& getPool(uuid_t, const std::string&);
 
     void closePool(uuid_t);
+    void destroyPoolContainers(uuid_t);
 
     static void error(int code, const char* msg, const char* file, int line, const char* func);
 

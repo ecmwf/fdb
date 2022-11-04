@@ -38,6 +38,8 @@ DaosPool::DaosPool(fdb5::DaosSession& session, uuid_t uuid, const std::string& l
 
 DaosPool::~DaosPool() {
 
+    cont_cache_.clear();
+
     if (open_) close();
 
 }
@@ -86,6 +88,7 @@ void DaosPool::destroy() {
 
     if (!known_uuid_) NOTIMP;
 
+    session_.destroyPoolContainers(uuid_);
     session_.closePool(uuid_);
 
     // TODO: cached DaosPools declared with a label only, pointing to the pool
@@ -100,6 +103,7 @@ void DaosPool::destroy() {
     // be left with invalid references. They could be removed from the cache 
     // without deleting. Or they could be marked as invalid, and act 
     // accordingly elsewhere.
+    // TODO: flag instance as invalid / non-existing?
 
 }
 
@@ -130,6 +134,8 @@ void DaosPool::close() {
         eckit::Log::warning() << "Disconnecting DaosPool " << name() << ", pool is not open" << std::endl;
         return;
     }
+
+    closeContainers();
 
     std::cout << "DAOS_CALL => daos_pool_disconnect()" << std::endl;
 
@@ -352,6 +358,20 @@ void DaosPool::closeContainer(const std::string& label) {
         if (it->label() == label) it->close();
 
     }
+
+}
+
+void DaosPool::closeContainers() {
+
+    std::deque<fdb5::DaosContainer>::iterator it;
+    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) it->close();
+
+}
+
+void DaosPool::destroyContainers() {
+
+    std::deque<fdb5::DaosContainer>::iterator it;
+    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) it->destroy();
 
 }
 

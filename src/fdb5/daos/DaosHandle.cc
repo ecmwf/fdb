@@ -12,8 +12,6 @@
 
 #include <memory>
 
-// #include "eckit/config/Resource.h"
-// #include "eckit/utils/Tokenizer.h"
 #include "eckit/exception/Exceptions.h"
 
 #include "fdb5/daos/DaosHandle.h"
@@ -37,7 +35,6 @@ DaosHandle::DaosHandle(fdb5::DaosSession& session, const fdb5::DaosName& name) :
 
 DaosHandle::~DaosHandle() {
 
-    // TODO: logging could throw?
     if (open_) eckit::Log::error() << "DaosHandle not closed before destruction." << std::endl;
 
 }
@@ -45,6 +42,8 @@ DaosHandle::~DaosHandle() {
 void DaosHandle::openForWrite(const Length& len) {
 
     if (open_) NOTIMP;
+
+    // TODO: should ensure creation of the object?
 
     // no need to create obj_ in case it doesn't exist, it always exists due to imperative approach
 

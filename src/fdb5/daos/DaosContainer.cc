@@ -38,6 +38,9 @@ DaosContainer::DaosContainer(fdb5::DaosPool& pool, uuid_t uuid, const std::strin
 
 DaosContainer::~DaosContainer() {
 
+    // TODO: HERE AND IN DESTROY() AND CLOSE() WED WANT TO CLOSE AND DESTROY/INVALIDATE ALL OBJECT INSTANCES FOR OBJECTS IN THE CONT
+    // WHAT HAPPENS IF WE DO OBJ.OPEN AND THEN CONT.CLOSE???
+
     if (open_) close();
 
 }
@@ -83,22 +86,23 @@ void DaosContainer::create() {
 
 void DaosContainer::destroy() {
 
-    NOTIMP;
+    if (known_uuid_) pool_.closeContainer(uuid_);
 
-    // if (known_uuid_) pool_.closeContainer(uuid_);
-    // if (label_.size() > 0) pool_.closeContainer(label_);
+    if (label_.size() > 0) pool_.closeContainer(label_);
 
+    // TODO:
     // daos_cont_destroy
 
     // TODO: this results in an invalid DaosContainer instance. Address as in DaosPool::destroy().
+    // TODO: flag instance as invalid / non-existing? not allow open() anymore if instance is invalid. Assert in all Object actions that cont is valid
+    // TODO: STILL, WHENEVER A POOL/CONT IS DELETED AND THE USER OWNS OPEN OBJECTS, THEIR HANDLES MAY NOT BE POSSIBLE TO CLOSE ANYMORE, AND ANY ACTIONS ON SUCH
+    // OBJECTS WILL FAIL WITH A WEIRD DAOS ERROR
 
 }
 
 void DaosContainer::open() {
 
     if (open_) return;
-
-    // if (!known_uuid_ && label_.size() == 0) throw eckit::Exception("Cannot attempt connecting to an unidentified container. Either create it or provide a UUID or label upon construction.");
 
     const daos_handle_t& poh = pool_.getOpenHandle();
 

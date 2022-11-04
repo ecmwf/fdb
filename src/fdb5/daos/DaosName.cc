@@ -11,7 +11,6 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Tokenizer.h"
 #include "eckit/filesystem/PathName.h"
-// #include "eckit/io/DataHandle.h"
 
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
@@ -115,10 +114,9 @@ eckit::DataHandle* DaosName::dataHandle(bool overwrite) const {
 
     if (session_ == nullptr) throw eckit::Exception(
         "DaosName instance cannot create a DaosHandle without a known DaosSession "
-        "instance. Use name_instance.setSession or session_instance.getDataHandle(name_instance)."
+        "instance. Use name_instance.setSession."
         );
 
-    // TODO: implement what's in the exception message.
     // TODO: OK to serialise pointers in DaosName?
 
     return new fdb5::DaosHandle(*session_, *this);

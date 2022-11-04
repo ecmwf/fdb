@@ -33,7 +33,7 @@ namespace test {
 // TODO: remove folder created in daos_init()?
 // TODO: ensure test folder is clean
 
-CASE( "daos_handle" ) {
+CASE( "DAOS POOL" ) {
 
     // TODO: cross-section DaosSession is destroyed before some per-section instances
 
@@ -55,6 +55,32 @@ CASE( "daos_handle" ) {
 
 
 
+    // TODO: review DAOS calls in test output
+
+    // notes in my first note
+
+    // notes in notes for simon
+
+    // comments in chat with simon
+
+    // TODO: do not return iterators in e.g. DaosSession::getCachedPool
+
+    // TODO: issues in DaosPool::create and destroy
+
+    // TODO: properly implement DaosPool::exists(), DaosContainer::exists(), DaosObject::exists()
+
+    // TODO: issues in DaosContainer::create and destroy
+
+    // TODO: solve question on default constructor of DaosOID
+
+    // TODO: should daos_size_t be exposed as eckit::Length to user?
+
+    // TODO: think about DaosName::dataHandle overwrite parameter
+
+    // TODO: DaosHandle serialisation
+
+    // TODO: small TODOs in DaosHandle
+
     // TODO: use of static_assert? where?
 
     // TODO: use scopes in short-lived tests?
@@ -64,14 +90,7 @@ CASE( "daos_handle" ) {
 
     // TODO: rule of three for classes with destructor?
 
-
-    // TODO: there are issues in DaosPool::create
-
-    // TODO: there are issues in DaosContainer::create
-
     // TODO: implement missing methods in DaosName and DaosHandle
-
-
 
     // TODO: cpp uuid wrapper, to avoid weird headers?
 
@@ -82,7 +101,6 @@ CASE( "daos_handle" ) {
 
     // TODO: make DaosSession take configuration, and have some defaults if no config is provided
     fdb5::DaosSession s{};
-
 
     SECTION("UNNAMED POOL") {
 
@@ -128,11 +146,19 @@ CASE( "daos_handle" ) {
 
     }
 
+    // TODO: there's an extra pair of daos_init and daos_fini happening here
+
+}
+
+CASE( "DAOS HANDLE" ) {
+
+    fdb5::DaosSession s{};
+
+    fdb5::DaosPool& pool = s.createPool("pool");
+
+    fdb5::DaosContainer& cont = pool.createContainer("cont");
+
     SECTION("NAMED CONTAINER") {
-
-        fdb5::DaosPool& pool = s.createPool();
-
-        fdb5::DaosContainer& cont = pool.createContainer("cont");
 
         std::cout << cont.name() << std::endl;
 
@@ -148,17 +174,13 @@ CASE( "daos_handle" ) {
         /// @note if opening the container is the only way of checking it is valid, ask developers
         //EXPECT_THROWS(pool.getContainer("cont2"), fdb5::DaosException);
 
-        // TODO
-        //cont.destroy();
-        pool.destroy();
+        // TODO: two attempts to close unopened containers here
 
     }
 
     SECTION("UNNAMED OBJECT") {
 
-        fdb5::DaosPool& pool = s.createPool();
-
-        fdb5::DaosContainer& cont = pool.createContainer("cont");
+        // TODO: there's an extra daos_cont_create being issued here
 
         // create new object with new automatically allocated oid
         fdb5::DaosObject obj = cont.createObject();
@@ -166,16 +188,12 @@ CASE( "daos_handle" ) {
 
         // TODO
         //obj.destroy();
-        //cont.destroy();
-        pool.destroy();
+
+        // TODO: there's an extra attempt to close the container here
 
     }
 
     SECTION("NAMED OBJECT") {
-
-        fdb5::DaosPool& pool = s.createPool();
-
-        fdb5::DaosContainer& cont = pool.createContainer("cont");
 
         // create new object with oid generated from user input
         uint32_t hi = 0x00000001;
@@ -197,8 +215,6 @@ CASE( "daos_handle" ) {
 
         // TODO
         //write_obj.destroy();
-        //cont.destroy();
-        pool.destroy();
 
     }
 
@@ -217,9 +233,7 @@ CASE( "daos_handle" ) {
         fdb5::DaosName n3(u1);
         EXPECT(n3.asString() == "a:b:" + test_oid_str);
         EXPECT(n3.URI() == u1);
-
-        fdb5::DaosPool& pool = s.createPool("pool");
-        fdb5::DaosContainer& cont = pool.createContainer("cont");
+        
         uint32_t hi = 0x00000001;
         uint64_t lo = 0x0000000000000002;
         fdb5::DaosObject obj = cont.createObject(hi, lo);
@@ -248,15 +262,11 @@ CASE( "daos_handle" ) {
 
         // TODO
         //obj.destroy();
-        //cont.destroy();
-        pool.destroy();
 
     }
 
     SECTION("DAOS HANDLE") {
 
-        fdb5::DaosPool& pool = s.createPool("pool");
-        fdb5::DaosContainer& cont = pool.createContainer(std::string("cont"));
         uint32_t hi = 0x00000001;
         uint64_t lo = 0x0000000000000002;
         fdb5::DaosObject obj = cont.createObject(hi, lo);
@@ -272,7 +282,7 @@ CASE( "daos_handle" ) {
         long res;
 
         fdb5::DaosHandle h(std::move(obj));
-        // TODO: this triggers array create but does not wipe existing array if any
+        // TODO: this triggers array create if needed (not here) but does not wipe existing array if any
         h.openForWrite(Length(sizeof(data)));
         {
             eckit::AutoClose closer(h);
@@ -333,13 +343,15 @@ CASE( "daos_handle" ) {
         // fdb5::DaosObject obj_rm{cont, test_oid};
         // obj_rm.destroy();  // NOTIMP
 
-        // cont.destroy();  // NOTIMP
-
-        pool.destroy();
-
     }
 
+    // TODO
+    // cont.destroy();  // NOTIMP
 
+    pool.destroy();
+
+
+    
 
     // test DaosPool::name(), uuid(), label()
 
@@ -384,23 +396,6 @@ int main(int argc, char **argv)
 {
     return run_tests ( argc, argv );
 }
-
-
-
-
-
-
-
-
-// declarative approach
-
-
-
-
-
-
-// imperative approach
-
 
 // *write to new object with automatic or defined oid
 //     DaosSession s{???}

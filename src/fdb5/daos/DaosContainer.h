@@ -40,7 +40,6 @@ public: // methods
     void destroy();
     void open();
     void close();
-    // TODO: AutoClose?
 
     fdb5::DaosObject createObject();
     fdb5::DaosObject createObject(uint32_t, uint64_t);
@@ -73,9 +72,6 @@ private: // members
     daos_handle_t coh_;
     bool open_;
 
-    // TODO: is OidAlloc declared and defined properly?
-    // TODO: is oid_alloc_ initialised in the cleanest/clearest way possible?
-    // TODO: is it OK to enforce allocation of oid ranges?
     OidAlloc oid_alloc_{};
 
 };

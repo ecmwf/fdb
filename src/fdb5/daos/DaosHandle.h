@@ -14,9 +14,6 @@
 #pragma once
 
 #include "eckit/io/DataHandle.h"
-// #include "eckit/filesystem/URI.h"
-// #include "fdb5/daos/DaosPool.h"
-// #include "fdb5/daos/DaosContainer.h"
 
 namespace fdb5 {
 

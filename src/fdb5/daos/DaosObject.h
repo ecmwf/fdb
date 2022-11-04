@@ -22,13 +22,9 @@
 #include "fdb5/daos/DaosOID.h"
 #include "fdb5/daos/DaosName.h"
 
-// #include "eckit/io/Offset.h"
-
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-
-// class DaosPool;
 
 class DaosContainer;
 

@@ -19,7 +19,6 @@
 #include <string>
 #include <deque>
 
-// #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosContainer.h"
 
 namespace fdb5 {
@@ -54,6 +53,8 @@ public: // methods
 
     void closeContainer(uuid_t);
     void closeContainer(const std::string&);
+    void closeContainers();    
+    void destroyContainers();
 
     const daos_handle_t& getOpenHandle();
     

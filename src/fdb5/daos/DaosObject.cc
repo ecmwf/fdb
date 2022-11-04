@@ -12,7 +12,6 @@
 #include <utility>
 
 #include "eckit/exception/Exceptions.h"
-// #include "eckit/config/Resource.h"
 
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosContainer.h"
