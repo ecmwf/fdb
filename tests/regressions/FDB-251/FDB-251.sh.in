@@ -11,6 +11,7 @@ srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
 export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+export FDB_HOME=@CMAKE_BINARY_DIR@/fdb5
 
 cd $bindir
 
@@ -95,10 +96,8 @@ $gribset -s step=9 12.grib 9.grib
 
 ### write to different FDBs
 
-unset FDB_HOME
 unset FDB5_CONFIG_FILE
 
-! $fdbwrite --config=home 6.grib
 $fdbwrite --config=home/etc/fdb/config.yaml 6.grib
 $fdbwrite --config=home2/etc/fdb/config.yaml 9.grib
 $fdbwrite --config=local.yaml 12.grib
@@ -117,10 +116,7 @@ cat > list12 <<EOF
 EOF
 
 
-unset FDB_HOME
 unset FDB5_CONFIG_FILE
-
-! $fdblist --config=home --all --minimum-keys="" --porcelain | tee out
 
 $fdblist --config=home/etc/fdb/config.yaml --all --minimum-keys="" --porcelain | tee out
 cmp out list6
@@ -134,10 +130,7 @@ $fdblist --all --minimum-keys="" --porcelain | tee out
 cmp out list6
 
 
-unset FDB_HOME
 unset FDB5_CONFIG_FILE
-
-! $fdblist --config=home2 --all --minimum-keys="" --porcelain | tee out
 
 $fdblist --config=home2/etc/fdb/config.yaml --all --minimum-keys="" --porcelain | tee out
 cmp out list9
@@ -151,7 +144,6 @@ $fdblist --all --minimum-keys="" --porcelain | tee out
 cmp out list9
 
 
-unset FDB_HOME
 unset FDB5_CONFIG_FILE
 
 $fdblist --config=local.yaml --all --minimum-keys="" --porcelain | tee out
