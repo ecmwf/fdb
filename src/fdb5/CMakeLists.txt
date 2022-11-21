@@ -141,8 +141,6 @@ list( APPEND fdb5_srcs
     message/MessageIndexer.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
-    io/SingleGribMungePartFileHandle.cc
-    io/SingleGribMungePartFileHandle.h
     io/LustreSettings.cc
     io/LustreSettings.h
     io/LustreFileHandle.h
@@ -232,6 +230,13 @@ endif()
 
 if(fdb5_HAVE_LUSTRE)
   list( APPEND fdb5_srcs io/fdb5_lustreapi_file_create.c )
+endif()
+
+if ( HAVE_GRIB )
+    list( APPEND fdb5_srcs
+        io/SingleGribMungePartFileHandle.cc
+        io/SingleGribMungePartFileHandle.h
+    )
 endif()
 
 if( HAVE_TOCFDB )
@@ -402,12 +407,10 @@ if(HAVE_FDB_BUILD_TOOLS)
 endif()
 
 list( APPEND fdb5_tools
-    fdb-hammer
     fdb-write
     fdb-copy
     fdb-dump
     fdb-list
-    fdb-patch
     fdb-read
     fdb-schema
     fdb-where
@@ -416,6 +419,13 @@ list( APPEND fdb5_tools
     fdb-lock
     fdb-unlock
 )
+
+if ( HAVE_GRIB )
+    list( APPEND fdb5_tools
+        fdb-hammer
+        fdb-patch
+    )
+endif()
 
 if ( HAVE_TOCFDB )
     list(APPEND fdb5_tools

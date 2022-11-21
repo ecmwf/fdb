@@ -8,19 +8,17 @@
  * does it submit to any jurisdiction.
  */
 
-#include <cstdlib>
 #include <string.h>
 
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/filesystem/TmpFile.h"
-#include "eckit/filesystem/TmpDir.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
 #include "fdb5/database/Key.h"
 
 #include "fdb5/api/fdb_c.h"
+#include "fdb5/fdb5_config.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -208,6 +206,7 @@ CASE( "fdb_c - archive & list" ) {
 }
 
 
+#if fdb5_HAVE_GRIB
 CASE( "fdb_c - multiple archive & list" ) {
     size_t length1, length2, length3;
     DataHandle *dh;
@@ -335,6 +334,7 @@ CASE( "fdb_c - multiple archive & list" ) {
     ASSERT(err == FDB_ITERATION_COMPLETE);
     fdb_delete_listiterator(it);
 }
+#endif
 
 CASE( "fdb_c - retrieve bad request" ) {
 
