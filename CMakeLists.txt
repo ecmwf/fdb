@@ -1,11 +1,17 @@
 cmake_minimum_required( VERSION 3.12 FATAL_ERROR )
 
-find_package( ecbuild 3.4 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild)
+find_package( ecbuild 3.7 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild)
 
 project( fdb5 LANGUAGES C CXX )
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+CHECK_TYPE_SIZE(off_t SIZEOF_OFF_T)
+
+if ("${SIZEOF_OFF_T}" LESS 8)
+    MESSAGE(SEND_ERROR "Missing support for large files (off_t size < 64 bits)")
+endif()
 
 ########################################################################################################################
 ### dependencies and options
@@ -22,7 +28,7 @@ ecbuild_find_package( NAME eccodes VERSION 2.10 QUIET )
 
 ecbuild_add_option( FEATURE GRIB
                     DEFAULT ON
-                    CONDITION eccode_FOUND
+                    CONDITION eccodes_FOUND
                     DESCRIPTION "Support for GRIB via eccodes")
 
 ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
