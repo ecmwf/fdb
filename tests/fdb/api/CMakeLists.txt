@@ -25,7 +25,7 @@ foreach( _test ${api_tests} )
     ecbuild_add_test( TARGET test_fdb5_api_${_test}
                       SOURCES test_${_test}.cc
                       TEST_DEPENDS get_fdb_api_test_data
-                      LIBS fdb5
-                      ENVIRONMENT "${_test_environment}" )
+                      LIBS fdb5 )
+#                      ENVIRONMENT "${_test_environment}" )
 
 endforeach()
