@@ -12,7 +12,6 @@ gribcmp="$<TARGET_FILE:grib_compare>"
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
-#export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
 export FDB_HOME=@PROJECT_BINARY_DIR@
 
 ### cleanup and prepare test

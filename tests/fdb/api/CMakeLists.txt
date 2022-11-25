@@ -7,8 +7,6 @@ y138-400.grib
 
 list( APPEND _test_environment
     FDB_HOME=${PROJECT_BINARY_DIR} )
-    # ECCODES_DEFINITION_PATH=${ECCODES_DEFINITION_PATH}
-    # ECCODES_SAMPLES_PATH=${ECCODES_SAMPLES_PATH} )
 
 ecbuild_get_test_multidata( TARGET get_fdb_api_test_data
                             NAMES ${fdb_api_test_data_files}

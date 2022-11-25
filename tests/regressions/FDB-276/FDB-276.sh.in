@@ -11,8 +11,6 @@ gribset="$<TARGET_FILE:grib_set>"
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
-#export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
-
 export FDB5_HOME=$bindir
 export FDB5_ROOT=./root
 export FDB_EXPVER_FILE=$bindir/expver_to_fdb_root.map

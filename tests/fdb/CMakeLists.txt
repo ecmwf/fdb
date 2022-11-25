@@ -18,8 +18,6 @@ file( MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/tests/fdb/pool ) # as defined in ${CM
 
 list( APPEND _test_environment
     FDB_HOME=${PROJECT_BINARY_DIR} )
-    # ECCODES_DEFINITION_PATH=${ECCODES_DEFINITION_PATH}
-    # ECCODES_SAMPLES_PATH=${ECCODES_SAMPLES_PATH} )
 
 list( APPEND fdb_tests
     test_fdb5_service.cc )
