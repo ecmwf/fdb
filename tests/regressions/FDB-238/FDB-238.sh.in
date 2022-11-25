@@ -16,8 +16,6 @@ function post_process {
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
-export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
-
 cd $bindir
 
 ### cleanup and prepare test
