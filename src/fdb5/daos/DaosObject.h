@@ -20,11 +20,12 @@
 #include "eckit/filesystem/URI.h"
 
 #include "fdb5/daos/DaosOID.h"
-#include "fdb5/daos/DaosName.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+
+class DaosName;
 
 class DaosContainer;
 
@@ -50,6 +51,7 @@ public: // methods
 
     const daos_handle_t& getOpenHandle();
 
+    bool exists();
     std::string name() const;
     fdb5::DaosOID OID() const;
     eckit::URI URI() const;
@@ -65,8 +67,6 @@ private: // methods
     DaosObject(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
 
     void create();
-
-    bool exists();
 
 private: // members
 

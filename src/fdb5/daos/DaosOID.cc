@@ -27,11 +27,26 @@ DaosOID::DaosOID(const std::string& s) {
     ASSERT(s.length() == 32);
     ASSERT(std::all_of(s.begin(), s.end(), ::isxdigit));
 
-    eckit::Translator<std::string, unsigned long long> stoull;
-    hi_ = stoull(s.substr(0, 16));
-    lo_ = stoull(s.substr(16, 16));
+    hi_ = std::stoull(s.substr(0, 16), nullptr, 16);
+    lo_ = std::stoull(s.substr(16, 16), nullptr, 16);
 
 }
+
+// DaosOID::DaosOID(const DaosOID& other) : hi_(other.hi_), lo_(other.lo_) {}
+
+// DaosOID::DaosOID(DaosOID&& other) {
+
+//     std::swap(hi_, other.hi_);
+//     std::swap(lo_, other.lo_);
+
+// }
+
+// DaosOID& DaosOID::operator=(DaosOID rhs) {
+
+//     std::swap(*this, rhs);
+//     return *this;
+
+// }
 
 std::string DaosOID::asString() const {
 

@@ -20,6 +20,7 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 
+#include "fdb5/daos/DaosObject.h"
 #include "fdb5/daos/DaosOID.h"
 
 namespace fdb5 {
@@ -29,7 +30,6 @@ namespace fdb5 {
 class DaosSession;
 class DaosPool;
 class DaosContainer;
-class DaosObject;
 
 class DaosName {
 
@@ -44,11 +44,9 @@ public: // methods
     //void destroy();
     // TODO: return eckit::Length?
     daos_size_t size();
-    //bool exists();
+    bool exists();
     // owner
     // empty
-
-    void setSession(fdb5::DaosSession*);
 
     std::string asString() const;
     eckit::URI URI() const;
@@ -59,17 +57,12 @@ public: // methods
     // TODO: think if this overwrite parameter makes sense in DAOS
     eckit::DataHandle* dataHandle(bool overwrite = false) const;
 
-private: // methods
-
-    void createManagedObject();
-
 private: // members
 
     std::string pool_;
     std::string cont_;
     fdb5::DaosOID oid_;
     std::unique_ptr<fdb5::DaosObject> obj_ = nullptr;
-    fdb5::DaosSession* session_ = nullptr;
 
 };
 

@@ -18,7 +18,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosSession::DaosSession() {
+DaosSession::DaosSession(const fdb5::Config& config) : 
+    config_(fdb5::DaosManager::instance().config()) {
+
+    // TODO: merge config into config_
 
     // daos_init can be called multiple times. An internal reference count is maintained by the library
     DAOS_CALL(daos_init());
@@ -26,8 +29,6 @@ DaosSession::DaosSession() {
 }
 
 DaosSession::~DaosSession() {
-
-    pool_cache_.clear();
 
     std::cout << "DAOS_CALL => daos_fini()" << std::endl;
 
@@ -130,7 +131,7 @@ DaosPool& DaosSession::getPool(uuid_t uuid, const std::string& label) {
     it = getCachedPool(label);
     if (it != pool_cache_.end()) return *it;
 
-    pool_cache_.push_front(fdb5::DaosPool(*this, label));
+    pool_cache_.push_front(fdb5::DaosPool(*this, uuid, label));
 
     fdb5::DaosPool& p = pool_cache_.at(0);
 

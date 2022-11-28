@@ -16,7 +16,6 @@
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosContainer.h"
-#include "fdb5/daos/DaosObject.h"
 #include "fdb5/daos/DaosHandle.h"
 
 namespace fdb5 {
@@ -33,7 +32,7 @@ DaosName::DaosName(const std::string& name) {
     
     // TODO: replace : separator by /?
 
-    eckit::Tokenizer parse(":");
+    eckit::Tokenizer parse("/");
     std::vector<std::string> bits;
     parse(name, bits);
 
@@ -50,39 +49,27 @@ DaosName::DaosName(const eckit::URI& uri) : DaosName(uri.name()) {}
 DaosName::DaosName(const fdb5::DaosObject& obj) : 
     pool_(obj.getContainer().getPool().name()), 
     cont_(obj.getContainer().name()), 
-    oid_(obj.OID()) {
-
-    session_ = &(obj.getContainer().getPool().getSession());
-
-}
-
-void DaosName::createManagedObject() {
-
-    if (session_ == nullptr) throw eckit::Exception(
-        "DaosName instance cannot create a managed DaosObject without a known DaosSession "
-        "instance. Use name_instance.setSession beforehand."
-        );
-
-    if (obj_.get() == nullptr) obj_ = std::unique_ptr<fdb5::DaosObject>(new fdb5::DaosObject(*session_, *this));
-
-}
+    oid_(obj.OID()) {}
 
 daos_size_t DaosName::size() {
 
-    createManagedObject();
-    return obj_->size();
+    fdb5::DaosSession s{};
+    fdb5::DaosObject obj(s, *this);
+    return obj.size();
 
 }
 
-void DaosName::setSession(fdb5::DaosSession* session) {
+bool DaosName::exists() {
 
-    session_ = session;
+    fdb5::DaosSession s{};
+    fdb5::DaosObject obj(s, *this);
+    return obj.exists();
 
 }
 
 std::string DaosName::asString() const {
 
-    return pool_ + ':' + cont_ + ':' + oid_.asString();
+    return pool_ + '/' + cont_ + '/' + oid_.asString();
 
 }
 
@@ -112,14 +99,9 @@ fdb5::DaosOID DaosName::OID() const {
 
 eckit::DataHandle* DaosName::dataHandle(bool overwrite) const {
 
-    if (session_ == nullptr) throw eckit::Exception(
-        "DaosName instance cannot create a DaosHandle without a known DaosSession "
-        "instance. Use name_instance.setSession."
-        );
-
     // TODO: OK to serialise pointers in DaosName?
 
-    return new fdb5::DaosHandle(*session_, *this);
+    return new fdb5::DaosHandle(*this);
 
 }
 

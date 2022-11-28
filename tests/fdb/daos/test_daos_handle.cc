@@ -13,6 +13,10 @@
 #include "eckit/testing/Test.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/TmpFile.h"
+#include "eckit/io/FileHandle.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/config/YAMLConfiguration.h"
 
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosPool.h"
@@ -35,10 +39,7 @@ namespace test {
 
 CASE( "DAOS POOL" ) {
 
-    // TODO: cross-section DaosSession is destroyed before some per-section instances
-
-    // TODO: review approach taken in destructors. Most do non-throwing calls to DAOS.
-    //       Most do potentially throwing eckit::Log. DaosHandle has AutoClose.
+    // TODO: review approach taken in destructors. Most do non-throwing calls to DAOS. DaosHandle has AutoClose.
 
     // TODO: currently, all pool and container connections are cached and kept open for the duration of the process. Would
     // be nice to close container connections as they become unused. However the DaosContainer instances are managed by the 
@@ -53,17 +54,13 @@ CASE( "DAOS POOL" ) {
     // no longer exist. In the declarative approach, the containers and objects would be opened right before the action and fail if they don't exist. In the imperative
     // approach they would fail as well, but the initial checks performed to ensure existence of the DAOS entities would be useless and degrade performance.
 
+    // TODO: implement a privateObject method to provide a managed object within DaosName?
 
+    // TODO: do not return iterators in e.g. DaosSession::getCachedPool. Return DaosPool&
 
-    // TODO: review DAOS calls in test output
+    // TODO: replace deque by map?
 
-    // notes in my first note
-
-    // notes in notes for simon
-
-    // comments in chat with simon
-
-    // TODO: do not return iterators in e.g. DaosSession::getCachedPool
+    // TODO: expose hi_ and lo_ in DaosOID
 
     // TODO: issues in DaosPool::create and destroy
 
@@ -96,13 +93,12 @@ CASE( "DAOS POOL" ) {
 
     // TODO: use of uuid_generate_md5 can be removed completely
 
-
-
-
     // TODO: make DaosSession take configuration, and have some defaults if no config is provided
     fdb5::DaosSession s{};
 
     SECTION("UNNAMED POOL") {
+
+        // TODO: use AutoPoolDestroyer
 
         fdb5::DaosPool& pool = s.createPool();  // admin function, not usually called in the client code.
 
@@ -203,6 +199,7 @@ CASE( "DAOS HANDLE" ) {
         std::string id_string = write_obj.name();
         std::cout << "New user-spec-based OID: " << id_string << std::endl;
         EXPECT(id_string.length() == 32);
+        // TODO: do these checks numerically. Also test invalid characters, etc.
         std::string end{"000000010000000000000002"};
         EXPECT(0 == id_string.compare(id_string.length() - end.length(), end.length(), end));
 
@@ -224,14 +221,14 @@ CASE( "DAOS HANDLE" ) {
         fdb5::DaosOID test_oid{test_oid_str};
 
         fdb5::DaosName n1("a", "b", test_oid);
-        EXPECT(n1.asString() == "a:b:" + test_oid_str);
+        EXPECT(n1.asString() == "a/b/" + test_oid_str);
 
-        fdb5::DaosName n2("a:b:" + test_oid_str);
-        EXPECT(n2.asString() == "a:b:" + test_oid_str);
+        fdb5::DaosName n2("a/b/" + test_oid_str);
+        EXPECT(n2.asString() == "a/b/" + test_oid_str);
 
-        eckit::URI u1("daos", "a:b:" + test_oid_str);
+        eckit::URI u1("daos", "a/b/" + test_oid_str);
         fdb5::DaosName n3(u1);
-        EXPECT(n3.asString() == "a:b:" + test_oid_str);
+        EXPECT(n3.asString() == "a/b/" + test_oid_str);
         EXPECT(n3.URI() == u1);
         
         uint32_t hi = 0x00000001;
@@ -240,7 +237,7 @@ CASE( "DAOS HANDLE" ) {
         fdb5::DaosName name{obj};
 
         std::string name_str = name.asString();
-        std::string start{"pool:cont:"};
+        std::string start{"pool/cont/"};
         std::string end{"000000010000000000000002"};
         EXPECT(0 == name_str.compare(0, start.length(), start));
         EXPECT(0 == name_str.compare(name_str.length() - end.length(), end.length(), end));
@@ -257,8 +254,8 @@ CASE( "DAOS HANDLE" ) {
         // TODO: deserialise
         fdb5::DaosName deserialisedname(std::string("pool"), std::string("cont"), test_oid);
     
-        deserialisedname.setSession(&s);
         std::cout << "Object size is: " << deserialisedname.size() << std::endl;
+        // TODO: daos_fini for the session for the name's owned object happens before daos_cont_close and daos_pool_disconnect
 
         // TODO
         //obj.destroy();
@@ -273,7 +270,6 @@ CASE( "DAOS HANDLE" ) {
         std::string test_oid_str{"00000000000000010000000000000002"};
         fdb5::DaosOID test_oid{test_oid_str};
         fdb5::DaosName deserialisedname(std::string("pool"), std::string("cont"), test_oid);
-        deserialisedname.setSession(&s);
         fdb5::DaosObject readobj(s, deserialisedname);
 
         // TODO: isn't openForWrite / Append re-creating already existing objects? (they must exist if instantiated)
@@ -322,8 +318,7 @@ CASE( "DAOS HANDLE" ) {
 
         char read_data2[10] = "";
 
-        deserialisedname.setSession(&s);
-        std::unique_ptr<fdb5::DaosHandle> h3((fdb5::DaosHandle*) deserialisedname.dataHandle());
+        std::unique_ptr<eckit::DataHandle> h3(deserialisedname.dataHandle());
         h3->openForRead();
         {
             eckit::AutoClose closer(*h3);
@@ -334,6 +329,8 @@ CASE( "DAOS HANDLE" ) {
 
         EXPECT(std::memcmp(data, read_data2, sizeof(data)) == 0);
         EXPECT(std::memcmp(data, read_data2 + sizeof(data), sizeof(data)) == 0);
+
+        // TODO: given that pool_cache_ are owned by session, should more caches be implemented in FDB as in RadosStore?
 
         // TODO: POOL, CONTAINER AND OBJECT OPENING ARE OPTIONAL FOR DaosHandle::openForRead. Test it
         // TODO: CONTAINER AND OBJECT CREATION ARE OPTIONAL FOR DaosHandle::openForWrite. Test it

@@ -26,6 +26,10 @@ public: // methods
     DaosOID(const uint64_t&, const uint64_t&);
     DaosOID(const std::string&);
 
+    // DaosOID(const DaosOID&);
+    // DaosOID(DaosOID&&);
+    // DaosOID& operator=(DaosOID);
+
     std::string asString() const;
     daos_obj_id_t asDaosObjIdT() const;
 

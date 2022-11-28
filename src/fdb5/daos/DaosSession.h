@@ -20,9 +20,29 @@
 
 #include "eckit/exception/Exceptions.h"
 
+#include "fdb5/config/Config.h"
 #include "fdb5/daos/DaosPool.h"
 
 namespace fdb5 {
+
+class DaosManager : private eckit::NonCopyable {
+
+public: // methods
+
+    static DaosManager& instance() {
+
+        static DaosManager instance;
+        return instance;
+
+    };
+
+    fdb5::Config& config() { return config_; };
+
+private: // members
+
+    fdb5::Config config_{};
+
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -32,7 +52,7 @@ class DaosSession : eckit::NonCopyable {
 
 public: // methods
 
-    DaosSession();
+    DaosSession(const fdb5::Config& config = fdb5::Config());
     ~DaosSession();
 
     // administrative
@@ -67,6 +87,7 @@ public: //members
 private: // members
 
     std::deque<fdb5::DaosPool> pool_cache_;
+    fdb5::Config& config_;    
 
 };
 

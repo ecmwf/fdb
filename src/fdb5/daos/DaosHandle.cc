@@ -29,8 +29,9 @@ DaosHandle::DaosHandle(fdb5::DaosObject&& obj) :
     obj_(std::unique_ptr<fdb5::DaosObject>(new DaosObject(std::move(obj)))),
     open_(false), offset_(0) {}
 
-DaosHandle::DaosHandle(fdb5::DaosSession& session, const fdb5::DaosName& name) : 
-    obj_(std::unique_ptr<fdb5::DaosObject>(new DaosObject(session, name))),
+DaosHandle::DaosHandle(const fdb5::DaosName& name) : 
+    session_(std::unique_ptr<fdb5::DaosSession>(new DaosSession())),
+    obj_(std::unique_ptr<fdb5::DaosObject>(new DaosObject(*(session_.get()), name))),
     open_(false), offset_(0) {}
 
 DaosHandle::~DaosHandle() {
@@ -129,8 +130,6 @@ void DaosHandle::flush() {
 
 Length DaosHandle::size() {
 
-    // TODO: is this assert needed? As long as obj is open, should be ok
-    ASSERT(open_);
     return Length(obj_->size());
 
 }

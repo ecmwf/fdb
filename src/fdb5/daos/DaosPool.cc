@@ -50,7 +50,6 @@ void DaosPool::create() {
     ASSERT(!known_uuid_);
 
     // TODO: ensure deallocation. Either try catch or make a wrapper.
-    // not application code. Library code. Shared resources. Need to handle as cleanly as possible.
     // TODO: rename where possible to make less obscure
     d_rank_list_t svcl;
     svcl.rl_nr = 1;
