@@ -366,6 +366,10 @@ if( HAVE_DAOSFDB )
         daos/DaosSession.h
         daos/DaosHandle.cc
         daos/DaosHandle.h
+        daos/DaosStore.h 
+        daos/DaosStore.cc 
+        daos/DaosFieldLocation.h 
+        daos/DaosFieldLocation.cc
     )
 else()
     set( DAOS_LIBRARIES "" )
