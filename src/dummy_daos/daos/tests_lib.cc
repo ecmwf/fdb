@@ -122,15 +122,16 @@ int dmg_pool_destroy(const char *dmg_config_file,
     dummy_daos_root().children(files, dirs);
 
     for (auto& f : files) {
-        try {
+        if (f.exists()) {
+            try {
 
-            if (f.isLink() && f.realName().baseName() == pool_path.baseName()) f.unlink();
+                if (f.isLink() && f.realName().baseName() == pool_path.baseName()) f.unlink();
 
-        } catch (eckit::FailedSystemCall& e) {
+            } catch (eckit::FailedSystemCall& e) {
 
-            std::string message(e.what());
-            if (message.find("No such file or directory") == std::string::npos && message.find("Invalid argument") == std::string::npos) throw;
+                if (f.exists()) throw;
 
+            }
         }
     }
 
