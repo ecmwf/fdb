@@ -115,10 +115,29 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
     return false;
 }
 
-void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request, const std::string &keyword,
+void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
+                             const std::string &keyword,
                              const TypesRegistry &registry,
+                             const bool filter,
                              eckit::StringList &values) {
-    registry.lookupType(keyword).getValues(request, keyword, values, wind_, db_);
+    if (!filter) {
+        registry.lookupType(keyword).getValues(request, keyword, values, wind_, db_);
+    } else {
+        ASSERT(db_);
+
+        eckit::StringList list;
+        registry.lookupType(keyword).getValues(request, keyword, list, wind_, db_);
+
+        eckit::StringSet filter;
+        db_->axis(keyword, filter);
+
+        for(auto l: list) {
+            std::string v = registry.lookupType(keyword).toKey(keyword, l);
+            if (filter.size() == 0 || filter.find(v) != filter.end()) {
+                values.push_back(l);
+            }
+        }
+    }
 }
 
 void MultiRetrieveVisitor::print( std::ostream &out ) const {

@@ -59,6 +59,7 @@ private:  // methods
     virtual void values(const metkit::mars::MarsRequest& request,
                         const std::string& keyword,
                         const TypesRegistry& registry,
+                        const bool filter,
                         eckit::StringList& values) override;
 
     virtual void print( std::ostream &out ) const override;
