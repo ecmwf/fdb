@@ -51,7 +51,6 @@ public: // methods
     virtual void values(const metkit::mars::MarsRequest &request,
                         const std::string &keyword,
                         const TypesRegistry &registry,
-                        const bool filter,
                         eckit::StringList &values) = 0;
 
 protected: // methods

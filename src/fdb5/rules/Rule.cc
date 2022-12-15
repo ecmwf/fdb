@@ -105,7 +105,7 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
     const std::string &keyword = (*cur)->keyword();
 
     eckit::StringList values;
-    visitor.values(request, keyword, registry_, depth == 2, values);
+    visitor.values(request, keyword, registry_, values);
 
     // eckit::Log::info() << "keyword " << keyword << " values " << values << std::endl;
 

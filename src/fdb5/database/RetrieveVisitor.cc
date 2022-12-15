@@ -86,24 +86,19 @@ bool RetrieveVisitor::selectDatum(const Key& key, const Key&) {
 void RetrieveVisitor::values(const metkit::mars::MarsRequest &request,
                              const std::string &keyword,
                              const TypesRegistry &registry,
-                             const bool filter,
                              eckit::StringList &values) {
-    if (!filter) {
-        registry.lookupType(keyword).getValues(request, keyword, values, wind_, db_.get());
-    } else {
-        ASSERT(db_);
+    eckit::StringList list;
+    registry.lookupType(keyword).getValues(request, keyword, list, wind_, db_.get());
 
-        eckit::StringList list;
-        registry.lookupType(keyword).getValues(request, keyword, list, wind_, db_.get());
-
-        eckit::StringSet filter;
+    eckit::StringSet filter;
+    if (db_) {
         db_->axis(keyword, filter);
+    }
 
-        for(auto l: list) {
-            std::string v = registry.lookupType(keyword).toKey(keyword, l);
-            if (filter.size() == 0 || filter.find(v) != filter.end()) {
-                values.push_back(l);
-            }
+    for(auto l: list) {
+        std::string v = registry.lookupType(keyword).toKey(keyword, l);
+        if (filter.size() == 0 || filter.find(v) != filter.end()) {
+            values.push_back(l);
         }
     }
 }
