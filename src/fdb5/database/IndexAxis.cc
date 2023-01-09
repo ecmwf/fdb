@@ -240,10 +240,6 @@ void IndexAxis::wipe() {
 }
 
 bool IndexAxis::has(const std::string &keyword) const {
-    if (axis_.empty()) {
-        return false;
-    }
-
     AxisMap::const_iterator i = axis_.find(keyword);
     return (i != axis_.end());
 }

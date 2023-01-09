@@ -91,13 +91,14 @@ void RetrieveVisitor::values(const metkit::mars::MarsRequest &request,
     registry.lookupType(keyword).getValues(request, keyword, list, wind_, db_.get());
 
     eckit::StringSet filter;
+    bool toFilter = false;
     if (db_) {
-        db_->axis(keyword, filter);
+        toFilter = db_->axis(keyword, filter);
     }
 
     for(auto l: list) {
         std::string v = registry.lookupType(keyword).toKey(keyword, l);
-        if (filter.size() == 0 || filter.find(v) != filter.end()) {
+        if (!toFilter || filter.find(v) != filter.end()) {
             values.push_back(l);
         }
     }
