@@ -1,14 +1,14 @@
 ---
 type: local
 engine: toc
-schema: @CMAKE_BINARY_DIR@/etc/fdb/schema
+schema: @PROJECT_BINARY_DIR@/etc/fdb/schema
 spaces:
 - handler: Default
   roots:
-  - path: @CMAKE_BINARY_DIR@/tests/fdb/root
+  - path: @PROJECT_BINARY_DIR@/tests/fdb/root
     writable: true
     visit: true
-  - path: @CMAKE_BINARY_DIR@/tests/fdb/root2
+  - path: @PROJECT_BINARY_DIR@/tests/fdb/root2
     wipe: true
     archive: false
     list: true

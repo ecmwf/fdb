@@ -30,6 +30,7 @@ jobs:
         dependencies: |
           ecmwf/ecbuild
           ecmwf/eckit
+          MathisRosenhauer/libaec@master
           ecmwf/eccodes
           ecmwf/metkit
         dependency_branch: develop

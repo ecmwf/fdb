@@ -9,9 +9,12 @@
  */
 
 #include "fdb5/toc/TocFieldLocation.h"
-#include "TocStore.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/fdb5_config.h"
+
+#if fdb5_HAVE_GRIB
 #include "fdb5/io/SingleGribMungePartFileHandle.h"
+#endif
 
 namespace fdb5 {
 
@@ -42,10 +45,15 @@ std::shared_ptr<FieldLocation> TocFieldLocation::make_shared() const {
 }
 
 eckit::DataHandle *TocFieldLocation::dataHandle() const {
-    if (remapKey_.empty())
+    if (remapKey_.empty()) {
         return uri_.path().partHandle(offset(), length());
-    else
+    } else {
+#if fdb5_HAVE_GRIB
         return new SingleGribMungePartFileHandle(uri_.path(), offset(), length(), remapKey_);
+#else
+        NOTIMP;
+#endif
+    }
 }
 
 void TocFieldLocation::print(std::ostream &out) const {

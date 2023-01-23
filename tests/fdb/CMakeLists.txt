@@ -1,29 +1,23 @@
-configure_file( etc/mars/wind       ${CMAKE_BINARY_DIR}/etc/mars/wind       @ONLY )
+configure_file( etc/mars/wind       ${PROJECT_BINARY_DIR}/etc/mars/wind       @ONLY )
 
-configure_file( etc/fdb/config.yaml ${CMAKE_BINARY_DIR}/etc/fdb/config.yaml @ONLY )
-configure_file( etc/fdb/schema      ${CMAKE_BINARY_DIR}/etc/fdb/schema      @ONLY )
+configure_file( etc/fdb/config.yaml ${PROJECT_BINARY_DIR}/etc/fdb/config.yaml @ONLY )
+configure_file( etc/fdb/schema      ${PROJECT_BINARY_DIR}/etc/fdb/schema      @ONLY )
 #configure_file( etc/fdb/engines  ${CMAKE_BINARY_DIR}/etc/fdb/engines   @ONLY )
 
-# for file based FDB
-#configure_file( etc/fdb/roots    ${CMAKE_BINARY_DIR}/etc/fdb/roots     @ONLY )
-#configure_file( etc/fdb/spaces   ${CMAKE_BINARY_DIR}/etc/fdb/spaces    @ONLY )
-
-file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tests/fdb/root ) # as defined in ${CMAKE_BINARY_DIR}/etc/fdb/roots file
-file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tests/fdb/root2 ) # as defined in ${CMAKE_BINARY_DIR}/etc/fdb/roots file
+file( MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/tests/fdb/root ) # as defined in ${CMAKE_BINARY_DIR}/etc/fdb/roots file
+file( MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/tests/fdb/root2 ) # as defined in ${CMAKE_BINARY_DIR}/etc/fdb/roots file
 
 # for pmem based FDB
-configure_file( etc/fdb/pools      ${CMAKE_BINARY_DIR}/etc/fdb/pools       @ONLY )
-configure_file( etc/fdb/poolgroups ${CMAKE_BINARY_DIR}/etc/fdb/poolgroups  @ONLY )
+configure_file( etc/fdb/pools      ${PROJECT_BINARY_DIR}/etc/fdb/pools       @ONLY )
+configure_file( etc/fdb/poolgroups ${PROJECT_BINARY_DIR}/etc/fdb/poolgroups  @ONLY )
 
-file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tests/fdb/pool ) # as defined in ${CMAKE_BINARY_DIR}/etc/fdb/pools file
+file( MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/tests/fdb/pool ) # as defined in ${CMAKE_BINARY_DIR}/etc/fdb/pools file
 
 ###############################################################################
 # fdb unit tests
 
 list( APPEND _test_environment
-    FDB_HOME=${CMAKE_BINARY_DIR}
-    ECCODES_DEFINITION_PATH=${ECCODES_DEFINITION_PATH}
-    ECCODES_SAMPLES_PATH=${ECCODES_SAMPLES_PATH} )
+    FDB_HOME=${PROJECT_BINARY_DIR} )
 
 list( APPEND fdb_tests
     test_fdb5_service.cc )
@@ -57,7 +51,7 @@ foreach( _tst ${_test_data} )
 
     ecbuild_add_test(
         TARGET  fdb5_archive_${_tst}
-        CONDITION HAVE_FDB_BUILD_TOOLS
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB
         COMMAND $<TARGET_FILE:fdb-write>
         TEST_DEPENDS fdb5_get_test_data
         ARGS    ${_tst}
@@ -65,7 +59,7 @@ foreach( _tst ${_test_data} )
 
       ecbuild_add_test(
           TARGET  fdb5_extract_${_tst}
-          CONDITION HAVE_FDB_BUILD_TOOLS
+          CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB
           COMMAND $<TARGET_FILE:fdb-read>
           TEST_DEPENDS fdb5_archive_${_tst}
           ARGS   --extract ${_tst} ${_tst}.2
