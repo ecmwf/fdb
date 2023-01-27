@@ -38,6 +38,11 @@ Key ListElement::combinedKey() const {
             combined.set(kv.first, kv.second);
         }
     }
+<<<<<<< HEAD
+=======
+    combined.registry(keyParts_[2].registry());
+
+>>>>>>> 8a0c3a00 (FDB-303: Remove Rule from the Key, and replace with TypesRegistry information)
     return combined;
 }
 
