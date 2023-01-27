@@ -52,6 +52,7 @@ struct FixtureService {
 
     metkit::mars::MarsRequest env;
     StringDict p;
+    fdb5::Config config;
 
 	std::vector<std::string> modelParams_;
 
@@ -95,7 +96,7 @@ struct FixtureService {
 						 << std::endl;
 					std::string data_str = data.str();
 
-                    fdb5::Key k(p);
+                    fdb5::Key k(p, config.schema().registry());
                     ArchiveVisitor visitor(fdb, k, static_cast<const void *>(data_str.c_str()), data_str.size());
                     fdb.archive(k, visitor);
 				}
