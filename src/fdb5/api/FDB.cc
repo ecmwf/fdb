@@ -100,7 +100,12 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     eckit::Timer timer;
     timer.start();
 
-    internal_->archive(key, data, length);
+    // This is the API entrypoint. Keys supplied by the user may not have type registry info attached (so
+    // serialisation won't work properly...)
+    Key keyInternal(key);
+    keyInternal.registry(config().schema().registry());
+
+    internal_->archive(keyInternal, data, length);
     dirty_ = true;
 
     timer.stop();

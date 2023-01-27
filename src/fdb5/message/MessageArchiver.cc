@@ -83,7 +83,7 @@ static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::st
 
     if(str.empty()) return std::vector<metkit::mars::MarsRequest>();
 
-    std::set<std::string> keys = fdb5::Key(str).keys(); //< keys to filter from that request
+    std::set<std::string> keys = fdb5::Key::parseStringUntyped(str).keys(); //< keys to filter from that request
 
     std::vector<metkit::mars::MarsRequest> v = str_to_requests(str);
 
