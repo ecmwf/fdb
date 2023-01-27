@@ -281,23 +281,25 @@ void TocHandler::openForRead() const {
 }
 
 void TocHandler::dumpTocCache() const {
-    eckit::Offset offset = cachedToc_->position();
-    cachedToc_->seek(0);
+    if (cachedToc_) {
+        eckit::Offset offset = cachedToc_->position();
+        cachedToc_->seek(0);
 
-    eckit::PathName tocDumpFile("dump_of_"+tocPath_.baseName());
-    eckit::FileHandle dump(eckit::PathName::unique(tocDumpFile));
-    cachedToc_->copyTo(dump);
+        eckit::PathName tocDumpFile("dump_of_"+tocPath_.baseName());
+        eckit::FileHandle dump(eckit::PathName::unique(tocDumpFile));
+        cachedToc_->copyTo(dump);
 
-    std::ostringstream ss;
-    ss << tocPath_.baseName() << " read in " << tocReadStats_.size() << " step" << ((tocReadStats_.size()>1)?"s":"") << std::endl;
-    double time;
-    eckit::Length len;
-    while (tocReadStats_.next(time, len)) {
-        ss << "  step duration: " << (time*1000) << " ms, size: " << len << " bytes"<< std::endl;
+        std::ostringstream ss;
+        ss << tocPath_.baseName() << " read in " << tocReadStats_.size() << " step" << ((tocReadStats_.size()>1)?"s":"") << std::endl;
+        double time;
+        eckit::Length len;
+        while (tocReadStats_.next(time, len)) {
+            ss << "  step duration: " << (time*1000) << " ms, size: " << len << " bytes"<< std::endl;
+        }
+        Log::error() << ss.str();
+
+        cachedToc_->seek(offset);
     }
-    Log::error() << ss.str();
-
-    cachedToc_->seek(offset);
 }
 
 void TocHandler::append(TocRecord &r, size_t payloadSize ) {
@@ -454,6 +456,7 @@ bool TocHandler::readNextInternal(TocRecord& r) const {
     CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
     try {
+        ASSERT(sizeof(r) >= sizeof(TocRecord::Header));
         long len = proxy.read(&r, sizeof(TocRecord::Header));
         if (len == 0) {
             return false;
