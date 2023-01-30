@@ -65,8 +65,8 @@ CASE( "SETUP" ) {
     eckit::PathName root_path(root_path_cstr);
     if (!root_path.exists()) root_path.mkdir();
 
-    // TODO: remove fdb root directory then create (to ensure it's clean)
-    // TODO: remove dummy_daos_root directory then create
+    /// @todo: remove fdb root directory then create (to ensure it's clean)
+    /// @todo: remove dummy_daos_root directory then create
 
     // prepare schema for tests involving DaosStore
 
@@ -158,8 +158,8 @@ CASE("DAOS STORE") {
         fdb5::DaosStore dstore{schema, db_key, config};
         fdb5::Store& store = dstore;
         std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
-        // TODO: two cont create with label happen here
-        // TODO: again, daos_fini happening before cont and pool close
+        /// @todo: two cont create with label happen here
+        /// @todo: again, daos_fini happening before cont and pool close
 
         // retrieve
         fdb5::Field field(loc.get(), std::time(nullptr));
@@ -172,7 +172,7 @@ CASE("DAOS STORE") {
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
         //dh.reset();
-        // TODO: again, daos_fini happening before
+        /// @todo: again, daos_fini happening before
 
         // remove
         eckit::URI store_uri(store.type(), loc->uri().path().dirName());
@@ -190,11 +190,11 @@ CASE("DAOS STORE") {
             );
         }
 
-        // TODO: test that when I write multiple things in the same pool, things work as expected
+        /// @todo: test that when I write multiple things in the same pool, things work as expected
 
-        // TODO: check that the URI is properly produced
+        /// @todo: check that the URI is properly produced
 
-        // TODO: assert a new DaosSession shows newly configured container_oids_per_alloc
+        /// @todo: assert a new DaosSession shows newly configured container_oids_per_alloc
 
     }
 
@@ -230,15 +230,15 @@ CASE("DAOS STORE") {
         fdb5::DaosStore dstore{schema, db_key, config};
         fdb5::Store& store = dynamic_cast<fdb5::Store&>(dstore);
         std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
-        // TODO: there are two cont create with label here
-        // TODO: again, daos_fini happening before cont and pool close
+        /// @todo: there are two cont create with label here
+        /// @todo: again, daos_fini happening before cont and pool close
 
         // index data
 
         {
-            // TODO: could have a unique ptr here
+            /// @todo: could have a unique ptr here
             fdb5::TocCatalogueWriter tcat{db_key, config};
-            // TODO: might not need static cast
+            /// @todo: might not need static cast
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
             cat.deselectIndex();
             cat.selectIndex(index_key);
@@ -247,7 +247,7 @@ CASE("DAOS STORE") {
         }
 
         // HERE
-        // TODO: replace all // TODO: by /// @todo: 
+        /// @todo: replace all /// @todo: by /// @todo: 
 
         // find data
 
@@ -289,7 +289,7 @@ CASE("DAOS STORE") {
             cat.visitEntries(*wv, store, false);
         }
 
-        // TODO: again, daos_fini happening before
+        /// @todo: again, daos_fini happening before
 
     }
 
@@ -344,7 +344,7 @@ CASE("DAOS STORE") {
         size_t count;
         fdb5::ListElement info;
 
-        // TODO: here, DaosManager is being configured with DAOS client config passed to FDB instance constructor.
+        /// @todo: here, DaosManager is being configured with DAOS client config passed to FDB instance constructor.
         //   It happens in EntryVisitMechanism::visit when calling DB::open. Is this OK, or should this configuring
         //   rather happen as part of transforming a FieldLocation into a DataHandle? It is probably OK. One thing
         //   is to configure the DAOS client and the other thing is to initialise it.
@@ -362,7 +362,7 @@ CASE("DAOS STORE") {
 
         char data[] = "test";
 
-        // TODO: here, DaosManager is being reconfigured with identical config, and it happens again multiple times below.
+        /// @todo: here, DaosManager is being reconfigured with identical config, and it happens again multiple times below.
         //   Should this be avoided?
         fdb.archive(request_key, data, sizeof(data));
         fdb.flush();
@@ -415,7 +415,7 @@ CASE("DAOS STORE") {
         count = 0;
         while (wipeObject.next(elem)) count++;
         EXPECT(count == 0);
-        // TODO: really needed?
+        /// @todo: really needed?
         fdb.flush();
 
         // wipe index and store unit
@@ -423,7 +423,7 @@ CASE("DAOS STORE") {
         count = 0;
         while (wipeObject.next(elem)) count++;
         EXPECT(count > 0);
-        // TODO: really needed?
+        /// @todo: really needed?
         fdb.flush();
 
         // ensure field does not exist
@@ -432,15 +432,15 @@ CASE("DAOS STORE") {
         while (listObject.next(info)) count++;
         EXPECT(count == 0);
 
-        // TODO: ensure index and corresponding container do not exist
-        // TODO: ensure DB still exists
-        // TODO: list db or index and expect count = 0?
+        /// @todo: ensure index and corresponding container do not exist
+        /// @todo: ensure DB still exists
+        /// @todo: list db or index and expect count = 0?
 
-        // TODO: ensure new DaosSession has updated daos client config
+        /// @todo: ensure new DaosSession has updated daos client config
 
     }
 
-    // TODO: if doing what's in this section at the end of the previous section reusing the same FDB object,
+    /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
     // archive() fails as it expects a toc file to exist, but it has been removed by previous wipe
     SECTION("FDB API RE-STORE AND WIPE DB") {
 
@@ -502,7 +502,7 @@ CASE("DAOS STORE") {
         count = 0;
         while (wipeObject.next(elem)) count++;
         EXPECT(count > 0);
-        // TODO: really needed?
+        /// @todo: really needed?
         fdb.flush();
 
         // ensure field does not exist
@@ -517,7 +517,7 @@ CASE("DAOS STORE") {
         }
         EXPECT(count == 0);
 
-        // TODO: ensure DB and corresponding pool do not exist
+        /// @todo: ensure DB and corresponding pool do not exist
 
     }
 

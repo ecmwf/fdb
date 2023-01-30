@@ -50,8 +50,8 @@ void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
     // "Cannot create a pool with a user-specified UUID."
     ASSERT(!known_uuid_);
 
-    // TODO: ensure deallocation. Either try catch or make a wrapper.
-    // TODO: rename where possible to make less obscure
+    /// @todo: ensure deallocation. Either try catch or make a wrapper.
+    /// @todo: rename where possible to make less obscure
     d_rank_list_t svcl;
     svcl.rl_nr = 1;
     D_ALLOC_ARRAY(svcl.rl_ranks, svcl.rl_nr);
@@ -61,7 +61,7 @@ void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
     if (label_.size() > 0) {
 
-        // TODO: Ensure freeing. default_delete.
+        /// @todo: Ensure freeing. default_delete.
         // Throw exception if that fails.
         prop = daos_prop_alloc(1);
         prop->dpp_entries[0].dpe_type = DAOS_PROP_PO_LABEL;
@@ -77,7 +77,7 @@ void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
         )
     );
 
-    // TODO: query the pool to ensure it's ready
+    /// @todo: query the pool to ensure it's ready
 
     if (prop != NULL) daos_prop_free(prop);
 
@@ -89,26 +89,26 @@ void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
 void DaosPool::destroy(const int& force) {
 
-    // TODO: this will result in a invalid DaosPool instance, we want to avoid this
+    /// @todo: this will result in a invalid DaosPool instance, we want to avoid this
 
     if (!known_uuid_) NOTIMP;
 
     session_.destroyPoolContainers(uuid_);
     session_.closePool(uuid_);
 
-    // TODO: cached DaosPools declared with a label only, pointing to the pool
+    /// @todo: cached DaosPools declared with a label only, pointing to the pool
     // being destroyed may still exist and should be closed.
 
     DAOS_CALL(dmg_pool_destroy(NULL, uuid_, NULL, force));
 
-    // TODO: the DaosPools pointing to the destroyed DAOS pool are now invalid
+    /// @todo: the DaosPools pointing to the destroyed DAOS pool are now invalid
     // and cannot be reopened unless a new pool with the same label or uuid 
     // is created.
     // They could be removed from the cache and deleted but then the user would 
     // be left with invalid references. They could be removed from the cache 
     // without deleting. Or they could be marked as invalid, and act 
     // accordingly elsewhere.
-    // TODO: flag instance as invalid / non-existing?
+    /// @todo: flag instance as invalid / non-existing?
 
 }
 
@@ -425,7 +425,7 @@ const daos_handle_t& DaosPool::getOpenHandle() {
 
 bool DaosPool::exists() {
 
-    // TODO: implement this with more appropriate DAOS API functions
+    /// @todo: implement this with more appropriate DAOS API functions
     try {
 
         open();

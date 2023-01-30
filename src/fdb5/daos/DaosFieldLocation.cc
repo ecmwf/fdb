@@ -48,7 +48,7 @@ std::shared_ptr<FieldLocation> DaosFieldLocation::make_shared() const {
 
 eckit::DataHandle* DaosFieldLocation::dataHandle() const {
 
-    // TODO: ensure DaosSession has been configured before any actions on DaosNames in DaosFieldLocation
+    /// @todo: ensure DaosSession has been configured before any actions on DaosNames in DaosFieldLocation
     return fdb5::DaosName(uri_).dataHandle();
     
 }
@@ -85,7 +85,7 @@ class DaosURIManager : public eckit::URIManager {
 
     virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return fdb5::DaosName(f).dataHandle(); }
 
-    // TODO: implement DaosName::partHandle
+    /// @todo: implement DaosName::partHandle
     virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
         return fdb5::DaosName(f).dataHandle();
     }

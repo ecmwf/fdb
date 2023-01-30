@@ -210,7 +210,7 @@ const daos_handle_t& DaosObject::getOpenHandle() {
 
 bool DaosObject::exists() {
 
-    // TODO: implement this with more appropriate DAOS API functions
+    /// @todo: implement this with more appropriate DAOS API functions
     try {
 
         open();

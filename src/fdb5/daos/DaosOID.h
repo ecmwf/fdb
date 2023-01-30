@@ -37,11 +37,11 @@ private: // methods
 
     DaosOID() = default;
 
-    // TODO: is this the right approach? having a private default constructor for DaosOID and friending it here
+    /// @todo: is this the right approach? having a private default constructor for DaosOID and friending it here
     // so that oid_ in DaosName/DaosObject can be default initialised for constructors which do not initialise it explicitly
     friend class DaosName;
     friend class DaosObject;
-    // TODO: this seems dangerous, as DaosOID can now be default initialised (i.e. invalid OID instances) from both of these classes
+    /// @todo: this seems dangerous, as DaosOID can now be default initialised (i.e. invalid OID instances) from both of these classes
 
 private: // members
 

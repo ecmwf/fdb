@@ -53,7 +53,7 @@ public: // methods
     std::string contName() const;
     fdb5::DaosOID OID() const;
 
-    // TODO: think if this overwrite parameter makes sense in DAOS
+    /// @todo: think if this overwrite parameter makes sense in DAOS
     eckit::DataHandle* dataHandle(bool overwrite = false) const;
 
 private: // members

@@ -44,7 +44,7 @@ void DaosHandle::openForWrite(const Length& len) {
 
     if (open_) NOTIMP;
 
-    // TODO: should ensure creation of the object?
+    /// @todo: should ensure creation of the object?
 
     // no need to create obj_ in case it doesn't exist, it always exists due to imperative approach
 
@@ -53,7 +53,7 @@ void DaosHandle::openForWrite(const Length& len) {
 
     obj_->open();
 
-    // TODO: should wipe object content?
+    /// @todo: should wipe object content?
 
     open_ = true;
 
@@ -69,7 +69,7 @@ void DaosHandle::openForAppend(const Length& len) {
 
     open_ = true;
 
-    // TODO: should offset be set to size() or be left to its current value?
+    /// @todo: should offset be set to size() or be left to its current value?
     offset_ = eckit::Offset(obj_->size());
 
 }
@@ -118,7 +118,7 @@ void DaosHandle::close() {
 
     open_ = false;
 
-    // TODO: should offset be set to 0?
+    /// @todo: should offset be set to 0?
 
 }
 
@@ -142,7 +142,7 @@ Length DaosHandle::estimate() {
 
 Offset DaosHandle::position() {
 
-    // TODO: should position() crash if unopened?
+    /// @todo: should position() crash if unopened?
     return offset_;
 
 }
@@ -150,7 +150,7 @@ Offset DaosHandle::position() {
 Offset DaosHandle::seek(const Offset& offset) {
 
     offset_ = offset;
-    // TODO: assert offset <= size() ?
+    /// @todo: assert offset <= size() ?
     return offset_;
 
 }

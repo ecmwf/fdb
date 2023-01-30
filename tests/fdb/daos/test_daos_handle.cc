@@ -32,62 +32,62 @@ using namespace eckit;
 namespace fdb {
 namespace test {
 
-// TODO: change all pre-condition checks to ASSERTs
+/// @todo: change all pre-condition checks to ASSERTs
 //   question: in the future ASSERTs will default to EcKit abortion. Not what we want in many pre-condition checks
 
 CASE( "DAOS POOL" ) {
 
-    // TODO: currently, all pool and container connections are cached and kept open for the duration of the process. Would
+    /// @todo: currently, all pool and container connections are cached and kept open for the duration of the process. Would
     // be nice to close container connections as they become unused. However the DaosContainer instances are managed by the 
     // DaosPools/DaosSession, so we never know when the user has finished using a certain container. My current thought is
     // we don't need to fix this, as each process will only use a single pool and 2 * (indices involved) containers.
     // However in a large parallel application, while all client processes are running, there may be a large number of
     // open containers in the DAOS system. One idea would be to use shared pointers to count number of uses.
 
-    // TODO: given that pool_cache_ are owned by session, should more caches be implemented in FDB as in RadosStore?
+    /// @todo: given that pool_cache_ are owned by session, should more caches be implemented in FDB as in RadosStore?
 
-    // TODO: A declarative approach would be better in my opinion.
+    /// @todo: A declarative approach would be better in my opinion.
     // The current approach is an imperative one, where DaosObject and DaosContainer instances always represent existing entities in DAOS from the instant they are created.
     // In highly parallel workflows, validity of such instances will be ephemeral, and by the time we perform an action on them, the DAOS entity they represent may
     // no longer exist. In the declarative approach, the containers and objects would be opened right before the action and fail if they don't exist. In the imperative
     // approach they would fail as well, but the initial checks performed to ensure existence of the DAOS entities would be useless and degrade performance.
 
-    // TODO: issues in DaosContainer::create and destroy
+    /// @todo: issues in DaosContainer::create and destroy
     
-    // TODO: issues in DaosPool::create and destroy
+    /// @todo: issues in DaosPool::create and destroy
 
 
 
 
-    // TODO: small TODOs in DaosHandle
+    /// @todo: small TODOs in DaosHandle
 
-    // TODO: solve question on default constructor of DaosOID
+    /// @todo: solve question on default constructor of DaosOID
 
-    // TODO: should daos_size_t be exposed as eckit::Length to user?
+    /// @todo: should daos_size_t be exposed as eckit::Length to user?
 
-    // TODO: think about DaosName::dataHandle overwrite parameter
+    /// @todo: think about DaosName::dataHandle overwrite parameter
 
-    // TODO: rule of three for classes with destructor?
+    /// @todo: rule of three for classes with destructor?
 
 
 
-    // TODO: properly implement DaosPool::exists(), DaosContainer::exists(), DaosObject::exists()
+    /// @todo: properly implement DaosPool::exists(), DaosContainer::exists(), DaosObject::exists()
 
-    // TODO: DaosHandle serialisation
+    /// @todo: DaosHandle serialisation
 
-    // TODO: implement missing methods in DaosName
+    /// @todo: implement missing methods in DaosName
 
-    // TODO: cpp uuid wrapper, to avoid weird headers
+    /// @todo: cpp uuid wrapper, to avoid weird headers
 
-    // TODO: use of uuid_generate_md5 can be removed completely
+    /// @todo: use of uuid_generate_md5 can be removed completely
 
-    // TODO: use of container and pool UUIDs can be removed completely
+    /// @todo: use of container and pool UUIDs can be removed completely
 
-    // TODO: do not return iterators in e.g. DaosSession::getCachedPool. Return DaosPool&
+    /// @todo: do not return iterators in e.g. DaosSession::getCachedPool. Return DaosPool&
 
-    // TODO: replace deque by map
+    /// @todo: replace deque by map
 
-    // TODO: expose hi_ and lo_ in DaosOID
+    /// @todo: expose hi_ and lo_ in DaosOID
 
 
 
@@ -103,7 +103,7 @@ CASE( "DAOS POOL" ) {
 
         EXPECT(pool.name().size() == 36);
 
-        // TODO: there's an attempt to close unopened pool here
+        /// @todo: there's an attempt to close unopened pool here
 
     }
 
@@ -136,9 +136,9 @@ CASE( "DAOS POOL" ) {
 
     }
 
-    // TODO: test passing some session ad-hoc config for DAOS client
+    /// @todo: test passing some session ad-hoc config for DAOS client
 
-    // TODO: there's an extra pair of daos_init and daos_fini happening here
+    /// @todo: there's an extra pair of daos_init and daos_fini happening here
 
 }
 
@@ -162,10 +162,10 @@ CASE( "DAOS HANDLE" ) {
 
         EXPECT(&cont == &cont_h);
 
-        // TODO:
+        /// @todo:
         // EXPECT_THROWS_AS(pool.getContainer("cont2"), fdb5::DaosEntityNotFoundException);
 
-        // TODO: two attempts to close unopened containers here
+        /// @todo: two attempts to close unopened containers here
 
         std::vector<std::string> cont_list(pool.listContainers());
         EXPECT(cont_list.size() == 1);
@@ -175,7 +175,7 @@ CASE( "DAOS HANDLE" ) {
 
     SECTION("UNNAMED OBJECT") {
 
-        // TODO: there's an extra daos_cont_create being issued here
+        /// @todo: there's an extra daos_cont_create being issued here
 
         // create new object with new automatically allocated oid
         fdb5::DaosObject obj = cont.createObject();
@@ -184,7 +184,7 @@ CASE( "DAOS HANDLE" ) {
         // TODO
         //obj.destroy();
 
-        // TODO: there's an extra attempt to close the container here
+        /// @todo: there's an extra attempt to close the container here
 
     }
 
@@ -198,7 +198,7 @@ CASE( "DAOS HANDLE" ) {
         std::string id_string = write_obj.name();
         std::cout << "New user-spec-based OID: " << id_string << std::endl;
         EXPECT(id_string.length() == 32);
-        // TODO: do these checks numerically. Also test invalid characters, etc.
+        /// @todo: do these checks numerically. Also test invalid characters, etc.
         std::string end{"000000010000000000000002"};
         EXPECT(0 == id_string.compare(id_string.length() - end.length(), end.length(), end));
 
@@ -244,15 +244,15 @@ CASE( "DAOS HANDLE" ) {
         EXPECT(uri.asString() == "daos://pool/cont/" + test_oid_str);
         EXPECT(obj.URI() == uri);
 
-        // TODO: test name.exists and others
+        /// @todo: test name.exists and others
 
-        // TODO: serialise
+        /// @todo: serialise
 
-        // TODO: deserialise
+        /// @todo: deserialise
         fdb5::DaosName deserialisedname(std::string("pool"), std::string("cont"), test_oid);
     
         std::cout << "Object size is: " << deserialisedname.size() << std::endl;
-        // TODO: daos_fini for the session for the name's owned object happens before daos_cont_close and daos_pool_disconnect
+        /// @todo: daos_fini for the session for the name's owned object happens before daos_cont_close and daos_pool_disconnect
 
         // TODO
         //obj.destroy();
@@ -269,13 +269,13 @@ CASE( "DAOS HANDLE" ) {
         fdb5::DaosName deserialisedname(std::string("pool"), std::string("cont"), test_oid);
         fdb5::DaosObject readobj(s, deserialisedname);
 
-        // TODO: isn't openForWrite / Append re-creating already existing objects? (they must exist if instantiated)
+        /// @todo: isn't openForWrite / Append re-creating already existing objects? (they must exist if instantiated)
 
         char data[] = "test";
         long res;
 
         fdb5::DaosHandle h(std::move(obj));
-        // TODO: this triggers array create if needed (not here) but does not wipe existing array if any
+        /// @todo: this triggers array create if needed (not here) but does not wipe existing array if any
         h.openForWrite(Length(sizeof(data)));
         {
             eckit::AutoClose closer(h);
@@ -284,7 +284,7 @@ CASE( "DAOS HANDLE" ) {
             EXPECT(h.position() == Offset(sizeof(data)));
         }
 
-        // TODO: this triggers array create again...
+        /// @todo: this triggers array create again...
         h.openForAppend(Length(sizeof(data)));
         {
             eckit::AutoClose closer(h);
@@ -331,9 +331,9 @@ CASE( "DAOS HANDLE" ) {
             fdb5::DaosHandle dh_fail(fdb5::DaosName(pool.name(), cont.name(), {1, 0})), 
             fdb5::DaosEntityNotFoundException);
 
-        // TODO: POOL, CONTAINER AND OBJECT OPENING ARE OPTIONAL FOR DaosHandle::openForRead. Test it
-        // TODO: CONTAINER AND OBJECT CREATION ARE OPTIONAL FOR DaosHandle::openForWrite. Test it
-        // TODO: test unopen/uncreated DaosObject::size()
+        /// @todo: POOL, CONTAINER AND OBJECT OPENING ARE OPTIONAL FOR DaosHandle::openForRead. Test it
+        /// @todo: CONTAINER AND OBJECT CREATION ARE OPTIONAL FOR DaosHandle::openForWrite. Test it
+        /// @todo: test unopen/uncreated DaosObject::size()
 
         // lost ownership of obj, recreate and destroy
         // fdb5::DaosObject obj_rm{cont, test_oid};
@@ -343,7 +343,7 @@ CASE( "DAOS HANDLE" ) {
 
     // manually destroying container for test purposes. There's no actual need for 
     // container destruction or auto destroyer as pool is autodestroyed
-    // TODO: when enabling this, AutoPoolDestroy fails as a corresponding DaosContainer instance 
+    /// @todo: when enabling this, AutoPoolDestroy fails as a corresponding DaosContainer instance 
     //   still exists in the DaosPool, but the corresponding container does not exist and 
     //   dummy_daos destroy fails trying to rename an unexisting directory. The issue of pool
     //   and container destruction and invalidation needs to be addressed first.
@@ -373,7 +373,7 @@ CASE( "DAOS HANDLE" ) {
 
 }
 
-// TODO: test a new case where some DAOS operations are carried out with a DaosSession with specific config
+/// @todo: test a new case where some DAOS operations are carried out with a DaosSession with specific config
 //  overriding (but not rewriting) DaosManager defaults
 
 }  // namespace test

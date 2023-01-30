@@ -27,7 +27,7 @@ DaosName::DaosName(const std::string& pool, const std::string& cont, const fdb5:
 
 DaosName::DaosName(const std::string& name) {
 
-    // TODO: find format for documenting inputs
+    /// @todo: find format for documenting inputs
     // Inputs:
     //   name: [pool/]cont[/oidhi.oidlo]
 
@@ -102,7 +102,7 @@ fdb5::DaosOID DaosName::OID() const {
 
 eckit::DataHandle* DaosName::dataHandle(bool overwrite) const {
 
-    // TODO: OK to serialise pointers in DaosName?
+    /// @todo: OK to serialise pointers in DaosName?
 
     return new fdb5::DaosHandle(*this);
 

@@ -43,7 +43,7 @@ DaosStore::DaosStore(const Schema& schema, const Key& key, const Config& config)
 
     fdb5::DaosManager::instance().configure(config_.getSubConfiguration("daos").getSubConfiguration("client"));
 
-    // TODO: should assert the store actually exists, as in the constructors of DaosPool etc.
+    /// @todo: should assert the store actually exists, as in the constructors of DaosPool etc.
 
 }
 
@@ -72,7 +72,7 @@ eckit::URI DaosStore::uri() const {
 
 bool DaosStore::uriBelongs(const eckit::URI& uri) const {
 
-    // TODO: assert uri points to a (not necessarily existing) array object
+    /// @todo: assert uri points to a (not necessarily existing) array object
     return (
         (uri.scheme() == type()) && 
         (uri.path().dirName().baseName().asString().rfind("store_" + db_str_ + "_", 0) == 0));
@@ -81,7 +81,7 @@ bool DaosStore::uriBelongs(const eckit::URI& uri) const {
 
 bool DaosStore::uriExists(const eckit::URI& uri) const {
 
-    // TODO: revisit the name of this method. uriExists suggests this method can be used to check e.g. if a DAOS object pointed
+    /// @todo: revisit the name of this method. uriExists suggests this method can be used to check e.g. if a DAOS object pointed
     //   to by an URI exists. However this is just meant to check if a Store container pointed to by a URI exists.
     ASSERT(uri.scheme() == type());
     eckit::PathName p(uri.path());
@@ -145,7 +145,7 @@ bool DaosStore::exists() const {
 
 }
 
-// TODO: never used in actual fdb-read?
+/// @todo: never used in actual fdb-read?
 eckit::DataHandle* DaosStore::retrieve(Field& field) const {
 
     return field.dataHandle();
@@ -211,7 +211,7 @@ void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostr
     ASSERT(parts[0] == pool_);
     if (parts.size() > 2) NOTIMP;
 
-    // TODO: should try/catch? no, should check cont exists
+    /// @todo: should try/catch? no, should check cont exists
     fdb5::DaosSession s{};
     fdb5::DaosPool& p = s.getPool(pool_);
     fdb5::DaosContainer& c = p.getContainer(parts[1]);

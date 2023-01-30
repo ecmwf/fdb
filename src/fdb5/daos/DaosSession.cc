@@ -47,7 +47,7 @@ DaosSession::~DaosSession() {
 
 }
 
-// TODO: make getCachedPool return a *DaosPool rather than an iterator?
+/// @todo: make getCachedPool return a *DaosPool rather than an iterator?
 // and check it == nullptr rather than it == pool_cache_.end().
 std::deque<fdb5::DaosPool>::iterator DaosSession::getCachedPool(uuid_t uuid) {
 

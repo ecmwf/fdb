@@ -29,7 +29,7 @@ class DaosHandle : public eckit::DataHandle {
 
 public: // methods
 
-    // TODO: the DaosSession is owned by the user if using this move constructor. Do we want to allow this?
+    /// @todo: the DaosSession is owned by the user if using this move constructor. Do we want to allow this?
     DaosHandle(fdb5::DaosObject&&);
     DaosHandle(const fdb5::DaosName&);
 

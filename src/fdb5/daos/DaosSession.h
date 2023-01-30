@@ -29,8 +29,8 @@ class DaosManager : private eckit::NonCopyable {
 
 public: // methods
 
-    // TODO: set configuration where relvant in unit tests
-    // TODO: unit tests for config
+    /// @todo: set configuration where relvant in unit tests
+    /// @todo: unit tests for config
     static DaosManager& instance() {
         static DaosManager instance;        
         return instance;
@@ -52,7 +52,7 @@ private: // methods
         containerOidsPerAlloc_(100),
         objectCreateCellSize_(1),
         objectCreateChunkSize_(1048576) {}
-        // TODO: should configure here with LibFdb5 default config, for cases where DaosManager is never configured?
+        /// @todo: should configure here with LibFdb5 default config, for cases where DaosManager is never configured?
         //       I would say No. fdb5 classes should always configure Daos including configuration from LibFdb5 default config.
         //       Daos* classes should not depend on fdb5 configuration if used independently.
 
