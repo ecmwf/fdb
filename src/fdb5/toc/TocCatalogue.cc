@@ -17,6 +17,7 @@
 #include "fdb5/toc/TocPurgeVisitor.h"
 #include "fdb5/toc/TocStats.h"
 #include "fdb5/toc/TocWipeVisitor.h"
+#include "fdb5/toc/TocMoveVisitor.h"
 
 using namespace eckit;
 
@@ -25,14 +26,15 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocCatalogue::TocCatalogue(const Key& key, const fdb5::Config& config) :
-    Catalogue(key, config),
-    TocHandler(CatalogueRootManager(config).directory(key), config) {
-}
+    TocCatalogue(key, CatalogueRootManager(config).directory(key), config) {}
 
-TocCatalogue::TocCatalogue(const eckit::PathName& directory, const fdb5::Config& config) :
-    Catalogue(Key(), config),
+TocCatalogue::TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config) :
+    Catalogue(key, tocPath.controlIdentifiers_, config),
+    TocHandler(tocPath.directory_, config) {}
+
+TocCatalogue::TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config) :
+    Catalogue(Key(), controlIdentifiers, config),
     TocHandler(directory, config) {
-
     // Read the real DB key into the DB base object
     dbKey_ = databaseKey();
 }
@@ -113,8 +115,12 @@ WipeVisitor* TocCatalogue::wipeVisitor(const Store& store, const metkit::mars::M
     return new TocWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
 }
 
+MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) const {
+    return new TocMoveVisitor(*this, store, request, dest, removeSrc, removeDelay, threads);
+}
+
 void TocCatalogue::maskIndexEntry(const Index &index) const {
-    TocHandler handler(basePath());
+    TocHandler handler(basePath(), config_);
     handler.writeClearRecord(index);
 }
 
@@ -152,20 +158,8 @@ void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers
     TocHandler::control(action, identifiers);
 }
 
-bool TocCatalogue::retrieveLocked() const {
-    return TocHandler::retrieveLocked();
-}
-
-bool TocCatalogue::archiveLocked() const {
-    return TocHandler::archiveLocked();
-}
-
-bool TocCatalogue::listLocked() const {
-    return TocHandler::listLocked();
-}
-
-bool TocCatalogue::wipeLocked() const {
-    return TocHandler::wipeLocked();
+bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
+    return Catalogue::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

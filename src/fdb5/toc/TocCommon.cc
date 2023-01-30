@@ -8,17 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/toc/TocCommon.h"
+
 #include <pwd.h>
 #include <unistd.h>
 
-//#include "eckit/config/Resource.h"
+#include "eckit/config/Resource.h"
 #include "eckit/filesystem/URIManager.h"
 #include "eckit/log/Timer.h"
 
-#include "fdb5/io/LustreFileHandle.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/toc/RootManager.h"
-#include "fdb5/toc/TocCommon.h"
+#include "fdb5/io/LustreSettings.h"
 
 namespace fdb5 {
 
@@ -76,11 +77,6 @@ std::string TocCommon::userName(uid_t uid) {
     else {
         return eckit::Translator<long, std::string>()(uid);
     }
-}
-
-bool TocCommon::stripeLustre() {
-    static bool handleLustreStripe = eckit::Resource<bool>("fdbHandleLustreStripe;$FDB_HANDLE_LUSTRE_STRIPE", true);
-    return fdb5LustreapiSupported() && handleLustreStripe;
 }
 
 }

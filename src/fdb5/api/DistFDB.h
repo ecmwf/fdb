@@ -61,6 +61,8 @@ public: // method
                             ControlAction action,
                             ControlIdentifiers identifiers) override;
 
+    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) override;
+
     void flush() override;
 
     FDBStats stats() const override;

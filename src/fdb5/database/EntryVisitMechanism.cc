@@ -106,7 +106,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
                 Log::debug<LibFdb5>() << "FDB processing Path " << path << std::endl;
 
-                std::unique_ptr<DB> db = DB::buildReader(eckit::URI(uri.scheme(), path));
+                std::unique_ptr<DB> db = DB::buildReader(eckit::URI(uri.scheme(), path), dbConfig_);
                 ASSERT(db->open());
                 eckit::AutoCloser<DB> closer(*db);
 

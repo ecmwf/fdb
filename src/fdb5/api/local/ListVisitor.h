@@ -42,7 +42,9 @@ public:
     bool visitDatabase(const Catalogue& catalogue, const Store& store) override {
 
         // If the DB is locked for listing, then it "doesn't exist"
-        if (catalogue.listLocked()) return false;
+        if (!catalogue.enabled(ControlIdentifier::List)) {
+            return false;
+        }
 
         bool ret = QueryVisitor::visitDatabase(catalogue, store);
         ASSERT(catalogue.key().partialMatch(request_));

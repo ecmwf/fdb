@@ -13,5 +13,6 @@
 #cmakedefine fdb5_HAVE_TOCFDB
 #cmakedefine fdb5_HAVE_DUMMY_DAOS
 //#cmakedefine fdb5_HAVE_DAOSFDB
+#cmakedefine01 fdb5_HAVE_GRIB
 
 #endif // fdb5_fdb5_config_h

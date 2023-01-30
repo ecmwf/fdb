@@ -39,7 +39,8 @@ list( APPEND fdb5_srcs
     api/helpers/DumpIterator.h
     api/helpers/ListIterator.cc
     api/helpers/ListIterator.h
-    api/helpers/StatusIterator.cc
+    api/helpers/LockIterator.h
+    api/helpers/MoveIterator.h
     api/helpers/StatusIterator.h
     api/helpers/WipeIterator.h
     api/helpers/PurgeIterator.h
@@ -54,6 +55,8 @@ list( APPEND fdb5_srcs
     api/local/DumpVisitor.h
     api/local/WipeVisitor.cc
     api/local/WipeVisitor.h
+    api/local/MoveVisitor.cc
+    api/local/MoveVisitor.h
     api/local/PurgeVisitor.cc
     api/local/PurgeVisitor.h
     api/local/StatsVisitor.cc
@@ -108,6 +111,8 @@ list( APPEND fdb5_srcs
     database/PurgeVisitor.h
     database/WipeVisitor.cc
     database/WipeVisitor.h
+    database/MoveVisitor.cc
+    database/MoveVisitor.h
     database/IndexAxis.cc
     database/IndexAxis.h
     database/IndexFactory.cc
@@ -134,12 +139,10 @@ list( APPEND fdb5_srcs
     message/MessageDecoder.h
     message/MessageIndexer.cc
     message/MessageIndexer.h
-    grib/GribArchiver.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
-    io/SingleGribMungePartFileHandle.cc
-    io/SingleGribMungePartFileHandle.h
-    io/LustreFileHandle.cc
+    io/LustreSettings.cc
+    io/LustreSettings.h
     io/LustreFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
@@ -229,6 +232,13 @@ if(fdb5_HAVE_LUSTRE)
   list( APPEND fdb5_srcs io/fdb5_lustreapi_file_create.c )
 endif()
 
+if ( HAVE_GRIB )
+    list( APPEND fdb5_srcs
+        io/SingleGribMungePartFileHandle.cc
+        io/SingleGribMungePartFileHandle.h
+    )
+endif()
+
 if( HAVE_TOCFDB )
     list( APPEND fdb5_srcs
         toc/AdoptVisitor.cc
@@ -267,8 +277,12 @@ if( HAVE_TOCFDB )
         toc/TocIndexLocation.h
         toc/TocPurgeVisitor.cc
         toc/TocPurgeVisitor.h
+        toc/TocSerialisationVersion.cc
+        toc/TocSerialisationVersion.h
         toc/TocWipeVisitor.cc
         toc/TocWipeVisitor.h
+        toc/TocMoveVisitor.cc
+        toc/TocMoveVisitor.h
         toc/TocRecord.cc
         toc/TocRecord.h
         toc/TocStats.cc
@@ -281,6 +295,7 @@ if( HAVE_TOCFDB )
 
     list( APPEND fdb5_tools
         fdb-wipe
+        fdb-move
         fdb-stats
         fdb-purge
         fdb-dump-toc
@@ -392,12 +407,10 @@ if(HAVE_FDB_BUILD_TOOLS)
 endif()
 
 list( APPEND fdb5_tools
-    fdb-hammer
     fdb-write
     fdb-copy
     fdb-dump
     fdb-list
-    fdb-patch
     fdb-read
     fdb-schema
     fdb-where
@@ -406,6 +419,13 @@ list( APPEND fdb5_tools
     fdb-lock
     fdb-unlock
 )
+
+if ( HAVE_GRIB )
+    list( APPEND fdb5_tools
+        fdb-hammer
+        fdb-patch
+    )
+endif()
 
 if ( HAVE_TOCFDB )
     list(APPEND fdb5_tools
@@ -433,7 +453,7 @@ ecbuild_add_executable( TARGET    grib2fdb5
                         LIBS      fdb5 )
 
 ecbuild_add_executable(
-        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_FDB_REMOTE
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_FDB_REMOTE AND eckit_HAVE_ECKIT_CMD
         TARGET fdb-monitor
         SOURCES remote/fdb-monitor.cc
         LIBS eckit eckit_cmd )

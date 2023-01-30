@@ -48,7 +48,7 @@ bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     db_ = DB::buildReader(key);
 
     // If this database is locked for retrieval then it "does not exist"
-    if (db_->retrieveLocked()) {
+    if (!db_->enabled(ControlIdentifier::Retrieve)) {
         std::ostringstream ss;
         ss << "Database " << *db_ << " is LOCKED for retrieval";
         eckit::Log::warning() << ss.str() << std::endl;

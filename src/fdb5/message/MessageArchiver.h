@@ -42,7 +42,7 @@ public: // methods
     MessageArchiver(const fdb5::Key& key = Key(),
                  bool completeTransfers = false,
                  bool verbose = false,
-                 const Config& config=Config());
+                 const Config& config = Config().expandConfig());
 
     void filters(const std::string& include, const std::string& exclude);
     void modifiers(const std::string& modify);

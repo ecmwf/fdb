@@ -70,7 +70,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     std::unique_ptr<DB> newDB = DB::buildReader(key, config_);
 
     // If this database is locked for retrieval then it "does not exist"
-    if (newDB->retrieveLocked()) {
+    if (!newDB->enabled(ControlIdentifier::Retrieve)) {
         std::ostringstream ss;
         ss << "Database " << *newDB << " is LOCKED for retrieval";
         eckit::Log::warning() << ss.str() << std::endl;

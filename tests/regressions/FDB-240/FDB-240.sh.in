@@ -9,13 +9,12 @@ gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
 function post_process {
-   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+  num=0
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
 }
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
-
-export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
 
 ### cleanup and prepare test
 
@@ -233,6 +232,180 @@ cat > listall <<EOF
 ]}
 EOF
 
+
+cat > listallUV <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 500,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 400,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 130.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 129.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 138.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  },
+  {
+    "domain": "g",
+    "levtype": "pl",
+    "levelist": 300,
+    "date": 20201106,
+    "time": 1200,
+    "step": 0,
+    "param": 155.128,
+    "class": "od",
+    "type": "cf",
+    "stream": "enfo",
+    "expver": "0001",
+    "_leg_number": 1
+  }
+]}
+EOF
+
 $gribls -jm out.grib           | post_process | tee out
 cat listall                    | post_process | tee list
 diff out list
@@ -258,7 +431,8 @@ EOF
 # note that we get vo/d fields instead of u/v -- fdb-read does not to the VO/D -> U/V transformation
 $fdbread req out.grib
 $gribls -jm out.grib           | post_process | tee out
-diff out list
+cat listallUV                  | post_process | tee list2
+diff out list2
 
 ########################################################################################################################
 echo "retrieve u (param=131) should return 138/155 (vo/d)"

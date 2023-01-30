@@ -18,15 +18,18 @@
 #include <memory>
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/log/Timer.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DbStats.h"
-#include "fdb5/io/LustreFileHandle.h"
+#include "fdb5/database/DB.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocRecord.h"
+#include "fdb5/toc/TocSerialisationVersion.h"
+
 
 
 namespace eckit {
@@ -37,6 +40,10 @@ namespace fdb5 {
 
 class Key;
 class Index;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+extern const std::map<ControlIdentifier, const char*> controlfile_lookup;
 
 //----------------------------------------------------------------------------------------------------------------------
 class TocCopyWatcher : public eckit::TransferWatcher {
@@ -95,9 +102,9 @@ public: // typedefs
 
 public: // methods
 
-    TocHandler( const Key &key, const Config& config=Config());
+    TocHandler( const Key &key, const Config& config);
 
-    TocHandler( const eckit::PathName &dir, const Config& config=Config());
+    TocHandler( const eckit::PathName &dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
     TocHandler(const eckit::PathName& path, const Key& parentKey);
@@ -155,17 +162,13 @@ protected: // methods
 
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
 
-    bool retrieveLocked() const;
-    bool archiveLocked() const;
-    bool listLocked() const;
-    bool wipeLocked() const;
-
+    bool enabled(const ControlIdentifier& controlIdentifier) const;
 
 private: // methods
 
-    eckit::PathName fullLockFilePath(const std::string& name) const;
-    void createLockFile(const std::string& name) const;
-    void removeLockFile(const std::string& name) const;
+    eckit::PathName fullControlFilePath(const std::string& name) const;
+    void createControlFile(const std::string& name) const;
+    void removeControlFile(const std::string& name) const;
 
 protected: // members
 
@@ -174,12 +177,6 @@ protected: // members
     uid_t dbUID() const override;
 
 protected: // methods
-
-    static bool stripeLustre();
-
-    static LustreStripe stripeIndexLustreSettings();
-
-    static LustreStripe stripeDataLustreSettings();
 
     // Handle location and remapping information if using a mounted TocCatalogue
     const eckit::PathName& currentDirectory() const;
@@ -198,6 +195,8 @@ protected: // methods
     static size_t roundRecord(TocRecord &r, size_t payloadSize);
 
     void appendBlock(const void* data, size_t size);
+
+    const TocSerialisationVersion& serialisationVersion() const;
 
 private: // methods
 
@@ -234,6 +233,8 @@ private: // members
 
     eckit::PathName tocPath_;
     Config dbConfig_;
+
+    TocSerialisationVersion serialisationVersion_;
 
     bool useSubToc_;
     bool isSubToc_;

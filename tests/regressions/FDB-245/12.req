@@ -1,0 +1,11 @@
+RETRIEVE,
+    DOMAIN     = G,
+    LEVTYPE    = SFC,
+    DATE       = 20201102,
+    TIME       = 0000,
+    STEP       = 12,
+    PARAM      = 166.128,
+    CLASS      = RD,
+    TYPE       = FC,
+    STREAM     = OPER,
+    EXPVER     = xxxx

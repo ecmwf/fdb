@@ -13,6 +13,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Field.h"
+#include "fdb5/toc/TocEngine.h"
 
 using eckit::Log;
 
@@ -33,17 +34,17 @@ std::unique_ptr<DB> DB::buildWriter(const eckit::URI& uri, const fdb5::Config& c
     return std::unique_ptr<DB>(new DB(uri, config, false));
 }
 
-DB::DB(const Key& key, const fdb5::Config& config, bool read) : config_(config) {
-    catalogue_ = CatalogueFactory::instance().build(key, config, read);
+DB::DB(const Key& key, const fdb5::Config& config, bool read) {
+    catalogue_ = CatalogueFactory::instance().build(key, config.expandConfig(), read);
 }
 
-DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) : config_(config) {
-    catalogue_ = CatalogueFactory::instance().build(uri, config, read);
+DB::DB(const eckit::URI& uri, const fdb5::Config& config, bool read) {
+    catalogue_ = CatalogueFactory::instance().build(uri, config.expandConfig(), read);
 }
 
-Store& DB::store() {
+Store& DB::store() const {
     if (store_ == nullptr) {
-        store_ = catalogue_->buildStore(config_);
+        store_ = catalogue_->buildStore();
     }
 
     return *store_;
@@ -138,7 +139,7 @@ bool DB::exists() const {
 }
 
 void DB::hideContents() {
-    if (catalogue_->type() == "toc") {
+    if (catalogue_->type() == TocEngine::typeName()) {
         catalogue_->hideContents();
     }
 }
@@ -148,7 +149,7 @@ eckit::URI DB::uri() const {
 }
 
 void DB::overlayDB(const DB& otherDB, const std::set<std::string>& variableKeys, bool unmount) {
-    if (catalogue_->type() == "toc" && otherDB.catalogue_->type() == "toc")  {
+    if (catalogue_->type() == TocEngine::typeName() && otherDB.catalogue_->type() == TocEngine::typeName())  {
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
         ASSERT(cat);
 
@@ -164,7 +165,7 @@ void DB::reconsolidate() {
 }
 
 void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
-    if (catalogue_->type() == "toc") {
+    if (catalogue_->type() == TocEngine::typeName()) {
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
         ASSERT(cat);
 
@@ -186,19 +187,9 @@ DbStats DB::stats() const {
 void DB::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
     catalogue_->control(action, identifiers);
 }
-
-bool DB::retrieveLocked() const {
-    return catalogue_->retrieveLocked();
-}
-bool DB::archiveLocked() const {
-    return catalogue_->archiveLocked();
-}
-bool DB::listLocked() const {
-    return catalogue_->listLocked();
-}
-bool DB::wipeLocked() const {
-    return catalogue_->wipeLocked();
-}
+bool DB::enabled(const ControlIdentifier& controlIdentifier) const {
+    return catalogue_->enabled(controlIdentifier);
+};
 
 void DB::print( std::ostream &out ) const {
     catalogue_->print(out);

@@ -163,4 +163,13 @@ private: // members
 
 } // namespace fdb5
 
+namespace std {
+    template <>
+    struct hash<fdb5::Key> {
+        size_t operator() (const fdb5::Key& key) const {
+            return std::hash<std::string>()(key.valuesToString());
+        }
+    };
+}
+
 #endif

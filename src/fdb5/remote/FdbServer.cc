@@ -56,7 +56,7 @@ class FDBServerThread : public eckit::Thread {
 
 public: // methods
 
-    FDBServerThread(eckit::net::TCPSocket& socket, const Config& config = fdb5::Config());
+    FDBServerThread(eckit::net::TCPSocket& socket, const Config& config);
 
 private: // methods
 

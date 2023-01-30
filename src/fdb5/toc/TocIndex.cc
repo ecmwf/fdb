@@ -149,6 +149,14 @@ void TocIndex::visit(IndexLocationVisitor &visitor) const {
     visitor(location_);
 }
 
+void TocIndex::flock() const {
+    ASSERT(btree_);
+    btree_->flock();
+}
+void TocIndex::funlock() const {
+    ASSERT(btree_);
+    btree_->funlock();
+}
 
 class TocIndexVisitor : public BTreeIndexVisitor {
     const UriStore &files_;

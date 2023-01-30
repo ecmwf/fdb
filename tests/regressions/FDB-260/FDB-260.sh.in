@@ -10,14 +10,13 @@ gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
 function post_process {
-   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+  num=0
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
 }
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 wdir=$bindir/FDB-260
-
-export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
 
 ### cleanup and prepare test
 
@@ -106,7 +105,6 @@ EOF
 
 $fdbread req.2 out.grib
 
-cat > list <<EOF
 cat > list2 <<EOF
 { "messages" : [
   {
@@ -117,7 +115,7 @@ cat > list2 <<EOF
     "step": 12,
     "param": 166.128,
     "class": "rd",
-    "type": "an",
+    "type": "fc",
     "stream": "oper",
     "expver": "yyyy"
   },
@@ -125,11 +123,11 @@ cat > list2 <<EOF
     "domain": "g",
     "levtype": "sfc",
     "date": 20201102,
-    "time": "1200",
+    "time": 1200,
     "step": 12,
     "param": 166.128,
     "class": "rd",
-    "type": "an",
+    "type": "fc",
     "stream": "oper",
     "expver": "yyyy"
   }

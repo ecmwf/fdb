@@ -93,6 +93,9 @@ public: // methods
 
     virtual void print( std::ostream &out ) const = 0;
 
+    virtual void flock() const = 0;
+    virtual void funlock() const = 0;
+
 protected: // methods
     void takeTimestamp() { time(&timestamp_); }
 
@@ -176,6 +179,9 @@ public: // methods
 
     friend bool operator<  (const Index& i1, const Index& i2) { return i1.content_ <  i2.content_; }
     friend bool operator== (const Index& i1, const Index& i2) { return i1.content_ == i2.content_; }
+
+    void flock() const { content_->flock(); }
+    void funlock() const { content_->funlock(); }
 
 private: // methods
 

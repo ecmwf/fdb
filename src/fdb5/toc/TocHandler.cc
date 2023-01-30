@@ -31,6 +31,7 @@
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/io/LustreSettings.h"
 
 using namespace eckit;
 
@@ -43,7 +44,16 @@ namespace {
     constexpr const char* archive_lock_file = "archive.lock";
     constexpr const char* list_lock_file = "list.lock";
     constexpr const char* wipe_lock_file = "wipe.lock";
+    constexpr const char* allow_duplicates_file = "duplicates.allow";
 }
+
+const std::map<ControlIdentifier, const char*> controlfile_lookup {
+    {ControlIdentifier::Retrieve, retrieve_lock_file},
+    {ControlIdentifier::Archive, archive_lock_file},
+    {ControlIdentifier::List, list_lock_file},
+    {ControlIdentifier::Wipe, wipe_lock_file},
+    {ControlIdentifier::UniqueRoot, allow_duplicates_file}
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -112,6 +122,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     TocCommon(directory),
     tocPath_(directory_ / "toc"),
     dbConfig_(config),
+    serialisationVersion_(TocSerialisationVersion(config)),
     useSubToc_(config.userConfig().getBool("useSubToc", false)),
     isSubToc_(false),
     fd_(-1),
@@ -126,13 +137,14 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     const char* subTocOverride = ::getenv("FDB5_SUB_TOCS");
     if (subTocOverride) {
         useSubToc_ = true;
-    }
+    }    
 }
 
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     TocCommon(path.dirName()),
     parentKey_(parentKey),
     tocPath_(TocCommon::findRealPath(path)),
+    serialisationVersion_(TocSerialisationVersion(dbConfig_)),
     useSubToc_(false),
     isSubToc_(true),
     fd_(-1),
@@ -334,6 +346,10 @@ void TocHandler::appendBlock(const void *data, size_t size) {
     ASSERT( len == size );
 }
 
+const TocSerialisationVersion& TocHandler::serialisationVersion() const {
+    return serialisationVersion_;
+}
+
 size_t TocHandler::recordRoundSize() {
 
     static size_t fdbRoundTocRecords = eckit::Resource<size_t>("fdbRoundTocRecords", 1024);
@@ -472,7 +488,7 @@ bool TocHandler::readNextInternal(TocRecord& r) const {
         throw;
     }
 
-    LibFdb5::instance().serialisationVersion().check(r.header_.version_);
+    serialisationVersion_.check(r.header_.serialisationVersion_, true);
 
     return true;
 }
@@ -482,7 +498,7 @@ std::vector<PathName> TocHandler::subTocPaths() const {
     openForRead();
     TocHandlerCloser close(*this);
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     std::vector<eckit::PathName> paths;
 
@@ -561,7 +577,7 @@ void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
     Offset ret = proxy.seek(startOffset);
     ASSERT(ret == startOffset);
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     while (proxy.position() < endOffset) {
 
@@ -611,7 +627,7 @@ void TocHandler::populateMaskedEntriesList() const {
 
     maskedEntries_.clear();
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     while ( readNextInternal(*r) ) {
 
@@ -674,8 +690,7 @@ void TocHandler::writeInitRecord(const Key &key) {
 
     // enforce lustre striping if requested
     if (stripeLustre() && !tocPath_.exists()) {
-        LustreStripe stripe = stripeIndexLustreSettings();
-        fdb5LustreapiFileCreate(tocPath_.localPath(), stripe.size_, stripe.count_);
+        fdb5LustreapiFileCreate(tocPath_.localPath(), stripeIndexLustreSettings());
     }
 
     ASSERT(fd_ == -1);
@@ -685,7 +700,7 @@ void TocHandler::writeInitRecord(const Key &key) {
 
     TocHandlerCloser closer(*this);
 
-    std::unique_ptr<TocRecord> r(new TocRecord); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t len = readNext(*r);
     if (len == 0) {
@@ -713,8 +728,7 @@ void TocHandler::writeInitRecord(const Key &key) {
             // LustreFileHandle<eckit::FileHandle> out(tmp, stripeIndexLustreSettings());
 
             if (stripeLustre()) {
-                LustreStripe stripe = stripeIndexLustreSettings();
-                fdb5LustreapiFileCreate(tmp.localPath(), stripe.size_, stripe.count_);
+                fdb5LustreapiFileCreate(tmp.localPath(), stripeIndexLustreSettings());
             }
             eckit::FileHandle out(tmp);
             in.copyTo(out);
@@ -722,7 +736,7 @@ void TocHandler::writeInitRecord(const Key &key) {
             eckit::PathName::rename(tmp, schemaPath_);
         }
 
-        std::unique_ptr<TocRecord> r2(new TocRecord(TocRecord::TOC_INIT)); // allocate TocRecord on heap (MARS-779)
+        std::unique_ptr<TocRecord> r2(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_INIT)); // allocate TocRecord on heap (MARS-779)
         eckit::MemoryStream s(&r2->payload_[0], r2->maxPayloadSize);
         s << key;
         s << isSubToc_;
@@ -739,7 +753,7 @@ void TocHandler::writeInitRecord(const Key &key) {
 
 void TocHandler::writeClearRecord(const Index &index) {
 
-    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     size_t sz = roundRecord(*r, buildClearRecord(*r, index));
     appendBlock(r.get(), sz);
@@ -747,7 +761,7 @@ void TocHandler::writeClearRecord(const Index &index) {
 
 void TocHandler::writeClearAllRecord() {
 
-    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
     s << std::string {"*"};
@@ -762,7 +776,7 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     openForAppend();
     TocHandlerCloser closer(*this);
 
-    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_SUB_TOC)); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_SUB_TOC)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     // We use a relative path to this subtoc if it belongs to the current DB
     // but an absolute one otherwise (e.g. for fdb-overlay).
@@ -792,7 +806,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             const TocIndexLocation& location = reinterpret_cast<const TocIndexLocation&>(l);
 
-            std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_INDEX)); // allocate (large) TocRecord on heap not stack (MARS-779)
+            std::unique_ptr<TocRecord> r(new TocRecord(handler_.serialisationVersion_.used(), TocRecord::TOC_INDEX)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
@@ -800,7 +814,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
             s << location.offset();
             s << index_.type();
 
-            index_.encode(s, r->writeVersion());
+            index_.encode(s, r->header_.serialisationVersion_);
             handler_.append(*r, s.position());
 
             eckit::Log::debug<LibFdb5>() << "Write TOC_INDEX " << location.uri().path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
@@ -841,7 +855,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
 void TocHandler::writeSubTocMaskRecord(const TocHandler &subToc) {
 
-    std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_CLEAR)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
     // We use a relative path to this subtoc if it belongs to the current DB
     // but an absolute one otherwise (e.g. for fdb-overlay).
@@ -894,7 +908,7 @@ uid_t TocHandler::dbUID() const {
     TocHandlerCloser close(*this);
 
     // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord);
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
 
     while ( readNext(*r) ) {
         if (r->header_.tag_ == TocRecord::TOC_INIT) {
@@ -911,7 +925,7 @@ Key TocHandler::databaseKey() {
     TocHandlerCloser close(*this);
 
     // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord);
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
 
     while ( readNext(*r) ) {
         if (r->header_.tag_ == TocRecord::TOC_INIT) {
@@ -931,7 +945,7 @@ size_t TocHandler::numberOfRecords() const {
         TocHandlerCloser close(*this);
 
         // Allocate (large) TocRecord on heap not stack (MARS-779)
-        std::unique_ptr<TocRecord> r(new TocRecord);
+        std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
 
         bool walkSubTocs = true;
         bool hideSubTocEntries = false;
@@ -964,7 +978,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
     TocHandlerCloser close(*this);
 
     // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord);
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
     count_ = 0;
 
     bool debug = LibFdb5::instance().debug();
@@ -995,7 +1009,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             s >> offset;
             s >> type;
             LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
-            indexes.push_back( new TocIndex(s, r->header_.version_, currentDirectory(), currentDirectory() / path, offset) );
+            indexes.push_back( new TocIndex(s, r->header_.serialisationVersion_, currentDirectory(), currentDirectory() / path, offset) );
 
             if (subTocs != 0 && subTocRead_) {
                 subTocs->insert(subTocRead_->tocPath());
@@ -1067,7 +1081,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
     TocHandlerCloser close(*this);
 
     // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord);
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
 
     bool hideSubTocEntries = false;
     bool hideClearEntries = false;
@@ -1088,7 +1102,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
             case TocRecord::TOC_INIT: {
                 isSubToc = false;
                 fdb5::Key key(s);
-                if (r->header_.version_ > 1) {
+                if (r->header_.serialisationVersion_ > 1) {
                     s >> isSubToc;
                 }
                 out << "  Key: " << key << ", sub-toc: " << (isSubToc ? "yes" : "no");
@@ -1102,7 +1116,7 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
                 s >> type;
                 out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
                 if(!simple) { out << std::endl; }
-                Index index(new TocIndex(s, r->header_.version_, currentDirectory(), currentDirectory() / path, offset));
+                Index index(new TocIndex(s, r->header_.serialisationVersion_, currentDirectory(), currentDirectory() / path, offset));
                 index.dump(out, "  ", simple);
                 break;
             }
@@ -1136,7 +1150,7 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
     TocHandlerCloser close(*this);
 
     // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord);
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
 
     bool walkSubTocs = true;
     bool hideSubTocEntries = true;
@@ -1155,9 +1169,10 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
                 s >> offset;
                 s >> type;
 
-                if ((currentDirectory() / path).fullName() == indexFile.fullName()) {
-                    out << "  Path: " << path << ", offset: " << offset << ", type: " << type;
-                    Index index(new TocIndex(s, r->header_.version_, currentDirectory(), currentDirectory() / path, offset));
+                if ((currentDirectory() / path).sameAs(indexFile)) {
+                    r->dump(out, true);
+                    out << std::endl << "  Path: " << path << ", offset: " << offset << ", type: " << type;
+                    Index index(new TocIndex(s, r->header_.serialisationVersion_, currentDirectory(), currentDirectory() / path, offset));
                     index.dump(out, "  ", false, true);
                 }
                 break;
@@ -1236,7 +1251,7 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
     TocHandlerCloser close(*this);
 
     // Allocate (large) TocRecord on heap not stack (MARS-779)
-    std::unique_ptr<TocRecord> r(new TocRecord);
+    std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
 
     while ( readNextInternal(*r) ) {
         if (r->header_.tag_ == TocRecord::TOC_INDEX) {
@@ -1256,7 +1271,7 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
             std::pair<eckit::PathName, size_t> key(absPath, offset);
             if (maskedEntries_.find(key) != maskedEntries_.end()) {
                 if (absPath.exists()) {
-                    Index index(new TocIndex(s, r->header_.version_, directory_, absPath, offset));
+                    Index index(new TocIndex(s, r->header_.serialisationVersion_, directory_, absPath, offset));
                     for (const auto& dataPath : index.dataPaths()) data.insert(dataPath);
                 }
             }
@@ -1290,29 +1305,6 @@ std::string TocHandler::userName(long id) const {
   } else {
     return eckit::Translator<long, std::string>()(id);
   }
-}
-
-bool TocHandler::stripeLustre() {
-    static bool handleLustreStripe = eckit::Resource<bool>("fdbHandleLustreStripe;$FDB_HANDLE_LUSTRE_STRIPE", true);
-    return fdb5LustreapiSupported() && handleLustreStripe;
-}
-
-
-LustreStripe TocHandler::stripeIndexLustreSettings() {
-
-    static unsigned int fdbIndexLustreStripeCount = eckit::Resource<unsigned int>("fdbIndexLustreStripeCount;$FDB_INDEX_LUSTRE_STRIPE_COUNT", 1);
-    static size_t fdbIndexLustreStripeSize = eckit::Resource<size_t>("fdbIndexLustreStripeSize;$FDB_INDEX_LUSTRE_STRIPE_SIZE", 8*1024*1024);
-
-    return LustreStripe(fdbIndexLustreStripeCount, fdbIndexLustreStripeSize);
-}
-
-
-LustreStripe TocHandler::stripeDataLustreSettings() {
-
-    static unsigned int fdbDataLustreStripeCount = eckit::Resource<unsigned int>("fdbDataLustreStripeCount;$FDB_DATA_LUSTRE_STRIPE_COUNT", 8);
-    static size_t fdbDataLustreStripeSize = eckit::Resource<size_t>("fdbDataLustreStripeSize;$FDB_DATA_LUSTRE_STRIPE_SIZE", 8*1024*1024);
-
-    return LustreStripe(fdbDataLustreStripeCount, fdbDataLustreStripeSize);
 }
 
 const Key &TocHandler::currentRemapKey() const {
@@ -1351,7 +1343,7 @@ size_t TocHandler::buildIndexRecord(TocRecord& r, const Index &index) {
     s << tocLoc.uri().path().baseName();
     s << tocLoc.offset();
     s << index.type();
-    index.encode(s, r.writeVersion());
+    index.encode(s, r.header_.serialisationVersion_);
 
     return s.position();
 }
@@ -1422,27 +1414,22 @@ size_t TocHandler::buildSubTocMaskRecord(TocRecord& r, const eckit::PathName& pa
 
 void TocHandler::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
 
-    const std::map<ControlIdentifier, std::string> lockfile_lookup {
-        {ControlIdentifier::Retrieve, retrieve_lock_file},
-        {ControlIdentifier::Archive, archive_lock_file},
-        {ControlIdentifier::List, list_lock_file},
-        {ControlIdentifier::Wipe, wipe_lock_file},
-    };
+    
 
     for (ControlIdentifier identifier : identifiers) {
 
-        auto it = lockfile_lookup.find(identifier);
-        ASSERT(it != lockfile_lookup.end());
+        auto it = controlfile_lookup.find(identifier);
+        ASSERT(it != controlfile_lookup.end());
 
         const std::string& lock_file(it->second);
 
         switch (action) {
-        case ControlAction::Lock:
-            createLockFile(lock_file);
+        case ControlAction::Disable:
+            createControlFile(lock_file);
             break;
 
-        case ControlAction::Unlock:
-            removeLockFile(lock_file);
+        case ControlAction::Enable:
+            removeControlFile(lock_file);
             break;
 
         default:
@@ -1453,21 +1440,13 @@ void TocHandler::control(const ControlAction& action, const ControlIdentifiers& 
     }
 }
 
-bool TocHandler::retrieveLocked() const {
-    return fullLockFilePath(retrieve_lock_file).exists();
-}
+bool TocHandler::enabled(const ControlIdentifier& controlIdentifier) const {
+    auto it = controlfile_lookup.find(controlIdentifier);
+    ASSERT(it != controlfile_lookup.end());
 
-bool TocHandler::archiveLocked() const {
-    return fullLockFilePath(archive_lock_file).exists();
-}
-
-bool TocHandler::listLocked() const {
-    return fullLockFilePath(list_lock_file).exists();
-}
-
-bool TocHandler::wipeLocked() const {
-    return fullLockFilePath(wipe_lock_file).exists();
-}
+    const std::string& control_file(it->second);
+    return !fullControlFilePath(control_file).exists();
+};
 
 std::vector<PathName> TocHandler::lockfilePaths() const {
 
@@ -1478,34 +1457,34 @@ std::vector<PathName> TocHandler::lockfilePaths() const {
                               list_lock_file,
                               wipe_lock_file }) {
 
-        PathName fullPath = fullLockFilePath(name);
+        PathName fullPath = fullControlFilePath(name);
         if (fullPath.exists()) paths.emplace_back(std::move(fullPath));
     }
 
     return paths;
 }
 
-PathName TocHandler::fullLockFilePath(const std::string& name) const {
+PathName TocHandler::fullControlFilePath(const std::string& name) const {
     return directory_ / name;
 }
 
-void TocHandler::createLockFile(const std::string& name) const {
+void TocHandler::createControlFile(const std::string& name) const {
 
     checkUID();
 
     // It is not an error to lock something that is already locked
-    PathName fullPath(fullLockFilePath(name));
+    PathName fullPath(fullControlFilePath(name));
     if (!fullPath.exists()) {
         fullPath.touch();
     }
 }
 
-void TocHandler::removeLockFile(const std::string& name) const {
+void TocHandler::removeControlFile(const std::string& name) const {
 
     checkUID();
 
     // It is not an error to unlock something that is already unlocked
-    PathName fullPath(fullLockFilePath(name));
+    PathName fullPath(fullControlFilePath(name));
     if (fullPath.exists()) {
         bool verbose = false;
         fullPath.unlink(verbose);

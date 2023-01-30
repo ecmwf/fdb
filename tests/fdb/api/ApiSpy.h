@@ -40,7 +40,7 @@ private: // types
     struct Counts {
         Counts() :
             archive(0), inspect(0), list(0), dump(0), status(0), wipe(0),
-            purge(0), stats(0), flush(0), control(0) {}
+            purge(0), stats(0), flush(0), control(0), move(0) {}
         size_t archive;
         size_t inspect;
         size_t list;
@@ -51,6 +51,7 @@ private: // types
         size_t stats;
         size_t flush;
         size_t control;
+        size_t move;
     };
 
     using Archives = std::vector<std::tuple<fdb5::Key, const void*, size_t>>;
@@ -119,11 +120,16 @@ public: // methods
         return fdb5::StatsIterator(0);
     }
 
-    fdb5::ControlIterator control(const fdb5::FDBToolRequest& request,
+    fdb5::MoveIterator move(const fdb5::FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) override {
+        counts_.move += 1;
+        return fdb5::MoveIterator(0);
+    }
+
+    fdb5::StatusIterator control(const fdb5::FDBToolRequest& request,
                                   fdb5::ControlAction action,
                                   fdb5::ControlIdentifiers identifiers) override {
         counts_.control += 1;
-        return fdb5::ControlIterator(0);
+        return fdb5::StatusIterator(0);
     }
 
     void flush() override {

@@ -97,8 +97,9 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
         FDB& lane = lanes_[idx];
 
-        if(not lane.writable()) continue;
-
+        if(!lane.enabled(ControlIdentifier::Archive)) {
+            continue;
+        }
         if (lane.disabled()) {
             eckit::Log::warning() << "FDB lane " << lane << " is disabled" << std::endl;
             continue;
@@ -157,12 +158,13 @@ template <typename QueryFN>
 auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request)) {
 
     using QueryIterator = decltype(fn(*(FDB*)(nullptr), request));
+    using ValueType = typename QueryIterator::value_type;
 
     std::vector<std::future<QueryIterator>> futures;
-    std::queue<QueryIterator> iterQueue;
+    std::queue<APIIterator<ValueType>> iterQueue;
 
     for (FDB& lane : lanes_) {
-        if (lane.visitable()) {
+        if (lane.enabled(ControlIdentifier::Retrieve)) {
             futures.emplace_back(std::async(std::launch::async, [&lane, &fn, &request] {
                 return fn(lane, request);
             }));
@@ -173,7 +175,7 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) ->
         iterQueue.push(f.get());
     }
 
-    return QueryIterator(new APIAggregateIterator<typename QueryIterator::value_type>(std::move(iterQueue)));
+    return QueryIterator(new APIAggregateIterator<ValueType>(std::move(iterQueue)));
 }
 
 
@@ -243,6 +245,13 @@ ControlIterator DistFDB::control(const FDBToolRequest& request,
     });
 }
 
+MoveIterator DistFDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) {
+    Log::debug<LibFdb5>() << "DistFDB::move() : " << request << std::endl;
+    return queryInternal(request,
+                         [dest, removeSrc, removeDelay, threads](FDB& fdb, const FDBToolRequest& request) {
+                            return fdb.move(request, dest, removeSrc, removeDelay, threads);
+    });
+}
 
 void DistFDB::flush() {
 

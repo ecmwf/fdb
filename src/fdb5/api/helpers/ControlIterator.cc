@@ -12,6 +12,8 @@
 
 #include "eckit/serialisation/Stream.h"
 
+#include "fdb5/database/Catalogue.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -99,6 +101,10 @@ void ControlIdentifiers::encode(eckit::Stream& s) const {
     s << value_;
 }
 
+bool ControlIdentifiers::enabled(const ControlIdentifier& val) const {
+    return !(value_ & static_cast<value_type>(val));
+}
+
 ControlIdentifierIterator ControlIdentifiers::begin() const {
     return ControlIdentifierIterator(*this);
 }
@@ -111,6 +117,51 @@ ControlIdentifiers operator|(const ControlIdentifier& lhs, const ControlIdentifi
     return (ControlIdentifiers(lhs) |= rhs);
 }
 
+void ControlIdentifiers::print( std::ostream &out ) const {
+    std::string separator="";
+
+    out << "ControlIdentifiers[";
+
+    auto it = begin();
+    while (it != end()) {
+        out << separator << static_cast<value_type>(*it);
+        separator = ",";
+        ++it;
+    }
+    out << "]";
+}
+
+std::ostream &operator<<(std::ostream &s, const ControlIdentifiers &x) {
+    x.print(s);
+    return s;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+using value_type = typename std::underlying_type<ControlIdentifier>::type;
+
+ControlElement::ControlElement() : 
+    location() {}
+
+ControlElement::ControlElement(const Catalogue& catalogue) :
+    key(catalogue.key()), location(catalogue.uri()) {
+        
+    controlIdentifiers = ControlIdentifier::None;
+    for (auto id : ControlIdentifierList) {
+        if (!catalogue.enabled(id)) controlIdentifiers |= id;
+    }
+}
+
+ControlElement::ControlElement(eckit::Stream &s) :
+    key(s),
+    location(s),
+    controlIdentifiers(s) {}
+
+void ControlElement::encode(eckit::Stream& s) const {
+    s << key;
+    s << location;
+    s << controlIdentifiers;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

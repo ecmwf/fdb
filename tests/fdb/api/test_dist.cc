@@ -15,14 +15,10 @@
 
 #include <cstdlib>
 
-#include "eckit/config/Resource.h"
-#include "eckit/filesystem/PathName.h"
-#include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/TypeAny.h"
-#include "metkit/codes/UserDataContent.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -619,14 +615,14 @@ CASE( "control_distributed_according_to_dist" ) {
     // Do some archiving
 
     fdb.control(fdb5::FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0],
-                fdb5::ControlAction::Lock, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
+                fdb5::ControlAction::Disable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
 
     EXPECT(spy1.counts().control == 1);
     EXPECT(spy2.counts().control == 1);
     EXPECT(spy3.counts().control == 1);
 
     fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")[0],
-                fdb5::ControlAction::Lock, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Wipe));
+                fdb5::ControlAction::Disable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Wipe));
 
     EXPECT(spy1.counts().control == 2);
     EXPECT(spy2.counts().control == 2);
@@ -636,7 +632,7 @@ CASE( "control_distributed_according_to_dist" ) {
     // to be fully specified
 
     fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd,expver=zzzz")[0],
-                fdb5::ControlAction::Unlock, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Retrieve));
+                fdb5::ControlAction::Enable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Retrieve));
 
     EXPECT(spy1.counts().control == 3);
     EXPECT(spy2.counts().control == 3);
@@ -645,7 +641,7 @@ CASE( "control_distributed_according_to_dist" ) {
     //// Now match all the rd lanes
 
     fdb.control(fdb5::FDBToolRequest::requestsFromString("class=rd")[0],
-                fdb5::ControlAction::Unlock, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Archive));
+                fdb5::ControlAction::Enable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::Archive));
 
     EXPECT(spy1.counts().control == 4);
     EXPECT(spy2.counts().control == 4);
@@ -654,7 +650,7 @@ CASE( "control_distributed_according_to_dist" ) {
     // Explicitly match everything
 
     fdb.control(fdb5::FDBToolRequest({}, true),
-                fdb5::ControlAction::Lock, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
+                fdb5::ControlAction::Disable, fdb5::ControlIdentifiers(fdb5::ControlIdentifier::List));
 
     EXPECT(spy1.counts().control == 5);
     EXPECT(spy2.counts().control == 5);

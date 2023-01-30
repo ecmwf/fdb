@@ -10,14 +10,13 @@ gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"
 
 function post_process {
-   while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+  num=0
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
 }
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 wdir=$bindir/FDB-275
-
-export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
 
 ### cleanup and prepare test
 
@@ -55,7 +54,7 @@ cat > griblist <<EOF
     "method": 1,
     "fcmonth": 1,
     "date": 20210601,
-    "time": 0
+    "time": "0000"
   }
 ]}
 EOF

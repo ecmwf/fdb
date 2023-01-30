@@ -1,0 +1,9 @@
+---
+type: local
+engine: toc
+tocSerialisationVersion: 2
+schema: ./schema
+spaces:
+- handler: Default
+  roots:
+  - path: ./localroot
