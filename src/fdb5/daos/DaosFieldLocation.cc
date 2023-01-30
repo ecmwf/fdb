@@ -48,7 +48,7 @@ std::shared_ptr<FieldLocation> DaosFieldLocation::make_shared() const {
 
 eckit::DataHandle* DaosFieldLocation::dataHandle() const {
 
-    std::cout << "GGGGG " << uri_ << std::endl;
+    // TODO: ensure DaosSession has been configured before any actions on DaosNames in DaosFieldLocation
     return fdb5::DaosName(uri_).dataHandle();
     
 }
@@ -77,6 +77,8 @@ class DaosURIManager : public eckit::URIManager {
     virtual bool query() override { return true; }
     virtual bool fragment() override { return false; }
 
+    virtual eckit::PathName path(const eckit::URI& f) const override { return f.name(); }
+
     virtual bool exists(const eckit::URI& f) override { return fdb5::DaosName(f).exists(); }
 
     virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return fdb5::DaosName(f).dataHandle(); }
@@ -96,7 +98,7 @@ class DaosURIManager : public eckit::URIManager {
         if (!f.empty())
             f = "#" + f;
 
-        return uri.name() + q + f;
+        return uri.scheme() + "://" + uri.name() + q + f;
     }
 public:
     DaosURIManager(const std::string& name) : eckit::URIManager(name) {}

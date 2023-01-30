@@ -32,6 +32,10 @@ public: // methods
     ~DaosStore() override {}
 
     eckit::URI uri() const override;
+    bool uriBelongs(const eckit::URI&) const override;
+    bool uriExists(const eckit::URI&) const override;
+    eckit::PathName getStoreUnitPath(const eckit::URI&) const override;
+    std::vector<eckit::URI> storeUnitURIs() const override;
 
     bool open() override { return true; }
     void flush() override;

@@ -25,6 +25,7 @@
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosSession.h"
+#include "fdb5/daos/DaosException.h"
 // #include "fdb5/io/FDBFileHandle.h"
 
 // using namespace eckit;
@@ -36,16 +37,30 @@ namespace fdb5 {
 DaosStore::DaosStore(const Schema& schema, const Key& key, const Config& config) :
     Store(schema), config_(config), db_str_(key.valuesToString()) {
 
-    pool_ = config_.getSubConfiguration("daos").getString("pool", "default");
+    pool_ = config_.getSubConfiguration("daos").getSubConfiguration("store").getString("pool", "default");
 
-    pool_ = eckit::Resource<std::string>("fdbDaosPool;$FDB_DAOS_POOL", pool_);
+    pool_ = eckit::Resource<std::string>("fdbDaosStorePool;$FDB_DAOS_STORE_POOL", pool_);
+
+    fdb5::DaosManager::instance().configure(config_.getSubConfiguration("daos").getSubConfiguration("client"));
+
+    // TODO: should assert the store actually exists, as in the constructors of DaosPool etc.
 
 }
 
 DaosStore::DaosStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
     Store(schema), config_(config) {
 
-    pool_ = fdb5::DaosName(uri).poolName();
+    eckit::PathName db_path(uri.path());
+
+    eckit::Tokenizer t("/");
+    std::vector<std::string> parts = t.tokenize(db_path.asString());
+    ASSERT(parts.size() == 3);
+
+    pool_ = db_path.dirName().baseName().asString();
+    
+    db_str_ = db_path.baseName().asString();
+
+    fdb5::DaosManager::instance().configure(config_.getSubConfiguration("daos").getSubConfiguration("client"));
 
 }
 
@@ -55,8 +70,82 @@ eckit::URI DaosStore::uri() const {
     
 }
 
-bool DaosStore::exists() const { return true; }
+bool DaosStore::uriBelongs(const eckit::URI& uri) const {
 
+    // TODO: assert uri points to a (not necessarily existing) array object
+    return (
+        (uri.scheme() == type()) && 
+        (uri.path().dirName().baseName().asString().rfind("store_" + db_str_ + "_", 0) == 0));
+
+}
+
+bool DaosStore::uriExists(const eckit::URI& uri) const {
+
+    // TODO: revisit the name of this method. uriExists suggests this method can be used to check e.g. if a DAOS object pointed
+    //   to by an URI exists. However this is just meant to check if a Store container pointed to by a URI exists.
+    ASSERT(uri.scheme() == type());
+    eckit::PathName p(uri.path());
+    // ensure provided URI pointing to a Store container
+    ASSERT(p.dirName().asString() == eckit::PathName(pool_).asString());
+    std::string cont_name = p.baseName();
+    ASSERT(cont_name.rfind("store_", 0) == 0);
+
+    try {
+        fdb5::DaosSession s{};
+        fdb5::DaosPool& p = s.getPool(pool_);
+        fdb5::DaosContainer& c = p.getContainer(cont_name);
+    } catch (const fdb5::DaosEntityNotFoundException& e) {
+        return false;
+    }
+    return true;
+
+}
+
+eckit::PathName DaosStore::getStoreUnitPath(const eckit::URI& uri) const {
+
+    ASSERT(uri.scheme() == type());
+    std::string s(uri.name());
+    eckit::Tokenizer t("/");
+    std::vector<std::string> parts = t.tokenize(s);
+    ASSERT(parts.size() == 3);
+
+    return uri.path().dirName();
+
+}
+
+
+std::vector<eckit::URI> DaosStore::storeUnitURIs() const {
+
+    fdb5::DaosSession s{};
+    fdb5::DaosPool& p = s.getPool(pool_);
+    std::vector<std::string> cont_labels = p.listContainers();
+
+    std::vector<eckit::URI> store_unit_uris;
+    
+    for (const auto& label : cont_labels) {
+        
+        if (label.rfind("store_" + db_str_ + "_", 0) == 0)
+            store_unit_uris.push_back(eckit::URI(type(), eckit::PathName(pool_) / label));
+
+    }
+
+    return store_unit_uris;
+
+}
+
+bool DaosStore::exists() const {
+
+    try {
+        fdb5::DaosSession s{};
+        fdb5::DaosPool& p = s.getPool(pool_);
+    } catch (const fdb5::DaosEntityNotFoundException& e) {
+        return false;
+    }
+    return true;
+
+}
+
+// TODO: never used in actual fdb-read?
 eckit::DataHandle* DaosStore::retrieve(Field& field) const {
 
     return field.dataHandle();
@@ -71,7 +160,7 @@ FieldLocation* DaosStore::archive(const Key &key, const void *data, eckit::Lengt
 
     dirty_ = true;
 
-    fdb5::DaosSession s{config_};
+    fdb5::DaosSession s{};
     fdb5::DaosPool& p = s.getPool(pool_);
     fdb5::DaosContainer& c = p.ensureContainer("store_" + db_str_ + "_" + key.valuesToString());
     fdb5::DaosObject o = c.createObject();
@@ -115,18 +204,21 @@ void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostr
 
     ASSERT(uri.scheme() == type());
 
-    NOTIMP;
+    eckit::Tokenizer t("/");
+    std::vector<std::string> parts = t.tokenize(uri.name());
+    
+    ASSERT(parts.size() > 1);
+    ASSERT(parts[0] == pool_);
+    if (parts.size() > 2) NOTIMP;
 
-    // eckit::PathName path = uri.path();
-    // if (path.isDir()) {
-    //     logVerbose << "rmdir: ";
-    //     logAlways << path << std::endl;
-    //     if (doit) path.rmdir(false);
-    // } else {
-    //     logVerbose << "Unlinking: ";
-    //     logAlways << path << std::endl;
-    //     if (doit) path.unlink(false);
-    // }
+    // TODO: should try/catch? no, should check cont exists
+    fdb5::DaosSession s{};
+    fdb5::DaosPool& p = s.getPool(pool_);
+    fdb5::DaosContainer& c = p.getContainer(parts[1]);
+
+    logVerbose << "destroy container: ";
+    logAlways << c.name() << std::endl;
+    if (doit) c.destroy();
 
 }
 
