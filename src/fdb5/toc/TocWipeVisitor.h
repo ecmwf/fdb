@@ -71,6 +71,7 @@ private: // members
 
     std::set<eckit::PathName> safePaths_;
     std::set<eckit::PathName> residualPaths_;
+    std::set<eckit::PathName> residualDataPaths_;
 
     std::vector<Index> indexesToMask_;
 };

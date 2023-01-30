@@ -51,6 +51,10 @@ public:
     virtual void checkUID() const = 0;
 
     virtual eckit::URI uri() const = 0;
+    virtual bool uriBelongs(const eckit::URI&) const = 0;
+    virtual bool uriExists(const eckit::URI& uri) const = 0;
+    virtual eckit::PathName getStoreUnitPath(const eckit::URI&) const = 0;
+    virtual std::vector<eckit::URI> storeUnitURIs() const = 0;
 
 protected: // members
     const Schema& schema_;  //<< schema is owned by catalogue which always outlives the store

@@ -33,15 +33,51 @@ namespace fdb5 {
 TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
     Store(schema), TocCommon(StoreRootManager(config).directory(key)) {}
 
+// TODO: correct to initialise TocCommon with dirName? that would point to root without the DB name part
 TocStore::TocStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
     Store(schema), TocCommon(uri.path().dirName()) {}
 
 eckit::URI TocStore::uri() const {
+
     return URI("file", directory_);
+
+}
+
+bool TocStore::uriBelongs(const eckit::URI& uri) const {
+
+    // TODO: assert uri represents a (not necessarily existing) data file
+    return ((uri.scheme() == type()) && (uri.path().dirName().sameAs(directory_)));
+
+}
+
+bool TocStore::uriExists(const eckit::URI& uri) const {
+
+    ASSERT(uri.scheme() == type());
+    eckit::PathName p(uri.path().realName());
+    // ensure provided URI is either DB URI or Store file URI
+    if (!p.sameAs(directory_)) {
+        ASSERT(p.dirName().sameAs(directory_));
+        ASSERT(p.extension() == "data");
+    }
+
+    return p.exists();
+
+}
+
+eckit::PathName TocStore::getStoreUnitPath(const eckit::URI& uri) const {
+
+    eckit::PathName p(uri.path());
+    // ensure provided URI is Store file URI
+    ASSERT(p.dirName().sameAs(directory_));
+
+    return p;
+
 }
 
 bool TocStore::exists() const {
+
     return directory_.exists();
+
 }
 
 eckit::DataHandle* TocStore::retrieve(Field& field) const {
