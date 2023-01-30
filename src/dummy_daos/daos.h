@@ -23,6 +23,10 @@
 #include <uuid/uuid.h>
 #include <stdbool.h>
 
+#define DAOS_API_VERSION_MAJOR 2
+#define DAOS_API_VERSION_MINOR 0
+#define DAOS_API_VERSION_FIX 3
+
 #define DAOS_PC_RW 0
 #define DAOS_COO_RW 0
 #define DAOS_OO_RW 0
@@ -119,6 +123,13 @@ enum daos_pool_props {
     DAOS_PROP_PO_LABEL
 };
 
+/* cont info */
+
+struct daos_pool_cont_info {
+    uuid_t pci_uuid;
+    char pci_label[DAOS_PROP_LABEL_MAX_LEN+1];
+};
+
 /* functions */
 
 int daos_init(void);
@@ -130,11 +141,21 @@ int daos_pool_connect2(const char *pool, const char *sys, unsigned int flags,
 
 int daos_pool_disconnect(daos_handle_t poh, daos_event_t *ev);
 
+/*
+ * warning: the daos_pool_list_cont API call is not fully implemented. Only the pci_label
+ * member of the info structs is populated in all cases. The pci_uuid member is only 
+ * populated for existing containers which were created without a label.
+ */
+int daos_pool_list_cont(daos_handle_t poh, daos_size_t *ncont,
+                        struct daos_pool_cont_info *cbuf, daos_event_t *ev);
+
 int daos_cont_create(daos_handle_t poh, const uuid_t uuid, daos_prop_t *cont_prop, daos_event_t *ev);
 
 int daos_cont_create_with_label(daos_handle_t poh, const char *label,
                                 daos_prop_t *cont_prop, uuid_t *uuid,
                                 daos_event_t *ev);
+
+int daos_cont_destroy(daos_handle_t poh, const char *cont, int force, daos_event_t *ev);
 
 int daos_cont_open2(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
                     daos_cont_info_t *info, daos_event_t *ev);

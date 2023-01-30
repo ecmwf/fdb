@@ -92,6 +92,18 @@ CASE( "dummy_daos_write_then_read" ) {
     rc = daos_cont_close(coh, NULL);
     EXPECT(rc == 0);
 
+    daos_size_t ncont = 1;
+    struct daos_pool_cont_info cbuf[ncont];
+    rc = daos_pool_list_cont(poh, &ncont, cbuf, NULL);
+    EXPECT(rc == 0);
+    EXPECT(ncont == 1);
+    EXPECT(strcmp(cbuf[0].pci_label, cont_uuid_label) == 0);
+    EXPECT(uuid_compare(cbuf[0].pci_uuid, cont_uuid) == 0);
+
+    rc = daos_cont_destroy(poh, cont_uuid_label, 1, NULL);
+    EXPECT(rc == 0);
+    EXPECT(!(dummy_daos_get_handle_path(poh) / cont_uuid_label).exists());
+
     // create and open a container with user-defined label
 
     std::string cont = "b";
@@ -231,6 +243,10 @@ CASE( "dummy_daos_write_then_read" ) {
     rc = daos_cont_close(coh, NULL);
     EXPECT(rc == 0);
 
+    rc = daos_cont_destroy(poh, cont.c_str(), 1, NULL);
+    EXPECT(rc == 0);
+    EXPECT(!(dummy_daos_get_handle_path(poh) / cont).exists());
+
     rc = daos_pool_disconnect(poh, NULL);
     EXPECT(rc == 0);
 
@@ -240,6 +256,8 @@ CASE( "dummy_daos_write_then_read" ) {
 
     rc = dmg_pool_destroy(NULL, pool_uuid, NULL, 1);
     EXPECT(rc == 0);
+    EXPECT(!pool_path.exists());
+
     rc = dmg_pool_destroy(NULL, test_pool_uuid, NULL, 1);
     EXPECT(rc == 0);
 

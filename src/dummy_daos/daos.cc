@@ -33,6 +33,25 @@
 
 using eckit::PathName;
 
+static void deldir(eckit::PathName& p) {
+    if (!p.exists()) {
+        return;
+    }
+
+    std::vector<eckit::PathName> files;
+    std::vector<eckit::PathName> dirs;
+    p.children(files, dirs);
+
+    for (auto& f : files) {
+        f.unlink();
+    }
+    for (auto& d : dirs) {
+        deldir(d);
+    }
+
+    p.rmdir();
+};
+
 extern "C" {
 
 typedef struct daos_handle_internal_t {
@@ -83,6 +102,46 @@ int daos_pool_disconnect(daos_handle_t poh, daos_event_t *ev) {
 
 }
 
+int daos_pool_list_cont(daos_handle_t poh, daos_size_t *ncont,
+                        struct daos_pool_cont_info *cbuf, daos_event_t *ev) {
+
+    if (ev != NULL) NOTIMP;
+
+    daos_size_t n(*ncont);
+
+    std::vector<eckit::PathName> files;
+    std::vector<eckit::PathName> dirs;
+
+    poh.impl->path.children(files, dirs);
+
+    *ncont = dirs.size();
+
+    if (cbuf == NULL) return 0;
+
+    daos_size_t nfound = 0;
+
+    for (const auto& dir : dirs) {
+
+        ++nfound;
+
+        if (nfound > n) return -1;
+
+        std::string contname = dir.baseName().asString();
+        const char* contname_cstr = contname.c_str();
+        ASSERT(strlen(contname_cstr) <= DAOS_PROP_LABEL_MAX_LEN);
+
+        strncpy(cbuf[nfound - 1].pci_label, contname_cstr, DAOS_PROP_LABEL_MAX_LEN + 1);
+
+        uuid_t uuid = {0};
+        if (uuid_parse(contname_cstr, uuid) == 0)
+            uuid_copy(cbuf[nfound - 1].pci_uuid, uuid);
+
+    }
+
+    return 0;
+
+}
+
 int daos_cont_create(daos_handle_t poh, const uuid_t uuid, daos_prop_t *cont_prop, daos_event_t *ev) {
 
     char label[37];
@@ -103,7 +162,8 @@ int daos_cont_create_with_label(daos_handle_t poh, const char *label,
 
     //TODO: make a random directory as in pool create, and create symlink.
     //      This would allow to implement the uuid parameter of this function,
-    //      thus having containers with both a uuid and a label.
+    //      thus having containers with both a uuid and a label. Also would allow
+    //      fully implementing daos_pool_list_cont.
     //      This would not be straightforward as that method requires generating
     //      a random uuid and then attempting creating a directory with that
     //      uuid as name, and it would imply losing atomicity and leaving room
@@ -111,7 +171,34 @@ int daos_cont_create_with_label(daos_handle_t poh, const char *label,
     //      The symlink creation would also leave room for race conditions in
     //      concurrent container creation plus destruction.
 
+    ASSERT(strlen(label) <= DAOS_PROP_LABEL_MAX_LEN);
+
     (poh.impl->path / label).mkdir();
+
+    return 0;
+
+}
+
+// in DAOS, an attempt to destroy a container with open handles results in error by default. This
+// behavior is not implemented in dummy DAOS.
+// in DAOS, an attempt to destroy a container with open handles with the force flag enabled closes
+// open handles, and therefore ongoing/future operations on these handles fail. The contained objects 
+// and the container are immediately destroyed. In dummy DAOS the open handles are implemented with 
+// file descriptors, and these are left open. A remove operation is called on the corresponding file 
+// names but the descriptors remain open. Therefore, in contrast to DAOS, ongoing/future operations on 
+// these handles succeed, and the files are destroyed after the descriptors are closed. The folder 
+// implementing the container, however, is immediately removed.
+
+int daos_cont_destroy(daos_handle_t poh, const char *cont, int force, daos_event_t *ev) {
+
+    if (force != 1) NOTIMP;
+    if (ev != NULL) NOTIMP;
+
+    eckit::PathName path{poh.impl->path / cont};
+    eckit::PathName tmp_path{poh.impl->path / ("destroy_" + std::string(cont))};
+    eckit::PathName::rename(path, tmp_path);
+
+    deldir(tmp_path);
 
     return 0;
 
@@ -170,14 +257,17 @@ int daos_cont_alloc_oids(daos_handle_t coh, daos_size_t num_oids, uint64_t *oid,
 
     pid_t pid = getpid();
 
-    uint64_t pid_mask = 0x000000000000FFFF;
-    uint64_t oid_mask = 0x00000000FFFFFFFF;
-    ASSERT(next_oid <= oid_mask);
+    // only 20 out of the 32 bits in pid_t are used to identify the calling process.
+    // because of this, there could be oid clashes
+    uint64_t pid_mask = 0x00000000000FFFFF;
+
+    uint64_t oid_mask = 0x000000000FFFFFFF;
+    ASSERT((next_oid + num_oids) <= oid_mask);
 
     *oid = next_oid;
-    *oid |= (((uint64_t) *((unsigned char *) uuid)) << 56);
+    *oid |= (((uint64_t) pid) & pid_mask) << 28;
     *oid |= (((uint64_t) *(((unsigned char *) uuid) + 1)) << 48);
-    *oid |= (((uint64_t) pid) & pid_mask) << 32;
+    *oid |= (((uint64_t) *((unsigned char *) uuid)) << 56);
 
     next_oid += num_oids;
 
@@ -230,6 +320,15 @@ int daos_obj_close(daos_handle_t oh, daos_event_t *ev) {
     return 0;
 
 }
+
+// daos_kv_put and get are only guaranteed to work if values of a same fixed size are put/get.
+//   e.g. two racing processes could both openForWrite as part of daos_kv_put (and wipe file 
+//   content), then one writes (puts) content of length 2*x, the other writes content of 
+//   length x, but old content remains at the end from the first kv_put.
+//   e.g. a process could openForRead as part of daos_kv_get (which retrieves content length),  
+//   then another raching process could daos_kv_put of some content with different length, 
+//   and then the first process would resume retrieval and obtain content of unexpected length.
+// if so, daos_kv_put and get are transactional
 
 int daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
                 daos_size_t size, const void *buf, daos_event_t *ev) {
@@ -349,6 +448,9 @@ int daos_array_close(daos_handle_t oh, daos_event_t *ev) {
     return 0;
 
 }
+
+// daos_array_write and read have the same limitations and transactional behavior as 
+// daos_kv_put and get
 
 int daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
                      d_sg_list_t *sgl, daos_event_t *ev) {
