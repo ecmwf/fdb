@@ -13,15 +13,20 @@
 #include <sstream>
 
 #include "fdb5/daos/DaosSession.h"
+#include "fdb5/daos/DaosException.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosSession::DaosSession(const fdb5::Config& config) : 
-    config_(fdb5::DaosManager::instance().config()) {
+DaosSession::DaosSession(const eckit::LocalConfiguration& config) : 
+    containerOidsPerAlloc_(DaosManager::instance().containerOidsPerAlloc()),
+    objectCreateCellSize_(DaosManager::instance().objectCreateCellSize()),
+    objectCreateChunkSize_(DaosManager::instance().objectCreateChunkSize()) {
 
-    // TODO: merge config into config_
+    containerOidsPerAlloc_ = config.getInt("container_oids_per_alloc", containerOidsPerAlloc_);
+    objectCreateCellSize_ = config.getInt64("object_create_cell_size", objectCreateCellSize_);
+    objectCreateChunkSize_ = config.getInt64("object_create_chunk_size", objectCreateChunkSize_);
 
     // daos_init can be called multiple times. An internal reference count is maintained by the library
     DAOS_CALL(daos_init());
@@ -83,7 +88,14 @@ fdb5::DaosPool& DaosSession::getPool(uuid_t uuid) {
 
     fdb5::DaosPool& p = pool_cache_.at(0);
 
-    ASSERT(p.exists());
+    if (!p.exists()) {
+        char uuid_cstr[37];
+        uuid_unparse(uuid, uuid_cstr);
+        std::string uuid_str(uuid_cstr);
+        throw fdb5::DaosEntityNotFoundException(
+            "Pool with uuid " + uuid_str + " not found", 
+            Here());
+    }
 
     return p;
 
@@ -99,7 +111,11 @@ fdb5::DaosPool& DaosSession::getPool(const std::string& label) {
 
     fdb5::DaosPool& p = pool_cache_.at(0);
 
-    ASSERT(p.exists());
+    if (!p.exists()) {
+        throw fdb5::DaosEntityNotFoundException(
+            "Pool with label " + label + " not found", 
+            Here());
+    }
 
     return p;
 
@@ -135,31 +151,38 @@ DaosPool& DaosSession::getPool(uuid_t uuid, const std::string& label) {
 
     fdb5::DaosPool& p = pool_cache_.at(0);
 
-    ASSERT(p.exists());
+    if (!p.exists()) {
+        char uuid_cstr[37];
+        uuid_unparse(uuid, uuid_cstr);
+        std::string uuid_str(uuid_cstr);
+        throw fdb5::DaosEntityNotFoundException(
+            "Pool with uuid " + uuid_str + " or label " + label + " not found", 
+            Here());
+    }
 
     return p;
 
 }
 
-fdb5::DaosPool& DaosSession::createPool() {
+fdb5::DaosPool& DaosSession::createPool(const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
     pool_cache_.push_front(fdb5::DaosPool(*this));
 
     fdb5::DaosPool& p = pool_cache_.at(0);
 
-    p.create();
+    p.create(scmSize, nvmeSize);
 
     return p;
 
 }
 
-fdb5::DaosPool& DaosSession::createPool(const std::string& label) {
+fdb5::DaosPool& DaosSession::createPool(const std::string& label, const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
     pool_cache_.push_front(fdb5::DaosPool(*this, label));
 
     fdb5::DaosPool& p = pool_cache_.at(0);
     
-    p.create();
+    p.create(scmSize, nvmeSize);
 
     return p;
 

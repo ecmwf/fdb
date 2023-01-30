@@ -17,6 +17,7 @@
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosHandle.h"
+#include "fdb5/daos/DaosException.h"
 
 namespace fdb5 {
 
@@ -28,9 +29,7 @@ DaosName::DaosName(const std::string& name) {
 
     // TODO: find format for documenting inputs
     // Inputs:
-    //   name: [pool:]cont[:oidhi.oidlo]
-    
-    // TODO: replace : separator by /?
+    //   name: [pool/]cont[/oidhi.oidlo]
 
     eckit::Tokenizer parse("/");
     std::vector<std::string> bits;
@@ -62,8 +61,12 @@ daos_size_t DaosName::size() {
 bool DaosName::exists() {
 
     fdb5::DaosSession s{};
-    fdb5::DaosObject obj(s, *this);
-    return obj.exists();
+    try {
+        fdb5::DaosObject obj(s, *this);
+    } catch (const fdb5::DaosEntityNotFoundException& e) {
+        return false;
+    }
+    return true;
 
 }
 

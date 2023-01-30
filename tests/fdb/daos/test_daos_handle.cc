@@ -24,6 +24,7 @@
 #include "fdb5/daos/DaosObject.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosHandle.h"
+#include "fdb5/daos/DaosException.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -31,15 +32,10 @@ using namespace eckit;
 namespace fdb {
 namespace test {
 
-// TODO: any way to catch exceptions and signals and destroy the pools as cleanup?
-//       may be doable via test definition in cmake?
-
-// TODO: remove folder created in daos_init()?
-// TODO: ensure test folder is clean
+// TODO: change all pre-condition checks to ASSERTs
+//   question: in the future ASSERTs will default to EcKit abortion. Not what we want in many pre-condition checks
 
 CASE( "DAOS POOL" ) {
-
-    // TODO: review approach taken in destructors. Most do non-throwing calls to DAOS. DaosHandle has AutoClose.
 
     // TODO: currently, all pool and container connections are cached and kept open for the duration of the process. Would
     // be nice to close container connections as they become unused. However the DaosContainer instances are managed by the 
@@ -48,25 +44,22 @@ CASE( "DAOS POOL" ) {
     // However in a large parallel application, while all client processes are running, there may be a large number of
     // open containers in the DAOS system. One idea would be to use shared pointers to count number of uses.
 
+    // TODO: given that pool_cache_ are owned by session, should more caches be implemented in FDB as in RadosStore?
+
     // TODO: A declarative approach would be better in my opinion.
     // The current approach is an imperative one, where DaosObject and DaosContainer instances always represent existing entities in DAOS from the instant they are created.
     // In highly parallel workflows, validity of such instances will be ephemeral, and by the time we perform an action on them, the DAOS entity they represent may
     // no longer exist. In the declarative approach, the containers and objects would be opened right before the action and fail if they don't exist. In the imperative
     // approach they would fail as well, but the initial checks performed to ensure existence of the DAOS entities would be useless and degrade performance.
 
-    // TODO: implement a privateObject method to provide a managed object within DaosName?
-
-    // TODO: do not return iterators in e.g. DaosSession::getCachedPool. Return DaosPool&
-
-    // TODO: replace deque by map?
-
-    // TODO: expose hi_ and lo_ in DaosOID
-
+    // TODO: issues in DaosContainer::create and destroy
+    
     // TODO: issues in DaosPool::create and destroy
 
-    // TODO: properly implement DaosPool::exists(), DaosContainer::exists(), DaosObject::exists()
 
-    // TODO: issues in DaosContainer::create and destroy
+
+
+    // TODO: small TODOs in DaosHandle
 
     // TODO: solve question on default constructor of DaosOID
 
@@ -74,46 +67,50 @@ CASE( "DAOS POOL" ) {
 
     // TODO: think about DaosName::dataHandle overwrite parameter
 
-    // TODO: DaosHandle serialisation
-
-    // TODO: small TODOs in DaosHandle
-
-    // TODO: use of static_assert? where?
-
-    // TODO: use scopes in short-lived tests?
-
-    // TODO: change all pre-condition checks to ASSERTs
-    // question: in the future ASSERTs will default to EcKit abortion. Not what we want in many pre-condition checks
-
     // TODO: rule of three for classes with destructor?
 
-    // TODO: implement missing methods in DaosName and DaosHandle
 
-    // TODO: cpp uuid wrapper, to avoid weird headers?
+
+    // TODO: properly implement DaosPool::exists(), DaosContainer::exists(), DaosObject::exists()
+
+    // TODO: DaosHandle serialisation
+
+    // TODO: implement missing methods in DaosName
+
+    // TODO: cpp uuid wrapper, to avoid weird headers
 
     // TODO: use of uuid_generate_md5 can be removed completely
 
-    // TODO: make DaosSession take configuration, and have some defaults if no config is provided
+    // TODO: use of container and pool UUIDs can be removed completely
+
+    // TODO: do not return iterators in e.g. DaosSession::getCachedPool. Return DaosPool&
+
+    // TODO: replace deque by map
+
+    // TODO: expose hi_ and lo_ in DaosOID
+
+
+
+    // using hard-coded config defaults in DaosManager
     fdb5::DaosSession s{};
 
     SECTION("UNNAMED POOL") {
 
-        // TODO: use AutoPoolDestroyer
-
         fdb5::DaosPool& pool = s.createPool();  // admin function, not usually called in the client code.
+        fdb5::AutoPoolDestroy destroyer(pool);
 
         std::cout << pool.name() << std::endl;
 
         EXPECT(pool.name().size() == 36);
 
         // TODO: there's an attempt to close unopened pool here
-        pool.destroy();  // admin
 
     }
 
     SECTION("NAMED POOL") {
 
         fdb5::DaosPool& pool = s.createPool("pool");
+        fdb5::AutoPoolDestroy destroyer(pool);
 
         std::cout << pool.name() << std::endl;
 
@@ -123,13 +120,12 @@ CASE( "DAOS POOL" ) {
 
         EXPECT(&pool == &pool_h);
 
-        pool.destroy();
-
     }
 
     SECTION("POOL UUID ACTIONS") {
 
         fdb5::DaosPool& pool = s.createPool();
+        fdb5::AutoPoolDestroy destroyer(pool);
 
         uuid_t pool_uuid = {0};
         pool.uuid(pool_uuid);
@@ -138,9 +134,9 @@ CASE( "DAOS POOL" ) {
         uuid_unparse(pool_uuid, uuid_cstr);
         std::cout << uuid_cstr << std::endl;
 
-        pool.destroy();
-
     }
+
+    // TODO: test passing some session ad-hoc config for DAOS client
 
     // TODO: there's an extra pair of daos_init and daos_fini happening here
 
@@ -148,9 +144,11 @@ CASE( "DAOS POOL" ) {
 
 CASE( "DAOS HANDLE" ) {
 
+    // still using hard-coded config defaults in DaosManager
     fdb5::DaosSession s{};
 
     fdb5::DaosPool& pool = s.createPool("pool");
+    fdb5::AutoPoolDestroy destroyer(pool);
 
     fdb5::DaosContainer& cont = pool.createContainer("cont");
 
@@ -164,13 +162,14 @@ CASE( "DAOS HANDLE" ) {
 
         EXPECT(&cont == &cont_h);
 
-        // TODO: test container by uuid
-
-        // TODO
-        /// @note if opening the container is the only way of checking it is valid, ask developers
-        //EXPECT_THROWS(pool.getContainer("cont2"), fdb5::DaosException);
+        // TODO:
+        // EXPECT_THROWS_AS(pool.getContainer("cont2"), fdb5::DaosEntityNotFoundException);
 
         // TODO: two attempts to close unopened containers here
+
+        std::vector<std::string> cont_list(pool.listContainers());
+        EXPECT(cont_list.size() == 1);
+        EXPECT(cont_list.front() == "cont");
 
     }
 
@@ -206,9 +205,8 @@ CASE( "DAOS HANDLE" ) {
         // represent existing object with known oid
         fdb5::DaosOID read_id{id_string};
         fdb5::DaosObject read_obj{cont, read_id};
-        
-        // TODO: validate existence in constructor
-        // EXPECT_THROWS(DaosObject obj(cont, 0, 0));
+
+        EXPECT_THROWS_AS(fdb5::DaosObject obj(cont, {0, 0}), fdb5::DaosEntityNotFoundException);
 
         // TODO
         //write_obj.destroy();
@@ -243,8 +241,7 @@ CASE( "DAOS HANDLE" ) {
         EXPECT(0 == name_str.compare(name_str.length() - end.length(), end.length(), end));
 
         eckit::URI uri = name.URI();
-        // TODO: implement asString for "daos" URIs
-        // EXPECT(uri.asString() == "daos://pool:cont:" + test_oid);
+        EXPECT(uri.asString() == "daos://pool/cont/" + test_oid_str);
         EXPECT(obj.URI() == uri);
 
         // TODO: test name.exists and others
@@ -330,7 +327,9 @@ CASE( "DAOS HANDLE" ) {
         EXPECT(std::memcmp(data, read_data2, sizeof(data)) == 0);
         EXPECT(std::memcmp(data, read_data2 + sizeof(data), sizeof(data)) == 0);
 
-        // TODO: given that pool_cache_ are owned by session, should more caches be implemented in FDB as in RadosStore?
+        EXPECT_THROWS_AS(
+            fdb5::DaosHandle dh_fail(fdb5::DaosName(pool.name(), cont.name(), {1, 0})), 
+            fdb5::DaosEntityNotFoundException);
 
         // TODO: POOL, CONTAINER AND OBJECT OPENING ARE OPTIONAL FOR DaosHandle::openForRead. Test it
         // TODO: CONTAINER AND OBJECT CREATION ARE OPTIONAL FOR DaosHandle::openForWrite. Test it
@@ -342,13 +341,13 @@ CASE( "DAOS HANDLE" ) {
 
     }
 
-    // TODO
-    // cont.destroy();  // NOTIMP
-
-    pool.destroy();
-
-
-    
+    // manually destroying container for test purposes. There's no actual need for 
+    // container destruction or auto destroyer as pool is autodestroyed
+    // TODO: when enabling this, AutoPoolDestroy fails as a corresponding DaosContainer instance 
+    //   still exists in the DaosPool, but the corresponding container does not exist and 
+    //   dummy_daos destroy fails trying to rename an unexisting directory. The issue of pool
+    //   and container destruction and invalidation needs to be addressed first.
+    //cont.destroy();
 
     // test DaosPool::name(), uuid(), label()
 
@@ -372,19 +371,10 @@ CASE( "DAOS HANDLE" ) {
 
     // test DaosName::size()
 
-    // test attempt open for read of a non-existing object
-
-    // std::string oid = "0000000000000001.0000000000000000";
-    // fdb5::DaosHandle dh_fail(pool.name(), cont, oid);
-    // bool caughtException = false;
-    // try {
-    //     t = dh_fail.openForRead();
-    // } catch(eckit::Exception&) {
-    //     caughtException = true;
-    // }
-    // EXPECT(caughtException);
-
 }
+
+// TODO: test a new case where some DAOS operations are carried out with a DaosSession with specific config
+//  overriding (but not rewriting) DaosManager defaults
 
 }  // namespace test
 }  // namespace fdb
@@ -393,77 +383,3 @@ int main(int argc, char **argv)
 {
     return run_tests ( argc, argv );
 }
-
-// *write to new object with automatic or defined oid
-//     DaosSession s{???}
-//     p = s.createPool()
-//     c = p.ensureCont("c")  // p.createCont("c")
-//     o = c.createObject()  // c.createObject(hi32, lo64)
-//     uri = o.URI()
-//     DataHandle dh(std::move(o))
-//     dh.openForWrite()
-//     {
-//         AutoClose closer(dh);
-//         dh.write(data, len);
-//     }
-
-
-// should allow write to new object from DaosName/URI?
-// should enable creation of target object in DaosHandle::openForWrite/Append if it comes from DaosName/URI/fully specified DaosOID?
-// in principle we said openForWrite/Append should create if not exists
-
-
-// write to existing object with known OID
-//     DaosSession s{???}
-//     p = s.getPool("p")
-//     c = p.getCont("c")
-//     DaosObject o{c, DaosOID(hi64, lo64)}
-//     uri = o.URI()
-//     DataHandle dh(std::move(o))
-//     dh.openForWrite()
-//     {
-//         AutoClose closer(dh);
-//         dh.write(data, len);
-//     }
-
-
-// write to existing object from DaosName/URI
-//     DaosSession s{???}
-//     DaosName n{uri}
-//     n.setSession(s)
-//     dh = n.dataHandle(offset, len)
-//     dh->openForWrite()
-//     {
-//         AutoClose closer(*dh)
-//         dh.write(data, len)
-//     }
-
-
-
-
-
-
-// read from existing object with known OID
-//     DaosSession s{???}
-//     p = s.getPool("p")
-//     c = p.getCont("c")
-//     DaosObject o{c, DaosOID(hi64, lo64)}
-//     uri = o.URI()
-//     DataHandle dh(std::move(o))
-//     dh.openForRead()
-//     {
-//         AutoClose closer(dh);
-//         dh.read(data, len);
-//     }
-
-
-// *read from existing object from DaosName/URI
-//     DaosSession s{???}  // not in DaosFieldLocation
-//     DaosName n{uri}
-//     n.setSession(s)  // Problem in DaosFieldLocation!!!
-//     dh = n.dataHandle(offset, len)
-//     dh->openForRead()  // not in DaosFieldLocation
-//     {
-//         AutoClose closer(*dh)
-//         dh.read(data, len)
-//     }

@@ -34,7 +34,7 @@ public: // methods
     ~DaosPool();
 
     // administrative
-    void destroy();
+    void destroy(const int& force = 1);
 
     void open();
     void close();
@@ -56,6 +56,8 @@ public: // methods
     void closeContainers();    
     void destroyContainers();
 
+    std::vector<std::string> listContainers();
+
     const daos_handle_t& getOpenHandle();
     
     fdb5::DaosSession& getSession() const;
@@ -72,7 +74,7 @@ private: // methods
     DaosPool(fdb5::DaosSession&, const std::string&);
     DaosPool(fdb5::DaosSession&, uuid_t, const std::string&);
 
-    void create();
+    void create(const uint64_t& scmSize, const uint64_t& nvmeSize);
 
     fdb5::DaosContainer& getContainer(uuid_t, bool);
     fdb5::DaosContainer& getContainer(const std::string&, bool);
@@ -93,6 +95,37 @@ private: // members
     bool open_;
 
     std::deque<fdb5::DaosContainer> cont_cache_;
+
+};
+
+class AutoPoolDestroy {
+
+public: // methods
+
+    AutoPoolDestroy(fdb5::DaosPool& pool) : pool_(pool) {}
+
+    ~AutoPoolDestroy() noexcept(false) {
+
+        bool fail = !eckit::Exception::throwing();
+
+        try {
+            pool_.destroy();
+        }
+        catch (std::exception& e) {
+            eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;
+            if (fail) {
+                eckit::Log::error() << "** Exception is re-thrown" << std::endl;
+                throw;
+            }
+            eckit::Log::error() << "** An exception is already in progress" << std::endl;
+            eckit::Log::error() << "** Exception is ignored" << std::endl;
+        }
+        
+    }
+
+private: // members
+
+    fdb5::DaosPool& pool_;
 
 };
 

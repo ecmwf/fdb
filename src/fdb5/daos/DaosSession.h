@@ -19,8 +19,8 @@
 #include <deque>
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/config/LocalConfiguration.h"
 
-#include "fdb5/config/Config.h"
 #include "fdb5/daos/DaosPool.h"
 
 namespace fdb5 {
@@ -29,18 +29,38 @@ class DaosManager : private eckit::NonCopyable {
 
 public: // methods
 
+    // TODO: set configuration where relvant in unit tests
+    // TODO: unit tests for config
     static DaosManager& instance() {
-
-        static DaosManager instance;
+        static DaosManager instance;        
         return instance;
-
     };
 
-    fdb5::Config& config() { return config_; };
+    void configure(const eckit::LocalConfiguration& config) {
+        containerOidsPerAlloc_ = config.getInt("container_oids_per_alloc", containerOidsPerAlloc_);
+        objectCreateCellSize_ = config.getInt64("object_create_cell_size", objectCreateCellSize_);
+        objectCreateChunkSize_ = config.getInt64("object_create_chunk_size", objectCreateChunkSize_);
+    };
+
+    int containerOidsPerAlloc() const { return containerOidsPerAlloc_; };
+    uint64_t objectCreateCellSize() const { return objectCreateCellSize_; };
+    uint64_t objectCreateChunkSize() const { return objectCreateChunkSize_; };
+
+private: // methods
+
+    DaosManager() : 
+        containerOidsPerAlloc_(100),
+        objectCreateCellSize_(1),
+        objectCreateChunkSize_(1048576) {}
+        // TODO: should configure here with LibFdb5 default config, for cases where DaosManager is never configured?
+        //       I would say No. fdb5 classes should always configure Daos including configuration from LibFdb5 default config.
+        //       Daos* classes should not depend on fdb5 configuration if used independently.
 
 private: // members
 
-    fdb5::Config config_{};
+    int containerOidsPerAlloc_;
+    uint64_t objectCreateCellSize_;
+    uint64_t objectCreateChunkSize_;
 
 };
 
@@ -52,12 +72,17 @@ class DaosSession : eckit::NonCopyable {
 
 public: // methods
 
-    DaosSession(const fdb5::Config& config = fdb5::Config());
+    DaosSession(const eckit::LocalConfiguration& config = eckit::LocalConfiguration());
     ~DaosSession();
 
     // administrative
-    fdb5::DaosPool& createPool();
-    fdb5::DaosPool& createPool(const std::string& label);
+    fdb5::DaosPool& createPool(
+        const uint64_t& scmSize = 10ULL << 30, 
+        const uint64_t& nvmeSize = 40ULL << 30);
+    fdb5::DaosPool& createPool(
+        const std::string& label, 
+        const uint64_t& scmSize = 10ULL << 30, 
+        const uint64_t& nvmeSize = 40ULL << 30);
 
     fdb5::DaosPool& getPool(uuid_t);
     fdb5::DaosPool& getPool(const std::string&);
@@ -68,26 +93,25 @@ public: // methods
 
     static void error(int code, const char* msg, const char* file, int line, const char* func);
 
+    int containerOidsPerAlloc() const { return containerOidsPerAlloc_; };
+    uint64_t objectCreateCellSize() const { return objectCreateCellSize_; };
+    uint64_t objectCreateChunkSize() const { return objectCreateChunkSize_; };
+
 private: // methods
 
-    std::deque<fdb5::DaosPool>::iterator getCachedPool(uuid_t);
-    std::deque<fdb5::DaosPool>::iterator getCachedPool(const std::string&);
-
-public: //members
-
-    static const daos_size_t default_pool_create_scm_size = 10ULL << 30;
-    static const daos_size_t default_pool_create_nvme_size = 40ULL << 30;
-    static const int default_pool_destroy_force = 1;
-
-    static const int default_container_oids_per_alloc = 100;
-
-    static const daos_size_t default_object_create_cell_size = 1;
-    static const daos_size_t default_object_create_chunk_size = 1048576;
+    /// @todo: Use std::map<std::string, fdb5::DaosPool>
+    /// @todo: Offload caching to manager?
+    using PoolCache = std::deque<fdb5::DaosPool>;
+    PoolCache::iterator getCachedPool(uuid_t);
+    PoolCache::iterator getCachedPool(const std::string&);
 
 private: // members
 
-    std::deque<fdb5::DaosPool> pool_cache_;
-    fdb5::Config& config_;    
+    PoolCache pool_cache_;
+
+    int containerOidsPerAlloc_;
+    uint64_t objectCreateCellSize_;
+    uint64_t objectCreateChunkSize_;
 
 };
 

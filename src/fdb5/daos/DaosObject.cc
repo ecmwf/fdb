@@ -17,6 +17,7 @@
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosObject.h"
 #include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosException.h"
 
 namespace fdb5 {
 
@@ -41,11 +42,29 @@ fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession& session, const fdb5::Da
     
 }
 
-DaosObject::DaosObject(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid, bool verify) : cont_(cont), oid_(oid), open_(false) { if (verify) ASSERT(exists()); }
+DaosObject::DaosObject(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid, bool verify) : 
+    cont_(cont), oid_(oid), open_(false) {
+    
+    if (verify && !exists()) {
+        throw fdb5::DaosEntityNotFoundException(
+            "Object with oid " + oid.asString() + " not found", 
+            Here());
+    }
+    
+}
 
 DaosObject::DaosObject(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid) : DaosObject(cont, oid, true) {}
 
-DaosObject::DaosObject(fdb5::DaosSession& session, const fdb5::DaosName& name) : cont_(name_to_cont_ref(session, name)), oid_(name.OID()), open_(false) { ASSERT(exists()); }
+DaosObject::DaosObject(fdb5::DaosSession& session, const fdb5::DaosName& name) : 
+    cont_(name_to_cont_ref(session, name)), oid_(name.OID()), open_(false) {
+    
+    if (!exists()) {
+        throw fdb5::DaosEntityNotFoundException(
+            "Object with name " + name.asString() + " not found", 
+            Here());
+    }
+    
+}
 
 DaosObject::DaosObject(fdb5::DaosSession& session, const eckit::URI& uri) : DaosObject(session, DaosName(uri)) {}
 
@@ -69,7 +88,14 @@ void DaosObject::create() {
 
     const daos_handle_t& coh = cont_.getOpenHandle();
 
-    DAOS_CALL(daos_array_create(coh, oid_.asDaosObjIdT(), DAOS_TX_NONE, DaosSession::default_object_create_cell_size, DaosSession::default_object_create_chunk_size, &oh_, NULL));
+    DAOS_CALL(
+        daos_array_create(
+            coh, oid_.asDaosObjIdT(), DAOS_TX_NONE,
+            getContainer().getPool().getSession().objectCreateCellSize(),
+            getContainer().getPool().getSession().objectCreateChunkSize(),
+            &oh_, NULL
+        )
+    );
 
     open_ = true;
 

@@ -370,6 +370,8 @@ if( HAVE_DAOSFDB )
         daos/DaosStore.cc 
         daos/DaosFieldLocation.h 
         daos/DaosFieldLocation.cc
+        daos/DaosException.h
+        daos/DaosException.cc
     )
 else()
     set( DAOS_LIBRARIES "" )

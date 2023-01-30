@@ -42,7 +42,6 @@ public: // methods
 
     //void create();
     //void destroy();
-    // TODO: return eckit::Length?
     daos_size_t size();
     bool exists();
     // owner

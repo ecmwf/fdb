@@ -38,7 +38,7 @@ DaosContainer::DaosContainer(fdb5::DaosPool& pool, uuid_t uuid, const std::strin
 
 DaosContainer::~DaosContainer() {
 
-    // TODO: HERE AND IN DESTROY() AND CLOSE() WED WANT TO CLOSE AND DESTROY/INVALIDATE ALL OBJECT INSTANCES FOR OBJECTS IN THE CONT
+    // TODO: AND IN DESTROY() AND CLOSE() WED WANT TO CLOSE AND DESTROY/INVALIDATE ALL OBJECT INSTANCES FOR OBJECTS IN THE CONT
     // WHAT HAPPENS IF WE DO OBJ.OPEN AND THEN CONT.CLOSE???
 
     if (open_) close();
@@ -86,12 +86,15 @@ void DaosContainer::create() {
 
 void DaosContainer::destroy() {
 
+    ASSERT(label_.size() > 0);
+
     if (known_uuid_) pool_.closeContainer(uuid_);
+        
+    pool_.closeContainer(label_);
 
-    if (label_.size() > 0) pool_.closeContainer(label_);
+    const daos_handle_t& poh = pool_.getOpenHandle();
 
-    // TODO:
-    // daos_cont_destroy
+    DAOS_CALL(daos_cont_destroy(poh, label_.c_str(), 1, NULL));
 
     // TODO: this results in an invalid DaosContainer instance. Address as in DaosPool::destroy().
     // TODO: flag instance as invalid / non-existing? not allow open() anymore if instance is invalid. Assert in all Object actions that cont is valid
@@ -147,7 +150,7 @@ fdb5::DaosObject DaosContainer::createObject() {
     open();
 
     if (oid_alloc_.num_oids == 0) {
-        oid_alloc_.num_oids = fdb5::DaosSession::default_container_oids_per_alloc;
+        oid_alloc_.num_oids = getPool().getSession().containerOidsPerAlloc();
         DAOS_CALL(daos_cont_alloc_oids(coh_, oid_alloc_.num_oids + 1, &(oid_alloc_.next_oid), NULL));
     } else {
         ++oid_alloc_.next_oid;

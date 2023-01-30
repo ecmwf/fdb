@@ -14,6 +14,7 @@
 
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosSession.h"
+#include "fdb5/daos/DaosException.h"
 
 namespace fdb5 {
 
@@ -44,7 +45,7 @@ DaosPool::~DaosPool() {
 
 }
 
-void DaosPool::create() {
+void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
     // "Cannot create a pool with a user-specified UUID."
     ASSERT(!known_uuid_);
@@ -68,8 +69,13 @@ void DaosPool::create() {
 
     }
 
-    // TODO: add parameters or resources to adjust these fixed values
-    DAOS_CALL(dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, DaosSession::default_pool_create_scm_size, DaosSession::default_pool_create_nvme_size, prop, &svcl, uuid_));
+    DAOS_CALL(
+        dmg_pool_create(
+            NULL, geteuid(), getegid(), NULL, NULL, 
+            scmSize, nvmeSize, 
+            prop, &svcl, uuid_
+        )
+    );
 
     // TODO: query the pool to ensure it's ready
 
@@ -81,7 +87,7 @@ void DaosPool::create() {
 
 }
 
-void DaosPool::destroy() {
+void DaosPool::destroy(const int& force) {
 
     // TODO: this will result in a invalid DaosPool instance, we want to avoid this
 
@@ -93,7 +99,7 @@ void DaosPool::destroy() {
     // TODO: cached DaosPools declared with a label only, pointing to the pool
     // being destroyed may still exist and should be closed.
 
-    DAOS_CALL(dmg_pool_destroy(NULL, uuid_, NULL, fdb5::DaosSession::default_pool_destroy_force));
+    DAOS_CALL(dmg_pool_destroy(NULL, uuid_, NULL, force));
 
     // TODO: the DaosPools pointing to the destroyed DAOS pool are now invalid
     // and cannot be reopened unless a new pool with the same label or uuid 
@@ -189,7 +195,14 @@ fdb5::DaosContainer& DaosPool::getContainer(uuid_t uuid, bool verify) {
     
     DaosContainer& c = cont_cache_.at(0);
 
-    if (verify) ASSERT(c.exists());
+    if (verify && !c.exists()) {
+        char uuid_cstr[37];
+        uuid_unparse(uuid, uuid_cstr);
+        std::string uuid_str(uuid_cstr);
+        throw fdb5::DaosEntityNotFoundException(
+            "Container with uuid " + uuid_str + " not found", 
+            Here());
+    }
 
     return c;
 
@@ -205,7 +218,11 @@ fdb5::DaosContainer& DaosPool::getContainer(const std::string& label, bool verif
     
     DaosContainer& c = cont_cache_.at(0);
 
-    if (verify) ASSERT(c.exists());
+    if (verify && !c.exists()) {
+        throw fdb5::DaosEntityNotFoundException(
+            "Container with label " + label + " not found", 
+            Here());
+    }
 
     return c;
 
@@ -230,7 +247,14 @@ fdb5::DaosContainer& DaosPool::getContainer(uuid_t uuid, const std::string& labe
     
     DaosContainer& c = cont_cache_.at(0);
 
-    if (verify) ASSERT(c.exists());
+    if (verify && !c.exists()) {
+        char uuid_cstr[37];
+        uuid_unparse(uuid, uuid_cstr);
+        std::string uuid_str(uuid_cstr);
+        throw fdb5::DaosEntityNotFoundException(
+            "Container with uuid " + uuid_str + " or label " + label + " not found", 
+            Here());
+    }
 
     return c;
 
@@ -371,6 +395,24 @@ void DaosPool::destroyContainers() {
 
     std::deque<fdb5::DaosContainer>::iterator it;
     for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) it->destroy();
+
+}
+
+std::vector<std::string> DaosPool::listContainers() {
+
+    std::vector<std::string> res;
+
+    daos_size_t ncont{0};
+    DAOS_CALL(daos_pool_list_cont(getOpenHandle(), &ncont, NULL, NULL));
+
+    if (ncont == 0) return res;
+
+    std::vector<struct daos_pool_cont_info> info(ncont);
+    DAOS_CALL(daos_pool_list_cont(getOpenHandle(), &ncont, info.data(), NULL));
+
+    for (const auto& c : info) res.push_back(c.pci_label);
+
+    return res;
 
 }
 
