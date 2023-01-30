@@ -226,8 +226,16 @@ CASE( "fdb_c - multiple archive & list" ) {
     fdb_handle_t* fdb;
     fdb_new_handle(&fdb);
 
-    std::vector<fdb5::Key> k1{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=300,param=138"}};
-    std::vector<fdb5::Key> k2{fdb5::Key{"class=rd,expver=xxxx,stream=oper,date=20191110,time=0000,domain=g"},fdb5::Key{"type=an,levtype=pl"},fdb5::Key{"step=0,levelist=400,param=138"}};
+    std::vector<fdb5::Key> k1 {
+        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+        {{"type", "an"}, {"levtype", "pl"}},
+        {{"step", "0"}, {"levelist", "300"}, {"param", "138"}},
+    };
+    std::vector<fdb5::Key> k2 {
+        {{"class", "rd"}, {"expver", "xxxx"}, {"stream", "oper"}, {"date", "20191110"}, {"time", "0000"}, {"domain", "g"}},
+        {{"type", "an"}, {"levtype", "pl"}},
+        {{"step", "0"}, {"levelist", "400"}, {"param", "138"}},
+    };
 
     eckit::PathName grib1("x138-300.grib");
     length1 = grib1.size();
