@@ -33,7 +33,7 @@ std::unique_ptr<Store> Catalogue::buildStore() {
         // TODO: could be removed together with all Store constructors taking a URI
         if (types_coincide)
             return StoreFactory::instance().build(schema(), eckit::URI(name, uri()), config_);
-        return StoreFactory::instance().build(schema(), key(), config);
+        return StoreFactory::instance().build(schema(), key(), config_);
     }
 }
 
