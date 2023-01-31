@@ -25,121 +25,325 @@ extern "C" {
 #include <stdbool.h>
 #include <stddef.h>
 
-/**
- * Initialise API
- * @note This is only required if being used from a context where eckit::Main() is not otherwise initialised
+
+/** \defgroup Initialisation */
+/** @{ */
+
+/** Initialises API, must be called before any other function
+ * \note This is only required if being used from a context where **eckit::Main()** is not otherwise initialised.
+ * \returns Return code (#FdbErrorValues)
  */
-
-///@{
-
 int fdb_initialise();
 
-///@}
+/** @} */
 
 
-/** Version accessors */
+/** \defgroup Version Accessors */
+/** @{ */
 
-///@{
-
-/** Human readable release version e.g. 1.2.3 */
+/** Retrieves the release version of the library in human-readable format, e.g. ``5.10.8``
+ * \param version Return variable for release version. Returned pointer valid throughout program lifetime.
+ * \returns Return code (#FdbErrorValues)
+ */
 int fdb_version(const char** version);
-/** Version under VCS system, typically a git sha1. Not useful for computing software dependencies. */
+/** Retrieves version control checksum of the latest change, e.g. ``a88011c007a0db48a5d16e296934a197eac2050a``
+ * \param version Return variable for version control checksum. Returned pointer valid throughout program lifetime.
+ * \returns Return code (#FdbErrorValues)
+ */
 int fdb_vcs_version(const char** version);
 
 ///@}
 
 
-/** Error handling */
+/** \defgroup Error Handling */
+/** @{ */
 
-///@{
-
+/** Return codes */
 enum FdbErrorValues {
     FDB_SUCCESS                  = 0,
     FDB_ERROR_GENERAL_EXCEPTION  = 1,
-    FDB_ERROR_UNKNOWN_EXCEPTION  = 2
+    FDB_ERROR_UNKNOWN_EXCEPTION  = 2,
+    FDB_ITERATION_COMPLETE       = 3
 };
 
+/** Returns a human-readable error message for the last error given an error code
+ * \param err Error code (#FdbErrorValues)
+ * \returns Error message
+ */
 const char* fdb_error_string(int err);
 
+/** Error handler callback function signature
+ * \param context Error handler context
+ * \param error_code Error code (#FdbErrorValues)
+ */
 typedef void (*fdb_failure_handler_t)(void* context, int error_code);
 
-/** Set a function to be called on error in addition to returning an error code.
- *  The handler can can access fdb_error_string()
- *  The handler can also access std::current_exception() if needed (and even rethrow if required).
+/** Sets an error handler which will be called on error with the supplied context and an error code
+ * \param handler Error handler function
+ * \param context Error handler context
  */
 int fdb_set_failure_handler(fdb_failure_handler_t handler, void* context);
 
-///@}
+/** @} */
 
 
-/** Types */
-
-///@{
+/** \defgroup Key */
+/** @{ */
 
 struct fdb_key_t;
+/** Opaque type for the Key object. Holds the metadata of a Key. */
 typedef struct fdb_key_t fdb_key_t;
 
+/** Creates a Key instance.
+ * \param key Key instance. Returned instance must be deleted using #fdb_delete_key.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_new_key(fdb_key_t** key);
+
+/** Adds a metadata pair to a Key
+ * \param key Key instance
+ * \param param Metadata name
+ * \param value Metadata value
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_key_add(fdb_key_t* key, const char* param, const char* value);
+
+/** Deallocates Key object and associated resources.
+ * \param key Key instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_key(fdb_key_t* key);
+
+/** @} */
+
+
+/** \defgroup Request */
+/** @{ */
+
 struct fdb_request_t;
+/** Opaque type for the Request object. Holds the metadata of a Request. */
 typedef struct fdb_request_t fdb_request_t;
 
+/** Creates a Request instance.
+ * \param req Request instance. Returned instance must be deleted using #fdb_delete_request.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_new_request(fdb_request_t** req);
+
+/** Adds a metadata definition to a Request
+ * \param req Request instance
+ * \param param Metadata name
+ * \param values Metadata values
+ * \param numValues number of metadata values
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_request_add(fdb_request_t* req, const char* param, const char* values[], int numValues);
+
+/** Deallocates Request object and associated resources.
+ * \param req Request instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_request(fdb_request_t* req);
+
+/** @} */
+
+
+/** \defgroup SplitKey */
+/** @{ */
+
+struct fdb_split_key_t;
+/** Opaque type for the SplitKey object. Holds the Keys associated with a ListElement. */
+typedef struct fdb_split_key_t fdb_split_key_t;
+
+/** Creates a SplitKey instance.
+ * \param key SplitKey instance. Returned instance must be deleted using #fdb_delete_splitkey.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_new_splitkey(fdb_split_key_t** key);
+
+/** Returns the next set of metadata in a SplitKey object. For a given ListElement, the SplitKey represents the Keys associated with each level of the FDB index.
+ * Supports multiple fdb_split_key_t iterating over the same key.
+ * \param it SplitKey instance
+ * \param key Key metadata name
+ * \param value Key metadata value
+ * \param level level in the iondex of the current Key
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_splitkey_next_metadata(fdb_split_key_t* it, const char** key, const char** value, size_t* level);
+
+/** Deallocates SplitKey object and associated resources.
+ * \param key SplitKey instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_splitkey(fdb_split_key_t* key);
+
+/** @} */
+
+
+/** \defgroup ListIterator */
+/** @{ */
+
 struct fdb_listiterator_t;
+/** Opaque type for the ListIterator object. Holds the fdb listing output. */
 typedef struct fdb_listiterator_t fdb_listiterator_t;
 
+/** Moves to the next ListElement in a ListIterator object.
+ * \param it ListIterator instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_listiterator_next(fdb_listiterator_t* it);
+
+/** Returns the attribute of the current ListElement in a ListIterator object.
+ * \param it ListIterator instance
+ * \param uri URI describing the resource (i.e. file path) storing the ListElement data (i.e. GRIB message)
+ * \param off Offset within the resource referred by #uri
+ * \param len Length in bytes of the ListElement data
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_listiterator_attrs(fdb_listiterator_t* it, const char** uri, size_t* off, size_t* len);
+
+/** Lazy extraction of the key of a list element, key metadata can be retrieved with fdb_splitkey_next_metadata.
+ * \param it SplitKey instance (must be already initialised by #fdb_new_splitkey)
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_listiterator_splitkey(fdb_listiterator_t* it, fdb_split_key_t* key);
+
+/** Deallocates ListIterator object and associated resources.
+ * \param it ListIterator instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_listiterator(fdb_listiterator_t* it);
+
+/** @} */
+
+
+/** \defgroup DataReader */
+/** @{ */
+
 struct fdb_datareader_t;
+/** Opaque type for the DataReader object. Provides access to the binary data returned by a FDB retrieval. */
 typedef struct fdb_datareader_t fdb_datareader_t;
 
+/** Creates a DataReader instance.
+ * \param dr DataReader instance. Returned instance must be deleted using #fdb_delete_datareader.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_new_datareader(fdb_datareader_t** dr);
+
+/** Open a DataReader for data reading.
+ * \param dr DataReader instance
+ * \param size size of the opened DataReader
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_datareader_open(fdb_datareader_t* dr, long* size);
+
+/** Close a DataReader.
+ * \param dr DataReader instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_datareader_close(fdb_datareader_t* dr);
+
+/** Returns the current read position in a DataReader.
+ * \param dr DataReader instance
+ * \param pos Read position (byte offset from the start of the DataReader)
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_datareader_tell(fdb_datareader_t* dr, long* pos);
+
+/** Sets a new read position in a DataReader.
+ * \param dr DataReader instance
+ * \param pos New read position (byte offset from the start of the DataReader)
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_datareader_seek(fdb_datareader_t* dr, long pos);
+
+/** Move forward the read position in a DataReader.
+ * \param dr DataReader instance
+ * \param count Offset w.r.t. the current read position retured by fdb_datareader_tell
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_datareader_skip(fdb_datareader_t* dr, long count);
+
+/** Read binary data from a DataReader to a given memory buffer.
+ * \param dr DataReader instance
+ * \param buf Pointer of the target memory buffer.
+ * \param count Max size of the data to read
+ * \param read Actual size of the data read from the DataReader into the memory buffer
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read);
+
+/** Deallocates DataReader object and associated resources.
+ * \param key DataReader instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_delete_datareader(fdb_datareader_t* dr);
+
+/** @} */
+
+
+/** \defgroup FDB API */
+/** @{ */
+
 struct fdb_handle_t;
+/** Opaque type for the FDB object. */
 typedef struct fdb_handle_t fdb_handle_t;
 
-///@}
-
-/** API */
-
-///@{
-
-/** Creates a fdb instance. */
+/** Creates a FDB instance.
+ * \param fdb FDB instance. Returned instance must be deleted using #fdb_delete_handle.
+ * \returns Return code (#FdbErrorValues)
+ */
 int fdb_new_handle(fdb_handle_t** fdb);
-/** disclaimer: this is a low-level API. The provided key and the corresponding data are not checked for consistency */
+
+/** Archives binary data to a FDB instance.
+ * \warning this is a low-level API. The provided key and the corresponding data are not checked for consistency
+ * \param fdb FDB instance.
+ * \param key Key used for indexing and archiving the data
+ * \param data Pointer to the binary data to archive
+ * \param length Size of the data to archive with the given #key
+ * \returns Return code (#FdbErrorValues)
+ */
 int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t length);
-/** Archives multiple messages.
- * If mars request @req is not nullptr, number of messages and their metadata are checked against the provided request */
+
+/** Archives multiple messages to a FDB instance.
+ * \param fdb FDB instance.
+ * \param req If Request #req is not nullptr, the number of messages and their metadata are checked against the provided request 
+ * \param data Pointer to the binary data to archive. Metadata are extracted from data headers
+ * \param length Size of the data to archive
+ * \returns Return code (#FdbErrorValues)
+ */
 int fdb_archive_multiple(fdb_handle_t* fdb, fdb_request_t* req, const char* data, size_t length);
-int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t* it);
+
+/** List all available data whose metadata matches a given user request.
+ * \param fdb FDB instance.
+ * \param req User Request
+ * \param it ListIterator than can be used to retrieve metadata and attributes of all ListElement matching the user Request #req
+ * \param duplicates Boolean flag used to specify if duplicated ListElements are to be reported or not.
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_list(fdb_handle_t* fdb, const fdb_request_t* req, fdb_listiterator_t** it, bool duplicates);
+
+/** Return all available data whose metadata matches a given user request.
+ * \param fdb FDB instance.
+ * \param req User Request. Metadata of retrieved data must match with the user Request
+ * \param dr DataReader than can be used to read extracted data
+ * \returns Return code (#FdbErrorValues)
+ */
 int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr);
+
+/** Force flushing of all write operations
+ * \param key FDB instance
+ * \returns Return code (#FdbErrorValues)
+ */
 int fdb_flush(fdb_handle_t* fdb);
-/** Closes and destroys the fdb instance.
- *  Must be called for every fdb_t created.
+
+/** Deallocates FDB object and associated resources.
+ * \param key FDB instance
+ * \returns Return code (#FdbErrorValues)
  */
 int fdb_delete_handle(fdb_handle_t* fdb);
 
-///@}
-
-/** Ancillary functions */
-
-///@{
-
-int fdb_new_key(fdb_key_t** key);
-int fdb_key_add(fdb_key_t* key, const char* param, const char* value);
-int fdb_delete_key(fdb_key_t* key);
-
-int fdb_new_request(fdb_request_t** req);
-int fdb_request_add(fdb_request_t* req, const char* param, const char* values[], int numValues);
-int fdb_delete_request(fdb_request_t* req);
-
-int fdb_new_listiterator(fdb_listiterator_t** it);
-int fdb_listiterator_next(fdb_listiterator_t* it, bool* exist, const char** str);
-int fdb_delete_listiterator(fdb_listiterator_t* it);
-
-int fdb_new_datareader(fdb_datareader_t** dr);
-int fdb_datareader_open(fdb_datareader_t* dr, long* size);
-int fdb_datareader_close(fdb_datareader_t* dr);
-int fdb_datareader_tell(fdb_datareader_t* dr, long* pos);
-int fdb_datareader_seek(fdb_datareader_t* dr, long pos);
-int fdb_datareader_skip(fdb_datareader_t* dr, long count);
-int fdb_datareader_read(fdb_datareader_t* dr, void *buf, long count, long* read);
-int fdb_delete_datareader(fdb_datareader_t* dr);
-
-///@}
+/** @} */
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 

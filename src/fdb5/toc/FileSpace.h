@@ -22,11 +22,20 @@
 
 #include "eckit/utils/Regex.h"
 #include "eckit/types/Types.h"
+
 #include "fdb5/toc/Root.h"
+#include "fdb5/api/helpers/ControlIterator.h"
 
 namespace fdb5 {
 
 class FileSpaceHandler;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+struct TocPath {
+    eckit::PathName directory_;
+    ControlIdentifiers controlIdentifiers_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -43,17 +52,14 @@ public: // methods
     /// @note This method must be idempotent -- it returns always the same value after the first call
     /// @param key is a complete identifier for the first level of the schema
     /// @param db part of the full path
-    eckit::PathName filesystem(const Key& key, const eckit::PathName& db) const;
+    TocPath filesystem(const Key& key, const eckit::PathName& db) const;
 
     void all(eckit::StringSet&) const;
-    void writable(eckit::StringSet&) const;
-    void visitable(eckit::StringSet&) const;
+    void enabled(const ControlIdentifier& controlIdentifier, eckit::StringSet&) const;
+    std::vector<eckit::PathName> enabled(const ControlIdentifier& controlIdentifier) const;
 
     bool match(const std::string& s) const;
-
-    std::vector<eckit::PathName> writable() const;
-    std::vector<eckit::PathName> visitable() const;
-
+    
     friend std::ostream& operator<<(std::ostream &s, const FileSpace& x) {
         x.print(s);
         return s;
@@ -63,7 +69,7 @@ public: // methods
 
 private: // methods
 
-    bool existsDB(const Key& key, const eckit::PathName& db, eckit::PathName& root) const;
+    bool existsDB(const Key& key, const eckit::PathName& db, TocPath& root) const;
 
     void print( std::ostream &out ) const;
 

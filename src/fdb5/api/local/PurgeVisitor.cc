@@ -47,8 +47,10 @@ bool PurgeVisitor::visitCatalogue(const Catalogue& catalogue) {
 bool PurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 
     // If the DB is locked for wiping, then it "doesn't exist"
-    if (catalogue.wipeLocked()) return false;
-
+    if (!catalogue.enabled(ControlIdentifier::Wipe)) {
+        return false;
+    }
+    
     EntryVisitor::visitDatabase(catalogue, store);
 
     // If the request is overspecified relative to the DB key, then we

@@ -34,7 +34,7 @@ class Manager  {
 
 public: // methods
 
-    Manager(const Config& config=Config());
+    Manager(const Config& config);
     ~Manager();
 
     /// Uniquely selects the engine that will handle this Key on insertion or if already exists

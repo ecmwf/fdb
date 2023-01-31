@@ -22,7 +22,6 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocEngine.h"
-#include "fdb5/io/LustreFileHandle.h"
 
 namespace fdb5 {
 
@@ -52,6 +51,10 @@ public: // methods
 
     void checkUID() const override { TocCommon::checkUID(); }
 
+    bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override;
+    void moveTo(const Key& key, const Config& config, const eckit::URI& dest, int threads) const override;
+    void remove(const Key& key) const override;
+
 protected: // methods
 
     std::string type() const override { return "file"; }
@@ -70,10 +73,8 @@ protected: // methods
     eckit::DataHandle *createDataHandle(const eckit::PathName &path);
     eckit::DataHandle& getDataHandle( const eckit::PathName &path );
     eckit::PathName generateDataPath(const Key &key) const;
-    eckit::PathName getDataPath(const Key &key);
+    eckit::PathName getDataPath(const Key &key) const;
     void flushDataHandles();
-
-    static LustreStripe stripeDataLustreSettings();
 
     void print( std::ostream &out ) const override;
 
@@ -86,7 +87,7 @@ private: // members
 
     HandleStore handles_;    ///< stores the DataHandles being used by the Session
 
-    PathStore   dataPaths_;
+    mutable PathStore   dataPaths_;
 
 };
 

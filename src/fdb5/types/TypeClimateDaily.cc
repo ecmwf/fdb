@@ -90,7 +90,7 @@ void TypeClimateDaily::getValues(const metkit::mars::MarsRequest &request,
 bool TypeClimateDaily::match(const std::string&,
                    const std::string& value1,
                    const std::string& value2) const {
-    std::cout << value1 << " vs. " << value2 << " are " << (month(value1) == month(value2)) << std::endl;
+    // std::cout << value1 << " vs. " << value2 << " are " << (month(value1) == month(value2)) << std::endl;
 
     return month(value1) == month(value2);
 }

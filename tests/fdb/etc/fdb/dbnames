@@ -1,7 +1,0 @@
-# regex     dbnamer
-
-# class=rd,expver=00**,stream=\(enfo\|efov\),domain,number ...
-
-class,expver,stream,date,time,domain,number          {class}:{expver}/{date}:{time}:{domain}/{stream}:{number}
-
-class,expver,stream,date,time,domain                 {class}:{expver}/{date}:{time}:{domain}/{stream}

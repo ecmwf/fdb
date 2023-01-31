@@ -14,6 +14,7 @@
 #include "eckit/log/Plural.h"
 
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/LibFdb5.h"
 
 using namespace eckit;
 
@@ -147,7 +148,7 @@ void TocPurgeVisitor::purge(std::ostream& out, bool porcelain, bool doit) const 
         if (stats.fieldsCount() == stats.duplicatesCount()) {
             logVerbose << "Removing: " << it.first << std::endl;
             if (doit) {
-                fdb5::TocHandler handler(directory);
+                fdb5::TocHandler handler(directory, Config().expandConfig());
                 handler.writeClearRecord(it.first);
             }
         }

@@ -24,28 +24,10 @@
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 
+#include "fdb5/io/LustreSettings.h"
 #include "fdb5/LibFdb5.h"
 
 namespace fdb5 {
-
-int fdb5LustreapiFileCreate(const char* path, size_t stripesize, size_t stripecount);
-
-bool fdb5LustreapiSupported();
-
-//----------------------------------------------------------------------------------------------------------------------
-
-struct LustreStripe {
-
-    LustreStripe(unsigned int count, size_t size) :
-        count_(count),
-        size_(size)
-    {
-    }
-
-    unsigned int count_;
-    size_t size_;
-};
-
 
 template< class HANDLE >
 class LustreFileHandle : public HANDLE {
@@ -85,7 +67,7 @@ public: // methods
                                     << "of " << eckit::Bytes(stripe_.size_)
                                     << std::endl;
 
-        int err = fdb5LustreapiFileCreate(path.c_str(), stripe_.size_, stripe_.count_);
+        int err = fdb5LustreapiFileCreate(path.c_str(), stripe_);
 
         if(err == EINVAL) {
 
@@ -107,6 +89,7 @@ public: // methods
 private: // members
 
     LustreStripe stripe_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

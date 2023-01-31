@@ -39,6 +39,12 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) const {
+
+    if ((eckit::PathName(path) / "toc").exists()) {
+        dbs.push_back(path);
+        return;
+    }
+
     eckit::StdDir d(path.c_str());
     if (d == nullptr) {
         // If fdb-wipe is running in parallel, it is perfectly legit for a (non-matching)
@@ -73,10 +79,6 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
         if(e->d_name[0] == '.') {
             if(e->d_name[1] == 0 || (e->d_name[1] =='.' && e->d_name[2] == 0))
                 continue;
-        }
-
-        if(::strcmp(e->d_name, "toc") == 0) {
-            dbs.push_back(path);
         }
 
         std::string full = path;
@@ -116,7 +118,7 @@ std::string TocEngine::dbType() const {
 
 eckit::URI TocEngine::location(const Key& key, const Config& config) const
 {
-    return URI("toc", CatalogueRootManager(config).directory(key));
+    return URI("toc", CatalogueRootManager(config).directory(key).directory_);
 }
 
 bool TocEngine::canHandle(const eckit::URI& uri) const
@@ -204,7 +206,7 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key,
     std::vector<eckit::URI> result;
     for (const auto& path : databasesMatchRegex) {
         try {
-            TocHandler toc(path);
+            TocHandler toc(path, config);
             if (toc.databaseKey().match(key)) {
                 Log::debug<LibFdb5>() << " found match with " << path << std::endl;
                 result.push_back(eckit::URI("toc", path));
@@ -234,7 +236,7 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
     std::vector<eckit::URI> result;
     for (const auto& path : databasesMatchRegex) {
         try {
-            TocHandler toc(path);
+            TocHandler toc(path, config);
             if (toc.databaseKey().partialMatch(request)) {
                 Log::debug<LibFdb5>() << " found match with " << path << std::endl;
                 result.push_back(eckit::URI("toc", path));
@@ -265,7 +267,7 @@ std::vector<URI> TocEngine::visitableLocations(const metkit::mars::MarsRequest& 
 
 std::vector<eckit::URI> TocEngine::writableLocations(const Key& key, const Config& config) const
 {
-    return databases(key, CatalogueRootManager(config).writableRoots(key), config);
+    return databases(key, CatalogueRootManager(config).canArchiveRoots(key), config);
 }
 
 void TocEngine::print(std::ostream& out) const

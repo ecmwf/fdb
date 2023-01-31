@@ -336,7 +336,8 @@ static std::vector<Root> readRoots(const eckit::PathName& fdbRootsFile) {
                 bool writable        = str2bool(s[2]);
                 bool visit           = str2bool(s[3]);
 
-                result.push_back(Root(path, filespace, writable, visit));
+                //                                     list   retrieve  archive   wipe
+                result.push_back(Root(path, filespace, visit, visit,    writable, writable));
                 break;
             }
 
@@ -388,7 +389,8 @@ static std::vector<Root> parseMarsDisks(const eckit::PathName& file, const std::
             std::vector<std::string> tokens;
             tokenize(line, tokens);
             if (tokens.size() == 1) {
-                spaceRoots.emplace_back(Root(tokens[0], name, writable, visitable));
+                //                                            list       retrieve   archive   wipe
+                spaceRoots.emplace_back(Root(tokens[0], name, visitable, visitable, writable, writable));
             }
         }
     }
@@ -492,6 +494,20 @@ std::vector<LocalConfiguration> StoreRootManager::getSpaceRoots(const LocalConfi
 
 FileSpaceTable RootManager::fileSpaces() {
 
+    static std::string fdbRootDirectory = eckit::Resource<std::string>("fdbRootDirectory;$FDB_ROOT_DIRECTORY", "");
+    if (!fdbRootDirectory.empty()) {
+
+        std::vector<Root> spaceRoots;
+        spaceRoots.emplace_back(
+            Root(fdbRootDirectory, "", true, true, true, true));
+
+        FileSpaceTable table;
+        table.emplace_back(
+            FileSpace("", ".*", "Default", spaceRoots));
+
+        return table;
+    }
+
     if (config_.has("spaces")) {
         FileSpaceTable table;
         std::vector<LocalConfiguration> spacesConfigs(config_.getSubConfigurations("spaces"));
@@ -507,12 +523,16 @@ FileSpaceTable RootManager::fileSpaces() {
             else {
                 std::vector<LocalConfiguration> roots = getSpaceRoots(space);
                 for (const auto& root : roots) {
+                    bool writable = root.getBool("writable", true);
+                    bool visit = root.getBool("visit", true);
                     spaceRoots.emplace_back(
                         Root(
                             root.getString("path"),
                             root.getString("name", ""),
-                            root.getBool("writable", true),
-                            root.getBool("visit", true)
+                            root.getBool("list", visit),
+                            root.getBool("retrieve", visit),
+                            root.getBool("archive", writable),
+                            root.getBool("wipe", writable)
                         )
                     );
                 }
@@ -591,7 +611,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
 }
 
 
-eckit::PathName RootManager::directory(const Key& key) {
+TocPath RootManager::directory(const Key& key) {
 
     PathName dbpath = dbPathName(key);
 
@@ -602,17 +622,18 @@ eckit::PathName RootManager::directory(const Key& key) {
     static std::string fdbRootDirectory = eckit::Resource<std::string>("fdbRootDirectory;$FDB_ROOT_DIRECTORY", "");
 
     if(!fdbRootDirectory.empty()) {
-        return fdbRootDirectory + "/" + dbpath;
+        return TocPath{fdbRootDirectory + "/" + dbpath, ControlIdentifiers{}};
     }
 
     // returns the first filespace that matches
 
     std::string keystr = key.valuesToString();
+
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(keystr)) {
-            PathName root = i->filesystem(key, dbpath);
-            eckit::Log::debug<LibFdb5>() << "Directory root " << root << " dbpath " << dbpath <<  std::endl;
-            return root / dbpath;
+            TocPath root = i->filesystem(key, dbpath);
+            eckit::Log::debug<LibFdb5>() << "Directory root " << root.directory_ << " dbpath " << dbpath <<  std::endl;
+            return TocPath{root.directory_ / dbpath, root.controlIdentifiers_};
         }
     }
 
@@ -652,7 +673,7 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
         for (const std::string& k : keystrings) {
             if (space.match(k) || k.empty()) {
                 Log::debug<LibFdb5>() << "MATCH space " << space << std::endl;
-                space.visitable(roots);
+                space.enabled(ControlIdentifier::List,roots);
                 matched = true;
                 break;
             }
@@ -681,7 +702,7 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::Mar
 }
 
 
-std::vector<eckit::PathName> RootManager::writableRoots(const Key& key) {
+std::vector<eckit::PathName> RootManager::canArchiveRoots(const Key& key) {
 
     eckit::StringSet roots;
 
@@ -689,9 +710,30 @@ std::vector<eckit::PathName> RootManager::writableRoots(const Key& key) {
 
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(k)) {
-            i->writable(roots);
+
+            i->enabled(ControlIdentifier::Archive, roots);
         }
     }
+
+    Log::debug<LibFdb5>() << "Roots supporting archival " << roots << std::endl;
+
+    return std::vector<eckit::PathName>(roots.begin(), roots.end());
+}
+
+std::vector<eckit::PathName> RootManager::canMoveToRoots(const Key& key) {
+
+    eckit::StringSet roots;
+
+    std::string k = key.valuesToString();
+
+    for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
+        if(i->match(k)) {
+
+            i->enabled(ControlIdentifier::Wipe, roots);
+        }
+    }
+
+    Log::debug<LibFdb5>() << "Roots supporting wiping " << roots << std::endl;
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }

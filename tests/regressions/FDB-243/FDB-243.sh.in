@@ -12,7 +12,7 @@ gribcmp="$<TARGET_FILE:grib_compare>"
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
-export ECCODES_DEFINITION_PATH="@ECCODES_DEFINITION_PATH@"
+export FDB_HOME=@PROJECT_BINARY_DIR@
 
 ### cleanup and prepare test
 
@@ -31,7 +31,7 @@ done
 $gribset -s step=6 12.grib 6.grib
 $gribset -s step=9 12.grib 9.grib
 
-### populate read fdb 
+### populate read fdb
 
 export FDB5_CONFIG_FILE=read.yaml
 
@@ -47,7 +47,7 @@ unset FDB5_CONFIG_FILE
 
 $fdbcopy --from=read.yaml --to=write.yaml 12.req 9.req 6.req
 
-### read and check it  
+### read and check it
 
 export FDB5_CONFIG_FILE=write.yaml
 

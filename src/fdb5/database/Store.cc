@@ -24,6 +24,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+bool Store::canMoveTo(const Key&, const Config&, const eckit::URI& dest) const {
+    std::stringstream ss;
+    ss << "Store type " << type() << " does not support move" << std::endl;
+    throw eckit::UserError(ss.str(), Here());
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 StoreFactory::StoreFactory() {}
 
 StoreFactory& StoreFactory::instance() {
