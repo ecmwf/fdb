@@ -348,17 +348,15 @@ CASE("DAOS STORE") {
         //   It happens in EntryVisitMechanism::visit when calling DB::open. Is this OK, or should this configuring
         //   rather happen as part of transforming a FieldLocation into a DataHandle? It is probably OK. One thing
         //   is to configure the DAOS client and the other thing is to initialise it.
-        {
-            auto listObject = fdb.list(db_req);
+        auto listObject = fdb.list(db_req);
 
-            count = 0;
-            while (listObject.next(info)) {
-                info.print(std::cout, true, true);
-                std::cout << std::endl;
-                ++count;
-            }
-            EXPECT(count == 0);
+        count = 0;
+        while (listObject.next(info)) {
+            info.print(std::cout, true, true);
+            std::cout << std::endl;
+            ++count;
         }
+        EXPECT(count == 0);
 
         // store data
 
@@ -403,16 +401,14 @@ CASE("DAOS STORE") {
         EXPECT(count > 0);
 
         // ensure field still exists
-        {
-            auto listObject = fdb.list(full_req);
-            count = 0;
-            while (listObject.next(info)) {
-                // info.print(std::cout, true, true);
-                // std::cout << std::endl;
-                count++;
-            }
-            EXPECT(count == 1);
+        listObject = fdb.list(full_req);
+        count = 0;
+        while (listObject.next(info)) {
+            // info.print(std::cout, true, true);
+            // std::cout << std::endl;
+            count++;
         }
+        EXPECT(count == 1);
 
         // attempt to wipe with too specific request
         wipeObject = fdb.wipe(full_req, true);
@@ -431,12 +427,10 @@ CASE("DAOS STORE") {
         fdb.flush();
 
         // ensure field does not exist
-        {
-            auto listObject = fdb.list(full_req);
-            count = 0;
-            while (listObject.next(info)) count++;
-            EXPECT(count == 0);
-        }
+        listObject = fdb.list(full_req);
+        count = 0;
+        while (listObject.next(info)) count++;
+        EXPECT(count == 0);
 
         /// @todo: ensure index and corresponding container do not exist
         /// @todo: ensure DB still exists

@@ -102,6 +102,13 @@ public:
     ListIterator(ListIterator&& iter) :
         APIIterator<ListElement>(std::move(iter)), seenKeys_(std::move(iter.seenKeys_)), deduplicate_(iter.deduplicate_) {}
 
+    ListIterator& operator=(ListIterator&& iter) {
+        APIIterator<ListElement>::operator=(std::forward<ListIterator>(iter));
+        seenKeys_ = std::move(iter.seenKeys_);
+        deduplicate_ = iter.deduplicate_;
+        return *this;
+    }
+
     bool next(ListElement& elem) {
         ListElement tmp;
         while (APIIterator<ListElement>::next(tmp)) {
