@@ -50,7 +50,7 @@ RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
 
 
 std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
-    return std::make_shared<RemoteFieldLocation>(*this);
+    return std::make_shared<RemoteFieldLocation>(std::move(*this));
 }
 
 eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
