@@ -82,7 +82,9 @@ bool TocIndex::get(const Key &key, const Key &remapKey, Field &field) const {
     bool found = btree_->get(key.valuesToString(), ref);
     if ( found ) {
         const eckit::URI& uri = files_.get(ref.uriId());
-        field = Field(FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), remapKey), timestamp_, ref.details());
+        FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), remapKey);
+        field = Field(std::move(*loc), timestamp_, ref.details());
+        delete(loc);
     }
     return found;
 }
@@ -167,7 +169,7 @@ public:
         visitor_(visitor) {}
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
-        Field field(new TocFieldLocation(files_, ref), visitor_.indexTimestamp(), ref.details());
+        Field field(TocFieldLocation(files_, ref), visitor_.indexTimestamp(), ref.details());
         visitor_.visitDatum(field, keyFingerprint);
     }
 };
