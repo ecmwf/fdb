@@ -189,12 +189,14 @@ int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t *oid,
                           enum daos_otype_t type, daos_oclass_id_t cid,
                           daos_oclass_hints_t hints, uint32_t args) {
 
-    if (type != DAOS_OT_KV_HASHED) NOTIMP;
+    if (type != DAOS_OT_KV_HASHED && type != DAOS_OT_ARRAY) NOTIMP;
     if (cid != OC_S1) NOTIMP;
     if (hints != 0) NOTIMP;
     if (args != 0) NOTIMP;
 
     oid->hi &= (uint64_t) 0x00000000FFFFFFFF;
+    oid->hi |= ((((uint64_t) cid) & 0x000000000000FFFF) << 48);
+    oid->hi |= ((((uint64_t) type) & 0x000000000000FFFF) << 32);
 
     return 0;
 
@@ -241,7 +243,8 @@ int daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
     eckit::FileHandle fh(oh.impl->path / key, true);
     fh.openForWrite(eckit::Length(size));
     eckit::AutoClose closer(fh);
-    fh.write(buf, (long) size);
+    long res = fh.write(buf, (long) size);
+    ASSERT(res == (long) size);
 
     return 0;
 
@@ -258,6 +261,7 @@ int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
 
     if (!exists && buf != NULL) return -1;
 
+    daos_size_t dest_size = *size;
     *size = 0;
     if (!exists) return 0;
 
@@ -266,6 +270,8 @@ int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
     *size = len;
 
     if (buf == NULL) return 0;
+
+    if (len > dest_size) return -1;
 
     fh.openForRead();
     eckit::AutoClose closer(fh);
@@ -280,13 +286,8 @@ int daos_array_generate_oid(daos_handle_t coh, daos_obj_id_t *oid, bool add_attr
                             daos_oclass_hints_t hints, uint32_t args) {
 
     if (add_attr != true) NOTIMP;
-    if (cid != OC_S1) NOTIMP;
-    if (hints != 0) NOTIMP;
-    if (args != 0) NOTIMP;
 
-    oid->hi &= (uint64_t) 0x00000000FFFFFFFF;
-
-    return 0;
+    return daos_obj_generate_oid(coh, oid, DAOS_OT_ARRAY, cid, hints, args);
 
 }
 
@@ -379,7 +380,8 @@ int daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
     fh.openForAppend(eckit::Length(sgl->sg_iovs[0].iov_buf_len));
     eckit::AutoClose closer(fh);
     fh.seek(iod->arr_rgs[0].rg_idx);
-    fh.write(sgl->sg_iovs[0].iov_buf, (long) sgl->sg_iovs[0].iov_buf_len);
+    long res = fh.write(sgl->sg_iovs[0].iov_buf, (long) sgl->sg_iovs[0].iov_buf_len);
+    ASSERT(res == (long) sgl->sg_iovs[0].iov_buf_len);
 
     return 0;
 
@@ -417,6 +419,7 @@ int daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
 
     eckit::FileHandle fh(oh.impl->path);
     eckit::Length len = fh.size();
+    ASSERT(iod->arr_rgs[0].rg_len + iod->arr_rgs[0].rg_idx <= len);
     fh.openForRead();
     eckit::AutoClose closer(fh);
     fh.seek(iod->arr_rgs[0].rg_idx);

@@ -53,7 +53,8 @@ typedef struct {
 /* typedef struct daos_handle_internal_t * daos_handle_t; */
 
 enum daos_otype_t {
-    DAOS_OT_KV_HASHED = 8
+    DAOS_OT_KV_HASHED = 8,
+    DAOS_OT_ARRAY = 11,
 };
 
 typedef uint64_t daos_size_t;
