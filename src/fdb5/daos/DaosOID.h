@@ -23,8 +23,9 @@ class DaosOID {
 
 public: // methods
 
-    DaosOID(const uint64_t&, const uint64_t&);
+    DaosOID(const uint64_t& hi, const uint64_t& lo);
     DaosOID(const std::string&);
+    DaosOID(const uint32_t& hi, const uint64_t& lo, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass = OC_S1);
 
     // DaosOID(const DaosOID&);
     // DaosOID(DaosOID&&);
@@ -32,6 +33,9 @@ public: // methods
 
     std::string asString() const;
     daos_obj_id_t asDaosObjIdT() const;
+    enum daos_otype_t otype() const;
+    daos_oclass_id_t oclass() const;
+    bool wasGenerated() const { return wasGenerated_; };
 
 private: // methods
 
@@ -47,8 +51,29 @@ private: // members
 
     uint64_t hi_;
     uint64_t lo_;
+    enum daos_otype_t otype_;
+    daos_oclass_id_t oclass_ = OC_RESERVED;
+    bool wasGenerated_;
 
 };
+
+// class DaosArrayID : public DaosOID {
+
+// public: //methods
+
+//     DaosArrayID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass = OC_S1) :
+//         DaosOID(hi, lo, DAOS_OT_ARRAY, oclass) {};
+
+// };
+
+// class DaosKeyValueID : public DaosOID {
+
+// public: //methods
+
+//     DaosKeyValueID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass = OC_S1) :
+//         DaosOID(hi, lo, DAOS_OT_KV_HASHED, oclass) {};
+
+// };
 
 //----------------------------------------------------------------------------------------------------------------------
 

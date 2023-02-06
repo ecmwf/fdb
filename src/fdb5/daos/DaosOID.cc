@@ -20,9 +20,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosOID::DaosOID(const uint64_t& hi, const uint64_t& lo) : hi_(hi), lo_(lo) {}
+DaosOID::DaosOID(const uint64_t& hi, const uint64_t& lo) : hi_(hi), lo_(lo), wasGenerated_(true) {}
 
-DaosOID::DaosOID(const std::string& s) {
+DaosOID::DaosOID(const std::string& s) : wasGenerated_(true) {
 
     ASSERT(s.length() == 32);
     ASSERT(std::all_of(s.begin(), s.end(), ::isxdigit));
@@ -31,6 +31,9 @@ DaosOID::DaosOID(const std::string& s) {
     lo_ = std::stoull(s.substr(16, 16), nullptr, 16);
 
 }
+
+DaosOID::DaosOID(const uint32_t& hi, const uint64_t& lo, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass) :
+    hi_(hi), lo_(lo), otype_(otype), oclass_(oclass), wasGenerated_(false) {}
 
 // DaosOID::DaosOID(const DaosOID& other) : hi_(other.hi_), lo_(other.lo_) {}
 
@@ -60,6 +63,20 @@ std::string DaosOID::asString() const {
 daos_obj_id_t DaosOID::asDaosObjIdT() const {
 
     return daos_obj_id_t{hi_, lo_};
+
+}
+
+enum daos_otype_t DaosOID::otype() const {
+
+    if (wasGenerated_) NOTIMP;
+    return otype_;
+
+}
+
+daos_oclass_id_t DaosOID::oclass() const {
+
+    if (wasGenerated_) NOTIMP;
+    return oclass_;
 
 }
 

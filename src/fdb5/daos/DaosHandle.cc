@@ -25,13 +25,13 @@ using eckit::Offset;
 
 namespace fdb5 {
 
-DaosHandle::DaosHandle(fdb5::DaosObject&& obj) : 
-    obj_(std::unique_ptr<fdb5::DaosObject>(new DaosObject(std::move(obj)))),
+DaosHandle::DaosHandle(fdb5::DaosArray&& obj) : 
+    obj_(std::unique_ptr<fdb5::DaosArray>(new DaosArray(std::move(obj)))),
     open_(false), offset_(0) {}
 
 DaosHandle::DaosHandle(const fdb5::DaosName& name) : 
     session_(std::unique_ptr<fdb5::DaosSession>(new DaosSession())),
-    obj_(std::unique_ptr<fdb5::DaosObject>(new DaosObject(*(session_.get()), name))),
+    obj_(std::unique_ptr<fdb5::DaosArray>(new DaosArray(*(session_.get()), name))),
     open_(false), offset_(0) {}
 
 DaosHandle::~DaosHandle() {

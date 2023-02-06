@@ -61,7 +61,7 @@ private: // members
     std::string pool_;
     std::string cont_;
     fdb5::DaosOID oid_;
-    std::unique_ptr<fdb5::DaosObject> obj_ = nullptr;
+    // std::unique_ptr<fdb5::DaosObject> obj_ = nullptr;
 
 };
 

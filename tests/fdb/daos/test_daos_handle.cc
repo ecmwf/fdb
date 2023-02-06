@@ -32,6 +32,11 @@ using namespace eckit;
 namespace fdb {
 namespace test {
 
+// TODO check all calls to DaosOID and DaosObject and DaosHandle and objectCreate in unit tests
+// TODO: assert in unit tests that an object created from a not-generated oid does not work
+// TODO: unit tests for createArray from kv
+// TODO: is the private ctor of DaosArray and DaosKeyValue kept private?
+
 /// @todo: change all pre-condition checks to ASSERTs
 //   question: in the future ASSERTs will default to EcKit abortion. Not what we want in many pre-condition checks
 
@@ -178,11 +183,14 @@ CASE( "DAOS HANDLE" ) {
         /// @todo: there's an extra daos_cont_create being issued here
 
         // create new object with new automatically allocated oid
-        fdb5::DaosObject obj = cont.createObject();
-        std::cout << "New automatically allocated OID: " << obj.name() << std::endl; 
+        fdb5::DaosArray arr = cont.createArray();
+        std::cout << "New automatically allocated Array OID: " << arr.name() << std::endl; 
+        fdb5::DaosKeyValue kv = cont.createKeyValue();
+        std::cout << "New automatically allocated KeyValue OID: " << kv.name() << std::endl; 
 
         // TODO
-        //obj.destroy();
+        //arr.destroy();
+        //kv.destroy();
 
         /// @todo: there's an extra attempt to close the container here
 
@@ -193,7 +201,8 @@ CASE( "DAOS HANDLE" ) {
         // create new object with oid generated from user input
         uint32_t hi = 0x00000001;
         uint64_t lo = 0x0000000000000002;
-        fdb5::DaosObject write_obj = cont.createObject(hi, lo);
+        fdb5::DaosOID oid{hi, lo, DAOS_OT_ARRAY, OC_S1};
+        fdb5::DaosArray write_obj = cont.createArray(oid);
 
         std::string id_string = write_obj.name();
         std::cout << "New user-spec-based OID: " << id_string << std::endl;
@@ -204,9 +213,13 @@ CASE( "DAOS HANDLE" ) {
 
         // represent existing object with known oid
         fdb5::DaosOID read_id{id_string};
-        fdb5::DaosObject read_obj{cont, read_id};
+        fdb5::DaosArray read_obj{cont, read_id};
 
-        EXPECT_THROWS_AS(fdb5::DaosObject obj(cont, {0, 0}), fdb5::DaosEntityNotFoundException);
+        // attempt access non-existing object
+        EXPECT_THROWS_AS(fdb5::DaosArray obj(cont, fdb5::DaosOID(0, 0)), fdb5::DaosEntityNotFoundException);
+
+        // attempt access object via (user-defined) non-generated OID
+        EXPECT_THROWS_AS(fdb5::DaosArray obj(cont, oid), eckit::AssertionFailed);
 
         // TODO
         //write_obj.destroy();
@@ -231,7 +244,7 @@ CASE( "DAOS HANDLE" ) {
         
         uint32_t hi = 0x00000001;
         uint64_t lo = 0x0000000000000002;
-        fdb5::DaosObject obj = cont.createObject(hi, lo);
+        fdb5::DaosArray obj = cont.createArray(fdb5::DaosOID(hi, lo, DAOS_OT_ARRAY));
         fdb5::DaosName name{obj};
 
         std::string name_str = name.asString();
@@ -259,15 +272,42 @@ CASE( "DAOS HANDLE" ) {
 
     }
 
+    // TODO: DAOS ARRAY WRITE AND READ
+
+    SECTION("DAOS KV PUT AND GET") {
+
+        fdb5::DaosKeyValue kv = cont.createKeyValue();
+
+        std::string test_key{"test_key"};
+
+        char data[] = "test";
+        kv.put(test_key, data, (long) sizeof(data));
+
+        long size;
+        size = kv.get(test_key, nullptr, 0);
+        EXPECT(size == (long) sizeof(data));
+
+        long res;
+        char read_data[10] = "";
+        res = kv.get(test_key, read_data, sizeof(read_data));
+        EXPECT(res == size);
+        EXPECT(std::memcmp(data, read_data, sizeof(data)) == 0);
+
+        EXPECT_THROWS_AS(kv.get("nonexisting", nullptr, 0), fdb5::DaosEntityNotFoundException);
+
+        // TODO
+        //kv.destroy();
+
+    }
+
     SECTION("DAOS HANDLE") {
 
         uint32_t hi = 0x00000001;
         uint64_t lo = 0x0000000000000002;
-        fdb5::DaosObject obj = cont.createObject(hi, lo);
-        std::string test_oid_str{"00000000000000010000000000000002"};
-        fdb5::DaosOID test_oid{test_oid_str};
-        fdb5::DaosName deserialisedname(std::string("pool"), std::string("cont"), test_oid);
-        fdb5::DaosObject readobj(s, deserialisedname);
+        fdb5::DaosOID test_oid{hi, lo, DAOS_OT_ARRAY, OC_S1};
+        fdb5::DaosArray obj = cont.createArray(test_oid);
+        fdb5::DaosOID test_oid_gen = obj.OID();
+        std::string test_oid_gen_str{test_oid_gen.asString()};
 
         /// @todo: isn't openForWrite / Append re-creating already existing objects? (they must exist if instantiated)
 
@@ -296,6 +336,9 @@ CASE( "DAOS HANDLE" ) {
         h.flush();
 
         char read_data[10] = "";
+
+        fdb5::DaosName deserialisedname(std::string("pool"), std::string("cont"), test_oid_gen);
+        fdb5::DaosArray readobj(s, deserialisedname);
 
         fdb5::DaosHandle h2(std::move(readobj));
         Length t = h2.openForRead();
@@ -328,7 +371,7 @@ CASE( "DAOS HANDLE" ) {
         EXPECT(std::memcmp(data, read_data2 + sizeof(data), sizeof(data)) == 0);
 
         EXPECT_THROWS_AS(
-            fdb5::DaosHandle dh_fail(fdb5::DaosName(pool.name(), cont.name(), {1, 0})), 
+            fdb5::DaosHandle dh_fail(fdb5::DaosName(pool.name(), cont.name(), fdb5::DaosOID{1, 0})), 
             fdb5::DaosEntityNotFoundException);
 
         /// @todo: POOL, CONTAINER AND OBJECT OPENING ARE OPTIONAL FOR DaosHandle::openForRead. Test it

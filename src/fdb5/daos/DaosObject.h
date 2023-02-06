@@ -18,6 +18,7 @@
 #include <string>
 
 #include "eckit/filesystem/URI.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "fdb5/daos/DaosOID.h"
 
@@ -41,24 +42,23 @@ public: // methods
     DaosObject(fdb5::DaosSession&, const fdb5::DaosName&);
     DaosObject(fdb5::DaosSession&, const eckit::URI&);
     DaosObject(DaosObject&&) noexcept;
-    ~DaosObject();
+    DaosObject(const DaosObject&) = default;
+    // TODO: is that OK? Having a virtual destructor for base class and separate non-virutal destructor for derived classes. Should they override?
+    virtual ~DaosObject() = default;
 
-    void destroy();
-    daos_size_t size();
+    virtual void destroy() = 0;
 
-    void open();
-    void close();
+    virtual void open() = 0;
+    virtual void close() = 0;
 
     const daos_handle_t& getOpenHandle();
 
     bool exists();
+    virtual daos_size_t size() = 0;
     std::string name() const;
     fdb5::DaosOID OID() const;
     eckit::URI URI() const;
     fdb5::DaosContainer& getContainer() const;
-
-    long write(const void*, long, eckit::Offset);
-    long read(void*, long, eckit::Offset);
 
 private: // methods
 
@@ -66,14 +66,68 @@ private: // methods
 
     DaosObject(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
 
-    void create();
+    virtual void create() = 0;
 
-private: // members
+protected: // members
 
     fdb5::DaosContainer& cont_;
     fdb5::DaosOID oid_;
     daos_handle_t oh_;
     bool open_;
+
+};
+
+class DaosArray : public DaosObject {
+
+    using DaosObject::DaosObject;
+
+    friend DaosContainer;
+
+public: // methods
+
+    ~DaosArray();
+
+    void destroy() override;
+
+    void open() override;
+    void close() override;
+
+    daos_size_t size() override;
+
+    long write(const void*, const long&, const eckit::Offset&);
+    long read(void*, const long&, const eckit::Offset&);
+
+private: // methods
+
+    void create() override;
+
+};
+
+class DaosKeyValue : public DaosObject {
+
+    using DaosObject::DaosObject;
+
+    friend DaosContainer;
+
+public: // methods
+
+    ~DaosKeyValue();
+
+    void destroy() override;
+
+    void open() override;
+    void close() override;
+
+    daos_size_t size() override { NOTIMP; };
+    // doas_size_t length();
+    // std::vector<std::string> keys();
+
+    long put(const std::string& key, const void*, const long&);
+    long get(const std::string& key, void*, const long&);
+
+private: // methods
+
+    void create() override;
 
 };
 

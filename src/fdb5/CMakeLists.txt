@@ -387,6 +387,12 @@ if( HAVE_DAOSFDB )
         daos/DaosFieldLocation.cc
         daos/DaosException.h
         daos/DaosException.cc
+        daos/DaosEngine.h
+        daos/DaosEngine.cc 
+        daos/DaosCatalogue.h 
+        daos/DaosCatalogue.cc 
+        daos/DaosCatalogueWriter.h 
+        daos/DaosCatalogueWriter.cc
     )
 else()
     set( DAOS_LIBRARIES "" )

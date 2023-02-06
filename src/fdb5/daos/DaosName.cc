@@ -23,7 +23,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosName::DaosName(const std::string& pool, const std::string& cont, const fdb5::DaosOID& oid) : pool_(pool), cont_(cont), oid_(oid) {}
+DaosName::DaosName(const std::string& pool, const std::string& cont, const fdb5::DaosOID& oid) : pool_(pool), cont_(cont), oid_(oid) {
+
+    ASSERT(oid_.wasGenerated());
+
+}
 
 DaosName::DaosName(const std::string& name) {
 
@@ -53,7 +57,8 @@ DaosName::DaosName(const fdb5::DaosObject& obj) :
 daos_size_t DaosName::size() {
 
     fdb5::DaosSession s{};
-    fdb5::DaosObject obj(s, *this);
+    // TODO: check oid.otype and build accordingly
+    fdb5::DaosArray obj(s, *this);
     return obj.size();
 
 }
@@ -62,7 +67,8 @@ bool DaosName::exists() {
 
     fdb5::DaosSession s{};
     try {
-        fdb5::DaosObject obj(s, *this);
+        // TODO: check oid.otype and build accordingly
+        fdb5::DaosArray obj(s, *this);
     } catch (const fdb5::DaosEntityNotFoundException& e) {
         return false;
     }

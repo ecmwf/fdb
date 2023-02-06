@@ -21,7 +21,7 @@ namespace fdb5 {
 
 class DaosSession;
 
-class DaosObject;
+class DaosArray;
 
 class DaosName;
 
@@ -30,7 +30,7 @@ class DaosHandle : public eckit::DataHandle {
 public: // methods
 
     /// @todo: the DaosSession is owned by the user if using this move constructor. Do we want to allow this?
-    DaosHandle(fdb5::DaosObject&&);
+    DaosHandle(fdb5::DaosArray&&);
     DaosHandle(const fdb5::DaosName&);
 
     ~DaosHandle();
@@ -67,7 +67,7 @@ public: // methods
 private: // members
 
     std::unique_ptr<fdb5::DaosSession> session_;
-    std::unique_ptr<fdb5::DaosObject> obj_;
+    std::unique_ptr<fdb5::DaosArray> obj_;
     bool open_;
     eckit::Offset offset_;
 

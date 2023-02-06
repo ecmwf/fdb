@@ -144,7 +144,7 @@ void DaosContainer::close() {
 
 }
 
-fdb5::DaosObject DaosContainer::createObject() {
+fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass) {
 
     create();
     open();
@@ -159,23 +159,66 @@ fdb5::DaosObject DaosContainer::createObject() {
 
     daos_obj_id_t next;
     next.lo = oid_alloc_.next_oid;
-    DAOS_CALL(daos_array_generate_oid(coh_, &next, true, OC_S1, 0, 0));
+    DAOS_CALL(daos_array_generate_oid(coh_, &next, true, oclass, 0, 0));
 
-    fdb5::DaosObject obj(*this, fdb5::DaosOID{next.hi, next.lo}, false);
+    fdb5::DaosArray obj(*this, fdb5::DaosOID{next.hi, next.lo}, false);
     obj.create();
     return obj;
 
 }
 
-fdb5::DaosObject DaosContainer::createObject(uint32_t hi, uint64_t lo) {
+fdb5::DaosArray DaosContainer::createArray(const fdb5::DaosOID& oid) {
+
+    ASSERT(!oid.wasGenerated());
+    ASSERT(oid.otype() == DAOS_OT_ARRAY);
 
     create();
     open();
 
-    daos_obj_id_t id{(uint64_t) hi, lo};
-    DAOS_CALL(daos_array_generate_oid(coh_, &id, true, OC_S1, 0, 0));
-    
-    fdb5::DaosObject obj(*this, fdb5::DaosOID{id.hi, id.lo}, false);
+    daos_obj_id_t id = oid.asDaosObjIdT();
+    DAOS_CALL(daos_array_generate_oid(coh_, &id, true, oid.oclass(), 0, 0));
+
+    fdb5::DaosArray obj(*this, fdb5::DaosOID{id.hi, id.lo}, false);
+    obj.create();
+    return obj;
+
+}
+
+fdb5::DaosKeyValue DaosContainer::createKeyValue(const daos_oclass_id_t& oclass) {
+
+    create();
+    open();
+
+    if (oid_alloc_.num_oids == 0) {
+        oid_alloc_.num_oids = getPool().getSession().containerOidsPerAlloc();
+        DAOS_CALL(daos_cont_alloc_oids(coh_, oid_alloc_.num_oids + 1, &(oid_alloc_.next_oid), NULL));
+    } else {
+        ++oid_alloc_.next_oid;
+        --oid_alloc_.num_oids;
+    }
+
+    daos_obj_id_t next;
+    next.lo = oid_alloc_.next_oid;
+    DAOS_CALL(daos_obj_generate_oid(coh_, &next, DAOS_OT_KV_HASHED, oclass, 0, 0));
+
+    fdb5::DaosKeyValue obj(*this, fdb5::DaosOID{next.hi, next.lo}, false);
+    obj.create();
+    return obj;
+
+}
+
+fdb5::DaosKeyValue DaosContainer::createKeyValue(const fdb5::DaosOID& oid) {
+
+    ASSERT(!oid.wasGenerated());
+    ASSERT(oid.otype() == DAOS_OT_KV_HASHED);
+
+    create();
+    open();
+
+    daos_obj_id_t id = oid.asDaosObjIdT();
+    DAOS_CALL(daos_obj_generate_oid(coh_, &id, DAOS_OT_KV_HASHED, oid.oclass(), 0, 0));
+
+    fdb5::DaosKeyValue obj(*this, fdb5::DaosOID{id.hi, id.lo}, false);
     obj.create();
     return obj;
 

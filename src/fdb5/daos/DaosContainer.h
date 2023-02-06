@@ -41,8 +41,10 @@ public: // methods
     void open();
     void close();
 
-    fdb5::DaosObject createObject();
-    fdb5::DaosObject createObject(uint32_t, uint64_t);
+    fdb5::DaosArray createArray(const daos_oclass_id_t& oclass = OC_S1);
+    fdb5::DaosArray createArray(const fdb5::DaosOID&);
+    fdb5::DaosKeyValue createKeyValue(const daos_oclass_id_t& oclass = OC_S1);
+    fdb5::DaosKeyValue createKeyValue(const fdb5::DaosOID&);
 
     const daos_handle_t& getOpenHandle();
 

@@ -163,7 +163,7 @@ FieldLocation* DaosStore::archive(const Key &key, const void *data, eckit::Lengt
     fdb5::DaosSession s{};
     fdb5::DaosPool& p = s.getPool(pool_);
     fdb5::DaosContainer& c = p.ensureContainer("store_" + db_str_ + "_" + key.valuesToString());
-    fdb5::DaosObject o = c.createObject();
+    fdb5::DaosArray o = c.createArray();  // TODO: pass value for oclass argument taken from config
     
     eckit::URI uri = o.URI();
 
