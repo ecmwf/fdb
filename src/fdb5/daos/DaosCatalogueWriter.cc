@@ -20,6 +20,8 @@
 // #include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/daos/DaosCatalogueWriter.h"
+#include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosKeyValueHandle.h"
 // #include "fdb5/toc/TocFieldLocation.h"
 // #include "fdb5/toc/TocIndex.h"
 // #include "fdb5/io/LustreSettings.h"
@@ -37,38 +39,29 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& con
     // TODO: writeInitRecord(key);
     //   TODO: Mutex?
     //   TODO: create root directory - assert root pool exists. Or create it if ne?
-    fdb5::DaosSession s;
-    fdb5::DaosPool& p = s.getPool(pool_);
+    fdb5::DaosName np{pool_};
+    ASSERT(np.exists());
 
     //   TODO: create toc file - create catalogue container and main kv
-    fdb5::DaosContainer& c = p.createContainer(db_cont_); // TODO: check if exists? or re-create regardless?
-
-    fdb5::DaosKeyValue kv = c.createKeyValue(main_kv_); // TODO: check if exists? or re-create regardless?
-    //     TODO: rethink OIDs, should contain info on object type, etc. Otherwise how to check existence?
-    //     TODO: expose hi and lo in OID
-    //     TODO: implement DaosArray and DaosKeyValue
+    //     TODO: check if cont and kv exist? or re-create regardless?
+    fdb5::DaosKeyValueName nkv{pool_, db_cont_, main_kv_};
+    if (!nkv.exists()) nkv.create();
+    
     //   TODO: record or read dbUID - ???
     //   TODO: copy schema over - put schema file content in main_kv_['schema']
 
     eckit::Log::debug<LibFdb5>() << "Copy schema from "
                         << config_.schemaPath()
                         << " to "
-                        << kv.URI().asString()
+                        << nkv.URI().asString()
                         << " at key 'schema'."
                         << std::endl;
 
-    //     TODO: implement URI and DaosName and DaosHandle for DAOS KV entries???
-    //       daos://pool/cont/hi.lo?key=k&offset=x&length=y
-    //       DaosKVEntryHandle
-    //       DaosKVEntryName
-
-    eckit::FileHandle in(config_.schemaPath());
-    eckit::Length len = in.openForRead();
-    eckit::AutoClose closer(in);
-    eckit::Buffer buf{(size_t) len};
-    long res = in.read(buf, len);
-    kv.put("schema", buf, len);
-    kv.close();
+    if (!nkv.has("schema")) {
+        eckit::FileHandle in(config_.schemaPath());
+        std::unique_ptr<eckit::DataHandle> out(nkv.dataHandle("schema"));
+        in.copyTo(*out);
+    }
 
     // TODO: TocCatalogue::loadSchema();
     //   TODO: really call loadSchema? or rather do it here and reuse DaosSession

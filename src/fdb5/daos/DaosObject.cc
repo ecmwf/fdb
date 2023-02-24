@@ -23,74 +23,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession& session, const fdb5::DaosName& name) {
+DaosObject::DaosObject(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid) : cont_(cont), oid_(oid), open_(false) {}
 
-    uuid_t uuid = {0};
+DaosObject::DaosObject(DaosObject&& other) noexcept : cont_(other.cont_), oid_(std::move(other.oid_)), 
+    oh_(std::move(other.oh_)), open_(other.open_) {
 
-    fdb5::DaosPool* pool;
-    if (uuid_parse(name.poolName().c_str(), uuid) == 0) {
-        pool = &(session.getPool(uuid));
-    } else {
-        pool = &(session.getPool(name.poolName()));
-    }
-
-    if (uuid_parse(name.contName().c_str(), uuid) == 0) {
-        return pool->getContainer(uuid);
-    } else {
-        return pool->getContainer(name.contName());
-    }
-    
-}
-
-DaosObject::DaosObject(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid, bool verify) : 
-    cont_(cont), oid_(oid), open_(false) {
-
-    ASSERT(oid_.wasGenerated());
-
-    if (verify && !exists()) {
-        throw fdb5::DaosEntityNotFoundException(
-            "Object with oid " + oid.asString() + " not found", 
-            Here());
-    }
-    
-}
-
-DaosObject::DaosObject(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid) : DaosObject(cont, oid, true) {}
-
-DaosObject::DaosObject(fdb5::DaosSession& session, const fdb5::DaosName& name) : 
-    DaosObject(name_to_cont_ref(session, name), name.OID()) {}
-
-DaosObject::DaosObject(fdb5::DaosSession& session, const eckit::URI& uri) : DaosObject(session, DaosName(uri)) {}
-
-DaosObject::DaosObject(DaosObject&& other) noexcept : cont_(other.cont_), open_(other.open_) {
-
-    std::swap(oid_, other.oid_);
-    std::swap(oh_, other.oh_);
     other.open_ = false;
-
-}
-
-const daos_handle_t& DaosObject::getOpenHandle() {
-    
-    open();
-    return oh_;
-    
-};
-
-bool DaosObject::exists() {
-
-    /// @todo: implement this with more appropriate DAOS API functions
-    try {
-
-        open();
-
-    } catch (eckit::SeriousBug& e) {
-
-        return false;
-        
-    }
-    
-    return true;
 
 }
 
@@ -118,9 +56,65 @@ fdb5::DaosContainer& DaosObject::getContainer() const {
 
 }
 
+fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession& session, const fdb5::DaosNameBase& name) {
+
+    uuid_t uuid = {0};
+
+    fdb5::DaosPool* pool;
+    if (uuid_parse(name.poolName().c_str(), uuid) == 0) {
+        pool = &(session.getPool(uuid));
+    } else {
+        pool = &(session.getPool(name.poolName()));
+    }
+
+    if (uuid_parse(name.contName().c_str(), uuid) == 0) {
+        return pool->getContainer(uuid);
+    } else {
+        return pool->getContainer(name.contName());
+    }
+    
+}
+
+DaosArray::DaosArray(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid, bool verify) : DaosObject(cont, oid) {
+
+    ASSERT(oid_.wasGenerated());
+    ASSERT(oid_.otype() == type());
+
+    if (verify && !exists()) {
+        throw fdb5::DaosEntityNotFoundException(
+            "Array with oid " + oid.asString() + " not found", 
+            Here());
+    }
+    
+}
+
+DaosArray::DaosArray(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid) : DaosArray(cont, oid, true) {}
+
+DaosArray::DaosArray(fdb5::DaosSession& session, const fdb5::DaosNameBase& name) : 
+    DaosArray(name_to_cont_ref(session, name), name.OID()) {}
+
+DaosArray::DaosArray(fdb5::DaosSession& session, const eckit::URI& uri) : DaosArray(session, DaosName(uri)) {}
+
 DaosArray::~DaosArray() {
 
     if (open_) close();
+
+}
+
+bool DaosArray::exists() {
+
+    /// @todo: implement this with more appropriate DAOS API functions
+    try {
+
+        open();
+
+    } catch (eckit::SeriousBug& e) {
+
+        return false;
+        
+    }
+    
+    return true;
 
 }
 
@@ -248,9 +242,46 @@ daos_size_t DaosArray::size() {
 
 }
 
+DaosKeyValue::DaosKeyValue(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid, bool verify) : DaosObject(cont, oid) {
+
+    ASSERT(oid_.wasGenerated());
+    ASSERT(oid_.otype() == type());
+
+    if (verify && !exists()) {
+        throw fdb5::DaosEntityNotFoundException(
+            "KeyValue with oid " + oid.asString() + " not found", 
+            Here());
+    }
+    
+}
+
+DaosKeyValue::DaosKeyValue(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid) : DaosKeyValue(cont, oid, true) {}
+
+DaosKeyValue::DaosKeyValue(fdb5::DaosSession& session, const fdb5::DaosNameBase& name) : 
+    DaosKeyValue(name_to_cont_ref(session, name), name.OID()) {}
+
+DaosKeyValue::DaosKeyValue(fdb5::DaosSession& session, const eckit::URI& uri) : DaosKeyValue(session, DaosName(uri)) {}
+
 DaosKeyValue::~DaosKeyValue() {
 
     if (open_) close();
+
+}
+
+bool DaosKeyValue::exists() {
+
+    /// @todo: implement this with more appropriate DAOS API functions
+    try {
+
+        open();
+
+    } catch (eckit::SeriousBug& e) {
+
+        return false;
+        
+    }
+    
+    return true;
 
 }
 
@@ -299,6 +330,23 @@ void DaosKeyValue::close() {
     std::cout << "DAOS_CALL <= daos_obj_close()" << std::endl;
 
     open_ = false;
+
+}
+
+daos_size_t DaosKeyValue::size(const std::string& key) {
+
+    open();
+
+    long res{0};
+    DAOS_CALL(daos_kv_get(oh_, DAOS_TX_NONE, 0, key.c_str(), (daos_size_t*) &res, nullptr, NULL));
+
+    return res;
+
+}
+
+bool DaosKeyValue::has(const std::string& key) {
+
+    return size(key) != 0;
 
 }
 

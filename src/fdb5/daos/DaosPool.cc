@@ -191,9 +191,7 @@ fdb5::DaosContainer& DaosPool::getContainer(uuid_t uuid, bool verify) {
 
     if (it != cont_cache_.end()) return *it;
 
-    cont_cache_.push_front(fdb5::DaosContainer(*this, uuid));
-    
-    DaosContainer& c = cont_cache_.at(0);
+    fdb5::DaosContainer c(*this, uuid);
 
     if (verify && !c.exists()) {
         char uuid_cstr[37];
@@ -203,8 +201,10 @@ fdb5::DaosContainer& DaosPool::getContainer(uuid_t uuid, bool verify) {
             "Container with uuid " + uuid_str + " not found", 
             Here());
     }
-
-    return c;
+    
+    cont_cache_.push_front(std::move(c));
+    
+    return cont_cache_.at(0);
 
 }
 
@@ -214,9 +214,7 @@ fdb5::DaosContainer& DaosPool::getContainer(const std::string& label, bool verif
 
     if (it != cont_cache_.end()) return *it;
     
-    cont_cache_.push_front(fdb5::DaosContainer(*this, label));
-    
-    DaosContainer& c = cont_cache_.at(0);
+    fdb5::DaosContainer c(*this, label);
 
     if (verify && !c.exists()) {
         throw fdb5::DaosEntityNotFoundException(
@@ -224,7 +222,9 @@ fdb5::DaosContainer& DaosPool::getContainer(const std::string& label, bool verif
             Here());
     }
 
-    return c;
+    cont_cache_.push_front(std::move(c));
+    
+    return cont_cache_.at(0);
 
 }
 
@@ -243,9 +243,7 @@ fdb5::DaosContainer& DaosPool::getContainer(uuid_t uuid, const std::string& labe
     it = getCachedContainer(label);
     if (it != cont_cache_.end()) return *it;
 
-    cont_cache_.push_front(fdb5::DaosContainer(*this, label));
-    
-    DaosContainer& c = cont_cache_.at(0);
+    fdb5::DaosContainer c(*this, label);
 
     if (verify && !c.exists()) {
         char uuid_cstr[37];
@@ -256,7 +254,9 @@ fdb5::DaosContainer& DaosPool::getContainer(uuid_t uuid, const std::string& labe
             Here());
     }
 
-    return c;
+    cont_cache_.push_front(std::move(c));
+    
+    return cont_cache_.at(0);
 
 }
 

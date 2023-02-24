@@ -22,6 +22,7 @@
 // #include "fdb5/toc/TocMoveVisitor.h"
 
 #include "fdb5/daos/DaosCatalogue.h"
+#include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
 
 // using namespace eckit;
@@ -38,13 +39,19 @@ DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
     //   and using DbPathNamerTables to determine db_cont_name_ according
     //   to key
 
-    pool_ = config_.getSubConfiguration("daos").getSubConfiguration("catalogue").getString("pool", "default");
+    pool_ = "default";
+
+    eckit::LocalConfiguration c{};
+
+    if (config_.has("daos")) c = config_.getSubConfiguration("daos");
+    if (c.has("catalogue")) pool_ = c.getSubConfiguration("catalogue").getString("pool", pool_);
 
     pool_ = eckit::Resource<std::string>("fdbDaosCataloguePool;$FDB_DAOS_CATALOGUE_POOL", pool_);
 
     db_cont_ = key.valuesToString();
 
-    fdb5::DaosManager::instance().configure(config_.getSubConfiguration("daos").getSubConfiguration("client"));
+    if (c.has("client"))
+        fdb5::DaosManager::instance().configure(c.getSubConfiguration("client"));
 
 }
 
@@ -58,17 +65,17 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
     //// Read the real DB key into the DB base object
     //dbKey_ = databaseKey();
 
-    eckit::PathName directory{uri.path()};
+    fdb5::DaosName n{uri};
+    ASSERT(n.hasOID());
 
-    eckit::Tokenizer t("/");
-    std::vector<std::string> parts = t.tokenize(directory.asString());
-    ASSERT(parts.size() == 3);
-
-    pool_ = directory.dirName().baseName().asString();
+    pool_ = n.poolName();
     
-    db_cont_ = directory.baseName().asString();
+    db_cont_ = n.contName();
 
-    fdb5::DaosManager::instance().configure(config_.getSubConfiguration("daos").getSubConfiguration("client"));
+    eckit::LocalConfiguration c{};
+    if (c.has("daos")) c = c.getSubConfiguration("daos");
+    if (c.has("client"))
+        fdb5::DaosManager::instance().configure(c.getSubConfiguration("client"));
 
 }
 
@@ -134,15 +141,13 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
 void DaosCatalogue::loadSchema() {
 
     eckit::Timer timer("DaosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
-    fdb5::DaosSession s;
-    fdb5::DaosPool& p = s.getPool(pool_);
-    fdb5::DaosContainer& c = p.getContainer(db_cont_);
-    // TODO: implement fdb5::DaosKeyValue kv{c, c.generateOID(main_kv_)} and avoid re-create
-    fdb5::DaosKeyValue kv = c.createKeyValue(main_kv_);
-    long len = kv.get("schema", nullptr, 0);
-    ASSERT(len > 0);
-    eckit::Buffer buff{(size_t) len};
-    kv.get("schema", buff, len);
+
+    fdb5::DaosKeyValueName n{pool_, db_cont_, main_kv_};
+    std::unique_ptr<eckit::DataHandle> h(n.dataHandle("schema"));
+    h->openForRead();
+    eckit::AutoClose closer(*h);
+    eckit::Buffer buff{(size_t) h->size()};
+    h->read(buff, h->size());
     std::istringstream stream{std::string(buff)};
     schema_.load(stream);
 

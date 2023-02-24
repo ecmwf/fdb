@@ -15,12 +15,24 @@
 #include "eckit/utils/Translator.h"
 
 #include "fdb5/daos/DaosOID.h"
+#include "fdb5/daos/DaosContainer.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosOID::DaosOID(const uint64_t& hi, const uint64_t& lo) : hi_(hi), lo_(lo), wasGenerated_(true) {}
+void DaosOID::parseReservedBits() {
+
+    otype_ = static_cast<enum daos_otype_t>((hi_ & OID_FMT_TYPE_MASK) >> OID_FMT_TYPE_SHIFT);
+    oclass_ = (hi_ & OID_FMT_CLASS_MASK) >> OID_FMT_CLASS_SHIFT;
+
+}
+
+DaosOID::DaosOID(const uint64_t& hi, const uint64_t& lo) : hi_(hi), lo_(lo), wasGenerated_(true) {
+
+    parseReservedBits();
+
+}
 
 DaosOID::DaosOID(const std::string& s) : wasGenerated_(true) {
 
@@ -30,10 +42,12 @@ DaosOID::DaosOID(const std::string& s) : wasGenerated_(true) {
     hi_ = std::stoull(s.substr(0, 16), nullptr, 16);
     lo_ = std::stoull(s.substr(16, 16), nullptr, 16);
 
+    parseReservedBits();
+
 }
 
 DaosOID::DaosOID(const uint32_t& hi, const uint64_t& lo, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass) :
-    hi_(hi), lo_(lo), otype_(otype), oclass_(oclass), wasGenerated_(false) {}
+    otype_(otype), hi_(hi), lo_(lo), oclass_(oclass), wasGenerated_(false) {}
 
 // DaosOID::DaosOID(const DaosOID& other) : hi_(other.hi_), lo_(other.lo_) {}
 
@@ -51,7 +65,17 @@ DaosOID::DaosOID(const uint32_t& hi, const uint64_t& lo, const enum daos_otype_t
 
 // }
 
+void DaosOID::generate(fdb5::DaosContainer& cont) {
+
+    if (wasGenerated_) return;
+    hi_ = cont.generateOID(*this).asDaosObjIdT().hi;
+    wasGenerated_ = true;
+
+}
+
 std::string DaosOID::asString() const {
+
+    ASSERT(wasGenerated_);
 
     std::stringstream os;
     os << std::setw(16) << std::setfill('0') << std::hex << hi_;
@@ -68,17 +92,29 @@ daos_obj_id_t DaosOID::asDaosObjIdT() const {
 
 enum daos_otype_t DaosOID::otype() const {
 
-    if (wasGenerated_) NOTIMP;
     return otype_;
 
 }
 
 daos_oclass_id_t DaosOID::oclass() const {
 
-    if (wasGenerated_) NOTIMP;
     return oclass_;
 
 }
+
+DaosArrayOID::DaosArrayOID(const uint64_t& hi, const uint64_t& lo) : DaosOID(hi, lo) { ASSERT(otype_ == DAOS_OT_ARRAY); }
+
+DaosArrayOID::DaosArrayOID(const std::string& oid) : DaosOID(oid) { ASSERT(otype_ == DAOS_OT_ARRAY); }
+
+DaosArrayOID::DaosArrayOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass) :
+    DaosOID(hi, lo, DAOS_OT_ARRAY, oclass) {}
+
+DaosKeyValueOID::DaosKeyValueOID(const uint64_t& hi, const uint64_t& lo) : DaosOID(hi, lo) { ASSERT(otype_ == DAOS_OT_KV_HASHED); }
+
+DaosKeyValueOID::DaosKeyValueOID(const std::string& oid) : DaosOID(oid) { ASSERT(otype_ == DAOS_OT_KV_HASHED); }
+
+DaosKeyValueOID::DaosKeyValueOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass) :
+    DaosOID(hi, lo, DAOS_OT_KV_HASHED, oclass) {}
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -41,6 +41,8 @@ public: // methods
     void open();
     void close();
 
+    uint64_t allocateOIDLo();
+    fdb5::DaosOID generateOID(const fdb5::DaosOID&);
     fdb5::DaosArray createArray(const daos_oclass_id_t& oclass = OC_S1);
     fdb5::DaosArray createArray(const fdb5::DaosOID&);
     fdb5::DaosKeyValue createKeyValue(const daos_oclass_id_t& oclass = OC_S1);

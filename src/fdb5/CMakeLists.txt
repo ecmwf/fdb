@@ -379,8 +379,10 @@ if( HAVE_DAOSFDB )
         daos/DaosPool.h
         daos/DaosSession.cc
         daos/DaosSession.h
-        daos/DaosHandle.cc
-        daos/DaosHandle.h
+        daos/DaosArrayHandle.cc
+        daos/DaosArrayHandle.h
+        daos/DaosKeyValueHandle.cc
+        daos/DaosKeyValueHandle.h
         daos/DaosStore.h 
         daos/DaosStore.cc 
         daos/DaosFieldLocation.h 

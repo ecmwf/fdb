@@ -84,9 +84,7 @@ fdb5::DaosPool& DaosSession::getPool(uuid_t uuid) {
 
     if (it != pool_cache_.end()) return *it;
 
-    pool_cache_.push_front(fdb5::DaosPool(*this, uuid));
-
-    fdb5::DaosPool& p = pool_cache_.at(0);
+    fdb5::DaosPool p(*this, uuid);
 
     if (!p.exists()) {
         char uuid_cstr[37];
@@ -97,7 +95,9 @@ fdb5::DaosPool& DaosSession::getPool(uuid_t uuid) {
             Here());
     }
 
-    return p;
+    pool_cache_.push_front(std::move(p));
+
+    return pool_cache_.at(0);
 
 }
 
@@ -106,10 +106,8 @@ fdb5::DaosPool& DaosSession::getPool(const std::string& label) {
     std::deque<fdb5::DaosPool>::iterator it = getCachedPool(label);
 
     if (it != pool_cache_.end()) return *it;
-    
-    pool_cache_.push_front(fdb5::DaosPool(*this, label));
 
-    fdb5::DaosPool& p = pool_cache_.at(0);
+    fdb5::DaosPool p(*this, label);
 
     if (!p.exists()) {
         throw fdb5::DaosEntityNotFoundException(
@@ -117,7 +115,9 @@ fdb5::DaosPool& DaosSession::getPool(const std::string& label) {
             Here());
     }
 
-    return p;
+    pool_cache_.push_front(std::move(p));
+
+    return pool_cache_.at(0);
 
 }
 
@@ -147,9 +147,7 @@ DaosPool& DaosSession::getPool(uuid_t uuid, const std::string& label) {
     it = getCachedPool(label);
     if (it != pool_cache_.end()) return *it;
 
-    pool_cache_.push_front(fdb5::DaosPool(*this, uuid, label));
-
-    fdb5::DaosPool& p = pool_cache_.at(0);
+    fdb5::DaosPool p(*this, uuid, label);
 
     if (!p.exists()) {
         char uuid_cstr[37];
@@ -160,7 +158,9 @@ DaosPool& DaosSession::getPool(uuid_t uuid, const std::string& label) {
             Here());
     }
 
-    return p;
+    pool_cache_.push_front(std::move(p));
+
+    return pool_cache_.at(0);
 
 }
 

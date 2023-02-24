@@ -26,45 +26,42 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DaosName;
+class DaosNameBase;
 
 class DaosContainer;
 
 class DaosSession;
 
-fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession&, const fdb5::DaosName&);
-
 class DaosObject {
 
+    friend DaosContainer;
+    
 public: // methods
 
-    DaosObject(fdb5::DaosContainer&, const fdb5::DaosOID&);
-    DaosObject(fdb5::DaosSession&, const fdb5::DaosName&);
-    DaosObject(fdb5::DaosSession&, const eckit::URI&);
     DaosObject(DaosObject&&) noexcept;
     DaosObject(const DaosObject&) = default;
+
     // TODO: is that OK? Having a virtual destructor for base class and separate non-virutal destructor for derived classes. Should they override?
     virtual ~DaosObject() = default;
 
-    virtual void destroy() = 0;
+    virtual daos_otype_t type() const = 0;
 
+    virtual bool exists() = 0;
+    virtual void destroy() = 0;
     virtual void open() = 0;
     virtual void close() = 0;
-
-    const daos_handle_t& getOpenHandle();
-
-    bool exists();
     virtual daos_size_t size() = 0;
+
     std::string name() const;
     fdb5::DaosOID OID() const;
     eckit::URI URI() const;
     fdb5::DaosContainer& getContainer() const;
 
+protected: // methods
+
+    DaosObject(fdb5::DaosContainer&, const fdb5::DaosOID&);
+
 private: // methods
-
-    friend DaosContainer;
-
-    DaosObject(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
 
     virtual void create() = 0;
 
@@ -79,19 +76,22 @@ protected: // members
 
 class DaosArray : public DaosObject {
 
-    using DaosObject::DaosObject;
-
     friend DaosContainer;
 
 public: // methods
 
+    // TODO: test that DaosArray cannot be built via private constructor outside of DaosContainer
+    DaosArray(fdb5::DaosContainer&, const fdb5::DaosOID&);
+    DaosArray(fdb5::DaosSession&, const fdb5::DaosNameBase&);
+    DaosArray(fdb5::DaosSession&, const eckit::URI&);
+
     ~DaosArray();
 
+    daos_otype_t type() const override { return DAOS_OT_ARRAY; }
+    bool exists() override;
     void destroy() override;
-
     void open() override;
     void close() override;
-
     daos_size_t size() override;
 
     long write(const void*, const long&, const eckit::Offset&);
@@ -99,33 +99,41 @@ public: // methods
 
 private: // methods
 
+    DaosArray(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
+
     void create() override;
 
 };
 
 class DaosKeyValue : public DaosObject {
 
-    using DaosObject::DaosObject;
-
     friend DaosContainer;
 
 public: // methods
 
+    DaosKeyValue(fdb5::DaosContainer&, const fdb5::DaosOID&);
+    DaosKeyValue(fdb5::DaosSession&, const fdb5::DaosNameBase&);
+    DaosKeyValue(fdb5::DaosSession&, const eckit::URI&);
+
     ~DaosKeyValue();
 
+    daos_otype_t type() const override { return DAOS_OT_KV_HASHED; }
+    bool exists() override;
     void destroy() override;
-
     void open() override;
     void close() override;
-
     daos_size_t size() override { NOTIMP; };
     // doas_size_t length();
     // std::vector<std::string> keys();
 
+    daos_size_t size(const std::string& key);
+    bool has(const std::string& key);
     long put(const std::string& key, const void*, const long&);
     long get(const std::string& key, void*, const long&);
 
 private: // methods
+
+    DaosKeyValue(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
 
     void create() override;
 

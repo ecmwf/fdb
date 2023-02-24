@@ -30,10 +30,30 @@
 #define DAOS_PC_RW 0
 #define DAOS_COO_RW 0
 #define DAOS_OO_RW 0
+
+/** 32 bits for DAOS internal use */
+#define OID_FMT_INTR_BITS 32
+#define OID_FMT_TYPE_BITS 8
+#define OID_FMT_CLASS_BITS 8
+#define OID_FMT_META_BITS 16
+
+#define OID_FMT_TYPE_SHIFT (64 - OID_FMT_TYPE_BITS)
+#define OID_FMT_CLASS_SHIFT (OID_FMT_TYPE_SHIFT - OID_FMT_CLASS_BITS)
+#define OID_FMT_META_SHIFT (OID_FMT_CLASS_SHIFT - OID_FMT_META_BITS)
+
+#define OID_FMT_TYPE_MAX ((1ULL << OID_FMT_TYPE_BITS) - 1)
+#define OID_FMT_CLASS_MAX ((1ULL << OID_FMT_CLASS_BITS) - 1)
+#define OID_FMT_META_MAX ((1ULL << OID_FMT_META_BITS) - 1)
+
+#define OID_FMT_TYPE_MASK (OID_FMT_TYPE_MAX << OID_FMT_TYPE_SHIFT)
+#define OID_FMT_CLASS_MASK (OID_FMT_CLASS_MAX << OID_FMT_CLASS_SHIFT)
+#define OID_FMT_META_MASK (OID_FMT_META_MAX << OID_FMT_META_SHIFT)
+
 #define OC_S1 1ULL
 #define OC_S2 2ULL
 #define OC_SX ((1 << 16UL) - 1)
 #define OC_RESERVED 1 << 30
+
 #define DAOS_TX_NONE (daos_handle_t){NULL}
 #define DAOS_PROP_LABEL_MAX_LEN (127)
 #define DAOS_PROP_ENTRIES_MAX_NR (128)
@@ -42,6 +62,11 @@
 #define D_ALLOC_PTR(ptr) D_ALLOC_ARRAY(ptr, 1)
 #define D_FREE(ptr) ({ free(ptr); (ptr) = NULL; })
 #define D_STRNDUP(ptr, s, n) (ptr) = strndup(s, n);
+
+enum daos_otype_t {
+    DAOS_OT_KV_HASHED = 8,
+    DAOS_OT_ARRAY = 11,
+};
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,11 +80,6 @@ typedef struct {
 } daos_handle_t;
 
 /* typedef struct daos_handle_internal_t * daos_handle_t; */
-
-enum daos_otype_t {
-    DAOS_OT_KV_HASHED = 8,
-    DAOS_OT_ARRAY = 11,
-};
 
 typedef uint64_t daos_size_t;
 

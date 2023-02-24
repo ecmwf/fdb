@@ -49,7 +49,7 @@ std::shared_ptr<FieldLocation> DaosFieldLocation::make_shared() const {
 eckit::DataHandle* DaosFieldLocation::dataHandle() const {
 
     /// @todo: ensure DaosSession has been configured before any actions on DaosNames in DaosFieldLocation
-    return fdb5::DaosName(uri_).dataHandle();
+    return fdb5::DaosArrayName(uri_).dataHandle();
     
 }
 
@@ -79,15 +79,15 @@ class DaosURIManager : public eckit::URIManager {
 
     virtual eckit::PathName path(const eckit::URI& f) const override { return f.name(); }
 
-    virtual bool exists(const eckit::URI& f) override { return fdb5::DaosName(f).exists(); }
+    virtual bool exists(const eckit::URI& f) override { return fdb5::DaosArrayName(f).exists(); }
 
-    virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return fdb5::DaosName(f).dataHandle(); }
+    virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return fdb5::DaosArrayName(f).dataHandle(); }
 
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return fdb5::DaosName(f).dataHandle(); }
+    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return fdb5::DaosArrayName(f).dataHandle(); }
 
     /// @todo: implement DaosName::partHandle
     virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
-        return fdb5::DaosName(f).dataHandle();
+        return fdb5::DaosArrayName(f).dataHandle();
     }
 
     virtual std::string asString(const eckit::URI& uri) const override {

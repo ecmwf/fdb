@@ -144,9 +144,8 @@ void DaosContainer::close() {
 
 }
 
-fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass) {
+uint64_t DaosContainer::allocateOIDLo() {
 
-    create();
     open();
 
     if (oid_alloc_.num_oids == 0) {
@@ -157,11 +156,28 @@ fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass) {
         --oid_alloc_.num_oids;
     }
 
-    daos_obj_id_t next;
-    next.lo = oid_alloc_.next_oid;
-    DAOS_CALL(daos_array_generate_oid(coh_, &next, true, oclass, 0, 0));
+    return oid_alloc_.next_oid;
 
-    fdb5::DaosArray obj(*this, fdb5::DaosOID{next.hi, next.lo}, false);
+}
+
+fdb5::DaosOID DaosContainer::generateOID(const fdb5::DaosOID& oid) {
+
+    open();
+
+    daos_obj_id_t id{oid.asDaosObjIdT()};
+    DAOS_CALL(daos_obj_generate_oid(coh_, &id, oid.otype(), oid.oclass(), 0, 0));
+
+    return fdb5::DaosOID{id.hi, id.lo};
+
+}
+
+fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass) {
+
+    fdb5::DaosOID new_oid = generateOID(fdb5::DaosOID{0, allocateOIDLo(), DAOS_OT_ARRAY, oclass});
+
+    open();
+
+    fdb5::DaosArray obj(*this, new_oid, false);
     obj.create();
     return obj;
 
@@ -172,13 +188,9 @@ fdb5::DaosArray DaosContainer::createArray(const fdb5::DaosOID& oid) {
     ASSERT(!oid.wasGenerated());
     ASSERT(oid.otype() == DAOS_OT_ARRAY);
 
-    create();
     open();
 
-    daos_obj_id_t id = oid.asDaosObjIdT();
-    DAOS_CALL(daos_array_generate_oid(coh_, &id, true, oid.oclass(), 0, 0));
-
-    fdb5::DaosArray obj(*this, fdb5::DaosOID{id.hi, id.lo}, false);
+    fdb5::DaosArray obj(*this, generateOID(oid), false);
     obj.create();
     return obj;
 
@@ -186,22 +198,11 @@ fdb5::DaosArray DaosContainer::createArray(const fdb5::DaosOID& oid) {
 
 fdb5::DaosKeyValue DaosContainer::createKeyValue(const daos_oclass_id_t& oclass) {
 
-    create();
+    fdb5::DaosOID new_oid = generateOID(fdb5::DaosOID{0, allocateOIDLo(), DAOS_OT_KV_HASHED, oclass});
+
     open();
 
-    if (oid_alloc_.num_oids == 0) {
-        oid_alloc_.num_oids = getPool().getSession().containerOidsPerAlloc();
-        DAOS_CALL(daos_cont_alloc_oids(coh_, oid_alloc_.num_oids + 1, &(oid_alloc_.next_oid), NULL));
-    } else {
-        ++oid_alloc_.next_oid;
-        --oid_alloc_.num_oids;
-    }
-
-    daos_obj_id_t next;
-    next.lo = oid_alloc_.next_oid;
-    DAOS_CALL(daos_obj_generate_oid(coh_, &next, DAOS_OT_KV_HASHED, oclass, 0, 0));
-
-    fdb5::DaosKeyValue obj(*this, fdb5::DaosOID{next.hi, next.lo}, false);
+    fdb5::DaosKeyValue obj(*this, new_oid, false);
     obj.create();
     return obj;
 
@@ -212,13 +213,9 @@ fdb5::DaosKeyValue DaosContainer::createKeyValue(const fdb5::DaosOID& oid) {
     ASSERT(!oid.wasGenerated());
     ASSERT(oid.otype() == DAOS_OT_KV_HASHED);
 
-    create();
     open();
 
-    daos_obj_id_t id = oid.asDaosObjIdT();
-    DAOS_CALL(daos_obj_generate_oid(coh_, &id, DAOS_OT_KV_HASHED, oid.oclass(), 0, 0));
-
-    fdb5::DaosKeyValue obj(*this, fdb5::DaosOID{id.hi, id.lo}, false);
+    fdb5::DaosKeyValue obj(*this, generateOID(oid), false);
     obj.create();
     return obj;
 

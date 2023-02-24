@@ -19,17 +19,35 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class DaosContainer;
+
 class DaosOID {
 
 public: // methods
 
     DaosOID(const uint64_t& hi, const uint64_t& lo);
     DaosOID(const std::string&);
-    DaosOID(const uint32_t& hi, const uint64_t& lo, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass = OC_S1);
+    DaosOID(const uint32_t& hi, const uint64_t& lo, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass);
+
+    // TODO: make these private? and use these helper methods
+
+    // static DaosOID arrayOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass = OC_S1) {
+
+    //     return {hi, lo, DAOS_OT_ARRAY, oclass};
+
+    // }
+
+    // static DaosOID arrayOIDFull(const uint64_t& hi, const uint64_t& lo) {
+
+    //     return {hi, lo};
+
+    // }
 
     // DaosOID(const DaosOID&);
     // DaosOID(DaosOID&&);
     // DaosOID& operator=(DaosOID);
+
+    void generate(fdb5::DaosContainer&);
 
     std::string asString() const;
     daos_obj_id_t asDaosObjIdT() const;
@@ -43,37 +61,46 @@ private: // methods
 
     /// @todo: is this the right approach? having a private default constructor for DaosOID and friending it here
     // so that oid_ in DaosName/DaosObject can be default initialised for constructors which do not initialise it explicitly
-    friend class DaosName;
+    friend class DaosNameBase;
     friend class DaosObject;
     /// @todo: this seems dangerous, as DaosOID can now be default initialised (i.e. invalid OID instances) from both of these classes
+
+    void parseReservedBits();
+
+protected: // members
+
+    enum daos_otype_t otype_;
 
 private: // members
 
     uint64_t hi_;
     uint64_t lo_;
-    enum daos_otype_t otype_;
-    daos_oclass_id_t oclass_ = OC_RESERVED;
+    daos_oclass_id_t oclass_;
     bool wasGenerated_;
 
 };
 
-// class DaosArrayID : public DaosOID {
+class DaosArrayOID : public DaosOID {
 
-// public: //methods
+public: //methods
 
-//     DaosArrayID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass = OC_S1) :
-//         DaosOID(hi, lo, DAOS_OT_ARRAY, oclass) {};
+    DaosArrayOID(const uint64_t& hi, const uint64_t& lo);
+    DaosArrayOID(const std::string&);
+    DaosArrayOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass);
 
-// };
+};
 
-// class DaosKeyValueID : public DaosOID {
+class DaosKeyValueOID : public DaosOID {
 
-// public: //methods
+public: //methods
 
-//     DaosKeyValueID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass = OC_S1) :
-//         DaosOID(hi, lo, DAOS_OT_KV_HASHED, oclass) {};
+    DaosKeyValueOID(const uint64_t& hi, const uint64_t& lo);
+    DaosKeyValueOID(const std::string&);
+    DaosKeyValueOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass);
 
-// };
+};
+
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

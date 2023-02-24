@@ -285,8 +285,8 @@ int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t *oid,
     if (args != 0) NOTIMP;
 
     oid->hi &= (uint64_t) 0x00000000FFFFFFFF;
-    oid->hi |= ((((uint64_t) cid) & 0x000000000000FFFF) << 48);
-    oid->hi |= ((((uint64_t) type) & 0x000000000000FFFF) << 32);
+    oid->hi |= ((((uint64_t) type) & OID_FMT_TYPE_MAX) << OID_FMT_TYPE_SHIFT);
+    oid->hi |= ((((uint64_t) cid) & OID_FMT_CLASS_MAX) << OID_FMT_CLASS_SHIFT);
 
     return 0;
 

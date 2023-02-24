@@ -15,6 +15,8 @@
 
 #include "eckit/io/DataHandle.h"
 
+#include "fdb5/daos/DaosName.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -23,26 +25,24 @@ class DaosSession;
 
 class DaosArray;
 
-class DaosName;
+class DaosArrayName;
 
-class DaosHandle : public eckit::DataHandle {
+class DaosArrayHandle : public eckit::DataHandle {
 
 public: // methods
 
-    /// @todo: the DaosSession is owned by the user if using this move constructor. Do we want to allow this?
-    DaosHandle(fdb5::DaosArray&&);
-    DaosHandle(const fdb5::DaosName&);
+    DaosArrayHandle(const fdb5::DaosArrayName&);
 
-    ~DaosHandle();
+    ~DaosArrayHandle();
 
     virtual void print(std::ostream&) const override;
 
-    virtual eckit::Length openForRead() override;
     virtual void openForWrite(const eckit::Length&) override;
     virtual void openForAppend(const eckit::Length&) override;
+    virtual eckit::Length openForRead() override;
 
-    virtual long read(void*, long) override;
     virtual long write(const void*, long) override;
+    virtual long read(void*, long) override;
     virtual void close() override;
     virtual void flush() override;
 
@@ -66,8 +66,10 @@ public: // methods
 
 private: // members
 
+    // mutable because title() calls DaosArrayName::asString which may update (generate) OID
+    mutable fdb5::DaosArrayName name_;
     std::unique_ptr<fdb5::DaosSession> session_;
-    std::unique_ptr<fdb5::DaosArray> obj_;
+    std::unique_ptr<fdb5::DaosArray> arr_;
     bool open_;
     eckit::Offset offset_;
 
