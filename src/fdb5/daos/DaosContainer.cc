@@ -22,6 +22,16 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+DaosContainer::DaosContainer(DaosContainer&& other) noexcept : 
+    pool_(other.pool_), known_uuid_(other.known_uuid_), 
+    label_(std::move(other.label_)), coh_(std::move(other.coh_)), open_(other.open_),
+    oid_alloc_(std::move(other.oid_alloc_)) {
+
+    uuid_copy(uuid_, other.uuid_);
+    other.open_ = false;
+
+}
+
 DaosContainer::DaosContainer(fdb5::DaosPool& pool, uuid_t uuid) : pool_(pool), known_uuid_(true), open_(false) {
 
     uuid_copy(uuid_, uuid);
@@ -162,6 +172,8 @@ uint64_t DaosContainer::allocateOIDLo() {
 
 fdb5::DaosOID DaosContainer::generateOID(const fdb5::DaosOID& oid) {
 
+    if (oid.wasGenerated()) return oid;
+
     open();
 
     daos_obj_id_t id{oid.asDaosObjIdT()};
@@ -185,7 +197,6 @@ fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass) {
 
 fdb5::DaosArray DaosContainer::createArray(const fdb5::DaosOID& oid) {
 
-    ASSERT(!oid.wasGenerated());
     ASSERT(oid.otype() == DAOS_OT_ARRAY);
 
     open();
@@ -210,7 +221,6 @@ fdb5::DaosKeyValue DaosContainer::createKeyValue(const daos_oclass_id_t& oclass)
 
 fdb5::DaosKeyValue DaosContainer::createKeyValue(const fdb5::DaosOID& oid) {
 
-    ASSERT(!oid.wasGenerated());
     ASSERT(oid.otype() == DAOS_OT_KV_HASHED);
 
     open();

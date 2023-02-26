@@ -35,6 +35,7 @@ class DaosContainer {
 
 public: // methods
 
+    DaosContainer(DaosContainer&&) noexcept;
     ~DaosContainer();
 
     void destroy();

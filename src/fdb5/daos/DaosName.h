@@ -42,8 +42,8 @@ public: // methods
 
     void generateOID() const;
 
-    void create();
-    void destroy();
+    void create() const;
+    void destroy() const;
     eckit::Length size() const;
     bool exists() const;
     // owner

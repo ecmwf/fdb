@@ -31,6 +31,7 @@ class DaosPool {
 
 public: // methods
 
+    DaosPool(DaosPool&&) noexcept;
     ~DaosPool();
 
     // administrative

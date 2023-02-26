@@ -20,6 +20,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+DaosPool::DaosPool(DaosPool&& other) noexcept : session_(other.session_), known_uuid_(other.known_uuid_), 
+    label_(std::move(other.label_)), poh_(std::move(other.poh_)), open_(other.open_),
+    cont_cache_(std::move(other.cont_cache_)) {
+
+    uuid_copy(uuid_, other.uuid_);
+    other.open_ = false;
+
+}
+
 DaosPool::DaosPool(fdb5::DaosSession& session) : session_(session), known_uuid_(false), open_(false) {}
 
 DaosPool::DaosPool(fdb5::DaosSession& session, uuid_t uuid) : session_(session), known_uuid_(true), open_(false) {

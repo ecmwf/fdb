@@ -42,7 +42,7 @@ DaosStore::DaosStore(const Schema& schema, const Key& key, const Config& config)
     eckit::LocalConfiguration c{};
 
     if (config_.has("daos")) c = config_.getSubConfiguration("daos");
-    if (c.has("catalogue")) pool_ = c.getSubConfiguration("store").getString("pool", pool_);
+    if (c.has("store")) pool_ = c.getSubConfiguration("store").getString("pool", pool_);
 
     pool_ = eckit::Resource<std::string>("fdbDaosStorePool;$FDB_DAOS_STORE_POOL", pool_);
 
@@ -107,7 +107,7 @@ eckit::PathName DaosStore::getStoreUnitPath(const eckit::URI& uri) const {
     fdb5::DaosName n(uri);
     ASSERT(n.hasOID());
 
-    return n.contName();
+    return uri.path().dirName();
 
 }
 

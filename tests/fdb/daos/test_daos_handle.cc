@@ -29,79 +29,73 @@
 using namespace eckit::testing;
 using namespace eckit;
 
+bool endsWith(const std::string& str, const std::string& end) {
+    return 0 == str.compare(str.length() - end.length(), end.length(), end);
+}
+
 namespace fdb {
 namespace test {
 
-// TODO check all calls to DaosOID and DaosObject and DaosHandle and objectCreate in unit tests
-// TODO: assert in unit tests that an object created from a not-generated oid does not work
-// TODO: unit tests for createArray from kv
-// TODO: is the private ctor of DaosArray and DaosKeyValue kept private?
-
-/// @todo: change all pre-condition checks to ASSERTs
-//   question: in the future ASSERTs will default to EcKit abortion. Not what we want in many pre-condition checks
-
 CASE( "DaosPool" ) {
 
-//     /// @todo: currently, all pool and container connections are cached and kept open for the duration of the process. Would
-//     // be nice to close container connections as they become unused. However the DaosContainer instances are managed by the 
-//     // DaosPools/DaosSession, so we never know when the user has finished using a certain container. My current thought is
-//     // we don't need to fix this, as each process will only use a single pool and 2 * (indices involved) containers.
-//     // However in a large parallel application, while all client processes are running, there may be a large number of
-//     // open containers in the DAOS system. One idea would be to use shared pointers to count number of uses.
+    /// @todo: currently, all pool and container connections are cached and kept open for the duration of the process. Would
+    // be nice to close container connections as they become unused. However the DaosContainer instances are managed by the 
+    // DaosPools/DaosSession, so we never know when the user has finished using a certain container. My current thought is
+    // we don't need to fix this, as each process will only use a single pool and 2 * (indices involved) containers.
+    // However in a large parallel application, while all client processes are running, there may be a large number of
+    // open containers in the DAOS system. One idea would be to use shared pointers to count number of uses.
 
-//     /// @todo: given that pool_cache_ are owned by session, should more caches be implemented in FDB as in RadosStore?
+    /// @todo: given that pool_cache_ are owned by session, should more caches be implemented in FDB as in RadosStore?
 
-//     /// @todo: A declarative approach would be better in my opinion.
-//     // The current approach is an imperative one, where DaosObject and DaosContainer instances always represent existing entities in DAOS from the instant they are created.
-//     // In highly parallel workflows, validity of such instances will be ephemeral, and by the time we perform an action on them, the DAOS entity they represent may
-//     // no longer exist. In the declarative approach, the containers and objects would be opened right before the action and fail if they don't exist. In the imperative
-//     // approach they would fail as well, but the initial checks performed to ensure existence of the DAOS entities would be useless and degrade performance.
+    /// @todo: A declarative approach would be better in my opinion.
+    // The current approach is an imperative one, where DaosObject and DaosContainer instances always represent existing entities in DAOS from the instant they are created.
+    // In highly parallel workflows, validity of such instances will be ephemeral, and by the time we perform an action on them, the DAOS entity they represent may
+    // no longer exist. In the declarative approach, the containers and objects would be opened right before the action and fail if they don't exist. In the imperative
+    // approach they would fail as well, but the initial checks performed to ensure existence of the DAOS entities would be useless and degrade performance.
 
-//     /// @todo: issues in DaosContainer::create and destroy
+    /// @todo: see notes in DaosContainer::create and destroy
     
-//     /// @todo: issues in DaosPool::create and destroy
+    /// @todo: see notes in DaosPool::create and destroy
 
 
 
+    /// @todo: small TODOs in DaosHandle
 
-//     /// @todo: small TODOs in DaosHandle
+    /// @todo: solve question on default constructor of DaosOID
 
-//     /// @todo: solve question on default constructor of DaosOID
+    /// @todo: think about DaosName::dataHandle overwrite parameter
 
-//     /// @todo: should daos_size_t be exposed as eckit::Length to user?
+    /// @todo: rule of three for classes with destructor?
 
-//     /// @todo: think about DaosName::dataHandle overwrite parameter
-
-//     /// @todo: rule of three for classes with destructor?
-
-
-
-//     /// @todo: properly implement DaosPool::exists(), DaosContainer::exists(), DaosObject::exists()
-
-//     /// @todo: DaosHandle serialisation
-
-//     /// @todo: implement missing methods in DaosName
-
-//     /// @todo: cpp uuid wrapper, to avoid weird headers
-
-//     /// @todo: use of uuid_generate_md5 can be removed completely
-
-//     /// @todo: use of container and pool UUIDs can be removed completely
-
-//     /// @todo: do not return iterators in e.g. DaosSession::getCachedPool. Return DaosPool&
-
-//     /// @todo: replace deque by map
-
-//     /// @todo: expose hi_ and lo_ in DaosOID
+    /// @todo: change all pre-condition checks to ASSERTs
+    ///   question: in the future ASSERTs will default to EcKit abortion. Not what we want in many pre-condition checks
 
 
 
-    // using hard-coded config defaults in DaosManager
+    /// @todo: properly implement DaosPool::exists(), DaosContainer::exists(), DaosObject::exists()
+
+    /// @todo: DaosHandle serialisation
+
+    /// @todo: cpp uuid wrapper, to avoid weird headers
+
+    /// @todo: use of uuid_generate_md5 can be removed completely
+
+    /// @todo: use of container and pool UUIDs can be removed completely
+
+    /// @todo: do not return iterators in e.g. DaosSession::getCachedPool. Return DaosPool&
+
+    /// @todo: replace deque by map
+
+    /// @todo: have DaosOID constructor with uint32_t rsv, uint32_t hi, uint32_t lo?
+
+
+
+    /// using hard-coded config defaults in DaosManager
     fdb5::DaosSession s{};
 
     SECTION("unnamed pool") {
 
-        fdb5::DaosPool& pool = s.createPool();  // admin function, not usually called in the client code
+        fdb5::DaosPool& pool = s.createPool();  /// admin function, not usually called in the client code
         fdb5::AutoPoolDestroy destroyer(pool);
 
         std::cout << pool.name() << std::endl;
@@ -114,14 +108,16 @@ CASE( "DaosPool" ) {
 
     SECTION("named pool") {
 
-        fdb5::DaosPool& pool = s.createPool("pool");
+        std::string pool_name{"test_pool_1"};
+
+        fdb5::DaosPool& pool = s.createPool(pool_name);
         fdb5::AutoPoolDestroy destroyer(pool);
 
         std::cout << pool.name() << std::endl;
 
-        EXPECT(pool.name() == "pool");
+        EXPECT(pool.name() == pool_name);
 
-        fdb5::DaosPool& pool_h = s.getPool("pool");
+        fdb5::DaosPool& pool_h = s.getPool(pool_name);
 
         EXPECT(&pool == &pool_h);
 
@@ -149,29 +145,32 @@ CASE( "DaosPool" ) {
 
 CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
 
-    // again using hard-coded config defaults in DaosManager
+    std::string pool_name{"test_pool_2"};
+    std::string cont_name{"test_cont_2"};
+
+    /// again using hard-coded config defaults in DaosManager
     fdb5::DaosSession s{};
 
-    fdb5::DaosPool& pool = s.createPool("pool");
+    fdb5::DaosPool& pool = s.createPool(pool_name);
     fdb5::AutoPoolDestroy destroyer(pool);
 
-    fdb5::DaosContainer& cont = pool.createContainer("cont");
+    fdb5::DaosContainer& cont = pool.createContainer(cont_name);
 
     SECTION("named container") {
 
         std::cout << cont.name() << std::endl;
 
-        EXPECT(cont.name() == "cont");
+        EXPECT(cont.name() == cont_name);
 
-        fdb5::DaosContainer& cont_h = pool.getContainer("cont");
+        fdb5::DaosContainer& cont_h = pool.getContainer(cont_name);
 
         EXPECT(&cont == &cont_h);
 
-        EXPECT_THROWS_AS(pool.getContainer("cont2"), fdb5::DaosEntityNotFoundException);
+        EXPECT_THROWS_AS(pool.getContainer("nonexisting_cont"), fdb5::DaosEntityNotFoundException);
 
         std::vector<std::string> cont_list(pool.listContainers());
         EXPECT(cont_list.size() == 1);
-        EXPECT(cont_list.front() == "cont");
+        EXPECT(cont_list.front() == cont_name);
 
         /// @todo: two attempts to close unopened containers here. This is due to mechanism triggered upon
         ///   pool destroy to ensure all matching container handles in the session cache are closed.
@@ -195,11 +194,11 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
 
     }
 
-    SECTION("named object") {
+    SECTION("DaosOID and named object") {
 
         // create new object with oid generated from user input
         uint32_t hi = 0x00000001;
-        uint64_t lo = 0x0000000000000002;
+        uint64_t lo = 0x0000000000000001;
         fdb5::DaosOID oid{hi, lo, DAOS_OT_ARRAY, OC_S1};
         fdb5::DaosArray write_obj = cont.createArray(oid);
 
@@ -207,7 +206,7 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         std::cout << "New user-spec-based OID: " << id_string << std::endl;
         EXPECT(id_string.length() == 32);
         /// @todo: do these checks numerically. Also test invalid characters, etc.
-        std::string end{"000000010000000000000002"};
+        std::string end{"000000010000000000000001"};
         EXPECT(0 == id_string.compare(id_string.length() - end.length(), end.length(), end));
 
         // represent existing object with known oid
@@ -233,415 +232,474 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
 
         fdb5::DaosKeyValue kv = cont.createKeyValue();
 
-        std::string test_key{"test_key"};
+        std::string test_key{"test_key_1"};
 
-        char data[] = "test";
+        char data[] = "test_data_1";
         kv.put(test_key, data, (long) sizeof(data));
 
         long size = kv.size(test_key);
         EXPECT(size == (long) sizeof(data));
 
         long res;
-        char read_data[10] = "";
+        char read_data[20] = "";
         res = kv.get(test_key, read_data, sizeof(read_data));
         EXPECT(res == size);
         EXPECT(std::memcmp(data, read_data, sizeof(data)) == 0);
 
-        EXPECT(!kv.has("nonexisting"));
-        EXPECT(kv.size("nonexisting") == 0);
-        EXPECT_THROWS_AS(kv.get("nonexisting", nullptr, 0), fdb5::DaosEntityNotFoundException);
+        EXPECT(!kv.has("nonexisting_key"));
+        EXPECT(kv.size("nonexisting_key") == 0);
+        EXPECT_THROWS_AS(kv.get("nonexisting_key", nullptr, 0), fdb5::DaosEntityNotFoundException);
 
-        // TODO
+        /// @todo:
         //kv.destroy();
 
     }
 
-//     SECTION("DAOS NAME") {
+    SECTION("DaosName, DaosArrayName, DaosKeyValueName") {
 
-//         std::string test_oid_str{"00000000000000010000000000000002"};
-//         fdb5::DaosOID test_oid{test_oid_str};
+        /// @todo: is the private ctor of DaosArray and DaosKeyValue kept private?
 
-//         fdb5::DaosName n1("a", "b", test_oid);
-//         EXPECT(n1.asString() == "a/b/" + test_oid_str);
+        fdb5::DaosName np{pool_name};
+        EXPECT(np.exists());
+        EXPECT(np.URI().asString() == std::string("daos://") + pool_name);
 
-//         fdb5::DaosName n2("a/b/" + test_oid_str);
-//         EXPECT(n2.asString() == "a/b/" + test_oid_str);
+        fdb5::DaosName np_ne{"a"};
+        EXPECT_NOT(np_ne.exists());
 
-//         eckit::URI u1("daos", "a/b/" + test_oid_str);
-//         fdb5::DaosName n3(u1);
-//         EXPECT(n3.asString() == "a/b/" + test_oid_str);
-//         EXPECT(n3.URI() == u1);
+        fdb5::DaosName nc{pool_name, cont_name};
+        EXPECT(nc.exists());
+        EXPECT(nc.URI().asString() == std::string("daos://") + pool_name + "/" + cont_name);
+
+        fdb5::DaosName nc_ne{"a", "b"};
+        EXPECT_NOT(nc_ne.exists());
+
+        fdb5::DaosOID test_oid{1, 2, DAOS_OT_ARRAY, OC_S1};
+        fdb5::DaosName n1{pool_name, cont_name, test_oid};
+        EXPECT(n1.poolName() == pool_name);
+        EXPECT(n1.hasContName());
+        EXPECT(n1.contName() == cont_name);
+        EXPECT(n1.hasOID());
+        EXPECT_NOT(test_oid.wasGenerated());
+        fdb5::DaosOID test_oid_gen = n1.OID();
+        EXPECT(test_oid_gen.wasGenerated());
+        EXPECT_NOT(n1.exists());
+        n1.create();
+        EXPECT(n1.exists());
+        std::string start{std::string("daos://") + pool_name + "/" + cont_name + "/"};
+        std::string end{"000000010000000000000002"};
+        std::string n1_uri_str = n1.URI().asString();
+        EXPECT(0 == n1_uri_str.compare(0, start.length(), start));
+        EXPECT(0 == n1_uri_str.compare(n1_uri_str.length() - end.length(), end.length(), end));
+        EXPECT(n1.size() == eckit::Length(0));
+
+        fdb5::DaosName nc_new{pool_name, "new_cont"};
+        EXPECT_NOT(nc_new.exists());
+        fdb5::DaosArrayName na_new = nc_new.createArrayName();
+        EXPECT(nc_new.exists());
+        EXPECT_NOT(na_new.exists());
+        na_new.create();
+        EXPECT(na_new.exists());
+        /// @todo:
+        // na_new.destroy();
+        // EXPECT_NOT(na_new.exists());
+        // EXPECT(nc_new.exists());
+        nc_new.destroy();
+        EXPECT_NOT(nc_new.exists());
         
-//         uint32_t hi = 0x00000001;
-//         uint64_t lo = 0x0000000000000002;
-//         fdb5::DaosArray obj = cont.createArray(fdb5::DaosOID(hi, lo, DAOS_OT_ARRAY));
-//         fdb5::DaosName name{obj};
+        std::string test_oid_2_str{"00000000000000020000000000000002"};
+        fdb5::DaosOID test_oid_2{test_oid_2_str};
+        fdb5::DaosName n2("a", "b", test_oid_2);
+        EXPECT(n2.asString() == "a/b/" + test_oid_2_str);
 
-//         std::string name_str = name.asString();
-//         std::string start{"pool/cont/"};
-//         std::string end{"000000010000000000000002"};
-//         EXPECT(0 == name_str.compare(0, start.length(), start));
-//         EXPECT(0 == name_str.compare(name_str.length() - end.length(), end.length(), end));
+        eckit::URI u2("daos", "a/b/" + test_oid_2_str);
+        fdb5::DaosName n3(u2);
+        EXPECT(n3.asString() == "a/b/" + test_oid_2_str);
+        EXPECT(n3.URI() == u2);
 
-//         eckit::URI uri = name.URI();
-//         EXPECT(uri.asString() == "daos://pool/cont/" + test_oid_str);
-//         EXPECT(obj.URI() == uri);
+        fdb5::DaosArray arr{cont, n1.OID()};
+        fdb5::DaosName n4{arr};
+        EXPECT(n4.exists());
 
-//         /// @todo: test name.exists and others
+        eckit::URI uri = n1.URI();
+        EXPECT(arr.URI() == uri);
 
-//         /// @todo: serialise
+        /// @todo:
+        // n1.destroy();
+        // EXPECT_NOT(n1.exists());
+        // EXPECT_NOT(n4.exists());
 
-//         /// @todo: deserialise
-//         fdb5::DaosName deserialisedname(std::string("pool"), std::string("cont"), test_oid);
+        fdb5::DaosKeyValueName nkv = nc.createKeyValueName();
+        /// @todo: currently, existence of kvs is checked by attempting open. 
+        ///   But a DAOS kv open creates it if not exists. Should implement a better kv
+        ///   existency check not involving open/create before uncommenting the following test.
+        // EXPECT_NOT(nkv.exists());
+        nkv.create();
+        EXPECT(nkv.exists());
+        fdb5::DaosKeyValue kv{s, nkv};
+        char data[] = "test_value_3";
+        kv.put("test_key_3", data, sizeof(data));
+        EXPECT(nkv.has("test_key_3"));
+        /// @todo:
+        // nkv.destroy();
+        // EXPECT_NOT(nkv.exists());
+
+        /// @todo: serialise
+
+        /// @todo: deserialise
+        fdb5::DaosName deserialisedname(pool_name, cont_name, n1.OID());
     
-//         std::cout << "Object size is: " << deserialisedname.size() << std::endl;
-//         /// @todo: daos_fini for the session for the name's owned object happens before daos_cont_close and daos_pool_disconnect
+        std::cout << "Object size is: " << deserialisedname.size() << std::endl;
 
-//         // TODO
-//         //obj.destroy();
+    }
 
-//     }
+    SECTION("DaosHandle write, append and read") {
 
-//     // TODO: make section names nicer
-//     SECTION("DAOS HANDLE, WRITE, APPEND AND READ") {
+        fdb5::DaosOID test_oid{1, 3, DAOS_OT_ARRAY, OC_S1};
+        fdb5::DaosArrayName test_name{pool_name, cont_name, test_oid};
 
-//         uint32_t hi = 0x00000001;
-//         uint64_t lo = 0x0000000000000002;
-//         fdb5::DaosOID test_oid{hi, lo, DAOS_OT_ARRAY, OC_S1};
-//         fdb5::DaosArray obj = cont.createArray(test_oid);
-//         fdb5::DaosOID test_oid_gen = obj.OID();
-//         std::string test_oid_gen_str{test_oid_gen.asString()};
+        char data[] = "test_data_2";
+        long res;
 
-//         /// @todo: isn't openForWrite / Append re-creating already existing objects? (they must exist if instantiated)
+        fdb5::DaosArrayHandle h{test_name};
+        /// @todo: this triggers array create but does not wipe existing array if any
+        h.openForWrite(Length(sizeof(data)));
+        {
+            eckit::AutoClose closer(h);
+            res = h.write(data, (long) sizeof(data));
+            EXPECT(res == (long) sizeof(data));
+            EXPECT(h.position() == Offset(sizeof(data)));
+        }
 
-//         char data[] = "test";
-//         long res;
+        /// @todo: this triggers array create again...
+        h.openForAppend(Length(sizeof(data)));
+        {
+            eckit::AutoClose closer(h);
+            res = h.write(data, (long) sizeof(data));
+            EXPECT(res == (long) sizeof(data));
+            EXPECT(h.position() == Offset(2 * sizeof(data)));
+        }
 
-//         TODO: change to name
-//         fdb5::DaosHandle h(std::move(obj));
-//         /// @todo: this triggers array create if needed (not here) but does not wipe existing array if any
-//         h.openForWrite(Length(sizeof(data)));
-//         {
-//             eckit::AutoClose closer(h);
-//             res = h.write(data, (long) sizeof(data));
-//             EXPECT(res == (long) sizeof(data));
-//             EXPECT(h.position() == Offset(sizeof(data)));
-//         }
+        h.flush();
 
-//         /// @todo: this triggers array create again...
-//         h.openForAppend(Length(sizeof(data)));
-//         {
-//             eckit::AutoClose closer(h);
-//             res = h.write(data, (long) sizeof(data));
-//             EXPECT(res == (long) sizeof(data));
-//             EXPECT(h.position() == Offset(2 * sizeof(data)));
-//         }
+        eckit::URI u{std::string("daos://") + pool_name + "/" + cont_name + "/" + test_name.OID().asString()};
+        fdb5::DaosArrayName read_name{u};
 
-//         // TODO: get rid of all elsewhere. Make sure here that it doesn't throw
-//         h.flush();
+        char read_data[20] = "";
 
-//         char read_data[10] = "";
+        fdb5::DaosArrayHandle h2(read_name);
+        Length t = h2.openForRead();
+        EXPECT(t == Length(2 * sizeof(data)));
+        EXPECT(h2.position() == Offset(0));
+        {
+            eckit::AutoClose closer(h2);
+            for (int i = 0; i < 2; ++i) {
+                res = h2.read(read_data + i * sizeof(data), (long) sizeof(data));
+                EXPECT(res == (long) sizeof(data));
+            }
+            EXPECT(h2.position() == Offset(2 * sizeof(data)));
+        }
 
+        EXPECT(std::memcmp(data, read_data, sizeof(data)) == 0);
+        EXPECT(std::memcmp(data, read_data + sizeof(data), sizeof(data)) == 0);
 
+        char read_data2[20] = "";
 
-//         eckit::URI u = "daos://pool/cont/" ....
-//         fdb5::DaosName n{u};
-//         eckti::DataHandle h = n.dataHandle();
-//         ....
+        std::unique_ptr<eckit::DataHandle> h3(read_name.dataHandle());
+        h3->openForRead();
+        {
+            eckit::AutoClose closer(*h3);
+            for (int i = 0; i < 2; ++i) {
+                h3->read(read_data2 + i * sizeof(data), (long) sizeof(data));
+            }
+        }
 
+        EXPECT(std::memcmp(data, read_data2, sizeof(data)) == 0);
+        EXPECT(std::memcmp(data, read_data2 + sizeof(data), sizeof(data)) == 0);
 
+        fdb5::DaosArrayHandle dh_fail(
+            fdb5::DaosArrayName(
+                pool_name, cont_name, fdb5::DaosOID{1, 0, DAOS_OT_ARRAY, OC_S1}
+            )
+        );
+        EXPECT_THROWS_AS(dh_fail.openForRead(), fdb5::DaosEntityNotFoundException);
 
+        /// @todo: POOL, CONTAINER AND OBJECT OPENING ARE OPTIONAL FOR DaosHandle::openForRead. Test it
+        /// @todo: CONTAINER AND OBJECT CREATION ARE OPTIONAL FOR DaosHandle::openForWrite. Test it
+        /// @todo: test unopen/uncreated DaosObject::size()
 
+    }
 
+    /// manually destroying container for testing purposes. There's no actual need for 
+    /// container destruction or auto destroyer as pool is autodestroyed
+    /// @todo: when enabling this, AutoPoolDestroy fails as a corresponding DaosContainer instance 
+    ///   still exists in the DaosPool, but the corresponding container does not exist and 
+    ///   dummy_daos destroy fails trying to rename an unexisting directory. The issue of pool
+    ///   and container destruction and invalidation needs to be addressed first.
+    // cont.destroy();
 
-
-//         // TODO: don't use std::string if not needed. Use test_pool_1, test_cont_1, ...
-//         fdb5::DaosName deserialisedname("pool", "cont", test_oid_gen);
-//         fdb5::DaosArray read_array(s, deserialisedname);
-
-//         // TODO: might be better to just have the following
-//         fdb5::DaosHandle h3(DaosName("test_pool", "test_container", test_oid));
-//         fdb5::DaosHandle h4 = deserialisedname.dataHandle();
-//         // TODO: this has been removed now fdb5::DaosHandle h2(std::move(readobj));
-//         fdb5::DaosHandle h5(readobj.name());
-//         Length t = h2.openForRead();
-//         EXPECT(t == Length(2 * sizeof(data)));
-//         EXPECT(h2.position() == Offset(0));
-//         {
-//             eckit::AutoClose closer(h2);
-//             for (int i = 0; i < 2; ++i) {
-//                 res = h2.read(read_data + i * sizeof(data), (long) sizeof(data));
-//                 EXPECT(res == (long) sizeof(data));
-//             }
-//             EXPECT(h2.position() == Offset(2 * sizeof(data)));
-//         }
-
-//         EXPECT(std::memcmp(data, read_data, sizeof(data)) == 0);
-//         EXPECT(std::memcmp(data, read_data + sizeof(data), sizeof(data)) == 0);
-
-//         char read_data2[10] = "";
-
-//         std::unique_ptr<eckit::DataHandle> h3(deserialisedname.dataHandle());
-//         h3->openForRead();
-//         {
-//             eckit::AutoClose closer(*h3);
-//             for (int i = 0; i < 2; ++i) {
-//                 h3->read(read_data2 + i * sizeof(data), (long) sizeof(data));
-//             }
-//         }
-
-//         EXPECT(std::memcmp(data, read_data2, sizeof(data)) == 0);
-//         EXPECT(std::memcmp(data, read_data2 + sizeof(data), sizeof(data)) == 0);
-
-//         EXPECT_THROWS_AS(
-//             fdb5::DaosHandle dh_fail(fdb5::DaosName(pool.name(), cont.name(), fdb5::DaosOID{1, 0})), 
-//             fdb5::DaosEntityNotFoundException);
-
-//         /// @todo: POOL, CONTAINER AND OBJECT OPENING ARE OPTIONAL FOR DaosHandle::openForRead. Test it
-//         /// @todo: CONTAINER AND OBJECT CREATION ARE OPTIONAL FOR DaosHandle::openForWrite. Test it
-//         /// @todo: test unopen/uncreated DaosObject::size()
-
-//         // lost ownership of obj, recreate and destroy
-//         // fdb5::DaosObject obj_rm{cont, test_oid};
-//         // obj_rm.destroy();  // NOTIMP
-
-//     }
-
-//     // small documentation of classes and who owns what etc.
-
-//     // have write and read workflows from point of view of FDB internals, where DAOS is not exposed. 
-
-//     // manually destroying container for test purposes. There's no actual need for 
-//     // container destruction or auto destroyer as pool is autodestroyed
-//     /// @todo: when enabling this, AutoPoolDestroy fails as a corresponding DaosContainer instance 
-//     //   still exists in the DaosPool, but the corresponding container does not exist and 
-//     //   dummy_daos destroy fails trying to rename an unexisting directory. The issue of pool
-//     //   and container destruction and invalidation needs to be addressed first.
-//     //cont.destroy();
-
-//     // test DaosPool::name(), uuid(), label()
-
-//     // test pool destroy without close and ensure closed
-
-//     // test pool create from uuid
-
-//     // test pool declare form uuid
-
-//     // test construct DaosContainer with uuid
-
-//     // test DaosContainer::name()
-
-//     // test DaosObject::name()
-
-//     // test handle seek, skip, canSeek
-
-//     // test handle title()
-
-//     // test handle size and estimate
-
-//     // test DaosName::size()
+    /// @todo: test open pool destroy ensure it is closed
 
 }
 
-// /// @todo: test a new case where some DAOS operations are carried out with a DaosSession with specific config
-// //  overriding (but not rewriting) DaosManager defaults
+/// @todo: test a new case where some DAOS operations are carried out with a DaosSession with specific config
+///   overriding (but not rewriting) DaosManager defaults
 
-// CASE( "DaosName and DaosHandle workflows" ) {
+CASE( "DaosName and DaosHandle workflows" ) {
 
-//     SECTION("Array write to existing pool and container, with ungenerated OID") {
+    std::string pool_name{"test_pool_3"};
+    std::string cont_name{"test_cont_3"};
 
-//         fdb5::DaosOID oid{0, 1, DAOS_OT_ARRY, OC_S1};
-//         // fdb5::DaosOID oid{uint32_t{0}, uint64_t{1}, DAOS_OT_ARRY, OC_S1};
-//         fdb5::DaosName n{"pool", "cont", oid};
-//         std::unique_ptr<eckit::DataHandle> h(n.dataHandle());
-//         EXPECT(dynamic_cast<fdb5::DaosArrayHandle*>(h->get())); // dereference rather than get, use reference
-//         h->openForWrite();
-//         {
-//             eckit::AutoClose closer(h);
-//             h->write(data, len);
-//         }
-//         EXPECT_THROWS_AS(oid.asString(), eckit::AssertionFailed); // ungenerated
-//         EXPECT(n.OID().asString() == populated oid string);
+    /// again using hard-coded config defaults in DaosManager
+    fdb5::DaosSession s{};
 
-//         // TODO: improve ambiguity in DaosOID constructors!!!
-//         // fdb5::DaosOID oid{fdb5::DaosOID::arrayOID(uint32_t{0}, uint64_t{1}, OC_S1)};
+    fdb5::DaosPool& pool = s.createPool(pool_name);
+    fdb5::AutoPoolDestroy destroyer(pool);
 
-//         fdb5::DaosArrayOID oid{0, 1, OC_S1};
-//         // fdb5::DaosArrayOID oid{uint32_t{0}, uint64_t{1}, OC_S1};
-//         // fdb5::DaosArrayOID oid{uint32_t{0}, uint64_t{1}};
-//         // fdb5::DaosArrayOID oid{0, 1}; // NOT EQUIVALENT!
-//         fdb5::DaosArrayName n{"pool", "cont", oid};
-//         fdb5::DaosArrayName n{"pool", "cont", {0, 1, OC_S1}};
-//         eckit::DataHandle h = n.dataHandle();
-//         h.openForWrite();
-//         {
-//             eckit::AutoClose closer(h);
-//             h.write(x, y);
-//         }
-//         EXPECT_THROWS(oid.asString()); // ungenerated
-//         EXPECT(n.OID().asString() == populated oid);
+    fdb5::DaosContainer& cont = pool.createContainer(cont_name);
 
-//     }
+    char data[] = "test_data_3";
+    eckit::Length len{sizeof(data)};
 
-//     SECTION("Array write to existing pool and container, with automatically generated OID") {
+    char read_data[20] = "";
+    long res;
 
-//         fdb5::DaosName n{"pool", "cont"};
-//         fdb5::DaosName n2 = n.createArrayName(); // TODO: separate DaosContainerName, DaosArrayName, ...
-//         std::unique_ptr<eckit::DataHandle> h(n2.dataHandle());
-//         h.openForWrite();
-//         {
-//             eckit::AutoClose closer(h);
-//             h.write(data, len);
-//         }
-//         EXPECT(n2.OID().asString() == populated oid);     
+    SECTION("Array write to existing pool and container, with ungenerated OID") {
 
-//     }
+        fdb5::DaosArrayOID oid{3, 1, OC_S1};
+        fdb5::DaosArrayName na{pool_name, cont_name, oid};
+        std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
+        /// @todo: cast to reference, and dereference ptr with *
+        EXPECT(dynamic_cast<fdb5::DaosArrayHandle*>(h.get()));
+        h->openForWrite(len);
+        {
+            eckit::AutoClose closer(*h);
+            h->write(data, len);
+        }
+        EXPECT_THROWS_AS(oid.asString(), eckit::AssertionFailed); /// ungenerated
+        std::string oid_end{"000000030000000000000001"};
+        EXPECT(endsWith(na.OID().asString(), oid_end));
+        EXPECT(na.size() == len);
 
-//     SECTION("Array write to existing pool and container, with URI") {
+    }
 
-//         eckit::URI container{"daos://pool/container"};
+    SECTION("Array write to existing pool and container, with automatically generated OID") {
 
-//         fdb5::DaosContainerName n{container};
-//         fdb5::DaosArrayName n2 = n.createArrayName(); // TODO: separate DaosContainerName, DaosArrayName, ...
-//         std::unique_ptr<eckit::DataHandle> h(n2.dataHandle());
-//         h.openForWrite();
-//         {
-//             eckit::AutoClose closer(h);
-//             h.write(data, len);
-//         }
-//         EXPECT(n2.OID().asString() == populated oid);     
+        fdb5::DaosName n{pool_name, cont_name};
+        fdb5::DaosArrayName na = n.createArrayName();
+        std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
+        h->openForWrite(len);
+        {
+            eckit::AutoClose closer(*h);
+            h->write(data, len);
+        }
+        std::cout << "Generated OID: " << na.OID().asString() << std::endl;
+        EXPECT(na.size() == len);
 
-//     }
+    }
 
-//     SECTION("Array write to existing pool and container, with generated OID") {
+    SECTION("Array write to existing pool and container, with URI") {
 
-//         // TODO: generate these bits from DAOS macros
-//         fdb5::DaosArrayOID oid{(uint64_t) 0x0011000000000000, (uint64_t) 1};
-//         fdb5::DaosArrayOID oid{"00110000000000000000000000000001"};
-//         fdb5::DaosArrayName n{"pool", "cont", oid};
-//         fdb5::DaosArrayName n{"pool", "cont", {"00110000000000000000000000000001"}};
-//         eckit::DataHandle h = n.dataHandle();
-//         h.openForWrite(); // will fail if not exists, or instantiate it and open it otherwise. Or maybe should suppoort creating objcts with pre-generated oids?
-//         {
-//             eckit::AutoClose closer(h);
-//             h.write(x, y);
-//         }
-//         EXPECT(n.OID().asString() == oid.asString());
-//         // TODO: how would operations which require RPC look like before calling dataHandle?
+        eckit::URI container{std::string("daos://") + pool_name + "/" + cont_name};
+        fdb5::DaosName n{container};
+        fdb5::DaosArrayName na = n.createArrayName();
+        std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
+        h->openForWrite(len);
+        {
+            eckit::AutoClose closer(*h);
+            h->write(data, len);
+        }
+        std::cout << "Generated OID: " << na.OID().asString() << std::endl;
+        EXPECT(na.size() == len); 
 
-//     }
+    }
 
-//     SECTION("Array write to existing pool but non-existing container, with ungenerated OID") {
+    SECTION("Array write/read to/from existing pool and container, with generated OID") {
 
-//         fdb5::DaosArrayOID oid{0, 1, OC_S1};
-//         fdb5::DaosName n{"pool", "cont", oid};
-//         std::unique_ptr<eckit::DataHandle> h(n.dataHandle());   // should check at least the pool exists before returning
-//         h.openForWrite(); // will create cont and object if not exists, and open object
-//         {
-//             eckit::AutoClose closer(h);
-//             h.write(x, y);
-//         }
-//         EXPECT_THROWS(oid.asString()); // ungenerated
-//         EXPECT(n.OID().asString() == populated oid);
-//         // TODO: how would operations which require RPC look like before calling dataHandle?
+        /// write
+        fdb5::DaosArrayOID oid{3, 2, OC_S1};
+        oid.generate(cont);
+        fdb5::DaosArrayName na{pool_name, cont_name, oid};
+        // fdb5::DaosArrayName n{pool_name, cont_name, {"00110000000000000000000000000001"}};
+        std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
+        h->openForWrite(len);  /// @todo: creates it if not exists, should it fail?
+        {
+            eckit::AutoClose closer(*h);
+            h->write(data, len);
+        }
+        std::string oid_end{"000000030000000000000002"};
+        EXPECT(endsWith(na.OID().asString(), oid_end));
+        EXPECT(na.size() == len); 
 
-//     }
+    }
 
-//     SECTION("Array write to existing pool but non-existing container, with automatically generated OID") {
-        
-//             n.createArray will create container
+    SECTION("Array write to existing pool but non-existing container, with ungenerated OID") {
 
-//     }
+        fdb5::DaosArrayOID oid{3, 3, OC_S1};
+        fdb5::DaosArrayName na{pool_name, "new_cont_1", oid};
+        EXPECT_NOT(fdb5::DaosName(pool_name, "new_cont_1").exists());
+        std::unique_ptr<eckit::DataHandle> h(na.dataHandle());  /// @todo: should dataHandle() assert pool exists?
+        h->openForWrite(len);
+        {
+            eckit::AutoClose closer(*h);
+            h->write(data, len);
+        }
+        EXPECT_THROWS_AS(oid.asString(), eckit::AssertionFailed); /// ungenerated
+        std::string oid_end{"000000030000000000000003"};
+        EXPECT(endsWith(na.OID().asString(), oid_end));
+        EXPECT(na.size() == len);
+        EXPECT(fdb5::DaosName(pool_name, "new_cont_1").exists());
 
-//     SECTION("Array write to existing pool but non-existing container, with generated OID") {
+    }
 
-//         will fail as both cont and array are expected to exist. Or if support is added in DaosContainer::createArray to create pre-generated oid, then a container should be created here
+    SECTION("Array write to existing pool but non-existing container, with automatically generated OID") {
 
-//     }
+        fdb5::DaosName n{pool_name, "new_cont_2"};
+        fdb5::DaosArrayName na = n.createArrayName();
+        EXPECT(n.exists());
+        EXPECT_NOT(na.exists());
+        std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
+        h->openForWrite(len);
+        {
+            eckit::AutoClose closer(*h);
+            h->write(data, len);
+        }
+        std::cout << "Generated OID: " << na.OID().asString() << std::endl;
+        EXPECT(na.size() == len);
+        EXPECT(fdb5::DaosName(pool_name, "new_cont_2").exists());
 
-//     SECTION("Array read from existing pool and container, with generated OID") {
+    }
 
-//         // TODO: generate these bits from DAOS macros
-//         fdb5::DaosArrayOID oid{(uint64_t) 0x0011000000000000, (uint64_t) 1};
-//         fdb5::DaosArrayOID oid{"00110000000000000000000000000001"};
-//         fdb5::DaosArrayName n{"pool", "cont", oid};
-//         fdb5::DaosArrayName n{"pool", "cont", {"00110000000000000000000000000001"}};
-//         eckit::DataHandle h = n.dataHandle();
-//         h.openForRead(); // will fail if not exists, or instantiate it and open it otherwise
-//         {
-//             eckit::AutoClose closer(h);
-//             h.read(data, h.size());
-//         }
-//         EXPECT(n.OID().asString() == oid.asString());
-//         // TODO: how would operations which require RPC look like before calling dataHandle?
+    /// @todo: should use of a non-existing container plus generated OID be forbidden?
+    ///   In principle it should be forbidden, as an OID can only be generated via existing enclosing container.
+    ///   However it would not be straightforward to implement with the curren design of DaosOID and DaosName.
+    ///   For now it is allowed. The container and object will be created in openForWrite() if not exist.
+    SECTION("Array write to existing pool but non-existing container, with generated OID") {
 
-//     }
+        fdb5::DaosName nc{pool_name, "new_cont_3"};
+        fdb5::DaosArrayName na = nc.createArrayName(OC_S1);
+        nc.destroy();
+        EXPECT_NOT(nc.exists());
+        std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
+        h->openForWrite(len);
+        {
+            eckit::AutoClose closer(*h);
+            h->write(data, len);
+        }
+        EXPECT(nc.exists());
+        EXPECT(na.size() == len);
 
-//     SECTION("Array read from existing pool and container, with generated OID, reading a range") {
+    }
 
-//         // TODO: generate these bits from DAOS macros
-//         fdb5::DaosArrayOID oid{(uint64_t) 0x0011000000000000, (uint64_t) 1};
-//         fdb5::DaosArrayOID oid{"00110000000000000000000000000001"};
-//         fdb5::DaosArrayName n{"pool", "cont", oid};
-//         fdb5::DaosArrayName n{"pool", "cont", {"00110000000000000000000000000001"}};
-//         eckit::DataHandle h = n.dataHandle();
-//         h.openForRead(); // will fail if not exists, or instantiate it and open it otherwise
-//         {
-//             eckit::AutoClose closer(h);
-//             EXPECT(h.size() >= 10);
-//             h.seek(10);
-//             h.read(data, h.size() - 10);
-//         }
-//         EXPECT(n.OID().asString() == oid.asString());
-//         // TODO: how would operations which require RPC look like before calling dataHandle?
+    SECTION("Array read from existing pool and container, with generated OID") {
 
-//     }
+        fdb5::DaosArrayOID oid{3, 4, OC_S1};
+        fdb5::DaosArrayName na{pool_name, cont_name, oid};
+        std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
+        h->openForWrite(len);
+        {
+            eckit::AutoClose closer(*h);
+            h->write(data, len);
+        }
+        EXPECT(na.size() == len);
 
-//     SECTION("Array read from existing pool and container, with ungenerated OID") {
+        /// existing generated OID
+        fdb5::DaosArrayName na_read{pool_name, cont_name, na.OID()};
+        std::unique_ptr<eckit::DataHandle> h2(na_read.dataHandle());
+        h2->openForRead();
+        {
+            eckit::AutoClose closer(*h2);
+            EXPECT(eckit::Length(sizeof(read_data)) >= h2->size());
+            std::memset(read_data, 0, sizeof(read_data));
+            res = h2->read(read_data, h2->size());
+        }
+        EXPECT(res == len);
+        EXPECT(std::memcmp(data, read_data, sizeof(data)) == 0);
 
-//         fdb5::DaosOID oid{(uint32_t) 0, (uint64_t) 1, DAOS_OT_ARRY, OC_S1};
-//         fdb5::DaosName n{"pool", "cont", oid};
-//         eckit::DataHandle h = n.dataHandle(); // will copy name into handle
-//         h.openForRead(); // will call name.OID() which generates oid within DaosName, but not the one in this scope (what if I made it generate the one in this scope?)
-//         {
-//             eckit::AutoClose closer(h);
-//             h.read(x, y);
-//         }
-//         EXPECT_THROWS(oid.asString()); // ungenerated
-//         EXPECT(n.OID().asString() == populated oid);
-//         // TODO: how would operations which require RPC look like before calling dataHandle?
+        /// non-existing generated OID
+        fdb5::DaosArrayOID oid_ne{3, 5, OC_S1};
+        oid_ne.generate(cont);
+        fdb5::DaosArrayName na_read_ne{pool_name, cont_name, oid_ne};
+        std::unique_ptr<eckit::DataHandle> h3(na_read_ne.dataHandle());
+        EXPECT_THROWS_AS(h3->openForRead(), fdb5::DaosEntityNotFoundException);
 
-//         fdb5::DaosArrayOID oid{(uint32_t) 0, (uint64_t) 1, OC_S1};
-//         fdb5::DaosArrayOID oid{(uint32_t) 0, (uint64_t) 1}; // TODO: how to discern from generated OID constructor, only via type of first arg? can be problematic
-//         fdb5::DaosArrayName n{"pool", "cont", oid};
-//         fdb5::DaosArrayName n{"pool", "cont", {0, 1, OC_S1}};
-//         eckit::DataHandle h = n.dataHandle(); // will call name.OID() which generates oid within DaosName, but not the one in this scope
-//         h.openForRead(); // will create array via container, instantiate it and open it
-//         {
-//             eckit::AutoClose closer(h);
-//             h.read(x, y);
-//         }
-//         EXPECT_THROWS(oid.asString()); // ungenerated
-//         EXPECT(n.OID().asString() == populated oid);
-//         // TODO: how would operations which require RPC look like before calling dataHandle?
+    }
 
-//     }
+    SECTION("Array read from existing pool and container, with generated OID, reading a range") {
 
-//     SECTION("Array read from existing pool and non-existing container") {
+        fdb5::DaosArrayOID oid{3, 6, OC_S1};
+        fdb5::DaosArrayName na{pool_name, cont_name, oid};
+        std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
+        h->openForWrite(len);
+        {
+            eckit::AutoClose closer(*h);
+            h->write(data, len);
+        }
+        EXPECT(na.size() == len);
+
+        /// existing generated OID
+        fdb5::DaosArrayName na_read{pool_name, cont_name, na.OID()};
+        std::unique_ptr<eckit::DataHandle> h2(na_read.dataHandle());
+        long skip_bytes = 10;
+        h2->openForRead();
+        {
+            eckit::AutoClose closer(*h2);
+            EXPECT(h2->size() >= skip_bytes);
+            EXPECT(eckit::Length(sizeof(read_data)) >= (h2->size() - eckit::Length(skip_bytes)));
+            std::memset(read_data, 0, sizeof(read_data));
+            h2->seek(skip_bytes);
+            res = h2->read(read_data, h2->size() - eckit::Length(skip_bytes));
+        }
+        EXPECT(res == len - eckit::Length(skip_bytes));
+        EXPECT(std::memcmp(data + skip_bytes, read_data, sizeof(data) - skip_bytes) == 0);
+
+    }
+
+    SECTION("Array read from existing pool and container, with ungenerated OID") {
+
+        fdb5::DaosArrayOID oid{3, 7, OC_S1};
+        fdb5::DaosArrayName na{pool_name, cont_name, oid};
+        std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
+        h->openForWrite(len);
+        {
+            eckit::AutoClose closer(*h);
+            h->write(data, len);
+        }
+        EXPECT(na.size() == len);
+
+        /// existing ungenerated OID
+        fdb5::DaosArrayName na_read{pool_name, cont_name, oid};
+        std::unique_ptr<eckit::DataHandle> h2(na_read.dataHandle());
+        h2->openForRead();
+        {
+            eckit::AutoClose closer(*h2);
+            EXPECT(eckit::Length(sizeof(read_data)) >= h2->size());
+            std::memset(read_data, 0, sizeof(read_data));
+            res = h2->read(read_data, h2->size());
+        }
+        EXPECT(res == len);
+        EXPECT(std::memcmp(data, read_data, sizeof(data)) == 0);
+
+        /// non-existing ungenerated OID
+        fdb5::DaosArrayOID oid_ne{3, 8, OC_S1};
+        fdb5::DaosArrayName na_read_ne{pool_name, cont_name, oid_ne};
+        std::unique_ptr<eckit::DataHandle> h3(na_read_ne.dataHandle());
+        EXPECT_THROWS_AS(h3->openForRead(), fdb5::DaosEntityNotFoundException);
+
+    }
+
+    SECTION("Array read from existing pool and non-existing container") {
     
-//         fail at container open in h.openForRead()
+        fdb5::DaosArrayOID oid{3, 9, OC_S1};
+        fdb5::DaosArrayName na{pool_name, "new_cont_4", oid};
+        std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
+        EXPECT_THROWS_AS(h->openForRead(), fdb5::DaosEntityNotFoundException);
+        EXPECT_NOT(fdb5::DaosName(pool_name, "new_cont_4").exists());
 
-//     }
+    }
 
-//     SECTION("KeyValue write to ... ") {
+    /// @todo: test analogous KeyValue workflows
 
-//     }
-
-//     SECTION("KeyValue read from ... ") {
-
-//     }
-
-// }
+}
 
 }  // namespace test
 }  // namespace fdb

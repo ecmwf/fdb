@@ -35,6 +35,8 @@ DaosSession::DaosSession(const eckit::LocalConfiguration& config) :
 
 DaosSession::~DaosSession() {
 
+    pool_cache_.clear();
+
     std::cout << "DAOS_CALL => daos_fini()" << std::endl;
 
     int code = daos_fini();
