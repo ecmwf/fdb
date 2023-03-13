@@ -368,6 +368,8 @@ endif()
 ecbuild_add_library(
 
     TARGET  fdb5
+    
+    TYPE SHARED # Library needs to be shared for dynamic factory self registration
 
     SOURCES
         ${fdb5_srcs}
