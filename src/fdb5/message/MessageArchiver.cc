@@ -29,6 +29,8 @@
 #include "fdb5/message/MessageArchiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
 
+// For HAVE_FAIL_ON_CCSDS
+#include "metkit/metkit_config.h"
 
 namespace fdb5 {
 
@@ -175,6 +177,14 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
         eckit::message::Message msg;
 
         while ( (msg = reader.next()) ) {
+
+#ifdef metkit_HAVE_FAIL_ON_CCSDS
+
+            if(msg.getString("packingType") == "grid_ccsds") {
+                throw eckit::SeriousBug("grid_ccsds is disabled");
+            }
+
+#endif
 
             Key key;
 
