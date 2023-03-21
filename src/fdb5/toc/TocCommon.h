@@ -59,15 +59,38 @@ class FileCopy : public eckit::ThreadPoolTask {
     eckit::PathName src_;
     eckit::PathName dest_;
 
+public:
+    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName):
+        src_(srcPath / fileName), dest_(destPath / fileName) {}
+    FileCopy(char* files, int size) {
+        std::string src, dest, file;
+        int i=0;
+
+        for (; i<size && files[i] != '\0'; i++) {
+            src += files[i];
+        }
+        src_ = src;
+        i++;
+        for (; i<size && files[i] != '\0'; i++) {
+            dest += files[i];
+        }
+        dest_ = dest;
+    }
+
+    void str(char bufr[], int size) {
+        int l1 = src_.asString().length();
+        ::strncpy(bufr, src_.asString().c_str(), size);
+        bufr[l1] = '\0';
+        int l2 = dest_.asString().length();
+        ::strncpy(&(bufr[l1+1]), dest_.asString().c_str(), size-l1-1);
+        bufr[l1+l2+1] = '\0';
+    }
+
     void execute() {
         eckit::FileHandle src(src_);
         eckit::FileHandle dest(dest_);
         src.copyTo(dest);
     }
-
-public:
-    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName):
-        src_(srcPath / fileName), dest_(destPath / fileName) {}
 };
 
 }

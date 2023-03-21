@@ -33,6 +33,7 @@ public:
                    const eckit::URI& dest,
                    bool removeSrc,
                    int removeDelay,
+                   bool mpi,
                    int threads);
     ~TocMoveVisitor() override;
 

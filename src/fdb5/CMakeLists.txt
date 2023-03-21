@@ -295,13 +295,16 @@ if( HAVE_TOCFDB )
 
     list( APPEND fdb5_tools
         fdb-wipe
-        fdb-move
         fdb-stats
         fdb-purge
         fdb-dump-toc
         fdb-dump-index
         fdb-reconsolidate-toc )
 
+    if( !eckit_HAVE_MPI )
+        list( APPEND fdb5_tools
+            fdb-move )
+    endif()
 endif()
 
 if( HAVE_PMEMFDB )
@@ -385,6 +388,7 @@ ecbuild_add_library(
         metkit
         eckit
         eckit_option
+        eckit_mpi
 
     PRIVATE_INCLUDES
         "${PMEM_INCLUDE_DIRS}"
@@ -445,6 +449,13 @@ foreach( _tool ${fdb5_tools} )
 
 endforeach()
 
+if( eckit_HAVE_MPI )
+    ecbuild_add_executable( TARGET fdb-move-mpi
+    CONDITION HAVE_FDB_BUILD_TOOLS
+    SOURCES   tools/fdb-move-mpi.cc
+    INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
+    LIBS      eckit_mpi fdb5 )
+endif()
 
 ecbuild_add_executable( TARGET    grib2fdb5
                         CONDITION HAVE_FDB_BUILD_TOOLS
