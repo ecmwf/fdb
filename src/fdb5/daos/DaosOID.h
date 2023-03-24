@@ -28,6 +28,7 @@ public: // methods
     DaosOID(const uint64_t& hi, const uint64_t& lo);
     DaosOID(const std::string&);
     DaosOID(const uint32_t& hi, const uint64_t& lo, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass);
+    DaosOID(const std::string&, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass);
 
     // TODO: make these private? and use these helper methods
 
@@ -87,6 +88,7 @@ public: //methods
     DaosArrayOID(const uint64_t& hi, const uint64_t& lo);
     DaosArrayOID(const std::string&);
     DaosArrayOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass);
+    DaosArrayOID(const std::string&, const daos_oclass_id_t& oclass);
 
 };
 
@@ -97,6 +99,7 @@ public: //methods
     DaosKeyValueOID(const uint64_t& hi, const uint64_t& lo);
     DaosKeyValueOID(const std::string&);
     DaosKeyValueOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass);
+    DaosKeyValueOID(const std::string&, const daos_oclass_id_t& oclass);
 
 };
 

@@ -79,12 +79,14 @@ public: // methods
 
 protected: // members
 
-//     Key currentIndexKey_;
+    Key currentIndexKey_;
 
     std::string pool_;
+    std::string root_cont_;
     std::string db_cont_;
 
-    fdb5::DaosOID main_kv_{0, 0, DAOS_OT_KV_HASHED, OC_S1};  // TODO: take oclass from config
+    fdb5::DaosOID main_kv_{0, 0, DAOS_OT_KV_HASHED, OC_S1};  /// @todo: take oclass from config
+    fdb5::DaosOID catalogue_kv_{0, 0, DAOS_OT_KV_HASHED, OC_S1};  /// @todo: take oclass from config
 
 private: // members
 

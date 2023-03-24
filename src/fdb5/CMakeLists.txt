@@ -395,6 +395,10 @@ if( HAVE_DAOSFDB )
         daos/DaosCatalogue.cc 
         daos/DaosCatalogueWriter.h 
         daos/DaosCatalogueWriter.cc
+        daos/DaosIndex.h
+        daos/DaosIndex.cc
+        daos/DaosIndexLocation.h
+        daos/DaosIndexLocation.cc
     )
 else()
     set( DAOS_LIBRARIES "" )

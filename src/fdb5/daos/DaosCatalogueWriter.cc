@@ -23,7 +23,7 @@
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosKeyValueHandle.h"
 // #include "fdb5/toc/TocFieldLocation.h"
-// #include "fdb5/toc/TocIndex.h"
+#include "fdb5/daos/DaosIndex.h"
 // #include "fdb5/io/LustreSettings.h"
 
 // using namespace eckit;
@@ -36,38 +36,42 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& con
     DaosCatalogue(key, config) {
     // umask_(config.umask()) {
 
-    // TODO: writeInitRecord(key);
-    //   TODO: Mutex?
-    //   TODO: create root directory - assert root pool exists. Or create it if ne?
-    fdb5::DaosName np{pool_};
-    ASSERT(np.exists());
+    fdb5::DaosName pool_name{pool_};
+    ASSERT(pool_name.exists());
 
-    //   TODO: create toc file - create catalogue container and main kv
-    //     TODO: check if cont and kv exist? or re-create regardless?
-    fdb5::DaosKeyValueName nkv{pool_, db_cont_, main_kv_};
-    if (!nkv.exists()) nkv.create();
-    
-    //   TODO: record or read dbUID - ???
-    //   TODO: copy schema over - put schema file content in main_kv_['schema']
+    fdb5::DaosKeyValueName main_kv_name{pool_, root_cont_, main_kv_};
+    /// @todo: just create directly?
+    if (!main_kv_name.exists()) main_kv_name.create();
 
-    eckit::Log::debug<LibFdb5>() << "Copy schema from "
-                        << config_.schemaPath()
-                        << " to "
-                        << nkv.URI().asString()
-                        << " at key 'schema'."
-                        << std::endl;
+    fdb5::DaosSession s{};
+    fdb5::DaosKeyValue main_kv{s, main_kv_name};
+    fdb5::DaosKeyValueName catalogue_kv_name{pool_, db_cont_, catalogue_kv_};
 
-    if (!nkv.has("schema")) {
+    if (!main_kv.has(db_cont_)) {
+
+        catalogue_kv_name.create();
+
+        eckit::Log::debug<LibFdb5>() << "Copy schema from "
+                                     << config_.schemaPath()
+                                     << " to "
+                                     << catalogue_kv_name.URI().asString()
+                                     << " at key 'schema'."
+                                     << std::endl;
+
         eckit::FileHandle in(config_.schemaPath());
-        std::unique_ptr<eckit::DataHandle> out(nkv.dataHandle("schema"));
+        std::unique_ptr<eckit::DataHandle> out(catalogue_kv_name.dataHandle("schema"));
         in.copyTo(*out);
-    }
 
-    // TODO: TocCatalogue::loadSchema();
-    //   TODO: really call loadSchema? or rather do it here and reuse DaosSession
+        std::string nstr = catalogue_kv_name.URI().asString();
+        main_kv.put(db_cont_, nstr.data(), nstr.length());
+
+    }
+    
+    /// @todo: record or read dbUID
+
     DaosCatalogue::loadSchema();
 
-    // TODO: TocCatalogue::checkUID();
+    /// @todo: TocCatalogue::checkUID();
 
 }
 
@@ -87,21 +91,44 @@ DaosCatalogueWriter::DaosCatalogueWriter(const eckit::URI &uri, const fdb5::Conf
 //     close();
 // }
 
-// bool TocCatalogueWriter::selectIndex(const Key& key) {
-//     currentIndexKey_ = key;
+bool DaosCatalogueWriter::selectIndex(const Key& key) {
 
-//     if (indexes_.find(key) == indexes_.end()) {
-//         PathName indexPath(generateIndexPath(key));
+    currentIndexKey_ = key;
 
-//         // Enforce lustre striping if requested
-//         if (stripeLustre()) {
-//             fdb5LustreapiFileCreate(indexPath.localPath(), stripeIndexLustreSettings());
-//         }
+    if (indexes_.find(key) == indexes_.end()) {
 
-//         indexes_[key] = Index(new TocIndex(key, indexPath, 0, TocIndex::WRITE));
-//     }
+        fdb5::DaosKeyValueName catalogue_kv{pool_, db_cont_, catalogue_kv_};
 
-//     current_ = indexes_[key];
+        fdb5::DaosSession s{};
+        fdb5::DaosKeyValue catalogue_kv_obj{s, catalogue_kv};
+
+        /// @todo: use an optional, or follow a functional approach (lambda function)
+        std::unique_ptr<fdb5::DaosKeyValueName> index_kv;
+
+        if (!catalogue_kv.has(key.valuesToString())) {
+
+            /// @todo: pass oclass from config
+            /// @todo: hash string into lower oid bits
+            fdb5::DaosKeyValueOID index_kv_oid{key.valuesToString(), OC_S1};
+            index_kv.reset(new fdb5::DaosKeyValueName{pool_, db_cont_, index_kv_oid});
+            index_kv->create();
+
+            std::string nstr{index_kv->URI().asString()};
+            catalogue_kv_obj.put(key.valuesToString(), nstr.data(), nstr.length());
+
+        } else {
+
+            std::vector<char> n{100};
+            catalogue_kv_obj.get(key.valuesToString(), &n[0], n.size());
+            index_kv.reset(new fdb5::DaosKeyValueName{eckit::URI{std::string{&n[0]}}});
+
+        }
+
+        indexes_[key] = Index(new fdb5::DaosIndex(key, *index_kv));
+
+    }
+
+    current_ = indexes_[key];
 //     current_.open();
 //     current_.flock();
 
@@ -128,34 +155,38 @@ DaosCatalogueWriter::DaosCatalogueWriter(const eckit::URI &uri, const fdb5::Conf
 //         currentFull_.flock();
 //     }
 
-//     return true;
-// }
+    return true;
 
-// void TocCatalogueWriter::deselectIndex() {
-//     current_ = Index();
-//     currentFull_ = Index();
-//     currentIndexKey_ = Key();
-// }
+}
+
+void DaosCatalogueWriter::deselectIndex() {
+
+    current_ = Index();
+    // currentFull_ = Index();
+    currentIndexKey_ = Key();
+
+}
 
 // bool TocCatalogueWriter::open() {
 //     return true;
 // }
 
-// void TocCatalogueWriter::clean() {
+void DaosCatalogueWriter::clean() {
 
-//     eckit::Log::debug<LibFdb5>() << "Closing path " << directory_ << std::endl;
+    // eckit::Log::debug<LibFdb5>() << "Closing path " << directory_ << std::endl;
 
-//     flush(); // closes the TOC entries & indexes but not data files
+    flush(); // closes the TOC entries & indexes but not data files
 
-//     compactSubTocIndexes();
+    // compactSubTocIndexes();
 
-//     deselectIndex();
-// }
+    deselectIndex();
+}
 
-// void TocCatalogueWriter::close() {
+void DaosCatalogueWriter::close() {
 
-//     closeIndexes();
-// }
+    closeIndexes();
+
+}
 
 // void TocCatalogueWriter::index(const Key &key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
 //     dirty_ = true;
@@ -253,15 +284,16 @@ DaosCatalogueWriter::DaosCatalogueWriter(const eckit::URI &uri, const fdb5::Conf
 //     appendBlock(buf, combinedSize);
 // }
 
-// const Index& TocCatalogueWriter::currentIndex() {
+const Index& DaosCatalogueWriter::currentIndex() {
 
-//     if (current_.null()) {
-//         ASSERT(!currentIndexKey_.empty());
-//         selectIndex(currentIndexKey_);
-//     }
+    if (current_.null()) {
+        ASSERT(!currentIndexKey_.empty());
+        selectIndex(currentIndexKey_);
+    }
 
-//     return current_;
-// }
+    return current_;
+
+}
 
 // const TocSerialisationVersion& TocCatalogueWriter::serialisationVersion() const {
 //     return TocHandler::serialisationVersion();
@@ -330,33 +362,79 @@ DaosCatalogueWriter::DaosCatalogueWriter(const eckit::URI &uri, const fdb5::Conf
 //     return TocCatalogue::enabled(controlIdentifier);
 // }
 
-// void TocCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocation) {
-//     dirty_ = true;
+void DaosCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocation) {
 
-//     if (current_.null()) {
-//         ASSERT(!currentIndexKey_.empty());
-//         selectIndex(currentIndexKey_);
-//     }
+    // dirty_ = true;
 
-//     Field field(fieldLocation, currentIndex().timestamp());
+    if (current_.null()) {
+        ASSERT(!currentIndexKey_.empty());
+        selectIndex(currentIndexKey_);
+    }
 
-//     current_.put(key, field);
+    Field field(fieldLocation, currentIndex().timestamp());
 
-//     if (useSubToc())
-//         currentFull_.put(key, field);
-// }
+    /// before in-memory axes are updated as part of current_.put, we determine which
+    /// additions will need to be performed on axes in DAOS after the field gets indexed.
+    std::vector<std::string> axesToExpand;
+    std::vector<std::string> valuesToAdd;
 
-// void TocCatalogueWriter::flush() {
-//     if (!dirty_) {
-//         return;
-//     }
+    for (Key::const_iterator i = key.begin(); i != key.end(); ++i) {
+
+        const std::string &keyword = i->first;
+        std::string value = key.canonicalValue(keyword);
+
+        const eckit::DenseSet<std::string>& axis_set = current_.axes().valuesSafe(keyword);
+
+        if (!axis_set.contains(value)) {
+
+            axesToExpand.push_back(keyword);
+            valuesToAdd.push_back(value);
+
+        }
+
+    }
+
+    /// index the field and update in-memory axes
+    current_.put(key, field);
+
+    /// @todo: axes are supposed to be sorted before persisting. How do we do this with the DAOS approach?
+    ///        sort axes every time they are loaded in the read pathway?
+
+    if (axesToExpand.empty()) return;
+
+    /// expand axis info in DAOS
+    fdb5::DaosSession s{};
+    while (!axesToExpand.empty()) {
+
+        /// @todo: take oclass from config
+        fdb5::DaosKeyValueOID oid{currentIndexKey_.valuesToString() + std::string{"."} + axesToExpand.back(), OC_S1};
+        fdb5::DaosKeyValueName n{pool_, db_cont_, oid};
+        fdb5::DaosKeyValue kv{s, n};
+        std::string v{"1"};
+        kv.put(valuesToAdd.back(), v.data(), v.length());
+        axesToExpand.pop_back();
+        valuesToAdd.pop_back();
+
+    }
+
+    // if (useSubToc())
+    //     currentFull_.put(key, field);
+
+}
+
+void DaosCatalogueWriter::flush() {
+    // if (!dirty_) {
+    //     return;
+    // }
 
 //     flushIndexes();
 
-//     dirty_ = false;
-//     current_ = Index();
-//     currentFull_ = Index();
-// }
+    if (!current_.null()) current_ = Index();
+
+    // dirty_ = false;
+    // current_ = Index();
+    // currentFull_ = Index();
+}
 
 // eckit::PathName TocCatalogueWriter::generateIndexPath(const Key &key) const {
 //     eckit::PathName tocPath ( directory_ );
@@ -382,21 +460,20 @@ DaosCatalogueWriter::DaosCatalogueWriter(const eckit::URI &uri, const fdb5::Conf
 //     }
 // }
 
+void DaosCatalogueWriter::closeIndexes() {
+    // for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
+    //     Index& idx = j->second;
+    //     idx.close();
+    // }
 
-// void TocCatalogueWriter::closeIndexes() {
-//     for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j ) {
-//         Index& idx = j->second;
-//         idx.close();
-//     }
+    // for (IndexStore::iterator j = fullIndexes_.begin(); j != fullIndexes_.end(); ++j ) {
+    //     Index& idx = j->second;
+    //     idx.close();
+    // }
 
-//     for (IndexStore::iterator j = fullIndexes_.begin(); j != fullIndexes_.end(); ++j ) {
-//         Index& idx = j->second;
-//         idx.close();
-//     }
-
-//     indexes_.clear(); // all indexes instances destroyed
-//     fullIndexes_.clear(); // all indexes instances destroyed
-// }
+    indexes_.clear(); // all indexes instances destroyed
+    // fullIndexes_.clear(); // all indexes instances destroyed
+}
 
 // void TocCatalogueWriter::compactSubTocIndexes() {
 

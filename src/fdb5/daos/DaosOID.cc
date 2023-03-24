@@ -13,6 +13,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"
+#include "eckit/utils/MD5.h"
 
 #include "fdb5/daos/DaosOID.h"
 #include "fdb5/daos/DaosContainer.h"
@@ -48,6 +49,17 @@ DaosOID::DaosOID(const std::string& s) : wasGenerated_(true) {
 
 DaosOID::DaosOID(const uint32_t& hi, const uint64_t& lo, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass) :
     otype_(otype), hi_(hi), lo_(lo), oclass_(oclass), wasGenerated_(false) {}
+
+DaosOID::DaosOID(const std::string& name, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass) :
+    otype_(otype), oclass_(oclass), wasGenerated_(false) {
+
+    eckit::MD5 md5(name);
+    /// @todo: calculate digests of 12 bytes (24 hex characters) rather than 16 bytes (32 hex characters)
+    ///        I have tried redefining MD5_DIGEST_LENGTH but it had no effect
+    hi_ = std::stoull(md5.digest().substr(0, 8), nullptr, 16);
+    lo_ = std::stoull(md5.digest().substr(8, 16), nullptr, 16);
+
+}
 
 // DaosOID::DaosOID(const DaosOID& other) : hi_(other.hi_), lo_(other.lo_) {}
 
@@ -109,12 +121,18 @@ DaosArrayOID::DaosArrayOID(const std::string& oid) : DaosOID(oid) { ASSERT(otype
 DaosArrayOID::DaosArrayOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass) :
     DaosOID(hi, lo, DAOS_OT_ARRAY, oclass) {}
 
+DaosArrayOID::DaosArrayOID(const std::string& name, const daos_oclass_id_t& oclass) :
+    DaosOID(name, DAOS_OT_ARRAY, oclass) {}
+
 DaosKeyValueOID::DaosKeyValueOID(const uint64_t& hi, const uint64_t& lo) : DaosOID(hi, lo) { ASSERT(otype_ == DAOS_OT_KV_HASHED); }
 
 DaosKeyValueOID::DaosKeyValueOID(const std::string& oid) : DaosOID(oid) { ASSERT(otype_ == DAOS_OT_KV_HASHED); }
 
 DaosKeyValueOID::DaosKeyValueOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass) :
     DaosOID(hi, lo, DAOS_OT_KV_HASHED, oclass) {}
+
+DaosKeyValueOID::DaosKeyValueOID(const std::string& name, const daos_oclass_id_t& oclass) :
+    DaosOID(name, DAOS_OT_KV_HASHED, oclass) {}
 
 //----------------------------------------------------------------------------------------------------------------------
 

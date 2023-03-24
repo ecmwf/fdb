@@ -57,52 +57,52 @@ public: // methods
 
 //     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
-    const Index& currentIndex() override { NOTIMP; };
+    const Index& currentIndex() override;
 //     const TocSerialisationVersion& serialisationVersion() const;
 
-// protected: // methods
+protected: // methods
 
-    virtual bool selectIndex(const Key &key) override { NOTIMP; };
-    virtual void deselectIndex() override { NOTIMP; };
+    virtual bool selectIndex(const Key &key) override;
+    virtual void deselectIndex() override;
 
     bool open() override { NOTIMP; };
-    void flush() override { NOTIMP; };
-    void clean() override { NOTIMP; };
-    void close() override { NOTIMP; };
+    void flush() override;
+    void clean() override;
+    void close() override;
 
-    void archive(const Key& key, const FieldLocation* fieldLocation) override { NOTIMP; };
+    void archive(const Key& key, const FieldLocation* fieldLocation) override;
 //     void reconsolidateIndexesAndTocs();
 
     virtual void print( std::ostream &out ) const override { NOTIMP; };
 
-// private: // methods
+private: // methods
 
-//     void closeIndexes();
+    void closeIndexes();
 //     void flushIndexes();
 //     void compactSubTocIndexes();
 
 //     eckit::PathName generateIndexPath(const Key &key) const;
 
-// private: // types
+private: // types
 
 //     typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
-//     typedef std::map< Key, Index> IndexStore;
+    typedef std::map< Key, Index> IndexStore;
 //     typedef std::map< Key, std::string > PathStore;
 
-// private: // members
+private: // members
 
 //     HandleStore handles_;    ///< stores the DataHandles being used by the Session
 
 //     // If we have multiple flush statements, then the indexes get repeatedly reset. Build and maintain
 //     // a full copy of the indexes associated with the process as well, for use when masking out
 //     // subtocs. See compactSubTocIndexes.
-//     IndexStore  indexes_;
+    IndexStore  indexes_;
 //     IndexStore  fullIndexes_;
 
 //     PathStore   dataPaths_;
 
-//     Index current_;
-//     Index currentFull_;
+    Index current_;
+    // Index currentFull_;
 
 //     eckit::AutoUmask umask_;
 };

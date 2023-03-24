@@ -150,7 +150,7 @@ eckit::DataHandle* DaosStore::retrieve(Field& field) const {
 
 FieldLocation* DaosStore::archive(const Key &key, const void *data, eckit::Length length) {
 
-    dirty_ = true;
+    // dirty_ = true;
 
     fdb5::DaosArrayName n = fdb5::DaosName(pool_, "store_" + db_str_ + "_" + key.valuesToString()).createArrayName(); // TODO: pass oclass from config
     n.generateOID();
@@ -173,15 +173,15 @@ void DaosStore::flush() {
 
     // flushDataHandles();
 
-    dirty_ = false;
+    // dirty_ = false;
 
 }
 
-void DaosStore::close() {
+// void DaosStore::close() {
 
-    // closeDataHandles();
+//     closeDataHandles();
 
-}
+// }
 
 void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
 

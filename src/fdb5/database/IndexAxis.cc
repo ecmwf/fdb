@@ -258,6 +258,19 @@ const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword
     return *(i->second);
 }
 
+const eckit::DenseSet<std::string>& IndexAxis::valuesSafe(const std::string &keyword) const {
+
+    const static eckit::DenseSet<std::string> nullStringSet;
+
+    if (axis_.empty()) return nullStringSet;
+
+    AxisMap::const_iterator i = axis_.find(keyword);
+    if (i == axis_.end()) return nullStringSet;
+
+    return *(i->second);
+
+}
+
 void IndexAxis::print(std::ostream &out) const {
     out << "IndexAxis["
         <<  "axis=";

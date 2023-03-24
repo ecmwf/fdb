@@ -79,15 +79,31 @@ class DaosURIManager : public eckit::URIManager {
 
     virtual eckit::PathName path(const eckit::URI& f) const override { return f.name(); }
 
-    virtual bool exists(const eckit::URI& f) override { return fdb5::DaosArrayName(f).exists(); }
+    virtual bool exists(const eckit::URI& f) override { return fdb5::DaosName(f).exists(); }
 
-    virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override { return fdb5::DaosArrayName(f).dataHandle(); }
+    virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override {
+        
+        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
+        
+        return fdb5::DaosArrayName(f).dataHandle();
+        
+    }
 
-    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override { return fdb5::DaosArrayName(f).dataHandle(); }
+    virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override {
+        
+        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
+        
+        return fdb5::DaosArrayName(f).dataHandle();
+        
+    }
 
     /// @todo: implement DaosName::partHandle
     virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
+        
+        if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
+        
         return fdb5::DaosArrayName(f).dataHandle();
+        
     }
 
     virtual std::string asString(const eckit::URI& uri) const override {

@@ -28,7 +28,7 @@ if (HAVE_DAOSFDB)
   file(MAKE_DIRECTORY ${FDB_ROOT_DIRECTORY})
 
   list( APPEND daos_tests
-    daos_handle daos_store
+    daos_handle daos_store daos_catalogue
   )
 
   foreach( _test ${daos_tests} )

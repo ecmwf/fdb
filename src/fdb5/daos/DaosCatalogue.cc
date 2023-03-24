@@ -40,13 +40,16 @@ DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
     //   to key
 
     pool_ = "default";
+    root_cont_ = "root";
 
     eckit::LocalConfiguration c{};
 
     if (config_.has("daos")) c = config_.getSubConfiguration("daos");
     if (c.has("catalogue")) pool_ = c.getSubConfiguration("catalogue").getString("pool", pool_);
+    if (c.has("catalogue")) root_cont_ = c.getSubConfiguration("catalogue").getString("root_cont", root_cont_);
 
     pool_ = eckit::Resource<std::string>("fdbDaosCataloguePool;$FDB_DAOS_CATALOGUE_POOL", pool_);
+    root_cont_ = eckit::Resource<std::string>("fdbDaosCatalogueRootCont;$FDB_DAOS_CATALOGUE_ROOT_CONT", root_cont_);
 
     db_cont_ = key.valuesToString();
 
@@ -74,6 +77,9 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
 
     eckit::LocalConfiguration c{};
     if (c.has("daos")) c = c.getSubConfiguration("daos");
+
+    /// root_cont_ is not initialised on purpose as it should not be necessary in the read workflow
+
     if (c.has("client"))
         fdb5::DaosManager::instance().configure(c.getSubConfiguration("client"));
 
@@ -142,13 +148,14 @@ void DaosCatalogue::loadSchema() {
 
     eckit::Timer timer("DaosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
 
-    fdb5::DaosKeyValueName n{pool_, db_cont_, main_kv_};
-    std::unique_ptr<eckit::DataHandle> h(n.dataHandle("schema"));
-    h->openForRead();
-    eckit::AutoClose closer(*h);
-    eckit::Buffer buff{(size_t) h->size()};
-    h->read(buff, h->size());
-    std::istringstream stream{std::string(buff)};
+    fdb5::DaosKeyValueName nkv{pool_, db_cont_, catalogue_kv_};
+    fdb5::DaosSession s{};
+    fdb5::DaosKeyValue kv{s, nkv};
+
+    daos_size_t size = kv.size("schema");
+    std::vector<char> v(size);
+    kv.get("schema", v.data(), size);
+    std::istringstream stream{std::string(v.begin(), v.end())};
     schema_.load(stream);
 
 }

@@ -39,7 +39,7 @@ public: // methods
 
     bool open() override { return true; }
     void flush() override;
-    void close() override;
+    void close() override {};
 
     void checkUID() const override { /* nothing to do */ }
 
@@ -81,7 +81,7 @@ private: // members
     std::string pool_;
     std::string db_str_;
 
-    mutable bool dirty_;
+    // mutable bool dirty_;
 
 };
 

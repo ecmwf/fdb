@@ -51,6 +51,7 @@ public: // methods
     void decode(eckit::Stream& s, const int version);
 
     const eckit::DenseSet<std::string> &values(const std::string &keyword) const;
+    const eckit::DenseSet<std::string>& valuesSafe(const std::string &keyword) const;
 
     void dump(std::ostream &out, const char* indent) const;
 
