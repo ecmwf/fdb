@@ -17,6 +17,7 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/thread/ThreadPool.h"
+#include "eckit/serialisation/Streamable.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
@@ -56,41 +57,26 @@ protected: // members
 
 // class for writing a chunk of the user buffer - used to perform multiple simultaneous writes
 class FileCopy : public eckit::ThreadPoolTask {
-    eckit::PathName src_;
-    eckit::PathName dest_;
 
 public:
-    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName):
-        src_(srcPath / fileName), dest_(destPath / fileName) {}
-    FileCopy(char* files, int size) {
-        std::string src, dest, file;
-        int i=0;
+    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName);    
+    FileCopy(eckit::Stream& s);
 
-        for (; i<size && files[i] != '\0'; i++) {
-            src += files[i];
-        }
-        src_ = src;
-        i++;
-        for (; i<size && files[i] != '\0'; i++) {
-            dest += files[i];
-        }
-        dest_ = dest;
+    void encode(eckit::Stream&) const;
+
+    void execute() override;
+
+private: // methods
+
+    void print(std::ostream& s) const;
+    friend std::ostream& operator<<(std::ostream& s, const FileCopy& f) {
+        f.print(s);
+        return s;
     }
 
-    void str(char bufr[], int size) {
-        int l1 = src_.asString().length();
-        ::strncpy(bufr, src_.asString().c_str(), size);
-        bufr[l1] = '\0';
-        int l2 = dest_.asString().length();
-        ::strncpy(&(bufr[l1+1]), dest_.asString().c_str(), size-l1-1);
-        bufr[l1+l2+1] = '\0';
-    }
-
-    void execute() {
-        eckit::FileHandle src(src_);
-        eckit::FileHandle dest(dest_);
-        src.copyTo(dest);
-    }
+private:
+    eckit::PathName src_;
+    eckit::PathName dest_;
 };
 
 }

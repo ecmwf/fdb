@@ -10,6 +10,7 @@
 #include "eckit/mpi/Comm.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 
 #include "fdb5/tools/FDBVisitTool.h"
 #include "fdb5/api/FDB.h"
@@ -102,21 +103,28 @@ void FDBMove::init(const CmdArgs& args) {
             throw UserError(ss.str(), Here());
         }
     } else { // this process is just a data mover - subscribing to receive tasks
-        char task[1024];
-        
+
         while (true) {
             int ready = 1;
 
             comm.template send<int>(&ready, 1, 0, 0);
-            comm.template receive<char>(task, 1024, 0, 0);
 
-            if (task[0] != '\0') {
-                Log::debug() << "fdb-move mover (rank " << rank_ << ") received task " << task << std::endl;
+            eckit::mpi::Status st = comm.probe(0, 0);
+            size_t size = comm.getCount<char>(st);
 
-                FileCopy fileCopy(task, 1024);                
+            if (size>0) {
+                eckit::Buffer b(size);
+                b.zero();
+
+                comm.receive(static_cast<char*>(b.data()), b.size(), 0, 0);
+                eckit::ResizableMemoryStream s(b);
+
+                FileCopy fileCopy(s);
+                Log::debug() << "fdb-move (mover " << rank_ << ") received task " << fileCopy << std::endl;
+
                 fileCopy.execute();
             } else {
-                Log::debug() << "fdb-move mover (rank " << rank_ << ") done" << std::endl;
+                Log::debug() << "fdb-move (mover " << rank_ << ") done" << std::endl;
                 break;
             }
         }

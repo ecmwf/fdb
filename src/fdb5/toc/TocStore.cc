@@ -17,6 +17,7 @@
 #include "eckit/io/AIOHandle.h"
 #include "eckit/io/EmptyHandle.h"
 #include "eckit/mpi/Comm.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
@@ -252,25 +253,28 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
             }
             closedir(dirp);
 
-            if (mpi) { // dispath tasks with MPI
+            if (mpi) { // dispatch tasks with MPI
                 eckit::mpi::Comm& comm = eckit::mpi::comm();
                 ASSERT(comm.rank() == 0);
 
                 int ready;
-                char task[1024];
 
                 for (auto it = files.begin(); it != files.end(); it++) {
                     eckit::mpi::Status status = comm.template receive<int>(&ready, 1, -1, -1);
 
-                    it->second->str(task, 1024);
-                    comm.template send<char>(task, 1024, status.source(), status.tag());
+                    eckit::Buffer sendBuffer;
+                    eckit::ResizableMemoryStream s(sendBuffer);
+                    it->second->encode(s);
+
+                    comm.send(static_cast<const char*>(sendBuffer.data()), s.position(), status.source(), status.tag());
                 }
 
+                eckit::Buffer end;
+
                 // send termination
-                task[0] = '\0';
                 for (int i=1; i<comm.size(); i++) {
                     eckit::mpi::Status status = comm.template receive<int>(&ready, 1, -1, -1);
-                    comm.template send<char>(task, 1024, status.source(), status.tag());
+                    comm.send(end.data(), end.size(), status.source(), status.tag());
                 }
             } else { // spread the load with multiple threads
                 eckit::ThreadPool pool("store"+dest_db.asString(), threads);
