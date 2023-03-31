@@ -12,6 +12,9 @@
 
 // #include "fdb5/LibFdb5.h"
 // #include "fdb5/toc/TocStats.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/HandleStream.h"
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosIndex.h"
 // #include "fdb5/toc/BTreeIndex.h"
@@ -70,23 +73,69 @@ DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name) :
 //     close();
 // }
 
+bool DaosIndex::mayContain(const Key &key) const {
+
+    /// @todo: in-memory axes_ are left empty in the read pathway. Alternatively, could
+    ///        consider reading axes content from DAOS in one go upon DaosIndex creation,
+    ///        and have mayContain check these in-memory axes. However some mechanism
+    ///        would have to be implemented for readers to lock DAOS KVs storing axis 
+    ///        information so that in-memory axes are consistent with DAOS axes.
+
+    std::string indexKey{key_.valuesToString()};
+
+    for (Key::const_iterator i = key.begin(); i != key.end(); ++i) {
+
+        const std::string &keyword = i->first;
+        std::string value = key.canonicalValue(keyword);
+
+        /// @todo: take oclass from config
+        fdb5::DaosKeyValueOID oid{indexKey + std::string{"."} + keyword, OC_S1};
+        fdb5::DaosKeyValueName axis{location_.daosName().poolName(), location_.daosName().contName(), oid};
+
+        if (!axis.exists()) return false;
+        if (!axis.has(value)) return false;
+
+    }
+
+    return true;
+
+}
+
 // void TocIndex::encode(eckit::Stream& s, const int version) const {
 //     files_.encode(s);
 //     IndexBase::encode(s, version);
 // }
 
 
-// bool TocIndex::get(const Key &key, const Key &remapKey, Field &field) const {
-//     ASSERT(btree_);
-//     FieldRef ref;
+bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
-//     bool found = btree_->get(key.valuesToString(), ref);
-//     if ( found ) {
-//         const eckit::URI& uri = files_.get(ref.uriId());
-//         field = Field(FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), remapKey), timestamp_, ref.details());
-//     }
-//     return found;
-// }
+    const fdb5::DaosKeyValueName& n = location_.daosName();
+    ASSERT(n.exists());
+
+    std::string query{key.valuesToString()};
+
+    if (!n.has(query)) return false;
+
+    fdb5::DaosSession s{};
+    fdb5::DaosKeyValue index{s, n};
+    std::vector<char> loc_data((long) index.size(query));
+    index.get(query, &loc_data[0], loc_data.size());
+    eckit::MemoryStream ms{&loc_data[0], loc_data.size()};
+    field = fdb5::Field(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms), timestamp_, fdb5::FieldDetails());
+
+    return true;
+
+    // ASSERT(btree_);
+    // FieldRef ref;
+
+    // bool found = btree_->get(key.valuesToString(), ref);
+    // if ( found ) {
+    //     const eckit::URI& uri = files_.get(ref.uriId());
+    //     field = Field(FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), remapKey), timestamp_, ref.details());
+    // }
+    // return found;
+
+}
 
 
 // void DaosIndex::open() {
@@ -125,15 +174,17 @@ void DaosIndex::add(const Key &key, const Field &field) {
 
     // ASSERT(mode_ == TocIndex::WRITE);
 
-    /// @todo: if axes() are dirty, persist to DAOS?
-
     // FieldRef ref(files_, field);
 
+    eckit::MemoryHandle h{(size_t) PATH_MAX};
+    eckit::HandleStream hs{h};
+    h.openForWrite(eckit::Length(0));
+    {
+        eckit::AutoClose closer(h);
+        hs << field.location();
+    }
     fdb5::DaosSession s{};
-    std::ostringstream o;
-    o << field.location();
-    std::string serialisedLocation{o.str()};
-    fdb5::DaosKeyValue{s, location_.daosName()}.put(key.valuesToString(), serialisedLocation.data(), serialisedLocation.length());
+    fdb5::DaosKeyValue{s, location_.daosName()}.put(key.valuesToString(), h.data(), hs.bytesWritten());   
 
     // //  bool replace =
     // btree_->set(key.valuesToString(), ref); // returns true if replace, false if new insert

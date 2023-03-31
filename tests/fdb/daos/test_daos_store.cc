@@ -14,9 +14,18 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpFile.h"
+#include "eckit/filesystem/TmpDir.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/config/YAMLConfiguration.h"
+
+#include "fdb5/fdb5_config.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+
+#include "fdb5/toc/TocCatalogueWriter.h"
+#include "fdb5/toc/TocCatalogueReader.h"
 
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosPool.h"
@@ -26,15 +35,15 @@
 #include "fdb5/daos/DaosFieldLocation.h"
 #include "fdb5/daos/DaosException.h"
 
-#include "fdb5/toc/TocCatalogueWriter.h"
-#include "fdb5/toc/TocCatalogueReader.h"
-
-#include "fdb5/config/Config.h"
-#include "fdb5/api/FDB.h"
-#include "fdb5/api/helpers/FDBToolRequest.h"
-
 using namespace eckit::testing;
 using namespace eckit;
+
+#ifdef fdb5_HAVE_DUMMY_DAOS
+eckit::TmpDir& tmp_dummy_daos_root() {
+    static eckit::TmpDir d{};
+    return d;
+}
+#endif
 
 // temporary schema,spaces,root files common to all DAOS Store tests
 
@@ -53,20 +62,25 @@ eckit::TmpFile& roots_file() {
     return f;
 }
 
+eckit::TmpDir& tmp_root() {
+    static eckit::TmpDir d{};
+    return d;
+}
+
 namespace fdb {
 namespace test {
 
 CASE( "Setup" ) {
 
+#ifdef fdb5_HAVE_DUMMY_DAOS
+    tmp_dummy_daos_root().mkdir();
+    ::setenv("DUMMY_DAOS_DATA_ROOT", tmp_dummy_daos_root().path().c_str(), 1);
+#endif
+
     // ensure fdb root directory exists. If not, then that root is 
     // registered as non existing and Store tests fail.
-    char* root_path_cstr = ::getenv("FDB_ROOT_DIRECTORY");
-    EXPECT(root_path_cstr);
-    eckit::PathName root_path(root_path_cstr);
-    if (!root_path.exists()) root_path.mkdir();
-
-    /// @todo: remove fdb root directory then create (to ensure it's clean)
-    /// @todo: remove dummy_daos_root directory then create
+    tmp_root().mkdir();
+    ::setenv("FDB_ROOT_DIRECTORY", tmp_root().path().c_str(), 1);
 
     // prepare schema for tests involving DaosStore
 
@@ -99,7 +113,7 @@ CASE( "Setup" ) {
 
     // prepare roots
 
-    std::string roots_str{root_path.asString() + " all yes yes"};
+    std::string roots_str{tmp_root().asString() + " all yes yes"};
 
     std::unique_ptr<eckit::DataHandle> hr(roots_file().fileHandle());
     hr->openForWrite(roots_str.size());
@@ -154,12 +168,15 @@ CASE("DaosStore tests") {
         char data[] = "test";
 
         // archive
-        // DaosManager is configured with client config from the file
+
+        /// DaosManager is configured with client config from the file
         fdb5::DaosStore dstore{schema, db_key, config};
         fdb5::Store& store = dstore;
         std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
         /// @todo: two cont create with label happen here
         /// @todo: again, daos_fini happening before cont and pool close
+
+        dstore.flush();  // not necessary for DAOS store
 
         // retrieve
         fdb5::Field field(loc.get(), std::time(nullptr));
@@ -171,7 +188,6 @@ CASE("DaosStore tests") {
         dh->copyTo(mh);
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
-        //dh.reset();
         /// @todo: again, daos_fini happening before
 
         // remove
@@ -198,6 +214,7 @@ CASE("DaosStore tests") {
         // FDB configuration
 
         std::string config_str{
+            "schema : " + schema_file().path() + "\n"
             "daos:\n"
             "  store:\n"
             "    pool: " + pool_name + "\n"
@@ -238,6 +255,9 @@ CASE("DaosStore tests") {
             cat.selectIndex(index_key);
             //const fdb5::Index& idx = tcat.currentIndex();
             static_cast<fdb5::CatalogueWriter&>(tcat).archive(field_key, loc.get());
+
+            /// flush store before flushing catalogue
+            dstore.flush();  // not necessary if using a DAOS store
         }
 
         // find data
@@ -260,7 +280,6 @@ CASE("DaosStore tests") {
         dh->copyTo(mh);
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
-        //dh.reset();
 
         // remove data
 
@@ -359,6 +378,7 @@ CASE("DaosStore tests") {
         /// @todo: here, DaosManager is being reconfigured with identical config, and it happens again multiple times below.
         //   Should this be avoided?
         fdb.archive(request_key, data, sizeof(data));
+
         fdb.flush();
 
         // retrieve data
@@ -369,7 +389,6 @@ CASE("DaosStore tests") {
         dh->copyTo(mh);
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
-        //dh.reset();
 
         // wipe data
 
@@ -485,6 +504,7 @@ CASE("DaosStore tests") {
         char data[] = "test";
 
         fdb.archive(request_key, data, sizeof(data));
+        
         fdb.flush();
 
         size_t count;
@@ -517,8 +537,8 @@ CASE("DaosStore tests") {
 
     // teardown daos
 
-    // AutoPoolDestroy is not possible here because the pool is 
-    // created above with an ephemeral session
+    /// AutoPoolDestroy is not possible here because the pool is 
+    /// created above with an ephemeral session
     fdb5::DaosSession().getPool(pool_uuid, pool_name).destroy();
 
 }

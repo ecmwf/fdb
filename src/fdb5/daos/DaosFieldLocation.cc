@@ -12,13 +12,13 @@
 // #include "eckit/io/rados/RadosReadHandle.h"
 #include "fdb5/daos/DaosFieldLocation.h"
 #include "fdb5/daos/DaosName.h"
-// #include "fdb5/LibFdb5.h"
+#include "fdb5/LibFdb5.h"
 // #include "fdb5/io/SingleGribMungePartFileHandle.h"
 
 namespace fdb5 {
 
-// ::eckit::ClassSpec RadosFieldLocation::classSpec_ = {&FieldLocation::classSpec(), "RadosFieldLocation",};
-// ::eckit::Reanimator<RadosFieldLocation> RadosFieldLocation::reanimator_;
+::eckit::ClassSpec DaosFieldLocation::classSpec_ = {&FieldLocation::classSpec(), "DaosFieldLocation",};
+::eckit::Reanimator<DaosFieldLocation> DaosFieldLocation::reanimator_;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -39,8 +39,8 @@ DaosFieldLocation::DaosFieldLocation(const eckit::URI &uri, eckit::Offset offset
 // DaosFieldLocation::DaosFieldLocation(const FileStore &store, const FieldRef &ref) :
 //     FieldLocation(store.get(ref.pathId()), ref.offset(), ref.length()) {}
 
-// DaosFieldLocation::DaosFieldLocation(eckit::Stream& s) :
-//     FieldLocation(s) {}
+DaosFieldLocation::DaosFieldLocation(eckit::Stream& s) :
+    FieldLocation(s) {}
 
 std::shared_ptr<FieldLocation> DaosFieldLocation::make_shared() const {
     return std::make_shared<DaosFieldLocation>(*this);
@@ -69,13 +69,19 @@ void DaosFieldLocation::visit(FieldLocationVisitor& visitor) const {
 //     return eckit::URI("daos", path);
 // }
 
+// void DaosFieldLocation::encode(eckit::Stream& s) const {
+//     LOG_DEBUG(LibFdb5::instance().debug(), LibFdb5) << "DaosFieldLocation encode URI " << uri_.asRawString() << std::endl;
+
+//     FieldLocation::encode(s);
+// }
+
 static FieldLocationBuilder<DaosFieldLocation> builder("daos");
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class DaosURIManager : public eckit::URIManager {
     virtual bool query() override { return true; }
-    virtual bool fragment() override { return false; }
+    virtual bool fragment() override { return true; }
 
     virtual eckit::PathName path(const eckit::URI& f) const override { return f.name(); }
 
@@ -114,7 +120,7 @@ class DaosURIManager : public eckit::URIManager {
         if (!f.empty())
             f = "#" + f;
 
-        return uri.scheme() + "://" + uri.name() + q + f;
+        return uri.scheme() + ":" + uri.name() + q + f;
     }
 public:
     DaosURIManager(const std::string& name) : eckit::URIManager(name) {}

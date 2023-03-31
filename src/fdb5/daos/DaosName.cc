@@ -34,7 +34,7 @@ DaosNameBase::DaosNameBase(const eckit::URI& uri)  {
 
     /// @todo: find format for documenting inputs
     // Inputs:
-    //   uri: daos://pool[/cont[/oidhi.oidlo]]
+    //   uri: daos:pool[/cont[/oidhi.oidlo]]
 
     ASSERT(uri.scheme() == "daos");
 

@@ -77,11 +77,12 @@ public: // methods
 
     void flock() const override { NOTIMP; }
     void funlock() const override { NOTIMP; }
+
+    virtual bool mayContain(const Key& key) const override;
     
 private: // methods
 
-    const IndexLocation& location() const override { NOTIMP; }
-    // const IndexLocation& location() const override { return location_; }
+    const IndexLocation& location() const override { return location_; }
     // const std::vector<eckit::URI> dataPaths() const override;
 
     bool dirty() const override { NOTIMP; }
@@ -92,7 +93,7 @@ private: // methods
 
     void visit(IndexLocationVisitor& visitor) const override { NOTIMP; }
 
-    bool get( const Key &key, const Key &remapKey, Field &field ) const override { NOTIMP; }
+    bool get( const Key &key, const Key &remapKey, Field &field ) const override;
     void add( const Key &key, const Field &field ) override;
     void flush() override { NOTIMP; }
     void encode(eckit::Stream& s, const int version) const override { NOTIMP; }
@@ -114,6 +115,7 @@ private: // members
     // const DaosIndex::Mode mode_;
 
     fdb5::DaosIndexLocation location_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -19,11 +19,14 @@
 // #include "fdb5/database/EntryVisitMechanism.h"
 // #include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/LibFdb5.h"
-#include "fdb5/daos/DaosCatalogueWriter.h"
+
+#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosKeyValueHandle.h"
+
 // #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/daos/DaosIndex.h"
+#include "fdb5/daos/DaosCatalogueWriter.h"
 // #include "fdb5/io/LustreSettings.h"
 
 // using namespace eckit;
@@ -86,10 +89,12 @@ DaosCatalogueWriter::DaosCatalogueWriter(const eckit::URI &uri, const fdb5::Conf
 
 }
 
-// TocCatalogueWriter::~TocCatalogueWriter() {
-//     clean();
-//     close();
-// }
+DaosCatalogueWriter::~DaosCatalogueWriter() {
+
+    clean();
+    close();
+
+}
 
 bool DaosCatalogueWriter::selectIndex(const Key& key) {
 
@@ -118,9 +123,10 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
 
         } else {
 
+            /// @todo: address this magic value: config item called max_index_key_len
             std::vector<char> n{100};
             catalogue_kv_obj.get(key.valuesToString(), &n[0], n.size());
-            index_kv.reset(new fdb5::DaosKeyValueName{eckit::URI{std::string{&n[0]}}});
+            index_kv.reset(new fdb5::DaosKeyValueName{eckit::URI{std::string{n.begin(), n.end()}}});
 
         }
 
@@ -180,6 +186,7 @@ void DaosCatalogueWriter::clean() {
     // compactSubTocIndexes();
 
     deselectIndex();
+
 }
 
 void DaosCatalogueWriter::close() {
@@ -362,6 +369,9 @@ const Index& DaosCatalogueWriter::currentIndex() {
 //     return TocCatalogue::enabled(controlIdentifier);
 // }
 
+/// @todo: other writers may be simultaneously updating the axes KeyValues in DAOS. Should these
+///        new updates be retrieved and put into in-memory axes from time to time, e.g. every
+///        time a value is put in an axis KeyValue?
 void DaosCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocation) {
 
     // dirty_ = true;

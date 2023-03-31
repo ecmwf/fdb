@@ -41,7 +41,7 @@ public: // methods
 
     IndexLocation* clone() const override { NOTIMP; }
 
-    fdb5::DaosKeyValueName daosName() { return name_; };
+    const fdb5::DaosKeyValueName& daosName() const { return name_; };
 
 // public: // For Streamable
 
@@ -57,7 +57,7 @@ protected: // For Streamable
 
 private: // methods
 
-    void print(std::ostream &out) const override { NOTIMP; }
+    void print(std::ostream &out) const override;
 
 private: // members
 

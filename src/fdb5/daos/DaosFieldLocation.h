@@ -36,7 +36,7 @@ public:
     // DaosFieldLocation(const eckit::URI &uri);
     DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     // DaosFieldLocation(const FileStore& store, const FieldRef& ref);
-    // DaosFieldLocation(eckit::Stream&);
+    DaosFieldLocation(eckit::Stream&);
 
 // //    const eckit::PathName path() const { return uri_.name(); }
 // //    const eckit::Offset&   offset() const { return offset_; }
@@ -52,15 +52,15 @@ public:
 
 public: // For Streamable
 
-    // static const eckit::ClassSpec&  classSpec() { return classSpec_;}
+    static const eckit::ClassSpec& classSpec() { return classSpec_;}
 
 protected: // For Streamable
 
-    // virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
-    // //virtual void encode(eckit::Stream&) const override;
+    virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    // virtual void encode(eckit::Stream&) const override;
 
-    // static eckit::ClassSpec                    classSpec_;
-    // static eckit::Reanimator<RadosFieldLocation> reanimator_;
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<DaosFieldLocation> reanimator_;
 
 private: // methods
 

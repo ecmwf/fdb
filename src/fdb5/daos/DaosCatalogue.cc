@@ -85,9 +85,12 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
 
 }
 
-// bool TocCatalogue::exists() const {
-//     return TocHandler::exists();
-// }
+bool DaosCatalogue::exists() const {
+
+    fdb5::DaosKeyValueName catalogue_kv_name{pool_, db_cont_, catalogue_kv_};
+    return catalogue_kv_name.exists();
+
+}
 
 // const std::string TocCatalogue::DUMP_PARAM_WALKSUBTOC = "walk";
 
@@ -102,9 +105,11 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
 //     return eckit::URI(TocEngine::typeName(), basePath());
 // }
 
-// const Schema& TocCatalogue::schema() const {
-//     return schema_;
-// }
+const Schema& DaosCatalogue::schema() const {
+
+    return schema_;
+
+}
 
 // const eckit::PathName& TocCatalogue::basePath() const {
 //     return directory_;
@@ -190,10 +195,11 @@ void DaosCatalogue::loadSchema() {
 //     enumerateMasked(metadata, data);
 // }
 
-// std::string TocCatalogue::type() const
-// {
-//     return TocCatalogue::catalogueTypeName();
-// }
+std::string DaosCatalogue::type() const {
+
+    return DaosCatalogue::catalogueTypeName();
+    
+}
 
 // void TocCatalogue::checkUID() const {
 //     TocHandler::checkUID();

@@ -53,10 +53,11 @@ DaosIndexLocation::DaosIndexLocation(const fdb5::DaosKeyValueName& name, off_t o
 //     s << offset_;
 // }
 
-// void TocIndexLocation::print(std::ostream &out) const {
-//     out << "(" << path_ << ":" << offset_ << ")";
+void DaosIndexLocation::print(std::ostream &out) const {
 
-// }
+    out << "(" << name_.URI().asString() << ":" << offset_ << ")";
+
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

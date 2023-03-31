@@ -395,6 +395,8 @@ if( HAVE_DAOSFDB )
         daos/DaosCatalogue.cc 
         daos/DaosCatalogueWriter.h 
         daos/DaosCatalogueWriter.cc
+        daos/DaosCatalogueReader.h 
+        daos/DaosCatalogueReader.cc
         daos/DaosIndex.h
         daos/DaosIndex.cc
         daos/DaosIndexLocation.h

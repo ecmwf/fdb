@@ -14,9 +14,12 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpFile.h"
+#include "eckit/filesystem/TmpDir.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/config/YAMLConfiguration.h"
+
+#include "fdb5/fdb5_config.h"
 
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosPool.h"
@@ -29,12 +32,28 @@
 using namespace eckit::testing;
 using namespace eckit;
 
+#ifdef fdb5_HAVE_DUMMY_DAOS
+eckit::TmpDir& tmp_dummy_daos_root() {
+    static eckit::TmpDir d{};
+    return d;
+}
+#endif
+
 bool endsWith(const std::string& str, const std::string& end) {
     return 0 == str.compare(str.length() - end.length(), end.length(), end);
 }
 
 namespace fdb {
 namespace test {
+
+#ifdef fdb5_HAVE_DUMMY_DAOS
+CASE( "Setup" ) {
+
+    tmp_dummy_daos_root().mkdir();
+    ::setenv("DUMMY_DAOS_DATA_ROOT", tmp_dummy_daos_root().path().c_str(), 1);
+
+}
+#endif
 
 CASE( "DaosPool" ) {
 
@@ -261,14 +280,14 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
 
         fdb5::DaosName np{pool_name};
         EXPECT(np.exists());
-        EXPECT(np.URI().asString() == std::string("daos://") + pool_name);
+        EXPECT(np.URI().asString() == std::string("daos:") + pool_name);
 
         fdb5::DaosName np_ne{"a"};
         EXPECT_NOT(np_ne.exists());
 
         fdb5::DaosName nc{pool_name, cont_name};
         EXPECT(nc.exists());
-        EXPECT(nc.URI().asString() == std::string("daos://") + pool_name + "/" + cont_name);
+        EXPECT(nc.URI().asString() == std::string("daos:") + pool_name + "/" + cont_name);
 
         fdb5::DaosName nc_ne{"a", "b"};
         EXPECT_NOT(nc_ne.exists());
@@ -285,7 +304,7 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         EXPECT_NOT(n1.exists());
         n1.create();
         EXPECT(n1.exists());
-        std::string start{std::string("daos://") + pool_name + "/" + cont_name + "/"};
+        std::string start{std::string("daos:") + pool_name + "/" + cont_name + "/"};
         std::string end{"000000010000000000000002"};
         std::string n1_uri_str = n1.URI().asString();
         EXPECT(0 == n1_uri_str.compare(0, start.length(), start));
@@ -381,7 +400,7 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
 
         h.flush();
 
-        eckit::URI u{std::string("daos://") + pool_name + "/" + cont_name + "/" + test_name.OID().asString()};
+        eckit::URI u{std::string("daos:") + pool_name + "/" + cont_name + "/" + test_name.OID().asString()};
         fdb5::DaosArrayName read_name{u};
 
         char read_data[20] = "";
@@ -499,7 +518,7 @@ CASE( "DaosName and DaosHandle workflows" ) {
 
     SECTION("Array write to existing pool and container, with URI") {
 
-        eckit::URI container{std::string("daos://") + pool_name + "/" + cont_name};
+        eckit::URI container{std::string("daos:") + pool_name + "/" + cont_name};
         fdb5::DaosName n{container};
         fdb5::DaosArrayName na = n.createArrayName();
         std::unique_ptr<eckit::DataHandle> h(na.dataHandle());

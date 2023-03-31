@@ -15,6 +15,7 @@
 #include <uuid/uuid.h>
 
 #include "eckit/testing/Test.h"
+#include "eckit/filesystem/TmpDir.h"
 
 #include "daos.h"
 #include "dummy_daos.h"
@@ -23,11 +24,22 @@
 using namespace eckit::testing;
 using namespace eckit;
 
+eckit::TmpDir& tmp_dummy_daos_root() {
+    static eckit::TmpDir d{};
+    return d;
+}
 
 namespace fdb {
 namespace test {
 
 //----------------------------------------------------------------------------------------------------------------------
+
+CASE( "Setup" ) {
+
+    tmp_dummy_daos_root().mkdir();
+    ::setenv("DUMMY_DAOS_DATA_ROOT", tmp_dummy_daos_root().path().c_str(), 1);
+
+}
 
 CASE( "dummy_daos_write_then_read" ) {
 

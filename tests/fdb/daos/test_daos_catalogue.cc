@@ -14,28 +14,37 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpFile.h"
+#include "eckit/filesystem/TmpDir.h"
 #include "eckit/io/FileHandle.h"
-// #include "eckit/io/MemoryHandle.h"
+#include "eckit/io/MemoryHandle.h"
 #include "eckit/config/YAMLConfiguration.h"
+
+#include "fdb5/fdb5_config.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+
+#include "fdb5/toc/TocStore.h"
 
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosPool.h"
-// #include "fdb5/daos/DaosArrayHandle.h"
+#include "fdb5/daos/DaosArrayHandle.h"
 
-// #include "fdb5/daos/DaosStore.h"
+#include "fdb5/daos/DaosStore.h"
 #include "fdb5/daos/DaosFieldLocation.h"
 // #include "fdb5/daos/DaosException.h"
 #include "fdb5/daos/DaosCatalogueWriter.h"
-
-// #include "fdb5/toc/TocCatalogueWriter.h"
-// #include "fdb5/toc/TocCatalogueReader.h"
-
-#include "fdb5/config/Config.h"
-// #include "fdb5/api/FDB.h"
-// #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/daos/DaosCatalogueReader.h"
 
 using namespace eckit::testing;
 using namespace eckit;
+
+#ifdef fdb5_HAVE_DUMMY_DAOS
+eckit::TmpDir& tmp_dummy_daos_root() {
+    static eckit::TmpDir d{};
+    return d;
+}
+#endif
 
 // temporary schema,spaces,root files common to all DAOS Catalogue tests
 
@@ -54,20 +63,25 @@ eckit::TmpFile& roots_file() {
     return f;
 }
 
+eckit::TmpDir& tmp_root() {
+    static eckit::TmpDir d{};
+    return d;
+}
+
 namespace fdb {
 namespace test {
 
 CASE( "Setup" ) {
 
-    // ensure fdb root directory exists. If not, then that root is 
-    // registered as non existing and Caalogue/Store tests fail.
-    char* root_path_cstr = ::getenv("FDB_ROOT_DIRECTORY");
-    EXPECT(root_path_cstr);
-    eckit::PathName root_path(root_path_cstr);
-    if (!root_path.exists()) root_path.mkdir();
+#ifdef fdb5_HAVE_DUMMY_DAOS
+    tmp_dummy_daos_root().mkdir();
+    ::setenv("DUMMY_DAOS_DATA_ROOT", tmp_dummy_daos_root().path().c_str(), 1);
+#endif
 
-    /// @todo: remove fdb root directory then create (to ensure it's clean)
-    /// @todo: remove dummy_daos_root directory then create
+    // ensure fdb root directory exists. If not, then that root is 
+    // registered as non existing and Catalogue/Store tests fail.
+    tmp_root().mkdir();
+    ::setenv("FDB_ROOT_DIRECTORY", tmp_root().path().c_str(), 1);
 
     // prepare schema for tests involving DaosCatalogue
 
@@ -100,7 +114,7 @@ CASE( "Setup" ) {
 
     // prepare roots
 
-    std::string roots_str{root_path.asString() + " all yes yes"};
+    std::string roots_str{tmp_root().asString() + " all yes yes"};
 
     std::unique_ptr<eckit::DataHandle> hr(roots_file().fileHandle());
     hr->openForWrite(roots_str.size());
@@ -138,7 +152,7 @@ CASE("DaosCatalogue tests") {
         pool.uuid(pool_uuid);
     }
 
-    SECTION("Catalogue archive (index) and retrieve without a Store") {
+    SECTION("DaosCatalogue archive (index) and retrieve without a Store") {
 
         std::string config_str{
             "schema : " + schema_file().path() + "\n"
@@ -152,65 +166,62 @@ CASE("DaosCatalogue tests") {
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
-        // fdb5::Schema schema{schema_file()};
-
         fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
         fdb5::Key db_key{"a=1,b=2"};
         fdb5::Key index_key{"c=3,d=4"};
         fdb5::Key field_key{"e=5,f=6"};
 
-//         char data[] = "test";
+        // archive
 
-//         // archive
-//         // DaosManager is configured with client config from the file
-//         fdb5::DaosStore dstore{schema, db_key, config};
-//         fdb5::Store& store = dstore;
-//         std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
-//         /// @todo: two cont create with label happen here
-//         /// @todo: again, daos_fini happening before cont and pool close
+        /// DaosManager is configured with client config from the file
         std::unique_ptr<fdb5::FieldLocation> loc(new fdb5::DaosFieldLocation(
-            eckit::URI{"daos", "test_uri"}, eckit::Offset(0), eckit::Length(0), fdb5::Key()
+            eckit::URI{"daos", "test_uri"}, eckit::Offset(0), eckit::Length(1), fdb5::Key()
         ));
 
-        fdb5::DaosCatalogueWriter dcatw{db_key, config};
+        {
+            fdb5::DaosCatalogueWriter dcatw{db_key, config};
 
-        fdb5::DaosName db_cont{pool_name, db_key.valuesToString()};
-        fdb5::DaosKeyValueOID cat_kv_oid{0, 0, OC_S1};  /// @todo: take oclass from config
-        fdb5::DaosKeyValueName cat_kv{pool_name, db_key.valuesToString(), cat_kv_oid};
-        EXPECT(db_cont.exists());
-        EXPECT(cat_kv.exists());
+            fdb5::DaosName db_cont{pool_name, db_key.valuesToString()};
+            fdb5::DaosKeyValueOID cat_kv_oid{0, 0, OC_S1};  /// @todo: take oclass from config
+            fdb5::DaosKeyValueName cat_kv{pool_name, db_key.valuesToString(), cat_kv_oid};
+            EXPECT(db_cont.exists());
+            EXPECT(cat_kv.exists());
 
-        fdb5::Catalogue& cat = dcatw;
-        cat.selectIndex(index_key);
-        fdb5::DaosKeyValueOID index_kv_oid{index_key.valuesToString(), OC_S1};  /// @todo: take oclass from config
-        fdb5::DaosKeyValueName index_kv{pool_name, db_key.valuesToString(), index_kv_oid};
-        EXPECT(index_kv.exists());
-        EXPECT(cat_kv.has(index_key.valuesToString()));
+            fdb5::Catalogue& cat = dcatw;
+            cat.selectIndex(index_key);
+            fdb5::DaosKeyValueOID index_kv_oid{index_key.valuesToString(), OC_S1};  /// @todo: take oclass from config
+            fdb5::DaosKeyValueName index_kv{pool_name, db_key.valuesToString(), index_kv_oid};
+            EXPECT(index_kv.exists());
+            EXPECT(cat_kv.has(index_key.valuesToString()));
 
-        fdb5::CatalogueWriter& catw = dcatw;
-        catw.archive(field_key, loc.get());
-        EXPECT(index_kv.has(field_key.valuesToString()));
-        fdb5::DaosKeyValueOID e_axis_kv_oid{index_key.valuesToString() + std::string{".e"}, OC_S1};
-        fdb5::DaosKeyValueName e_axis_kv{pool_name, db_key.valuesToString(), e_axis_kv_oid};
-        EXPECT(e_axis_kv.exists());
-        EXPECT(e_axis_kv.has("5"));
-        fdb5::DaosKeyValueOID f_axis_kv_oid{index_key.valuesToString() + std::string{".f"}, OC_S1};
-        fdb5::DaosKeyValueName f_axis_kv{pool_name, db_key.valuesToString(), f_axis_kv_oid};
-        EXPECT(f_axis_kv.exists());
-        EXPECT(f_axis_kv.has("6"));
+            fdb5::CatalogueWriter& catw = dcatw;
+            catw.archive(field_key, loc.get());
+            EXPECT(index_kv.has(field_key.valuesToString()));
+            fdb5::DaosKeyValueOID e_axis_kv_oid{index_key.valuesToString() + std::string{".e"}, OC_S1};
+            fdb5::DaosKeyValueName e_axis_kv{pool_name, db_key.valuesToString(), e_axis_kv_oid};
+            EXPECT(e_axis_kv.exists());
+            EXPECT(e_axis_kv.has("5"));
+            fdb5::DaosKeyValueOID f_axis_kv_oid{index_key.valuesToString() + std::string{".f"}, OC_S1};
+            fdb5::DaosKeyValueName f_axis_kv{pool_name, db_key.valuesToString(), f_axis_kv_oid};
+            EXPECT(f_axis_kv.exists());
+            EXPECT(f_axis_kv.has("6"));
+        }
 
-//         // retrieve
-//         fdb5::Field field(loc.get(), std::time(nullptr));
-//         std::cout << "Read location: " << field.location() << std::endl;
-//         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-//         EXPECT(dynamic_cast<fdb5::DaosArrayHandle*>(dh.get()));
-    
-//         eckit::MemoryHandle mh;
-//         dh->copyTo(mh);
-//         EXPECT(mh.size() == eckit::Length(sizeof(data)));
-//         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
-//         //dh.reset();
-//         /// @todo: again, daos_fini happening before
+        // retrieve
+
+        {
+            fdb5::DaosCatalogueReader dcatr{db_key, config};
+
+            fdb5::Catalogue& cat = dcatr;
+            cat.selectIndex(index_key);
+
+            fdb5::Field f;
+            fdb5::CatalogueReader& catr = dcatr;
+            catr.retrieve(field_key, f);
+            EXPECT(f.location().uri().name() == loc->uri().name());
+            EXPECT(f.location().offset() == loc->offset());
+            EXPECT(f.location().length() == loc->length());
+        }
 
 //         // remove
 //         fdb5::DaosName field_name{field.location().uri()};
@@ -223,340 +234,445 @@ CASE("DaosCatalogue tests") {
 //         EXPECT_NOT(field_name.exists());
 //         EXPECT_NOT(store_name.exists());
 
-//         /// @todo: test that when I write multiple things in the same pool, things work as expected
+    }
 
-//         /// @todo: check that the URI is properly produced
+    SECTION("DaosCatalogue archive (index) and retrieve with a DaosStore") {
 
-//         /// @todo: assert a new DaosSession shows newly configured container_oids_per_alloc
+        // FDB configuration
+
+        std::string config_str{
+            "schema : " + schema_file().path() + "\n"
+            "daos:\n"
+            "  store:\n"
+            "    pool: " + pool_name + "\n"
+            "  catalogue:\n"
+            "    pool: " + pool_name + "\n"
+            "    root_cont: " + root_cont_name + "\n"
+            "  client:\n"
+            "    container_oids_per_alloc: " + std::to_string(container_oids_per_alloc)
+        };
+
+        fdb5::Config config{YAMLConfiguration(config_str)};
+
+        // schema
+
+        fdb5::Schema schema{schema_file()};
+
+        // request
+
+        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
+        fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key index_key{"c=3,d=4"};
+        fdb5::Key field_key{"e=5,f=6"};
+
+        // store data
+
+        char data[] = "test";
+
+        fdb5::DaosStore dstore{schema, db_key, config};
+        fdb5::Store& store = static_cast<fdb5::Store&>(dstore);
+        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        /// @todo: there are two cont create with label here
+        /// @todo: again, daos_fini happening before cont and pool close
+
+        // index data
+
+        {
+            fdb5::DaosCatalogueWriter dcatw{db_key, config};
+            fdb5::Catalogue& cat = dcatw;
+            cat.deselectIndex();
+            cat.selectIndex(index_key);
+            fdb5::CatalogueWriter& catw = dcatw;
+            catw.archive(field_key, loc.get());
+
+            /// flush store before flushing catalogue
+            dstore.flush();  // not necessary if using a DAOS store
+        }
+
+        // find data
+
+        fdb5::Field field;
+        {
+            fdb5::DaosCatalogueReader dcatr{db_key, config};
+            fdb5::Catalogue& cat = dcatr;
+            cat.selectIndex(index_key);
+            fdb5::CatalogueReader& catr = dcatr;
+            catr.retrieve(field_key, field);
+        }
+        std::cout << "Read location: " << field.location() << std::endl;
+
+        // retrieve data
+
+        std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
+        EXPECT(dynamic_cast<fdb5::DaosArrayHandle*>(dh.get()));
+    
+        eckit::MemoryHandle mh;
+        dh->copyTo(mh);
+        EXPECT(mh.size() == eckit::Length(sizeof(data)));
+        EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+
+        // remove data
+
+        fdb5::DaosName field_name{field.location().uri()};
+        fdb5::DaosName store_name{field_name.poolName(), field_name.contName()};
+        eckit::URI store_uri(store_name.URI());
+        std::ostream out(std::cout.rdbuf());
+        store.remove(store_uri, out, out, false);
+        EXPECT(field_name.exists());
+        store.remove(store_uri, out, out, true);
+        EXPECT_NOT(field_name.exists());
+        EXPECT_NOT(store_name.exists());
+
+        // deindex data
+
+        // {
+        //     fdb5::TocCatalogueWriter tcat{db_key, config};
+        //     fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
+        //     std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, db_key.request("retrieve"), out, true, false, false));
+        //     cat.visitEntries(*wv, store, false);
+        // }
+
+        /// @todo: again, daos_fini happening before
 
     }
 
-//     SECTION("with Catalogue") {
+    SECTION("DaosCatalogue archive (index) and retrieve with a TocStore") {
 
-//         // FDB configuration
+        // FDB configuration
 
-//         std::string config_str{
-//             "daos:\n"
-//             "  store:\n"
-//             "    pool: " + pool_name + "\n"
-//             "  client:\n"
-//             "    container_oids_per_alloc: " + std::to_string(container_oids_per_alloc)
-//         };
+        std::string config_str{
+            "schema : " + schema_file().path() + "\n"
+            "daos:\n"
+            "  catalogue:\n"
+            "    pool: " + pool_name + "\n"
+            "    root_cont: " + root_cont_name + "\n"
+            "  client:\n"
+            "    container_oids_per_alloc: " + std::to_string(container_oids_per_alloc)
+        };
 
-//         fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(config_str)};
 
-//         // schema
+        // schema
 
-//         fdb5::Schema schema{schema_file()};
+        fdb5::Schema schema{schema_file()};
 
-//         // request
+        // request
 
-//         fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-//         fdb5::Key db_key{"a=1,b=2"};
-//         fdb5::Key index_key{"c=3,d=4"};
-//         fdb5::Key field_key{"e=5,f=6"};
+        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
+        fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key index_key{"c=3,d=4"};
+        fdb5::Key field_key{"e=5,f=6"};
 
-//         // store data
+        // store data
 
-//         char data[] = "test";
+        char data[] = "test";
 
-//         fdb5::DaosStore dstore{schema, db_key, config};
-//         fdb5::Store& store = static_cast<fdb5::Store&>(dstore);
-//         std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
-//         /// @todo: there are two cont create with label here
-//         /// @todo: again, daos_fini happening before cont and pool close
+        fdb5::TocStore tstore{schema, db_key, config};
+        fdb5::Store& store = static_cast<fdb5::Store&>(tstore);
+        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        /// @todo: there are two cont create with label here
+        /// @todo: again, daos_fini happening before cont and pool close
 
-//         // index data
+        // index data
 
-//         {
-//             /// @todo: could have a unique ptr here, might not need a static cast
-//             fdb5::TocCatalogueWriter tcat{db_key, config};
-//             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
-//             cat.deselectIndex();
-//             cat.selectIndex(index_key);
-//             //const fdb5::Index& idx = tcat.currentIndex();
-//             static_cast<fdb5::CatalogueWriter&>(tcat).archive(field_key, loc.get());
-//         }
+        {
+            fdb5::DaosCatalogueWriter dcatw{db_key, config};
+            fdb5::Catalogue& cat = dcatw;
+            cat.deselectIndex();
+            cat.selectIndex(index_key);
+            fdb5::CatalogueWriter& catw = dcatw;
+            catw.archive(field_key, loc.get());
 
-//         // find data
+            /// flush store before flushing catalogue
+            tstore.flush();
+        }
 
-//         fdb5::Field field;
-//         {
-//             fdb5::TocCatalogueReader tcat{db_key, config};
-//             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
-//             cat.selectIndex(index_key);
-//             static_cast<fdb5::CatalogueReader&>(tcat).retrieve(field_key, field);
-//         }
-//         std::cout << "Read location: " << field.location() << std::endl;
+        // find data
 
-//         // retrieve data
+        fdb5::Field field;
+        {
+            fdb5::DaosCatalogueReader dcatr{db_key, config};
+            fdb5::Catalogue& cat = dcatr;
+            cat.selectIndex(index_key);
+            fdb5::CatalogueReader& catr = dcatr;
+            catr.retrieve(field_key, field);
+        }
+        std::cout << "Read location: " << field.location() << std::endl;
 
-//         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-//         EXPECT(dynamic_cast<fdb5::DaosArrayHandle*>(dh.get()));
+        // retrieve data
+
+        std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
     
-//         eckit::MemoryHandle mh;
-//         dh->copyTo(mh);
-//         EXPECT(mh.size() == eckit::Length(sizeof(data)));
-//         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
-//         //dh.reset();
+        std::vector<char> test(dh->size());
+        dh->openForRead();
+        {
+            eckit::AutoClose closer(*dh);
+            dh->read(&test[0], test.size() - 3);
+        }
+        eckit::MemoryHandle mh;
+        dh->copyTo(mh);
+        EXPECT(mh.size() == eckit::Length(sizeof(data)));
+        EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
 
-//         // remove data
+        // remove data
 
-//         fdb5::DaosName field_name{field.location().uri()};
-//         fdb5::DaosName store_name{field_name.poolName(), field_name.contName()};
-//         eckit::URI store_uri(store_name.URI());
-//         std::ostream out(std::cout.rdbuf());
-//         store.remove(store_uri, out, out, false);
-//         EXPECT(field_name.exists());
-//         store.remove(store_uri, out, out, true);
-//         EXPECT_NOT(field_name.exists());
-//         EXPECT_NOT(store_name.exists());
+        /// @todo: should DaosStore::remove accept full URIs to field arrays and remove the store container?
+        eckit::PathName store_path{field.location().uri().path()};
+        std::ostream out(std::cout.rdbuf());
+        store.remove(field.location().uri(), out, out, false);
+        EXPECT(store_path.exists());
+        store.remove(field.location().uri(), out, out, true);
+        EXPECT_NOT(store_path.exists());
 
-//         // deindex data
+        // deindex data
 
-//         {
-//             fdb5::TocCatalogueWriter tcat{db_key, config};
-//             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
-//             std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, db_key.request("retrieve"), out, true, false, false));
-//             cat.visitEntries(*wv, store, false);
-//         }
+        // {
+        //     fdb5::TocCatalogueWriter tcat{db_key, config};
+        //     fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
+        //     std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, db_key.request("retrieve"), out, true, false, false));
+        //     cat.visitEntries(*wv, store, false);
+        // }
 
-//         /// @todo: again, daos_fini happening before
+        /// @todo: again, daos_fini happening before
 
-//     }
+    }
 
-//     SECTION("VIA FDB API") {
+    SECTION("VIA FDB API with a DAOS catalogue and store") {
 
-//         // FDB configuration
+        // FDB configuration
 
-//         int container_oids_per_alloc_small = 100;
+        int container_oids_per_alloc_small = 100;
 
-//         std::string config_str{
-//             "type: local\n"
-//             "schema : " + schema_file().path() + "\n"
-//             "engine: toc\n"
-//             "store: daos\n"
-//             "daos:\n"
-//             "  store:\n"
-//             "    pool: " + pool_name + "\n"
-//             "  client:\n"
-//             "    container_oids_per_alloc: " + std::to_string(container_oids_per_alloc_small)
-//         };
+        std::string config_str{
+            "type: local\n"
+            "schema : " + schema_file().path() + "\n"
+            "engine: daos\n"
+            "store: daos\n"
+            "daos:\n"
+            "  catalogue:\n"
+            "    pool: " + pool_name + "\n"
+            "    root_cont: " + root_cont_name + "\n"
+            "  store:\n"
+            "    pool: " + pool_name + "\n"
+            "  client:\n"
+            "    container_oids_per_alloc: " + std::to_string(container_oids_per_alloc_small)
+        };
 
-//         fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(config_str)};
 
-//         // request
+        // request
 
-//         fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-//         fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
-//         fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
+        fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
+        fdb5::Key db_key{"a=1,b=2"};
 
-//         fdb5::FDBToolRequest full_req{
-//             request_key.request("retrieve"), 
-//             false, 
-//             std::vector<std::string>{"a", "b"}
-//         };
-//         fdb5::FDBToolRequest index_req{
-//             index_key.request("retrieve"), 
-//             false, 
-//             std::vector<std::string>{"a", "b"}
-//         };
-//         fdb5::FDBToolRequest db_req{
-//             db_key.request("retrieve"), 
-//             false, 
-//             std::vector<std::string>{"a", "b"}
-//         };
+        fdb5::FDBToolRequest full_req{
+            request_key.request("retrieve"), 
+            false, 
+            std::vector<std::string>{"a", "b"}
+        };
+        fdb5::FDBToolRequest index_req{
+            index_key.request("retrieve"), 
+            false, 
+            std::vector<std::string>{"a", "b"}
+        };
+        fdb5::FDBToolRequest db_req{
+            db_key.request("retrieve"), 
+            false, 
+            std::vector<std::string>{"a", "b"}
+        };
 
-//         // initialise store
+        // initialise store
 
-//         fdb5::FDB fdb(config);
+        fdb5::FDB fdb(config);
 
-//         // check store is empty
+        // check store is empty
 
-//         size_t count;
-//         fdb5::ListElement info;
+        // size_t count;
+        // fdb5::ListElement info;
 
-//         /// @todo: here, DaosManager is being configured with DAOS client config passed to FDB instance constructor.
-//         //   It happens in EntryVisitMechanism::visit when calling DB::open. Is this OK, or should this configuring
-//         //   rather happen as part of transforming a FieldLocation into a DataHandle? It is probably OK. One thing
-//         //   is to configure the DAOS client and the other thing is to initialise it.
-//         auto listObject = fdb.list(db_req);
+        // /// @todo: here, DaosManager is being configured with DAOS client config passed to FDB instance constructor.
+        // //   It happens in EntryVisitMechanism::visit when calling DB::open. Is this OK, or should this configuring
+        // //   rather happen as part of transforming a FieldLocation into a DataHandle? It is probably OK. One thing
+        // //   is to configure the DAOS client and the other thing is to initialise it.
+        // auto listObject = fdb.list(db_req);
 
-//         count = 0;
-//         while (listObject.next(info)) {
-//             info.print(std::cout, true, true);
-//             std::cout << std::endl;
-//             ++count;
-//         }
-//         EXPECT(count == 0);
+        // count = 0;
+        // while (listObject.next(info)) {
+        //     info.print(std::cout, true, true);
+        //     std::cout << std::endl;
+        //     ++count;
+        // }
+        // EXPECT(count == 0);
 
-//         // store data
+        // store data
 
-//         char data[] = "test";
+        char data[] = "test";
 
-//         /// @todo: here, DaosManager is being reconfigured with identical config, and it happens again multiple times below.
-//         //   Should this be avoided?
-//         fdb.archive(request_key, data, sizeof(data));
-//         fdb.flush();
+        /// @todo: here, DaosManager is being reconfigured with identical config, and it happens again multiple times below.
+        //   Should this be avoided?
+        fdb.archive(request_key, data, sizeof(data));
 
-//         // retrieve data
+        fdb.flush();
 
-//         std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(request_key.request("retrieve")));
+        // retrieve data
+
+        std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(request_key.request("retrieve")));
     
-//         eckit::MemoryHandle mh;
-//         dh->copyTo(mh);
-//         EXPECT(mh.size() == eckit::Length(sizeof(data)));
-//         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
-//         //dh.reset();
+        eckit::MemoryHandle mh;
+        dh->copyTo(mh);
+        EXPECT(mh.size() == eckit::Length(sizeof(data)));
+        EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
 
-//         // wipe data
+        // // wipe data
 
-//         fdb5::WipeElement elem;
+        // fdb5::WipeElement elem;
 
-//         // dry run attempt to wipe with too specific request
+        // // dry run attempt to wipe with too specific request
 
-//         auto wipeObject = fdb.wipe(full_req);
-//         count = 0;
-//         while (wipeObject.next(elem)) count++;
-//         EXPECT(count == 0);
+        // auto wipeObject = fdb.wipe(full_req);
+        // count = 0;
+        // while (wipeObject.next(elem)) count++;
+        // EXPECT(count == 0);
 
-//         // dry run wipe index and store unit
-//         wipeObject = fdb.wipe(index_req);
-//         count = 0;
-//         while (wipeObject.next(elem)) count++;
-//         EXPECT(count > 0);
+        // // dry run wipe index and store unit
+        // wipeObject = fdb.wipe(index_req);
+        // count = 0;
+        // while (wipeObject.next(elem)) count++;
+        // EXPECT(count > 0);
 
-//         // dry run wipe database
-//         wipeObject = fdb.wipe(db_req);
-//         count = 0;
-//         while (wipeObject.next(elem)) count++;
-//         EXPECT(count > 0);
+        // // dry run wipe database
+        // wipeObject = fdb.wipe(db_req);
+        // count = 0;
+        // while (wipeObject.next(elem)) count++;
+        // EXPECT(count > 0);
 
-//         // ensure field still exists
-//         listObject = fdb.list(full_req);
-//         count = 0;
-//         while (listObject.next(info)) {
-//             // info.print(std::cout, true, true);
-//             // std::cout << std::endl;
-//             count++;
-//         }
-//         EXPECT(count == 1);
+        // // ensure field still exists
+        // listObject = fdb.list(full_req);
+        // count = 0;
+        // while (listObject.next(info)) {
+        //     // info.print(std::cout, true, true);
+        //     // std::cout << std::endl;
+        //     count++;
+        // }
+        // EXPECT(count == 1);
 
-//         // attempt to wipe with too specific request
-//         wipeObject = fdb.wipe(full_req, true);
-//         count = 0;
-//         while (wipeObject.next(elem)) count++;
-//         EXPECT(count == 0);
-//         /// @todo: really needed?
-//         fdb.flush();
+        // // attempt to wipe with too specific request
+        // wipeObject = fdb.wipe(full_req, true);
+        // count = 0;
+        // while (wipeObject.next(elem)) count++;
+        // EXPECT(count == 0);
+        // /// @todo: really needed?
+        // fdb.flush();
 
-//         // wipe index and store unit
-//         wipeObject = fdb.wipe(index_req, true);
-//         count = 0;
-//         while (wipeObject.next(elem)) count++;
-//         EXPECT(count > 0);
-//         /// @todo: really needed?
-//         fdb.flush();
+        // // wipe index and store unit
+        // wipeObject = fdb.wipe(index_req, true);
+        // count = 0;
+        // while (wipeObject.next(elem)) count++;
+        // EXPECT(count > 0);
+        // /// @todo: really needed?
+        // fdb.flush();
 
-//         // ensure field does not exist
-//         listObject = fdb.list(full_req);
-//         count = 0;
-//         while (listObject.next(info)) count++;
-//         EXPECT(count == 0);
+        // // ensure field does not exist
+        // listObject = fdb.list(full_req);
+        // count = 0;
+        // while (listObject.next(info)) count++;
+        // EXPECT(count == 0);
 
-//         /// @todo: ensure index and corresponding container do not exist
-//         /// @todo: ensure DB still exists
-//         /// @todo: list db or index and expect count = 0?
+        // /// @todo: ensure index and corresponding container do not exist
+        // /// @todo: ensure DB still exists
+        // /// @todo: list db or index and expect count = 0?
 
-//         /// @todo: ensure new DaosSession has updated daos client config
+        // /// @todo: ensure new DaosSession has updated daos client config
 
-//     }
+    }
 
-//     /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
-//     // archive() fails as it expects a toc file to exist, but it has been removed by previous wipe
-//     SECTION("FDB API RE-STORE AND WIPE DB") {
+    // /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
+    // // archive() fails as it expects a toc file to exist, but it has been removed by previous wipe
+    // SECTION("FDB API RE-STORE AND WIPE DB") {
 
-//         // FDB configuration
+    //     // FDB configuration
 
-//         std::string config_str{
-//             "type: local\n"
-//             "schema : " + schema_file().path() + "\n"
-//             "engine: toc\n"
-//             "store: daos\n"
-//             "daos:\n"
-//             "  store:\n"
-//             "    pool: " + pool_name + "\n"
-//             "  client:\n"
-//             "    container_oids_per_alloc: " + std::to_string(container_oids_per_alloc)
-//         };
+    //     std::string config_str{
+    //         "type: local\n"
+    //         "schema : " + schema_file().path() + "\n"
+    //         "engine: toc\n"
+    //         "store: daos\n"
+    //         "daos:\n"
+    //         "  store:\n"
+    //         "    pool: " + pool_name + "\n"
+    //         "  client:\n"
+    //         "    container_oids_per_alloc: " + std::to_string(container_oids_per_alloc)
+    //     };
 
-//         fdb5::Config config{YAMLConfiguration(config_str)};
+    //     fdb5::Config config{YAMLConfiguration(config_str)};
 
-//         // request
+    //     // request
 
-//         fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-//         fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
-//         fdb5::Key db_key{"a=1,b=2"};
+    //     fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
+    //     fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
+    //     fdb5::Key db_key{"a=1,b=2"};
 
-//         fdb5::FDBToolRequest full_req{
-//             request_key.request("retrieve"), 
-//             false, 
-//             std::vector<std::string>{"a", "b"}
-//         };
-//         fdb5::FDBToolRequest index_req{
-//             index_key.request("retrieve"), 
-//             false, 
-//             std::vector<std::string>{"a", "b"}
-//         };
-//         fdb5::FDBToolRequest db_req{
-//             db_key.request("retrieve"), 
-//             false, 
-//             std::vector<std::string>{"a", "b"}
-//         };
+    //     fdb5::FDBToolRequest full_req{
+    //         request_key.request("retrieve"), 
+    //         false, 
+    //         std::vector<std::string>{"a", "b"}
+    //     };
+    //     fdb5::FDBToolRequest index_req{
+    //         index_key.request("retrieve"), 
+    //         false, 
+    //         std::vector<std::string>{"a", "b"}
+    //     };
+    //     fdb5::FDBToolRequest db_req{
+    //         db_key.request("retrieve"), 
+    //         false, 
+    //         std::vector<std::string>{"a", "b"}
+    //     };
 
-//         // initialise store
+    //     // initialise store
 
-//         fdb5::FDB fdb(config);
+    //     fdb5::FDB fdb(config);
 
-//         // store again
+    //     // store again
 
-//         char data[] = "test";
+    //     char data[] = "test";
 
-//         fdb.archive(request_key, data, sizeof(data));
-//         fdb.flush();
+    //     fdb.archive(request_key, data, sizeof(data));
 
-//         size_t count;
+    //     fdb.flush();
+
+    //     size_t count;
         
-//         // wipe all database
+    //     // wipe all database
 
-//         fdb5::WipeElement elem;
-//         auto wipeObject = fdb.wipe(db_req, true);
-//         count = 0;
-//         while (wipeObject.next(elem)) count++;
-//         EXPECT(count > 0);
-//         /// @todo: really needed?
-//         fdb.flush();
+    //     fdb5::WipeElement elem;
+    //     auto wipeObject = fdb.wipe(db_req, true);
+    //     count = 0;
+    //     while (wipeObject.next(elem)) count++;
+    //     EXPECT(count > 0);
+    //     /// @todo: really needed?
+    //     fdb.flush();
 
-//         // ensure field does not exist
+    //     // ensure field does not exist
 
-//         fdb5::ListElement info;
-//         auto listObject = fdb.list(full_req);
-//         count = 0;
-//         while (listObject.next(info)) {
-//             // info.print(std::cout, true, true);
-//             // std::cout << std::endl;
-//             count++;
-//         }
-//         EXPECT(count == 0);
+    //     fdb5::ListElement info;
+    //     auto listObject = fdb.list(full_req);
+    //     count = 0;
+    //     while (listObject.next(info)) {
+    //         // info.print(std::cout, true, true);
+    //         // std::cout << std::endl;
+    //         count++;
+    //     }
+    //     EXPECT(count == 0);
 
-//         /// @todo: ensure DB and corresponding pool do not exist
+    //     /// @todo: ensure DB and corresponding pool do not exist
 
-//     }
+    // }
 
     // teardown daos
 
-    // AutoPoolDestroy is not possible here because the pool is 
-    // created above with an ephemeral session
+    /// AutoPoolDestroy is not possible here because the pool is 
+    /// created above with an ephemeral session
     fdb5::DaosSession().getPool(pool_uuid, pool_name).destroy();
 
 }

@@ -9,7 +9,7 @@
  */
 
 /// @author Nicolau Manubens
-/// @date Feb 2022
+/// @date Feb 2023
 
 #pragma once
 
@@ -19,8 +19,7 @@
 // #include "fdb5/toc/TocRecord.h"
 
 #include "fdb5/daos/DaosCatalogue.h"
-#include "fdb5/daos/DaosSession.h"
-#include "fdb5/daos/DaosPool.h"
+
 // #include "fdb5/toc/TocSerialisationVersion.h"
 
 namespace fdb5 {
@@ -39,7 +38,7 @@ public: // methods
     DaosCatalogueWriter(const Key &key, const fdb5::Config& config);
     DaosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
 
-//     virtual ~DaosCatalogueWriter() override;
+    virtual ~DaosCatalogueWriter() override;
 
 //     /// Used for adopting & indexing external data to the TOC dir
     void index(const Key &key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) override { NOTIMP; };
@@ -65,7 +64,7 @@ protected: // methods
     virtual bool selectIndex(const Key &key) override;
     virtual void deselectIndex() override;
 
-    bool open() override { NOTIMP; };
+    bool open() override { NOTIMP; }
     void flush() override;
     void clean() override;
     void close() override;
@@ -73,7 +72,7 @@ protected: // methods
     void archive(const Key& key, const FieldLocation* fieldLocation) override;
 //     void reconsolidateIndexesAndTocs();
 
-    virtual void print( std::ostream &out ) const override { NOTIMP; };
+    virtual void print( std::ostream &out ) const override { NOTIMP; }
 
 private: // methods
 

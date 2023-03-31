@@ -16,7 +16,7 @@
 #include "fdb5/database/DB.h"
 // #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
-// #include "fdb5/toc/TocEngine.h"
+#include "fdb5/daos/DaosEngine.h"
 #include "fdb5/daos/DaosOID.h"
 
 namespace fdb5 {
@@ -35,11 +35,11 @@ public: // methods
 
     // ~DaosCatalogue() override {}
 
-    // static const char* catalogueTypeName() { return DaosEngine::typeName(); }
+    static const char* catalogueTypeName() { return fdb5::DaosEngine::typeName(); }
     
 //     const eckit::PathName& basePath() const override;
     eckit::URI uri() const override { NOTIMP; };
-//     const Key& indexKey() const override { return currentIndexKey_; }
+    const Key& indexKey() const override { return currentIndexKey_; }
 
 //     static void remove(const eckit::PathName& path, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
 
@@ -52,14 +52,14 @@ public: // methods
 
 //     //TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config);
 
-    std::string type() const override { NOTIMP; };
+    std::string type() const override;
 
     void checkUID() const override { NOTIMP; };
-    bool exists() const override { NOTIMP; };
+    bool exists() const override;
     void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) override { NOTIMP; };
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override { NOTIMP; };
     std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; };
-    const Schema& schema() const override { NOTIMP; };
+    const Schema& schema() const override;
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; };
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; };
