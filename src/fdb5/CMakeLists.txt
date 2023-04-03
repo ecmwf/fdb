@@ -453,7 +453,7 @@ ecbuild_add_executable( TARGET    grib2fdb5
                         LIBS      fdb5 )
 
 ecbuild_add_executable(
-        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_FDB_REMOTE
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_FDB_REMOTE AND eckit_HAVE_ECKIT_CMD
         TARGET fdb-monitor
         SOURCES remote/fdb-monitor.cc
         LIBS eckit eckit_cmd )
