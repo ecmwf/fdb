@@ -34,6 +34,7 @@ Example 1
 
 You may pass multiple grib files. The tool will insert them sequentially.
 ::  
+
   % grib2fdb -f data.grib
   Processing data.grib
   Key {}
@@ -45,6 +46,7 @@ Example 2
 
 Check that the supplied keys match
 ::
+  
   % grib2fdb -c rd -e xxxx -T an -s oper -f data.grib
   Processing data.grib
   Key {class=rd,expver=xxxx,type=an,stream=oper}

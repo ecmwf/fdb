@@ -35,6 +35,7 @@ Example
 
 Given a MARS request, find the location of the given FDB database.
 ::
+  
   % fdb-where class=od,expver=0001,stream=oper,date=20151004,time=1200,domain=g
   /data/fdb/od:0001:oper:20151004:1200:g
 

@@ -43,6 +43,7 @@ Pass the location of a database in to report on the extent of duplication of fie
 
 If required, the location can be obtained using the fdb-root command.
 ::
+
   % du -sh /data/fdb/od\:0001\:oper\:20160907\:1200\:g/
   209M    /data/fdb/od:0001:oper:20160907:1200:g/
 
@@ -74,6 +75,7 @@ Example 2
 
 Additionally pass the --doit flag to delete the duplicates.
 ::  
+  
   % du -sh /data/fdb/od\:0001\:oper\:20160907\:1200\:g/
   209M    /data/fdb/od:0001:oper:20160907:1200:g/
 

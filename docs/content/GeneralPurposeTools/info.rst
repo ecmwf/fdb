@@ -28,6 +28,7 @@ Example
 
 Get all information snippets
 ::
+
   % fdb-info --all
   Version: 5.4.0
   Home: /home/ma/fdbprod
@@ -36,20 +37,24 @@ Get all information snippets
 
 Get version information in an easily parsable form, for possible use in shell scripts.
 ::
+
   % fdb-info --version
   7.8.0
 
 Get location of FDB home configuration in an easily parsable form:
 ::
+
   % fdb-info --home
   /home/ma/fdbprod
 
 Get location of FDB schema file in an easily parsable form:
 ::
+
   % fdb-info --schema
   /home/ma/fdbprod/etc/fdb/schema
 
 Get location of current FDB configuration file in an easily parsable form:
 ::
+  
   % fdb-info --config
   /home/ma/mass/testcases/fdb5/fdb5_simple.yaml

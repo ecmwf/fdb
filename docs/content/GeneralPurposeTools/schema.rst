@@ -16,6 +16,7 @@ Example 1
 
 Output the schema associated with the currently configured FDB:
 ::
+
   % fdb-schema
   date:Date;
   ...
@@ -28,6 +29,7 @@ Example 2
 
 Parse and print the schema associated with a specific schema file. Useful for checking schema validity.
 ::
+  
   % fdb-schema /home/ma/fdbprod/etc/schema
   date:Date;
   ...

@@ -50,6 +50,7 @@ Example
 
 fdb list example
 ::
+  
   % fdb list class="od",stream=oper,date=20151004
   {class=od,expver=0001,stream=oper,date=20151004,time=1200,domain=g}{type=an,levtype=pl}{step=0,levelist=700,param=155}
   {class=od,expver=0001,stream=oper,date=20151004,time=1200,domain=g}{type=an,levtype=pl}{step=0,levelist=850,param=129}
