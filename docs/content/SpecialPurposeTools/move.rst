@@ -27,7 +27,7 @@ Database request must match exactly one database.
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 
 Example
-=======
+-------
 
 This tool is non-destructive (it only copies data), but it affects the status of the source DB by applying locks.
 ::

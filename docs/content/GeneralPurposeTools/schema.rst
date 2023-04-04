@@ -9,8 +9,6 @@ Usage
 
 ``fdb-schema path/to/schema``
 
-Examples
-========
 Example 1
 ---------
 

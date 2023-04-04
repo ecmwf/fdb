@@ -21,12 +21,12 @@ sys.path.append(os.path.abspath("../tests"))
 # -- Run Doxygen -------------------------------------------------------------
 
 # Generate Doxygen documentation in the XML format.
-assert subprocess.check_call("doxygen Doxyfile.in", stdout=subprocess.DEVNULL, shell=True) == 0
+#assert subprocess.check_call("doxygen Doxyfile.in", stdout=subprocess.DEVNULL, shell=True) == 0
 
 
 # -- Project information -----------------------------------------------------
 
-project = "odc"
+project = "fdb"
 author = "ECMWF"
 
 year = datetime.datetime.now().year
@@ -102,8 +102,8 @@ html_show_sphinx = False
 
 # -- Breathe configuration ---------------------------------------------------
 
-breathe_projects = {"odc": "_build/xml/"}
-breathe_default_project = "odc"
+breathe_projects = {"fdb": "_build/xml/"}
+breathe_default_project = "fdb"
 breathe_domain_by_file_pattern = {
     "*/odc.h": "c",
     "*/Odb.h": "cpp",

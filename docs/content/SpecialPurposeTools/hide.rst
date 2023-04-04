@@ -22,7 +22,7 @@ Database request must match exactly one database.
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 
 Example
-=======
+-------
 
 This tool is non-destructive by default (only indicates the changes that will be made)
 ::

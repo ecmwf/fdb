@@ -14,7 +14,7 @@ Options
 None
 
 Examples
-========
+--------
 
 Example 1
 ---------

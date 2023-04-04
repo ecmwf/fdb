@@ -34,7 +34,7 @@ At least one of class or expver is required is required
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 
 Example
-=======
+-------
 
 You may pass a partial request (as a key) that will list all the field in the FDB that match that key.
 

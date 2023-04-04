@@ -1,7 +1,8 @@
-Welcome to odc’s documentation!
+Welcome to fbd's documentation!
 ===============================
 
-C, C++ and Fortran libraries providing encoders and decoders and interrogation of meteorological data encoded in ODB-2 format as well as command line tools for investigation and manipulation of ODB-2 data.
+FDB (Fields DataBase) is a domain-specific object store developed at ECMWF for storing, indexing and retrieving GRIB data. Each GRIB message is stored as a field and indexed trough semantic metadata (i.e. physical variables such as temperature, pressure, ...).
+A set of fields can be retrieved specifying a request using a specific language developed for accessing MARS Archive.
 
 
 .. index:: Contents
@@ -12,10 +13,9 @@ C, C++ and Fortran libraries providing encoders and decoders and interrogation o
 
    content/introduction
    content/installation
-   content/implementation
-   content/usage-examples
-   content/tools
+   content/requirements
    content/reference
-   content/development
-   content/licence
+   content/tools
+   content/config-schema
+   content/license
    genindex

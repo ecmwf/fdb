@@ -31,7 +31,7 @@ Options
 
 
 Example
-=======
+-------
 
 Given a MARS request, find the location of the given FDB database.
 ::
