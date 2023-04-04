@@ -27,7 +27,6 @@ At least one of class or expver is required is required
 |                                        | | Currently the code that sets values on the GRIB messages only supports string values. If the set of               |
 |                                        | | keys is extended, the user must ensure that only string type keys are used.                                       |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
-<<<<<<< HEAD
 | ``--config=string``                    | FDB configuration filename                                                                                          |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 
@@ -36,37 +35,14 @@ Example
 
 Add overlay
 ::
-<<<<<<<< HEAD:docs/content/SpecialPurposeTools/overlay.rst
 
   % fdb overlay class=rd,expver=xxxx,stream=oper,date=20160907,time=0000 class=rd,expver=xxxz,stream=oper,date=20160907,time=0000
-========
-  % fdb-overlay class=rd,expver=xxxx,stream=oper,date=20160907,time=0000 class=rd,expver=xxxz,stream=oper,date=20160907,time=0000
->>>>>>>> c7a78c9a (docs structure from odc):docs/SpecialPurposeTools/overlay.rst
-=======
-
-Example
-=======
-
-Add overlay
-::
-
-  % fdb-overlay class=rd,expver=xxxx,stream=oper,date=20160907,time=0000 class=rd,expver=xxxz,stream=oper,date=20160907,time=0000
->>>>>>> c7a78c9a (docs structure from odc)
   Applying {class=rd,expver=xxxx,stream=oper,date=20160907,time=0000,domain=g} (Rule[line=127]) onto {class=rd,expver=xxxz,stream=oper,date=20160907,time=0000,domain=g} (Rule[line=127])
 
 This overlay can be removed
 ::
-<<<<<<< HEAD
-<<<<<<<< HEAD:docs/content/SpecialPurposeTools/overlay.rst
   
   % fdb overlay --remove class=rd,expver=xxxx,stream=oper,date=20160907,time=0000 class=rd,expver=xxxz,stream=oper,date=20160907,time=0000
-========
-  % fdb-overlay --remove class=rd,expver=xxxx,stream=oper,date=20160907,time=0000 class=rd,expver=xxxz,stream=oper,date=20160907,time=0000
->>>>>>>> c7a78c9a (docs structure from odc):docs/SpecialPurposeTools/overlay.rst
-=======
-  
-  % fdb-overlay --remove class=rd,expver=xxxx,stream=oper,date=20160907,time=0000 class=rd,expver=xxxz,stream=oper,date=20160907,time=0000
->>>>>>> c7a78c9a (docs structure from odc)
   Removing {class=rd,expver=xxxx,stream=oper,date=20160907,time=0000,domain=g} (Rule[line=127]) from {class=rd,expver=xxxz,stream=oper,date=20160907,time=0000,domain=g} (Rule[line=127])
 
 
