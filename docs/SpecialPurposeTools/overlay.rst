@@ -33,11 +33,13 @@ Example
 
 Add overlay
 ::
+
   % fdb-overlay class=rd,expver=xxxx,stream=oper,date=20160907,time=0000 class=rd,expver=xxxz,stream=oper,date=20160907,time=0000
   Applying {class=rd,expver=xxxx,stream=oper,date=20160907,time=0000,domain=g} (Rule[line=127]) onto {class=rd,expver=xxxz,stream=oper,date=20160907,time=0000,domain=g} (Rule[line=127])
 
 This overlay can be removed
 ::
+  
   % fdb-overlay --remove class=rd,expver=xxxx,stream=oper,date=20160907,time=0000 class=rd,expver=xxxz,stream=oper,date=20160907,time=0000
   Removing {class=rd,expver=xxxx,stream=oper,date=20160907,time=0000,domain=g} (Rule[line=127]) from {class=rd,expver=xxxz,stream=oper,date=20160907,time=0000,domain=g} (Rule[line=127])
 

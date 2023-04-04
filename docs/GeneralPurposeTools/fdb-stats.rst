@@ -35,6 +35,7 @@ Example 1
 You may pass a partial request (as a key) that will print information on all FDB databases that match that key.
 
 ::
+
   % fdb-stats class=od,expver=0001,stream=oper,date=20151001
   ...
   Scanning /data/mars_p_d17_d17_1_15/fdb/od:0001:oper:20151001:1200:g
@@ -68,6 +69,7 @@ Example 2
 The --details flag prints a report per database that is visited, as well as the overall summary
 
 ::
+  
   % fdb-stats class=od,expver=0001
   ...
   Scanning /data/fdb/od:0001:oper:20151003:1200:g

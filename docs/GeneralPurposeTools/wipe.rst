@@ -46,6 +46,7 @@ Example 1
 
 List data for deletion according to a specified key
 ::
+
   % fdb-wipe class=rd,expver=wxyz,stream=oper,date=20151004,time=1200
 
   Wiping for request
@@ -78,6 +79,7 @@ Example 2
 
 And actually delete the data listed in example 1
 ::
+
   % fdb-wipe --doit class=rd,expver=wxyz,stream=oper,date=20151004,time=1200
 
   Wiping for request
@@ -117,6 +119,7 @@ The same example as before, but specifying a smaller sub-set of keys:
 
 Use --minimum-keys with caution! Setting --minimum-keys=class is a BAD IDEA! You risk deleting the whole FDB.
 ::
+  
   % fdb-wipe --doit --minimum-keys=class,expver class=rd,expver=wxyz
 
   Wiping for request

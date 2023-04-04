@@ -11,7 +11,7 @@ Usage
 ``fdb-patch [options] [request1]``
 
 Options
-------
+-------
 
 At least one of class or expver is required is required
 
@@ -40,6 +40,7 @@ You may pass a partial request (as a key) that will list all the field in the FD
 
 Note that this is a global search through all the databases of the FDB that match this key.
 ::
+  
   % fdb-patch --expver=xxxz class=rd,expver=xxxx,stream=oper,date=20160907,time=1200/0000,domain=g
   Compress handle: 0.0001 second elapsed, 0.0001 second cpu
   FDB archive 12 fields, size 37.5412 Mbytes, in 0.279314 second (134.403 Mbytes per second)

@@ -30,6 +30,7 @@ Example 1
 ---------
 Pass a partial request (as a key), to dump the contents of all databases in the FDB that match that key.
 ::
+
   % fdb-dump class=od,stream=oper
 
   TOC_INIT  2017-01-05 10:16:44.036480, version:1, fdb: 70700, uid: mass, pid 1367 , host: glados
@@ -60,6 +61,7 @@ Example 2
 ---------
 The --simple option provides a more concise output.
 ::
+
   % fdb-dump --simple class=od,expver=0001
   TOC_INIT  2017-01-05 10:16:44.059914, version:1, fdb: 70700, uid: mass, pid 1367 , host: glados  Key: {class=od,expver=0001,stream=oper,date=20160907,time=1200,domain=g}
   TOC_INDEX 2017-01-05 10:16:44.095547, version:1, fdb: 70700, uid: mass, pid 1367 , host: glados  Path: an:pl.20170105.101644.glados.5871220293636.index, offset: 0, type: BTreeIndex  Prefix: an:pl, key: {type=an,levtype=pl}
@@ -69,6 +71,7 @@ Example 3
 ---------
 The --all option visits all available entries
 ::
+  
   % fdb-dump --simple --all
   TOC_INIT  2017-01-05 10:16:44.059914, version:1, fdb: 70700, uid: mass, pid 1367 , host: glados  Key: {class=od,expver=0001,stream=oper,date=20160907,time=1200,domain=g}
   TOC_INDEX 2017-01-05 10:16:44.095547, version:1, fdb: 70700, uid: mass, pid 1367 , host: glados  Path: an:pl.20170105.101644.glados.5871220293636.index, offset: 0, type: BTreeIndex  Prefix: an:pl, key: {type=an,levtype=pl}

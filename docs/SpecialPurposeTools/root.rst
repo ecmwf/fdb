@@ -25,6 +25,7 @@ Example 1
 
 Pass a partial request (as a key) to list the location of the database (if found).
 ::
+
   % fdb-root class=od,expver=0001,stream=oper,date=20160907,time=1200
 
   {class=od,expver=0001,stream=oper,date=20160907,time=1200,domain=g} (Rule[line=128])
@@ -37,6 +38,7 @@ Pass a partial request (as a key) to create the location of the database. 
 
 Note that the supplied keys must be sufficient to identify the database. This supposes some knowledge of the way the internal schema is organised, and therefore should not be used for operational purposes.
 ::
+  
   % fdb-root --create class=od,expver=0001,stream=oper,date=20160907,time=1200
 
   {class=od,expver=0001,stream=oper,date=20160907,time=1200,domain=g} (Rule[line=128])

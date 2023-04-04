@@ -9,8 +9,6 @@ A set of fields can be retrieved specifying a request using a specific language 
 
 FDB exposes a C++ API as well as CLI tools_. 
 
-FDB uses a config file and schema with more infomration found here config-schema_
-
 
 Requirements
 ============
@@ -111,4 +109,3 @@ In the following the two BibTeX snippets:
 
 .. _mars: mars.rst
 .. _tools: tools.rst
-.. _config-schema: config-schema.rst

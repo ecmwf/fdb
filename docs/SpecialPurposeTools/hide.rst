@@ -26,11 +26,13 @@ Example
 
 This tool is non-destructive by default (only indicates the changes that will be made)
 ::
+
   % fdb-hide class=rd,expver=xxxx,stream=oper,date=20160907,time=0000,domain=g
   Hide contents of DB: TocDBReader(/var/tmp/mass/fdb5/root/rd:xxxx:oper:20160907:0000:g)
   Run with --doit to make changes
 
 These changes can then be made permanent
 ::
+  
   % fdb-hide --doit class=rd,expver=xxxx,stream=oper,date=20160907,time=0000,domain=g
   Hide contents of DB: TocDBReader(/var/tmp/mass/fdb5/root/rd:xxxx:oper:20160907:0000:g)
