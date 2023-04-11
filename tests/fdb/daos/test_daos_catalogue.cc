@@ -437,7 +437,7 @@ CASE("DaosCatalogue tests") {
 
     }
 
-    SECTION("VIA FDB API with a DAOS catalogue and store") {
+    SECTION("Via FDB API with a DAOS catalogue and store") {
 
         // FDB configuration
 

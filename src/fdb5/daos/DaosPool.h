@@ -21,6 +21,8 @@
 
 #include "fdb5/daos/DaosContainer.h"
 
+#include "fdb5/fdb5_config.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -34,8 +36,10 @@ public: // methods
     DaosPool(DaosPool&&) noexcept;
     ~DaosPool();
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
     // administrative
     void destroy(const int& force = 1);
+#endif
 
     void open();
     void close();
@@ -75,7 +79,9 @@ private: // methods
     DaosPool(fdb5::DaosSession&, const std::string&);
     DaosPool(fdb5::DaosSession&, uuid_t, const std::string&);
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
     void create(const uint64_t& scmSize, const uint64_t& nvmeSize);
+#endif
 
     fdb5::DaosContainer& getContainer(uuid_t, bool);
     fdb5::DaosContainer& getContainer(const std::string&, bool);
@@ -99,6 +105,7 @@ private: // members
 
 };
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
 class AutoPoolDestroy {
 
 public: // methods
@@ -129,6 +136,7 @@ private: // members
     fdb5::DaosPool& pool_;
 
 };
+#endif
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -166,6 +166,7 @@ DaosPool& DaosSession::getPool(uuid_t uuid, const std::string& label) {
 
 }
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
 fdb5::DaosPool& DaosSession::createPool(const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
     pool_cache_.push_front(fdb5::DaosPool(*this));
@@ -205,6 +206,7 @@ void DaosSession::closePool(uuid_t uuid) {
     }
 
 }
+#endif
 
 void DaosSession::destroyPoolContainers(uuid_t uuid) {
 

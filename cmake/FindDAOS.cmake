@@ -72,6 +72,32 @@ find_library(GURT_LIBRARY
     PATH_SUFFIXES lib lib64
 )
 
+# daos tests
+
+find_path(DAOS_TESTS_INCLUDE_DIR
+    NAMES daos/tests_lib.h
+    HINTS
+        ${DAOS_ROOT}
+        ${DAOS_DIR}
+        ${DAOS_PATH}
+        ENV DAOS_ROOT
+        ENV DAOS_DIR
+        ENV DAOS_PATH
+    PATH_SUFFIXES include
+)
+
+find_library(DAOS_TESTS_LIBRARY
+    NAMES daos_tests
+    HINTS
+        ${DAOS_ROOT}
+        ${DAOS_DIR}
+        ${DAOS_PATH}
+        ENV DAOS_ROOT
+        ENV DAOS_DIR
+        ENV DAOS_PATH
+    PATH_SUFFIXES lib lib64
+)
+
 find_package_handle_standard_args(
     DAOS
     DEFAULT_MSG
@@ -97,5 +123,21 @@ if(DAOS_FOUND)
     set_target_properties(gurt PROPERTIES
         IMPORTED_LOCATION ${GURT_LIBRARY}
         INTERFACE_INCLUDE_DIRECTORIES ${DAOS_INCLUDE_DIR}
+    )
+endif()
+
+find_package_handle_standard_args(
+    DAOS_TESTS
+    DEFAULT_MSG
+    DAOS_TESTS_LIBRARY
+    DAOS_TESTS_INCLUDE_DIR )
+
+mark_as_advanced(DAOS_TESTS_INCLUDE_DIR DAOS_TESTS_LIBRARY)
+
+if(DAOS_TESTS_FOUND)
+    add_library(daos_tests UNKNOWN IMPORTED GLOBAL)
+    set_target_properties(daos_tests PROPERTIES
+        IMPORTED_LOCATION ${DAOS_TESTS_LIBRARY}
+        INTERFACE_INCLUDE_DIRECTORIES ${DAOS_TESTS_INCLUDE_DIR}
     )
 endif()

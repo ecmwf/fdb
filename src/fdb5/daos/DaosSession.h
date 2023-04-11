@@ -23,6 +23,8 @@
 
 #include "fdb5/daos/DaosPool.h"
 
+#include "fdb5/fdb5_config.h"
+
 namespace fdb5 {
 
 class DaosManager : private eckit::NonCopyable {
@@ -75,6 +77,7 @@ public: // methods
     DaosSession(const eckit::LocalConfiguration& config = eckit::LocalConfiguration());
     ~DaosSession();
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
     // administrative
     fdb5::DaosPool& createPool(
         const uint64_t& scmSize = 10ULL << 30, 
@@ -83,6 +86,7 @@ public: // methods
         const std::string& label, 
         const uint64_t& scmSize = 10ULL << 30, 
         const uint64_t& nvmeSize = 40ULL << 30);
+#endif
 
     fdb5::DaosPool& getPool(uuid_t);
     fdb5::DaosPool& getPool(const std::string&);

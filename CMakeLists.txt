@@ -90,6 +90,22 @@ ecbuild_add_option( FEATURE DAOSFDB
                     DEFAULT ON
                     DESCRIPTION "DAOS support for FDB Store" )
 
+ecbuild_add_option( FEATURE DAOS_ADMIN
+                    DEFAULT OFF
+                    CONDITION HAVE_DAOSFDB AND (HAVE_DUMMY_DAOS OR DAOS_TESTS_FOUND)
+                    DESCRIPTION "Add features for DAOS pool management. Required for DAOS unit tests" )
+
+if(HAVE_DAOS_ADMIN)
+    if(HAVE_DUMMY_DAOS)
+        set(DAOS_TESTS_LIBRARIES daos_tests)
+        set(DAOS_TESTS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
+        set(DAOS_TESTS_FOUND TRUE)
+    endif()
+else()
+    set( DAOS_TESTS_LIBRARIES "" )
+    set( DAOS_TESTS_INCLUDE_DIRS "" )
+endif()
+
 ecbuild_add_option( FEATURE EXPERIMENTAL
                     DEFAULT OFF
                     DESCRIPTION "Experimental features" )

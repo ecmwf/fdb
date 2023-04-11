@@ -54,6 +54,7 @@ DaosPool::~DaosPool() {
 
 }
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
 void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
     // "Cannot create a pool with a user-specified UUID."
@@ -120,6 +121,7 @@ void DaosPool::destroy(const int& force) {
     /// @todo: flag instance as invalid / non-existing?
 
 }
+#endif
 
 void DaosPool::open() {
 

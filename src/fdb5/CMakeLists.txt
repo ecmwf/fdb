@@ -432,12 +432,14 @@ ecbuild_add_library(
         "${PMEM_INCLUDE_DIRS}"
         "${LUSTREAPI_INCLUDE_DIRS}"
         "${DAOS_INCLUDE_DIRS}"
+        "${DAOS_TESTS_INCLUDE_DIRS}"
 
     PRIVATE_LIBS
         ${grib_handling_pkg}
         ${PMEM_LIBRARIES}
         ${LUSTREAPI_LIBRARIES}
         ${DAOS_LIBRARIES}
+        ${DAOS_TESTS_LIBRARIES}
 )
 
 if(HAVE_FDB_BUILD_TOOLS)
