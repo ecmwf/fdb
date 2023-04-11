@@ -8,7 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
 #include <daos/tests_lib.h>
+#endif
 
 #include "eckit/exception/Exceptions.h"
 
