@@ -405,6 +405,8 @@ if( HAVE_DAOSFDB )
 else()
     set( DAOS_LIBRARIES "" )
     set( DAOS_INCLUDE_DIRS "" )
+    set( UUID_LIBRARIES "" )
+    set( UUID_INCLUDE_DIRS "" )
 endif()
 
 ecbuild_add_library(
@@ -431,6 +433,7 @@ ecbuild_add_library(
     PRIVATE_INCLUDES
         "${PMEM_INCLUDE_DIRS}"
         "${LUSTREAPI_INCLUDE_DIRS}"
+        "${UUID_INCLUDE_DIRS}"
         "${DAOS_INCLUDE_DIRS}"
         "${DAOS_TESTS_INCLUDE_DIRS}"
 
@@ -438,6 +441,7 @@ ecbuild_add_library(
         ${grib_handling_pkg}
         ${PMEM_LIBRARIES}
         ${LUSTREAPI_LIBRARIES}
+        ${UUID_LIBRARIES}
         ${DAOS_LIBRARIES}
         ${DAOS_TESTS_LIBRARIES}
 )

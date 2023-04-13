@@ -10,6 +10,7 @@
 
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/utils/Translator.h"

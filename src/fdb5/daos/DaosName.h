@@ -16,6 +16,7 @@
 #include <daos.h>
 
 #include <string>
+#include <memory>
 
 #include "eckit/utils/Optional.h"
 #include "eckit/filesystem/URI.h"

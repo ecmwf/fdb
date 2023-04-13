@@ -86,7 +86,7 @@ else()
 endif()
 
 ecbuild_add_option( FEATURE DAOSFDB
-                    CONDITION DAOS_FOUND 
+                    CONDITION DAOS_FOUND AND UUID_FOUND 
                     DEFAULT ON
                     DESCRIPTION "DAOS support for FDB Store" )
 
