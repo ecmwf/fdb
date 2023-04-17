@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <limits.h>  // for PATH_MAX
+
 // #include "eckit/log/BigNum.h"
 
 // #include "fdb5/LibFdb5.h"

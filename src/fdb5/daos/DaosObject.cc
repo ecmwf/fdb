@@ -168,7 +168,7 @@ void DaosArray::close() {
 
     if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_array_close(), file " 
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
-        << strerror(-code) << ")" << std::endl;
+        << code << ")" << std::endl;
         
     std::cout << "DAOS_CALL <= daos_array_close()" << std::endl;
 
@@ -325,7 +325,7 @@ void DaosKeyValue::close() {
 
     if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_obj_close(), file " 
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
-        << strerror(-code) << ")" << std::endl;
+        << code << ")" << std::endl;
         
     std::cout << "DAOS_CALL <= daos_obj_close()" << std::endl;
 

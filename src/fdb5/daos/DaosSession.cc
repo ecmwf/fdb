@@ -45,7 +45,7 @@ DaosSession::~DaosSession() {
 
     if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_fini(), file " 
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
-        << strerror(-code) << ")" << std::endl;
+        << code << ")" << std::endl;
 
     std::cout << "DAOS_CALL <= daos_fini()" << std::endl;
 
@@ -228,7 +228,7 @@ void DaosSession::error(int code, const char* msg, const char* file, int line, c
 
     std::ostringstream oss;
     oss << "DAOS error " << msg << ", file " << file << ", line " << line << ", function " << func << " [" << code
-        << "] (" << strerror(-code) << ")";
+        << "] (" << code << ")";
     throw eckit::SeriousBug(oss.str());
 }
 

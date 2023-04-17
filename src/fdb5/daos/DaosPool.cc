@@ -158,7 +158,7 @@ void DaosPool::close() {
 
     if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_pool_disconnect(), file " 
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
-        << strerror(-code) << ")" << std::endl;
+        << code << ")" << std::endl;
         
     std::cout << "DAOS_CALL <= daos_pool_disconnect()" << std::endl;
 
