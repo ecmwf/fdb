@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <uuid/uuid.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define DAOS_API_VERSION_MAJOR 2
 #define DAOS_API_VERSION_MINOR 0
