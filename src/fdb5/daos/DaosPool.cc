@@ -8,15 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
-#ifdef fdb5_HAVE_DAOS_ADMIN
-#include <daos/tests_lib.h>
-#endif
-
 #include "eckit/exception/Exceptions.h"
 
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosException.h"
+
+#ifdef fdb5_HAVE_DAOS_ADMIN
+#include <daos/tests_lib.h>
+#endif
 
 namespace fdb5 {
 
@@ -129,17 +129,14 @@ void DaosPool::open() {
 
     if (open_) return;
 
-    // "Cannot attempt connecting to an unidentified pool. Either create it or provide a label upon construction."
     ASSERT(known_uuid_ || label_.size() > 0);
-
+    
     if (label_.size() > 0) {
-
         DAOS_CALL(daos_pool_connect(label_.c_str(), NULL, DAOS_PC_RW, &poh_, NULL, NULL));
-
     } else {
-
-        DAOS_CALL(daos_pool_connect(uuid_, NULL, DAOS_PC_RW, &poh_, NULL, NULL));
-
+        char uuid_cstr[37] = "";
+        uuid_unparse(uuid_, uuid_cstr);
+        DAOS_CALL(daos_pool_connect(uuid_cstr, NULL, DAOS_PC_RW, &poh_, NULL, NULL));
     }
     
     open_ = true;
@@ -302,13 +299,15 @@ fdb5::DaosContainer& DaosPool::getContainer(uuid_t uuid, const std::string& labe
 
 }
 
-fdb5::DaosContainer& DaosPool::createContainer(uuid_t uuid) {
+fdb5::DaosContainer& DaosPool::createContainer() {
 
-    fdb5::DaosContainer& c = getContainer(uuid, false);
+    fdb5::DaosContainer c(*this);
+
+    cont_cache_.push_front(std::move(c));
+
+    cont_cache_.at(0).create();
     
-    c.create();
-
-    return c;
+    return cont_cache_.at(0);
 
 }
 
@@ -322,45 +321,11 @@ fdb5::DaosContainer& DaosPool::createContainer(const std::string& label) {
 
 }
 
-fdb5::DaosContainer& DaosPool::createContainer(uuid_t uuid, const std::string& label) {
-
-    fdb5::DaosContainer& c = getContainer(uuid, label, false);
-    
-    c.create();
-
-    return c;
-
-}
-
-fdb5::DaosContainer& DaosPool::ensureContainer(uuid_t uuid) {
-
-    fdb5::DaosContainer& c = getContainer(uuid, false);
-
-    if (c.exists()) return c;
-    
-    c.create();
-
-    return c;
-
-}
-
 fdb5::DaosContainer& DaosPool::ensureContainer(const std::string& label) {
 
     fdb5::DaosContainer& c = getContainer(label, false);
  
     if (c.exists()) return c;   
-
-    c.create();
-
-    return c;
-
-}
-
-fdb5::DaosContainer& DaosPool::ensureContainer(uuid_t uuid, const std::string& label) {
-
-    fdb5::DaosContainer& c = getContainer(uuid, label, false);
-    
-    if (c.exists()) return c;
 
     c.create();
 

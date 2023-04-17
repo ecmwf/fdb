@@ -27,6 +27,7 @@
 #include "eckit/io/Length.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/types/UUID.h"
+#include "eckit/log/TimeStamp.h"
 
 #include "daos.h"
 #include "dummy_daos.h"
@@ -70,8 +71,8 @@ int daos_fini() {
     return 0;
 }
 
-int daos_pool_connect2(const char *pool, const char *sys, unsigned int flags,
-                       daos_handle_t *poh, daos_pool_info_t *info, daos_event_t *ev) {
+int daos_pool_connect(const char *pool, const char *sys, unsigned int flags,
+                      daos_handle_t *poh, daos_pool_info_t *info, daos_event_t *ev) {
 
     poh->impl = nullptr;
 
@@ -80,14 +81,36 @@ int daos_pool_connect2(const char *pool, const char *sys, unsigned int flags,
     if (info != NULL) NOTIMP;
     if (ev != NULL) NOTIMP;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
-    impl->path = dummy_daos_root() / pool;
+    eckit::PathName path = dummy_daos_root() / pool;
+    eckit::PathName realpath{dummy_daos_root()};
 
-    if (!(impl->path).exists()) {
-        return -1;
+    uuid_t uuid = {0};
+    if (uuid_parse(pool, uuid) == 0) {
+
+        realpath /= pool;
+
+    } else {
+
+        try {
+
+            ASSERT(path.isLink());
+            realpath /= path.realName().baseName();
+
+        } catch (eckit::FailedSystemCall& e) {
+
+            if (path.exists()) throw;
+            return -1;
+
+        }
+
     }
 
+    if (!realpath.exists()) return -1;
+
+    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    impl->path = realpath;
     poh->impl = impl.release();
+
     return 0;
 
 }
@@ -114,41 +137,151 @@ int daos_pool_list_cont(daos_handle_t poh, daos_size_t *ncont,
 
     poh.impl->path.children(files, dirs);
 
-    *ncont = dirs.size();
+    *ncont = files.size();
 
     if (cbuf == NULL) return 0;
 
+    if (files.size() > n) return -1;
+
     daos_size_t nfound = 0;
 
-    for (const auto& dir : dirs) {
+    for (auto& f : files) {
 
-        ++nfound;
+        if (f.exists()) {  /// @todo: is the check in this line really necessary, given the try-catch below?
 
-        if (nfound > n) return -1;
+            ++nfound;
 
-        std::string contname = dir.baseName().asString();
-        const char* contname_cstr = contname.c_str();
-        ASSERT(strlen(contname_cstr) <= DAOS_PROP_LABEL_MAX_LEN);
+            try {
 
-        strncpy(cbuf[nfound - 1].pci_label, contname_cstr, DAOS_PROP_LABEL_MAX_LEN + 1);
+                ASSERT(f.isLink());
+                std::string contname = f.baseName();
+                std::string uuid_str = f.realName().baseName();
 
-        uuid_t uuid = {0};
-        if (uuid_parse(contname_cstr, uuid) == 0)
-            uuid_copy(cbuf[nfound - 1].pci_uuid, uuid);
+                if (contname.rfind("__dummy_daos_uuid_", 0) != 0) {
+                    const char* contname_cstr = contname.c_str();
+                    ASSERT(strlen(contname_cstr) <= DAOS_PROP_LABEL_MAX_LEN);
+                    strncpy(cbuf[nfound - 1].pci_label, contname_cstr, DAOS_PROP_LABEL_MAX_LEN + 1);
+                }
+
+                const char* uuid_cstr = uuid_str.c_str();
+                uuid_t uuid = {0};
+                ASSERT(uuid_parse(uuid_cstr, uuid) == 0);
+                uuid_copy(cbuf[nfound - 1].pci_uuid, uuid);
+
+            } catch (eckit::FailedSystemCall& e) {
+
+                if (f.exists()) throw;
+                --nfound;
+
+            }
+        }
 
     }
+
+    *ncont = nfound;
 
     return 0;
 
 }
 
-int daos_cont_create(daos_handle_t poh, const uuid_t uuid, daos_prop_t *cont_prop, daos_event_t *ev) {
+int daos_cont_create_internal(daos_handle_t poh, uuid_t *uuid) {
 
-    char label[37];
+    /// @note: name generation copied from LocalPathName::unique. Ditched StaticMutex 
+    ///        as dummy DAOS is not thread safe.
 
-    uuid_unparse(uuid, label);
+    std::string hostname = eckit::Main::hostname();
 
-    return daos_cont_create_with_label(poh, label, cont_prop, NULL, ev);
+    static unsigned long long n = (((unsigned long long)::getpid()) << 32);
+
+    static std::string format = "%Y%m%d.%H%M%S";
+    std::ostringstream os;
+    os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
+
+    std::string name = os.str();
+
+    while (::access(name.c_str(), F_OK) == 0) {
+        std::ostringstream os;
+        os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
+        name = os.str();
+    }
+
+    const char *name_cstr = name.c_str();
+
+    uuid_t seed = {0};
+    uuid_t new_uuid = {0};
+
+    uuid_generate_md5(new_uuid, seed, name_cstr, strlen(name_cstr));
+
+    char cont_uuid_cstr[37] = "";
+    uuid_unparse(new_uuid, cont_uuid_cstr);
+
+    eckit::PathName cont_path = poh.impl->path / cont_uuid_cstr;
+
+    if (cont_path.exists()) throw eckit::SeriousBug("UUID clash in cont create");
+
+    cont_path.mkdir();
+
+    if (uuid != NULL) uuid_copy(*uuid, new_uuid);
+
+    return 0;
+
+}
+
+/// @note: containers are implemented as directories within pool directories. Upon creation, a 
+///        container directory is named with a newly generated UUID. If a label is specified, a
+///        symlink is created with the label as origin file name and the UUID as target directory.
+///        If no label is specified, a similr symlink is created with the UUID with the 
+///        "__dummy_daos_uuid_" prefix as origin file name and the UUID as target directory.
+///        This mechanism is necessary for listing and removing containers under concurrent, 
+///        potentially racing container operations.
+
+int daos_cont_create(daos_handle_t poh, uuid_t *uuid, daos_prop_t *cont_prop, daos_event_t *ev) {
+
+    if (cont_prop != NULL && cont_prop->dpp_entries) {
+
+        if (cont_prop->dpp_nr != 1) NOTIMP;
+        if (cont_prop->dpp_entries[0].dpe_type != DAOS_PROP_CO_LABEL) NOTIMP;
+
+        struct daos_prop_entry *entry = &cont_prop->dpp_entries[0];
+
+        if (entry == NULL) NOTIMP;
+
+        std::string cont_name{entry->dpe_str};
+
+        return daos_cont_create_with_label(poh, cont_name.c_str(), NULL, uuid, ev);
+
+    }
+
+    if (ev != NULL) NOTIMP;
+
+    uuid_t new_uuid = {0};
+
+    ASSERT(daos_cont_create_internal(poh, &new_uuid) == 0);
+
+    char cont_uuid_cstr[37] = "";
+    uuid_unparse(new_uuid, cont_uuid_cstr);
+
+    eckit::PathName label_symlink_path = poh.impl->path / (std::string("__dummy_daos_uuid_") + cont_uuid_cstr);
+
+    eckit::PathName cont_path = poh.impl->path / cont_uuid_cstr;
+
+    if (::symlink(cont_path.path().c_str(), label_symlink_path.path().c_str()) < 0) {
+
+        if (errno == EEXIST) {  // link path already exists due to race condition
+            
+            throw eckit::SeriousBug("unexpected race condition in unnamed container symlink creation");
+
+        } else {  // symlink fails for unknown reason
+
+            throw eckit::FailedSystemCall(std::string("symlink ") + cont_path.path() + " " + label_symlink_path.path());
+
+        }
+
+    }
+
+    if (uuid != NULL) uuid_copy(*uuid, new_uuid);
+
+    return 0;
 
 }
 
@@ -157,66 +290,125 @@ int daos_cont_create_with_label(daos_handle_t poh, const char *label,
                                 daos_event_t *ev) {
 
     if (cont_prop != NULL) NOTIMP;
-    if (uuid != NULL) NOTIMP;
     if (ev != NULL) NOTIMP;
 
-    //TODO: make a random directory as in pool create, and create symlink.
-    //      This would allow to implement the uuid parameter of this function,
-    //      thus having containers with both a uuid and a label. Also would allow
-    //      fully implementing daos_pool_list_cont.
-    //      This would not be straightforward as that method requires generating
-    //      a random uuid and then attempting creating a directory with that
-    //      uuid as name, and it would imply losing atomicity and leaving room
-    //      for race conditions in parallel container creation.
-    //      The symlink creation would also leave room for race conditions in
-    //      concurrent container creation plus destruction.
-
+    ASSERT(std::string{label}.rfind("__dummy_daos_uuid_", 0) != 0);
     ASSERT(strlen(label) <= DAOS_PROP_LABEL_MAX_LEN);
 
-    (poh.impl->path / label).mkdir();
+    eckit::PathName label_symlink_path = poh.impl->path / label;
+
+    if (label_symlink_path.exists()) return 0;
+
+    uuid_t new_uuid = {0};
+
+    ASSERT(daos_cont_create_internal(poh, &new_uuid) == 0);
+
+    char cont_uuid_cstr[37] = "";
+    uuid_unparse(new_uuid, cont_uuid_cstr);
+
+    eckit::PathName cont_path = poh.impl->path / cont_uuid_cstr;
+
+    if (::symlink(cont_path.path().c_str(), label_symlink_path.path().c_str()) < 0) {
+
+        if (errno == EEXIST) {  // link path already exists due to race condition
+
+            if (uuid != NULL) {
+                /// @todo: again might find race condition here:
+                std::string found_uuid = label_symlink_path.realName().baseName();
+                uuid_parse(found_uuid.c_str(), *uuid);
+            }
+
+            deldir(cont_path);
+
+            return 0;
+
+        } else {  // symlink fails for unknown reason
+
+            throw eckit::FailedSystemCall(std::string("symlink ") + cont_path.path() + " " + label_symlink_path.path());
+
+        }
+
+    }
+
+    if (uuid != NULL) uuid_copy(*uuid, new_uuid);
 
     return 0;
 
 }
 
-// in DAOS, an attempt to destroy a container with open handles results in error by default. This
-// behavior is not implemented in dummy DAOS.
-// in DAOS, an attempt to destroy a container with open handles with the force flag enabled closes
-// open handles, and therefore ongoing/future operations on these handles fail. The contained objects 
-// and the container are immediately destroyed. In dummy DAOS the open handles are implemented with 
-// file descriptors, and these are left open. A remove operation is called on the corresponding file 
-// names but the descriptors remain open. Therefore, in contrast to DAOS, ongoing/future operations on 
-// these handles succeed, and the files are destroyed after the descriptors are closed. The folder 
-// implementing the container, however, is immediately removed.
+/// @note: in DAOS, an attempt to destroy a container with open handles results
+///        in error by default. This behavior is not implemented in dummy DAOS. 
+///        In DAOS, an attempt to destroy a container with open handles with the 
+///        force flag enabled closes open handles, and therefore ongoing/future 
+///        operations on these handles fail. The contained objects and the 
+///        container are immediately destroyed. In dummy DAOS the open handles 
+///        are implemented with file descriptors, and these are left open. A 
+///        remove operation is called on the corresponding file names but the 
+///        descriptors remain open. Therefore, in contrast to DAOS, 
+///        ongoing/future operations on these handles succeed, and the files 
+///        are destroyed after the descriptors are closed. The folder 
+///        implementing the container, however, is immediately removed.
 
 int daos_cont_destroy(daos_handle_t poh, const char *cont, int force, daos_event_t *ev) {
 
     if (force != 1) NOTIMP;
     if (ev != NULL) NOTIMP;
 
-    eckit::PathName path{poh.impl->path / cont};
-    eckit::PathName tmp_path{poh.impl->path / ("destroy_" + std::string(cont))};
-    eckit::PathName::rename(path, tmp_path);
+    ASSERT(std::string{cont}.rfind("__dummy_daos_uuid_", 0) != 0);
 
-    deldir(tmp_path);
+    eckit::PathName path = poh.impl->path;
+    uuid_t uuid = {0};
+    if (uuid_parse(cont, uuid) == 0) {
+        path /= std::string("__dummy_daos_uuid_") + cont;
+    } else {
+        path /= cont;
+    }
+
+    ASSERT(path.isLink());
+    eckit::PathName realpath = path.realName();
+    path.unlink();
+    deldir(realpath);
 
     return 0;
 
 }
 
-int daos_cont_open2(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
+int daos_cont_open(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
                     daos_cont_info_t *info, daos_event_t *ev) {
 
     if (flags != DAOS_COO_RW) NOTIMP;
     if (info != NULL) NOTIMP;
     if (ev != NULL) NOTIMP;
 
-    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
-    impl->path = poh.impl->path / cont;
+    ASSERT(std::string{cont}.rfind("__dummy_daos_uuid_", 0) != 0);
 
-    if (!(impl->path).exists()) {
-        return -1;
+    eckit::PathName path = poh.impl->path;
+    uuid_t uuid = {0};
+    if (uuid_parse(cont, uuid) == 0) {
+        path /= std::string("__dummy_daos_uuid_") + cont;
+    } else {
+        path /= cont;
     }
+
+    if (!path.exists()) return -1;
+
+    eckit::PathName realpath{poh.impl->path};
+    try {
+
+        ASSERT(path.isLink());
+        realpath /= path.realName().baseName();
+
+    } catch (eckit::FailedSystemCall& e) {
+
+        if (path.exists()) throw;
+        return -1;
+
+    }
+
+    if (!realpath.exists()) return -1;
+
+    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    impl->path = realpath;
 
     coh->impl = impl.release();
     return 0;

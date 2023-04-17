@@ -19,6 +19,8 @@
 
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/TimeStamp.h"
+#include "eckit/runtime/Main.h"
 
 #include "tests_lib.h"
 #include "../dummy_daos.h"
@@ -44,21 +46,18 @@ static void deldir(eckit::PathName& p) {
 
 extern "C" {
 
+/// @note: pools are implemented as directories. Upon creation, a new random and unique string 
+///        is generated, a pool UUID is generated from that string, and a directory is created
+///        with the UUID as directory name. If a label is specified, a symlink is created with 
+///        the label as origin file name and the UUID directory as destination. If no label is
+///        specified, no symlink is created.
+
 int dmg_pool_create(const char *dmg_config_file,
                     uid_t uid, gid_t gid, const char *grp,
                     const d_rank_list_t *tgts,
                     daos_size_t scm_size, daos_size_t nvme_size,
                     daos_prop_t *prop,
                     d_rank_list_t *svc, uuid_t uuid) {
-
-    // TODO: in the current implementation, there is a race condition 
-    // in concurrent creation of labelled pools as a random uuid is generated 
-    // first, and then a directory is created. It could result in dangling empty
-    // pool directories.
-    // There is also a race condition in concurrent creation plus destruction of
-    // labelled pools due to the symlink creation.
-    // However these issues are not critical as pool creation should be an 
-    // administrative task not intended to be run massively in parallel.
 
     std::string pool_name;
     eckit::PathName label_symlink_path;
@@ -80,27 +79,55 @@ int dmg_pool_create(const char *dmg_config_file,
 
     }
 
-    std::string random_name;
+    /// @note: copied from LocalPathName::unique. Ditched StaticMutex as dummy DAOS is not thread safe
 
-    random_name = eckit::TmpDir().baseName().path();
-    random_name += "_" + std::to_string(getpid());
+    std::string hostname = eckit::Main::hostname();
 
-    const char *random_name_cstr = random_name.c_str();
+    static unsigned long long n = (((unsigned long long)::getpid()) << 32);
+
+    static std::string format = "%Y%m%d.%H%M%S";
+    std::ostringstream os;
+    os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
+
+    std::string name = os.str();
+
+    while (::access(name.c_str(), F_OK) == 0) {
+        std::ostringstream os;
+        os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
+        name = os.str();
+    }
+
+    const char *name_cstr = name.c_str();
 
     uuid_t seed = {0};
 
-    uuid_generate_md5(uuid, seed, random_name_cstr, strlen(random_name_cstr));
+    uuid_generate_md5(uuid, seed, name_cstr, strlen(name_cstr));
 
     char pool_uuid_cstr[37] = "";
     uuid_unparse(uuid, pool_uuid_cstr);
 
     eckit::PathName pool_path = dummy_daos_root() / pool_uuid_cstr;
 
-    if (pool_path.exists()) return -1;
+    if (pool_path.exists()) throw eckit::SeriousBug("UUID clash in pool create");
 
     pool_path.mkdir();
 
-    if (prop != NULL) ::symlink(pool_path.path().c_str(), label_symlink_path.path().c_str());
+    if (prop == NULL) return 0;
+    
+    if (::symlink(pool_path.path().c_str(), label_symlink_path.path().c_str()) < 0) {
+
+        if (errno == EEXIST) {  // link path already exists due to race condition
+
+            deldir(pool_path);
+            return -1;
+
+        } else {  // symlink fails for unknown reason
+
+            throw eckit::FailedSystemCall(std::string("symlink ") + pool_path.path() + " " + label_symlink_path.path());
+            
+        }
+
+    }
 
     return 0;
 
@@ -120,6 +147,9 @@ int dmg_pool_destroy(const char *dmg_config_file,
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dirs;
     dummy_daos_root().children(files, dirs);
+
+    /// @note: all pool labels (symlinks) are visited and deleted if they point to the 
+    ///        specified pool UUID. None will match if the pool was not labelled.
 
     for (auto& f : files) {
         if (f.exists()) {

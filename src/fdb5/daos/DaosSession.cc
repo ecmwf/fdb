@@ -8,14 +8,14 @@
  * does it submit to any jurisdiction.
  */
 
-#ifdef fdb5_HAVE_DAOS_ADMIN
-#include <daos/tests_lib.h>
-#endif
-
 #include <sstream>
 
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosException.h"
+
+#ifdef fdb5_HAVE_DAOS_ADMIN
+#include <daos/tests_lib.h>
+#endif
 
 namespace fdb5 {
 

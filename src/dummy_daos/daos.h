@@ -141,7 +141,8 @@ typedef struct {
 } daos_prop_t;
 
 enum daos_pool_props {
-    DAOS_PROP_PO_LABEL
+    DAOS_PROP_PO_LABEL,
+    DAOS_PROP_CO_LABEL
 };
 
 /* cont info */
@@ -157,8 +158,8 @@ int daos_init(void);
 
 int daos_fini(void);
 
-int daos_pool_connect2(const char *pool, const char *sys, unsigned int flags,
-                       daos_handle_t *poh, daos_pool_info_t *info, daos_event_t *ev);
+int daos_pool_connect(const char *pool, const char *sys, unsigned int flags,
+                      daos_handle_t *poh, daos_pool_info_t *info, daos_event_t *ev);
 
 int daos_pool_disconnect(daos_handle_t poh, daos_event_t *ev);
 
@@ -170,7 +171,7 @@ int daos_pool_disconnect(daos_handle_t poh, daos_event_t *ev);
 int daos_pool_list_cont(daos_handle_t poh, daos_size_t *ncont,
                         struct daos_pool_cont_info *cbuf, daos_event_t *ev);
 
-int daos_cont_create(daos_handle_t poh, const uuid_t uuid, daos_prop_t *cont_prop, daos_event_t *ev);
+int daos_cont_create(daos_handle_t poh, uuid_t *uuid, daos_prop_t *cont_prop, daos_event_t *ev);
 
 int daos_cont_create_with_label(daos_handle_t poh, const char *label,
                                 daos_prop_t *cont_prop, uuid_t *uuid,
@@ -178,8 +179,8 @@ int daos_cont_create_with_label(daos_handle_t poh, const char *label,
 
 int daos_cont_destroy(daos_handle_t poh, const char *cont, int force, daos_event_t *ev);
 
-int daos_cont_open2(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
-                    daos_cont_info_t *info, daos_event_t *ev);
+int daos_cont_open(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
+                   daos_cont_info_t *info, daos_event_t *ev);
 
 int daos_cont_close(daos_handle_t coh, daos_event_t *ev);
 
@@ -240,86 +241,7 @@ void daos_prop_free(daos_prop_t *prop);
 
 #ifdef __cplusplus
 }  // extern "C"
-
-#define daos_pool_connect daos_pool_connect_cpp
-static inline int daos_pool_connect_cpp(const char *pool, const char *sys, unsigned int flags, daos_handle_t *poh,
-                                        daos_pool_info_t *info, daos_event_t *ev)
-{
-        return daos_pool_connect2(pool, sys, flags, poh, info, ev);
-}
-
-static inline int daos_pool_connect_cpp(const uuid_t pool, const char *sys, unsigned int flags, daos_handle_t *poh,
-                                        daos_pool_info_t *info, daos_event_t *ev)
-{
-        char str[37];
-
-        uuid_unparse(pool, str);
-        return daos_pool_connect2(str, sys, flags, poh, info, ev);
-}
-
-#define daos_cont_open daos_cont_open_cpp
-static inline int daos_cont_open_cpp(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
-                                     daos_cont_info_t *info, daos_event_t *ev) {
-
-    return daos_cont_open2(poh, cont, flags, coh, info, ev);
-
-}
-
-static inline int daos_cont_open_cpp(daos_handle_t poh, const uuid_t cont, unsigned int flags, daos_handle_t *coh,
-                                     daos_cont_info_t *info, daos_event_t *ev) {
-
-    char str[37];
-
-    uuid_unparse(cont, str);
-    return daos_cont_open2(poh, str, flags, coh, info, ev);
-
-}
-
-#else /* not __cplusplus */
-
-#define d_is_uuid(var)                                                          \
-    (__builtin_types_compatible_p(__typeof__(var), uuid_t) ||                   \
-     __builtin_types_compatible_p(__typeof__(var), unsigned char *) ||          \
-     __builtin_types_compatible_p(__typeof__(var), const unsigned char *) ||    \
-     __builtin_types_compatible_p(__typeof__(var), const uuid_t))
-
-#define d_is_string(var)                                                        \
-    (__builtin_types_compatible_p(__typeof__(var), char *) ||                   \
-     __builtin_types_compatible_p(__typeof__(var), const char *) ||             \
-     __builtin_types_compatible_p(__typeof__(var), const char []) ||            \
-     __builtin_types_compatible_p(__typeof__(var), char []))
-
-#define daos_pool_connect(po, ...)                                      \
-    ({                                                              \
-            int _ret;                                               \
-            char _str[37];                                          \
-            const char *__str = NULL;                               \
-            if (d_is_string(po)) {                                  \
-                    __str = (const char *)(po);                     \
-            } else if (d_is_uuid(po)) {                             \
-                    uuid_unparse((unsigned char *)(po), _str);      \
-                    __str = _str;                                   \
-            }                                                       \
-            _ret = daos_pool_connect2(__str, __VA_ARGS__);          \
-            _ret;                                                   \
-    })
-
-#define daos_cont_open(poh, co, ...)                        \
-    ({                                                      \
-        int _ret;                                           \
-        char _str[37];                                      \
-        const char *__str = NULL;                           \
-        if (d_is_string(co)) {                              \
-            __str = (const char *)(co);                     \
-        } else if (d_is_uuid(co)) {                         \
-            uuid_unparse((unsigned char *)(co), _str);      \
-            __str = _str;                                   \
-        }                                                   \
-        _ret = daos_cont_open2((poh), __str, __VA_ARGS__);  \
-        _ret;                                               \
-    })
-
-#endif /* end not __cplusplus */
+#endif
 
 #endif /* fdb5_dummy_daos_daos_H */
 

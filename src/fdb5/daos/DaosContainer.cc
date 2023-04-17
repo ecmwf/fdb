@@ -32,12 +32,15 @@ DaosContainer::DaosContainer(DaosContainer&& other) noexcept :
 
 }
 
+DaosContainer::DaosContainer(fdb5::DaosPool& pool) : pool_(pool), known_uuid_(false), open_(false) {}
+
 DaosContainer::DaosContainer(fdb5::DaosPool& pool, uuid_t uuid) : pool_(pool), known_uuid_(true), open_(false) {
 
     uuid_copy(uuid_, uuid);
 
 }
 
+/// @todo: should forbid labels with UUID format?
 DaosContainer::DaosContainer(fdb5::DaosPool& pool, const std::string& label) : pool_(pool), known_uuid_(false), label_(label), open_(false) {}
 
 DaosContainer::DaosContainer(fdb5::DaosPool& pool, uuid_t uuid, const std::string& label) : pool_(pool), known_uuid_(true), label_(label), open_(false) {
@@ -63,32 +66,20 @@ void DaosContainer::create() {
     //       process or DaosContainer instance.
     if (open_) return;
 
-    ASSERT(known_uuid_ || label_.size() > 0);
-    // if (!known_uuid_ && label_.size() == 0) {
-
-    //     std::string random_name;
-
-    //     random_name = eckit::TmpDir().baseName().path();
-    //     random_name += "_" + std::to_string(getpid());
-
-    //     const char *random_name_cstr = random_name.c_str();
-
-    //     uuid_t seed = {0};
-
-    //     uuid_generate_md5(uuid_, seed, random_name_cstr, strlen(random_name_cstr));
-    //     known_uuid_ = true;
-
-    // }
+    if (known_uuid_) {
+        open();
+        return;
+    }
 
     const daos_handle_t& poh = pool_.getOpenHandle();
 
-    if (known_uuid_) {
+    if (label_.size() > 0) {
 
-        DAOS_CALL(daos_cont_create(poh, uuid_, NULL, NULL));
-        
+        DAOS_CALL(daos_cont_create_with_label(poh, label_.c_str(), NULL, &uuid_, NULL));
+
     } else {
 
-        DAOS_CALL(daos_cont_create_with_label(poh, label_.c_str(), NULL, NULL, NULL));
+        DAOS_CALL(daos_cont_create(poh, &uuid_, NULL, NULL));
         
     }
 
@@ -117,16 +108,16 @@ void DaosContainer::open() {
 
     if (open_) return;
 
+    ASSERT(known_uuid_ || label_.size() > 0);
+
     const daos_handle_t& poh = pool_.getOpenHandle();
 
-    if (known_uuid_) {
-
-        DAOS_CALL(daos_cont_open(poh, uuid_, DAOS_COO_RW, &coh_, NULL, NULL));
-
-    } else {
-
+    if (label_.size() > 0) {
         DAOS_CALL(daos_cont_open(poh, label_.c_str(), DAOS_COO_RW, &coh_, NULL, NULL));
-
+    } else {
+        char uuid_cstr[37] = "";
+        uuid_unparse(uuid_, uuid_cstr);
+        DAOS_CALL(daos_cont_open(poh, uuid_cstr, DAOS_COO_RW, &coh_, NULL, NULL));
     }
     
     open_ = true;

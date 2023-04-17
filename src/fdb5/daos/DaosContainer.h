@@ -60,6 +60,7 @@ private: // methods
 
     friend class DaosPool;
 
+    DaosContainer(fdb5::DaosPool&);
     DaosContainer(fdb5::DaosPool&, uuid_t);
     DaosContainer(fdb5::DaosPool&, const std::string&);
     DaosContainer(fdb5::DaosPool&, uuid_t, const std::string&);

@@ -48,13 +48,10 @@ public: // methods
     fdb5::DaosContainer& getContainer(const std::string&);
     fdb5::DaosContainer& getContainer(uuid_t, const std::string&);
 
-    fdb5::DaosContainer& createContainer(uuid_t);
+    fdb5::DaosContainer& createContainer();
     fdb5::DaosContainer& createContainer(const std::string&);
-    fdb5::DaosContainer& createContainer(uuid_t, const std::string&);
 
-    fdb5::DaosContainer& ensureContainer(uuid_t);
     fdb5::DaosContainer& ensureContainer(const std::string&);
-    fdb5::DaosContainer& ensureContainer(uuid_t, const std::string&);
 
     void closeContainer(uuid_t);
     void closeContainer(const std::string&);

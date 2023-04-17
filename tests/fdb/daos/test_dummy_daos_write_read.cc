@@ -61,6 +61,10 @@ CASE( "dummy_daos_write_then_read" ) {
     uuid_t test_pool_uuid;
     rc = dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, 10ULL << 30, 40ULL << 30, prop, &svcl, test_pool_uuid);
     EXPECT(rc == 0);
+    char test_pool_uuid_str[37] = "";
+    uuid_unparse(test_pool_uuid, test_pool_uuid_str);
+    EXPECT((dummy_daos_root() / test_pool_uuid_str).exists());
+    EXPECT((dummy_daos_root() / label).exists());
 
     daos_prop_free(prop);
 
@@ -69,12 +73,11 @@ CASE( "dummy_daos_write_then_read" ) {
     uuid_t pool_uuid;
     rc = dmg_pool_create(NULL, geteuid(), getegid(), NULL, NULL, 10ULL << 30, 40ULL << 30, NULL, &svcl, pool_uuid);
     EXPECT(rc == 0);
-
     char uuid_str[37] = "";
     uuid_unparse(pool_uuid, uuid_str);
     std::string pool(uuid_str);
-
     eckit::PathName pool_path = dummy_daos_root() / pool;
+    EXPECT(pool_path.exists());
 
     daos_init();
 
@@ -86,18 +89,19 @@ CASE( "dummy_daos_write_then_read" ) {
     EXPECT(rc == 0);
     EXPECT(dummy_daos_get_handle_path(poh) == pool_path);
     
-    // create, open and close a container with user-defined uuid
+    // create, open and close a container with auto-generated uuid
 
     uuid_t cont_uuid = {0};
+    rc = daos_cont_create(poh, &cont_uuid, NULL, NULL);
+    EXPECT(rc == 0);
     char cont_uuid_label[37] = "";
     uuid_unparse(cont_uuid, cont_uuid_label);
-    rc = daos_cont_create(poh, cont_uuid, NULL, NULL);
-    EXPECT(rc == 0);
     EXPECT((dummy_daos_get_handle_path(poh) / cont_uuid_label).exists());
+    EXPECT((dummy_daos_get_handle_path(poh) / std::string("__dummy_daos_uuid_") + cont_uuid_label).exists());
 
     daos_handle_t coh;
 
-    rc = daos_cont_open(poh, cont_uuid, DAOS_COO_RW, &coh, NULL, NULL);
+    rc = daos_cont_open(poh, cont_uuid_label, DAOS_COO_RW, &coh, NULL, NULL);
     EXPECT(rc == 0);
     EXPECT(dummy_daos_get_handle_path(coh) == pool_path / cont_uuid_label);
 
@@ -109,24 +113,36 @@ CASE( "dummy_daos_write_then_read" ) {
     rc = daos_pool_list_cont(poh, &ncont, cbuf, NULL);
     EXPECT(rc == 0);
     EXPECT(ncont == 1);
-    EXPECT(strcmp(cbuf[0].pci_label, cont_uuid_label) == 0);
     EXPECT(uuid_compare(cbuf[0].pci_uuid, cont_uuid) == 0);
 
     rc = daos_cont_destroy(poh, cont_uuid_label, 1, NULL);
     EXPECT(rc == 0);
     EXPECT(!(dummy_daos_get_handle_path(poh) / cont_uuid_label).exists());
+    EXPECT(!(dummy_daos_get_handle_path(poh) / std::string("__dummy_daos_uuid_") + cont_uuid_label).exists());
 
     // create and open a container with user-defined label
 
     std::string cont = "b";
 
-    rc = daos_cont_create_with_label(poh, cont.c_str(), NULL, NULL, NULL);
+    uuid_t cont_uuid2 = {0};
+    rc = daos_cont_create_with_label(poh, cont.c_str(), NULL, &cont_uuid2, NULL);
     EXPECT(rc == 0);
     EXPECT((dummy_daos_get_handle_path(poh) / cont).exists());
+    char cont_uuid2_str[37] = "";
+    uuid_unparse(cont_uuid2, cont_uuid2_str);
+    EXPECT((dummy_daos_get_handle_path(poh) / cont_uuid2_str).exists());
+
+    daos_size_t ncont2 = 1;
+    struct daos_pool_cont_info cbuf2[ncont2];
+    rc = daos_pool_list_cont(poh, &ncont2, cbuf2, NULL);
+    EXPECT(rc == 0);
+    EXPECT(ncont == 1);
+    EXPECT(strcmp(cbuf2[0].pci_label, cont.c_str()) == 0);
+    EXPECT(uuid_compare(cbuf2[0].pci_uuid, cont_uuid2) == 0);
 
     rc = daos_cont_open(poh, cont.c_str(), DAOS_COO_RW, &coh, NULL, NULL);
     EXPECT(rc == 0);
-    EXPECT(dummy_daos_get_handle_path(coh) == pool_path / cont);
+    EXPECT(dummy_daos_get_handle_path(coh) == pool_path / cont_uuid2_str);
 
     daos_size_t size;
     daos_size_t oid_alloc_size = 1;
@@ -258,6 +274,7 @@ CASE( "dummy_daos_write_then_read" ) {
     rc = daos_cont_destroy(poh, cont.c_str(), 1, NULL);
     EXPECT(rc == 0);
     EXPECT(!(dummy_daos_get_handle_path(poh) / cont).exists());
+    EXPECT(!(dummy_daos_get_handle_path(poh) / cont_uuid2_str).exists());
 
     rc = daos_pool_disconnect(poh, NULL);
     EXPECT(rc == 0);
@@ -272,6 +289,8 @@ CASE( "dummy_daos_write_then_read" ) {
 
     rc = dmg_pool_destroy(NULL, test_pool_uuid, NULL, 1);
     EXPECT(rc == 0);
+    EXPECT(!(dummy_daos_root() / test_pool_uuid_str).exists());
+    EXPECT(!(dummy_daos_root() / label).exists());
 
     D_FREE(svcl.rl_ranks);
     
