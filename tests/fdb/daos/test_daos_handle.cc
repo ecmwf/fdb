@@ -408,29 +408,29 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         Length t = h2.openForRead();
         EXPECT(t == Length(2 * sizeof(data)));
         EXPECT(h2.position() == Offset(0));
-        char read_data[(size_t) t] = "";
+        std::vector<char> read_data((size_t) t, 0);
         {
             eckit::AutoClose closer(h2);
             for (int i = 0; i < 2; ++i) {
-                res = h2.read(read_data + i * sizeof(data), (long) sizeof(data));
+                res = h2.read(&read_data[0] + i * sizeof(data), (long) sizeof(data));
                 EXPECT(res == (long) sizeof(data));
             }
             EXPECT(h2.position() == Offset(2 * sizeof(data)));
         }
-        EXPECT(std::memcmp(data, read_data, sizeof(data)) == 0);
-        EXPECT(std::memcmp(data, read_data + sizeof(data), sizeof(data)) == 0);
+        EXPECT(std::memcmp(data, &read_data[0], sizeof(data)) == 0);
+        EXPECT(std::memcmp(data, &read_data[0] + sizeof(data), sizeof(data)) == 0);
 
         std::unique_ptr<eckit::DataHandle> h3(read_name.dataHandle());
         Length t2 = h3->openForRead();
-        char read_data2[(size_t) t2] = "";
+        std::vector<char> read_data2((size_t) t2, 0);
         {
             eckit::AutoClose closer(*h3);
             for (int i = 0; i < 2; ++i) {
-                h3->read(read_data2 + i * sizeof(data), (long) sizeof(data));
+                h3->read(&read_data2[0] + i * sizeof(data), (long) sizeof(data));
             }
         }
-        EXPECT(std::memcmp(data, read_data2, sizeof(data)) == 0);
-        EXPECT(std::memcmp(data, read_data2 + sizeof(data), sizeof(data)) == 0);
+        EXPECT(std::memcmp(data, &read_data2[0], sizeof(data)) == 0);
+        EXPECT(std::memcmp(data, &read_data2[0] + sizeof(data), sizeof(data)) == 0);
 
         fdb5::DaosArrayHandle dh_fail(
             fdb5::DaosArrayName(
@@ -621,14 +621,14 @@ CASE( "DaosName and DaosHandle workflows" ) {
         fdb5::DaosArrayName na_read{pool_name, cont_name, na.OID()};
         std::unique_ptr<eckit::DataHandle> h2(na_read.dataHandle());
         Length t = h2->openForRead();
-        char read_data[(size_t) t] = "";
+        std::vector<char> read_data((size_t) t, 0);
         {
             eckit::AutoClose closer(*h2);
-            EXPECT(eckit::Length(sizeof(read_data)) >= h2->size());
-            res = h2->read(read_data, h2->size());
+            EXPECT(eckit::Length(read_data.size()) >= h2->size());
+            res = h2->read(&read_data[0], h2->size());
         }
         EXPECT(res == len);
-        EXPECT(std::memcmp(data, read_data, sizeof(data)) == 0);
+        EXPECT(std::memcmp(data, &read_data[0], sizeof(data)) == 0);
 
         /// non-existing generated OID
         fdb5::DaosArrayOID oid_ne{3, 5, OC_S1};
@@ -656,17 +656,17 @@ CASE( "DaosName and DaosHandle workflows" ) {
         std::unique_ptr<eckit::DataHandle> h2(na_read.dataHandle());
         long skip_bytes = 10;
         Length t = h2->openForRead();
-        char read_data[(size_t)(t - eckit::Length(skip_bytes))] = "";
+        std::vector<char> read_data((size_t)(t - eckit::Length(skip_bytes)), 0);
         {
             eckit::AutoClose closer(*h2);
             EXPECT(h2->size() >= skip_bytes);
-            EXPECT(eckit::Length(sizeof(read_data)) >= (t - eckit::Length(skip_bytes)));
-            std::memset(read_data, 0, sizeof(read_data));
+            EXPECT(eckit::Length(read_data.size()) >= (t - eckit::Length(skip_bytes)));
+            std::memset(&read_data[0], 0, read_data.size());
             h2->seek(skip_bytes);
-            res = h2->read(read_data, t - eckit::Length(skip_bytes));
+            res = h2->read(&read_data[0], t - eckit::Length(skip_bytes));
         }
         EXPECT(res == len - eckit::Length(skip_bytes));
-        EXPECT(std::memcmp(data + skip_bytes, read_data, sizeof(data) - skip_bytes) == 0);
+        EXPECT(std::memcmp(data + skip_bytes, &read_data[0], sizeof(data) - skip_bytes) == 0);
 
     }
 
@@ -686,15 +686,15 @@ CASE( "DaosName and DaosHandle workflows" ) {
         fdb5::DaosArrayName na_read{pool_name, cont_name, oid};
         std::unique_ptr<eckit::DataHandle> h2(na_read.dataHandle());
         Length t = h2->openForRead();
-        char read_data[(size_t) t] = "";
+        std::vector<char> read_data((size_t) t, 0);
         {
             eckit::AutoClose closer(*h2);
-            EXPECT(eckit::Length(sizeof(read_data)) >= h2->size());
-            std::memset(read_data, 0, sizeof(read_data));
-            res = h2->read(read_data, h2->size());
+            EXPECT(eckit::Length(read_data.size()) >= h2->size());
+            std::memset(&read_data[0], 0, read_data.size());
+            res = h2->read(&read_data[0], h2->size());
         }
         EXPECT(res == len);
-        EXPECT(std::memcmp(data, read_data, sizeof(data)) == 0);
+        EXPECT(std::memcmp(data, &read_data[0], sizeof(data)) == 0);
 
         /// non-existing ungenerated OID
         fdb5::DaosArrayOID oid_ne{3, 8, OC_S1};
