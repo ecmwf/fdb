@@ -408,7 +408,7 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         Length t = h2.openForRead();
         EXPECT(t == Length(2 * sizeof(data)));
         EXPECT(h2.position() == Offset(0));
-        char read_data[t] = "";
+        char read_data[(size_t) t] = "";
         {
             eckit::AutoClose closer(h2);
             for (int i = 0; i < 2; ++i) {
@@ -422,7 +422,7 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
 
         std::unique_ptr<eckit::DataHandle> h3(read_name.dataHandle());
         Length t2 = h3->openForRead();
-        char read_data2[t2] = "";
+        char read_data2[(size_t) t2] = "";
         {
             eckit::AutoClose closer(*h3);
             for (int i = 0; i < 2; ++i) {
@@ -621,7 +621,7 @@ CASE( "DaosName and DaosHandle workflows" ) {
         fdb5::DaosArrayName na_read{pool_name, cont_name, na.OID()};
         std::unique_ptr<eckit::DataHandle> h2(na_read.dataHandle());
         Length t = h2->openForRead();
-        char read_data[t] = "";
+        char read_data[(size_t) t] = "";
         {
             eckit::AutoClose closer(*h2);
             EXPECT(eckit::Length(sizeof(read_data)) >= h2->size());
@@ -656,7 +656,7 @@ CASE( "DaosName and DaosHandle workflows" ) {
         std::unique_ptr<eckit::DataHandle> h2(na_read.dataHandle());
         long skip_bytes = 10;
         Length t = h2->openForRead();
-        char read_data[t - eckit::Length(skip_bytes)] = "";
+        char read_data[(size_t)(t - eckit::Length(skip_bytes))] = "";
         {
             eckit::AutoClose closer(*h2);
             EXPECT(h2->size() >= skip_bytes);
@@ -686,7 +686,7 @@ CASE( "DaosName and DaosHandle workflows" ) {
         fdb5::DaosArrayName na_read{pool_name, cont_name, oid};
         std::unique_ptr<eckit::DataHandle> h2(na_read.dataHandle());
         Length t = h2->openForRead();
-        char read_data[t] = "";
+        char read_data[(size_t) t] = "";
         {
             eckit::AutoClose closer(*h2);
             EXPECT(eckit::Length(sizeof(read_data)) >= h2->size());
