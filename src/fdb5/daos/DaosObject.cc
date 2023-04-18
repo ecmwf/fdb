@@ -177,7 +177,11 @@ void DaosArray::close() {
 }
 
 // TODO: why are len parameters in eckit::DataHandle not const references?
-/// @note: daos_array_write fails if written len is smaller than requested len
+/// @note: a buffer (buf) and its length (len) must be provided. A full write of 
+///        the buffer into the DAOS array will be attempted.
+/// @note: daos_array_write fails if len to write is too large.
+///        DaosArray::write therefore always returns a value equal to the provided
+///        len if it succeeds (i.e. if no exception is thrown).
 long DaosArray::write(const void* buf, const long& len, const eckit::Offset& off) {
 
     open();
@@ -203,8 +207,11 @@ long DaosArray::write(const void* buf, const long& len, const eckit::Offset& off
 
 }
 
-/// @note: daos_array_read fails if requested len is larger than object
-/// @note: daos_array_read fails if read len is smaller than requested len
+/// @note: a buffer (buf) and its length (len) must be provided. A read from the  
+///        DAOS array of the full buffer length will be attempted.
+/// @note: daos_array_read fails if requested len is larger than object.
+///        DaosArray::read therefore always returns a value equal to the provided
+///        len if it succeeds (i.e. if no exception is thrown).
 long DaosArray::read(void* buf, const long& len, const eckit::Offset& off) {
 
     open();

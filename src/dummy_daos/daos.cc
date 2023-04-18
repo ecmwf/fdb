@@ -713,7 +713,7 @@ int daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
 
     eckit::FileHandle fh(oh.impl->path);
     eckit::Length len = fh.size();
-    ASSERT(iod->arr_rgs[0].rg_len + iod->arr_rgs[0].rg_idx <= len);
+    if (iod->arr_rgs[0].rg_len + iod->arr_rgs[0].rg_idx > len) return -1;
     fh.openForRead();
     eckit::AutoClose closer(fh);
     fh.seek(iod->arr_rgs[0].rg_idx);
