@@ -21,6 +21,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/utils/MD5.h"
 
 #include "tests_lib.h"
 #include "../dummy_daos.h"
@@ -97,11 +98,11 @@ int dmg_pool_create(const char *dmg_config_file,
         name = os.str();
     }
 
-    const char *name_cstr = name.c_str();
-
-    uuid_t seed = {0};
-
-    uuid_generate_md5(uuid, seed, name_cstr, strlen(name_cstr));
+    eckit::MD5 md5(name);
+    uint64_t hi = std::stoull(md5.digest().substr(0, 8), nullptr, 16);
+    uint64_t lo = std::stoull(md5.digest().substr(8, 16), nullptr, 16);
+    ::memcpy(&uuid[0], &hi, sizeof(hi));
+    ::memcpy(&uuid[8], &lo, sizeof(lo));
 
     char pool_uuid_cstr[37] = "";
     uuid_unparse(uuid, pool_uuid_cstr);

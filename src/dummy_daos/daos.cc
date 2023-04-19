@@ -28,6 +28,7 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/types/UUID.h"
 #include "eckit/log/TimeStamp.h"
+#include "eckit/utils/MD5.h"
 
 #include "daos.h"
 #include "dummy_daos.h"
@@ -205,12 +206,12 @@ int daos_cont_create_internal(daos_handle_t poh, uuid_t *uuid) {
         name = os.str();
     }
 
-    const char *name_cstr = name.c_str();
-
-    uuid_t seed = {0};
     uuid_t new_uuid = {0};
-
-    uuid_generate_md5(new_uuid, seed, name_cstr, strlen(name_cstr));
+    eckit::MD5 md5(name);
+    uint64_t hi = std::stoull(md5.digest().substr(0, 8), nullptr, 16);
+    uint64_t lo = std::stoull(md5.digest().substr(8, 16), nullptr, 16);
+    ::memcpy(&new_uuid[0], &hi, sizeof(hi));
+    ::memcpy(&new_uuid[8], &lo, sizeof(lo));
 
     char cont_uuid_cstr[37] = "";
     uuid_unparse(new_uuid, cont_uuid_cstr);
@@ -437,12 +438,12 @@ int daos_cont_alloc_oids(daos_handle_t coh, daos_size_t num_oids, uint64_t *oid,
     // distributed file system
     std::string host = eckit::Main::instance().hostname();
 
-    const char *host_cstr = host.c_str();
-
-    uuid_t seed = {0};
-    uuid_t uuid;
-
-    uuid_generate_md5(uuid, seed, host_cstr, strlen(host_cstr));
+    uuid_t uuid = {0};
+    eckit::MD5 md5(host);
+    uint64_t hi = std::stoull(md5.digest().substr(0, 8), nullptr, 16);
+    uint64_t lo = std::stoull(md5.digest().substr(8, 16), nullptr, 16);
+    ::memcpy(&uuid[0], &hi, sizeof(hi));
+    ::memcpy(&uuid[8], &lo, sizeof(lo));
 
     char uuid_cstr[37] = "";
     uuid_unparse(uuid, uuid_cstr);

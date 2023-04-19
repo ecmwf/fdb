@@ -98,10 +98,6 @@ CASE( "DaosPool" ) {
 
     /// @todo: cpp uuid wrapper, to avoid weird headers
 
-    /// @todo: use of uuid_generate_md5 can be removed completely
-
-    /// @todo: use of container and pool UUIDs can be removed completely
-
     /// @todo: do not return iterators in e.g. DaosSession::getCachedPool. Return DaosPool&
 
     /// @todo: replace deque by map
