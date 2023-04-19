@@ -70,7 +70,7 @@ protected: // methods
     void clean() override;
     void close() override;
 
-    void archive(const Key& key, const FieldLocation* fieldLocation) override;
+    void archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) override;
     void reconsolidateIndexesAndTocs();
 
     virtual void print( std::ostream &out ) const override;

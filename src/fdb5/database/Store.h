@@ -34,7 +34,7 @@ public:
     virtual ~Store() {}
 
     virtual eckit::DataHandle* retrieve(Field& field) const = 0;
-    virtual FieldLocation* archive(const Key &key, const void *data, eckit::Length length) = 0;
+    virtual std::unique_ptr<FieldLocation> archive(const Key &key, const void *data, eckit::Length length) = 0;
 
     virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
 
