@@ -386,7 +386,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
     while (true) {
 
         if (subTocRead_) {
-            len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries);
+            len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, walkClearSubTocs);
             if (len == 0) {
                 subTocRead_.reset();
             } else {
@@ -438,7 +438,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
                 if (hideSubTocEntries) {
                     // The first entry in a subtoc must be the init record. Check that
-                    subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries);
+                    subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, walkClearSubTocs);
                     ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
                 } else {
                     return true; // if not hiding the subtoc entries, return them as normal entries!
