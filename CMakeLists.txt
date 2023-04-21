@@ -72,6 +72,12 @@ ecbuild_add_option( FEATURE FDB_REMOTE
 
 find_package(UUID QUIET)
 
+#message(UUID_FOUND="${UUID_FOUND}")
+#message(UUID_INCLUDE_DIRS)
+#message("${UUID_INCLUDE_DIRS}")
+#message(UUID_LIBRARIES)
+#message("${UUID_LIBRARIES}")
+
 ecbuild_add_option( FEATURE DUMMY_DAOS
                     DEFAULT OFF
                     CONDITION UUID_FOUND
@@ -84,6 +90,18 @@ if(HAVE_DUMMY_DAOS)
 else()
     find_package(DAOS QUIET)
 endif()
+
+#message(DAOS_FOUND="${DAOS_FOUND}")
+#message(DAOS_INCLUDE_DIRS)
+#message("${DAOS_INCLUDE_DIRS}")
+#message(DAOS_LIBRARIES)
+#message("${DAOS_LIBRARIES}")
+#
+#message(DAOS_TESTS_FOUND="${DAOS_TESTS_FOUND}")
+#message(DAOS_TESTS_INCLUDE_DIRS)
+#message("${DAOS_TESTS_INCLUDE_DIRS}")
+#message(DAOS_TESTS_LIBRARIES)
+#message("${DAOS_TESTS_LIBRARIES}")
 
 ecbuild_add_option( FEATURE DAOSFDB
                     CONDITION DAOS_FOUND AND UUID_FOUND 

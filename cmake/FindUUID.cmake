@@ -30,7 +30,6 @@ find_path(UUID_INCLUDE_DIR
         ENV UUID_DIR
         ENV UUID_PATH
     PATH_SUFFIXES include include/uuid
-    NO_DEFAULT_PATH
 )
 
 find_library(UUID_LIBRARY
@@ -55,4 +54,6 @@ if(UUID_FOUND)
         IMPORTED_LOCATION ${UUID_LIBRARY}
         INTERFACE_INCLUDE_DIRECTORIES ${UUID_INCLUDE_DIR}
     )
+    set(UUID_INCLUDE_DIRS ${UUID_INCLUDE_DIR})
+    set(UUID_LIBRARIES uuid)
 endif()

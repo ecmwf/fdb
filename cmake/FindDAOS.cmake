@@ -74,15 +74,29 @@ find_library(GURT_LIBRARY
 
 # daos tests
 
+# if not using dummy DAOS, then the daos_tests lib should be installed
+# from daos RPMs into the corresponding system directories. However its
+# headers (daos/tests_lib.h) are not provided in any of the RPMs and 
+# need to be copied from source. tests_lib.h could be copied into standard 
+# system directories together with other DAOS headers, but the tests_lib.h
+# file includes many other DAOS headers not provided by RPMs and other 
+# external library headers, e.g. boost, and are required when compiling a 
+# program which includes tests_lib.h (e.g. fdb5's DAOS backend with 
+# DAOS_ADMIN enabled for unit testing). To avoid having to install all 
+# these headers, tests_lib.h can be copied in a user directory and modified
+# to only declare the necessary functions (pool create and destroy) and 
+# remove most of the includes. All this explains why a DAOS_TESTS_INCLUDE_ROOT
+# environment variable is used here to find tests_lib.h rather than DAOS_ROOT.
+
 find_path(DAOS_TESTS_INCLUDE_DIR
     NAMES daos/tests_lib.h
     HINTS
-        ${DAOS_ROOT}
-        ${DAOS_DIR}
-        ${DAOS_PATH}
-        ENV DAOS_ROOT
-        ENV DAOS_DIR
-        ENV DAOS_PATH
+        ${DAOS_TESTS_INCLUDE_ROOT}
+        ${DAOS_TESTS_DIR}
+        ${DAOS_TESTS_PATH}
+        ENV DAOS_TESTS_INCLUDE_ROOT
+        ENV DAOS_TESTS_DIR
+        ENV DAOS_TESTS_PATH
     PATH_SUFFIXES include
 )
 
@@ -124,6 +138,8 @@ if(DAOS_FOUND)
         IMPORTED_LOCATION ${GURT_LIBRARY}
         INTERFACE_INCLUDE_DIRECTORIES ${DAOS_INCLUDE_DIR}
     )
+    set(DAOS_INCLUDE_DIRS ${DAOS_INCLUDE_DIR})
+    list(APPEND DAOS_LIBRARIES daos daos_common gurt)
 endif()
 
 find_package_handle_standard_args(
@@ -138,6 +154,11 @@ if(DAOS_TESTS_FOUND)
     add_library(daos_tests UNKNOWN IMPORTED GLOBAL)
     set_target_properties(daos_tests PROPERTIES
         IMPORTED_LOCATION ${DAOS_TESTS_LIBRARY}
-        INTERFACE_INCLUDE_DIRECTORIES ${DAOS_TESTS_INCLUDE_DIR}
+        INTERFACE_INCLUDE_DIRECTORIES "${DAOS_TESTS_INCLUDE_DIR};${DAOS_INCLUDE_DIR}"
     )
+    list(APPEND DAOS_TESTS_INCLUDE_DIRS 
+        ${DAOS_TESTS_INCLUDE_DIR}
+        ${DAOS_INCLUDE_DIR}
+    )
+    set(DAOS_TESTS_LIBRARIES daos_tests)
 endif()

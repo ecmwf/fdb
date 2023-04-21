@@ -429,11 +429,11 @@ ecbuild_add_library(
         metkit
         eckit
         eckit_option
+        "${UUID_LIBRARIES}"
 
     PRIVATE_INCLUDES
         "${PMEM_INCLUDE_DIRS}"
         "${LUSTREAPI_INCLUDE_DIRS}"
-        "${UUID_INCLUDE_DIRS}"
         "${DAOS_INCLUDE_DIRS}"
         "${DAOS_TESTS_INCLUDE_DIRS}"
 
@@ -441,9 +441,8 @@ ecbuild_add_library(
         ${grib_handling_pkg}
         ${PMEM_LIBRARIES}
         ${LUSTREAPI_LIBRARIES}
-        ${UUID_LIBRARIES}
-        ${DAOS_LIBRARIES}
-        ${DAOS_TESTS_LIBRARIES}
+        "${DAOS_LIBRARIES}"
+        "${DAOS_TESTS_LIBRARIES}"
 )
 
 if(HAVE_FDB_BUILD_TOOLS)

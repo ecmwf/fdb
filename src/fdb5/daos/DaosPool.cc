@@ -15,7 +15,9 @@
 #include "fdb5/daos/DaosException.h"
 
 #ifdef fdb5_HAVE_DAOS_ADMIN
+extern "C" {
 #include <daos/tests_lib.h>
+}
 #endif
 
 namespace fdb5 {
