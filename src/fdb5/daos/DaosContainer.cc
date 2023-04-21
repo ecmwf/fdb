@@ -167,7 +167,7 @@ fdb5::DaosOID DaosContainer::generateOID(const fdb5::DaosOID& oid) {
 
     open();
 
-    daos_obj_id_t id{oid.asDaosObjIdT()};
+    daos_obj_id_t id(oid.asDaosObjIdT());
     DAOS_CALL(daos_obj_generate_oid(coh_, &id, oid.otype(), oid.oclass(), 0, 0));
 
     return fdb5::DaosOID{id.hi, id.lo};

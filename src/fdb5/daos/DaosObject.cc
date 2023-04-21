@@ -75,6 +75,8 @@ fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession& session, const fdb5::Da
     
 }
 
+DaosArray::DaosArray(DaosArray&& other) noexcept : DaosObject::DaosObject(std::move(other)) {}
+
 DaosArray::DaosArray(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid, bool verify) : DaosObject(cont, oid) {
 
     ASSERT(oid_.wasGenerated());
@@ -248,6 +250,8 @@ daos_size_t DaosArray::size() {
     return array_size;
 
 }
+
+DaosKeyValue::DaosKeyValue(DaosKeyValue&& other) noexcept : DaosObject::DaosObject(std::move(other)) {}
 
 DaosKeyValue::DaosKeyValue(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid, bool verify) : DaosObject(cont, oid) {
 

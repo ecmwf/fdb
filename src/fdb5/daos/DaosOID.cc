@@ -99,7 +99,7 @@ std::string DaosOID::asString() const {
 
 daos_obj_id_t DaosOID::asDaosObjIdT() const {
 
-    return daos_obj_id_t{hi_, lo_};
+    return daos_obj_id_t{lo_, hi_};
 
 }
 

@@ -84,6 +84,7 @@ void DaosNameBase::generateOID() const {
 
 }
 
+/// @todo: the otype parameter is unnecessary
 std::unique_ptr<fdb5::DaosObject> DaosNameBase::buildObject(const daos_otype_t& otype, fdb5::DaosSession& s) const {
 
     // will throw DaosEntityNotFoundException if not exists

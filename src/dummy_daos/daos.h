@@ -85,8 +85,8 @@ typedef struct {
 typedef uint64_t daos_size_t;
 
 typedef struct {
-    uint64_t hi;
     uint64_t lo;
+    uint64_t hi;
 } daos_obj_id_t;
 
 typedef uint32_t daos_oclass_id_t;

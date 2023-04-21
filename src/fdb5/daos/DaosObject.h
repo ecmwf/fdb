@@ -80,6 +80,8 @@ class DaosArray : public DaosObject {
 
 public: // methods
 
+    DaosArray(DaosArray&&) noexcept;
+
     // TODO: test that DaosArray cannot be built via private constructor outside of DaosContainer
     DaosArray(fdb5::DaosContainer&, const fdb5::DaosOID&);
     DaosArray(fdb5::DaosSession&, const fdb5::DaosNameBase&);
@@ -110,6 +112,8 @@ class DaosKeyValue : public DaosObject {
     friend DaosContainer;
 
 public: // methods
+
+    DaosKeyValue(DaosKeyValue&&) noexcept;
 
     DaosKeyValue(fdb5::DaosContainer&, const fdb5::DaosOID&);
     DaosKeyValue(fdb5::DaosSession&, const fdb5::DaosNameBase&);
