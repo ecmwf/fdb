@@ -31,6 +31,7 @@ DaosSession::DaosSession(const eckit::LocalConfiguration& config) :
     containerOidsPerAlloc_ = config.getInt("container_oids_per_alloc", containerOidsPerAlloc_);
     objectCreateCellSize_ = config.getInt64("object_create_cell_size", objectCreateCellSize_);
     objectCreateChunkSize_ = config.getInt64("object_create_chunk_size", objectCreateChunkSize_);
+    dmgConfigFile_ = config.getString("dmg_config_file", dmgConfigFile_);
 
     // daos_init can be called multiple times. An internal reference count is maintained by the library
     DAOS_CALL(daos_init());

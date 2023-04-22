@@ -42,11 +42,13 @@ public: // methods
         containerOidsPerAlloc_ = config.getInt("container_oids_per_alloc", containerOidsPerAlloc_);
         objectCreateCellSize_ = config.getInt64("object_create_cell_size", objectCreateCellSize_);
         objectCreateChunkSize_ = config.getInt64("object_create_chunk_size", objectCreateChunkSize_);
+        dmgConfigFile_ = config.getString("dmg_config_file", dmgConfigFile_);
     };
 
     int containerOidsPerAlloc() const { return containerOidsPerAlloc_; };
     uint64_t objectCreateCellSize() const { return objectCreateCellSize_; };
     uint64_t objectCreateChunkSize() const { return objectCreateChunkSize_; };
+    std::string dmgConfigFile() const { return dmgConfigFile_; };
 
 private: // methods
 
@@ -63,6 +65,7 @@ private: // members
     int containerOidsPerAlloc_;
     uint64_t objectCreateCellSize_;
     uint64_t objectCreateChunkSize_;
+    std::string dmgConfigFile_;
 
 };
 
@@ -100,6 +103,7 @@ public: // methods
     int containerOidsPerAlloc() const { return containerOidsPerAlloc_; };
     uint64_t objectCreateCellSize() const { return objectCreateCellSize_; };
     uint64_t objectCreateChunkSize() const { return objectCreateChunkSize_; };
+    std::string dmgConfigFile() const { return dmgConfigFile_; };
 
 private: // methods
 
@@ -116,6 +120,7 @@ private: // members
     int containerOidsPerAlloc_;
     uint64_t objectCreateCellSize_;
     uint64_t objectCreateChunkSize_;
+    std::string dmgConfigFile_;
 
 };
 
