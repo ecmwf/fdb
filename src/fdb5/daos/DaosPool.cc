@@ -85,7 +85,7 @@ void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
     DAOS_CALL(
         dmg_pool_create(
-            NULL, geteuid(), getegid(), NULL, NULL, 
+            getSession().dmgConfigFile().c_str(), geteuid(), getegid(), NULL, NULL, 
             scmSize, nvmeSize, 
             prop, &svcl, uuid_
         )
@@ -113,7 +113,7 @@ void DaosPool::destroy(const int& force) {
     /// @todo: cached DaosPools declared with a label only, pointing to the pool
     // being destroyed may still exist and should be closed.
 
-    DAOS_CALL(dmg_pool_destroy(NULL, uuid_, NULL, force));
+    DAOS_CALL(dmg_pool_destroy(getSession().dmgConfigFile().c_str(), uuid_, NULL, force));
 
     /// @todo: the DaosPools pointing to the destroyed DAOS pool are now invalid
     // and cannot be reopened unless a new pool with the same label or uuid 
