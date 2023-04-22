@@ -26,7 +26,8 @@ if (HAVE_DAOSFDB AND HAVE_DAOS_ADMIN)
     ecbuild_add_test( TARGET test_fdb5_daos_${_test}
                       SOURCES test_${_test}.cc
                       LIBS "${DAOS_LIBRARIES}" ${DAOS_TESTS_LIBRARIES} fdb5
-                      INCLUDES "${DAOS_INCLUDE_DIRS}" "${DAOS_TESTS_INCLUDE_DIRS}" )
+                      INCLUDES "${DAOS_INCLUDE_DIRS}" "${DAOS_TESTS_INCLUDE_DIRS}" 
+                      ENVIRONMENT FDB_DAOS_DMG_CONFIG_FILE=${FDB_DAOS_DMG_CONFIG_FILE} )
 
   endforeach()
 

@@ -26,7 +26,8 @@ namespace fdb5 {
 DaosSession::DaosSession(const eckit::LocalConfiguration& config) : 
     containerOidsPerAlloc_(DaosManager::instance().containerOidsPerAlloc()),
     objectCreateCellSize_(DaosManager::instance().objectCreateCellSize()),
-    objectCreateChunkSize_(DaosManager::instance().objectCreateChunkSize()) {
+    objectCreateChunkSize_(DaosManager::instance().objectCreateChunkSize()),
+    dmgConfigFile_(DaosManager::instance().dmgConfigFile()) {
 
     containerOidsPerAlloc_ = config.getInt("container_oids_per_alloc", containerOidsPerAlloc_);
     objectCreateCellSize_ = config.getInt64("object_create_cell_size", objectCreateCellSize_);

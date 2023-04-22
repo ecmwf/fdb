@@ -20,6 +20,7 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/config/LocalConfiguration.h"
+#include "eckit/config/Resource.h"
 
 #include "fdb5/daos/DaosPool.h"
 
@@ -55,7 +56,13 @@ private: // methods
     DaosManager() : 
         containerOidsPerAlloc_(100),
         objectCreateCellSize_(1),
-        objectCreateChunkSize_(1048576) {}
+        objectCreateChunkSize_(1048576) {
+
+        dmgConfigFile_ = eckit::Resource<std::string>(
+            "fdbDaosDmgConfigFile;$FDB_DAOS_DMG_CONFIG_FILE", dmgConfigFile_
+        );
+
+    }
         /// @todo: should configure here with LibFdb5 default config, for cases where DaosManager is never configured?
         //       I would say No. fdb5 classes should always configure Daos including configuration from LibFdb5 default config.
         //       Daos* classes should not depend on fdb5 configuration if used independently.

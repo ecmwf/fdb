@@ -124,6 +124,10 @@ void DaosPool::destroy(const int& force) {
     // accordingly elsewhere.
     /// @todo: flag instance as invalid / non-existing?
 
+    /// @note: creating a pool with the same label immediately after destroy
+    ///        sometimes fails.
+    // sleep(1);
+
 }
 #endif
 
