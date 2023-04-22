@@ -65,10 +65,21 @@
 #define D_STRNDUP(ptr, s, n) (ptr) = strndup(s, n);
 
 #define DAOS_ANCHOR_BUF_MAX 104
+#define DAOS_ANCHOR_INIT {            \
+    .da_type = DAOS_ANCHOR_TYPE_ZERO, \
+    .da_shard = 0,                    \
+    .da_flags = 0,                    \
+    .da_sub_anchors = 0,              \
+    .da_buf = { 0 } }
 
 enum daos_otype_t {
     DAOS_OT_KV_HASHED = 8,
     DAOS_OT_ARRAY = 11,
+};
+
+enum daos_pool_props {
+    DAOS_PROP_PO_LABEL,
+    DAOS_PROP_CO_LABEL
 };
 
 #ifdef __cplusplus
@@ -142,11 +153,6 @@ typedef struct {
     uint32_t dpp_reserv;
     struct daos_prop_entry *dpp_entries;
 } daos_prop_t;
-
-enum daos_pool_props {
-    DAOS_PROP_PO_LABEL,
-    DAOS_PROP_CO_LABEL
-};
 
 /* cont info */
 

@@ -204,7 +204,7 @@ CASE( "dummy_daos_write_then_read" ) {
     sgl_kv_list.sg_nr = 1;
     sgl_kv_list.sg_nr_out = 0;
     sgl_kv_list.sg_iovs = &iov_kv_list;
-    daos_anchor_t listing_status = {0};
+    daos_anchor_t listing_status = DAOS_ANCHOR_INIT;
     std::vector<std::string> listed_keys;
     while (!daos_anchor_is_eof(&listing_status)) {
         uint32_t nkeys_found = max_keys_per_rpc;

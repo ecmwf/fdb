@@ -34,8 +34,8 @@ if(HAVE_DAOS_ADMIN)
             daos/tests_lib.cc
         
         PRIVATE_INCLUDES
-            daos.h
-            dummy_daos.h
+            ${PROJECT_SOURCE_DIR}/../daos.h
+            ${PROJECT_SOURCE_DIR}/../dummy_daos.h
 
         PRIVATE_LIBS
             daos

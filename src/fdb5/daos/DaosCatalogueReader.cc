@@ -135,12 +135,18 @@ bool DaosCatalogueReader::open() {
 
 }
 
-// void TocCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
-//     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
-//         const eckit::DenseSet<std::string>& a = m->first.axes().values(keyword);
-//         s.insert(a.begin(), a.end());
-//     }
-// }
+void DaosCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
+
+    fdb5::DaosSession session{};
+    /// @todo: take oclass from config
+    fdb5::DaosKeyValueOID oid{currentIndexKey_.valuesToString() + std::string{"."} + keyword, OC_S1};
+    fdb5::DaosKeyValueName n{pool_, db_cont_, oid};
+    fdb5::DaosKeyValue kv{session, n};
+
+    for (auto& k : kv.keys())
+        s.insert(k);
+
+}
 
 // void TocCatalogueReader::close() {
 //     for (auto m = matching_.begin(); m != matching_.end(); ++m) {

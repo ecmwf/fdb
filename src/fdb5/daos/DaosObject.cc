@@ -400,7 +400,7 @@ std::vector<std::string> DaosKeyValue::keys() {
     sgl.sg_nr = 1;
     sgl.sg_nr_out = 0;
     sgl.sg_iovs = &sg_iov;
-    daos_anchor_t listing_status = {0};
+    daos_anchor_t listing_status = DAOS_ANCHOR_INIT;
     std::vector<std::string> listed_keys;
     while (!daos_anchor_is_eof(&listing_status)) {
         uint32_t nkeys_found = max_keys_per_rpc;
