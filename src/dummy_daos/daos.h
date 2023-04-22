@@ -64,6 +64,8 @@
 #define D_FREE(ptr) ({ free(ptr); (ptr) = NULL; })
 #define D_STRNDUP(ptr, s, n) (ptr) = strndup(s, n);
 
+#define DAOS_ANCHOR_BUF_MAX 104
+
 enum daos_otype_t {
     DAOS_OT_KV_HASHED = 8,
     DAOS_OT_ARRAY = 11,
@@ -153,6 +155,28 @@ struct daos_pool_cont_info {
     char pci_label[DAOS_PROP_LABEL_MAX_LEN+1];
 };
 
+/* kv list */
+
+typedef struct {
+    uint16_t da_type;
+    uint16_t da_shard;
+    uint32_t da_flags;
+    uint64_t da_sub_anchors;
+    uint8_t da_buf[DAOS_ANCHOR_BUF_MAX];
+} daos_anchor_t;
+
+typedef struct {
+    daos_size_t kd_key_len;
+    uint32_t kd_val_type;
+} daos_key_desc_t;
+
+typedef enum {
+    DAOS_ANCHOR_TYPE_ZERO = 0,
+    DAOS_ANCHOR_TYPE_HKEY = 1,
+    DAOS_ANCHOR_TYPE_KEY = 2,
+    DAOS_ANCHOR_TYPE_EOF = 3,
+} daos_anchor_type_t;
+
 /* functions */
 
 int daos_init(void);
@@ -202,6 +226,14 @@ int daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
 
 int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
                 daos_size_t *size, void *buf, daos_event_t *ev);
+
+int daos_kv_list(daos_handle_t oh, daos_handle_t th, uint32_t *nr,
+                 daos_key_desc_t *kds, d_sg_list_t *sgl, daos_anchor_t *anchor,
+                 daos_event_t *ev);
+
+static inline bool daos_anchor_is_eof(daos_anchor_t *anchor) {
+    return anchor->da_type == DAOS_ANCHOR_TYPE_EOF;
+}
 
 int daos_array_generate_oid(daos_handle_t coh, daos_obj_id_t *oid, bool add_attr, daos_oclass_id_t cid,
                             daos_oclass_hints_t hints, uint32_t args);

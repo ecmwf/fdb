@@ -574,6 +574,96 @@ int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
 
 }
 
+int daos_kv_list(daos_handle_t oh, daos_handle_t th, uint32_t *nr,
+                 daos_key_desc_t *kds, d_sg_list_t *sgl, daos_anchor_t *anchor,
+                 daos_event_t *ev) {
+
+    static std::vector<std::string> ongoing_req;
+    static std::string req_hash;
+    static unsigned long long n = (((unsigned long long)::getpid()) << 32);
+
+    if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
+    if (ev != NULL) NOTIMP;
+
+    if (nr == NULL) return -1;
+    if (kds == NULL) return -1;
+    if (sgl == NULL) return -1;
+    if (sgl->sg_nr != 1) NOTIMP;
+    if (sgl->sg_iovs == NULL) return -1;
+    if (anchor == NULL) return -1;
+
+    if (!oh.impl->path.exists()) return -1;
+
+    if (anchor->da_type == DAOS_ANCHOR_TYPE_EOF) return -1;
+    if (anchor->da_type == DAOS_ANCHOR_TYPE_HKEY) NOTIMP;
+    
+    if (anchor->da_type == DAOS_ANCHOR_TYPE_ZERO) {
+
+        /// client process must consume all key names before starting a new request
+        if (ongoing_req.size() != 0) NOTIMP;
+
+        std::vector<eckit::PathName> files;
+        std::vector<eckit::PathName> dirs;
+        oh.impl->path.children(files, dirs);
+
+        for (auto& f : files) ongoing_req.push_back(f.baseName());
+
+        anchor->da_type = DAOS_ANCHOR_TYPE_KEY;
+
+        std::string hostname = eckit::Main::hostname();
+        static std::string format = "%Y%m%d.%H%M%S";
+        std::ostringstream os;
+        os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
+        std::string name = os.str();
+        while (::access(name.c_str(), F_OK) == 0) {
+            std::ostringstream os;
+            os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
+            name = os.str();
+        }
+        uuid_t new_uuid = {0};
+        eckit::MD5 md5(name);
+        req_hash = md5.digest();
+
+        ::memcpy((char*) &(anchor->da_buf[0]), req_hash.c_str(), req_hash.size());
+        anchor->da_shard = (uint16_t) req_hash.size();
+
+    } else {
+
+        if (anchor->da_type != DAOS_ANCHOR_TYPE_KEY)
+            throw eckit::SeriousBug("Unexpected anchor type");
+
+        /// different processes cannot collaborate on consuming a same kv_list 
+        /// request (i.e. cannot share a hash)
+        if (std::string((char*) &(anchor->da_buf[0]), anchor->da_shard) != req_hash) NOTIMP;
+
+    }
+
+    size_t remain_size = sgl->sg_iovs[0].iov_buf_len;
+    uint32_t remain_kds = *nr;
+    size_t sgl_pos = 0;
+    *nr = 0;
+    while (remain_kds > 0 && remain_size > 0 && ongoing_req.size() > 0) {
+        size_t next_size = ongoing_req.back().size();
+        if (next_size > remain_size) {
+            if (*nr == 0) return -1;
+            remain_size = 0;
+            continue;
+        }
+        ::memcpy((char*) sgl->sg_iovs[0].iov_buf + sgl_pos, ongoing_req.back().c_str(), next_size);
+        ongoing_req.pop_back();
+        kds[*nr].kd_key_len = next_size;
+        remain_size -= next_size;
+        remain_kds--;
+        sgl_pos += next_size;
+        *nr += 1;
+    }
+
+    if (ongoing_req.size() == 0) anchor->da_type = DAOS_ANCHOR_TYPE_EOF;
+
+    return 0;
+
+}
+
 int daos_array_generate_oid(daos_handle_t coh, daos_obj_id_t *oid, bool add_attr, daos_oclass_id_t cid,
                             daos_oclass_hints_t hints, uint32_t args) {
 

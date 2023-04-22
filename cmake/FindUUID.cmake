@@ -30,6 +30,7 @@ find_path(UUID_INCLUDE_DIR
         ENV UUID_DIR
         ENV UUID_PATH
     PATH_SUFFIXES include include/uuid
+    NO_DEFAULT_PATH
 )
 
 find_library(UUID_LIBRARY

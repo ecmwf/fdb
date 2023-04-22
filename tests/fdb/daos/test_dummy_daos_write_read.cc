@@ -187,6 +187,41 @@ CASE( "dummy_daos_write_then_read" ) {
     EXPECT(std::strlen(kv_get_buf) == std::strlen(value.c_str()));
     EXPECT(std::string(kv_get_buf) == value);
 
+    std::string key2 = "key2";
+    rc = daos_kv_put(oh_kv, DAOS_TX_NONE, 0, key2.c_str(), std::strlen(value.c_str()), value.c_str(), NULL);
+    EXPECT(rc == 0);
+    EXPECT((dummy_daos_get_handle_path(oh_kv) / key2).exists());
+
+    /// @todo: proper memory management
+    int max_keys_per_rpc = 10;
+    daos_key_desc_t key_sizes[max_keys_per_rpc];
+    d_sg_list_t sgl_kv_list;
+    d_iov_t iov_kv_list;
+    char *list_buf;
+    int bufsize = 1024;
+    list_buf = (char*) malloc(bufsize);
+    d_iov_set(&iov_kv_list, list_buf, bufsize);
+    sgl_kv_list.sg_nr = 1;
+    sgl_kv_list.sg_nr_out = 0;
+    sgl_kv_list.sg_iovs = &iov_kv_list;
+    daos_anchor_t listing_status = {0};
+    std::vector<std::string> listed_keys;
+    while (!daos_anchor_is_eof(&listing_status)) {
+        uint32_t nkeys_found = max_keys_per_rpc;
+        int rc;
+        memset(list_buf, 0, bufsize);
+        rc = daos_kv_list(oh_kv, DAOS_TX_NONE, &nkeys_found, key_sizes, &sgl_kv_list, &listing_status, NULL);
+        EXPECT(rc == 0);
+        size_t key_start = 0;
+        for (int i = 0; i < nkeys_found; i++) {
+            listed_keys.push_back(std::string(list_buf + key_start, key_sizes[i].kd_key_len));
+            key_start += key_sizes[i].kd_key_len;
+        }
+    }
+    EXPECT(listed_keys.size() == 2);
+    EXPECT(listed_keys[0] == key);
+    EXPECT(listed_keys[1] == key2);
+
     daos_obj_close(oh_kv, NULL);
     EXPECT(rc == 0);
 

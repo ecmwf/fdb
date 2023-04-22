@@ -386,6 +386,37 @@ long DaosKeyValue::get(const std::string& key, void* buf, const long& len) {
 
 }
 
+std::vector<std::string> DaosKeyValue::keys() {
+
+    /// @todo: proper memory management
+    int max_keys_per_rpc = 1024;  /// @todo: take from config
+    daos_key_desc_t key_sizes[max_keys_per_rpc];
+    d_sg_list_t sgl;
+    d_iov_t sg_iov;
+    char *list_buf;
+    int bufsize = 1024;
+    list_buf = (char*) malloc(bufsize);
+    d_iov_set(&sg_iov, list_buf, bufsize);
+    sgl.sg_nr = 1;
+    sgl.sg_nr_out = 0;
+    sgl.sg_iovs = &sg_iov;
+    daos_anchor_t listing_status = {0};
+    std::vector<std::string> listed_keys;
+    while (!daos_anchor_is_eof(&listing_status)) {
+        uint32_t nkeys_found = max_keys_per_rpc;
+        int rc;
+        memset(list_buf, 0, bufsize);
+        DAOS_CALL(daos_kv_list(oh_, DAOS_TX_NONE, &nkeys_found, key_sizes, &sgl, &listing_status, NULL));
+        size_t key_start = 0;
+        for (int i = 0; i < nkeys_found; i++) {
+            listed_keys.push_back(std::string(list_buf + key_start, key_sizes[i].kd_key_len));
+            key_start += key_sizes[i].kd_key_len;
+        }
+    }
+    return listed_keys;
+
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

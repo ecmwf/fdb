@@ -366,6 +366,13 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
     
         std::cout << "Object size is: " << deserialisedname.size() << std::endl;
 
+        kv.put("test_key_4", data, sizeof(data));
+        EXPECT(nkv.has("test_key_4"));
+        std::vector<std::string> keys = kv.keys();
+        EXPECT(keys.size() == 2);
+        EXPECT(keys[0] == "test_key_3");
+        EXPECT(keys[1] == "test_key_4");
+
     }
 
     SECTION("DaosHandle write, append and read") {
