@@ -17,6 +17,7 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/thread/ThreadPool.h"
+#include "eckit/serialisation/Streamable.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
@@ -56,18 +57,26 @@ protected: // members
 
 // class for writing a chunk of the user buffer - used to perform multiple simultaneous writes
 class FileCopy : public eckit::ThreadPoolTask {
-    eckit::PathName src_;
-    eckit::PathName dest_;
-
-    void execute() {
-        eckit::FileHandle src(src_);
-        eckit::FileHandle dest(dest_);
-        src.copyTo(dest);
-    }
 
 public:
-    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName):
-        src_(srcPath / fileName), dest_(destPath / fileName) {}
+    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName);    
+    FileCopy(eckit::Stream& s);
+
+    void encode(eckit::Stream&) const;
+
+    void execute() override;
+
+private: // methods
+
+    void print(std::ostream& s) const;
+    friend std::ostream& operator<<(std::ostream& s, const FileCopy& f) {
+        f.print(s);
+        return s;
+    }
+
+private:
+    eckit::PathName src_;
+    eckit::PathName dest_;
 };
 
 }

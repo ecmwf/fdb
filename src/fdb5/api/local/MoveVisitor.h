@@ -38,6 +38,7 @@ public: // methods
                 const eckit::URI& dest,
                 bool removeSrc,
                 int removeDelay,
+                bool mpi,
                 int threads);
 
     bool visitIndexes() override { return false; }
@@ -53,6 +54,7 @@ private: // members
     const eckit::URI& dest_;
     bool removeSrc_;
     int removeDelay_;
+    bool mpi_;
     int threads_;
     std::unique_ptr<fdb5::MoveVisitor> internalVisitor_;
 };

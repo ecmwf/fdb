@@ -218,8 +218,8 @@ const std::string FDB::id() const {
     return internal_->id();
 }
 
-MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) {
-    return internal_->move(request, dest, removeSrc, removeDelay, threads);
+MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, bool mpi, int threads) {
+    return internal_->move(request, dest, removeSrc, removeDelay, mpi, threads);
 }
 
 FDBStats FDB::stats() const {
