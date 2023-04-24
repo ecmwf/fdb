@@ -450,9 +450,9 @@ foreach( _tool ${fdb5_tools} )
 endforeach()
 
 if( eckit_HAVE_MPI )
-    ecbuild_add_executable( TARGET fdb-move-mpi
+    ecbuild_add_executable( TARGET fdb-move
     CONDITION HAVE_FDB_BUILD_TOOLS
-    SOURCES   tools/fdb-move-mpi.cc
+    SOURCES   tools/fdb-move.cc
     INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
     LIBS      eckit_mpi fdb5 )
 endif()
