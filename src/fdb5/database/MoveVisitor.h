@@ -32,6 +32,7 @@ public: // methods
                 const eckit::URI& dest,
                 bool removeSrc,
                 int removeDelay,
+                bool mpi,
                 int threads);
 
     ~MoveVisitor() override;
@@ -50,6 +51,7 @@ protected: // members
     const eckit::URI& dest_;
     bool removeSrc_;
     int removeDelay_;
+    bool mpi_;
     int threads_;
 };
 
