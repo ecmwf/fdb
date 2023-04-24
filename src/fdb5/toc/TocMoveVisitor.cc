@@ -43,8 +43,9 @@ TocMoveVisitor::TocMoveVisitor(const TocCatalogue& catalogue,
                                const eckit::URI& dest,
                                bool removeSrc,
                                int removeDelay,
+                               bool mpi,
                                int threads) :
-    MoveVisitor(request, dest, removeSrc, removeDelay, threads),
+    MoveVisitor(request, dest, removeSrc, removeDelay, mpi, threads),
     catalogue_(catalogue),
     store_(store) {}
 
@@ -114,8 +115,9 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
 void TocMoveVisitor::move() {
 
     int numThreads = eckit::Resource<int>("fdbMoveThreads;$FDB_MOVE_THREADS", threads_);
+    bool mpi = eckit::Resource<bool>("fdbMoveMpi;$FDB_MOVE_MPI", mpi_);
 
-    store_.moveTo(catalogue_.key(), catalogue_.config(), dest_, numThreads);
+    store_.moveTo(catalogue_.key(), catalogue_.config(), dest_, mpi, numThreads);
 
     eckit::PathName destPath = dest_.path();
     for (const eckit::PathName& root: CatalogueRootManager(catalogue_.config()).canMoveToRoots(catalogue_.key())) {
