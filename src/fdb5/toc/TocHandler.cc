@@ -426,6 +426,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                         continue;
                     }
                     if (!absPath.exists()) {
+                        // This is a masked subtoc, so it is valid for it to not exist.
                         Log::debug<LibFdb5>() << "SubToc does not exist: " << path << std::endl;
                         continue;
                     }
