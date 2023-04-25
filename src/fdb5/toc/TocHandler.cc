@@ -367,7 +367,7 @@ size_t TocHandler::roundRecord(TocRecord &r, size_t payloadSize) {
 
 // readNext wraps readNextInternal.
 // readNext reads the next TOC entry from this toc, or from an appropriate subtoc if necessary.
-bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntries, bool hideClearEntries, bool walkClearSubTocs) const {
+bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntries, bool hideClearEntries, bool readMasked) const {
 
     int len;
 
@@ -386,7 +386,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
     while (true) {
 
         if (subTocRead_) {
-            len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, walkClearSubTocs);
+            len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked);
             if (len == 0) {
                 subTocRead_.reset();
             } else {
@@ -418,15 +418,15 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 eckit::PathName absPath = (path.path()[0] == '/') ? findRealPath(path) : (currentDirectory() / path);
 
                 // If this subtoc has a masking entry, then skip it, and go on to the next entry.
-                // Unless walkClearSubTocs is true, in which case walk it if it exists.
+                // Unless readMasked is true, in which case walk it if it exists.
                 std::pair<eckit::PathName, size_t> key(absPath, 0);
                 if (maskedEntries_.find(key) != maskedEntries_.end()) {
-                    if (!walkClearSubTocs){
+                    if (!readMasked){
                         Log::debug<LibFdb5>() << "SubToc ignored by mask: " << path << std::endl;
                         continue;
                     }
+                    // This is a masked subtoc, so it is valid for it to not exist.
                     if (!absPath.exists()) {
-                        // This is a masked subtoc, so it is valid for it to not exist.
                         Log::debug<LibFdb5>() << "SubToc does not exist: " << path << std::endl;
                         continue;
                     }
@@ -439,7 +439,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
                 if (hideSubTocEntries) {
                     // The first entry in a subtoc must be the init record. Check that
-                    subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, walkClearSubTocs);
+                    subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked);
                     ASSERT(r.header_.tag_ == TocRecord::TOC_INIT);
                 } else {
                     return true; // if not hiding the subtoc entries, return them as normal entries!
@@ -457,8 +457,15 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
                 std::pair<eckit::PathName, size_t> key(absPath, offset);
                 if (maskedEntries_.find(key) != maskedEntries_.end()) {
-                    Log::debug<LibFdb5>() << "Index ignored by mask: " << path << ":" << offset << std::endl;
-                    continue;
+                    if(!readMasked){
+                        Log::debug<LibFdb5>() << "Index ignored by mask: " << path << ":" << offset << std::endl;
+                        continue;
+                    }
+                    // This is a masked index, so it is valid for it to not exist.
+                    if (!absPath.exists()) {
+                        Log::debug<LibFdb5>() << "Index does not exist: " << path << ":" << offset << std::endl;
+                        continue;
+                    }
                 }
 
                 return true;
@@ -1165,8 +1172,8 @@ void TocHandler::dumpIndexFile(std::ostream& out, const eckit::PathName& indexFi
     bool walkSubTocs = true;
     bool hideSubTocEntries = true;
     bool hideClearEntries = true;
-    bool walkClearSubTocs = true;
-    while ( readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries, walkClearSubTocs) ) {
+    bool readMasked = true;
+    while ( readNext(*r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked) ) {
 
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
         std::string path;
