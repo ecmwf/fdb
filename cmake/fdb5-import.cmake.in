@@ -1,0 +1,8 @@
+include( CMakeFindDependencyMacro )
+
+find_dependency( eckit  HINTS ${CMAKE_CURRENT_LIST_DIR}/../eckit @eckit_DIR@ )
+find_dependency( metkit HINTS ${CMAKE_CURRENT_LIST_DIR}/../metkit @metkit_DIR@ )
+
+if( @HAVE_GRIB@ )
+    find_dependency( eccodes HINTS ${CMAKE_CURRENT_LIST_DIR}/../eccodes @eccodes_DIR@ )
+endif()
