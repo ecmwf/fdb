@@ -269,19 +269,8 @@ void TocHandler::openForRead() const {
         iomode |= O_NOATIME;
     }
 #endif
-    eckit::Length tocSize;
-    try {
-        SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
-        tocSize = tocPath_.size();
-    } catch(FailedSystemCall& e) {
-        if (errno == ENOENT) {
-            PathName path = (tocPath_.dirName().sameAs(directory_)) ? tocPath_.baseName() : tocPath_;
-            SYSCALL2((fd_ = ::open( path.localPath(), iomode )), path );
-            tocSize = path.size();
-        } else {
-            throw(e);
-        }
-    }
+    SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
+    eckit::Length tocSize = tocPath_.size();
 
     // The masked subtocs and indexes could be updated each time, so reset this.
     enumeratedMaskedEntries_ = false;
@@ -426,7 +415,16 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 // absolute paths to relative paths. Either may exist in either the TOC_SUB_TOC
                 // or TOC_CLEAR entries.
                 ASSERT(path.path().size() > 0);
-                eckit::PathName absPath = (path.path()[0] == '/') ? findRealPath(path) : (currentDirectory() / path);
+                eckit::PathName absPath;
+                if (path.path()[0] == '/') {
+                    absPath = findRealPath(path);
+                    if (!absPath.exists()) {
+                        absPath = currentDirectory() / path.baseName();
+                        ASSERT(absPath.exists());
+                    }
+                } else {
+                    absPath = currentDirectory() / path;
+                }
 
                 // If this subtoc has a masking entry, then skip it, and go on to the next entry.
                 std::pair<eckit::PathName, size_t> key(absPath, 0);

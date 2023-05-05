@@ -171,7 +171,18 @@ void TocMoveVisitor::move() {
                 store_.remove(catalogue_.key());
                 
                 eckit::Log::debug<LibFdb5>() << "Removing " << catalogue_.basePath() << std::endl;
-                catalogue_.basePath().rmdir(false);
+                try {
+                    catalogue_.basePath().rmdir(false);
+                } catch (eckit::FailedSystemCall& e) {
+                    dirp = ::opendir(catalogue_.basePath().asString().c_str());
+                    while ((dp = readdir(dirp)) != NULL) {
+                        eckit::Log::error() << "    found file " << dp->d_name << std::endl;
+                    }
+                    closedir(dirp);
+                    eckit::Log::error() << "Error " << eckit::Log::syserr << " while removing " << catalogue_.basePath() << std::endl;
+                    throw e;
+                }
+                // catalogue_.basePath().rmdir(false);
             }
         }
     }
