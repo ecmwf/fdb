@@ -269,8 +269,19 @@ void TocHandler::openForRead() const {
         iomode |= O_NOATIME;
     }
 #endif
-    SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
-    eckit::Length tocSize = tocPath_.size();
+    eckit::Length tocSize;
+    try {
+        SYSCALL2((fd_ = ::open( tocPath_.localPath(), iomode )), tocPath_ );
+        tocSize = tocPath_.size();
+    } catch(FailedSystemCall& e) {
+        if (errno == ENOENT) {
+            PathName path = (tocPath_.dirName().sameAs(directory_)) ? tocPath_.baseName() : tocPath_;
+            SYSCALL2((fd_ = ::open( path.localPath(), iomode )), path );
+            tocSize = path.size();
+        } else {
+            throw(e);
+        }
+    }
 
     // The masked subtocs and indexes could be updated each time, so reset this.
     enumeratedMaskedEntries_ = false;
@@ -835,7 +846,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
         if (!subTocWrite_) {
 
-            subTocWrite_.reset(new TocHandler(eckit::PathName::unique(tocPath_), Key{}));
+            subTocWrite_.reset(new TocHandler(eckit::PathName::unique("toc"), Key{}));
 
             subTocWrite_->writeInitRecord(databaseKey());
 
