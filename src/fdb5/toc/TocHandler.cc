@@ -415,7 +415,16 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 // absolute paths to relative paths. Either may exist in either the TOC_SUB_TOC
                 // or TOC_CLEAR entries.
                 ASSERT(path.path().size() > 0);
-                eckit::PathName absPath = (path.path()[0] == '/') ? findRealPath(path) : (currentDirectory() / path);
+                eckit::PathName absPath;
+                if (path.path()[0] == '/') {
+                    absPath = findRealPath(path);
+                    if (!absPath.exists()) {
+                        absPath = currentDirectory() / path.baseName();
+                        ASSERT(absPath.exists());
+                    }
+                } else {
+                    absPath = currentDirectory() / path;
+                }
 
                 // If this subtoc has a masking entry, then skip it, and go on to the next entry.
                 std::pair<eckit::PathName, size_t> key(absPath, 0);
@@ -835,7 +844,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
         if (!subTocWrite_) {
 
-            subTocWrite_.reset(new TocHandler(eckit::PathName::unique(tocPath_), Key{}));
+            subTocWrite_.reset(new TocHandler(eckit::PathName::unique("toc"), Key{}));
 
             subTocWrite_->writeInitRecord(databaseKey());
 
