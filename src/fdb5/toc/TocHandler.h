@@ -107,7 +107,7 @@ public: // methods
     TocHandler( const eckit::PathName &dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
-    TocHandler(const eckit::PathName& path, const Key& parentKey);
+    TocHandler( const eckit::PathName& dir, const eckit::PathName& toc, const Key& parentKey);
 
     ~TocHandler() override;
 
