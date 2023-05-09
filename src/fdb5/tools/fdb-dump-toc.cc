@@ -48,7 +48,7 @@ void FDBDumpToc::execute(const eckit::option::CmdArgs& args) {
 
         eckit::PathName path(args(i));
 
-        fdb5::TocHandler handler(path, fdb5::Key{});
+        fdb5::TocHandler handler(path.dirName(), path.baseName(), fdb5::Key{});
 
         handler.dump(eckit::Log::info(), true, walkSubTocs);
     }

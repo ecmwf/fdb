@@ -129,10 +129,10 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     }
 }
 
-TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
-    TocCommon(path.dirName()),
+TocHandler::TocHandler(const eckit::PathName& directory, const eckit::PathName& toc, const Key& parentKey) :
+    TocCommon(directory),
     parentKey_(parentKey),
-    tocPath_(TocCommon::findRealPath(path)),
+    tocPath_(toc),
     useSubToc_(false),
     isSubToc_(true),
     fd_(-1),
@@ -275,7 +275,7 @@ void TocHandler::openForRead() const {
         cachedToc_.reset( new eckit::MemoryHandle(tocSize, grow) );
 
         long buffersize = 4*1024*1024;
-        toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
+        toc.copyTo(*cachedToc_, buffersize);
         cachedToc_->openForRead();
     }
 }
@@ -410,7 +410,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
                 eckit::Log::debug<LibFdb5>() << "Opening SUB_TOC: " << absPath << " " << parentKey_ << std::endl;
 
-                subTocRead_.reset(new TocHandler(absPath, parentKey_));
+                subTocRead_.reset(new TocHandler(absPath.dirName(), absPath.baseName(), parentKey_));
                 subTocRead_->openForRead();
 
                 if (hideSubTocEntries) {
@@ -456,7 +456,6 @@ bool TocHandler::readNextInternal(TocRecord& r) const {
     CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
     try {
-        ASSERT(sizeof(r) >= sizeof(TocRecord::Header));
         long len = proxy.read(&r, sizeof(TocRecord::Header));
         if (len == 0) {
             return false;
@@ -822,7 +821,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
         if (!subTocWrite_) {
 
-            subTocWrite_.reset(new TocHandler(eckit::PathName::unique(tocPath_), Key{}));
+            subTocWrite_.reset(new TocHandler(currentDirectory(), eckit::PathName::unique("toc"), Key{}));
 
             subTocWrite_->writeInitRecord(databaseKey());
 
@@ -1217,7 +1216,7 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
             // If this is a subtoc, then enumerate its contained indexes and data!
 
             if (uri.path().baseName().asString().substr(0, 4) == "toc.") {
-                TocHandler h(uri.path(), remapKey_);
+                TocHandler h(uri.path().dirName(), uri.path().baseName(), remapKey_);
 
                 h.enumerateMasked(metadata, data);
 
