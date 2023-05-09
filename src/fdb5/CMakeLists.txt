@@ -447,7 +447,7 @@ foreach( _tool ${fdb5_tools} )
 
 endforeach()
 
-if (eckit_HAVE_MPI)
+if (eckit_HAVE_MPI AND HAVE_FDB_BUILD_TOOLS)
     target_link_libraries( fdb-move PRIVATE eckit_mpi )
 endif()
 
