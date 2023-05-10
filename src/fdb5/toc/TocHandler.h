@@ -107,7 +107,7 @@ public: // methods
     TocHandler( const eckit::PathName &dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
-    TocHandler( const eckit::PathName& dir, const eckit::PathName& toc, const Key& parentKey);
+    TocHandler(const eckit::PathName& path, const Key& parentKey);
 
     ~TocHandler() override;
 
@@ -117,7 +117,7 @@ public: // methods
     void writeInitRecord(const Key &tocKey);
     void writeClearRecord(const Index &);
     void writeClearAllRecord();
-    void writeSubTocRecord(const TocHandler& subToc);
+    void writeSubTocRecord(const TocHandler& subToc, const eckit::PathName& toc = "");
     void writeIndexRecord(const Index &);
     void writeSubTocMaskRecord(const TocHandler& subToc);
 
