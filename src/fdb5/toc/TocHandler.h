@@ -117,7 +117,7 @@ public: // methods
     void writeInitRecord(const Key &tocKey);
     void writeClearRecord(const Index &);
     void writeClearAllRecord();
-    void writeSubTocRecord(const TocHandler& subToc);
+    void writeSubTocRecord(const TocHandler& subToc, const eckit::PathName& toc = "");
     void writeIndexRecord(const Index &);
     void writeSubTocMaskRecord(const TocHandler& subToc);
 

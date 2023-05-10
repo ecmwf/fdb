@@ -123,7 +123,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     tocPath_(directory_ / "toc"),
     dbConfig_(config),
     serialisationVersion_(TocSerialisationVersion(config)),
-    useSubToc_(config.userConfig().getBool("useSubToc", false)),
+    useSubToc_(config.userConfig().getBool("useSubToc", true)),
     isSubToc_(false),
     fd_(-1),
     cachedToc_(nullptr),
@@ -415,7 +415,16 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 // absolute paths to relative paths. Either may exist in either the TOC_SUB_TOC
                 // or TOC_CLEAR entries.
                 ASSERT(path.path().size() > 0);
-                eckit::PathName absPath = (path.path()[0] == '/') ? findRealPath(path) : (currentDirectory() / path);
+                eckit::PathName absPath;
+                if (path.path()[0] == '/') {
+                    absPath = findRealPath(path);
+                    if (!absPath.exists()) {
+                        absPath = currentDirectory() / path.baseName();
+                        ASSERT(absPath.exists());
+                    }
+                } else {
+                    absPath = currentDirectory() / path;
+                }
 
                 // If this subtoc has a masking entry, then skip it, and go on to the next entry.
                 // Unless readMasked is true, in which case walk it if it exists.
@@ -788,22 +797,19 @@ void TocHandler::writeClearAllRecord() {
     appendBlock(r.get(), sz);
 }
 
-void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
+
+void TocHandler::writeSubTocRecord(const TocHandler& subToc, const eckit::PathName& toc) {
 
     openForAppend();
     TocHandlerCloser closer(*this);
 
     std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used(), TocRecord::TOC_SUB_TOC)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
-    // We use a relative path to this subtoc if it belongs to the current DB
-    // but an absolute one otherwise (e.g. for fdb-overlay).
-
-    const PathName& absPath = subToc.tocPath();
-    // TODO: See FDB-142. Write subtocs as relative.
-    // PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
-    const PathName& path = absPath;
-
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
+
+    // We use a relative path to this subtoc if prescribed
+    // but an absolute one otherwise (e.g. for fdb-overlay).
+    eckit::PathName path = toc.path().size()>0 ? toc : subToc.tocPath();
     s << path;
     s << off_t{0};
     append(*r, s.position());
@@ -850,11 +856,13 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
         if (!subTocWrite_) {
 
-            subTocWrite_.reset(new TocHandler(eckit::PathName::unique(tocPath_), Key{}));
+            eckit::PathName subtoc = eckit::PathName::unique("toc");
+
+            subTocWrite_.reset(new TocHandler(currentDirectory() / subtoc, Key{}));
 
             subTocWrite_->writeInitRecord(databaseKey());
 
-            writeSubTocRecord(*subTocWrite_);
+            writeSubTocRecord(*subTocWrite_, subtoc);
         }
 
         subTocWrite_->writeIndexRecord(index);
