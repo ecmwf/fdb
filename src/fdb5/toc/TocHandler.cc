@@ -129,10 +129,10 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     }
 }
 
-TocHandler::TocHandler(const eckit::PathName& directory, const eckit::PathName& toc, const Key& parentKey) :
-    TocCommon(directory),
+TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
+    TocCommon(path.dirName()),
     parentKey_(parentKey),
-    tocPath_(toc),
+    tocPath_(TocCommon::findRealPath(path)),
     useSubToc_(false),
     isSubToc_(true),
     fd_(-1),
@@ -410,7 +410,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
                 eckit::Log::debug<LibFdb5>() << "Opening SUB_TOC: " << absPath << " " << parentKey_ << std::endl;
 
-                subTocRead_.reset(new TocHandler(absPath.dirName(), absPath.baseName(), parentKey_));
+                subTocRead_.reset(new TocHandler(absPath, parentKey_));
                 subTocRead_->openForRead();
 
                 if (hideSubTocEntries) {
@@ -759,22 +759,19 @@ void TocHandler::writeClearAllRecord() {
     appendBlock(r.get(), sz);
 }
 
-void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
+
+void TocHandler::writeSubTocRecord(const TocHandler& subToc, const eckit::PathName& toc) {
 
     openForAppend();
     TocHandlerCloser closer(*this);
 
     std::unique_ptr<TocRecord> r(new TocRecord(TocRecord::TOC_SUB_TOC)); // allocate (large) TocRecord on heap not stack (MARS-779)
 
-    // We use a relative path to this subtoc if it belongs to the current DB
-    // but an absolute one otherwise (e.g. for fdb-overlay).
-
-    const PathName& absPath = subToc.tocPath();
-    // TODO: See FDB-142. Write subtocs as relative.
-    // PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
-    const PathName& path = absPath;
-
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
+
+    // We use a relative path to this subtoc if prescribed
+    // but an absolute one otherwise (e.g. for fdb-overlay).
+    eckit::PathName path = toc.path().size()>0 ? toc : subToc.tocPath();
     s << path;
     s << off_t{0};
     append(*r, s.position());
@@ -821,11 +818,13 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
         if (!subTocWrite_) {
 
-            subTocWrite_.reset(new TocHandler(currentDirectory(), eckit::PathName::unique("toc"), Key{}));
+            eckit::PathName subtoc = eckit::PathName::unique("toc");
+
+            subTocWrite_.reset(new TocHandler(currentDirectory() / subtoc, Key{}));
 
             subTocWrite_->writeInitRecord(databaseKey());
 
-            writeSubTocRecord(*subTocWrite_);
+            writeSubTocRecord(*subTocWrite_, subtoc);
         }
 
         subTocWrite_->writeIndexRecord(index);
@@ -1216,7 +1215,7 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
             // If this is a subtoc, then enumerate its contained indexes and data!
 
             if (uri.path().baseName().asString().substr(0, 4) == "toc.") {
-                TocHandler h(uri.path().dirName(), uri.path().baseName(), remapKey_);
+                TocHandler h(uri.path(), remapKey_);
 
                 h.enumerateMasked(metadata, data);
 
