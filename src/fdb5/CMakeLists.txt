@@ -443,12 +443,12 @@ foreach( _tool ${fdb5_tools} )
                           CONDITION HAVE_FDB_BUILD_TOOLS
                           SOURCES   tools/${_tool}.cc
                           INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
-                          LIBS      PRIVATE fdb5 )
+                          LIBS      fdb5 )
 
 endforeach()
 
 if (eckit_HAVE_MPI AND HAVE_FDB_BUILD_TOOLS)
-    target_link_libraries( fdb-move PRIVATE eckit_mpi )
+    target_link_libraries( fdb-move eckit_mpi )
 endif()
 
 ecbuild_add_executable( TARGET    grib2fdb5
