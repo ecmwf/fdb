@@ -783,7 +783,7 @@ void TocHandler::writeClearAllRecord() {
 }
 
 
-void TocHandler::writeSubTocRecord(const TocHandler& subToc, const eckit::PathName& toc) {
+void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
 
     openForAppend();
     TocHandlerCloser closer(*this);
@@ -792,9 +792,11 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc, const eckit::PathNa
 
     eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
 
-    // We use a relative path to this subtoc if prescribed
+    // We use a relative path to this subtoc if it belongs to the current DB
     // but an absolute one otherwise (e.g. for fdb-overlay).
-    eckit::PathName path = toc.path().size()>0 ? toc : subToc.tocPath();
+    const PathName& absPath = subToc.tocPath();
+    eckit::PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
+
     s << path;
     s << off_t{0};
     append(*r, s.position());
@@ -847,7 +849,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             subTocWrite_->writeInitRecord(databaseKey());
 
-            writeSubTocRecord(*subTocWrite_, subtoc);
+            writeSubTocRecord(*subTocWrite_);
         }
 
         subTocWrite_->writeIndexRecord(index);
@@ -869,11 +871,8 @@ void TocHandler::writeSubTocMaskRecord(const TocHandler &subToc) {
 
     // We use a relative path to this subtoc if it belongs to the current DB
     // but an absolute one otherwise (e.g. for fdb-overlay).
-
     const PathName& absPath = subToc.tocPath();
-    // TODO: See FDB-142. Write subtocs as relative.
-    // PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
-    const PathName& path = absPath;
+    PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
 
     size_t sz = roundRecord(*r, buildSubTocMaskRecord(*r, path));
     appendBlock(r.get(), sz);
@@ -1399,11 +1398,8 @@ size_t TocHandler::buildSubTocMaskRecord(TocRecord& r) {
 
     // We use a relative path to this subtoc if it belongs to the current DB
     // but an absolute one otherwise (e.g. for fdb-overlay).
-
     const PathName& absPath = subTocWrite_->tocPath();
-    // TODO: See FDB-142. Write subtocs as relative.
-    // PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
-    const PathName& path = absPath;
+    PathName path = (absPath.dirName().sameAs(directory_)) ? absPath.baseName() : absPath;
 
     return buildSubTocMaskRecord(r, path);
 }
