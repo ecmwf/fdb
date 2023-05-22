@@ -130,12 +130,11 @@ public:
     }
 };
 
-eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     eckit::Timer timer;
     timer.start();
 
-    HandleGatherer result(sorted(request));
-    ListIterator it = inspect(request);
+    HandleGatherer result(sorted);
     ListElement el;
 
     static bool dedup = eckit::Resource<bool>("fdbDeduplicate;$FDB_DEDUPLICATE_FIELDS", false);
@@ -180,6 +179,11 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
         }
     }
     return result.dataHandle();
+}
+
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+    ListIterator it = inspect(request);
+    return read(it, sorted(request));
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
