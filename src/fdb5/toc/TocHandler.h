@@ -212,7 +212,7 @@ private: // methods
     /// file (opened for read). It resets back to the same place when done. This is
     /// to allow searching only from the first subtoc.
     void allMaskableEntries(eckit::Offset startOffset, eckit::Offset endOffset,
-                            std::set<std::pair<eckit::PathName, eckit::Offset>>& entries) const;
+                            std::set<std::pair<eckit::PathName, eckit::Offset>>& maskedEntries) const;
     void populateMaskedEntriesList() const;
 
     void append(TocRecord &r, size_t payloadSize);
