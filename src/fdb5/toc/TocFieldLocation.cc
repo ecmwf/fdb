@@ -28,6 +28,9 @@ namespace fdb5 {
 TocFieldLocation::TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
     FieldLocation(eckit::URI("file", path), offset, length, remapKey) {}
 
+TocFieldLocation::TocFieldLocation(const eckit::URI &uri) :
+    FieldLocation(uri) {}
+
 TocFieldLocation::TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
     FieldLocation(uri, offset, length, remapKey) {}
 
