@@ -140,6 +140,7 @@ eckit::URI FieldLocation::fullUri() const {
     if (!remapKey_.empty()) {
         full.query("remapKey", remapKey_.valuesToString());
     }
+    return full;
 }
 
 
