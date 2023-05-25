@@ -130,6 +130,23 @@ public:
     }
 };
 
+eckit::DataHandle* FDB::read(const eckit::URI& uri) {
+    FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
+    return loc->dataHandle();
+}
+
+eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
+    HandleGatherer result(sorted);
+
+    for (const eckit::URI& uri : uris) {
+        FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
+        result.add(loc->dataHandle());
+        delete loc;
+    }
+    return result.dataHandle();
+}
+    
+
 eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     eckit::Timer timer;
     timer.start();

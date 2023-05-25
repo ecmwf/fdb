@@ -79,6 +79,10 @@ public: // methods
     /// @note always safe to call
     void flush();
 
+    eckit::DataHandle* read(const eckit::URI& uri);
+
+    eckit::DataHandle* read(const std::vector<eckit::URI>& uris, bool sorted = false);
+
     eckit::DataHandle* read(ListIterator& it, bool sorted = false);
 
     eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
