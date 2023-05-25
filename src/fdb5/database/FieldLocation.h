@@ -49,6 +49,7 @@ public: // methods
     FieldLocation& operator=(const FieldLocation&) = delete;
 
     virtual const eckit::URI& uri() const { return uri_; }
+    eckit::URI fullUri() const;
     std::string host() const { return uri_.hostport(); }
     virtual eckit::Offset offset() const { return offset_; }
     virtual eckit::Length length() const { return length_; }
@@ -101,11 +102,15 @@ private: // friends
     public:
         FieldLocationBuilderBase(const std::string &);
         virtual ~FieldLocationBuilderBase();
+        virtual FieldLocation* make(const eckit::URI &uri) = 0;
         virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) = 0;
     };
 
     template< class T>
     class FieldLocationBuilder : public FieldLocationBuilderBase {
+        FieldLocation* make(const eckit::URI &uri) override {
+            return new T(uri);
+        }
         FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) override {
             return new T(uri, offset, length, remapKey);
         }
@@ -126,6 +131,7 @@ private: // friends
         void list(std::ostream &);
 
         /// @returns a specialized FieldLocation built by specified builder
+        FieldLocation* build(const std::string &, const eckit::URI &);
         FieldLocation* build(const std::string &, const eckit::URI &, eckit::Offset offset, eckit::Length length, const Key& remapKey);
 
     private:

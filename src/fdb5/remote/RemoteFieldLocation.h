@@ -33,6 +33,7 @@ class RemoteFieldLocation : public FieldLocation {
 public:
 
     RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocation& remoteLocation);
+    RemoteFieldLocation(const eckit::URI &uri);
     RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length, const Key& remapKey);
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
