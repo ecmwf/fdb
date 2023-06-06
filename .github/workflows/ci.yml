@@ -26,7 +26,7 @@ jobs:
     if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
     uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@main
     with:
-      fbd: ecmwf/fbd@${{ github.event.pull_request.head.sha || github.sha }}
+      fdb: ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}
     secrets: inherit
 
   # Run CI of private downstream packages on self-hosted runners
@@ -45,7 +45,7 @@ jobs:
           owner: ecmwf-actions
           repository: private-downstream-ci
           event_type: downstream-ci
-          payload: '{"fbd": "ecmwf/fbd@${{ github.event.pull_request.head.sha || github.sha }}"}'
+          payload: '{"fdb": "ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}"}'
 
   # Build downstream packages on HPC
   downstream-ci-hpc:
@@ -53,7 +53,7 @@ jobs:
     if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
     uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci-hpc.yml@main
     with:
-      fbd: ecmwf/fbd@${{ github.event.pull_request.head.sha || github.sha }}
+      fdb: ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}
     secrets: inherit
 
   # Run CI of private downstream packages on HPC
@@ -72,13 +72,4 @@ jobs:
           owner: ecmwf-actions
           repository: private-downstream-ci
           event_type: downstream-ci-hpc
-          payload: '{"fbd": "ecmwf/fbd@${{ github.event.pull_request.head.sha || github.sha }}"}'
-
-  codecov:
-    name: code-coverage
-    if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
-    uses: ./.github/workflows/reusable-ci.yml
-    with:
-      fbd: ecmwf/fbd@${{ github.event.pull_request.head.sha || github.sha }}
-      codecov: true
-    secrets: inherit
+          payload: '{"fdb": "ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}"}'
