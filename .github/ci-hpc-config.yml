@@ -6,6 +6,8 @@ build:
     - ecmwf/eccodes@develop
     - ecmwf/eckit@develop
     - ecmwf/metkit@develop
+  cmake_options:
+    - -DENABLE_LUSTRE=OFF
   parallel: 64
   env:
     - ECCODES_SAMPLES_PATH=$ECCODES_DIR/share/eccodes/samples
