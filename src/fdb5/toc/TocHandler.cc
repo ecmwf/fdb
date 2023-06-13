@@ -125,6 +125,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     serialisationVersion_(TocSerialisationVersion(config)),
     useSubToc_(config.userConfig().getBool("useSubToc", true)),
     isSubToc_(false),
+    preloadBTree_(config.userConfig().getBool("preloadTocBTree", true)),
     fd_(-1),
     cachedToc_(nullptr),
     count_(0),
@@ -147,6 +148,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     serialisationVersion_(TocSerialisationVersion(dbConfig_)),
     useSubToc_(false),
     isSubToc_(true),
+    preloadBTree_(false),
     fd_(-1),
     cachedToc_(nullptr),
     count_(0),
@@ -1019,7 +1021,8 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             s >> offset;
             s >> type;
             LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INDEX " << path << " - " << offset << std::endl;
-            indexes.push_back( new TocIndex(s, r->header_.serialisationVersion_, currentDirectory(), currentDirectory() / path, offset) );
+            indexes.push_back( new TocIndex(s, r->header_.serialisationVersion_, currentDirectory(),
+                                            currentDirectory() / path, offset, preloadBTree_));
 
             if (subTocs != 0 && subTocRead_) {
                 subTocs->insert(subTocRead_->tocPath());

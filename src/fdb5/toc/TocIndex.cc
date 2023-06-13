@@ -53,16 +53,19 @@ TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mo
     btree_(nullptr),
     dirty_(false),
     mode_(mode),
-    location_(path, offset) {
+    location_(path, offset),
+    preloadBTree_(false) {
 }
 
-TocIndex::TocIndex(eckit::Stream &s, const int version, const eckit::PathName &directory, const eckit::PathName &path, off_t offset):
+TocIndex::TocIndex(eckit::Stream &s, const int version, const eckit::PathName &directory, const eckit::PathName &path,
+                   off_t offset, bool preloadBTree):
     UriStoreWrapper(directory, s),
     IndexBase(s, version),
     btree_(nullptr),
     dirty_(false),
     mode_(TocIndex::READ),
-    location_(path, offset) {
+    location_(path, offset),
+    preloadBTree_(preloadBTree) {
 }
 
 TocIndex::~TocIndex() {
@@ -94,7 +97,7 @@ void TocIndex::open() {
     if (!btree_) {
         eckit::Log::debug<LibFdb5>() << "Opening " << *this << std::endl;
         btree_.reset(BTreeIndexFactory::build(type_, location_.path_, mode_ == TocIndex::READ, location_.offset_));
-        if (mode_ == TocIndex::READ) btree_->preload();
+        if (mode_ == TocIndex::READ && preloadBTree_) btree_->preload();
     }
 }
 
