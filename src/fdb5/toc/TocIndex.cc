@@ -94,6 +94,7 @@ void TocIndex::open() {
     if (!btree_) {
         eckit::Log::debug<LibFdb5>() << "Opening " << *this << std::endl;
         btree_.reset(BTreeIndexFactory::build(type_, location_.path_, mode_ == TocIndex::READ, location_.offset_));
+        if (mode_ == TocIndex::READ) btree_->preload();
     }
 }
 
