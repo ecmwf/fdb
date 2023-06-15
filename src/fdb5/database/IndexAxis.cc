@@ -239,6 +239,10 @@ void IndexAxis::wipe() {
     clean();
 }
 
+bool IndexAxis::has(const std::string &keyword) const {
+    AxisMap::const_iterator i = axis_.find(keyword);
+    return (i != axis_.end());
+}
 
 const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword) const {
 

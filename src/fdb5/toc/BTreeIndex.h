@@ -48,6 +48,7 @@ public:
     virtual void visit(BTreeIndexVisitor& visitor) const = 0;
     virtual void flock() = 0;
     virtual void funlock() = 0;
+    virtual void preload() = 0;
 
 
     static const std::string& defaulType();
