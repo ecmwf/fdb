@@ -116,7 +116,7 @@ private: // members
 class CatalogueReader {
 public:
     virtual DbStats stats() const = 0;
-    virtual void axis(const std::string& keyword, eckit::StringSet& s) const = 0;
+    virtual bool axis(const std::string& keyword, eckit::StringSet& s) const = 0;
     virtual bool retrieve(const Key& key, Field& field) const = 0;
 };
 

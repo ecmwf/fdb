@@ -241,6 +241,7 @@ private: // members
 
     bool useSubToc_;
     bool isSubToc_;
+    bool preloadBTree_;
 
     // If we have mounted another TocCatalogue internally, what is the current
     // remapping key?
