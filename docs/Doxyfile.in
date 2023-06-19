@@ -864,16 +864,8 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-<<<<<<< HEAD
 INPUT                  = "../src/fdb5/api/fdb_c.h" \
                          "../src/fdb5/api/FDB.h"
-=======
-INPUT                  = "../src/odc/api/odc.h" \
-                         "../src/odc/api/Odb.h" \
-                         "../src/odc/api/ColumnType.h" \
-                         "../src/odc/api/ColumnInfo.h" \
-                         "../src/odc/api/StridedData.h"
->>>>>>> c7a78c9a (docs structure from odc)
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
