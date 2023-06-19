@@ -179,12 +179,12 @@ public:
 };
 
 void TocIndex::entries(EntryVisitor &visitor) const {
-    TocIndexCloser closer(*this);
 
     Index instantIndex(const_cast<TocIndex*>(this));
 
     // Allow the visitor to selectively decline to visit the entries in this index
     if (visitor.visitIndex(instantIndex)) {
+        TocIndexCloser closer(*this);
         TocIndexVisitor v(files_, visitor);
         btree_->visit(v);
     }
