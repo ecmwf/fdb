@@ -29,6 +29,10 @@ namespace eckit {
 class Stream;
 }
 
+namespace metkit::mars {
+class MarsRequest;
+}
+
 namespace fdb5 {
 
 class Key;
@@ -55,6 +59,7 @@ public: // methods
 
     void dump(std::ostream &out, const char* indent) const;
 
+    bool partialMatch(const metkit::mars::MarsRequest& request) const;
     bool contains(const Key& key) const;
 
     /// Provide a means to test if the index has changed since it was last written out, and to

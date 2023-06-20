@@ -12,6 +12,8 @@
 #include "eckit/log/Log.h"
 #include "eckit/exception/Exceptions.h"
 
+#include "metkit/mars/MarsRequest.h"
+
 #include "fdb5/database/AxisRegistry.h"
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
@@ -188,6 +190,34 @@ void IndexAxis::dump(std::ostream &out, const char* indent) const {
         }
     }
    // out << std::endl;
+}
+
+bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
+
+    // We partially match on a request
+    //
+    // --> keys that are in the request, but not the axis are OK (other parts of the request)
+    // --> keys that are in the axis, but not the request are OK (list doesn't need to specify everything)
+    //
+    // BUT keys tha correspond to the axis object, but do not match it, should result
+    // in the match failing (this will be the common outcome during the model run, when many
+    // indexes exist)
+
+    for (const auto& kv : axis_) {
+        if (request.has(kv.first)) {
+            bool found = false;
+            for (const auto& rqval : request.values(kv.first)) {
+                if (kv.second->contains(rqval)) {
+                    found = true;
+                    break;;
+                }
+            }
+
+            if (!found) return false;
+        }
+    }
+
+    return true;
 }
 
 bool IndexAxis::contains(const Key &key) const {
