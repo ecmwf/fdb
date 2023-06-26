@@ -57,24 +57,41 @@ bool TocStore::uriBelongs(const eckit::URI& uri) const {
 bool TocStore::uriExists(const eckit::URI& uri) const {
 
     ASSERT(uri.scheme() == type());
-    eckit::PathName p(uri.path().realName());
+    eckit::PathName p(uri.path());
     // ensure provided URI is either DB URI or Store file URI
     if (!p.sameAs(directory_)) {
         ASSERT(p.dirName().sameAs(directory_));
-        ASSERT(p.extension() == "data");
+        ASSERT(p.extension() == ".data");
     }
 
     return p.exists();
 
 }
 
-eckit::PathName TocStore::getStoreUnitPath(const eckit::URI& uri) const {
+std::vector<eckit::URI> TocStore::storeUnitURIs() const {
 
-    eckit::PathName p(uri.path());
-    // ensure provided URI is Store file URI
-    ASSERT(p.dirName().sameAs(directory_));
+    std::vector<eckit::PathName> files;
+    std::vector<eckit::PathName> dirs;
+    directory_.children(files, dirs);
 
-    return p;
+    std::vector<eckit::URI> res;
+    for (const auto& f : files) {
+        if (f.extension() == ".data") {
+            res.push_back(eckit::URI{type(), f});
+        }
+    }
+
+    return res;
+
+}
+
+void TocStore::asStoreUnitURIs(std::vector<eckit::URI>& uris) const {
+
+    for (auto& uri : uris) {
+
+        ASSERT(uri.path().extension() == ".data");
+
+    }
 
 }
 

@@ -18,11 +18,13 @@
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
 
+#include "fdb5/daos/DaosCommon.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class DaosStore : public Store {
+class DaosStore : public Store, public DaosCommon {
 
 public: // methods
 
@@ -34,8 +36,8 @@ public: // methods
     eckit::URI uri() const override;
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
-    eckit::PathName getStoreUnitPath(const eckit::URI&) const override;
     std::vector<eckit::URI> storeUnitURIs() const override;
+    void asStoreUnitURIs(std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }
     void flush() override;
@@ -78,7 +80,6 @@ private: // members
     // HandleStore handles_;    ///< stores the DataHandles being used by the Session
 
     // PathStore dataPaths_;
-    std::string pool_;
     std::string db_str_;
 
     // mutable bool dirty_;

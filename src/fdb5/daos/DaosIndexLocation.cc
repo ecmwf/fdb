@@ -39,9 +39,8 @@ DaosIndexLocation::DaosIndexLocation(const fdb5::DaosKeyValueName& name, off_t o
 //     return path_;
 // }*/
 
-// URI TocIndexLocation::uri() const
-// {
-//     return URI("toc", path_);
+// eckit::URI DaosIndexLocation::uri() const {
+//     return name.URI();
 // }
 
 // IndexLocation* TocIndexLocation::clone() const {

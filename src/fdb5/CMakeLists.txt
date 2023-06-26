@@ -401,6 +401,10 @@ if( HAVE_DAOSFDB )
         daos/DaosIndex.cc
         daos/DaosIndexLocation.h
         daos/DaosIndexLocation.cc
+        daos/DaosCommon.h
+        daos/DaosCommon.cc
+        daos/DaosWipeVisitor.h 
+        daos/DaosWipeVisitor.cc
     )
 else()
     set( DAOS_LIBRARIES "" )

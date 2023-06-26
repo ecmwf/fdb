@@ -435,7 +435,7 @@ CASE("DaosStore tests") {
         /// @todo: really needed?
         fdb.flush();
 
-        // wipe index and store unit
+        // wipe index and store unit (and DB container as there is only one index)
         wipeObject = fdb.wipe(index_req, true);
         count = 0;
         while (wipeObject.next(elem)) count++;
@@ -450,8 +450,9 @@ CASE("DaosStore tests") {
         EXPECT(count == 0);
 
         /// @todo: ensure index and corresponding container do not exist
-        /// @todo: ensure DB still exists
-        /// @todo: list db or index and expect count = 0?
+
+        /// @todo: archive two fields on two separate indexes, remove one index, and finally
+        ///   ensure DB still exists with one index
 
         /// @todo: ensure new DaosSession has updated daos client config
 
@@ -535,7 +536,7 @@ CASE("DaosStore tests") {
         }
         EXPECT(count == 0);
 
-        /// @todo: ensure DB and corresponding pool do not exist
+        /// @todo: ensure DB and corresponding cont do not exist
 
     }
 

@@ -14,6 +14,7 @@
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Manager.h"
+#include "fdb5/database/Engine.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 
@@ -90,7 +91,8 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     try {
 
-        std::vector<URI> uris(Manager(dbConfig_).visitableLocations(request.request(), request.all()));
+        fdb5::Manager mg{dbConfig_};
+        std::vector<URI> uris(mg.visitableLocations(request.request(), request.all()));
 
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
 
@@ -98,20 +100,21 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
         for (URI uri : uris) {
 
-            PathName path(uri.path());
-            if (path.exists()) {
-                if (!path.isDir())
-                    path = path.dirName();
-                path = path.realName();
+            /// @note: the schema of a URI returned by visitableLocations matches the corresponding Engine type name
+            fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
 
-                Log::debug<LibFdb5>() << "FDB processing Path " << path << std::endl;
+            eckit::URI db_uri = uri;
+            /// @todo: improve these checks. E.g. DB existence is checked twice
+            if (!ng.toExistingDBURI(db_uri, dbConfig_)) continue;
+            if (!ng.canHandle(db_uri, dbConfig_)) continue;
+            /// @todo: should any of these checks be rather performed in the *Catalogue constructors?
 
-                std::unique_ptr<DB> db = DB::buildReader(eckit::URI(uri.scheme(), path), dbConfig_);
-                ASSERT(db->open());
-                eckit::AutoCloser<DB> closer(*db);
+            std::unique_ptr<DB> db = ng.buildReader(db_uri, dbConfig_);
+            ASSERT(db->open());
+            eckit::AutoCloser<DB> closer(*db);
 
-                db->visitEntries(visitor, false);
-            }
+            db->visitEntries(visitor, false);
+
         }
 
     } catch (eckit::UserError&) {

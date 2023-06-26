@@ -48,6 +48,8 @@ public: // methods
     // DaosOID(DaosOID&&);
     // DaosOID& operator=(DaosOID);
 
+    bool operator==(const DaosOID&) const;
+
     void generate(fdb5::DaosContainer&);
 
     std::string asString() const;

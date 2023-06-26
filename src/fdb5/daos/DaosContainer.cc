@@ -222,6 +222,41 @@ fdb5::DaosKeyValue DaosContainer::createKeyValue(const fdb5::DaosOID& oid) {
 
 }
 
+std::vector<fdb5::DaosOID> DaosContainer::listOIDs() {
+    
+    /// @todo: proper memory management
+    /// @todo: auto snap destroyer
+    daos_epoch_t e;
+    DAOS_CALL(
+        daos_cont_create_snap_opt(
+            coh_, &e, NULL, (enum daos_snapshot_opts)(DAOS_SNAP_OPT_CR | DAOS_SNAP_OPT_OIT), NULL
+        )
+    );
+
+    daos_handle_t oith;
+    DAOS_CALL(daos_oit_open(coh_, e, &oith, NULL));
+
+    std::vector<fdb5::DaosOID> oids;
+    daos_anchor_t anchor = DAOS_ANCHOR_INIT;
+    int max_oids_per_rpc = 10;  /// @todo: take from config
+    daos_obj_id_t oid_batch[max_oids_per_rpc];
+    while (!daos_anchor_is_eof(&anchor)) {
+        uint32_t oids_nr = max_oids_per_rpc;
+        DAOS_CALL(daos_oit_list(oith, oid_batch, &oids_nr, &anchor, NULL));
+        for (int i = 0; i < oids_nr; i++) {
+            oids.push_back(fdb5::DaosOID{oid_batch[i].hi, oid_batch[i].lo});
+        }
+    }
+
+    DAOS_CALL(daos_oit_close(oith, NULL));
+
+    daos_epoch_range_t epr{e, e};
+    DAOS_CALL(daos_cont_destroy_snap(coh_, epr, NULL));
+
+    return oids;
+
+}
+
 const daos_handle_t& DaosContainer::getOpenHandle() {
     
     open();

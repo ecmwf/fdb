@@ -83,7 +83,7 @@ public: // methods
 private: // methods
 
     const IndexLocation& location() const override { return location_; }
-    // const std::vector<eckit::URI> dataPaths() const override;
+    const std::vector<eckit::URI> dataPaths() const override;
 
     bool dirty() const override { NOTIMP; }
 
@@ -97,7 +97,7 @@ private: // methods
     void add( const Key &key, const Field &field ) override;
     void flush() override { NOTIMP; }
     void encode(eckit::Stream& s, const int version) const override { NOTIMP; }
-    void entries(EntryVisitor& visitor) const override { NOTIMP; }
+    void entries(EntryVisitor& visitor) const override;
 
     void print( std::ostream &out ) const override { NOTIMP; }
     void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const override { NOTIMP; }

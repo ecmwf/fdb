@@ -19,6 +19,7 @@
 #include "eckit/serialisation/HandleStream.h"
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosIndex.h"
+#include "fdb5/daos/DaosFieldLocation.h"
 // #include "fdb5/toc/BTreeIndex.h"
 // #include "fdb5/toc/FieldRef.h"
 // #include "fdb5/toc/TocFieldLocation.h"
@@ -236,17 +237,37 @@ void DaosIndex::add(const Key &key, const Field &field) {
 //     }
 // };
 
-// void TocIndex::entries(EntryVisitor &visitor) const {
-//     TocIndexCloser closer(*this);
+void DaosIndex::entries(EntryVisitor &visitor) const {
 
-//     Index instantIndex(const_cast<TocIndex*>(this));
+    // TocIndexCloser closer(*this);
 
-//     // Allow the visitor to selectively decline to visit the entries in this index
-//     if (visitor.visitIndex(instantIndex)) {
-//         TocIndexVisitor v(files_, visitor);
-//         btree_->visit(v);
-//     }
-// }
+    Index instantIndex(const_cast<DaosIndex*>(this));
+
+    // Allow the visitor to selectively decline to visit the entries in this index
+    if (visitor.visitIndex(instantIndex)) {
+
+        fdb5::DaosSession s{};
+        fdb5::DaosKeyValue index_kv{s, location_.daosName()};
+
+        for (const auto& key : index_kv.keys()) {
+
+            if (key == "axes" || key == "key") continue;
+
+            daos_size_t size{index_kv.size(key)};
+            std::vector<char> v((long) size);
+            index_kv.get(key, &v[0], size);
+            eckit::MemoryStream ms{&v[0], size};
+            std::unique_ptr<fdb5::FieldLocation> fl(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
+
+            fdb5::Field field(new DaosFieldLocation(fl->uri()), visitor.indexTimestamp(), fdb5::FieldDetails());
+            visitor.visitDatum(field, key);
+
+        }
+
+        //TocIndexVisitor v(files_, visitor);
+        //btree_->visit(v);
+    }
+}
 
 // void TocIndex::print(std::ostream &out) const {
 //     out << "TocIndex(path=" << location_.path_ << ",offset="<< location_.offset_ << ")";
@@ -257,9 +278,39 @@ void DaosIndex::add(const Key &key, const Field &field) {
 //     return BTreeIndex::defaulType();
 // }
 
-// const std::vector<eckit::URI> TocIndex::dataPaths() const {
-//     return files_.paths();
-// }
+const std::vector<eckit::URI> DaosIndex::dataPaths() const {
+
+    /// @note: if daos index + daos store, this will return a uri to a DAOS array for each indexed field
+    /// @note: if daos index + posix store, this will return a vector of unique uris to all referenced posix files
+    ///   in this index (one for each writer process that has written to the index)
+    /// @note: in the case where we have a daos store, the current implementation of dataPaths is unnecessarily inefficient.
+    ///   This method is only called in DaosWipeVisitor, where the uris obtained from this method are processed to obtain
+    ///   unique store container paths - will always result in just one container uri! Having a URI store for each index in
+    ///   DAOS could make this process more efficient, but it would imply more KV operations and slow down field writes.
+    /// @note: in the case where we have a posix store there will be more than one unique store file paths. The current 
+    ///   implementation is still inefficient but preferred to maintaining a URI store in the DAOS catalogue
+
+    fdb5::DaosSession s{};
+    fdb5::DaosKeyValue index_kv{s, location_.daosName()};
+
+    std::set<eckit::URI> res;
+
+    for (const auto& key : index_kv.keys()) {
+
+        if (key == "axes" || key == "key") continue;
+
+        daos_size_t size{index_kv.size(key)};
+        std::vector<char> v((long) size);
+        index_kv.get(key, &v[0], size);
+        eckit::MemoryStream ms{&v[0], size};
+        std::unique_ptr<fdb5::FieldLocation> fl(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
+        res.insert(fl->uri());
+
+    }
+
+    return std::vector<eckit::URI>(res.begin(), res.end());
+
+}
 
 // bool TocIndex::dirty() const {
 //     return dirty_;

@@ -37,6 +37,8 @@ DaosNameBase::DaosNameBase(const eckit::URI& uri)  {
     //   uri: daos:pool[/cont[/oidhi.oidlo]]
 
     ASSERT(uri.scheme() == "daos");
+    ASSERT(uri.query() == std::string());
+    ASSERT(uri.fragment() == std::string());
 
     eckit::Tokenizer parse("/");
     std::vector<std::string> bits;
@@ -123,7 +125,6 @@ void DaosNameBase::create() const {
 void DaosNameBase::destroy() const {
 
     ASSERT(cont_.has_value());
-    if (oid_.has_value()) NOTIMP;
 
     fdb5::DaosSession s{};
     fdb5::DaosPool& p = s.getPool(pool_);
@@ -136,7 +137,16 @@ void DaosNameBase::destroy() const {
     if (it == v.end()) return;
 
     fdb5::DaosContainer& c = p.getContainer(cont_.value());
-    c.destroy();
+
+    if (!oid_.has_value()) {
+        c.destroy();
+        return;
+    }
+
+    if (oid_->otype() != DAOS_OT_KV_HASHED) NOTIMP;
+
+    fdb5::DaosKeyValue kv{c, oid_.value()};
+    kv.destroy();
 
 }
 
@@ -222,6 +232,30 @@ fdb5::DaosOID DaosNameBase::OID() const {
     
 }
 
+bool DaosNameBase::operator<(const DaosNameBase& other) const {
+    return this->asString() < other.asString();
+}
+
+bool DaosNameBase::operator>(const DaosNameBase& other) const {
+    return this->asString() > other.asString();
+}
+
+bool DaosNameBase::operator!=(const DaosNameBase& other) const {
+    return this->asString() != other.asString();
+}
+
+bool DaosNameBase::operator==(const DaosNameBase& other) const {
+    return this->asString() == other.asString();
+}
+
+bool DaosNameBase::operator<=(const DaosNameBase& other) const {
+    return this->asString() <= other.asString();
+}
+
+bool DaosNameBase::operator>=(const DaosNameBase& other) const {
+    return this->asString() >= other.asString();
+}
+
 DaosArrayName::DaosArrayName(const std::string& pool, const std::string& cont, const fdb5::DaosOID& oid) : DaosNameBase(pool, cont, oid) {
     
     ASSERT(oid_.value().otype() == DAOS_OT_ARRAY);
@@ -300,6 +334,18 @@ DaosKeyValueName DaosName::createKeyValueName(const daos_oclass_id_t& oclass) co
     ASSERT(hasContName() && !hasOID());
     create();
     return DaosKeyValueName{pool_, cont_.value(), createOID(DAOS_OT_KV_HASHED, oclass)};
+
+}
+
+std::vector<fdb5::DaosOID> DaosName::listOIDs() const {
+
+    ASSERT(hasContName() && !hasOID());
+
+    fdb5::DaosSession s{};
+    fdb5::DaosPool& p = s.getPool(pool_);
+    fdb5::DaosContainer& c = p.getContainer(cont_.value());
+
+    return c.listOIDs();
 
 }
 

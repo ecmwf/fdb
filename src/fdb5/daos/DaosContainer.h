@@ -48,6 +48,7 @@ public: // methods
     fdb5::DaosArray createArray(const fdb5::DaosOID&);
     fdb5::DaosKeyValue createKeyValue(const daos_oclass_id_t& oclass = OC_S1);
     fdb5::DaosKeyValue createKeyValue(const fdb5::DaosOID&);
+    std::vector<fdb5::DaosOID> listOIDs();
 
     const daos_handle_t& getOpenHandle();
 

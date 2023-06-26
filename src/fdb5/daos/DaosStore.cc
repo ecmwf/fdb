@@ -35,38 +35,14 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosStore::DaosStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), config_(config), db_str_(key.valuesToString()) {
-
-    pool_ = "default";
-
-    eckit::LocalConfiguration c{};
-
-    if (config_.has("daos")) c = config_.getSubConfiguration("daos");
-    if (c.has("store")) pool_ = c.getSubConfiguration("store").getString("pool", pool_);
-
-    pool_ = eckit::Resource<std::string>("fdbDaosStorePool;$FDB_DAOS_STORE_POOL", pool_);
-
-    if (c.has("client"))
-        fdb5::DaosManager::instance().configure(c.getSubConfiguration("client"));
+    Store(schema), DaosCommon(config, "store", key), config_(config), db_str_(db_cont_) {
 
     /// @todo: should assert the store actually exists, as in the constructors of DaosPool etc.
 
 }
 
 DaosStore::DaosStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), config_(config) {
-
-    fdb5::DaosArrayName db_name(uri);
-    ASSERT(db_name.hasOID());
-
-    pool_ = db_name.poolName();
-    
-    db_str_ = db_name.contName();
-
-    eckit::LocalConfiguration c{};
-    if (c.has("daos")) c = c.getSubConfiguration("daos");
-    if (c.has("client"))
-        fdb5::DaosManager::instance().configure(c.getSubConfiguration("client"));
+    Store(schema), DaosCommon(config, "store", uri), config_(config), db_str_(db_cont_) {
 
 }
 
@@ -78,6 +54,7 @@ eckit::URI DaosStore::uri() const {
 
 bool DaosStore::uriBelongs(const eckit::URI& uri) const {
 
+    /// @todo: avoid building a DaosName as it makes uriBelongs expensive
     /// @todo: assert uri points to a (not necessarily existing) array object
     return (
         (uri.scheme() == type()) && 
@@ -100,20 +77,8 @@ bool DaosStore::uriExists(const eckit::URI& uri) const {
 
 }
 
-// TODO: transform to getStoreunitURI
-eckit::PathName DaosStore::getStoreUnitPath(const eckit::URI& uri) const {
-
-    ASSERT(uri.scheme() == type());
-    fdb5::DaosName n(uri);
-    ASSERT(n.hasOID());
-
-    return uri.path().dirName();
-
-}
-
 std::vector<eckit::URI> DaosStore::storeUnitURIs() const {
 
-    // TODO: implement DaosName::listContainers or listContainerNames
     fdb5::DaosSession s{};
     fdb5::DaosPool& p = s.getPool(pool_);
     std::vector<std::string> cont_labels = p.listContainers();
@@ -128,6 +93,17 @@ std::vector<eckit::URI> DaosStore::storeUnitURIs() const {
     }
 
     return store_unit_uris;
+
+}
+
+void DaosStore::asStoreUnitURIs(std::vector<eckit::URI>& uris) const {
+
+    for (auto& uri : uris) {
+
+        fdb5::DaosName n{uri};
+        uri = fdb5::DaosName(n.poolName(), n.contName()).URI();
+
+    }
 
 }
 

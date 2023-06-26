@@ -134,6 +134,7 @@ public: // methods
     bool has(const std::string& key);
     long put(const std::string& key, const void*, const long&);
     long get(const std::string& key, void*, const long&);
+    void remove(const std::string& key);
     std::vector<std::string> keys();
 
 private: // methods

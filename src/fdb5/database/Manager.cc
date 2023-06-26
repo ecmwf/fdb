@@ -259,7 +259,7 @@ std::string Manager::engine(const URI& uri)
     for(std::vector<Engine*>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
         ASSERT(*i);
         const Engine& e = **i;
-        if(e.canHandle(uri)) {
+        if(e.canHandle(uri, config_)) {
             return e.dbType();
         }
     }

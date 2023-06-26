@@ -37,7 +37,7 @@ public: // methods
     // off_t offset() const;
 
 //    eckit::PathName path() const override;
-    eckit::URI uri() const override { NOTIMP; }
+    eckit::URI uri() const override { return name_.URI(); }
 
     IndexLocation* clone() const override { NOTIMP; }
 

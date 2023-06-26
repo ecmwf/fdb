@@ -224,16 +224,20 @@ CASE("DaosCatalogue tests") {
             EXPECT(f.location().length() == loc->length());
         }
 
-//         // remove
-//         fdb5::DaosName field_name{field.location().uri()};
-//         fdb5::DaosName store_name{field_name.poolName(), field_name.contName()};
-//         eckit::URI store_uri(store_name.URI());
-//         std::ostream out(std::cout.rdbuf());
-//         store.remove(store_uri, out, out, false);
-//         EXPECT(field_name.exists());
-//         store.remove(store_uri, out, out, true);
-//         EXPECT_NOT(field_name.exists());
-//         EXPECT_NOT(store_name.exists());
+        // remove (manual deindex)
+
+        {
+            fdb5::DaosCatalogueWriter dcatw{db_key, config};
+            fdb5::DaosName db_cont{dcatw.uri()};
+            std::ostream out(std::cout.rdbuf());
+
+            fdb5::DaosCatalogue::remove(db_cont, out, out, true);
+
+            fdb5::DaosKeyValueOID cat_kv_oid{0, 0, OC_S1};  /// @todo: take oclass from config
+            fdb5::DaosKeyValueName cat_kv{pool_name, db_key.valuesToString(), cat_kv_oid};
+            EXPECT_NOT(cat_kv.exists());
+            EXPECT_NOT(db_cont.exists());
+        }
 
     }
 
@@ -312,26 +316,15 @@ CASE("DaosCatalogue tests") {
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
 
-        // remove data
-
-        fdb5::DaosName field_name{field.location().uri()};
-        fdb5::DaosName store_name{field_name.poolName(), field_name.contName()};
-        eckit::URI store_uri(store_name.URI());
-        std::ostream out(std::cout.rdbuf());
-        store.remove(store_uri, out, out, false);
-        EXPECT(field_name.exists());
-        store.remove(store_uri, out, out, true);
-        EXPECT_NOT(field_name.exists());
-        EXPECT_NOT(store_name.exists());
-
         // deindex data
 
-        // {
-        //     fdb5::TocCatalogueWriter tcat{db_key, config};
-        //     fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
-        //     std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, db_key.request("retrieve"), out, true, false, false));
-        //     cat.visitEntries(*wv, store, false);
-        // }
+        {
+            fdb5::DaosCatalogueWriter dcat{db_key, config};
+            fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
+            std::ostream out(std::cout.rdbuf());
+            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, db_key.request("retrieve"), out, true, false, false));
+            cat.visitEntries(*wv, store, false);
+        }
 
         /// @todo: again, daos_fini happening before
 
@@ -427,12 +420,13 @@ CASE("DaosCatalogue tests") {
 
         // deindex data
 
-        // {
-        //     fdb5::TocCatalogueWriter tcat{db_key, config};
-        //     fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
-        //     std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, db_key.request("retrieve"), out, true, false, false));
-        //     cat.visitEntries(*wv, store, false);
-        // }
+        {
+            fdb5::DaosCatalogueWriter dcat{db_key, config};
+            fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
+            std::ostream out(std::cout.rdbuf());
+            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, db_key.request("retrieve"), out, true, false, false));
+            cat.visitEntries(*wv, store, false);
+        }
 
         /// @todo: again, daos_fini happening before
 
@@ -482,6 +476,11 @@ CASE("DaosCatalogue tests") {
             false, 
             std::vector<std::string>{"a", "b"}
         };
+        fdb5::FDBToolRequest all_req{
+            metkit::mars::MarsRequest{}, 
+            true, 
+            std::vector<std::string>{}
+        };
 
         // initialise store
 
@@ -489,22 +488,22 @@ CASE("DaosCatalogue tests") {
 
         // check store is empty
 
-        // size_t count;
-        // fdb5::ListElement info;
+        size_t count;
+        fdb5::ListElement info;
 
-        // /// @todo: here, DaosManager is being configured with DAOS client config passed to FDB instance constructor.
-        // //   It happens in EntryVisitMechanism::visit when calling DB::open. Is this OK, or should this configuring
-        // //   rather happen as part of transforming a FieldLocation into a DataHandle? It is probably OK. One thing
-        // //   is to configure the DAOS client and the other thing is to initialise it.
-        // auto listObject = fdb.list(db_req);
+        /// @todo: here, DaosManager is being configured with DAOS client config passed to FDB instance constructor.
+        //   It happens in EntryVisitMechanism::visit when calling DB::open. Is this OK, or should this configuring
+        //   rather happen as part of transforming a FieldLocation into a DataHandle? It is probably OK. One thing
+        //   is to configure the DAOS client and the other thing is to initialise it.
+        auto listObject = fdb.list(db_req);
 
-        // count = 0;
-        // while (listObject.next(info)) {
-        //     info.print(std::cout, true, true);
-        //     std::cout << std::endl;
-        //     ++count;
-        // }
-        // EXPECT(count == 0);
+        count = 0;
+        while (listObject.next(info)) {
+            info.print(std::cout, true, true);
+            std::cout << std::endl;
+            ++count;
+        }
+        EXPECT(count == 0);
 
         // store data
 
@@ -525,60 +524,70 @@ CASE("DaosCatalogue tests") {
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
 
-        // // wipe data
+        /// @todo: list all
+        listObject = fdb.list(all_req);
+        count = 0;
+        while (listObject.next(info)) {
+            // info.print(std::cout, true, true);
+            // std::cout << std::endl;
+            count++;
+        }
+        EXPECT(count == 1);
 
-        // fdb5::WipeElement elem;
+        // wipe data
 
-        // // dry run attempt to wipe with too specific request
+        fdb5::WipeElement elem;
 
-        // auto wipeObject = fdb.wipe(full_req);
-        // count = 0;
-        // while (wipeObject.next(elem)) count++;
-        // EXPECT(count == 0);
+        // dry run attempt to wipe with too specific request
 
-        // // dry run wipe index and store unit
-        // wipeObject = fdb.wipe(index_req);
-        // count = 0;
-        // while (wipeObject.next(elem)) count++;
-        // EXPECT(count > 0);
+        auto wipeObject = fdb.wipe(full_req);
+        count = 0;
+        while (wipeObject.next(elem)) count++;
+        EXPECT(count == 0);
 
-        // // dry run wipe database
-        // wipeObject = fdb.wipe(db_req);
-        // count = 0;
-        // while (wipeObject.next(elem)) count++;
-        // EXPECT(count > 0);
+        // dry run wipe index and store unit
+        wipeObject = fdb.wipe(index_req);
+        count = 0;
+        while (wipeObject.next(elem)) count++;
+        EXPECT(count > 0);
 
-        // // ensure field still exists
-        // listObject = fdb.list(full_req);
-        // count = 0;
-        // while (listObject.next(info)) {
-        //     // info.print(std::cout, true, true);
-        //     // std::cout << std::endl;
-        //     count++;
-        // }
-        // EXPECT(count == 1);
+        // dry run wipe database
+        wipeObject = fdb.wipe(db_req);
+        count = 0;
+        while (wipeObject.next(elem)) count++;
+        EXPECT(count > 0);
 
-        // // attempt to wipe with too specific request
-        // wipeObject = fdb.wipe(full_req, true);
-        // count = 0;
-        // while (wipeObject.next(elem)) count++;
-        // EXPECT(count == 0);
-        // /// @todo: really needed?
-        // fdb.flush();
+        // ensure field still exists
+        listObject = fdb.list(full_req);
+        count = 0;
+        while (listObject.next(info)) {
+            // info.print(std::cout, true, true);
+            // std::cout << std::endl;
+            count++;
+        }
+        EXPECT(count == 1);
 
-        // // wipe index and store unit
-        // wipeObject = fdb.wipe(index_req, true);
-        // count = 0;
-        // while (wipeObject.next(elem)) count++;
-        // EXPECT(count > 0);
-        // /// @todo: really needed?
-        // fdb.flush();
+        // attempt to wipe with too specific request
+        wipeObject = fdb.wipe(full_req, true);
+        count = 0;
+        while (wipeObject.next(elem)) count++;
+        EXPECT(count == 0);
+        /// @todo: really needed?
+        fdb.flush();
 
-        // // ensure field does not exist
-        // listObject = fdb.list(full_req);
-        // count = 0;
-        // while (listObject.next(info)) count++;
-        // EXPECT(count == 0);
+        // wipe index and store unit
+        wipeObject = fdb.wipe(index_req, true);
+        count = 0;
+        while (wipeObject.next(elem)) count++;
+        EXPECT(count > 0);
+        /// @todo: really needed?
+        fdb.flush();
+
+        // ensure field does not exist
+        listObject = fdb.list(full_req);
+        count = 0;
+        while (listObject.next(info)) count++;
+        EXPECT(count == 0);
 
         // /// @todo: ensure index and corresponding container do not exist
         // /// @todo: ensure DB still exists
@@ -588,87 +597,87 @@ CASE("DaosCatalogue tests") {
 
     }
 
-    // /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
-    // // archive() fails as it expects a toc file to exist, but it has been removed by previous wipe
-    // SECTION("FDB API RE-STORE AND WIPE DB") {
+    /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
+    // archive() fails as it expects a toc file to exist, but it has been removed by previous wipe
+    SECTION("FDB API RE-STORE AND WIPE DB") {
 
-    //     // FDB configuration
+        // FDB configuration
 
-    //     std::string config_str{
-    //         "type: local\n"
-    //         "schema : " + schema_file().path() + "\n"
-    //         "engine: toc\n"
-    //         "store: daos\n"
-    //         "daos:\n"
-    //         "  store:\n"
-    //         "    pool: " + pool_name + "\n"
-    //         "  client:\n"
-    //         "    container_oids_per_alloc: " + std::to_string(container_oids_per_alloc)
-    //     };
+        std::string config_str{
+            "type: local\n"
+            "schema : " + schema_file().path() + "\n"
+            "engine: toc\n"
+            "store: daos\n"
+            "daos:\n"
+            "  store:\n"
+            "    pool: " + pool_name + "\n"
+            "  client:\n"
+            "    container_oids_per_alloc: " + std::to_string(container_oids_per_alloc)
+        };
 
-    //     fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(config_str)};
 
-    //     // request
+        // request
 
-    //     fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-    //     fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
-    //     fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
+        fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
+        fdb5::Key db_key{"a=1,b=2"};
 
-    //     fdb5::FDBToolRequest full_req{
-    //         request_key.request("retrieve"), 
-    //         false, 
-    //         std::vector<std::string>{"a", "b"}
-    //     };
-    //     fdb5::FDBToolRequest index_req{
-    //         index_key.request("retrieve"), 
-    //         false, 
-    //         std::vector<std::string>{"a", "b"}
-    //     };
-    //     fdb5::FDBToolRequest db_req{
-    //         db_key.request("retrieve"), 
-    //         false, 
-    //         std::vector<std::string>{"a", "b"}
-    //     };
+        fdb5::FDBToolRequest full_req{
+            request_key.request("retrieve"), 
+            false, 
+            std::vector<std::string>{"a", "b"}
+        };
+        fdb5::FDBToolRequest index_req{
+            index_key.request("retrieve"), 
+            false, 
+            std::vector<std::string>{"a", "b"}
+        };
+        fdb5::FDBToolRequest db_req{
+            db_key.request("retrieve"), 
+            false, 
+            std::vector<std::string>{"a", "b"}
+        };
 
-    //     // initialise store
+        // initialise store
 
-    //     fdb5::FDB fdb(config);
+        fdb5::FDB fdb(config);
 
-    //     // store again
+        // store again
 
-    //     char data[] = "test";
+        char data[] = "test";
 
-    //     fdb.archive(request_key, data, sizeof(data));
+        fdb.archive(request_key, data, sizeof(data));
 
-    //     fdb.flush();
+        fdb.flush();
 
-    //     size_t count;
+        size_t count;
         
-    //     // wipe all database
+        // wipe all database
 
-    //     fdb5::WipeElement elem;
-    //     auto wipeObject = fdb.wipe(db_req, true);
-    //     count = 0;
-    //     while (wipeObject.next(elem)) count++;
-    //     EXPECT(count > 0);
-    //     /// @todo: really needed?
-    //     fdb.flush();
+        fdb5::WipeElement elem;
+        auto wipeObject = fdb.wipe(db_req, true);
+        count = 0;
+        while (wipeObject.next(elem)) count++;
+        EXPECT(count > 0);
+        /// @todo: really needed?
+        fdb.flush();
 
-    //     // ensure field does not exist
+        // ensure field does not exist
 
-    //     fdb5::ListElement info;
-    //     auto listObject = fdb.list(full_req);
-    //     count = 0;
-    //     while (listObject.next(info)) {
-    //         // info.print(std::cout, true, true);
-    //         // std::cout << std::endl;
-    //         count++;
-    //     }
-    //     EXPECT(count == 0);
+        fdb5::ListElement info;
+        auto listObject = fdb.list(full_req);
+        count = 0;
+        while (listObject.next(info)) {
+            // info.print(std::cout, true, true);
+            // std::cout << std::endl;
+            count++;
+        }
+        EXPECT(count == 0);
 
-    //     /// @todo: ensure DB and corresponding pool do not exist
+        /// @todo: ensure DB and corresponding pool do not exist
 
-    // }
+    }
 
     // teardown daos
 

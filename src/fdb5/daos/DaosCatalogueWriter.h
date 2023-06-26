@@ -103,6 +103,8 @@ private: // members
     Index current_;
     // Index currentFull_;
 
+    bool firstIndexWrite_;
+
 //     eckit::AutoUmask umask_;
 };
 

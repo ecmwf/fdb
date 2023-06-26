@@ -311,7 +311,11 @@ void DaosKeyValue::create() {
 
 void DaosKeyValue::destroy() {
 
-    NOTIMP;
+    open(); 
+
+    DAOS_CALL(daos_kv_destroy(oh_, DAOS_TX_NONE, NULL));
+
+    close();
 
 }
 
@@ -383,6 +387,14 @@ long DaosKeyValue::get(const std::string& key, void* buf, const long& len) {
     if (res == 0) throw fdb5::DaosEntityNotFoundException("Key '" + key + "' not found in KeyValue with OID " + oid_.asString());
 
     return res;
+
+}
+
+void DaosKeyValue::remove(const std::string& key) {
+
+    open();
+
+    DAOS_CALL(daos_kv_remove(oh_, DAOS_TX_NONE, 0, key.c_str(), NULL));
 
 }
 

@@ -59,6 +59,13 @@ public: // methods
     fdb5::DaosOID OID() const;
     bool hasOID() const { return oid_.has_value(); };
 
+    bool operator<(const DaosNameBase& other) const;
+    bool operator>(const DaosNameBase& other) const;
+    bool operator!=(const DaosNameBase& other) const;
+    bool operator==(const DaosNameBase& other) const;
+    bool operator<=(const DaosNameBase& other) const;
+    bool operator>=(const DaosNameBase& other) const;
+
 protected: // methods
 
     DaosNameBase(const std::string& pool);
@@ -109,6 +116,7 @@ public: // methods
 
 };
 
+/// @note: DaosName can represent a pool, container or object. Provides convenient functionality for containers
 class DaosName : public DaosNameBase {
 
 public: // methods
@@ -121,6 +129,7 @@ public: // methods
 
     fdb5::DaosArrayName createArrayName(const daos_oclass_id_t& oclass = OC_S1) const;
     fdb5::DaosKeyValueName createKeyValueName(const daos_oclass_id_t& oclass = OC_S1) const;
+    std::vector<fdb5::DaosOID> listOIDs() const;
 
 };
 

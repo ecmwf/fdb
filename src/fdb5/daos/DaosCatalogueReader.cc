@@ -46,7 +46,6 @@ DaosCatalogueReader::DaosCatalogueReader(const Key& key, const fdb5::Config& con
 DaosCatalogueReader::DaosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
     DaosCatalogue(uri, ControlIdentifiers{}, config) {
 
-    NOTIMP;
     // loadIndexesAndRemap();
 
 }

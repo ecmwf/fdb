@@ -78,6 +78,13 @@ DaosOID::DaosOID(const std::string& name, const enum daos_otype_t& otype, const 
 
 // }
 
+bool DaosOID::operator==(const DaosOID& rhs) const {
+
+    return hi_ == rhs.hi_ && lo_ == rhs.lo_ && 
+           oclass_ == rhs.oclass_ && wasGenerated_ == rhs.wasGenerated_;
+
+}
+
 void DaosOID::generate(fdb5::DaosContainer& cont) {
 
     if (wasGenerated_) return;

@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <numeric>
+
 // #include "fdb5/fdb5_config.h"
 
 #include "eckit/io/FileHandle.h"
@@ -15,6 +17,8 @@
 // #include "eckit/log/Log.h"
 // #include "eckit/log/Bytes.h"
 // #include "eckit/io/EmptyHandle.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/serialisation/HandleStream.h"
 
 // #include "fdb5/database/EntryVisitMechanism.h"
 // #include "fdb5/io/FDBFileHandle.h"
@@ -36,7 +40,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& config) :
-    DaosCatalogue(key, config) {
+    DaosCatalogue(key, config), firstIndexWrite_(false) {
     // umask_(config.umask()) {
 
     fdb5::DaosName pool_name{pool_};
@@ -52,8 +56,10 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& con
 
     if (!main_kv.has(db_cont_)) {
 
+        /// create catalogue kv
         catalogue_kv_name.create();
 
+        /// write schema under "schema"
         eckit::Log::debug<LibFdb5>() << "Copy schema from "
                                      << config_.schemaPath()
                                      << " to "
@@ -65,6 +71,17 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& con
         std::unique_ptr<eckit::DataHandle> out(catalogue_kv_name.dataHandle("schema"));
         in.copyTo(*out);
 
+        /// write dbKey under "key"
+        eckit::MemoryHandle h{(size_t) PATH_MAX};
+        eckit::HandleStream hs{h};
+        h.openForWrite(eckit::Length(0));
+        {
+            eckit::AutoClose closer(h);
+            hs << dbKey_;
+        }
+        fdb5::DaosKeyValue{s, catalogue_kv_name}.put("key", h.data(), hs.bytesWritten());   
+
+        /// index newly created catalogue kv in main kv
         std::string nstr = catalogue_kv_name.URI().asString();
         main_kv.put(db_cont_, nstr.data(), nstr.length());
 
@@ -79,7 +96,7 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& con
 }
 
 DaosCatalogueWriter::DaosCatalogueWriter(const eckit::URI &uri, const fdb5::Config& config) :
-    DaosCatalogue(uri, ControlIdentifiers{}, config) {
+    DaosCatalogue(uri, ControlIdentifiers{}, config), firstIndexWrite_(false) {
     // umask_(config.umask()) {
 
     NOTIMP;
@@ -112,12 +129,26 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
 
         if (!catalogue_kv.has(key.valuesToString())) {
 
+            firstIndexWrite_ = true;
+
+            /// create index kv
             /// @todo: pass oclass from config
             /// @todo: hash string into lower oid bits
             fdb5::DaosKeyValueOID index_kv_oid{key.valuesToString(), OC_S1};
             index_kv.reset(new fdb5::DaosKeyValueName{pool_, db_cont_, index_kv_oid});
             index_kv->create();
 
+            /// write indexKey under "key"
+            eckit::MemoryHandle h{(size_t) PATH_MAX};
+            eckit::HandleStream hs{h};
+            h.openForWrite(eckit::Length(0));
+            {
+                eckit::AutoClose closer(h);
+                hs << currentIndexKey_;
+            }
+            fdb5::DaosKeyValue{s, *index_kv}.put("key", h.data(), hs.bytesWritten());   
+
+            /// index index kv in catalogue kv
             std::string nstr{index_kv->URI().asString()};
             catalogue_kv_obj.put(key.valuesToString(), nstr.data(), nstr.length());
 
@@ -170,6 +201,7 @@ void DaosCatalogueWriter::deselectIndex() {
     current_ = Index();
     // currentFull_ = Index();
     currentIndexKey_ = Key();
+    firstIndexWrite_ = false;
 
 }
 
@@ -387,10 +419,16 @@ void DaosCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLoca
     /// additions will need to be performed on axes in DAOS after the field gets indexed.
     std::vector<std::string> axesToExpand;
     std::vector<std::string> valuesToAdd;
+    std::string axisNames = "";
+    std::string sep = ",";
 
     for (Key::const_iterator i = key.begin(); i != key.end(); ++i) {
 
         const std::string &keyword = i->first;
+
+        axisNames += sep + keyword;
+        sep = ",";
+
         std::string value = key.canonicalValue(keyword);
 
         const eckit::DenseSet<std::string>& axis_set = current_.axes().valuesSafe(keyword);
@@ -407,18 +445,34 @@ void DaosCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLoca
     /// index the field and update in-memory axes
     current_.put(key, field);
 
+    fdb5::DaosSession s{};
+
+    /// persist axis names
+    if (firstIndexWrite_) {
+
+        /// @todo: take oclass from config
+        fdb5::DaosKeyValueOID oid{currentIndexKey_.valuesToString(), OC_S1};
+        fdb5::DaosKeyValueName n{pool_, db_cont_, oid};
+        fdb5::DaosKeyValue kv{s, n};
+        kv.put("axes", axisNames.data(), axisNames.length());
+
+        firstIndexWrite_ = false;
+
+    }
+
     /// @todo: axes are supposed to be sorted before persisting. How do we do this with the DAOS approach?
     ///        sort axes every time they are loaded in the read pathway?
 
     if (axesToExpand.empty()) return;
 
     /// expand axis info in DAOS
-    fdb5::DaosSession s{};
     while (!axesToExpand.empty()) {
 
         /// @todo: take oclass from config
         fdb5::DaosKeyValueOID oid{currentIndexKey_.valuesToString() + std::string{"."} + axesToExpand.back(), OC_S1};
         fdb5::DaosKeyValueName n{pool_, db_cont_, oid};
+        /// @note: OID is being generated here below
+        /// @note: axis KV is being implicitly created here if not exists
         fdb5::DaosKeyValue kv{s, n};
         std::string v{"1"};
         kv.put(valuesToAdd.back(), v.data(), v.length());

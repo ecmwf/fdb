@@ -16,6 +16,7 @@
 #include "fdb5/database/DB.h"
 // #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/daos/DaosCommon.h"
 #include "fdb5/daos/DaosEngine.h"
 #include "fdb5/daos/DaosOID.h"
 
@@ -26,7 +27,7 @@ namespace fdb5 {
 /// DB that implements the FDB on DAOS
 
 //class DaosCatalogue : public Catalogue, public DaosHandler {
-class DaosCatalogue : public Catalogue {
+class DaosCatalogue : public Catalogue, public DaosCommon {
 
 public: // methods
 
@@ -37,11 +38,10 @@ public: // methods
 
     static const char* catalogueTypeName() { return fdb5::DaosEngine::typeName(); }
     
-//     const eckit::PathName& basePath() const override;
-    eckit::URI uri() const override { NOTIMP; };
+    eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }
 
-//     static void remove(const eckit::PathName& path, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
+    static void remove(const fdb5::DaosNameBase&, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
 
 //     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
@@ -56,20 +56,21 @@ public: // methods
 
     void checkUID() const override { NOTIMP; };
     bool exists() const override;
-    void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) override { NOTIMP; };
+    void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override { NOTIMP; };
     std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; };
     const Schema& schema() const override;
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; };
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; };
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override { NOTIMP; };
+    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
+    // WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override { NOTIMP; };
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) const override { NOTIMP; };
     void maskIndexEntry(const Index& index) const override { NOTIMP; };
 
     void loadSchema() override;
 
-    std::vector<Index> indexes(bool sorted=false) const override { NOTIMP; };
+    std::vector<Index> indexes(bool sorted=false) const override;
 
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                    std::set<eckit::URI>& data) const override { NOTIMP; };
@@ -80,13 +81,6 @@ public: // methods
 protected: // members
 
     Key currentIndexKey_;
-
-    std::string pool_;
-    std::string root_cont_;
-    std::string db_cont_;
-
-    fdb5::DaosOID main_kv_{0, 0, DAOS_OT_KV_HASHED, OC_S1};  /// @todo: take oclass from config
-    fdb5::DaosOID catalogue_kv_{0, 0, DAOS_OT_KV_HASHED, OC_S1};  /// @todo: take oclass from config
 
 private: // members
 

@@ -161,13 +161,13 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
 
     // Enumerate data files.
 
-    // TODO: how could a indexDataPath possibly not belong to the store (i.e. have different dbKey part)?
     std::vector<eckit::URI> indexDataPaths(index.dataPaths());
+    store_.asStoreUnitURIs(indexDataPaths);
     for (const eckit::URI& uri : indexDataPaths) {
         if (include && store_.uriBelongs(uri)) {
-            dataPaths_.insert(store_.getStoreUnitPath(uri));
+            dataPaths_.insert(eckit::PathName(uri.path()));
         } else {
-            safePaths_.insert(store_.getStoreUnitPath(uri));
+            safePaths_.insert(eckit::PathName(uri.path()));
         }
     }
 
@@ -192,7 +192,7 @@ void TocWipeVisitor::addMaskedPaths() {
         }
     }
     for (const auto& uri : data) {
-        if (store_.uriBelongs(uri)) dataPaths_.insert(store_.getStoreUnitPath(uri));
+        if (store_.uriBelongs(uri)) dataPaths_.insert(eckit::PathName(uri.path()));
     }
 }
 
@@ -309,7 +309,7 @@ void TocWipeVisitor::calculateResidualPaths() {
     std::vector<eckit::URI> allStoreUnitURIs(store_.storeUnitURIs());
     std::vector<eckit::PathName> allDataPathsVector;
     for (const auto& u : allStoreUnitURIs) {
-        allDataPathsVector.push_back(u.path());
+        allDataPathsVector.push_back(eckit::PathName(u.path()));
     }
     
     std::set<eckit::PathName> allDataPaths(allDataPathsVector.begin(), allDataPathsVector.end());
@@ -441,15 +441,15 @@ void TocWipeVisitor::wipe(bool wipeAll) {
 
     // Now we want to do the actual deletion
     // n.b. We delete carefully in a order such that we can always access the DB by what is left
-    for (const PathName& path : residualPaths_) {
-        if (path.exists()) {
-            catalogue_.remove(path, logAlways, logVerbose, doit_);
-        }
-    }
     for (const PathName& path : residualDataPaths_) {
         eckit::URI uri(store_.type(), path);
         if (store_.uriExists(uri)) {
             store_.remove(uri, logAlways, logVerbose, doit_);
+        }
+    }
+    for (const PathName& path : residualPaths_) {
+        if (path.exists()) {
+            catalogue_.remove(path, logAlways, logVerbose, doit_);
         }
     }
 
