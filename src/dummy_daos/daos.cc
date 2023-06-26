@@ -506,6 +506,21 @@ int daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode,
 
 }
 
+/// @note: destruction of KVs with open handles may not be consistent. Notes
+///   in daos_cont_destroy apply here too.
+
+int daos_kv_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t *ev) {
+
+    if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
+    if (ev != NULL) NOTIMP;
+
+    /// @todo: should destruction of non-existing KV fail?
+    deldir(oh.impl->path);
+
+    return 0;
+
+}
+
 int daos_obj_close(daos_handle_t oh, daos_event_t *ev) {
 
     delete oh.impl;
@@ -569,6 +584,23 @@ int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
     eckit::AutoClose closer(fh);
     long res = fh.read(buf, len);
     ASSERT(eckit::Length(res) == len);
+
+    return 0;
+
+}
+
+int daos_kv_remove(daos_handle_t oh, daos_handle_t th, uint64_t flags,
+                   const char *key, daos_event_t *ev) {
+
+    if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
+    if (flags != 0) NOTIMP;
+    if (ev != NULL) NOTIMP;
+
+    if (!oh.impl->path.exists()) return -1;
+
+    /// @todo: should removal of a non-existing key fail?
+    /// @todo: if not, can the exist check be avoided and unlink be called directly?
+    if ((oh.impl->path / key).exists()) (oh.impl->path / key).unlink();
 
     return 0;
 
@@ -865,6 +897,199 @@ void daos_prop_free(daos_prop_t *prop) {
 
     daos_prop_fini(prop);
     D_FREE(prop);
+}
+
+int daos_cont_create_snap_opt(daos_handle_t coh, daos_epoch_t *epoch, char *name,
+                              enum daos_snapshot_opts opts, daos_event_t *ev) {
+
+    if (name != NULL) NOTIMP;
+    if (opts != (DAOS_SNAP_OPT_CR | DAOS_SNAP_OPT_OIT)) NOTIMP;
+    if (ev != NULL) NOTIMP;
+
+    std::vector<eckit::PathName> files;
+    std::vector<eckit::PathName> dirs;
+
+    coh.impl->path.children(files, dirs);
+
+    std::string oids = "";
+    std::string sep = "";
+
+    for (std::vector<eckit::PathName>* fileset : {&files, &dirs}) {
+        for (std::vector<eckit::PathName>::iterator it = fileset->begin(); it != fileset->end(); ++it) {
+
+            std::string oid = it->baseName();
+
+            if (strstr(oid.c_str(), ".snap")) continue;
+
+            ASSERT(oid.length() == 33);
+
+            oids += sep + oid;
+            sep = ",";
+
+        }
+    }
+
+    std::ostringstream os;
+    os << eckit::TimeStamp("hex");
+    std::string ts = os.str();
+    ASSERT(ts.length() == 16);
+
+    // if writing data to an already existing and populated file, if the data to write
+    // is smaller than the file, the holes will be zero-d out (openForWrite) rather than
+    // left with pre-existing data (openForAppend)
+
+    eckit::FileHandle fh(coh.impl->path / ts + ".snap", true);
+    fh.openForWrite(eckit::Length(oids.size()));
+    {
+        eckit::AutoClose closer(fh);
+        fh.write(oids.data(), oids.size());
+    }
+
+    *epoch = std::stoull(ts, nullptr, 16);
+
+    return 0;
+
+}
+
+int daos_cont_destroy_snap(daos_handle_t coh, daos_epoch_range_t epr,
+                           daos_event_t *ev) {
+
+    if (epr.epr_hi != epr.epr_lo) NOTIMP;
+    if (ev != NULL) NOTIMP;
+
+    std::stringstream os;
+    os << std::setw(16) << std::setfill('0') << std::hex << epr.epr_hi;
+    
+    eckit::PathName snap = coh.impl->path / os.str() + ".snap";
+    
+    if (!snap.exists()) return -1;
+
+    snap.unlink();
+
+    return 0;
+
+}
+
+int daos_oit_open(daos_handle_t coh, daos_epoch_t epoch,
+                  daos_handle_t *oh, daos_event_t *ev) {
+
+    if (ev != NULL) NOTIMP;
+
+    std::stringstream os;
+    os << std::setw(16) << std::setfill('0') << std::hex << epoch;
+   
+    std::string ts = os.str();
+
+    std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
+    impl->path = coh.impl->path / ts + ".snap";
+
+    if (!impl->path.exists()) {
+        return -1;
+    }
+
+    oh->impl = impl.release();
+    return 0;
+
+}
+
+int daos_oit_close(daos_handle_t oh, daos_event_t *ev) {
+
+    delete oh.impl;
+
+    if (ev != NULL) NOTIMP;
+
+    return 0;
+
+}
+
+int daos_oit_list(daos_handle_t oh, daos_obj_id_t *oids, uint32_t *oids_nr,
+                  daos_anchor_t *anchor, daos_event_t *ev) {
+
+    static std::vector<std::string> ongoing_req;
+    static std::string req_hash;
+    static unsigned long long n = (((unsigned long long)::getpid()) << 32);
+
+    if (ev != NULL) NOTIMP;
+
+    if (oids_nr == NULL) return -1;
+    if (oids == NULL) return -1;
+    if (anchor == NULL) return -1;
+
+    if (!oh.impl->path.exists()) return -1;
+
+    if (anchor->da_type == DAOS_ANCHOR_TYPE_EOF) return -1;
+    if (anchor->da_type == DAOS_ANCHOR_TYPE_HKEY) NOTIMP;
+    
+    if (anchor->da_type == DAOS_ANCHOR_TYPE_ZERO) {
+
+        /// client process must consume all key names before starting a new request
+        if (ongoing_req.size() != 0) NOTIMP;
+
+        eckit::Length size(oh.impl->path.size());
+        std::vector<char> v(size);
+
+        eckit::FileHandle fh(oh.impl->path, false);
+        fh.openForRead();
+        {
+            eckit::AutoClose closer(fh);
+            fh.read(&v[0], size);
+        }
+
+        std::string oids{v.begin(), v.end()};
+        eckit::Tokenizer parse(",");
+        parse(oids, ongoing_req);
+
+        anchor->da_type = DAOS_ANCHOR_TYPE_KEY;
+
+        std::string hostname = eckit::Main::hostname();
+        static std::string format = "%Y%m%d.%H%M%S";
+        std::ostringstream os;
+        os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
+        std::string name = os.str();
+        while (::access(name.c_str(), F_OK) == 0) {
+            std::ostringstream os;
+            os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
+            name = os.str();
+        }
+        uuid_t new_uuid = {0};
+        eckit::MD5 md5(name);
+        req_hash = md5.digest();
+
+        ::memcpy((char*) &(anchor->da_buf[0]), req_hash.c_str(), req_hash.size());
+        anchor->da_shard = (uint16_t) req_hash.size();
+
+    } else {
+
+        if (anchor->da_type != DAOS_ANCHOR_TYPE_KEY)
+            throw eckit::SeriousBug("Unexpected anchor type");
+
+        /// different processes cannot collaborate on consuming a same kv_list 
+        /// request (i.e. cannot share a hash)
+        if (std::string((char*) &(anchor->da_buf[0]), anchor->da_shard) != req_hash) NOTIMP;
+
+    }
+
+    uint32_t remain_oids = *oids_nr;
+    *oids_nr = 0;
+    while (remain_oids > 0 && ongoing_req.size() > 0) {
+
+        std::string next_oid = ongoing_req.back();
+
+        oids[*oids_nr] = daos_obj_id_t{
+            std::stoull(next_oid.substr(17, 16), nullptr, 16),
+            std::stoull(next_oid.substr(0, 16), nullptr, 16)
+        };
+
+        ongoing_req.pop_back();
+        
+        remain_oids--;
+        *oids_nr += 1;
+    }
+
+    if (ongoing_req.size() == 0) anchor->da_type = DAOS_ANCHOR_TYPE_EOF;
+
+    return 0;
+
 }
 
 }  // extern "C"

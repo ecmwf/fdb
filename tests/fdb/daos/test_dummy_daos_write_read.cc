@@ -222,6 +222,10 @@ CASE( "dummy_daos_write_then_read" ) {
     EXPECT(listed_keys[0] == key);
     EXPECT(listed_keys[1] == key2);
 
+    rc = daos_kv_remove(oh_kv, DAOS_TX_NONE, 0, key.c_str(), NULL);
+    EXPECT(rc == 0);
+    EXPECT_NOT((dummy_daos_get_handle_path(oh_kv) / key).exists());
+
     daos_obj_close(oh_kv, NULL);
     EXPECT(rc == 0);
 
@@ -301,7 +305,53 @@ CASE( "dummy_daos_write_then_read" ) {
     rc = daos_array_close(oh, NULL);
     EXPECT(rc == 0);
 
+    // container list OIDs
+
+    daos_epoch_t e;
+    rc = daos_cont_create_snap_opt(
+        coh, &e, NULL, (enum daos_snapshot_opts)(DAOS_SNAP_OPT_CR | DAOS_SNAP_OPT_OIT), NULL
+    );
+    EXPECT(rc == 0);
+    std::stringstream os_epoch;
+    os_epoch << std::setw(16) << std::setfill('0') << std::hex << e;
+    EXPECT((dummy_daos_get_handle_path(coh) / os_epoch.str() + ".snap").exists());
+
+    daos_handle_t oith;
+    rc = daos_oit_open(coh, e, &oith, NULL);
+    EXPECT(rc == 0);
+
+    daos_anchor_t anchor = DAOS_ANCHOR_INIT;
+    int max_oids_per_rpc = 10;
+    daos_obj_id_t oid_batch[max_oids_per_rpc];
+    std::vector<daos_obj_id_t> oids;
+    while (!daos_anchor_is_eof(&anchor)) {
+        uint32_t oids_nr = max_oids_per_rpc;
+        rc = daos_oit_list(oith, oid_batch, &oids_nr, &anchor, NULL);
+        EXPECT(rc == 0);
+        for (int i = 0; i < oids_nr; i++) oids.push_back(oid_batch[i]);
+    }
+    EXPECT(oids.size() == 2);
+    EXPECT(std::memcmp(&oids[0], &oid_kv, sizeof(daos_obj_id_t)) == 0);
+    EXPECT(std::memcmp(&oids[1], &oid, sizeof(daos_obj_id_t)) == 0);
+
+    rc = daos_oit_close(oith, NULL);
+    EXPECT(rc == 0);
+
+    daos_epoch_range_t epr{e, e};
+    rc = daos_cont_destroy_snap(coh, epr, NULL);
+    EXPECT(rc == 0);
+    EXPECT_NOT((dummy_daos_get_handle_path(coh) / os_epoch.str() + ".snap").exists());
+
     // close container and pool, finalize DAOS client
+
+    rc = daos_kv_open(coh, oid_kv, DAOS_OO_RW, &oh_kv, NULL);
+    EXPECT(rc == 0);
+
+    rc = daos_kv_destroy(oh_kv, DAOS_TX_NONE, NULL);
+    EXPECT(rc == 0);
+
+    daos_obj_close(oh_kv, NULL);
+    EXPECT(rc == 0);
 
     rc = daos_cont_close(coh, NULL);
     EXPECT(rc == 0);

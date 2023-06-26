@@ -82,6 +82,11 @@ enum daos_pool_props {
     DAOS_PROP_CO_LABEL
 };
 
+enum daos_snapshot_opts {
+    DAOS_SNAP_OPT_CR = (1 << 0),
+    DAOS_SNAP_OPT_OIT = (1 << 1)
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -183,6 +188,15 @@ typedef enum {
     DAOS_ANCHOR_TYPE_EOF = 3,
 } daos_anchor_type_t;
 
+/* cont list oids */
+
+typedef uint64_t daos_epoch_t;
+
+typedef struct {
+    daos_epoch_t    epr_lo;
+    daos_epoch_t    epr_hi;
+} daos_epoch_range_t;
+
 /* functions */
 
 int daos_init(void);
@@ -225,6 +239,8 @@ int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t *oid,
 int daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode,
                  daos_handle_t *oh, daos_event_t *ev);
 
+int daos_kv_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t *ev);
+
 int daos_obj_close(daos_handle_t oh, daos_event_t *ev);
 
 int daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
@@ -232,6 +248,9 @@ int daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
 
 int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
                 daos_size_t *size, void *buf, daos_event_t *ev);
+
+int daos_kv_remove(daos_handle_t oh, daos_handle_t th, uint64_t flags,
+                   const char *key, daos_event_t *ev);
 
 int daos_kv_list(daos_handle_t oh, daos_handle_t th, uint32_t *nr,
                  daos_key_desc_t *kds, d_sg_list_t *sgl, daos_anchor_t *anchor,
@@ -271,6 +290,20 @@ int daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
 daos_prop_t* daos_prop_alloc(uint32_t entries_nr);
 
 void daos_prop_free(daos_prop_t *prop);
+
+int daos_cont_create_snap_opt(daos_handle_t coh, daos_epoch_t *epoch, char *name,
+                              enum daos_snapshot_opts opts, daos_event_t *ev);
+
+int daos_cont_destroy_snap(daos_handle_t coh, daos_epoch_range_t epr,
+                           daos_event_t *ev);
+
+int daos_oit_open(daos_handle_t coh, daos_epoch_t epoch,
+                  daos_handle_t *oh, daos_event_t *ev);
+
+int daos_oit_close(daos_handle_t oh, daos_event_t *ev);
+
+int daos_oit_list(daos_handle_t oh, daos_obj_id_t *oids, uint32_t *oids_nr,
+                  daos_anchor_t *anchor, daos_event_t *ev);
 
 /*
  * The following is code for backwards-compatibility with older DAOS API versions where
