@@ -138,7 +138,7 @@ eckit::URI FieldLocation::fullUri() const {
     full.fragment(std::to_string(offset_));
     full.query("length", std::to_string(length_));
     if (!remapKey_.empty()) {
-        full.query("remapKey", remapKey_.valuesToString());
+        full.query("remapKey", remapKey_);
     }
     return full;
 }
