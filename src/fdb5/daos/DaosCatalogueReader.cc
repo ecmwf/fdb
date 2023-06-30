@@ -83,10 +83,10 @@ bool DaosCatalogueReader::selectIndex(const Key &key) {
         fdb5::DaosSession s{};
         fdb5::DaosKeyValue catalogue_kv_obj{s, catalogue_kv};
 
-        std::vector<char> n(100);
-        catalogue_kv_obj.get(key.valuesToString(), &n[0], n.size());
-        /// @todo: why is there a failure if using std::string(n.begin(), n.end())?
-        fdb5::DaosKeyValueName index_kv{eckit::URI{std::string{&n[0]}}};
+        daos_size_t size{catalogue_kv_obj.size(key.valuesToString())};
+        std::vector<char> n((long) size);
+        catalogue_kv_obj.get(key.valuesToString(), &n[0], size);
+        fdb5::DaosKeyValueName index_kv{eckit::URI{std::string{n.begin(), n.end()}}};
 
         indexes_[key] = Index(new fdb5::DaosIndex(key, index_kv));
 

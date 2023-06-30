@@ -26,7 +26,7 @@ namespace fdb5 {
 void DaosOID::parseReservedBits() {
 
     otype_ = static_cast<enum daos_otype_t>((hi_ & OID_FMT_TYPE_MASK) >> OID_FMT_TYPE_SHIFT);
-    oclass_ = (hi_ & OID_FMT_CLASS_MASK) >> OID_FMT_CLASS_SHIFT;
+    oclass_ = OBJ_CLASS_DEF(OR_RP_1, (hi_ & OID_FMT_CLASS_MASK) >> OID_FMT_CLASS_SHIFT);
 
 }
 

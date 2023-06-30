@@ -46,7 +46,7 @@ DaosNameBase::DaosNameBase(const eckit::URI& uri)  {
 
     ASSERT(bits.size() > 0);
     ASSERT(bits.size() < 4);
-    
+
     pool_ = bits[0];
     if (bits.size() > 1) cont_.emplace(bits[1]);
     if (bits.size() > 2) oid_.emplace(bits[2]);

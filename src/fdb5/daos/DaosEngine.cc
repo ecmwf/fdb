@@ -145,7 +145,6 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
     fdb5::DaosName n{uri};
 
     if (!n.hasOID()) return false;
-
     /// @todo: check contName is not root_cont_. root_cont_ should be populated in
     ///   configureDaos as done in DaosCommon
     // bool is_root_name = (n.contName().find(root_cont_) != std::string::npos);
@@ -153,7 +152,7 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
     bool is_store_name = (n.contName().find("_") != std::string::npos);
     fdb5::DaosName n2{n.poolName(), n.contName(), catalogue_kv_};
     n2.generateOID();
-    bool is_catalogue_kv = (!is_root_name && !is_store_name && n.OID() == n2.OID());
+    bool is_catalogue_kv = (!is_root_name && !is_store_name && (n.OID() == n2.OID()));
 
     return is_catalogue_kv && n.exists();
 

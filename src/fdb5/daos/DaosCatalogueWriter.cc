@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include <linux/limits.h>
 #include <numeric>
 
 // #include "fdb5/fdb5_config.h"
@@ -154,9 +155,9 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
 
         } else {
 
-            /// @todo: address this magic value: config item called max_index_key_len
-            std::vector<char> n{100};
-            catalogue_kv_obj.get(key.valuesToString(), &n[0], n.size());
+            daos_size_t size{catalogue_kv_obj.size(key.valuesToString())};
+            std::vector<char> n((long) size);
+            catalogue_kv_obj.get(key.valuesToString(), &n[0], size);
             index_kv.reset(new fdb5::DaosKeyValueName{eckit::URI{std::string{n.begin(), n.end()}}});
 
         }
@@ -414,6 +415,8 @@ void DaosCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLoca
     }
 
     Field field(fieldLocation, currentIndex().timestamp());
+
+    const_cast<fdb5::IndexAxis&>(current_.axes()).sort();
 
     /// before in-memory axes are updated as part of current_.put, we determine which
     /// additions will need to be performed on axes in DAOS after the field gets indexed.

@@ -54,6 +54,8 @@
 #define OC_S2 2ULL
 #define OC_SX ((1 << 16UL) - 1)
 #define OC_RESERVED 1 << 30
+#define OC_REDUN_SHIFT 24
+#define OBJ_CLASS_DEF(redun, grp_nr) ((redun << OC_REDUN_SHIFT) | grp_nr)
 
 #define DAOS_TX_NONE (daos_handle_t){NULL}
 #define DAOS_PROP_LABEL_MAX_LEN (127)
@@ -85,6 +87,10 @@ enum daos_pool_props {
 enum daos_snapshot_opts {
     DAOS_SNAP_OPT_CR = (1 << 0),
     DAOS_SNAP_OPT_OIT = (1 << 1)
+};
+
+enum daos_obj_redun {
+    OR_RP_1 = 1
 };
 
 #ifdef __cplusplus
