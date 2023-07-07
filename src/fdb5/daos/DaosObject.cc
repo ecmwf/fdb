@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <iostream>
 #include <utility>
 
 #include "eckit/exception/Exceptions.h"

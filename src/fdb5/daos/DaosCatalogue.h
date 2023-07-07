@@ -14,7 +14,6 @@
 #pragma once
 
 #include "fdb5/database/DB.h"
-// #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/daos/DaosCommon.h"
 #include "fdb5/daos/DaosEngine.h"
@@ -26,7 +25,6 @@ namespace fdb5 {
 
 /// DB that implements the FDB on DAOS
 
-//class DaosCatalogue : public Catalogue, public DaosHandler {
 class DaosCatalogue : public Catalogue, public DaosCommon {
 
 public: // methods
@@ -34,23 +32,12 @@ public: // methods
     DaosCatalogue(const Key& key, const fdb5::Config& config);
     DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
 
-    // ~DaosCatalogue() override {}
-
     static const char* catalogueTypeName() { return fdb5::DaosEngine::typeName(); }
     
     eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }
 
     static void remove(const fdb5::DaosNameBase&, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
-
-//     bool enabled(const ControlIdentifier& controlIdentifier) const override;
-
-// public: // constants
-//     static const std::string DUMP_PARAM_WALKSUBTOC;
-
-// protected: // methods
-
-//     //TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config);
 
     std::string type() const override;
 
@@ -64,7 +51,6 @@ public: // methods
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; };
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; };
     WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
-    // WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override { NOTIMP; };
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) const override { NOTIMP; };
     void maskIndexEntry(const Index& index) const override { NOTIMP; };
 
@@ -83,9 +69,6 @@ protected: // members
     Key currentIndexKey_;
 
 private: // members
-
-//     // friend class TocWipeVisitor;
-//     // friend class TocMoveVisitor;
 
     Schema schema_;
 

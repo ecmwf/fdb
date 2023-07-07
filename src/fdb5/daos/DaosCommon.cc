@@ -60,10 +60,6 @@ DaosCommon::DaosCommon(const fdb5::Config& config, const std::string& component,
     /// @note: validity of input URI is not checked here because this constructor is only triggered
     ///   by DB::buildReader in EntryVisitMechanism, where validity of URIs is ensured beforehand
 
-    // fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
-    // /// @note: canHandle configures DaosManager, which would have to be done in this constructor otherwise
-    // ASSERT(ng.canHandle(uri, config));
-
     fdb5::DaosName db_name{uri};
     pool_ = db_name.poolName();
     db_cont_ = db_name.contName();

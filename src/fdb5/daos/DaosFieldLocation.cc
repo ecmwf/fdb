@@ -9,11 +9,9 @@
  */
 
 #include "eckit/filesystem/URIManager.h"
-// #include "eckit/io/rados/RadosReadHandle.h"
 #include "fdb5/daos/DaosFieldLocation.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/LibFdb5.h"
-// #include "fdb5/io/SingleGribMungePartFileHandle.h"
 
 namespace fdb5 {
 
@@ -22,22 +20,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// //RadosFieldLocation::RadosFieldLocation() {}
-
 DaosFieldLocation::DaosFieldLocation(const DaosFieldLocation& rhs) :
     FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
-
-// DaosFieldLocation::DaosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length) :
-//     FieldLocation(eckit::URI("daos", path), offset, length) {}
 
 DaosFieldLocation::DaosFieldLocation(const eckit::URI &uri) : FieldLocation(uri) {}
 
 /// @todo: remove remapKey from signature and always pass empty Key to FieldLocation
 DaosFieldLocation::DaosFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
     FieldLocation(uri, offset, length, remapKey) {}
-
-// DaosFieldLocation::DaosFieldLocation(const FileStore &store, const FieldRef &ref) :
-//     FieldLocation(store.get(ref.pathId()), ref.offset(), ref.length()) {}
 
 DaosFieldLocation::DaosFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {}
@@ -53,10 +43,6 @@ eckit::DataHandle* DaosFieldLocation::dataHandle() const {
     
 }
 
-// eckit::DataHandle *DaosFieldLocation::dataHandle(const Key& remapKey) const {
-//     return new SingleGribMungePartFileHandle(path(), offset(), length(), remapKey);
-// }
-
 void DaosFieldLocation::print(std::ostream &out) const {
     out << "DaosFieldLocation[uri=" << uri_ << "]";
 }
@@ -64,16 +50,6 @@ void DaosFieldLocation::print(std::ostream &out) const {
 void DaosFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
 }
-
-// eckit::URI DaosFieldLocation::uri(const eckit::PathName &path) {
-//     return eckit::URI("daos", path);
-// }
-
-// void DaosFieldLocation::encode(eckit::Stream& s) const {
-//     LOG_DEBUG(LibFdb5::instance().debug(), LibFdb5) << "DaosFieldLocation encode URI " << uri_.asRawString() << std::endl;
-
-//     FieldLocation::encode(s);
-// }
 
 static FieldLocationBuilder<DaosFieldLocation> builder("daos");
 

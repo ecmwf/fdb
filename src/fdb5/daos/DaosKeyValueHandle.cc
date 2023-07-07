@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <daos.h>
-
 #include <memory>
 
 #include "eckit/exception/Exceptions.h"

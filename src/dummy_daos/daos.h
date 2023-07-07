@@ -311,12 +311,6 @@ int daos_oit_close(daos_handle_t oh, daos_event_t *ev);
 int daos_oit_list(daos_handle_t oh, daos_obj_id_t *oids, uint32_t *oids_nr,
                   daos_anchor_t *anchor, daos_event_t *ev);
 
-/*
- * The following is code for backwards-compatibility with older DAOS API versions where
- * some API calls accepted slightly different types for some of the arguments.
- * It has been mostly copied from daos.h in DAOS v2.0.3.
- */
-
 #ifdef __cplusplus
 }  // extern "C"
 #endif

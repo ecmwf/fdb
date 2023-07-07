@@ -28,10 +28,6 @@ public: // methods
     DaosCatalogueReader(const Key& key, const fdb5::Config& config);
     DaosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
 
-//     ~TocCatalogueReader() override;
-
-//     std::vector<Index> indexes(bool sorted) const override;
-//     DbStats stats() const override { return TocHandler::stats(); }
     DbStats stats() const override { NOTIMP; }
 
 // private: // methods
@@ -57,13 +53,6 @@ private: // types
 
 private: // members
 
-//     // Indexes matching current key. If there is a key remapping for a mounted
-//     // SubToc, then this is stored alongside
-//     std::vector<std::pair<Index, Key>> matching_;
-
-//     // All indexes
-//     // If there is a key remapping for a mounted SubToc, this is stored alongside
-//     std::vector<std::pair<Index, Key>> indexes_;
     IndexStore indexes_;
     Index current_;
 

@@ -8,80 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <algorithm>
-
-// #include "eckit/os/Stat.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
 
-// #include "fdb5/api/helpers/ControlIterator.h"
-// #include "fdb5/database/DB.h"
-// #include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/daos/DaosWipeVisitor.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
 
-// #include <dirent.h>
-// #include <errno.h>
 #include <fdb5/LibFdb5.h>
-// #include <sys/types.h>
-// #include <cstring>
 
 using namespace eckit;
 
 namespace fdb5 {
-
-//----------------------------------------------------------------------------------------------------------------------
-
-// namespace {
-// class StdDir {
-
-//     eckit::PathName path_;
-//     DIR *d_;
-
-// public:
-
-//     StdDir(const eckit::PathName& p) :
-//         path_(p),
-//         d_(opendir(p.localPath())) {
-
-//         if (!d_) {
-//             std::stringstream ss;
-//             ss << "Failed to open directory " << p << " (" << errno << "): " << strerror(errno);
-//             throw eckit::SeriousBug(ss.str(), Here());
-//         }
-//     }
-
-//     ~StdDir() { if (d_) closedir(d_); }
-
-//     void children(std::vector<eckit::PathName>& paths) {
-
-//         // Implemented here as PathName::match() does not return hidden files starting with '.'
-
-//         struct dirent* e;
-
-//         while ((e = readdir(d_)) != nullptr) {
-
-//             if (e->d_name[0] == '.') {
-//                 if (e->d_name[1] == '\0' || (e->d_name[1] == '.' && e->d_name[2] == '\0')) continue;
-//             }
-
-//             eckit::PathName p(path_ / e->d_name);
-
-//             eckit::Stat::Struct info;
-//             SYSCALL(eckit::Stat::lstat(p.localPath(), &info));
-
-//             if (S_ISDIR(info.st_mode)) {
-//                 StdDir d(p);
-//                 d.children(paths);
-//             }
-
-//             // n.b. added after all children
-//             paths.push_back(p);
-//         }
-//     }
-// };
-// }
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -96,7 +34,6 @@ DaosWipeVisitor::DaosWipeVisitor(const DaosCatalogue& catalogue,
     catalogue_(catalogue),
     store_(store), 
     dbKvPath_("") {}
-    // schemaPath_("") {}
 
 DaosWipeVisitor::~DaosWipeVisitor() {}
 
@@ -105,26 +42,20 @@ bool DaosWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& sto
     // Overall checks
 
     ASSERT(&catalogue_ == &catalogue);
-//    ASSERT(&store_ == &store);
     ASSERT(catalogue.enabled(ControlIdentifier::Wipe));
     /// @todo: this seems to be restarting the wipe visiting?
     WipeVisitor::visitDatabase(catalogue, store);
 
     // Check that we are in a clean state (i.e. we only visit one DB).
 
-    // ASSERT(subtocPaths_.empty());
-    // ASSERT(lockfilePaths_.empty());
     ASSERT(indexPaths_.empty());
     ASSERT(axisPaths_.empty());
     ASSERT(safeKvPaths_.empty());
 
     ASSERT(storePaths_.empty());
     ASSERT(safeStorePaths_.empty());
-    // ASSERT(indexesToMask_.empty());
 
-    // ASSERT(!tocPath_.asString().size());
     ASSERT(!dbKvPath_.poolName().size());
-    // ASSERT(!schemaPath_.asString().size());
 
     // Having selected a DB, construct the residual request. This is the request that is used for
     // matching Index(es) -- which is relevant if there is subselection of the DB.
@@ -158,9 +89,6 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
 
     // Add the axis and index paths to be removed.
 
-    // ruleFor
-
-    // Key key(keyFingerprint, catalogue_->schema().ruleFor(catalogue_->key(), index.key()));
     std::set<fdb5::DaosKeyValueName> axes;
     if (location.exists() && location.has("axes")) {
         fdb5::DaosSession s{};
@@ -182,7 +110,6 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
     }
 
     if (include) {
-        // indexesToMask_.push_back(index);
         indexPaths_.insert(location);
         axisPaths_.insert(axes.begin(), axes.end());
     } else {
@@ -215,46 +142,6 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
 
 }
 
-// void TocWipeVisitor::addMaskedPaths() {
-
-//     //ASSERT(indexRequest_.empty());
-
-//     std::set<std::pair<eckit::URI, Offset>> metadata;
-//     std::set<eckit::URI> data;
-//     catalogue_.allMasked(metadata, data);
-//     for (const auto& entry : metadata) {
-//         eckit::PathName path = entry.first.path();
-//         if (path.dirName().sameAs(catalogue_.basePath())) {
-//             if (path.baseName().asString().substr(0, 4) == "toc.") {
-//                 subtocPaths_.insert(path);
-//             } else {
-//                 indexPaths_.insert(path);
-//             }
-//         }
-//     }
-//     for (const auto& uri : data) {
-//         if (store_.uriBelongs(uri)) dataPaths_.insert(store_.getStoreUnitPath(uri));
-//     }
-// }
-
-// void DaosWipeVisitor::addMetadataPaths() {
-
-    // // toc, schema
-
-    // schemaPath_ = catalogue_.schemaPath();
-    // tocPath_ = catalogue_.tocPath();
-
-    // // subtocs
-
-    // const auto&& subtocs(catalogue_.subTocPaths());
-    // subtocPaths_.insert(subtocs.begin(), subtocs.end());
-
-    // // lockfiles
-
-    // const auto&& lockfiles(catalogue_.lockfilePaths());
-    // lockfilePaths_.insert(lockfiles.begin(), lockfiles.end());
-// }
-
 void DaosWipeVisitor::ensureSafePaths() {
 
     // Very explicitly ensure that we cannot delete anything marked as safe
@@ -263,13 +150,10 @@ void DaosWipeVisitor::ensureSafePaths() {
         fdb5::DaosKeyValueName db_kv{dbKvPath_.poolName(), dbKvPath_.contName(), dbKvPath_.OID()};
         if (safeKvPaths_.find(db_kv) != safeKvPaths_.end()) dbKvPath_ = fdb5::DaosName("");
     }
-    // if (safePaths_.find(schemaPath_) != safePaths_.end()) schemaPath_ = "";
 
     for (const auto& p : safeKvPaths_) {
-        // for (std::set<PathName>* s : {&subtocPaths_, &lockfilePaths_, &indexPaths_, &dataPaths_}) {
         indexPaths_.erase(p);
         axisPaths_.erase(p);
-        // }
     }
 
     for (const auto& p : safeStorePaths_)
@@ -296,21 +180,12 @@ void DaosWipeVisitor::calculateResidualPaths() {
 
     if (dbKvPath_.poolName().size() && !dbKvPath_.exists()) dbKvPath_ = fdb5::DaosName("");
 
-    // if (schemaPath_.asString().size() && !schemaPath_.exists())
-    //     schemaPath_ = "";
-
     // Consider the total sets of paths in the DB (including store if its of same type as catalogue)
 
     std::set<fdb5::DaosKeyValueName> deleteKvPaths;
-    // deletePaths.insert(subtocPaths_.begin(), subtocPaths_.end());
-    // deletePaths.insert(lockfilePaths_.begin(), lockfilePaths_.end());
     deleteKvPaths.insert(indexPaths_.begin(), indexPaths_.end());
     deleteKvPaths.insert(axisPaths_.begin(), axisPaths_.end());
-    // if (store_.type() == catalogue_.type())
-    //     deletePaths.insert(dataPaths_.begin(), dataPaths_.end());
     if (dbKvPath_.poolName().size()) deleteKvPaths.insert(dbKvPath_.URI());
-    // if (schemaPath_.asString().size())
-    //     deletePaths.insert(schemaPath_);
 
     std::set<fdb5::DaosKeyValueName> allKvPaths;
     /// @note: given a database container, list DB kv, index kvs and axis kvs
@@ -364,8 +239,6 @@ void DaosWipeVisitor::calculateResidualPaths() {
     std::set<eckit::URI> deleteStorePaths;
     deleteStorePaths.insert(storePaths_.begin(), storePaths_.end());
 
-    // if (store_.type() == "daos") return;
-
     std::vector<eckit::URI> allStorePathsVector;
     for (const auto& u : store_.storeUnitURIs()) {
         allStorePathsVector.push_back(u);
@@ -407,24 +280,15 @@ void DaosWipeVisitor::report(bool wipeAll) {
 
     ASSERT(anythingToWipe());
 
-    // out_ << "FDB owner: " << catalogue_.owner() << std::endl
-    //      << std::endl;
-
     if (wipeAll) {
 
         out_ << "DB container to delete:" << std::endl;
         const fdb5::DaosKeyValueName& db_kv = catalogue_.dbKeyValue(); 
         out_ << "    " << fdb5::DaosName{db_kv.poolName(), db_kv.contName()}.URI() << std::endl;
-    //     for (const auto& f : subtocPaths_) {
-    //         out_ << "    " << f << std::endl;
-    //     }
         out_ << std::endl;
 
         out_ << "DB KV to delete:" << std::endl;
         out_ << "    " << db_kv.URI() << std::endl;
-    //     for (const auto& f : subtocPaths_) {
-    //         out_ << "    " << f << std::endl;
-    //     }
         out_ << std::endl;
 
     } else {
@@ -437,14 +301,6 @@ void DaosWipeVisitor::report(bool wipeAll) {
         out_ << std::endl;
 
     }
-
-//     out_ << "Control files to delete:" << std::endl;
-//     if (!schemaPath_.asString().size() && lockfilePaths_.empty()) out_ << " - NONE -" << std::endl;
-//     if (schemaPath_.asString().size()) out_ << "    " << schemaPath_ << std::endl;
-//     for (const auto& f : lockfilePaths_) {
-//         out_ << "    " << f << std::endl;
-//     }
-//     out_ << std::endl;
 
     out_ << "Index KVs to delete: " << std::endl;
     if (indexPaths_.empty()) out_ << " - NONE -" << std::endl;
@@ -467,21 +323,6 @@ void DaosWipeVisitor::report(bool wipeAll) {
     }
     out_ << std::endl;
 
-//     out_ << "Protected files (explicitly untouched):" << std::endl;
-//     if (safePaths_.empty()) out_ << " - NONE - " << std::endl;
-//     for (const auto& f : safePaths_) {
-//         out_ << "    " << f << std::endl;
-//     }
-//     out_ << std::endl;
-
-//     if (!safePaths_.empty()) {
-//         out_ << "Indexes to mask:" << std::endl;
-//         if (indexesToMask_.empty()) out_ << " - NONE - " << std::endl;
-//         for (const auto& i : indexesToMask_) {
-//             out_ << "    " << i.location() << std::endl;
-//         }
-//     }
-
 }
 
 void DaosWipeVisitor::wipe(bool wipeAll) {
@@ -490,39 +331,6 @@ void DaosWipeVisitor::wipe(bool wipeAll) {
 
     std::ostream& logAlways(out_);
     std::ostream& logVerbose(porcelain_ ? Log::debug<LibFdb5>() : out_);
-
-//     // Sanity checks...
-
-//     catalogue_.checkUID();
-
-//     // If we are wiping the metadata files, then we need to lock the DB to ensure we don't get
-//     // into a state we don't like.
-
-//     if (wipeAll && doit_) {
-//         catalogue_.control(ControlAction::Disable, ControlIdentifier::List |
-//                                          ControlIdentifier::Retrieve |
-//                                          ControlIdentifier::Archive);
-
-//         ASSERT(!catalogue_.enabled(ControlIdentifier::List));
-//         ASSERT(!catalogue_.enabled(ControlIdentifier::Retrieve));
-//         ASSERT(!catalogue_.enabled(ControlIdentifier::Archive));
-
-//         // The lock will have occurred after the visitation phase, so add the lockfiles.
-//         const auto&& lockfiles(catalogue_.lockfilePaths());
-//         lockfilePaths_.insert(lockfiles.begin(), lockfiles.end());
-//     }
-
-//     // If we are wiping only a subset, and as a result have indexes to mask out; do that first.
-//     // This results in a failure mode merely being data becoming invisible (which has the correct
-//     // effect for the user), to be wiped at a later date.
-
-//     if (!indexesToMask_.empty() && !wipeAll) {
-//         for (const auto& index : indexesToMask_) {
-//             logVerbose << "Index to mask: ";
-//             logAlways << index << std::endl;
-//             if (doit_) catalogue_.maskIndexEntry(index);
-//         }
-//     }
 
     // Now we want to do the actual deletion
     // n.b. We delete carefully in a order such that we can always access the DB by what is left
@@ -589,18 +397,6 @@ void DaosWipeVisitor::wipe(bool wipeAll) {
         }
     }
 
-//     for (const std::set<PathName>& pathset : {indexPaths_,
-//                                               std::set<PathName>{schemaPath_}, subtocPaths_,
-//                                               std::set<PathName>{tocPath_}, lockfilePaths_,
-//                                               (wipeAll ? std::set<PathName>{catalogue_.basePath()} : std::set<PathName>{})}) {
-
-//         for (const PathName& path : pathset) {
-//             if (path.exists()) {
-//                 catalogue_.remove(path, logAlways, logVerbose, doit_);
-//             }
-//         }
-//     }
-
 }
 
 
@@ -618,15 +414,7 @@ void DaosWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
     if (wipeAll) {
         const fdb5::DaosKeyValueName& n = catalogue_.dbKeyValue();
         dbKvPath_ = fdb5::DaosName(n.poolName(), n.contName(), n.OID());
-        // addMaskedPaths();
-        // addMetadataPaths();
     }
-    // } else {
-        // Ensure we _really_ don't delete these if not wiping everything
-        // subtocPaths_.clear();
-        // lockfilePaths_.clear();
-        // schemaPath_ = "";
-    // }
 
     ensureSafePaths();
 

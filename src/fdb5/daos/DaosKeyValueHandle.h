@@ -50,16 +50,7 @@ public: // methods
     virtual eckit::Offset position() override;
     virtual bool canSeek() const override;
 
-//     //virtual void rewind() override;
-//     //virtual void restartReadFrom(const Offset&) override;
-//     //virtual void restartWriteFrom(const Offset&) override;
-
     virtual std::string title() const override;
-
-//     //virtual void encode(Stream&) const override;
-//     //virtual const ReanimatorBase& reanimator() const override { return reanimator_; }
-
-//     //static const ClassSpec& classSpec() { return classSpec_; }
 
 private: // members
 
@@ -69,9 +60,6 @@ private: // members
     std::unique_ptr<fdb5::DaosKeyValue> kv_;
     bool open_;
     eckit::Offset offset_;
-
-//     //static ClassSpec classSpec_;
-//     //static Reanimator<DataHandle> reanimator_;
 
 };
 
