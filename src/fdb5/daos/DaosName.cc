@@ -128,25 +128,26 @@ void DaosNameBase::destroy() const {
 
     fdb5::DaosSession s{};
     fdb5::DaosPool& p = s.getPool(pool_);
-    std::vector<std::string> v{p.listContainers()};
 
-    auto it = begin(v);
-    for ( ; it != end(v); ++it)
-        if (*it == cont_.value()) break;
-
-    if (it == v.end()) return;
-
-    fdb5::DaosContainer& c = p.getContainer(cont_.value());
+    /// @todo: are the semantics here OK? i.e. not throw if cont or obj not found
 
     if (!oid_.has_value()) {
-        c.destroy();
+        try {
+            p.destroyContainer(cont_.value());
+        } catch (fdb5::DaosEntityNotFoundException& e) {}
         return;
     }
 
+    fdb5::DaosContainer& c = p.getContainer(cont_.value());
+
     if (oid_->otype() != DAOS_OT_KV_HASHED) NOTIMP;
 
-    fdb5::DaosKeyValue kv{c, oid_.value()};
-    kv.destroy();
+    try {
+        fdb5::DaosKeyValue kv{c, oid_.value()};
+        kv.destroy();
+    } catch (fdb5::DaosEntityNotFoundException& e) {
+        return;
+    }
 
 }
 

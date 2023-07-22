@@ -683,7 +683,7 @@ CASE("DaosCatalogue tests") {
 
     /// AutoPoolDestroy is not possible here because the pool is 
     /// created above with an ephemeral session
-    fdb5::DaosSession().getPool(pool_uuid, pool_name).destroy();
+    fdb5::DaosSession().destroyPool(pool_uuid);
 
 }
 

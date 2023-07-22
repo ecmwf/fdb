@@ -27,6 +27,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+using ContainerCache = std::deque<fdb5::DaosContainer>;
+
 class DaosSession;
 
 class DaosPool {
@@ -36,10 +38,7 @@ public: // methods
     DaosPool(DaosPool&&) noexcept;
     ~DaosPool();
 
-#ifdef fdb5_HAVE_DAOS_ADMIN
-    // administrative
-    void destroy(const int& force = 1);
-#endif
+    DaosPool& operator=(DaosPool&&) noexcept;
 
     void open();
     void close();
@@ -53,16 +52,12 @@ public: // methods
 
     fdb5::DaosContainer& ensureContainer(const std::string&);
 
-    void closeContainer(uuid_t);
-    void closeContainer(const std::string&);
-    void closeContainers();    
-    void destroyContainers();
+    void destroyContainer(const std::string&);
 
     std::vector<std::string> listContainers();
 
     const daos_handle_t& getOpenHandle();
     
-    fdb5::DaosSession& getSession() const;
     std::string name() const;
     void uuid(uuid_t) const;
     std::string label() const;
@@ -71,10 +66,10 @@ private: // methods
 
     friend class DaosSession;
 
-    DaosPool(fdb5::DaosSession&);
-    DaosPool(fdb5::DaosSession&, uuid_t);
-    DaosPool(fdb5::DaosSession&, const std::string&);
-    DaosPool(fdb5::DaosSession&, uuid_t, const std::string&);
+    DaosPool();
+    DaosPool(uuid_t);
+    DaosPool(const std::string&);
+    DaosPool(uuid_t, const std::string&);
 
 #ifdef fdb5_HAVE_DAOS_ADMIN
     void create(const uint64_t& scmSize, const uint64_t& nvmeSize);
@@ -84,21 +79,22 @@ private: // methods
     fdb5::DaosContainer& getContainer(const std::string&, bool);
     fdb5::DaosContainer& getContainer(uuid_t, const std::string&, bool);
 
+    void closeContainers();    
+
     bool exists();
 
-    std::deque<fdb5::DaosContainer>::iterator getCachedContainer(uuid_t);
-    std::deque<fdb5::DaosContainer>::iterator getCachedContainer(const std::string&);
+    ContainerCache::iterator getCachedContainer(uuid_t);
+    ContainerCache::iterator getCachedContainer(const std::string&);
 
 private: // members
 
-    fdb5::DaosSession& session_;
     uuid_t uuid_;
     bool known_uuid_;
     std::string label_ = std::string();
     daos_handle_t poh_;
     bool open_;
 
-    std::deque<fdb5::DaosContainer> cont_cache_;
+    ContainerCache cont_cache_;
 
 };
 
@@ -109,24 +105,7 @@ public: // methods
 
     AutoPoolDestroy(fdb5::DaosPool& pool) : pool_(pool) {}
 
-    ~AutoPoolDestroy() noexcept(false) {
-
-        bool fail = !eckit::Exception::throwing();
-
-        try {
-            pool_.destroy();
-        }
-        catch (std::exception& e) {
-            eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;
-            if (fail) {
-                eckit::Log::error() << "** Exception is re-thrown" << std::endl;
-                throw;
-            }
-            eckit::Log::error() << "** An exception is already in progress" << std::endl;
-            eckit::Log::error() << "** Exception is ignored" << std::endl;
-        }
-        
-    }
+    ~AutoPoolDestroy() noexcept(false);
 
 private: // members
 

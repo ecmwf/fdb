@@ -51,19 +51,38 @@ DaosContainer::DaosContainer(fdb5::DaosPool& pool, uuid_t uuid, const std::strin
 
 DaosContainer::~DaosContainer() {
 
-    /// @todo: AND IN DESTROY() AND CLOSE() WED WANT TO CLOSE AND DESTROY/INVALIDATE ALL OBJECT INSTANCES FOR OBJECTS IN THE CONT
-    // WHAT HAPPENS IF WE DO OBJ.OPEN AND THEN CONT.CLOSE???
+    /// @todo: in destroy() and close() wed want to close and destroy/invalidate all object instances for
+    ///   objects in the container.
+    ///   What happens if we do obj.open() and then cont.close()?
 
     if (open_) close();
 
 }
 
+// DaosContainer& DaosContainer::operator=(DaosContainer&& other) noexcept {
+// 
+// this is destroying other.pool_!
+//     pool_ = other.pool_;
+//     known_uuid_ = other.known_uuid_;
+//     label_ = std::move(other.label_);
+//     coh_ = std::move(other.coh_);
+//     open_ = other.open_;
+//     oid_alloc_ = std::move(other.oid_alloc_);
+// 
+//     uuid_copy(uuid_, other.uuid_);
+//     other.open_ = false;
+// 
+//     return *this;
+// 
+// }
+
 void DaosContainer::create() {
 
     /// @todo: not sure what to do here. Should probably keep track of whether 
     //       the container has been created or not via this DaosContainer instance,
-    //       and return accordingly. But the container may be destroyed by another 
+    //       and return accordingly. But the container may have been destroyed by another 
     //       process or DaosContainer instance.
+
     if (open_) return;
 
     if (known_uuid_) {
@@ -82,25 +101,6 @@ void DaosContainer::create() {
         DAOS_CALL(daos_cont_create(poh, &uuid_, NULL, NULL));
         
     }
-
-}
-
-void DaosContainer::destroy() {
-
-    ASSERT(label_.size() > 0);
-
-    if (known_uuid_) pool_.closeContainer(uuid_);
-        
-    pool_.closeContainer(label_);
-
-    const daos_handle_t& poh = pool_.getOpenHandle();
-
-    DAOS_CALL(daos_cont_destroy(poh, label_.c_str(), 1, NULL));
-
-    /// @todo: this results in an invalid DaosContainer instance. Address as in DaosPool::destroy().
-    /// @todo: flag instance as invalid / non-existing? not allow open() anymore if instance is invalid. Assert in all Object actions that cont is valid
-    /// @todo: STILL, WHENEVER A POOL/CONT IS DELETED AND THE USER OWNS OPEN OBJECTS, THEIR HANDLES MAY NOT BE POSSIBLE TO CLOSE ANYMORE, AND ANY ACTIONS ON SUCH
-    // OBJECTS WILL FAIL WITH A WEIRD DAOS ERROR
 
 }
 
@@ -150,7 +150,7 @@ uint64_t DaosContainer::allocateOIDLo() {
     open();
 
     if (oid_alloc_.num_oids == 0) {
-        oid_alloc_.num_oids = getPool().getSession().containerOidsPerAlloc();
+        oid_alloc_.num_oids = fdb5::DaosSession().containerOidsPerAlloc();
         DAOS_CALL(daos_cont_alloc_oids(coh_, oid_alloc_.num_oids + 1, &(oid_alloc_.next_oid), NULL));
     } else {
         ++oid_alloc_.next_oid;

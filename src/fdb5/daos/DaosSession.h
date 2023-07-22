@@ -17,6 +17,7 @@
 
 #include <string>
 #include <deque>
+#include <mutex>
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/config/LocalConfiguration.h"
@@ -28,6 +29,10 @@
 
 namespace fdb5 {
 
+/// @todo: Use std::map<std::string, fdb5::DaosPool>
+/// @todo: Offload caching to manager?
+using PoolCache = std::deque<fdb5::DaosPool>;
+
 class DaosManager : private eckit::NonCopyable {
 
 public: // methods
@@ -35,39 +40,35 @@ public: // methods
     /// @todo: set configuration where relvant in unit tests
     /// @todo: unit tests for config
     static DaosManager& instance() {
-        static DaosManager instance;        
+        static DaosManager instance;
         return instance;
     };
 
-    void configure(const eckit::LocalConfiguration& config) {
-        containerOidsPerAlloc_ = config.getInt("container_oids_per_alloc", containerOidsPerAlloc_);
-        objectCreateCellSize_ = config.getInt64("object_create_cell_size", objectCreateCellSize_);
-        objectCreateChunkSize_ = config.getInt64("object_create_chunk_size", objectCreateChunkSize_);
-        dmgConfigFile_ = config.getString("dmg_config_file", dmgConfigFile_);
-    };
+    static void error(int code, const char* msg, const char* file, int line, const char* func);
 
-    int containerOidsPerAlloc() const { return containerOidsPerAlloc_; };
-    uint64_t objectCreateCellSize() const { return objectCreateCellSize_; };
-    uint64_t objectCreateChunkSize() const { return objectCreateChunkSize_; };
-    std::string dmgConfigFile() const { return dmgConfigFile_; };
+    void configure(const eckit::LocalConfiguration&);
+
+    // int containerOidsPerAlloc() const { return containerOidsPerAlloc_; };
+    // uint64_t objectCreateCellSize() const { return objectCreateCellSize_; };
+    // uint64_t objectCreateChunkSize() const { return objectCreateChunkSize_; };
+    // std::string dmgConfigFile() const { return dmgConfigFile_; };
 
 private: // methods
 
-    DaosManager() : 
-        containerOidsPerAlloc_(100),
-        objectCreateCellSize_(1),
-        objectCreateChunkSize_(1048576) {
+    DaosManager();
 
-        dmgConfigFile_ = eckit::Resource<std::string>(
-            "fdbDaosDmgConfigFile;$FDB_DAOS_DMG_CONFIG_FILE", dmgConfigFile_
-        );
+    /// @todo: should configure here with LibFdb5 default config, for cases where DaosManager is never configured?
+    //       I would say No. fdb5 classes should always configure Daos including configuration from LibFdb5 default config.
+    //       Daos* classes should not depend on fdb5 configuration if used independently.
 
-    }
-        /// @todo: should configure here with LibFdb5 default config, for cases where DaosManager is never configured?
-        //       I would say No. fdb5 classes should always configure Daos including configuration from LibFdb5 default config.
-        //       Daos* classes should not depend on fdb5 configuration if used independently.
+    ~DaosManager();
 
 private: // members
+
+    friend class DaosSession;
+
+    std::recursive_mutex mutex_;
+    PoolCache pool_cache_;
 
     int containerOidsPerAlloc_;
     uint64_t objectCreateCellSize_;
@@ -76,16 +77,36 @@ private: // members
 
 };
 
+#define DAOS_CALL(a) fdb5::daos_call(a, #a, __FILE__, __LINE__, __func__)
+
+static inline int daos_call(int code, const char* msg, const char* file, int line, const char* func) {
+
+    std::cout << "DAOS_CALL => " << msg << std::endl;
+
+    if (code < 0) {
+        std::cout << "DAOS_FAIL !! " << msg << std::endl;
+        DaosManager::error(code, msg, file, line, func);
+    }
+
+    std::cout << "DAOS_CALL <= " << msg << std::endl;
+
+    return code;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
-#define DAOS_CALL(a) fdb5::daos_call(a, #a, __FILE__, __LINE__, __func__)
+/// @note: DaosSession acts as a mere wrapper for DaosManager such that DaosManager::instance does not need
+///   to be called in many places
+/// @note: DaosSession no longer performs daos_init on creation and daos_fini on destroy. This is because 
+///   any pool handles obtained within a session are cached in DaosManager beyond DaosSession lifetime, 
+///   and the pool handles may become invalid if daos_fini is called for all sessions
 
 class DaosSession : eckit::NonCopyable {
 
 public: // methods
 
-    DaosSession(const eckit::LocalConfiguration& config = eckit::LocalConfiguration());
-    ~DaosSession();
+    DaosSession();
+    ~DaosSession() {};
 
 #ifdef fdb5_HAVE_DAOS_ADMIN
     // administrative
@@ -96,54 +117,35 @@ public: // methods
         const std::string& label, 
         const uint64_t& scmSize = 10ULL << 30, 
         const uint64_t& nvmeSize = 40ULL << 30);
+    void destroyPool(uuid_t, const int& force = 1);
 #endif
 
     fdb5::DaosPool& getPool(uuid_t);
     fdb5::DaosPool& getPool(const std::string&);
     fdb5::DaosPool& getPool(uuid_t, const std::string&);
 
-    void closePool(uuid_t);
-    void destroyPoolContainers(uuid_t);
-
-    static void error(int code, const char* msg, const char* file, int line, const char* func);
-
-    int containerOidsPerAlloc() const { return containerOidsPerAlloc_; };
-    uint64_t objectCreateCellSize() const { return objectCreateCellSize_; };
-    uint64_t objectCreateChunkSize() const { return objectCreateChunkSize_; };
-    std::string dmgConfigFile() const { return dmgConfigFile_; };
+    int containerOidsPerAlloc() const { return DaosManager::instance().containerOidsPerAlloc_; };
+    uint64_t objectCreateCellSize() const { return DaosManager::instance().objectCreateCellSize_; };
+    uint64_t objectCreateChunkSize() const { return DaosManager::instance().objectCreateChunkSize_; };
+    std::string dmgConfigFile() const { return DaosManager::instance().dmgConfigFile_; };
 
 private: // methods
 
-    /// @todo: Use std::map<std::string, fdb5::DaosPool>
-    /// @todo: Offload caching to manager?
-    using PoolCache = std::deque<fdb5::DaosPool>;
     PoolCache::iterator getCachedPool(uuid_t);
     PoolCache::iterator getCachedPool(const std::string&);
 
+// #ifdef fdb5_HAVE_DAOS_ADMIN
+    // void closePool(uuid_t);
+    // void destroyPoolContainers(uuid_t);
+// #endif
+
 private: // members
 
-    PoolCache pool_cache_;
-
-    int containerOidsPerAlloc_;
-    uint64_t objectCreateCellSize_;
-    uint64_t objectCreateChunkSize_;
-    std::string dmgConfigFile_;
+    /// @todo: add lock_guards in all DaosSession methods using pool_cache_. Same for cont_cache_ in DaosPool.
+    // std::recursive_mutex& mutex_;
+    PoolCache& pool_cache_;
 
 };
-
-static inline int daos_call(int code, const char* msg, const char* file, int line, const char* func) {
-
-    std::cout << "DAOS_CALL => " << msg << std::endl;
-
-    if (code < 0) {
-        std::cout << "DAOS_FAIL !! " << msg << std::endl;
-        DaosSession::error(code, msg, file, line, func);
-    }
-
-    std::cout << "DAOS_CALL <= " << msg << std::endl;
-
-    return code;
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 
