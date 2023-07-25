@@ -40,14 +40,12 @@ MoveVisitor::MoveVisitor(eckit::Queue<MoveElement>& queue,
                          const eckit::URI& dest,
                          bool removeSrc,
                          int removeDelay,
-                         bool mpi,
-                         int threads) :
+                         eckit::Transport& transport) :
     QueryVisitor<MoveElement>(queue, request),
     dest_(dest),
     removeSrc_(removeSrc),
     removeDelay_(removeDelay),
-    mpi_(mpi),
-    threads_(threads) {}
+    transport_(transport) {}
 
 bool MoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     if (catalogue.key().match(request_)) {
@@ -63,7 +61,7 @@ bool MoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) 
         EntryVisitor::visitDatabase(catalogue, store);
 
         ASSERT(!internalVisitor_);
-        internalVisitor_.reset(catalogue.moveVisitor(store, request_, dest_, removeSrc_, removeDelay_, mpi_, threads_));
+        internalVisitor_.reset(catalogue.moveVisitor(store, request_, dest_, removeSrc_, removeDelay_, transport_));
         internalVisitor_->visitDatabase(catalogue, store);
 
         std::stringstream ss;

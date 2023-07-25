@@ -13,6 +13,7 @@
 #include <algorithm>
 
 #include "eckit/config/Resource.h"
+#include "eckit/distributed/Message.h"
 #include "eckit/os/Stat.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -43,9 +44,8 @@ TocMoveVisitor::TocMoveVisitor(const TocCatalogue& catalogue,
                                const eckit::URI& dest,
                                bool removeSrc,
                                int removeDelay,
-                               bool mpi,
-                               int threads) :
-    MoveVisitor(request, dest, removeSrc, removeDelay, mpi, threads),
+                               eckit::Transport& transport) :
+    MoveVisitor(request, dest, removeSrc, removeDelay, transport),
     catalogue_(catalogue),
     store_(store) {}
 
@@ -114,10 +114,10 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
 
 void TocMoveVisitor::move() {
 
-    int numThreads = eckit::Resource<int>("fdbMoveThreads;$FDB_MOVE_THREADS", threads_);
-    bool mpi = eckit::Resource<bool>("fdbMoveMpi;$FDB_MOVE_MPI", mpi_);
+    // int numThreads = eckit::Resource<int>("fdbMoveThreads;$FDB_MOVE_THREADS", threads_);
+    // bool mpi = eckit::Resource<bool>("fdbMoveMpi;$FDB_MOVE_MPI", mpi_);
 
-    store_.moveTo(catalogue_.key(), catalogue_.config(), dest_, mpi, numThreads);
+    store_.moveTo(catalogue_.key(), catalogue_.config(), dest_, transport_);
 
     eckit::PathName destPath = dest_.path();
     for (const eckit::PathName& root: CatalogueRootManager(catalogue_.config()).canMoveToRoots(catalogue_.key())) {
@@ -128,7 +128,7 @@ void TocMoveVisitor::move() {
                 dest_db.mkdir();
             }
             
-            eckit::ThreadPool pool("catalogue"+catalogue_.basePath().asString(), numThreads);
+//            eckit::ThreadPool pool("catalogue"+catalogue_.basePath().asString(), numThreads);
 
             DIR* dirp = ::opendir(catalogue_.basePath().asString().c_str());
             struct dirent* dp;
@@ -137,14 +137,18 @@ void TocMoveVisitor::move() {
                     strstr( dp->d_name, "toc.") ||
                     strstr( dp->d_name, "schema")) {
 
-                    pool.push(new FileCopy(catalogue_.basePath(), dest_db, dp->d_name));
+                    eckit::Message message;
+                    FileCopy fileCopy(catalogue_.basePath(), dest_db, dp->d_name);
+                    fileCopy.encode(message);
+                    transport_.sendMessageToNextWorker(message);
+//                pool.push(it->second);
                 }
             }
             closedir(dirp);
 
-            pool.wait();
-            pool.push(new FileCopy(catalogue_.basePath(), dest_db, "toc"));
-            pool.wait();
+            transport_.synchronise();
+
+            FileCopy(catalogue_.basePath(), dest_db, "toc").execute();
 
             if (removeSrc_) {
                 sleep(removeDelay_);

@@ -202,7 +202,7 @@ void RemoteFDB::disconnect() {
     if (connected_) {
 
         // Send termination message
-        controlWrite(Message::Exit, generateRequestID());
+        controlWrite(fdb5::remote::Message::Exit, generateRequestID());
 
         listeningThread_.join();
 
@@ -226,7 +226,7 @@ void RemoteFDB::writeControlStartupMessage() {
     //       essentially JSON) over the wire for flexibility.
     s << availableFunctionality().get();
 
-    controlWrite(Message::Startup, 0, payload.data(), s.position());
+    controlWrite(fdb5::remote::Message::Startup, 0, payload.data(), s.position());
 }
 
 SessionID RemoteFDB::verifyServerStartupResponse() {
@@ -236,7 +236,7 @@ SessionID RemoteFDB::verifyServerStartupResponse() {
 
     ASSERT(hdr.marker == StartMarker);
     ASSERT(hdr.version == CurrentVersion);
-    ASSERT(hdr.message == Message::Startup);
+    ASSERT(hdr.message == fdb5::remote::Message::Startup);
     ASSERT(hdr.requestID == 0);
 
     Buffer payload(hdr.payloadSize);
@@ -277,7 +277,7 @@ void RemoteFDB::writeDataStartupMessage(const eckit::SessionID& serverSession) {
     s << sessionID_;
     s << serverSession;
 
-    dataWrite(Message::Startup, 0, payload.data(), s.position());
+    dataWrite(fdb5::remote::Message::Startup, 0, payload.data(), s.position());
 }
 
 eckit::LocalConfiguration RemoteFDB::availableFunctionality() const {
@@ -314,10 +314,10 @@ void RemoteFDB::listeningThreadLoop() {
 
         switch (hdr.message) {
 
-        case Message::Exit:
+        case fdb5::remote::Message::Exit:
             return;
 
-        case Message::Blob: {
+        case fdb5::remote::Message::Blob: {
             Buffer payload(hdr.payloadSize);
             if (hdr.payloadSize > 0) dataRead(payload, hdr.payloadSize);
 
@@ -330,7 +330,7 @@ void RemoteFDB::listeningThreadLoop() {
             break;
         }
 
-        case Message::Complete: {
+        case fdb5::remote::Message::Complete: {
             auto it = messageQueues_.find(hdr.requestID);
             if (it != messageQueues_.end()) {
                 it->second->close();
@@ -345,7 +345,7 @@ void RemoteFDB::listeningThreadLoop() {
             break;
         }
 
-        case Message::Error: {
+        case fdb5::remote::Message::Error: {
 
             auto it = messageQueues_.find(hdr.requestID);
             if (it != messageQueues_.end()) {
@@ -434,7 +434,7 @@ void RemoteFDB::controlWriteCheckResponse(Message msg, uint32_t requestID, const
 
     ASSERT(response.marker == StartMarker);
     ASSERT(response.version == CurrentVersion);
-    ASSERT(response.message == Message::Received);
+    ASSERT(response.message == fdb5::remote::Message::Received);
 
     eckit::FixedString<4> tail;
     controlRead(&tail, sizeof(tail));
@@ -506,7 +506,7 @@ void RemoteFDB::handleError(const MessageHeader& hdr) {
     ASSERT(hdr.marker == StartMarker);
     ASSERT(hdr.version == CurrentVersion);
 
-    if (hdr.message == Message::Error) {
+    if (hdr.message == fdb5::remote::Message::Error) {
         ASSERT(hdr.payloadSize > 9);
 
         std::string what(hdr.payloadSize, ' ');
@@ -548,9 +548,9 @@ struct BaseAPIHelper {
     static ValueType valueFromStream(eckit::Stream& s, RemoteFDB* fdb) { return ValueType(s); }
 };
 
-using ListHelper = BaseAPIHelper<ListElement, Message::List>;
+using ListHelper = BaseAPIHelper<ListElement, fdb5::remote::Message::List>;
 
-struct InspectHelper : BaseAPIHelper<ListElement, Message::Inspect> {
+struct InspectHelper : BaseAPIHelper<ListElement, fdb5::remote::Message::Inspect> {
 
     static ListElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         ListElement elem(s);
@@ -558,9 +558,9 @@ struct InspectHelper : BaseAPIHelper<ListElement, Message::Inspect> {
     }
 };
 
-using StatsHelper = BaseAPIHelper<StatsElement, Message::Stats>;
+using StatsHelper = BaseAPIHelper<StatsElement, fdb5::remote::Message::Stats>;
 
-struct StatusHelper : BaseAPIHelper<StatusElement, Message::Status> {
+struct StatusHelper : BaseAPIHelper<StatusElement, fdb5::remote::Message::Status> {
 
     static StatusElement valueFromStream(eckit::Stream& s, RemoteFDB* fdb) {
         StatusElement elem(s);
@@ -569,7 +569,7 @@ struct StatusHelper : BaseAPIHelper<StatusElement, Message::Status> {
     }
 };
 
-struct DumpHelper : BaseAPIHelper<DumpElement, Message::Dump> {
+struct DumpHelper : BaseAPIHelper<DumpElement, fdb5::remote::Message::Dump> {
 
     DumpHelper(bool simple) : simple_(simple) {}
     void encodeExtra(eckit::Stream& s) const { s << simple_; }
@@ -583,7 +583,7 @@ private:
     bool simple_;
 };
 
-struct PurgeHelper : BaseAPIHelper<PurgeElement, Message::Purge> {
+struct PurgeHelper : BaseAPIHelper<PurgeElement, fdb5::remote::Message::Purge> {
 
     PurgeHelper(bool doit, bool porcelain) : doit_(doit), porcelain_(porcelain) {}
     void encodeExtra(eckit::Stream& s) const {
@@ -601,7 +601,7 @@ private:
     bool porcelain_;
 };
 
-struct WipeHelper : BaseAPIHelper<WipeElement, Message::Wipe> {
+struct WipeHelper : BaseAPIHelper<WipeElement, fdb5::remote::Message::Wipe> {
 
     WipeHelper(bool doit, bool porcelain, bool unsafeWipeAll) :
         doit_(doit), porcelain_(porcelain), unsafeWipeAll_(unsafeWipeAll) {}
@@ -622,16 +622,15 @@ private:
     bool unsafeWipeAll_;
 };
 
-struct MoveHelper : BaseAPIHelper<MoveElement, Message::Move> {
+struct MoveHelper : BaseAPIHelper<MoveElement, fdb5::remote::Message::Move> {
 
-    MoveHelper(const eckit::URI& dest, bool removeSrc, int removeDelay, bool mpi, int threads) :
-        dest_(dest), removeSrc_(removeSrc), removeDelay_(removeDelay), mpi_(mpi), threads_(threads) {}
+    MoveHelper(const eckit::URI& dest, bool removeSrc, int removeDelay, eckit::Transport& transport) :
+        dest_(dest), removeSrc_(removeSrc), removeDelay_(removeDelay), transport_(transport) {}
     void encodeExtra(eckit::Stream& s) const {
         s << dest_;
         s << removeSrc_;
         s << removeDelay_;
-        s << mpi_;
-        s << threads_;
+        s << transport_;
     }
     static MoveElement valueFromStream(eckit::Stream& s, RemoteFDB*) {
         MoveElement elem;
@@ -643,11 +642,10 @@ private:
     const eckit::URI& dest_;
     bool removeSrc_;
     int removeDelay_;
-    bool mpi_;
-    int threads_;
+    eckit::Transport& transport_;
 };
 
-struct ControlHelper : BaseAPIHelper<StatusElement, Message::Control> {
+struct ControlHelper : BaseAPIHelper<StatusElement, fdb5::remote::Message::Control> {
 
     ControlHelper(ControlAction action, ControlIdentifiers identifiers) :
         action_(action),
@@ -756,8 +754,8 @@ ControlIterator RemoteFDB::control(const FDBToolRequest& request,
     return forwardApiCall(ControlHelper(action, identifiers), request);
 };
 
-MoveIterator RemoteFDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, bool mpi, int threads) {
-    return forwardApiCall(MoveHelper(dest, removeSrc, removeDelay, mpi, threads), request);
+MoveIterator RemoteFDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, eckit::Transport& transport) {
+    return forwardApiCall(MoveHelper(dest, removeSrc, removeDelay, transport), request);
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -775,7 +773,7 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
         // Start the archival request on the remote side
         ASSERT(archiveID_ == 0);
         uint32_t id = generateRequestID();
-        controlWriteCheckResponse(Message::Archive, id);
+        controlWriteCheckResponse(fdb5::remote::Message::Archive, id);
         archiveID_ = id;
 
         // Reset the queue after previous done/errors
@@ -825,7 +823,7 @@ void RemoteFDB::flush() {
         s << numArchive;
 
         // The flush call is blocking
-        controlWriteCheckResponse(Message::Flush, generateRequestID(), sendBuf, s.position());
+        controlWriteCheckResponse(fdb5::remote::Message::Flush, generateRequestID(), sendBuf, s.position());
 
         internalStats_ += stats;
     }
@@ -864,7 +862,7 @@ FDBStats RemoteFDB::archiveThreadLoop(uint32_t requestID) {
         // And note that we are done. (don't time this, as already being blocked
         // on by the ::flush() routine)
 
-        MessageHeader hdr(Message::Flush, requestID);
+        MessageHeader hdr(fdb5::remote::Message::Flush, requestID);
         dataWrite(&hdr, sizeof(hdr));
         dataWrite(&EndMarker, sizeof(EndMarker));
 
@@ -909,13 +907,13 @@ long RemoteFDB::sendArchiveData(uint32_t id, const std::vector<std::pair<Key, Bu
 
     // Construct the containing message
 
-    MessageHeader message(Message::MultiBlob, id, containedSize);
+    MessageHeader message(fdb5::remote::Message::MultiBlob, id, containedSize);
     dataWrite(&message, sizeof(message));
 
     long dataSent = 0;
 
     for (size_t i = 0; i < count; ++i) {
-        MessageHeader containedMessage(Message::Blob, id, elements[i].second.size() + keySizes[i]);
+        MessageHeader containedMessage(fdb5::remote::Message::Blob, id, elements[i].second.size() + keySizes[i]);
         dataWrite(&containedMessage, sizeof(containedMessage));
         dataWrite(keyBuffers[i], keySizes[i]);
         dataWrite(elements[i].second.data(), elements[i].second.size());
@@ -937,7 +935,7 @@ void RemoteFDB::sendArchiveData(uint32_t id, const Key& key, const void* data, s
     MemoryStream keyStream(keyBuffer);
     keyStream << key;
 
-    MessageHeader message(Message::Blob, id, length + keyStream.position());
+    MessageHeader message(fdb5::remote::Message::Blob, id, length + keyStream.position());
     dataWrite(&message, sizeof(message));
     dataWrite(keyBuffer, keyStream.position());
     dataWrite(data, length);
@@ -1010,19 +1008,19 @@ private: // methods
 
         // Handle any remote errors communicated from the server
 
-        if (hdr.message == Message::Error) {
+        if (hdr.message == fdb5::remote::Message::Error) {
             std::string errmsg(static_cast<const char*>(msg.second), msg.second.size());
             throw RemoteFDBException(errmsg, remoteEndpoint_);
         }
 
         // Are we now complete
 
-        if (hdr.message == Message::Complete) {
+        if (hdr.message == fdb5::remote::Message::Complete) {
             complete_ = 0;
             return 0;
         }
 
-        ASSERT(hdr.message == Message::Blob);
+        ASSERT(hdr.message == fdb5::remote::Message::Blob);
 
         // Otherwise return the data!
 
@@ -1090,7 +1088,7 @@ private: // members
 
 //    uint32_t id = generateRequestID();
 
-//    controlWriteCheckResponse(Message::Retrieve, id, encodeBuffer, s.position());
+//    controlWriteCheckResponse(fdb5::remote::Message::Retrieve, id, encodeBuffer, s.position());
 
 //    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
 //}
@@ -1114,7 +1112,7 @@ eckit::DataHandle* RemoteFDB::dataHandle(const FieldLocation& fieldLocation, con
 
     uint32_t id = generateRequestID();
 
-    controlWriteCheckResponse(Message::Read, id, encodeBuffer, s.position());
+    controlWriteCheckResponse(fdb5::remote::Message::Read, id, encodeBuffer, s.position());
 
     return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint_);
 }

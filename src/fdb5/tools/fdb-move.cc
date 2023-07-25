@@ -28,6 +28,57 @@ namespace tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
+// class MoveProducer : public eckit::Producer {
+// public: // methods
+
+//     MoveProducer(eckit::Transport &transport, const eckit::option::CmdArgs &args);
+//     ~MoveProducer();
+
+// private: // methods
+
+//     virtual bool produce(eckit::Message &message);
+//     virtual void finalise();
+//     void messageFromWorker( eckit::Message & message, int worker) const;
+
+// };
+
+
+class MoveWorker : public eckit::Consumer {
+
+public: // methods
+
+    MoveWorker(eckit::Transport& transport, const eckit::option::CmdArgs &args);
+    ~MoveWorker();
+
+protected: // members
+
+    virtual void consume(eckit::Message &message) {
+        FileCopy fileCopy(message);
+        Log::debug() << "fdb-move worker " << transport.id() << " received task " << fileCopy << std::endl;
+
+        fileCopy.execute();
+    }
+    // virtual void finalise();
+
+    // virtual void getNextMessage(eckit::Message& message) const;
+    // virtual void failure(eckit::Message &message);
+    virtual void shutdown(eckit::Message & message) {
+        eckit::Log::info() << "Shuting down..." << std::endl;
+        // message << fatals_;
+        // message << warnings_;
+        // message << count_;
+    }
+
+    virtual void getNextMessage(eckit::Message & message) const {
+        getNextWorkMessage(message);
+    }
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
 class FDBMove : public FDBVisitTool {
 public: // methods
 
@@ -102,37 +153,51 @@ void FDBMove::init(const CmdArgs& args) {
             ss << "Unsupported number of threads. please specify a value between 1 and " << MAX_THREADS;
             throw UserError(ss.str(), Here());
         }
-    } else { // this process is just a data mover - subscribing to receive tasks
-
-        while (true) {
-            int ready = 1;
-
-            comm.send(&ready, 1, 0, 0);
-
-            eckit::mpi::Status st = comm.probe(0, 0);
-            size_t size = comm.getCount<char>(st);
-
-            if (size>0) {
-                eckit::Buffer b(size);
-                b.zero();
-
-                comm.receive(static_cast<char*>(b.data()), b.size(), 0, 0);
-                eckit::ResizableMemoryStream s(b);
-
-                FileCopy fileCopy(s);
-                Log::debug() << "fdb-move (mover " << rank_ << ") received task " << fileCopy << std::endl;
-
-                fileCopy.execute();
-            } else {
-                Log::debug() << "fdb-move (mover " << rank_ << ") done" << std::endl;
-                break;
-            }
-        }
     }
+    // else { // this process is just a data mover - subscribing to receive tasks
+
+    //     while (true) {
+    //         int ready = 1;
+
+    //         comm.send(&ready, 1, 0, 0);
+
+    //         eckit::mpi::Status st = comm.probe(0, 0);
+    //         size_t size = comm.getCount<char>(st);
+
+    //         if (size>0) {
+    //             eckit::Buffer b(size);
+    //             b.zero();
+
+    //             comm.receive(static_cast<char*>(b.data()), b.size(), 0, 0);
+    //             eckit::ResizableMemoryStream s(b);
+
+    //             FileCopy fileCopy(s);
+    //             Log::debug() << "fdb-move (mover " << rank_ << ") received task " << fileCopy << std::endl;
+
+    //             fileCopy.execute();
+    //         } else {
+    //             Log::debug() << "fdb-move (mover " << rank_ << ") done" << std::endl;
+    //             break;
+    //         }
+    //     }
+    //     comm.barrier();
+    // }
 }
 
 
 void FDBMove::execute(const CmdArgs& args) {
+
+    std::unique_ptr<eckit::Actor> actor;
+
+    if (transport->single()) {
+        // actor.reset(new pgen::ProdGenLoner(*transport,
+        //                                     new pgen::compare::CompareProducer(*transport, args),
+        //                                     new pgen::compare::CompareConsumer(*transport, args))); // do it all actor :)
+    } else if (transport->producer()) {
+        actor.reset(new pgen::compare::CompareProducer(*transport, args)); // move visitor + task dispatcher
+    } else {
+        actor.reset(new MoveWorker(*transport, args)); // worker(s)
+    }
 
     if (!mpi_ || rank_ == 0) {
         FDB fdb(config(args));

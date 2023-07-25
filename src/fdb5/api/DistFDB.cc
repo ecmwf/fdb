@@ -245,12 +245,24 @@ ControlIterator DistFDB::control(const FDBToolRequest& request,
     });
 }
 
-MoveIterator DistFDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, bool mpi, int threads) {
+MoveIterator DistFDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, eckit::Transport& transport) {
     Log::debug<LibFdb5>() << "DistFDB::move() : " << request << std::endl;
-    return queryInternal(request,
-                         [dest, removeSrc, removeDelay, mpi, threads](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.move(request, dest, removeSrc, removeDelay, mpi, threads);
-    });
+
+    std::vector<std::future<MoveIterator>> futures;
+    std::queue<MoveIterator> iterQueue;
+
+    for (FDB& lane : lanes_) {
+        if (lane.enabled(ControlIdentifier::Retrieve)) {
+            futures.emplace_back(std::async(std::launch::async,
+            std::mem_fun(&FDB::move), &lane, request, dest, removeSrc, removeDelay, transport));      
+        }
+    }
+
+    for (std::future<MoveIterator>& f : futures) {
+        iterQueue.push(f.get());
+    }
+
+    return MoveIterator(new MoveAggregateIterator(std::move(iterQueue)));
 }
 
 void DistFDB::flush() {

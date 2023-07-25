@@ -232,7 +232,7 @@ void mpiCopyTask(const eckit::PathName& srcPath, const eckit::PathName& destPath
     src.copyTo(dest);
 }
 
-void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest, bool mpi, int threads) const {
+void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Transport& transport) const {
     eckit::PathName destPath = dest.path();
     for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {      
@@ -253,36 +253,46 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
             }
             closedir(dirp);
 
-            if (mpi) { // dispatch tasks with MPI
-                eckit::mpi::Comm& comm = eckit::mpi::comm();
-                ASSERT(comm.rank() == 0);
-
-                int ready;
-
-                for (auto it = files.begin(); it != files.end(); it++) {
-                    eckit::mpi::Status status = comm.template receive<int>(&ready, 1, -1, -1);
-
-                    eckit::Buffer sendBuffer;
-                    eckit::ResizableMemoryStream s(sendBuffer);
-                    it->second->encode(s);
-
-                    comm.send(static_cast<const char*>(sendBuffer.data()), s.position(), status.source(), status.tag());
-                }
-
-                eckit::Buffer end;
-
-                // send termination
-                for (int i=1; i<comm.size(); i++) {
-                    eckit::mpi::Status status = comm.template receive<int>(&ready, 1, -1, -1);
-                    comm.send(end.data(), end.size(), status.source(), status.tag());
-                }
-            } else { // spread the load with multiple threads
-                eckit::ThreadPool pool("store"+dest_db.asString(), threads);
-                for (auto it = files.begin(); it != files.end(); it++) {
-                        pool.push(it->second);
-                }
-                pool.wait();
+            for (auto it = files.begin(); it != files.end(); it++) {
+                eckit::Message message;
+                message << it->second;
+                transport.producer(message);
+//                pool.push(it->second);
             }
+
+
+            // if (mpi) { // dispatch tasks with MPI
+            //     eckit::mpi::Comm& comm = eckit::mpi::comm();
+            //     ASSERT(comm.rank() == 0);
+
+            //     int ready;
+
+            //     for (auto it = files.begin(); it != files.end(); it++) {
+            //         eckit::mpi::Status status = comm.template receive<int>(&ready, 1, -1, -1);
+
+            //         eckit::Buffer sendBuffer;
+            //         eckit::ResizableMemoryStream s(sendBuffer);
+            //         it->second->encode(s);
+
+            //         comm.send(static_cast<const char*>(sendBuffer.data()), s.position(), status.source(), status.tag());
+            //     }
+
+            //     eckit::Buffer end;
+
+            //     // send termination
+            //     for (int i=1; i<comm.size(); i++) {
+            //         eckit::mpi::Status status = comm.template receive<int>(&ready, 1, -1, -1);
+            //         comm.send(end.data(), end.size(), status.source(), status.tag());
+            //     }
+            // }
+            // else
+            // { // spread the load with multiple threads
+            //     eckit::ThreadPool pool("store"+dest_db.asString(), threads);
+            //     for (auto it = files.begin(); it != files.end(); it++) {
+            //             pool.push(it->second);
+            //     }
+            //     pool.wait();
+            // }
         }
     }
 }

@@ -386,7 +386,6 @@ ecbuild_add_library(
         metkit
         eckit
         eckit_option
-        eckit_mpi
 
     PRIVATE_INCLUDES
         "${PMEM_INCLUDE_DIRS}"

@@ -15,6 +15,7 @@
 #ifndef fdb5_Store_H
 #define fdb5_Store_H
 
+#include "eckit/distributed/Transport.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 
@@ -51,7 +52,7 @@ public:
     virtual void checkUID() const = 0;
 
     virtual bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const;
-    virtual void moveTo(const Key& key, const Config& config, const eckit::URI& dest, bool mpi, int threads) const { NOTIMP; }
+    virtual void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Transport& transport) const { NOTIMP; }
     virtual void remove(const Key& key) const { NOTIMP; }
 
     virtual eckit::URI uri() const = 0;

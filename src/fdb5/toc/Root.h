@@ -29,6 +29,7 @@ class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
 class Root  {
 
 public: // methods
@@ -47,7 +48,7 @@ public: // methods
 
     /// Root exists in the filesystem, use this check to avoid errors when accessing
     /// This result is cached at construction
-    bool exists() const {  return exists_; }
+    bool exists() const;
 
     bool enabled(const ControlIdentifier& controlIdentifier) const {
         return controlIdentifiers_.enabled(controlIdentifier);
@@ -71,9 +72,10 @@ private: // members
     eckit::PathName path_;
 
     std::string filespace_;
+    mutable bool checked_;
+    mutable bool exists_;
 
     ControlIdentifiers controlIdentifiers_;
-    bool exists_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

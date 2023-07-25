@@ -15,6 +15,7 @@
 #pragma once
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/distributed/Transport.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -32,8 +33,7 @@ public: // methods
                 const eckit::URI& dest,
                 bool removeSrc,
                 int removeDelay,
-                bool mpi,
-                int threads);
+                eckit::Transport& transport);
 
     ~MoveVisitor() override;
 
@@ -51,8 +51,7 @@ protected: // members
     const eckit::URI& dest_;
     bool removeSrc_;
     int removeDelay_;
-    bool mpi_;
-    int threads_;
+    eckit::Transport& transport_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
