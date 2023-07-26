@@ -33,7 +33,6 @@
 
 #include "fdb5/daos/DaosStore.h"
 #include "fdb5/daos/DaosFieldLocation.h"
-// #include "fdb5/daos/DaosException.h"
 #include "fdb5/daos/DaosCatalogueWriter.h"
 #include "fdb5/daos/DaosCatalogueReader.h"
 

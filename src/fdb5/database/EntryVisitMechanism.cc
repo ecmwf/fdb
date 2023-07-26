@@ -92,6 +92,8 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
     try {
 
         fdb5::Manager mg{dbConfig_};
+        /// @todo: in POSIX backend, the set of possible visitable locations is first constructed 
+        ///   from the schema, and the resulting locations are checked against that set. Here that's not done
         std::vector<URI> uris(mg.visitableLocations(request.request(), request.all()));
 
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).

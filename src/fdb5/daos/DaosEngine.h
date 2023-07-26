@@ -31,17 +31,6 @@ public: // methods
 
     static const char* typeName() { return "daos"; }
 
-// private:  // methods
-//     std::set<eckit::PathName> databases(const std::set<Key>& keys, const std::vector<eckit::PathName>& dirs,
-//                                         const Config& config) const;
-
-//     std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs, const Config& config) const;
-
-//     std::vector<eckit::URI> databases(const metkit::mars::MarsRequest& rq, const std::vector<eckit::PathName>& dirs,
-//                                       const Config& config) const;
-
-//     void scan_dbs(const std::string& path, std::list<std::string>& dbs) const;
-
 protected: // methods
 
     virtual std::string name() const override;

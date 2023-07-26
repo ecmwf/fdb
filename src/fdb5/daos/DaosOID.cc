@@ -62,22 +62,6 @@ DaosOID::DaosOID(const std::string& name, const enum daos_otype_t& otype, const 
 
 }
 
-// DaosOID::DaosOID(const DaosOID& other) : hi_(other.hi_), lo_(other.lo_) {}
-
-// DaosOID::DaosOID(DaosOID&& other) {
-
-//     std::swap(hi_, other.hi_);
-//     std::swap(lo_, other.lo_);
-
-// }
-
-// DaosOID& DaosOID::operator=(DaosOID rhs) {
-
-//     std::swap(*this, rhs);
-//     return *this;
-
-// }
-
 bool DaosOID::operator==(const DaosOID& rhs) const {
 
     return hi_ == rhs.hi_ && lo_ == rhs.lo_ && 

@@ -8,49 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <typeinfo>
-
 #include "fdb5/daos/DaosIndexLocation.h"
-
-// using namespace eckit;
 
 namespace fdb5 {
 
-// ::eckit::ClassSpec TocIndexLocation::classSpec_ = {&IndexLocation::classSpec(), "TocIndexLocation",};
-// ::eckit::Reanimator<TocIndexLocation> TocIndexLocation::reanimator_;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosIndexLocation::DaosIndexLocation(const fdb5::DaosKeyValueName& name, off_t offset) :
-    name_(name),
-    offset_(offset) {}
-
-// TocIndexLocation::TocIndexLocation(Stream& s) {
-//     s >> path_;
-//     s >> offset_;
-// }
-
-// off_t TocIndexLocation::offset() const {
-//     return offset_;
-// }
-
-// /*PathName TocIndexLocation::path() const
-// {
-//     return path_;
-// }*/
-
-// eckit::URI DaosIndexLocation::uri() const {
-//     return name.URI();
-// }
-
-// IndexLocation* TocIndexLocation::clone() const {
-//     return new TocIndexLocation(path_, offset_);
-// }
-
-// void TocIndexLocation::encode(Stream& s) const {
-//     s << path_;
-//     s << offset_;
-// }
+DaosIndexLocation::DaosIndexLocation(const fdb5::DaosKeyValueName& name, off_t offset) : name_(name), offset_(offset) {}
 
 void DaosIndexLocation::print(std::ostream &out) const {
 

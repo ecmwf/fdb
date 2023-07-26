@@ -30,24 +30,6 @@ public: // methods
     DaosOID(const uint32_t& hi, const uint64_t& lo, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass);
     DaosOID(const std::string&, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass);
 
-    // TODO: make these private? and use these helper methods
-
-    // static DaosOID arrayOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass = OC_S1) {
-
-    //     return {hi, lo, DAOS_OT_ARRAY, oclass};
-
-    // }
-
-    // static DaosOID arrayOIDFull(const uint64_t& hi, const uint64_t& lo) {
-
-    //     return {hi, lo};
-
-    // }
-
-    // DaosOID(const DaosOID&);
-    // DaosOID(DaosOID&&);
-    // DaosOID& operator=(DaosOID);
-
     bool operator==(const DaosOID&) const;
 
     void generate(fdb5::DaosContainer&);
@@ -104,8 +86,6 @@ public: //methods
     DaosKeyValueOID(const std::string&, const daos_oclass_id_t& oclass);
 
 };
-
-
 
 //----------------------------------------------------------------------------------------------------------------------
 

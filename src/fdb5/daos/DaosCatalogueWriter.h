@@ -13,19 +13,9 @@
 
 #pragma once
 
-// #include "eckit/os/AutoUmask.h"
-
-// #include "fdb5/database/Index.h"
-// #include "fdb5/toc/TocRecord.h"
-
 #include "fdb5/daos/DaosCatalogue.h"
 
-// #include "fdb5/toc/TocSerialisationVersion.h"
-
 namespace fdb5 {
-
-// class Key;
-// class TocAddIndex;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -40,15 +30,13 @@ public: // methods
 
     virtual ~DaosCatalogueWriter() override;
 
-//     /// Used for adopting & indexing external data to the TOC dir
     void index(const Key &key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) override { NOTIMP; };
 
-    // void reconsolidate() override { reconsolidateIndexesAndTocs(); }
     void reconsolidate() override { NOTIMP; }
 
-//     /// Mount an existing TocCatalogue, which has a different metadata key (within
-//     /// constraints) to allow on-line rebadging of data
-//     /// variableKeys: The keys that are allowed to differ between the two DBs
+    /// Mount an existing TocCatalogue, which has a different metadata key (within
+    /// constraints) to allow on-line rebadging of data
+    /// variableKeys: The keys that are allowed to differ between the two DBs
     void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override { NOTIMP; };
 
 //     // Hide the contents of the DB!!!
@@ -57,7 +45,6 @@ public: // methods
 //     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
     const Index& currentIndex() override;
-//     const TocSerialisationVersion& serialisationVersion() const;
 
 protected: // methods
 
@@ -70,42 +57,25 @@ protected: // methods
     void close() override;
 
     void archive(const Key& key, const FieldLocation* fieldLocation) override;
-//     void reconsolidateIndexesAndTocs();
 
     virtual void print( std::ostream &out ) const override { NOTIMP; }
 
 private: // methods
 
     void closeIndexes();
-//     void flushIndexes();
-//     void compactSubTocIndexes();
-
-//     eckit::PathName generateIndexPath(const Key &key) const;
 
 private: // types
 
-//     typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
     typedef std::map< Key, Index> IndexStore;
-//     typedef std::map< Key, std::string > PathStore;
 
 private: // members
 
-//     HandleStore handles_;    ///< stores the DataHandles being used by the Session
-
-//     // If we have multiple flush statements, then the indexes get repeatedly reset. Build and maintain
-//     // a full copy of the indexes associated with the process as well, for use when masking out
-//     // subtocs. See compactSubTocIndexes.
     IndexStore  indexes_;
-//     IndexStore  fullIndexes_;
-
-//     PathStore   dataPaths_;
 
     Index current_;
-    // Index currentFull_;
 
     bool firstIndexWrite_;
 
-//     eckit::AutoUmask umask_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

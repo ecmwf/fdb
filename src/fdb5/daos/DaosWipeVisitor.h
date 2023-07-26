@@ -39,8 +39,6 @@ private: // methods
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
 
-    // void addMaskedPaths();
-    // void addMetadataPaths();
     void ensureSafePaths();
     void calculateResidualPaths();
 
@@ -57,14 +55,8 @@ private: // members
 
     metkit::mars::MarsRequest indexRequest_;
 
-    // std::string owner_;
-
-    // eckit::PathName tocPath_;
     fdb5::DaosName dbKvPath_;
-    // eckit::PathName schemaPath_;
 
-    // std::set<eckit::PathName> subtocPaths_;
-    // std::set<eckit::PathName> lockfilePaths_;
     std::set<fdb5::DaosKeyValueName> indexPaths_;
     std::set<fdb5::DaosKeyValueName> axisPaths_;
     std::set<fdb5::DaosKeyValueName> safeKvPaths_;
@@ -74,8 +66,6 @@ private: // members
     
     std::set<fdb5::DaosKeyValueName> residualKvPaths_;
     std::set<eckit::URI> residualStorePaths_;
-
-    // std::vector<Index> indexesToMask_;
 
 };
 

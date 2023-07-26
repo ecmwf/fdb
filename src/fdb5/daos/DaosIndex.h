@@ -13,17 +13,7 @@
 
 #pragma once
 
-// #include "eckit/eckit.h"
-
-// #include "eckit/container/BTree.h"
-// #include "eckit/io/Length.h"
-// #include "eckit/io/Offset.h"
-// #include "eckit/memory/NonCopyable.h"
-
-// #include "eckit/types/FixedString.h"
-
 #include "fdb5/database/Index.h"
-// #include "fdb5/database/UriStore.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosIndexLocation.h"
 
@@ -31,49 +21,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// class BTreeIndex;
 
-
-// /// FileStoreWrapper exists _only_ so that the files_ member can be initialised from the stream
-// /// before the Index base class is initialised, for the TocIndex class. This order is required
-// /// to preserve the order that data is stored/read from streams from before the files_ object
-// /// was moved into the TocIndex class.
-
-// struct UriStoreWrapper {
-
-//     UriStoreWrapper(const eckit::PathName& directory) : files_(directory) {}
-//     UriStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : files_(directory, s) {}
-
-//     UriStore files_;
-// };
-
-//----------------------------------------------------------------------------------------------------------------------
-
-
-class DaosIndex :
-        // private UriStoreWrapper,
-        public IndexBase {
-
-// public: // types
-
-//     enum Mode { WRITE, READ };
+class DaosIndex : public IndexBase {
 
 public: // methods
 
-    DaosIndex(const Key& key,
-              const fdb5::DaosKeyValueName& name);
-            //   off_t offset,
-            //   Mode mode);
-            //   const std::string& type = defaulType());
-
-    // TocIndex(eckit::Stream &, const int version, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
-
-    // ~DaosIndex() override;
-
-    // static std::string defaulType();
-
-    // eckit::PathName path() const { return location_.uri().path(); }
-    // off_t offset() const { return location_.offset(); }
+    DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name);
 
     void flock() const override { NOTIMP; }
     void funlock() const override { NOTIMP; }
@@ -106,45 +59,9 @@ private: // methods
 
 private: // members
 
-    // std::unique_ptr<BTreeIndex>  btree_;
-
-    // bool dirty_;
-
-    // friend class TocIndexCloser;
-
-    // const DaosIndex::Mode mode_;
-
     fdb5::DaosIndexLocation location_;
 
 };
-
-//----------------------------------------------------------------------------------------------------------------------
-
-// /// Useful for specifying order within the TocHandler/TocDBReader
-// /// It can be helpful to iterate through indexes sequentially according to how they are on disk (i.e. all the indexes
-// /// in one file sequentially in the order written).
-
-// struct TocIndexFileSort {
-
-//     // Return true if first argument is earlier than the second, and false otherwise.
-//     bool operator() (const Index& lhs, const Index& rhs) {
-
-//         const TocIndex* idx1 = dynamic_cast<const TocIndex*>(lhs.content());
-//         const TocIndex* idx2 = dynamic_cast<const TocIndex*>(rhs.content());
-
-//         ASSERT(idx1);
-//         ASSERT(idx2);
-
-//         const eckit::PathName& pth1(idx1->path());
-//         const eckit::PathName& pth2(idx2->path());
-
-//         if (pth1 == pth2) {
-//             return idx1->offset() < idx2->offset();
-//         } else {
-//             return pth1 < pth2;
-//         }
-//     }
-// };
 
 //----------------------------------------------------------------------------------------------------------------------
 

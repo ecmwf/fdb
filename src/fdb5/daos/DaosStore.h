@@ -13,8 +13,6 @@
 
 #pragma once
 
-// #include "fdb5/database/DB.h"
-// #include "fdb5/database/Index.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
 
@@ -56,33 +54,13 @@ protected: // methods
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
-    // eckit::DataHandle *getCachedHandle( const eckit::PathName &path ) const;
-    // void closeDataHandles();
-    // eckit::DataHandle *createFileHandle(const eckit::PathName &path);
-    // eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
-    // eckit::DataHandle *createDataHandle(const eckit::PathName &path);
-    // eckit::DataHandle& getDataHandle( const eckit::PathName &path );
-    // eckit::PathName generateDataPath(const Key &key) const;
-    // eckit::PathName getDataPath(const Key &key);
-    // void flushDataHandles();
-
     void print(std::ostream &out) const override;
-
-private: // types
-
-    // typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
-    // typedef std::map< Key, std::string > PathStore;
 
 private: // members
 
     const Config& config_;
 
-    // HandleStore handles_;    ///< stores the DataHandles being used by the Session
-
-    // PathStore dataPaths_;
     std::string db_str_;
-
-    // mutable bool dirty_;
 
 };
 

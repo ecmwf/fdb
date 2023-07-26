@@ -10,17 +10,10 @@
 
 #include "eckit/io/Buffer.h"
 #include "eckit/config/Resource.h"
-// #include "eckit/log/Timer.h"
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/LibFdb5.h"
-// #include "fdb5/rules/Rule.h"
-// #include "fdb5/toc/RootManager.h"
-// #include "fdb5/toc/TocPurgeVisitor.h"
-// #include "fdb5/toc/TocStats.h"
-// #include "fdb5/toc/TocWipeVisitor.h"
-// #include "fdb5/toc/TocMoveVisitor.h"
 
 #include "fdb5/daos/DaosCatalogue.h"
 #include "fdb5/daos/DaosName.h"
@@ -43,10 +36,6 @@ DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
     //   to key
 
 }
-
-// TocCatalogue::TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config) :
-//     Catalogue(key, tocPath.controlIdentifiers_, config),
-//     TocHandler(tocPath.directory_, config) {}
 
 DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config) :
     Catalogue(Key(), controlIdentifiers, config), DaosCommon(config, "catalogue", uri) {
@@ -71,15 +60,6 @@ bool DaosCatalogue::exists() const {
 
 }
 
-// const std::string TocCatalogue::DUMP_PARAM_WALKSUBTOC = "walk";
-
-// void TocCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {
-//     bool walkSubToc = false;
-//     conf.get(DUMP_PARAM_WALKSUBTOC, walkSubToc);
-
-//     TocHandler::dump(out, simple, walkSubToc);
-// }
-
 eckit::URI DaosCatalogue::uri() const {
 
     return fdb5::DaosName{db_kv_->poolName(), db_kv_->contName()}.URI();
@@ -91,19 +71,6 @@ const Schema& DaosCatalogue::schema() const {
     return schema_;
 
 }
-
-// std::vector<PathName> TocCatalogue::metadataPaths() const {
-
-//     std::vector<PathName> paths(subTocPaths());
-
-//     paths.emplace_back(schemaPath());
-//     paths.emplace_back(tocPath());
-
-//     std::vector<PathName>&& lpaths(lockfilePaths());
-//     paths.insert(paths.end(), lpaths.begin(), lpaths.end());
-
-//     return paths;
-// }
 
 void DaosCatalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {
 
@@ -141,26 +108,9 @@ void DaosCatalogue::loadSchema() {
 
 }
 
-// StatsReportVisitor* TocCatalogue::statsReportVisitor() const {
-//     return new TocStatsReportVisitor(*this);
-// }
-
-// PurgeVisitor *TocCatalogue::purgeVisitor(const Store& store) const {
-//     return new TocPurgeVisitor(*this, store);
-// }
-
 WipeVisitor* DaosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
     return new DaosWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
 }
-
-// MoveVisitor* TocCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) const {
-//     return new TocMoveVisitor(*this, store, request, dest, removeSrc, removeDelay, threads);
-// }
-
-// void TocCatalogue::maskIndexEntry(const Index &index) const {
-//     TocHandler handler(basePath(), config_);
-//     handler.writeClearRecord(index);
-// }
 
 std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
 
@@ -204,20 +154,11 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
     
 }
 
-// void TocCatalogue::allMasked(std::set<std::pair<URI, Offset>>& metadata,
-//                       std::set<URI>& data) const {
-//     enumerateMasked(metadata, data);
-// }
-
 std::string DaosCatalogue::type() const {
 
     return DaosCatalogue::catalogueTypeName();
     
 }
-
-// void TocCatalogue::checkUID() const {
-//     TocHandler::checkUID();
-// }
 
 void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways, std::ostream& logVerbose, bool doit) {
 
@@ -228,14 +169,6 @@ void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways,
     if (doit) n.destroy();
 
 }
-
-// void TocCatalogue::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
-//     TocHandler::control(action, identifiers);
-// }
-
-// bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
-//     return Catalogue::enabled(controlIdentifier) && TocHandler::enabled(controlIdentifier);
-// }
 
 //----------------------------------------------------------------------------------------------------------------------
 
