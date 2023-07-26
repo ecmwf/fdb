@@ -114,7 +114,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     const char* buffer = nullptr;
     size_t size = 0;
 
-    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, args);
+    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args));
 
     std::string expver = args.getString("expver");
     size = expver.length();
@@ -150,7 +150,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
                                 << ", level: " << level
                                 << ", param: " << real_param << std::endl;
 
-                    CODES_CHECK(codes_set_long(handle, "param", real_param), 0);
+                    CODES_CHECK(codes_set_long(handle, "paramId", real_param), 0);
 
                     CODES_CHECK(codes_get_message(handle, reinterpret_cast<const void**>(&buffer), &size), 0);
 
@@ -211,7 +211,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     timer.start();
 
     fdb5::HandleGatherer handles(false);
-    fdb5::FDB fdb(args);
+    fdb5::FDB fdb(config(args));
     size_t fieldsRead = 0;
 
     for (size_t member = 1; member <= nensembles; ++member) {
@@ -244,7 +244,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
     EmptyHandle nullOutputHandle;
-    size_t total = dh->saveInto(nullOutputHandle);
+    size_t total = dh->copyTo(nullOutputHandle);
 
     timer.stop();
 
