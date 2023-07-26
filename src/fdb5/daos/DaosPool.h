@@ -27,7 +27,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using ContainerCache = std::deque<fdb5::DaosContainer>;
+using ContainerCache = std::map<std::string, fdb5::DaosContainer>;
 
 class DaosSession;
 
@@ -43,11 +43,8 @@ public: // methods
     void open();
     void close();
 
-    fdb5::DaosContainer& getContainer(uuid_t);
     fdb5::DaosContainer& getContainer(const std::string&);
-    fdb5::DaosContainer& getContainer(uuid_t, const std::string&);
 
-    fdb5::DaosContainer& createContainer();
     fdb5::DaosContainer& createContainer(const std::string&);
 
     fdb5::DaosContainer& ensureContainer(const std::string&);
@@ -75,15 +72,12 @@ private: // methods
     void create(const uint64_t& scmSize, const uint64_t& nvmeSize);
 #endif
 
-    fdb5::DaosContainer& getContainer(uuid_t, bool);
     fdb5::DaosContainer& getContainer(const std::string&, bool);
-    fdb5::DaosContainer& getContainer(uuid_t, const std::string&, bool);
 
     void closeContainers();    
 
     bool exists();
 
-    ContainerCache::iterator getCachedContainer(uuid_t);
     ContainerCache::iterator getCachedContainer(const std::string&);
 
 private: // members

@@ -23,31 +23,16 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosContainer::DaosContainer(DaosContainer&& other) noexcept : 
-    pool_(other.pool_), known_uuid_(other.known_uuid_), 
+    pool_(other.pool_), 
     label_(std::move(other.label_)), coh_(std::move(other.coh_)), open_(other.open_),
     oid_alloc_(std::move(other.oid_alloc_)) {
 
-    uuid_copy(uuid_, other.uuid_);
     other.open_ = false;
 
 }
 
-DaosContainer::DaosContainer(fdb5::DaosPool& pool) : pool_(pool), known_uuid_(false), open_(false) {}
-
-DaosContainer::DaosContainer(fdb5::DaosPool& pool, uuid_t uuid) : pool_(pool), known_uuid_(true), open_(false) {
-
-    uuid_copy(uuid_, uuid);
-
-}
-
 /// @todo: should forbid labels with UUID format?
-DaosContainer::DaosContainer(fdb5::DaosPool& pool, const std::string& label) : pool_(pool), known_uuid_(false), label_(label), open_(false) {}
-
-DaosContainer::DaosContainer(fdb5::DaosPool& pool, uuid_t uuid, const std::string& label) : pool_(pool), known_uuid_(true), label_(label), open_(false) {
-
-    uuid_copy(uuid_, uuid);
-
-}
+DaosContainer::DaosContainer(fdb5::DaosPool& pool, const std::string& label) : pool_(pool), label_(label), open_(false) {}
 
 DaosContainer::~DaosContainer() {
 
@@ -63,13 +48,11 @@ DaosContainer::~DaosContainer() {
 // 
 // this is destroying other.pool_!
 //     pool_ = other.pool_;
-//     known_uuid_ = other.known_uuid_;
 //     label_ = std::move(other.label_);
 //     coh_ = std::move(other.coh_);
 //     open_ = other.open_;
 //     oid_alloc_ = std::move(other.oid_alloc_);
 // 
-//     uuid_copy(uuid_, other.uuid_);
 //     other.open_ = false;
 // 
 //     return *this;
@@ -85,22 +68,11 @@ void DaosContainer::create() {
 
     if (open_) return;
 
-    if (known_uuid_) {
-        open();
-        return;
-    }
+    ASSERT(label_.size() > 0);
 
     const daos_handle_t& poh = pool_.getOpenHandle();
 
-    if (label_.size() > 0) {
-
-        DAOS_CALL(daos_cont_create_with_label(poh, label_.c_str(), NULL, &uuid_, NULL));
-
-    } else {
-
-        DAOS_CALL(daos_cont_create(poh, &uuid_, NULL, NULL));
-        
-    }
+    DAOS_CALL(daos_cont_create_with_label(poh, label_.c_str(), NULL, NULL, NULL));
 
 }
 
@@ -108,17 +80,11 @@ void DaosContainer::open() {
 
     if (open_) return;
 
-    ASSERT(known_uuid_ || label_.size() > 0);
+    ASSERT(label_.size() > 0);
 
     const daos_handle_t& poh = pool_.getOpenHandle();
 
-    if (label_.size() > 0) {
-        DAOS_CALL(daos_cont_open(poh, label_.c_str(), DAOS_COO_RW, &coh_, NULL, NULL));
-    } else {
-        char uuid_cstr[37] = "";
-        uuid_unparse(uuid_, uuid_cstr);
-        DAOS_CALL(daos_cont_open(poh, uuid_cstr, DAOS_COO_RW, &coh_, NULL, NULL));
-    }
+    DAOS_CALL(daos_cont_open(poh, label_.c_str(), DAOS_COO_RW, &coh_, NULL, NULL));
     
     open_ = true;
 
@@ -283,17 +249,7 @@ bool DaosContainer::exists() {
 
 std::string DaosContainer::name() const {
 
-    if (label_.size() > 0) return label_;
-
-    char name_cstr[37];
-    uuid_unparse(uuid_, name_cstr);
-    return std::string(name_cstr);
-
-}
-
-void DaosContainer::uuid(uuid_t uuid) const {
-
-    uuid_copy(uuid, uuid_);
+    return label_;
 
 }
 

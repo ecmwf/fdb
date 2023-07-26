@@ -158,65 +158,19 @@ void DaosPool::close() {
 
 }
 
-std::deque<fdb5::DaosContainer>::iterator DaosPool::getCachedContainer(uuid_t uuid) {
+std::map<std::string, fdb5::DaosContainer>::iterator DaosPool::getCachedContainer(const std::string& label) {
 
-    uuid_t other = {0};
-
-    std::deque<fdb5::DaosContainer>::iterator it;
-    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) {
-
-        it->uuid(other);
-        if (uuid_compare(uuid, other) == 0) break;
-
-    }
-
-    return it;
-
-}
-
-std::deque<fdb5::DaosContainer>::iterator DaosPool::getCachedContainer(const std::string& label) {
-
-    std::deque<fdb5::DaosContainer>::iterator it;
-    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) {
-
-        if (it->label() == label) break;
-
-    }
-
-    return it;
-
-}
-
-fdb5::DaosContainer& DaosPool::getContainer(uuid_t uuid, bool verify) {
-
-    std::deque<fdb5::DaosContainer>::iterator it = getCachedContainer(uuid);
-
-    if (it != cont_cache_.end()) return *it;
-
-    fdb5::DaosContainer c(*this, uuid);
-
-    if (verify && !c.exists()) {
-        char uuid_cstr[37];
-        uuid_unparse(uuid, uuid_cstr);
-        std::string uuid_str(uuid_cstr);
-        throw fdb5::DaosEntityNotFoundException(
-            "Container with uuid " + uuid_str + " not found", 
-            Here());
-    }
-    
-    cont_cache_.push_front(std::move(c));
-    
-    return cont_cache_.at(0);
+    return cont_cache_.find(label);
 
 }
 
 fdb5::DaosContainer& DaosPool::getContainer(const std::string& label, bool verify) {
 
-    std::deque<fdb5::DaosContainer>::iterator it = getCachedContainer(label);
+    std::map<std::string, fdb5::DaosContainer>::iterator it = getCachedContainer(label);
 
-    if (it != cont_cache_.end()) return *it;
+    if (it != cont_cache_.end()) return it->second;
     
-    fdb5::DaosContainer c(*this, label);
+    fdb5::DaosContainer& c = cont_cache_.emplace(label, fdb5::DaosContainer(*this, label)).first->second;
 
     if (verify && !c.exists()) {
         throw fdb5::DaosEntityNotFoundException(
@@ -224,82 +178,13 @@ fdb5::DaosContainer& DaosPool::getContainer(const std::string& label, bool verif
             Here());
     }
 
-    cont_cache_.push_front(std::move(c));
-    
-    return cont_cache_.at(0);
-
-}
-
-fdb5::DaosContainer& DaosPool::getContainer(uuid_t uuid, const std::string& label, bool verify) {
-
-    std::deque<fdb5::DaosContainer>::iterator it = getCachedContainer(uuid);
-    if (it != cont_cache_.end()) {
-
-        if (it->label() == label) return *it;
-
-        cont_cache_.push_front(fdb5::DaosContainer(*this, uuid, label));
-        return cont_cache_.at(0);
-
-    }
-
-    it = getCachedContainer(label);
-    if (it != cont_cache_.end()) return *it;
-
-    fdb5::DaosContainer c(*this, label);
-
-    if (verify && !c.exists()) {
-        char uuid_cstr[37];
-        uuid_unparse(uuid, uuid_cstr);
-        std::string uuid_str(uuid_cstr);
-        throw fdb5::DaosEntityNotFoundException(
-            "Container with uuid " + uuid_str + " or label " + label + " not found", 
-            Here());
-    }
-
-    cont_cache_.push_front(std::move(c));
-    
-    return cont_cache_.at(0);
-
-}
-
-fdb5::DaosContainer& DaosPool::getContainer(uuid_t uuid) {
-
-    return getContainer(uuid, true);
+    return c;
 
 }
 
 fdb5::DaosContainer& DaosPool::getContainer(const std::string& label) {
 
     return getContainer(label, true);
-
-}
-
-fdb5::DaosContainer& DaosPool::getContainer(uuid_t uuid, const std::string& label) {
-
-    // When both pool uuid and label are known, using this method to declare
-    // a pool is preferred to avoid the following inconsistencies and/or 
-    // inefficiencies:
-    // - when a user declares a pool by label in a process where that pool 
-    //   has not been created, that pool will live in the cache with only a 
-    //   label and no uuid. If the user later declares the same pool from its 
-    //   uuid, two DaosPool instances will exist in the cache for the same 
-    //   DAOS pool, each with their connection handle.
-    // - these two instances will be incomplete and the user may not be able 
-    //   to retrieve the label/uuid information.
-
-    return getContainer(uuid, label, true);
-
-}
-
-fdb5::DaosContainer& DaosPool::createContainer() {
-
-    fdb5::DaosContainer c(*this);
-
-    cont_cache_.push_front(std::move(c));
-
-    cont_cache_.at(0).create();
-    
-    return cont_cache_.at(0);
 
 }
 
@@ -339,17 +224,13 @@ void DaosPool::destroyContainer(const std::string& label) {
 
     bool found = false;
 
-    std::deque<fdb5::DaosContainer>::iterator it;
-    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) {
+    std::map<std::string, fdb5::DaosContainer>::iterator it = getCachedContainer(label);
 
-        if (label == it->label()) {
-            found = true;
-            cont_cache_.erase(it);
-        }
+    if (it != cont_cache_.end()) {
 
-    }
+        cont_cache_.erase(it);
 
-    if (!found) {
+    } else {
 
         throw fdb5::DaosEntityNotFoundException(
             "Container with label " + label + " not found",
@@ -367,18 +248,10 @@ void DaosPool::destroyContainer(const std::string& label) {
 // indended for DaosPool::close()
 void DaosPool::closeContainers() {
 
-    std::deque<fdb5::DaosContainer>::iterator it;
-    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) it->close();
+    std::map<std::string, fdb5::DaosContainer>::iterator it;
+    for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) it->second.close();
 
 }
-
-// void DaosPool::destroyContainers() {
-// 
-//     std::deque<fdb5::DaosContainer>::iterator it;
-//     for (it = cont_cache_.begin(); it != cont_cache_.end(); ++it) it->destroy();
-//     if reenabled, this code needs to be modified to call pool.destroyContainer(uuid or label)
-// 
-// }
 
 std::vector<std::string> DaosPool::listContainers() {
 

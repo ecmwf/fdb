@@ -54,7 +54,6 @@ public: // methods
     const daos_handle_t& getOpenHandle();
 
     std::string name() const;
-    void uuid(uuid_t) const;
     std::string label() const;
     fdb5::DaosPool& getPool() const;
 
@@ -62,10 +61,7 @@ private: // methods
 
     friend class DaosPool;
 
-    DaosContainer(fdb5::DaosPool&);
-    DaosContainer(fdb5::DaosPool&, uuid_t);
     DaosContainer(fdb5::DaosPool&, const std::string&);
-    DaosContainer(fdb5::DaosPool&, uuid_t, const std::string&);
 
     void create();
 
@@ -74,8 +70,6 @@ private: // methods
 private: // members
 
     fdb5::DaosPool& pool_;
-    uuid_t uuid_;
-    bool known_uuid_;
     std::string label_ = std::string();
     daos_handle_t coh_;
     bool open_;

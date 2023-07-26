@@ -67,11 +67,7 @@ fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession& session, const fdb5::Da
         pool = &(session.getPool(name.poolName()));
     }
 
-    if (uuid_parse(name.contName().c_str(), uuid) == 0) {
-        return pool->getContainer(uuid);
-    } else {
-        return pool->getContainer(name.contName());
-    }
+    return pool->getContainer(name.contName());
     
 }
 
@@ -126,7 +122,6 @@ void DaosArray::create() {
 
     const daos_handle_t& coh = cont_.getOpenHandle();
 
-    std::cout << "000000 " << fdb5::DaosSession().objectCreateCellSize() << std::endl;
     DAOS_CALL(
         daos_array_create(
             coh, oid_.asDaosObjIdT(), DAOS_TX_NONE,
@@ -154,7 +149,6 @@ void DaosArray::open() {
     const daos_handle_t& coh = cont_.getOpenHandle();
     DAOS_CALL(daos_array_open(coh, oid_.asDaosObjIdT(), DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, &oh_, NULL));
     
-    std::cout << "1111111 " << csize << std::endl;
     open_ = true;
 
 }
@@ -205,8 +199,6 @@ long DaosArray::write(const void* buf, const long& len, const eckit::Offset& off
     d_iov_set(&iov, (void*) buf, (size_t) len);
     sgl.sg_iovs = &iov;
 
-    std::cout << "AAAAAA " << len << " BBBBB " << iod.arr_rgs[0].rg_len << std::endl;
-    std::cout << "CCCCCC " << len << " DDDDD " << sgl.sg_iovs[0].iov_len << sgl.sg_iovs[0].iov_buf_len << std::endl;
     DAOS_CALL(daos_array_write(oh_, DAOS_TX_NONE, &iod, &sgl, NULL));
 
     return len;
