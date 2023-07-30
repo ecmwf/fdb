@@ -365,10 +365,30 @@ int daos_cont_destroy(daos_handle_t poh, const char *cont, int force, daos_event
         path /= cont;
     }
 
-    ASSERT(path.isLink());
-    eckit::PathName realpath = path.realName();
-    path.unlink();
-    deldir(realpath);
+    eckit::PathName realpath("");
+    try {
+
+        ASSERT(path.isLink());
+        realpath = path.realName();
+        path.unlink();
+
+    } catch (eckit::FailedSystemCall& e) {
+
+        if (path.exists()) throw;
+        return -DER_NONEXIST;
+
+    }
+
+    try {
+
+        deldir(realpath);
+
+    } catch (eckit::FailedSystemCall& e) {
+
+        if (realpath.exists()) throw;
+        return -DER_NONEXIST;
+
+    }
 
     return 0;
 
@@ -391,7 +411,7 @@ int daos_cont_open(daos_handle_t poh, const char *cont, unsigned int flags, daos
         path /= cont;
     }
 
-    if (!path.exists()) return -1;
+    if (!path.exists()) return -DER_NONEXIST;
 
     eckit::PathName realpath{poh.impl->path};
     try {
@@ -402,11 +422,11 @@ int daos_cont_open(daos_handle_t poh, const char *cont, unsigned int flags, daos
     } catch (eckit::FailedSystemCall& e) {
 
         if (path.exists()) throw;
-        return -1;
+        return -DER_NONEXIST;
 
     }
 
-    if (!realpath.exists()) return -1;
+    if (!realpath.exists()) return -DER_NONEXIST;
 
     std::unique_ptr<daos_handle_internal_t> impl(new daos_handle_internal_t);
     impl->path = realpath;
@@ -514,8 +534,16 @@ int daos_kv_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t *ev) {
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (ev != NULL) NOTIMP;
 
-    /// @todo: should destruction of non-existing KV fail?
-    deldir(oh.impl->path);
+    try {
+
+        deldir(oh.impl->path);
+
+    } catch (eckit::FailedSystemCall& e) {
+
+        if (oh.impl->path.exists()) throw;
+        return -DER_NONEXIST;
+
+    }
 
     return 0;
 
@@ -747,7 +775,7 @@ int daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
     impl->path = coh.impl->path / os.str();
 
     if (!impl->path.exists()) {
-        return -1;
+        return -DER_NONEXIST;
     }
 
     oh->impl = impl.release();

@@ -35,7 +35,7 @@ public: // methods
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
     std::vector<eckit::URI> storeUnitURIs() const override;
-    void asStoreUnitURIs(std::vector<eckit::URI>&) const override;
+    std::set<eckit::URI> asStoreUnitURIs(const std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }
     void flush() override;

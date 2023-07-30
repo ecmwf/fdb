@@ -170,7 +170,7 @@ fdb5::DaosContainer& DaosPool::getContainer(const std::string& label, bool verif
 
     if (it != cont_cache_.end()) return it->second;
     
-    fdb5::DaosContainer& c = cont_cache_.emplace(label, fdb5::DaosContainer(*this, label)).first->second;
+    fdb5::DaosContainer c{*this, label};
 
     if (verify && !c.exists()) {
         throw fdb5::DaosEntityNotFoundException(
@@ -178,7 +178,7 @@ fdb5::DaosContainer& DaosPool::getContainer(const std::string& label, bool verif
             Here());
     }
 
-    return c;
+    return cont_cache_.emplace(label, std::move(c)).first->second;
 
 }
 
@@ -330,8 +330,7 @@ AutoPoolDestroy::~AutoPoolDestroy() noexcept(false) {
         uuid_t u{0};
         pool_.uuid(u);
         fdb5::DaosSession().destroyPool(u);
-    }
-    catch (std::exception& e) {
+    } catch (std::exception& e) {
         eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;
         if (fail) {
             eckit::Log::error() << "** Exception is re-thrown" << std::endl;

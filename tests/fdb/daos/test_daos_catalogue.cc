@@ -523,7 +523,7 @@ CASE("DaosCatalogue tests") {
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
 
-        /// @todo: list all
+        // list all
         listObject = fdb.list(all_req);
         count = 0;
         while (listObject.next(info)) {

@@ -216,6 +216,21 @@ void IndexAxis::insert(const Key &key) {
     }
 }
 
+/// @note: intended for importing axis information from storage
+///   Input values are expected to be cannoicalised.
+void IndexAxis::insert(const std::string& axis, const std::vector<std::string>& values) {
+    ASSERT(!readOnly_);
+
+    std::shared_ptr<eckit::DenseSet<std::string> >& axis_set = axis_[axis];
+
+    if (!axis_set)
+        axis_set.reset(new eckit::DenseSet<std::string>());
+
+    for (const auto& value : values) axis_set->insert(value);
+
+    dirty_ = true;
+
+}
 
 bool IndexAxis::dirty() const {
     return dirty_;
@@ -258,7 +273,10 @@ const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword
     return *(i->second);
 }
 
-const eckit::DenseSet<std::string>& IndexAxis::valuesSafe(const std::string &keyword) const {
+/// @note: exceptions cannot be easily caught if using values() because the result needs to be
+///   assigned to a reference which needs to live beyond a try {} scope. valuesNothrow instead does
+///   not throw but the user code needs to check validity of result.
+const eckit::DenseSet<std::string>& IndexAxis::valuesNothrow(const std::string &keyword) const {
 
     const static eckit::DenseSet<std::string> nullStringSet;
 

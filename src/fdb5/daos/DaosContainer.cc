@@ -237,8 +237,8 @@ bool DaosContainer::exists() {
 
         open();
 
-    } catch (eckit::SeriousBug& e) {
-
+    } catch ( fdb5::DaosEntityNotFoundException& e) {
+        
         return false;
 
     }

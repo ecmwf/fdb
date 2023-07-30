@@ -124,8 +124,7 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
     /// @note: although a daos index will point to only one daos store container if using a daos store, 
     ///   a daos index can point to multiple posix store files (one per IO server process) if using a posix store.
     std::vector<eckit::URI> indexDataPaths(index.dataPaths());
-    store_.asStoreUnitURIs(indexDataPaths);
-    for (const eckit::URI& uri : indexDataPaths) {
+    for (const eckit::URI& uri : store_.asStoreUnitURIs(indexDataPaths)) {
         if (include) {
             if (!store_.uriBelongs(uri)) {
                 Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store." << std::endl;

@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-#include <linux/limits.h>
+#include <limits.h>
 #include <numeric>
 
 #include "eckit/io/FileHandle.h"
@@ -200,8 +200,11 @@ void DaosCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLoca
         selectIndex(currentIndexKey_);
     }
 
+    /// @note: the current index timestamp is undefined at this point
     Field field(fieldLocation, currentIndex().timestamp());
 
+    /// @todo: is sorting axes really necessary?
+    /// @note: sort in-memory axis values. Not triggering retrieval from DAOS axes.
     const_cast<fdb5::IndexAxis&>(current_.axes()).sort();
 
     /// before in-memory axes are updated as part of current_.put, we determine which
@@ -220,7 +223,8 @@ void DaosCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLoca
 
         std::string value = key.canonicalValue(keyword);
 
-        const eckit::DenseSet<std::string>& axis_set = current_.axes().valuesSafe(keyword);
+        /// @note: obtain in-memory axis values. Not triggering retrieval from DAOS axes.
+        const eckit::DenseSet<std::string>& axis_set = current_.axes().valuesNothrow(keyword);
 
         if (!axis_set.contains(value)) {
 

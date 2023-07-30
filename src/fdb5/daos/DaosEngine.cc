@@ -46,6 +46,7 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
     fdb5::DaosName n{uri};
 
     if (!n.hasOID()) return false;
+
     /// @todo: check contName is not root_cont_. root_cont_ should be populated in
     ///   configureDaos as done in DaosCommon
     // bool is_root_name = (n.contName().find(root_cont_) != std::string::npos);

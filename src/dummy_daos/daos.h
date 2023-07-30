@@ -50,12 +50,10 @@
 #define OID_FMT_CLASS_MASK (OID_FMT_CLASS_MAX << OID_FMT_CLASS_SHIFT)
 #define OID_FMT_META_MASK (OID_FMT_META_MAX << OID_FMT_META_SHIFT)
 
-#define OC_S1 1ULL
-#define OC_S2 2ULL
-#define OC_SX ((1 << 16UL) - 1)
 #define OC_RESERVED 1 << 30
 #define OC_REDUN_SHIFT 24
 #define OBJ_CLASS_DEF(redun, grp_nr) ((redun << OC_REDUN_SHIFT) | grp_nr)
+#define MAX_NUM_GROUPS ((1 << 16UL) - 1)
 
 #define DAOS_TX_NONE (daos_handle_t){NULL}
 #define DAOS_PROP_LABEL_MAX_LEN (127)
@@ -74,6 +72,8 @@
     .da_sub_anchors = 0,              \
     .da_buf = { 0 } }
 
+#define DER_NONEXIST 1005
+
 enum daos_otype_t {
     DAOS_OT_KV_HASHED = 8,
     DAOS_OT_ARRAY = 11,
@@ -91,6 +91,12 @@ enum daos_snapshot_opts {
 
 enum daos_obj_redun {
     OR_RP_1 = 1
+};
+
+enum {
+    OC_S1 = OBJ_CLASS_DEF(OR_RP_1, 1ULL),
+    OC_S2 = OBJ_CLASS_DEF(OR_RP_1, 2ULL),
+    OC_SX = OBJ_CLASS_DEF(OR_RP_1, MAX_NUM_GROUPS)
 };
 
 #ifdef __cplusplus

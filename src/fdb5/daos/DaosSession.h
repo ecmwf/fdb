@@ -24,6 +24,7 @@
 #include "eckit/config/Resource.h"
 
 #include "fdb5/daos/DaosPool.h"
+#include "fdb5/daos/DaosException.h"
 
 #include "fdb5/fdb5_config.h"
 
@@ -85,6 +86,7 @@ static inline int daos_call(int code, const char* msg, const char* file, int lin
 
     if (code < 0) {
         std::cout << "DAOS_FAIL !! " << msg << std::endl;
+        if (code == -DER_NONEXIST) throw fdb5::DaosEntityNotFoundException(msg);
         DaosManager::error(code, msg, file, line, func);
     }
 

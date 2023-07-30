@@ -149,6 +149,9 @@ const IndexAxis &IndexBase::axes() const {
     return axes_;
 }
 
+const IndexAxis& IndexBase::updatedAxes() {
+    return axes();
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

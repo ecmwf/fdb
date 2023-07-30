@@ -85,13 +85,18 @@ std::vector<eckit::URI> TocStore::storeUnitURIs() const {
 
 }
 
-void TocStore::asStoreUnitURIs(std::vector<eckit::URI>& uris) const {
+std::set<eckit::URI> TocStore::asStoreUnitURIs(const std::vector<eckit::URI>& uris) const {
+
+    std::set<eckit::URI> res;
 
     for (auto& uri : uris) {
 
         ASSERT(uri.path().extension() == ".data");
+        res.insert(uri);
 
     }
+
+    return res;
 
 }
 

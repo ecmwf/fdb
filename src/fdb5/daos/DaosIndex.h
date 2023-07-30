@@ -32,7 +32,10 @@ public: // methods
     void funlock() const override { NOTIMP; }
 
     virtual bool mayContain(const Key& key) const override;
-    
+
+    /// @note: reads complete axis info from DAOS.
+    const IndexAxis& updatedAxes() override;
+
 private: // methods
 
     const IndexLocation& location() const override { return location_; }

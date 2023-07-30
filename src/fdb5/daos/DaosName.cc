@@ -145,9 +145,7 @@ void DaosNameBase::destroy() const {
     try {
         fdb5::DaosKeyValue kv{c, oid_.value()};
         kv.destroy();
-    } catch (fdb5::DaosEntityNotFoundException& e) {
-        return;
-    }
+    } catch (fdb5::DaosEntityNotFoundException& e) {}
 
 }
 

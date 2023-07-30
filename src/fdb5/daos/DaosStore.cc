@@ -88,14 +88,18 @@ std::vector<eckit::URI> DaosStore::storeUnitURIs() const {
 
 }
 
-void DaosStore::asStoreUnitURIs(std::vector<eckit::URI>& uris) const {
+std::set<eckit::URI> DaosStore::asStoreUnitURIs(const std::vector<eckit::URI>& uris) const {
+
+    std::set<eckit::URI> res;
 
     for (auto& uri : uris) {
 
         fdb5::DaosName n{uri};
-        uri = fdb5::DaosName(n.poolName(), n.contName()).URI();
+        res.insert(fdb5::DaosName(n.poolName(), n.contName()).URI());
 
     }
+
+    return res;
 
 }
 

@@ -99,8 +99,9 @@ bool DaosCatalogueReader::retrieve(const Key& key, Field& field) const {
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
     eckit::Log::debug<LibFdb5>() << "Scanning index " << current_.location() << std::endl;
 
-    /// @todo: should axes really be visited before querying index?
-    ///        querying axes inflicts unnecessary IOPS but may reduce contention on index KV
+    /// @todo: should axes really be visited before querying index? I don't think so, because
+    ///        querying axes inflicts unnecessary IOPS. But it may help reduce contention on 
+    ///        index KV
     if (!current_.mayContain(key)) return false;
 
     return current_.get(key, fdb5::Key(), field);

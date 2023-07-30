@@ -105,10 +105,10 @@ bool DaosArray::exists() {
 
         open();
 
-    } catch (eckit::SeriousBug& e) {
-
-        return false;
+    } catch ( fdb5::DaosEntityNotFoundException& e) {
         
+        return false;
+
     }
     
     return true;
@@ -276,16 +276,7 @@ DaosKeyValue::~DaosKeyValue() {
 
 bool DaosKeyValue::exists() {
 
-    /// @todo: implement this with more appropriate DAOS API functions
-    try {
-
-        open();
-
-    } catch (eckit::SeriousBug& e) {
-
-        return false;
-        
-    }
+    open();  /// @note: creates it if not exists
     
     return true;
 

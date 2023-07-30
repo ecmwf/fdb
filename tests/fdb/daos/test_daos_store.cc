@@ -210,7 +210,7 @@ CASE("DaosStore tests") {
 
     }
 
-    SECTION("with Catalogue") {
+    SECTION("with POSIX Catalogue") {
 
         // FDB configuration
 

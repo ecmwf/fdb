@@ -162,8 +162,7 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
     // Enumerate data files.
 
     std::vector<eckit::URI> indexDataPaths(index.dataPaths());
-    store_.asStoreUnitURIs(indexDataPaths);
-    for (const eckit::URI& uri : indexDataPaths) {
+    for (const eckit::URI& uri : store_.asStoreUnitURIs(indexDataPaths)) {
         if (include && store_.uriBelongs(uri)) {
             dataPaths_.insert(eckit::PathName(uri.path()));
         } else {

@@ -58,6 +58,30 @@ bool DaosIndex::mayContain(const Key &key) const {
 
 }
 
+const IndexAxis& DaosIndex::updatedAxes() {
+
+    fdb5::DaosSession s{};
+    const fdb5::DaosKeyValueName& index_kv_name = location_.daosName();
+    fdb5::DaosKeyValue index_kv{s, index_kv_name};
+    daos_size_t size = index_kv.size("axes");
+    std::vector<char> axes_data((long) size);
+    index_kv.get("axes", &axes_data[0], size);
+    std::vector<std::string> axis_names;
+    eckit::Tokenizer parse(",");
+    parse(std::string(axes_data.begin(), axes_data.end()), axis_names);
+    std::string indexKey{key_.valuesToString()};
+    for (const auto& name : axis_names) {
+        /// @todo: take oclass from config
+        fdb5::DaosKeyValueOID oid(indexKey + std::string{"."} + name, OC_S1);
+        fdb5::DaosKeyValueName nkv(index_kv_name.poolName(), index_kv_name.contName(), oid);
+        fdb5::DaosKeyValue axis_kv{s, nkv};
+        axes_.insert(name, axis_kv.keys());
+    }
+
+    return IndexBase::axes();
+
+}
+
 bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
     const fdb5::DaosKeyValueName& n = location_.daosName();
@@ -72,7 +96,12 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
     std::vector<char> loc_data((long) index.size(query));
     index.get(query, &loc_data[0], loc_data.size());
     eckit::MemoryStream ms{&loc_data[0], loc_data.size()};
-    field = fdb5::Field(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms), timestamp_, fdb5::FieldDetails());
+
+    /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
+    time_t ts;
+    ms >> ts;
+
+    field = fdb5::Field(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms), ts, fdb5::FieldDetails());
 
     return true;
 
@@ -85,6 +114,18 @@ void DaosIndex::add(const Key &key, const Field &field) {
     h.openForWrite(eckit::Length(0));
     {
         eckit::AutoClose closer(h);
+        /// @note: in the POSIX back-end, keeping a timestamp per index is necessary, to allow
+        ///   determining which was the latest indexed field in cases where multiple processes 
+        ///   index a same field or in cases where multiple catalogues are combined with DistFDB.
+        ///   In the DAOS back-end, however, determining the latest indexed field is straigthforward
+        ///   as all parallel processes writing fields for a same index key will share a DAOS 
+        ///   key-value, and the last indexing will supersede the previous ones.
+        ///   DistFDB will be obsoleted in favour of a centralised catalogue mechanism which can 
+        ///   index fields on multiple catalogues.
+        ///   Therefore keeping timestamps in DAOS should not be necessary.
+        ///   They are kept for now only for informational purposes.
+        takeTimestamp();
+        hs << timestamp();
         hs << field.location();
     }
     fdb5::DaosSession s{};
@@ -110,9 +151,13 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
             std::vector<char> v((long) size);
             index_kv.get(key, &v[0], size);
             eckit::MemoryStream ms{&v[0], size};
-            std::unique_ptr<fdb5::FieldLocation> fl(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
 
-            fdb5::Field field(new DaosFieldLocation(fl->uri()), visitor.indexTimestamp(), fdb5::FieldDetails());
+            /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
+            time_t ts;
+            ms >> ts;
+
+            std::unique_ptr<fdb5::FieldLocation> fl(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
+            fdb5::Field field(fl.get(), ts, fdb5::FieldDetails());
             visitor.visitDatum(field, key);
 
         }
@@ -145,6 +190,10 @@ const std::vector<eckit::URI> DaosIndex::dataPaths() const {
         std::vector<char> v((long) size);
         index_kv.get(key, &v[0], size);
         eckit::MemoryStream ms{&v[0], size};
+        
+        time_t ts;
+        ms >> ts;
+
         std::unique_ptr<fdb5::FieldLocation> fl(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
         res.insert(fl->uri());
 

@@ -45,13 +45,14 @@ public: // methods
     ~IndexAxis();
 
     void insert(const Key &key);
+    void insert(const std::string& axis, const std::vector<std::string>& values);
     void encode(eckit::Stream &s, const int version) const;
 
     // Decode can be used for two-stage initialisation (IndexAxis a; a.decode(s);)
     void decode(eckit::Stream& s, const int version);
 
     const eckit::DenseSet<std::string> &values(const std::string &keyword) const;
-    const eckit::DenseSet<std::string>& valuesSafe(const std::string &keyword) const;
+    const eckit::DenseSet<std::string>& valuesNothrow(const std::string &keyword) const;
 
     void dump(std::ostream &out, const char* indent) const;
 

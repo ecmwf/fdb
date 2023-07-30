@@ -76,6 +76,7 @@ public: // methods
     const std::string& type() const;
 
     const IndexAxis& axes() const;
+    virtual const IndexAxis& updatedAxes();
     const Key& key() const;
 
     time_t timestamp() const { return timestamp_; }
@@ -155,6 +156,9 @@ public: // methods
     const std::string& type() const { return content_->type(); }
 
     const IndexAxis& axes() const { return content_->axes(); }
+    /// @note: intended for accessing axes from ListVisitor. Will retrieve axis info from 
+    ///   storage if necessary (e.g. in DAOS back-end).
+    const IndexAxis& updatedAxes() { return content_->updatedAxes(); }
     const Key& key() const { return content_->key(); }
 
     time_t timestamp() const { return content_->timestamp(); }
