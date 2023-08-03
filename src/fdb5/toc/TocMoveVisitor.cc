@@ -13,6 +13,7 @@
 #include <algorithm>
 
 #include "eckit/config/Resource.h"
+#include "eckit/distributed/Message.h"
 #include "eckit/os/Stat.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -28,7 +29,6 @@
 #include <sys/file.h>
 #include <cstring>
 
-
 using namespace eckit;
 
 namespace fdb5 {
@@ -41,13 +41,11 @@ TocMoveVisitor::TocMoveVisitor(const TocCatalogue& catalogue,
                                const Store& store,
                                const metkit::mars::MarsRequest& request,
                                const eckit::URI& dest,
-                               bool removeSrc,
-                               int removeDelay,
-                               bool mpi,
-                               int threads) :
-    MoveVisitor(request, dest, removeSrc, removeDelay, mpi, threads),
+                               eckit::Queue<MoveElement>& queue) :
+    MoveVisitor(request, dest),
     catalogue_(catalogue),
-    store_(store) {}
+    store_(store),
+    queue_(queue) {}
 
 TocMoveVisitor::~TocMoveVisitor() {}
 
@@ -114,10 +112,7 @@ bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
 
 void TocMoveVisitor::move() {
 
-    int numThreads = eckit::Resource<int>("fdbMoveThreads;$FDB_MOVE_THREADS", threads_);
-    bool mpi = eckit::Resource<bool>("fdbMoveMpi;$FDB_MOVE_MPI", mpi_);
-
-    store_.moveTo(catalogue_.key(), catalogue_.config(), dest_, mpi, numThreads);
+    store_.moveTo(catalogue_.key(), catalogue_.config(), dest_, queue_);
 
     eckit::PathName destPath = dest_.path();
     for (const eckit::PathName& root: CatalogueRootManager(catalogue_.config()).canMoveToRoots(catalogue_.key())) {
@@ -128,8 +123,6 @@ void TocMoveVisitor::move() {
                 dest_db.mkdir();
             }
             
-            eckit::ThreadPool pool("catalogue"+catalogue_.basePath().asString(), numThreads);
-
             DIR* dirp = ::opendir(catalogue_.basePath().asString().c_str());
             struct dirent* dp;
             while ((dp = readdir(dirp)) != NULL) {
@@ -137,42 +130,27 @@ void TocMoveVisitor::move() {
                     strstr( dp->d_name, "toc.") ||
                     strstr( dp->d_name, "schema")) {
 
-                    pool.push(new FileCopy(catalogue_.basePath(), dest_db, dp->d_name));
+                    FileCopy fileCopy(catalogue_.basePath(), dest_db, dp->d_name);
+                    queue_.emplace(fileCopy);
                 }
             }
             closedir(dirp);
 
-            pool.wait();
-            pool.push(new FileCopy(catalogue_.basePath(), dest_db, "toc"));
-            pool.wait();
+            FileCopy toc(catalogue_.basePath(), dest_db, "toc", true);
+            queue_.emplace(toc);
 
-            if (removeSrc_) {
-                sleep(removeDelay_);
+            dirp = ::opendir(catalogue_.basePath().asString().c_str());
+            while ((dp = readdir(dirp)) != NULL) {
+                if (strstr( dp->d_name, ".lock") ||
+                    strstr( dp->d_name, "duplicates.allow")) {
 
-                eckit::PathName catalogueFile = catalogue_.basePath() / "toc";
-                eckit::Log::debug<LibFdb5>() << "Removing " << catalogueFile << std::endl;
-                catalogueFile.unlink(false);
-
-                dirp = ::opendir(catalogue_.basePath().asString().c_str());
-                while ((dp = readdir(dirp)) != NULL) {
-                    if (strstr( dp->d_name, ".index") ||
-                        strstr( dp->d_name, "toc.") ||
-                        strstr( dp->d_name, "schema") ||
-                        strstr( dp->d_name, ".lock") ||
-                        strstr( dp->d_name, "duplicates.allow")) {
-
-                        catalogueFile = catalogue_.basePath() / dp->d_name;
-                        eckit::Log::debug<LibFdb5>() << "Removing " << catalogueFile << std::endl;
-                        catalogueFile.unlink(false);
-                    }
+                    FileCopy fileCopy(catalogue_.basePath(), dest_db, dp->d_name);
+                    queue_.emplace(fileCopy);
                 }
-                closedir(dirp);
-
-                store_.remove(catalogue_.key());
-                
-                eckit::Log::debug<LibFdb5>() << "Removing " << catalogue_.basePath() << std::endl;
-                catalogue_.basePath().rmdir(false);
             }
+            closedir(dirp);
+            FileCopy folder(catalogue_.basePath(), "", "");
+            queue_.emplace(folder);
         }
     }
 }

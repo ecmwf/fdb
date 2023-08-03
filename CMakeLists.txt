@@ -4,7 +4,7 @@ find_package( ecbuild 3.7 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CUR
 
 project( fdb5 LANGUAGES C CXX )
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 CHECK_TYPE_SIZE(off_t SIZEOF_OFF_T)
@@ -20,7 +20,7 @@ endif()
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_find_package( NAME eckit  VERSION 1.12 REQUIRED )
+ecbuild_find_package( NAME eckit  VERSION 1.24.4 REQUIRED )
 
 ### GRIB support
 

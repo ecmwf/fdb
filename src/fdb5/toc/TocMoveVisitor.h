@@ -12,10 +12,9 @@
 /// @author Simon Smart
 /// @date   August 2022
 
-#ifndef fdb5_TocMoveVisitor_H
-#define fdb5_TocMoveVisitor_H
+#pragma once
 
-
+#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/database/MoveVisitor.h"
 #include "fdb5/toc/TocCatalogue.h"
 
@@ -31,10 +30,7 @@ public:
                    const Store& store,
                    const metkit::mars::MarsRequest& request,
                    const eckit::URI& dest,
-                   bool removeSrc,
-                   int removeDelay,
-                   bool mpi,
-                   int threads);
+                   eckit::Queue<MoveElement>& queue);
     ~TocMoveVisitor() override;
 
 private: // methods
@@ -48,10 +44,9 @@ private: // members
     // What are the parameters of the move operation
     const TocCatalogue& catalogue_;
     const Store& store_;
+    eckit::Queue<MoveElement>& queue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif
