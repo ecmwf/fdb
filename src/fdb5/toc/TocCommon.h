@@ -55,28 +55,4 @@ protected: // members
     mutable bool dirty_;
 };
 
-// class for writing a chunk of the user buffer - used to perform multiple simultaneous writes
-class FileCopy : public eckit::ThreadPoolTask {
-
-public:
-    FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName);    
-    FileCopy(eckit::Stream& s);
-
-    void encode(eckit::Stream&) const;
-
-    void execute() override;
-
-private: // methods
-
-    void print(std::ostream& s) const;
-    friend std::ostream& operator<<(std::ostream& s, const FileCopy& f) {
-        f.print(s);
-        return s;
-    }
-
-private:
-    eckit::PathName src_;
-    eckit::PathName dest_;
-};
-
 }

@@ -101,9 +101,9 @@ WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit, bool porce
     return queryInternal<fdb5::api::local::WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
 }
 
-MoveIterator LocalFDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, bool mpi, int threads) {
+MoveIterator LocalFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
     Log::debug<LibFdb5>() << "LocalFDB::move() : " << request << std::endl;
-    return queryInternal<fdb5::api::local::MoveVisitor>(request, dest, removeSrc, removeDelay, mpi, threads);
+    return queryInternal<fdb5::api::local::MoveVisitor>(request, dest);
 }
 
 PurgeIterator LocalFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

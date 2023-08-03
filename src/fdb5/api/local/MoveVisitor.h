@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "eckit/distributed/Transport.h"
+
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/database/MoveVisitor.h"
@@ -35,11 +37,7 @@ public: // methods
 
     MoveVisitor(eckit::Queue<MoveElement>& queue,
                 const metkit::mars::MarsRequest& request,
-                const eckit::URI& dest,
-                bool removeSrc,
-                int removeDelay,
-                bool mpi,
-                int threads);
+                const eckit::URI& dest);
 
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
@@ -52,10 +50,6 @@ public: // methods
 private: // members
 
     const eckit::URI& dest_;
-    bool removeSrc_;
-    int removeDelay_;
-    bool mpi_;
-    int threads_;
     std::unique_ptr<fdb5::MoveVisitor> internalVisitor_;
 };
 

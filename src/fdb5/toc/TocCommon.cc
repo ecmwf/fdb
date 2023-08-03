@@ -79,27 +79,4 @@ std::string TocCommon::userName(uid_t uid) {
     }
 }
 
-FileCopy::FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName):
-    src_(srcPath / fileName), dest_(destPath / fileName) {}
-
-FileCopy::FileCopy(eckit::Stream& s) {
-    s >> src_;
-    s >> dest_;
-}
-
-void FileCopy::execute() {
-    eckit::FileHandle src(src_);
-    eckit::FileHandle dest(dest_);
-    src.copyTo(dest);
-}
-
-void FileCopy::encode(eckit::Stream& s) const {
-    s << src_;
-    s << dest_;
-} 
-
-void FileCopy::print(std::ostream &s) const {
-    s << "FileCopy(src=" << src_ << ",dest=" << dest_ << ")";
-}
-
 }
