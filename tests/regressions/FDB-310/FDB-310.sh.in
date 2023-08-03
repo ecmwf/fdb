@@ -8,7 +8,6 @@ fdblist="$<TARGET_FILE:fdb-list>"
 fdboverlay="$<TARGET_FILE:fdb-overlay>"
 fdbpurge="$<TARGET_FILE:fdb-purge>"
 fdbwipe="$<TARGET_FILE:fdb-wipe>"
-fdbmove="$<TARGET_FILE:fdb-move>"make 
 
 gribls="$<TARGET_FILE:grib_ls>"
 gribset="$<TARGET_FILE:grib_set>"

@@ -22,6 +22,8 @@
 #include <memory>
 #include <iosfwd>
 
+#include "eckit/distributed/Transport.h"
+
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
@@ -98,7 +100,7 @@ public: // methods
 
     WipeIterator wipe(const FDBToolRequest& request, bool doit=false, bool porcelain=false, bool unsafeWipeAll=false);
 
-    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, bool mpi, int threads);
+    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest);
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit=false, bool porcelain=false);
 

@@ -15,6 +15,7 @@
 #pragma once
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/distributed/Transport.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -29,11 +30,7 @@ class MoveVisitor : public EntryVisitor {
 public: // methods
 
     MoveVisitor(const metkit::mars::MarsRequest& request,
-                const eckit::URI& dest,
-                bool removeSrc,
-                int removeDelay,
-                bool mpi,
-                int threads);
+                const eckit::URI& dest);
 
     ~MoveVisitor() override;
 
@@ -47,12 +44,7 @@ public: // methods
 protected: // members
 
     const metkit::mars::MarsRequest& request_;
-
     const eckit::URI& dest_;
-    bool removeSrc_;
-    int removeDelay_;
-    bool mpi_;
-    int threads_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
