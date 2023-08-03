@@ -66,7 +66,7 @@ public: // methods
                             ControlAction action,
                             ControlIdentifiers identifiers) override;
     
-    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, eckit::Transport& transport) override { NOTIMP; }
+    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
     void flush() override;
 

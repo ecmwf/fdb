@@ -19,6 +19,7 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 
+#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Field.h"
@@ -52,7 +53,7 @@ public:
     virtual void checkUID() const = 0;
 
     virtual bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const;
-    virtual void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Transport& transport) const { NOTIMP; }
+    virtual void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const { NOTIMP; }
     virtual void remove(const Key& key) const { NOTIMP; }
 
     virtual eckit::URI uri() const = 0;

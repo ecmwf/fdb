@@ -299,8 +299,8 @@ if( HAVE_TOCFDB )
         fdb-purge
         fdb-dump-toc
         fdb-dump-index
-        fdb-reconsolidate-toc
-        fdb-move )
+        fdb-move
+        fdb-reconsolidate-toc )
 endif()
 
 if( HAVE_PMEMFDB )
@@ -446,8 +446,8 @@ foreach( _tool ${fdb5_tools} )
 
 endforeach()
 
-if (eckit_HAVE_MPI AND HAVE_FDB_BUILD_TOOLS)
-    target_link_libraries( fdb-move eckit_mpi )
+if (HAVE_FDB_BUILD_TOOLS)
+    target_link_libraries( fdb-move eckit_distributed )
 endif()
 
 ecbuild_add_executable( TARGET    grib2fdb5

@@ -47,7 +47,7 @@ public: // methods
     void checkUID() const override { TocCommon::checkUID(); }
 
     bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override;
-    void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Transport& transport) const override;
+    void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override;
     void remove(const Key& key) const override;
 
 protected: // methods

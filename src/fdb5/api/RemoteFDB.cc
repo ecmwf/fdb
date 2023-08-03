@@ -29,6 +29,7 @@
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Log.h"
 #include "eckit/message/Message.h"
+#include "eckit/distributed/Transport.h"
 #include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Translator.h"
@@ -421,7 +422,7 @@ void RemoteFDB::listeningThreadLoop() {
     }
 }
 
-void RemoteFDB::controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+void RemoteFDB::controlWriteCheckResponse(fdb5::remote::Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     controlWrite(msg, requestID, payload, payloadLength);
 
@@ -441,7 +442,7 @@ void RemoteFDB::controlWriteCheckResponse(Message msg, uint32_t requestID, const
     ASSERT(tail == EndMarker);
 }
 
-void RemoteFDB::controlWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+void RemoteFDB::controlWrite(fdb5::remote::Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
@@ -471,7 +472,7 @@ void RemoteFDB::controlRead(void* data, size_t length) {
     }
 }
 
-void RemoteFDB::dataWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+void RemoteFDB::dataWrite(fdb5::remote::Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
@@ -535,14 +536,14 @@ FDBStats RemoteFDB::stats() const {
 
 namespace {
 
-template <typename T, Message msgID>
+template <typename T, fdb5::remote::Message msgID>
 struct BaseAPIHelper {
 
     typedef T ValueType;
 
     static size_t bufferSize() { return 4096; }
     static size_t queueSize() { return 100; }
-    static Message message() { return msgID; }
+    static fdb5::remote::Message message() { return msgID; }
 
     void encodeExtra(eckit::Stream& s) const {}
     static ValueType valueFromStream(eckit::Stream& s, RemoteFDB* fdb) { return ValueType(s); }
@@ -624,25 +625,20 @@ private:
 
 struct MoveHelper : BaseAPIHelper<MoveElement, fdb5::remote::Message::Move> {
 
-    MoveHelper(const eckit::URI& dest, bool removeSrc, int removeDelay, eckit::Transport& transport) :
-        dest_(dest), removeSrc_(removeSrc), removeDelay_(removeDelay), transport_(transport) {}
+    
+    MoveHelper(const eckit::URI& dest) :
+        dest_(dest) {}
+
     void encodeExtra(eckit::Stream& s) const {
         s << dest_;
-        s << removeSrc_;
-        s << removeDelay_;
-        s << transport_;
     }
     static MoveElement valueFromStream(eckit::Stream& s, RemoteFDB*) {
-        MoveElement elem;
-        s >> elem;
+        MoveElement elem(s);
         return elem;
     }
 
 private:
     const eckit::URI& dest_;
-    bool removeSrc_;
-    int removeDelay_;
-    eckit::Transport& transport_;
 };
 
 struct ControlHelper : BaseAPIHelper<StatusElement, fdb5::remote::Message::Control> {
@@ -754,8 +750,8 @@ ControlIterator RemoteFDB::control(const FDBToolRequest& request,
     return forwardApiCall(ControlHelper(action, identifiers), request);
 };
 
-MoveIterator RemoteFDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, eckit::Transport& transport) {
-    return forwardApiCall(MoveHelper(dest, removeSrc, removeDelay, transport), request);
+MoveIterator RemoteFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
+    return forwardApiCall(MoveHelper(dest), request);
 }
 
 // -----------------------------------------------------------------------------------------------------
