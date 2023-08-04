@@ -39,11 +39,15 @@ class FDBList : public FDBVisitTool {
     FDBList(int argc, char **argv) :
         FDBVisitTool(argc, argv, "class,expver"),
         location_(false),
+        timestamp_(false),
+        length_(false),
         full_(false),
         porcelain_(false),
         json_(false) {
 
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
+        options_.push_back(new SimpleOption<bool>("timestamp", "Also print the timestamp when the field was indexed"));
+        options_.push_back(new SimpleOption<bool>("length", "Also print the field size"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
         options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined and stable output for input into other tools"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
@@ -55,6 +59,8 @@ class FDBList : public FDBVisitTool {
     virtual void init(const CmdArgs &args);
 
     bool location_;
+    bool timestamp_;
+    bool length_;
     bool full_;
     bool porcelain_;
     bool json_;
@@ -65,14 +71,16 @@ void FDBList::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
 
     location_ = args.getBool("location", false);
+    timestamp_ = args.getBool("timestamp", false);
+    length_ = args.getBool("length", false);
     full_ = args.getBool("full", false);
     porcelain_ = args.getBool("porcelain", false);
     json_ = args.getBool("json", false);
 
     if (json_) {
         porcelain_ = true;
-        if (location_) {
-            throw UserError("--json and --location not compatible", Here());
+        if (location_ || timestamp_ || length_) {
+            throw UserError("--json and --location/--timestamp/--length not compatible", Here());
         }
     }
 
@@ -107,7 +115,7 @@ void FDBList::execute(const CmdArgs& args) {
             if (json_) {
                 (*json) << elem;
             } else {
-                elem.print(Log::info(), location_, !porcelain_);
+                elem.print(Log::info(), location_, timestamp_ && !porcelain_, length_ && !porcelain_);
                 Log::info() << std::endl;
                 count++;
             }
