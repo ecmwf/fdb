@@ -72,7 +72,11 @@ void DaosContainer::create() {
 
     const daos_handle_t& poh = pool_.getOpenHandle();
 
-    DAOS_CALL(daos_cont_create_with_label(poh, label_.c_str(), NULL, NULL, NULL));
+    try {
+
+        DAOS_CALL(daos_cont_create_with_label(poh, label_.c_str(), NULL, NULL, NULL));
+
+    } catch (fdb5::DaosEntityAlreadyExistsException& e) {}
 
 }
 

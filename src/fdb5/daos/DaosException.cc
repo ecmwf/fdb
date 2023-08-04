@@ -24,6 +24,11 @@ DaosEntityNotFoundException::DaosEntityNotFoundException(const std::string& w) :
 DaosEntityNotFoundException::DaosEntityNotFoundException(const std::string& w, const eckit::CodeLocation& l) :
     DaosException(w, l) {}
 
+DaosEntityAlreadyExistsException::DaosEntityAlreadyExistsException(const std::string& w) : DaosException(w) {}
+
+DaosEntityAlreadyExistsException::DaosEntityAlreadyExistsException(const std::string& w, const eckit::CodeLocation& l) :
+    DaosException(w, l) {}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

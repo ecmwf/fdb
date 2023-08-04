@@ -42,20 +42,16 @@ Key ListElement::combinedKey() const {
     return combined;
 }
 
-void ListElement::print(std::ostream &out, bool withLocation, bool withLength) const {
+void ListElement::print(std::ostream &out, bool withLocation, bool withTimestamp, bool withLength) const {
     if (!withLocation && location_ && !location_->host().empty()) {
         out << "host=" << location_->host() << ",";
     }
     for (const auto& bit : keyParts_) {
         out << bit;
     }
-    if (location_) {
-        if (withLocation) {
-            out << " " << *location_;
-        } else if (withLength) {
-            out << ",length=" << location_->length();
-        }
-    }
+    if (location_ && withLocation) out << " " << *location_;
+    if (withLength) out << " length=" << location_->length();
+    if (withTimestamp) out << " timestamp=" << timestamp_;
 }
 
 void ListElement::json(eckit::JSON& json) const {

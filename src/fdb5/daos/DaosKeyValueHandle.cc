@@ -50,12 +50,11 @@ void DaosKeyValueHandle::openForWrite(const Length& len) {
     //       triggered as part of DaosArray constructors.
     name_.generateOID();
     
-    // TODO: find a nicer way to check existence of an array?
-    try {
-        kv_.reset(new fdb5::DaosKeyValue(*(session_.get()), name_));
-    } catch (fdb5::DaosEntityNotFoundException& e) {
-        kv_.reset(new fdb5::DaosKeyValue( c.createKeyValue(name_.OID()) ));
-    }
+    /// @note: only way to check kv existence without generating a snapshot is
+    ///   to attempt open, which results in creation without an error rc if n.e.
+    ///   A kv open is performed in both c.createKeyValue and DaosKeyValue(session, name).
+    ///   The former is used here.
+    kv_.reset(new fdb5::DaosKeyValue( c.createKeyValue(name_.OID()) ));
 
     kv_->open();
 

@@ -60,6 +60,7 @@ public:
         options_.push_back(new eckit::option::SimpleOption<long>("nensembles", "Number of ensemble members"));
         options_.push_back(new eckit::option::SimpleOption<long>("number", "The first ensemble number to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nlevels", "Number of levels"));
+        options_.push_back(new eckit::option::SimpleOption<long>("level", "The first level number to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nparams", "Number of parameters"));
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
     }
@@ -109,6 +110,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     size_t nlevels = args.getLong("nlevels");
     size_t nparams = args.getLong("nparams");
     size_t number  = args.getLong("number", 1);
+    size_t level  = args.getLong("level", 1);
 
 
     const char* buffer = nullptr;
@@ -137,8 +139,8 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
         }
         for (size_t step = 0; step < nsteps; ++step) {
             CODES_CHECK(codes_set_long(handle, "step", step), 0);
-            for (size_t level = 1; level <= nlevels; ++level) {
-                CODES_CHECK(codes_set_long(handle, "level", level), 0);
+            for (size_t lev = 1; lev <= nlevels; ++lev) {
+                CODES_CHECK(codes_set_long(handle, "level", lev+level), 0);
                 for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
                     // GRIB API only allows us to use certain parameters
                     while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {
@@ -203,6 +205,8 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     size_t nensembles = args.getLong("nensembles", 1);
     size_t nlevels = args.getLong("nlevels");
     size_t nparams = args.getLong("nparams");
+    size_t number  = args.getLong("number", 1);
+    size_t level  = args.getLong("level", 1);
 
     request.setValue("expver", args.getString("expver"));
     request.setValue("class", args.getString("class"));
@@ -216,12 +220,12 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
 
     for (size_t member = 1; member <= nensembles; ++member) {
         if (args.has("nensembles")) {
-            request.setValue("number", member);
+            request.setValue("number", member+number);
         }
         for (size_t step = 0; step < nsteps; ++step) {
             request.setValue("step", step);
-            for (size_t level = 1; level <= nlevels; ++level) {
-                request.setValue("level", level);
+            for (size_t lev = 1; lev <= nlevels; ++lev) {
+                request.setValue("level", lev+level);
                 for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
                     // GRIB API only allows us to use certain parameters
                     while (AWKWARD_PARAMS.find(real_param) != AWKWARD_PARAMS.end()) {

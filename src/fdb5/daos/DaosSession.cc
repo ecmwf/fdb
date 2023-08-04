@@ -258,15 +258,19 @@ void DaosSession::destroyPool(uuid_t uuid, const int& force) {
 
     bool found = false;
     uuid_t other = {0};
+    std::string label = std::string();
 
-    std::deque<fdb5::DaosPool>::iterator it;
-    for (it = pool_cache_.begin(); it != pool_cache_.end(); ++it) {
+    std::deque<fdb5::DaosPool>::iterator it = pool_cache_.begin();
+    while (it != pool_cache_.end()) {
 
         it->uuid(other);
         if (uuid_compare(uuid, other) == 0) {
             found = true;
+            label = it->label();
             /// @todo: should destroy pool containers here?
             pool_cache_.erase(it);
+        } else {
+            ++it;
         }
 
     }

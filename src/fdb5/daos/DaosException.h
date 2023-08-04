@@ -33,6 +33,12 @@ public:
     DaosEntityNotFoundException(const std::string&, const eckit::CodeLocation&);
 };
 
+class DaosEntityAlreadyExistsException : public DaosException {
+public:
+    DaosEntityAlreadyExistsException(const std::string&);
+    DaosEntityAlreadyExistsException(const std::string&, const eckit::CodeLocation&);
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

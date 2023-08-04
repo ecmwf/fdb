@@ -51,11 +51,19 @@ void DaosArrayHandle::openForWrite(const Length& len) {
     ///    triggered as part of DaosArray constructors.
     name_.generateOID();
     
-    /// @todo: find a nicer way to check existence of an array?
+    /// @note: only ways to check if array exists without generating a snapshot are:
+    ///   - attempt array open and check if rc is 0 or DER_NONEXIST (DaosArray(session, name))
+    ///   - attempt array create and check if rc is 0 or DER_EXIST (c.createArray(oid))
+    ///   we do the latter first because it is the most likely to succeed.
+    ///   If the operation fails, the DAOS client will generate an ERR log and usually persist
+    ///   it to a log file (potential performance impact). So we want to have as few of these 
+    ///   failures as possible.
+    /// @todo: implement DaosContainer::ensureArray, which attempts createArray with a catch+dismiss?
+    /// @todo: have dummy daos_create_array return DER_EXIST where relevant
     try {
-        arr_.reset(new fdb5::DaosArray(*(session_.get()), name_));
-    } catch (fdb5::DaosEntityNotFoundException& e) {
         arr_.reset(new fdb5::DaosArray( c.createArray(name_.OID()) ));
+    } catch (fdb5::DaosEntityAlreadyExistsException& e) {
+        arr_.reset(new fdb5::DaosArray(*(session_.get()), name_));
     }
 
     arr_->open();
@@ -70,6 +78,8 @@ void DaosArrayHandle::openForWrite(const Length& len) {
 
 void DaosArrayHandle::openForAppend(const Length& len) {
 
+    /// @todo: implement openForAppend with its own code, with a slight variation
+    ///   with respect to openForWrite: try open first, if failure then create
     openForWrite(len);
 
     /// @todo: should offset be set to size() or be left to its current value?
