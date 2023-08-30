@@ -123,7 +123,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     tocPath_(directory_ / "toc"),
     dbConfig_(config),
     serialisationVersion_(TocSerialisationVersion(config)),
-    useSubToc_(config.userConfig().getBool("useSubToc", true)),
+    useSubToc_(config.userConfig().getBool("useSubToc", false)),
     isSubToc_(false),
     preloadBTree_(config.userConfig().getBool("preloadTocBTree", true)),
     fd_(-1),
@@ -1235,19 +1235,38 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
 
     for (const auto& entry : maskedEntries_) {
 
-        eckit::URI uri("toc", entry.first);
-        if (entry.first.exists()) {
+        std::cout << "enumerateMasked " << entry.first << "  " << entry.second << "  " << std::endl;
+
+        ASSERT(entry.first.path().size() > 0);
+        eckit::PathName absPath;
+        std::cout << "enumerateMasked - absPath 0  " << absPath << std::endl;
+        if (entry.first.path()[0] == '/') {
+            absPath = entry.first;
+            std::cout << "enumerateMasked - absPath 1 " << absPath << std::endl;
+
+            if (!absPath.exists()) {
+                absPath = currentDirectory() / entry.first.baseName();
+            }
+        } else {
+            absPath = currentDirectory() / entry.first;
+        }
+        std::cout << "enumerateMasked - absPath  " << absPath << std::endl;
+
+        if (absPath.exists()) {
+            eckit::URI uri("toc", absPath);
+            std::cout << "enumerateMasked insert " << uri << std::endl;
             metadata.insert(std::make_pair(uri, entry.second));
 
             // If this is a subtoc, then enumerate its contained indexes and data!
 
             if (uri.path().baseName().asString().substr(0, 4) == "toc.") {
-                TocHandler h(uri.path(), remapKey_);
+                TocHandler h(absPath, remapKey_);
 
                 h.enumerateMasked(metadata, data);
 
                 std::vector<Index> indexes = h.loadIndexes();
                 for (const auto& i : indexes) {
+                    std::cout << "enumerateMasked insert " << i.location().uri() << std::endl;
                     metadata.insert(std::make_pair<eckit::URI, Offset>(i.location().uri(), 0));
                     for (const auto& dataPath : i.dataPaths()) {
                         data.insert(dataPath);
