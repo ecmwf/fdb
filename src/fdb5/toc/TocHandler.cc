@@ -1235,30 +1235,22 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
 
     for (const auto& entry : maskedEntries_) {
 
-        std::cout << "enumerateMasked " << entry.first << "  " << entry.second << "  " << std::endl;
-
         ASSERT(entry.first.path().size() > 0);
         eckit::PathName absPath;
-        std::cout << "enumerateMasked - absPath 0  " << absPath << std::endl;
         if (entry.first.path()[0] == '/') {
             absPath = entry.first;
-            std::cout << "enumerateMasked - absPath 1 " << absPath << std::endl;
-
             if (!absPath.exists()) {
                 absPath = currentDirectory() / entry.first.baseName();
             }
         } else {
             absPath = currentDirectory() / entry.first;
         }
-        std::cout << "enumerateMasked - absPath  " << absPath << std::endl;
 
         if (absPath.exists()) {
             eckit::URI uri("toc", absPath);
-            std::cout << "enumerateMasked insert " << uri << std::endl;
             metadata.insert(std::make_pair(uri, entry.second));
 
             // If this is a subtoc, then enumerate its contained indexes and data!
-
             if (uri.path().baseName().asString().substr(0, 4) == "toc.") {
                 TocHandler h(absPath, remapKey_);
 
@@ -1266,7 +1258,6 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
 
                 std::vector<Index> indexes = h.loadIndexes();
                 for (const auto& i : indexes) {
-                    std::cout << "enumerateMasked insert " << i.location().uri() << std::endl;
                     metadata.insert(std::make_pair<eckit::URI, Offset>(i.location().uri(), 0));
                     for (const auto& dataPath : i.dataPaths()) {
                         data.insert(dataPath);
