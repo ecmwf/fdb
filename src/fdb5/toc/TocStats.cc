@@ -281,7 +281,13 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
         lastIndexPath_ = indexPath;
     }
 
-    std::string unique = currentIndex_->key().valuesToString() + "+" + fieldFingerprint;
+    auto keyString = [this]() {
+        auto key = currentIndex_->key();
+        key.registry(currentCatalogue_->schema().registry());
+        return key.valuesToString();
+    };
+
+    std::string unique = keyString() + "+" + fieldFingerprint;
 
     if (active_.insert(unique).second) {
         indexUsage_[indexPath]++;
