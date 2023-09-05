@@ -123,7 +123,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     tocPath_(directory_ / "toc"),
     dbConfig_(config),
     serialisationVersion_(TocSerialisationVersion(config)),
-    useSubToc_(config.userConfig().getBool("useSubToc", true)),
+    useSubToc_(config.userConfig().getBool("useSubToc", false)),
     isSubToc_(false),
     preloadBTree_(config.userConfig().getBool("preloadTocBTree", true)),
     fd_(-1),
@@ -1250,14 +1250,24 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
 
     for (const auto& entry : maskedEntries_) {
 
-        eckit::URI uri("toc", entry.first);
-        if (entry.first.exists()) {
+        ASSERT(entry.first.path().size() > 0);
+        eckit::PathName absPath;
+        if (entry.first.path()[0] == '/') {
+            absPath = entry.first;
+            if (!absPath.exists()) {
+                absPath = currentDirectory() / entry.first.baseName();
+            }
+        } else {
+            absPath = currentDirectory() / entry.first;
+        }
+
+        if (absPath.exists()) {
+            eckit::URI uri("toc", absPath);
             metadata.insert(std::make_pair(uri, entry.second));
 
             // If this is a subtoc, then enumerate its contained indexes and data!
-
             if (uri.path().baseName().asString().substr(0, 4) == "toc.") {
-                TocHandler h(uri.path(), remapKey_);
+                TocHandler h(absPath, remapKey_);
 
                 h.enumerateMasked(metadata, data);
 
