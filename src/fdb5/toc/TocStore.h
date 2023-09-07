@@ -47,7 +47,7 @@ public: // methods
     void checkUID() const override { TocCommon::checkUID(); }
 
     bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override;
-    void moveTo(const Key& key, const Config& config, const eckit::URI& dest, int threads) const override;
+    void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override;
     void remove(const Key& key) const override;
 
 protected: // methods
@@ -57,7 +57,7 @@ protected: // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    FieldLocation* archive(const Key &key, const void *data, eckit::Length length) override;
+    std::unique_ptr<FieldLocation> archive(const Key &key, const void *data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 

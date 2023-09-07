@@ -14,6 +14,9 @@
 #include <cstring>
 #include <memory>
 
+#include <dirent.h>
+#include <fcntl.h>
+
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
@@ -29,6 +32,7 @@
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 
 #include "eckit/testing/Test.h"
 
@@ -188,6 +192,38 @@ CASE ( "test_fdb_service" ) {
 			}
         }
 
+
+        SECTION( "test_fdb_service_list" )
+        {
+            fdb5::FDB lister;
+
+			Translator<size_t,std::string> str;
+			std::vector<std::string>::iterator param = f.modelParams_.begin();
+			for( ; param != f.modelParams_.end(); ++param )
+			{
+				f.p["param"] = *param;
+				f.p["levtype"] = "pl";
+				f.p["step"] = str(0);
+				f.p["levelist"] = str(0);
+
+				Log::info() << "Looking for: " << f.p << std::endl;
+
+				metkit::mars::MarsRequest r("retrieve", f.p);
+				fdb5::FDBToolRequest req(r);
+				auto iter = lister.list(req);
+				fdb5::ListElement el;
+				EXPECT(iter.next(el));
+
+				eckit::PathName path = el.location().uri().path().dirName();
+
+				DIR* dirp = ::opendir(path.asString().c_str());
+            	struct dirent* dp;
+            	while ((dp = ::readdir(dirp)) != nullptr) {
+                	EXPECT_NOT(strstr( dp->d_name, "toc."));
+				}
+			}
+        }
+
         SECTION( "test_fdb_service_marsreques" )
         {
             std::vector<string> steps;
@@ -212,6 +248,189 @@ CASE ( "test_fdb_service" ) {
 
             r.setValue("class","rd");
 			r.setValue("expver","0001");
+			r.setValue("type","fc");
+			r.setValue("stream","oper");
+			r.setValue("time","0000");
+			r.setValue("domain","g");
+			r.setValue("levtype","pl");
+
+            r.setValuesTyped(new metkit::mars::TypeAny("param"), params);
+            r.setValuesTyped(new metkit::mars::TypeAny("step"), steps);
+            r.setValuesTyped(new metkit::mars::TypeAny("levelist"), levels);
+            r.setValuesTyped(new metkit::mars::TypeAny("date"), dates);
+
+			Log::info() << r << std::endl;
+
+            fdb5::FDB retriever;
+
+            std::unique_ptr<DataHandle> dh ( retriever.retrieve(r) );
+
+			PathName path ( "data_mars_request.data" );
+			path.unlink();
+
+			dh->saveInto(path);
+        }
+	}
+}
+
+
+CASE ( "test_fdb_service_subtoc" ) {
+
+	SETUP("Fixture") {
+		FixtureService f;
+
+		eckit::LocalConfiguration userConf;
+    	userConf.set("useSubToc", true);
+		
+		fdb5::Config expanded = fdb5::Config().expandConfig();
+
+		fdb5::Config config(expanded, userConf);
+
+        SECTION( "test_fdb_service_subtoc_write" )
+		{
+			fdb5::Archiver fdb(config);
+
+            f.p["class"]  = "rd";
+			f.p["stream"] = "oper";
+			f.p["domain"] = "g";
+			f.p["expver"] = "0002";
+
+			f.p["date"] = "20120911";
+			f.p["time"] = "0000";
+			f.p["type"] = "fc";
+
+			f.write_cycle(fdb, f.p);
+
+			f.p["date"] = "20120911";
+			f.p["time"] = "0000";
+			f.p["type"] = "4v";
+
+			f.write_cycle(fdb, f.p);
+
+			f.p["date"] = "20120912";
+			f.p["time"] = "0000";
+			f.p["type"] = "fc";
+
+			f.write_cycle(fdb, f.p);
+
+			f.p["date"] = "20120912";
+			f.p["time"] = "0000";
+			f.p["type"] = "4v";
+
+			f.write_cycle(fdb, f.p);
+        }
+
+        SECTION( "test_fdb_service_subtoc_readtobuffer" )
+        {
+            fdb5::FDB retriever;
+
+			Buffer buffer(1024);
+
+			f.p["expver"] = "0002";
+
+			Translator<size_t,std::string> str;
+			std::vector<std::string>::iterator param = f.modelParams_.begin();
+			for( ; param != f.modelParams_.end(); ++param )
+			{
+				f.p["param"] = *param;
+				f.p["levtype"] = "pl";
+
+				for( size_t step = 0; step < 2; ++step )
+				{
+					f.p["step"] = str(step*3);
+
+					for( size_t level = 0; level < 3; ++level )
+					{
+						f.p["levelist"] = str(level*100);
+
+						Log::info() << "Looking for: " << f.p << std::endl;
+
+                        metkit::mars::MarsRequest r("retrieve", f.p);
+                        std::unique_ptr<DataHandle> dh ( retriever.retrieve(r) );  AutoClose closer1(*dh);
+
+                        ::memset(buffer, 0, buffer.size());
+
+                        dh->openForRead();
+                        dh->read(buffer, buffer.size());
+
+                        Log::info() << (char*) buffer << std::endl;
+
+                        std::ostringstream data;
+                        data << "Raining cats and dogs -- "
+                                << " param " << *param
+                                << " step "  << step
+                                << " level " << level
+                                << std::endl;
+
+                        EXPECT(::memcmp(buffer, data.str().c_str(), data.str().size()) == 0);
+					}
+				}
+			}
+        }
+
+
+        SECTION( "test_fdb_service_subtoc_list" )
+        {
+            fdb5::FDB lister;
+
+			f.p["expver"] = "0002";
+
+			Translator<size_t,std::string> str;
+			std::vector<std::string>::iterator param = f.modelParams_.begin();
+			for( ; param != f.modelParams_.end(); ++param )
+			{
+
+				f.p["param"] = *param;
+				f.p["levtype"] = "pl";
+				f.p["step"] = str(0);
+				f.p["levelist"] = str(0);
+
+				Log::info() << "Looking for: " << f.p << std::endl;
+
+				metkit::mars::MarsRequest r("retrieve", f.p);
+				fdb5::FDBToolRequest req(r);
+				auto iter = lister.list(req);
+				fdb5::ListElement el;
+				EXPECT(iter.next(el));
+
+				eckit::PathName path = el.location().uri().path().dirName();
+
+				DIR* dirp = ::opendir(path.asString().c_str());
+            	struct dirent* dp;
+				bool subtoc = false;
+            	while ((dp = ::readdir(dirp)) != nullptr) {
+                	if (strstr( dp->d_name, "toc.")) {
+						subtoc = true;
+					}
+				}
+				EXPECT(subtoc);
+			}
+        }
+
+        SECTION( "test_fdb_service_subtoc_marsreques" )
+        {
+            std::vector<string> steps;
+			steps.push_back( "15" );
+			steps.push_back( "18" );
+			steps.push_back( "24" );
+
+			std::vector<string> levels;
+			levels.push_back( "100" );
+			levels.push_back( "500" );
+
+			std::vector<string> params;
+			params.push_back( "130.128" );
+			params.push_back( "138.128" );
+
+			std::vector<string> dates;
+			dates.push_back( "20120911" );
+			dates.push_back( "20120912" );
+
+
+            metkit::mars::MarsRequest r("retrieve");
+
+            r.setValue("class","rd");
+			r.setValue("expver","0002");
 			r.setValue("type","fc");
 			r.setValue("stream","oper");
 			r.setValue("time","0000");

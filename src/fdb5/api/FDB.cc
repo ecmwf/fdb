@@ -135,12 +135,28 @@ public:
     }
 };
 
-eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+eckit::DataHandle* FDB::read(const eckit::URI& uri) {
+    FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
+    return loc->dataHandle();
+}
+
+eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
+    HandleGatherer result(sorted);
+
+    for (const eckit::URI& uri : uris) {
+        FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
+        result.add(loc->dataHandle());
+        delete loc;
+    }
+    return result.dataHandle();
+}
+    
+
+eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     eckit::Timer timer;
     timer.start();
 
-    HandleGatherer result(sorted(request));
-    ListIterator it = inspect(request);
+    HandleGatherer result(sorted);
     ListElement el;
 
     static bool dedup = eckit::Resource<bool>("fdbDeduplicate;$FDB_DEDUPLICATE_FIELDS", false);
@@ -187,6 +203,11 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     return result.dataHandle();
 }
 
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+    ListIterator it = inspect(request);
+    return read(it, sorted(request));
+}
+
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
     return internal_->inspect(request);
 }
@@ -223,8 +244,8 @@ const std::string FDB::id() const {
     return internal_->id();
 }
 
-MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) {
-    return internal_->move(request, dest, removeSrc, removeDelay, threads);
+MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
+    return internal_->move(request, dest);
 }
 
 FDBStats FDB::stats() const {

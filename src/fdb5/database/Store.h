@@ -15,9 +15,11 @@
 #ifndef fdb5_Store_H
 #define fdb5_Store_H
 
+#include "eckit/distributed/Transport.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 
+#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Field.h"
@@ -34,7 +36,7 @@ public:
     virtual ~Store() {}
 
     virtual eckit::DataHandle* retrieve(Field& field) const = 0;
-    virtual FieldLocation* archive(const Key &key, const void *data, eckit::Length length) = 0;
+    virtual std::unique_ptr<FieldLocation> archive(const Key &key, const void *data, eckit::Length length) = 0;
 
     virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
 
@@ -51,7 +53,7 @@ public:
     virtual void checkUID() const = 0;
 
     virtual bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const;
-    virtual void moveTo(const Key& key, const Config& config, const eckit::URI& dest, int threads) const { NOTIMP; }
+    virtual void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const { NOTIMP; }
     virtual void remove(const Key& key) const { NOTIMP; }
 
     virtual eckit::URI uri() const = 0;
