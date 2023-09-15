@@ -20,7 +20,7 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/database/ReadVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
-
+#include "fdb5/types/Type.h"
 
 namespace fdb5 {
 
@@ -492,6 +492,17 @@ const Rule &Rule::topRule() const {
 
 const Schema &Rule::schema() const {
     return schema_;
+}
+
+void Rule::check(const Key& key) const {
+    for (const auto& pred : predicates_ ) {
+        auto k = key.find(pred->keyword());
+        if (k != key.end()) {
+            const std::string& value = (*k).second;
+            const Type& type = registry_.lookupType(pred->keyword());
+            ASSERT(value == type.tidy(pred->keyword(), value));
+        }
+    }
 }
 
 std::ostream &operator<<(std::ostream &s, const Rule &x) {
