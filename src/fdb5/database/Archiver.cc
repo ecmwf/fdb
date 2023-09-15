@@ -47,11 +47,14 @@ void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
 
     dbConfig_.schema().expand(key, visitor);
 
-    if (visitor.rule() == nullptr) { // Make sure we did find a rule that matched
+    const Rule* rule = visitor.rule();
+    if (rule == nullptr) { // Make sure we did find a rule that matched
         std::ostringstream oss;
         oss << "FDB: Could not find a rule to archive " << key;
         throw eckit::SeriousBug(oss.str());
     }
+    // validate metadata
+    rule->check(key);
 }
 
 void Archiver::flush() {

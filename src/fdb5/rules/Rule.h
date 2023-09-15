@@ -83,6 +83,8 @@ public: // methods
     const Schema &schema() const;
     const TypesRegistry &registry() const;
 
+    void check(const Key& key) const;
+
 private: // methods
 
     void expand(const metkit::mars::MarsRequest &request,
