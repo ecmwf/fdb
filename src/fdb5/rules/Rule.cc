@@ -503,6 +503,9 @@ void Rule::check(const Key& key) const {
             ASSERT(value == type.tidy(pred->keyword(), value));
         }
     }
+    if (parent_ != nullptr) {
+        parent_->check(key);
+    }
 }
 
 std::ostream &operator<<(std::ostream &s, const Rule &x) {
