@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "eckit/utils/Optional.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/exception/Exceptions.h"
 
@@ -97,13 +98,17 @@ public: // methods
     daos_size_t size() override;
 
     long write(const void*, const long&, const eckit::Offset&);
-    long read(void*, const long&, const eckit::Offset&);
+    long read(void*, long, const eckit::Offset&);
 
 private: // methods
 
     DaosArray(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
 
     void create() override;
+
+private: // members
+
+    eckit::Optional<daos_size_t> size_;
 
 };
 

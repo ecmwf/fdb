@@ -50,7 +50,9 @@ bool DaosStore::uriBelongs(const eckit::URI& uri) const {
     /// @todo: assert uri points to a (not necessarily existing) array object
     return (
         (uri.scheme() == type()) && 
-        (fdb5::DaosName(uri).contName().rfind("store_" + db_str_ + "_", 0) == 0));
+        (fdb5::DaosName(uri).contName().rfind(db_str_, 0) == 0));
+        //(fdb5::DaosName(uri).contName().rfind("store_" + db_str_, 0) == 0));
+        //(fdb5::DaosName(uri).contName().rfind("store_" + db_str_ + "_", 0) == 0));
 
 }
 
@@ -79,7 +81,9 @@ std::vector<eckit::URI> DaosStore::storeUnitURIs() const {
     
     for (const auto& label : cont_labels) {
         
-        if (label.rfind("store_" + db_str_ + "_", 0) == 0)
+        //if (label.rfind("store_" + db_str_ + "_", 0) == 0)
+        //if (label.rfind("store_" + db_str_, 0) == 0)
+        if (label.rfind(db_str_, 0) == 0)
             store_unit_uris.push_back(fdb5::DaosName(pool_, label).URI());
 
     }
@@ -118,7 +122,9 @@ eckit::DataHandle* DaosStore::retrieve(Field& field) const {
 
 FieldLocation* DaosStore::archive(const Key &key, const void *data, eckit::Length length) {
 
-    fdb5::DaosArrayName n = fdb5::DaosName(pool_, "store_" + db_str_ + "_" + key.valuesToString()).createArrayName(); // TODO: pass oclass from config
+    //fdb5::DaosArrayName n = fdb5::DaosName(pool_, "store_" + db_str_ + "_" + key.valuesToString()).createArrayName(); // TODO: pass oclass from config
+    //fdb5::DaosArrayName n = fdb5::DaosName(pool_, "store_" + db_str_).createArrayName(); // TODO: pass oclass from config
+    fdb5::DaosArrayName n = fdb5::DaosName(pool_, db_str_).createArrayName(); // TODO: pass oclass from config
     n.generateOID();
     std::unique_ptr<eckit::DataHandle> h(n.dataHandle());
     h->openForWrite(length);

@@ -322,6 +322,7 @@ std::string DaosPool::label() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
 AutoPoolDestroy::~AutoPoolDestroy() noexcept(false) {
 
     bool fail = !eckit::Exception::throwing();
@@ -341,6 +342,7 @@ AutoPoolDestroy::~AutoPoolDestroy() noexcept(false) {
     }
     
 }
+#endif
 
 //----------------------------------------------------------------------------------------------------------------------
 

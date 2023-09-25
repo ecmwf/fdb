@@ -212,7 +212,7 @@ void DaosCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLoca
     std::vector<std::string> axesToExpand;
     std::vector<std::string> valuesToAdd;
     std::string axisNames = "";
-    std::string sep = ",";
+    std::string sep = "";
 
     for (Key::const_iterator i = key.begin(); i != key.end(); ++i) {
 

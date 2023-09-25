@@ -206,10 +206,16 @@ long DaosArray::write(const void* buf, const long& len, const eckit::Offset& off
 
 /// @note: a buffer (buf) and its length (len) must be provided. A read from the  
 ///        DAOS array of the full buffer length will be attempted.
-/// @note: daos_array_read fails if requested len is larger than object.
-///        DaosArray::read therefore always returns a value equal to the provided
-///        len if it succeeds (i.e. if no exception is thrown).
-long DaosArray::read(void* buf, const long& len, const eckit::Offset& off) {
+/// @note: daos_array_read does not fail if requested len is larger than object,
+///        and does not report back the actual amount of bytes read. The user should
+///        ideally call daos_array_get_size first and request read of a correspondingly
+///        sized buffer. DaosArray::read, however, automatically checks the size
+///        if not done yet, and returns the actual amount of bytes read.
+/// @todo: implement the note above in dummy DAOS.
+long DaosArray::read(void* buf, long len, const eckit::Offset& off) {
+
+    eckit::Offset sz(size());
+    if ((off + sz) < eckit::Offset(len)) len = (long) (sz - off);
 
     open();
 
@@ -237,10 +243,14 @@ long DaosArray::read(void* buf, const long& len, const eckit::Offset& off) {
 // TODO: should return a long for consistency with the rest of DaosArray API
 daos_size_t DaosArray::size() {
 
+    if (size_.has_value()) return size_.value();
+
     open();
 
     daos_size_t array_size;
     DAOS_CALL(daos_array_get_size(oh_, DAOS_TX_NONE, &array_size, NULL));
+
+    size_.emplace(array_size);
 
     return array_size;
 

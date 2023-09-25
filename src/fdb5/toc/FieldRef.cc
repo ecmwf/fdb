@@ -17,6 +17,8 @@
 #include "fdb5/database/Field.h"
 #include "fdb5/database/UriStore.h"
 
+/// @todo: these headers and their implementation must be included in the
+///   cmake source files regardless of DENABLE_TOC_FDB and DENABLE_DAOS_FDB
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/daos/DaosFieldLocation.h"
 
