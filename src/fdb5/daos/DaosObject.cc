@@ -159,7 +159,7 @@ void DaosArray::close() {
         return;
     }
     
-    std::cout << "DAOS_CALL => daos_array_close()" << std::endl;
+    // std::cout << "DAOS_CALL => daos_array_close()" << std::endl;
 
     int code = daos_array_close(oh_, NULL);
 
@@ -167,7 +167,7 @@ void DaosArray::close() {
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
         << code << ")" << std::endl;
         
-    std::cout << "DAOS_CALL <= daos_array_close()" << std::endl;
+    // std::cout << "DAOS_CALL <= daos_array_close()" << std::endl;
 
     open_ = false;
 
@@ -330,7 +330,7 @@ void DaosKeyValue::close() {
         return;
     }
     
-    std::cout << "DAOS_CALL => daos_obj_close()" << std::endl;
+    // std::cout << "DAOS_CALL => daos_obj_close()" << std::endl;
 
     int code = daos_obj_close(oh_, NULL);
 
@@ -338,7 +338,7 @@ void DaosKeyValue::close() {
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
         << code << ")" << std::endl;
         
-    std::cout << "DAOS_CALL <= daos_obj_close()" << std::endl;
+    // std::cout << "DAOS_CALL <= daos_obj_close()" << std::endl;
 
     open_ = false;
 

@@ -92,6 +92,9 @@ void DaosCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) 
     for (auto& k : kv.keys())
         s.insert(k);
 
+    // for (int i = 0; i <= 100; ++i)
+    //     s.insert(std::to_string(i));
+
 }
 
 bool DaosCatalogueReader::retrieve(const Key& key, Field& field) const {

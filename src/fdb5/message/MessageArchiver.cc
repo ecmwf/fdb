@@ -161,14 +161,14 @@ eckit::Channel& MessageArchiver::logVerbose() const {
 
 eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
-    eckit::Timer timer("fdb::service::archive");
+    // eckit::Timer timer("fdb::service::archive");
 
     eckit::message::Reader reader(source);
 
     size_t count = 0;
     size_t total_size = 0;
 
-    eckit::Progress progress("FDB archive", 0, source.estimate());
+    // eckit::Progress progress("FDB archive", 0, source.estimate());
 
     try {
 
@@ -201,7 +201,7 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
             total_size += msg.length();
             count++;
-            progress(total_size);
+            // progress(total_size);
 
             // flush();
         }
@@ -216,12 +216,12 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
         throw;
     }
 
-    eckit::Log::userInfo() << "Archived " << eckit::Plural(count, "message") << std::endl;
+    // eckit::Log::userInfo() << "Archived " << eckit::Plural(count, "message") << std::endl;
 
-    eckit::Log::info() << "FDB archive " << eckit::Plural(count, "message") << ","
-                       << " size " << eckit::Bytes(total_size) << ","
-                       << " in " << eckit::Seconds(timer.elapsed()) << " (" << eckit::Bytes(total_size, timer) << ")"
-                       << std::endl;
+    // eckit::Log::info() << "FDB archive " << eckit::Plural(count, "message") << ","
+    //                    << " size " << eckit::Bytes(total_size) << ","
+    //                    << " in " << eckit::Seconds(timer.elapsed()) << " (" << eckit::Bytes(total_size, timer) << ")"
+    //                    << std::endl;
 
     return total_size;
 }

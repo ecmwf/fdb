@@ -101,7 +101,7 @@ void DaosContainer::close() {
         return;
     }
     
-    std::cout << "DAOS_CALL => daos_cont_close()" << std::endl;
+    // std::cout << "DAOS_CALL => daos_cont_close()" << std::endl;
 
     int code = daos_cont_close(coh_, NULL);
 
@@ -109,7 +109,7 @@ void DaosContainer::close() {
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
         << code << ")" << std::endl;
         
-    std::cout << "DAOS_CALL <= daos_cont_close()" << std::endl;
+    // std::cout << "DAOS_CALL <= daos_cont_close()" << std::endl;
 
     open_ = false;
 
