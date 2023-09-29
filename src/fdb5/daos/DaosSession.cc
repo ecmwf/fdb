@@ -268,7 +268,7 @@ void DaosSession::destroyPool(uuid_t uuid, const int& force) {
             found = true;
             label = it->label();
             /// @todo: should destroy pool containers here?
-            pool_cache_.erase(it);
+            it = pool_cache_.erase(it);
         } else {
             ++it;
         }

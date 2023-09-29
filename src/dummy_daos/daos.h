@@ -72,6 +72,7 @@
     .da_sub_anchors = 0,              \
     .da_buf = { 0 } }
 
+#define DER_EXIST 1004
 #define DER_NONEXIST 1005
 
 enum daos_otype_t {
