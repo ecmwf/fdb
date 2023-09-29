@@ -84,17 +84,46 @@ const IndexAxis& DaosIndex::updatedAxes() {
 
 bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
     const fdb5::DaosKeyValueName& n = location_.daosName();
-    ASSERT(n.exists());
+
+    fdb5::DaosSession s{};
+
+    /// @note: performed RPCs:
+    /// - open pool if not cached (daos_pool_connect) -- always skipped, always cached/open after selectDatabase
+    /// - check if cont exists if not cached (daos_cont_open) -- always skipped, always cached/open after selectDatabase
+    /// - open container if not open (daos_cont_open) -- always skipped, always cached/open after selectDatabase
+    /// - ensure index kv exists (daos_obj_open) -- always performed, objects not cached for now
+    fdb5::StatsTimer st{"retrieve 05 index kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::DaosKeyValue index{s, n};
+    st.stop();
 
     std::string query{key.valuesToString()};
 
-    if (!n.has(query)) return false;
+    /// @note: performed RPCs:
+    /// - check if index kv contains index key (daos_kv_get without a buffer) -- always performed
+    st.start("retrieve 06 index kv check", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+    if (!index.has(query)) {
+        st.stop();
 
-    fdb5::DaosSession s{};
-    fdb5::DaosKeyValue index{s, n};
+        /// @note: performed RPCs:
+        /// - close index kv (daos_obj_close) -- always performed
+        st.start("retrieve 08 index kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+
+        return false;
+    }
+    st.stop();
+
+    /// @note: performed RPCs:
+    /// - retrieve field array location from index kv (daos_kv_get without a buffer + daos_kv_get) -- always performed
+    st.start("retrieve 07 index kv get field location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     std::vector<char> loc_data((long) index.size(query));
     index.get(query, &loc_data[0], loc_data.size());
+    st.stop();
+
     eckit::MemoryStream ms{&loc_data[0], loc_data.size()};
 
     /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
@@ -103,11 +132,19 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
     field = fdb5::Field(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms), ts, fdb5::FieldDetails());
 
+    /// @note: performed RPCs:
+    /// - close index kv (daos_obj_close) -- always performed
+    st.start("retrieve 08 index kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+
     return true;
 
 }
 
 void DaosIndex::add(const Key &key, const Field &field) {
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
 
     eckit::MemoryHandle h{(size_t) PATH_MAX};
     eckit::HandleStream hs{h};
@@ -129,6 +166,15 @@ void DaosIndex::add(const Key &key, const Field &field) {
         hs << field.location();
     }
     fdb5::DaosSession s{};
+
+    /// @note: performed RPCs:
+    /// - open pool if not cached (daos_pool_connect) -- always skipped, always cached/open after selectDatabase
+    /// - check if cont exists if not cached (daos_cont_open) -- always skipped, always cached/open after selectDatabase
+    /// - open container if not open (daos_cont_open) -- always skipped, always cached/open after selectDatabase
+    /// - ensure index kv exists (daos_obj_open) -- always performed, objects not cached for now. Should be cached
+    /// - record field key and location into index kv (daos_kv_put) -- always performed
+    /// - close index kv when destroyed (daos_obj_close) -- always performed
+    fdb5::StatsTimer st{"archive 12 index kv put field location", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue{s, location_.daosName()}.put(key.valuesToString(), h.data(), hs.bytesWritten());   
 
 }
