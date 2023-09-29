@@ -22,9 +22,11 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
+#include "eckit/log/Timer.h"
 
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosException.h"
+#include "fdb5/daos/DaosIOStats.h"
 
 #include "fdb5/fdb5_config.h"
 
@@ -46,6 +48,9 @@ public: // methods
     };
 
     static void error(int code, const char* msg, const char* file, int line, const char* func);
+
+    fdb5::DaosIOStats& stats() { return stats_; }
+    eckit::Timer& timer() { return timer_; }
 
     void configure(const eckit::LocalConfiguration&);
 
@@ -75,6 +80,10 @@ private: // members
     uint64_t objectCreateCellSize_;
     uint64_t objectCreateChunkSize_;
     std::string dmgConfigFile_;
+
+    /// @todo: it is the FDB class who should own the DaosIOStats and pass on to the Catalogue and Store
+    fdb5::DaosIOStats stats_;
+    eckit::Timer timer_;
 
 };
 

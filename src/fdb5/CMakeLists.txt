@@ -405,6 +405,8 @@ if( HAVE_DAOSFDB )
         daos/DaosCommon.cc
         daos/DaosWipeVisitor.h 
         daos/DaosWipeVisitor.cc
+        daos/DaosIOStats.h 
+        daos/DaosIOStats.cc
     )
 else()
     set( DAOS_LIBRARIES "" )

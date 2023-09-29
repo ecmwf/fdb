@@ -72,6 +72,7 @@ private: // members
     std::unique_ptr<fdb5::DaosArray> arr_;
     bool open_;
     eckit::Offset offset_;
+    std::string mode_;
 
 //     //static ClassSpec classSpec_;
 //     //static Reanimator<DataHandle> reanimator_;

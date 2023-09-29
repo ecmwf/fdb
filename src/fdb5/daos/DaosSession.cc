@@ -10,6 +10,9 @@
 
 #include <sstream>
 
+#include "eckit/runtime/Main.h"
+#include "eckit/utils/Translator.h"
+
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosException.h"
 
@@ -26,7 +29,8 @@ namespace fdb5 {
 DaosManager::DaosManager() : 
     containerOidsPerAlloc_(100),
     objectCreateCellSize_(1),
-    objectCreateChunkSize_(1048576) {
+    objectCreateChunkSize_(1048576),
+    stats_(std::string("FDB DAOS profiling ") + eckit::Main::hostname() + ":" + eckit::Translator<int, std::string>()(::getpid())) {
 
     dmgConfigFile_ = eckit::Resource<std::string>(
         "fdbDaosDmgConfigFile;$FDB_DAOS_DMG_CONFIG_FILE", dmgConfigFile_
@@ -127,7 +131,7 @@ fdb5::DaosPool& DaosSession::createPool(const uint64_t& scmSize, const uint64_t&
 fdb5::DaosPool& DaosSession::createPool(const std::string& label, const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
     pool_cache_.push_front(fdb5::DaosPool(label));
-
+    
     fdb5::DaosPool& p = pool_cache_.at(0);
     
     p.create(scmSize, nvmeSize);

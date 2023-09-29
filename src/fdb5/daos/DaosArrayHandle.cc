@@ -42,6 +42,13 @@ void DaosArrayHandle::openForWrite(const Length& len) {
 
     if (open_) NOTIMP;
 
+    mode_ = "archive";
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"archive 10 array handle array create", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     session_.reset(new fdb5::DaosSession());
 
     fdb5::DaosPool& p = session_->getPool(name_.poolName());
@@ -91,6 +98,13 @@ Length DaosArrayHandle::openForRead() {
 
     if (open_) NOTIMP;
 
+    mode_ = "retrieve";
+    
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"retrieve 09 array handle array open and get size", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     session_.reset(new fdb5::DaosSession());
 
     name_.generateOID();
@@ -111,6 +125,11 @@ long DaosArrayHandle::write(const void* buf, long len) {
 
     ASSERT(open_);
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"archive 11 array handle array write", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     long written = arr_->write(buf, len, offset_);
 
     offset_ += written;
@@ -123,6 +142,11 @@ long DaosArrayHandle::read(void* buf, long len) {
 
     ASSERT(open_);
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"retrieve 10 array handle array read", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     long read = arr_->read(buf, len, offset_);
 
     offset_ += read;
@@ -134,6 +158,11 @@ long DaosArrayHandle::read(void* buf, long len) {
 void DaosArrayHandle::close() {
 
     if (!open_) return;
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{mode_ + " 12 array handle array close", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
     arr_->close();
 

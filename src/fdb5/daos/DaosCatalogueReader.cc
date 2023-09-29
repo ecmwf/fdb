@@ -33,6 +33,10 @@ DaosCatalogueReader::DaosCatalogueReader(const eckit::URI& uri, const fdb5::Conf
 
 bool DaosCatalogueReader::selectIndex(const Key &key) {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
     if (currentIndexKey_ == key) {
         return true;
     }
@@ -44,17 +48,47 @@ bool DaosCatalogueReader::selectIndex(const Key &key) {
 
         fdb5::DaosKeyValueName catalogue_kv{pool_, db_cont_, catalogue_kv_};
 
-        if (!catalogue_kv.has(key.valuesToString())) return false;
-
         fdb5::DaosSession s{};
-        fdb5::DaosKeyValue catalogue_kv_obj{s, catalogue_kv};
 
+        /// @note: performed RPCs (only if the index wasn't visited yet, i.e. only on first read from an index key):
+        /// - open pool if not cached (daos_pool_connect) -- always skipped, always cached/open after selectDatabase
+        /// - check if cont exists if not cached (daos_cont_open) -- always skipped, always cached/open after selectDatabase
+        /// - generate catalogue kv oid if not previously generated (daos_obj_generate_oid) -- always performed, never previously generated as catalogue_kv is local and copies catalogue_kv_
+        /// - open container if not open (daos_cont_open) -- always skipped, always cached/open after selectDatabase
+        /// - ensure catalogue kv exists (daos_obj_open) -- always performed, objects not cached for now
+        fdb5::StatsTimer st{"retrieve 01 catalogue kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+        fdb5::DaosKeyValue catalogue_kv_obj{s, catalogue_kv};
+        st.stop();
+
+        /// @note: performed RPCs (only if the index wasn't visited yet, i.e. only on first read to an index key):
+        /// - check if catalogue kv contains index key (daos_kv_get without a buffer) -- always performed
+        st.start("retrieve 02 catalogue kv check", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+        if (!catalogue_kv_obj.has(key.valuesToString())) {
+            st.stop();
+
+            /// @note: performed RPCs (only if the index wasn't visited yet and index kv exists, i.e. only on first read from an existing index key):
+            /// - close catalogue kv (daos_obj_close) -- always performed
+            st.start("retrieve 04 catalogue kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+
+            return false;
+        }
+        st.stop();
+
+        /// @note: performed RPCs (only if the index wasn't visited yet and index kv exists, i.e. only on first read from an existing index key):
+        /// - retrieve index kv location from catalogue kv (daos_kv_get without a buffer + daos_kv_get) -- always performed
+        st.start("retrieve 03 catalogue kv get index", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         daos_size_t size{catalogue_kv_obj.size(key.valuesToString())};
         std::vector<char> n((long) size);
         catalogue_kv_obj.get(key.valuesToString(), &n[0], size);
+        st.stop();
+
         fdb5::DaosKeyValueName index_kv{eckit::URI{std::string{n.begin(), n.end()}}};
 
         indexes_[key] = Index(new fdb5::DaosIndex(key, index_kv));
+
+        /// @note: performed RPCs (only if the index wasn't visited yet and index kv exists, i.e. only on first read from an existing index key):
+        /// - close catalogue kv (daos_obj_close) -- always performed
+        st.start("retrieve 04 catalogue kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
 
     }
 
@@ -83,13 +117,32 @@ bool DaosCatalogueReader::open() {
 
 void DaosCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
     fdb5::DaosSession session{};
     /// @todo: take oclass from config
     fdb5::DaosKeyValueOID oid{currentIndexKey_.valuesToString() + std::string{"."} + keyword, OC_S1};
     fdb5::DaosKeyValueName n{pool_, db_cont_, oid};
-    fdb5::DaosKeyValue kv{session, n};
 
-    for (auto& k : kv.keys())
+    /// @note: performed RPCs:
+    /// - open pool if not cached (daos_pool_connect) -- always skipped?
+    /// - check if cont exists if not cached (daos_cont_open) -- always skipped?
+    /// - generate axis kv oid if not previously generated (daos_obj_generate_oid) -- always performed
+    /// - open container if not open (daos_cont_open) -- always skipped?
+    /// - ensure axis kv exists (daos_obj_open) -- always performed, objects not cached for now
+    fdb5::StatsTimer st{"retrieve 000 axis kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::DaosKeyValue kv{session, n};
+    st.stop();
+
+    /// @note: performed RPCs:
+    /// - one or more kv list (daos_kv_list) -- always performed
+    st.start("retrieve 001 axis kv list(s)", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+    std::vector<std::string> keys = kv.keys();
+    st.stop();
+
+    for (auto& k : keys)
         s.insert(k);
 
 }
