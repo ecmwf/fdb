@@ -14,6 +14,7 @@
 #pragma once
 
 #include <map>
+#include <functional>
 
 #include "eckit/log/Statistics.h"
 
