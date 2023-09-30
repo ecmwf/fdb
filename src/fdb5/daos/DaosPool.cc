@@ -122,7 +122,11 @@ void DaosPool::open() {
     if (open_) return;
 
     ASSERT(known_uuid_ || label_.size() > 0);
-    
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_pool_connect", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     if (label_.size() > 0) {
         DAOS_CALL(daos_pool_connect(label_.c_str(), NULL, DAOS_PC_RW, &poh_, NULL, NULL));
     } else {
@@ -130,6 +134,7 @@ void DaosPool::open() {
         uuid_unparse(uuid_, uuid_cstr);
         DAOS_CALL(daos_pool_connect(uuid_cstr, NULL, DAOS_PC_RW, &poh_, NULL, NULL));
     }
+    st.stop();
     
     open_ = true;
 
@@ -144,6 +149,11 @@ void DaosPool::close() {
 
     closeContainers();
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_pool_disconnect", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     std::cout << "DAOS_CALL => daos_pool_disconnect()" << std::endl;
 
     int code = daos_pool_disconnect(poh_, NULL);
@@ -153,6 +163,8 @@ void DaosPool::close() {
         << code << ")" << std::endl;
         
     std::cout << "DAOS_CALL <= daos_pool_disconnect()" << std::endl;
+
+    st.stop();
 
     open_ = false;
 

@@ -299,7 +299,12 @@ void DaosKeyValue::create() {
 
     const daos_handle_t& coh = cont_.getOpenHandle();
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_kv_open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     DAOS_CALL(daos_kv_open(coh, oid_.asDaosObjIdT(), DAOS_OO_RW, &oh_, NULL));
+    st.stop();
 
     open_ = true;
 
@@ -329,7 +334,12 @@ void DaosKeyValue::close() {
         eckit::Log::warning() << "Closing DaosKeyValue " << name() << ", object is not open" << std::endl;
         return;
     }
-    
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_obj_close", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     std::cout << "DAOS_CALL => daos_obj_close()" << std::endl;
 
     int code = daos_obj_close(oh_, NULL);
@@ -339,6 +349,8 @@ void DaosKeyValue::close() {
         << code << ")" << std::endl;
         
     std::cout << "DAOS_CALL <= daos_obj_close()" << std::endl;
+
+    st.stop();
 
     open_ = false;
 
