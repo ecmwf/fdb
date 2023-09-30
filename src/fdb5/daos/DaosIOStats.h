@@ -13,17 +13,10 @@
 
 #pragma once
 
-// #include <string>
 #include <map>
+#include <functional>
 
 #include "eckit/log/Statistics.h"
-// #include "eckit/memory/NonCopyable.h"
-// #include "eckit/log/Timer.h"
-
-// namespace eckit {
-// class Length;
-// class Timer;
-// }  // namespace eckit
 
 namespace fdb5 {
 
@@ -80,21 +73,8 @@ public:
 
     void report(std::ostream& s) const;
 
-    // DaosCatalogueWriter::selectIndex
-    // void logArcCatKvOpen(eckit::Timer& timer);
-    // void logArcCatKvCheck(eckit::Timer& timer);
-    // void logArcIdxKvCreate(eckit::Timer& timer);
-    // void logArcIdxKvPutKey(eckit::Timer& timer);
-    // void logArcIdxKvPutIndex(eckit::Timer& timer);
-    // void logArcCatKvGetIndex(eckit::Timer& timer);
-    // void logArcCatKvClose(eckit::Timer& timer);
-
     void logMdOperation(const std::string&, eckit::Timer&);
     // void logDtxOperation(const std::string&, const eckit::Length& size, eckit::Timer&);
-
-    // void logRead(const eckit::Length& size, eckit::Timer& timer);
-    // void logWrite(const eckit::Length& size, eckit::Timer& timer);
-    // void logFlush(eckit::Timer& timer);
 
 private:  // methods
     // void print(std::ostream& s) const;
@@ -109,50 +89,8 @@ private:  // members
 
     std::string prefix_;
 
-//     // The data elements that we actually want to track
-
-//     size_t numReads_;
-//     size_t bytesRead_;
-//     size_t sumBytesReadSquared_;
-//     eckit::Timing readTiming_;
-//     double sumReadTimesSquared_;
-
-//     size_t numWrites_;
-//     size_t bytesWritten_;
-//     size_t sumBytesWrittenSquared_;
-//     eckit::Timing writeTiming_;
-//     double sumWriteTimesSquared_;
-
     std::map<std::string, MetadataOperationStats> md_stats_;
     std::map<std::string, DataTransferOperationStats> tx_stats_;
-
-    // size_t numArcCatKvOpen_;
-    // eckit::Timing arcCatKvOpenTiming_;
-    // double sumArcCatKvOpenTimesSquared_;
-    
-    // size_t numArcCatKvCheck_;
-    // eckit::Timing arcCatKvCheckTiming_;
-    // double sumArcCatKvCheckTimesSquared_;
-    
-    // size_t numArcIdxKvCreate_;
-    // eckit::Timing arcIdxKvCreateTiming_;
-    // double sumArcIdxKvCreateTimesSquared_;
-    
-    // size_t numArcIdxKvPutKey_;
-    // eckit::Timing arcIdxKvPutKeyTiming_;
-    // double sumArcIdxKvPutKeyTimesSquared_;
-    
-    // size_t numArcCatKvPutIndex_;
-    // eckit::Timing arcCatKvPutIndexTiming_;
-    // double sumArcCatKvPutIndexTimesSquared_;
-    
-    // size_t numArcCatKvGetIndex_;
-    // eckit::Timing arcCatKvGetIndexTiming_;
-    // double sumArcCatKvGetIndexTimesSquared_;
-
-    // size_t numArcCatKvClose_;
-    // eckit::Timing arcCatKvClose_;
-    // double sumArcCatKvCloseTimesSquared_;
 
 // private:  // methods
 //     friend std::ostream& operator<<(std::ostream& s, const IOStats& p) {

@@ -51,6 +51,7 @@ public: // methods
 
     fdb5::DaosIOStats& stats() { return stats_; }
     eckit::Timer& timer() { return timer_; }
+    eckit::Timer& daosCallTimer() { return daos_call_timer_; }
 
     void configure(const eckit::LocalConfiguration&);
 
@@ -84,6 +85,7 @@ private: // members
     /// @todo: it is the FDB class who should own the DaosIOStats and pass on to the Catalogue and Store
     fdb5::DaosIOStats stats_;
     eckit::Timer timer_;
+    eckit::Timer daos_call_timer_;
 
 };
 

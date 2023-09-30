@@ -14,19 +14,11 @@
 #include <cmath>
 #include <iomanip>
 
-// #include "eckit/io/Length.h"
 #include "eckit/log/BigNum.h"
-// #include "eckit/log/Bytes.h"
-// #include "eckit/log/Timer.h"
-// #include "eckit/thread/AutoLock.h"
 
-// #include "multio/LibMultio.h"
 #include "fdb5/daos/DaosIOStats.h"
 
 static const int FORMAT_WIDTH = 75;
-
-
-// using namespace eckit;
 
 namespace fdb5 {
 
@@ -34,30 +26,6 @@ namespace fdb5 {
 
 DaosIOStats::DaosIOStats(const std::string& prefix) :
     prefix_(prefix) {
-    // numReads_(0),
-    // bytesRead_(0),
-    // sumBytesReadSquared_(0),
-    // sumReadTimesSquared_(0),
-    // numWrites_(0),
-    // bytesWritten_(0),
-    // sumBytesWrittenSquared_(0),
-    // sumWriteTimesSquared_(0),
-    // numFlush_(0),
-    // sumFlushTimesSquared_(0)
-    // numArcCatKvOpen_(0),
-    // sumArcCatKvOpenTimesSquared_(0),
-    // numArcCatKvCheck_(0),
-    // sumArcCatKvCheckTimesSquared_(0),
-    // numArcIdxKvCreate_(0),
-    // sumArcIdxKvCreateTimesSquared_(0),
-    // numArcIdxKvPutKey_(0),
-    // sumArcIdxKvPutKeyTimesSquared_(0),
-    // numArcIdxKvPutIndex_(0),
-    // sumArcIdxKvPutIndexTimesSquared_(0),
-    // numArcCatKvGetIndex_(0),
-    // sumArcCatKvGetIndexTimesSquared_(0),
-    // numArcCatKvClose_(0),
-    // sumArcCatKvCloseTimesSquared_(0) {
 
     if (!prefix_.empty())
         prefix_ += std::string(" ");
@@ -82,24 +50,6 @@ void DaosIOStats::logMdOperation(const std::string& label, eckit::Timer& timer) 
 
 }
 
-//     void logArcCatKvOpen(eckit::Timer& timer);
-//     void logArcCatKvCheck(eckit::Timer& timer);
-//     void logArcIdxKvCreate(eckit::Timer& timer);
-//     void logArcIdxKvPutKey(eckit::Timer& timer);
-//     void logArcIdxKvPutIndex(eckit::Timer& timer);
-//     void logArcCatKvGetIndex(eckit::Timer& timer);
-//     void logArcCatKvClose(eckit::Timer& timer);
-
-// void DaosIOStats::logArcCatKvOpen(eckit::Timer& timer) {
-
-//     numArcCatKvOpen_++;
-//     arcCatKvOpenTiming_ += timer;
-
-//     double elapsed = timer.elapsed();
-//     sumArcCatKvOpenTimesSquared_ += elapsed * elapsed;
-
-// }
-
 // void IOStats::logRead(const Length& size, Timer& timer) {
 
 //     numReads_++;
@@ -115,43 +65,7 @@ void DaosIOStats::logMdOperation(const std::string& label, eckit::Timer& timer) 
 //                              << ", total: " << readTiming_.elapsed_ << "s" << std::endl;
 // }
 
-
-// void IOStats::logWrite(const Length& size, Timer& timer) {
-
-//     numWrites_++;
-//     bytesWritten_ += size;
-//     sumBytesWrittenSquared_ += (size * size);
-//     writeTiming_ += timer;
-
-//     double elapsed = timer.elapsed();
-//     sumWriteTimesSquared_ += elapsed * elapsed;
-
-//     LOG_DEBUG_LIB(LibMultio) << "Write count: " << numWrites_ << ", size: " << Bytes(size)
-//                              << ", total: " << Bytes(bytesWritten_) << ", time: " << elapsed << "s"
-//                              << ", total: " << writeTiming_.elapsed_ << "s" << std::endl;
-// }
-
-
-// void IOStats::logFlush(Timer& timer) {
-
-//     numFlush_++;
-//     flushTiming_ += timer;
-
-//     double elapsed = timer.elapsed();
-//     sumFlushTimesSquared_ += elapsed * elapsed;
-
-//     LOG_DEBUG_LIB(LibMultio) << "Flush count: " << numFlush_ << ", time: " << elapsed << "s"
-//                              << ", total: " << flushTiming_.elapsed_ << "s" << std::endl;
-// }
-
 void DaosIOStats::report(std::ostream& s) const {
-
-    // // Write statistics
-
-    // reportCount(s, "num writes", numWrites_);
-    // reportBytes(s, "bytes written", numWrites_, bytesWritten_, sumBytesWrittenSquared_);
-    // reportTimes(s, "write time", numWrites_, writeTiming_, sumWriteTimesSquared_);
-    // reportRate(s, "write rate", bytesWritten_, writeTiming_);
 
     // // Read statistics
 
@@ -159,10 +73,6 @@ void DaosIOStats::report(std::ostream& s) const {
     // reportBytes(s, "bytes read", numReads_, bytesRead_, sumBytesReadSquared_);
     // reportTimes(s, "read time", numReads_, readTiming_, sumReadTimesSquared_);
     // reportRate(s, "read rate", bytesRead_, readTiming_);
-
-    // // ArchiveCatKvOpen statistics
-    // reportCount(s, "num archive catalogue kv open", numArchiveCatKvOpen_);
-    // reportTimes(s, "archive catalogue kv open time", numArchiveCatKvOpen_, archiveCatKvOpenTiming_, sumArchiveCatKvOpenTimesSquared_);
 
     eckit::Timing t;
     size_t numOps = 0;
