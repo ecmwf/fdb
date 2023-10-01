@@ -134,9 +134,15 @@ uint64_t DaosContainer::allocateOIDLo() {
 
     open();
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
     if (oid_alloc_.num_oids == 0) {
         oid_alloc_.num_oids = fdb5::DaosSession().containerOidsPerAlloc();
+        fdb5::StatsTimer st{"daos_cont_alloc_oids", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
         DAOS_CALL(daos_cont_alloc_oids(coh_, oid_alloc_.num_oids + 1, &(oid_alloc_.next_oid), NULL));
+        st.stop();
     } else {
         ++oid_alloc_.next_oid;
         --oid_alloc_.num_oids;

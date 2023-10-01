@@ -28,6 +28,7 @@
 #include "fdb5/message/MessageArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
+#include "fdb5/daos/DaosSession.h"
 
 // This list is currently sufficient to get to nparams=200 of levtype=ml,type=fc
 const std::unordered_set<size_t> AWKWARD_PARAMS {11, 12, 13, 14, 15, 16, 49, 51, 52, 61, 121, 122, 146, 147, 169, 175, 176, 177, 179, 189, 201, 202};
