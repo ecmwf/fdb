@@ -23,11 +23,7 @@ namespace fdb5 {
 
 DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name) :
     IndexBase(key, "daosKeyValue"),
-    location_(name, 0) {
-
-    updatedAxes();
-
-}
+    location_(name, 0) {}
 
 bool DaosIndex::mayContain(const Key &key) const {
 
