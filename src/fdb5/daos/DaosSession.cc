@@ -36,14 +36,24 @@ DaosManager::DaosManager() :
         "fdbDaosDmgConfigFile;$FDB_DAOS_DMG_CONFIG_FILE", dmgConfigFile_
     );
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_init", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     // daos_init can be called multiple times. An internal reference count is maintained by the library
     DAOS_CALL(daos_init());
+    st.stop();
 
 }
 
 DaosManager::~DaosManager() {
 
     pool_cache_.clear();
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_fini", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
     std::cout << "DAOS_CALL => daos_fini()" << std::endl;
 
@@ -54,6 +64,8 @@ DaosManager::~DaosManager() {
         << code << ")" << std::endl;
 
     std::cout << "DAOS_CALL <= daos_fini()" << std::endl;
+
+    st.stop();
 
 }
 

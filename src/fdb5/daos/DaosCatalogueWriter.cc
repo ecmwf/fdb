@@ -33,18 +33,38 @@ namespace fdb5 {
 DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& config) :
     DaosCatalogue(key, config), firstIndexWrite_(false) {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
     fdb5::DaosName pool_name{pool_};
+
+    /// @note: performed RPCs: TODO
+    fdb5::StatsTimer st{"archive 001 pool open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     ASSERT(pool_name.exists());
+    st.stop();
 
     fdb5::DaosKeyValueName main_kv_name{pool_, root_cont_, main_kv_};
+
+    /// @note: performed RPCs: TODO
+    fdb5::StatsTimer st{"archive 002 main kv ensure", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     /// @todo: just create directly?
     if (!main_kv_name.exists()) main_kv_name.create();
+    st.stop();
 
     fdb5::DaosSession s{};
+
+    /// @note: performed RPCs: TODO
+    fdb5::StatsTimer st{"archive 003 main kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue main_kv{s, main_kv_name};
+    st.stop();
+
     fdb5::DaosKeyValueName catalogue_kv_name{pool_, db_cont_, catalogue_kv_};
 
+    /// @note: performed RPCs: TODO
+    fdb5::StatsTimer st{"archive 004 main kv check", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     if (!main_kv.has(db_cont_)) {
+        st.stop();
 
         /// create catalogue kv
         catalogue_kv_name.create();
@@ -76,9 +96,12 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& con
         main_kv.put(db_cont_, nstr.data(), nstr.length());
 
     }
+    st.stop();
     
     /// @todo: record or read dbUID
 
+    /// @note: performed RPCs: TODO
+    fdb5::StatsTimer st{"archive 005 catalogue kv load schema", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     DaosCatalogue::loadSchema();
 
     /// @todo: TocCatalogue::checkUID();
