@@ -85,6 +85,8 @@ bool DaosCatalogueReader::selectIndex(const Key &key) {
         fdb5::DaosKeyValueName index_kv{eckit::URI{std::string{n.begin(), n.end()}}};
 
         indexes_[key] = Index(new fdb5::DaosIndex(key, index_kv));
+        
+        indexes_[key].updatedAxes();
 
         /// @note: performed RPCs (only if the index wasn't visited yet and index kv exists, i.e. only on first read from an existing index key):
         /// - close catalogue kv (daos_obj_close) -- always performed
