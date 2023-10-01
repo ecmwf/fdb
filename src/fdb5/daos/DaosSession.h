@@ -52,6 +52,7 @@ public: // methods
     fdb5::DaosIOStats& stats() { return stats_; }
     eckit::Timer& timer() { return timer_; }
     eckit::Timer& daosCallTimer() { return daos_call_timer_; }
+    eckit::Timer& miscTimer() { return misc_timer_; }
 
     void configure(const eckit::LocalConfiguration&);
 
@@ -86,6 +87,7 @@ private: // members
     fdb5::DaosIOStats stats_;
     eckit::Timer timer_;
     eckit::Timer daos_call_timer_;
+    eckit::Timer misc_timer_;
 
 };
 

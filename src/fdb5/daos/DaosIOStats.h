@@ -31,21 +31,22 @@ class StatsTimer {
 public:
     explicit StatsTimer(const std::string& label, eckit::Timer& t, std::function<void(const std::string&, eckit::Timer&)> fn) : 
         label_(label), timer_(t), fun_(fn), stopped_(false) {
-        timer_.start();
+        start(label, fn);
     }
     void start(const std::string& label, std::function<void(const std::string&, eckit::Timer&)> fn) {
         label_ = label;
         fun_ = fn;
+        timer_.stop();
         timer_.start();
         stopped_ = false;
     }
     void stop() {
+        if (stopped_) return;
         timer_.stop();
         fun_(std::move(label_), timer_);
         stopped_ = true;
     }
     ~StatsTimer() {
-        if (stopped_) return;
         stop();
     }
 };

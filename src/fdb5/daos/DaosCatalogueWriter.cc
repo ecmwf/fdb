@@ -47,7 +47,7 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& con
     fdb5::DaosKeyValueName main_kv_name{pool_, root_cont_, main_kv_};
 
     /// @note: performed RPCs: TODO
-    fdb5::StatsTimer st{"archive 002 main kv ensure", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    st.start("archive 002 main kv ensure", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     /// @todo: just create directly?
     if (!main_kv_name.exists()) main_kv_name.create();
     st.stop();
@@ -55,14 +55,14 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& con
     fdb5::DaosSession s{};
 
     /// @note: performed RPCs: TODO
-    fdb5::StatsTimer st{"archive 003 main kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    st.start("archive 003 main kv open", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     fdb5::DaosKeyValue main_kv{s, main_kv_name};
     st.stop();
 
     fdb5::DaosKeyValueName catalogue_kv_name{pool_, db_cont_, catalogue_kv_};
 
     /// @note: performed RPCs: TODO
-    fdb5::StatsTimer st{"archive 004 main kv check", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    st.start("archive 004 main kv check", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     if (!main_kv.has(db_cont_)) {
         st.stop();
 
@@ -101,8 +101,9 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& con
     /// @todo: record or read dbUID
 
     /// @note: performed RPCs: TODO
-    fdb5::StatsTimer st{"archive 005 catalogue kv load schema", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    st.start("archive 005 catalogue kv load schema", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     DaosCatalogue::loadSchema();
+    st.stop();
 
     /// @todo: TocCatalogue::checkUID();
 
@@ -340,7 +341,7 @@ void DaosCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLoca
         /// - ensure index kv exists (daos_obj_open) -- always performed, objects not cached for now. Should be cached
         /// - record axis names into index kv (daos_kv_put) -- always performed
         /// - close index kv when destroyed (daos_obj_close) -- always performed
-        st.start("archive 14 index kv put field location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+        st.start("archive 14 index kv put axis names", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         kv.put("axes", axisNames.data(), axisNames.length());
 
         firstIndexWrite_ = false;
