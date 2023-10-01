@@ -128,10 +128,19 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
     std::string query{key.valuesToString()};
 
+    int loc_max_len = 512;  /// @todo: read from config
+    std::vector<char> loc_data((long) loc_max_len);
+
     /// @note: performed RPCs:
-    /// - check if index kv contains index key (daos_kv_get without a buffer) -- always performed
-    st.start("retrieve 06 index kv check", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-    if (!index.has(query)) {
+    /// - retrieve field array location from index kv (daos_kv_get) -- always performed
+    st.start("retrieve 07 index kv get field location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+
+    try {
+
+        long loc_len = index.get(query, &loc_data[0], loc_data.size());
+
+    } catch (fdb5::DaosEntityNotFoundException& e) {
+
         st.stop();
 
         /// @note: performed RPCs:
@@ -139,17 +148,11 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
         st.start("retrieve 08 index kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
 
         return false;
+
     }
     st.stop();
 
-    /// @note: performed RPCs:
-    /// - retrieve field array location from index kv (daos_kv_get without a buffer + daos_kv_get) -- always performed
-    st.start("retrieve 07 index kv get field location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-    std::vector<char> loc_data((long) index.size(query));
-    index.get(query, &loc_data[0], loc_data.size());
-    st.stop();
-
-    eckit::MemoryStream ms{&loc_data[0], loc_data.size()};
+    eckit::MemoryStream ms{&loc_data[0], loc_len};
 
     /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
     time_t ts;
@@ -190,6 +193,11 @@ void DaosIndex::add(const Key &key, const Field &field) {
         hs << timestamp();
         hs << field.location();
     }
+
+    int loc_max_len = 512;  /// @todo: read from config
+    if (hs.bytesWritten() > loc_max_len)
+        throw eckit::Exception("Serialised field location exceeded configured maximum location length.");
+
     fdb5::DaosSession s{};
 
     /// @note: performed RPCs:
