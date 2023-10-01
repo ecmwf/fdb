@@ -135,9 +135,11 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
     /// - retrieve field array location from index kv (daos_kv_get) -- always performed
     st.start("retrieve 07 index kv get field location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
 
+    long loc_len;
+
     try {
 
-        long loc_len = index.get(query, &loc_data[0], loc_data.size());
+        loc_len = index.get(query, &loc_data[0], loc_data.size());
 
     } catch (fdb5::DaosEntityNotFoundException& e) {
 
