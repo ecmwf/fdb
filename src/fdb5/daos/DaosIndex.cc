@@ -24,6 +24,9 @@ namespace fdb5 {
 DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name) :
     IndexBase(key, "daosKeyValue"),
     location_(name, 0) {
+
+    updatedAxes();
+
 }
 
 bool DaosIndex::mayContain(const Key &key) const {
@@ -60,12 +63,27 @@ bool DaosIndex::mayContain(const Key &key) const {
 
 const IndexAxis& DaosIndex::updatedAxes() {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
     fdb5::DaosSession s{};
     const fdb5::DaosKeyValueName& index_kv_name = location_.daosName();
+
+    /// @note: performed RPCs:
+    /// - ensure axis kv exists (daos_obj_open) -- always performed, objects not cached for now
+    fdb5::StatsTimer st{"retrieve xx0 index kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue index_kv{s, index_kv_name};
+    st.stop();
+
+    /// @note: performed RPCs:
+    /// - get axes key size and content (daos_kv_get without buffer + daos_kv_get) -- always performed
+    st.start("retrieve xx1 index kv get axes", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     daos_size_t size = index_kv.size("axes");
     std::vector<char> axes_data((long) size);
     index_kv.get("axes", &axes_data[0], size);
+    st.stop();
+
     std::vector<std::string> axis_names;
     eckit::Tokenizer parse(",");
     parse(std::string(axes_data.begin(), axes_data.end()), axis_names);
@@ -74,8 +92,19 @@ const IndexAxis& DaosIndex::updatedAxes() {
         /// @todo: take oclass from config
         fdb5::DaosKeyValueOID oid(indexKey + std::string{"."} + name, OC_S1);
         fdb5::DaosKeyValueName nkv(index_kv_name.poolName(), index_kv_name.contName(), oid);
+
+        /// @note: performed RPCs:
+        /// - generate axis kv oid if not previously generated (daos_obj_generate_oid) -- always performed
+        /// - ensure axis kv exists (daos_obj_open) -- always performed, objects not cached for now
+        st.start("retrieve xx2 axis kv open", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         fdb5::DaosKeyValue axis_kv{s, nkv};
+        st.stop();
+
+        /// @note: performed RPCs:
+        /// - one or more kv list (daos_kv_list) -- always performed
+        st.start("retrieve xx3 axis kv list(s)", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         axes_.insert(name, axis_kv.keys());
+        st.stop();
     }
 
     return IndexBase::axes();
