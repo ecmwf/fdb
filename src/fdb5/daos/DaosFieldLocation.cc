@@ -11,6 +11,7 @@
 #include "eckit/filesystem/URIManager.h"
 #include "fdb5/daos/DaosFieldLocation.h"
 #include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosSession.h"
 #include "fdb5/LibFdb5.h"
 
 namespace fdb5 {
@@ -61,10 +62,26 @@ class DaosURIManager : public eckit::URIManager {
 
     virtual eckit::PathName path(const eckit::URI& f) const override { return f.name(); }
 
-    virtual bool exists(const eckit::URI& f) override { return fdb5::DaosName(f).exists(); }
+    virtual bool exists(const eckit::URI& f) override {
+
+        using namespace std::placeholders;
+        eckit::Timer& timer = fdb5::DaosManager::instance().miscTimer();
+        fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
+        fdb5::StatsTimer st{"misc 00 daos uri manager check uri exists", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
+        return fdb5::DaosName(f).exists();
+
+    }
 
     virtual eckit::DataHandle* newWriteHandle(const eckit::URI& f) override {
         
+        using namespace std::placeholders;
+        eckit::Timer& timer = fdb5::DaosManager::instance().miscTimer();
+        fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
+        fdb5::StatsTimer st{"misc 01 daos uri manager new write handle", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
         if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
         
         return fdb5::DaosArrayName(f).dataHandle();
@@ -73,6 +90,12 @@ class DaosURIManager : public eckit::URIManager {
 
     virtual eckit::DataHandle* newReadHandle(const eckit::URI& f) override {
         
+        using namespace std::placeholders;
+        eckit::Timer& timer = fdb5::DaosManager::instance().miscTimer();
+        fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
+        fdb5::StatsTimer st{"misc 02 daos uri manager new read handle", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
         if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
         
         return fdb5::DaosArrayName(f).dataHandle();
@@ -81,7 +104,13 @@ class DaosURIManager : public eckit::URIManager {
 
     /// @todo: implement DaosName::partHandle
     virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
-        
+         
+        using namespace std::placeholders;
+        eckit::Timer& timer = fdb5::DaosManager::instance().miscTimer();
+        fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
+        fdb5::StatsTimer st{"misc 03 daos uri manager new read handle with off and len", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
         if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;
         
         return fdb5::DaosArrayName(f).dataHandle();

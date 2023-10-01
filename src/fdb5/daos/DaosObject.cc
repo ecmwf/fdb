@@ -61,7 +61,7 @@ fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession& session, const fdb5::Da
 
     fdb5::DaosPool* pool;
     if (uuid_parse(name.poolName().c_str(), uuid) == 0) {
-        pool = &(session.getPool(uuid));
+        pool = &(session.getPool(uuid, name.poolName()));
     } else {
         pool = &(session.getPool(name.poolName()));
     }

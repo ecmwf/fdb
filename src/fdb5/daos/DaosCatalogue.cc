@@ -40,6 +40,12 @@ DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
 DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config) :
     Catalogue(Key(), controlIdentifiers, config), DaosCommon(config, "catalogue", uri) {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
+    fdb5::StatsTimer st{"retrieve 000 catalogue kv open and get db key", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     // Read the real DB key into the DB base object
     fdb5::DaosSession s{};
     fdb5::DaosKeyValueName n{pool_, db_cont_, catalogue_kv_};
@@ -48,6 +54,9 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
     daos_size_t size{db_kv.size("key")};
     std::vector<char> dbkey_data((long) size);
     db_kv.get("key", &dbkey_data[0], size);
+
+    st.stop();
+
     eckit::MemoryStream ms{&dbkey_data[0], size};
     dbKey_ = fdb5::Key(ms);
 

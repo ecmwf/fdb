@@ -106,6 +106,12 @@ void DaosCatalogueReader::deselectIndex() {
 
 bool DaosCatalogueReader::open() {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
+    fdb5::StatsTimer st{"retrieve 001 catalogue kv check exists and get schema", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     if (!DaosCatalogue::exists()) {
         return false;
     }
@@ -132,13 +138,13 @@ void DaosCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) 
     /// - generate axis kv oid if not previously generated (daos_obj_generate_oid) -- always performed
     /// - open container if not open (daos_cont_open) -- always skipped?
     /// - ensure axis kv exists (daos_obj_open) -- always performed, objects not cached for now
-    fdb5::StatsTimer st{"retrieve 000 axis kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::StatsTimer st{"retrieve xx0 axis kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue kv{session, n};
     st.stop();
 
     /// @note: performed RPCs:
     /// - one or more kv list (daos_kv_list) -- always performed
-    st.start("retrieve 001 axis kv list(s)", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+    st.start("retrieve xx1 axis kv list(s)", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     std::vector<std::string> keys = kv.keys();
     st.stop();
 

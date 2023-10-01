@@ -84,6 +84,7 @@ void DaosIOStats::report(std::ostream& s) const {
         reportTimes(s, x.first, x.second.numOps, x.second.timing, x.second.sumTimesSquared);
 
         if (x.first.rfind("daos_", 0) == 0) continue;
+        if (x.first.rfind("misc ", 0) == 0) continue;
 
         t += x.second.timing;
         numOps += x.second.numOps;
