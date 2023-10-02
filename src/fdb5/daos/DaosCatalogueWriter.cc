@@ -169,7 +169,7 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
             res = catalogue_kv_obj.get(key.valuesToString(), &n[0], idx_loc_max_len);
             st.stop();
 
-            index_kv.reset(new fdb5::DaosKeyValueName{eckit::URI{std::string{n.begin(), std::next(n.begin(), res - 1)}}});
+            index_kv.reset(new fdb5::DaosKeyValueName{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}});
 
         } catch (fdb5::DaosEntityNotFoundException& e) {
 

@@ -83,7 +83,7 @@ const IndexAxis& DaosIndex::updatedAxes() {
 
     std::vector<std::string> axis_names;
     eckit::Tokenizer parse(",");
-    parse(std::string(axes_data.begin(), std::next(axes_data.begin(), res - 1)), axis_names);
+    parse(std::string(axes_data.begin(), std::next(axes_data.begin(), res)), axis_names);
     std::string indexKey{key_.valuesToString()};
     for (const auto& name : axis_names) {
         /// @todo: take oclass from config
@@ -150,7 +150,7 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
     }
 
-    eckit::MemoryStream ms{&loc_data[0], res};
+    eckit::MemoryStream ms{&loc_data[0], (size_t) res};
 
     /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
     time_t ts;
