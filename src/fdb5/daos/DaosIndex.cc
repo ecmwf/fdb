@@ -67,22 +67,23 @@ const IndexAxis& DaosIndex::updatedAxes() {
     const fdb5::DaosKeyValueName& index_kv_name = location_.daosName();
 
     /// @note: performed RPCs:
-    /// - ensure axis kv exists (daos_obj_open) -- always performed, objects not cached for now
+    /// - ensure axis kv exists (daos_obj_open)
     fdb5::StatsTimer st{"retrieve xx0 index kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue index_kv{s, index_kv_name};
     st.stop();
 
+    int axis_names_max_len = 512;  /// @todo: take from config
+    std::vector<char> axes_data((long) axis_names_max_len);
+
     /// @note: performed RPCs:
-    /// - get axes key size and content (daos_kv_get without buffer + daos_kv_get) -- always performed
+    /// - get axes key size and content (daos_kv_get without buffer + daos_kv_get)
     st.start("retrieve xx1 index kv get axes", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-    daos_size_t size = index_kv.size("axes");
-    std::vector<char> axes_data((long) size);
-    index_kv.get("axes", &axes_data[0], size);
+    long res = index_kv.get("axes", &axes_data[0], axis_names_max_len);
     st.stop();
 
     std::vector<std::string> axis_names;
     eckit::Tokenizer parse(",");
-    parse(std::string(axes_data.begin(), axes_data.end()), axis_names);
+    parse(std::string(axes_data.begin(), std::next(axes_data.begin(), res - 1)), axis_names);
     std::string indexKey{key_.valuesToString()};
     for (const auto& name : axis_names) {
         /// @todo: take oclass from config
@@ -90,14 +91,14 @@ const IndexAxis& DaosIndex::updatedAxes() {
         fdb5::DaosKeyValueName nkv(index_kv_name.poolName(), index_kv_name.contName(), oid);
 
         /// @note: performed RPCs:
-        /// - generate axis kv oid if not previously generated (daos_obj_generate_oid) -- always performed
-        /// - ensure axis kv exists (daos_obj_open) -- always performed, objects not cached for now
+        /// - generate axis kv oid (daos_obj_generate_oid)
+        /// - ensure axis kv exists (daos_obj_open)
         st.start("retrieve xx2 axis kv open", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         fdb5::DaosKeyValue axis_kv{s, nkv};
         st.stop();
 
         /// @note: performed RPCs:
-        /// - one or more kv list (daos_kv_list) -- always performed
+        /// - one or more kv list (daos_kv_list)
         st.start("retrieve xx3 axis kv list(s)", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         axes_.insert(name, axis_kv.keys());
         st.stop();
@@ -118,43 +119,38 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
     fdb5::DaosSession s{};
 
     /// @note: performed RPCs:
-    /// - open pool if not cached (daos_pool_connect) -- always skipped, always cached/open after selectDatabase
-    /// - check if cont exists if not cached (daos_cont_open) -- always skipped, always cached/open after selectDatabase
-    /// - open container if not open (daos_cont_open) -- always skipped, always cached/open after selectDatabase
-    /// - ensure index kv exists (daos_obj_open) -- always performed, objects not cached for now
+    /// - ensure index kv exists (daos_obj_open)
     fdb5::StatsTimer st{"retrieve 05 index kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue index{s, n};
     st.stop();
 
     std::string query{key.valuesToString()};
 
-    int loc_max_len = 512;  /// @todo: read from config
-    std::vector<char> loc_data((long) loc_max_len);
-
-    /// @note: performed RPCs:
-    /// - retrieve field array location from index kv (daos_kv_get) -- always performed
-    st.start("retrieve 07 index kv get field location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-
-    long loc_len;
+    int field_loc_max_len = 512;  /// @todo: read from config
+    std::vector<char> loc_data((long) field_loc_max_len);
+    long res;
 
     try {
 
-        loc_len = index.get(query, &loc_data[0], loc_data.size());
+        /// @note: performed RPCs:
+        /// - retrieve field array location from index kv (daos_kv_get)
+        st.start("retrieve 06 index kv get field location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+        res = index.get(query, &loc_data[0], field_loc_max_len);
+        st.stop();
 
     } catch (fdb5::DaosEntityNotFoundException& e) {
 
         st.stop();
 
         /// @note: performed RPCs:
-        /// - close index kv (daos_obj_close) -- always performed
-        st.start("retrieve 08 index kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+        /// - close index kv (daos_obj_close)
+        st.start("retrieve 07 index kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
 
         return false;
 
     }
-    st.stop();
 
-    eckit::MemoryStream ms{&loc_data[0], loc_len};
+    eckit::MemoryStream ms{&loc_data[0], res};
 
     /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
     time_t ts;
@@ -163,8 +159,8 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
     field = fdb5::Field(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms), ts, fdb5::FieldDetails());
 
     /// @note: performed RPCs:
-    /// - close index kv (daos_obj_close) -- always performed
-    st.start("retrieve 08 index kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+    /// - close index kv (daos_obj_close)
+    st.start("retrieve 07 index kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
 
     return true;
 
@@ -196,19 +192,16 @@ void DaosIndex::add(const Key &key, const Field &field) {
         hs << field.location();
     }
 
-    int loc_max_len = 512;  /// @todo: read from config
-    if (hs.bytesWritten() > loc_max_len)
+    int field_loc_max_len = 512;  /// @todo: read from config
+    if (hs.bytesWritten() > field_loc_max_len)
         throw eckit::Exception("Serialised field location exceeded configured maximum location length.");
 
     fdb5::DaosSession s{};
 
     /// @note: performed RPCs:
-    /// - open pool if not cached (daos_pool_connect) -- always skipped, always cached/open after selectDatabase
-    /// - check if cont exists if not cached (daos_cont_open) -- always skipped, always cached/open after selectDatabase
-    /// - open container if not open (daos_cont_open) -- always skipped, always cached/open after selectDatabase
-    /// - ensure index kv exists (daos_obj_open) -- always performed, objects not cached for now. Should be cached
-    /// - record field key and location into index kv (daos_kv_put) -- always performed
-    /// - close index kv when destroyed (daos_obj_close) -- always performed
+    /// - ensure index kv exists (daos_obj_open)
+    /// - record field key and location into index kv (daos_kv_put)
+    /// - close index kv when destroyed (daos_obj_close)
     fdb5::StatsTimer st{"archive 12 index kv put field location", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue{s, location_.daosName()}.put(key.valuesToString(), h.data(), hs.bytesWritten());   
 
