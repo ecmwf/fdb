@@ -234,7 +234,6 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
         st.start("archive 07 catalogue kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
 
     }
-    st.stop();
 
     current_ = indexes_[key];
 
