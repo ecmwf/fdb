@@ -57,7 +57,7 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
 
     st.stop();
 
-    eckit::MemoryStream ms{&dbkey_data[0], res};
+    eckit::MemoryStream ms{&dbkey_data[0], (size_t) res};
     dbKey_ = fdb5::Key(ms);
 
 }
