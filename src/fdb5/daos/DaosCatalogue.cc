@@ -44,20 +44,20 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
     eckit::Timer& timer = fdb5::DaosManager::instance().timer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
 
-    fdb5::StatsTimer st{"retrieve 000 catalogue kv open and get db key", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::StatsTimer st{"list/wipe 000 catalogue kv open and get db key", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
     // Read the real DB key into the DB base object
     fdb5::DaosSession s{};
     fdb5::DaosKeyValueName n{pool_, db_cont_, catalogue_kv_};
     fdb5::DaosKeyValue db_kv{s, n};
 
-    daos_size_t size{db_kv.size("key")};
-    std::vector<char> dbkey_data((long) size);
-    db_kv.get("key", &dbkey_data[0], size);
+    int db_key_max_len = 512;  /// @todo: take from config
+    std::vector<char> dbkey_data((long) db_key_max_len);
+    long res = db_kv.get("key", &dbkey_data[0], db_key_max_len);
 
     st.stop();
 
-    eckit::MemoryStream ms{&dbkey_data[0], size};
+    eckit::MemoryStream ms{&dbkey_data[0], res};
     dbKey_ = fdb5::Key(ms);
 
 }
@@ -103,15 +103,26 @@ void DaosCatalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool
 
 void DaosCatalogue::loadSchema() {
 
+    using namespace std::placeholders;
+    eckit::Timer& t = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
     eckit::Timer timer("DaosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
 
+    /// @note: performed RPCs:
+    /// - daos_obj_generate_oid
+    /// - daos_kv_open
+    /// - daos_kv_get without a buffer
+    /// - daos_kv_get
+    fdb5::StatsTimer st{"retrieve 002 catalogue kv get schema", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValueName nkv{pool_, db_cont_, catalogue_kv_};
     fdb5::DaosSession s{};
     fdb5::DaosKeyValue kv{s, nkv};
-
     daos_size_t size = kv.size("schema");
     std::vector<char> v(size);
     kv.get("schema", v.data(), size);
+    t.stop();
+
     std::istringstream stream{std::string(v.begin(), v.end())};
     schema_.load(stream);
 
