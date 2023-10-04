@@ -28,6 +28,7 @@
 #include "fdb5/message/MessageArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
+#include "fdb5/daos/DaosSession.h"
 
 // This list is currently sufficient to get to nparams=200 of levtype=ml,type=fc
 const std::unordered_set<size_t> AWKWARD_PARAMS {11, 12, 13, 14, 15, 16, 49, 51, 52, 61, 121, 122, 146, 147, 169, 175, 176, 177, 179, 189, 201, 202};
@@ -268,6 +269,8 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
         // Log::info() << "DATA WRITTEN SUCCESSFULLY" << std::endl;
     }
 
+    fdb5::DaosManager::instance().stats().report(std::cout);
+
     Log::info() << "fdb-hammer - Fields written: " << writeCount << std::endl;
     Log::info() << "fdb-hammer - Bytes written: " << bytesWritten << std::endl;
     Log::info() << "fdb-hammer - Total duration: " << timer.elapsed() << std::endl;
@@ -345,7 +348,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
     EmptyHandle nullOutputHandle;
-    size_t total = dh->copyTo(nullOutputHandle);
+    size_t total = dh->saveInto(nullOutputHandle);
     gettimeofday(&(tval_after_io.at(0)), NULL);
 
     timer.stop();
@@ -418,6 +421,8 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
 
         // Log::info() << "DATA READ SUCCESSFULLY" << std::endl;
     }
+
+    fdb5::DaosManager::instance().stats().report(std::cout);
 
     Log::info() << "fdb-hammer - Fields read: " << fieldsRead << std::endl;
     Log::info() << "fdb-hammer - Bytes read: " << total << std::endl;
