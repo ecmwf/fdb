@@ -78,6 +78,7 @@
 enum daos_otype_t {
     DAOS_OT_KV_HASHED = 8,
     DAOS_OT_ARRAY = 11,
+    DAOS_OT_ARRAY_BYTE = 13,
 };
 
 enum daos_pool_props {
@@ -283,6 +284,10 @@ int daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
 int daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
                     unsigned int mode, daos_size_t *cell_size,
                     daos_size_t *chunk_size, daos_handle_t *oh, daos_event_t *ev);
+
+int daos_array_open_with_attr(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
+                              unsigned int mode, daos_size_t cell_size, daos_size_t chunk_size, 
+                              daos_handle_t *oh, daos_event_t *ev);
 
 int daos_array_close(daos_handle_t oh, daos_event_t *ev);
 

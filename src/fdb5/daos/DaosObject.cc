@@ -75,7 +75,7 @@ DaosArray::DaosArray(DaosArray&& other) noexcept : DaosObject::DaosObject(std::m
 DaosArray::DaosArray(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid, bool verify) : DaosObject(cont, oid) {
 
     ASSERT(oid_.wasGenerated());
-    ASSERT(oid_.otype() == type());
+    ASSERT(oid_.otype() == DAOS_OT_ARRAY || oid_.otype() == DAOS_OT_ARRAY_BYTE);
 
     if (verify && !exists()) {
         throw fdb5::DaosEntityNotFoundException(
@@ -98,6 +98,8 @@ DaosArray::~DaosArray() {
 
 }
 
+/// @note: non-existing byte-arrays are reported as existing with the current approach
+/// @todo: implement proper exist check for the case where otype is DAOS_OT_ARRAY_BYTE
 bool DaosArray::exists() {
 
     /// @todo: implement this with more appropriate DAOS API functions
@@ -119,7 +121,14 @@ void DaosArray::create() {
 
     if (open_) throw eckit::SeriousBug("Attempted create() on an open DaosArray");
 
+    if (oid_.otype() == DAOS_OT_ARRAY_BYTE) return open();
+
     const daos_handle_t& coh = cont_.getOpenHandle();
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_array_create", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
     DAOS_CALL(
         daos_array_create(
@@ -144,10 +153,35 @@ void DaosArray::open() {
 
     if (open_) return;
 
-    daos_size_t cell_size, csize;
     const daos_handle_t& coh = cont_.getOpenHandle();
-    DAOS_CALL(daos_array_open(coh, oid_.asDaosObjIdT(), DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, &oh_, NULL));
-    
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
+    if (oid_.otype() == DAOS_OT_ARRAY_BYTE) {
+
+        /// @todo: on write, cell size and chunk size should be recorded some where in the database
+        /// @todo: on read, cell size and chunk size should be retrieved from the database and passed here
+        fdb5::StatsTimer st{"daos_array_open_with_attr", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+        DAOS_CALL(
+            daos_array_open_with_attr(
+                coh, oid_.asDaosObjIdT(), DAOS_TX_NONE, DAOS_OO_RW, 
+                fdb5::DaosSession().objectCreateCellSize(),
+                fdb5::DaosSession().objectCreateChunkSize(),
+                &oh_, NULL
+            )
+        );
+
+    } else {
+
+        daos_size_t cell_size, csize;
+
+        fdb5::StatsTimer st{"daos_array_open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+        DAOS_CALL(daos_array_open(coh, oid_.asDaosObjIdT(), DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, &oh_, NULL));
+
+    }
+
     open_ = true;
 
 }
@@ -161,7 +195,14 @@ void DaosArray::close() {
     
     std::cout << "DAOS_CALL => daos_array_close()" << std::endl;
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_array_close", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     int code = daos_array_close(oh_, NULL);
+
+    st.stop();
 
     if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_array_close(), file " 
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
@@ -198,7 +239,14 @@ long DaosArray::write(const void* buf, const long& len, const eckit::Offset& off
     d_iov_set(&iov, (void*) buf, (size_t) len);
     sgl.sg_iovs = &iov;
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_array_write", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     DAOS_CALL(daos_array_write(oh_, DAOS_TX_NONE, &iod, &sgl, NULL));
+
+    st.stop();
 
     return len;
 
@@ -207,15 +255,20 @@ long DaosArray::write(const void* buf, const long& len, const eckit::Offset& off
 /// @note: a buffer (buf) and its length (len) must be provided. A read from the  
 ///        DAOS array of the full buffer length will be attempted.
 /// @note: daos_array_read does not fail if requested len is larger than object,
-///        and does not report back the actual amount of bytes read. The user should
-///        ideally call daos_array_get_size first and request read of a correspondingly
-///        sized buffer. DaosArray::read, however, automatically checks the size
-///        if not done yet, and returns the actual amount of bytes read.
+///        and does not report back the actual amount of bytes read. The user must
+///        call DaosArray::size() (i.e. daos_array_get_size) first and request 
+///        read of a correspondingly sized buffer.
 /// @todo: implement the note above in dummy DAOS.
+/// @note: therefore, this method won't be compatible with the DataHandle::read
+///        interface (which is expected to return actual read bytes) unless the 
+///        implementation of such method checks the actual size and returns it
+///        if smaller than the provided buffer - which would entail an additional
+///        RPC and reduce performance. If the read interface is not properly 
+///        implemented, at least DataHandle::copyTo breaks.
+/// @todo: fix this issue by using the "short_read" feature in daos_array_read
+///        and returning actual read size.
+/// @note: see DaosArrayPartHandle for cases where the object size is known.
 long DaosArray::read(void* buf, long len, const eckit::Offset& off) {
-
-    eckit::Offset sz(size());
-    if ((off + sz) < eckit::Offset(len)) len = (long) (sz - off);
 
     open();
 
@@ -234,7 +287,14 @@ long DaosArray::read(void* buf, long len, const eckit::Offset& off) {
     d_iov_set(&iov, buf, (size_t) len);
     sgl.sg_iovs = &iov;
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_array_read", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     DAOS_CALL(daos_array_read(oh_, DAOS_TX_NONE, &iod, &sgl, NULL));
+
+    st.stop();
 
     return len;
 
@@ -243,14 +303,18 @@ long DaosArray::read(void* buf, long len, const eckit::Offset& off) {
 // TODO: should return a long for consistency with the rest of DaosArray API
 daos_size_t DaosArray::size() {
 
-    if (size_.has_value()) return size_.value();
-
     open();
 
     daos_size_t array_size;
+    
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_array_get_size", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     DAOS_CALL(daos_array_get_size(oh_, DAOS_TX_NONE, &array_size, NULL));
 
-    size_.emplace(array_size);
+    st.stop();
 
     return array_size;
 
@@ -303,7 +367,9 @@ void DaosKeyValue::create() {
     eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
     fdb5::StatsTimer st{"daos_kv_open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     DAOS_CALL(daos_kv_open(coh, oid_.asDaosObjIdT(), DAOS_OO_RW, &oh_, NULL));
+    
     st.stop();
 
     open_ = true;
@@ -335,22 +401,22 @@ void DaosKeyValue::close() {
         return;
     }
 
+    std::cout << "DAOS_CALL => daos_obj_close()" << std::endl;
+
     using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
     fdb5::StatsTimer st{"daos_obj_close", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
-    std::cout << "DAOS_CALL => daos_obj_close()" << std::endl;
-
     int code = daos_obj_close(oh_, NULL);
+
+    st.stop();
 
     if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_obj_close(), file " 
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
         << code << ")" << std::endl;
         
     std::cout << "DAOS_CALL <= daos_obj_close()" << std::endl;
-
-    st.stop();
 
     open_ = false;
 
@@ -361,7 +427,16 @@ daos_size_t DaosKeyValue::size(const std::string& key) {
     open();
 
     long res{0};
+
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_kv_get", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     DAOS_CALL(daos_kv_get(oh_, DAOS_TX_NONE, 0, key.c_str(), (daos_size_t*) &res, nullptr, NULL));
+
+    st.stop();
 
     return res;
 
@@ -378,7 +453,14 @@ long DaosKeyValue::put(const std::string& key, const void* buf, const long& len)
 
     open();
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_kv_put", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     DAOS_CALL(daos_kv_put(oh_, DAOS_TX_NONE, 0, key.c_str(), (daos_size_t) len, buf, NULL));
+
+    st.stop();
 
     return len;
 
@@ -390,7 +472,15 @@ long DaosKeyValue::get(const std::string& key, void* buf, const long& len) {
     open();
 
     long res{len};
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    fdb5::StatsTimer st{"daos_kv_get", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     DAOS_CALL(daos_kv_get(oh_, DAOS_TX_NONE, 0, key.c_str(), (daos_size_t*) &res, buf, NULL));
+
+    st.stop();
 
     if (res == 0) throw fdb5::DaosEntityNotFoundException("Key '" + key + "' not found in KeyValue with OID " + oid_.asString());
 
@@ -408,6 +498,10 @@ void DaosKeyValue::remove(const std::string& key) {
 
 std::vector<std::string> DaosKeyValue::keys() {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
     /// @todo: proper memory management
     int max_keys_per_rpc = 1024;  /// @todo: take from config
     daos_key_desc_t key_sizes[max_keys_per_rpc];
@@ -422,11 +516,18 @@ std::vector<std::string> DaosKeyValue::keys() {
     sgl.sg_iovs = &sg_iov;
     daos_anchor_t listing_status = DAOS_ANCHOR_INIT;
     std::vector<std::string> listed_keys;
+
     while (!daos_anchor_is_eof(&listing_status)) {
         uint32_t nkeys_found = max_keys_per_rpc;
         int rc;
         memset(list_buf, 0, bufsize);
+
+        fdb5::StatsTimer st{"daos_kv_list", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
         DAOS_CALL(daos_kv_list(oh_, DAOS_TX_NONE, &nkeys_found, key_sizes, &sgl, &listing_status, NULL));
+
+        st.stop();
+
         size_t key_start = 0;
         for (int i = 0; i < nkeys_found; i++) {
             listed_keys.push_back(std::string(list_buf + key_start, key_sizes[i].kd_key_len));

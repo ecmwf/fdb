@@ -76,6 +76,17 @@ public: //methods
 
 };
 
+class DaosByteArrayOID : public DaosOID {
+
+public: //methods
+
+    DaosByteArrayOID(const uint64_t& hi, const uint64_t& lo);
+    DaosByteArrayOID(const std::string&);
+    DaosByteArrayOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass);
+    DaosByteArrayOID(const std::string&, const daos_oclass_id_t& oclass);
+
+};
+
 class DaosKeyValueOID : public DaosOID {
 
 public: //methods

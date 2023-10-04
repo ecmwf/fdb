@@ -39,7 +39,6 @@ std::shared_ptr<FieldLocation> DaosFieldLocation::make_shared() const {
 
 eckit::DataHandle* DaosFieldLocation::dataHandle() const {
 
-    /// @todo: ensure DaosSession has been configured before any actions on DaosNames in DaosFieldLocation
     return fdb5::DaosArrayName(uri_).dataHandle();
     
 }

@@ -51,7 +51,7 @@ public: // methods
     virtual eckit::Offset position() override;
     virtual eckit::Offset seek(const eckit::Offset&) override;
     virtual bool canSeek() const override;
-    virtual void skip(const eckit::Length&) override;
+    // virtual void skip(const eckit::Length&) override;
 
 //     //virtual void rewind() override;
 //     //virtual void restartReadFrom(const Offset&) override;
@@ -73,6 +73,7 @@ private: // members
     bool open_;
     eckit::Offset offset_;
     std::string mode_;
+    eckit::Optional<eckit::Length> size_;
 
 //     //static ClassSpec classSpec_;
 //     //static Reanimator<DataHandle> reanimator_;

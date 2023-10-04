@@ -90,7 +90,8 @@ void DaosNameBase::generateOID() const {
 std::unique_ptr<fdb5::DaosObject> DaosNameBase::buildObject(const daos_otype_t& otype, fdb5::DaosSession& s) const {
 
     // will throw DaosEntityNotFoundException if not exists
-    if (otype == DAOS_OT_ARRAY) return std::unique_ptr<fdb5::DaosObject>(new fdb5::DaosArray{s, *this});
+    if (otype == DAOS_OT_ARRAY || otype == DAOS_OT_ARRAY_BYTE)
+        return std::unique_ptr<fdb5::DaosObject>(new fdb5::DaosArray{s, *this});
     if (otype == DAOS_OT_KV_HASHED) return std::unique_ptr<fdb5::DaosObject>(new fdb5::DaosKeyValue{s, *this});
     throw eckit::Exception("Provided otype not recognised.");
 
@@ -110,7 +111,7 @@ void DaosNameBase::create() const {
     generateOID();
 
     switch (oid_.value().otype()) {
-        case DAOS_OT_ARRAY:
+        case DAOS_OT_ARRAY: case DAOS_OT_ARRAY_BYTE:
             c.createArray(oid_.value());
             break;
         case DAOS_OT_KV_HASHED:
@@ -257,14 +258,14 @@ bool DaosNameBase::operator>=(const DaosNameBase& other) const {
 
 DaosArrayName::DaosArrayName(const std::string& pool, const std::string& cont, const fdb5::DaosOID& oid) : DaosNameBase(pool, cont, oid) {
     
-    ASSERT(oid_.value().otype() == DAOS_OT_ARRAY);
+    ASSERT(oid_.value().otype() == DAOS_OT_ARRAY || oid_.value().otype() == DAOS_OT_ARRAY_BYTE);
     
 }
 
 DaosArrayName::DaosArrayName(const eckit::URI& uri) : DaosNameBase(uri) {
 
     ASSERT(oid_.has_value());
-    ASSERT(oid_.value().otype() == DAOS_OT_ARRAY);
+    ASSERT(oid_.value().otype() == DAOS_OT_ARRAY || oid_.value().otype() == DAOS_OT_ARRAY_BYTE);
 
 }
 
@@ -320,11 +321,15 @@ DaosName::DaosName(const eckit::URI& uri) : DaosNameBase(uri) {}
 
 DaosName::DaosName(const fdb5::DaosObject& obj) : DaosNameBase(obj) {}
 
-DaosArrayName DaosName::createArrayName(const daos_oclass_id_t& oclass) const {
+DaosArrayName DaosName::createArrayName(const daos_oclass_id_t& oclass, bool with_attr) const {
 
     ASSERT(hasContName() && !hasOID());
     create();
-    return DaosArrayName{pool_, cont_.value(), createOID(DAOS_OT_ARRAY, oclass)};
+    if (with_attr) {
+        return DaosArrayName{pool_, cont_.value(), createOID(DAOS_OT_ARRAY, oclass)};
+    } else {
+        return DaosArrayName{pool_, cont_.value(), createOID(DAOS_OT_ARRAY_BYTE, oclass)};
+    }
 
 }
 

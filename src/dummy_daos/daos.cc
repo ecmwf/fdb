@@ -492,7 +492,7 @@ int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t *oid,
                           enum daos_otype_t type, daos_oclass_id_t cid,
                           daos_oclass_hints_t hints, uint32_t args) {
 
-    if (type != DAOS_OT_KV_HASHED && type != DAOS_OT_ARRAY) NOTIMP;
+    if (type != DAOS_OT_KV_HASHED && type != DAOS_OT_ARRAY && type != DAOS_OT_ARRAY_BYTE) NOTIMP;
     if (cid != OC_S1) NOTIMP;
     if (hints != 0) NOTIMP;
     if (args != 0) NOTIMP;
@@ -594,7 +594,7 @@ int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
 
     bool exists = (oh.impl->path / key).exists();
 
-    if (!exists && buf != NULL) return -1;
+    if (!exists && buf != NULL) return -DER_NONEXIST;
 
     daos_size_t dest_size = *size;
     *size = 0;
@@ -727,9 +727,15 @@ int daos_kv_list(daos_handle_t oh, daos_handle_t th, uint32_t *nr,
 int daos_array_generate_oid(daos_handle_t coh, daos_obj_id_t *oid, bool add_attr, daos_oclass_id_t cid,
                             daos_oclass_hints_t hints, uint32_t args) {
 
-    if (add_attr != true) NOTIMP;
+    if (add_attr) {
 
-    return daos_obj_generate_oid(coh, oid, DAOS_OT_ARRAY, cid, hints, args);
+        return daos_obj_generate_oid(coh, oid, DAOS_OT_ARRAY, cid, hints, args);
+
+    } else {
+
+        return daos_obj_generate_oid(coh, oid, DAOS_OT_ARRAY_BYTE, cid, hints, args);
+
+    }
 
 }
 
@@ -780,6 +786,21 @@ int daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
 
     oh->impl = impl.release();
     return 0;
+
+}
+
+int daos_array_open_with_attr(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
+                              unsigned int mode, daos_size_t cell_size, daos_size_t chunk_size,
+                              daos_handle_t *oh, daos_event_t *ev) {
+
+    if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
+    if (mode != DAOS_OO_RW) NOTIMP;
+    if (ev != NULL) NOTIMP;
+
+    if (cell_size != 1) NOTIMP;
+    if (chunk_size != (uint64_t) 1048576) NOTIMP;
+
+    return daos_array_create(coh, oid, th, cell_size, chunk_size, oh, ev);
 
 }
 
