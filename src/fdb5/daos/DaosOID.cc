@@ -116,6 +116,16 @@ DaosArrayOID::DaosArrayOID(const uint32_t& hi, const uint64_t& lo, const daos_oc
 DaosArrayOID::DaosArrayOID(const std::string& name, const daos_oclass_id_t& oclass) :
     DaosOID(name, DAOS_OT_ARRAY, oclass) {}
 
+DaosByteArrayOID::DaosByteArrayOID(const uint64_t& hi, const uint64_t& lo) : DaosOID(hi, lo) { ASSERT(otype_ == DAOS_OT_ARRAY_BYTE); }
+
+DaosByteArrayOID::DaosByteArrayOID(const std::string& oid) : DaosOID(oid) { ASSERT(otype_ == DAOS_OT_ARRAY_BYTE); }
+
+DaosByteArrayOID::DaosByteArrayOID(const uint32_t& hi, const uint64_t& lo, const daos_oclass_id_t& oclass) :
+    DaosOID(hi, lo, DAOS_OT_ARRAY_BYTE, oclass) {}
+
+DaosByteArrayOID::DaosByteArrayOID(const std::string& name, const daos_oclass_id_t& oclass) :
+    DaosOID(name, DAOS_OT_ARRAY_BYTE, oclass) {}
+
 DaosKeyValueOID::DaosKeyValueOID(const uint64_t& hi, const uint64_t& lo) : DaosOID(hi, lo) { ASSERT(otype_ == DAOS_OT_KV_HASHED); }
 
 DaosKeyValueOID::DaosKeyValueOID(const std::string& oid) : DaosOID(oid) { ASSERT(otype_ == DAOS_OT_KV_HASHED); }

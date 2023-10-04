@@ -90,7 +90,7 @@ public: // methods
 
     ~DaosArray();
 
-    daos_otype_t type() const override { return DAOS_OT_ARRAY; }
+    daos_otype_t type() const override { return OID().otype(); }
     bool exists() override;
     void destroy() override;
     void open() override;
@@ -105,10 +105,6 @@ private: // methods
     DaosArray(fdb5::DaosContainer&, const fdb5::DaosOID&, bool verify);
 
     void create() override;
-
-private: // members
-
-    eckit::Optional<daos_size_t> size_;
 
 };
 

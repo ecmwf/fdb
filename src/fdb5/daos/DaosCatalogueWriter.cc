@@ -37,17 +37,18 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& con
     eckit::Timer& timer = fdb5::DaosManager::instance().timer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
 
-    fdb5::DaosName pool_name{pool_};
+    fdb5::DaosSession s{};
 
     /// @note: performed RPCs:
     /// - daos_pool_connect
-    fdb5::StatsTimer st{"archive 001 pool check exists", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
-    ASSERT(pool_name.exists());
+    /// - root cont open (daos_cont_open)
+    /// - root cont create (daos_cont_create)
+    fdb5::StatsTimer st{"archive 001 ensure pool and root container", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::DaosPool& p = s.getPool(pool_);
+    p.ensureContainer(root_cont_);
     st.stop();
 
     fdb5::DaosKeyValueName main_kv_name{pool_, root_cont_, main_kv_};
-
-    fdb5::DaosSession s{};
 
     /// @note: the DaosKeyValue constructor checks if the kv exists, which results in creation if not exists
     /// @note: performed RPCs:

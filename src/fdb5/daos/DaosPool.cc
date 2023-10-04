@@ -149,22 +149,22 @@ void DaosPool::close() {
 
     closeContainers();
 
+    // std::cout << "DAOS_CALL => daos_pool_disconnect()" << std::endl;
+
     using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
     fdb5::StatsTimer st{"daos_pool_disconnect", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
-    // std::cout << "DAOS_CALL => daos_pool_disconnect()" << std::endl;
-
     int code = daos_pool_disconnect(poh_, NULL);
+
+    st.stop();
 
     if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_pool_disconnect(), file " 
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
         << code << ")" << std::endl;
         
     // std::cout << "DAOS_CALL <= daos_pool_disconnect()" << std::endl;
-
-    st.stop();
 
     open_ = false;
 

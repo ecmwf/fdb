@@ -127,7 +127,7 @@ public: // methods
     DaosName(const eckit::URI&);
     DaosName(const fdb5::DaosObject&);
 
-    fdb5::DaosArrayName createArrayName(const daos_oclass_id_t& oclass = OC_S1) const;
+    fdb5::DaosArrayName createArrayName(const daos_oclass_id_t& oclass = OC_S1, bool with_attr = true) const;
     fdb5::DaosKeyValueName createKeyValueName(const daos_oclass_id_t& oclass = OC_S1) const;
     std::vector<fdb5::DaosOID> listOIDs() const;
 

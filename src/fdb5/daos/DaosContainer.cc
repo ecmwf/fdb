@@ -117,7 +117,9 @@ void DaosContainer::close() {
     eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
     fdb5::StatsTimer st{"daos_cont_close", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
     int code = daos_cont_close(coh_, NULL);
+    
     st.stop();
 
     if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_cont_close(), file " 
@@ -171,9 +173,13 @@ fdb5::DaosOID DaosContainer::generateOID(const fdb5::DaosOID& oid) {
 
 }
 
-fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass) {
+fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass, bool with_attr) {
 
-    fdb5::DaosOID new_oid = generateOID(fdb5::DaosOID{0, allocateOIDLo(), DAOS_OT_ARRAY, oclass});
+    daos_otype_t otype = DAOS_OT_ARRAY;
+
+    if (!with_attr) otype = DAOS_OT_ARRAY_BYTE;
+
+    fdb5::DaosOID new_oid = generateOID(fdb5::DaosOID{0, allocateOIDLo(), otype, oclass});
 
     open();
 
@@ -185,7 +191,7 @@ fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass) {
 
 fdb5::DaosArray DaosContainer::createArray(const fdb5::DaosOID& oid) {
 
-    ASSERT(oid.otype() == DAOS_OT_ARRAY);
+    ASSERT(oid.otype() == DAOS_OT_ARRAY || oid.otype() == DAOS_OT_ARRAY_BYTE);
 
     open();
 

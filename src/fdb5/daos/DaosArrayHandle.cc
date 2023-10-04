@@ -26,6 +26,9 @@ using eckit::Offset;
 
 namespace fdb5 {
 
+/// @todo: develop DaosArrayPartHandle, and use it in DaosFieldLocation::dataHandle.
+/// that part handle will not need to query size for openForRead, and read()ing will be performed directly
+
 DaosArrayHandle::DaosArrayHandle(const fdb5::DaosArrayName& name) : name_(name), open_(false), offset_(0) {}
 
 DaosArrayHandle::~DaosArrayHandle() {
@@ -47,17 +50,22 @@ void DaosArrayHandle::openForWrite(const Length& len) {
     using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().timer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-    fdb5::StatsTimer st{"archive 10 array handle array create", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+
+    fdb5::StatsTimer st{"archive 100 array handle ensure container", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
     session_.reset(new fdb5::DaosSession());
 
     fdb5::DaosPool& p = session_->getPool(name_.poolName());
     fdb5::DaosContainer& c = p.ensureContainer(name_.contName());
 
+    st.stop();
+
+    st.start("archive 101 array handle array create", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+
     /// @todo: optionally remove this, as name_.OID() and OID generation are
     ///    triggered as part of DaosArray constructors.
     name_.generateOID();
-    
+
     /// @note: only ways to check if array exists without generating a snapshot are:
     ///   - attempt array open and check if rc is 0 or DER_NONEXIST (DaosArray(session, name))
     ///   - attempt array create and check if rc is 0 or DER_EXIST (c.createArray(oid))
@@ -74,6 +82,8 @@ void DaosArrayHandle::openForWrite(const Length& len) {
     }
 
     arr_->open();
+
+    st.stop();
 
     /// @todo: should wipe object content?
 
@@ -94,12 +104,14 @@ void DaosArrayHandle::openForAppend(const Length& len) {
 
 }
 
+/// @note: the array size is retrieved here. For a more optimised reading if the 
+///   size is known in advance, see DaosArrayPartHandle.
 Length DaosArrayHandle::openForRead() {
 
     if (open_) NOTIMP;
 
     mode_ = "retrieve";
-    
+
     using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().timer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
@@ -115,9 +127,7 @@ Length DaosArrayHandle::openForRead() {
 
     open_ = true;
 
-    offset_ = eckit::Offset(0);
-
-    return Length(arr_->size());
+    return size();
 
 }
 
@@ -138,6 +148,12 @@ long DaosArrayHandle::write(const void* buf, long len) {
 
 }
 
+/// @note: the array size is cached at openForRead, and it is used to determine the
+///   likely actual size that has been read in cases where the provided buffer is 
+///   larger than the remaining span to read. The array might have been expanded or
+///   shrinked between a call to openForRead and a call to read and the cached size
+///   might be wrong. Therefore this handle is not intended for reading arrays in
+///   applications with write/read contention.
 long DaosArrayHandle::read(void* buf, long len) {
 
     ASSERT(open_);
@@ -148,6 +164,8 @@ long DaosArrayHandle::read(void* buf, long len) {
     fdb5::StatsTimer st{"retrieve 10 array handle array read", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
     long read = arr_->read(buf, len, offset_);
+
+    if (len > size() - offset_) read = size() - offset_;
 
     offset_ += read;
 
@@ -168,6 +186,8 @@ void DaosArrayHandle::close() {
 
     open_ = false;
 
+    size_.reset();
+
     /// @todo: should offset be set to 0?
 
 }
@@ -182,7 +202,13 @@ void DaosArrayHandle::flush() {
 
 Length DaosArrayHandle::size() {
 
-    return Length(name_.size());
+    if (size_.has_value()) return size_.value();
+
+    eckit::Length size = arr_->size();
+
+    size_.emplace(size);
+
+    return size;
 
 }
 
@@ -213,11 +239,11 @@ bool DaosArrayHandle::canSeek() const {
 
 }
 
-void DaosArrayHandle::skip(const Length& len) {
+// void DaosArrayHandle::skip(const Length& len) {
 
-    offset_ = Offset(len);
+//     offset_ += Offset(len);
 
-}
+// }
 
 std::string DaosArrayHandle::title() const {
     
