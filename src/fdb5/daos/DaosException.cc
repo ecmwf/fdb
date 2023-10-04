@@ -14,15 +14,21 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+DaosException::DaosException() : Exception() {}
+
 DaosException::DaosException(const std::string& w) : Exception(w) {}
 
 DaosException::DaosException(const std::string& w, const eckit::CodeLocation& l) :
     Exception(w, l) {}
 
+DaosEntityNotFoundException::DaosEntityNotFoundException() : DaosException() {}
+
 DaosEntityNotFoundException::DaosEntityNotFoundException(const std::string& w) : DaosException(w) {}
 
 DaosEntityNotFoundException::DaosEntityNotFoundException(const std::string& w, const eckit::CodeLocation& l) :
     DaosException(w, l) {}
+
+DaosEntityAlreadyExistsException::DaosEntityAlreadyExistsException() : DaosException() {}
 
 DaosEntityAlreadyExistsException::DaosEntityAlreadyExistsException(const std::string& w) : DaosException(w) {}
 

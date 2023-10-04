@@ -21,6 +21,7 @@ namespace fdb5 {
 
 class DaosException : public eckit::Exception {
 public:
+    DaosException();
     DaosException(const std::string&);
     DaosException(const std::string&, const eckit::CodeLocation&);
 };
@@ -29,12 +30,14 @@ public:
 
 class DaosEntityNotFoundException : public DaosException {
 public:
+    DaosEntityNotFoundException();
     DaosEntityNotFoundException(const std::string&);
     DaosEntityNotFoundException(const std::string&, const eckit::CodeLocation&);
 };
 
 class DaosEntityAlreadyExistsException : public DaosException {
 public:
+    DaosEntityAlreadyExistsException();
     DaosEntityAlreadyExistsException(const std::string&);
     DaosEntityAlreadyExistsException(const std::string&, const eckit::CodeLocation&);
 };

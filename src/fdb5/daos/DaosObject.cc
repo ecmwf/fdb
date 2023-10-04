@@ -482,7 +482,8 @@ long DaosKeyValue::get(const std::string& key, void* buf, const long& len) {
 
     st.stop();
 
-    if (res == 0) throw fdb5::DaosEntityNotFoundException("Key '" + key + "' not found in KeyValue with OID " + oid_.asString());
+    //if (res == 0) throw fdb5::DaosEntityNotFoundException("Key '" + key + "' not found in KeyValue with OID " + oid_.asString());
+    if (res == 0) throw fdb5::DaosEntityNotFoundException();
 
     return res;
 
