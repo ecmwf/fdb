@@ -17,6 +17,7 @@
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosContainer.h"
 #include "fdb5/daos/DaosArrayHandle.h"
+#include "fdb5/daos/DaosArrayPartHandle.h"
 #include "fdb5/daos/DaosKeyValueHandle.h"
 #include "fdb5/daos/DaosException.h"
 
@@ -275,6 +276,13 @@ eckit::DataHandle* DaosArrayName::dataHandle(bool overwrite) const {
 
     /// @todo: OK to serialise pointers in DaosName?
     return new fdb5::DaosArrayHandle(*this);
+
+}
+
+eckit::DataHandle* DaosArrayName::dataHandle(const eckit::Offset& off, const eckit::Length& len) const {
+
+    /// @todo: OK to serialise pointers in DaosName?
+    return new fdb5::DaosArrayPartHandle(*this, off, len);
 
 }
 

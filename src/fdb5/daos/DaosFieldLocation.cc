@@ -39,7 +39,7 @@ std::shared_ptr<FieldLocation> DaosFieldLocation::make_shared() const {
 
 eckit::DataHandle* DaosFieldLocation::dataHandle() const {
 
-    return fdb5::DaosArrayName(uri_).dataHandle();
+    return fdb5::DaosArrayName(uri_).dataHandle(offset(), length());
     
 }
 
