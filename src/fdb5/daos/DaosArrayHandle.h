@@ -73,7 +73,6 @@ private: // members
     bool open_;
     eckit::Offset offset_;
     std::string mode_;
-    eckit::Optional<eckit::Length> size_;
 
 //     //static ClassSpec classSpec_;
 //     //static Reanimator<DataHandle> reanimator_;

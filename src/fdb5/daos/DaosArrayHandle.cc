@@ -104,8 +104,8 @@ void DaosArrayHandle::openForAppend(const Length& len) {
 
 }
 
-/// @note: the array size is retrieved here. For a more optimised reading if the 
-///   size is known in advance, see DaosArrayPartHandle.
+/// @note: the array size is retrieved here and ::read. For a more optimised reading 
+// if the size is known in advance, see DaosArrayPartHandle.
 Length DaosArrayHandle::openForRead() {
 
     if (open_) NOTIMP;
@@ -148,12 +148,6 @@ long DaosArrayHandle::write(const void* buf, long len) {
 
 }
 
-/// @note: the array size is cached at openForRead, and it is used to determine the
-///   likely actual size that has been read in cases where the provided buffer is 
-///   larger than the remaining span to read. The array might have been expanded or
-///   shrinked between a call to openForRead and a call to read and the cached size
-///   might be wrong. Therefore this handle is not intended for reading arrays in
-///   applications with write/read contention.
 long DaosArrayHandle::read(void* buf, long len) {
 
     ASSERT(open_);
@@ -165,7 +159,10 @@ long DaosArrayHandle::read(void* buf, long len) {
 
     long read = arr_->read(buf, len, offset_);
 
-    if (len > size() - offset_) read = size() - offset_;
+    /// @note: if the buffer is oversized, daos does not return the actual smaller size read,
+    ///   so it is calculated here and returned to the user as expected
+    eckit::Length s = size();
+    if (len > s - offset_) read = s - offset_;
 
     offset_ += read;
 
@@ -186,8 +183,6 @@ void DaosArrayHandle::close() {
 
     open_ = false;
 
-    size_.reset();
-
     /// @todo: should offset be set to 0?
 
 }
@@ -202,13 +197,7 @@ void DaosArrayHandle::flush() {
 
 Length DaosArrayHandle::size() {
 
-    if (size_.has_value()) return size_.value();
-
-    eckit::Length size = arr_->size();
-
-    size_.emplace(size);
-
-    return size;
+    return Length(name_.size());
 
 }
 
