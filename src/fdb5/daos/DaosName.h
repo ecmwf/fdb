@@ -98,6 +98,7 @@ public: // methods
 
     /// @todo: think if this overwrite parameter makes sense in DAOS
     eckit::DataHandle* dataHandle(bool overwrite = false) const;
+    eckit::DataHandle* dataHandle(const eckit::Offset&, const eckit::Length&) const;
 
 };
 

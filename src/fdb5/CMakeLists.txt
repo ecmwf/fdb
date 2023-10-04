@@ -407,6 +407,8 @@ if( HAVE_DAOSFDB )
         daos/DaosWipeVisitor.cc
         daos/DaosIOStats.h 
         daos/DaosIOStats.cc
+        daos/DaosArrayPartHandle.h 
+        daos/DaosArrayPartHandle.cc
     )
 else()
     set( DAOS_LIBRARIES "" )

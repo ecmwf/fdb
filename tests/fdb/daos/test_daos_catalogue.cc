@@ -29,7 +29,7 @@
 
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosPool.h"
-#include "fdb5/daos/DaosArrayHandle.h"
+#include "fdb5/daos/DaosArrayPartHandle.h"
 
 #include "fdb5/daos/DaosStore.h"
 #include "fdb5/daos/DaosFieldLocation.h"
@@ -308,7 +308,7 @@ CASE("DaosCatalogue tests") {
         // retrieve data
 
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-        EXPECT(dynamic_cast<fdb5::DaosArrayHandle*>(dh.get()));
+        EXPECT(dynamic_cast<fdb5::DaosArrayPartHandle*>(dh.get()));
     
         eckit::MemoryHandle mh;
         dh->copyTo(mh);

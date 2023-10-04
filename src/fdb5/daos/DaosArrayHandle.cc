@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <daos.h>
-
 #include <memory>
 
 #include "eckit/exception/Exceptions.h"
@@ -25,9 +23,6 @@ using eckit::Length;
 using eckit::Offset;
 
 namespace fdb5 {
-
-/// @todo: develop DaosArrayPartHandle, and use it in DaosFieldLocation::dataHandle.
-/// that part handle will not need to query size for openForRead, and read()ing will be performed directly
 
 DaosArrayHandle::DaosArrayHandle(const fdb5::DaosArrayName& name) : name_(name), open_(false), offset_(0) {}
 
