@@ -287,6 +287,8 @@ long DaosArray::read(void* buf, long len, const eckit::Offset& off) {
     d_iov_set(&iov, buf, (size_t) len);
     sgl.sg_iovs = &iov;
 
+    iod.arr_nr_short_read = 1;
+
     using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();

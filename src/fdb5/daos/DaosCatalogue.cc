@@ -114,7 +114,7 @@ void DaosCatalogue::loadSchema() {
     /// - daos_kv_open
     /// - daos_kv_get without a buffer
     /// - daos_kv_get
-    fdb5::StatsTimer st{"retrieve 002 catalogue kv get schema", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::StatsTimer st{"archive/retrieve 002 catalogue kv get schema", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValueName nkv{pool_, db_cont_, catalogue_kv_};
     fdb5::DaosSession s{};
     fdb5::DaosKeyValue kv{s, nkv};
