@@ -111,9 +111,7 @@ DaosCatalogueWriter::DaosCatalogueWriter(const Key &key, const fdb5::Config& con
     /// @note: performed RPCs:
     /// - catalogue container open (daos_cont_open)
     /// - get schema from catalogue kv (daos_kv_get)
-    st.start("archive 004 catalogue kv load schema", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     DaosCatalogue::loadSchema();
-    st.stop();
 
     /// @todo: TocCatalogue::checkUID();
 

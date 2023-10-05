@@ -72,12 +72,12 @@ long DaosArrayPartHandle::read(void* buf, long len) {
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
     fdb5::StatsTimer st{"retrieve 10 array part handle array read", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
-    long read = arr_->read(buf, len, offset_);
-
     /// @note: if the buffer is oversized, daos does not return the actual smaller size read,
     ///   so it is calculated here and returned to the user as expected
     eckit::Length s = size();
-    if (len > s - offset_) read = s - offset_;
+    if (len > s - offset_) len = s - offset_;
+
+    long read = arr_->read(buf, len, offset_);
 
     offset_ += read;
 
