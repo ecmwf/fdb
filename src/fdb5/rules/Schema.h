@@ -22,7 +22,8 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/DataHandle.h"
-#include "eckit/memory/NonCopyable.h"
+#include "eckit/serialisation/Streamable.h"
+#include "eckit/serialisation/Reanimator.h"
 
 #include "fdb5/types/TypesRegistry.h"
 
@@ -38,13 +39,14 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Schema : private eckit::NonCopyable {
+class Schema : public eckit::Streamable {
 
 public: // methods
 
     Schema();
     Schema(const eckit::PathName &path);
     Schema(std::istream& s);
+    Schema(eckit::Stream& s);
 
     ~Schema();
 
@@ -77,6 +79,8 @@ public: // methods
 
     const TypesRegistry& registry() const;
 
+	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+	static const eckit::ClassSpec&  classSpec()        { return classSpec_; }
 
 private: // methods
 
@@ -85,9 +89,14 @@ private: // methods
 
     friend std::ostream &operator<<(std::ostream &s, const Schema &x);
 
+    void encode(eckit::Stream& s) const override;
+
     void print( std::ostream &out ) const;
 
 private: // members
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<Schema> reanimator_;
 
     TypesRegistry registry_;
     std::vector<Rule *>  rules_;

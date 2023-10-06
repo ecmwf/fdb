@@ -25,11 +25,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class MatchHidden : public Matcher {
+class MatchHidden : public Matcher{
 
 public: // methods
 
     MatchHidden(const std::string &def);
+    MatchHidden(eckit::Stream& s);
 
     virtual ~MatchHidden() override;
 
@@ -37,7 +38,12 @@ public: // methods
 
     virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
 
+	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+
 private: // methods
+
+    void encode(eckit::Stream&) const override;
 
     virtual bool optional() const override;
     virtual const std::string &value(const Key &, const std::string &keyword) const override;
@@ -45,6 +51,10 @@ private: // methods
     virtual void print( std::ostream &out ) const override;
     virtual const std::string &defaultValue() const override;
 
+private: // members
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<MatchHidden> reanimator_;
 
     std::vector<std::string> default_;
 

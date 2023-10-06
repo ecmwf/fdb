@@ -24,6 +24,9 @@
 #include "eckit/runtime/Main.h"
 #include "eckit/types/Types.h"
 #include "eckit/utils/Translator.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/FileStream.h"
+#include "eckit/io/AutoCloser.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/TypeAny.h"
@@ -452,6 +455,42 @@ CASE ( "test_fdb_service_subtoc" ) {
 
 			dh->saveInto(path);
         }
+	}
+}
+
+CASE( "schemaSerialisation" ) {
+
+	PathName filename    = PathName::unique("data");                                             
+	std::string filepath = filename.asString();
+
+	std::string original;
+	
+	{
+		eckit::FileStream sout(filepath.c_str(), "w");
+		auto c = eckit::closer(sout);
+
+		fdb5::Config config;
+		config = config.expandConfig();
+		
+		std::stringstream ss;
+		config.schema().dump(ss);
+		original = ss.str();
+
+		sout << config.schema();
+	}
+	{                                                                                           
+		eckit::FileStream sin(filepath.c_str(), "r");
+		auto c = eckit::closer(sin);
+
+		fdb5::Schema* clone = eckit::Reanimator<fdb5::Schema>::reanimate(sin);
+
+		std::stringstream ss;
+		clone->dump(ss);
+
+		EXPECT(original == ss.str());
+	}
+	if (filename.exists()) {
+		filename.unlink();
 	}
 }
 

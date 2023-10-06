@@ -202,7 +202,7 @@ void StoreHandler::writeToParent(const uint32_t requestID, std::unique_ptr<eckit
     }
 }
 
-void StoreHandler::archive(const MessageHeader& hdr) {
+void StoreHandler::store(const MessageHeader& hdr) {
 
     ASSERT(hdr.payloadSize == 0);
 

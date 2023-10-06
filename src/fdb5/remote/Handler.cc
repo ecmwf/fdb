@@ -419,6 +419,10 @@ void RemoteHandler::handle() {
                     archive(hdr);
                     break;
 
+                // case Message::Store:
+                //     store(hdr);
+                //     break;
+
                 default: {
                     std::stringstream ss;
                     ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message)
@@ -607,7 +611,7 @@ void RemoteHandler::forwardApiCall(const MessageHeader& hdr) {
 void RemoteHandler::archive(const MessageHeader& hdr) {
     ASSERT(hdr.payloadSize == 0);
 
-    // Ensure that we aren't already running an archive()
+    // Ensure that we aren't already running an store()
 
     ASSERT(!archiveFuture_.valid());
 

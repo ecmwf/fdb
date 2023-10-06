@@ -19,7 +19,8 @@
 #include <iosfwd>
 #include <vector>
 
-#include "eckit/memory/NonCopyable.h"
+//#include "eckit/memory/NonCopyable.h"
+#include "eckit/serialisation/Streamable.h"
 
 class MarsTask;
 namespace metkit {
@@ -35,11 +36,12 @@ class TypesRegistry;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Matcher : public eckit::NonCopyable {
+class Matcher : public eckit::Streamable {
 
 public: // methods
 
     Matcher();
+    Matcher(eckit::Stream& s);
 
     virtual ~Matcher();
 
@@ -57,9 +59,19 @@ public: // methods
 
     friend std::ostream &operator<<(std::ostream &s, const Matcher &x);
 
+//	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+
 private: // methods
 
+    void encode(eckit::Stream&) const override;
+
     virtual void print( std::ostream &out ) const = 0;
+
+private: // members
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<Matcher> reanimator_;
 
 };
 

@@ -21,6 +21,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+eckit::ClassSpec Schema::classSpec_ = { &eckit::Streamable::classSpec(), "Schema", };
+
+eckit::Reanimator<Schema> Schema::reanimator_;
+
 Schema::Schema() {
 }
 
@@ -30,6 +34,27 @@ Schema::Schema(const eckit::PathName &path) {
 
 Schema::Schema(std::istream& s) {
     load(s);
+}
+Schema::Schema(eckit::Stream& s) :
+    registry_(s) {
+
+    size_t numRules;
+    s >> path_;
+    s >> numRules;
+    for (size_t i=0; i < numRules; i++) {
+        rules_.push_back(new Rule(*this, s));
+    }
+
+    check();
+}
+
+void Schema::encode(eckit::Stream& s) const {
+    registry_.encode(s);
+    s << path_;
+    s << rules_.size();
+    for (const Rule* rule : rules_) {
+        rule->encode(s);
+    }
 }
 
 Schema::~Schema() {
@@ -41,8 +66,8 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
     keys.push_back(dbKey);
     keys.push_back(idxKey);
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        const Rule* r = (*i)->ruleFor(keys , 0);
+    for (const Rule* rule : rules_) {
+        const Rule* r = rule->ruleFor(keys , 0);
         if (r) {
             return r;
         }
@@ -54,10 +79,10 @@ void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visit
     Key full;
     std::vector<Key> keys(3);
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for (const Rule* rule : rules_) {
 		// eckit::Log::info() << "Rule " << **i <<  std::endl;
-		// (*i)->dump(eckit::Log::info());
-		(*i)->expand(request, visitor, 0, keys, full);
+		// rule->dump(eckit::Log::info());
+		rule->expand(request, visitor, 0, keys, full);
     }
 }
 
@@ -67,17 +92,17 @@ void Schema::expand(const Key &field, WriteVisitor &visitor) const {
 
     visitor.rule(0); // reset to no rule so we verify that we pick at least one
 
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->expand(field, visitor, 0, keys, full);
+    for (const Rule* rule : rules_) {
+        rule->expand(field, visitor, 0, keys, full);
     }
 }
 
 void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor& visitor, const Key& dbKey) const {
 
     const Rule* dbRule = nullptr;
-    for (const Rule* r : rules_) {
-        if (r->match(dbKey)) {
-            dbRule = r;
+    for (const Rule* rule : rules_) {
+        if (rule->match(dbKey)) {
+            dbRule = rule;
             break;
         }
     }
@@ -87,17 +112,17 @@ void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor&
     std::vector<Key> keys(3);
     keys[0] = dbKey;
 
-    for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
-        (*i)->expand(request, visitor, 1, keys, full);
+    for (const Rule* rule : dbRule->rules_) {
+        rule->expand(request, visitor, 1, keys, full);
     }
 }
 
 void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& dbKey) const {
 
     const Rule* dbRule = nullptr;
-    for (const Rule* r : rules_) {
-        if (r->match(dbKey)) {
-            dbRule = r;
+    for (const Rule* rule : rules_) {
+        if (rule->match(dbKey)) {
+            dbRule = rule;
             break;
         }
     }
@@ -107,15 +132,16 @@ void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& db
     std::vector<Key> keys(3);
     keys[0] = dbKey;
 
-    for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
-        (*i)->expand(field, visitor, 1, keys, full);
+    for (const Rule* rule : dbRule->rules_) {
+        rule->expand(field, visitor, 1, keys, full);
     }
 }
 
 bool Schema::expandFirstLevel(const Key &dbKey,  Key &result) const {
     bool found = false;
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end() && !found; ++i ) {
-        (*i)->expandFirstLevel(dbKey, result, found);
+    for (const Rule* rule : rules_) {
+        rule->expandFirstLevel(dbKey, result, found);
+        if (found) break;
     }
     return found;
 }
@@ -130,14 +156,14 @@ bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key &res
 }
 
 void Schema::matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const {
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->matchFirstLevel(dbKey, result, missing);
+    for (const Rule* rule : rules_) {
+        rule->matchFirstLevel(dbKey, result, missing);
     }
 }
 
 void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->matchFirstLevel(request, result, missing);
+    for (const Rule* rule : rules_) {
+        rule->matchFirstLevel(request, result, missing);
     }
 }
 
@@ -177,18 +203,18 @@ void Schema::clear() {
 
 void Schema::dump(std::ostream &s) const {
     registry_.dump(s);
-    for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-        (*i)->dump(s);
+    for (const Rule* rule : rules_) {
+        rule->dump(s);
         s << std::endl;
     }
 }
 
 void Schema::check() {
-    for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
+    for (Rule* rule : rules_) {
         /// @todo print offending rule in meaningful message
-        ASSERT((*i)->depth() == 3);
-        (*i)->registry_.updateParent(&registry_);
-        (*i)->updateParent(0);
+        ASSERT(rule->depth() == 3);
+        rule->registry_.updateParent(&registry_);
+        rule->updateParent(nullptr);
     }
 }
 

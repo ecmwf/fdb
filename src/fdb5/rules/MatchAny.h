@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_MatchAny_H
-#define fdb5_MatchAny_H
+#pragma once
 
 #include <iosfwd>
 #include <set>
@@ -25,11 +24,12 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class MatchAny : public Matcher {
+class MatchAny : public Matcher{
 
 public: // methods
 
     MatchAny(const std::set<std::string> &values);
+    MatchAny(eckit::Stream& s);
 
     virtual ~MatchAny() override;
 
@@ -37,11 +37,19 @@ public: // methods
 
     virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
 
+	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+
 private: // methods
+
+    void encode(eckit::Stream&) const override;
 
     virtual void print( std::ostream &out ) const override;
 
 private: // members
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<MatchAny> reanimator_;
 
     std::set<std::string> values_;
 
@@ -50,5 +58,3 @@ private: // members
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

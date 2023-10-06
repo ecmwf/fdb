@@ -13,8 +13,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_MatchAlways_H
-#define fdb5_MatchAlways_H
+#pragma once
 
 #include <iosfwd>
 
@@ -29,6 +28,7 @@ class MatchAlways : public Matcher {
 public: // methods
 
     MatchAlways();
+    MatchAlways(eckit::Stream& s);
 
     virtual ~MatchAlways() override;
 
@@ -36,14 +36,22 @@ public: // methods
 
     virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
 
+	const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+	static const eckit::ClassSpec&  classSpec() { return classSpec_; }
+
 private: // methods
 
+    void encode(eckit::Stream&) const override;
+
     virtual void print( std::ostream &out ) const override;
+
+private: // members
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<MatchAlways> reanimator_;
 
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif

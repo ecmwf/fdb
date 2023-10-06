@@ -86,10 +86,11 @@ private:  // methods
     template <typename HelperClass>
     void forwardApiCall(const MessageHeader& hdr);
 
-    void list(const MessageHeader& hdr);
-    void dump(const MessageHeader& hdr);
+//    void list(const MessageHeader& hdr);
+//    void dump(const MessageHeader& hdr);
 
     void flush(const MessageHeader& hdr);
+//    void store(const MessageHeader& hdr);
     void archive(const MessageHeader& hdr);
     void retrieve(const MessageHeader& hdr);
     void read(const MessageHeader& hdr);

@@ -17,11 +17,25 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+eckit::ClassSpec Predicate::classSpec_ = { &eckit::Streamable::classSpec(), "Predicate", };
+
+eckit::Reanimator<Predicate> Predicate::reanimator_;
+
 Predicate::Predicate(const std::string &keyword, Matcher *matcher) :
     matcher_(matcher),
     keyword_(keyword) {
     //    dump(eckit::Log::debug());
     //    eckit::Log::debug() << std::endl;
+}
+
+Predicate::Predicate(eckit::Stream& s) {
+    s >> keyword_;
+    matcher_.reset(eckit::Reanimator<Matcher>::reanimate(s));
+}
+
+void Predicate::encode(eckit::Stream& s) const {
+    s << keyword_;
+    s << *matcher_;
 }
 
 Predicate::~Predicate() {
