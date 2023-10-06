@@ -120,6 +120,7 @@ private: // members
 
 TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     TocCommon(directory),
+    schemaPath_(directory_ / "schema"),
     tocPath_(directory_ / "toc"),
     dbConfig_(config),
     serialisationVersion_(TocSerialisationVersion(config)),
@@ -144,6 +145,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     TocCommon(path.dirName()),
     parentKey_(parentKey),
+    schemaPath_(directory_ / "schema"),
     tocPath_(TocCommon::findRealPath(path)),
     serialisationVersion_(TocSerialisationVersion(dbConfig_)),
     useSubToc_(false),

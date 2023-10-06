@@ -34,11 +34,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), TocCommon(StoreRootManager(config).directory(key).directory_) {}
+TocStore::TocStore(const Key& key, const Config& config) :
+    Store(), TocCommon(StoreRootManager(config).directory(key).directory_) {}
 
-TocStore::TocStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), TocCommon(uri.path().dirName()) {}
+TocStore::TocStore(const eckit::URI& uri, const Config& config) :
+    Store(), TocCommon(uri.path().dirName()) {}
 
 eckit::URI TocStore::uri() const {
     return URI("file", directory_);
@@ -52,7 +52,7 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-std::unique_ptr<FieldLocation> TocStore::archive(const Key &key, const void *data, eckit::Length length) {
+std::future<std::unique_ptr<FieldLocation> > TocStore::archive(const Key& key, const void *data, eckit::Length length) {
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);
@@ -65,7 +65,9 @@ std::unique_ptr<FieldLocation> TocStore::archive(const Key &key, const void *dat
 
     ASSERT(len == length);
 
-    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
+    std::promise<std::unique_ptr<FieldLocation> > loc;
+    loc.set_value(std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key())));
+    return loc.get_future();
 }
 
 void TocStore::flush() {
@@ -181,7 +183,10 @@ eckit::DataHandle& TocStore::getDataHandle( const eckit::PathName &path ) {
 eckit::PathName TocStore::generateDataPath(const Key &key) const {
 
     eckit::PathName dpath ( directory_ );
-    dpath /=  key.valuesToString();
+    if (!key.rule()) {
+        std::cout << "TocStore::generateDataPath - missing rule in " << key << std::endl;
+    }
+    dpath /=  key.valuesToString(false);
     dpath = eckit::PathName::unique(dpath) + ".data";
     return dpath;
 }
@@ -260,7 +265,11 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
 
 void TocStore::remove(const Key& key) const {
 
-    eckit::PathName src_db = directory_ / key.valuesToString();
+    if (!key.rule()) {
+        std::cout << "TocStore::remove - missing rule in " << key << std::endl;
+    }
+
+    eckit::PathName src_db = directory_ / key.valuesToString(false);
         
     DIR* dirp = ::opendir(src_db.asString().c_str());
     struct dirent* dp;

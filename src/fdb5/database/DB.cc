@@ -103,14 +103,14 @@ eckit::DataHandle *DB::retrieve(const Key& key) {
     return nullptr;
 }
 
-void DB::archive(const Key& key, const void* data, eckit::Length length) {
+// void DB::archive(const Key& key, const void* data, eckit::Length length) {
 
-    CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
-    ASSERT(cat);
+//     CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
+//     ASSERT(cat);
 
-    const Index& idx = cat->currentIndex();
-    cat->archive(key, store().archive(idx.key(), data, length));
-}
+//     const Index& idx = cat->currentIndex();
+//     cat->archive(key, store().archive(idx.key(), data, length));
+// }
 
 bool DB::open() {
     bool ret = catalogue_->open();
@@ -164,14 +164,14 @@ void DB::reconsolidate() {
     cat->reconsolidate();
 }
 
-void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
-    if (catalogue_->type() == TocEngine::typeName()) {
-        CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
-        ASSERT(cat);
+// void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+//     if (catalogue_->type() == TocEngine::typeName()) {
+//         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
+//         ASSERT(cat);
 
-        cat->index(key, eckit::URI("file", path), offset, length);
-    }
-}
+//         cat->index(key, eckit::URI("file", path), offset, length);
+//     }
+// }
 
 void DB::dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const {
     catalogue_->dump(out, simple, conf);

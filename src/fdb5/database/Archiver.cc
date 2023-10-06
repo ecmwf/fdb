@@ -56,19 +56,21 @@ void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
 
 void Archiver::flush() {
     for (store_t::iterator i = databases_.begin(); i != databases_.end(); ++i) {
-        i->second.second->flush();
+        i->second.second.second->flush(); // flush the store
+        i->second.second.first->flush();  // flush the catalogue
     }
 }
 
-
-DB& Archiver::database(const Key &key) {
+void Archiver::selectDatabase(const Key &key) {
 
     store_t::iterator i = databases_.find(key);
 
     if (i != databases_.end() ) {
-        DB& db = *(i->second.second);
+        std::cout << "found key: " << key << std::endl;
+        current_ = i->second.second.first.get();
+        store_ = i->second.second.second.get();
         i->second.first = ::time(0);
-        return db;
+        return;
     }
 
     static size_t fdbMaxNbDBsOpen = eckit::Resource<size_t>("fdbMaxNbDBsOpen", 64);
@@ -85,25 +87,27 @@ DB& Archiver::database(const Key &key) {
             }
         }
         if (found) {
-            eckit::Log::info() << "Closing database " << *databases_[oldK].second << std::endl;
+            // what if the catalogue/store are not flashed ???
+            eckit::Log::warning() << "Closing database " << *databases_[oldK].second.first << std::endl;
             databases_.erase(oldK);
         }
     }
 
-    std::unique_ptr<DB> db = DB::buildWriter(key, dbConfig_);
-
-    ASSERT(db);
+    std::unique_ptr<Catalogue> cat = CatalogueFactory::instance().build(key, dbConfig_, false);
+    ASSERT(cat);
 
     // If this database is locked for writing then this is an error
-    if (!db->enabled(ControlIdentifier::Archive)) {
+    if (!cat->enabled(ControlIdentifier::Archive)) {
         std::ostringstream ss;
-        ss << "Database " << *db << " matched for archived is LOCKED against archiving";
+        ss << "Database " << *cat << " matched for archived is LOCKED against archiving";
         throw eckit::UserError(ss.str(), Here());
     }
 
-    DB& out = *db;
-    databases_[key] = std::make_pair(::time(0), std::move(db));
-    return out;
+    std::unique_ptr<Store> str = cat->buildStore();
+    current_ = cat.get();
+    store_ = str.get();
+
+    databases_[key] = std::make_pair(::time(0), std::make_pair(std::move(cat), std::move(str)));
 }
 
 void Archiver::print(std::ostream &out) const {

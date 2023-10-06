@@ -34,7 +34,6 @@ eckit::PathName TocCommon::findRealPath(const eckit::PathName& path) {
 
 TocCommon::TocCommon(const eckit::PathName& directory) :
     directory_(findRealPath(directory)),
-    schemaPath_(directory_ / "schema"),
     dbUID_(static_cast<uid_t>(-1)),
     userUID_(::getuid()),
     dirty_(false) {}

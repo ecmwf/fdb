@@ -26,11 +26,11 @@ namespace fdb5 {
 
 std::unique_ptr<Store> Catalogue::buildStore() {
     if (buildByKey_)
-        return StoreFactory::instance().build(schema(), key(), config_);
+        return StoreFactory::instance().build(key(), config_);
     else {
         std::string name = config_.getString("store", "file");
 
-        return StoreFactory::instance().build(schema(), eckit::URI(name, uri()), config_);
+        return StoreFactory::instance().build(eckit::URI(name, uri()), config_);
     }
 }
 

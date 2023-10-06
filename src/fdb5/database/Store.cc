@@ -72,7 +72,7 @@ void StoreFactory::list(std::ostream& out) {
     }
 }
 
-std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key, const Config& config) {
+std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config) {
     std::string name = config.getString("store", "file");
     std::string nameLowercase = eckit::StringTools::lower(name);
 
@@ -89,10 +89,10 @@ std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key,
         throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
     }
 
-    return (*j).second->make(schema, key, config);
+    return (*j).second->make(key, config);
 }
 
-std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const eckit::URI& uri, const Config& config) {
+std::unique_ptr<Store> StoreFactory::build(const eckit::URI& uri, const Config& config) {
     std::string name = uri.scheme();
     std::string nameLowercase = eckit::StringTools::lower(name);
 
@@ -109,7 +109,7 @@ std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const eckit::UR
         throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
     }
 
-    return (*j).second->make(schema, uri, config);
+    return (*j).second->make(uri, config);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

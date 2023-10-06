@@ -148,9 +148,11 @@ void Schema::load(const eckit::PathName &path, bool replace) {
     eckit::Log::debug<LibFdb5>() << "Loading FDB rules from " << path << std::endl;
 
     std::ifstream in(path.localPath());
-    if (!in)
-        throw eckit::CantOpenFile(path);
-
+    if (!in) {
+        auto ex = eckit::CantOpenFile(path);
+        ex.dumpStackTrace();
+        throw ex;
+    }
     load(in, replace);
 }
 

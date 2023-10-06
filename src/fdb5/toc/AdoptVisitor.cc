@@ -13,6 +13,7 @@
 
 #include "fdb5/database/DB.h"
 #include "fdb5/toc/AdoptVisitor.h"
+#include "fdb5/toc/TocEngine.h"
 
 using namespace eckit;
 
@@ -34,11 +35,17 @@ bool AdoptVisitor::selectDatum(const Key &key, const Key &full) {
     // Log::info() << "selectDatum " << key << ", " << full << " " << length_ << std::endl;
     checkMissingKeys(full);
 
-    ASSERT(current());
+    Catalogue* catalogue = current();
+    ASSERT(catalogue);
 
-    current()->index(key, path_, offset_, length_);
+    if (catalogue->type() == TocEngine::typeName()) {
+        CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue);
+        ASSERT(cat);
 
-    return true;
+        cat->index(key, eckit::URI("file", path_), offset_, length_);
+        return true;
+    }
+    return false;
 }
 
 void AdoptVisitor::print(std::ostream &out) const {

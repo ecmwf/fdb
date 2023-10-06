@@ -28,11 +28,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), directory_("mars:"+key.valuesToString()) {}
+RadosStore::RadosStore(const Key& key, const Config& config) :
+    Store(), directory_("mars:"+key.valuesToString()) {}
 
-RadosStore::RadosStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), directory_("mars:"+uri.path().dirName()) {}
+RadosStore::RadosStore(const eckit::URI& uri, const Config& config) :
+    Store(), directory_("mars:"+uri.path().dirName()) {}
 
 eckit::URI RadosStore::uri() const {
     return URI("rados", directory_);
@@ -48,7 +48,7 @@ eckit::DataHandle* RadosStore::retrieve(Field& field, Key& remapKey) const {
         field.dataHandle(remapKey);
 }
 
-FieldLocation* RadosStore::archive(const Key &key, const void *data, eckit::Length length) {
+std::future<std::unique_ptr<FieldLocation> > RadosStore::archive(const Key& key, const void *data, eckit::Length length) {
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);
@@ -62,7 +62,9 @@ FieldLocation* RadosStore::archive(const Key &key, const void *data, eckit::Leng
 
     ASSERT(len == length);
 
-    return new RadosFieldLocation(dataUri, position, length);
+    std::promise<std::unique_ptr<FieldLocation> > loc;
+    loc.set_value(std::unique_ptr<TocFieldLocation>(new RadosFieldLocation(dataUri, position, length)));
+    return loc.get_future();
 }
 
 void RadosStore::flush() {

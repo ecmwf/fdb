@@ -575,6 +575,11 @@ std::string RootManager::dbPathName(const Key& key)
         }
     }
 
+    if (!key.rule()) {
+        std::cout << "RootManager::dbPathName - missing rule in " << key << std::endl;
+    }
+
+
     // default naming convention for DB's
     dbpath = key.valuesToString();
     eckit::Log::debug<LibFdb5>() << "Using default naming convention for key " << key << " -> " << dbpath <<  std::endl;

@@ -108,7 +108,7 @@ public: // methods
     const Rule *rule() const;
     const TypesRegistry& registry() const;
 
-    std::string valuesToString() const;
+    std::string valuesToString(bool ruleOrDefault = true) const;
 
     const eckit::StringList& names() const;
 

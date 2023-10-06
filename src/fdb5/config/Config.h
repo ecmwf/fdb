@@ -64,6 +64,7 @@ private:  // methods
 
 private:  // members
     mutable eckit::PathName schemaPath_;
+    mutable bool schemaPathInitialised_;
     std::shared_ptr<eckit::LocalConfiguration> userConfig_;
 };
 

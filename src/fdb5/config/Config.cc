@@ -57,7 +57,7 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Config::Config() : schemaPath_("") {
+Config::Config() : schemaPath_(""), schemaPathInitialised_(false) {
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
 }
 
@@ -71,8 +71,8 @@ Config Config::make(const eckit::PathName& path, const eckit::Configuration& use
 }
 
 Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
-    LocalConfiguration(config) {
-    initializeSchemaPath();
+    LocalConfiguration(config), schemaPathInitialised_(false) {
+    // initializeSchemaPath();
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 }
 
@@ -178,6 +178,9 @@ const PathName& Config::schemaPath() const {
 
 void Config::initializeSchemaPath() const {
 
+    if (schemaPathInitialised_) {
+        return;
+    }
     // If the user has specified the schema location in the FDB config, use that,
     // otherwise use the library-wide schema path.
 
@@ -201,6 +204,7 @@ PathName Config::configPath() const {
 }
 
 const Schema& Config::schema() const {
+    initializeSchemaPath();
     return SchemaRegistry::instance().get(schemaPath());
 }
 

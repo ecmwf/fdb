@@ -173,6 +173,7 @@ private: // methods
 protected: // members
 
     mutable Key parentKey_; // Contains the key of the first TOC explored in subtoc chain
+    const eckit::PathName schemaPath_;
 
     uid_t dbUID() const override;
 

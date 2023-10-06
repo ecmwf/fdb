@@ -316,7 +316,7 @@ std::string Key::canonicalValue(const std::string& keyword) const {
     return canonicalise(keyword, it->second);
 }
 
-std::string Key::valuesToString() const {
+std::string Key::valuesToString(bool ruleOrDefault) const {
 
     ASSERT(names_.size() == keys_.size());
 
@@ -328,11 +328,15 @@ std::string Key::valuesToString() const {
         ASSERT(i != keys_.end());
 
         oss << sep;
-        oss << canonicalise(*j, i->second);
-
+        if (rule_ || ruleOrDefault) {
+            oss << canonicalise(*j, i->second);
+        }
+        else {
+            oss << i->second;
+        }
+        
         sep = ":";
     }
-
     return oss.str();
 }
 

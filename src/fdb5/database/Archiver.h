@@ -62,13 +62,13 @@ private: // methods
 
     void print(std::ostream &out) const;
 
-    DB& database(const Key &key);
+    void selectDatabase(const Key &key);
 
 private: // members
 
     friend class BaseArchiveVisitor;
 
-    typedef std::map< Key, std::pair<time_t, std::unique_ptr<DB> > > store_t;
+    typedef std::map< Key, std::pair<time_t, std::pair<std::unique_ptr<Catalogue>, std::unique_ptr<Store> > > > store_t;
 
     Config dbConfig_;
 
@@ -76,7 +76,8 @@ private: // members
 
     std::vector<Key> prev_;
 
-    DB* current_;
+    Catalogue* current_;
+    Store* store_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

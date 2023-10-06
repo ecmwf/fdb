@@ -33,8 +33,8 @@ class TocStore : public Store, public TocCommon {
 
 public: // methods
 
-    TocStore(const Schema& schema, const Key& key, const Config& config);
-    TocStore(const Schema& schema, const eckit::URI& uri, const Config& config);
+    TocStore(const Key& key, const Config& config);
+    TocStore(const eckit::URI& uri, const Config& config);
 
     ~TocStore() override {}
 
@@ -57,7 +57,7 @@ protected: // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<FieldLocation> archive(const Key &key, const void *data, eckit::Length length) override;
+    std::future<std::unique_ptr<FieldLocation> > archive(const Key& key, const void *data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 

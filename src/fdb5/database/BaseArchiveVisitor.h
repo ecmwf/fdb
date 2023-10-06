@@ -44,7 +44,8 @@ protected: // methods
 
     virtual const Schema& databaseSchema() const;
 
-    fdb5::DB* current() const;
+    fdb5::Catalogue* current() const;
+    fdb5::Store* store() const;
 
 private: // members
 

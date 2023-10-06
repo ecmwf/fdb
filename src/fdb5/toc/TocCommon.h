@@ -47,7 +47,6 @@ protected: // methods
 protected: // members
 
     const eckit::PathName directory_;
-    const eckit::PathName schemaPath_;
 
     mutable uid_t dbUID_;
     uid_t userUID_;
