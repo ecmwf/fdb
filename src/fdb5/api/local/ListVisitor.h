@@ -19,7 +19,7 @@
 #ifndef fdb5_api_local_ListVisitor_H
 #define fdb5_api_local_ListVisitor_H
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/InspectionKey.h"
 #include "fdb5/api/local/QueryVisitor.h"

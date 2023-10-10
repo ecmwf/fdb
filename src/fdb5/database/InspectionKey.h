@@ -33,7 +33,7 @@ public: // methods
     InspectionKey();
 
     explicit InspectionKey(const Key& other);
-    explicit InspectionKey(eckit::Stream &);
+    // explicit InspectionKey(eckit::Stream &);
     explicit InspectionKey(const std::string &request);
     explicit InspectionKey(const std::string &keys, const Rule* rule);
 
@@ -47,14 +47,14 @@ public: // methods
 //    const Rule *rule() const;
     const TypesRegistry& registry() const;
 
-    friend eckit::Stream& operator>>(eckit::Stream& s, InspectionKey& x) {
-        x = InspectionKey(s);
-        return s;
-    }
-    friend eckit::Stream& operator<<(eckit::Stream &s, const InspectionKey &x) {
-        x.encode(s);
-        return s;
-    }
+    // friend eckit::Stream& operator>>(eckit::Stream& s, InspectionKey& x) {
+    //     x = InspectionKey(s);
+    //     return s;
+    // }
+    // friend eckit::Stream& operator<<(eckit::Stream &s, const InspectionKey &x) {
+    //     x.encode(s);
+    //     return s;
+    // }
 
     friend std::ostream& operator<<(std::ostream &s, const InspectionKey& x) {
         x.print(s);

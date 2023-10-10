@@ -17,7 +17,7 @@
 #include "fdb5/api/local/MoveVisitor.h"
 
 #include "fdb5/api/local/QueueStringLogTarget.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/LibFdb5.h"
 

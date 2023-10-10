@@ -19,7 +19,7 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/tools/FDBVisitTool.h"
@@ -100,7 +100,6 @@ void FDBList::execute(const CmdArgs& args) {
         // If --full is supplied, then include all entries including duplicates.
         auto listObject = fdb.list(request, !full_);
 
-        size_t count = 0;
         ListElement elem;
         while (listObject.next(elem)) {
 
@@ -109,7 +108,6 @@ void FDBList::execute(const CmdArgs& args) {
             } else {
                 elem.print(Log::info(), location_, !porcelain_);
                 Log::info() << std::endl;
-                count++;
             }
         }
 

@@ -22,7 +22,7 @@
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/local/QueueStringLogTarget.h"
 #include "fdb5/api/helpers/DumpIterator.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 
 namespace fdb5 {
 namespace api {

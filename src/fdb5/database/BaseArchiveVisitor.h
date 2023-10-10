@@ -23,7 +23,8 @@ namespace metkit { class MarsRequest; }
 namespace fdb5 {
 
 class Archiver;
-class DB;
+class Catalogue;
+class Store;
 class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------

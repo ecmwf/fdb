@@ -14,6 +14,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/Store.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/types/Type.h"
 #include "fdb5/types/TypesRegistry.h"

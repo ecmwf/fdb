@@ -10,19 +10,19 @@
 
 
 #include <algorithm>
-
-#include "eckit/os/Stat.h"
-
-#include "fdb5/api/helpers/ControlIterator.h"
-#include "fdb5/database/DB.h"
-#include "fdb5/toc/TocCatalogue.h"
-#include "fdb5/toc/TocWipeVisitor.h"
-
+#include <cstring>
 #include <dirent.h>
 #include <errno.h>
 #include <fdb5/LibFdb5.h>
 #include <sys/types.h>
-#include <cstring>
+
+#include "eckit/os/Stat.h"
+
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/toc/TocCatalogue.h"
+#include "fdb5/toc/TocWipeVisitor.h"
 
 
 using namespace eckit;

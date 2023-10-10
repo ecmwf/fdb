@@ -12,7 +12,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/tools/FDBInspect.h"
 #include "fdb5/io/LustreSettings.h"

@@ -11,7 +11,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/toc/AdoptVisitor.h"
 #include "fdb5/toc/TocEngine.h"
 

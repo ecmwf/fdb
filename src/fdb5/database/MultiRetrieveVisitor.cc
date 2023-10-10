@@ -15,7 +15,7 @@
 #include "eckit/config/Resource.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/types/Type.h"

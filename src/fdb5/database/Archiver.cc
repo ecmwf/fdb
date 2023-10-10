@@ -18,6 +18,7 @@
 #include "fdb5/database/BaseArchiveVisitor.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/rules/Rule.h"
+#include "fdb5/database/Store.h"
 
 namespace fdb5 {
 

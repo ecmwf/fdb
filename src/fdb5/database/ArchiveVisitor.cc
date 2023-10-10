@@ -10,9 +10,9 @@
 
 #include "eckit/exception/Exceptions.h"
 
-
-#include "fdb5/database/DB.h"
 #include "fdb5/database/ArchiveVisitor.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Store.h"
 
 namespace fdb5 {
 

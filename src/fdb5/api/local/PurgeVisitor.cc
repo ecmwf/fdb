@@ -19,7 +19,7 @@
 #include "eckit/exception/Exceptions.h"
 
 #include "fdb5/api/local/QueueStringLogTarget.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/LibFdb5.h"
 

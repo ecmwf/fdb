@@ -21,7 +21,7 @@
 
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/config/Config.h"
 
 namespace eckit   {

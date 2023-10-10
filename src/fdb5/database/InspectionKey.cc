@@ -88,10 +88,10 @@ InspectionKey::InspectionKey(const eckit::StringDict &keys) :
     }
 }
 
-InspectionKey::InspectionKey(eckit::Stream& s) :
-    rule_(nullptr) {
-    decode(s);
-}
+// InspectionKey::InspectionKey(eckit::Stream& s) :
+//     rule_(nullptr) {
+//     decode(s);
+// }
 
 Key InspectionKey::canonical() const {
     Key key;
@@ -157,10 +157,6 @@ void InspectionKey::rule(const Rule *rule) {
     rule_ = rule;
 }
 
-// const Rule *InspectionKey::rule() const {
-//     return rule_;
-// }
-
 const TypesRegistry& InspectionKey::registry() const {
     if(rule_) {
         return rule_->registry();
@@ -177,7 +173,6 @@ std::string InspectionKey::canonicalise(const std::string& keyword, const std::s
         return this->registry().lookupType(keyword).toKey(keyword, value);
     }
 }
-
 
 fdb5::InspectionKey::operator eckit::StringDict() const
 {
@@ -199,34 +194,6 @@ fdb5::InspectionKey::operator eckit::StringDict() const
 
     return res;
 }
-
-// void InspectionKey::print(std::ostream &out) const {
-//     if (names_.size() == keys_.size()) {
-//         out << "{" << toString() << "}";
-//         if (rule_) {
-//             out << " (" << *rule_ << ")";
-//         }
-//     } else {
-//         out << keys_;
-//         if (rule_) {
-//             out << " (" << *rule_ << ")";
-//         }
-//     }
-// }
-
-// std::string Key::toString() const {
-//     std::string res;
-//     const char *sep = "";
-//     for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
-//         eckit::StringDict::const_iterator i = keys_.find(*j);
-//         ASSERT(i != keys_.end());
-//         if (!i->second.empty()) {
-//             res += sep + *j + '=' + i->second;
-//             sep = ",";
-//         }
-//     }
-//     return res;
-// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

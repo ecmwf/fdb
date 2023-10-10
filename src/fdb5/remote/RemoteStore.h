@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/ClientConnection.h"

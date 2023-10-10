@@ -25,7 +25,7 @@
 #include "eckit/utils/Regex.h"
 #include "eckit/memory/NonCopyable.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/ListIterator.h"

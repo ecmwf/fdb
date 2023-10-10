@@ -11,8 +11,6 @@
 #include <cstring>
 #include <map>
 
-#include "fdb5/database/Catalogue.h"
-
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/thread/AutoLock.h"
@@ -20,7 +18,9 @@
 #include "eckit/utils/StringTools.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Manager.h"
+#include "fdb5/database/Store.h"
 
 namespace fdb5 {
 

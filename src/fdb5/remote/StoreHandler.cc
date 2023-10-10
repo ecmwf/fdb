@@ -8,11 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/remote/StoreHandler.h"
-#include "eckit/serialisation/MemoryStream.h"
-#include "fdb5/LibFdb5.h"
 #include "eckit/config/Resource.h"
+#include "eckit/serialisation/MemoryStream.h"
 
+#include "fdb5/LibFdb5.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/remote/StoreHandler.h"
 
 using namespace eckit;
 using metkit::mars::MarsRequest;

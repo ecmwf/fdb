@@ -21,7 +21,7 @@
 #include "eckit/runtime/Tool.h"
 #include "eckit/filesystem/PathName.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "eckit/option/SimpleOption.h"
 
 namespace eckit {

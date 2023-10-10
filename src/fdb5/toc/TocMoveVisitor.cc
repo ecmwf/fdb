@@ -17,7 +17,8 @@
 #include "eckit/os/Stat.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Store.h"
 #include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocMoveVisitor.h"
 #include "fdb5/toc/RootManager.h"

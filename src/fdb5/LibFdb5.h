@@ -19,7 +19,7 @@
 
 #include "eckit/system/Library.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {

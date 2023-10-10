@@ -16,7 +16,7 @@
 
 #include "fdb5/api/local/StatsVisitor.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/StatsReportVisitor.h"
 
 namespace fdb5 {

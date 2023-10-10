@@ -31,8 +31,6 @@ namespace fdb5 {
 class HandleGatherer;
 class Notifier;
 
-class DB;
-
 //----------------------------------------------------------------------------------------------------------------------
 
 class MultiRetrieveVisitor : public ReadVisitor {
