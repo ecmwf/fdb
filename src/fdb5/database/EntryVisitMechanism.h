@@ -25,7 +25,7 @@ class Catalogue;
 class Store;
 class FDBToolRequest;
 class Index;
-class Key;
+class InspectionKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -49,7 +49,7 @@ public:  // methods
 
 private: // methods
 
-    virtual void visitDatum(const Field& field, const Key& key) = 0;
+    virtual void visitDatum(const Field& field, const InspectionKey& key) = 0;
 
 protected:  // members
 

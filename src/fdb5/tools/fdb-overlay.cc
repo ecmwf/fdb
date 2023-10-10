@@ -95,8 +95,8 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     Config conf = config(args);
     const Schema& schema = conf.schema();
 
-    Key source;
-    Key target;
+    InspectionKey source;
+    InspectionKey target;
     ASSERT(schema.expandFirstLevel(sourceRequest.request(), source));
     ASSERT(schema.expandFirstLevel(targetRequest.request(), target));
 
@@ -123,25 +123,25 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         }
     }
 
-    std::unique_ptr<DB> dbSource = DB::buildReader(source, conf);
+    std::unique_ptr<Catalogue> dbSource = CatalogueFactory::instance().build(source, conf, true);
     if (!dbSource->exists()) {
         std::stringstream ss;
         ss << "Source database not found: " << source << std::endl;
         throw UserError(ss.str(), Here());
     }
 
-    if (dbSource->dbType() != TocEngine::typeName()) {
+    if (dbSource->type() != TocEngine::typeName()) {
         std::stringstream ss;
         ss << "Only TOC DBs currently supported" << std::endl;
         throw UserError(ss.str(), Here());
     }
 
-    std::unique_ptr<DB> dbTarget = DB::buildReader(target, conf);
+    std::unique_ptr<Catalogue> dbTarget = CatalogueFactory::instance().build(target, conf, true);
 
     if (remove_) {
         if (!dbTarget->exists()) {
             std::stringstream ss;
-            ss << "Target database must already already exist: " << target << std::endl;
+            ss << "Target database must already exist: " << target << std::endl;
             throw UserError(ss.str(), Here());
         }
     } else {
@@ -156,16 +156,13 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
 
     ASSERT(dbTarget->uri() != dbSource->uri());
 
-    std::unique_ptr<DB> newDB = DB::buildWriter(target, conf);
+    std::unique_ptr<Catalogue> newCatalogue = CatalogueFactory::instance().build(target, conf, false);
+    if (newCatalogue->type() == TocEngine::typeName() && dbSource->type() == TocEngine::typeName())  {
+        CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(newCatalogue.get());
+        ASSERT(cat);
 
-    // This only works for tocDBs
-
-/*    TocDBReader* tocSourceDB = dynamic_cast<TocDBReader*>(dbSource.get());
-    TocDBWriter* tocTargetDB = dynamic_cast<TocDBWriter*>(newDB.get());
-    ASSERT(tocSourceDB);
-    ASSERT(tocTargetDB);*/
-
-    newDB->overlayDB(*dbSource, vkeys, remove_);
+        cat->overlayDB(*dbSource, vkeys, remove_);
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -19,6 +19,7 @@
 #include <iosfwd>
 
 #include "eckit/memory/NonCopyable.h"
+#include "fdb5/database/Catalogue.h"
 #include "eckit/types/Types.h"
 
 namespace metkit {
@@ -30,7 +31,9 @@ namespace mars {
 namespace fdb5 {
 
 class Key;
+class InspectionKey;
 class TypesRegistry;
+class Store;
 class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -39,11 +42,13 @@ class ReadVisitor : public eckit::NonCopyable {
 
 public: // methods
 
+    ReadVisitor() : catalogue_(nullptr) {}
+
     virtual ~ReadVisitor();
 
     virtual bool selectDatabase(const Key &key, const Key &full) = 0;
     virtual bool selectIndex(const Key &key, const Key &full) = 0;
-    virtual bool selectDatum(const Key &key, const Key &full) = 0;
+    virtual bool selectDatum(const InspectionKey &key, const Key &full) = 0;
 
     // Once we have selected a database, return its schema. Used for further iteration.
     virtual const Schema& databaseSchema() const = 0;
@@ -55,7 +60,13 @@ public: // methods
 
 protected: // methods
 
+    CatalogueReader* reader() const;
+
     virtual void print( std::ostream &out ) const = 0;
+
+protected: // members
+
+    Catalogue* catalogue_;
 
 private: // members
 

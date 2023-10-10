@@ -61,11 +61,11 @@ void FDBStats::process(const eckit::PathName& path, const eckit::option::CmdArgs
 
     eckit::Log::info() << "Scanning " << path << std::endl;
 
-    std::unique_ptr<fdb5::DB> db(fdb5::DBFactory::buildReader(path));
-    ASSERT(db->open());
+    std::unique_ptr<fdb5::Catalogue> cat = fdb5::CatalogueFactory::instance().build(path, fdb5::Config(), true);
+    ASSERT(cat->open());
 
     fdb5::ReportVisitor visitor(*db);
-    db->visitEntries(visitor);
+    cat->visitEntries(visitor);
 
     if (details_) {
         eckit::Log::info() << std::endl;

@@ -30,7 +30,7 @@ void TypeInteger::getValues(const metkit::mars::MarsRequest& request,
                             const std::string& keyword,
                             eckit::StringList& values,
                             const Notifier&,
-                            const DB*) const {
+                            const CatalogueReader*) const {
     std::vector<long> intValues;
 
     request.getValues(keyword, intValues, true);

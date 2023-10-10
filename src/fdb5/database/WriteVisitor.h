@@ -43,7 +43,7 @@ public: // methods
 
     virtual bool selectDatabase(const Key &key, const Key &full) = 0;
     virtual bool selectIndex(const Key &key, const Key &full) = 0;
-    virtual bool selectDatum(const Key &key, const Key &full) = 0;
+    virtual bool selectDatum(const InspectionKey &key, const Key &full) = 0;
 
     // Once we have selected a database, return its schema. Used for further iteration.
     virtual const Schema& databaseSchema() const = 0;

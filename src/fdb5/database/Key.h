@@ -21,6 +21,7 @@
 #include <vector>
 #include <set>
 
+#include "eckit/serialisation/Stream.h"
 #include "eckit/types/Types.h"
 
 namespace eckit {
@@ -36,20 +37,19 @@ namespace mars {
 
 namespace fdb5 {
 
-class TypesRegistry;
-class Rule;
-
 //----------------------------------------------------------------------------------------------------------------------
+
+class InspectionKey;
 
 class Key {
 
 public: // methods
 
     Key();
+    virtual ~Key() {}
 
     explicit Key(eckit::Stream &);
     explicit Key(const std::string &request);
-    explicit Key(const std::string &keys, const Rule* rule);
 
     explicit Key(const eckit::StringDict &keys);
 
@@ -89,26 +89,21 @@ public: // methods
         return keys_ == other.keys_;
     }
 
-    friend std::ostream& operator<<(std::ostream &s, const Key &x) {
-        x.print(s);
+    friend eckit::Stream& operator>>(eckit::Stream& s, Key& x) {
+        x = Key(s);
         return s;
     }
-
     friend eckit::Stream& operator<<(eckit::Stream &s, const Key &x) {
         x.encode(s);
         return s;
     }
 
-    friend eckit::Stream& operator>>(eckit::Stream& s, Key& x) {
-        x = Key(s);
+    friend std::ostream& operator<<(std::ostream &s, const Key &x) {
+        x.print(s);
         return s;
     }
 
-    void rule(const Rule *rule);
-    const Rule *rule() const;
-    const TypesRegistry& registry() const;
-
-    std::string valuesToString(bool ruleOrDefault = true) const;
+    std::string valuesToString() const;
 
     const eckit::StringList& names() const;
 
@@ -131,7 +126,7 @@ public: // methods
     bool empty() const { return keys_.empty(); }
 
     /// @throws When "other" doesn't contain all the keys of "this"
-    void validateKeysOf(const Key& other, bool checkAlsoValues = false) const;
+    void validateKeysOf(const Key& other) const;
 
     const eckit::StringDict& keyDict() const;
 
@@ -139,24 +134,27 @@ public: // methods
 
     operator std::string() const;
 
-    operator eckit::StringDict() const;
+    virtual operator eckit::StringDict() const;
 
-private: // members
+protected: // methods 
 
     //TODO add unit test for each type
-    std::string canonicalise(const std::string& keyword, const std::string& value) const;
+    virtual std::string canonicalise(const std::string& keyword, const std::string& value) const;
 
     void print( std::ostream &out ) const;
     void decode(eckit::Stream& s);
     void encode(eckit::Stream &s) const;
 
+private: // methods
+
     std::string toString() const;
+
+protected: // members
 
     eckit::StringDict keys_;
     eckit::StringList names_;
 
-    const Rule *rule_;
-
+    friend InspectionKey;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

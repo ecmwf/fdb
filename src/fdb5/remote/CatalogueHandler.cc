@@ -221,7 +221,7 @@ template <typename HelperClass>
 void CatalogueHandler::forwardApiCall(const MessageHeader& hdr) {
     HelperClass helper;
 
-    std::cout << "CatalogueHandler::forwardApiCall" << std::endl;
+//    std::cout << "CatalogueHandler::forwardApiCall" << std::endl;
 
     Buffer payload(receivePayload(hdr, controlSocket_));
     MemoryStream s(payload);

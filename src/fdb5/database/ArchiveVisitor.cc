@@ -16,13 +16,13 @@
 
 namespace fdb5 {
 
-ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size) :
-    BaseArchiveVisitor(owner, field),
+ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &dataKey, const void *data, size_t size) :
+    BaseArchiveVisitor(owner, dataKey),
     data_(data),
     size_(size) {
 }
 
-bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
+bool ArchiveVisitor::selectDatum(const InspectionKey &key, const Key &full) {
 
     // eckit::Log::info() << "selectDatum " << key << ", " << full << " " << size_ << std::endl;
     checkMissingKeys(full);
@@ -33,7 +33,6 @@ bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
     // here we could create a queue... and keep accepting archival request until the queue is full
     auto futureLocation = store()->archive(idx.key(), data_, size_);
     writeCatalogue->archive(key, futureLocation.get());
-//    writeCatalogue->archive(catalogue->key(), idx.key(), key, futureLocation.get());
 
     return true;
 }

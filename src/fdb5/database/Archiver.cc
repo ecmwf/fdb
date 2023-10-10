@@ -26,7 +26,7 @@ namespace fdb5 {
 
 Archiver::Archiver(const Config& dbConfig) :
     dbConfig_(dbConfig),
-    current_(nullptr) {
+    catalogue_(nullptr) {
 }
 
 Archiver::~Archiver() {
@@ -64,13 +64,12 @@ void Archiver::flush() {
     }
 }
 
-void Archiver::selectDatabase(const Key &key) {
+void Archiver::selectDatabase(const Key &dbKey) {
 
-    store_t::iterator i = databases_.find(key);
+    store_t::iterator i = databases_.find(dbKey);
 
     if (i != databases_.end() ) {
-        std::cout << "found key: " << key << std::endl;
-        current_ = i->second.second.first.get();
+        catalogue_ = i->second.second.first.get();
         store_ = i->second.second.second.get();
         i->second.first = ::time(0);
         return;
@@ -96,7 +95,7 @@ void Archiver::selectDatabase(const Key &key) {
         }
     }
 
-    std::unique_ptr<Catalogue> cat = CatalogueFactory::instance().build(key, dbConfig_, false);
+    std::unique_ptr<Catalogue> cat = CatalogueFactory::instance().build(dbKey, dbConfig_, false);
     ASSERT(cat);
 
     // If this database is locked for writing then this is an error
@@ -107,10 +106,10 @@ void Archiver::selectDatabase(const Key &key) {
     }
 
     std::unique_ptr<Store> str = cat->buildStore();
-    current_ = cat.get();
+    catalogue_ = cat.get();
     store_ = str.get();
 
-    databases_[key] = std::make_pair(::time(0), std::make_pair(std::move(cat), std::move(str)));
+    databases_[dbKey] = std::make_pair(::time(0), std::make_pair(std::move(cat), std::move(str)));
 }
 
 void Archiver::print(std::ostream &out) const {

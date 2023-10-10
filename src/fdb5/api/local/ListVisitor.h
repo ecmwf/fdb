@@ -21,6 +21,7 @@
 
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Index.h"
+#include "fdb5/database/InspectionKey.h"
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/ListIterator.h"
 
@@ -79,12 +80,12 @@ public:
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
-    void visitDatum(const Field& field, const Key& key) override {
+    void visitDatum(const Field& field, const InspectionKey& datumKey) override {
         ASSERT(currentCatalogue_);
         ASSERT(currentIndex_);
 
-        if (key.match(datumRequest_)) {
-            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), key}, field.stableLocation(), field.timestamp()));
+        if (datumKey.match(datumRequest_)) {
+            queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), datumKey.canonical()}, field.stableLocation(), field.timestamp()));
         }
     }
 

@@ -37,6 +37,7 @@ class Predicate;
 class ReadVisitor;
 class WriteVisitor;
 class Key;
+class InspectionKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -65,13 +66,13 @@ public: // methods
     void expand(const metkit::mars::MarsRequest &request,
                 ReadVisitor &Visitor,
                 size_t depth,
-                std::vector<fdb5::Key> &keys,
+                std::vector<InspectionKey> &keys,
                 Key &full) const;
 
     void expand(const Key &field,
                 WriteVisitor &Visitor,
                 size_t depth,
-                std::vector<fdb5::Key> &keys,
+                std::vector<InspectionKey> &keys,
                 Key &full) const;
 
     const Rule* ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const;
@@ -96,26 +97,26 @@ private: // methods
     void expand(const metkit::mars::MarsRequest &request,
                 std::vector<Predicate *>::const_iterator cur,
                 size_t depth,
-                std::vector<Key> &keys,
+                std::vector<InspectionKey> &keys,
                 Key &full,
                 ReadVisitor &Visitor) const;
 
     void expand(const Key &field,
                 std::vector<Predicate *>::const_iterator cur,
                 size_t depth,
-                std::vector<Key> &keys,
+                std::vector<InspectionKey> &keys,
                 Key &full,
                 WriteVisitor &Visitor) const;
 
-    void expandFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& done) const;
-    void expandFirstLevel(const Key &dbKey,  Key &result, bool& done) const ;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& result, bool& done) const;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result, bool& done) const;
+    void expandFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, InspectionKey &result, bool& done) const;
+    void expandFirstLevel(const Key &dbKey,  InspectionKey &result, bool& done) const ;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, InspectionKey& result, bool& done) const;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request,  InspectionKey& result, bool& done) const;
 
-    void matchFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
-    void matchFirstLevel(const Key &dbKey, std::set<Key>& result, const char* missing) const ;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const ;
+    void matchFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, InspectionKey &tmp, std::set<InspectionKey>& result, const char* missing) const;
+    void matchFirstLevel(const Key &dbKey, std::set<InspectionKey>& result, const char* missing) const ;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, InspectionKey &tmp, std::set<InspectionKey>& result, const char* missing) const;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<InspectionKey>& result, const char* missing) const ;
 
 
     void keys(size_t level, size_t depth, eckit::StringList &result, eckit::StringSet &seen) const;

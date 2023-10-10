@@ -65,20 +65,21 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
             Config conf = config(args);
             const Schema& schema = conf.schema();
-            Key result;
+            InspectionKey result;
             ASSERT( schema.expandFirstLevel(request.request(), result) );
 
             eckit::Log::info() << result << std::endl;
 
             // 'Touch' the database (which will create it if it doesn't exist)
-            std::unique_ptr<DB> db = DB::buildReader(result, conf);
 
-            if (!db->exists() && create_db) {
-                db = DB::buildWriter(result, conf);
+            std::unique_ptr<Catalogue> cat = CatalogueFactory::instance().build(result, conf, true);
+
+            if (!cat->exists() && create_db) {
+                cat = CatalogueFactory::instance().build(result, conf, false);
             }
 
-            if (db->exists()) {
-                eckit::Log::info() << (*db) << std::endl;
+            if (cat->exists()) {
+                eckit::Log::info() << (*cat) << std::endl;
             }
         }
     }

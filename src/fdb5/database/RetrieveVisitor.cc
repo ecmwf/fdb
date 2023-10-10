@@ -14,7 +14,6 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/database/DB.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/types/Type.h"
 #include "fdb5/types/TypesRegistry.h"
@@ -25,9 +24,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RetrieveVisitor::RetrieveVisitor(const Notifier &wind, HandleGatherer &gatherer):
-    wind_(wind),
-    gatherer_(gatherer) {
+RetrieveVisitor::RetrieveVisitor(const Notifier &wind, HandleGatherer &gatherer) :
+    store_(nullptr), wind_(wind), gatherer_(gatherer) {
 }
 
 RetrieveVisitor::~RetrieveVisitor() {
@@ -37,26 +35,25 @@ RetrieveVisitor::~RetrieveVisitor() {
 
 bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
-    if(db_) {
-        if(key == db_->key()) {
+    if(catalogue_) {
+        if(key == catalogue_->key()) {
             return true;
         }
     }
 
     eckit::Log::debug<LibFdb5>() << "selectDatabase " << key << std::endl;
-//    db_.reset(DBFactory::buildReader(key));
-    db_ = DB::buildReader(key);
+    catalogue_ = CatalogueFactory::instance().build(key, fdb5::Config(), true).get();
 
     // If this database is locked for retrieval then it "does not exist"
-    if (!db_->enabled(ControlIdentifier::Retrieve)) {
+    if (!catalogue_->enabled(ControlIdentifier::Retrieve)) {
         std::ostringstream ss;
-        ss << "Database " << *db_ << " is LOCKED for retrieval";
+        ss << "Database " << *catalogue_ << " is LOCKED for retrieval";
         eckit::Log::warning() << ss.str() << std::endl;
-        db_.reset();
+        catalogue_ = nullptr;
         return false;
     }
 
-    if (!db_->open()) {
+    if (!catalogue_->open()) {
         eckit::Log::info() << "Database does not exists " << key << std::endl;
         return false;
     } else {
@@ -65,16 +62,20 @@ bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 }
 
 bool RetrieveVisitor::selectIndex(const Key& key, const Key&) {
-    ASSERT(db_);
+    ASSERT(catalogue_);
     // eckit::Log::info() << "selectIndex " << key << std::endl;
-    return db_->selectIndex(key);
+    return catalogue_->selectIndex(key);
 }
 
-bool RetrieveVisitor::selectDatum(const Key& key, const Key&) {
-    ASSERT(db_);
+bool RetrieveVisitor::selectDatum(const InspectionKey& key, const Key&) {
+    ASSERT(catalogue_);
     // eckit::Log::info() << "selectDatum " << key << ", " << full << std::endl;
 
-    eckit::DataHandle *dh = db_->retrieve(key);
+    Field field;
+    eckit::DataHandle *dh = nullptr;
+    if (reader()->retrieve(key, field)) {
+        dh = store().retrieve(field);
+    }
 
     if (dh) {
         gatherer_.add(dh);
@@ -88,12 +89,12 @@ void RetrieveVisitor::values(const metkit::mars::MarsRequest &request,
                              const TypesRegistry &registry,
                              eckit::StringList &values) {
     eckit::StringList list;
-    registry.lookupType(keyword).getValues(request, keyword, list, wind_, db_.get());
+    registry.lookupType(keyword).getValues(request, keyword, list, wind_, reader());
 
     eckit::StringSet filter;
     bool toFilter = false;
-    if (db_) {
-        toFilter = db_->axis(keyword, filter);
+    if (catalogue_) {
+        toFilter = reader()->axis(keyword, filter);
     }
 
     for(auto l: list) {
@@ -104,13 +105,23 @@ void RetrieveVisitor::values(const metkit::mars::MarsRequest &request,
     }
 }
 
+
+Store& RetrieveVisitor::store() {
+    if (!store_) {
+        ASSERT(catalogue_);
+        store_ = catalogue_->buildStore();
+        ASSERT(store_);
+    }
+    return *store_;
+}
+
 void RetrieveVisitor::print( std::ostream &out ) const {
     out << "RetrieveVisitor[]";
 }
 
 const Schema& RetrieveVisitor::databaseSchema() const {
-    ASSERT(db_);
-    return db_->schema();
+    ASSERT(catalogue_);
+    return catalogue_->schema();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

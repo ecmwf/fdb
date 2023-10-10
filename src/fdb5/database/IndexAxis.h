@@ -35,7 +35,7 @@ class MarsRequest;
 
 namespace fdb5 {
 
-class Key;
+class InspectionKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -48,7 +48,7 @@ public: // methods
 
     ~IndexAxis();
 
-    void insert(const Key &key);
+    void insert(const InspectionKey &key);
     void encode(eckit::Stream &s, const int version) const;
 
     // Decode can be used for two-stage initialisation (IndexAxis a; a.decode(s);)
@@ -60,7 +60,7 @@ public: // methods
     void dump(std::ostream &out, const char* indent) const;
 
     bool partialMatch(const metkit::mars::MarsRequest& request) const;
-    bool contains(const Key& key) const;
+    bool contains(const InspectionKey& key) const;
 
     /// Provide a means to test if the index has changed since it was last written out, and to
     /// mark that it has been written out.

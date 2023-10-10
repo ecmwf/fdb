@@ -83,7 +83,7 @@ void FdbHide::execute(const option::CmdArgs& args) {
 
     const Schema& schema = conf.schema();
 
-    Key dbkey;
+    InspectionKey dbkey;
     ASSERT(schema.expandFirstLevel(dbrequest.request(), dbkey));
 
     std::unique_ptr<Catalogue> db = CatalogueFactory::instance().build(dbkey, conf, true);

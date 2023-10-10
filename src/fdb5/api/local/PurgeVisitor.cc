@@ -82,7 +82,7 @@ void PurgeVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
     internalVisitor_->visitDatum(field, keyFingerprint);
 }
 
-void PurgeVisitor::visitDatum(const Field&, const Key&) { NOTIMP; }
+void PurgeVisitor::visitDatum(const Field&, const InspectionKey&) { NOTIMP; }
 
 void PurgeVisitor::catalogueComplete(const Catalogue& catalogue) {
     internalVisitor_->catalogueComplete(catalogue);

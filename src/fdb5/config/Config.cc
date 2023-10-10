@@ -170,7 +170,7 @@ PathName Config::expandPath(const std::string& path) const {
 }
 
 const PathName& Config::schemaPath() const {
-    if (schemaPath_.path().empty()) {
+    if (schemaPath_.path().empty() || !schemaPathInitialised_) {
         initializeSchemaPath();
     }
     return schemaPath_;
@@ -196,6 +196,7 @@ void Config::initializeSchemaPath() const {
         schemaPath_ = expandPath(fdbSchemaFile);
     }
 
+    schemaPathInitialised_ = true;
     eckit::Log::debug<LibFdb5>() << "Using FDB schema: " << schemaPath_ << std::endl;
 }
 

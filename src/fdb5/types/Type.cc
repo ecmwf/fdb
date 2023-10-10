@@ -27,7 +27,7 @@ void Type::getValues(const metkit::mars::MarsRequest &request,
                      const std::string &keyword,
                      eckit::StringList &values,
                      const Notifier&,
-                     const DB*) const {
+                     const CatalogueReader*) const {
     request.getValues(keyword, values, true);
 }
 

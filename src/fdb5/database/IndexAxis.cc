@@ -16,7 +16,7 @@
 
 #include "fdb5/database/AxisRegistry.h"
 #include "fdb5/database/IndexAxis.h"
-#include "fdb5/database/Key.h"
+#include "fdb5/database/InspectionKey.h"
 #include "fdb5/types/TypesRegistry.h"
 #include "fdb5/types/Type.h"
 
@@ -150,6 +150,7 @@ void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
 }
 
 void IndexAxis::decodeLegacy(eckit::Stream& s, const int version) {
+
     ASSERT(version <= 2);
 
     size_t n;
@@ -220,7 +221,7 @@ bool IndexAxis::partialMatch(const metkit::mars::MarsRequest& request) const {
     return true;
 }
 
-bool IndexAxis::contains(const Key &key) const {
+bool IndexAxis::contains(const InspectionKey &key) const {
 
     for (AxisMap::const_iterator i = axis_.begin(); i != axis_.end(); ++i) {
         if (!key.match(i->first, *(i->second))) {
@@ -230,7 +231,7 @@ bool IndexAxis::contains(const Key &key) const {
     return true;
 }
 
-void IndexAxis::insert(const Key &key) {
+void IndexAxis::insert(const InspectionKey &key) {
     ASSERT(!readOnly_);
 
     for (Key::const_iterator i = key.begin(); i  != key.end(); ++i) {

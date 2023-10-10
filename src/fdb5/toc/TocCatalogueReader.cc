@@ -21,8 +21,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocCatalogueReader::TocCatalogueReader(const Key& key, const fdb5::Config& config) :
-    TocCatalogue(key, config) {
+TocCatalogueReader::TocCatalogueReader(const Key& dbKey, const fdb5::Config& config) :
+    TocCatalogue(dbKey, config) {
     loadIndexesAndRemap();
 }
 
@@ -46,22 +46,22 @@ void TocCatalogueReader::loadIndexesAndRemap() {
     }
 }
 
-bool TocCatalogueReader::selectIndex(const Key &key) {
+bool TocCatalogueReader::selectIndex(const Key &idxKey) {
 
-    if(currentIndexKey_ == key) {
+    if(currentIndexKey_ == idxKey) {
         return true;
     }
 
-    currentIndexKey_ = key;
+    currentIndexKey_ = idxKey;
     matching_.clear();
 
     for (auto idx = indexes_.begin(); idx != indexes_.end(); ++idx) {
-        if (idx->first.key() == key) {
+        if (idx->first.key() == idxKey) {
             matching_.push_back(&(*idx));
         }
     }
 
-    eckit::Log::debug<LibFdb5>() << "TocCatalogueReader::selectIndex " << key << ", found "
+    eckit::Log::debug<LibFdb5>() << "TocCatalogueReader::selectIndex " << idxKey << ", found "
                                 << matching_.size() << " matche(s)" << std::endl;
 
     return (matching_.size() != 0);
@@ -103,7 +103,7 @@ void TocCatalogueReader::close() {
     }
 }
 
-bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
+bool TocCatalogueReader::retrieve(const InspectionKey& key, Field& field) const {
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
     eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
 

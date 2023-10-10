@@ -30,7 +30,7 @@ AdoptVisitor::AdoptVisitor(Archiver &owner, const Key &field, const PathName &pa
     ASSERT(length_ > Length(0));
 }
 
-bool AdoptVisitor::selectDatum(const Key &key, const Key &full) {
+bool AdoptVisitor::selectDatum(const InspectionKey &key, const Key &full) {
 
     // Log::info() << "selectDatum " << key << ", " << full << " " << length_ << std::endl;
     checkMissingKeys(full);

@@ -52,8 +52,8 @@ public: // methods
     std::vector<eckit::PathName> allRoots(const Key& key);
 
     /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::PathName> visitableRoots(const Key& key);
-    std::vector<eckit::PathName> visitableRoots(const std::set<Key>& keys);
+    std::vector<eckit::PathName> visitableRoots(const InspectionKey& key);
+    std::vector<eckit::PathName> visitableRoots(const std::set<InspectionKey>& keys);
     std::vector<eckit::PathName> visitableRoots(const metkit::mars::MarsRequest& request);
 
     /// Lists the roots where a DB key would be able to be written
@@ -62,7 +62,7 @@ public: // methods
 
     std::string dbPathName(const Key& key);
 
-    std::vector<std::string> possibleDbPathNames(const Key& key, const char* missing);
+    std::vector<std::string> possibleDbPathNames(const InspectionKey& key, const char* missing);
 
 protected: // methods
 

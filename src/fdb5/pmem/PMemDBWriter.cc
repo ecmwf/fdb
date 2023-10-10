@@ -61,7 +61,7 @@ void PMemDBWriter::close() {
     indexes_.clear();
 }
 
-void PMemDBWriter::archive(const Key &key, const void *data, Length length) {
+void PMemDBWriter::archive(const InspectionKey &key, const void *data, Length length) {
 
     // Get the key:value identifier associated with this key
 

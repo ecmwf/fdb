@@ -75,8 +75,8 @@ list( APPEND fdb5_srcs
     database/BaseArchiveVisitor.h
     database/Catalogue.cc
     database/Catalogue.h
-    database/DB.cc
-    database/DB.h
+    # database/DB.cc
+    # database/DB.h
     database/DataStats.cc
     database/DataStats.h
     database/DbStats.cc
@@ -119,6 +119,8 @@ list( APPEND fdb5_srcs
     database/IndexFactory.h
     database/Key.cc
     database/Key.h
+    database/InspectionKey.cc
+    database/InspectionKey.h
     database/ReadVisitor.cc
     database/ReadVisitor.h
     database/Report.cc

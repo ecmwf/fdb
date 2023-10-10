@@ -40,7 +40,7 @@ namespace fdb5 {
 
 class Key;
 class Op;
-class DB;
+class Catalogue;
 class Schema;
 class Notifier;
 class FDBToolRequest;
@@ -98,7 +98,7 @@ private: // methods
 
 private: // data
 
-    mutable eckit::CacheLRU<Key,DB*> databases_;
+    mutable eckit::CacheLRU<Key,Catalogue*> databases_;
 
     Config dbConfig_;
 };

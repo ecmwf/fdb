@@ -30,7 +30,7 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexLocation.h"
 #include "fdb5/database/Indexer.h"
-#include "fdb5/database/Key.h"
+#include "fdb5/database/InspectionKey.h"
 
 namespace eckit {
 class Stream;
@@ -38,7 +38,6 @@ class Stream;
 
 namespace fdb5 {
 
-class Key;
 class Index;
 class IndexLocationVisitor;
 class Schema;
@@ -80,15 +79,15 @@ public: // methods
 
     time_t timestamp() const { return timestamp_; }
 
-    virtual bool get(const Key &key, const Key &remapKey, Field &field) const = 0;
-    virtual void put(const Key &key, const Field &field);
+    virtual bool get(const InspectionKey &key, const Key &remapKey, Field &field) const = 0;
+    virtual void put(const InspectionKey &key, const Field &field);
 
     virtual void encode(eckit::Stream& s, const int version) const;
     virtual void entries(EntryVisitor& visitor) const = 0;
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 
     virtual bool partialMatch(const metkit::mars::MarsRequest& request) const;
-    virtual bool mayContain(const Key& key) const;
+    virtual bool mayContain(const InspectionKey& key) const;
 
     virtual IndexStats statistics() const = 0;
 
@@ -108,18 +107,18 @@ private: // methods
     void decodeCurrent(eckit::Stream& s, const int version);
     void decodeLegacy(eckit::Stream& s, const int version);
 
-    virtual void add(const Key &key, const Field &field) = 0;
+    virtual void add(const InspectionKey &key, const Field &field) = 0;
 
 protected: // members
 
     std::string type_;
 
     /// @note Order of members is important here ...
-    IndexAxis axes_;      ///< This Index spans along these axis
-    Key       key_;       ///< key that selected this index
-    time_t    timestamp_; ///< timestamp when this Index was flushed
+    IndexAxis     axes_;      ///< This Index spans along these axis
+    Key           key_;       ///< key that selected this index
+    time_t        timestamp_; ///< timestamp when this Index was flushed
 
-    Indexer   indexer_;
+    Indexer       indexer_;
 
     friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
         o.print(s); return s;
@@ -160,8 +159,8 @@ public: // methods
 
     time_t timestamp() const { return content_->timestamp(); }
 
-    bool get(const Key& key, const Key& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
-    void put(const Key& key, const Field& field) { content_->put(key, field); }
+    bool get(const InspectionKey& key, const Key& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
+    void put(const InspectionKey& key, const Field& field) { content_->put(key, field); }
 
     void encode(eckit::Stream& s, const int version) const { content_->encode(s, version); }
     void entries(EntryVisitor& v) const { content_->entries(v); }
@@ -175,7 +174,7 @@ public: // methods
     const IndexBase* content() const { return content_; }
 
     bool partialMatch(const metkit::mars::MarsRequest& request) const { return content_->partialMatch(request); }
-    bool mayContain(const Key& key) const { return content_->mayContain(key); }
+    bool mayContain(const InspectionKey& key) const { return content_->mayContain(key); }
 
     bool null() const { return null_; }
 

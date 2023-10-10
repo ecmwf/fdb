@@ -14,6 +14,7 @@
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Manager.h"
+#include "fdb5/database/InspectionKey.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
 
@@ -59,7 +60,7 @@ void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
 
-    Key key(keyFingerprint, currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key()));
+    InspectionKey key(keyFingerprint, currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key()));
     visitDatum(field, key);
 }
 
@@ -106,11 +107,16 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
                 Log::debug<LibFdb5>() << "FDB processing Path " << path << std::endl;
 
-                std::unique_ptr<DB> db = DB::buildReader(eckit::URI(uri.scheme(), path), dbConfig_);
-                ASSERT(db->open());
-                eckit::AutoCloser<DB> closer(*db);
+                std::unique_ptr<Catalogue> catalogue = CatalogueFactory::instance().build(eckit::URI(uri.scheme(), path), dbConfig_, true);
+                ASSERT(catalogue->open());
 
-                db->visitEntries(visitor, false);
+                std::unique_ptr<Store> store = catalogue->buildStore();
+                ASSERT(store->open());
+
+                eckit::AutoCloser<Catalogue> closer(*catalogue);
+                eckit::AutoCloser<Store> storeCloser(*store);
+
+                catalogue->visitEntries(visitor, *store, false);
             }
         }
 

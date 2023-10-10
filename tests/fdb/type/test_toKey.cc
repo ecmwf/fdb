@@ -16,7 +16,7 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/ArchiveVisitor.h"
-#include "fdb5/database/Key.h"
+#include "fdb5/database/InspectionKey.h"
 #include "fdb5/rules/Rule.h"
 
 using namespace eckit::testing;
@@ -31,7 +31,7 @@ char data[4];
 
 CASE( "ClimateDaily - no expansion" ) {
 
-    fdb5::Key key;
+    fdb5::InspectionKey key;
     EXPECT(key.valuesToString() == "");
     EXPECT_THROWS(key.canonicalValue("date"));
 
@@ -48,7 +48,7 @@ CASE( "ClimateDaily - no expansion" ) {
 
 CASE( "Step & ClimateDaily - expansion" ) {
 
-    fdb5::Key key;
+    fdb5::InspectionKey key;
     EXPECT(key.valuesToString() == "");
     EXPECT_THROWS(key.canonicalValue("date"));
 
@@ -130,9 +130,10 @@ CASE( "Step & ClimateDaily - expansion" ) {
     key.set("levelist", "50");
     key.set("param", "129.128");
 
-    fdb5::Archiver archiver;
+    fdb5::Config conf = config.expandConfig();
+    fdb5::Archiver archiver(conf);
     fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
-    config.schema().expand(key, visitor);
+    conf.schema().expand(key, visitor);
     key.rule(visitor.rule());
 
     EXPECT(key.canonicalValue("date") == "0427");
@@ -151,7 +152,7 @@ CASE( "Levelist" ) {
     values.insert("0.333333");
     values.sort();
 
-    fdb5::Key key;
+    fdb5::InspectionKey key;
     EXPECT(key.valuesToString() == "");
     EXPECT_THROWS(key.canonicalValue("levelist"));
 
@@ -199,14 +200,13 @@ CASE( "Levelist" ) {
     // this works (probably shouldn't), simply becasue to_string uses the same precision as printf %f (default 6)
     /// @note don't use to_string when canonicalising Keys
     key.set("levelist", std::to_string(double(1./3.)));
-//    std::cout << key.canonicalValue("levelist") << std::endl;
     EXPECT(key.canonicalValue("levelist") == "0.333333");
     EXPECT(key.match("levelist", values));
 }
 
 CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
 
-    fdb5::Key key("class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date=20210427,time=6,step=0,quantile=99:100,levelist=50,param=129.128");
+    fdb5::InspectionKey key("class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date=20210427,time=6,step=0,quantile=99:100,levelist=50,param=129.128");
 
     EXPECT(key.canonicalValue("date") == "20210427");
     EXPECT(key.canonicalValue("time") == "0600");
@@ -224,7 +224,7 @@ CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
 
 CASE( "ClimateMonthly - string ctor - expansion" ) {
 
-    fdb5::Key key("class=op,expver=1,stream=mnth,domain=g,type=cl,levtype=pl,date=20210427,time=0000,levelist=50,param=129.128");
+    fdb5::InspectionKey key("class=op,expver=1,stream=mnth,domain=g,type=cl,levtype=pl,date=20210427,time=0000,levelist=50,param=129.128");
 
     EXPECT(key.canonicalValue("date") == "20210427");
     EXPECT(key.valuesToString() == "op:0001:mnth:g:cl:pl:20210427:0000:50:129.128");
@@ -240,10 +240,10 @@ CASE( "ClimateMonthly - string ctor - expansion" ) {
 
 }
 
-// do we need to keep this behaviour? should we rely on metkit for date expansion and remove it from Key?
+// do we need to keep this behaviour? should we rely on metkit for date expansion and remove it from InspectionKey?
 CASE( "Date - string ctor - expansion" ) {
 
-    fdb5::Key key("class=od,expver=1,stream=oper,type=ofb,date=-2,time=0000,obsgroup=MHS,reportype=3001");
+    fdb5::InspectionKey key("class=od,expver=1,stream=oper,type=ofb,date=-2,time=0000,obsgroup=MHS,reportype=3001");
 
     eckit::Date now(-2);
     eckit::Translator<long, std::string> t;

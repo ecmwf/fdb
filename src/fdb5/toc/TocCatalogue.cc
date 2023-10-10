@@ -26,11 +26,13 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocCatalogue::TocCatalogue(const Key& key, const fdb5::Config& config) :
-    TocCatalogue(key, CatalogueRootManager(config).directory(key), config) {}
+    TocCatalogue(key, CatalogueRootManager(config).directory(key), config) {
+}
 
 TocCatalogue::TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config) :
     Catalogue(key, tocPath.controlIdentifiers_, config),
-    TocHandler(tocPath.directory_, config) {}
+    TocHandler(tocPath.directory_, config) {
+}
 
 TocCatalogue::TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config) :
     Catalogue(Key(), controlIdentifiers, config),

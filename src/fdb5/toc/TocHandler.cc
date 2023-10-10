@@ -133,7 +133,6 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     enumeratedMaskedEntries_(false),
     writeMode_(false)
 {
-
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
     const char* subTocOverride = ::getenv("FDB5_SUB_TOCS");
@@ -145,7 +144,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
 TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     TocCommon(path.dirName()),
     parentKey_(parentKey),
-    schemaPath_(directory_ / "schema"),
+    schemaPath_(TocCommon::findRealPath(path) / "schema"),
     tocPath_(TocCommon::findRealPath(path)),
     serialisationVersion_(TocSerialisationVersion(dbConfig_)),
     useSubToc_(false),
@@ -157,7 +156,6 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     enumeratedMaskedEntries_(false),
     writeMode_(false)
 {
-
     /// Are we remapping a mounted DB?
     if (exists()) {
         Key key(databaseKey());
@@ -726,7 +724,6 @@ void TocHandler::writeInitRecord(const Key &key) {
         if (!isSubToc_) {
 
             /* Copy schema first */
-
             eckit::Log::debug<LibFdb5>() << "Copy schema from "
                                << dbConfig_.schemaPath()
                                << " to "

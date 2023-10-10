@@ -31,7 +31,7 @@ namespace mars {
 
 namespace fdb5 {
 
-class DB;
+class CatalogueReader;
 class Notifier;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -54,7 +54,7 @@ public: // methods
                            const std::string &keyword,
                            eckit::StringList &values,
                            const Notifier &wind,
-                           const DB *db) const;
+                           const CatalogueReader* cat) const;
 
     virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const;
 

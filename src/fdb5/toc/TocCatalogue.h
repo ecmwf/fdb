@@ -33,7 +33,7 @@ class TocCatalogue : public Catalogue, public TocHandler {
 
 public: // methods
 
-    TocCatalogue(const Key& key, const fdb5::Config& config);
+    TocCatalogue(const Key& dbKey, const fdb5::Config& config);
     TocCatalogue(const eckit::PathName& directory, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
 
     ~TocCatalogue() override {}
@@ -52,7 +52,7 @@ public: // constants
 
 protected: // methods
 
-    TocCatalogue(const Key& key, const TocPath& tocPath, const fdb5::Config& config);
+    TocCatalogue(const Key& dbKey, const TocPath& tocPath, const fdb5::Config& config);
 
     std::string type() const override;
 

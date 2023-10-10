@@ -743,18 +743,6 @@ void RemoteStore::sendArchiveData(uint32_t id, const Key& key, const void* data,
     Buffer keyBuffer(4096);
     MemoryStream keyStream(keyBuffer);
 
-    if (!key_.rule()) {
-        std::cout << "RemoteStore::sendArchiveData - missing rule in " << key_ << std::endl;
-    } else {
-        std::cout << "Good so far... RemoteStore::sendArchiveData - existing rule in " << key_ << std::endl;
-
-    }
-    if (!key.rule()) {
-        std::cout << "RemoteStore::sendArchiveData - missing rule in " << key << std::endl;
-    } else {
-        std::cout << "Good so far... RemoteStore::sendArchiveData - existing rule in " << key << std::endl;
-    }
-
     keyStream << key_;
     keyStream << key;
 

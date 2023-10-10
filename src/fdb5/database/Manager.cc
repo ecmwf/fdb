@@ -222,7 +222,7 @@ std::set<std::string> Manager::engines(const metkit::mars::MarsRequest& rq, bool
         } else {
 
             // Match all possible expansions of the first level according to the schema
-            std::set<Key> keys;
+            std::set<InspectionKey> keys;
             config_.schema().matchFirstLevel(rq, keys, "");
 
             std::set<std::string> expandedKeys;
@@ -306,7 +306,7 @@ std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequ
         Log::debug<LibFdb5>() << "Selected FDB engine " << *i << std::endl;
         std::vector<URI> p;
         if (all) {
-            p = Engine::backend(*i).visitableLocations(Key(), config_);
+            p = Engine::backend(*i).visitableLocations(config_);
         } else {
             p = Engine::backend(*i).visitableLocations(rq, config_);
         }
@@ -317,22 +317,22 @@ std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequ
 
 }
 
-std::vector<eckit::URI> Manager::writableLocations(const Key& key) {
+// std::vector<eckit::URI> Manager::writableLocations(const Key& key) {
 
-    std::set<std::string> engines = Manager::engines(key);
+//     std::set<std::string> engines = Manager::engines(key);
 
-    Log::debug<LibFdb5>() << "Matching engines for key " << key << " -> " << engines << std::endl;
+//     Log::debug<LibFdb5>() << "Matching engines for key " << key << " -> " << engines << std::endl;
 
-    std::vector<URI> r; // union of all locations
+//     std::vector<URI> r; // union of all locations
 
-    for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
-        Log::debug<LibFdb5>() << "Selected FDB engine " << *i << std::endl;
-        std::vector<URI> p = Engine::backend(*i).writableLocations(key, config_);
-        r.insert(r.end(), p.begin(), p.end());
-    }
+//     for(std::set<std::string>::const_iterator i = engines.begin(); i != engines.end(); ++i) {
+//         Log::debug<LibFdb5>() << "Selected FDB engine " << *i << std::endl;
+//         std::vector<URI> p = Engine::backend(*i).writableLocations(key, config_);
+//         r.insert(r.end(), p.begin(), p.end());
+//     }
 
-    return r;
-}
+//     return r;
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

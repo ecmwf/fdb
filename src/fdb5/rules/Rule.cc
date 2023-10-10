@@ -21,6 +21,7 @@
 #include "fdb5/database/ReadVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
 #include "fdb5/types/Type.h"
+#include "fdb5/database/InspectionKey.h"
 
 
 namespace fdb5 {
@@ -92,7 +93,7 @@ Rule::~Rule() {
 void Rule::expand( const metkit::mars::MarsRequest &request,
                    std::vector<Predicate *>::const_iterator cur,
                    size_t depth,
-                   std::vector<Key> &keys,
+                   std::vector<InspectionKey> &keys,
                    Key &full,
                    ReadVisitor &visitor) const {
 
@@ -170,15 +171,15 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
 
 }
 
-void Rule::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor, size_t depth, std::vector<Key> &keys, Key &full) const {
+void Rule::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor, size_t depth, std::vector<InspectionKey> &keys, Key &full) const {
     ASSERT(keys.size() == 3);
     expand(request, predicates_.begin(), depth, keys, full, visitor);
 }
 
-void Rule::expand( const Key &field,
+void Rule::expand( const Key &dataKey,
                    std::vector<Predicate *>::const_iterator cur,
                    size_t depth,
-                   std::vector<Key> &keys,
+                   std::vector<InspectionKey> &keys,
                    Key &full,
                    WriteVisitor &visitor) const {
 
@@ -220,7 +221,7 @@ void Rule::expand( const Key &field,
                 }
 
                 // Here we recurse on the database's schema (rather than the master schema)
-                visitor.databaseSchema().expandSecond(field, visitor, keys[0]);
+                visitor.databaseSchema().expandSecond(dataKey, visitor, keys[0]);
                 return;
 
             case 1:
@@ -236,7 +237,7 @@ void Rule::expand( const Key &field,
             }
 
             for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
-                (*i)->expand(field, visitor, depth + 1, keys, full);
+                (*i)->expand(dataKey, visitor, depth + 1, keys, full);
             }
         }
         return;
@@ -246,7 +247,7 @@ void Rule::expand( const Key &field,
     ++next;
 
     const std::string &keyword = (*cur)->keyword();
-    const std::string &value = (*cur)->value(field);
+    const std::string &value = (*cur)->value(dataKey);
 
     Key &k = keys[depth];
 
@@ -254,20 +255,19 @@ void Rule::expand( const Key &field,
     full.push(keyword, value);
 
     if ((*cur)->match(k)) {
-        expand(field, next, depth, keys, full, visitor);
+        expand(dataKey, next, depth, keys, full, visitor);
     }
 
     full.pop(keyword);
     k.pop(keyword);
-
-
 }
-void Rule::expand(const Key &field, WriteVisitor &visitor, size_t depth, std::vector<Key> &keys, Key &full) const {
+
+void Rule::expand(const Key &dataKey, WriteVisitor &visitor, size_t depth, std::vector<InspectionKey> &keys, Key &full) const {
     ASSERT(keys.size() == 3);
-    expand(field, predicates_.begin(), depth, keys, full, visitor);
+    expand(dataKey, predicates_.begin(), depth, keys, full, visitor);
 }
 
-void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& found) const {
+void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, InspectionKey &result, bool& found) const {
 
     if (cur == predicates_.end()) {
         found = true;
@@ -292,11 +292,11 @@ void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_i
     }
 }
 
-void Rule::expandFirstLevel(const Key &dbKey,  Key &result, bool& found) const {
+void Rule::expandFirstLevel(const Key &dbKey,  InspectionKey &result, bool& found) const {
     expandFirstLevel(dbKey, predicates_.begin(), result, found);
 }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, Key& result, bool& found) const {
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, InspectionKey& result, bool& found) const {
 
     if (cur == predicates_.end()) {
         found = true;
@@ -329,12 +329,12 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Pre
     }
 }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, Key& result, bool& done) const {
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, InspectionKey& result, bool& done) const {
     expandFirstLevel(request, predicates_.begin(), result, done);
 }
 
 
-void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
+void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, InspectionKey& tmp, std::set<InspectionKey>& result, const char* missing) const {
 
     if (cur == predicates_.end()) {
         if (tmp.match(dbKey)) {
@@ -365,13 +365,13 @@ void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_it
 
 }
 
-void Rule::matchFirstLevel(const Key &dbKey,  std::set<Key>& result, const char* missing) const {
-    Key tmp;
+void Rule::matchFirstLevel(const Key &dbKey,  std::set<InspectionKey>& result, const char* missing) const {
+    InspectionKey tmp;
     matchFirstLevel(dbKey, predicates_.begin(), tmp, result, missing);
 }
 
 
-void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
+void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, InspectionKey& tmp, std::set<InspectionKey>& result, const char* missing) const {
 
     if (cur == predicates_.end()) {
 //        if (tmp.match(request)) {
@@ -403,8 +403,8 @@ void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector
     }
 }
 
-void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
-    Key tmp;
+void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<InspectionKey>& result, const char* missing) const {
+    InspectionKey tmp;
     matchFirstLevel(request, predicates_.begin(), tmp, result, missing);
 }
 

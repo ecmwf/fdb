@@ -54,8 +54,8 @@ public: // methods
     const Schema& schema() const;
 
     bool axis(const std::string &keyword, eckit::StringSet &s) const;
-    bool inspect(const Key& key, Field& field);
-    eckit::DataHandle *retrieve(const Key &key);
+    // bool inspect(const Key& key, Field& field);
+    // eckit::DataHandle *retrieve(const Key &key);
 //    void archive(const Key &key, const void *data, eckit::Length length);
 
     bool open();

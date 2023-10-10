@@ -41,7 +41,7 @@ public: // methods
 
     MultiRetrieveVisitor(const Notifier& wind,
                          InspectIterator& queue,
-                         eckit::CacheLRU<Key,DB*>& databases,
+                         eckit::CacheLRU<Key,Catalogue*>& databases,
                          const Config& config);
 
     ~MultiRetrieveVisitor();
@@ -54,7 +54,7 @@ private:  // methods
 
     virtual bool selectIndex(const Key &key, const Key &full) override;
 
-    virtual bool selectDatum(const Key &key, const Key &full) override;
+    virtual bool selectDatum(const InspectionKey &key, const Key &full) override;
 
     virtual void values(const metkit::mars::MarsRequest& request,
                         const std::string& keyword,
@@ -67,11 +67,9 @@ private:  // methods
 
 private:
 
-    DB* db_;
-
     const Notifier& wind_;
 
-    eckit::CacheLRU<Key,DB*>& databases_;
+    eckit::CacheLRU<Key,Catalogue*>& databases_;
 
     InspectIterator& iterator_;
 

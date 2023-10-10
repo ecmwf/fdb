@@ -575,18 +575,13 @@ std::string RootManager::dbPathName(const Key& key)
         }
     }
 
-    if (!key.rule()) {
-        std::cout << "RootManager::dbPathName - missing rule in " << key << std::endl;
-    }
-
-
     // default naming convention for DB's
     dbpath = key.valuesToString();
     eckit::Log::debug<LibFdb5>() << "Using default naming convention for key " << key << " -> " << dbpath <<  std::endl;
     return dbpath;
 }
 
-std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const char* missing)
+std::vector<std::string> RootManager::possibleDbPathNames(const InspectionKey& key, const char* missing)
 {
     std::vector<std::string> result;
     for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end() ; ++i) {
@@ -662,7 +657,7 @@ std::vector<PathName> RootManager::allRoots(const Key& key)
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
 
-std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
+std::vector<PathName> RootManager::visitableRoots(const std::set<InspectionKey>& keys) {
 
     eckit::StringSet roots;
 
@@ -693,15 +688,15 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
 }
 
 
-std::vector<eckit::PathName> RootManager::visitableRoots(const Key& key) {
-    return visitableRoots(std::set<Key>{ key });
+std::vector<eckit::PathName> RootManager::visitableRoots(const InspectionKey& key) {
+    return visitableRoots(std::set<InspectionKey>{ key });
 }
 
 std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::MarsRequest& request) {
 
 //    Key key;
 //    config_.schema().expandFirstLevel(request, key);
-    std::set<Key> keys;
+    std::set<InspectionKey> keys;
     config_.schema().matchFirstLevel(request, keys, "");
     return visitableRoots(keys);
 }

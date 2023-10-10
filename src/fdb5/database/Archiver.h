@@ -76,7 +76,7 @@ private: // members
 
     std::vector<Key> prev_;
 
-    Catalogue* current_;
+    Catalogue* catalogue_;
     Store* store_;
 };
 

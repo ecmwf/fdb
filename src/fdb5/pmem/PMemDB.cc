@@ -111,7 +111,7 @@ bool PMemDB::exists() const {
     return Pool::exists(poolDir_);
 }
 
-void PMemDB::archive(const Key &key, const void *data, Length length) {
+void PMemDB::archive(const InspectionKey &key, const void *data, Length length) {
     Log::error() << "archive not implemented for " << *this << std::endl;
     NOTIMP;
 }
@@ -188,7 +188,7 @@ void PMemDB::dump(std::ostream& out, bool simple) const {
 
     struct DumpVisitor : EntryVisitor {
         DumpVisitor(std::ostream& out) : out_(out) {}
-        void visitDatum(const Field& field, const Key& key) override {
+        void visitDatum(const Field& field, const InspectionKey& key) override {
             out_ << "ENTRY" << std::endl;
             out_ << "  " << key << std::endl;
             field.location().dump(out_);

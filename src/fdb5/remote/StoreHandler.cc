@@ -202,7 +202,7 @@ void StoreHandler::writeToParent(const uint32_t requestID, std::unique_ptr<eckit
     }
 }
 
-void StoreHandler::store(const MessageHeader& hdr) {
+void StoreHandler::archive(const MessageHeader& hdr) {
 
     ASSERT(hdr.payloadSize == 0);
 
@@ -232,23 +232,13 @@ void StoreHandler::archiveBlobPayload(uint32_t id, const void* data, size_t leng
     fdb5::Key dbKey(s);
     fdb5::Key idxKey(s);
 
-        if (!dbKey.rule()) {
-            std::cout << "StoreHandler::archiveBlobPayload - missing rule in " << dbKey << std::endl;
-        }
-        if (!idxKey.rule()) {
-            std::cout << "StoreHandler::archiveBlobPayload - missing rule in " << idxKey << std::endl;
-        }
-
-
     std::stringstream ss_key;
     ss_key << dbKey << idxKey;
 
     const char* charData = static_cast<const char*>(data);  // To allow pointer arithmetic
     Log::status() << "Archiving data: " << ss_key.str() << std::endl;
     
-    std::cout << "StoreHandler::archiveBlobPayload - Archiving data: " << ss_key.str() << " - size: " << length << std::endl;
     Store& ss = store(dbKey);
-    std::cout << "StoreHandler::archiveBlobPayload - Created store " << dbKey << std::endl;
 
     auto futureLocation = ss.archive(idxKey, charData + s.position(), length - s.position());
     std::cout << "StoreHandler::archiveBlobPayload - Archiving done " << std::endl;

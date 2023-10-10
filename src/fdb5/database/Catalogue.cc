@@ -85,8 +85,8 @@ void CatalogueFactory::list(std::ostream& out) {
     }
 }
 
-std::unique_ptr<Catalogue> CatalogueFactory::build(const Key& key, const Config& config, bool read) {
-    std::string name = Manager(config).engine(key);
+std::unique_ptr<Catalogue> CatalogueFactory::build(const Key& dbKey, const Config& config, bool read) {
+    std::string name = Manager(config).engine(dbKey);
     std::string nameLowercase = eckit::StringTools::lower(name);
 
     nameLowercase += read ? ".reader" : ".writer";
@@ -104,7 +104,7 @@ std::unique_ptr<Catalogue> CatalogueFactory::build(const Key& key, const Config&
         throw eckit::SeriousBug(std::string("No CatalogueBuilder called ") + nameLowercase);
     }
 
-    return j->second->make(key, config);
+    return j->second->make(dbKey, config);
 }
 
 std::unique_ptr<Catalogue> CatalogueFactory::build(const eckit::URI& uri, const fdb5::Config& config, bool read) {

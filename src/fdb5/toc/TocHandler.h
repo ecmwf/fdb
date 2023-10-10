@@ -102,7 +102,7 @@ public: // typedefs
 
 public: // methods
 
-    TocHandler( const Key &key, const Config& config);
+    //TocHandler( const Key &key, const Config& config);
 
     TocHandler( const eckit::PathName &dir, const Config& config);
 

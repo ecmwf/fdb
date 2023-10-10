@@ -29,9 +29,8 @@ namespace fdb5 {
 
 MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind,
                                            InspectIterator& iterator,
-                                           eckit::CacheLRU<Key,DB*>& databases,
+                                           eckit::CacheLRU<Key,Catalogue*>& databases,
                                            const Config& config) :
-    db_(nullptr),
     wind_(wind),
     databases_(databases),
     iterator_(iterator),
@@ -49,8 +48,8 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     /* is it the current DB ? */
 
-    if(db_) {
-        if(key == db_->key()) {
+    if(catalogue_) {
+        if(key == catalogue_->key()) {
             eckit::Log::info() << "This is the current db" << std::endl;
             return true;
         }
@@ -60,47 +59,46 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     if(databases_.exists(key)) {
         eckit::Log::debug<LibFdb5>() << "FDB5 Reusing database " << key << std::endl;
-        db_ = databases_.access(key);
+        catalogue_ = databases_.access(key);
         return true;
     }
 
     /* DB not yet open */
 
-    //std::unique_ptr<DB> newDB( DBFactory::buildReader(key, config_) );
-    std::unique_ptr<DB> newDB = DB::buildReader(key, config_);
+    std::unique_ptr<Catalogue> newCatalogue = CatalogueFactory::instance().build(key, config_, true);
 
     // If this database is locked for retrieval then it "does not exist"
-    if (!newDB->enabled(ControlIdentifier::Retrieve)) {
+    if (!newCatalogue->enabled(ControlIdentifier::Retrieve)) {
         std::ostringstream ss;
-        ss << "Database " << *newDB << " is LOCKED for retrieval";
+        ss << "Catalogue " << *newCatalogue << " is LOCKED for retrieval";
         eckit::Log::warning() << ss.str() << std::endl;
         return false;
     }
 
-    eckit::Log::debug<LibFdb5>() << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "selectDatabase opening database " << key << " (type=" << newCatalogue->type() << ")" << std::endl;
 
-    if (!newDB->open()) {
+    if (!newCatalogue->open()) {
         eckit::Log::debug() << "Database does not exist " << key << std::endl;
         return false;
     } else {
-        db_ = newDB.release();
-        databases_.insert(key, db_);
+        catalogue_ = newCatalogue.release();
+        databases_.insert(key, catalogue_);
         return true;
     }
 }
 
 bool MultiRetrieveVisitor::selectIndex(const Key& key, const Key&) {
-    ASSERT(db_);
+    ASSERT(catalogue_);
     eckit::Log::debug() << "selectIndex " << key << std::endl;
-    return db_->selectIndex(key);
+    return catalogue_->selectIndex(key);
 }
 
-bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
-    ASSERT(db_);
+bool MultiRetrieveVisitor::selectDatum(const InspectionKey& key, const Key& full) {
+    ASSERT(catalogue_);
     eckit::Log::debug() << "selectDatum " << key << ", " << full << std::endl;
 
     Field field;
-    if (db_->inspect(key, field)) {
+    if (reader()->retrieve(key, field)) {
 
         Key simplifiedKey;
         for (auto k = key.begin(); k != key.end(); k++) {
@@ -108,7 +106,7 @@ bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
                 simplifiedKey.set(k->first, k->second);
         }
 
-        iterator_.emplace(ListElement({db_->key(), db_->indexKey(), simplifiedKey}, field.stableLocation(), field.timestamp()));
+        iterator_.emplace(ListElement({catalogue_->key(), catalogue_->indexKey(), simplifiedKey}, field.stableLocation(), field.timestamp()));
         return true;
     }
 
@@ -120,12 +118,12 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
                              const TypesRegistry &registry,
                              eckit::StringList &values) {
     eckit::StringList list;
-    registry.lookupType(keyword).getValues(request, keyword, list, wind_, db_);
+    registry.lookupType(keyword).getValues(request, keyword, list, wind_, reader());
 
     eckit::StringSet filter;
     bool toFilter = false;
-    if (db_) {
-        toFilter = db_->axis(keyword, filter);
+    if (catalogue_) {
+        toFilter = reader()->axis(keyword, filter);
     }
 
     for(auto l: list) {
@@ -141,8 +139,8 @@ void MultiRetrieveVisitor::print( std::ostream &out ) const {
 }
 
 const Schema& MultiRetrieveVisitor::databaseSchema() const {
-    ASSERT(db_);
-    return db_->schema();
+    ASSERT(catalogue_);
+    return catalogue_->schema();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
