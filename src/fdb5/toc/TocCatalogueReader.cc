@@ -16,6 +16,7 @@
 #include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
+#include "fdb5/toc/RootManager.h"
 
 namespace fdb5 {
 
@@ -32,7 +33,7 @@ TocCatalogueReader::TocCatalogueReader(const eckit::URI& uri, const fdb5::Config
 }
 
 TocCatalogueReader::~TocCatalogueReader() {
-    eckit::Log::debug<LibFdb5>() << "Closing DB " << *dynamic_cast<TocCatalogue*>(this) << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Closing DB " << (*this) << std::endl;
 }
 
 void TocCatalogueReader::loadIndexesAndRemap() {
@@ -141,7 +142,7 @@ std::vector<Index> TocCatalogueReader::indexes(bool sorted) const {
     return returnedIndexes;
 }
 
-static CatalogueBuilder<TocCatalogueReader> builder("toc.reader");
+static CatalogueReaderBuilder<TocCatalogueReader> builder("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 

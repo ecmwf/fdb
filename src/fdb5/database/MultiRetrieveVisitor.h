@@ -39,7 +39,7 @@ public: // methods
 
     MultiRetrieveVisitor(const Notifier& wind,
                          InspectIterator& queue,
-                         eckit::CacheLRU<Key,Catalogue*>& databases,
+                         eckit::CacheLRU<Key,CatalogueReader*>& databases,
                          const Config& config);
 
     ~MultiRetrieveVisitor();
@@ -67,7 +67,7 @@ private:
 
     const Notifier& wind_;
 
-    eckit::CacheLRU<Key,Catalogue*>& databases_;
+    eckit::CacheLRU<Key,CatalogueReader*>& databases_;
 
     InspectIterator& iterator_;
 

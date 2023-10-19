@@ -14,10 +14,11 @@
 
 #pragma once
 
+#include "fdb5/api/FDBStats.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Store.h"
-#include "fdb5/remote/ClientConnection.h"
+#include "fdb5/remote/client/Client.h"
 
 namespace fdb5::remote {
 
@@ -25,18 +26,18 @@ namespace fdb5::remote {
 
 /// Store that connects to a remote Store
 
-class RemoteStore : public Store, public ClientConnection {
+class RemoteStore : public Store, public Client {
 
 public: // types
 
-    using ArchiveQueue = eckit::Queue<std::pair<fdb5::Key, eckit::Buffer>>;
+    using ArchiveQueue = eckit::Queue<std::pair<uint32_t, std::pair<fdb5::Key, eckit::Buffer> > >;
     using StoredMessage = std::pair<remote::MessageHeader, eckit::Buffer>;
     using MessageQueue = eckit::Queue<StoredMessage>;
 
 public: // methods
 
     RemoteStore(const Key& key, const Config& config);
-    RemoteStore(const Key& key, const Config& config, const eckit::net::Endpoint& controlEndpoint);
+//    RemoteStore(const Key& key, const Config& config, const eckit::net::Endpoint& controlEndpoint);
     RemoteStore(const eckit::URI& uri, const Config& config);
 
     ~RemoteStore() override;
@@ -49,13 +50,18 @@ public: // methods
 
     void checkUID() const override { }
 
+    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation);
+    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const Key& remapKey);
+
     bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override { return false; }
     void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override { NOTIMP; }
     void remove(const Key& key) const override;
 
+   const Config& config() { return config_; }
+   
 protected: // methods
 
-    std::string type() const override { return "remote"; }
+    std::string type() const override { return "fdbremote"; }
 
     bool exists() const override;
 
@@ -68,11 +74,18 @@ protected: // methods
 
 private: // methods
 
-    FDBStats archiveThreadLoop(uint32_t requestID);
+    Key key() override { return dbKey_; }
+
+    // handlers for incoming messages - to be defined in the client class
+    bool handle(Message message, uint32_t requestID) override;
+    bool handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) override;
+    void handleException(std::exception_ptr e) override;
+
+    FDBStats archiveThreadLoop();
     // Listen to the dataClient for incoming messages, and push them onto
     // appropriate queues.
-    void listeningThreadLoop() override;
-    long sendArchiveData(uint32_t id, const std::vector<std::pair<Key, eckit::Buffer>>& elements, size_t count);
+//    void listeningThreadLoop() override;
+//    long sendArchiveData(uint32_t id, const std::vector<std::pair<Key, eckit::Buffer>>& elements, size_t count);
     void sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length);
     void flush(FDBStats& stats);
 
@@ -81,12 +94,12 @@ private: // methods
 
 private: // members
 
-    Key key_;
+    Key dbKey_;
     const Config& config_;
 
     bool dirty_;
     std::future<FDBStats> archiveFuture_;
-    uint32_t archiveID_;
+//    uint32_t archiveID_;
     std::mutex archiveQueuePtrMutex_;
     std::unique_ptr<ArchiveQueue> archiveQueue_;
     size_t maxArchiveQueueLength_;

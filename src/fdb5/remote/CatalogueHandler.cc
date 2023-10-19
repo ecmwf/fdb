@@ -177,9 +177,9 @@ void CatalogueHandler::handle() {
                     archive(hdr);
                     break;
 
-                case Message::Store:
-                    store(hdr);
-                    break;
+                // case Message::Store:
+                //     store(hdr);
+                //     break;
 
                 default: {
                     std::stringstream ss;

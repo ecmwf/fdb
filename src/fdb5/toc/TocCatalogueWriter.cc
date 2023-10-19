@@ -21,6 +21,7 @@
 #include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocIndex.h"
+#include "fdb5/toc/RootManager.h"
 #include "fdb5/io/LustreSettings.h"
 
 using namespace eckit;
@@ -403,7 +404,7 @@ void TocCatalogueWriter::print(std::ostream &out) const {
     out << "TocCatalogueWriter(" << directory() << ")";
 }
 
-static CatalogueBuilder<TocCatalogueWriter> builder("toc.writer");
+static CatalogueWriterBuilder<TocCatalogueWriter> builder("toc");
 
 //----------------------------------------------------------------------------------------------------------------------
 

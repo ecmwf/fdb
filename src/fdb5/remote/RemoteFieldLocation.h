@@ -21,18 +21,16 @@
 
 #include "fdb5/database/FieldLocation.h"
 
-namespace fdb5 {
+namespace fdb5::remote {
 
-class RemoteFDB;
-
-namespace remote {
+class RemoteStore;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class RemoteFieldLocation : public FieldLocation {
 public:
 
-    RemoteFieldLocation(RemoteFDB* remoteFDB, const FieldLocation& remoteLocation);
+    RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const FieldLocation& remoteLocation);
     RemoteFieldLocation(const eckit::URI &uri);
     RemoteFieldLocation(const eckit::URI &uri, const eckit::Offset &offset, const eckit::Length &length, const Key& remapKey);
     RemoteFieldLocation(eckit::Stream&);
@@ -66,14 +64,13 @@ private: // methods
 private: // members
 
     // not Owning
-    RemoteFDB* remoteFDB_;
+//    RemoteStore* remoteStore_;
     std::shared_ptr<const FieldLocation> internal_;
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
+} // namespace fdb5::remote
 
 #endif // fdb5_RemoteFieldLocation_H

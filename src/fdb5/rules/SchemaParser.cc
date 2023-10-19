@@ -28,7 +28,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::string SchemaParser::parseIdent(bool emptyOK) {
+std::string SchemaParser::parseIdent(bool key, bool emptyOK) {
     std::string s;
     for (;;) {
         char c = peek();
@@ -72,7 +72,7 @@ Predicate *SchemaParser::parsePredicate(std::map<std::string, std::string> &type
 
     if (c == '?') {
         consume(c);
-        return new Predicate(k, new MatchOptional(parseIdent(true)));
+        return new Predicate(k, new MatchOptional(parseIdent(false, true)));
     }
 
     if (c == '-') {
@@ -81,17 +81,17 @@ Predicate *SchemaParser::parsePredicate(std::map<std::string, std::string> &type
             // Register ignore type
             types[k] = "Ignore";
         }
-        return new Predicate(k, new MatchHidden(parseIdent(true)));
+        return new Predicate(k, new MatchHidden(parseIdent(false, true)));
     }
 
     if (c != ',' && c != '[' && c != ']') {
         consume("=");
 
-        values.insert(parseIdent());
+        values.insert(parseIdent(false));
 
         while ((c = peek()) == '/') {
             consume(c);
-            values.insert(parseIdent());
+            values.insert(parseIdent(false));
         }
     }
 
@@ -112,12 +112,12 @@ Predicate *SchemaParser::parsePredicate(std::map<std::string, std::string> &type
 
 void SchemaParser::parseTypes(std::map<std::string, std::string> &types) {
     for (;;) {
-        std::string name = parseIdent(true);
+        std::string name = parseIdent(true, true);
         if (name.empty()) {
             break;
         }
         consume(':');
-        std::string type = parseIdent();
+        std::string type = parseIdent(false);
         consume(';');
         ASSERT(types.find(name) == types.end());
         types[name] = type;

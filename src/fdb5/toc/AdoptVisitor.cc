@@ -35,14 +35,11 @@ bool AdoptVisitor::selectDatum(const InspectionKey &key, const Key &full) {
     // Log::info() << "selectDatum " << key << ", " << full << " " << length_ << std::endl;
     checkMissingKeys(full);
 
-    Catalogue* catalogue = current();
+    CatalogueWriter* catalogue = current();
     ASSERT(catalogue);
 
     if (catalogue->type() == TocEngine::typeName()) {
-        CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue);
-        ASSERT(cat);
-
-        cat->index(key, eckit::URI("file", path_), offset_, length_);
+        catalogue->index(key, eckit::URI("file", path_), offset_, length_);
         return true;
     }
     return false;

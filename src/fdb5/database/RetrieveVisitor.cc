@@ -43,7 +43,7 @@ bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     }
 
     eckit::Log::debug<LibFdb5>() << "selectDatabase " << key << std::endl;
-    catalogue_ = CatalogueFactory::instance().build(key, fdb5::Config(), true).get();
+    catalogue_ = CatalogueReaderFactory::instance().build(key, fdb5::Config()).get();
 
     // If this database is locked for retrieval then it "does not exist"
     if (!catalogue_->enabled(ControlIdentifier::Retrieve)) {
@@ -74,7 +74,7 @@ bool RetrieveVisitor::selectDatum(const InspectionKey& key, const Key&) {
 
     Field field;
     eckit::DataHandle *dh = nullptr;
-    if (reader()->retrieve(key, field)) {
+    if (catalogue_->retrieve(key, field)) {
         dh = store().retrieve(field);
     }
 
@@ -90,12 +90,12 @@ void RetrieveVisitor::values(const metkit::mars::MarsRequest &request,
                              const TypesRegistry &registry,
                              eckit::StringList &values) {
     eckit::StringList list;
-    registry.lookupType(keyword).getValues(request, keyword, list, wind_, reader());
+    registry.lookupType(keyword).getValues(request, keyword, list, wind_, catalogue_);
 
     eckit::StringSet filter;
     bool toFilter = false;
     if (catalogue_) {
-        toFilter = reader()->axis(keyword, filter);
+        toFilter = catalogue_->axis(keyword, filter);
     }
 
     for(auto l: list) {

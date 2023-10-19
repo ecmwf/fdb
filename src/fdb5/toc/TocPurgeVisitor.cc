@@ -29,7 +29,8 @@ TocPurgeVisitor::TocPurgeVisitor(const TocCatalogue& catalogue, const Store& sto
 
 TocPurgeVisitor::~TocPurgeVisitor() {}
 
-bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+//bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue) {
 
     std::set<std::pair<URI, Offset>> metadata;
     std::set<URI> data;
@@ -53,8 +54,8 @@ bool TocPurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& sto
 
 
 void TocPurgeVisitor::report(std::ostream& out) const {
-
-    const eckit::PathName& directory(((TocCatalogue*) currentCatalogue_)->basePath());
+    const TocCatalogue* cat = dynamic_cast<const TocCatalogue*>(currentCatalogue_);
+    const eckit::PathName& directory(cat->basePath());
 
     out << std::endl;
     out << "Index Report:" << std::endl;

@@ -13,7 +13,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Store.h"
-#include "fdb5/remote/StoreHandler.h"
+#include "fdb5/remote/server/StoreHandler.h"
 
 using namespace eckit;
 using metkit::mars::MarsRequest;
@@ -22,12 +22,12 @@ namespace fdb5 {
 namespace remote {
 
 StoreHandler::StoreHandler(eckit::net::TCPSocket& socket, const Config& config):
-    DecoupledHandler(socket, config) {}
+    ServerConnection(socket, config) {}
 
 StoreHandler::~StoreHandler() {}
 
 void StoreHandler::initialiseConnections() {
-    DecoupledHandler::initialiseConnections();
+    ServerConnection::initialiseConnections();
 
     Log::info() << "StoreHandler::initialiseConnections" << std::endl;
 }
@@ -46,6 +46,7 @@ void StoreHandler::handle() {
     while (true) {
         tidyWorkers();
 
+        std::cout << "StoreHandler::handle() - pre READ\n";
         socketRead(&hdr, sizeof(hdr), controlSocket_);
 
         ASSERT(hdr.marker == StartMarker);
@@ -209,12 +210,13 @@ void StoreHandler::archive(const MessageHeader& hdr) {
 
     // Ensure that we aren't already running a store()
 
-    ASSERT(!archiveFuture_.valid());
+    if(!archiveFuture_.valid()) {
 
-    // Start archive worker thread
+        // Start archive worker thread
 
-    uint32_t id    = hdr.requestID;
-    archiveFuture_ = std::async(std::launch::async, [this, id] { return archiveThreadLoop(id); });
+    //    uint32_t id    = hdr.requestID;
+        archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
+    }
 }
 
 Store& StoreHandler::store(Key dbKey) {
@@ -242,32 +244,30 @@ void StoreHandler::archiveBlobPayload(uint32_t id, const void* data, size_t leng
     Store& ss = store(dbKey);
 
     auto futureLocation = ss.archive(idxKey, charData + s.position(), length - s.position());
-    std::cout << "StoreHandler::archiveBlobPayload - Archiving done " << std::endl;
     Log::status() << "Archiving done: " << ss_key.str() << std::endl;
     
     auto loc = futureLocation.get();
-    std::cout << "FieldLocation: " << (*loc) << std::endl;
 
-    ss.flush();
+//    ss.flush();
 
-    // eckit::Buffer locBuffer(2048);
-    // MemoryStream locStream(locBuffer);
-    // locStream << *(futureLocation.get());
-    // dataWrite(Message::Blob, id, locBuffer.data(), locStream.position());
+    eckit::Buffer locBuffer(16 * 1024);
+    MemoryStream locStream(locBuffer);
+    locStream << (*loc);
+    dataWrite(Message::Archive, id, locBuffer.data(), locStream.position());
 }
 
-size_t StoreHandler::archiveThreadLoop(uint32_t id) {
+size_t StoreHandler::archiveThreadLoop() {
     size_t totalArchived = 0;
 
     // Create a worker that will do the actual archiving
 
     static size_t queueSize(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32));
-    eckit::Queue<std::pair<eckit::Buffer, bool>> queue(queueSize);
+    eckit::Queue<std::pair<std::pair<uint32_t, eckit::Buffer>, bool>> queue(queueSize);
 
-    std::future<size_t> worker = std::async(std::launch::async, [this, &queue, id] {
+    std::future<size_t> worker = std::async(std::launch::async, [this, &queue] {
         size_t totalArchived = 0;
 
-        std::pair<eckit::Buffer, bool> elem = std::make_pair(Buffer{0}, false);
+        std::pair<std::pair<uint32_t, eckit::Buffer>, bool> elem = std::make_pair(std::make_pair(0, Buffer{0}), false);
 
         try {
             long queuelen;
@@ -275,14 +275,14 @@ size_t StoreHandler::archiveThreadLoop(uint32_t id) {
                 if (elem.second) {
                     // Handle MultiBlob
 
-                    const char* firstData = static_cast<const char*>(elem.first.data());  // For pointer arithmetic
+                    const char* firstData = static_cast<const char*>(elem.first.second.data());  // For pointer arithmetic
                     const char* charData = firstData;
-                    while (size_t(charData - firstData) < elem.first.size()) {
+                    while (size_t(charData - firstData) < elem.first.second.size()) {
                         const MessageHeader* hdr = static_cast<const MessageHeader*>(static_cast<const void*>(charData));
                         ASSERT(hdr->marker == StartMarker);
                         ASSERT(hdr->version == CurrentVersion);
                         ASSERT(hdr->message == Message::Blob);
-                        ASSERT(hdr->requestID == id);
+                        ASSERT(hdr->requestID == elem.first.first);
                         charData += sizeof(MessageHeader);
 
                         const void* payloadData = charData;
@@ -292,18 +292,18 @@ size_t StoreHandler::archiveThreadLoop(uint32_t id) {
                         ASSERT(*e == EndMarker);
                         charData += sizeof(EndMarker);
 
-                        archiveBlobPayload(id, payloadData, hdr->payloadSize);
+                        archiveBlobPayload(elem.first.first, payloadData, hdr->payloadSize);
                         totalArchived += 1;
                     }
                 }
                 else {
                     // Handle single blob
-                    archiveBlobPayload(id, elem.first.data(), elem.first.size());
+                    archiveBlobPayload(elem.first.first, elem.first.second.data(), elem.first.second.size());
                     totalArchived += 1;
                 }
             }
             
-            dataWrite(Message::Complete, id);
+            // dataWrite(Message::Complete, 0);
         }
         catch (...) {
             // Ensure exception propagates across the queue back to the parent thread.
@@ -326,7 +326,7 @@ size_t StoreHandler::archiveThreadLoop(uint32_t id) {
 
             ASSERT(hdr.marker == StartMarker);
             ASSERT(hdr.version == CurrentVersion);
-            ASSERT(hdr.requestID == id);
+            //ASSERT(hdr.requestID == id);
 
             // Have we been told that we are done yet?
             if (hdr.message == Message::Flush)
@@ -346,7 +346,9 @@ size_t StoreHandler::archiveThreadLoop(uint32_t id) {
             size_t sz = payload.size();
             Log::debug<LibFdb5>() << "Queueing data: " << sz << std::endl;
             size_t queuelen = queue.emplace(
-                std::make_pair(std::move(payload), hdr.message == Message::MultiBlob));
+                std::make_pair(
+                    std::make_pair(hdr.requestID, std::move(payload)),
+                    hdr.message == Message::MultiBlob));
             Log::status() << "Queued data (" << queuelen << ", size=" << sz << ")" << std::endl;
             ;
             Log::debug<LibFdb5>() << "Queued data (" << queuelen << ", size=" << sz << ")"
@@ -371,13 +373,13 @@ size_t StoreHandler::archiveThreadLoop(uint32_t id) {
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
         std::string what(e.what());
-        dataWrite(Message::Error, id, what.c_str(), what.length());
+        dataWrite(Message::Error, 0, what.c_str(), what.length());
         queue.interrupt(std::current_exception());
         throw;
     }
     catch (...) {
         std::string what("Caught unexpected, unknown exception in retrieve worker");
-        dataWrite(Message::Error, id, what.c_str(), what.length());
+        dataWrite(Message::Error, 0, what.c_str(), what.length());
         queue.interrupt(std::current_exception());
         throw;
     }
@@ -389,7 +391,7 @@ void StoreHandler::flush(const MessageHeader& hdr) {
     Buffer payload(receivePayload(hdr, controlSocket_));
     MemoryStream s(payload);
 
-    fdb5::Key dbKey(s);
+    //fdb5::Key dbKey(s);
 
     size_t numArchived;
     s >> numArchived;
@@ -405,13 +407,13 @@ void StoreHandler::flush(const MessageHeader& hdr) {
         // Do the actual flush!
         Log::info() << "Flushing" << std::endl;
         Log::status() << "Flushing" << std::endl;
-        if (dbKey.empty()) {
+        //if (dbKey.empty()) {
             for (auto it = stores_.begin(); it != stores_.end(); it++) {
                 it->second->flush();
             }
-        } else {
-            store(dbKey).flush();
-        }
+        // } else {
+        //     store(dbKey).flush();
+        // }
         Log::info() << "Flush complete" << std::endl;
         Log::status() << "Flush complete" << std::endl;
     }

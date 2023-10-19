@@ -29,7 +29,7 @@ namespace fdb5 {
 
 MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind,
                                            InspectIterator& iterator,
-                                           eckit::CacheLRU<Key,Catalogue*>& databases,
+                                           eckit::CacheLRU<Key,CatalogueReader*>& databases,
                                            const Config& config) :
     wind_(wind),
     databases_(databases),
@@ -65,7 +65,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
     /* DB not yet open */
 
-    std::unique_ptr<Catalogue> newCatalogue = CatalogueFactory::instance().build(key, config_, true);
+    std::unique_ptr<CatalogueReader> newCatalogue = CatalogueReaderFactory::instance().build(key, config_);
 
     // If this database is locked for retrieval then it "does not exist"
     if (!newCatalogue->enabled(ControlIdentifier::Retrieve)) {
@@ -98,7 +98,7 @@ bool MultiRetrieveVisitor::selectDatum(const InspectionKey& key, const Key& full
     eckit::Log::debug() << "selectDatum " << key << ", " << full << std::endl;
 
     Field field;
-    if (reader()->retrieve(key, field)) {
+    if (catalogue_->retrieve(key, field)) {
 
         Key simplifiedKey;
         for (auto k = key.begin(); k != key.end(); k++) {
@@ -118,12 +118,12 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
                              const TypesRegistry &registry,
                              eckit::StringList &values) {
     eckit::StringList list;
-    registry.lookupType(keyword).getValues(request, keyword, list, wind_, reader());
+    registry.lookupType(keyword).getValues(request, keyword, list, wind_, catalogue_);
 
     eckit::StringSet filter;
     bool toFilter = false;
     if (catalogue_) {
-        toFilter = reader()->axis(keyword, filter);
+        toFilter = catalogue_->axis(keyword, filter);
     }
 
     for(auto l: list) {

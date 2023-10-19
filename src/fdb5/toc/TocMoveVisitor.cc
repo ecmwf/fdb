@@ -50,12 +50,14 @@ TocMoveVisitor::TocMoveVisitor(const TocCatalogue& catalogue,
 
 TocMoveVisitor::~TocMoveVisitor() {}
 
-bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+//bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool TocMoveVisitor::visitDatabase(const Catalogue& catalogue) {
 
     // Overall checks
     ASSERT(&catalogue_ == &catalogue);
 
-    MoveVisitor::visitDatabase(catalogue_, store);
+//    MoveVisitor::visitDatabase(catalogue_, store);
+    MoveVisitor::visitDatabase(catalogue_);
 
     // TOC specific checks: index files not locked
     DIR* dirp = ::opendir(catalogue_.basePath().asString().c_str());

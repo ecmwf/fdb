@@ -31,6 +31,7 @@ class RadosStore : public Store {
 public: // methods
 
     RadosStore(const Key& key, const Config& config);
+    RadosStore(const Key& key, const Config& config, const eckit::net::Endpoint& controlEndpoint);
     RadosStore(const eckit::URI& uri, const Config& config);
 
     ~RadosStore() override {}

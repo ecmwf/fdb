@@ -37,9 +37,20 @@ EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr
 
 EntryVisitor::~EntryVisitor() {}
 
-bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+
+Store& EntryVisitor::store() {
+    if (!currentStore_) {
+        ASSERT(currentCatalogue_);
+        currentStore_ = currentCatalogue_->buildStore();
+        ASSERT(currentStore_);
+    }
+    return *currentStore_;
+}
+
+// bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool EntryVisitor::visitDatabase(const Catalogue& catalogue) {
     currentCatalogue_ = &catalogue;
-    currentStore_ = &store;
+    currentStore_.reset();
     return true;
 }
 
@@ -48,7 +59,7 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
         ASSERT(currentCatalogue_ == &catalogue);
     }
     currentCatalogue_ = nullptr;
-    currentStore_ = nullptr;
+    // currentStore_ = nullptr;
     currentIndex_ = nullptr;
 }
 
@@ -108,16 +119,16 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
                 Log::debug<LibFdb5>() << "FDB processing Path " << path << std::endl;
 
-                std::unique_ptr<Catalogue> catalogue = CatalogueFactory::instance().build(eckit::URI(uri.scheme(), path), dbConfig_, true);
+                std::unique_ptr<CatalogueReader> catalogue = CatalogueReaderFactory::instance().build(eckit::URI(uri.scheme(), path), dbConfig_);
                 ASSERT(catalogue->open());
 
-                std::unique_ptr<Store> store = catalogue->buildStore();
-                ASSERT(store->open());
+                // std::unique_ptr<Store> store = catalogue->buildStore();
+                // ASSERT(store->open());
 
                 eckit::AutoCloser<Catalogue> closer(*catalogue);
-                eckit::AutoCloser<Store> storeCloser(*store);
+                // eckit::AutoCloser<Store> storeCloser(*store);
 
-                catalogue->visitEntries(visitor, *store, false);
+                catalogue->visitEntries(visitor, /* *store, */ false);
             }
         }
 

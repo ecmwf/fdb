@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include <future>
 #include <thread>
 
 #include "eckit/container/Queue.h"
@@ -27,6 +26,9 @@
 
 
 namespace eckit {
+
+class Buffer;
+
 // xxx can we give this code a better home?
 template<> struct Translator<net::Endpoint, std::string> {
     std::string operator()(const net::Endpoint& e) {
@@ -35,13 +37,10 @@ template<> struct Translator<net::Endpoint, std::string> {
         return ss.str();
     }
 };
+
 }
 
-namespace fdb5 {
-
-//class DecoupledFDB;
-
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -49,79 +48,82 @@ class ClientConnection : eckit::NonCopyable {
 
 public: // types
 
-public:
+public: // methods
 
     ClientConnection(const eckit::net::Endpoint& controlEndpoint, const eckit::Configuration& config);
-    ~ClientConnection();
+    virtual ~ClientConnection();
 
-    void setDataEndpoint(const eckit::net::Endpoint& dataEndpoint);
+    void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void dataWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+
+    void controlRead(void* data, size_t length);
+    void controlWrite(const void* data, size_t length);
+    void dataWrite(const void* data, size_t length);
+    void dataRead(void* data, size_t length);
+
     void connect();
     void disconnect();
 
-    const eckit::net::Endpoint& controlEndpoint() const { 
-        return controlEndpoint_;
-    } 
-    const eckit::net::Endpoint& dataEndpoint() const { 
-        return dataEndpoint_;
-    } 
-    // const eckit::net::Endpoint& dataEndpoint() const { 
-    //     return dataEndpoint_;
-    // }
-protected:
+protected: // methods
 
-    virtual void listeningThreadLoop() = 0;
 
-    // Construct dictionary for protocol negotiation
-    // im not sure if this belongs here, or in the above class
-    eckit::LocalConfiguration availableFunctionality() const;
+    const eckit::net::Endpoint& controlEndpoint() const;
+    const eckit::net::Endpoint& dataEndpoint() const;
+
+    // // handlers for incoming messages - to be defined in the client class
+    // virtual void handle(Message message, uint32_t requestID) = 0;
+    // virtual void handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
+    // virtual void handleException(std::exception_ptr e) = 0;
+
+    // construct dictionary for protocol negotiation - to be defined in the client class
+    virtual eckit::LocalConfiguration availableFunctionality() const;
+
+    
+private: // methods
+
 
     void writeControlStartupMessage();
     void writeDataStartupMessage(const eckit::SessionID& serverSession);
-    eckit::SessionID verifyServerStartupResponse();
-    
-    void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    void controlWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    void controlWrite(const void* data, size_t length);
-    void controlRead(void* data, size_t length);
-    void dataWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    void dataWrite(const void* data, size_t length);
-    void dataRead(void* data, size_t length);
-    void handleError(const remote::MessageHeader& hdr);
-    
-    void index(const Key& key, const FieldLocation& location);
-    // void store(const Key& key, const void* data, size_t length);
-    // void archive(const Key& key, const void* data, size_t length);
-    // long sendArchiveData(uint32_t id, const std::vector<std::pair<Key, eckit::Buffer>>& elements, size_t count);
-    // void sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length);
-    // void flush(FDBStats& stats);
 
-private:
+    eckit::SessionID verifyServerStartupResponse();
+
+    void handleError(const remote::MessageHeader& hdr);
+
+    void listeningThreadLoop();
+
+private: // members
+
     eckit::SessionID sessionID_; 
 
     eckit::net::Endpoint controlEndpoint_;
     eckit::net::Endpoint dataEndpoint_;
+
     eckit::net::TCPClient controlClient_;
     eckit::net::TCPClient dataClient_;
+
     std::thread listeningThread_;
 
     bool connected_;
 
-//    friend class fdb5::DecoupledFDB;
+    eckit::Length freeSpace_;
+    float freeRatio_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// // n.b. if we get integer overflow, we reuse the IDs. This is not a
-// //      big deal. The idea that we could be on the 2.1 billionth (successful)
-// //      request, and still have an ongoing request 0 is ... laughable.
-static uint32_t generateRequestID() {
+// // // n.b. if we get integer overflow, we reuse the IDs. This is not a
+// // //      big deal. The idea that we could be on the 4.2 billionth (successful)
+// // //      request, and still have an ongoing request 0 is ... laughable.
+// static uint32_t generateRequestID() {
 
-    static std::mutex m;
-    static uint32_t id = 0;
+//     static std::mutex m;
+//     static uint32_t id = 0;
 
-    std::lock_guard<std::mutex> lock(m);
-    return ++id;
-}
+//     std::lock_guard<std::mutex> lock(m);
+//     return ++id;
+// }
 
 class DecoupledFDBException : public eckit::RemoteException {
 public:
@@ -129,5 +131,4 @@ public:
         eckit::RemoteException(msg, eckit::Translator<eckit::net::Endpoint, std::string>()(endpoint)) {}
 };
 
-}  // namespace remote
-}  // namespace fdb5
+}  // namespace fdb5::remote

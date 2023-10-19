@@ -218,7 +218,8 @@ TocStatsReportVisitor::TocStatsReportVisitor(const TocCatalogue& catalogue, bool
 
 TocStatsReportVisitor::~TocStatsReportVisitor() {}
 
-bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+//bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue) {
     ASSERT(&catalogue == currentCatalogue_);
     return true;
 }
@@ -232,8 +233,10 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
 
     // Exclude non-owned data if relevant
     if (!includeReferencedNonOwnedData_) {
-        if (!currentIndex_->location().uri().path().dirName().sameAs(((TocCatalogue*) currentCatalogue_)->basePath())) return;
-        if (!field.location().uri().path().dirName().sameAs(((TocCatalogue*) currentCatalogue_)->basePath())) return;
+        const TocCatalogue* cat = dynamic_cast<const TocCatalogue*>(currentCatalogue_);
+
+        if (!currentIndex_->location().uri().path().dirName().sameAs(cat->basePath())) return;
+        if (!field.location().uri().path().dirName().sameAs(cat->basePath())) return;
     }
 
     // If this index is not yet in the map, then create an entry

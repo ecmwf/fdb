@@ -56,7 +56,7 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
             eckit::PathName path(args(i));
 
             if (path.isDir()) {
-                std::unique_ptr<Catalogue> cat = CatalogueFactory::instance().build(eckit::URI("toc", path), fdb5::Config(), true);
+                std::unique_ptr<CatalogueReader> cat = CatalogueReaderFactory::instance().build(eckit::URI("toc", path), fdb5::Config());
                 ASSERT(cat->open());
                 cat->schema().dump(Log::info());
             } else {

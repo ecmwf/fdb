@@ -86,6 +86,7 @@ bool TocIndex::get(const InspectionKey &key, const Key &remapKey, Field &field) 
     if ( found ) {
         const eckit::URI& uri = files_.get(ref.uriId());
         FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), remapKey);
+        std::cout << "TocIndex::get " << *loc << std::endl;
         field = Field(std::move(*loc), timestamp_, ref.details());
         delete(loc);
     }

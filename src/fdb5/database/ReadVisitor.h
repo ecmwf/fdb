@@ -44,7 +44,7 @@ public: // methods
 
     ReadVisitor() : catalogue_(nullptr) {}
 
-    virtual ~ReadVisitor();
+    virtual ~ReadVisitor() {}
 
     virtual bool selectDatabase(const Key &key, const Key &full) = 0;
     virtual bool selectIndex(const Key &key, const Key &full) = 0;
@@ -60,13 +60,11 @@ public: // methods
 
 protected: // methods
 
-    CatalogueReader* reader() const;
-
     virtual void print( std::ostream &out ) const = 0;
 
 protected: // members
 
-    Catalogue* catalogue_;
+    CatalogueReader* catalogue_;
 
 private: // members
 

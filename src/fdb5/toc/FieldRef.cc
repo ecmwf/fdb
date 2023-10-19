@@ -33,14 +33,18 @@ FieldRefLocation::FieldRefLocation() {
 FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
 
     const FieldLocation& loc = field.location();
-    const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
-    if(!tocfloc) {
-        throw eckit::NotImplemented("Field location is not of TocFieldLocation type -- indexing other locations is not supported", Here());
-    }
+    // const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
+    // if(!tocfloc) {
+    //     throw eckit::NotImplemented("Field location is not of TocFieldLocation type -- indexing other locations is not supported", Here());
+    // }
 
-    uriId_ = store.insert(tocfloc->uri());
-    length_ = tocfloc->length();
-    offset_ = tocfloc->offset();
+    // uriId_ = store.insert(tocfloc->uri());
+    // length_ = tocfloc->length();
+    // offset_ = tocfloc->offset();
+
+    uriId_ = store.insert(loc.uri());
+    length_ = loc.length();
+    offset_ = loc.offset();
 }
 
 void FieldRefLocation::print(std::ostream &s) const {

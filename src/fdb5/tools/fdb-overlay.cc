@@ -123,7 +123,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         }
     }
 
-    std::unique_ptr<Catalogue> dbSource = CatalogueFactory::instance().build(source, conf, true);
+    std::unique_ptr<CatalogueReader> dbSource = CatalogueReaderFactory::instance().build(source, conf);
     if (!dbSource->exists()) {
         std::stringstream ss;
         ss << "Source database not found: " << source << std::endl;
@@ -136,7 +136,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         throw UserError(ss.str(), Here());
     }
 
-    std::unique_ptr<Catalogue> dbTarget = CatalogueFactory::instance().build(target, conf, true);
+    std::unique_ptr<CatalogueReader> dbTarget = CatalogueReaderFactory::instance().build(target, conf);
 
     if (remove_) {
         if (!dbTarget->exists()) {
@@ -156,12 +156,9 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
 
     ASSERT(dbTarget->uri() != dbSource->uri());
 
-    std::unique_ptr<Catalogue> newCatalogue = CatalogueFactory::instance().build(target, conf, false);
+    std::unique_ptr<CatalogueWriter> newCatalogue = CatalogueWriterFactory::instance().build(target, conf);
     if (newCatalogue->type() == TocEngine::typeName() && dbSource->type() == TocEngine::typeName())  {
-        CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(newCatalogue.get());
-        ASSERT(cat);
-
-        cat->overlayDB(*dbSource, vkeys, remove_);
+        newCatalogue->overlayDB(*dbSource, vkeys, remove_);
     }
 }
 

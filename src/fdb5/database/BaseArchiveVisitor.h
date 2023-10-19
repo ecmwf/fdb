@@ -23,7 +23,7 @@ namespace metkit { class MarsRequest; }
 namespace fdb5 {
 
 class Archiver;
-class Catalogue;
+class CatalogueWriter;
 class Store;
 class Schema;
 
@@ -45,7 +45,7 @@ protected: // methods
 
     virtual const Schema& databaseSchema() const;
 
-    fdb5::Catalogue* current() const;
+    fdb5::CatalogueWriter* current() const;
     fdb5::Store* store() const;
 
 private: // members

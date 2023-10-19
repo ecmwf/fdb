@@ -34,6 +34,7 @@ class TocStore : public Store, public TocCommon {
 public: // methods
 
     TocStore(const Key& key, const Config& config);
+    TocStore(const Key& key, const Config& config, const eckit::net::Endpoint& controlEndpoint);
     TocStore(const eckit::URI& uri, const Config& config);
 
     ~TocStore() override {}

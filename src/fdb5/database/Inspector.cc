@@ -48,7 +48,7 @@ bool InspectIterator::next(ListElement& elem) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static void purgeCatalogue(Key& key, Catalogue*& db) {
+static void purgeCatalogue(Key& key, CatalogueReader*& db) {
     Log::debug() << "Purging DB with key " << key << std::endl;
     delete db;
 }

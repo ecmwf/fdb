@@ -51,7 +51,7 @@ const Schema& BaseArchiveVisitor::databaseSchema() const {
     return current()->schema();
 }
 
-Catalogue* BaseArchiveVisitor::current() const {
+CatalogueWriter* BaseArchiveVisitor::current() const {
     return owner_.catalogue_;
 }
 

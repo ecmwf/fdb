@@ -38,13 +38,17 @@
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
 
-namespace eckit {
-namespace message {
-class Message;
-}
-}  // namespace eckit
+namespace eckit::message {
 
-namespace metkit { class MarsRequest; }
+class Message;
+
+}  // namespace eckit::message
+
+namespace metkit {
+
+class MarsRequest;
+
+} // namespace metkit
 
 namespace fdb5 {
 

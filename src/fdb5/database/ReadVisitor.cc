@@ -18,17 +18,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ReadVisitor::~ReadVisitor() {
-}
 
-CatalogueReader* ReadVisitor::reader() const {
-    if (catalogue_) {
-        CatalogueReader* catalogueReader = dynamic_cast<CatalogueReader*>(catalogue_);
-        ASSERT(catalogueReader);
-        return catalogueReader;
-    }
-    return nullptr;
-}
+// CatalogueReader* ReadVisitor::reader() const {
+//     if (catalogue_) {
+//         CatalogueReader* catalogueReader = dynamic_cast<CatalogueReader*>(catalogue_);
+//         ASSERT(catalogueReader);
+//         return catalogueReader;
+//     }
+//     return nullptr;
+// }
 
 //----------------------------------------------------------------------------------------------------------------------
 

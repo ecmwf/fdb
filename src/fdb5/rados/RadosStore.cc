@@ -31,6 +31,11 @@ namespace fdb5 {
 RadosStore::RadosStore(const Key& key, const Config& config) :
     Store(), directory_("mars:"+key.valuesToString()) {}
 
+RadosStore(const Key& key, const Config& config, const eckit::net::Endpoint& controlEndpoint) :
+    Store(), directory_("mars:"+key.valuesToString()) {
+    NOTIMP;
+}
+
 RadosStore::RadosStore(const eckit::URI& uri, const Config& config) :
     Store(), directory_("mars:"+uri.path().dirName()) {}
 

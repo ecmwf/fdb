@@ -54,11 +54,9 @@ void FDBReconsolidateToc::execute(const eckit::option::CmdArgs& args) {
     }
 
     // TODO: In updated version, grab default Config() here;
-    std::unique_ptr<fdb5::Catalogue> catalogue = fdb5::CatalogueFactory::instance().build(eckit::URI("toc", dbPath), eckit::LocalConfiguration(), false);
-    fdb5::CatalogueWriter* cat = dynamic_cast<fdb5::CatalogueWriter*>(catalogue.get());
-    ASSERT(cat);
+    std::unique_ptr<fdb5::CatalogueWriter> catalogue = fdb5::CatalogueWriterFactory::instance().build(eckit::URI("toc", dbPath), eckit::LocalConfiguration());
 
-    cat->reconsolidate();
+    catalogue->reconsolidate();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

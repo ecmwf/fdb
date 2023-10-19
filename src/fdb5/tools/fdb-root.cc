@@ -72,10 +72,10 @@ void FdbRoot::execute(const eckit::option::CmdArgs& args) {
 
             // 'Touch' the database (which will create it if it doesn't exist)
 
-            std::unique_ptr<Catalogue> cat = CatalogueFactory::instance().build(result, conf, true);
+            std::unique_ptr<Catalogue> cat = CatalogueReaderFactory::instance().build(result, conf);
 
             if (!cat->exists() && create_db) {
-                cat = CatalogueFactory::instance().build(result, conf, false);
+                cat = CatalogueWriterFactory::instance().build(result, conf);
             }
 
             if (cat->exists()) {

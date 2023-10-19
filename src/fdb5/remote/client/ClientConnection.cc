@@ -3,7 +3,8 @@
 #include <functional>
 #include <unistd.h>
 
-#include "fdb5/remote/ClientConnection.h"
+#include "fdb5/remote/client/ClientConnection.h"
+#include "fdb5/remote/client/ClientConnectionRouter.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -29,8 +30,7 @@ using namespace eckit;
 using namespace eckit::net;
 // using namespace fdb5::remote;
 
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -118,74 +118,14 @@ void ClientConnection::connect() {
         }
     }
 }
-SessionID ClientConnection::verifyServerStartupResponse() {
 
-    MessageHeader hdr;
-    controlRead(&hdr, sizeof(hdr));
 
-    ASSERT(hdr.marker == StartMarker);
-    ASSERT(hdr.version == CurrentVersion);
-    ASSERT(hdr.message == Message::Startup);
-    ASSERT(hdr.requestID == 0);
-
-    Buffer payload(hdr.payloadSize);
-    eckit::FixedString<4> tail;
-    controlRead(payload, hdr.payloadSize);
-    controlRead(&tail, sizeof(tail));
-    ASSERT(tail == EndMarker);
-
-    MemoryStream s(payload);
-    SessionID clientSession(s);
-    SessionID serverSession(s);
-    Endpoint dataEndpoint(s);
-    LocalConfiguration serverFunctionality(s);
-
-    dataEndpoint_ = dataEndpoint;
-
-    if (dataEndpoint_.hostname() != controlEndpoint_.hostname()) {
-        Log::warning() << "Data and control interface hostnames do not match. "
-                       << dataEndpoint_.hostname() << " /= "
-                       << controlEndpoint_.hostname() << std::endl;
-    }
-
-    if (clientSession != sessionID_) {
-        std::stringstream ss;
-        ss << "Session ID does not match session received from server: "
-           << sessionID_ << " != " << clientSession;
-        throw BadValue(ss.str(), Here());
-    }
-
-    return serverSession;
-}
-
-void ClientConnection::writeControlStartupMessage() {
-
-    Buffer payload(4096);
-    MemoryStream s(payload);
-    s << sessionID_;
-    s << controlEndpoint_;
-    s << LibFdb5::instance().remoteProtocolVersion().used();
-
-    // TODO: Abstract this dictionary into a RemoteConfiguration object, which
-    //       understands how to do the negotiation, etc, but uses Value (i.e.
-    //       essentially JSON) over the wire for flexibility.
-    s << availableFunctionality().get();
-
-    controlWrite(Message::Startup, 0, payload.data(), s.position());
-}
-
-eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
-    eckit::LocalConfiguration conf;
-    std::vector<int> remoteFieldLocationVersions = {1};
-    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
-    return conf;
-}
 
 void ClientConnection::disconnect() {
     if (connected_) {
 
         // Send termination message
-        controlWrite(Message::Exit, generateRequestID()); //xxx why do we generate a request ID here? 
+        controlWrite(Message::Exit, 0); //xxx why do we generate a request ID here? 
 
         listeningThread_.join();
 
@@ -196,20 +136,25 @@ void ClientConnection::disconnect() {
     }
 }
 
-void ClientConnection::writeDataStartupMessage(const eckit::SessionID& serverSession) {
 
-    Buffer payload(1024);
-    MemoryStream s(payload);
+const eckit::net::Endpoint& ClientConnection::controlEndpoint() const { 
+    return controlEndpoint_;
+} 
+const eckit::net::Endpoint& ClientConnection::dataEndpoint() const { 
+    return dataEndpoint_;
+} 
 
-    s << sessionID_;
-    s << serverSession;
-
-    dataWrite(Message::Startup, 0, payload.data(), s.position());
+eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
+    eckit::LocalConfiguration conf;
+    std::vector<int> remoteFieldLocationVersions = {1};
+    conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
+    return conf;
 }
 
 // -----------------------------------------------------------------------------------------------------
 
 void ClientConnection::controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+//    std::cout << "ClientConnection::controlWriteCheckResponse " << ((uint) msg) << "  " << requestID << "  " << payloadLength << std::endl;
 
     controlWrite(msg, requestID, payload, payloadLength);
 
@@ -230,10 +175,11 @@ void ClientConnection::controlWriteCheckResponse(Message msg, uint32_t requestID
 }
 
 void ClientConnection::controlWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+    //std::cout << "ClientConnection::controlWrite " << this << std::endl;
 
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
-    MessageHeader message(msg, requestID, payloadLength);
+    MessageHeader message(msg, 0, requestID, payloadLength);
     controlWrite(&message, sizeof(message));
     if (payload) {
         controlWrite(payload, payloadLength);
@@ -251,6 +197,7 @@ void ClientConnection::controlWrite(const void* data, size_t length) {
 }
 
 void ClientConnection::controlRead(void* data, size_t length) {
+    //std::cout << "ClientConnection::controlRead " << this << std::endl;
     size_t read = controlClient_.read(data, length);
     if (length != read) {
         std::stringstream ss;
@@ -262,7 +209,7 @@ void ClientConnection::controlRead(void* data, size_t length) {
 void ClientConnection::dataWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     ASSERT((payload == nullptr) == (payloadLength == 0));
-    MessageHeader message(msg, requestID, payloadLength);
+    MessageHeader message(msg, 0, requestID, payloadLength);
     dataWrite(&message, sizeof(message));
     if (payload) {
         dataWrite(payload, payloadLength);
@@ -309,42 +256,125 @@ void ClientConnection::handleError(const MessageHeader& hdr) {
     }
 }
 
-void ClientConnection::index(const Key& key, const FieldLocation& location) {
-    NOTIMP;
+
+
+void ClientConnection::writeControlStartupMessage() {
+
+    Buffer payload(4096);
+    MemoryStream s(payload);
+    s << sessionID_;
+    s << controlEndpoint_;
+    s << LibFdb5::instance().remoteProtocolVersion().used();
+
+    // TODO: Abstract this dictionary into a RemoteConfiguration object, which
+    //       understands how to do the negotiation, etc, but uses Value (i.e.
+    //       essentially JSON) over the wire for flexibility.
+    s << availableFunctionality().get();
+
+    //std::cout << "writeControlStartupMessage" << std::endl;
+    controlWrite(Message::Startup, 0, payload.data(), s.position());
 }
 
-// void ClientConnection::store(const Key& key, const void* data, size_t length) {
-      
-//     // if there is no archiving thread active, then start one.
-//     // n.b. reset the archiveQueue_ after a potential flush() cycle.
+void ClientConnection::writeDataStartupMessage(const eckit::SessionID& serverSession) {
 
-//     if (!archiveFuture_.valid()) {
+    Buffer payload(1024);
+    MemoryStream s(payload);
 
-//         // Start the archival request on the remote side
-//         ASSERT(archiveID_ == 0);
-//         uint32_t id = generateRequestID();
-//         controlWriteCheckResponse(Message::Archive, id);
-//         archiveID_ = id;
+    s << sessionID_;
+    s << serverSession;
 
-//         // Reset the queue after previous done/errors
-//         {
-//             std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
-//             ASSERT(!archiveQueue_);
-//             archiveQueue_.reset(new ArchiveQueue(maxArchiveQueueLength_));
-//         }
+    dataWrite(Message::Startup, 0, payload.data(), s.position());
+}
 
-//         archiveFuture_ = std::async(std::launch::async, [this, id] { return archiveThreadLoop(id); });
-//     }
+SessionID ClientConnection::verifyServerStartupResponse() {
 
-//     ASSERT(archiveFuture_.valid());
-//     ASSERT(archiveID_ != 0);
-//     {
-//         std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
-//         ASSERT(archiveQueue_);
-//         archiveQueue_->emplace(std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length)));
-//     }
-// }
+    MessageHeader hdr;
+    controlRead(&hdr, sizeof(hdr));
 
+    ASSERT(hdr.marker == StartMarker);
+    ASSERT(hdr.version == CurrentVersion);
+    ASSERT(hdr.message == Message::Startup);
+    ASSERT(hdr.requestID == 0);
 
-}  // namespace remote
-}  // namespace fdb5
+    Buffer payload(hdr.payloadSize);
+    eckit::FixedString<4> tail;
+    controlRead(payload, hdr.payloadSize);
+    controlRead(&tail, sizeof(tail));
+    ASSERT(tail == EndMarker);
+
+    MemoryStream s(payload);
+    SessionID clientSession(s);
+    SessionID serverSession(s);
+    Endpoint dataEndpoint(s);
+    LocalConfiguration serverFunctionality(s);
+
+    dataEndpoint_ = dataEndpoint;
+
+    if (dataEndpoint_.hostname() != controlEndpoint_.hostname()) {
+        Log::warning() << "Data and control interface hostnames do not match. "
+                       << dataEndpoint_.hostname() << " /= "
+                       << controlEndpoint_.hostname() << std::endl;
+    }
+
+    if (clientSession != sessionID_) {
+        std::stringstream ss;
+        ss << "Session ID does not match session received from server: "
+           << sessionID_ << " != " << clientSession;
+        throw BadValue(ss.str(), Here());
+    }
+
+    return serverSession;
+}
+
+void ClientConnection::listeningThreadLoop() {
+
+    try {
+
+        MessageHeader hdr;
+        eckit::FixedString<4> tail;
+
+        while (true) {
+
+            dataRead(&hdr, sizeof(hdr));
+
+            ASSERT(hdr.marker == StartMarker);
+            ASSERT(hdr.version == CurrentVersion);
+
+            if (hdr.message == Message::Exit) {
+                return;
+            }
+
+            bool handled = false;
+
+            if (hdr.payloadSize == 0) {
+                handled = ClientConnectionRouter::instance().handle(hdr.message, hdr.requestID);
+            }
+            else {
+                Buffer payload(hdr.payloadSize);
+                dataRead(payload, hdr.payloadSize);
+
+                handled = ClientConnectionRouter::instance().handle(hdr.message, hdr.requestID, controlEndpoint_, std::move(payload));
+            }
+
+            if (!handled) {
+                std::stringstream ss;
+                ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message) << "). ABORTING";
+                Log::status() << ss.str() << std::endl;
+                Log::error() << "Retrieving... " << ss.str() << std::endl;
+                throw SeriousBug(ss.str(), Here());
+            }
+
+            // Ensure we have consumed exactly the correct amount from the socket.
+            dataRead(&tail, sizeof(tail));
+            ASSERT(tail == EndMarker);
+        }
+
+    // We don't want to let exceptions escape inside a worker thread.
+    } catch (const std::exception& e) {
+        ClientConnectionRouter::instance().handleException(std::make_exception_ptr(e));
+    } catch (...) {
+        ClientConnectionRouter::instance().handleException(std::current_exception());
+    }
+}
+
+}  // namespace fdb5::remote

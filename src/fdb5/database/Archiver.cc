@@ -96,7 +96,7 @@ void Archiver::selectDatabase(const Key &dbKey) {
         }
     }
 
-    std::unique_ptr<Catalogue> cat = CatalogueFactory::instance().build(dbKey, dbConfig_, false);
+    std::unique_ptr<CatalogueWriter> cat = CatalogueWriterFactory::instance().build(dbKey, dbConfig_);
     ASSERT(cat);
 
     // If this database is locked for writing then this is an error

@@ -29,7 +29,7 @@ namespace fdb5 {
 
 /// DB that implements the FDB on POSIX filesystems
 
-class TocCatalogue : public Catalogue, public TocHandler {
+class TocCatalogue : public CatalogueImpl, public TocHandler {
 
 public: // methods
 
@@ -58,7 +58,7 @@ protected: // methods
 
     void checkUID() const override;
     bool exists() const override;
-    void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) override;
+    void visitEntries(EntryVisitor& visitor, /*const Store& store,*/ bool sorted) override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
     std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;
