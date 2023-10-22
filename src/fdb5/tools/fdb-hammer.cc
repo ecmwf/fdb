@@ -28,6 +28,7 @@
 #include "fdb5/message/MessageArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
+// comment out for lustre runs
 #include "fdb5/daos/DaosSession.h"
 
 // This list is currently sufficient to get to nparams=200 of levtype=ml,type=fc
@@ -269,6 +270,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
         // Log::info() << "DATA WRITTEN SUCCESSFULLY" << std::endl;
     }
 
+    // comment out for lustre runs
     fdb5::DaosManager::instance().stats().report(std::cout);
 
     Log::info() << "fdb-hammer - Fields written: " << writeCount << std::endl;
@@ -422,6 +424,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
         // Log::info() << "DATA READ SUCCESSFULLY" << std::endl;
     }
 
+    // comment out for lustre runs
     fdb5::DaosManager::instance().stats().report(std::cout);
 
     Log::info() << "fdb-hammer - Fields read: " << fieldsRead << std::endl;
