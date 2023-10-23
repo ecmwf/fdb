@@ -15,11 +15,8 @@ FDB exposes a C++ API as well as CLI :doc:`tools`.
    requirements
    installation
    reference
-<<<<<<< HEAD
    tools
    api
-=======
->>>>>>> c5c6cf707231f8f169c27630dd52c5390ec17d94
    license
 
 
