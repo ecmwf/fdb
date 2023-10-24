@@ -80,7 +80,7 @@ uint32_t ClientConnectionRouter::controlWrite(std::vector<eckit::net::Endpoint>&
     // void dataRead(Client& client, uint32_t requestId, void* data, size_t length);
 
 void ClientConnectionRouter::controlRead(Client& client, uint32_t requestId, void* payload, size_t payloadLength) {
-    std::cout << "ClientConnectionRouter::controlRead " << requestId << std::endl;
+    // std::cout << "ClientConnectionRouter::controlRead " << requestId << std::endl;
     auto it = requests_.find(requestId);
     ASSERT(it != requests_.end());
     ASSERT(it->second.second == &client); // check if the client owns the request
@@ -91,6 +91,10 @@ void ClientConnectionRouter::controlRead(Client& client, uint32_t requestId, voi
 
 // void ClientConnectionRouter::controlRead(Connection& connection, Client& client, void* data, size_t length) {
 
+// }
+
+// Client& ClientConnectionRouter::store(eckit::URI uri) {
+//     StoreFactory::instance().build()
 // }
 
 

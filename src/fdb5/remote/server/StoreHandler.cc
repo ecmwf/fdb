@@ -135,6 +135,7 @@ void StoreHandler::handle() {
 
 void StoreHandler::read(const MessageHeader& hdr) {
 
+    // std::cout << "readLocationThreadLoop\n";
     if (!readLocationWorker_.joinable()) {
         readLocationWorker_ = std::thread([this] { readLocationThreadLoop(); });
     }

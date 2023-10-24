@@ -88,7 +88,7 @@ private: // members
     friend class TocWipeVisitor;
     friend class TocMoveVisitor;
 
-    Schema schema_;
+    std::unique_ptr<Schema> schema_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

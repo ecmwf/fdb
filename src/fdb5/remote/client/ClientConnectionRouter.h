@@ -27,14 +27,15 @@ namespace fdb5::remote {
 class Client;
 //----------------------------------------------------------------------------------------------------------------------
 
-class Connection {
-public:
-    Connection(ClientConnection* clientConnection, uint32_t remoteID) : clientConnection_(clientConnection), remoteID_(remoteID) {}
-    Connection(Connection& other) : clientConnection_(other.clientConnection_), remoteID_(other.remoteID_) {}
+// class Connection {
+// public:
+//     Connection(ClientConnection* clientConnection, uint32_t remoteID) : clientConnection_(clientConnection), remoteID_(remoteID) {}
+//     Connection(Connection& other) : clientConnection_(other.clientConnection_), remoteID_(other.remoteID_) {}
     
-    ClientConnection* clientConnection_;
-    uint32_t remoteID_;
-};
+//     ClientConnection* clientConnection_;
+//     uint32_t remoteID_;
+// };
+
 // typedef eckit::net::Endpoint Connection;
 // typedef uint32_t ClientID;
 // typedef uint32_t DataLinkID;
@@ -45,9 +46,9 @@ class ClientConnectionRouter : eckit::NonCopyable {
 public:
 
     static ClientConnectionRouter& instance();
-    Connection connectCatalogue(Key dbKey, const eckit::Configuration& config);
-    Connection connectStore(Key dbKey, const std::vector<eckit::net::Endpoint>& endpoints);
-//    Connection connectStore(eckit::URI uri);
+//    Connection connectCatalogue(Key dbKey, const eckit::Configuration& config);
+//    Connection connectStore(Key dbKey, const std::vector<eckit::net::Endpoint>& endpoints);
+//    RemoteStore& store(eckit::URI uri);
 
 // protected:
 

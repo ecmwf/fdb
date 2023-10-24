@@ -36,9 +36,6 @@ public:
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
 
-    eckit::Offset offset() const override { return internal_->offset(); }
-    eckit::Length length() const override { return internal_->length(); }
-
     virtual eckit::DataHandle *dataHandle() const override;
 
     virtual std::shared_ptr<FieldLocation> make_shared() const override;
@@ -58,14 +55,10 @@ protected: // For Streamable
 
 private: // methods
 
-    virtual void dump(std::ostream &out) const override;
     virtual void print(std::ostream &out) const override;
 
 private: // members
 
-    // not Owning
-//    RemoteStore* remoteStore_;
-    std::shared_ptr<const FieldLocation> internal_;
 };
 
 

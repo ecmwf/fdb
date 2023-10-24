@@ -59,7 +59,8 @@ eckit::URI TocCatalogue::uri() const {
 }
 
 const Schema& TocCatalogue::schema() const {
-    return schema_;
+    ASSERT(schema_);
+    return *schema_;
 }
 
 const eckit::PathName& TocCatalogue::basePath() const {
@@ -102,7 +103,11 @@ void TocCatalogue::visitEntries(EntryVisitor& visitor, /*const Store& store,*/ b
 
 void TocCatalogue::loadSchema() {
     Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
-    schema_.load( schemaPath() );
+    if (schema_) {
+        schema_->load(schemaPath());
+    } else {
+        schema_.reset(new Schema(schemaPath()));
+    }
 }
 
 StatsReportVisitor* TocCatalogue::statsReportVisitor() const {

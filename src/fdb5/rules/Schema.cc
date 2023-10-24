@@ -25,9 +25,6 @@ eckit::ClassSpec Schema::classSpec_ = { &eckit::Streamable::classSpec(), "Schema
 
 eckit::Reanimator<Schema> Schema::reanimator_;
 
-Schema::Schema() {
-}
-
 Schema::Schema(const eckit::PathName &path) {
     load(path);
 }

@@ -65,9 +65,9 @@ RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
     maxArchiveBatchSize_(config.getInt("maxBatchSize", 1)) {
 
-    std::cout << "RemoteStore ctor " << uri.asRawString() << std::endl;
+    // std::cout << "RemoteStore ctor " << uri.asRawString() << std::endl;
 
-    ASSERT(uri.scheme() == "fdbremote");
+    ASSERT(uri.scheme() == "fdb");
     // std::vector<eckit::net::Endpoint> endpoints{eckit::net::Endpoint(uri.hostport())};
     // connection_ = ClientConnectionRouter::instance().connectStore(dbKey_, endpoints);
 }
@@ -86,7 +86,7 @@ RemoteStore::~RemoteStore() {
 }
 
 eckit::URI RemoteStore::uri() const {
-    return URI("fdbremote", "");
+    return URI("fdb", "");
 }
 
 bool RemoteStore::exists() const {
@@ -339,7 +339,7 @@ void RemoteStore::handleException(std::exception_ptr e) {
 
 void RemoteStore::flush(FDBStats& internalStats) {
 
-    std::cout << "###################################      RemoteStore::flush\n";
+    // std::cout << "###################################      RemoteStore::flush\n";
     // Flush only does anything if there is an ongoing archive();
     if (! archiveFuture_.valid()) return;
 
@@ -591,6 +591,9 @@ private: // members
 
 void RemoteStore::sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length) {
     
+    ASSERT(!dbKey_.empty());
+    ASSERT(!key.empty());
+
     ASSERT(data);
     ASSERT(length != 0);
 
@@ -632,7 +635,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
 
 
 
-static StoreBuilder<RemoteStore> builder("fdbremote");
+static StoreBuilder<RemoteStore> builder("remote");
 
 //----------------------------------------------------------------------------------------------------------------------
 

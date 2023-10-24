@@ -61,7 +61,7 @@ public: // methods
    
 protected: // methods
 
-    std::string type() const override { return "fdbremote"; }
+    std::string type() const override { return "remote"; }
 
     bool exists() const override;
 

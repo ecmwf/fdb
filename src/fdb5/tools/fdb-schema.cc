@@ -60,9 +60,9 @@ void FdbSchema:: execute(const eckit::option::CmdArgs &args) {
                 ASSERT(cat->open());
                 cat->schema().dump(Log::info());
             } else {
-                Schema schema;
-                schema.load(args(i));
-                schema.dump(Log::info());
+                Schema* schema = new Schema(args(i));
+                schema->dump(Log::info());
+                delete schema;
             }
         }
     }

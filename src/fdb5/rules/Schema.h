@@ -43,7 +43,6 @@ class Schema : public eckit::Streamable {
 
 public: // methods
 
-    Schema();
     Schema(const eckit::PathName &path);
     Schema(std::istream& s);
     Schema(eckit::Stream& s);

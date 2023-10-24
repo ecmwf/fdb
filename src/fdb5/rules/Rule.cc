@@ -46,7 +46,8 @@ Rule::Rule(const Schema &schema,
 }
 
 Rule::Rule(eckit::Stream& s):
-    Rule(Schema(), s) {
+    Rule(Schema(""), s) {
+    NOTIMP;
 }
 
 Rule::Rule(const Schema &schema, eckit::Stream& s):
