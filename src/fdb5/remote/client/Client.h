@@ -25,26 +25,17 @@ namespace fdb5::remote {
 class Connection;
 //----------------------------------------------------------------------------------------------------------------------
 
-// typedef eckit::net::Endpoint Connection;
-// typedef uint32_t ClientID;
-// typedef uint32_t DataLinkID;
-// typedef uint32_t HandlerID;
-// typedef uint32_t RequestID;
-
-// abstract class, gives ClientConnectionRouter access to RemoteCatalogue & RemoteStore handlers
 class Client : eckit::NonCopyable {
 public:
-    Client(eckit::net::Endpoint endpoint);
-    Client(std::vector<eckit::net::Endpoint>&& endpoints);
+    Client(const eckit::net::Endpoint& endpoint);
+
+    const eckit::net::Endpoint& controlEndpoint() { return endpoint_; }
 
     uint32_t controlWriteCheckResponse(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
     uint32_t controlWrite(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
-    // void controlWrite(uint32_t requestId, const void* data, size_t length);
-    // void controlRead(uint32_t requestId, void* data, size_t length);
 
     uint32_t dataWrite(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
     void dataWrite(uint32_t requestId, const void* data, size_t length);
-    // void dataRead(uint32_t requestId, void* data, size_t length);
 
     // handlers for incoming messages - to be defined in the client class
     virtual bool handle(Message message, uint32_t requestID) = 0;
@@ -55,20 +46,8 @@ public:
 
 protected:
 
-    std::vector<eckit::net::Endpoint> endpoints_;
-    // Client(DataLinkID dataLinkID, RemoteHandlerID remoteHandlerID);
+    eckit::net::Endpoint endpoint_;
 
-    // ClientConnectionProxy() {} ///< private constructor only used by singleton
-
-    // eckit::Mutex mutex_;
-
-    // // a Client is either a CatalogueProxy or a StoreProxy (local),
-    // // willing to communicate with a remote CatalogueHandler or StoreHandler at a given endpoint
-    // std::map<ClientID, std::pair<DataLinkID, HandlerID> > clientLinks_;
-
-    // std::map<eckit::net::Endpoint, std::unique_ptr<ClientDataLink> > connections_;
-
-    // std::map<RequestID, Client*> requests_;
 };
 
 }

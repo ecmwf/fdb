@@ -96,9 +96,9 @@ protected:
     eckit::LocalConfiguration agreedConf_;
     std::mutex dataWriteMutex_;
     std::map<uint32_t, std::future<void>> workerThreads_;
-    std::future<size_t> archiveFuture_;
     std::thread readLocationWorker_;
     
+    std::future<size_t> archiveFuture_;
 
 };
 

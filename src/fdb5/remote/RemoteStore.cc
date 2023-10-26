@@ -47,23 +47,162 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class ArchivalRequest {
+
+public:
+
+    ArchivalRequest() :
+        id_(0), store_(nullptr), key_(Key()), buffer_(Buffer()) {}
+
+    ArchivalRequest(uint32_t id, RemoteStore* store, const fdb5::Key& key, const void *data, eckit::Length length) :
+        id_(id), store_(store), key_(key), buffer_(Buffer(reinterpret_cast<const char*>(data), length)) {}
+
+    uint32_t id_;
+    RemoteStore* store_;
+    fdb5::Key key_;
+    eckit::Buffer buffer_;
+};
+
+class Archiver {
+
+    using ArchiveQueue = eckit::Queue<ArchivalRequest>;
+
+public:
+
+    static Archiver& get(const eckit::net::Endpoint& endpoint) {
+
+        static std::map<const std::string, std::unique_ptr<Archiver> > archivers_;
+
+        auto it = archivers_.find(endpoint.hostport());
+        if (it == archivers_.end()) {
+            // auto arch = (archivers_[endpoint.hostport()] = Archiver());
+            it = archivers_.emplace(endpoint.hostport(), new Archiver()).first;
+        }
+        ASSERT(it != archivers_.end());
+        return *(it->second);
+    }
+
+    bool valid() {
+        return archiveFuture_.valid();
+    }
+
+    void start() {
+        // if there is no archiving thread active, then start one.
+        // n.b. reset the archiveQueue_ after a potential flush() cycle.
+        if (!archiveFuture_.valid()) {
+
+            {
+                // Reset the queue after previous done/errors
+                std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
+                ASSERT(!archiveQueue_);
+                archiveQueue_.reset(new ArchiveQueue(maxArchiveQueueLength_));
+            }
+
+            archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
+        }
+    }
+
+    void emplace(uint32_t id, RemoteStore* store, const Key& key, const void *data, eckit::Length length) {
+
+        std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
+        ASSERT(archiveQueue_);
+        archiveQueue_->emplace(id, store, key, data, length);
+    }
+
+    FDBStats flush(RemoteStore* store) {
+
+        ASSERT(archiveQueue_);
+        std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
+        archiveQueue_->close();
+
+        FDBStats stats = archiveFuture_.get();
+        ASSERT(!archiveQueue_);
+
+        ASSERT(stats.numFlush() == 0);
+        size_t numArchive = stats.numArchive();
+
+        Buffer sendBuf(4096);
+        MemoryStream s(sendBuf);
+        s << numArchive;
+
+        // The flush call is blocking
+        store->controlWriteCheckResponse(fdb5::remote::Message::Flush, sendBuf, s.position());
+
+        return stats;
+    }
+
+private:
+
+    Archiver() : maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)) {}
+
+    FDBStats archiveThreadLoop() {
+        FDBStats localStats;
+        eckit::Timer timer;
+
+        ArchivalRequest element;
+
+        try {
+
+            ASSERT(archiveQueue_);
+            long popped;
+            while ((popped = archiveQueue_->pop(element)) != -1) {
+
+                timer.start();
+                element.store_->sendArchiveData(element.id_, element.key_, element.buffer_.data(), element.buffer_.size());
+                timer.stop();
+
+                localStats.addArchive(element.buffer_.size(), timer, 1);
+            }
+
+            // And note that we are done. (don't time this, as already being blocked
+            // on by the ::flush() routine)
+
+            // MessageHeader hdr(Message::Flush, 0, 0, 0);
+            element.store_->dataWrite(Message::Flush, nullptr, 0);
+    //       dataWrite(id, &EndMarker, sizeof(EndMarker));
+
+    //        archiveID_ = 0;
+            archiveQueue_.reset();
+
+        } catch (...) {
+            archiveQueue_->interrupt(std::current_exception());
+            throw;
+        }
+
+        return localStats;
+
+        // We are inside an async, so don't need to worry about exceptions escaping.
+        // They will be released when flush() is called.
+    }
+
+private:
+
+    std::mutex archiveQueuePtrMutex_;
+    size_t maxArchiveQueueLength_;
+    std::unique_ptr<ArchiveQueue> archiveQueue_;
+    std::future<FDBStats> archiveFuture_;
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(std::vector<eckit::net::Endpoint>{eckit::net::Endpoint("localhost", 7000)}),
+    Client(eckit::net::Endpoint("localhost", 7000)),
 //    Client(std::vector<Connection>{ClientConnectionRouter::instance().connectStore(dbKey_, std::vector<eckit::net::Endpoint>{eckit::net::Endpoint("localhost", 7000)})}),
 //    ClientConnection(eckit::net::Endpoint(config.getString("storeHost"), config.getInt("storePort")), config),
     dbKey_(dbKey), config_(config), dirty_(false), //archiveID_(0),
-    maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
-    maxArchiveBatchSize_(config.getInt("maxBatchSize", 1)) {
+    maxArchiveBatchSize_(config.getInt("maxBatchSize", 1)),
+    archiver_(Archiver::get(controlEndpoint())) {
 }
 
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
-    Client(std::vector<eckit::net::Endpoint>{eckit::net::Endpoint(uri.hostport())}),
+    Client(eckit::net::Endpoint(uri.hostport())),
 //    Client(std::vector<Connection>{ClientConnectionRouter::instance().connectStore(Key(), std::vector<eckit::net::Endpoint>{eckit::net::Endpoint("localhost", 7000)})}),
     dbKey_(Key()), config_(config), dirty_(false), //archiveID_(0),
-    maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
-    maxArchiveBatchSize_(config.getInt("maxBatchSize", 1)) {
+    maxArchiveBatchSize_(config.getInt("maxBatchSize", 1)),
+    archiver_(Archiver::get(controlEndpoint())) {
 
     // std::cout << "RemoteStore ctor " << uri.asRawString() << std::endl;
 
@@ -76,7 +215,7 @@ RemoteStore::~RemoteStore() {
     // If we have launched a thread with an async and we manage to get here, this is
     // an error. n.b. if we don't do something, we will block in the destructor
     // of std::future.
-    if (archiveFuture_.valid()) {
+    if (archiver_.valid()) {
         Log::error() << "Attempting to destruct DecoupledFDB with active archive thread" << std::endl;
         eckit::Main::instance().terminate();
     }
@@ -103,31 +242,14 @@ std::future<std::unique_ptr<FieldLocation> > RemoteStore::archive(const Key& key
     // uint32_t id = generateRequestID();
 
 //    connect();
-
     // if there is no archiving thread active, then start one.
     // n.b. reset the archiveQueue_ after a potential flush() cycle.
-    if (!archiveFuture_.valid()) {
+    archiver_.start();
 
-        // Start the archival request on the remote side
+    ASSERT(archiver_.valid());
 
-        // Reset the queue after previous done/errors
-        {
-            std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
-            ASSERT(!archiveQueue_);
-            archiveQueue_.reset(new ArchiveQueue(maxArchiveQueueLength_));
-        }
-
-        archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
-    }
-
-    ASSERT(archiveFuture_.valid());
-
-    uint32_t id = controlWriteCheckResponse(Message::Archive);
-    std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
-    ASSERT(archiveQueue_);
-    // std::vector<Key> combinedKey = {dbKey_, key};
-    // std::cout << "archiveID_: " << archiveID_ << "  Archiving " << combinedKey << std::endl;
-    archiveQueue_->emplace(std::make_pair(id, std::make_pair(key, Buffer(reinterpret_cast<const char*>(data), length))));
+    uint32_t id = controlWriteCheckResponse(Message::Archive, nullptr, 0);
+    archiver_.emplace(id, this, key, data, length);
 
     std::promise<std::unique_ptr<FieldLocation> > loc;
     auto futureLocation = loc.get_future();
@@ -147,25 +269,12 @@ void RemoteStore::flush() {
 
     timer.start();
 
+    size_t numArchive = 0;
+
     // Flush only does anything if there is an ongoing archive();
-    if (archiveFuture_.valid()) {
+    if (archiver_.valid()) {
 
-        ASSERT(archiveQueue_);
-        std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
-        archiveQueue_->close();
-
-        FDBStats stats = archiveFuture_.get();
-        ASSERT(!archiveQueue_);
-
-        ASSERT(stats.numFlush() == 0);
-        size_t numArchive = stats.numArchive();
-
-        Buffer sendBuf(4096);
-        MemoryStream s(sendBuf);
-        s << numArchive;
-
-        // The flush call is blocking
-        controlWriteCheckResponse(fdb5::remote::Message::Flush, sendBuf, s.position());
+        archiver_.flush(this);
 
 //        internalStats_ += stats;
     }
@@ -260,55 +369,6 @@ void RemoteStore::print(std::ostream &out) const {
 
 
 
-FDBStats RemoteStore::archiveThreadLoop() {
-    FDBStats localStats;
-    eckit::Timer timer;
-
-    // We can pop multiple elements off the archive queue simultaneously, if
-    // configured
-    std::pair<uint32_t, std::pair<Key, Buffer> > element;
-    // for (size_t i = 0; i < maxArchiveBatchSize_; ++i) {
-    //     elements.emplace_back(std::make_pair(Key{}, Buffer{0}));
-    // }
-
-    try {
-
-        ASSERT(archiveQueue_);
-//        ASSERT(archiveID_ != 0);
-
-//        std::cout << "RemoteStore::archiveThreadLoop \n";
-        long popped;
-        while ((popped = archiveQueue_->pop(element)) != -1) {
-
-            timer.start();
-//        std::cout << "RemoteStore::archiveThreadLoop - sendArchiveData " <<  element.second.second.size() << std::endl;
-            sendArchiveData(element.first, element.second.first, element.second.second.data(), element.second.second.size());
-            timer.stop();
-
-            localStats.addArchive(element.second.second.size(), timer, 1);
-        }
-
-        // And note that we are done. (don't time this, as already being blocked
-        // on by the ::flush() routine)
-
-       //MessageHeader hdr(Message::Flush, 0, 0, 0);
-       dataWrite(Message::Flush, nullptr, 0);
-//       dataWrite(id, &EndMarker, sizeof(EndMarker));
-
-//        archiveID_ = 0;
-        archiveQueue_.reset();
-
-    } catch (...) {
-        archiveQueue_->interrupt(std::current_exception());
-        throw;
-    }
-
-    return localStats;
-
-    // We are inside an async, so don't need to worry about exceptions escaping.
-    // They will be released when flush() is called.
-}
-
 
 bool RemoteStore::handle(Message message, uint32_t requestID) {
 //    std::cout << "RemoteStore::handle received message: " << ((uint) message) << " - requestID: " << requestID << std::endl;
@@ -339,31 +399,10 @@ void RemoteStore::handleException(std::exception_ptr e) {
 
 void RemoteStore::flush(FDBStats& internalStats) {
 
-    // std::cout << "###################################      RemoteStore::flush\n";
     // Flush only does anything if there is an ongoing archive();
-    if (! archiveFuture_.valid()) return;
+    if (! archiver_.valid()) return;
 
-//    ASSERT(archiveID_ != 0);
-    {
-        ASSERT(archiveQueue_);
-        std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
-        archiveQueue_->close();
-    }
-    FDBStats stats = archiveFuture_.get();
-    ASSERT(!archiveQueue_);
-//    archiveID_ = 0;
-
-    ASSERT(stats.numFlush() == 0);
-    size_t numArchive = stats.numArchive();
-
-    Buffer sendBuf(4096);
-    MemoryStream s(sendBuf);
-    s << numArchive;
-
-    // The flush call is blocking
-    controlWriteCheckResponse(Message::Flush, sendBuf, s.position());
-
-    internalStats += stats;
+    internalStats += archiver_.flush(this);
 }
 
 
@@ -618,8 +657,6 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
 
 eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
 
-    ASSERT(endpoints_.size()==1);
-    //connect();
 
     Buffer encodeBuffer(4096);
     MemoryStream s(encodeBuffer);
@@ -628,7 +665,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
 
     uint32_t id = controlWriteCheckResponse(fdb5::remote::Message::Read, encodeBuffer, s.position());
 
-    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, endpoints_.at(0));
+    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, endpoint_);
 }
 
 
