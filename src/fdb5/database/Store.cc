@@ -79,7 +79,7 @@ std::unique_ptr<Store> StoreFactory::build(const Key& key, const Config& config)
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     auto j = builders_.find(nameLowercase);
 
-    eckit::Log::debug() << "Looking for StoreBuilder [" << nameLowercase << "]" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Looking for StoreBuilder [" << nameLowercase << "]" << std::endl;
 
     if (j == builders_.end()) {
         eckit::Log::error() << "No StoreBuilder for [" << nameLowercase << "]" << std::endl;
@@ -99,7 +99,7 @@ std::unique_ptr<Store> StoreFactory::build(const eckit::URI& uri, const Config& 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     auto j = builders_.find(nameLowercase);
 
-    eckit::Log::debug() << "Looking for StoreBuilder [" << nameLowercase << "]" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Looking for StoreBuilder [" << nameLowercase << "]" << std::endl;
 
     if (j == builders_.end()) {
         eckit::Log::error() << "No StoreBuilder for [" << nameLowercase << "]" << std::endl;

@@ -214,6 +214,8 @@ if(HAVE_FDB_REMOTE)
         # api/RemoteFDB.h
         remote/RemoteStore.cc
         remote/RemoteStore.h
+        remote/RemoteCatalogue.h
+        remote/RemoteCatalogue.cc
 
         remote/client/Client.h
         remote/client/Client.cc
@@ -221,6 +223,8 @@ if(HAVE_FDB_REMOTE)
         remote/client/ClientConnection.cc
         remote/client/ClientConnectionRouter.h
         remote/client/ClientConnectionRouter.cc
+        remote/server/CatalogueHandler.h
+        remote/server/CatalogueHandler.cc
         remote/server/StoreHandler.h
         remote/server/StoreHandler.cc
         remote/server/ServerConnection.h
@@ -238,8 +242,6 @@ if(HAVE_FDB_REMOTE)
         remote/FdbServer.h
         remote/FdbServer.cc
 
-        # remote/CatalogueHandler.h
-        # remote/CatalogueHandler.cc
         # remote/StoreHandler.h
         # remote/StoreHandler.cc
         # remote/DecoupledHandler.h

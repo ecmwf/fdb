@@ -58,6 +58,7 @@ public: // methods
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
     const Index& currentIndex() override;
+    const Key currentIndexKey() override;
     const TocSerialisationVersion& serialisationVersion() const;
 
 protected: // methods

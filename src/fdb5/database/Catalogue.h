@@ -163,6 +163,7 @@ public:
     virtual ~CatalogueWriter() {}
 
     virtual const Index& currentIndex() = 0;
+    virtual const Key currentIndexKey() = 0;
     virtual void archive(const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
     virtual void index(const InspectionKey& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;

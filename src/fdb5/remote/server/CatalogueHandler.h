@@ -11,12 +11,12 @@
 #ifndef fdb5_remote_CatalogueHandler_H
 #define fdb5_remote_CatalogueHandler_H
 
-#include "fdb5/remote/DecoupledHandler.h"
+#include "fdb5/remote/server/ServerConnection.h"
 
-namespace fdb5 {
-namespace remote {
+
+namespace fdb5::remote {
 //----------------------------------------------------------------------------------------------------------------------
-class CatalogueHandler : public DecoupledHandler {
+class CatalogueHandler : public ServerConnection {
 public:  // methods
 
     CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config);
@@ -29,18 +29,29 @@ private:  // methods
     void initialiseConnections() override;
     void index(const MessageHeader& hdr);
 
+    void read(const MessageHeader& hdr);
+    void flush(const MessageHeader& hdr);
+    void archive(const MessageHeader& hdr);
+    void list(const MessageHeader& hdr);
+    void inspect(const MessageHeader& hdr);
+    void schema(const MessageHeader& hdr);
+    
+
+    CatalogueWriter& catalogue(Key dbKey);
+    size_t archiveThreadLoop();
+
     // API functionality
-    template <typename HelperClass>
-    void forwardApiCall(const MessageHeader& hdr);
+    // template <typename HelperClass>
+    // void forwardApiCall(const MessageHeader& hdr);
 
 private:  // member
 
+   std::map<Key, std::unique_ptr<CatalogueWriter>> catalogues_;
 //    std::unique_ptr<FDBCatalogueBase> catalogue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace remote
-}  // namespace fdb5
+}  // namespace fdb5::remote
 
 #endif  // fdb5_remote_CatalogueHandler_H

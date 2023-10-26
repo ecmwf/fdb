@@ -26,11 +26,10 @@ bool ArchiveVisitor::selectDatum(const InspectionKey &key, const Key &full) {
 
     // eckit::Log::info() << "selectDatum " << key << ", " << full << " " << size_ << std::endl;
     checkMissingKeys(full);
-
-    const Index& idx = current()->currentIndex();
+    const Key idxKey = current()->currentIndexKey();
 
     // here we could create a queue... and keep accepting archival request until the queue is full
-    auto futureLocation = store()->archive(idx.key(), data_, size_);
+    auto futureLocation = store()->archive(idxKey, data_, size_);
     current()->archive(key, futureLocation.get());
 
     return true;

@@ -30,11 +30,10 @@ std::ostream &operator<<(std::ostream &s, const Catalogue &x) {
 }
 
 std::unique_ptr<Store> CatalogueImpl::buildStore() const {
-    if (buildByKey_)
+    if (buildByKey_){
         return StoreFactory::instance().build(key(), config_);
-    else {
+    } else {
         std::string name = config_.getString("store", "file");
-
         return StoreFactory::instance().build(eckit::URI(name, uri()), config_);
     }
 }
@@ -186,7 +185,7 @@ std::unique_ptr<CatalogueWriter> CatalogueWriterFactory::build(const Key& dbKey,
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     auto j = builders_.find(nameLowercase);
 
-    eckit::Log::debug() << "Looking for CatalogueWriterBuilder [" << nameLowercase << "]" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Looking for CatalogueWriterBuilder [" << nameLowercase << "]" << std::endl;
 
     if (j == builders_.end()) {
         eckit::Log::error() << "No CatalogueWriterBuilder for [" << nameLowercase << "]" << std::endl;
@@ -206,7 +205,7 @@ std::unique_ptr<CatalogueWriter> CatalogueWriterFactory::build(const eckit::URI&
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     auto j = builders_.find(nameLowercase);
 
-    eckit::Log::debug() << "Looking for CatalogueWriterBuilder [" << nameLowercase << "]" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Looking for CatalogueWriterBuilder [" << nameLowercase << "]" << std::endl;
 
     if (j == builders_.end()) {
         eckit::Log::error() << "No CatalogueWriterBuilder for [" << nameLowercase << "]" << std::endl;

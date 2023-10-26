@@ -228,6 +228,11 @@ const Index& TocCatalogueWriter::currentIndex() {
     return current_;
 }
 
+const Key TocCatalogueWriter::currentIndexKey() {
+    currentIndex();
+    return currentIndexKey_;
+}
+
 const TocSerialisationVersion& TocCatalogueWriter::serialisationVersion() const {
     return TocHandler::serialisationVersion();
 }
