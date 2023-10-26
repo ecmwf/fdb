@@ -52,7 +52,8 @@ public:
     virtual void handleException(std::exception_ptr e) = 0;
 
     virtual Key key() = 0;
-private:
+
+protected:
 
     std::vector<eckit::net::Endpoint> endpoints_;
     // Client(DataLinkID dataLinkID, RemoteHandlerID remoteHandlerID);

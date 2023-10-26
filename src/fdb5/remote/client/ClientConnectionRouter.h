@@ -21,10 +21,10 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnection.h"
+#include "fdb5/remote/RemoteStore.h"
 
 namespace fdb5::remote {
 
-class Client;
 //----------------------------------------------------------------------------------------------------------------------
 
 // class Connection {
@@ -48,7 +48,7 @@ public:
     static ClientConnectionRouter& instance();
 //    Connection connectCatalogue(Key dbKey, const eckit::Configuration& config);
 //    Connection connectStore(Key dbKey, const std::vector<eckit::net::Endpoint>& endpoints);
-//    RemoteStore& store(eckit::URI uri);
+    RemoteStore& store(const eckit::URI& uri);
 
 // protected:
 
@@ -104,6 +104,8 @@ private:
     // endpoint -> <client,  key -> remoteId>
 //    std::map<eckit::net::Endpoint, std::pair<std::unique_ptr<ClientConnection>, std::map<Key, uint32_t> > connections_;
     std::map<std::string, std::unique_ptr<ClientConnection> > connections_;
+
+    std::map<std::string, std::unique_ptr<RemoteStore> > readStores_;
     
     // // not owning
     // ClientConnection* catalogueConnection_;

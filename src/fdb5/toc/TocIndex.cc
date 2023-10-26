@@ -73,7 +73,7 @@ TocIndex::~TocIndex() {
 }
 
 void TocIndex::encode(eckit::Stream& s, const int version) const {
-    files_.encode(s);
+    uris_.encode(s);
     IndexBase::encode(s, version);
 }
 
@@ -84,7 +84,8 @@ bool TocIndex::get(const InspectionKey &key, const Key &remapKey, Field &field) 
 
     bool found = btree_->get(key.valuesToString(), ref);
     if ( found ) {
-        const eckit::URI& uri = files_.get(ref.uriId());
+        const eckit::URI& uri = uris_.get(ref.uriId());
+        std::cout << "TocIndex::get " << uri << std::endl;
         FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri, ref.offset(), ref.length(), remapKey);
         field = Field(std::move(*loc), timestamp_, ref.details());
         delete(loc);
@@ -128,7 +129,7 @@ void TocIndex::add(const InspectionKey &key, const Field &field) {
     ASSERT(btree_);
     ASSERT( mode_ == TocIndex::WRITE );
 
-    FieldRef ref(files_, field);
+    FieldRef ref(uris_, field);
 
     //  bool replace =
     btree_->set(key.valuesToString(), ref); // returns true if replace, false if new insert
@@ -165,16 +166,16 @@ void TocIndex::funlock() const {
 }
 
 class TocIndexVisitor : public BTreeIndexVisitor {
-    const UriStore &files_;
+    const UriStore &uris_;
     EntryVisitor &visitor_;
 public:
-    TocIndexVisitor(const UriStore &files, EntryVisitor &visitor):
-        files_(files),
+    TocIndexVisitor(const UriStore &uris, EntryVisitor &visitor):
+        uris_(uris),
         visitor_(visitor) {}
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
 
-        Field field(TocFieldLocation(files_, ref), visitor_.indexTimestamp(), ref.details());
+        Field field(TocFieldLocation(uris_, ref), visitor_.indexTimestamp(), ref.details());
         visitor_.visitDatum(field, keyFingerprint);
     }
 };
@@ -186,7 +187,7 @@ void TocIndex::entries(EntryVisitor &visitor) const {
     // Allow the visitor to selectively decline to visit the entries in this index
     if (visitor.visitIndex(instantIndex)) {
         TocIndexCloser closer(*this);
-        TocIndexVisitor v(files_, visitor);
+        TocIndexVisitor v(uris_, visitor);
         btree_->visit(v);
     }
 }
@@ -201,7 +202,7 @@ std::string TocIndex::defaulType() {
 }
 
 const std::vector<eckit::URI> TocIndex::dataPaths() const {
-    return files_.paths();
+    return uris_.paths();
 }
 
 bool TocIndex::dirty() const {
@@ -229,7 +230,7 @@ void TocIndex::dump(std::ostream &out, const char* indent, bool simple, bool dum
 
     if(!simple) {
         out << std::endl;
-        files_.dump(out, indent);
+        uris_.dump(out, indent);
         axes_.dump(out, indent);
     }
 

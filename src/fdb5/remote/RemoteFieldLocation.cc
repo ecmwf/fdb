@@ -69,9 +69,23 @@ std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
 
 eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
     
-//    ASSERT(remoteStore_);
-//    Connection conn = ClientConnectionRouter::instance().connectStore.connectStore(uri_);
-    return nullptr; //conn.->dataHandle(*internal_);
+    RemoteStore& store = ClientConnectionRouter::instance().store(uri_);
+    
+    const std::string scheme = uri_.query("internalScheme");
+    const std::string hostport = uri_.query("internalHost");
+    eckit::URI remote;
+    remote.query("internalScheme", "");
+    if (hostport.empty()) {
+        remote = eckit::URI(scheme, uri_, "",  -1);
+    }
+    else {
+        eckit::net::Endpoint endpoint{hostport};
+        remote = eckit::URI(scheme, uri_, endpoint.host(),  endpoint.port());
+        remote.query("internalHost", "");
+    }
+    FieldLocation* loc = FieldLocationFactory::instance().build(scheme, remote, offset_, length_, remapKey_);
+
+    return store.dataHandle(*loc);
 }
 
 void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {
@@ -102,7 +116,8 @@ static FieldLocationBuilder<RemoteFieldLocation> builder("fdb");
 //----------------------------------------------------------------------------------------------------------------------
 
 class FdbURIManager : public eckit::URIManager {
-    virtual bool query() override { return false; }
+    bool authority() override { return true; }
+    virtual bool query() override { return true; }
     virtual bool fragment() override { return false; }
 
     virtual bool exists(const eckit::URI& f) override { return f.path().exists(); }

@@ -42,10 +42,10 @@ class BTreeIndex;
 
 struct UriStoreWrapper {
 
-    UriStoreWrapper(const eckit::PathName& directory) : files_(directory) {}
-    UriStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : files_(directory, s) {}
+    UriStoreWrapper(const eckit::PathName& directory) : uris_(directory) {}
+    UriStoreWrapper(const eckit::PathName& directory, eckit::Stream& s) : uris_(directory, s) {}
 
-    UriStore files_;
+    UriStore uris_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

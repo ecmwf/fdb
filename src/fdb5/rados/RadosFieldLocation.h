@@ -20,7 +20,7 @@
 
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/FileStore.h"
-#include "fdb5/toc/FieldRef.h"
+//#include "fdb5/toc/FieldRef.h"
 
 namespace fdb5 {
 
@@ -34,7 +34,7 @@ public:
     RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length);
     RadosFieldLocation(const eckit::URI &uri);
     RadosFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length);
-    RadosFieldLocation(const FileStore& store, const FieldRef& ref);
+//    RadosFieldLocation(const FileStore& store, const FieldRef& ref);
     RadosFieldLocation(eckit::Stream&);
 
 //    const eckit::PathName path() const { return uri_.name(); }

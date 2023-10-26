@@ -2,6 +2,7 @@
 #include <unistd.h>
 
 #include "fdb5/remote/client/ClientConnectionRouter.h"
+// #include "fdb5/remote/RemoteStore.h"
 
 using namespace eckit;
 using namespace eckit::net;
@@ -93,9 +94,15 @@ void ClientConnectionRouter::controlRead(Client& client, uint32_t requestId, voi
 
 // }
 
-// Client& ClientConnectionRouter::store(eckit::URI uri) {
-//     StoreFactory::instance().build()
-// }
+RemoteStore& ClientConnectionRouter::store(const eckit::URI& uri) {
+    const std::string& endpoint = uri.hostport();
+    auto it = readStores_.find(endpoint);
+    if (it != readStores_.end()) {
+        return *(it->second);
+    }
+
+    return *(readStores_[endpoint] = std::unique_ptr<RemoteStore>(new RemoteStore(uri, Config())));
+}
 
 
 uint32_t ClientConnectionRouter::createConnection(std::vector<eckit::net::Endpoint>& endpoints, Client& client, ClientConnection*& conn) {

@@ -58,7 +58,7 @@ RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
 }
 
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
-    Client(std::vector<eckit::net::Endpoint>{eckit::net::Endpoint("localhost", 7000)}),
+    Client(std::vector<eckit::net::Endpoint>{eckit::net::Endpoint(uri.hostport())}),
 //    Client(std::vector<Connection>{ClientConnectionRouter::instance().connectStore(Key(), std::vector<eckit::net::Endpoint>{eckit::net::Endpoint("localhost", 7000)})}),
     dbKey_(Key()), config_(config), dirty_(false), //archiveID_(0),
     maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)),
@@ -618,6 +618,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
 
 eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
 
+    ASSERT(endpoints_.size()==1);
     //connect();
 
     Buffer encodeBuffer(4096);
@@ -625,11 +626,9 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
     s << fieldLocation;
     s << remapKey;
 
-//    uint32_t id = generateRequestID();
-
     uint32_t id = controlWriteCheckResponse(fdb5::remote::Message::Read, encodeBuffer, s.position());
 
-    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, eckit::net::Endpoint("") /* controlEndpoint() */);
+    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, endpoints_.at(0));
 }
 
 
