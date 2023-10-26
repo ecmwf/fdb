@@ -45,6 +45,7 @@ void Archiver::archive(const Key &key, const void* data, size_t len) {
 void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
 
     visitor.rule(nullptr);
+    
 
     dbConfig_.schema().expand(key, visitor);
 
