@@ -24,7 +24,7 @@ namespace fdb5::remote {
 
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     CatalogueImpl(key, ControlIdentifiers(), config), // xxx what are control identifiers? Setting empty here...
-    Client(eckit::net::Endpoint("localhost", 7001)), // xxx hardcoded endpoint
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))), // xxx hardcoded endpoint
     config_(config), schema_(nullptr),
     maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200))
     {
@@ -32,7 +32,7 @@ RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     }
 
 RemoteCatalogue::RemoteCatalogue(const eckit::URI& uri, const Config& config):
-    Client(eckit::net::Endpoint("localhost", 7001)),  schema_(nullptr),
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))),  schema_(nullptr),
     maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200))
     {
         NOTIMP;

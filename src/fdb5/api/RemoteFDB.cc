@@ -7,6 +7,8 @@
 #include "fdb5/database/Archiver.h"
 #include "fdb5/LibFdb5.h"
 
+#include "fdb5/remote/client/ClientConnectionRouter.h"
+
 #include <chrono> // xxx debug / development
 #include <thread> // xxx debug / development
 
@@ -19,8 +21,18 @@ namespace fdb5 {
 
 RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name):
     FDBBase(config, name),
-    Client(eckit::net::Endpoint("localhost", 7001)) /*<--catalogue endpoint*/ 
-    { 
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))) {
+
+    uint32_t payloadLength = 102400;
+    eckit::Buffer buf(payloadLength);
+
+    ClientConnectionRouter::instance().controlReadResponse(*this, Message::MasterSchema, buf.data(), payloadLength);
+    MemoryStream s(buf);
+    storeEndpoint_ = eckit::net::Endpoint(s);
+    fdb5::Schema* schema = eckit::Reanimator<fdb5::Schema>::reanimate(s);
+    config_.overrideSchema("masterSchema", schema);
+    config_.set("storeHost", storeEndpoint_.host());
+    config_.set("storePort", storeEndpoint_.port());
 }
 
 // archive -- same as localFDB. Archiver will build a RemoteCatalogueWriter and RemoteStore.

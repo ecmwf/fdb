@@ -34,6 +34,7 @@ public:
     RemoteStore& store(const eckit::URI& uri);
 
     uint32_t controlWriteCheckResponse(Client& client, Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
+    void controlReadResponse(Client& client, remote::Message msg, void* payload, uint32_t& payloadLength);
     uint32_t controlWrite(Client& client, Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlRead(Client& client, uint32_t requestId, void* payload, size_t payloadLength);
 

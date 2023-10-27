@@ -64,6 +64,14 @@ uint32_t ClientConnectionRouter::controlWriteCheckResponse(Client& client, Messa
 
     return id;
 }
+
+void ClientConnectionRouter::controlReadResponse(Client& client, remote::Message msg, void* payload, uint32_t& payloadLength) {
+    ClientConnection* conn;
+    uint32_t id = createConnection(client, conn);
+
+    conn->controlReadResponse(msg, id, payload, payloadLength);
+}
+
 uint32_t ClientConnectionRouter::controlWrite(Client& client, Message msg, const void* payload, uint32_t payloadLength) {
     //std::cout << "ClientConnectionRouter::controlWrite " << endpoints.size() << std::endl;
     ClientConnection* conn;

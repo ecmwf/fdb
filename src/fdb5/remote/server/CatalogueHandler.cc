@@ -39,34 +39,57 @@ CatalogueHandler::~CatalogueHandler() {}
 void CatalogueHandler::initialiseConnections() {
     ServerConnection::initialiseConnections();
 
-    std::string storeHost = ::getenv("FDB_STORE_HOST") ? ::getenv("FDB_STORE_HOST") : "localhost";
-    std::string storePort = ::getenv("FDB_STORE_PORT") ? ::getenv("FDB_STORE_PORT") : "7000";
-    net::Endpoint storeEndpoint(storeHost, std::stoi(storePort));
+    MessageHeader hdr;
+    eckit::FixedString<4> tail;
 
+    socketRead(&hdr, sizeof(hdr), controlSocket_);
 
-    // Log::info() << "Sending store endpoint to client: " << storeEndpoint << std::endl;
-    // {
-    //     Buffer startupBuffer(1024);
-    //     MemoryStream s(startupBuffer);
+    ASSERT(hdr.marker == StartMarker);
+    ASSERT(hdr.version == CurrentVersion);
+    ASSERT(hdr.message == Message::MasterSchema);
 
-    //     s << clientSession;
-    //     s << sessionID_;
-    //     s << storeEndpoint;
+    // Ensure we have consumed exactly the correct amount from the socket.
+    socketRead(&tail, sizeof(tail), controlSocket_);
+    ASSERT(tail == EndMarker);
 
-    //     // s << storeEndpoint; // xxx single-store case only: we cant do this with multiple stores // For now, dont send the store endpoint to the client 
+    std::vector<eckit::net::Endpoint> stores;
 
-    //     Log::debug() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
+    if (::getenv("FDB_STORE_HOST") && ::getenv("FDB_STORE_PORT")) {
+        // override the configuration
+        stores.push_back(net::Endpoint(::getenv("FDB_STORE_HOST"), std::stoi(::getenv("FDB_STORE_PORT"))));
+    }
+    else {
+        std::vector<std::string> endpoints = config_.getStringVector("stores");
+        for (const std::string& endpoint: endpoints) {
+            stores.push_back(eckit::net::Endpoint(endpoint));
+        }
+    }
 
+    ASSERT(stores.size() > 0);
+    // TODO randomise
+    eckit::net::Endpoint endpoint = stores.at(0);
 
-    //     controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
-    // }
+    Log::info() << "Sending store endpoint to client: " << endpoint << std::endl;
+    {
+        Buffer startupBuffer(102400);
+        MemoryStream s(startupBuffer);
+
+        // s << clientSession;
+        // s << sessionID_;
+        s << endpoint;
+        s << config_.schema();
+
+//        Log::debug() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
+
+        controlWrite(Message::Received, hdr.requestID, startupBuffer.data(), s.position());
+    }
 
     // While we're here, we should also send the master schema to the client.
 
 
-    Log::info() << "Also, catalogue could now send store control endpoint to client: " << storeEndpoint << std::endl;
-    Log::info() << "Catalogue could also now send master schema " << std::endl;
-    Log::info() << " but... todo... " << std::endl;
+    // Log::info() << "Also, catalogue could now send store control endpoint to client: " << storeEndpoint << std::endl;
+    // Log::info() << "Catalogue could also now send master schema " << std::endl;
+    // Log::info() << " but... todo... " << std::endl;
 }
 
 

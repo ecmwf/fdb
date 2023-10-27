@@ -83,6 +83,7 @@ private: // methods
 private: // members
 
     std::unique_ptr<Archiver> archiver_;
+    eckit::net::Endpoint storeEndpoint_;
 
     bool dolist_ = false;
     eckit::Queue<ListElement>* listqueue_;
