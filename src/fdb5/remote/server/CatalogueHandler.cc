@@ -223,10 +223,6 @@ void CatalogueHandler::handle() {
                     schema(hdr);
                     break;
 
-                // case Message::Store:
-                //     store(hdr);
-                //     break;
-
                 default: {
                     std::stringstream ss;
                     ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message)
@@ -268,8 +264,6 @@ void CatalogueHandler::flush(const MessageHeader& hdr) {
     Buffer payload(receivePayload(hdr, controlSocket_));
     MemoryStream s(payload);
 
-    //fdb5::Key dbKey(s);
-
     size_t numArchived;
     s >> numArchived;
 
@@ -284,16 +278,13 @@ void CatalogueHandler::flush(const MessageHeader& hdr) {
         // Do the actual flush!
         Log::info() << "Flushing" << std::endl;
         Log::status() << "Flushing" << std::endl;
-        //if (dbKey.empty()) {
-            for (auto it = catalogues_.begin(); it != catalogues_.end(); it++) {
-                it->second->flush();
-            }
-        // } else {
-        //     store(dbKey).flush();
-        // }
-        Log::info() << "Flush complete" << std::endl;
-        Log::status() << "Flush complete" << std::endl;
+
+        for (auto it = catalogues_.begin(); it != catalogues_.end(); it++) {
+            it->second->flush();
+        }
     }
+    Log::info() << "Flush complete" << std::endl;
+    Log::status() << "Flush complete" << std::endl;
 }
 
 void CatalogueHandler::archive(const MessageHeader& hdr) {

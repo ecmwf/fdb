@@ -48,7 +48,7 @@ private:  // methods
 private:  // member
 
    std::map<Key, std::unique_ptr<CatalogueWriter>> catalogues_;
-//    std::unique_ptr<FDBCatalogueBase> catalogue_;
+
     FDB fdb_;
 };
 

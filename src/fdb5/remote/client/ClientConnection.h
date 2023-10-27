@@ -12,15 +12,16 @@
 
 #include <thread>
 
+
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/container/Queue.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/io/Length.h"
 #include "eckit/net/Endpoint.h"
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
 #include "eckit/runtime/SessionID.h"
 
-#include "fdb5/api/FDB.h"
-#include "fdb5/api/FDBFactory.h"
 #include "fdb5/remote/Messages.h"
 #include "eckit/utils/Translator.h"
 
@@ -29,14 +30,14 @@ namespace eckit {
 
 class Buffer;
 
-// xxx can we give this code a better home?
-template<> struct Translator<net::Endpoint, std::string> {
-    std::string operator()(const net::Endpoint& e) {
-        std::stringstream ss;
-        ss << e;
-        return ss.str();
-    }
-};
+// // xxx can we give this code a better home?
+// template<> struct Translator<net::Endpoint, std::string> {
+//     std::string operator()(const net::Endpoint& e) {
+//         std::stringstream ss;
+//         ss << e;
+//         return ss.str();
+//     }
+// };
 
 }
 
@@ -67,7 +68,6 @@ public: // methods
 
 protected: // methods
 
-
     const eckit::net::Endpoint& controlEndpoint() const;
     const eckit::net::Endpoint& dataEndpoint() const;
 
@@ -79,9 +79,7 @@ protected: // methods
     // construct dictionary for protocol negotiation - to be defined in the client class
     virtual eckit::LocalConfiguration availableFunctionality() const;
 
-    
 private: // methods
-
 
     void writeControlStartupMessage();
     void writeDataStartupMessage(const eckit::SessionID& serverSession);
@@ -105,10 +103,7 @@ private: // members
     std::thread listeningThread_;
 
     bool connected_;
-
-    eckit::Length freeSpace_;
-    float freeRatio_;
-
+    
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -128,7 +123,7 @@ private: // members
 class DecoupledFDBException : public eckit::RemoteException {
 public:
     DecoupledFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint):
-        eckit::RemoteException(msg, eckit::Translator<eckit::net::Endpoint, std::string>()(endpoint)) {}
+        eckit::RemoteException(msg, endpoint.hostport()) {}
 };
 
 }  // namespace fdb5::remote

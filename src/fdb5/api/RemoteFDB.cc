@@ -19,7 +19,7 @@ namespace fdb5 {
 
 RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name):
     FDBBase(config, name),
-    Client(std::vector<eckit::net::Endpoint>{eckit::net::Endpoint("localhost", 7001)}) /*<--catalogue endpoint*/ 
+    Client(eckit::net::Endpoint("localhost", 7001)) /*<--catalogue endpoint*/ 
     { 
 }
 
@@ -114,7 +114,7 @@ bool RemoteFDB::handle(remote::Message message, uint32_t requestID, eckit::net::
     return false;
 }
 void RemoteFDB::handleException(std::exception_ptr e){NOTIMP;}
-Key RemoteFDB::key(){NOTIMP;}
+const Key& RemoteFDB::key() const {NOTIMP;}
 
 static FDBBuilder<RemoteFDB> builder("remote");
 
