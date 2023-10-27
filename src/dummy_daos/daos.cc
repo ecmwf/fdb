@@ -761,6 +761,26 @@ int daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
 
 }
 
+int daos_array_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t *ev) {
+
+    if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
+    if (ev != NULL) NOTIMP;
+
+    try {
+
+        oh.impl->path.unlink();
+
+    } catch (eckit::FailedSystemCall& e) {
+
+        if (oh.impl->path.exists()) throw;
+        return -DER_NONEXIST;
+
+    }
+
+    return 0;
+
+}
+
 int daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
                     unsigned int mode, daos_size_t *cell_size,
                     daos_size_t *chunk_size, daos_handle_t *oh, daos_event_t *ev) {

@@ -281,6 +281,8 @@ int daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
                       daos_size_t cell_size, daos_size_t chunk_size,
                       daos_handle_t *oh, daos_event_t *ev);
 
+int daos_array_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t *ev);
+
 int daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
                     unsigned int mode, daos_size_t *cell_size,
                     daos_size_t *chunk_size, daos_handle_t *oh, daos_event_t *ev);

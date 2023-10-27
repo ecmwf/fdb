@@ -163,7 +163,12 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
 
     std::vector<eckit::URI> indexDataPaths(index.dataPaths());
     for (const eckit::URI& uri : store_.asStoreUnitURIs(indexDataPaths)) {
-        if (include && store_.uriBelongs(uri)) {
+        if (include) {
+            if (!store_.uriBelongs(uri)) {
+                Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store." << std::endl;
+                Log::error() << "Impossible to delete such fields. Index deletion aborted to avoid leaking fields." << std::endl;
+                NOTIMP;
+            }
             dataPaths_.insert(eckit::PathName(uri.path()));
         } else {
             safePaths_.insert(eckit::PathName(uri.path()));
@@ -345,7 +350,7 @@ bool TocWipeVisitor::anythingToWipe() const {
             tocPath_.asString().size() || schemaPath_.asString().size());
 }
 
-void TocWipeVisitor::report() {
+void TocWipeVisitor::report(bool wipeAll) {
 
     ASSERT(anythingToWipe());
 
@@ -381,6 +386,16 @@ void TocWipeVisitor::report() {
         out_ << "    " << f << std::endl;
     }
     out_ << std::endl;
+
+    if (store_.type() != "file") {
+        out_ << "Store URI to delete:" << std::endl;
+        if (wipeAll) {
+            out_ << "    " << store_.uri() << std::endl;
+        } else {
+            out_ << " - NONE -" << std::endl;
+        }
+        out_ << std::endl;
+    }
 
     out_ << "Protected files (explicitly untouched):" << std::endl;
     if (safePaths_.empty()) out_ << " - NONE - " << std::endl;
@@ -440,6 +455,9 @@ void TocWipeVisitor::wipe(bool wipeAll) {
 
     // Now we want to do the actual deletion
     // n.b. We delete carefully in a order such that we can always access the DB by what is left
+
+    /// @todo: are all these exist checks necessary?
+
     for (const PathName& path : residualDataPaths_) {
         eckit::URI uri(store_.type(), path);
         if (store_.uriExists(uri)) {
@@ -453,8 +471,16 @@ void TocWipeVisitor::wipe(bool wipeAll) {
     }
 
     for (const PathName& path : dataPaths_) {
-        store_.remove(eckit::URI(store_.type(), path), logAlways, logVerbose, doit_);
+        eckit::URI uri(store_.type(), path);
+        if (store_.uriExists(uri)) {
+            store_.remove(uri, logAlways, logVerbose, doit_);
+        }
     }
+
+    if (wipeAll && store_.type() != "file")
+        /// @todo: if the store is holding catalogue information (e.g. daos KVs) it 
+        ///    should not be removed
+        store_.remove(store_.uri(), logAlways, logVerbose, doit_);
 
     for (const std::set<PathName>& pathset : {indexPaths_,
                                               std::set<PathName>{schemaPath_}, subtocPaths_,
@@ -494,7 +520,7 @@ void TocWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
     if (anythingToWipe()) {
         if (wipeAll) calculateResidualPaths();
 
-        if (!porcelain_) report();
+        if (!porcelain_) report(wipeAll);
 
         // This is here as it needs to run whatever combination of doit/porcelain/...
         if (wipeAll && !residualPaths_.empty()) {

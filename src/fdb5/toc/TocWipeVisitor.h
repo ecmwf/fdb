@@ -48,7 +48,7 @@ private: // methods
 
     bool anythingToWipe() const;
 
-    void report();
+    void report(bool wipeAll);
     void wipe(bool wipeAll);
 
 private: // members

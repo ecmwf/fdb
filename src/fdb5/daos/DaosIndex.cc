@@ -209,21 +209,35 @@ void DaosIndex::add(const Key &key, const Field &field) {
 
 void DaosIndex::entries(EntryVisitor &visitor) const {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+    
     Index instantIndex(const_cast<DaosIndex*>(this));
 
     // Allow the visitor to selectively decline to visit the entries in this index
     if (visitor.visitIndex(instantIndex)) {
 
         fdb5::DaosSession s{};
+
+        /// @note: performed RPCs:
+        /// - index kv open (daos_obj_open)
+        /// - index kv list keys (daos_kv_list)
+        fdb5::StatsTimer st{"list 010 index kv open and list keys", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
         fdb5::DaosKeyValue index_kv{s, location_.daosName()};
 
         for (const auto& key : index_kv.keys()) {
+            st.stop();
 
             if (key == "axes" || key == "key") continue;
 
+            /// @note: performed RPCs:
+            /// - close index kv (daos_obj_close)
+            st.start("list 011 index kv get field location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
             daos_size_t size{index_kv.size(key)};
             std::vector<char> v((long) size);
             index_kv.get(key, &v[0], size);
+            st.stop();
             eckit::MemoryStream ms{&v[0], size};
 
             /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
@@ -235,6 +249,7 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
             visitor.visitDatum(field, key);
 
         }
+        st.stop();
 
     }
 }

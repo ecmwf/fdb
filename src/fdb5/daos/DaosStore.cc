@@ -40,7 +40,7 @@ DaosStore::DaosStore(const Schema& schema, const eckit::URI& uri, const Config& 
 
 eckit::URI DaosStore::uri() const {
 
-    return eckit::URI(type(), pool_);
+    return fdb5::DaosName(pool_, db_str_).URI();
     
 }
 
@@ -58,33 +58,35 @@ bool DaosStore::uriBelongs(const eckit::URI& uri) const {
 
 bool DaosStore::uriExists(const eckit::URI& uri) const {
 
-    /// @todo: revisit the name of this method. uriExists suggests this method can be used to check e.g. if a DAOS object pointed
-    //   to by an URI exists. However this is just meant to check if a Store container pointed to by a URI exists.
+    /// @todo: revisit the name of this method
+
     ASSERT(uri.scheme() == type());
     fdb5::DaosName n(uri);
     ASSERT(n.hasContName());
-    // ensure provided URI pointing to a Store container
     ASSERT(n.poolName() == pool_);
-    ASSERT(n.contName().rfind("store_", 0) == 0);
+    ASSERT(n.contName() == db_str_);
+    ASSERT(n.hasOID());
 
-    return fdb5::DaosName{pool_, n.contName()}.exists();
+    return n.exists();
 
 }
 
 std::vector<eckit::URI> DaosStore::storeUnitURIs() const {
 
-    fdb5::DaosSession s{};
-    fdb5::DaosPool& p = s.getPool(pool_);
-    std::vector<std::string> cont_labels = p.listContainers();
-
     std::vector<eckit::URI> store_unit_uris;
+
+    fdb5::DaosName db_cont{pool_, db_str_};
     
-    for (const auto& label : cont_labels) {
+    if (!db_cont.exists()) return store_unit_uris;
+    
+    for (const auto& oid : db_cont.listOIDs()) {
         
-        //if (label.rfind("store_" + db_str_ + "_", 0) == 0)
-        //if (label.rfind("store_" + db_str_, 0) == 0)
-        if (label.rfind(db_str_, 0) == 0)
-            store_unit_uris.push_back(fdb5::DaosName(pool_, label).URI());
+        if (oid.otype() != DAOS_OT_KV_HASHED && oid.otype() != DAOS_OT_ARRAY_BYTE)
+            throw eckit::SeriousBug("Found non-KV non-ByteArray objects in DB container " + db_cont.URI().asString());
+        
+        if (oid.otype() == DAOS_OT_KV_HASHED) continue;
+
+        store_unit_uris.push_back(fdb5::DaosArrayName(pool_, db_str_, oid).URI());
 
     }
 
@@ -96,12 +98,8 @@ std::set<eckit::URI> DaosStore::asStoreUnitURIs(const std::vector<eckit::URI>& u
 
     std::set<eckit::URI> res;
 
-    for (auto& uri : uris) {
-
-        fdb5::DaosName n{uri};
-        res.insert(fdb5::DaosName(n.poolName(), n.contName()).URI());
-
-    }
+    for (auto& uri : uris) 
+        res.insert(fdb5::DaosName(uri).URI());
 
     return res;
 
@@ -176,9 +174,15 @@ void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostr
     
     ASSERT(n.hasContName());
     ASSERT(n.poolName() == pool_);
-    if (n.hasOID()) NOTIMP;
+    ASSERT(n.contName() == db_str_);
 
-    logVerbose << "destroy container: ";
+    if (n.hasOID()) {
+        ASSERT(n.OID().otype() == DAOS_OT_ARRAY_BYTE);
+        logVerbose << "destroy array: ";
+    } else {
+        logVerbose << "destroy container: ";
+    }
+
     logAlways << n.asString() << std::endl;
     if (doit) n.destroy();
 

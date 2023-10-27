@@ -145,7 +145,11 @@ void DaosArray::create() {
 
 void DaosArray::destroy() {
 
-    NOTIMP;
+    open(); 
+
+    DAOS_CALL(daos_array_destroy(oh_, DAOS_TX_NONE, NULL));
+
+    close();
 
 }
 
