@@ -9,30 +9,6 @@ using namespace eckit::net;
 
 namespace {
 
-// static ClientID generateClientID() {
-
-//     static std::mutex m;
-//     static ClientID id = 0;
-
-//     std::lock_guard<std::mutex> lock(m);
-//     return ++id;
-// }
-// static DataLinkID generateDataLinkID() {
-
-//     static std::mutex m;
-//     static DataLinkID id = 0;
-
-//     std::lock_guard<std::mutex> lock(m);
-//     return ++id;
-// }
-// static HandlerID generateHandlerID() {
-
-//     static std::mutex m;
-//     static HandlerID id = 0;
-
-//     std::lock_guard<std::mutex> lock(m);
-//     return ++id;
-// }
 static uint32_t generateRequestID() {
 
     static std::mutex m;
@@ -123,30 +99,29 @@ void ClientConnectionRouter::dataWrite(Client& client, uint32_t requestId, const
     it->second.first->dataWrite(payload, payloadLength);
 }
 
-// std::future<FDBStats>& ClientConnectionRouter::archiveFuture(Client& client) {
-//     ClientConnection* conn;
-//     uint32_t id = createConnection(client, conn);
-
-//     return conn->archiveFuture();
-// }
-
 bool ClientConnectionRouter::handle(Message message, uint32_t requestID) {
+
     if (requestID != 0) {
         auto it = requests_.find(requestID);
         ASSERT(it != requests_.end());
 
         return it->second.second->handle(message, requestID);
     } else {
-        std::cout << "ClientConnectionRouter::handle [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
+        Log::error() << "ClientConnectionRouter::handle [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
         return true;
     }
 }
 bool ClientConnectionRouter::handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) {
 
-    auto it = requests_.find(requestID);
-    ASSERT(it != requests_.end());
-
-    return it->second.second->handle(message, requestID, endpoint, std::move(payload));
+    if (requestID != 0) {
+        auto it = requests_.find(requestID);
+        ASSERT(it != requests_.end());
+    
+        return it->second.second->handle(message, requestID, endpoint, std::move(payload));
+    } else {
+        Log::error() << "ClientConnectionRouter::handle [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
+        return true;
+    }
 }
 void ClientConnectionRouter::handleException(std::exception_ptr e) {
     // auto it = requests_.find(requestID);

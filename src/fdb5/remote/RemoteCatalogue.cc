@@ -25,7 +25,7 @@ namespace fdb5::remote {
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     CatalogueImpl(key, ControlIdentifiers(), config), // xxx what are control identifiers? Setting empty here...
     Client(eckit::net::Endpoint("localhost", 7001)), // xxx hardcoded endpoint
-    dbKey_(key), config_(config), schema_(nullptr),
+    config_(config), schema_(nullptr),
     maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200))
     {
         loadSchema();

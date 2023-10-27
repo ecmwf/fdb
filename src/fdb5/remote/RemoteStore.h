@@ -20,6 +20,7 @@
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/client/Client.h"
 
+
 namespace fdb5::remote {
 
 class Archiver;
@@ -32,7 +33,7 @@ class RemoteStore : public Store, public Client {
 
 public: // types
 
-    using StoredMessage = std::pair<remote::MessageHeader, eckit::Buffer>;
+    using StoredMessage = std::pair<Message, eckit::Buffer>;
     using MessageQueue = eckit::Queue<StoredMessage>;
 
 public: // methods
@@ -77,7 +78,7 @@ protected: // methods
 
 private: // methods
 
-    Key key() override { return dbKey_; }
+    const Key& key() const override { return dbKey_; }
 
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
@@ -96,20 +97,17 @@ private: // methods
 private: // members
 
     Key dbKey_;
+
     const Config& config_;
 
-    bool dirty_;
+    std::map<uint32_t, std::promise<std::unique_ptr<FieldLocation> > > locations_;
 
-    size_t maxArchiveBatchSize_;
     // @note This is a map of requestID:MessageQueue. At the point that a request is
     // complete, errored or otherwise killed, it needs to be removed from the map.
     // The shared_ptr allows this removal to be asynchronous with the actual task
     // cleaning up and returning to the client.
-
     std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
     MessageQueue retrieveMessageQueue_;
-
-    std::map<uint32_t, std::promise<std::unique_ptr<FieldLocation> > > locations_;
 
     Archiver& archiver_;
 

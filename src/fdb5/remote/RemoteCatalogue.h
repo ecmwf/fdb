@@ -71,7 +71,7 @@ private:
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) override;
     void handleException(std::exception_ptr e) override;
-    Key key() override { return dbKey_; } // xxx this is seperately declared by Client and CatalogueImpl
+    const Key& key() const override { return CatalogueImpl::key(); }
 
 
     // note: in common with remotestore
@@ -80,7 +80,6 @@ private:
 
 protected:
 
-    Key dbKey_;
     Config config_;
     ControlIdentifiers controlIdentifiers_;
 

@@ -27,28 +27,11 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// class Connection {
-// public:
-//     Connection(ClientConnection* clientConnection, uint32_t remoteID) : clientConnection_(clientConnection), remoteID_(remoteID) {}
-//     Connection(Connection& other) : clientConnection_(other.clientConnection_), remoteID_(other.remoteID_) {}
-    
-//     ClientConnection* clientConnection_;
-//     uint32_t remoteID_;
-// };
-
-// typedef eckit::net::Endpoint Connection;
-// typedef uint32_t ClientID;
-// typedef uint32_t DataLinkID;
-// typedef uint32_t HandlerID;
-// typedef uint32_t RequestID;
-
 class ClientConnectionRouter : eckit::NonCopyable {
 public:
 
     static ClientConnectionRouter& instance();
     RemoteStore& store(const eckit::URI& uri);
-
-// protected:
 
     uint32_t controlWriteCheckResponse(Client& client, Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
     uint32_t controlWrite(Client& client, Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
@@ -56,8 +39,6 @@ public:
 
     uint32_t dataWrite(Client& client, Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
     void dataWrite(Client& client, uint32_t requestId, const void* data, size_t length);
-
-//    std::future<FDBStats>& archiveFuture(Client& client);
 
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID);
@@ -80,7 +61,6 @@ private:
     // endpoint -> Store (one read store for each connection. Do not need to have one for each key)
     std::map<std::string, std::unique_ptr<RemoteStore> > readStores_;
 
-//    std::map<std::string, std::pair<std::future<FDBStats> > > archiveFutures_;
 };
 
 }

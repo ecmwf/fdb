@@ -343,13 +343,6 @@ void ClientConnection::listeningThreadLoop() {
             if (hdr.message == Message::Exit) {
                 return;
             }
-            if (hdr.message == Message::Error) {
-                std::stringstream ss;
-                ss << "ERROR: Server-side error. ABORTING";
-                Log::status() << ss.str() << std::endl;
-                Log::error() << "Retrieving... " << ss.str() << std::endl;
-                throw SeriousBug(ss.str(), Here());
-            }            
 
             bool handled = false;
 
@@ -360,7 +353,7 @@ void ClientConnection::listeningThreadLoop() {
                 Buffer payload(hdr.payloadSize);
                 dataRead(payload, hdr.payloadSize);
 
-                handled = ClientConnectionRouter::instance().handle(hdr.message, hdr.requestID, controlEndpoint_, std::move(payload));
+                handled = ClientConnectionRouter::instance().handle(hdr.message, hdr.requestID, dataEndpoint_, std::move(payload));
             }
 
             if (!handled) {

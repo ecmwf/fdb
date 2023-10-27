@@ -419,10 +419,6 @@ void RemoteHandler::handle() {
                     archive(hdr);
                     break;
 
-                // case Message::Store:
-                //     store(hdr);
-                //     break;
-
                 default: {
                     std::stringstream ss;
                     ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message)
