@@ -174,6 +174,31 @@ void ClientConnection::controlWriteCheckResponse(Message msg, uint32_t requestID
     ASSERT(tail == EndMarker);
 }
 
+void ClientConnection::controlReadResponse(remote::Message msg, uint32_t requestID, void* payload, uint32_t& payloadLength) {
+    
+    controlWrite(msg, requestID, nullptr, 0);
+
+    // Wait for the receipt acknowledgement
+
+    MessageHeader response;
+    controlRead(&response, sizeof(MessageHeader));
+
+    handleError(response);
+
+    ASSERT(response.marker == StartMarker);
+    ASSERT(response.version == CurrentVersion);
+    ASSERT(response.message == Message::Received);
+    ASSERT(response.requestID == requestID);
+    
+    ASSERT(response.payloadSize <= payloadLength);
+    payloadLength = response.payloadSize;
+    controlRead(payload, payloadLength);
+
+    eckit::FixedString<4> tail;
+    controlRead(&tail, sizeof(tail));
+    ASSERT(tail == EndMarker);
+}
+
 void ClientConnection::controlWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
     //std::cout << "ClientConnection::controlWrite " << this << std::endl;
 

@@ -37,6 +37,12 @@ public:
         return me;
     }
 
+    const Schema& add(const PathName& path, Schema* schema) {
+        ASSERT(schema);
+        schemas_[path] = std::unique_ptr<Schema>(schema);
+        return *schemas_[path];
+    }
+
     const Schema& get(const PathName& path) {
         std::lock_guard<std::mutex> lock(m_);
         auto it = schemas_.find(path);
@@ -174,6 +180,15 @@ const PathName& Config::schemaPath() const {
         initializeSchemaPath();
     }
     return schemaPath_;
+}
+
+void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema) {
+    ASSERT(schema);
+
+    SchemaRegistry::instance().add("masterSchema", schema);
+    schemaPath_=schemaPath;
+
+    schemaPathInitialised_ = true;
 }
 
 void Config::initializeSchemaPath() const {

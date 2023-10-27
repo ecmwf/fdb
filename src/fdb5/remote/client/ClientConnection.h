@@ -55,11 +55,13 @@ public: // methods
     virtual ~ClientConnection();
 
     void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void controlReadResponse(remote::Message msg, uint32_t requestID, void* payload, uint32_t& payloadLength);
     void controlWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void dataWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
 
     void controlRead(void* data, size_t length);
     void controlWrite(const void* data, size_t length);
+
     void dataWrite(const void* data, size_t length);
     void dataRead(void* data, size_t length);
 

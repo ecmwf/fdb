@@ -47,6 +47,7 @@ enum class Message : uint16_t {
     Exit,
     Startup,
     Error,
+    MasterSchema,
 
     // API calls to forward
     Flush = 100,

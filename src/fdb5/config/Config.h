@@ -47,6 +47,8 @@ public:  // methods
     /// then do the expansion in here.
     eckit::PathName expandPath(const std::string& path) const;
 
+
+    void overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
     const eckit::PathName& schemaPath() const;
     eckit::PathName configPath() const;
 
