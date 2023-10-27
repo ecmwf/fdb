@@ -87,6 +87,8 @@ private: // members
     bool dolist_ = false;
     eckit::Queue<ListElement>* listqueue_;
 
+    bool doinspect_ = false;
+    eckit::Queue<ListElement>* inspectqueue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

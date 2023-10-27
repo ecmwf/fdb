@@ -411,8 +411,7 @@ void CatalogueHandler::list(const MessageHeader& hdr) {
 }
 
 void CatalogueHandler::inspect(const MessageHeader& hdr) {
-    // forwardApiCall<InspectHelper>(hdr);
-    NOTIMP;
+    forwardApiCall<InspectHelper>(hdr);
 }
 
 void CatalogueHandler::schema(const MessageHeader& hdr) {

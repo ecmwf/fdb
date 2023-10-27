@@ -34,7 +34,26 @@ void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
     archiver_->archive(key, data, length);
 }
 
-ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {NOTIMP;}
+ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
+    doinspect_ = true;
+
+    // worker that does nothing but exposes the AsyncIterator's queue.
+    auto async_worker = [this] (Queue<ListElement>& queue) {
+        inspectqueue_ = &queue;
+        while(!queue.closed()) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    };
+
+    // construct iterator before contacting remote, because we want to point to the asynciterator's queue
+    auto iter = new APIAsyncIterator<ListElement>(async_worker); 
+
+    auto req = FDBToolRequest(request);
+    Buffer encodeBuffer(4096);
+    MemoryStream s(encodeBuffer);
+    s << req;
+    controlWriteCheckResponse(Message::Inspect, encodeBuffer, s.position());
+
+    return APIIterator<ListElement>(iter);
+}
 
 
 ListIterator RemoteFDB::list(const FDBToolRequest& request) {
@@ -54,7 +73,7 @@ ListIterator RemoteFDB::list(const FDBToolRequest& request) {
     MemoryStream s(encodeBuffer);
     s << request;
 
-    controlWriteCheckResponse(fdb5::remote::Message::List, encodeBuffer, s.position());
+    controlWriteCheckResponse(Message::List, encodeBuffer, s.position());
     return APIIterator<ListElement>(iter);
 }
 
@@ -91,7 +110,8 @@ FDBStats RemoteFDB::stats() const {NOTIMP;}
 
 bool RemoteFDB::handle(remote::Message message, uint32_t requestID){
     if (message == Message::Complete) {
-        listqueue_->close();
+        if (dolist_) listqueue_->close();
+        if (doinspect_) inspectqueue_->close();
         return true;
     }
     return false;
@@ -105,11 +125,13 @@ bool RemoteFDB::handle(remote::Message message, uint32_t requestID, eckit::net::
         if (dolist_){
             ListElement elem(s);
             listqueue_->push(elem);
+            return true;
         }
-        else {
-            NOTIMP;
+        else if (doinspect_){
+            ListElement elem(s);
+            inspectqueue_->push(elem);
+            return true;
         }
-        return true;
     }
     return false;
 }
