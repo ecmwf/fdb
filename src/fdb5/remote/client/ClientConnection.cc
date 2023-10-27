@@ -378,7 +378,7 @@ void ClientConnection::listeningThreadLoop() {
                 Buffer payload(hdr.payloadSize);
                 dataRead(payload, hdr.payloadSize);
 
-                handled = ClientConnectionRouter::instance().handle(hdr.message, hdr.requestID, dataEndpoint_, std::move(payload));
+                handled = ClientConnectionRouter::instance().handle(hdr.message, hdr.requestID, controlEndpoint_, std::move(payload));
             }
 
             if (!handled) {
