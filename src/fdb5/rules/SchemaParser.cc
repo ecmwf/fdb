@@ -28,7 +28,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::string SchemaParser::parseIdent(bool emptyOK) {
+std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
     std::string s;
     for (;;) {
         char c = peek();
@@ -37,16 +37,22 @@ std::string SchemaParser::parseIdent(bool emptyOK) {
         case '/':
         case '=':
         case ',':
-        case '-':
         case ';':
         case ':':
         case '[':
         case ']':
         case '?':
             if (s.empty() && !emptyOK) {
-                throw StreamParser::Error("Syntax error (possible trailing comma)", line_ + 1);
+                throw StreamParser::Error("Syntax error: found '" + std::to_string(c) + "'", line_ + 1);
             }
             return s;
+        case '-':
+            if (s.empty() && !emptyOK) {
+                throw StreamParser::Error("Syntax error: found '-'", line_ + 1);
+            }
+            if (!value) {
+                return s;
+            }
 
         default:
             consume(c);
@@ -59,20 +65,20 @@ std::string SchemaParser::parseIdent(bool emptyOK) {
 Predicate *SchemaParser::parsePredicate(std::map<std::string, std::string> &types) {
 
     std::set<std::string> values;
-    std::string k = parseIdent();
+    std::string k = parseIdent(false, false);
 
     char c = peek();
 
     if (c == ':') {
         consume(c);
         ASSERT(types.find(k) == types.end());
-        types[k] = parseIdent();
+        types[k] = parseIdent(false, false);
         c = peek();
     }
 
     if (c == '?') {
         consume(c);
-        return new Predicate(k, new MatchOptional(parseIdent(true)));
+        return new Predicate(k, new MatchOptional(parseIdent(true, true)));
     }
 
     if (c == '-') {
@@ -81,17 +87,17 @@ Predicate *SchemaParser::parsePredicate(std::map<std::string, std::string> &type
             // Register ignore type
             types[k] = "Ignore";
         }
-        return new Predicate(k, new MatchHidden(parseIdent(true)));
+        return new Predicate(k, new MatchHidden(parseIdent(true, true)));
     }
 
     if (c != ',' && c != '[' && c != ']') {
         consume("=");
 
-        values.insert(parseIdent());
+        values.insert(parseIdent(true, false));
 
         while ((c = peek()) == '/') {
             consume(c);
-            values.insert(parseIdent());
+            values.insert(parseIdent(true, false));
         }
     }
 
@@ -112,12 +118,12 @@ Predicate *SchemaParser::parsePredicate(std::map<std::string, std::string> &type
 
 void SchemaParser::parseTypes(std::map<std::string, std::string> &types) {
     for (;;) {
-        std::string name = parseIdent(true);
+        std::string name = parseIdent(false, true);
         if (name.empty()) {
             break;
         }
         consume(':');
-        std::string type = parseIdent();
+        std::string type = parseIdent(false, false);
         consume(';');
         ASSERT(types.find(name) == types.end());
         types[name] = type;
