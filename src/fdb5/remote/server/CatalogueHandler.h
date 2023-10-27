@@ -12,6 +12,7 @@
 #define fdb5_remote_CatalogueHandler_H
 
 #include "fdb5/remote/server/ServerConnection.h"
+#include "fdb5/api/FDB.h"
 
 
 namespace fdb5::remote {
@@ -41,13 +42,14 @@ private:  // methods
     size_t archiveThreadLoop();
 
     // API functionality
-    // template <typename HelperClass>
-    // void forwardApiCall(const MessageHeader& hdr);
+    template <typename HelperClass>
+    void forwardApiCall(const MessageHeader& hdr);
 
 private:  // member
 
    std::map<Key, std::unique_ptr<CatalogueWriter>> catalogues_;
 //    std::unique_ptr<FDBCatalogueBase> catalogue_;
+    FDB fdb_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

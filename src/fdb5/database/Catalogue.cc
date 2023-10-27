@@ -91,7 +91,7 @@ std::unique_ptr<CatalogueReader> CatalogueReaderFactory::build(const Key& dbKey,
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     auto j = builders_.find(nameLowercase);
 
-    eckit::Log::debug() << "Looking for CatalogueReaderBuilder [" << nameLowercase << "]" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Looking for CatalogueReaderBuilder [" << nameLowercase << "]" << std::endl;
 
     if (j == builders_.end()) {
         eckit::Log::error() << "No CatalogueReaderBuilder for [" << nameLowercase << "]" << std::endl;
@@ -111,7 +111,7 @@ std::unique_ptr<CatalogueReader> CatalogueReaderFactory::build(const eckit::URI&
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     auto j = builders_.find(nameLowercase);
 
-    eckit::Log::debug() << "Looking for CatalogueReaderBuilder [" << nameLowercase << "]" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "Looking for CatalogueReaderBuilder [" << nameLowercase << "]" << std::endl;
 
     if (j == builders_.end()) {
         eckit::Log::error() << "No CatalogueReaderBuilder for [" << nameLowercase << "]" << std::endl;

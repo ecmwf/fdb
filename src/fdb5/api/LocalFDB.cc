@@ -136,7 +136,7 @@ void LocalFDB::print(std::ostream &s) const {
 
 
 static FDBBuilder<LocalFDB> localFdbBuilder("local");
-
+static FDBBuilder<LocalFDB> builder("catalogue"); // Enable type=catalogue to build localFDB (serverside).
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5

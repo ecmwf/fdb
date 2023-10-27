@@ -69,6 +69,86 @@ void CatalogueHandler::initialiseConnections() {
     Log::info() << " but... todo... " << std::endl;
 }
 
+
+// API forwarding logic, adapted from original remoteHandler
+// Used for Inspect and List
+// ***************************************************************************************
+// All of the standard API functions behave in roughly the same manner. The Helper Classes
+// described here capture the manner in which their behaviours differ.
+//
+// See forwardApiCall() for how these helpers are used to forward an API call using a
+// worker thread.
+// ***************************************************************************************
+template <typename ValueType>
+struct BaseHelper {
+    virtual size_t encodeBufferSize(const ValueType&) const { return 4096; }
+    void extraDecode(eckit::Stream&) {}
+    ValueType apiCall(FDB&, const FDBToolRequest&) const { NOTIMP; }
+
+    struct Encoded {
+        size_t position;
+        eckit::Buffer buf;
+    };
+
+    Encoded encode(const ValueType& elem, const CatalogueHandler&) const {
+        eckit::Buffer encodeBuffer(encodeBufferSize(elem));
+        MemoryStream s(encodeBuffer);
+        s << elem;
+        return {s.position(), std::move(encodeBuffer)};
+    }
+};
+
+struct ListHelper : public BaseHelper<ListElement> {
+    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.list(request);
+    }
+};
+
+struct InspectHelper : public BaseHelper<ListElement> {
+    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.inspect(request.request());
+    }
+};
+
+template <typename HelperClass>
+void CatalogueHandler::forwardApiCall(const MessageHeader& hdr) {
+    HelperClass helper;
+
+    Buffer payload(receivePayload(hdr, controlSocket_));
+    MemoryStream s(payload);
+
+    FDBToolRequest request(s);
+    helper.extraDecode(s);
+
+    // Construct worker thread to feed responses back to client
+
+    ASSERT(workerThreads_.find(hdr.requestID) == workerThreads_.end());
+
+    workerThreads_.emplace(
+        hdr.requestID, std::async(std::launch::async, [request, hdr, helper, this]() {
+
+            try {
+                auto iterator = helper.apiCall(fdb_, request);
+                typename decltype(iterator)::value_type elem;
+                while (iterator.next(elem)) {
+                    auto encoded(helper.encode(elem, *this));
+                    dataWrite(Message::Blob, hdr.requestID, encoded.buf, encoded.position);
+                }
+                dataWrite(Message::Complete, hdr.requestID);
+            }
+            catch (std::exception& e) {
+                // n.b. more general than eckit::Exception
+                std::string what(e.what());
+                dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+            }
+            catch (...) {
+                // We really don't want to std::terminate the thread
+                std::string what("Caught unexpected, unknown exception in worker");
+                dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+            }
+        }));
+}
+
 void CatalogueHandler::handle() {
     initialiseConnections();
 
@@ -96,7 +176,6 @@ void CatalogueHandler::handle() {
                     return;
 
                 case Message::List:
-                    // forwardApiCall<ListHelper>(hdr);
                     list(hdr);
                     break;
 
@@ -125,7 +204,6 @@ void CatalogueHandler::handle() {
                     break;
 
                 case Message::Inspect:
-                    // forwardApiCall<InspectHelper>(hdr);
                     inspect(hdr);
                     break;
 
@@ -338,10 +416,11 @@ size_t CatalogueHandler::archiveThreadLoop() {
 }
 
 void CatalogueHandler::list(const MessageHeader& hdr) {
-    NOTIMP;
+    forwardApiCall<ListHelper>(hdr);
 }
 
 void CatalogueHandler::inspect(const MessageHeader& hdr) {
+    // forwardApiCall<InspectHelper>(hdr);
     NOTIMP;
 }
 

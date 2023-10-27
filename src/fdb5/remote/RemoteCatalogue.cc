@@ -201,7 +201,7 @@ void RemoteCatalogue::loadSchema() {
     // NB we're at the db level, so get the db schema. We will want to get the master schema beforehand.
     // (outside of the catalogue) 
 
-    eckit::Log::debug<LibFdb5>() << "RemoteCatalogueWriter::loadSchema()" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "RemoteCatalogue::loadSchema()" << std::endl;
 
     // destroy previous schema if it exists
     schema_.reset(nullptr);
@@ -213,7 +213,7 @@ void RemoteCatalogue::loadSchema() {
     keyStream << dbKey_;
     
     uint32_t id = controlWriteCheckResponse(Message::Schema, keyBuffer, keyStream.position());
-    eckit::Log::debug<LibFdb5>() << "RemoteCatalogueWriter::loadSchema() received id: " << id << std::endl;
+    eckit::Log::debug<LibFdb5>() << "RemoteCatalogue::loadSchema() received id: " << id << std::endl;
 
     // Should block - Use control connection.
     // XXX This is a temporary work around while control read is being reimplemented.
@@ -243,6 +243,17 @@ void RemoteCatalogue::handleException(std::exception_ptr e) {
     NOTIMP;
 }
 
+// Catalogue Reader
+// DbStats RemoteCatalogue::stats() const {
+//     NOTIMP;
+// }
+// bool RemoteCatalogue::axis(const std::string& keyword, eckit::StringSet& s) const {
+//     NOTIMP;
+// }
+// bool RemoteCatalogue::retrieve(const InspectionKey& key, Field& field) const{
+//     NOTIMP;
+// }
+
 void RemoteCatalogue::overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) {NOTIMP;}
 void RemoteCatalogue::index(const InspectionKey& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {NOTIMP;}
 void RemoteCatalogue::reconsolidate(){NOTIMP;}
@@ -258,8 +269,12 @@ std::vector<fdb5::Index> RemoteCatalogue::indexes(bool sorted) const {NOTIMP;}
 void RemoteCatalogue::maskIndexEntry(const Index& index) const {NOTIMP;}
 void RemoteCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const {NOTIMP;}
 void RemoteCatalogue::print( std::ostream &out ) const {NOTIMP;}
-std::string RemoteCatalogue::type() const {NOTIMP;}
-bool RemoteCatalogue::open() {NOTIMP;}
+std::string RemoteCatalogue::type() const {
+    NOTIMP;
+}
+bool RemoteCatalogue::open() {
+    NOTIMP;
+}
 
 static CatalogueWriterBuilder<RemoteCatalogue> builder("remote");
 } // namespace fdb5::remote

@@ -31,6 +31,11 @@ public:
     void index(const InspectionKey& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override;
     void reconsolidate() override;
 
+    //From CatalogueReader
+    // DbStats stats() const override;
+    // bool axis(const std::string& keyword, eckit::StringSet& s) const override;
+    // bool retrieve(const InspectionKey& key, Field& field) const override;
+
     // From Catalogue
     bool selectIndex(const Key& idxKey) override;
     const Key currentIndexKey() override;
@@ -58,10 +63,8 @@ public:
     void checkUID() const override;
     eckit::URI uri() const override;
 
-
 protected:
 
-    Schema getSchema();
     void loadSchema() override;
 
 private:

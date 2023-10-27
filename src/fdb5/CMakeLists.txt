@@ -210,8 +210,8 @@ list( APPEND fdb5_srcs
 
 if(HAVE_FDB_REMOTE)
     list( APPEND fdb5_srcs 
-        # api/RemoteFDB.cc
-        # api/RemoteFDB.h
+        api/RemoteFDB.cc
+        api/RemoteFDB.h
         remote/RemoteStore.cc
         remote/RemoteStore.h
         remote/RemoteCatalogue.h
