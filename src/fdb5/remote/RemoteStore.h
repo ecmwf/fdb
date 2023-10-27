@@ -109,8 +109,8 @@ private: // members
     std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
     MessageQueue retrieveMessageQueue_;
 
-    Archiver& archiver_;
-
+    // not owning
+    Archiver* archiver_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

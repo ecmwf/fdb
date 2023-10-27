@@ -59,7 +59,7 @@ public: // types
 
 public: // methods
 
-    static Archiver& get(const eckit::net::Endpoint& endpoint);
+    static Archiver* get(const eckit::net::Endpoint& endpoint);
 
     bool valid() { return archiveFuture_.valid(); }
     bool dirty() { return dirty_; }
@@ -87,7 +87,7 @@ private: // members
 
 };
 
-Archiver& Archiver::get(const eckit::net::Endpoint& endpoint) {
+Archiver* Archiver::get(const eckit::net::Endpoint& endpoint) {
 
     static std::map<const std::string, std::unique_ptr<Archiver> > archivers_;
 
@@ -97,7 +97,7 @@ Archiver& Archiver::get(const eckit::net::Endpoint& endpoint) {
         it = archivers_.emplace(endpoint.hostport(), new Archiver()).first;
     }
     ASSERT(it != archivers_.end());
-    return *(it->second);
+    return it->second.get();
 }
 
 void Archiver::start() {
@@ -328,15 +328,13 @@ private: // members
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
     Client(eckit::net::Endpoint("localhost", 7000)),
     dbKey_(dbKey), config_(config),
-    retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
-    archiver_(Archiver::get(controlEndpoint())) {
+    retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)) {
 }
 
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     Client(eckit::net::Endpoint(uri.hostport())),
     dbKey_(Key()), config_(config),
-    retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
-    archiver_(Archiver::get(controlEndpoint())) {
+    retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)) {
 
     ASSERT(uri.scheme() == "fdb");
 }
@@ -345,12 +343,12 @@ RemoteStore::~RemoteStore() {
     // If we have launched a thread with an async and we manage to get here, this is
     // an error. n.b. if we don't do something, we will block in the destructor
     // of std::future.
-    if (archiver_.valid()) {
+    if (archiver_ && archiver_->valid()) {
         Log::error() << "Attempting to destruct DecoupledFDB with active archive thread" << std::endl;
         eckit::Main::instance().terminate();
     }
 
-    ASSERT(!archiver_.dirty());
+    ASSERT(!archiver_ || !archiver_->dirty());
 //    disconnect();
 }
 
@@ -370,12 +368,16 @@ std::future<std::unique_ptr<FieldLocation> > RemoteStore::archive(const Key& key
 
     // if there is no archiving thread active, then start one.
     // n.b. reset the archiveQueue_ after a potential flush() cycle.
-    archiver_.start();
+    if (!archiver_) {
+        archiver_ = Archiver::get(controlEndpoint());
+    }
+    ASSERT(archiver_);
+    archiver_->start();
 
-    ASSERT(archiver_.valid());
+    ASSERT(archiver_->valid());
 
     uint32_t id = controlWriteCheckResponse(Message::Archive, nullptr, 0);
-    archiver_.emplace(id, this, key, data, length);
+    archiver_->emplace(id, this, key, data, length);
 
     std::promise<std::unique_ptr<FieldLocation> > loc;
     auto futureLocation = loc.get_future();
@@ -396,8 +398,8 @@ void RemoteStore::flush() {
     size_t numArchive = 0;
 
     // Flush only does anything if there is an ongoing archive();
-    if (archiver_.valid()) {
-        archiver_.flush(this);
+    if (archiver_->valid()) {
+        archiver_->flush(this);
 //        internalStats_ += stats;
     }
 
@@ -496,7 +498,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::net::Endpoi
             } else {
                 auto it = locations_.find(requestID);
                 if (it != locations_.end()) {
-                    archiver_.error(std::move(payload), endpoint);
+                    archiver_->error(std::move(payload), endpoint);
                 } else {
                     retrieveMessageQueue_.emplace(std::make_pair(message, std::move(payload)));
                 }
@@ -513,9 +515,9 @@ void RemoteStore::handleException(std::exception_ptr e) {
 
 void RemoteStore::flush(FDBStats& internalStats) {
     // Flush only does anything if there is an ongoing archive();
-    if (! archiver_.valid()) return;
+    if (! archiver_->valid()) return;
 
-    internalStats += archiver_.flush(this);
+    internalStats += archiver_->flush(this);
 }
 
 
