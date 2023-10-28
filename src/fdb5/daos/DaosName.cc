@@ -142,12 +142,27 @@ void DaosNameBase::destroy() const {
 
     fdb5::DaosContainer& c = p.getContainer(cont_.value());
 
-    if (oid_->otype() != DAOS_OT_KV_HASHED) NOTIMP;
+    /// @todo: improve this code
 
-    try {
-        fdb5::DaosKeyValue kv{c, oid_.value()};
-        kv.destroy();
-    } catch (fdb5::DaosEntityNotFoundException& e) {}
+    if (oid_->otype() == DAOS_OT_KV_HASHED) {
+
+        try {
+            fdb5::DaosKeyValue kv{c, oid_.value()};
+            kv.destroy();
+        } catch (fdb5::DaosEntityNotFoundException& e) {}
+
+    } else if (oid_->otype() == DAOS_OT_ARRAY || oid_->otype() == DAOS_OT_ARRAY_BYTE) {
+
+        try {
+            fdb5::DaosArray a{c, oid_.value()};
+            a.destroy();
+        } catch (fdb5::DaosEntityNotFoundException& e) {}
+
+    } else {
+
+        NOTIMP;
+
+    }
 
 }
 

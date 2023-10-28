@@ -78,21 +78,31 @@ void DaosIOStats::report(std::ostream& s) const {
     size_t numOps = 0;
     double sumTimesSquared = 0;
 
+    eckit::Timing t_daos;
+    size_t numOps_daos = 0;
+    double sumTimesSquared_daos = 0;
+
     for (const auto& x : md_stats_) {
 
         reportCount(s, x.first, x.second.numOps);
         reportTimes(s, x.first, x.second.numOps, x.second.timing, x.second.sumTimesSquared);
 
-        if (x.first.rfind("daos_", 0) == 0) continue;
         if (x.first.rfind("misc ", 0) == 0) continue;
 
-        t += x.second.timing;
-        numOps += x.second.numOps;
-        sumTimesSquared += x.second.sumTimesSquared;
+        if (x.first.rfind("daos_", 0) == 0) {
+            t_daos += x.second.timing;
+            numOps_daos += x.second.numOps;
+            sumTimesSquared_daos += x.second.sumTimesSquared;
+        } else {
+            t += x.second.timing;
+            numOps += x.second.numOps;
+            sumTimesSquared += x.second.sumTimesSquared;
+        }
    
     }
 
-    reportTimes(s, "total DAOS IO time", numOps, t, sumTimesSquared);
+    reportTimes(s, "total DAOS API IO time", numOps_daos, t_daos, sumTimesSquared_daos);
+    reportTimes(s, "total profiled FDB/DAOS IO time", numOps, t, sumTimesSquared);
 
 }
 

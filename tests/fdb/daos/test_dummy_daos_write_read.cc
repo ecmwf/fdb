@@ -352,6 +352,16 @@ CASE( "dummy_daos_write_then_read" ) {
 
     daos_obj_close(oh_kv, NULL);
     EXPECT(rc == 0);
+    
+    rc = daos_array_open(coh, oid, DAOS_TX_NONE, DAOS_OO_RW, &cell_size, &csize, &oh, NULL);
+    EXPECT(rc == 0);
+
+    rc = daos_array_destroy(oh, DAOS_TX_NONE, NULL);
+    EXPECT(rc == 0);
+    EXPECT_NOT(dummy_daos_get_handle_path(oh).exists());
+
+    rc = daos_array_close(oh, NULL);
+    EXPECT(rc == 0);
 
     rc = daos_cont_close(coh, NULL);
     EXPECT(rc == 0);
