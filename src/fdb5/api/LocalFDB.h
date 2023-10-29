@@ -61,14 +61,16 @@ public: // methods
 
     void flush() override;
 
-private: // methods
-
-    void print(std::ostream& s) const override;
+protected: // methods
 
     template <typename VisitorType, typename ... Ts>
     APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts ... args);
 
-private: // members
+private: // methods
+
+    void print(std::ostream& s) const override;
+
+protected: // members
 
     std::string home_;
 

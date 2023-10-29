@@ -210,12 +210,16 @@ list( APPEND fdb5_srcs
 
 if(HAVE_FDB_REMOTE)
     list( APPEND fdb5_srcs 
+        api/ClientFDB.cc
+        api/ClientFDB.h
         api/RemoteFDB.cc
         api/RemoteFDB.h
         remote/RemoteStore.cc
         remote/RemoteStore.h
         remote/RemoteCatalogue.h
         remote/RemoteCatalogue.cc
+        # remote/RemoteEngine.h
+        # remote/RemoteEngine.cc
 
         remote/client/Client.h
         remote/client/Client.cc
@@ -235,17 +239,10 @@ if(HAVE_FDB_REMOTE)
         remote/RemoteFieldLocation.cc
         remote/Messages.h
         remote/Messages.cc
-        # remote/Handler.h
-        # remote/Handler.cc
         remote/AvailablePortList.cc
         remote/AvailablePortList.h
         remote/FdbServer.h
         remote/FdbServer.cc
-
-        # remote/StoreHandler.h
-        # remote/StoreHandler.cc
-        # remote/DecoupledHandler.h
-        # remote/DecoupledHandler.cc
     )
 endif()
 

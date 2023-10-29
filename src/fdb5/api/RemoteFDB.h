@@ -14,16 +14,16 @@
  */
 
 /// @author Simon Smart
+/// @author Emanuele Danovaro
+/// @author Chris Bradley
 /// @date   Mar 2018
 
-#ifndef fdb5_remote_RemoteFDB_H
-#define fdb5_remote_RemoteFDB_H
+#pragma once
 
 #include <future>
 #include <thread>
 
-#include "fdb5/api/FDB.h"
-#include "fdb5/api/FDBFactory.h"
+#include "fdb5/api/LocalFDB.h"
 #include "fdb5/remote/client/Client.h"
 
 namespace fdb5 {
@@ -31,40 +31,45 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 class Archiver;
 
-class RemoteFDB : public FDBBase, public remote::Client {
+class RemoteFDB : public LocalFDB, public remote::Client {
 
 public: // types
 
+//    using StoredMessage = std::pair<remote::Message, eckit::Buffer>;
+    using MessageQueue = eckit::Queue<eckit::Buffer>;
+
 public: // method
 
-    using FDBBase::stats;
-
     RemoteFDB(const eckit::Configuration& config, const std::string& name);
-
-    /// Archive writes data into aggregation buffer
-    void archive(const Key& key, const void* data, size_t length) override;
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
     ListIterator list(const FDBToolRequest& request) override;
 
-    DumpIterator dump(const FDBToolRequest& request, bool simple) override;
+    DumpIterator dump(const FDBToolRequest& request, bool simple) override { NOTIMP; }
 
-    StatusIterator status(const FDBToolRequest& request) override;
+    StatusIterator status(const FDBToolRequest& request) override { NOTIMP; }
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
+    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override { NOTIMP; }
 
-    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
+    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override { NOTIMP; }
 
-    StatsIterator stats(const FDBToolRequest& request) override;
+    StatsIterator stats(const FDBToolRequest& request) override { NOTIMP; }
 
     ControlIterator control(const FDBToolRequest& request,
                             ControlAction action,
-                            ControlIdentifiers identifiers) override;
+                            ControlIdentifiers identifiers) override { NOTIMP; }
 
-    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override;
+    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
-    void flush() override;
+private: // methods
+
+    template <typename HelperClass>
+    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType>;
+
+    virtual void print(std::ostream& s) const override;
+
+    virtual FDBStats stats() const override { NOTIMP; }
 
     // Client
 
@@ -74,26 +79,20 @@ public: // method
 
     const Key& key() const override;
 
-private: // methods
-
-    virtual void print(std::ostream& s) const override;
-
-    virtual FDBStats stats() const override;
-
 private: // members
 
     std::unique_ptr<Archiver> archiver_;
+    std::vector<eckit::net::Endpoint> stores_;
     eckit::net::Endpoint storeEndpoint_;
 
-    bool dolist_ = false;
-    eckit::Queue<ListElement>* listqueue_;
-
-    bool doinspect_ = false;
-    eckit::Queue<ListElement>* inspectqueue_;
+    // Where do we put received messages
+    // @note This is a map of requestID:MessageQueue. At the point that a request is
+    // complete, errored or otherwise killed, it needs to be removed from the map.
+    // The shared_ptr allows this removal to be asynchronous with the actual task
+    // cleaning up and returning to the client.
+    std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace fdb5
-
-#endif // fdb5_remote_RemoteFDB_H

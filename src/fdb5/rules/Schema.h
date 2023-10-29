@@ -25,6 +25,7 @@
 #include "eckit/serialisation/Streamable.h"
 #include "eckit/serialisation/Reanimator.h"
 
+#include "fdb5/config/Config.h"
 #include "fdb5/types/TypesRegistry.h"
 
 namespace metkit { class MarsRequest; }
@@ -96,6 +97,8 @@ private: // members
 
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<Schema> reanimator_;
+
+    friend void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
 
     TypesRegistry registry_;
     std::vector<Rule *>  rules_;

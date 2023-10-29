@@ -23,7 +23,7 @@
 
 namespace fdb5::remote {
 
-class Archiver;
+class RemoteStoreArchiver;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -33,7 +33,7 @@ class RemoteStore : public Store, public Client {
 
 public: // types
 
-    using StoredMessage = std::pair<Message, eckit::Buffer>;
+    using StoredMessage = std::pair<Message, eckit::Buffer >;
     using MessageQueue = eckit::Queue<StoredMessage>;
 
 public: // methods
@@ -110,7 +110,7 @@ private: // members
     MessageQueue retrieveMessageQueue_;
 
     // not owning
-    Archiver* archiver_;
+    RemoteStoreArchiver* archiver_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

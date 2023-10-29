@@ -1,3 +1,6 @@
+#include <cstdlib>
+#include <ctime>
+
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -5,147 +8,247 @@
 
 #include "fdb5/api/RemoteFDB.h"
 #include "fdb5/database/Archiver.h"
+#include "fdb5/database/Inspector.h"
 #include "fdb5/LibFdb5.h"
 
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
-#include <chrono> // xxx debug / development
-#include <thread> // xxx debug / development
-
-
 using namespace fdb5::remote;
 using namespace eckit;
-namespace fdb5 {
 
-// TODO: Contact Catalogue to get parent schema.
+namespace {
 
-RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name):
-    FDBBase(config, name),
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))) {
+template <typename T, fdb5::remote::Message msgID>
+struct BaseAPIHelper {
 
-    uint32_t payloadLength = 102400;
-    eckit::Buffer buf(payloadLength);
+    typedef T ValueType;
 
-    ClientConnectionRouter::instance().controlReadResponse(*this, Message::MasterSchema, buf.data(), payloadLength);
-    MemoryStream s(buf);
-    storeEndpoint_ = eckit::net::Endpoint(s);
-    fdb5::Schema* schema = eckit::Reanimator<fdb5::Schema>::reanimate(s);
-    config_.overrideSchema("masterSchema", schema);
-    config_.set("storeHost", storeEndpoint_.host());
-    config_.set("storePort", storeEndpoint_.port());
+    static size_t bufferSize() { return 4096; }
+    static size_t queueSize() { return 100; }
+    static fdb5::remote::Message message() { return msgID; }
+
+    void encodeExtra(eckit::Stream& s) const {}
+    static ValueType valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) { return ValueType(s); }
+};
+
+using ListHelper = BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List>;
+
+//using InspectHelper = BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::Inspect>;
+
+struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::Inspect> {
+
+//     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
+//         fdb5::ListElement elem(s);
+//         return elem;
+
+// //        return ListElement(elem.key(), RemoteFieldLocation(fdb, elem.location()).make_shared(), elem.timestamp());
+//     }
+};
 }
 
-// archive -- same as localFDB. Archiver will build a RemoteCatalogueWriter and RemoteStore.
-// currently RemoteCatalogueWriter is selected by setting `engine` to remote.
-void RemoteFDB::archive(const Key& key, const void* data, size_t length) {
-    if (!archiver_) {
-        eckit::Log::debug<LibFdb5>() << *this << ": Constructing new archiver" << std::endl;
-        archiver_.reset(new Archiver(config_));
+namespace fdb5 {
+
+RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name):
+    LocalFDB(config, name),
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))) {
+
+    eckit::Buffer buf = controlWriteReadResponse(remote::Message::Schema);
+    eckit::MemoryStream s(buf);
+    size_t numStores;
+    s >> numStores;
+    for (size_t i=0; i<numStores; i++) {
+        stores_.push_back(eckit::net::Endpoint(s));
     }
 
-    archiver_->archive(key, data, length);
+    std::srand(std::time(nullptr));
+    eckit::net::Endpoint storeEndpoint = stores_.at(std::rand() % stores_.size());
+
+    fdb5::Schema* schema = eckit::Reanimator<fdb5::Schema>::reanimate(s);
+
+    // eckit::Log::debug<LibFdb5>() << *this << " - Received Store endpoint: " << storeEndpoint_ << " and master schema: " << std::endl;
+    // schema->dump(eckit::Log::debug<LibFdb5>());
+    
+    config_.overrideSchema(endpoint_.hostport()+"/schema", schema);
+    config_.set("storeHost", storeEndpoint.host());
+    config_.set("storePort", storeEndpoint.port());
+}
+
+// -----------------------------------------------------------------------------------------------------
+
+// forwardApiCall captures the asynchronous behaviour:
+//
+// i) Set up a Queue to receive the messages as they come in
+// ii) Encode the request+arguments and send them to the server
+// iii) Return an AsyncIterator that pulls messages off the queue, and returns them to the caller.
+
+
+template <typename HelperClass>
+auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& request) -> APIIterator<typename HelperClass::ValueType> {
+
+    using ValueType = typename HelperClass::ValueType;
+    using IteratorType = APIIterator<ValueType>;
+    using AsyncIterator = APIAsyncIterator<ValueType>;
+
+    // Ensure we have an entry in the message queue before we trigger anything that
+    // will result in return messages
+
+    uint32_t id = generateRequestID();
+    auto entry = messageQueues_.emplace(id, std::make_shared<MessageQueue>(HelperClass::queueSize()));
+    ASSERT(entry.second);
+    std::shared_ptr<MessageQueue> messageQueue(entry.first->second);
+
+    // Encode the request and send it to the server
+
+    Buffer encodeBuffer(HelperClass::bufferSize());
+    MemoryStream s(encodeBuffer);
+    s << request;
+    helper.encodeExtra(s);
+
+    controlWriteCheckResponse(HelperClass::message(), encodeBuffer, s.position(), id);
+
+    // Return an AsyncIterator to allow the messages to be retrieved in the API
+
+    RemoteFDB* remoteFDB = this;
+    return IteratorType(
+        // n.b. Don't worry about catching exceptions in lambda, as
+        // this is handled in the AsyncIterator.
+        new AsyncIterator([messageQueue, remoteFDB](eckit::Queue<ValueType>& queue) {
+            eckit::Buffer msg{0};
+                        while (true) {
+                            if (messageQueue->pop(msg) == -1) {
+                                break;
+                            } else {
+                                MemoryStream s(msg);
+                                queue.emplace(HelperClass::valueFromStream(s, remoteFDB));
+                            }
+                        }
+                        // messageQueue goes out of scope --> destructed
+                    }
+                )
+           );
+}
+
+ListIterator RemoteFDB::list(const FDBToolRequest& request) {
+    return forwardApiCall(ListHelper(), request);
 }
 
 ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
-    doinspect_ = true;
-
-    // worker that does nothing but exposes the AsyncIterator's queue.
-    auto async_worker = [this] (Queue<ListElement>& queue) {
-        inspectqueue_ = &queue;
-        while(!queue.closed()) std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    };
-
-    // construct iterator before contacting remote, because we want to point to the asynciterator's queue
-    auto iter = new APIAsyncIterator<ListElement>(async_worker); 
-
-    auto req = FDBToolRequest(request);
-    Buffer encodeBuffer(4096);
-    MemoryStream s(encodeBuffer);
-    s << req;
-    controlWriteCheckResponse(Message::Inspect, encodeBuffer, s.position());
-
-    return APIIterator<ListElement>(iter);
+    return forwardApiCall(InspectHelper(), request);
 }
 
 
-ListIterator RemoteFDB::list(const FDBToolRequest& request) {
+// ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
+//     doinspect_ = true;
 
-    dolist_ = true;
+//     // worker that does nothing but exposes the AsyncIterator's queue.
+//     auto async_worker = [this] (Queue<ListElement>& queue) {
+//         inspectqueue_ = &queue;
+//         while(!queue.closed()) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+//     };
+
+//     // construct iterator before contacting remote, because we want to point to the asynciterator's queue
+//     auto iter = new APIAsyncIterator<ListElement>(async_worker); 
+
+//     auto req = FDBToolRequest(request);
+//     Buffer encodeBuffer(4096);
+//     MemoryStream s(encodeBuffer);
+//     s << req;
+//     uint32_t id = controlWriteCheckResponse(Message::Inspect, encodeBuffer, s.position());
+
+//     return APIIterator<ListElement>(iter);
+// }
+
+
+// ListIterator RemoteFDB::list(const FDBToolRequest& request) {
+
+//     dolist_ = true;
     
-    // worker that does nothing but exposes the AsyncIterator's queue.
-    auto async_worker = [this] (Queue<ListElement>& queue) {
-        listqueue_ = &queue;
-        while(!queue.closed()) std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    };
+//     // worker that does nothing but exposes the AsyncIterator's queue.
+//     auto async_worker = [this] (Queue<ListElement>& queue) {
+//         listqueue_ = &queue;
+//         while(!queue.closed()) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+//     };
 
-    // construct iterator before contacting remote, because we want to point to the asynciterator's queue
-    auto iter = new APIAsyncIterator<ListElement>(async_worker); 
+//     // construct iterator before contacting remote, because we want to point to the asynciterator's queue
+//     auto iter = new APIAsyncIterator<ListElement>(async_worker); 
 
-    Buffer encodeBuffer(4096);
-    MemoryStream s(encodeBuffer);
-    s << request;
+//     Buffer encodeBuffer(4096);
+//     MemoryStream s(encodeBuffer);
+//     s << request;
 
-    controlWriteCheckResponse(Message::List, encodeBuffer, s.position());
-    return APIIterator<ListElement>(iter);
-}
-
-DumpIterator RemoteFDB::dump(const FDBToolRequest& request, bool simple) {NOTIMP;}
-
-StatusIterator RemoteFDB::status(const FDBToolRequest& request) {NOTIMP;}
-
-WipeIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {NOTIMP;}
-
-PurgeIterator RemoteFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {NOTIMP;}
-
-StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {NOTIMP;}
-
-ControlIterator RemoteFDB::control(const FDBToolRequest& request,
-                        ControlAction action,
-                        ControlIdentifiers identifiers) {NOTIMP;}
-
-MoveIterator RemoteFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {NOTIMP;}
-
-void RemoteFDB::flush() {
-    if (archiver_) {
-        archiver_->flush();
-    }
-}
+//     controlWriteCheckResponse(Message::List, encodeBuffer, s.position());
+//     return APIIterator<ListElement>(iter);
+// }
 
 void RemoteFDB::print(std::ostream& s) const {
     s << "RemoteFDB(...)";
 }
 
-FDBStats RemoteFDB::stats() const {NOTIMP;}
-
-
 // Client
+bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
+    
+    switch (message) {
+        case fdb5::remote::Message::Complete: {
 
-bool RemoteFDB::handle(remote::Message message, uint32_t requestID){
-    if (message == Message::Complete) {
-        if (dolist_) listqueue_->close();
-        if (doinspect_) inspectqueue_->close();
-        return true;
+            auto it = messageQueues_.find(requestID);
+            if (it == messageQueues_.end()) {
+                return false;
+            }
+
+            it->second->close();
+            // Remove entry (shared_ptr --> message queue will be destroyed when it
+            // goes out of scope in the worker thread).
+            messageQueues_.erase(it);
+            return true;
+        }
+        case fdb5::remote::Message::Error: {
+
+            auto it = messageQueues_.find(requestID);
+            if (it == messageQueues_.end()) {
+                return false;
+            }
+
+            it->second->interrupt(std::make_exception_ptr(RemoteFDBException("", controlEndpoint())));
+            // Remove entry (shared_ptr --> message queue will be destroyed when it
+            // goes out of scope in the worker thread).
+            messageQueues_.erase(it);
+            return true;
+        }
+        default:
+            return false;
     }
-    return false;
 }
-bool RemoteFDB::handle(remote::Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload){
+bool RemoteFDB::handle(remote::Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) {
 
-    eckit::Log::debug<LibFdb5>()<< "RemoteFDB::handle received message: " << ((uint) message) << " - requestID: " << requestID << std::endl;
-    if (message == Message::Blob) {
-        eckit::Log::debug<LibFdb5>() << "RemoteFDB::handle received payload size: " << payload.size() << std::endl;
-        MemoryStream s(payload);
-        if (dolist_){
-            ListElement elem(s);
-            listqueue_->push(elem);
+    switch (message) {
+        case fdb5::remote::Message::Blob: {
+            auto it = messageQueues_.find(requestID);
+            if (it == messageQueues_.end()) {
+                return false;
+            }
+
+            it->second->emplace(std::move(payload));
             return true;
         }
-        else if (doinspect_){
-            ListElement elem(s);
-            inspectqueue_->push(elem);
+
+        case fdb5::remote::Message::Error: {
+
+            auto it = messageQueues_.find(requestID);
+            if (it == messageQueues_.end()) {
+                return false;
+            }
+            std::string msg;
+            msg.resize(payload.size(), ' ');
+            payload.copy(&msg[0], payload.size());
+            it->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint())));
+            // Remove entry (shared_ptr --> message queue will be destroyed when it
+            // goes out of scope in the worker thread).
+            messageQueues_.erase(it);
             return true;
         }
+        default:
+            return false;
     }
-    return false;
 }
 void RemoteFDB::handleException(std::exception_ptr e){NOTIMP;}
 const Key& RemoteFDB::key() const {NOTIMP;}

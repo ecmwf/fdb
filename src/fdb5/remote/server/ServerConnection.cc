@@ -73,7 +73,7 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
         dataListenHostname_(config.getString("dataListenHostname", "")),
         // fdb_(config),
         readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {
-            Log::debug() << "ServerConnection::ServerConnection initialized" << std::endl;
+            eckit::Log::debug<LibFdb5>() << "ServerConnection::ServerConnection initialized" << std::endl;
     }
 
 ServerConnection::~ServerConnection() {
@@ -138,18 +138,18 @@ void ServerConnection::initialiseConnections() {
         agreedConf_ = LocalConfiguration();
 
         // agree on a common functionality by intersecting server and client version numbers
-         std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
-         if (rflCommon.size() > 0) {
-             Log::debug() << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
-             agreedConf_.set("RemoteFieldLocation", rflCommon.back());
-         }
-         else {
-             std::stringstream ss;
-             ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client" << std::endl;
-             ss << "    server functionality: " << serverConf << std::endl;
-             ss << "    client functionality: " << clientAvailableFunctionality << std::endl;
-             errorMsg = ss.str();
-         }
+        std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
+        if (rflCommon.size() > 0) {
+            eckit::Log::debug<LibFdb5>() << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
+            agreedConf_.set("RemoteFieldLocation", rflCommon.back());
+        }
+        else {
+            std::stringstream ss;
+            ss << "FDB server version " << fdb5_version_str() << " - failed protocol negotiation with FDB client" << std::endl;
+            ss << "    server functionality: " << serverConf << std::endl;
+            ss << "    client functionality: " << clientAvailableFunctionality << std::endl;
+            errorMsg = ss.str();
+        }
     }
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
@@ -172,7 +172,7 @@ void ServerConnection::initialiseConnections() {
         s << agreedConf_.get();
         // s << storeEndpoint; // xxx single-store case only: we cant do this with multiple stores // For now, dont send the store endpoint to the client 
 
-        Log::debug() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
+        eckit::Log::debug<LibFdb5>() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
 
 
         controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
@@ -254,6 +254,7 @@ void ServerConnection::controlWrite(const void* data, size_t length) {
 }
 
 void ServerConnection::socketRead(void* data, size_t length, eckit::net::TCPSocket& socket) {
+    // std::cout << "ServerConnection::socketRead " << socket.remoteHost() << ":" << socket.remotePort() << "  length: " << length << std::endl;
     size_t read = socket.read(data, length);
     if (length != read) {
         std::stringstream ss;

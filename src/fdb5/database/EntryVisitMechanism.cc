@@ -108,28 +108,16 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
 
         // And do the visitation
+        for (const URI& uri : uris) {
 
-        for (URI uri : uris) {
+            Log::debug<LibFdb5>() << "FDB processing URI " << uri << std::endl;
 
-            PathName path(uri.path());
-            if (path.exists()) {
-                if (!path.isDir())
-                    path = path.dirName();
-                path = path.realName();
+            std::unique_ptr<CatalogueReader> catalogue = CatalogueReaderFactory::instance().build(uri, dbConfig_);
+            ASSERT(catalogue->open());
 
-                Log::debug<LibFdb5>() << "FDB processing Path " << path << std::endl;
+            eckit::AutoCloser<Catalogue> closer(*catalogue);
 
-                std::unique_ptr<CatalogueReader> catalogue = CatalogueReaderFactory::instance().build(eckit::URI(uri.scheme(), path), dbConfig_);
-                ASSERT(catalogue->open());
-
-                // std::unique_ptr<Store> store = catalogue->buildStore();
-                // ASSERT(store->open());
-
-                eckit::AutoCloser<Catalogue> closer(*catalogue);
-                // eckit::AutoCloser<Store> storeCloser(*store);
-
-                catalogue->visitEntries(visitor, /* *store, */ false);
-            }
+            catalogue->visitEntries(visitor, /* *store, */ false);
         }
 
     } catch (eckit::UserError&) {

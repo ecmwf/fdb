@@ -8,36 +8,24 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @author Simon Smart
-/// @date   Jan 2017
+/// @author Emanuele Danovaro
+/// @date   October 2023
 
-#ifndef fdb5_toc_TocEngine_H
-#define fdb5_toc_TocEngine_H
+#pragma once
 
 #include "fdb5/database/Engine.h"
 
-namespace fdb5 {
+namespace fdb5::remote {
+
+class RemoteEngineClient;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class TocEngine : public fdb5::Engine {
+class RemoteEngine : public fdb5::Engine {
 
 public: // methods
 
-    static const char* typeName() { return "toc"; }
-
-private:  // methods
-    std::set<eckit::PathName> databases(const std::set<InspectionKey>& keys, const std::vector<eckit::PathName>& dirs,
-                                        const Config& config) const;
-
-    std::vector<eckit::URI> databases(const Key& key, const std::vector<eckit::PathName>& dirs, const Config& config) const;
-
-    std::vector<eckit::URI> databases(const metkit::mars::MarsRequest& rq, const std::vector<eckit::PathName>& dirs,
-                                      const Config& config) const;
-
-    void scan_dbs(const std::string& path, std::list<std::string>& dbs) const;
+    static const char* typeName() { return "remote"; }
 
 protected: // methods
 
@@ -52,11 +40,11 @@ protected: // methods
 
     virtual void print( std::ostream &out ) const override;
 
+private:
+    // mutable std::unique_ptr<RemoteEngineClient> client_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-} // namespace fdb5
-
-#endif
+} // namespace fdb5::remote

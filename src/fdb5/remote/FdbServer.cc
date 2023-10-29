@@ -29,8 +29,7 @@
 using namespace eckit;
 
 
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -211,5 +210,4 @@ void FdbServer::hookUnique() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
+} // namespace fdb5::remote

@@ -18,8 +18,15 @@ namespace fdb5::remote {
 Client::Client(const eckit::net::Endpoint& endpoint) :
     endpoint_(endpoint) {}
 
-uint32_t Client::controlWriteCheckResponse(Message msg, const void* payload, uint32_t payloadLength) {
-    return ClientConnectionRouter::instance().controlWriteCheckResponse(*this, msg, payload, payloadLength);
+uint32_t Client::generateRequestID() {
+    return ClientConnectionRouter::instance().generateRequestID();
+}
+
+uint32_t Client::controlWriteCheckResponse(Message msg, const void* payload, uint32_t payloadLength, uint32_t requestID) {
+    return ClientConnectionRouter::instance().controlWriteCheckResponse(*this, msg, requestID, payload, payloadLength);
+}
+eckit::Buffer Client::controlWriteReadResponse(Message msg, const void* payload, uint32_t payloadLength) {
+    return ClientConnectionRouter::instance().controlWriteReadResponse(*this, msg, payload, payloadLength);
 }
 uint32_t Client::controlWrite(Message msg, const void* payload, uint32_t payloadLength) {
     return ClientConnectionRouter::instance().controlWrite(*this, msg, payload, payloadLength);

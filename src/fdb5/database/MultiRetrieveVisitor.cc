@@ -44,7 +44,7 @@ MultiRetrieveVisitor::~MultiRetrieveVisitor() {
 
 bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
-	eckit::Log::debug() << "FDB5 selectDatabase " << key  << std::endl;
+	eckit::Log::debug<LibFdb5>() << "FDB5 selectDatabase " << key  << std::endl;
 
     /* is it the current DB ? */
 

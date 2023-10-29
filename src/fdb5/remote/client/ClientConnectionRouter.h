@@ -32,9 +32,10 @@ public:
 
     static ClientConnectionRouter& instance();
     RemoteStore& store(const eckit::URI& uri);
+    static uint32_t generateRequestID();
 
-    uint32_t controlWriteCheckResponse(Client& client, Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
-    void controlReadResponse(Client& client, remote::Message msg, void* payload, uint32_t& payloadLength);
+    uint32_t controlWriteCheckResponse(Client& client, Message msg, uint32_t requestID = generateRequestID(), const void* payload=nullptr, uint32_t payloadLength=0);
+    eckit::Buffer controlWriteReadResponse(Client& client, remote::Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
     uint32_t controlWrite(Client& client, Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlRead(Client& client, uint32_t requestId, void* payload, size_t payloadLength);
 
@@ -50,7 +51,7 @@ private:
 
     ClientConnectionRouter() {} ///< private constructor only used by singleton
 
-    uint32_t createConnection(Client& client, ClientConnection*& conn);
+    uint32_t createConnection(Client& client, ClientConnection*& conn, bool add=true, uint32_t id = generateRequestID());
 
     eckit::Mutex mutex_;
 

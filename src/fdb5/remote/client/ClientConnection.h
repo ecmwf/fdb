@@ -12,7 +12,6 @@
 
 #include <thread>
 
-
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/container/Queue.h"
 #include "eckit/io/Buffer.h"
@@ -24,7 +23,6 @@
 
 #include "fdb5/remote/Messages.h"
 #include "eckit/utils/Translator.h"
-
 
 namespace eckit {
 
@@ -55,7 +53,7 @@ public: // methods
     virtual ~ClientConnection();
 
     void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    void controlReadResponse(remote::Message msg, uint32_t requestID, void* payload, uint32_t& payloadLength);
+    eckit::Buffer controlWriteReadResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void dataWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
 
@@ -122,10 +120,5 @@ private: // members
 //     return ++id;
 // }
 
-class DecoupledFDBException : public eckit::RemoteException {
-public:
-    DecoupledFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint):
-        eckit::RemoteException(msg, endpoint.hostport()) {}
-};
 
 }  // namespace fdb5::remote

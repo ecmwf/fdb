@@ -125,7 +125,7 @@ void ClientConnection::disconnect() {
     if (connected_) {
 
         // Send termination message
-        controlWrite(Message::Exit, 0); //xxx why do we generate a request ID here? 
+        controlWrite(Message::Exit, 0);
 
         listeningThread_.join();
 
@@ -174,9 +174,9 @@ void ClientConnection::controlWriteCheckResponse(Message msg, uint32_t requestID
     ASSERT(tail == EndMarker);
 }
 
-void ClientConnection::controlReadResponse(remote::Message msg, uint32_t requestID, void* payload, uint32_t& payloadLength) {
+eckit::Buffer ClientConnection::controlWriteReadResponse(remote::Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
     
-    controlWrite(msg, requestID, nullptr, 0);
+    controlWrite(msg, requestID, payload, payloadLength);
 
     // Wait for the receipt acknowledgement
 
@@ -185,18 +185,20 @@ void ClientConnection::controlReadResponse(remote::Message msg, uint32_t request
 
     handleError(response);
 
+    // std::cout << "ClientConnection::controlWriteReadResponse received " << response.requestID << " | expecting " << requestID << std::endl;
     ASSERT(response.marker == StartMarker);
     ASSERT(response.version == CurrentVersion);
     ASSERT(response.message == Message::Received);
     ASSERT(response.requestID == requestID);
     
-    ASSERT(response.payloadSize <= payloadLength);
-    payloadLength = response.payloadSize;
-    controlRead(payload, payloadLength);
+    eckit::Buffer buf{response.payloadSize};
+    controlRead(buf.data(), buf.size());
 
     eckit::FixedString<4> tail;
     controlRead(&tail, sizeof(tail));
     ASSERT(tail == EndMarker);
+
+    return buf;
 }
 
 void ClientConnection::controlWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
@@ -277,7 +279,7 @@ void ClientConnection::handleError(const MessageHeader& hdr) {
             controlRead(&tail, sizeof(tail));
         } catch (...) {}
 
-        throw DecoupledFDBException(what, controlEndpoint_);
+        throw RemoteFDBException(what, controlEndpoint_);
     }
 }
 
@@ -375,8 +377,8 @@ void ClientConnection::listeningThreadLoop() {
                 handled = ClientConnectionRouter::instance().handle(hdr.message, hdr.requestID);
             }
             else {
-                Buffer payload(hdr.payloadSize);
-                dataRead(payload, hdr.payloadSize);
+                eckit::Buffer payload{hdr.payloadSize};
+                dataRead(payload.data(), hdr.payloadSize);
 
                 handled = ClientConnectionRouter::instance().handle(hdr.message, hdr.requestID, controlEndpoint_, std::move(payload));
             }

@@ -3,13 +3,14 @@
 
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
-using namespace eckit;
-using namespace eckit::net;
+// using namespace eckit;
+// using namespace eckit::net;
 
+namespace fdb5::remote {
 
-namespace {
+//----------------------------------------------------------------------------------------------------------------------
 
-static uint32_t generateRequestID() {
+uint32_t ClientConnectionRouter::generateRequestID() {
 
     static std::mutex m;
     static uint32_t id = 0;
@@ -17,13 +18,6 @@ static uint32_t generateRequestID() {
     std::lock_guard<std::mutex> lock(m);
     return ++id;
 }
-
-}
-
-
-namespace fdb5::remote {
-
-//----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore& ClientConnectionRouter::store(const eckit::URI& uri) {
     const std::string& endpoint = uri.hostport();
@@ -35,41 +29,44 @@ RemoteStore& ClientConnectionRouter::store(const eckit::URI& uri) {
     return *(readStores_[endpoint] = std::unique_ptr<RemoteStore>(new RemoteStore(uri, Config())));
 }
 
-uint32_t ClientConnectionRouter::createConnection(Client& client, ClientConnection*& conn) {
+uint32_t ClientConnectionRouter::createConnection(Client& client, ClientConnection*& conn, bool add, uint32_t id) {
 
     // pick the first endpoint - To be improved with DataStoreStrategies
     const eckit::net::Endpoint& endpoint = client.controlEndpoint();
-    uint32_t id = generateRequestID();
 
     auto it = connections_.find(endpoint.hostport());
     if (it != connections_.end()) {
         conn = it->second.get();
     } else {
-        conn = (connections_[endpoint.hostport()] = std::unique_ptr<ClientConnection>(new ClientConnection(endpoint, LocalConfiguration()))).get();
+        conn = (connections_[endpoint.hostport()] = std::unique_ptr<ClientConnection>(new ClientConnection(endpoint, Config()))).get();
         conn->connect();
     }
 
     ASSERT(conn);
-    requests_[id] = {conn, &client};
+    if (add) {
+        requests_[id] = {conn, &client};
+    }
 
     return id;
 }
 
-uint32_t ClientConnectionRouter::controlWriteCheckResponse(Client& client, Message msg, const void* payload, uint32_t payloadLength) {
+uint32_t ClientConnectionRouter::controlWriteCheckResponse(Client& client, Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
     //std::cout << "ClientConnectionRouter::controlWriteCheckResponse " << endpoints.size() << std::endl;
     ClientConnection* conn;
-    uint32_t id = createConnection(client, conn);
+    createConnection(client, conn, true, requestID);
 
-    conn->controlWriteCheckResponse(msg, id, payload, payloadLength);
+    conn->controlWriteCheckResponse(msg, requestID, payload, payloadLength);
 
-    return id;
+    return requestID;
 }
 
-void ClientConnectionRouter::controlReadResponse(Client& client, remote::Message msg, void* payload, uint32_t& payloadLength) {
-    ClientConnection* conn;
-    uint32_t id = createConnection(client, conn);
 
-    conn->controlReadResponse(msg, id, payload, payloadLength);
+eckit::Buffer ClientConnectionRouter::controlWriteReadResponse(Client& client, remote::Message msg, const void* payload, uint32_t payloadLength) {
+    ClientConnection* conn;
+    uint32_t id = createConnection(client, conn, false);
+    //std::cout << "ClientConnectionRouter::controlWriteReadResponse Message: " << ((int) msg) << " ID: " << id << std::endl;
+
+    return conn->controlWriteReadResponse(msg, id, payload, payloadLength);
 }
 
 uint32_t ClientConnectionRouter::controlWrite(Client& client, Message msg, const void* payload, uint32_t payloadLength) {
@@ -115,7 +112,7 @@ bool ClientConnectionRouter::handle(Message message, uint32_t requestID) {
 
         return it->second.second->handle(message, requestID);
     } else {
-        Log::error() << "ClientConnectionRouter::handle [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
+        eckit::Log::error() << "ClientConnectionRouter [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
         return true;
     }
 }
@@ -127,7 +124,7 @@ bool ClientConnectionRouter::handle(Message message, uint32_t requestID, eckit::
     
         return it->second.second->handle(message, requestID, endpoint, std::move(payload));
     } else {
-        Log::error() << "ClientConnectionRouter::handle [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
+        eckit::Log::error() << "ClientConnectionRouter [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
         return true;
     }
 }

@@ -46,7 +46,7 @@ void CatalogueHandler::initialiseConnections() {
 
     ASSERT(hdr.marker == StartMarker);
     ASSERT(hdr.version == CurrentVersion);
-    ASSERT(hdr.message == Message::MasterSchema);
+    ASSERT(hdr.message == Message::Schema);
 
     // Ensure we have consumed exactly the correct amount from the socket.
     socketRead(&tail, sizeof(tail), controlSocket_);
@@ -65,31 +65,18 @@ void CatalogueHandler::initialiseConnections() {
         }
     }
 
-    ASSERT(stores.size() > 0);
-    // TODO randomise
-    eckit::net::Endpoint endpoint = stores.at(0);
-
-    Log::info() << "Sending store endpoint to client: " << endpoint << std::endl;
     {
-        Buffer startupBuffer(102400);
+        Buffer startupBuffer(1024*1024);
         MemoryStream s(startupBuffer);
 
-        // s << clientSession;
-        // s << sessionID_;
-        s << endpoint;
+        s << stores.size();
+        for (const eckit::net::Endpoint& endpoint : stores) {
+            s << endpoint;
+        }
         s << config_.schema();
-
-//        Log::debug() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
 
         controlWrite(Message::Received, hdr.requestID, startupBuffer.data(), s.position());
     }
-
-    // While we're here, we should also send the master schema to the client.
-
-
-    // Log::info() << "Also, catalogue could now send store control endpoint to client: " << storeEndpoint << std::endl;
-    // Log::info() << "Catalogue could also now send master schema " << std::endl;
-    // Log::info() << " but... todo... " << std::endl;
 }
 
 
@@ -184,12 +171,13 @@ void CatalogueHandler::handle() {
     while (true) {
         tidyWorkers();
 
-        Log::debug<LibFdb5>() << "CatalogueHandler::handle() - pre READ" << std::endl;
         socketRead(&hdr, sizeof(hdr), controlSocket_);
 
         ASSERT(hdr.marker == StartMarker);
         ASSERT(hdr.version == CurrentVersion);
-        Log::debug<LibFdb5>() << "Got message with request ID: " << hdr.requestID << std::endl;
+        Log::debug<LibFdb5>() << "CatalogueHandler - got message " << ((int) hdr.message) << " with request ID: " << hdr.requestID << std::endl;
+
+        bool ack = false;
 
         try {
             switch (hdr.message) {
@@ -244,6 +232,7 @@ void CatalogueHandler::handle() {
 
                 case Message::Schema:
                     schema(hdr);
+                    ack = true;
                     break;
 
                 default: {
@@ -260,8 +249,10 @@ void CatalogueHandler::handle() {
             socketRead(&tail, sizeof(tail), controlSocket_);
             ASSERT(tail == EndMarker);
 
-            // Acknowledge receipt of command
-            controlWrite(Message::Received, hdr.requestID);
+            if (!ack) {
+                // Acknowledge receipt of command
+                controlWrite(Message::Received, hdr.requestID);
+            }
         }
         catch (std::exception& e) {
             // n.b. more general than eckit::Exception
@@ -314,7 +305,7 @@ void CatalogueHandler::archive(const MessageHeader& hdr) {
     // NOTE identical to RemoteCatalogueWriter::archive()
 
     if(!archiveFuture_.valid()) {
-        Log::debug<LibFdb5>() << "WIP CatalogueHandler::archive start threadloop" << std::endl;
+        Log::debug<LibFdb5>() << "CatalogueHandler::archive start threadloop" << std::endl;
         // Start archive worker thread
         archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
     }
@@ -326,8 +317,6 @@ size_t CatalogueHandler::archiveThreadLoop() {
     // Create a worker that will do the actual archiving
 
     static size_t queueSize(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32));
-    // using ArchiveQueue = eckit::Queue<std::pair<uint32_t, std::pair<Key, std::unique_ptr<FieldLocation>>>>;
-    // ArchiveQueue queue(queueSize);
     eckit::Queue<std::pair<uint32_t, eckit::Buffer>> queue(queueSize);
 
 
@@ -393,9 +382,7 @@ size_t CatalogueHandler::archiveThreadLoop() {
             socketRead(&tail, sizeof(tail), dataSocket_);
             ASSERT(tail == EndMarker);
 
-            size_t queuelen = queue.emplace(
-                std::make_pair(hdr.requestID, std::move(payload))
-            );
+            size_t queuelen = queue.emplace(hdr.requestID, std::move(payload));
         }
 
         // Trigger cleanup of the workers
@@ -443,7 +430,7 @@ void CatalogueHandler::schema(const MessageHeader& hdr) {
     Buffer payload(receivePayload(hdr, controlSocket_));
     MemoryStream s(payload);
     Key dbKey(s);
-
+    
     // 2. Get catalogue
     Catalogue& cat = catalogue(dbKey);
     const Schema& schema = cat.schema();
@@ -451,8 +438,7 @@ void CatalogueHandler::schema(const MessageHeader& hdr) {
     eckit::MemoryStream stream(schemaBuffer);
     stream << schema;
 
-    // todo: maybe more appropriate control write instead.
-    dataWrite(Message::Schema, hdr.requestID, schemaBuffer, stream.position());
+    controlWrite(Message::Received, hdr.requestID, schemaBuffer.data(), stream.position());
 }
 
 CatalogueWriter& CatalogueHandler::catalogue(Key dbKey) {

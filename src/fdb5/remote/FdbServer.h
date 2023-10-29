@@ -12,8 +12,7 @@
 /// @author Tiagop Quintino
 /// @date   Nov 2019
 
-#ifndef fdb5_remote_FdbServer_H
-#define fdb5_remote_FdbServer_H
+#pragma once
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -30,13 +29,9 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/LibFdb5.h"
 
-
 #include "fdb5/remote/AvailablePortList.h"
-#include "fdb5/remote/Handler.h"
 
-
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -96,7 +91,4 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
-
-#endif // fdb5_remote_FdbServer_H
+} // namespace fdb5::remote

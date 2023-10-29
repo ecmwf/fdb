@@ -10,19 +10,23 @@
 
 #pragma once
 
-#include <map>
-
 #include "eckit/config/Configuration.h"
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/net/Endpoint.h"
-#include "eckit/thread/Mutex.h"
 
-#include "fdb5/database/Store.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/remote/Messages.h"
 
 namespace fdb5::remote {
 
-class Connection;
+//----------------------------------------------------------------------------------------------------------------------
+
+class RemoteFDBException : public eckit::RemoteException {
+public:
+    RemoteFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint):
+        eckit::RemoteException(msg, endpoint.hostport()) {}
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class Client : eckit::NonCopyable {
@@ -31,7 +35,10 @@ public:
 
     const eckit::net::Endpoint& controlEndpoint() { return endpoint_; }
 
-    uint32_t controlWriteCheckResponse(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
+    static uint32_t generateRequestID();
+
+    uint32_t controlWriteCheckResponse(Message msg, const void* payload=nullptr, uint32_t payloadLength=0, uint32_t requestID = generateRequestID());
+    eckit::Buffer controlWriteReadResponse(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
     uint32_t controlWrite(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
 
     uint32_t dataWrite(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);

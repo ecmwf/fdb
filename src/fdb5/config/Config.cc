@@ -185,9 +185,10 @@ const PathName& Config::schemaPath() const {
 void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema) {
     ASSERT(schema);
 
-    SchemaRegistry::instance().add("masterSchema", schema);
-    schemaPath_=schemaPath;
+    schema->path_ = schemaPath;
+    SchemaRegistry::instance().add(schemaPath, schema);
 
+    schemaPath_=schemaPath;
     schemaPathInitialised_ = true;
 }
 

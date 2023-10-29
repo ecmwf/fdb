@@ -142,7 +142,7 @@ void TocCatalogue::allMasked(std::set<std::pair<URI, Offset>>& metadata,
 
 std::string TocCatalogue::type() const
 {
-    return TocCatalogue::catalogueTypeName();
+    return TocEngine::typeName();
 }
 
 void TocCatalogue::checkUID() const {

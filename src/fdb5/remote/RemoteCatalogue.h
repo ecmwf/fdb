@@ -9,16 +9,14 @@
 
 namespace fdb5::remote {
 
+class RemoteCatalogueArchiver;
 //----------------------------------------------------------------------------------------------------------------------
 
-class RemoteCatalogue : public CatalogueWriter, public CatalogueImpl, public Client {
-public: //types
-    using ArchiveQueue = eckit::Queue<std::pair<uint32_t, std::pair<Key, std::unique_ptr<FieldLocation> > > >;
+class RemoteCatalogue : public CatalogueReader, public CatalogueWriter, public CatalogueImpl, public Client {
 
 public:
 
     RemoteCatalogue(const Key& key, const Config& config);
-    
     RemoteCatalogue(const eckit::URI& uri, const Config& config);
 
     ~RemoteCatalogue() {}
@@ -32,9 +30,9 @@ public:
     void reconsolidate() override;
 
     //From CatalogueReader
-    // DbStats stats() const override;
-    // bool axis(const std::string& keyword, eckit::StringSet& s) const override;
-    // bool retrieve(const InspectionKey& key, Field& field) const override;
+    DbStats stats() const override { return DbStats(); }
+    bool axis(const std::string& keyword, eckit::StringSet& s) const override { return false; }
+    bool retrieve(const InspectionKey& key, Field& field) const override { return false; }
 
     // From Catalogue
     bool selectIndex(const Key& idxKey) override;
@@ -63,23 +61,19 @@ public:
     void checkUID() const override;
     eckit::URI uri() const override;
 
+    void sendArchiveData(uint32_t id, const Key& key, std::unique_ptr<FieldLocation> fieldLocation);
+
 protected:
 
     void loadSchema() override;
 
 private:
     // From Client
-
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) override;
     void handleException(std::exception_ptr e) override;
     const Key& key() const override { return CatalogueImpl::key(); }
-
-
-    // note: in common with remotestore
-    FDBStats archiveThreadLoop();
-    void sendArchiveData(uint32_t id, const Key& key, std::unique_ptr<FieldLocation> fieldLocation);
 
 protected:
 
@@ -87,15 +81,12 @@ protected:
     ControlIdentifiers controlIdentifiers_;
 
 private:
+
     Key currentIndexKey_;
     std::unique_ptr<Schema> schema_;
 
-    size_t maxArchiveQueueLength_;
-    std::mutex archiveQueuePtrMutex_;
-    std::future<FDBStats> archiveFuture_;
-    std::unique_ptr<ArchiveQueue> archiveQueue_;
-
-
+    // not owning
+    RemoteCatalogueArchiver* archiver_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

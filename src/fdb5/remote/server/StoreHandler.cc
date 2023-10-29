@@ -46,12 +46,11 @@ void StoreHandler::handle() {
     while (true) {
         tidyWorkers();
 
-        std::cout << "StoreHandler::handle() - pre READ\n";
         socketRead(&hdr, sizeof(hdr), controlSocket_);
 
         ASSERT(hdr.marker == StartMarker);
         ASSERT(hdr.version == CurrentVersion);
-        Log::debug<LibFdb5>() << "Got message with request ID: " << hdr.requestID << std::endl;
+        Log::debug<LibFdb5>() << "StoreHandler - got message " << ((int) hdr.message) << " with request ID: " << hdr.requestID << std::endl;
 
         try {
             switch (hdr.message) {
@@ -135,7 +134,6 @@ void StoreHandler::handle() {
 
 void StoreHandler::read(const MessageHeader& hdr) {
 
-    // std::cout << "readLocationThreadLoop\n";
     if (!readLocationWorker_.joinable()) {
         readLocationWorker_ = std::thread([this] { readLocationThreadLoop(); });
     }
