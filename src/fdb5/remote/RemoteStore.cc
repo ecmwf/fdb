@@ -327,7 +327,7 @@ private: // members
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(eckit::net::Endpoint("localhost", 7000)),
+    Client(eckit::net::Endpoint(config.getString("storeHost"), config.getInt("storePort"))),
     dbKey_(dbKey), config_(config),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)) {
 }
