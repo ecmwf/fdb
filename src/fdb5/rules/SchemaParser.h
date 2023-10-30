@@ -36,7 +36,7 @@ public: // methods
 
 private: // methods
 
-    std::string parseIdent(bool key = true, bool emptyOK = false);
+    std::string parseIdent(bool value, bool emptyOK);
 
     Rule *parseRule(const Schema &owner);
 

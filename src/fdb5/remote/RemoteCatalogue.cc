@@ -16,9 +16,6 @@
 #include "fdb5/remote/RemoteCatalogue.h"
 #include "fdb5/remote/RemoteEngine.h"
 
-#include <chrono> // xxx debug / development
-#include <thread> // xxx debug / development
-
 
 using namespace eckit;
 namespace fdb5::remote {
@@ -191,9 +188,6 @@ FDBStats RemoteCatalogueArchiver::archiveThreadLoop() {
     // We are inside an async, so don't need to worry about exceptions escaping.
     // They will be released when flush() is called.
 }
-
-
-
 
 
 
