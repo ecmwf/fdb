@@ -251,7 +251,6 @@ bool RemoteFDB::handle(remote::Message message, uint32_t requestID, eckit::net::
     }
 }
 void RemoteFDB::handleException(std::exception_ptr e){NOTIMP;}
-const Key& RemoteFDB::key() const {NOTIMP;}
 
 static FDBBuilder<RemoteFDB> builder("remote");
 

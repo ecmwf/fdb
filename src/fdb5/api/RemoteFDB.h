@@ -77,8 +77,6 @@ private: // methods
     bool handle(remote::Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) override;
     void handleException(std::exception_ptr e) override;
 
-    const Key& key() const override;
-
 private: // members
 
     std::unique_ptr<Archiver> archiver_;

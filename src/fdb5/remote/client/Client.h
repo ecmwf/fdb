@@ -49,8 +49,6 @@ public:
     virtual bool handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) = 0;
     virtual void handleException(std::exception_ptr e) = 0;
 
-    virtual const Key& key() const = 0;
-
 protected:
 
     eckit::net::Endpoint endpoint_;

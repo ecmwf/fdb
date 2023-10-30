@@ -73,8 +73,7 @@ private:
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) override;
     void handleException(std::exception_ptr e) override;
-    const Key& key() const override { return CatalogueImpl::key(); }
-
+    
 protected:
 
     Config config_;

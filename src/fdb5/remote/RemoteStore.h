@@ -78,21 +78,12 @@ protected: // methods
 
 private: // methods
 
-    const Key& key() const override { return dbKey_; }
+    void flush(FDBStats& stats);
 
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) override;
     void handleException(std::exception_ptr e) override;
-
-    // Listen to the dataClient for incoming messages, and push them onto
-    // appropriate queues.
-//    void listeningThreadLoop() override;
-//    long sendArchiveData(uint32_t id, const std::vector<std::pair<Key, eckit::Buffer>>& elements, size_t count);
-    void flush(FDBStats& stats);
-
-//     void connect();
-//     void disconnect();
 
 private: // members
 
