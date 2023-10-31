@@ -24,6 +24,7 @@ namespace fdb5 {
 class DaosLazyFieldLocation : public FieldLocation {
 public:
 
+    DaosLazyFieldLocation(const fdb5::DaosLazyFieldLocation& rhs);
     DaosLazyFieldLocation(const fdb5::DaosKeyValueName& index, const std::string& key);
 
     eckit::DataHandle* dataHandle() const override;
@@ -31,6 +32,8 @@ public:
     virtual std::shared_ptr<FieldLocation> make_shared() const override;
 
     virtual void visit(FieldLocationVisitor& visitor) const override;
+
+    virtual std::shared_ptr<FieldLocation> stableLocation() const override;
 
 private: // methods
 

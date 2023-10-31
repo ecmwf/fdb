@@ -18,11 +18,14 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+DaosLazyFieldLocation::DaosLazyFieldLocation(const fdb5::DaosLazyFieldLocation& rhs) :
+    FieldLocation(), index_(rhs.index_), key_(rhs.key_) {}
+
 DaosLazyFieldLocation::DaosLazyFieldLocation(const fdb5::DaosKeyValueName& index, const std::string& key) :
     FieldLocation(), index_(index), key_(key) {}
 
 std::shared_ptr<FieldLocation> DaosLazyFieldLocation::make_shared() const {
-    return realise()->make_shared();
+    return std::make_shared<DaosLazyFieldLocation>(*this);
 }
 
 eckit::DataHandle* DaosLazyFieldLocation::dataHandle() const {
@@ -37,6 +40,10 @@ void DaosLazyFieldLocation::print(std::ostream &out) const {
 
 void DaosLazyFieldLocation::visit(FieldLocationVisitor& visitor) const {
     realise()->visit(visitor);
+}
+
+std::shared_ptr<FieldLocation> DaosLazyFieldLocation::stableLocation() const {
+    return realise()->make_shared();
 }
 
 std::unique_ptr<fdb5::FieldLocation>& DaosLazyFieldLocation::realise() const {
