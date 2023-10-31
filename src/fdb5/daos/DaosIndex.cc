@@ -15,7 +15,7 @@
 #include "eckit/serialisation/HandleStream.h"
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosIndex.h"
-#include "fdb5/daos/DaosFieldLocation.h"
+#include "fdb5/daos/DaosLazyFieldLocation.h"
 
 namespace fdb5 {
 
@@ -231,21 +231,8 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
 
             if (key == "axes" || key == "key") continue;
 
-            /// @note: performed RPCs:
-            /// - close index kv (daos_obj_close)
-            st.start("list 011 index kv get field location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-            daos_size_t size{index_kv.size(key)};
-            std::vector<char> v((long) size);
-            index_kv.get(key, &v[0], size);
-            st.stop();
-            eckit::MemoryStream ms{&v[0], size};
-
-            /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
-            time_t ts;
-            ms >> ts;
-
-            std::unique_ptr<fdb5::FieldLocation> fl(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
-            fdb5::Field field(fl.get(), ts, fdb5::FieldDetails());
+            std::unique_ptr<fdb5::FieldLocation> fl(new fdb5::DaosLazyFieldLocation(location_.daosName(), key));
+            fdb5::Field field(fl.get(), time_t(), fdb5::FieldDetails());
             visitor.visitDatum(field, key);
 
         }

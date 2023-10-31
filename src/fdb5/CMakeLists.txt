@@ -409,6 +409,8 @@ if( HAVE_DAOSFDB )
         daos/DaosIOStats.cc
         daos/DaosArrayPartHandle.h 
         daos/DaosArrayPartHandle.cc
+        daos/DaosLazyFieldLocation.h 
+        daos/DaosLazyFieldLocation.cc
     )
 else()
     set( DAOS_LIBRARIES "" )
