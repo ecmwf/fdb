@@ -13,6 +13,7 @@
 
 #include "eccodes.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/StdFile.h"
@@ -274,7 +275,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
 void FDBWrite::executeList(const eckit::option::CmdArgs &args) {
 
 
-    std::vector<std::string> minimumKeys = Resource<std::vector<std::string>>("FDBInspectMinimumKeys", "class,expver", true);
+    std::vector<std::string> minimumKeys = eckit::Resource<std::vector<std::string>>("FDBInspectMinimumKeys", "class,expver", true);
 
     fdb5::MessageDecoder decoder;
     std::vector<metkit::mars::MarsRequest> requests = decoder.messageToRequests(args(0));
