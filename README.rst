@@ -102,5 +102,5 @@ In the following the two BibTeX snippets:
    :target: https://github.com/ecmwf/fdb/blob/develop/LICENSE
    :alt: Apache Licence
 
-.. _mars: docs/mars.rst
-.. _tools: docs/tools.rst
+.. _mars: docs/content/mars.rst
+.. _tools: docs/content/tools.rst

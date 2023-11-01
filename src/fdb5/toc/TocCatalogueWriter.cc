@@ -129,7 +129,7 @@ void TocCatalogueWriter::index(const Key &key, const eckit::URI &uri, eckit::Off
         selectIndex(currentIndexKey_);
     }
 
-    Field field(new TocFieldLocation(uri, offset, length, Key()), currentIndex().timestamp());
+    Field field(TocFieldLocation(uri, offset, length, Key()), currentIndex().timestamp());
 
     current_.put(key, field);
 
@@ -294,7 +294,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocation) {
+void TocCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
     dirty_ = true;
 
     if (current_.null()) {
@@ -302,7 +302,7 @@ void TocCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocat
         selectIndex(currentIndexKey_);
     }
 
-    Field field(fieldLocation, currentIndex().timestamp());
+    Field field(std::move(fieldLocation), currentIndex().timestamp());
 
     current_.put(key, field);
 
