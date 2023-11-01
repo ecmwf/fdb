@@ -195,7 +195,7 @@ CASE("DaosCatalogue tests") {
             EXPECT(cat_kv.has(index_key.valuesToString()));
 
             fdb5::CatalogueWriter& catw = dcatw;
-            catw.archive(field_key, loc.get());
+            catw.archive(field_key, std::move(loc));
             EXPECT(index_kv.has(field_key.valuesToString()));
             fdb5::DaosKeyValueOID e_axis_kv_oid{index_key.valuesToString() + std::string{".e"}, OC_S1};
             fdb5::DaosKeyValueName e_axis_kv{pool_name, db_key.valuesToString(), e_axis_kv_oid};
@@ -218,9 +218,9 @@ CASE("DaosCatalogue tests") {
             fdb5::Field f;
             fdb5::CatalogueReader& catr = dcatr;
             catr.retrieve(field_key, f);
-            EXPECT(f.location().uri().name() == loc->uri().name());
-            EXPECT(f.location().offset() == loc->offset());
-            EXPECT(f.location().length() == loc->length());
+            EXPECT(f.location().uri().name() == eckit::URI("daos", "test_uri").name());
+            EXPECT(f.location().offset() == eckit::Offset(0));
+            EXPECT(f.location().length() == eckit::Length(1));
         }
 
         // remove (manual deindex)
@@ -287,7 +287,7 @@ CASE("DaosCatalogue tests") {
             cat.deselectIndex();
             cat.selectIndex(index_key);
             fdb5::CatalogueWriter& catw = dcatw;
-            catw.archive(field_key, loc.get());
+            catw.archive(field_key, std::move(loc));
 
             /// flush store before flushing catalogue
             dstore.flush();  // not necessary if using a DAOS store
@@ -374,7 +374,7 @@ CASE("DaosCatalogue tests") {
             cat.deselectIndex();
             cat.selectIndex(index_key);
             fdb5::CatalogueWriter& catw = dcatw;
-            catw.archive(field_key, loc.get());
+            catw.archive(field_key, std::move(loc));
 
             /// flush store before flushing catalogue
             tstore.flush();

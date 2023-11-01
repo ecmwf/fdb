@@ -180,7 +180,7 @@ CASE("DaosStore tests") {
         dstore.flush();  // not necessary for DAOS store
 
         // retrieve
-        fdb5::Field field(loc.get(), std::time(nullptr));
+        fdb5::Field field(std::move(loc), std::time(nullptr));
         std::cout << "Read location: " << field.location() << std::endl;
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
         EXPECT(dynamic_cast<fdb5::DaosArrayPartHandle*>(dh.get()));
@@ -255,7 +255,7 @@ CASE("DaosStore tests") {
             cat.deselectIndex();
             cat.selectIndex(index_key);
             //const fdb5::Index& idx = tcat.currentIndex();
-            static_cast<fdb5::CatalogueWriter&>(tcat).archive(field_key, loc.get());
+            static_cast<fdb5::CatalogueWriter&>(tcat).archive(field_key, std::move(loc));
 
             /// flush store before flushing catalogue
             dstore.flush();  // not necessary if using a DAOS store
