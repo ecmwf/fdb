@@ -51,7 +51,7 @@ public: // methods
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; };
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; };
     WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
-    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) const override { NOTIMP; };
+    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override { NOTIMP; };
     void maskIndexEntry(const Index& index) const override { NOTIMP; };
 
     void loadSchema() override;

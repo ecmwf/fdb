@@ -156,7 +156,8 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
     time_t ts;
     ms >> ts;
 
-    field = fdb5::Field(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms), ts, fdb5::FieldDetails());
+    fdb5::FieldLocation* loc = eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms);
+    field = fdb5::Field(std::move(*loc), ts, fdb5::FieldDetails());
 
     /// @note: performed RPCs:
     /// - close index kv (daos_obj_close)
@@ -231,8 +232,8 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
 
             if (key == "axes" || key == "key") continue;
 
-            std::unique_ptr<fdb5::FieldLocation> fl(new fdb5::DaosLazyFieldLocation(location_.daosName(), key));
-            fdb5::Field field(fl, time_t(), fdb5::FieldDetails());
+            fdb5::FieldLocation* loc = new fdb5::DaosLazyFieldLocation(location_.daosName(), key);
+            fdb5::Field field(std::move(*loc), time_t(), fdb5::FieldDetails());
             visitor.visitDatum(field, key);
 
         }
