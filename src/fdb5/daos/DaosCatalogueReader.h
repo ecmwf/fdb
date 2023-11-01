@@ -41,7 +41,7 @@ public: // methods
     void clean() override {}
     void close() override {}
     
-    void axis(const std::string &keyword, eckit::StringSet &s) const override;
+    bool axis(const std::string &keyword, eckit::StringSet &s) const override;
 
     bool retrieve(const Key& key, Field& field) const override;
 

@@ -34,7 +34,7 @@ DaosFieldLocation::DaosFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {}
 
 std::shared_ptr<FieldLocation> DaosFieldLocation::make_shared() const {
-    return std::make_shared<DaosFieldLocation>(*this);
+    return std::make_shared<DaosFieldLocation>(std::move(*this));
 }
 
 eckit::DataHandle* DaosFieldLocation::dataHandle() const {

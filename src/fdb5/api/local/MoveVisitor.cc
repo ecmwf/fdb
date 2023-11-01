@@ -37,15 +37,9 @@ namespace local {
 
 MoveVisitor::MoveVisitor(eckit::Queue<MoveElement>& queue,
                          const metkit::mars::MarsRequest& request,
-                         const eckit::URI& dest,
-                         bool removeSrc,
-                         int removeDelay,
-                         int threads) :
+                         const eckit::URI& dest) :
     QueryVisitor<MoveElement>(queue, request),
-    dest_(dest),
-    removeSrc_(removeSrc),
-    removeDelay_(removeDelay),
-    threads_(threads) {}
+    dest_(dest) {}
 
 bool MoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     if (catalogue.key().match(request_)) {
@@ -61,12 +55,8 @@ bool MoveVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) 
         EntryVisitor::visitDatabase(catalogue, store);
 
         ASSERT(!internalVisitor_);
-        internalVisitor_.reset(catalogue.moveVisitor(store, request_, dest_, removeSrc_, removeDelay_, threads_));
+        internalVisitor_.reset(catalogue.moveVisitor(store, request_, dest_, queue_));
         internalVisitor_->visitDatabase(catalogue, store);
-
-        std::stringstream ss;
-        ss << "Move " << catalogue.key() << " to " << dest_;
-        queue_.emplace(ss.str());
 
         return true;
     }

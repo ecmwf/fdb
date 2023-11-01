@@ -47,7 +47,7 @@ private: // methods
     void clean() override {}
     void close() override;
     
-    void axis(const std::string &keyword, eckit::StringSet &s) const override;
+    bool axis(const std::string &keyword, eckit::StringSet &s) const override;
 
     bool retrieve(const Key& key, Field& field) const override;
 
@@ -57,7 +57,7 @@ private: // members
 
     // Indexes matching current key. If there is a key remapping for a mounted
     // SubToc, then this is stored alongside
-    std::vector<std::pair<Index, Key>> matching_;
+    std::vector<std::pair<Index, Key>*> matching_;
 
     // All indexes
     // If there is a key remapping for a mounted SubToc, this is stored alongside

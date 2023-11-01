@@ -72,6 +72,8 @@ void MessageDecoder::msgToKey(const eckit::message::Message& msg, Key& key) {
 
     KeySetter setter(key);
     msg.getMetadata(setter);
+
+    key.unset("stepunits");
 }
 
 void MessageDecoder::messageToKey(const eckit::message::Message& msg, Key& key) {

@@ -22,6 +22,8 @@
 #include <memory>
 #include <iosfwd>
 
+#include "eckit/distributed/Transport.h"
+
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
@@ -79,6 +81,12 @@ public: // methods
     /// @note always safe to call
     void flush();
 
+    eckit::DataHandle* read(const eckit::URI& uri);
+
+    eckit::DataHandle* read(const std::vector<eckit::URI>& uris, bool sorted = false);
+
+    eckit::DataHandle* read(ListIterator& it, bool sorted = false);
+
     eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
 
     ListIterator inspect(const metkit::mars::MarsRequest& request);
@@ -92,7 +100,7 @@ public: // methods
 
     WipeIterator wipe(const FDBToolRequest& request, bool doit=false, bool porcelain=false, bool unsafeWipeAll=false);
 
-    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads);
+    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest);
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit=false, bool porcelain=false);
 

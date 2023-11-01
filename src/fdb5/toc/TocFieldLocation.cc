@@ -28,6 +28,9 @@ namespace fdb5 {
 TocFieldLocation::TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
     FieldLocation(eckit::URI("file", path), offset, length, remapKey) {}
 
+TocFieldLocation::TocFieldLocation(const eckit::URI &uri) :
+    FieldLocation(uri) {}
+
 TocFieldLocation::TocFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
     FieldLocation(uri, offset, length, remapKey) {}
 
@@ -41,7 +44,7 @@ TocFieldLocation::TocFieldLocation(eckit::Stream& s) :
     FieldLocation(s) {}
 
 std::shared_ptr<FieldLocation> TocFieldLocation::make_shared() const {
-    return std::make_shared<TocFieldLocation>(*this);
+    return std::make_shared<TocFieldLocation>(std::move(*this));
 }
 
 eckit::DataHandle *TocFieldLocation::dataHandle() const {

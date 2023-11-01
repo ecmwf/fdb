@@ -37,21 +37,21 @@ $fdbwrite 6.odb
 
 
 cat > list <<EOF
-{class=od,expver=0001,stream=oper,date=20201125,time=0000}{type=ofb}{obsgroup=MHS,reportype=3002},length=8262
-{class=od,expver=0001,stream=oper,date=20201125,time=0000}{type=ofb}{obsgroup=MHS,reportype=3001},length=8448
+{class=od,expver=0001,stream=oper,date=20201125,time=0000}{type=ofb}{obsgroup=mhs,reportype=3002},length=8262
+{class=od,expver=0001,stream=oper,date=20201125,time=0000}{type=ofb}{obsgroup=mhs,reportype=3001},length=8448
 EOF
 
 cat > list_fsoifb <<EOF
-{class=od,expver=0001,stream=lwda,date=20210217,time=1200}{type=fsoifb}{obsgroup=RESAT,reportype=5005},length=8556
+{class=od,expver=0001,stream=lwda,date=20210217,time=1200}{type=fsoifb}{obsgroup=resat,reportype=5005},length=8556
 EOF
 
-$fdblist class=od,expver=0001,stream=oper,date=20201125,time=0000,type=ofb,obsgroup=MHS,reportype=3001/3002 | tee out
+$fdblist class=od,expver=0001,stream=oper,date=20201125,time=0000,type=ofb,obsgroup=mhs,reportype=3001/3002 | tee out
 
 tail -2 out > shortOut
 cmp shortOut list
 
 cat > req <<EOF
-retrieve,class=od,expver=0001,stream=oper,date=20201125,time=0000,type=ofb,obsgroup=MHS,reportype=3001/3002
+retrieve,class=od,expver=0001,stream=oper,date=20201125,time=0000,type=ofb,obsgroup=mhs,reportype=3001/3002
 EOF
 
 $fdbread req out.odb
@@ -79,7 +79,7 @@ cmp out count
 
 
 cat > req3001 <<EOF
-retrieve,class=od,expver=0001,stream=oper,date=20201125,time=0000,type=ofb,obsgroup=MHS,reportype=3001
+retrieve,class=od,expver=0001,stream=oper,date=20201125,time=0000,type=ofb,obsgroup=mhs,reportype=3001
 EOF
 
 $fdbread req3001 out.odb
@@ -95,7 +95,7 @@ $odc compare out.odb 10.odb
 # check other type
 
 cat > req5005 <<EOF
-retrieve,class=od,expver=0001,stream=lwda,date=20210217,time=1200,type=fsoifb,obsgroup=RESAT,reportype=5005
+retrieve,class=od,expver=0001,stream=lwda,date=20210217,time=1200,type=fsoifb,obsgroup=resat,reportype=5005
 EOF
 
 $fdbread req5005 out.odb
@@ -108,7 +108,7 @@ EOF
 
 $odc compare out.odb 6.odb
 
-$fdblist class=od,expver=0001,stream=lwda,date=20210217,time=1200,type=fsoifb,obsgroup=RESAT,reportype=5005 | tee out
+$fdblist class=od,expver=0001,stream=lwda,date=20210217,time=1200,type=fsoifb,obsgroup=resat,reportype=5005 | tee out
 
 tail -1 out > shortOut
 cmp shortOut list_fsoifb

@@ -276,7 +276,7 @@ const Index& DaosCatalogueWriter::currentIndex() {
 /// @todo: other writers may be simultaneously updating the axes KeyValues in DAOS. Should these
 ///        new updates be retrieved and put into in-memory axes from time to time, e.g. every
 ///        time a value is put in an axis KeyValue?
-void DaosCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLocation) {
+void DaosCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
 
     using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().timer();
@@ -288,7 +288,7 @@ void DaosCatalogueWriter::archive(const Key& key, const FieldLocation* fieldLoca
     }
 
     /// @note: the current index timestamp is undefined at this point
-    Field field(fieldLocation, currentIndex().timestamp());
+    Field field(std::move(fieldLocation), currentIndex().timestamp());
 
     /// @todo: is sorting axes really necessary?
     /// @note: sort in-memory axis values. Not triggering retrieval from DAOS axes.

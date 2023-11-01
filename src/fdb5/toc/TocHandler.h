@@ -212,14 +212,17 @@ private: // methods
     /// file (opened for read). It resets back to the same place when done. This is
     /// to allow searching only from the first subtoc.
     void allMaskableEntries(eckit::Offset startOffset, eckit::Offset endOffset,
-                            std::set<std::pair<eckit::PathName, eckit::Offset>>& entries) const;
+                            std::set<std::pair<eckit::PathName, eckit::Offset>>& maskedEntries) const;
     void populateMaskedEntriesList() const;
 
     void append(TocRecord &r, size_t payloadSize);
 
     // hideSubTocEntries=true returns entries as though only one toc existed (i.e. to hide
     // the mechanism of subtocs).
-    bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true, bool hideClearEntries = true) const;
+    // readMasked=true will walk subtocs and read indexes even if they are masked. This is
+    // useful for dumping indexes which are cleared, or only referred to in cleared subtocs.
+    bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true,
+                  bool hideClearEntries = true, bool readMasked = false) const;
 
     bool readNextInternal(TocRecord &r) const;
 
@@ -238,6 +241,7 @@ private: // members
 
     bool useSubToc_;
     bool isSubToc_;
+    bool preloadBTree_;
 
     // If we have mounted another TocCatalogue internally, what is the current
     // remapping key?

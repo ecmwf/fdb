@@ -88,6 +88,7 @@ public: // methods
     virtual void entries(EntryVisitor& visitor) const = 0;
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 
+    virtual bool partialMatch(const metkit::mars::MarsRequest& request) const;
     virtual bool mayContain(const Key& key) const;
 
     virtual IndexStats statistics() const = 0;
@@ -177,6 +178,7 @@ public: // methods
     IndexBase* content() { return content_; }
     const IndexBase* content() const { return content_; }
 
+    bool partialMatch(const metkit::mars::MarsRequest& request) const { return content_->partialMatch(request); }
     bool mayContain(const Key& key) const { return content_->mayContain(key); }
 
     bool null() const { return null_; }

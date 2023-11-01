@@ -72,7 +72,7 @@ public:
             datumRequest_.unsetValues(kv.first);
         }
 
-        if (index.key().partialMatch(request_)) {
+        if (index.partialMatch(request_)) {
             return true; // Explore contained entries
         }
         return false; // Skip contained entries

@@ -43,7 +43,8 @@ public: // methods
 
     Field();
 
-    Field(const FieldLocation* location, time_t timestamp, const FieldDetails& details = FieldDetails());
+    Field(std::unique_ptr<FieldLocation> location, time_t timestamp, const FieldDetails& details = FieldDetails());
+    Field(const FieldLocation&& location, time_t timestamp, const FieldDetails& details = FieldDetails());
 
     eckit::DataHandle* dataHandle() const { return location_->dataHandle(); }
 
