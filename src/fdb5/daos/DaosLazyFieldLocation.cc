@@ -25,7 +25,7 @@ DaosLazyFieldLocation::DaosLazyFieldLocation(const fdb5::DaosKeyValueName& index
     FieldLocation(), index_(index), key_(key) {}
 
 std::shared_ptr<FieldLocation> DaosLazyFieldLocation::make_shared() const {
-    return std::make_shared<DaosLazyFieldLocation>(*this);
+    return std::make_shared<DaosLazyFieldLocation>(std::move(*this));
 }
 
 eckit::DataHandle* DaosLazyFieldLocation::dataHandle() const {

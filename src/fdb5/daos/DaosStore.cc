@@ -118,7 +118,7 @@ eckit::DataHandle* DaosStore::retrieve(Field& field) const {
 
 }
 
-FieldLocation* DaosStore::archive(const Key &key, const void *data, eckit::Length length) {
+std::unique_ptr<FieldLocation> DaosStore::archive(const Key &key, const void *data, eckit::Length length) {
 
     using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().timer();
@@ -159,7 +159,7 @@ FieldLocation* DaosStore::archive(const Key &key, const void *data, eckit::Lengt
     /// - write (daos_array_write) -- always performed
     h->write(data, length);
 
-    return new DaosFieldLocation(n.URI(), 0, length, fdb5::Key());
+    return std::unique_ptr<DaosFieldLocation>(new DaosFieldLocation(n.URI(), 0, length, fdb5::Key()));
 
     /// @note: performed RPCs:
     /// - close (daos_array_close here) -- always performed

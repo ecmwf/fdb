@@ -232,7 +232,7 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
             if (key == "axes" || key == "key") continue;
 
             std::unique_ptr<fdb5::FieldLocation> fl(new fdb5::DaosLazyFieldLocation(location_.daosName(), key));
-            fdb5::Field field(fl.get(), time_t(), fdb5::FieldDetails());
+            fdb5::Field field(fl, time_t(), fdb5::FieldDetails());
             visitor.visitDatum(field, key);
 
         }
