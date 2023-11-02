@@ -17,6 +17,9 @@
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
 
+#include "fdb5/toc/TocSession.h"
+#include "fdb5/toc/TocIOStats.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -36,6 +39,13 @@ TocCatalogueReader::~TocCatalogueReader() {
 }
 
 void TocCatalogueReader::loadIndexesAndRemap() {
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"retrieve 001 TocCatalogueReader::loadIndexes", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+
     std::vector<Key> remapKeys;
     std::vector<Index> indexes = loadIndexes(false, nullptr, nullptr, &remapKeys);
 
@@ -106,6 +116,12 @@ void TocCatalogueReader::close() {
 bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
     eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"retrieve 002 TocCatalogueReader::retrieve", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         const Index& idx((*m)->first);

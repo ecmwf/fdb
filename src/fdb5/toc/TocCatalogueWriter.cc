@@ -23,6 +23,9 @@
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/io/LustreSettings.h"
 
+#include "fdb5/toc/TocSession.h"
+#include "fdb5/toc/TocIOStats.h"
+
 using namespace eckit;
 
 namespace fdb5 {
@@ -302,8 +305,14 @@ void TocCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> 
         selectIndex(currentIndexKey_);
     }
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
     Field field(std::move(fieldLocation), currentIndex().timestamp());
 
+    fdb5::TocStatsTimer st{"archive 001 TocCatalogueWriter::archive", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    
     current_.put(key, field);
 
     if (useSubToc())
@@ -314,6 +323,12 @@ void TocCatalogueWriter::flush() {
     if (!dirty_) {
         return;
     }
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"archive 002 TocCatalogueWriter::flush", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
     flushIndexes();
 

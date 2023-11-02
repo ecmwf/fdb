@@ -19,6 +19,9 @@
 #include "fdb5/toc/TocWipeVisitor.h"
 #include "fdb5/toc/TocMoveVisitor.h"
 
+#include "fdb5/toc/TocSession.h"
+#include "fdb5/toc/TocIOStats.h"
+
 using namespace eckit;
 
 namespace fdb5 {
@@ -100,6 +103,13 @@ void TocCatalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool 
 
 void TocCatalogue::loadSchema() {
     Timer timer("TocCatalogue::loadSchema()", Log::debug<LibFdb5>());
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"retrieve 000 TocCatalogue::loadSchema", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+
     schema_.load( schemaPath() );
 }
 

@@ -28,6 +28,9 @@
 #include "fdb5/io/FDBFileHandle.h"
 #include "fdb5/io/LustreFileHandle.h"
 
+#include "fdb5/toc/TocSession.h"
+#include "fdb5/toc/TocIOStats.h"
+
 using namespace eckit;
 
 namespace fdb5 {
@@ -111,6 +114,13 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
 }
 
 std::unique_ptr<FieldLocation> TocStore::archive(const Key &key, const void *data, eckit::Length length) {
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"archive 003 TocStore::archive", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);
@@ -130,6 +140,12 @@ void TocStore::flush() {
     if (!dirty_) {
         return;
     }
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"archive 004 TocStore::flush", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
     // ensure consistent state before writing Toc entry
 
