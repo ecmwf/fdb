@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include <unistd.h>
+
 #include "eckit/runtime/Main.h"
 #include "eckit/utils/Translator.h"
 

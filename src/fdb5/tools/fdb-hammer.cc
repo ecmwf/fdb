@@ -373,7 +373,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     gettimeofday(&(tval_after_io.at(0)), NULL);
 
     // comment out for DAOS runs
-    t.stop();
+    st.stop();
 
     timer.stop();
 
