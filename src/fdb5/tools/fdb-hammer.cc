@@ -127,8 +127,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     size_t nensembles = args.getLong("nensembles", 1);
     size_t nlevels = args.getLong("nlevels");
     size_t nparams = args.getLong("nparams");
-    //size_t number = args.getLong("number", 1);
-    size_t number = args.getLong("number", 0);
+    size_t number = args.getLong("number", 1);
     size_t level = args.getLong("level", 1);
 
     // size_t node_id  = args.getLong("node-id", 0);
@@ -158,9 +157,9 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
 
     timer.start();
 
-    for (size_t member = 0; member < nensembles; ++member) {
+    for (size_t member = 1; member <= nensembles; ++member) {
         if (args.has("nensembles")) {
-            CODES_CHECK(codes_set_long(handle, "number", member+number), 0);
+            CODES_CHECK(codes_set_long(handle, "number", member+number-1), 0);
         }
         for (size_t step = 0; step < nsteps; ++step) {
             CODES_CHECK(codes_set_long(handle, "step", step), 0);
@@ -309,8 +308,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     size_t nensembles = args.getLong("nensembles", 1);
     size_t nlevels = args.getLong("nlevels");
     size_t nparams = args.getLong("nparams");
-    size_t number = args.getLong("number", 0);
-    //size_t number = args.getLong("number", 1);
+    size_t number = args.getLong("number", 1);
     size_t level = args.getLong("level", 1);
 
     // size_t node_id  = args.getLong("node-id", 0);
@@ -331,9 +329,9 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     size_t fieldsRead = 0;
 
     //for (size_t member = 1; member <= nensembles; ++member) {
-    for (size_t member = 0; member < nensembles; ++member) {
+    for (size_t member = 1; member <= nensembles; ++member) {
         if (args.has("nensembles")) {
-            request.setValue("number", member+number);
+            request.setValue("number", member+number-1);
         }
         for (size_t step = 0; step < nsteps; ++step) {
             request.setValue("step", step);
@@ -474,8 +472,7 @@ void FDBWrite::executeList(const eckit::option::CmdArgs &args) {
     size_t nensembles = args.getLong("nensembles", 1);
     size_t nlevels = args.getLong("nlevels");
     size_t nparams = args.getLong("nparams");
-    size_t number = args.getLong("number", 0);
-    //size_t number = args.getLong("number", 1);
+    size_t number = args.getLong("number", 1);
     size_t level = args.getLong("level", 1);
 
     // size_t node_id  = args.getLong("node-id", 0);
@@ -491,8 +488,8 @@ void FDBWrite::executeList(const eckit::option::CmdArgs &args) {
     fdb5::ListElement info;
 
     std::vector<std::string> number_values;
-    for (size_t n = 0; n < nensembles; ++n) {
-        number_values.push_back(std::to_string(n + number));
+    for (size_t n = 1; n <= nensembles; ++n) {
+        number_values.push_back(std::to_string(n + number - 1));
     }
     request.values("number", number_values);
    
