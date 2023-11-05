@@ -8,12 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
-#ifndef fdb5_remote_CatalogueHandler_H
-#define fdb5_remote_CatalogueHandler_H
+#pragma once
 
 #include "fdb5/remote/server/ServerConnection.h"
 #include "fdb5/api/FDB.h"
-
 
 namespace fdb5::remote {
 //----------------------------------------------------------------------------------------------------------------------
@@ -55,5 +53,3 @@ private:  // member
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5::remote
-
-#endif  // fdb5_remote_CatalogueHandler_H

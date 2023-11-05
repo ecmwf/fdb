@@ -74,7 +74,7 @@ private: // methods
     // Client
 
     bool handle(remote::Message message, uint32_t requestID) override;
-    bool handle(remote::Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) override;
+    bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) override;
     void handleException(std::exception_ptr e) override;
 
 private: // members

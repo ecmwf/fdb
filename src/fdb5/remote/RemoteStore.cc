@@ -187,7 +187,8 @@ FDBStats RemoteStoreArchiver::archiveThreadLoop() {
         // And note that we are done. (don't time this, as already being blocked
         // on by the ::flush() routine)
 
-        element.store_->dataWrite(Message::Flush, nullptr, 0);
+
+        element.store_->dataWrite(Message::Flush, 0);
 
         archiveQueue_.reset();
 
@@ -456,7 +457,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
             return false;
     }
 }
-bool RemoteStore::handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) {
+bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& payload) {
 
     switch (message) {
     
@@ -466,7 +467,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::net::Endpoi
                 MemoryStream s(payload);
                 std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
                 // std::cout <<  "RemoteStore::handle - " << location->uri().asRawString() << " " << location->length() << std::endl;
-                std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(endpoint, *location));
+                std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(endpoint_, *location));
                 it->second.set_value(std::move(remoteLocation));
             }
             return true;
@@ -487,7 +488,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::net::Endpoi
                 std::string msg;
                 msg.resize(payload.size(), ' ');
                 payload.copy(&msg[0], payload.size());
-                it->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, endpoint)));
+                it->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, endpoint_)));
 
                 // Remove entry (shared_ptr --> message queue will be destroyed when it
                 // goes out of scope in the worker thread).
@@ -496,7 +497,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::net::Endpoi
             } else {
                 auto it = locations_.find(requestID);
                 if (it != locations_.end()) {
-                    archiver_->error(std::move(payload), endpoint);
+                    archiver_->error(std::move(payload), endpoint_);
                 } else {
                     retrieveMessageQueue_.emplace(message, std::move(payload));
                 }
@@ -531,11 +532,11 @@ void RemoteStore::sendArchiveData(uint32_t id, const Key& key, const void* data,
     keyStream << dbKey_;
     keyStream << key;
 
-    MessageHeader message(Message::Blob, 0, id, length + keyStream.position());
-    dataWrite(id, &message, sizeof(message));
-    dataWrite(id, keyBuffer, keyStream.position());
-    dataWrite(id, data, length);
-    dataWrite(id, &EndMarker, sizeof(EndMarker));
+    std::vector<std::pair<const void*, uint32_t>> payloads;
+    payloads.push_back(std::pair<const void*, uint32_t>{keyBuffer, keyStream.position()});
+    payloads.push_back(std::pair<const void*, uint32_t>{data, length});
+
+    dataWrite(Message::Blob, id, payloads);
 }
 
 eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
@@ -554,8 +555,18 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
     return new FDBRemoteDataHandle(id, retrieveMessageQueue_, endpoint_);
 }
 
+RemoteStore& RemoteStore::get(const eckit::URI& uri) {
+    // we memoise one read store for each endpoint. Do not need to have one for each key
+    static std::map<std::string, std::unique_ptr<RemoteStore> > readStores_;
 
+    const std::string& endpoint = uri.hostport();
+    auto it = readStores_.find(endpoint);
+    if (it != readStores_.end()) {
+        return *(it->second);
+    }
 
+    return *(readStores_[endpoint] = std::unique_ptr<RemoteStore>(new RemoteStore(uri, Config())));
+}
 
 static StoreBuilder<RemoteStore> builder("remote");
 

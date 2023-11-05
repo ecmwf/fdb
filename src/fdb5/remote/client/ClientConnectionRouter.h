@@ -11,19 +11,30 @@
 #pragma once
 
 #include <map>
+#include <set>
 
-#include "eckit/config/Configuration.h"
-#include "eckit/memory/NonCopyable.h"
-#include "eckit/net/Endpoint.h"
-#include "eckit/thread/Mutex.h"
+// #include "eckit/config/Configuration.h"
+// #include "eckit/memory/NonCopyable.h"
+// #include "eckit/net/Endpoint.h"
+// #include "eckit/thread/Mutex.h"
 
-#include "fdb5/database/Store.h"
-#include "fdb5/remote/Messages.h"
+// #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnection.h"
-#include "fdb5/remote/RemoteStore.h"
 
 namespace fdb5::remote {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class Connection {
+public:
+
+    Connection(std::unique_ptr<ClientConnection> connection, Client& clients)
+        : connection_(std::move(connection)), clients_(std::set<Client*>{&clients}) {}
+
+    std::unique_ptr<ClientConnection> connection_;
+    std::set<Client*> clients_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -31,38 +42,37 @@ class ClientConnectionRouter : eckit::NonCopyable {
 public:
 
     static ClientConnectionRouter& instance();
-    RemoteStore& store(const eckit::URI& uri);
-    static uint32_t generateRequestID();
+    // static uint32_t generateRequestID();
 
-    uint32_t controlWriteCheckResponse(Client& client, Message msg, uint32_t requestID = generateRequestID(), const void* payload=nullptr, uint32_t payloadLength=0);
-    eckit::Buffer controlWriteReadResponse(Client& client, remote::Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
-    uint32_t controlWrite(Client& client, Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
-    void controlRead(Client& client, uint32_t requestId, void* payload, size_t payloadLength);
+    // uint32_t controlWriteCheckResponse(Client& client, Message msg, uint32_t requestID = generateRequestID(), const void* payload=nullptr, uint32_t payloadLength=0);
+    // eckit::Buffer controlWriteReadResponse(Client& client, remote::Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
+    // uint32_t controlWrite(Client& client, Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
+    // void controlRead(Client& client, uint32_t requestId, void* payload, size_t payloadLength);
 
-    uint32_t dataWrite(Client& client, Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
-    void dataWrite(Client& client, uint32_t requestId, const void* data, size_t length);
+    // uint32_t dataWrite(Client& client, Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
+    // void dataWrite(Client& client, uint32_t requestId, const void* data, size_t length);
 
-    // handlers for incoming messages - to be defined in the client class
-    bool handle(Message message, uint32_t requestID);
-    bool handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload);
-    void handleException(std::exception_ptr e);
+    // // handlers for incoming messages - to be defined in the client class
+    // bool handle(Message message, uint32_t requestID);
+    // bool handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload);
+    // void handleException(std::exception_ptr e);
+
+    ClientConnection* connection(Client& client);
+
+    void deregister(Client& client);
 
 private:
 
     ClientConnectionRouter() {} ///< private constructor only used by singleton
 
-    uint32_t createConnection(Client& client, ClientConnection*& conn, bool add=true, uint32_t id = generateRequestID());
 
-    eckit::Mutex mutex_;
+    std::mutex connectionMutex_;
 
-    std::map<uint32_t, std::pair<ClientConnection*, Client*> > requests_;
+    // std::map<Client*, std::vector<uint32_t>> currentRequests_;
+    // std::map<ClientConnection*, size_t>
 
     // endpoint -> connection
-    std::map<std::string, std::unique_ptr<ClientConnection> > connections_;
-
-    // endpoint -> Store (one read store for each connection. Do not need to have one for each key)
-    std::map<std::string, std::unique_ptr<RemoteStore> > readStores_;
-
+    std::map<std::string, Connection> connections_;
 };
 
 }

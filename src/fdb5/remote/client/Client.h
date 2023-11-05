@@ -10,12 +10,15 @@
 
 #pragma once
 
+#include <future>
+
 #include "eckit/config/Configuration.h"
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/net/Endpoint.h"
 
 #include "fdb5/database/Key.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/client/ClientConnection.h"
 
 namespace fdb5::remote {
 
@@ -33,25 +36,37 @@ class Client : eckit::NonCopyable {
 public:
     Client(const eckit::net::Endpoint& endpoint);
 
-    const eckit::net::Endpoint& controlEndpoint() { return endpoint_; }
+    const eckit::net::Endpoint& controlEndpoint() const { return endpoint_; }
 
-    static uint32_t generateRequestID();
+    // uint32_t generateRequestID();
 
-    uint32_t controlWriteCheckResponse(Message msg, const void* payload=nullptr, uint32_t payloadLength=0, uint32_t requestID = generateRequestID());
+    uint32_t controlWriteCheckResponse(Message msg,                     const void* payload=nullptr, uint32_t payloadLength=0);
+    void     controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     eckit::Buffer controlWriteReadResponse(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
-    uint32_t controlWrite(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
+//    uint32_t controlWrite(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
 
-    uint32_t dataWrite(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
-    void dataWrite(uint32_t requestId, const void* data, size_t length);
-
+    void dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
+    
     // handlers for incoming messages - to be defined in the client class
     virtual bool handle(Message message, uint32_t requestID) = 0;
-    virtual bool handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) = 0;
+    virtual bool handle(Message message, uint32_t requestID, /*eckit::net::Endpoint endpoint,*/ eckit::Buffer&& payload) = 0;
     virtual void handleException(std::exception_ptr e) = 0;
 
-protected:
+    bool response(uint32_t requestID);
+    bool response(uint32_t requestID, eckit::Buffer&& payload);
+    uint32_t blockingRequestId() { return blockingRequestId_; }
 
+protected:
+    
     eckit::net::Endpoint endpoint_;
+
+    ClientConnection& connection_;
+
+
+private:
+
+    uint32_t blockingRequestId_;
+    std::promise<eckit::Buffer> payload_;
 
 };
 

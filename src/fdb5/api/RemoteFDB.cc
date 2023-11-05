@@ -92,7 +92,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     // Ensure we have an entry in the message queue before we trigger anything that
     // will result in return messages
 
-    uint32_t id = generateRequestID();
+    uint32_t id = connection_.generateRequestID();
     auto entry = messageQueues_.emplace(id, std::make_shared<MessageQueue>(HelperClass::queueSize()));
     ASSERT(entry.second);
     std::shared_ptr<MessageQueue> messageQueue(entry.first->second);
@@ -104,7 +104,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     s << request;
     helper.encodeExtra(s);
 
-    controlWriteCheckResponse(HelperClass::message(), encodeBuffer, s.position(), id);
+    controlWriteCheckResponse(HelperClass::message(), id, encodeBuffer, s.position());
 
     // Return an AsyncIterator to allow the messages to be retrieved in the API
 
@@ -218,7 +218,7 @@ bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
             return false;
     }
 }
-bool RemoteFDB::handle(remote::Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) {
+bool RemoteFDB::handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) {
 
     switch (message) {
         case fdb5::remote::Message::Blob: {

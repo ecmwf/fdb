@@ -108,7 +108,7 @@ void StoreHandler::handle() {
                     ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message)
                        << "). ABORTING";
                     Log::status() << ss.str() << std::endl;
-                    Log::error() << "Retrieving... " << ss.str() << std::endl;
+                    Log::error() << "Store Retrieving... " << ss.str() << std::endl;
                     throw SeriousBug(ss.str(), Here());
                 }
             }
@@ -118,16 +118,16 @@ void StoreHandler::handle() {
             ASSERT(tail == EndMarker);
 
             // Acknowledge receipt of command
-            controlWrite(Message::Received, hdr.requestID);
+            dataWrite(Message::Received, hdr.requestID);
         }
         catch (std::exception& e) {
             // n.b. more general than eckit::Exception
             std::string what(e.what());
-            controlWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+            dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
         }
         catch (...) {
             std::string what("Caught unexpected and unknown error");
-            controlWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+            dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
         }
     }
 }

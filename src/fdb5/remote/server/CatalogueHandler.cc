@@ -21,7 +21,6 @@ using metkit::mars::MarsRequest;
 
 namespace fdb5::remote {
 
-
 // ***************************************************************************************
 //
 // Note that we use the "control" and "data" connections in a specific way, although these
@@ -31,9 +30,8 @@ namespace fdb5::remote {
 // ***************************************************************************************
 
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config):
-    ServerConnection(socket, config) {
+    ServerConnection(socket, config) {}
 
-}
 CatalogueHandler::~CatalogueHandler() {}
 
 void CatalogueHandler::initialiseConnections() {
@@ -75,7 +73,7 @@ void CatalogueHandler::initialiseConnections() {
         }
         s << config_.schema();
 
-        controlWrite(Message::Received, hdr.requestID, startupBuffer.data(), s.position());
+        dataWrite(Message::Received, hdr.requestID, startupBuffer.data(), s.position());
     }
 }
 
@@ -240,7 +238,7 @@ void CatalogueHandler::handle() {
                     ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message)
                        << "). ABORTING";
                     Log::status() << ss.str() << std::endl;
-                    Log::error() << "Retrieving... " << ss.str() << std::endl;
+                    Log::error() << "Catalogue Retrieving... " << ss.str() << std::endl;
                     throw SeriousBug(ss.str(), Here());
                 }
             }
@@ -251,17 +249,17 @@ void CatalogueHandler::handle() {
 
             if (!ack) {
                 // Acknowledge receipt of command
-                controlWrite(Message::Received, hdr.requestID);
+                dataWrite(Message::Received, hdr.requestID);
             }
         }
         catch (std::exception& e) {
             // n.b. more general than eckit::Exception
             std::string what(e.what());
-            controlWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+            dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
         }
         catch (...) {
             std::string what("Caught unexpected and unknown error");
-            controlWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+            dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
         }
     }
 }
@@ -438,7 +436,7 @@ void CatalogueHandler::schema(const MessageHeader& hdr) {
     eckit::MemoryStream stream(schemaBuffer);
     stream << schema;
 
-    controlWrite(Message::Received, hdr.requestID, schemaBuffer.data(), stream.position());
+    dataWrite(Message::Received, hdr.requestID, schemaBuffer.data(), stream.position());
 }
 
 CatalogueWriter& CatalogueHandler::catalogue(Key dbKey) {

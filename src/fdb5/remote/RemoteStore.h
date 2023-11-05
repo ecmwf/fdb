@@ -20,7 +20,6 @@
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/client/Client.h"
 
-
 namespace fdb5::remote {
 
 class RemoteStoreArchiver;
@@ -43,6 +42,8 @@ public: // methods
     RemoteStore(const eckit::URI& uri, const Config& config);
 
     ~RemoteStore() override;
+
+    static RemoteStore& get(const eckit::URI& uri);
 
     eckit::URI uri() const override;
 
@@ -82,7 +83,7 @@ private: // methods
 
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
-    bool handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) override;
+    bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
     void handleException(std::exception_ptr e) override;
 
 private: // members

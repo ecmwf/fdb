@@ -174,7 +174,7 @@ FDBStats RemoteCatalogueArchiver::archiveThreadLoop() {
         // And note that we are done. (don't time this, as already being blocked
         // on by the ::flush() routine)
 
-        element.catalogue_->dataWrite(Message::Flush, nullptr, 0);
+        element.catalogue_->dataWrite(Message::Flush, 0);
 
         archiveQueue_.reset();
 
@@ -223,11 +223,11 @@ void RemoteCatalogue::sendArchiveData(uint32_t id, const Key& key, std::unique_p
     MemoryStream locStream(locBuffer);
     locStream << *fieldLocation;
 
-    MessageHeader message(Message::Blob, 0, id, keyStream.position() + locStream.position());
-    dataWrite(id, &message, sizeof(message));
-    dataWrite(id, keyBuffer, keyStream.position());
-    dataWrite(id, locBuffer, locStream.position());
-    dataWrite(id, &EndMarker, sizeof(EndMarker));
+    std::vector<std::pair<const void*, uint32_t>> payloads;
+    payloads.push_back(std::pair<const void*, uint32_t>{keyBuffer, keyStream.position()});
+    payloads.push_back(std::pair<const void*, uint32_t>{locBuffer, locStream.position()});
+
+    dataWrite(Message::Blob, id, payloads);
 }
 
 void RemoteCatalogue::archive(const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
@@ -321,7 +321,7 @@ bool RemoteCatalogue::handle(Message message, uint32_t requestID) {
     NOTIMP;
     return false;
 }
-bool RemoteCatalogue::handle(Message message, uint32_t requestID, eckit::net::Endpoint endpoint, eckit::Buffer&& payload) {
+bool RemoteCatalogue::handle(Message message, uint32_t requestID, eckit::Buffer&& payload) {
     eckit::Log::debug<LibFdb5>() << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << ",payloadSize=" << payload.size() << "]" << std::endl;
     // if (message == Message::Schema) {
     //     eckit::Log::debug<LibFdb5>() << "RemoteCatalogue::handle received payload size: " << payload.size() << std::endl;

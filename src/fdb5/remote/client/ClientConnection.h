@@ -22,24 +22,16 @@
 #include "eckit/runtime/SessionID.h"
 
 #include "fdb5/remote/Messages.h"
-#include "eckit/utils/Translator.h"
 
 namespace eckit {
 
 class Buffer;
 
-// // xxx can we give this code a better home?
-// template<> struct Translator<net::Endpoint, std::string> {
-//     std::string operator()(const net::Endpoint& e) {
-//         std::stringstream ss;
-//         ss << e;
-//         return ss.str();
-//     }
-// };
-
 }
 
 namespace fdb5::remote {
+
+class Client;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -49,28 +41,24 @@ public: // types
 
 public: // methods
 
-    ClientConnection(const eckit::net::Endpoint& controlEndpoint, const eckit::Configuration& config);
+    ClientConnection(const eckit::net::Endpoint& controlEndpoint);
     virtual ~ClientConnection();
 
-    void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    eckit::Buffer controlWriteReadResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    void controlWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    void dataWrite(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-
-    void controlRead(void* data, size_t length);
-    void controlWrite(const void* data, size_t length);
-
-    void dataWrite(const void* data, size_t length);
-    void dataRead(void* data, size_t length);
+    // void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    // eckit::Buffer controlWriteReadResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
+    void dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
 
     void connect();
     void disconnect();
+
+    uint32_t generateRequestID();
 
 protected: // methods
 
     const eckit::net::Endpoint& controlEndpoint() const;
     const eckit::net::Endpoint& dataEndpoint() const;
-
+    
     // // handlers for incoming messages - to be defined in the client class
     // virtual void handle(Message message, uint32_t requestID) = 0;
     // virtual void handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
@@ -81,12 +69,20 @@ protected: // methods
 
 private: // methods
 
+    void controlWrite(Message msg, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
+    void controlWrite(const void* data, size_t length);
+    void controlRead (      void* data, size_t length);
+    void dataWrite   (const void* data, size_t length);
+    void dataRead    (      void* data, size_t length);
+ 
+    void addRequest(Client& client, uint32_t requestId);
+
     void writeControlStartupMessage();
     void writeDataStartupMessage(const eckit::SessionID& serverSession);
 
     eckit::SessionID verifyServerStartupResponse();
 
-    void handleError(const remote::MessageHeader& hdr);
+    void handleError(const MessageHeader& hdr);
 
     void listeningThreadLoop();
 
@@ -100,7 +96,16 @@ private: // members
     eckit::net::TCPClient controlClient_;
     eckit::net::TCPClient dataClient_;
 
+    std::map<uint32_t, Client*> requests_;
+
     std::thread listeningThread_;
+    
+    std::mutex controlMutex_;
+    std::mutex dataMutex_;
+
+    // requestId
+    std::mutex idMutex_;
+    uint32_t id_;
 
     bool connected_;
     

@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   Apr 2018
 
-#ifndef fdb5_remote_Messages_H
-#define fdb5_remote_Messages_H
+#pragma once
 
 #include "eckit/types/FixedString.h"
 #include "eckit/serialisation/Streamable.h"
@@ -28,9 +27,7 @@ namespace eckit {
     class Stream;
 }
 
-
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -83,15 +80,13 @@ public: // methods
     MessageHeader() :
         version(CurrentVersion),
         message(Message::None),
-        remoteID(0),
         requestID(0),
         payloadSize(0) {}
 
-    MessageHeader(Message message, uint32_t remoteID, uint32_t requestID, uint32_t payloadSize=0) :
+    MessageHeader(Message message, uint32_t requestID, uint32_t payloadSize=0) :
         marker(StartMarker),
         version(CurrentVersion),
         message(message),
-        remoteID(remoteID),
         requestID(requestID),
         payloadSize(payloadSize) {}
 
@@ -101,19 +96,14 @@ public: // methods
 
     Message message;                // 2 bytes  --> 8
 
-    uint32_t remoteID;              // 4 bytes  --> 12
+    uint32_t requestID;             // 4 bytes  --> 12
 
-    uint32_t requestID;             // 4 bytes  --> 16
+    uint32_t payloadSize;           // 4 bytes  --> 16
 
-    uint32_t payloadSize;           // 4 bytes  --> 20
-
-    eckit::FixedString<16> hash;    // 16 bytes --> 36
+    eckit::FixedString<16> hash;    // 16 bytes --> 32
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
-
-#endif // fdb5_remote_Messages_H
+} // namespace fdb5::remote

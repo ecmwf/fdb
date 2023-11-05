@@ -68,7 +68,7 @@ private: // members
 
     friend class BaseArchiveVisitor;
 
-    typedef std::map< Key, std::pair<time_t, std::pair<std::unique_ptr<CatalogueWriter>, std::unique_ptr<Store> > > > store_t;
+    typedef std::map<Key, std::pair<time_t, std::pair<std::unique_ptr<CatalogueWriter>, std::unique_ptr<Store>>>> store_t;
 
     Config dbConfig_;
 

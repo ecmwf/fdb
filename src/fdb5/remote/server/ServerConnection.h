@@ -26,18 +26,10 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 
-#include "metkit/mars/MarsRequest.h"
-
-#include "fdb5/api/FDBFactory.h"
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/remote/Messages.h"
 
-namespace fdb5 {
-
-class Config;
-
-namespace remote {
+namespace fdb5::remote {
 
 struct MessageHeader;
 
@@ -61,11 +53,9 @@ protected:
     int selectDataPort();
     virtual void initialiseConnections();
     eckit::LocalConfiguration availableFunctionality() const;
-
-    void controlWrite(Message msg, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
-    void controlWrite(const void* data, size_t length);
-    void socketRead(void* data, size_t length, eckit::net::TCPSocket& socket);
     
+    void socketRead(void* data, size_t length, eckit::net::TCPSocket& socket);
+
     // dataWrite is protected using a mutex, as we may have multiple workers.
     void dataWrite(Message msg, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
     eckit::Buffer receivePayload(const MessageHeader& hdr, eckit::net::TCPSocket& socket);
@@ -77,6 +67,10 @@ protected:
     void tidyWorkers();
     void waitForWorkers();
 
+private:
+
+    void controlWrite(Message msg, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
+    void controlWrite(const void* data, size_t length);
 
     // virtual void read(const MessageHeader& hdr);
     // virtual void archive(const MessageHeader& hdr);
@@ -89,7 +83,7 @@ protected:
     eckit::net::TCPSocket controlSocket_;
     eckit::net::EphemeralTCPServer dataSocket_;
     std::string dataListenHostname_;
-    // FDB fdb_;
+
     eckit::Queue<std::pair<uint32_t, std::unique_ptr<eckit::DataHandle>>> readLocationQueue_;
 
     eckit::SessionID sessionID_;
@@ -104,9 +98,4 @@ protected:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace remote
-}  // namespace fdb5
-
-
-//----------------------------------------------------------------------------------------------------------------------
-
+}  // namespace fdb5::remote

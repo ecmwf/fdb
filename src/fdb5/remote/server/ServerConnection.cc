@@ -22,8 +22,6 @@
 #include "eckit/runtime/SessionID.h"
 #include "eckit/serialisation/MemoryStream.h"
 
-#include "metkit/mars/MarsRequest.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/fdb5_version.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -35,11 +33,7 @@
 
 #include "fdb5/remote/server/ServerConnection.h"
 
-using namespace eckit;
-using metkit::mars::MarsRequest;
-
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 // helpers
 namespace {
@@ -50,7 +44,7 @@ public:
         eckit::Exception(std::string("TCPException: ") + msg, here) {}
 };
 
-std::vector<int> intersection(const LocalConfiguration& c1, const LocalConfiguration& c2, const std::string& field){
+std::vector<int> intersection(const eckit::LocalConfiguration& c1, const eckit::LocalConfiguration& c2, const std::string& field){
 
     std::vector<int> v1 = c1.getIntVector(field);
     std::vector<int> v2 = c2.getIntVector(field);
@@ -64,6 +58,7 @@ std::vector<int> intersection(const LocalConfiguration& c1, const LocalConfigura
                           back_inserter(v3));
     return v3;
 }
+
 } // namespace
 
 ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& config) :
@@ -71,7 +66,6 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
         controlSocket_(socket),
         dataSocket_(selectDataPort()),
         dataListenHostname_(config.getString("dataListenHostname", "")),
-        // fdb_(config),
         readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {
             eckit::Log::debug<LibFdb5>() << "ServerConnection::ServerConnection initialized" << std::endl;
     }
@@ -81,9 +75,9 @@ ServerConnection::~ServerConnection() {
     waitForWorkers();
 
     // And notify the client that we are done.
-    Log::info() << "Sending exit message to client" << std::endl;
+    eckit::Log::info() << "Sending exit message to client" << std::endl;
     dataWrite(Message::Exit, 0);
-    Log::info() << "Done" << std::endl;
+    eckit::Log::info() << "Done" << std::endl;
 }
 
 eckit::LocalConfiguration ServerConnection::availableFunctionality() const {
@@ -100,21 +94,21 @@ void ServerConnection::initialiseConnections() {
     MessageHeader hdr;
     socketRead(&hdr, sizeof(hdr), controlSocket_);
 
-
     ASSERT(hdr.marker == StartMarker);
     ASSERT(hdr.version == CurrentVersion);
     ASSERT(hdr.message == Message::Startup);
-    ASSERT(hdr.remoteID == 0);
     ASSERT(hdr.requestID == 0);
 
-    Buffer payload1 = receivePayload(hdr, controlSocket_);
+    std::cout << "ServerConnection::initialiseConnections() - payload "<< hdr.payloadSize << std::endl;
+
+    eckit::Buffer payload1 = receivePayload(hdr, controlSocket_);
     eckit::FixedString<4> tail;
     socketRead(&tail, sizeof(tail), controlSocket_);
     ASSERT(tail == EndMarker);
 
-    MemoryStream s1(payload1);
-    SessionID clientSession(s1);
-    net::Endpoint endpointFromClient(s1);
+    eckit::MemoryStream s1(payload1);
+    eckit::SessionID clientSession(s1);
+    eckit::net::Endpoint endpointFromClient(s1);
     unsigned int remoteProtocolVersion = 0;
     std::string errorMsg;
 
@@ -133,9 +127,9 @@ void ServerConnection::initialiseConnections() {
     }
 
     if (errorMsg.empty()) {
-        LocalConfiguration clientAvailableFunctionality(s1);
-        LocalConfiguration serverConf = availableFunctionality();
-        agreedConf_ = LocalConfiguration();
+        eckit::LocalConfiguration clientAvailableFunctionality(s1);
+        eckit::LocalConfiguration serverConf = availableFunctionality();
+        agreedConf_ = eckit::LocalConfiguration();
 
         // agree on a common functionality by intersecting server and client version numbers
         std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
@@ -159,12 +153,12 @@ void ServerConnection::initialiseConnections() {
     //               the capacity in the protocol for the server to make a choice.
 
     int dataport = dataSocket_.localPort();
-    net::Endpoint dataEndpoint(endpointFromClient.hostname(), dataport);
+    eckit::net::Endpoint dataEndpoint(endpointFromClient.hostname(), dataport);
 
-    Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
+    eckit::Log::info() << "Sending data endpoint to client: " << dataEndpoint << std::endl;
     {
-        Buffer startupBuffer(1024);
-        MemoryStream s(startupBuffer);
+        eckit::Buffer startupBuffer(1024);
+        eckit::MemoryStream s(startupBuffer);
 
         s << clientSession;
         s << sessionID_;
@@ -173,7 +167,6 @@ void ServerConnection::initialiseConnections() {
         // s << storeEndpoint; // xxx single-store case only: we cant do this with multiple stores // For now, dont send the store endpoint to the client 
 
         eckit::Log::debug<LibFdb5>() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
-
 
         controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
     }
@@ -199,24 +192,24 @@ void ServerConnection::initialiseConnections() {
     ASSERT(dataHdr.message == Message::Startup);
     ASSERT(dataHdr.requestID == 0);
 
-    Buffer payload2 = receivePayload(dataHdr, dataSocket_);
+    eckit::Buffer payload2 = receivePayload(dataHdr, dataSocket_);
     socketRead(&tail, sizeof(tail), dataSocket_);
     ASSERT(tail == EndMarker);
 
-    MemoryStream s2(payload2);
-    SessionID clientSession2(s2);
-    SessionID serverSession(s2);
+    eckit::MemoryStream s2(payload2);
+    eckit::SessionID clientSession2(s2);
+    eckit::SessionID serverSession(s2);
 
     if (clientSession != clientSession2) {
         std::stringstream ss;
         ss << "Client session IDs do not match: " << clientSession << " != " << clientSession2;
-        throw BadValue(ss.str(), Here());
+        throw eckit::BadValue(ss.str(), Here());
     }
 
     if (serverSession != sessionID_) {
         std::stringstream ss;
         ss << "Session IDs do not match: " << serverSession << " != " << sessionID_;
-        throw BadValue(ss.str(), Here());
+        throw eckit::BadValue(ss.str(), Here());
     }
 }
 
@@ -236,7 +229,7 @@ int ServerConnection::selectDataPort() {
 void ServerConnection::controlWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
-    MessageHeader message(msg, 0, requestID, payloadLength);
+    MessageHeader message(msg, requestID, payloadLength);
     controlWrite(&message, sizeof(message));
     if (payload) {
         controlWrite(payload, payloadLength);
@@ -265,14 +258,13 @@ void ServerConnection::socketRead(void* data, size_t length, eckit::net::TCPSock
 
 void ServerConnection::dataWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
-    Log::debug<LibFdb5>() << "ServerConnection::dataWrite [message="<< static_cast<int>(msg) << ",requestID=" << requestID << ",payloadLength=" << payloadLength << "]" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "ServerConnection::dataWrite [message="<< static_cast<int>(msg) << ",requestID=" << requestID << ",payloadLength=" << payloadLength << "]" << std::endl;
 
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
-    MessageHeader message(msg, 0, requestID, payloadLength);
+    MessageHeader message(msg, requestID, payloadLength);
 
     std::lock_guard<std::mutex> lock(dataWriteMutex_);
-
     dataWriteUnsafe(&message, sizeof(message));
     if (payload) {
         dataWriteUnsafe(payload, payloadLength);
@@ -289,8 +281,8 @@ void ServerConnection::dataWriteUnsafe(const void* data, size_t length) {
     }
 }
 
-Buffer ServerConnection::receivePayload(const MessageHeader& hdr, net::TCPSocket& socket) {
-    Buffer payload(hdr.payloadSize);
+eckit::Buffer ServerConnection::receivePayload(const MessageHeader& hdr, eckit::net::TCPSocket& socket) {
+    eckit::Buffer payload(hdr.payloadSize);
 
     ASSERT(hdr.payloadSize > 0);
     socketRead(payload, hdr.payloadSize, socket);
@@ -305,7 +297,7 @@ void ServerConnection::tidyWorkers() {
         std::future_status stat = it->second.wait_for(std::chrono::milliseconds(0));
 
         if (stat == std::future_status::ready) {
-            Log::info() << "Tidying up worker for request ID: " << it->first << std::endl;
+            eckit::Log::info() << "Tidying up worker for request ID: " << it->first << std::endl;
             workerThreads_.erase(it++);
         }
         else {
@@ -320,10 +312,10 @@ void ServerConnection::waitForWorkers() {
     tidyWorkers();
 
     for (auto& it : workerThreads_) {
-        Log::error() << "Worker thread still alive for request ID: " << it.first << std::endl;
-        Log::error() << "Joining ..." << std::endl;
+        eckit::Log::error() << "Worker thread still alive for request ID: " << it.first << std::endl;
+        eckit::Log::error() << "Joining ..." << std::endl;
         it.second.get();
-        Log::error() << "Thread complete" << std::endl;
+        eckit::Log::error() << "Thread complete" << std::endl;
     }
 
     if (readLocationWorker_.joinable()) {
@@ -331,27 +323,4 @@ void ServerConnection::waitForWorkers() {
     }
 }
 
-
-// void ServerConnection::read(const MessageHeader& hdr) {
-//     // store only
-//     NOTIMP;
-// }
-
-// void ServerConnection::archive(const MessageHeader& hdr) {
-//     // catalogue only
-//     NOTIMP;
-// }
-
-// // void ServerConnection::store(const MessageHeader& hdr) {
-// //     // store only
-// //     NOTIMP;
-// // }
-
-// void ServerConnection::flush(const MessageHeader& hdr) {
-//     // store only
-//     NOTIMP;
-// }
-
-
-}  // namespace remote
-}  // namespace fdb5
+}  // namespace fdb5::remote
