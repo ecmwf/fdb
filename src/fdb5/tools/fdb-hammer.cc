@@ -358,13 +358,13 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
         }
     }
 
-    std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
-
     // comment out for DAOS runs
     using namespace std::placeholders;
     eckit::Timer& t = fdb5::TocManager::instance().timer();
     fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
-    fdb5::TocStatsTimer st{"retrieve 003 fdb-hammer dh::copyTo", t, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::TocStatsTimer st{"retrieve 006 fdb-hammer dh::copyTo", t, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+
+    std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
     EmptyHandle nullOutputHandle;
     size_t total = dh->copyTo(nullOutputHandle);

@@ -36,7 +36,9 @@ namespace fdb5 {
 TocCatalogueWriter::TocCatalogueWriter(const Key &key, const fdb5::Config& config) :
     TocCatalogue(key, config),
     umask_(config.umask()) {
+
     writeInitRecord(key);
+
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
 }
@@ -57,6 +59,11 @@ TocCatalogueWriter::~TocCatalogueWriter() {
 bool TocCatalogueWriter::selectIndex(const Key& key) {
     currentIndexKey_ = key;
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"archive 001 TocCatalogueWriter::selectIndex create", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
     if (indexes_.find(key) == indexes_.end()) {
         PathName indexPath(generateIndexPath(key));
 
@@ -67,16 +74,20 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
         indexes_[key] = Index(new TocIndex(key, indexPath, 0, TocIndex::WRITE));
     }
+    st.stop();
 
     current_ = indexes_[key];
     current_.open();
+    st.start("archive 002 TocCatalogueWriter::selectIndex flock", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     current_.flock();
+    st.stop();
 
     // If we are using subtocs, then we need to maintain a duplicate index that doesn't get flushed
     // each step.
 
     if (useSubToc()) {
 
+        st.start("archive 003 TocCatalogueWriter::selectIndex subtoc create", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         if (fullIndexes_.find(key) == fullIndexes_.end()) {
 
             // TODO TODO TODO .master.index
@@ -89,10 +100,13 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
             fullIndexes_[key] = Index(new TocIndex(key, indexPath, 0, TocIndex::WRITE));
         }
+        st.stop();
 
         currentFull_ = fullIndexes_[key];
         currentFull_.open();
+        st.start("archive 004 TocCatalogueWriter::selectIndex subtoc flock", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         currentFull_.flock();
+        st.stop();
     }
 
     return true;
@@ -114,12 +128,24 @@ void TocCatalogueWriter::clean() {
 
     flush(); // closes the TOC entries & indexes but not data files
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"archive 009 TocCatalogueWriter::clean compact", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    
     compactSubTocIndexes();
 
     deselectIndex();
 }
 
 void TocCatalogueWriter::close() {
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"archive 011 TocCatalogueWriter::close", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
     closeIndexes();
 }
@@ -311,7 +337,7 @@ void TocCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> 
 
     Field field(std::move(fieldLocation), currentIndex().timestamp());
 
-    fdb5::TocStatsTimer st{"archive 001 TocCatalogueWriter::archive", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::TocStatsTimer st{"archive 006 TocCatalogueWriter::archive", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
     
     current_.put(key, field);
 
@@ -328,7 +354,7 @@ void TocCatalogueWriter::flush() {
     eckit::Timer& timer = fdb5::TocManager::instance().timer();
     fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
 
-    fdb5::TocStatsTimer st{"archive 002 TocCatalogueWriter::flush", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::TocStatsTimer st{"archive 008 TocCatalogueWriter::flush", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
     flushIndexes();
 

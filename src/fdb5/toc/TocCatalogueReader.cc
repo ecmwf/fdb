@@ -44,7 +44,7 @@ void TocCatalogueReader::loadIndexesAndRemap() {
     eckit::Timer& timer = fdb5::TocManager::instance().timer();
     fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
 
-    fdb5::TocStatsTimer st{"retrieve 001 TocCatalogueReader::loadIndexes", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::TocStatsTimer st{"retrieve 002 TocCatalogueReader::loadIndexes", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
     std::vector<Key> remapKeys;
     std::vector<Index> indexes = loadIndexes(false, nullptr, nullptr, &remapKeys);
@@ -87,15 +87,30 @@ bool TocCatalogueReader::open() {
     // if it has been created with fdb-root --create.
     // See MARS-
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"retrieve 000 TocCatalogueReader::open exist check", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+
     if (!TocCatalogue::exists()) {
         return false;
     }
+
+    st.top();
 
     TocCatalogue::loadSchema();
     return true;
 }
 
 bool TocCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"retrieve 004 TocCatalogueReader::axis", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+
     bool found = false;
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         if ((*m)->first.axes().has(keyword)) {
@@ -121,7 +136,7 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
     eckit::Timer& timer = fdb5::TocManager::instance().timer();
     fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
 
-    fdb5::TocStatsTimer st{"retrieve 002 TocCatalogueReader::retrieve", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::TocStatsTimer st{"retrieve 003 TocCatalogueReader::retrieve", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         const Index& idx((*m)->first);

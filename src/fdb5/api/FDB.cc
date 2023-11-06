@@ -30,6 +30,10 @@
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
 
+// comment out for DAOS runs
+#include "fdb5/toc/TocSession.h"
+#include "fdb5/toc/TocIOStats.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -200,6 +204,15 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
 
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     ListIterator it = inspect(request);
+
+    // comment out for DAOS runs
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"retrieve 005 FDB::retrieve read", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    // end of comment out
+    
     return read(it, sorted(request));
 }
 

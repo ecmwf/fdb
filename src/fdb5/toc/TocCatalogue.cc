@@ -108,7 +108,7 @@ void TocCatalogue::loadSchema() {
     eckit::Timer& t = fdb5::TocManager::instance().timer();
     fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
 
-    fdb5::TocStatsTimer st{"retrieve 000 TocCatalogue::loadSchema", t, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::TocStatsTimer st{"archive/retrieve 001 TocCatalogue::loadSchema", t, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
     schema_.load( schemaPath() );
 }

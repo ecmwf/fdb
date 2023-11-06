@@ -119,7 +119,7 @@ std::unique_ptr<FieldLocation> TocStore::archive(const Key &key, const void *dat
     eckit::Timer& timer = fdb5::TocManager::instance().timer();
     fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
 
-    fdb5::TocStatsTimer st{"archive 003 TocStore::archive", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::TocStatsTimer st{"archive 005 TocStore::archive", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
     dirty_ = true;
 
@@ -145,7 +145,7 @@ void TocStore::flush() {
     eckit::Timer& timer = fdb5::TocManager::instance().timer();
     fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
 
-    fdb5::TocStatsTimer st{"archive 004 TocStore::flush", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::TocStatsTimer st{"archive 007 TocStore::flush", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
     // ensure consistent state before writing Toc entry
 
@@ -155,6 +155,13 @@ void TocStore::flush() {
 }
 
 void TocStore::close() {
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"archive 010 TocStore::close", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+
     closeDataHandles();
 }
 
@@ -182,6 +189,13 @@ eckit::DataHandle *TocStore::getCachedHandle( const eckit::PathName &path ) cons
 }
 
 void TocStore::closeDataHandles() {
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"retrieve 007 TocStore::closeDataHandles", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    
     for ( HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j ) {
         eckit::DataHandle *dh = j->second;
         dh->close();

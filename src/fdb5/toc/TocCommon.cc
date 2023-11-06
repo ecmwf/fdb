@@ -21,10 +21,19 @@
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/io/LustreSettings.h"
 
+#include "fdb5/toc/TocSession.h"
+#include "fdb5/toc/TocIOStats.h"
+
 namespace fdb5 {
 
 eckit::PathName TocCommon::findRealPath(const eckit::PathName& path) {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"archive/retrieve 00x TocCommon::findRealPath", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    
     // realpath only works on existing paths, so work back up the path until
     // we find one that does, get the realpath on that, then reconstruct.
     if (path.exists()) return path.realName();
