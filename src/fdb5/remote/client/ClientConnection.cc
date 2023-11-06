@@ -117,15 +117,6 @@ void ClientConnection::connect() {
     }
 }
 
-// void ClientConnection::controlWrite(remote::Message msg) {
-//     MessageHeader message(msg, 0, 0);
-
-//     std::lock_guard<std::mutex> lock(controlMutex_);
-//     controlWrite(&message, sizeof(message));
-//     controlWrite(&EndMarker, sizeof(EndMarker));
-// }
-
-
 void ClientConnection::disconnect() {
     if (connected_) {
 
@@ -140,7 +131,6 @@ void ClientConnection::disconnect() {
         connected_ = false;
     }
 }
-
 
 const eckit::net::Endpoint& ClientConnection::controlEndpoint() const { 
     return controlEndpoint_;
@@ -161,73 +151,7 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 void ClientConnection::addRequest(Client& client, uint32_t requestId) {
     ASSERT(requestId);
     requests_[requestId] = &client;
-
-//     // pick the first endpoint - To be improved with DataStoreStrategies
-//     const eckit::net::Endpoint& endpoint = client.controlEndpoint();
-
-//     auto it = connections_.find(endpoint.hostport());
-//     if (it != connections_.end()) {
-//         conn = it->second.get();
-//     } else {
-//         conn = (connections_[endpoint.hostport()] = std::unique_ptr<ClientConnection>(new ClientConnection(endpoint, Config()))).get();
-//         conn->connect();
-//     }
-
-//     ASSERT(conn);
-//     if (add) {
-//         requests_[id] = {conn, &client};
-//     }
-
-//     return id;
 }
-
-// void ClientConnection::controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
-// //    std::cout << "ClientConnection::controlWriteCheckResponse " << ((uint) msg) << "  " << requestID << "  " << payloadLength << std::endl;
-
-//     controlWrite(msg, requestID, payload, payloadLength);
-
-//     // Wait for the receipt acknowledgement
-
-//     MessageHeader response;
-//     controlRead(&response, sizeof(MessageHeader));
-
-//     handleError(response);
-
-//     ASSERT(response.marker == StartMarker);
-//     ASSERT(response.version == CurrentVersion);
-//     ASSERT(response.message == Message::Received);
-
-//     eckit::FixedString<4> tail;
-//     controlRead(&tail, sizeof(tail));
-//     ASSERT(tail == EndMarker);
-// }
-
-// eckit::Buffer ClientConnection::controlWriteReadResponse(remote::Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
-    
-//     controlWrite(msg, requestID, payload, payloadLength);
-
-//     // Wait for the receipt acknowledgement
-
-//     MessageHeader response;
-//     controlRead(&response, sizeof(MessageHeader));
-
-//     handleError(response);
-
-//     // std::cout << "ClientConnection::controlWriteReadResponse received " << response.requestID << " | expecting " << requestID << std::endl;
-//     ASSERT(response.marker == StartMarker);
-//     ASSERT(response.version == CurrentVersion);
-//     ASSERT(response.message == Message::Received);
-//     ASSERT(response.requestID == requestID);
-    
-//     eckit::Buffer buf{response.payloadSize};
-//     controlRead(buf.data(), buf.size());
-
-//     eckit::FixedString<4> tail;
-//     controlRead(&tail, sizeof(tail));
-//     ASSERT(tail == EndMarker);
-
-//     return buf;
-// }
 
 void ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
 
@@ -249,18 +173,12 @@ void ClientConnection::controlWrite(Message msg, uint32_t requestID, std::vector
     MessageHeader message(msg, requestID, payloadLength);
 
     std::lock_guard<std::mutex> lock(controlMutex_);
-    eckit::Log::debug<LibFdb5>() << "ClientConnection::controlWrite 1 - " << sizeof(message) << std::endl;
     controlWrite(&message, sizeof(message));
     for (auto d: data) {
-        eckit::Log::debug<LibFdb5>() << "ClientConnection::controlWrite 2 - " << d.second << std::endl;
         ASSERT(d.first);
         controlWrite(d.first, d.second);
     }
-    eckit::Log::debug<LibFdb5>() << "ClientConnection::controlWrite 3 - " << sizeof(EndMarker) << std::endl;
     controlWrite(&EndMarker, sizeof(EndMarker));
-
-    eckit::Log::debug<LibFdb5>() << "ClientConnection::controlWrite - completed WRITE" << std::endl;
-
 }
 
 void ClientConnection::controlWrite(const void* data, size_t length) {
@@ -300,17 +218,6 @@ void ClientConnection::dataWrite(remote::Message msg, uint32_t requestID, std::v
     dataWrite(&EndMarker, sizeof(EndMarker));
 }
 
-// void ClientConnection::dataWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
-
-//     ASSERT((payload == nullptr) == (payloadLength == 0));
-//     MessageHeader message(msg, requestID, payloadLength);
-//     dataWrite(&message, sizeof(message));
-//     if (payload) {
-//         dataWrite(payload, payloadLength);
-//     }
-//     dataWrite(&EndMarker, sizeof(EndMarker));
-// }
-
 void ClientConnection::dataWrite(const void* data, size_t length) {
     size_t written = dataClient_.write(data, length);
     if (length != written) {
@@ -349,8 +256,6 @@ void ClientConnection::handleError(const MessageHeader& hdr) {
         throw RemoteFDBException(what, controlEndpoint_);
     }
 }
-
-
 
 void ClientConnection::writeControlStartupMessage() {
 
@@ -431,7 +336,7 @@ void ClientConnection::listeningThreadLoop() {
 
             dataRead(&hdr, sizeof(hdr));
 
-            eckit::Log::debug<LibFdb5>() << "ClientConnection::listeningThreadLoop - got message " << ((int) hdr.message) << " with request ID: " << hdr.requestID << std::endl;
+            eckit::Log::debug<LibFdb5>() << "ClientConnection::listeningThreadLoop - got [message=" << ((int) hdr.message) << ",requestID=" << hdr.requestID << "]" << std::endl;
 
             ASSERT(hdr.marker == StartMarker);
             ASSERT(hdr.version == CurrentVersion);

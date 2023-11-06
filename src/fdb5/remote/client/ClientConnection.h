@@ -44,8 +44,6 @@ public: // methods
     ClientConnection(const eckit::net::Endpoint& controlEndpoint);
     virtual ~ClientConnection();
 
-    // void controlWriteCheckResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    // eckit::Buffer controlWriteReadResponse(remote::Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     void controlWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
     void dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
 
@@ -59,11 +57,6 @@ protected: // methods
     const eckit::net::Endpoint& controlEndpoint() const;
     const eckit::net::Endpoint& dataEndpoint() const;
     
-    // // handlers for incoming messages - to be defined in the client class
-    // virtual void handle(Message message, uint32_t requestID) = 0;
-    // virtual void handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
-    // virtual void handleException(std::exception_ptr e) = 0;
-
     // construct dictionary for protocol negotiation - to be defined in the client class
     virtual eckit::LocalConfiguration availableFunctionality() const;
 
@@ -112,18 +105,5 @@ private: // members
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-
-// // // n.b. if we get integer overflow, we reuse the IDs. This is not a
-// // //      big deal. The idea that we could be on the 4.2 billionth (successful)
-// // //      request, and still have an ongoing request 0 is ... laughable.
-// static uint32_t generateRequestID() {
-
-//     static std::mutex m;
-//     static uint32_t id = 0;
-
-//     std::lock_guard<std::mutex> lock(m);
-//     return ++id;
-// }
-
 
 }  // namespace fdb5::remote

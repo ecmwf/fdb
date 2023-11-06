@@ -22,10 +22,9 @@ Client::Client(const eckit::net::Endpoint& endpoint) :
     connection_(*(ClientConnectionRouter::instance().connection(*this))),
     blockingRequestId_(0) {}
 
-// uint32_t Client::generateRequestID() {
-//     return connection_.generateRequestID();
-// }
-
+Client::~Client() {
+    ClientConnectionRouter::instance().deregister(*this);
+}
 
 bool Client::response(uint32_t requestID) {
     ASSERT(requestID == blockingRequestId_);
@@ -88,19 +87,4 @@ void Client::dataWrite(remote::Message msg, uint32_t requestID, std::vector<std:
     connection_.dataWrite(msg, requestID, data);
 }
 
-// uint32_t Client::controlWrite(Message msg, const void* payload, uint32_t payloadLength) {
-//     uint32_t id = connection_.generateRequestID();
-//     connection_.controlWrite(*this, msg, id, payload, payloadLength);
-//     return id;
-// }
-
-// uint32_t Client::dataWrite(Message msg, const void* payload, uint32_t payloadLength) {
-//     uint32_t id = connection_.generateRequestID();
-//     return connection_.dataWrite(msg, id, payload, payloadLength);
-//     return id;
-// }
-// void Client::dataWrite(const void* data, size_t length){
-//     connection_.dataWrite(data, length);
-// }
-
-}
+} // namespace fdb5::remote
