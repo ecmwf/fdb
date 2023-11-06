@@ -97,7 +97,7 @@ bool TocCatalogueReader::open() {
         return false;
     }
 
-    st.top();
+    st.stop();
 
     TocCatalogue::loadSchema();
     return true;

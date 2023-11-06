@@ -78,7 +78,7 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
     current_ = indexes_[key];
     current_.open();
-    st.start("archive 002 TocCatalogueWriter::selectIndex flock", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+    st.start("archive 002 TocCatalogueWriter::selectIndex flock", std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2));
     current_.flock();
     st.stop();
 
@@ -87,7 +87,7 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
     if (useSubToc()) {
 
-        st.start("archive 003 TocCatalogueWriter::selectIndex subtoc create", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+        st.start("archive 003 TocCatalogueWriter::selectIndex subtoc create", std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2));
         if (fullIndexes_.find(key) == fullIndexes_.end()) {
 
             // TODO TODO TODO .master.index
@@ -104,7 +104,7 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
         currentFull_ = fullIndexes_[key];
         currentFull_.open();
-        st.start("archive 004 TocCatalogueWriter::selectIndex subtoc flock", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
+        st.start("archive 004 TocCatalogueWriter::selectIndex subtoc flock", std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2));
         currentFull_.flock();
         st.stop();
     }
