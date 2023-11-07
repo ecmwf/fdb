@@ -66,7 +66,8 @@ protected:
 private:
 
     uint32_t blockingRequestId_;
-    std::promise<eckit::Buffer> payload_;
+    std::promise<bool> promise_;
+    std::promise<eckit::Buffer> payloadPromise_;
 
 };
 
