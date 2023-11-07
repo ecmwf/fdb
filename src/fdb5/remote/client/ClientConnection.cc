@@ -168,7 +168,8 @@ void ClientConnection::controlWrite(Message msg, uint32_t requestID, std::vector
     for (auto d: data) {
         payloadLength += d.second;
     }
-    eckit::Log::debug<LibFdb5>() << "ClientConnection::controlWrite [message=" << ((int) msg) << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "ClientConnection::controlWrite [endpoint=" << controlEndpoint_.hostport() <<
+        ",message=" << ((int) msg) << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
 
     MessageHeader message(msg, requestID, payloadLength);
 
@@ -207,7 +208,8 @@ void ClientConnection::dataWrite(remote::Message msg, uint32_t requestID, std::v
     }
     MessageHeader message(msg, requestID, payloadLength);
 
-    eckit::Log::debug<LibFdb5>() << "DATA DATA ClientConnection::dataWrite [message=" << ((int) msg) << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "ClientConnection::dataWrite [endpoint=" << dataEndpoint_.hostport() <<
+        ",message=" << ((int) msg) << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
 
     std::lock_guard<std::mutex> lock(dataMutex_);
     dataWrite(&message, sizeof(message));
