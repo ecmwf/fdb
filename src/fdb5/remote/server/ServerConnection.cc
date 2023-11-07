@@ -99,7 +99,7 @@ void ServerConnection::initialiseConnections() {
     ASSERT(hdr.message == Message::Startup);
     ASSERT(hdr.requestID == 0);
 
-    std::cout << "ServerConnection::initialiseConnections() - payload "<< hdr.payloadSize << std::endl;
+    // std::cout << "ServerConnection::initialiseConnections() - payload "<< hdr.payloadSize << std::endl;
 
     eckit::Buffer payload1 = receivePayload(hdr, controlSocket_);
     eckit::FixedString<4> tail;
@@ -230,6 +230,7 @@ void ServerConnection::controlWrite(Message msg, uint32_t requestID, const void*
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
     MessageHeader message(msg, requestID, payloadLength);
+    std::lock_guard<std::mutex> lock(controlWriteMutex_);
     controlWrite(&message, sizeof(message));
     if (payload) {
         controlWrite(payload, payloadLength);

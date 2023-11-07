@@ -88,6 +88,7 @@ protected:
 
     eckit::SessionID sessionID_;
     eckit::LocalConfiguration agreedConf_;
+    std::mutex controlWriteMutex_;
     std::mutex dataWriteMutex_;
     std::map<uint32_t, std::future<void>> workerThreads_;
     std::thread readLocationWorker_;
