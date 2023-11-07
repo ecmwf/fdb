@@ -71,7 +71,8 @@ public: // methods
 
 private: // methods
 
-    RemoteStoreArchiver() : dirty_(false), maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)) {}
+    RemoteStoreArchiver() : dirty_(false), maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)),
+    archiveQueue_(nullptr) {}
 
     FDBStats archiveThreadLoop();
 
@@ -151,7 +152,7 @@ FDBStats RemoteStoreArchiver::flush(RemoteStore* store) {
     ASSERT(stats.numFlush() == 0);
     size_t numArchive = stats.numArchive();
 
-    Buffer sendBuf(4096);
+    Buffer sendBuf(1024);
     MemoryStream s(sendBuf);
     s << numArchive;
 
