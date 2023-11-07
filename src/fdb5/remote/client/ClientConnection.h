@@ -93,6 +93,7 @@ private: // members
 
     std::thread listeningThread_;
     
+    std::mutex requestMutex_;
     std::mutex controlMutex_;
     std::mutex dataMutex_;
 

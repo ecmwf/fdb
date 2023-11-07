@@ -150,6 +150,8 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 
 void ClientConnection::addRequest(Client& client, uint32_t requestId) {
     ASSERT(requestId);
+
+    std::lock_guard<std::mutex> lock(requestMutex_);
     requests_[requestId] = &client;
 }
 
