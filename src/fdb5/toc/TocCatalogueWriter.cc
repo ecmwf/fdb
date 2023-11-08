@@ -37,7 +37,15 @@ TocCatalogueWriter::TocCatalogueWriter(const Key &key, const fdb5::Config& confi
     TocCatalogue(key, config),
     umask_(config.umask()) {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"archive 000 TocCatalogueWriter writeInitRecord", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+
     writeInitRecord(key);
+
+    st.stop();
 
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
@@ -46,7 +54,15 @@ TocCatalogueWriter::TocCatalogueWriter(const Key &key, const fdb5::Config& confi
 TocCatalogueWriter::TocCatalogueWriter(const eckit::URI &uri, const fdb5::Config& config) :
     TocCatalogue(uri.path(), ControlIdentifiers{}, config),
     umask_(config.umask()) {
+
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::TocManager::instance().timer();
+    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+
+    fdb5::TocStatsTimer st{"archive 000 TocCatalogueWriter writeInitRecord", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
     writeInitRecord(TocCatalogue::key());
+    st.stop();
+
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
 }

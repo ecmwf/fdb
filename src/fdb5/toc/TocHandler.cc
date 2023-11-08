@@ -713,12 +713,6 @@ static eckit::StaticMutex local_mutex;
 
 void TocHandler::writeInitRecord(const Key &key) {
 
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::TocManager::instance().timer();
-    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
-
-    fdb5::TocStatsTimer st{"archive 000 TocHandler::writeInitRecord", timer, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
-    
     eckit::AutoLock<eckit::StaticMutex> lock(local_mutex);
 
     if ( !directory_.exists() ) {
