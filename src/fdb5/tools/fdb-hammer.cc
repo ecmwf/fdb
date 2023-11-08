@@ -317,6 +317,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     //
     request.setValue("expver", args.getString("expver"));
     request.setValue("class", args.getString("class"));
+    request.setValue("optimised", "on");
 
     std::vector<struct timeval> tval_before_io(nensembles * nsteps * nlevels * nparams);
     std::vector<struct timeval> tval_after_io(nensembles * nsteps * nlevels * nparams);
