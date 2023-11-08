@@ -69,6 +69,10 @@ std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
 
 eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
     
+    // std::cout << "############   retrieve from location ";
+    // dump(std::cout);
+    // std::cout << std::endl;
+
     RemoteStore& store = RemoteStore::get(uri_);
     
     const std::string scheme = uri_.query("internalScheme");

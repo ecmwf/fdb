@@ -187,8 +187,6 @@ FDBStats RemoteStoreArchiver::archiveThreadLoop() {
 
         // And note that we are done. (don't time this, as already being blocked
         // on by the ::flush() routine)
-
-
         element.store_->dataWrite(Message::Flush, 0);
 
         archiveQueue_.reset();
@@ -326,18 +324,48 @@ private: // members
     bool complete_;
 };
 
+eckit::net::Endpoint storeEndpoint(const Config& config) {
+    if (config.has("storeHost") && config.has("storePort")) {
+        return eckit::net::Endpoint(config.getString("storeHost"), config.getInt("storePort"));
+    }
+    ASSERT(config.has("stores"));
+    std::vector<std::string> stores = config.getStringVector("stores");
+    std::srand(std::time(nullptr));
+    return eckit::net::Endpoint(stores.at(std::rand() % stores.size()));
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(eckit::net::Endpoint(config.getString("storeHost"), config.getInt("storePort"))),
+    Client(storeEndpoint(config)),
     dbKey_(dbKey), config_(config),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)) {
+
+    if (config.has("localStores")) {
+        for (const std::string& localStore : config.getStringVector("localStores")) {
+            if (localStore == endpoint_.hostport()) {
+                local_ = true;
+                break;
+            }
+        }
+    }
 }
 
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     Client(eckit::net::Endpoint(uri.hostport())),
     dbKey_(Key()), config_(config),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)) {
+
+    // no need to set the local_ flag on the read path
+
+    // if (config.has("localStores")) {
+    //     for (const std::string& localStore : config.getStringVector("localStores")) {
+    //         if (localStore == endpoint_.hostport()) {
+    //             local_ = true;
+    //             break;
+    //         }
+    //     }
+    // }
 
     ASSERT(uri.scheme() == "fdb");
 }
@@ -467,9 +495,13 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             if (it != locations_.end()) {
                 MemoryStream s(payload);
                 std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
-                // std::cout <<  "RemoteStore::handle - " << location->uri().asRawString() << " " << location->length() << std::endl;
-                std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(endpoint_, *location));
-                it->second.set_value(std::move(remoteLocation));
+                if (local_) {
+                    it->second.set_value(std::move(location));
+                } else {
+                    // std::cout <<  "RemoteStore::handle - " << location->uri().asRawString() << " " << location->length() << std::endl;
+                    std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(endpoint_, *location));
+                    it->second.set_value(std::move(remoteLocation));
+                }
             }
             return true;
         }
