@@ -79,6 +79,7 @@ public:
         // options_.push_back(new eckit::option::SimpleOption<long>("node-id", "Identifier of the node running fdb-hammer"));
         // options_.push_back(new eckit::option::SimpleOption<long>("proc-id", "Identifier of the process running fdb-hammer"));
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("disable-subtocs", "Disable use of subtocs"));
     }
     ~FDBWrite() override {}
 

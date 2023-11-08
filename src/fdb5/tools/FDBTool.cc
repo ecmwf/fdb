@@ -63,7 +63,11 @@ Config FDBTool::config(const eckit::option::CmdArgs& args) const {
             ss << "Path " << config << " is a directory. Expecting a file";
             throw eckit::UserError(ss.str(), Here());
         }
-        return Config::make(configPath);
+        eckit::LocalConfiguration userConf;
+        if (!args.has("disable-subtocs")) {
+            userConf.set("useSubToc", true);
+        }
+        return Config::make(configPath, userConf);
     }
 
     return LibFdb5::instance().defaultConfig();
