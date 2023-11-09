@@ -148,7 +148,6 @@ void FDBList::execute(const CmdArgs& args) {
                 } else {
                     elem.print(Log::info(), location_, !porcelain_);
                     Log::info() << std::endl;
-                    count++;
                 }
             }
         }
