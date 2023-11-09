@@ -38,14 +38,17 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
 
     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
         fdb5::ListElement elem(s);
-        // std::cout << "InspectHelper::valueFromStream - ";
-        // elem.location().dump(std::cout);
-        // std::cout << std::endl;
+
+        eckit::Log::debug<fdb5::LibFdb5>() << "InspectHelper::valueFromStream - original location: ";
+        elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
+        eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+
         if (elem.location().uri().scheme() == "fdb") {
             return elem;
         }
 
-        return fdb5::ListElement(elem.key(), fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared(), elem.timestamp());
+        std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
+        return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
     }
 };
 }

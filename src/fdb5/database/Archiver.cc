@@ -27,7 +27,8 @@ namespace fdb5 {
 
 Archiver::Archiver(const Config& dbConfig) :
     dbConfig_(dbConfig),
-    catalogue_(nullptr) {
+    catalogue_(nullptr),
+    store_(nullptr) {
 }
 
 Archiver::~Archiver() {
@@ -60,20 +61,20 @@ void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
 }
 
 void Archiver::flush() {
-    for (store_t::iterator i = databases_.begin(); i != databases_.end(); ++i) {
-        i->second.second.second->flush(); // flush the store
-        i->second.second.first->flush();  // flush the catalogue
+    for (auto i = databases_.begin(); i != databases_.end(); ++i) {
+        i->second.store_->flush();      // flush the store
+        i->second.catalogue_->flush();  // flush the catalogue
     }
 }
 
 void Archiver::selectDatabase(const Key &dbKey) {
 
-    store_t::iterator i = databases_.find(dbKey);
+    auto i = databases_.find(dbKey);
 
     if (i != databases_.end() ) {
-        catalogue_ = i->second.second.first.get();
-        store_ = i->second.second.second.get();
-        i->second.first = ::time(0);
+        catalogue_ = i->second.catalogue_.get();
+        store_ = i->second.store_.get();
+        i->second.time_ = ::time(0);
         return;
     }
 
@@ -83,16 +84,18 @@ void Archiver::selectDatabase(const Key &dbKey) {
         bool found = false;
         time_t oldest = ::time(0) + 24 * 60 * 60;
         Key oldK;
-        for (store_t::iterator i = databases_.begin(); i != databases_.end(); ++i) {
-            if (i->second.first <= oldest) {
+        for (auto i = databases_.begin(); i != databases_.end(); ++i) {
+            if (i->second.time_ <= oldest) {
                 found = true;
                 oldK = i->first;
-                oldest = i->second.first;
+                oldest = i->second.time_;
             }
         }
         if (found) {
-            // what if the catalogue/store are not flashed ???
-            eckit::Log::warning() << "Closing database " << *databases_[oldK].second.first << std::endl;
+            databases_[oldK].store_->flush();
+            databases_[oldK].catalogue_->flush();
+            
+            eckit::Log::info() << "Closing database " << *databases_[oldK].catalogue_ << std::endl;
             databases_.erase(oldK);
         }
     }
@@ -111,7 +114,7 @@ void Archiver::selectDatabase(const Key &dbKey) {
     catalogue_ = cat.get();
     store_ = str.get();
 
-    databases_[dbKey] = std::make_pair(::time(0), std::make_pair(std::move(cat), std::move(str)));
+    databases_[dbKey] = Database{::time(0), std::move(cat), std::move(str)};
 }
 
 void Archiver::print(std::ostream &out) const {

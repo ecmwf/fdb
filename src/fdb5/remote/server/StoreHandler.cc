@@ -208,12 +208,9 @@ void StoreHandler::archive(const MessageHeader& hdr) {
     ASSERT(hdr.payloadSize == 0);
 
     // Ensure that we aren't already running a store()
-
     if(!archiveFuture_.valid()) {
 
         // Start archive worker thread
-
-    //    uint32_t id    = hdr.requestID;
         archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
     }
 }
