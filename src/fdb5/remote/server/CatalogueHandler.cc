@@ -51,6 +51,7 @@ void CatalogueHandler::initialiseConnections() {
     ASSERT(tail == EndMarker);
 
     std::vector<eckit::net::Endpoint> stores;
+    std::vector<eckit::net::Endpoint> localStores;
 
     if (::getenv("FDB_STORE_HOST") && ::getenv("FDB_STORE_PORT")) {
         // override the configuration
@@ -61,6 +62,12 @@ void CatalogueHandler::initialiseConnections() {
         for (const std::string& endpoint: endpoints) {
             stores.push_back(eckit::net::Endpoint(endpoint));
         }
+        if (config_.has("localStores")) {
+            std::vector<std::string> endpoints = config_.getStringVector("localStores");
+            for (const std::string& endpoint: endpoints) {
+                localStores.push_back(eckit::net::Endpoint(endpoint));
+            }
+        }
     }
 
     {
@@ -69,6 +76,10 @@ void CatalogueHandler::initialiseConnections() {
 
         s << stores.size();
         for (const eckit::net::Endpoint& endpoint : stores) {
+            s << endpoint;
+        }
+        s << localStores.size();
+        for (const eckit::net::Endpoint& endpoint : localStores) {
             s << endpoint;
         }
         s << config_.schema();

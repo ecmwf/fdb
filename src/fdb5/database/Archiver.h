@@ -38,6 +38,11 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+struct Database {
+    time_t                              time_;
+    std::unique_ptr<CatalogueWriter>    catalogue_;
+    std::unique_ptr<Store>              store_;
+};
 class Archiver : public eckit::NonCopyable {
 
 public: // methods
@@ -68,11 +73,9 @@ private: // members
 
     friend class BaseArchiveVisitor;
 
-    typedef std::map<Key, std::pair<time_t, std::pair<std::unique_ptr<CatalogueWriter>, std::unique_ptr<Store>>>> store_t;
-
     Config dbConfig_;
 
-    store_t databases_;
+    std::map<Key, Database> databases_;
 
     std::vector<Key> prev_;
 

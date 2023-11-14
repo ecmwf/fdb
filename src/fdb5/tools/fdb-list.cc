@@ -17,6 +17,8 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/log/JSON.h"
 
+#include "metkit/hypercube/HyperCube.h"
+
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Catalogue.h"
@@ -47,6 +49,7 @@ class FDBList : public FDBVisitTool {
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
         options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined and stable output for input into other tools"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
+        options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
     }
 
   private: // methods
@@ -58,6 +61,7 @@ class FDBList : public FDBVisitTool {
     bool full_;
     bool porcelain_;
     bool json_;
+    bool compact_;
 };
 
 void FDBList::init(const CmdArgs& args) {
@@ -68,15 +72,38 @@ void FDBList::init(const CmdArgs& args) {
     full_ = args.getBool("full", false);
     porcelain_ = args.getBool("porcelain", false);
     json_ = args.getBool("json", false);
+    compact_ = args.getBool("compact", false);
 
     if (json_) {
         porcelain_ = true;
         if (location_) {
-            throw UserError("--json and --location not compatible", Here());
+            throw UserError("--json and --location are not compatible", Here());
         }
     }
 
+    if (compact_) {
+        if (location_) {
+            throw UserError("--compact and --location are not compatible", Here());
+        } 
+        if (full_) {
+            throw UserError("--compact and --full are not compatible", Here());
+        } 
+        if (porcelain_) {
+            throw UserError("--compact and --porcelain are not compatible", Here());
+        } 
+    }
+
     /// @todo option ignore-errors
+}
+
+std::string keySignature(const fdb5::Key& key) {
+    std::string signature;
+    std::string separator="";
+    for (auto k : key.keys()) {
+        signature += separator+k;
+        separator=":";
+    }
+    return signature;
 }
 
 void FDBList::execute(const CmdArgs& args) {
@@ -98,16 +125,48 @@ void FDBList::execute(const CmdArgs& args) {
         }
 
         // If --full is supplied, then include all entries including duplicates.
-        auto listObject = fdb.list(request, !full_);
+        auto listObject = fdb.list(request, !full_ && !compact_);
+        std::unordered_set<Key> seenKeys;
+        std::map<std::string, metkit::mars::MarsRequest> requests;
 
         ListElement elem;
         while (listObject.next(elem)) {
 
-            if (json_) {
-                (*json) << elem;
+            if (compact_) {
+                fdb5::Key combined = elem.combinedKey();
+                std::string axes = keySignature(combined);
+                auto it = requests.find(axes);
+                if (it == requests.end()) {
+                    requests.emplace(axes, combined.request());
+                } else {
+                    it->second.merge(combined.request());
+                }
+                seenKeys.emplace(combined);
             } else {
-                elem.print(Log::info(), location_, !porcelain_);
-                Log::info() << std::endl;
+                if (json_) {
+                    (*json) << elem;
+                } else {
+                    elem.print(Log::info(), location_, !porcelain_);
+                    Log::info() << std::endl;
+                }
+            }
+        }
+        if (compact_) {
+            std::map<std::string, metkit::hypercube::HyperCube*> hypercubes;
+
+            for (auto r: requests) {
+                hypercubes.emplace(r.first, new metkit::hypercube::HyperCube(r.second));
+            }
+            for (auto k: seenKeys) {
+                auto it = hypercubes.find(keySignature(k));
+                ASSERT(it != hypercubes.end());
+                it->second->clear(k.request());
+            }
+            for (auto h: hypercubes) {
+                for (auto r: h.second->requests()) {
+                    r.dump(Log::info(), "", "");
+                    Log::info() << std::endl;
+                }
             }
         }
 

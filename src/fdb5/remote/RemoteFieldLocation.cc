@@ -16,9 +16,11 @@
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/RemoteStore.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
+#include "fdb5/LibFdb5.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URIManager.h"
+#include "eckit/log/Log.h"
 
 namespace fdb5 {
 namespace remote {
@@ -69,6 +71,10 @@ std::shared_ptr<FieldLocation> RemoteFieldLocation::make_shared() const {
 
 eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
     
+    eckit::Log::debug<fdb5::LibFdb5>() << "RemoteFieldLocation::dataHandle for location: ";
+    dump(eckit::Log::debug<fdb5::LibFdb5>());
+    eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+
     RemoteStore& store = RemoteStore::get(uri_);
     
     const std::string scheme = uri_.query("internalScheme");

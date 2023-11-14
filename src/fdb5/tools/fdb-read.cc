@@ -82,7 +82,7 @@ void FDBRead::execute(const eckit::option::CmdArgs &args) {
 
     // Evaluate the requests to obtain data handles
 
-    fdb5::HandleGatherer handles(false);
+    fdb5::HandleGatherer handles(true);
 
     fdb5::FDB fdb(config(args));
 

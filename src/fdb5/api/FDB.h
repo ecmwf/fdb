@@ -48,7 +48,7 @@ namespace fdb5 {
 
 class FDBBase;
 class FDBToolRequest;
-class InspectionKey;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
