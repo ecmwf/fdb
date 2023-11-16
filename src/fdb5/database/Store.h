@@ -14,8 +14,6 @@
 
 #pragma once
 
-#include <future>
-
 #include "eckit/distributed/Transport.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
@@ -37,7 +35,9 @@ public:
     virtual ~Store() {}
 
     virtual eckit::DataHandle* retrieve(Field& field) const = 0;
-    virtual std::future<std::unique_ptr<FieldLocation> > archive(const Key& key, const void *data, eckit::Length length) = 0;
+//    virtual void archive(const Key& key, const void *data, eckit::Length length, void(*catalogue_archive)(std::unique_ptr<FieldLocation> fieldLocation)) = 0;
+    virtual void archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive);
+    virtual std::unique_ptr<FieldLocation> archive(const Key& key, const void *data, eckit::Length length);
 
     virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
 
@@ -58,6 +58,7 @@ public:
     virtual void remove(const Key& key) const { NOTIMP; }
 
     virtual eckit::URI uri() const = 0;
+    
 };
 
 

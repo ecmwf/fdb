@@ -130,7 +130,7 @@ void IndexAxis::decodeCurrent(eckit::Stream &s, const int version) {
                 ASSERT(n);
                 for (size_t i = 0; i < n; i++) {
                     s >> k;
-                    std::shared_ptr<eckit::DenseSet<std::string> >& values = axis_[k];
+                    std::shared_ptr<eckit::DenseSet<std::string>>& values = axis_[k];
                     values.reset(new eckit::DenseSet<std::string>);
                     size_t m;
                     s >> m;
@@ -161,7 +161,7 @@ void IndexAxis::decodeLegacy(eckit::Stream& s, const int version) {
 
     for (size_t i = 0; i < n; i++) {
         s >> k;
-        std::shared_ptr<eckit::DenseSet<std::string> >& values = axis_[k];
+        std::shared_ptr<eckit::DenseSet<std::string>>& values = axis_[k];
         values.reset(new eckit::DenseSet<std::string>);
         size_t m;
         s >> m;
@@ -237,7 +237,7 @@ void IndexAxis::insert(const InspectionKey &key) {
     for (Key::const_iterator i = key.begin(); i  != key.end(); ++i) {
         const std::string &keyword = i->first;
 
-        std::shared_ptr<eckit::DenseSet<std::string> >& axis_set = axis_[keyword];
+        std::shared_ptr<eckit::DenseSet<std::string>>& axis_set = axis_[keyword];
         if (!axis_set)
             axis_set.reset(new eckit::DenseSet<std::string>);
 

@@ -71,7 +71,7 @@ protected: // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::future<std::unique_ptr<FieldLocation> > archive(const Key& key, const void *data, eckit::Length length) override;
+    void archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
@@ -92,7 +92,7 @@ private: // members
 
     const Config& config_;
 
-    std::map<uint32_t, std::promise<std::unique_ptr<FieldLocation> > > locations_;
+    std::map<uint32_t, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)>> locations_;
 
     // @note This is a map of requestID:MessageQueue. At the point that a request is
     // complete, errored or otherwise killed, it needs to be removed from the map.

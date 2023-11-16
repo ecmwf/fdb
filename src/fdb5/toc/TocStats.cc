@@ -176,7 +176,7 @@ TocDataStats& TocDataStats::operator+=(const TocDataStats& rhs) {
                    allDataFiles_.end(),
                    rhs.allDataFiles_.begin(),
                    rhs.allDataFiles_.end(),
-                   std::insert_iterator< std::set<eckit::PathName> >(intersect, intersect.begin()));
+                   std::insert_iterator< std::set<eckit::PathName>>(intersect, intersect.begin()));
 
     std::swap(allDataFiles_, intersect);
 
@@ -185,7 +185,7 @@ TocDataStats& TocDataStats::operator+=(const TocDataStats& rhs) {
                    activeDataFiles_.end(),
                    rhs.activeDataFiles_.begin(),
                    rhs.activeDataFiles_.end(),
-                   std::insert_iterator< std::set<eckit::PathName> >(intersect, intersect.begin()));
+                   std::insert_iterator< std::set<eckit::PathName>>(intersect, intersect.begin()));
 
     std::swap(activeDataFiles_, intersect);
 

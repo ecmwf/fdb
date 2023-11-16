@@ -52,7 +52,8 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-std::future<std::unique_ptr<FieldLocation> > TocStore::archive(const Key& key, const void *data, eckit::Length length) {
+std::unique_ptr<FieldLocation> TocStore::archive(const Key& key, const void *data, eckit::Length length) {
+    
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);
@@ -65,9 +66,7 @@ std::future<std::unique_ptr<FieldLocation> > TocStore::archive(const Key& key, c
 
     ASSERT(len == length);
 
-    std::promise<std::unique_ptr<FieldLocation> > loc;
-    loc.set_value(std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key())));
-    return loc.get_future();
+    return std::unique_ptr<FieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
 }
 
 void TocStore::flush() {

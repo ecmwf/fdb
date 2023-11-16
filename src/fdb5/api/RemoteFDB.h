@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include <future>
 #include <thread>
 
 #include "fdb5/api/LocalFDB.h"
@@ -83,7 +82,6 @@ private: // members
 
     std::unique_ptr<Archiver> archiver_;
     std::vector<eckit::net::Endpoint> localStores_;
-    // eckit::net::Endpoint storeEndpoint_;
 
     // Where do we put received messages
     // @note This is a map of requestID:MessageQueue. At the point that a request is

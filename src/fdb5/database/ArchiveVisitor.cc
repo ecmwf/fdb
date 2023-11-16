@@ -7,13 +7,18 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-
+#include <functional>
 #include "eckit/exception/Exceptions.h"
 
 #include "fdb5/database/ArchiveVisitor.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Store.h"
 
+namespace {
+void CatalogueCallback(fdb5::CatalogueWriter* catalogue, const fdb5::InspectionKey &key, std::unique_ptr<fdb5::FieldLocation> fieldLocation) {
+    catalogue->archive(key, std::move(fieldLocation));
+}
+}
 namespace fdb5 {
 
 ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &dataKey, const void *data, size_t size) :
@@ -22,16 +27,15 @@ ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &dataKey, const void *
     size_(size) {
 }
 
+
 bool ArchiveVisitor::selectDatum(const InspectionKey &key, const Key &full) {
 
     // eckit::Log::info() << "selectDatum " << key << ", " << full << " " << size_ << std::endl;
     checkMissingKeys(full);
     const Key idxKey = current()->currentIndexKey();
 
-    // here we could create a queue... and keep accepting archival request until the queue is full
-    auto futureLocation = store()->archive(idxKey, data_, size_);
-    current()->archive(key, futureLocation.get());
-
+    store()->archive(idxKey, data_, size_, std::bind(&CatalogueCallback, current(), key, std::placeholders::_1));
+    
     return true;
 }
 

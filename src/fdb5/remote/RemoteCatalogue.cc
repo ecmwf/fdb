@@ -30,7 +30,7 @@ public:
     CatalogueArchivalRequest(uint32_t id, RemoteCatalogue* catalogue, const fdb5::Key& key, std::unique_ptr<FieldLocation> location) :
         id_(id), catalogue_(catalogue), key_(key), location_(std::move(location)) {}
 
-    std::pair<uint32_t, std::pair<Key, std::unique_ptr<FieldLocation> > >  element;
+    std::pair<uint32_t, std::pair<Key, std::unique_ptr<FieldLocation>>>  element;
 
     uint32_t id_;
     RemoteCatalogue* catalogue_;
@@ -77,7 +77,7 @@ private: // members
 
 RemoteCatalogueArchiver* RemoteCatalogueArchiver::get(const eckit::net::Endpoint& endpoint) {
 
-    static std::map<const std::string, std::unique_ptr<RemoteCatalogueArchiver> > archivers_;
+    static std::map<const std::string, std::unique_ptr<RemoteCatalogueArchiver>> archivers_;
 
     auto it = archivers_.find(endpoint.hostport());
     if (it == archivers_.end()) {

@@ -89,7 +89,7 @@ private: // members
 
 RemoteStoreArchiver* RemoteStoreArchiver::get(const eckit::net::Endpoint& endpoint) {
 
-    static std::map<const std::string, std::unique_ptr<RemoteStoreArchiver> > archivers_;
+    static std::map<const std::string, std::unique_ptr<RemoteStoreArchiver>> archivers_;
 
     auto it = archivers_.find(endpoint.hostport());
     if (it == archivers_.end()) {
@@ -395,7 +395,7 @@ eckit::DataHandle* RemoteStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-std::future<std::unique_ptr<FieldLocation> > RemoteStore::archive(const Key& key, const void *data, eckit::Length length) {
+void RemoteStore::archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive) {
 
     // if there is no archiving thread active, then start one.
     // n.b. reset the archiveQueue_ after a potential flush() cycle.
@@ -409,10 +409,7 @@ std::future<std::unique_ptr<FieldLocation> > RemoteStore::archive(const Key& key
     uint32_t id = controlWriteCheckResponse(Message::Archive, nullptr, 0);
     archiver_->emplace(id, this, key, data, length);
 
-    std::promise<std::unique_ptr<FieldLocation> > loc;
-    auto futureLocation = loc.get_future();
-    locations_[id] = std::move(loc);
-    return futureLocation;
+    locations_[id] = catalogue_archive;
 }
 
 bool RemoteStore::open() {
@@ -496,11 +493,11 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
                 MemoryStream s(payload);
                 std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
                 if (local_) {
-                    it->second.set_value(std::move(location));
+                    it->second(std::move(location));
                 } else {
                     // std::cout <<  "RemoteStore::handle - " << location->uri().asRawString() << " " << location->length() << std::endl;
                     std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(endpoint_, *location));
-                    it->second.set_value(std::move(remoteLocation));
+                    it->second(std::move(remoteLocation));
                 }
             }
             return true;
@@ -590,7 +587,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
 
 RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     // we memoise one read store for each endpoint. Do not need to have one for each key
-    static std::map<std::string, std::unique_ptr<RemoteStore> > readStores_;
+    static std::map<std::string, std::unique_ptr<RemoteStore>> readStores_;
 
     const std::string& endpoint = uri.hostport();
     auto it = readStores_.find(endpoint);

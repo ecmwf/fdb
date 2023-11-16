@@ -45,7 +45,7 @@ void TocCommon::checkUID() const {
     }
 
     static std::vector<std::string> fdbSuperUsers =
-        eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);
+        eckit::Resource<std::vector<std::string>>("fdbSuperUsers", "", true);
 
     if (dbUID() != userUID_) {
         if (std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(userUID_)) ==

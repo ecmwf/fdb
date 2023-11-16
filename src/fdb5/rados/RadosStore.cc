@@ -53,7 +53,7 @@ eckit::DataHandle* RadosStore::retrieve(Field& field, Key& remapKey) const {
         field.dataHandle(remapKey);
 }
 
-std::future<std::unique_ptr<FieldLocation> > RadosStore::archive(const Key& key, const void *data, eckit::Length length) {
+std::unique_ptr<FieldLocation> RadosStore::archive(const Key& key, const void *data, eckit::Length length) {
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);
@@ -67,9 +67,7 @@ std::future<std::unique_ptr<FieldLocation> > RadosStore::archive(const Key& key,
 
     ASSERT(len == length);
 
-    std::promise<std::unique_ptr<FieldLocation> > loc;
-    loc.set_value(std::unique_ptr<TocFieldLocation>(new RadosFieldLocation(dataUri, position, length)));
-    return loc.get_future();
+    return std::unique_ptr<TocFieldLocation>(new RadosFieldLocation(dataUri, position, length));
 }
 
 void RadosStore::flush() {
