@@ -96,16 +96,6 @@ void FDBList::init(const CmdArgs& args) {
     /// @todo option ignore-errors
 }
 
-std::string keySignature(const fdb5::Key& key) {
-    std::string signature;
-    std::string separator="";
-    for (auto k : key.keys()) {
-        signature += separator+k;
-        separator=":";
-    }
-    return signature;
-}
-
 void FDBList::execute(const CmdArgs& args) {
 
     FDB fdb(config(args));
@@ -126,46 +116,43 @@ void FDBList::execute(const CmdArgs& args) {
 
         // If --full is supplied, then include all entries including duplicates.
         auto listObject = fdb.list(request, !full_ && !compact_);
-        std::unordered_set<Key> seenKeys;
-        std::map<std::string, metkit::mars::MarsRequest> requests;
+        std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>> requests;
 
-        size_t count = 0;
         ListElement elem;
         while (listObject.next(elem)) {
 
             if (compact_) {
-                fdb5::Key combined = elem.combinedKey();
-                std::string axes = keySignature(combined);
-                auto it = requests.find(axes);
+                std::vector<Key> keys = elem.key();
+                ASSERT(keys.size() == 3);
+
+                std::string treeAxes = keys[0];
+                treeAxes += ",";
+                treeAxes += keys[1];
+
+                auto it = requests.find(treeAxes);
                 if (it == requests.end()) {
-                    requests.emplace(axes, combined.request());
+                    requests.emplace(treeAxes, std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
                 } else {
-                    it->second.merge(combined.request());
+                    it->second.first.merge(keys[2].request());
+                    it->second.second.emplace(keys[2]);
                 }
-                seenKeys.emplace(combined);
             } else {
                 if (json_) {
                     (*json) << elem;
                 } else {
                     elem.print(Log::info(), location_, !porcelain_);
                     Log::info() << std::endl;
-                    count++;
                 }
             }
         }
         if (compact_) {
-            std::map<std::string, metkit::hypercube::HyperCube*> hypercubes;
-
-            for (auto r: requests) {
-                hypercubes.emplace(r.first, new metkit::hypercube::HyperCube(r.second));
-            }
-            for (auto k: seenKeys) {
-                auto it = hypercubes.find(keySignature(k));
-                ASSERT(it != hypercubes.end());
-                it->second->clear(k.request());
-            }
-            for (auto h: hypercubes) {
-                for (auto r: h.second->requests()) {
+            for (const auto& tree: requests) {
+                metkit::hypercube::HyperCube h{tree.second.first};
+                for (const auto& k: tree.second.second) {
+                    h.clear(k.request());
+                }
+                for (const auto& r: h.requests()) {
+                    Log::info() << tree.first << ",";
                     r.dump(Log::info(), "", "");
                     Log::info() << std::endl;
                 }
