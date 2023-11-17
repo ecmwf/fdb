@@ -152,8 +152,8 @@ void FDBList::execute(const CmdArgs& args) {
                     h.clear(k.request());
                 }
                 for (const auto& r: h.requests()) {
-                    Log::info() << tree.first << ",";
-                    r.dump(Log::info(), "", "");
+                    Log::info() << "retrieve," << tree.first << ",";
+                    r.dump(Log::info(), "", "", false);
                     Log::info() << std::endl;
                 }
             }
