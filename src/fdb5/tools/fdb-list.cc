@@ -148,13 +148,19 @@ void FDBList::execute(const CmdArgs& args) {
         if (compact_) {
             for (const auto& tree: requests) {
                 metkit::hypercube::HyperCube h{tree.second.first};
-                for (const auto& k: tree.second.second) {
-                    h.clear(k.request());
-                }
-                for (const auto& r: h.requests()) {
+                if (h.size() == tree.second.second.size()) {
                     Log::info() << "retrieve," << tree.first << ",";
-                    r.dump(Log::info(), "", "", false);
+                    tree.second.first.dump(Log::info(), "", "", false);
                     Log::info() << std::endl;
+                } else {
+                    for (const auto& k: tree.second.second) {
+                        h.clear(k.request());
+                    }
+                    for (const auto& r: h.requests()) {
+                        Log::info() << "retrieve," << tree.first << ",";
+                        r.dump(Log::info(), "", "", false);
+                        Log::info() << std::endl;
+                    }
                 }
             }
         }
