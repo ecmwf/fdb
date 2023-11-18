@@ -66,7 +66,7 @@ public:
     bool canSeek() const override { return false; }
 
     void toRemote(eckit::Stream&) const override { NOTIMP; }
-    void cost(std::map<std::string,eckit::Length>&, bool) const override { NOTIMP; }
+
     std::string title() const override;
     bool moveable() const override { return true; }
     eckit::DataHandle* clone() const override;
