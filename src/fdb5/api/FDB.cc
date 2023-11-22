@@ -100,7 +100,17 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     eckit::Timer timer;
     timer.start();
 
-    internal_->archive(key, data, length);
+    if (key.find("stepunits") != key.end()) {
+        Key k;
+        for (auto it : key) {
+            if (it.first != "stepunits") {
+                k.set(it.first, it.second);
+            }
+        }
+        internal_->archive(k, data, length);
+    } else {
+        internal_->archive(key, data, length);
+    }
     dirty_ = true;
 
     timer.stop();
