@@ -124,6 +124,7 @@ CASE ( "test_fdb_stepunit_archive" ) {
 	key.set("step","60");
 	key.set("param","130");
 	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
+	fdb.flush();
 
 	metkit::mars::MarsRequest req = key.request();
 
@@ -139,6 +140,7 @@ CASE ( "test_fdb_stepunit_archive" ) {
 	key.set("step","2");
 	key.set("stepunits","h");
 	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
+	fdb.flush();
 
 	req.setValue("step", "2");
 	{
@@ -166,6 +168,7 @@ CASE ( "test_fdb_stepunit_archive" ) {
 /*	key.set("step","30");
 	key.set("stepunits","m");
 	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
+	fdb.flush();
 
 	req.setValue("step", "30m");
 	{
@@ -176,7 +179,6 @@ CASE ( "test_fdb_stepunit_archive" ) {
 		EXPECT(el.combinedKey().get("step") == "30m");
 		EXPECT(!iter.next(el));
 	}
-
 
 	req.setValue("step", "0/to/2/by/30m");
 	{
