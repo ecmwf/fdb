@@ -104,21 +104,18 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     if (stepunit != key.end()) {
         Key k;
         for (auto it : key) {
-            std::cout << it.first << " - ";
             if (it.first == "step" && stepunit->second.size()>0 && stepunit->second[0]!='h') {
-                std::cout << it.second+stepunit->second;
-                k.set(it.first, it.second+stepunit->second);
+                // TODO - enable canonical representation of step (as soon as Metkit supports it)
+                std::string canonicalStep = it.second+stepunit->second; // k.registry().lookupType("step").toKey("step", it.second+stepunit->second);
+                k.set(it.first, canonicalStep);
             } else {
                 if (it.first != "stepunits") {
-                    std::cout << it.second;
                     k.set(it.first, it.second);
                 }
             }
-            std::cout << std::endl;
         }
         internal_->archive(k, data, length);
     } else {
-        std::cout << key << std::endl;
         internal_->archive(key, data, length);
     }
     dirty_ = true;
