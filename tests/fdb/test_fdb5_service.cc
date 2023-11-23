@@ -26,6 +26,7 @@
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"
+#include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/TypeAny.h"
 
 #include "fdb5/database/Key.h"
@@ -104,6 +105,97 @@ struct FixtureService {
 };
 
 //----------------------------------------------------------------------------------------------------------------------
+
+CASE ( "test_fdb_stepunit_archive" ) {
+
+	std::string data_str = "Raining cats and dogs";
+
+	fdb5::FDB fdb;
+
+	Key key;
+	key.set("class","od");
+	key.set("expver","0001");
+	key.set("type","fc");
+	key.set("stream","oper");
+	key.set("date","20101010");
+	key.set("time","0000");
+	key.set("domain","g");
+	key.set("levtype","sfc");
+	key.set("step","60");
+	key.set("param","130");
+	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
+	fdb.flush();
+
+	metkit::mars::MarsRequest req = key.request();
+
+	{
+		fdb5::FDBToolRequest r(req);
+		fdb5::ListIterator iter = fdb.list(r, true);
+		fdb5::ListElement el;
+		EXPECT(iter.next(el));
+		EXPECT(el.combinedKey().get("step") == "60");
+		EXPECT(!iter.next(el));
+	}
+
+	key.set("step","2");
+	key.set("stepunits","h");
+	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
+	fdb.flush();
+
+	req.setValue("step", "2");
+	{
+		fdb5::FDBToolRequest r(req);
+		fdb5::ListIterator iter = fdb.list(r, true);
+		fdb5::ListElement el;
+		EXPECT(iter.next(el));
+		EXPECT(el.combinedKey().get("step") == "2");
+		EXPECT(!iter.next(el));
+	}
+
+	req.setValuesTyped(new metkit::mars::TypeAny("step"), std::vector<std::string>{"2","60"});
+	{
+		fdb5::FDBToolRequest r(req);
+		fdb5::ListIterator iter = fdb.list(r, true);
+		fdb5::ListElement el;
+		EXPECT(iter.next(el));
+		EXPECT(el.combinedKey().get("step") == "2");
+		EXPECT(iter.next(el));
+		EXPECT(el.combinedKey().get("step") == "60");
+		EXPECT(!iter.next(el));
+	}
+
+// sub-hourly data are not yet supported in metkit
+/*	key.set("step","30");
+	key.set("stepunits","m");
+	fdb.archive(key, static_cast<const void *>(data_str.c_str()), data_str.size());
+	fdb.flush();
+
+	req.setValue("step", "30m");
+	{
+		fdb5::FDBToolRequest r(req);
+		fdb5::ListIterator iter = fdb.list(r, true);
+		fdb5::ListElement el;
+		EXPECT(iter.next(el));
+		EXPECT(el.combinedKey().get("step") == "30m");
+		EXPECT(!iter.next(el));
+	}
+
+	req.setValue("step", "0/to/2/by/30m");
+	{
+		metkit::mars::MarsExpension expand{false};
+		metkit::mars::MarsRequest expandedRequests = expand.expand(req);
+		fdb5::FDBToolRequest r(expandedRequests);
+		fdb5::ListIterator iter = fdb.list(r, true);
+		fdb5::ListElement el;
+		EXPECT(iter.next(el));
+		EXPECT(el.combinedKey().get("step") == "30m");
+		EXPECT(iter.next(el));
+		EXPECT(el.combinedKey().get("step") == "2");
+		EXPECT(!iter.next(el));
+	}*/
+}
+
+
 
 CASE ( "test_fdb_service" ) {
 
@@ -271,6 +363,7 @@ CASE ( "test_fdb_service" ) {
         }
 	}
 }
+
 
 
 CASE ( "test_fdb_service_subtoc" ) {
