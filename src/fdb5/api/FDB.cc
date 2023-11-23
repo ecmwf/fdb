@@ -100,15 +100,25 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     eckit::Timer timer;
     timer.start();
 
-    if (key.find("stepunits") != key.end()) {
+    auto stepunit = key.find("stepunits");
+    if (stepunit != key.end()) {
         Key k;
         for (auto it : key) {
-            if (it.first != "stepunits") {
-                k.set(it.first, it.second);
+            std::cout << it.first << " - ";
+            if (it.first == "step" && stepunit->second.size()>0 && stepunit->second[0]!='h') {
+                std::cout << it.second+stepunit->second;
+                k.set(it.first, it.second+stepunit->second);
+            } else {
+                if (it.first != "stepunits") {
+                    std::cout << it.second;
+                    k.set(it.first, it.second);
+                }
             }
+            std::cout << std::endl;
         }
         internal_->archive(k, data, length);
     } else {
+        std::cout << key << std::endl;
         internal_->archive(key, data, length);
     }
     dirty_ = true;
