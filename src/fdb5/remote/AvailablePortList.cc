@@ -53,7 +53,7 @@ std::set<int> readServices() {
         return portsToSkip;
     }
 
-    eckit::Tokenizer parse(" /");
+    eckit::Tokenizer parse("\t /");
 
     eckit::Translator<std::string,int> toInt;
 

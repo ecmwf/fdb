@@ -84,24 +84,26 @@ uint32_t ClientConnection::generateRequestID() {
 
 void ClientConnection::connect() {
 
+    std::lock_guard<std::mutex> lock(requestMutex_);
+
     if (connected_) {
         eckit::Log::warning() << "ClientConnection::connect() called when already connected" << std::endl;
         return;
     }
 
     static int fdbMaxConnectRetries = eckit::Resource<int>("fdbMaxConnectRetries", 5);
+    static int fdbConnectTimeout = eckit::Resource<int>("fdbConnectTimeout", 2); // No timeout
 
     try {
-        // Connect to server, and check that the server is happy on the response
-
+        // Connect to server, and check that the server is happy on the response 
         eckit::Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
-        controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries);
+        controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
         writeControlStartupMessage();
         eckit::SessionID serverSession = verifyServerStartupResponse();
 
         // Connect to the specified data port
         eckit::Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
-        dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries);
+        dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
         writeDataStartupMessage(serverSession);
 
         // And the connections are set up. Let everything start up!
@@ -118,6 +120,9 @@ void ClientConnection::connect() {
 }
 
 void ClientConnection::disconnect() {
+
+    std::lock_guard<std::mutex> lock(requestMutex_);
+
     if (connected_) {
 
         // Send termination message
@@ -148,11 +153,11 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 
 // -----------------------------------------------------------------------------------------------------
 
-void ClientConnection::addRequest(Client& client, uint32_t requestId) {
-    ASSERT(requestId);
+void ClientConnection::addRequest(Client& client, uint32_t requestID) {
+    ASSERT(requestID);
 
     std::lock_guard<std::mutex> lock(requestMutex_);
-    requests_[requestId] = &client;
+    requests_[requestID] = &client;
 }
 
 void ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
@@ -168,6 +173,7 @@ void ClientConnection::controlWrite(Message msg, uint32_t requestID, std::vector
 
     uint32_t payloadLength = 0;
     for (auto d: data) {
+        ASSERT(d.first);
         payloadLength += d.second;
     }
     eckit::Log::debug<LibFdb5>() << "ClientConnection::controlWrite [endpoint=" << controlEndpoint_.hostport() <<
@@ -178,7 +184,6 @@ void ClientConnection::controlWrite(Message msg, uint32_t requestID, std::vector
     std::lock_guard<std::mutex> lock(controlMutex_);
     controlWrite(&message, sizeof(message));
     for (auto d: data) {
-        ASSERT(d.first);
         controlWrite(d.first, d.second);
     }
     controlWrite(&EndMarker, sizeof(EndMarker));
@@ -203,9 +208,23 @@ void ClientConnection::controlRead(void* data, size_t length) {
     }
 }
 
+
+void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
+
+    if (requestID) {
+        auto it = requests_.find(requestID);
+        ASSERT(it != requests_.end());
+        ASSERT(it->second == &client);
+    }
+
+    dataWrite(msg, requestID, data);
+}
+
 void ClientConnection::dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
+
     uint32_t payloadLength = 0;
     for (auto d: data) {
+        ASSERT(d.first);
         payloadLength += d.second;
     }
     MessageHeader message(msg, requestID, payloadLength);
@@ -217,7 +236,6 @@ void ClientConnection::dataWrite(remote::Message msg, uint32_t requestID, std::v
     dataWrite(&message, sizeof(message));
     for (auto d: data) {
         dataWrite(d.first, d.second);
-        payloadLength += d.second;
     }
     dataWrite(&EndMarker, sizeof(EndMarker));
 }

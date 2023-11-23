@@ -324,6 +324,31 @@ private: // members
     bool complete_;
 };
 
+// std::vector<eckit::net::Endpoint> writeEndpoints(const Config& config) {
+//     if (config.has("storeHost") && config.has("storePort")) {
+//         return std::vector{eckit::net::Endpoint(config.getString("storeHost"), config.getInt("storePort"))};
+//     }
+//     ASSERT(config.has("stores"));
+//     std::vector<eckit::LocalConfiguration> stores = config.getSubConfigurations("stores");
+//     for (const auto& root : stores) {
+//         spaceRoots.emplace_back(
+//             Root(
+//                 root.getString("path"),
+//                 root.getString("name", ""),
+//                 root.getBool("list", visit),
+//                 root.getBool("retrieve", visit),
+//                 root.getBool("archive", writable),
+//                 root.getBool("wipe", writable)
+//             )
+//         );
+//     }
+
+//     .getStringVector("stores");
+
+//     std::srand(std::time(nullptr));
+//     return eckit::net::Endpoint(stores.at(std::rand() % stores.size()));
+// }
+
 eckit::net::Endpoint storeEndpoint(const Config& config) {
     if (config.has("storeHost") && config.has("storePort")) {
         return eckit::net::Endpoint(config.getString("storeHost"), config.getInt("storePort"));

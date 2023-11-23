@@ -83,7 +83,7 @@ eckit::Buffer Client::controlWriteReadResponse(Message msg, const void* payload,
 }
 
 void Client::dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
-    connection_.dataWrite(msg, requestID, data);
+    connection_.dataWrite(*this, msg, requestID, data);
 }
 
 } // namespace fdb5::remote

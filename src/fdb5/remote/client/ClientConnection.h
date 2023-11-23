@@ -45,7 +45,7 @@ public: // methods
     virtual ~ClientConnection();
 
     void controlWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
-    void dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
+    void dataWrite   (Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
 
     void connect();
     void disconnect();
@@ -65,10 +65,11 @@ private: // methods
     void controlWrite(Message msg, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
     void controlWrite(const void* data, size_t length);
     void controlRead (      void* data, size_t length);
+    void dataWrite   (Message msg, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
     void dataWrite   (const void* data, size_t length);
     void dataRead    (      void* data, size_t length);
  
-    void addRequest(Client& client, uint32_t requestId);
+    void addRequest(Client& client, uint32_t requestID);
 
     void writeControlStartupMessage();
     void writeDataStartupMessage(const eckit::SessionID& serverSession);
@@ -97,7 +98,7 @@ private: // members
     std::mutex controlMutex_;
     std::mutex dataMutex_;
 
-    // requestId
+    // requestID
     std::mutex idMutex_;
     uint32_t id_;
 

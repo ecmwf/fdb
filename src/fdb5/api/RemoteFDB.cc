@@ -69,20 +69,31 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     eckit::MemoryStream s(buf);
     size_t numStores;
     s >> numStores;
-    std::vector<std::string> stores;
-    for (size_t i=0; i<numStores; i++) {
-        stores.push_back(eckit::net::Endpoint(s).hostport());
-    }
-    s >> numStores;
-    std::vector<std::string> localStores;
-    for (size_t i=0; i<numStores; i++) {
-        eckit::net::Endpoint endpoint(s);
-        localStores_.push_back(endpoint);
-        localStores.push_back(endpoint.hostport());
+    if (numStores > 0) {
+        std::vector<std::string> stores;
+        for (size_t i=0; i<numStores; i++) {
+            stores.push_back(eckit::net::Endpoint(s).hostport());
+        }
+        if (!config_.has("stores")) { // set stores only if not configured localy
+            config_.set("stores", stores);
+        }
+    } else {
+        ASSERT(config_.has("stores"));
     }
 
-    // std::srand(std::time(nullptr));
-    // eckit::net::Endpoint storeEndpoint = stores_.at(std::rand() % stores_.size());
+    // local stores
+    s >> numStores;
+    if (numStores > 0) {
+        std::vector<std::string> localStores;
+        for (size_t i=0; i<numStores; i++) {
+            eckit::net::Endpoint endpoint(s);
+            localStores_.push_back(endpoint);
+            localStores.push_back(endpoint.hostport());
+        }
+        if (!config_.has("localStores")) { // set localStores only if not configured localy
+            config_.set("localStores", localStores);
+        }
+    }
 
     fdb5::Schema* schema = eckit::Reanimator<fdb5::Schema>::reanimate(s);
 
@@ -90,10 +101,6 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     // schema->dump(eckit::Log::debug<LibFdb5>());
     
     config_.overrideSchema(endpoint_.hostport()+"/schema", schema);
-    config_.set("stores", stores);
-    config_.set("localStores", localStores);
-    // config_.set("storeHost", storeEndpoint.host());
-    // config_.set("storePort", storeEndpoint.port());
 }
 
 // -----------------------------------------------------------------------------------------------------
