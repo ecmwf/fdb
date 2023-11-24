@@ -29,7 +29,6 @@ Client::~Client() {
 bool Client::response(uint32_t requestID) {
     ASSERT(requestID == blockingRequestId_);
 
-
     promise_.set_value(true);
     return true;
 }
@@ -48,11 +47,13 @@ uint32_t Client::controlWriteCheckResponse(Message msg, const void* payload, uin
 }
 
 void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
-    ASSERT(!blockingRequestId_);
-    ASSERT(requestID);
 
+    ASSERT(requestID);
+    std::lock_guard<std::mutex> lock(blockingRequestMutex_);
+    
     promise_ = {};
     std::future<bool> f = promise_.get_future();
+
     blockingRequestId_=requestID;
 
     if (payloadLength) {
@@ -65,11 +66,13 @@ void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, const vo
     blockingRequestId_=0;
 }
 eckit::Buffer Client::controlWriteReadResponse(Message msg, const void* payload, uint32_t payloadLength) {
-    ASSERT(!blockingRequestId_);
+
+    std::lock_guard<std::mutex> lock(blockingRequestMutex_);
 
     payloadPromise_ = {};
-    blockingRequestId_=connection_.generateRequestID();
     std::future<eckit::Buffer> f = payloadPromise_.get_future();
+
+    blockingRequestId_=connection_.generateRequestID();
 
     if (payloadLength) {
         connection_.controlWrite(*this, msg, blockingRequestId_, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});
@@ -79,6 +82,7 @@ eckit::Buffer Client::controlWriteReadResponse(Message msg, const void* payload,
 
     eckit::Buffer buf = f.get();
     blockingRequestId_=0;
+
     return buf;
 }
 

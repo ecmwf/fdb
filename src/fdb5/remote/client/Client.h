@@ -65,6 +65,8 @@ protected:
 
 private:
 
+    std::mutex blockingRequestMutex_;
+
     uint32_t blockingRequestId_;
     std::promise<bool> promise_;
     std::promise<eckit::Buffer> payloadPromise_;

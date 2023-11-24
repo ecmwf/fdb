@@ -267,7 +267,7 @@ void ClientConnection::handleError(const MessageHeader& hdr) {
         ASSERT(hdr.payloadSize > 9);
 
         std::string what(hdr.payloadSize, ' ');
-        controlRead(&what[0], hdr.payloadSize);
+        dataRead(&what[0], hdr.payloadSize);
         what[hdr.payloadSize] = 0; // Just in case
 
         try {
@@ -358,7 +358,7 @@ void ClientConnection::listeningThreadLoop() {
 
             dataRead(&hdr, sizeof(hdr));
 
-            eckit::Log::debug<LibFdb5>() << "ClientConnection::listeningThreadLoop - got [message=" << ((int) hdr.message) << ",requestID=" << hdr.requestID << "]" << std::endl;
+            eckit::Log::debug<LibFdb5>() << "ClientConnection::listeningThreadLoop - got [message=" << ((int) hdr.message) << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
             ASSERT(hdr.marker == StartMarker);
             ASSERT(hdr.version == CurrentVersion);
