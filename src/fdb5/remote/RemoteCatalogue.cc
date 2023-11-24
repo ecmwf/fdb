@@ -78,13 +78,14 @@ private: // members
 RemoteCatalogueArchiver* RemoteCatalogueArchiver::get(const eckit::net::Endpoint& endpoint) {
 
     static std::map<const std::string, std::unique_ptr<RemoteCatalogueArchiver>> archivers_;
+    static std::mutex getArchiverMutex_;
+
+    std::lock_guard<std::mutex> lock(getArchiverMutex_);
 
     auto it = archivers_.find(endpoint.hostport());
     if (it == archivers_.end()) {
-        // auto arch = (archivers_[endpoint.hostport()] = RemoteCatalogueArchiver());
         it = archivers_.emplace(endpoint.hostport(), new RemoteCatalogueArchiver()).first;
     }
-    ASSERT(it != archivers_.end());
     return it->second.get();
 }
 
@@ -194,13 +195,13 @@ FDBStats RemoteCatalogueArchiver::archiveThreadLoop() {
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     CatalogueImpl(key, ControlIdentifiers(), config), // xxx what are control identifiers? Setting empty here...
     Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))),
-    config_(config), schema_(nullptr) {
+    config_(config), schema_(nullptr), archiver_(nullptr) {
 
     loadSchema();
 }
 
 RemoteCatalogue::RemoteCatalogue(const eckit::URI& uri, const Config& config):
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))), config_(config), schema_(nullptr)
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))), config_(config), schema_(nullptr), archiver_(nullptr)
     {
         NOTIMP;
     }
@@ -237,9 +238,7 @@ void RemoteCatalogue::archive(const InspectionKey& key, std::unique_ptr<FieldLoc
     if (!archiver_) {
         archiver_ = RemoteCatalogueArchiver::get(controlEndpoint());
     }
-    ASSERT(archiver_);
     archiver_->start();
-
     ASSERT(archiver_->valid());
 
     uint32_t id = controlWriteCheckResponse(Message::Archive, nullptr, 0);

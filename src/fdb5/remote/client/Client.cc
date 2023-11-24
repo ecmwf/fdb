@@ -10,6 +10,8 @@
 
 #include <future>
 
+#include "fdb5/LibFdb5.h"
+
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
@@ -29,12 +31,16 @@ Client::~Client() {
 bool Client::response(uint32_t requestID) {
     ASSERT(requestID == blockingRequestId_);
 
+    eckit::Log::debug<LibFdb5>() << " response to blocking request " << requestID << std::endl;
+
     promise_.set_value(true);
     return true;
 }
 
 bool Client::response(uint32_t requestID, eckit::Buffer&& payload) {
     ASSERT(requestID == blockingRequestId_);
+
+    eckit::Log::debug<LibFdb5>() << " response to blocking request " << requestID << " - payload size: " << payload.size() << std::endl;
 
     payloadPromise_.set_value(std::move(payload));
     return true;

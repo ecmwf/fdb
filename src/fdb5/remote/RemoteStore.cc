@@ -90,13 +90,14 @@ private: // members
 RemoteStoreArchiver* RemoteStoreArchiver::get(const eckit::net::Endpoint& endpoint) {
 
     static std::map<const std::string, std::unique_ptr<RemoteStoreArchiver>> archivers_;
+    static std::mutex getArchiverMutex_;
+
+    std::lock_guard<std::mutex> lock(getArchiverMutex_);
 
     auto it = archivers_.find(endpoint.hostport());
     if (it == archivers_.end()) {
-        // auto arch = (archivers_[endpoint.hostport()] = RemoteStoreArchiver());
         it = archivers_.emplace(endpoint.hostport(), new RemoteStoreArchiver()).first;
     }
-    ASSERT(it != archivers_.end());
     return it->second.get();
 }
 
@@ -355,7 +356,6 @@ eckit::net::Endpoint storeEndpoint(const Config& config) {
     }
     ASSERT(config.has("stores"));
     std::vector<std::string> stores = config.getStringVector("stores");
-    std::srand(std::time(nullptr));
     return eckit::net::Endpoint(stores.at(std::rand() % stores.size()));
 }
 
@@ -364,7 +364,8 @@ eckit::net::Endpoint storeEndpoint(const Config& config) {
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
     Client(storeEndpoint(config)),
     dbKey_(dbKey), config_(config),
-    retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)) {
+    retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
+    archiver_(nullptr) {
 
     if (config.has("localStores")) {
         for (const std::string& localStore : config.getStringVector("localStores")) {
@@ -379,7 +380,8 @@ RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     Client(eckit::net::Endpoint(uri.hostport())),
     dbKey_(Key()), config_(config),
-    retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)) {
+    retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
+    archiver_(nullptr) {
 
     // no need to set the local_ flag on the read path
 
@@ -427,7 +429,6 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     if (!archiver_) {
         archiver_ = RemoteStoreArchiver::get(controlEndpoint());
     }
-    ASSERT(archiver_);
     archiver_->start();
     ASSERT(archiver_->valid());
 
