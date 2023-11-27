@@ -241,7 +241,7 @@ void RemoteCatalogue::archive(const InspectionKey& key, std::unique_ptr<FieldLoc
     archiver_->start();
     ASSERT(archiver_->valid());
 
-    uint32_t id = controlWriteCheckResponse(Message::Archive, nullptr, 0);
+    uint32_t id = controlWriteCheckResponse(Message::Archive);
     eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::archive - adding to queue [id=" << id << ",key=" << key << ",fieldLocation=" << fieldLocation->uri() << "]" << std::endl;
 
     archiver_->emplace(id, this, key, std::move(fieldLocation));

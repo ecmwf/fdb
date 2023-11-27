@@ -432,7 +432,7 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     archiver_->start();
     ASSERT(archiver_->valid());
 
-    uint32_t id = controlWriteCheckResponse(Message::Archive, nullptr, 0);
+    uint32_t id = controlWriteCheckResponse(Message::Archive);
     locations_[id] = catalogue_archive;
     archiver_->emplace(id, this, key, data, length);
 }

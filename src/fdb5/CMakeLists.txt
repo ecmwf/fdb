@@ -1,8 +1,5 @@
 ecbuild_generate_config_headers( DESTINATION ${INSTALL_INCLUDE_DIR}/fdb5 )
 
-SET(UNINITIALIZED_COMPILE_FLAGS " -Wuninitialized -Wmaybe-uninitialized ")
-SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${UNINITIALIZED_COMPILE_FLAGS}")
-
 configure_file( fdb5_config.h.in    fdb5_config.h   )
 configure_file( fdb5_version.h.in   fdb5_version.h  )
 configure_file( fdb5_version.c.in   ${CMAKE_CURRENT_BINARY_DIR}/fdb5_version.c   )
