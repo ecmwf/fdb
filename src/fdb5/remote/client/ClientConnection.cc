@@ -92,7 +92,7 @@ void ClientConnection::connect() {
     }
 
     static int fdbMaxConnectRetries = eckit::Resource<int>("fdbMaxConnectRetries", 5);
-    static int fdbConnectTimeout = eckit::Resource<int>("fdbConnectTimeout", 2); // No timeout
+    static int fdbConnectTimeout = eckit::Resource<int>("fdbConnectTimeout", 0); // No timeout
 
     try {
         // Connect to server, and check that the server is happy on the response 
@@ -213,8 +213,11 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
 
     if (requestID) {
         auto it = requests_.find(requestID);
-        ASSERT(it != requests_.end());
-        ASSERT(it->second == &client);
+        if (it != requests_.end()) {
+            ASSERT(it->second == &client);
+        } else {
+            addRequest(client, requestID);
+        }
     }
 
     dataWrite(msg, requestID, data);
@@ -367,43 +370,50 @@ void ClientConnection::listeningThreadLoop() {
                 return;
             }
 
-            bool handled = false;
-            auto it = requests_.find(hdr.requestID);
-            if (it == requests_.end()) {
-                std::stringstream ss;
-                ss << "ERROR: Unexpected answer to requestID recieved (" << hdr.requestID << "). ABORTING";
-                eckit::Log::status() << ss.str() << std::endl;
-                eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
-                throw eckit::SeriousBug(ss.str(), Here());
+            if (hdr.requestID) {
+                bool handled = false;
+                auto it = requests_.find(hdr.requestID);
+                if (it == requests_.end()) {
+                    std::stringstream ss;
+                    ss << "ERROR: Unexpected answer to requestID recieved (" << hdr.requestID << "). ABORTING";
+                    eckit::Log::status() << ss.str() << std::endl;
+                    eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
+                    throw eckit::SeriousBug(ss.str(), Here());
 
-                ASSERT(false); // todo report the error
-            }
-
-            if (hdr.payloadSize == 0) {
-                if (it->second->blockingRequestId() == hdr.requestID) {
-                    ASSERT(hdr.message == Message::Received);
-                    handled = it->second->response(hdr.requestID);
-                } else {
-                    handled = it->second->handle(hdr.message, hdr.requestID);
+                    ASSERT(false); // todo report the error
                 }
-            }
-            else {
-                eckit::Buffer payload{hdr.payloadSize};
-                dataRead(payload, hdr.payloadSize);
 
-                if (it->second->blockingRequestId() == hdr.requestID) {
-                    handled = it->second->response(hdr.requestID, std::move(payload));
-                } else {
-                    handled = it->second->handle(hdr.message, hdr.requestID, std::move(payload));
+                if (hdr.payloadSize == 0) {
+                    if (it->second->blockingRequestId() == hdr.requestID) {
+                        ASSERT(hdr.message == Message::Received);
+                        handled = it->second->response(hdr.requestID);
+                    } else {
+                        handled = it->second->handle(hdr.message, hdr.requestID);
+                    }
                 }
-            }
+                else {
+                    eckit::Buffer payload{hdr.payloadSize};
+                    dataRead(payload, hdr.payloadSize);
 
-            if (!handled) {
-                std::stringstream ss;
-                ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message) << "). ABORTING";
-                eckit::Log::status() << ss.str() << std::endl;
-                eckit::Log::error() << "Client Retrieving... " << ss.str() << std::endl;
-                throw eckit::SeriousBug(ss.str(), Here());
+                    if (it->second->blockingRequestId() == hdr.requestID) {
+                        handled = it->second->response(hdr.requestID, std::move(payload));
+                    } else {
+                        handled = it->second->handle(hdr.message, hdr.requestID, std::move(payload));
+                    }
+                }
+
+                if (!handled) {
+                    std::stringstream ss;
+                    ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message) << "). ABORTING";
+                    eckit::Log::status() << ss.str() << std::endl;
+                    eckit::Log::error() << "Client Retrieving... " << ss.str() << std::endl;
+                    throw eckit::SeriousBug(ss.str(), Here());
+                }
+            } else {
+                if (hdr.payloadSize) {
+                    eckit::Buffer payload{hdr.payloadSize};
+                    dataRead(payload, hdr.payloadSize);
+                }
             }
 
             // Ensure we have consumed exactly the correct amount from the socket.

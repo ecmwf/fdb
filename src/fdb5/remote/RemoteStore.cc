@@ -157,6 +157,7 @@ FDBStats RemoteStoreArchiver::flush(RemoteStore* store) {
     MemoryStream s(sendBuf);
     s << numArchive;
 
+    eckit::Log::debug<LibFdb5>() << " RemoteStoreArchiver::flush - flushing " << numArchive << " fields" << std::endl;
     // The flush call is blocking
     store->controlWriteCheckResponse(Message::Flush, sendBuf, s.position());
 
@@ -367,6 +368,7 @@ RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
     archiver_(nullptr) {
 
+    local_ = false;
     if (config.has("localStores")) {
         for (const std::string& localStore : config.getStringVector("localStores")) {
             if (localStore == endpoint_.hostport()) {
@@ -429,10 +431,14 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     if (!archiver_) {
         archiver_ = RemoteStoreArchiver::get(controlEndpoint());
     }
-    archiver_->start();
-    ASSERT(archiver_->valid());
+    uint32_t id = connection_.generateRequestID();
+    if (!archiver_->valid()) {
+        archiver_->start();
+        ASSERT(archiver_->valid());
 
-    uint32_t id = controlWriteCheckResponse(Message::Archive);
+        // std::cout << "controlWriteCheckResponse(Message::Archive)" << std::endl;
+        controlWriteCheckResponse(Message::Archive, id);
+    }
     locations_[id] = catalogue_archive;
     archiver_->emplace(id, this, key, data, length);
 }
@@ -518,10 +524,11 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
                 MemoryStream s(payload);
                 std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
                 if (local_) {
+                    // std::cout << "LOCAL: " << location->uri().asRawString() << std::endl;
                     it->second(std::move(location));
                 } else {
-                    // std::cout <<  "RemoteStore::handle - " << location->uri().asRawString() << " " << location->length() << std::endl;
                     std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(endpoint_, *location));
+                    // std::cout << "REMOTE: " << remoteLocation->uri().asRawString() << std::endl;
                     it->second(std::move(remoteLocation));
                 }
             }

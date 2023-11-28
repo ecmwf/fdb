@@ -145,6 +145,7 @@ FDBStats RemoteCatalogueArchiver::flush(RemoteCatalogue* catalogue) {
     MemoryStream s(sendBuf);
     s << numArchive;
 
+    eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::flush - flushing " << numArchive << " fields" << std::endl;
     // The flush call is blocking
     catalogue->controlWriteCheckResponse(Message::Flush, sendBuf, s.position());
 
@@ -238,12 +239,15 @@ void RemoteCatalogue::archive(const InspectionKey& key, std::unique_ptr<FieldLoc
     if (!archiver_) {
         archiver_ = RemoteCatalogueArchiver::get(controlEndpoint());
     }
-    archiver_->start();
-    ASSERT(archiver_->valid());
+    uint32_t id = connection_.generateRequestID();
+    if (!archiver_->valid()) {
+        archiver_->start();
+        ASSERT(archiver_->valid());
 
-    uint32_t id = controlWriteCheckResponse(Message::Archive);
-    eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::archive - adding to queue [id=" << id << ",key=" << key << ",fieldLocation=" << fieldLocation->uri() << "]" << std::endl;
-
+        // std::cout << "Catalogue - controlWriteCheckResponse(Message::Archive)" << std::endl;
+        controlWriteCheckResponse(Message::Archive, id);
+    }
+    // eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::archive - adding to queue [id=" << id << ",key=" << key << ",fieldLocation=" << fieldLocation->uri() << "]" << std::endl;
     archiver_->emplace(id, this, key, std::move(fieldLocation));
 }
 
