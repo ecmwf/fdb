@@ -46,11 +46,11 @@ bool Client::response(uint32_t requestID, eckit::Buffer&& payload) {
     return true;
 }
 
-uint32_t Client::controlWriteCheckResponse(Message msg, const void* payload, uint32_t payloadLength) {
-    uint32_t id = connection_.generateRequestID();
-    controlWriteCheckResponse(msg, id, payload, payloadLength);
-    return id;
-}
+// uint32_t Client::controlWriteCheckResponse(Message msg, const void* payload, uint32_t payloadLength) {
+//     uint32_t id = connection_.generateRequestID();
+//     controlWriteCheckResponse(msg, id, payload, payloadLength);
+//     return id;
+// }
 
 void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
@@ -71,14 +71,15 @@ void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, const vo
     f.get();
     blockingRequestId_=0;
 }
-eckit::Buffer Client::controlWriteReadResponse(Message msg, const void* payload, uint32_t payloadLength) {
+
+eckit::Buffer Client::controlWriteReadResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     std::lock_guard<std::mutex> lock(blockingRequestMutex_);
 
     payloadPromise_ = {};
     std::future<eckit::Buffer> f = payloadPromise_.get_future();
 
-    blockingRequestId_=connection_.generateRequestID();
+    blockingRequestId_=requestID;
 
     if (payloadLength) {
         connection_.controlWrite(*this, msg, blockingRequestId_, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});

@@ -38,7 +38,6 @@ public: // types
 public: // methods
 
     RemoteStore(const Key& key, const Config& config);
-//    RemoteStore(const Key& key, const Config& config, const eckit::net::Endpoint& controlEndpoint);
     RemoteStore(const eckit::URI& uri, const Config& config);
 
     ~RemoteStore() override;

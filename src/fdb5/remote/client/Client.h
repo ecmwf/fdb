@@ -39,36 +39,30 @@ public:
 
     const eckit::net::Endpoint& controlEndpoint() const { return endpoint_; }
 
-    uint32_t controlWriteCheckResponse(Message msg,                     const void* payload=nullptr, uint32_t payloadLength=0);
-    void     controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
-    eckit::Buffer controlWriteReadResponse(Message msg, const void* payload=nullptr, uint32_t payloadLength=0);
+    uint32_t generateRequestID() { return connection_.generateRequestID(); }
+    
+    // uint32_t controlWriteCheckResponse(Message msg,                     const void* payload=nullptr, uint32_t payloadLength=0);
+    void          controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    eckit::Buffer controlWriteReadResponse (Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
 
     void dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
     
-    friend class ClientConnection;
-
-protected:
-
-    // handlers for incoming messages - to be implemented in the client class
+    // handlers for incoming messages - to be defined in the client class
     virtual bool handle(Message message, uint32_t requestID) = 0;
-    virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
+    virtual bool handle(Message message, uint32_t requestID, /*eckit::net::Endpoint endpoint,*/ eckit::Buffer&& payload) = 0;
     virtual void handleException(std::exception_ptr e) = 0;
 
-protected:
+    bool response(uint32_t requestID);
+    bool response(uint32_t requestID, eckit::Buffer&& payload);
+    uint32_t blockingRequestId() { return blockingRequestId_; }
 
+protected:
+    
     eckit::net::Endpoint endpoint_;
     ClientConnection& connection_;
 
 private:
 
-    // for blocking requests
-    bool response(uint32_t requestID);
-    bool response(uint32_t requestID, eckit::Buffer&& payload);
-    uint32_t blockingRequestId() { return blockingRequestId_; }
-
-private:
-
-    // for blocking requests
     std::mutex blockingRequestMutex_;
     uint32_t blockingRequestId_;
     std::promise<bool> promise_;

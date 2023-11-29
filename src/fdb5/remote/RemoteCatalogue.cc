@@ -124,7 +124,6 @@ void RemoteCatalogueArchiver::emplace(uint32_t id, RemoteCatalogue* catalogue, c
 
     dirty_ = true;
 
-    std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
     ASSERT(archiveQueue_);
     archiveQueue_->emplace(id, catalogue, key, std::move(location));
 }
@@ -146,8 +145,9 @@ FDBStats RemoteCatalogueArchiver::flush(RemoteCatalogue* catalogue) {
     s << numArchive;
 
     eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::flush - flushing " << numArchive << " fields" << std::endl;
+    uint32_t id = catalogue->generateRequestID();
     // The flush call is blocking
-    catalogue->controlWriteCheckResponse(Message::Flush, sendBuf, s.position());
+    catalogue->controlWriteCheckResponse(Message::Flush, id, sendBuf, s.position());
 
     dirty_ = false;
 
@@ -312,7 +312,8 @@ void RemoteCatalogue::loadSchema() {
         eckit::MemoryStream keyStream(keyBuffer);
         keyStream << dbKey_;
         
-        eckit::Buffer buf = controlWriteReadResponse(Message::Schema, keyBuffer, keyStream.position());
+        uint32_t id = generateRequestID();
+        eckit::Buffer buf = controlWriteReadResponse(Message::Schema, id, keyBuffer, keyStream.position());
         eckit::MemoryStream s(buf);
 //        eckit::net::Endpoint storeEndpoint_{s};
         schema_.reset(eckit::Reanimator<fdb5::Schema>::reanimate(s));

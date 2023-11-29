@@ -65,7 +65,8 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     LocalFDB(config, name),
     Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))) {
 
-    eckit::Buffer buf = controlWriteReadResponse(remote::Message::Schema);
+    uint32_t id = generateRequestID();
+    eckit::Buffer buf = controlWriteReadResponse(remote::Message::Schema, id);
     eckit::MemoryStream s(buf);
     size_t numStores;
     s >> numStores;

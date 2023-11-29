@@ -136,7 +136,6 @@ void RemoteStoreArchiver::emplace(uint32_t id, RemoteStore* store, const Key& ke
 
     dirty_ = true;
 
-    std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
     ASSERT(archiveQueue_);
     archiveQueue_->emplace(id, store, key, data, length);
 }
@@ -159,7 +158,8 @@ FDBStats RemoteStoreArchiver::flush(RemoteStore* store) {
 
     eckit::Log::debug<LibFdb5>() << " RemoteStoreArchiver::flush - flushing " << numArchive << " fields" << std::endl;
     // The flush call is blocking
-    store->controlWriteCheckResponse(Message::Flush, sendBuf, s.position());
+    uint32_t id = store->generateRequestID();
+    store->controlWriteCheckResponse(Message::Flush, id, sendBuf, s.position());
 
     dirty_ = false;
 
@@ -386,16 +386,6 @@ RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     archiver_(nullptr) {
 
     // no need to set the local_ flag on the read path
-
-    // if (config.has("localStores")) {
-    //     for (const std::string& localStore : config.getStringVector("localStores")) {
-    //         if (localStore == endpoint_.hostport()) {
-    //             local_ = true;
-    //             break;
-    //         }
-    //     }
-    // }
-
     ASSERT(uri.scheme() == "fdb");
 }
 
@@ -612,7 +602,8 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
     s << fieldLocation;
     s << remapKey;
 
-    uint32_t id = controlWriteCheckResponse(fdb5::remote::Message::Read, encodeBuffer, s.position());
+    uint32_t id = connection_.generateRequestID();
+    controlWriteCheckResponse(fdb5::remote::Message::Read, id, encodeBuffer, s.position());
 
     return new FDBRemoteDataHandle(id, retrieveMessageQueue_, endpoint_);
 }
