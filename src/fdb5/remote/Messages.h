@@ -34,7 +34,7 @@ namespace fdb5::remote {
 const static eckit::FixedString<4> StartMarker {"SFDB"};
 const static eckit::FixedString<4> EndMarker {"EFDB"};
 
-constexpr uint16_t CurrentVersion = 10;
+constexpr uint16_t CurrentVersion = 11;
 
 
 enum class Message : uint16_t {
@@ -80,13 +80,15 @@ public: // methods
     MessageHeader() :
         version(CurrentVersion),
         message(Message::None),
+        clientID(0),
         requestID(0),
         payloadSize(0) {}
 
-    MessageHeader(Message message, uint32_t requestID, uint32_t payloadSize=0) :
+    MessageHeader(Message message, uint32_t clientID, uint32_t requestID, uint32_t payloadSize=0) :
         marker(StartMarker),
         version(CurrentVersion),
         message(message),
+        clientID(clientID),
         requestID(requestID),
         payloadSize(payloadSize) {}
 
@@ -96,11 +98,13 @@ public: // methods
 
     Message message;                // 2 bytes  --> 8
 
-    uint32_t requestID;             // 4 bytes  --> 12
+    uint32_t clientID;              // 4 bytes  --> 12
 
-    uint32_t payloadSize;           // 4 bytes  --> 16
+    uint32_t requestID;             // 4 bytes  --> 16
 
-    eckit::FixedString<16> hash;    // 16 bytes --> 32
+    uint32_t payloadSize;           // 4 bytes  --> 20
+
+    eckit::FixedString<16> hash;    // 16 bytes --> 36
 };
 
 

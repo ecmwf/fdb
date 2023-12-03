@@ -217,7 +217,7 @@ void RemoteCatalogue::sendArchiveData(uint32_t id, const Key& key, std::unique_p
 
     Buffer keyBuffer(4096);
     MemoryStream keyStream(keyBuffer);
-    keyStream << dbKey_;
+//    keyStream << dbKey_;
     keyStream << currentIndexKey_;
     keyStream << key;
 

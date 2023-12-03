@@ -19,10 +19,16 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+uint32_t Client::clientId_=0;
+
 Client::Client(const eckit::net::Endpoint& endpoint) :
     endpoint_(endpoint),
     connection_(*(ClientConnectionRouter::instance().connection(*this))),
-    blockingRequestId_(0) {}
+    blockingRequestId_(0) {
+
+    std::lock_guard<std::mutex> lock(idMutex_);
+    id_ = ++clientId_;
+}
 
 Client::~Client() {
     ClientConnectionRouter::instance().deregister(*this);

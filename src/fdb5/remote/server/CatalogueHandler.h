@@ -36,7 +36,9 @@ private:  // methods
     void schema(const MessageHeader& hdr);
     
 
-    CatalogueWriter& catalogue(Key dbKey);
+    CatalogueWriter& catalogue(uint32_t id);
+    CatalogueWriter& catalogue(uint32_t id, const Key& dbKey);
+
     size_t archiveThreadLoop();
 
     // API functionality
@@ -45,7 +47,7 @@ private:  // methods
 
 private:  // member
 
-   std::map<Key, std::unique_ptr<CatalogueWriter>> catalogues_;
+   std::map<uint32_t, std::unique_ptr<CatalogueWriter>> catalogues_;
 
     FDB fdb_;
 };

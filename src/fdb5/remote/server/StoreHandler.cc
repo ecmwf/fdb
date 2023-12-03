@@ -118,16 +118,16 @@ void StoreHandler::handle() {
             ASSERT(tail == EndMarker);
 
             // Acknowledge receipt of command
-            dataWrite(Message::Received, hdr.requestID);
+            dataWrite(Message::Received, hdr.clientID, hdr.requestID);
         }
         catch (std::exception& e) {
             // n.b. more general than eckit::Exception
             std::string what(e.what());
-            dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+            dataWrite(Message::Error, hdr.clientID, hdr.requestID, what.c_str(), what.length());
         }
         catch (...) {
             std::string what("Caught unexpected and unknown error");
-            dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+            dataWrite(Message::Error, hdr.clientID, hdr.requestID, what.c_str(), what.length());
         }
     }
 }
@@ -148,24 +148,22 @@ void StoreHandler::read(const MessageHeader& hdr) {
     std::unique_ptr<eckit::DataHandle> dh;
     dh.reset(location->dataHandle());
 
-    readLocationQueue_.emplace(std::make_pair(hdr.requestID, std::move(dh)));
+    readLocationQueue_.emplace(readLocationElem(hdr.clientID, hdr.requestID, std::move(dh)));
 }
 
 void StoreHandler::readLocationThreadLoop() {
-    std::pair<uint32_t, std::unique_ptr<eckit::DataHandle>> elem;
+    readLocationElem elem;
 
     while (readLocationQueue_.pop(elem) != -1) {
         // Get the next MarsRequest in sequence to work on, do the retrieve, and
         // send the data back to the client.
 
-        const uint32_t requestID(elem.first);
-
         // Forward the API call
-        writeToParent(elem.first, std::move(elem.second));
+        writeToParent(elem.clientID, elem.requestID, std::move(elem.readLocation));
     }
 }
 
-void StoreHandler::writeToParent(const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh) {
+void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh) {
    try {
         Log::status() << "Reading: " << requestID << std::endl;
         // Write the data to the parent, in chunks if necessary.
@@ -178,7 +176,7 @@ void StoreHandler::writeToParent(const uint32_t requestID, std::unique_ptr<eckit
                               << std::endl;
 
         while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
-            dataWrite(Message::Blob, requestID, writeBuffer, dataRead);
+            dataWrite(Message::Blob, clientID, requestID, writeBuffer, dataRead);
         }
 
         // And when we are done, add a complete message.
@@ -186,7 +184,7 @@ void StoreHandler::writeToParent(const uint32_t requestID, std::unique_ptr<eckit
         Log::debug<LibFdb5>() << "Writing retrieve complete message: " << requestID
                               << std::endl;
 
-        dataWrite(Message::Complete, requestID);
+        dataWrite(Message::Complete, clientID, requestID);
 
         Log::status() << "Done retrieve: " << requestID << std::endl;
         Log::debug<LibFdb5>() << "Done retrieve: " << requestID << std::endl;
@@ -194,12 +192,12 @@ void StoreHandler::writeToParent(const uint32_t requestID, std::unique_ptr<eckit
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
         std::string what(e.what());
-        dataWrite(Message::Error, requestID, what.c_str(), what.length());
+        dataWrite(Message::Error, clientID, requestID, what.c_str(), what.length());
     }
     catch (...) {
         // We really don't want to std::terminate the thread
         std::string what("Caught unexpected, unknown exception in retrieve worker");
-        dataWrite(Message::Error, requestID, what.c_str(), what.length());
+        dataWrite(Message::Error, clientID, requestID, what.c_str(), what.length());
     }
 }
 
@@ -215,17 +213,17 @@ void StoreHandler::archive(const MessageHeader& hdr) {
     }
 }
 
-Store& StoreHandler::store(Key dbKey) {
-    auto it = stores_.find(dbKey);
+Store& StoreHandler::store(uint32_t id, Key dbKey) {
+    auto it = stores_.find(id);
     if (it != stores_.end()) {
         return *(it->second);
     }
 
-    return *(stores_[dbKey] = StoreFactory::instance().build(dbKey, config_));
+    return *(stores_[id] = StoreFactory::instance().build(dbKey, config_));
 }
 
 // A helper function to make archiveThreadLoop a bit cleaner
-void StoreHandler::archiveBlobPayload(uint32_t id, const void* data, size_t length) {
+void StoreHandler::archiveBlobPayload(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) {
     MemoryStream s(data, length);
 
     fdb5::Key dbKey(s);
@@ -237,7 +235,7 @@ void StoreHandler::archiveBlobPayload(uint32_t id, const void* data, size_t leng
     const char* charData = static_cast<const char*>(data);  // To allow pointer arithmetic
     Log::status() << "Archiving data: " << ss_key.str() << std::endl;
     
-    Store& ss = store(dbKey);
+    Store& ss = store(clientID, dbKey);
 
     auto futureLocation = ss.archive(idxKey, charData + s.position(), length - s.position());
     Log::status() << "Archiving done: " << ss_key.str() << std::endl;
@@ -249,8 +247,20 @@ void StoreHandler::archiveBlobPayload(uint32_t id, const void* data, size_t leng
     eckit::Buffer locBuffer(16 * 1024);
     MemoryStream locStream(locBuffer);
     locStream << (*loc);
-    dataWrite(Message::Archive, id, locBuffer.data(), locStream.position());
+    dataWrite(Message::Archive, clientID, requestID, locBuffer.data(), locStream.position());
 }
+
+struct archiveElem {
+    uint32_t clientID;
+    uint32_t requestID;
+    eckit::Buffer payload;
+    bool multiblob;
+
+    archiveElem() : clientID(0), requestID(0), payload(0), multiblob(false) {}
+
+    archiveElem(uint32_t clientID, uint32_t requestID, eckit::Buffer payload, bool multiblob) :
+        clientID(clientID), requestID(requestID), payload(std::move(payload)), multiblob(multiblob) {}
+};
 
 size_t StoreHandler::archiveThreadLoop() {
     size_t totalArchived = 0;
@@ -258,27 +268,28 @@ size_t StoreHandler::archiveThreadLoop() {
     // Create a worker that will do the actual archiving
 
     static size_t queueSize(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32));
-    eckit::Queue<std::pair<std::pair<uint32_t, eckit::Buffer>, bool>> queue(queueSize);
+    eckit::Queue<archiveElem> queue(queueSize);
 
     std::future<size_t> worker = std::async(std::launch::async, [this, &queue] {
         size_t totalArchived = 0;
 
-        std::pair<std::pair<uint32_t, eckit::Buffer>, bool> elem = std::make_pair(std::make_pair(0, Buffer{0}), false);
+        archiveElem elem;
 
         try {
             long queuelen;
             while ((queuelen = queue.pop(elem)) != -1) {
-                if (elem.second) {
+                if (elem.multiblob) {
                     // Handle MultiBlob
 
-                    const char* firstData = static_cast<const char*>(elem.first.second.data());  // For pointer arithmetic
+                    const char* firstData = static_cast<const char*>(elem.payload.data());  // For pointer arithmetic
                     const char* charData = firstData;
-                    while (size_t(charData - firstData) < elem.first.second.size()) {
+                    while (size_t(charData - firstData) < elem.payload.size()) {
                         const MessageHeader* hdr = static_cast<const MessageHeader*>(static_cast<const void*>(charData));
                         ASSERT(hdr->marker == StartMarker);
                         ASSERT(hdr->version == CurrentVersion);
                         ASSERT(hdr->message == Message::Blob);
-                        ASSERT(hdr->requestID == elem.first.first);
+                        ASSERT(hdr->clientID == elem.clientID);
+                        ASSERT(hdr->requestID == elem.requestID);
                         charData += sizeof(MessageHeader);
 
                         const void* payloadData = charData;
@@ -288,13 +299,13 @@ size_t StoreHandler::archiveThreadLoop() {
                         ASSERT(*e == EndMarker);
                         charData += sizeof(EndMarker);
 
-                        archiveBlobPayload(elem.first.first, payloadData, hdr->payloadSize);
+                        archiveBlobPayload(elem.clientID, elem.requestID, payloadData, hdr->payloadSize);
                         totalArchived += 1;
                     }
                 }
                 else {
                     // Handle single blob
-                    archiveBlobPayload(elem.first.first, elem.first.second.data(), elem.first.second.size());
+                    archiveBlobPayload(elem.clientID, elem.requestID, elem.payload.data(), elem.payload.size());
                     totalArchived += 1;
                 }
             }
@@ -341,10 +352,7 @@ size_t StoreHandler::archiveThreadLoop() {
 
             size_t sz = payload.size();
             Log::debug<LibFdb5>() << "Queueing data: " << sz << std::endl;
-            size_t queuelen = queue.emplace(
-                std::make_pair(
-                    std::make_pair(hdr.requestID, std::move(payload)),
-                    hdr.message == Message::MultiBlob));
+            size_t queuelen = queue.emplace(archiveElem(hdr.clientID, hdr.requestID, std::move(payload), hdr.message == Message::MultiBlob));
             Log::status() << "Queued data (" << queuelen << ", size=" << sz << ")" << std::endl;
             ;
             Log::debug<LibFdb5>() << "Queued data (" << queuelen << ", size=" << sz << ")"
@@ -369,13 +377,13 @@ size_t StoreHandler::archiveThreadLoop() {
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
         std::string what(e.what());
-        dataWrite(Message::Error, 0, what.c_str(), what.length());
+        dataWrite(Message::Error, 0, 0, what.c_str(), what.length());
         queue.interrupt(std::current_exception());
         throw;
     }
     catch (...) {
         std::string what("Caught unexpected, unknown exception in retrieve worker");
-        dataWrite(Message::Error, 0, what.c_str(), what.length());
+        dataWrite(Message::Error, 0, 0, what.c_str(), what.length());
         queue.interrupt(std::current_exception());
         throw;
     }

@@ -84,7 +84,7 @@ void CatalogueHandler::initialiseConnections() {
         }
         s << config_.schema();
 
-        dataWrite(Message::Received, hdr.requestID, startupBuffer.data(), s.position());
+        dataWrite(Message::Received, hdr.clientID, hdr.requestID, startupBuffer.data(), s.position());
     }
 }
 
@@ -151,19 +151,19 @@ void CatalogueHandler::forwardApiCall(const MessageHeader& hdr) {
                 typename decltype(iterator)::value_type elem;
                 while (iterator.next(elem)) {
                     auto encoded(helper.encode(elem, *this));
-                    dataWrite(Message::Blob, hdr.requestID, encoded.buf, encoded.position);
+                    dataWrite(Message::Blob, hdr.clientID, hdr.requestID, encoded.buf, encoded.position);
                 }
-                dataWrite(Message::Complete, hdr.requestID);
+                dataWrite(Message::Complete, hdr.clientID, hdr.requestID);
             }
             catch (std::exception& e) {
                 // n.b. more general than eckit::Exception
                 std::string what(e.what());
-                dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+                dataWrite(Message::Error, hdr.clientID, hdr.requestID, what.c_str(), what.length());
             }
             catch (...) {
                 // We really don't want to std::terminate the thread
                 std::string what("Caught unexpected, unknown exception in worker");
-                dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+                dataWrite(Message::Error, hdr.clientID, hdr.requestID, what.c_str(), what.length());
             }
         }));
 }
@@ -260,17 +260,17 @@ void CatalogueHandler::handle() {
 
             if (!ack) {
                 // Acknowledge receipt of command
-                dataWrite(Message::Received, hdr.requestID);
+                dataWrite(Message::Received, hdr.clientID, hdr.requestID);
             }
         }
         catch (std::exception& e) {
             // n.b. more general than eckit::Exception
             std::string what(e.what());
-            dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+            dataWrite(Message::Error, hdr.clientID, hdr.requestID, what.c_str(), what.length());
         }
         catch (...) {
             std::string what("Caught unexpected and unknown error");
-            dataWrite(Message::Error, hdr.requestID, what.c_str(), what.length());
+            dataWrite(Message::Error, hdr.clientID, hdr.requestID, what.c_str(), what.length());
         }
     }
 }
@@ -336,21 +336,20 @@ size_t CatalogueHandler::archiveThreadLoop() {
         try {
             long queuelen;
             while ((queuelen = queue.pop(elem)) != -1) {
-                uint32_t id = elem.first;
+                uint32_t clientID = elem.first;
                 // Key key = elem.second.first;
                 eckit::Buffer payload = std::move(elem.second);
                 MemoryStream s(payload);
-                Key dbKey(s);
                 Key idxKey(s);
                 InspectionKey key; // xxx no stream constructor for inspection key?
                 s >> key;
                 std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
-                Log::debug<LibFdb5>() << "CatalogueHandler::archiveThreadLoop message has dbKey: " << dbKey 
-                    << " idxKey: " << idxKey << " key: " << key << " and location.uri" << location->uri() << std::endl;
+                CatalogueWriter& cat = catalogue(clientID);
+                Log::debug<LibFdb5>() << "CatalogueHandler::archiveThreadLoop message has clientID: " << clientID << " key: " << cat.key()
+                    << idxKey << key << " and location.uri" << location->uri() << std::endl;
         
-                CatalogueWriter& cat = catalogue(dbKey);
                 cat.selectIndex(idxKey);
-                cat.archive(key, std::move(location)); /// xxx currently this is making too many indexes.
+                cat.archive(key, std::move(location));
                 totalArchived += 1;
             }
         }
@@ -391,7 +390,7 @@ size_t CatalogueHandler::archiveThreadLoop() {
             socketRead(&tail, sizeof(tail), dataSocket_);
             ASSERT(tail == EndMarker);
 
-            size_t queuelen = queue.emplace(hdr.requestID, std::move(payload));
+            size_t queuelen = queue.emplace(hdr.clientID, std::move(payload));
         }
 
         // Trigger cleanup of the workers
@@ -411,13 +410,13 @@ size_t CatalogueHandler::archiveThreadLoop() {
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
         std::string what(e.what());
-        dataWrite(Message::Error, 0, what.c_str(), what.length());
+        dataWrite(Message::Error, 0, 0, what.c_str(), what.length());
         queue.interrupt(std::current_exception());
         throw;
     }
     catch (...) {
         std::string what("Caught unexpected, unknown exception in retrieve worker");
-        dataWrite(Message::Error, 0, what.c_str(), what.length());
+        dataWrite(Message::Error, 0, 0, what.c_str(), what.length());
         queue.interrupt(std::current_exception());
         throw;
     }
@@ -441,23 +440,28 @@ void CatalogueHandler::schema(const MessageHeader& hdr) {
     Key dbKey(s);
     
     // 2. Get catalogue
-    Catalogue& cat = catalogue(dbKey);
+    Catalogue& cat = catalogue(hdr.clientID, dbKey);
     const Schema& schema = cat.schema();
     eckit::Buffer schemaBuffer(1024*1024);
     eckit::MemoryStream stream(schemaBuffer);
     stream << schema;
 
-    dataWrite(Message::Received, hdr.requestID, schemaBuffer.data(), stream.position());
+    dataWrite(Message::Received, hdr.clientID, hdr.requestID, schemaBuffer.data(), stream.position());
 }
 
-CatalogueWriter& CatalogueHandler::catalogue(Key dbKey) {
-    auto it = catalogues_.find(dbKey);
-    if (it != catalogues_.end()) {
-        return *(it->second);
+CatalogueWriter& CatalogueHandler::catalogue(uint32_t id) {
+    auto it = catalogues_.find(id);
+    if (it == catalogues_.end()) {
+        std::string what("Requested unknown catalogue id: " + std::to_string(id));
+        dataWrite(Message::Error, 0, 0, what.c_str(), what.length());
+        throw;
     }
 
-    // xxx specifically catalogue writer right now.
-    return *(catalogues_[dbKey] = CatalogueWriterFactory::instance().build(dbKey, config_));
+    return *(it->second);
+}
+
+CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
+    return *(catalogues_[id] = CatalogueWriterFactory::instance().build(dbKey, config_));
 }
 
 }  // namespace fdb5::remote

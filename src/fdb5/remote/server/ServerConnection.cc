@@ -76,7 +76,7 @@ ServerConnection::~ServerConnection() {
 
     // And notify the client that we are done.
     eckit::Log::info() << "Sending exit message to client" << std::endl;
-    dataWrite(Message::Exit, 0);
+    dataWrite(Message::Exit, 0, 0);
     eckit::Log::info() << "Done" << std::endl;
 }
 
@@ -168,12 +168,12 @@ void ServerConnection::initialiseConnections() {
 
         eckit::Log::debug<LibFdb5>() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
 
-        controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
+        controlWrite(Message::Startup, 0, 0, startupBuffer.data(), s.position());
     }
 
 
     if (!errorMsg.empty()) {
-        controlWrite(Message::Error, 0, errorMsg.c_str(), errorMsg.length());
+        controlWrite(Message::Error, 0, 0, errorMsg.c_str(), errorMsg.length());
         return;
     }
 
@@ -213,6 +213,25 @@ void ServerConnection::initialiseConnections() {
     }
 }
 
+// Handler& ServerConnection::handler(uint32_t id) {
+//     auto it = handlers_.find(id);
+//     ASSERT(it != handlers_.end());
+
+//     return *it->second;
+// }
+
+// Handler& ServerConnection::handler(uint32_t id, eckit::Buffer payload) {
+
+//     ASSERT(handlers_.find(id) == handlers_.end());
+
+
+
+//     auto it = handlers_.find(id);
+//     ASSERT(it != handlers_.end());
+
+//     return *it->second;
+// }
+
 int ServerConnection::selectDataPort() {
     eckit::Log::info() << "SelectDataPort: " << std::endl;
     eckit::Log::info() << config_ << std::endl;
@@ -226,10 +245,10 @@ int ServerConnection::selectDataPort() {
     return 0;
 }
 
-void ServerConnection::controlWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+void ServerConnection::controlWrite(Message msg, uint32_t clientID, uint32_t requestID, const void* payload, uint32_t payloadLength) {
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
-    MessageHeader message(msg, requestID, payloadLength);
+    MessageHeader message(msg, clientID, requestID, payloadLength);
     std::lock_guard<std::mutex> lock(controlWriteMutex_);
     controlWrite(&message, sizeof(message));
     if (payload) {
@@ -257,13 +276,13 @@ void ServerConnection::socketRead(void* data, size_t length, eckit::net::TCPSock
     }
 }
 
-void ServerConnection::dataWrite(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+void ServerConnection::dataWrite(Message msg, uint32_t clientID, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     eckit::Log::debug<LibFdb5>() << "ServerConnection::dataWrite [message="<< static_cast<int>(msg) << ",requestID=" << requestID << ",payloadLength=" << payloadLength << "]" << std::endl;
 
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
-    MessageHeader message(msg, requestID, payloadLength);
+    MessageHeader message(msg, clientID, requestID, payloadLength);
 
     std::lock_guard<std::mutex> lock(dataWriteMutex_);
     dataWriteUnsafe(&message, sizeof(message));

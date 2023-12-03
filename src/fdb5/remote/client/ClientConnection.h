@@ -62,10 +62,10 @@ protected: // methods
 
 private: // methods
 
-    void controlWrite(Message msg, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
+    void controlWrite(Message msg, uint32_t clientID, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
     void controlWrite(const void* data, size_t length);
     void controlRead (      void* data, size_t length);
-    void dataWrite   (Message msg, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
+    void dataWrite   (Message msg, uint32_t clientID, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
     void dataWrite   (const void* data, size_t length);
     void dataRead    (      void* data, size_t length);
  
@@ -90,7 +90,7 @@ private: // members
     eckit::net::TCPClient controlClient_;
     eckit::net::TCPClient dataClient_;
 
-    std::map<uint32_t, Client*> requests_;
+    std::map<uint64_t, Client*> requests_;
 
     std::thread listeningThread_;
     

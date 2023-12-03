@@ -37,11 +37,12 @@ public:
     Client(const eckit::net::Endpoint& endpoint);
     ~Client();
 
+    uint32_t id() { return id_; }
     const eckit::net::Endpoint& controlEndpoint() const { return endpoint_; }
 
     uint32_t generateRequestID() { return connection_.generateRequestID(); }
-    
-    // uint32_t controlWriteCheckResponse(Message msg,                     const void* payload=nullptr, uint32_t payloadLength=0);
+
+    // blocking requests
     void          controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
     eckit::Buffer controlWriteReadResponse (Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
 
@@ -62,6 +63,10 @@ protected:
     ClientConnection& connection_;
 
 private:
+    static uint32_t clientId_;
+
+    std::mutex idMutex_;
+    uint32_t id_;
 
     std::mutex blockingRequestMutex_;
     uint32_t blockingRequestId_;

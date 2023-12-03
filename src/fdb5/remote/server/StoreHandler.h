@@ -28,21 +28,20 @@ private:  // methods
 
     void initialiseConnections() override;
     void readLocationThreadLoop();
-    void writeToParent(const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
+    void writeToParent(const uint32_t clientID, const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
 
     void archive(const MessageHeader& hdr);
     size_t archiveThreadLoop();
-    void archiveBlobPayload(uint32_t id, const void* data, size_t length);
+    void archiveBlobPayload(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length);
 
     void flush(const MessageHeader& hdr);
 
-  //  Catalogue& catalogue(Key dbKey);
-    Store& store(Key dbKey);
+    // Store& store(uint32_t id);
+    Store& store(uint32_t id, Key dbKey);
   //  Store& store(eckit::URI uri);
 
 private:  // members
-//    std::map<Key, std::unique_ptr<Catalogue>> catalogues_;
-    std::map<Key, std::unique_ptr<Store>> stores_;
+    std::map<uint32_t, std::unique_ptr<Store>> stores_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

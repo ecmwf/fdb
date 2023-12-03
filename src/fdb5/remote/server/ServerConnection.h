@@ -28,6 +28,7 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/remote/Messages.h"
+// #include "fdb5/remote/server/Handler.h"
 
 namespace fdb5::remote {
 
@@ -35,6 +36,17 @@ struct MessageHeader;
 
 //----------------------------------------------------------------------------------------------------------------------
 // Base class for CatalogueHandler and StoreHandler
+
+struct readLocationElem {
+    uint32_t clientID;
+    uint32_t requestID;
+    std::unique_ptr<eckit::DataHandle> readLocation;
+
+    readLocationElem() : clientID(0), requestID(0), readLocation(nullptr) {}
+    
+    readLocationElem(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> readLocation) :
+        clientID(clientID), requestID(requestID), readLocation(std::move(readLocation)) {}
+};
 
 class ServerConnection : private eckit::NonCopyable {
 public:  // methods
@@ -49,6 +61,9 @@ public:  // methods
 
 protected:
 
+    // Handler& handler(uint32_t id);
+    // virtual Handler& handler(uint32_t id, Buffer& payload) = 0;
+
     // socket methods
     int selectDataPort();
     virtual void initialiseConnections();
@@ -57,7 +72,7 @@ protected:
     void socketRead(void* data, size_t length, eckit::net::TCPSocket& socket);
 
     // dataWrite is protected using a mutex, as we may have multiple workers.
-    void dataWrite(Message msg, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
+    void dataWrite(Message msg, uint32_t clientID, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
     eckit::Buffer receivePayload(const MessageHeader& hdr, eckit::net::TCPSocket& socket);
 
     // socket methods
@@ -69,7 +84,7 @@ protected:
 
 private:
 
-    void controlWrite(Message msg, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
+    void controlWrite(Message msg, uint32_t clientID, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
     void controlWrite(const void* data, size_t length);
 
     // virtual void read(const MessageHeader& hdr);
@@ -79,12 +94,13 @@ private:
 
 protected:
 
+    // std::map<uint32_t, Handler*> handlers_;
     Config config_;
     eckit::net::TCPSocket controlSocket_;
     eckit::net::EphemeralTCPServer dataSocket_;
     std::string dataListenHostname_;
 
-    eckit::Queue<std::pair<uint32_t, std::unique_ptr<eckit::DataHandle>>> readLocationQueue_;
+    eckit::Queue<readLocationElem> readLocationQueue_;
 
     eckit::SessionID sessionID_;
     eckit::LocalConfiguration agreedConf_;
