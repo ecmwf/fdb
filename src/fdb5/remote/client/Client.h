@@ -27,18 +27,20 @@ namespace fdb5::remote {
 class RemoteFDBException : public eckit::RemoteException {
 public:
     RemoteFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint):
-        eckit::RemoteException(msg, endpoint.hostport()) {}
+        eckit::RemoteException(msg, endpoint.host()+":"+std::to_string(endpoint.port())) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class Client : eckit::NonCopyable {
 public:
-    Client(const eckit::net::Endpoint& endpoint);
+    Client(const FdbEndpoint& endpoint);
+    Client(const std::vector<FdbEndpoint>& endpoints);
     ~Client();
 
     uint32_t id() { return id_; }
-    const eckit::net::Endpoint& controlEndpoint() const { return endpoint_; }
+    const FdbEndpoint& controlEndpoint() const { return connection_.controlEndpoint(); }
+    // const eckit::net::Endpoint& fullyQualifiedControlEndpoint() const { return connection_.controlEndpoint(); }
 
     uint32_t generateRequestID() { return connection_.generateRequestID(); }
 
@@ -59,7 +61,11 @@ public:
 
 protected:
     
-    eckit::net::Endpoint endpoint_;
+    // std::vector<std::string> endpoints_;
+    // std::string domain_;
+
+    // eckit::net::Endpoint endpoint_;
+    // eckit::net::Endpoint fullyQualifiedEndpoint_;
     ClientConnection& connection_;
 
 private:

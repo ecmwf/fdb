@@ -1,33 +1,102 @@
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
+namespace{
+    
+class ConnectionError : public eckit::Exception {
+public:
+    ConnectionError();
+    ConnectionError(const eckit::net::Endpoint&);
+
+    bool retryOnClient() const override { return true; } 
+};
+
+ConnectionError::ConnectionError() {
+    std::ostringstream s;
+    s << "Unable to create a connection with the FDB server";
+    reason(s.str());
+    eckit::Log::status() << what() << std::endl;
+}
+
+ConnectionError::ConnectionError(const eckit::net::Endpoint& endpoint) {
+    std::ostringstream s;
+    s << "Unable to create a connection with the FDB endpoint " << endpoint;
+    reason(s.str());
+    eckit::Log::status() << what() << std::endl;
+}
+}
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ClientConnection* ClientConnectionRouter::connection(Client& client) {
-
-    // pick the first endpoint - To be improved with DataStoreStrategies
-    const eckit::net::Endpoint& endpoint = client.controlEndpoint();
+ClientConnection* ClientConnectionRouter::connection(Client& client, const FdbEndpoint& endpoint) {
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
-
     auto it = connections_.find(endpoint.hostport());
     if (it != connections_.end()) {
         it->second.clients_.insert(&client);
         return it->second.connection_.get();
     } else {
-        auto it = (connections_.emplace(endpoint.hostport(), Connection(std::unique_ptr<ClientConnection>(new ClientConnection{endpoint}), client))).first;
-        it->second.connection_->connect();
-        return it->second.connection_.get();
+        ClientConnection* clientConnection = new ClientConnection(endpoint);
+        if (clientConnection->connect()) {
+            auto it = (connections_.emplace(endpoint.hostport(), Connection(std::unique_ptr<ClientConnection>(clientConnection), client))).first;
+            return it->second.connection_.get();
+        } else {
+            throw ConnectionError(endpoint);
+        }
     }
 }
 
+ClientConnection* ClientConnectionRouter::connection(Client& client, const std::vector<FdbEndpoint>& endpoints) {
+
+    std::vector<FdbEndpoint> fullEndpoints{endpoints};
+    // for (auto hostport: endpoints) {
+    //     eckit::net::Endpoint e{hostport};
+    //     if (domain.empty()) {
+    //         fullEndpoints.push_back(std::make_pair(hostport, e));
+    //     } else {
+    //         fullEndpoints.push_back(std::make_pair(hostport, eckit::net::Endpoint(e.host()+domain, e.port())));
+    //     }
+    // }
+
+    std::lock_guard<std::mutex> lock(connectionMutex_);
+    while (fullEndpoints.size()>0) {
+
+        // select a random endpoint
+        size_t idx = std::rand() % fullEndpoints.size();
+        FdbEndpoint endpoint = fullEndpoints.at(idx);
+
+        // look for the selected endpoint
+        auto it = connections_.find(endpoint.hostport());
+        if (it != connections_.end()) {
+            it->second.clients_.insert(&client);
+            return it->second.connection_.get();
+        }
+        else { // not yet there, trying to connect
+            ClientConnection* clientConnection = new ClientConnection(fullEndpoints.at(idx));
+            if (clientConnection->connect(true)) {
+                auto it = (connections_.emplace(endpoint.hostport(), Connection(std::unique_ptr<ClientConnection>(clientConnection), client))).first;
+                return it->second.connection_.get();
+            }
+        }
+
+        // unable to connect to "endpoint", remove it and try again
+        if (idx != fullEndpoints.size()-1) { // swap with the last element
+            fullEndpoints[idx] = std::move(fullEndpoints.back());
+        }
+        fullEndpoints.pop_back();
+    }
+
+    // no more available endpoints, we have to give up
+    throw ConnectionError();
+}
+
+
 void ClientConnectionRouter::deregister(Client& client) {
-    const eckit::net::Endpoint& endpoint = client.controlEndpoint();
+    const std::string& endpoint = client.controlEndpoint().hostport();
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
 
-    auto it = connections_.find(endpoint.hostport());
+    auto it = connections_.find(endpoint);
     ASSERT(it != connections_.end());
 
     auto clientIt = it->second.clients_.find(&client);

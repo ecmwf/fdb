@@ -13,6 +13,7 @@
 
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
+#include "fdb5/remote/FdbEndpoint.h"
 
 using namespace fdb5::remote;
 using namespace eckit;
@@ -44,10 +45,20 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
         eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
 
         if (elem.location().uri().scheme() == "fdb") {
-            return elem;
+            if (fdb->remoteDomain().empty()) {
+                return elem;
+            }
+            fdb5::remote::FdbEndpoint endpoint{elem.location().uri().host(), elem.location().uri().port(), fdb->remoteDomain()};
+            std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(endpoint, static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
+
+            // eckit::Log::debug<fdb5::LibFdb5>() << "InspectHelper::valueFromStream - reconstructed location: ";
+            // remoteLocation->dump(eckit::Log::debug<fdb5::LibFdb5>());
+            // eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+
+            return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
         }
 
-        std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
+        std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->localStoreEndpoint(), elem.location()).make_shared();
         return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
     }
 };
@@ -55,7 +66,7 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
 
 namespace fdb5 {
 
-eckit::net::Endpoint RemoteFDB::storeEndpoint() {
+const eckit::net::Endpoint& RemoteFDB::localStoreEndpoint() const {
     ASSERT(localStores_.size() > 0);
 
     return localStores_.at(std::rand() % localStores_.size());
@@ -63,7 +74,9 @@ eckit::net::Endpoint RemoteFDB::storeEndpoint() {
 
 RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name):
     LocalFDB(config, name),
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))) {
+    Client(remote::FdbEndpoint(config.getString("host"), config.getInt("port"), config.getString("remoteDomain", ""))) {
+
+    remoteDomain_ = config.getString("remoteDomain", "");
 
     uint32_t id = generateRequestID();
     eckit::Buffer buf = controlWriteReadResponse(remote::Message::Schema, id);
@@ -73,7 +86,9 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     if (numStores > 0) {
         std::vector<std::string> stores;
         for (size_t i=0; i<numStores; i++) {
-            stores.push_back(eckit::net::Endpoint(s).hostport());
+            eckit::net::Endpoint endpoint(s);
+            //std::cout << endpoint.hostport() << std::endl;
+            stores.push_back(endpoint.hostport());
         }
         if (!config_.has("stores")) { // set stores only if not configured localy
             config_.set("stores", stores);
@@ -87,7 +102,9 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     if (numStores > 0) {
         std::vector<std::string> localStores;
         for (size_t i=0; i<numStores; i++) {
-            eckit::net::Endpoint endpoint(s);
+            eckit::net::Endpoint e(s);
+            remote::FdbEndpoint endpoint{e, remoteDomain_};
+            
             localStores_.push_back(endpoint);
             localStores.push_back(endpoint.hostport());
         }
@@ -101,7 +118,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     // eckit::Log::debug<LibFdb5>() << *this << " - Received Store endpoint: " << storeEndpoint_ << " and master schema: " << std::endl;
     // schema->dump(eckit::Log::debug<LibFdb5>());
     
-    config_.overrideSchema(endpoint_.hostport()+"/schema", schema);
+    config_.overrideSchema(controlEndpoint().hostport()+"/schema", schema);
 }
 
 // -----------------------------------------------------------------------------------------------------

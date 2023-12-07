@@ -351,13 +351,17 @@ private: // members
 //     return eckit::net::Endpoint(stores.at(std::rand() % stores.size()));
 // }
 
-eckit::net::Endpoint storeEndpoint(const Config& config) {
+std::vector<FdbEndpoint> storeEndpoint(const Config& config) {
     if (config.has("storeHost") && config.has("storePort")) {
-        return eckit::net::Endpoint(config.getString("storeHost"), config.getInt("storePort"));
+        return std::vector<FdbEndpoint>{FdbEndpoint{config.getString("storeHost"), config.getInt("storePort"), config.getString("remoteDomain", "")}};
     }
     ASSERT(config.has("stores"));
-    std::vector<std::string> stores = config.getStringVector("stores");
-    return eckit::net::Endpoint(stores.at(std::rand() % stores.size()));
+    std::vector<FdbEndpoint> stores;
+    for (auto s : config.getStringVector("stores")) {
+        stores.push_back(FdbEndpoint{s, config.getString("remoteDomain", "")});
+    }
+    return stores;
+//    return eckit::net::Endpoint(stores.at(std::rand() % stores.size()));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -371,7 +375,7 @@ RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
     local_ = false;
     if (config.has("localStores")) {
         for (const std::string& localStore : config.getStringVector("localStores")) {
-            if (localStore == endpoint_.hostport()) {
+            if (localStore == controlEndpoint().hostport()) {
                 local_ = true;
                 break;
             }
@@ -490,7 +494,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
 
             auto it = messageQueues_.find(requestID);
             if (it != messageQueues_.end()) {
-                it->second->interrupt(std::make_exception_ptr(RemoteFDBException("", endpoint_)));
+                it->second->interrupt(std::make_exception_ptr(RemoteFDBException("", controlEndpoint())));
 
                 // Remove entry (shared_ptr --> message queue will be destroyed when it
                 // goes out of scope in the worker thread).
@@ -517,7 +521,8 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
                     // std::cout << "LOCAL: " << location->uri().asRawString() << std::endl;
                     it->second(std::move(location));
                 } else {
-                    std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(endpoint_, *location));
+                    eckit::net::Endpoint remoteEndpoint{controlEndpoint().host(), controlEndpoint().port()};
+                    std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(remoteEndpoint, *location));
                     // std::cout << "REMOTE: " << remoteLocation->uri().asRawString() << std::endl;
                     it->second(std::move(remoteLocation));
                 }
@@ -540,7 +545,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
                 std::string msg;
                 msg.resize(payload.size(), ' ');
                 payload.copy(&msg[0], payload.size());
-                it->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, endpoint_)));
+                it->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint())));
 
                 // Remove entry (shared_ptr --> message queue will be destroyed when it
                 // goes out of scope in the worker thread).
@@ -549,7 +554,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             } else {
                 auto it = locations_.find(requestID);
                 if (it != locations_.end()) {
-                    archiver_->error(std::move(payload), endpoint_);
+                    archiver_->error(std::move(payload), controlEndpoint());
                 } else {
                     retrieveMessageQueue_.emplace(message, std::move(payload));
                 }
@@ -605,7 +610,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
     uint32_t id = connection_.generateRequestID();
     controlWriteCheckResponse(fdb5::remote::Message::Read, id, encodeBuffer, s.position());
 
-    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, endpoint_);
+    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint());
 }
 
 RemoteStore& RemoteStore::get(const eckit::URI& uri) {

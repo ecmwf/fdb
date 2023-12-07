@@ -192,17 +192,26 @@ FDBStats RemoteCatalogueArchiver::archiveThreadLoop() {
 }
 
 
+std::string host(const eckit::Configuration& config) {
+    std::string host = config.getString("host");
+    std::string remoteDomain = config.getString("remoteDomain", "");
+    if (remoteDomain.empty()) {
+        return host;
+    }
+    return host+remoteDomain;
+}
+
 
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     CatalogueImpl(key, ControlIdentifiers(), config), // xxx what are control identifiers? Setting empty here...
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))),
+    Client(eckit::net::Endpoint(host(config), config.getInt("port"))),
     config_(config), schema_(nullptr), archiver_(nullptr) {
 
     loadSchema();
 }
 
 RemoteCatalogue::RemoteCatalogue(const eckit::URI& uri, const Config& config):
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port"))), config_(config), schema_(nullptr), archiver_(nullptr)
+    Client(eckit::net::Endpoint(host(config), config.getInt("port"))), config_(config), schema_(nullptr), archiver_(nullptr)
     {
         NOTIMP;
     }
@@ -296,7 +305,7 @@ bool RemoteCatalogue::exists() const {NOTIMP;}
 void RemoteCatalogue::checkUID() const {}
 
 eckit::URI RemoteCatalogue::uri() const {
-    return eckit::URI(/*RemoteEngine::typeName()*/ "fdb", endpoint_.host(), endpoint_.port());
+    return eckit::URI(/*RemoteEngine::typeName()*/ "fdb", controlEndpoint().host(), controlEndpoint().port());
     // return eckit::URI(TocEngine::typeName(), basePath());
 }
 

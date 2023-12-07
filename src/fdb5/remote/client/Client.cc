@@ -21,9 +21,27 @@ namespace fdb5::remote {
 
 uint32_t Client::clientId_=0;
 
-Client::Client(const eckit::net::Endpoint& endpoint) :
-    endpoint_(endpoint),
-    connection_(*(ClientConnectionRouter::instance().connection(*this))),
+// Client::Client(const eckit::net::Endpoint& endpoint, std::string domain) :
+//     endpoint_(endpoint),
+//     fullyQualifiedEndpoint_(endpoint.host()+domain, endpoint.port()),
+//     connection_(*(ClientConnectionRouter::instance().connection(*this))),
+//     blockingRequestId_(0) {
+
+//     std::lock_guard<std::mutex> lock(idMutex_);
+//     id_ = ++clientId_;
+// }
+
+Client::Client(const FdbEndpoint& endpoint) :
+    connection_(*(ClientConnectionRouter::instance().connection(*this, endpoint))),
+    blockingRequestId_(0) {
+
+    std::lock_guard<std::mutex> lock(idMutex_);
+    id_ = ++clientId_;
+}
+
+
+Client::Client(const std::vector<FdbEndpoint>& endpoints) :
+    connection_(*(ClientConnectionRouter::instance().connection(*this, endpoints))),
     blockingRequestId_(0) {
 
     std::lock_guard<std::mutex> lock(idMutex_);

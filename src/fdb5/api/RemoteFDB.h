@@ -61,7 +61,9 @@ public: // method
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
-    eckit::net::Endpoint storeEndpoint();
+    const eckit::net::Endpoint& localStoreEndpoint() const;
+
+    std::string remoteDomain() { return remoteDomain_; }
 
 private: // methods
 
@@ -80,8 +82,10 @@ private: // methods
 
 private: // members
 
+    std::string remoteDomain_;
+
     std::unique_ptr<Archiver> archiver_;
-    std::vector<eckit::net::Endpoint> localStores_;
+    std::vector<remote::FdbEndpoint> localStores_;
 
     // Where do we put received messages
     // @note This is a map of requestID:MessageQueue. At the point that a request is

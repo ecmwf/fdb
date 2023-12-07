@@ -16,12 +16,12 @@
 #include "eckit/container/Queue.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/io/Length.h"
-#include "eckit/net/Endpoint.h"
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
 #include "eckit/runtime/SessionID.h"
 
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/FdbEndpoint.h"
 
 namespace eckit {
 
@@ -41,20 +41,20 @@ public: // types
 
 public: // methods
 
-    ClientConnection(const eckit::net::Endpoint& controlEndpoint);
+    ClientConnection(const FdbEndpoint& controlEndpoint);
     virtual ~ClientConnection();
 
     void controlWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
     void dataWrite   (Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
 
-    void connect();
+    bool connect(bool singleAttempt = false);
     void disconnect();
 
     uint32_t generateRequestID();
+    const FdbEndpoint& controlEndpoint() const;
 
 protected: // methods
 
-    const eckit::net::Endpoint& controlEndpoint() const;
     const eckit::net::Endpoint& dataEndpoint() const;
     
     // construct dictionary for protocol negotiation - to be defined in the client class
@@ -84,7 +84,7 @@ private: // members
 
     eckit::SessionID sessionID_; 
 
-    eckit::net::Endpoint controlEndpoint_;
+    FdbEndpoint controlEndpoint_;
     eckit::net::Endpoint dataEndpoint_;
 
     eckit::net::TCPClient controlClient_;
@@ -102,8 +102,7 @@ private: // members
     std::mutex idMutex_;
     uint32_t id_;
 
-    bool connected_;
-    
+    bool connected_; 
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -32,7 +32,7 @@ namespace remote {
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const FieldLocation& remoteLocation) :
     FieldLocation(
-        eckit::URI("fdb", remoteLocation.uri(), endpoint.host(),  endpoint.port()),
+        eckit::URI("fdb", remoteLocation.uri(), endpoint.hostname(),  endpoint.port()),
         remoteLocation.offset(),
         remoteLocation.length(),
         remoteLocation.remapKey()) {
@@ -45,6 +45,13 @@ RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint, c
         uri_.query("internalHost", remoteLocation.host());
     }
 }
+
+RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const RemoteFieldLocation& remoteLocation) :
+    FieldLocation(
+        eckit::URI("fdb", remoteLocation.uri(), endpoint.hostname(),  endpoint.port()),
+        remoteLocation.offset(),
+        remoteLocation.length(),
+        remoteLocation.remapKey()) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) :
     FieldLocation(eckit::URI("fdb", uri)) {

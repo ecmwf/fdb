@@ -20,35 +20,11 @@
 #include "fdb5/remote/client/ClientConnection.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
-// using namespace eckit;
-
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace{
-    
-class ConnectionError : public eckit::Exception {
-public:
-    ConnectionError(const int);
-    ConnectionError(const int, const eckit::net::Endpoint&);
-
-    bool retryOnClient() const override { return true; } 
-};
-
-ConnectionError::ConnectionError(const int retries) {
-    std::ostringstream s;
-    s << "Unable to create a connection with the FDB server after " << retries << " retries";
-    reason(s.str());
-    eckit::Log::status() << what() << std::endl;
-}
-
-ConnectionError::ConnectionError(const int retries, const eckit::net::Endpoint& endpoint) {
-    std::ostringstream s;
-    s << "Unable to create a connection with the FDB endpoint " << endpoint << " after " << retries << " retries";
-    reason(s.str());
-    eckit::Log::status() << what() << std::endl;
-}
 
 class TCPException : public eckit::Exception {
 public:
@@ -65,10 +41,10 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 
-ClientConnection::ClientConnection(const eckit::net::Endpoint& controlEndpoint):
-    controlEndpoint_(controlEndpoint), id_(1),
-    connected_(false) {
-        eckit::Log::debug<LibFdb5>() << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint_ << std::endl;
+ClientConnection::ClientConnection(const FdbEndpoint& controlEndpoint):
+    controlEndpoint_(controlEndpoint),
+    id_(1), connected_(false) {
+        eckit::Log::debug<LibFdb5>() << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint.hostport() << std::endl;
     }
 
 
@@ -82,21 +58,20 @@ uint32_t ClientConnection::generateRequestID() {
     return ++id_;
 }
 
-void ClientConnection::connect() {
+bool ClientConnection::connect(bool singleAttempt) {
 
     std::lock_guard<std::mutex> lock(requestMutex_);
-
     if (connected_) {
         eckit::Log::warning() << "ClientConnection::connect() called when already connected" << std::endl;
-        return;
+        return connected_;
     }
 
-    static int fdbMaxConnectRetries = eckit::Resource<int>("fdbMaxConnectRetries", 5);
-    static int fdbConnectTimeout = eckit::Resource<int>("fdbConnectTimeout", 0); // No timeout
+    static int fdbMaxConnectRetries = singleAttempt ? 1 : eckit::Resource<int>("fdbMaxConnectRetries", 3);
+    static int fdbConnectTimeout = eckit::Resource<int>("fdbConnectTimeout", singleAttempt?2:5); // 0 = No timeout 
 
     try {
         // Connect to server, and check that the server is happy on the response 
-        eckit::Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
+        eckit::Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_.hostport() << std::endl;
         controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
         writeControlStartupMessage();
         eckit::SessionID serverSession = verifyServerStartupResponse();
@@ -112,11 +87,12 @@ void ClientConnection::connect() {
     } catch(eckit::TooManyRetries& e) {
         if (controlClient_.isConnected()) {
             controlClient_.close();
-            throw ConnectionError(fdbMaxConnectRetries, dataEndpoint_);
-        } else {
-            throw ConnectionError(fdbMaxConnectRetries, controlEndpoint_);
+        //     throw ConnectionError(fdbMaxConnectRetries, dataEndpoint_);
+        // } else {
+        //     throw ConnectionError(fdbMaxConnectRetries, fullyQualifiedControlEndpoint_);
         }
     }
+    return connected_;
 }
 
 void ClientConnection::disconnect() {
@@ -137,9 +113,12 @@ void ClientConnection::disconnect() {
     }
 }
 
-const eckit::net::Endpoint& ClientConnection::controlEndpoint() const { 
+const FdbEndpoint& ClientConnection::controlEndpoint() const {
     return controlEndpoint_;
-} 
+}
+// const eckit::net::Endpoint& ClientConnection::fullyQualifiedControlEndpoint() const { 
+//     return fullyQualifiedControlEndpoint_;
+// } 
 const eckit::net::Endpoint& ClientConnection::dataEndpoint() const { 
     return dataEndpoint_;
 } 
@@ -199,7 +178,6 @@ void ClientConnection::controlWrite(const void* data, size_t length) {
 }
 
 void ClientConnection::controlRead(void* data, size_t length) {
-    //std::cout << "ClientConnection::controlRead " << this << std::endl;
     size_t read = controlClient_.read(data, length);
     if (length != read) {
         std::stringstream ss;
@@ -287,7 +265,7 @@ void ClientConnection::writeControlStartupMessage() {
     eckit::Buffer payload(4096);
     eckit::MemoryStream s(payload);
     s << sessionID_;
-    s << controlEndpoint_;
+    s << eckit::net::Endpoint(controlEndpoint_.hostname(), controlEndpoint_.port());
     s << LibFdb5::instance().remoteProtocolVersion().used();
 
     // TODO: Abstract this dictionary into a RemoteConfiguration object, which

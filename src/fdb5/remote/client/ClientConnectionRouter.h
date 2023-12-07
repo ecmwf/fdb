@@ -37,7 +37,8 @@ public:
 
     static ClientConnectionRouter& instance();
 
-    ClientConnection* connection(Client& client);
+    ClientConnection* connection(Client& client, const FdbEndpoint& endpoint);
+    ClientConnection* connection(Client& client, const std::vector<FdbEndpoint>& endpoints);
 
     void deregister(Client& client);
 
