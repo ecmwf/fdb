@@ -133,18 +133,14 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 
 // -----------------------------------------------------------------------------------------------------
 
-void ClientConnection::addRequest(Client& client, uint32_t requestID) {
-    requests_[requestID] = &client;
-}
-
 void ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, uint32_t clientID, std::vector<std::pair<const void*, uint32_t>> data) {
 
-    if (requestID) {
+    {
         std::lock_guard<std::mutex> lock(requestMutex_);
-        auto it = requests_.find(requestID);
-        ASSERT(it == requests_.end());
-        
-        addRequest(client, requestID);
+        auto it = clients_.find(client.id());
+        if (it == clients_.end()) {
+            clients_[client.id()] = &client;
+        }
     }
 
     controlWrite(msg, clientID ? clientID : client.id(), requestID, data);
@@ -191,13 +187,11 @@ void ClientConnection::controlRead(void* data, size_t length) {
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
 
-    if (requestID) {
+    {
         std::lock_guard<std::mutex> lock(requestMutex_);
-        auto it = requests_.find(requestID);
-        if (it != requests_.end()) {
-            ASSERT(it->second == &client);
-        } else {
-            addRequest(client, requestID);
+        auto it = clients_.find(client.id());
+        if (it == clients_.end()) {
+            clients_[client.id()] = &client;
         }
     }
 
@@ -351,13 +345,13 @@ void ClientConnection::listeningThreadLoop() {
                 return;
             }
 
-            if (hdr.requestID) {
+            if (hdr.clientID) {
                 bool handled = false;
-                auto it = requests_.find(hdr.requestID);
-                if (it == requests_.end()) {
+                auto it = clients_.find(hdr.clientID);
+                if (it == clients_.end()) {
                     std::stringstream ss;
                     ss << "ERROR: Received [clientID="<< hdr.clientID << ",requestID="<< hdr.requestID << ",message=" << ((int) hdr.message) << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                    ss << "Unexpected answer to requestID recieved (" << hdr.requestID << "). ABORTING";
+                    ss << "Unexpected answer for clientID recieved (" << hdr.clientID << "). ABORTING";
                     eckit::Log::status() << ss.str() << std::endl;
                     eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
                     throw eckit::SeriousBug(ss.str(), Here());

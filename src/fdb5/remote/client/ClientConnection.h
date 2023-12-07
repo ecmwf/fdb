@@ -67,8 +67,6 @@ private: // methods
     void dataWrite   (const void* data, size_t length);
     void dataRead    (      void* data, size_t length);
  
-    void addRequest(Client& client, uint32_t requestID);
-
     void writeControlStartupMessage();
     void writeDataStartupMessage(const eckit::SessionID& serverSession);
 
@@ -88,7 +86,7 @@ private: // members
     eckit::net::TCPClient controlClient_;
     eckit::net::TCPClient dataClient_;
 
-    std::map<uint32_t, Client*> requests_;
+    std::map<uint32_t, Client*> clients_;
 
     std::thread listeningThread_;
     
