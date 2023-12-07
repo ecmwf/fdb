@@ -19,6 +19,7 @@
 
 #include <future>
 #include <mutex>
+#include <unordered_map>
 
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
