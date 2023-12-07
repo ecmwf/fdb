@@ -36,8 +36,8 @@ public:
 
     virtual eckit::DataHandle* retrieve(Field& field) const = 0;
 //    virtual void archive(const Key& key, const void *data, eckit::Length length, void(*catalogue_archive)(std::unique_ptr<FieldLocation> fieldLocation)) = 0;
-    virtual void archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive);
-    virtual std::unique_ptr<FieldLocation> archive(const Key& key, const void *data, eckit::Length length);
+    virtual void archive(const uint32_t archiverId, const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive);
+    virtual std::unique_ptr<FieldLocation> archive(const uint32_t archiverId, const Key& key, const void *data, eckit::Length length);
 
     virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit = true) const = 0;
 

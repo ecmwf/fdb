@@ -300,7 +300,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void TocCatalogueWriter::archive(const uint32_t, const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
     dirty_ = true;
 
     if (current_.null()) {

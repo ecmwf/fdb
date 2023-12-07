@@ -52,7 +52,7 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-std::unique_ptr<FieldLocation> TocStore::archive(const Key& key, const void *data, eckit::Length length) {
+std::unique_ptr<FieldLocation> TocStore::archive(const uint32_t, const Key& key, const void *data, eckit::Length length) {
     
     dirty_ = true;
 

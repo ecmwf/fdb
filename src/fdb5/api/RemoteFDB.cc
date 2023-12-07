@@ -87,8 +87,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
         std::vector<std::string> stores;
         for (size_t i=0; i<numStores; i++) {
             eckit::net::Endpoint endpoint(s);
-            //std::cout << endpoint.hostport() << std::endl;
-            stores.push_back(endpoint.hostport());
+            stores.push_back(endpoint);
         }
         if (!config_.has("stores")) { // set stores only if not configured localy
             config_.set("stores", stores);
@@ -106,7 +105,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
             remote::FdbEndpoint endpoint{e, remoteDomain_};
             
             localStores_.push_back(endpoint);
-            localStores.push_back(endpoint.hostport());
+            localStores.push_back(endpoint);
         }
         if (!config_.has("localStores")) { // set localStores only if not configured localy
             config_.set("localStores", localStores);
@@ -118,7 +117,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     // eckit::Log::debug<LibFdb5>() << *this << " - Received Store endpoint: " << storeEndpoint_ << " and master schema: " << std::endl;
     // schema->dump(eckit::Log::debug<LibFdb5>());
     
-    config_.overrideSchema(controlEndpoint().hostport()+"/schema", schema);
+    config_.overrideSchema(static_cast<std::string>(controlEndpoint())+"/schema", schema);
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -183,50 +182,6 @@ ListIterator RemoteFDB::list(const FDBToolRequest& request) {
 ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
     return forwardApiCall(InspectHelper(), request);
 }
-
-
-// ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
-//     doinspect_ = true;
-
-//     // worker that does nothing but exposes the AsyncIterator's queue.
-//     auto async_worker = [this] (Queue<ListElement>& queue) {
-//         inspectqueue_ = &queue;
-//         while(!queue.closed()) std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//     };
-
-//     // construct iterator before contacting remote, because we want to point to the asynciterator's queue
-//     auto iter = new APIAsyncIterator<ListElement>(async_worker); 
-
-//     auto req = FDBToolRequest(request);
-//     Buffer encodeBuffer(4096);
-//     MemoryStream s(encodeBuffer);
-//     s << req;
-//     uint32_t id = controlWriteCheckResponse(Message::Inspect, encodeBuffer, s.position());
-
-//     return APIIterator<ListElement>(iter);
-// }
-
-
-// ListIterator RemoteFDB::list(const FDBToolRequest& request) {
-
-//     dolist_ = true;
-    
-//     // worker that does nothing but exposes the AsyncIterator's queue.
-//     auto async_worker = [this] (Queue<ListElement>& queue) {
-//         listqueue_ = &queue;
-//         while(!queue.closed()) std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//     };
-
-//     // construct iterator before contacting remote, because we want to point to the asynciterator's queue
-//     auto iter = new APIAsyncIterator<ListElement>(async_worker); 
-
-//     Buffer encodeBuffer(4096);
-//     MemoryStream s(encodeBuffer);
-//     s << request;
-
-//     controlWriteCheckResponse(Message::List, encodeBuffer, s.position());
-//     return APIIterator<ListElement>(iter);
-// }
 
 void RemoteFDB::print(std::ostream& s) const {
     s << "RemoteFDB(...)";

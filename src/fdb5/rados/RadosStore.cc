@@ -53,7 +53,7 @@ eckit::DataHandle* RadosStore::retrieve(Field& field, Key& remapKey) const {
         field.dataHandle(remapKey);
 }
 
-std::unique_ptr<FieldLocation> RadosStore::archive(const Key& key, const void *data, eckit::Length length) {
+std::unique_ptr<FieldLocation> RadosStore::archive(const uint32_t, const Key& key, const void *data, eckit::Length length) {
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);

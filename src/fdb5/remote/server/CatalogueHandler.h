@@ -30,7 +30,6 @@ private:  // methods
 
     void read(const MessageHeader& hdr);
     void flush(const MessageHeader& hdr);
-    void archive(const MessageHeader& hdr);
     void list(const MessageHeader& hdr);
     void inspect(const MessageHeader& hdr);
     void schema(const MessageHeader& hdr);
@@ -39,7 +38,7 @@ private:  // methods
     CatalogueWriter& catalogue(uint32_t id);
     CatalogueWriter& catalogue(uint32_t id, const Key& dbKey);
 
-    size_t archiveThreadLoop();
+    size_t archiveThreadLoop(uint32_t archiverID) override;
 
     // API functionality
     template <typename HelperClass>

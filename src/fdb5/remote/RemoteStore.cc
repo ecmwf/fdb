@@ -22,9 +22,12 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/remote/FdbEndpoint.h"
 #include "fdb5/remote/RemoteStore.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/io/FDBFileHandle.h"
+
+#include <unordered_map>
 
 using namespace eckit;
 
@@ -58,7 +61,7 @@ public: // types
 
 public: // methods
 
-    static RemoteStoreArchiver* get(const eckit::net::Endpoint& endpoint);
+    static RemoteStoreArchiver* get(uint64_t archiverID);
 
     bool valid() { return archiveFuture_.valid(); }
     bool dirty() { return dirty_; }
@@ -84,19 +87,18 @@ private: // members
     size_t maxArchiveQueueLength_;
     std::unique_ptr<StoreArchiveQueue> archiveQueue_;
     std::future<FDBStats> archiveFuture_;
-
 };
 
-RemoteStoreArchiver* RemoteStoreArchiver::get(const eckit::net::Endpoint& endpoint) {
+RemoteStoreArchiver* RemoteStoreArchiver::get(uint64_t archiverID) {
 
-    static std::map<const std::string, std::unique_ptr<RemoteStoreArchiver>> archivers_;
+    static std::unordered_map<uint64_t, std::unique_ptr<RemoteStoreArchiver>> archivers_;
     static std::mutex getArchiverMutex_;
 
     std::lock_guard<std::mutex> lock(getArchiverMutex_);
 
-    auto it = archivers_.find(endpoint.hostport());
+    auto it = archivers_.find(archiverID);
     if (it == archivers_.end()) {
-        it = archivers_.emplace(endpoint.hostport(), new RemoteStoreArchiver()).first;
+        it = archivers_.emplace(archiverID, new RemoteStoreArchiver()).first;
     }
     return it->second.get();
 }
@@ -375,7 +377,7 @@ RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
     local_ = false;
     if (config.has("localStores")) {
         for (const std::string& localStore : config.getStringVector("localStores")) {
-            if (localStore == controlEndpoint().hostport()) {
+            if (eckit::net::Endpoint(localStore) == controlEndpoint()) {
                 local_ = true;
                 break;
             }
@@ -418,12 +420,15 @@ eckit::DataHandle* RemoteStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-void RemoteStore::archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive) {
+void RemoteStore::archive(const uint32_t archiverID, const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive) {
 
     // if there is no archiving thread active, then start one.
     // n.b. reset the archiveQueue_ after a potential flush() cycle.
     if (!archiver_) {
-        archiver_ = RemoteStoreArchiver::get(controlEndpoint());
+        uint64_t archiverName = std::hash<FdbEndpoint>()(controlEndpoint());
+        archiverName = archiverName << 32;
+        archiverName += archiverID;
+        archiver_ = RemoteStoreArchiver::get(archiverName);
     }
     uint32_t id = connection_.generateRequestID();
     if (!archiver_->valid()) {

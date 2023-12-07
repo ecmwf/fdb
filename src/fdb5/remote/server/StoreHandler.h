@@ -30,9 +30,8 @@ private:  // methods
     void readLocationThreadLoop();
     void writeToParent(const uint32_t clientID, const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
 
-    void archive(const MessageHeader& hdr);
-    size_t archiveThreadLoop();
-    void archiveBlobPayload(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length);
+    size_t archiveThreadLoop(uint32_t archiverID) override;
+    void archiveBlobPayload(const uint32_t archiverID, const uint32_t clientID, const uint32_t requestID, const void* data, size_t length);
 
     void flush(const MessageHeader& hdr);
 

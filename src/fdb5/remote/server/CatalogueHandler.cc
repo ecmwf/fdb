@@ -290,37 +290,30 @@ void CatalogueHandler::flush(const MessageHeader& hdr) {
     size_t numArchived;
     s >> numArchived;
 
-    ASSERT(numArchived == 0 || archiveFuture_.valid());
+    std::future<size_t>& archive = archiveFuture_[hdr.clientID];
+    // std::cout << "numArchived: " << numArchived << " | archiveFuture_.valid: " << archive.valid() << std::endl;
 
-    if (archiveFuture_.valid()) {
+    ASSERT(numArchived == 0 || archive.valid());
+
+    if (archive.valid()) {
         // Ensure that the expected number of fields have been written, and that the
         // archive worker processes have been cleanly wound up.
-        size_t n = archiveFuture_.get();
-        ASSERT(numArchived == n); // XXX Currently this will fail if there is more than one database in request.
+        size_t n = archive.get();
+        ASSERT(numArchived == n);
 
         // Do the actual flush!
         Log::info() << "Flushing" << std::endl;
         Log::status() << "Flushing" << std::endl;
-
-        for (auto it = catalogues_.begin(); it != catalogues_.end(); it++) {
-            it->second->flush();
-        }
+        catalogues_[hdr.clientID]->flush();
+        // for (auto it = catalogues_.begin(); it != catalogues_.end(); it++) {
+        //     it->second->flush();
+        // }
     }
     Log::info() << "Flush complete" << std::endl;
     Log::status() << "Flush complete" << std::endl;
 }
 
-void CatalogueHandler::archive(const MessageHeader& hdr) {
-    // NOTE identical to RemoteCatalogueWriter::archive()
-
-    if(!archiveFuture_.valid()) {
-        Log::debug<LibFdb5>() << "CatalogueHandler::archive start threadloop" << std::endl;
-        // Start archive worker thread
-        archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
-    }
-}
-
-size_t CatalogueHandler::archiveThreadLoop() {
+size_t CatalogueHandler::archiveThreadLoop(uint32_t archiverID) {
     size_t totalArchived = 0;
 
     // Create a worker that will do the actual archiving
@@ -329,7 +322,7 @@ size_t CatalogueHandler::archiveThreadLoop() {
     eckit::Queue<std::pair<uint32_t, eckit::Buffer>> queue(queueSize);
 
 
-    std::future<size_t> worker = std::async(std::launch::async, [this, &queue] {
+    std::future<size_t> worker = std::async(std::launch::async, [this, &queue, archiverID] {
         size_t totalArchived = 0;
         std::pair<uint32_t, eckit::Buffer> elem = std::make_pair(0, Buffer{0});
 
@@ -349,7 +342,7 @@ size_t CatalogueHandler::archiveThreadLoop() {
                     << idxKey << key << " and location.uri" << location->uri() << std::endl;
         
                 cat.selectIndex(idxKey);
-                cat.archive(key, std::move(location));
+                cat.archive(archiverID, key, std::move(location));
                 totalArchived += 1;
             }
         }

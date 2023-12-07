@@ -44,7 +44,7 @@ public: // methods
     ClientConnection(const FdbEndpoint& controlEndpoint);
     virtual ~ClientConnection();
 
-    void controlWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
+    void controlWrite(Client& client, uint32_t clientID, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
     void dataWrite   (Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
 
     bool connect(bool singleAttempt = false);

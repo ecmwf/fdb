@@ -44,7 +44,7 @@ public:
 ClientConnection::ClientConnection(const FdbEndpoint& controlEndpoint):
     controlEndpoint_(controlEndpoint),
     id_(1), connected_(false) {
-        eckit::Log::debug<LibFdb5>() << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint.hostport() << std::endl;
+        eckit::Log::debug<LibFdb5>() << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
     }
 
 
@@ -66,12 +66,12 @@ bool ClientConnection::connect(bool singleAttempt) {
         return connected_;
     }
 
-    static int fdbMaxConnectRetries = singleAttempt ? 1 : eckit::Resource<int>("fdbMaxConnectRetries", 3);
-    static int fdbConnectTimeout = eckit::Resource<int>("fdbConnectTimeout", singleAttempt?2:5); // 0 = No timeout 
+    int fdbMaxConnectRetries = (singleAttempt ? 1 : eckit::Resource<int>("fdbMaxConnectRetries", 3));
+    int fdbConnectTimeout = eckit::Resource<int>("fdbConnectTimeout", (singleAttempt ? 2 : 5)); // 0 = No timeout 
 
     try {
         // Connect to server, and check that the server is happy on the response 
-        eckit::Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_.hostport() << std::endl;
+        eckit::Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
         controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
         writeControlStartupMessage();
         eckit::SessionID serverSession = verifyServerStartupResponse();
@@ -84,6 +84,7 @@ bool ClientConnection::connect(bool singleAttempt) {
         // And the connections are set up. Let everything start up!
         listeningThread_ = std::thread([this] { listeningThreadLoop(); });
         connected_ = true;
+        return true;
     } catch(eckit::TooManyRetries& e) {
         if (controlClient_.isConnected()) {
             controlClient_.close();
@@ -92,7 +93,7 @@ bool ClientConnection::connect(bool singleAttempt) {
         //     throw ConnectionError(fdbMaxConnectRetries, fullyQualifiedControlEndpoint_);
         }
     }
-    return connected_;
+    return false;
 }
 
 void ClientConnection::disconnect() {
@@ -139,13 +140,13 @@ void ClientConnection::addRequest(Client& client, uint32_t requestID) {
     requests_[requestID] = &client;
 }
 
-void ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
+void ClientConnection::controlWrite(Client& client, uint32_t clientID, Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
 
     if (requestID) {
         addRequest(client, requestID);
     }
 
-    controlWrite(msg, client.id(), requestID, data);
+    controlWrite(msg, clientID ? clientID : client.id(), requestID, data);
 }
 
 void ClientConnection::controlWrite(Message msg, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
@@ -155,8 +156,8 @@ void ClientConnection::controlWrite(Message msg, uint32_t clientID, uint32_t req
         ASSERT(d.first);
         payloadLength += d.second;
     }
-    eckit::Log::debug<LibFdb5>() << "ClientConnection::controlWrite [endpoint=" << controlEndpoint_.hostport() <<
-        ",message=" << ((int) msg) << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
+    eckit::Log::debug<LibFdb5>() << "ClientConnection::controlWrite [endpoint=" << controlEndpoint_ <<
+        ",message=" << ((int) msg) << ",clientID=" << clientID << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
 
     MessageHeader message(msg, clientID, requestID, payloadLength);
 
@@ -210,7 +211,7 @@ void ClientConnection::dataWrite(remote::Message msg, uint32_t clientID, uint32_
     }
     MessageHeader message(msg, clientID, requestID, payloadLength);
 
-    eckit::Log::debug<LibFdb5>() << "ClientConnection::dataWrite [endpoint=" << dataEndpoint_.hostport() <<
+    eckit::Log::debug<LibFdb5>() << "ClientConnection::dataWrite [endpoint=" << dataEndpoint_ <<
         ",message=" << ((int) msg) << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
 
     std::lock_guard<std::mutex> lock(dataMutex_);

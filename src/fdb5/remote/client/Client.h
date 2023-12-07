@@ -27,7 +27,7 @@ namespace fdb5::remote {
 class RemoteFDBException : public eckit::RemoteException {
 public:
     RemoteFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint):
-        eckit::RemoteException(msg, endpoint.host()+":"+std::to_string(endpoint.port())) {}
+        eckit::RemoteException(msg, endpoint) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------

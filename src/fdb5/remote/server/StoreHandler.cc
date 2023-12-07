@@ -201,17 +201,18 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
     }
 }
 
-void StoreHandler::archive(const MessageHeader& hdr) {
+// void StoreHandler::archive(const MessageHeader& hdr) {
 
-    ASSERT(hdr.payloadSize == 0);
+//     ASSERT(hdr.payloadSize == 0);
 
-    // Ensure that we aren't already running a store()
-    if(!archiveFuture_.valid()) {
+//     auto archive = archiveFuture_.find(hdr.clientID());
 
-        // Start archive worker thread
-        archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
-    }
-}
+//     // Ensure that we aren't already running a store()
+//     if(archive == archiveFuture_.end() || !archive->second.valid())
+//         // Start archive worker thread
+//         archiveFuture_[hdr.clientID()] = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
+//     }
+// }
 
 Store& StoreHandler::store(uint32_t id, Key dbKey) {
     auto it = stores_.find(id);
@@ -223,7 +224,7 @@ Store& StoreHandler::store(uint32_t id, Key dbKey) {
 }
 
 // A helper function to make archiveThreadLoop a bit cleaner
-void StoreHandler::archiveBlobPayload(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) {
+void StoreHandler::archiveBlobPayload(const uint32_t archiverID, const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) {
     MemoryStream s(data, length);
 
     fdb5::Key dbKey(s);
@@ -237,7 +238,7 @@ void StoreHandler::archiveBlobPayload(const uint32_t clientID, const uint32_t re
     
     Store& ss = store(clientID, dbKey);
 
-    auto futureLocation = ss.archive(idxKey, charData + s.position(), length - s.position());
+    auto futureLocation = ss.archive(archiverID, idxKey, charData + s.position(), length - s.position());
     Log::status() << "Archiving done: " << ss_key.str() << std::endl;
     
     auto loc = futureLocation.get();
@@ -262,7 +263,7 @@ struct archiveElem {
         clientID(clientID), requestID(requestID), payload(std::move(payload)), multiblob(multiblob) {}
 };
 
-size_t StoreHandler::archiveThreadLoop() {
+size_t StoreHandler::archiveThreadLoop(uint32_t archiverID) {
     size_t totalArchived = 0;
 
     // Create a worker that will do the actual archiving
@@ -270,7 +271,7 @@ size_t StoreHandler::archiveThreadLoop() {
     static size_t queueSize(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32));
     eckit::Queue<archiveElem> queue(queueSize);
 
-    std::future<size_t> worker = std::async(std::launch::async, [this, &queue] {
+    std::future<size_t> worker = std::async(std::launch::async, [this, &queue, archiverID] {
         size_t totalArchived = 0;
 
         archiveElem elem;
@@ -299,13 +300,13 @@ size_t StoreHandler::archiveThreadLoop() {
                         ASSERT(*e == EndMarker);
                         charData += sizeof(EndMarker);
 
-                        archiveBlobPayload(elem.clientID, elem.requestID, payloadData, hdr->payloadSize);
+                        archiveBlobPayload(archiverID, elem.clientID, elem.requestID, payloadData, hdr->payloadSize);
                         totalArchived += 1;
                     }
                 }
                 else {
                     // Handle single blob
-                    archiveBlobPayload(elem.clientID, elem.requestID, elem.payload.data(), elem.payload.size());
+                    archiveBlobPayload(archiverID, elem.clientID, elem.requestID, elem.payload.data(), elem.payload.size());
                     totalArchived += 1;
                 }
             }
@@ -398,22 +399,24 @@ void StoreHandler::flush(const MessageHeader& hdr) {
     size_t numArchived;
     s >> numArchived;
 
-    ASSERT(numArchived == 0 || archiveFuture_.valid());
+    std::future<size_t>& archive = archiveFuture_[hdr.clientID];
+    // std::cout << "numArchived: " << numArchived << " | archiveFuture_.valid: " << archive.valid() << std::endl;
 
-    if (archiveFuture_.valid()) {
+    ASSERT(numArchived == 0 || archive.valid());
+
+    if (archive.valid()) {
         // Ensure that the expected number of fields have been written, and that the
         // archive worker processes have been cleanly wound up.
-        size_t n = archiveFuture_.get();
+        size_t n = archive.get();
         ASSERT(numArchived == n);
 
         // Do the actual flush!
         Log::info() << "Flushing" << std::endl;
         Log::status() << "Flushing" << std::endl;
-
-        for (auto it = stores_.begin(); it != stores_.end(); it++) {
-            it->second->flush();
-        }
-
+        stores_[hdr.clientID]->flush();
+        // for (auto it = stores_.begin(); it != stores_.end(); it++) {
+        //     it->second->flush();
+        // }
     }
 
     Log::info() << "Flush complete" << std::endl;

@@ -31,14 +31,14 @@ namespace fdb5::remote {
 ClientConnection* ClientConnectionRouter::connection(Client& client, const FdbEndpoint& endpoint) {
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
-    auto it = connections_.find(endpoint.hostport());
+    auto it = connections_.find(endpoint);
     if (it != connections_.end()) {
         it->second.clients_.insert(&client);
         return it->second.connection_.get();
     } else {
         ClientConnection* clientConnection = new ClientConnection(endpoint);
         if (clientConnection->connect()) {
-            auto it = (connections_.emplace(endpoint.hostport(), Connection(std::unique_ptr<ClientConnection>(clientConnection), client))).first;
+            auto it = (connections_.emplace(endpoint, Connection(std::unique_ptr<ClientConnection>(clientConnection), client))).first;
             return it->second.connection_.get();
         } else {
             throw ConnectionError(endpoint);
@@ -49,14 +49,6 @@ ClientConnection* ClientConnectionRouter::connection(Client& client, const FdbEn
 ClientConnection* ClientConnectionRouter::connection(Client& client, const std::vector<FdbEndpoint>& endpoints) {
 
     std::vector<FdbEndpoint> fullEndpoints{endpoints};
-    // for (auto hostport: endpoints) {
-    //     eckit::net::Endpoint e{hostport};
-    //     if (domain.empty()) {
-    //         fullEndpoints.push_back(std::make_pair(hostport, e));
-    //     } else {
-    //         fullEndpoints.push_back(std::make_pair(hostport, eckit::net::Endpoint(e.host()+domain, e.port())));
-    //     }
-    // }
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
     while (fullEndpoints.size()>0) {
@@ -66,7 +58,7 @@ ClientConnection* ClientConnectionRouter::connection(Client& client, const std::
         FdbEndpoint endpoint = fullEndpoints.at(idx);
 
         // look for the selected endpoint
-        auto it = connections_.find(endpoint.hostport());
+        auto it = connections_.find(endpoint);
         if (it != connections_.end()) {
             it->second.clients_.insert(&client);
             return it->second.connection_.get();
@@ -74,7 +66,7 @@ ClientConnection* ClientConnectionRouter::connection(Client& client, const std::
         else { // not yet there, trying to connect
             ClientConnection* clientConnection = new ClientConnection(fullEndpoints.at(idx));
             if (clientConnection->connect(true)) {
-                auto it = (connections_.emplace(endpoint.hostport(), Connection(std::unique_ptr<ClientConnection>(clientConnection), client))).first;
+                auto it = (connections_.emplace(endpoint, Connection(std::unique_ptr<ClientConnection>(clientConnection), client))).first;
                 return it->second.connection_.get();
             }
         }
@@ -92,11 +84,9 @@ ClientConnection* ClientConnectionRouter::connection(Client& client, const std::
 
 
 void ClientConnectionRouter::deregister(Client& client) {
-    const std::string& endpoint = client.controlEndpoint().hostport();
-
     std::lock_guard<std::mutex> lock(connectionMutex_);
 
-    auto it = connections_.find(endpoint);
+    auto it = connections_.find(client.controlEndpoint());
     ASSERT(it != connections_.end());
 
     auto clientIt = it->second.clients_.find(&client);

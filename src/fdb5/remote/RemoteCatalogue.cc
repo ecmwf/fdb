@@ -13,9 +13,11 @@
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/remote/FdbEndpoint.h"
 #include "fdb5/remote/RemoteCatalogue.h"
 #include "fdb5/remote/RemoteEngine.h"
 
+#include <unordered_map>
 
 using namespace eckit;
 namespace fdb5::remote {
@@ -47,7 +49,7 @@ public: // types
 
 public: // methods
 
-    static RemoteCatalogueArchiver* get(const eckit::net::Endpoint& endpoint);
+    static RemoteCatalogueArchiver* get(uint64_t archiverID);
 
     bool valid() { return archiveFuture_.valid(); }
     bool dirty() { return dirty_; }
@@ -75,16 +77,16 @@ private: // members
 
 };
 
-RemoteCatalogueArchiver* RemoteCatalogueArchiver::get(const eckit::net::Endpoint& endpoint) {
+RemoteCatalogueArchiver* RemoteCatalogueArchiver::get(uint64_t archiverID) {
 
-    static std::map<const std::string, std::unique_ptr<RemoteCatalogueArchiver>> archivers_;
+    static std::unordered_map<uint64_t, std::unique_ptr<RemoteCatalogueArchiver>> archivers_;
     static std::mutex getArchiverMutex_;
 
     std::lock_guard<std::mutex> lock(getArchiverMutex_);
 
-    auto it = archivers_.find(endpoint.hostport());
+    auto it = archivers_.find(archiverID);
     if (it == archivers_.end()) {
-        it = archivers_.emplace(endpoint.hostport(), new RemoteCatalogueArchiver()).first;
+        it = archivers_.emplace(archiverID, new RemoteCatalogueArchiver()).first;
     }
     return it->second.get();
 }
@@ -241,12 +243,15 @@ void RemoteCatalogue::sendArchiveData(uint32_t id, const Key& key, std::unique_p
     dataWrite(Message::Blob, id, payloads);
 }
 
-void RemoteCatalogue::archive(const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void RemoteCatalogue::archive(const uint32_t archiverID, const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
 
     // if there is no archiving thread active, then start one.
     // n.b. reset the archiveQueue_ after a potential flush() cycle.
     if (!archiver_) {
-        archiver_ = RemoteCatalogueArchiver::get(controlEndpoint());
+        uint64_t archiverName = std::hash<FdbEndpoint>()(controlEndpoint());
+        archiverName = archiverName << 32;
+        archiverName += archiverID;
+        archiver_ = RemoteCatalogueArchiver::get(archiverName);
     }
     uint32_t id = connection_.generateRequestID();
     if (!archiver_->valid()) {
@@ -323,8 +328,8 @@ void RemoteCatalogue::loadSchema() {
         
         uint32_t id = generateRequestID();
         eckit::Buffer buf = controlWriteReadResponse(Message::Schema, id, keyBuffer, keyStream.position());
+
         eckit::MemoryStream s(buf);
-//        eckit::net::Endpoint storeEndpoint_{s};
         schema_.reset(eckit::Reanimator<fdb5::Schema>::reanimate(s));
     }
 }

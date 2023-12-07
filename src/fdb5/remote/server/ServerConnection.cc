@@ -276,6 +276,20 @@ void ServerConnection::socketRead(void* data, size_t length, eckit::net::TCPSock
     }
 }
 
+void ServerConnection::archive(const MessageHeader& hdr) {
+
+    ASSERT(hdr.payloadSize == 0);
+
+    auto archive = archiveFuture_.find(hdr.clientID);
+
+    // Ensure that we aren't already running a catalogue/store
+    if(archive == archiveFuture_.end() || !archive->second.valid()) {
+        // Start archive worker thread
+        uint32_t archiverID = hdr.clientID;
+        archiveFuture_[hdr.clientID] = std::async(std::launch::async, [this, archiverID] { return archiveThreadLoop(archiverID); });
+    }
+}
+
 void ServerConnection::dataWrite(Message msg, uint32_t clientID, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     eckit::Log::debug<LibFdb5>() << "ServerConnection::dataWrite [message="<< static_cast<int>(msg) << ",requestID=" << requestID << ",payloadLength=" << payloadLength << "]" << std::endl;

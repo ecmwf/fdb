@@ -82,6 +82,9 @@ protected:
     void tidyWorkers();
     void waitForWorkers();
 
+    void archive(const MessageHeader& hdr);
+    virtual size_t archiveThreadLoop(uint32_t archiverID) = 0;
+
 private:
 
     void controlWrite(Message msg, uint32_t clientID, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
@@ -106,11 +109,12 @@ protected:
     eckit::LocalConfiguration agreedConf_;
     std::mutex controlWriteMutex_;
     std::mutex dataWriteMutex_;
-    std::map<uint32_t, std::future<void>> workerThreads_;
     std::thread readLocationWorker_;
     
-    std::future<size_t> archiveFuture_;
-
+    // archiverID --> future ??????
+    std::map<uint32_t, std::future<void>> workerThreads_;
+    // archiverID --> archiveFuture
+    std::unordered_map<uint32_t, std::future<size_t>> archiveFuture_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

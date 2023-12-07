@@ -48,9 +48,11 @@ protected: // methods
     fdb5::CatalogueWriter* current() const;
     fdb5::Store* store() const;
 
-private: // members
+protected: // members
 
     Archiver &owner_;
+
+private: // members
 
     const Key &dataKey_;
 

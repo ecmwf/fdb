@@ -10,11 +10,11 @@
 
 #pragma once
 
-#include <map>
-#include <set>
-
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnection.h"
+#include "fdb5/remote/FdbEndpoint.h"
+
+#include <unordered_map>
 
 namespace fdb5::remote {
 
@@ -49,7 +49,7 @@ private:
     std::mutex connectionMutex_;
 
     // endpoint -> connection
-    std::map<std::string, Connection> connections_;
+    std::unordered_map<FdbEndpoint, Connection> connections_;
 };
 
 }

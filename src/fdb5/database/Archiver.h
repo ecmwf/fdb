@@ -51,6 +51,8 @@ public: // methods
 
     virtual ~Archiver();
 
+    uint32_t id() const { return id_; }
+
     void archive(const Key &key, BaseArchiveVisitor& visitor);
     void archive(const Key &key, const void* data, size_t len);
 
@@ -70,6 +72,10 @@ private: // methods
     void selectDatabase(const Key &key);
 
 private: // members
+    static uint32_t archiverId_;
+
+    std::mutex idMutex_;
+    uint32_t id_;
 
     friend class BaseArchiveVisitor;
 

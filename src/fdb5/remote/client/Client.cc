@@ -87,9 +87,9 @@ void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, const vo
     blockingRequestId_=requestID;
 
     if (payloadLength) {
-        connection_.controlWrite(*this, msg, blockingRequestId_, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});
+        connection_.controlWrite(*this, 0, msg, blockingRequestId_, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});
     } else {
-        connection_.controlWrite(*this, msg, blockingRequestId_);
+        connection_.controlWrite(*this, 0, msg, blockingRequestId_);
     }
 
     f.get();
@@ -106,9 +106,9 @@ eckit::Buffer Client::controlWriteReadResponse(Message msg, uint32_t requestID, 
     blockingRequestId_=requestID;
 
     if (payloadLength) {
-        connection_.controlWrite(*this, msg, blockingRequestId_, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});
+        connection_.controlWrite(*this, 0, msg, blockingRequestId_, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});
     } else {
-        connection_.controlWrite(*this, msg, blockingRequestId_);
+        connection_.controlWrite(*this, 0, msg, blockingRequestId_);
     }
 
     eckit::Buffer buf = f.get();
