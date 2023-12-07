@@ -90,7 +90,7 @@ private: // members
     eckit::net::TCPClient controlClient_;
     eckit::net::TCPClient dataClient_;
 
-    std::map<uint64_t, Client*> requests_;
+    std::map<uint32_t, Client*> requests_;
 
     std::thread listeningThread_;
     

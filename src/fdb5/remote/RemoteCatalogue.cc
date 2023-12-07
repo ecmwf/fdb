@@ -258,7 +258,6 @@ void RemoteCatalogue::archive(const uint32_t archiverID, const InspectionKey& ke
         archiver_->start();
         ASSERT(archiver_->valid());
 
-        // std::cout << "Catalogue - controlWriteCheckResponse(Message::Archive)" << std::endl;
         controlWriteCheckResponse(Message::Archive, id);
     }
     // eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::archive - adding to queue [id=" << id << ",key=" << key << ",fieldLocation=" << fieldLocation->uri() << "]" << std::endl;

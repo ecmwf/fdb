@@ -435,8 +435,7 @@ void RemoteStore::archive(const uint32_t archiverID, const Key& key, const void 
         archiver_->start();
         ASSERT(archiver_->valid());
 
-        // std::cout << "controlWriteCheckResponse(Message::Archive)" << std::endl;
-        controlWriteCheckResponse(Message::Archive, id);
+        controlWriteCheckResponse(Message::Store, id);
     }
     locations_[id] = catalogue_archive;
     archiver_->emplace(id, this, key, data, length);
@@ -517,7 +516,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
 
     switch (message) {
     
-        case Message::Archive: {
+        case Message::Store: {
             auto it = locations_.find(requestID);
             if (it != locations_.end()) {
                 MemoryStream s(payload);

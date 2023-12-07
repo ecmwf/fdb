@@ -99,7 +99,7 @@ void StoreHandler::handle() {
                     flush(hdr);
                     break;
 
-                case Message::Archive:
+                case Message::Store:
                     archive(hdr);
                     break;
 
@@ -248,7 +248,7 @@ void StoreHandler::archiveBlobPayload(const uint32_t archiverID, const uint32_t 
     eckit::Buffer locBuffer(16 * 1024);
     MemoryStream locStream(locBuffer);
     locStream << (*loc);
-    dataWrite(Message::Archive, clientID, requestID, locBuffer.data(), locStream.position());
+    dataWrite(Message::Store, clientID, requestID, locBuffer.data(), locStream.position());
 }
 
 struct archiveElem {

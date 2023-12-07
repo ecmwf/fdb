@@ -59,6 +59,7 @@ enum class Message : uint16_t {
     Inspect,
     Read,
     Move,
+    Store,
     Schema,
 
     // Responses
