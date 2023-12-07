@@ -44,7 +44,7 @@ public: // methods
     ClientConnection(const FdbEndpoint& controlEndpoint);
     virtual ~ClientConnection();
 
-    void controlWrite(Client& client, uint32_t clientID, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
+    void controlWrite(Client& client, remote::Message msg, uint32_t requestID, uint32_t clientID=0, std::vector<std::pair<const void*, uint32_t>> data={});
     void dataWrite   (Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
 
     bool connect(bool singleAttempt = false);
@@ -53,14 +53,12 @@ public: // methods
     uint32_t generateRequestID();
     const FdbEndpoint& controlEndpoint() const;
 
-protected: // methods
+private: // methods
 
     const eckit::net::Endpoint& dataEndpoint() const;
     
     // construct dictionary for protocol negotiation - to be defined in the client class
     virtual eckit::LocalConfiguration availableFunctionality() const;
-
-private: // methods
 
     void controlWrite(Message msg, uint32_t clientID, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
     void controlWrite(const void* data, size_t length);

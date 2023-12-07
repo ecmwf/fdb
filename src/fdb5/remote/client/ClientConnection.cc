@@ -137,10 +137,13 @@ void ClientConnection::addRequest(Client& client, uint32_t requestID) {
     requests_[requestID] = &client;
 }
 
-void ClientConnection::controlWrite(Client& client, uint32_t clientID, Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
+void ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, uint32_t clientID, std::vector<std::pair<const void*, uint32_t>> data) {
 
     if (requestID) {
         std::lock_guard<std::mutex> lock(requestMutex_);
+        auto it = requests_.find(requestID);
+        ASSERT(it == requests_.end());
+        
         addRequest(client, requestID);
     }
 
