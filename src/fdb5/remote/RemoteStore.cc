@@ -474,7 +474,7 @@ void RemoteStore::remove(const Key& key) const {
 }
 
 void RemoteStore::print(std::ostream &out) const {
-    out << "RemoteStore(host=" << /*controlEndpoint() << ", data=" << dataEndpoint() << */ ")";
+    out << "RemoteStore(host=" << controlEndpoint() /* << ", data=" << dataEndpoint() */ << ")";
 }
 
 bool RemoteStore::handle(Message message, uint32_t requestID) {

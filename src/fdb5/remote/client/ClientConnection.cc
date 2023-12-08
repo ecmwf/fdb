@@ -133,7 +133,7 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 
 // -----------------------------------------------------------------------------------------------------
 
-void ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, uint32_t clientID, std::vector<std::pair<const void*, uint32_t>> data) {
+void ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, uint32_t archiverID, std::vector<std::pair<const void*, uint32_t>> data) {
 
     {
         std::lock_guard<std::mutex> lock(requestMutex_);
@@ -143,7 +143,7 @@ void ClientConnection::controlWrite(Client& client, Message msg, uint32_t reques
         }
     }
 
-    controlWrite(msg, clientID ? clientID : client.id(), requestID, data);
+    controlWrite(msg, archiverID ? archiverID : client.id(), requestID, data);
 }
 
 void ClientConnection::controlWrite(Message msg, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
