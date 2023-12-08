@@ -35,7 +35,7 @@ Note that this MARS request must be fully expanded. For example, it may not cont
   retrieve,class=od,expver=0001,stream=oper,date=20151004,time=1200,domain=g,type=an,levtype=pl,step=0,levelist=700,param=155
   
   # this will retrieve 2 fields
-  % fdbr ead myrequest foo.grib
+  % fdbr read myrequest foo.grib
   retrieve,class=od,date=20151004,domain=g,expver=0001,levelist=500/700,levtype=pl,param=155,step=0,stream=oper,time=1200,type=an
   Compress handle: 3.3e-05 second elapsed, 3.2e-05 second cpu
   Compress handle: 2e-06 second elapsed, 2e-06 second cpu
