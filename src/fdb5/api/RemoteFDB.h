@@ -25,6 +25,8 @@
 #include "fdb5/api/LocalFDB.h"
 #include "fdb5/remote/client/Client.h"
 
+#include <unordered_map>
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
