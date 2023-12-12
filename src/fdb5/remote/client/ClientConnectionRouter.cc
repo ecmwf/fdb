@@ -28,7 +28,7 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ClientConnection* ClientConnectionRouter::connection(Client& client, const FdbEndpoint& endpoint) {
+ClientConnection* ClientConnectionRouter::connection(Client& client, const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) {
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
     auto it = connections_.find(endpoint);
@@ -36,7 +36,7 @@ ClientConnection* ClientConnectionRouter::connection(Client& client, const FdbEn
         it->second.clients_.insert(&client);
         return it->second.connection_.get();
     } else {
-        ClientConnection* clientConnection = new ClientConnection(endpoint);
+        ClientConnection* clientConnection = new ClientConnection(endpoint, defaultEndpoint);
         if (clientConnection->connect()) {
             auto it = (connections_.emplace(endpoint, Connection(std::unique_ptr<ClientConnection>(clientConnection), client))).first;
             return it->second.connection_.get();
@@ -46,16 +46,16 @@ ClientConnection* ClientConnectionRouter::connection(Client& client, const FdbEn
     }
 }
 
-ClientConnection* ClientConnectionRouter::connection(Client& client, const std::vector<FdbEndpoint>& endpoints) {
+ClientConnection* ClientConnectionRouter::connection(Client& client, const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) {
 
-    std::vector<FdbEndpoint> fullEndpoints{endpoints};
+    std::vector<std::pair<eckit::net::Endpoint, std::string>> fullEndpoints{endpoints};
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
     while (fullEndpoints.size()>0) {
 
         // select a random endpoint
         size_t idx = std::rand() % fullEndpoints.size();
-        FdbEndpoint endpoint = fullEndpoints.at(idx);
+        eckit::net::Endpoint endpoint = fullEndpoints.at(idx).first;
 
         // look for the selected endpoint
         auto it = connections_.find(endpoint);
@@ -64,7 +64,7 @@ ClientConnection* ClientConnectionRouter::connection(Client& client, const std::
             return it->second.connection_.get();
         }
         else { // not yet there, trying to connect
-            ClientConnection* clientConnection = new ClientConnection(fullEndpoints.at(idx));
+            ClientConnection* clientConnection = new ClientConnection(fullEndpoints.at(idx).first, fullEndpoints.at(idx).second);
             if (clientConnection->connect(true)) {
                 auto it = (connections_.emplace(endpoint, Connection(std::unique_ptr<ClientConnection>(clientConnection), client))).first;
                 return it->second.connection_.get();

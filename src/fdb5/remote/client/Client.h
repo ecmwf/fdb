@@ -34,12 +34,13 @@ public:
 
 class Client : eckit::NonCopyable {
 public:
-    Client(const FdbEndpoint& endpoint);
-    Client(const std::vector<FdbEndpoint>& endpoints);
+    Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
+    Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
     ~Client();
 
     uint32_t id() { return id_; }
-    const FdbEndpoint& controlEndpoint() const { return connection_.controlEndpoint(); }
+    const eckit::net::Endpoint& controlEndpoint() const { return connection_.controlEndpoint(); }
+    const std::string& defaultEndpoint() const { return connection_.defaultEndpoint(); }
     // const eckit::net::Endpoint& fullyQualifiedControlEndpoint() const { return connection_.controlEndpoint(); }
 
     uint32_t generateRequestID() { return connection_.generateRequestID(); }

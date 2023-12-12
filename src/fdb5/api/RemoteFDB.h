@@ -61,9 +61,7 @@ public: // method
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
-    const eckit::net::Endpoint& localStoreEndpoint() const;
-
-    std::string remoteDomain() { return remoteDomain_; }
+    const eckit::net::Endpoint& storeEndpoint(const std::string& endpoint) const;
 
 private: // methods
 
@@ -82,17 +80,15 @@ private: // methods
 
 private: // members
 
-    std::string remoteDomain_;
-
     std::unique_ptr<Archiver> archiver_;
-    std::vector<remote::FdbEndpoint> localStores_;
+    std::map<std::string, std::vector<eckit::net::Endpoint>> stores_;
 
     // Where do we put received messages
     // @note This is a map of requestID:MessageQueue. At the point that a request is
     // complete, errored or otherwise killed, it needs to be removed from the map.
     // The shared_ptr allows this removal to be asynchronous with the actual task
     // cleaning up and returning to the client.
-    std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
+    std::unordered_map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

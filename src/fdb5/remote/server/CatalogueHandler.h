@@ -14,6 +14,13 @@
 #include "fdb5/api/FDB.h"
 
 namespace fdb5::remote {
+
+// class StoreEndpoint : public eckit::net::Endpoint {
+// public:
+//     StoreEndpoint(const std::string& endpoint) : eckit::net::Endpoint(endpoint) {}
+//     std::map<std::string, eckit::net::Endpoint> aliases_;
+// };
+
 //----------------------------------------------------------------------------------------------------------------------
 class CatalogueHandler : public ServerConnection {
 public:  // methods
@@ -46,7 +53,8 @@ private:  // methods
 
 private:  // member
 
-   std::map<uint32_t, std::unique_ptr<CatalogueWriter>> catalogues_;
+    // clientID --> Catalogue
+    std::map<uint32_t, std::unique_ptr<CatalogueWriter>> catalogues_;
 
     FDB fdb_;
 };

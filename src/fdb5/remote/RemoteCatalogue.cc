@@ -13,7 +13,6 @@
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/remote/FdbEndpoint.h"
 #include "fdb5/remote/RemoteCatalogue.h"
 #include "fdb5/remote/RemoteEngine.h"
 
@@ -194,26 +193,26 @@ FDBStats RemoteCatalogueArchiver::archiveThreadLoop() {
 }
 
 
-std::string host(const eckit::Configuration& config) {
-    std::string host = config.getString("host");
-    std::string remoteDomain = config.getString("remoteDomain", "");
-    if (remoteDomain.empty()) {
-        return host;
-    }
-    return host+remoteDomain;
-}
+// std::string host(const eckit::Configuration& config) {
+//     std::string host = config.getString("host");
+//     std::string remoteDomain = config.getString("remoteDomain", "");
+//     if (remoteDomain.empty()) {
+//         return host;
+//     }
+//     return host+remoteDomain;
+// }
 
 
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     CatalogueImpl(key, ControlIdentifiers(), config), // xxx what are control identifiers? Setting empty here...
-    Client(eckit::net::Endpoint(host(config), config.getInt("port"))),
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""),
     config_(config), schema_(nullptr), archiver_(nullptr) {
 
     loadSchema();
 }
 
 RemoteCatalogue::RemoteCatalogue(const eckit::URI& uri, const Config& config):
-    Client(eckit::net::Endpoint(host(config), config.getInt("port"))), config_(config), schema_(nullptr), archiver_(nullptr)
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""), config_(config), schema_(nullptr), archiver_(nullptr)
     {
         NOTIMP;
     }
@@ -248,7 +247,7 @@ void RemoteCatalogue::archive(const uint32_t archiverID, const InspectionKey& ke
     // if there is no archiving thread active, then start one.
     // n.b. reset the archiveQueue_ after a potential flush() cycle.
     if (!archiver_) {
-        uint64_t archiverName = std::hash<FdbEndpoint>()(controlEndpoint());
+        uint64_t archiverName = std::hash<eckit::net::Endpoint>()(controlEndpoint());
         archiverName = archiverName << 32;
         archiverName += archiverID;
         archiver_ = RemoteCatalogueArchiver::get(archiverName);

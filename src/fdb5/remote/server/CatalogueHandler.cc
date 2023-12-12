@@ -9,6 +9,7 @@
  */
 
 #include "eckit/config/Resource.h"
+#include "eckit/net/NetMask.h"
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
@@ -30,7 +31,9 @@ namespace fdb5::remote {
 // ***************************************************************************************
 
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config):
-    ServerConnection(socket, config) {}
+    ServerConnection(socket, config) {
+
+}
 
 CatalogueHandler::~CatalogueHandler() {}
 
@@ -50,37 +53,81 @@ void CatalogueHandler::initialiseConnections() {
     socketRead(&tail, sizeof(tail), controlSocket_);
     ASSERT(tail == EndMarker);
 
-    std::vector<eckit::net::Endpoint> stores;
-    std::vector<eckit::net::Endpoint> localStores;
 
-    if (::getenv("FDB_STORE_HOST") && ::getenv("FDB_STORE_PORT")) {
-        // override the configuration
-        stores.push_back(net::Endpoint(::getenv("FDB_STORE_HOST"), std::stoi(::getenv("FDB_STORE_PORT"))));
-    }
-    else {
-        std::vector<std::string> endpoints = config_.getStringVector("stores");
-        for (const std::string& endpoint: endpoints) {
-            stores.push_back(eckit::net::Endpoint(endpoint));
-        }
-        if (config_.has("localStores")) {
-            std::vector<std::string> endpoints = config_.getStringVector("localStores");
-            for (const std::string& endpoint: endpoints) {
-                localStores.push_back(eckit::net::Endpoint(endpoint));
+    eckit::net::IPAddress address{controlSocket_.remoteAddr()};
+
+    std::string network = "";
+    if (config_.has("networks")) {
+        for (const auto& net: config_.getSubConfigurations("networks")) {
+            if (net.has("name") && net.has("netmask")) {
+                eckit::net::NetMask netmask{net.getString("netmask")};
+                if (netmask.contains(address)) {
+                    network = net.getString("name");
+                    break;
+                }
             }
         }
     }
+
+    Log::debug<LibFdb5>() << "Client " << address << " from network '" << network << "'" << std::endl;
+
+    ASSERT(config_.has("stores"));
+    std::map<std::string, std::vector<eckit::net::Endpoint>> stores;
+    // std::vector<std::pair<std::string, eckit::net::Endpoint>> stores;
+    for (const auto& store: config_.getSubConfigurations("stores")) {
+        ASSERT(store.has("default"));
+        std::string defaultEndpoint{store.getString("default")}; // can be an empty string, in case of local store
+        std::string networkEndpoint{defaultEndpoint};
+        if (!network.empty()) {
+            if (store.has(network)) {
+                networkEndpoint = store.getString(network);
+            }
+        }
+        auto it = stores.find(defaultEndpoint);
+        if (it == stores.end()) {
+            stores.emplace(defaultEndpoint, std::vector<eckit::net::Endpoint>{networkEndpoint});
+        } else {
+            it->second.push_back(eckit::net::Endpoint{networkEndpoint});
+        }
+    }
+    // std::string networkName{""};
+    // auto remoteAddress = eckit::net::IPAddress(controlSocket_.remoteAddr());
+    // for (const auto& net : networks_) {
+    //     if (net.second.contains(remoteAddress)) {
+    //         networkName = net.first;
+    //     }
+    // }
+
+    // std::vector<eckit::net::Endpoint> stores;
+    // std::vector<eckit::net::Endpoint> localStores;
+
+    // if (::getenv("FDB_STORE_HOST") && ::getenv("FDB_STORE_PORT")) {
+    //     // override the configuration
+    //     stores.push_back(net::Endpoint(::getenv("FDB_STORE_HOST"), std::stoi(::getenv("FDB_STORE_PORT"))));
+    // }
+    // else {
+    //     std::vector<std::string> endpoints = config_.getStringVector("stores");
+    //     for (const std::string& endpoint: endpoints) {
+    //         stores.push_back(eckit::net::Endpoint(endpoint));
+    //     }
+    //     if (config_.has("localStores")) {
+    //         std::vector<std::string> endpoints = config_.getStringVector("localStores");
+    //         for (const std::string& endpoint: endpoints) {
+    //             localStores.push_back(eckit::net::Endpoint(endpoint));
+    //         }
+    //     }
+    // }
 
     {
         Buffer startupBuffer(1024*1024);
         MemoryStream s(startupBuffer);
 
         s << stores.size();
-        for (const eckit::net::Endpoint& endpoint : stores) {
-            s << endpoint;
-        }
-        s << localStores.size();
-        for (const eckit::net::Endpoint& endpoint : localStores) {
-            s << endpoint;
+        for (const auto& store : stores) {
+            s << store.first << store.second.size();
+            for (const auto& ee: store.second) {
+                s << ee;
+            }
         }
         s << config_.schema();
 

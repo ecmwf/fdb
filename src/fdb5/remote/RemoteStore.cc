@@ -22,7 +22,6 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/remote/FdbEndpoint.h"
 #include "fdb5/remote/RemoteStore.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/io/FDBFileHandle.h"
@@ -353,40 +352,34 @@ private: // members
 //     return eckit::net::Endpoint(stores.at(std::rand() % stores.size()));
 // }
 
-std::vector<FdbEndpoint> storeEndpoint(const Config& config) {
-    if (config.has("storeHost") && config.has("storePort")) {
-        return std::vector<FdbEndpoint>{FdbEndpoint{config.getString("storeHost"), config.getInt("storePort"), config.getString("remoteDomain", "")}};
-    }
+std::vector<std::pair<eckit::net::Endpoint, std::string>> storeEndpoints(const Config& config) {
+    // if (config.has("storeHost") && config.has("storePort")) {
+    //     return std::vector<eckit::net::Endpoint>{eckit::net::Endpoint{config.getString("storeHost"), config.getInt("storePort"), config.getString("remoteDomain", "")}};
+    // }
     ASSERT(config.has("stores"));
-    std::vector<FdbEndpoint> stores;
-    for (auto s : config.getStringVector("stores")) {
-        stores.push_back(FdbEndpoint{s, config.getString("remoteDomain", "")});
+    ASSERT(config.has("storesDefaultEndpoints"));
+    std::vector<std::string> stores = config.getStringVector("stores");
+    std::vector<std::string> defaultEndpoints = config.getStringVector("storesDefaultEndpoints");
+
+    ASSERT(stores.size() == defaultEndpoints.size());
+    std::vector<std::pair<eckit::net::Endpoint, std::string>> out;
+    for (size_t i=0; i<stores.size(); i++) {
+        out.push_back(std::make_pair(eckit::net::Endpoint{stores.at(i)}, defaultEndpoints.at(i)));
     }
-    return stores;
-//    return eckit::net::Endpoint(stores.at(std::rand() % stores.size()));
+    return out;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(storeEndpoint(config)),
+    Client(storeEndpoints(config)),
     dbKey_(dbKey), config_(config),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
     archiver_(nullptr) {
-
-    local_ = false;
-    if (config.has("localStores")) {
-        for (const std::string& localStore : config.getStringVector("localStores")) {
-            if (eckit::net::Endpoint(localStore) == controlEndpoint()) {
-                local_ = true;
-                break;
-            }
-        }
-    }
 }
 
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
-    Client(eckit::net::Endpoint(uri.hostport())),
+    Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()),
     dbKey_(Key()), config_(config),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
     archiver_(nullptr) {
@@ -425,7 +418,7 @@ void RemoteStore::archive(const uint32_t archiverID, const Key& key, const void 
     // if there is no archiving thread active, then start one.
     // n.b. reset the archiveQueue_ after a potential flush() cycle.
     if (!archiver_) {
-        uint64_t archiverName = std::hash<FdbEndpoint>()(controlEndpoint());
+        uint64_t archiverName = std::hash<eckit::net::Endpoint>()(controlEndpoint());
         archiverName = archiverName << 32;
         archiverName += archiverID;
         archiver_ = RemoteStoreArchiver::get(archiverName);
@@ -521,13 +514,10 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             if (it != locations_.end()) {
                 MemoryStream s(payload);
                 std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
-                if (local_) {
-                    // std::cout << "LOCAL: " << location->uri().asRawString() << std::endl;
+                if (defaultEndpoint().empty()) {
                     it->second(std::move(location));
                 } else {
-                    eckit::net::Endpoint remoteEndpoint{controlEndpoint().host(), controlEndpoint().port()};
-                    std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(remoteEndpoint, *location));
-                    // std::cout << "REMOTE: " << remoteLocation->uri().asRawString() << std::endl;
+                    std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location));
                     it->second(std::move(remoteLocation));
                 }
             }

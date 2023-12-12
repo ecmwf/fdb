@@ -241,7 +241,6 @@ if(HAVE_FDB_REMOTE)
         remote/Messages.cc
         remote/AvailablePortList.cc
         remote/AvailablePortList.h
-        remote/FdbEndpoint.h
         remote/FdbServer.h
         remote/FdbServer.cc
     )

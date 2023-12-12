@@ -12,7 +12,6 @@
 
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnection.h"
-#include "fdb5/remote/FdbEndpoint.h"
 
 #include <unordered_map>
 
@@ -37,8 +36,8 @@ public:
 
     static ClientConnectionRouter& instance();
 
-    ClientConnection* connection(Client& client, const FdbEndpoint& endpoint);
-    ClientConnection* connection(Client& client, const std::vector<FdbEndpoint>& endpoints);
+    ClientConnection* connection(Client& client, const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
+    ClientConnection* connection(Client& client, const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
 
     void deregister(Client& client);
 
@@ -49,7 +48,7 @@ private:
     std::mutex connectionMutex_;
 
     // endpoint -> connection
-    std::unordered_map<FdbEndpoint, Connection> connections_;
+    std::unordered_map<eckit::net::Endpoint, Connection> connections_;
 };
 
 }

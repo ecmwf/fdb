@@ -13,7 +13,6 @@
 
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
-#include "fdb5/remote/FdbEndpoint.h"
 
 using namespace fdb5::remote;
 using namespace eckit;
@@ -45,20 +44,12 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
         eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
 
         if (elem.location().uri().scheme() == "fdb") {
-            if (fdb->remoteDomain().empty()) {
-                return elem;
-            }
-            fdb5::remote::FdbEndpoint endpoint{elem.location().uri().host(), elem.location().uri().port(), fdb->remoteDomain()};
-            std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(endpoint, static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
+            eckit::net::Endpoint endpoint{elem.location().uri().host(), elem.location().uri().port()};
 
-            // eckit::Log::debug<fdb5::LibFdb5>() << "InspectHelper::valueFromStream - reconstructed location: ";
-            // remoteLocation->dump(eckit::Log::debug<fdb5::LibFdb5>());
-            // eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
-
+            std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(endpoint), static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
             return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
         }
-
-        std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->localStoreEndpoint(), elem.location()).make_shared();
+        std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(""), elem.location()).make_shared();
         return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
     }
 };
@@ -66,51 +57,50 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
 
 namespace fdb5 {
 
-const eckit::net::Endpoint& RemoteFDB::localStoreEndpoint() const {
-    ASSERT(localStores_.size() > 0);
-
-    return localStores_.at(std::rand() % localStores_.size());
+const eckit::net::Endpoint& RemoteFDB::storeEndpoint(const std::string& endpoint) const {
+    auto it = stores_.find(endpoint);
+    ASSERT(it != stores_.end());
+    return it->second.at(std::rand() % it->second.size());
 }
 
 RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name):
     LocalFDB(config, name),
-    Client(remote::FdbEndpoint(config.getString("host"), config.getInt("port"), config.getString("remoteDomain", ""))) {
-
-    remoteDomain_ = config.getString("remoteDomain", "");
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), "") {
 
     uint32_t id = generateRequestID();
     eckit::Buffer buf = controlWriteReadResponse(remote::Message::Schema, id);
     eckit::MemoryStream s(buf);
     size_t numStores;
     s >> numStores;
-    if (numStores > 0) {
-        std::vector<std::string> stores;
-        for (size_t i=0; i<numStores; i++) {
-            eckit::net::Endpoint endpoint(s);
-            stores.push_back(endpoint);
+    ASSERT(numStores > 0);
+
+    std::vector<std::string> stores;
+    std::vector<std::string> defaultEndpoints;
+
+    for (size_t i=0; i<numStores; i++) {
+        std::string store;
+        s >> store;
+        size_t numAliases;
+        s >> numAliases;
+        std::vector<eckit::net::Endpoint> aliases;
+        if (numAliases == 0) {
+            stores.push_back(store);
+            defaultEndpoints.push_back(store);
+            Log::debug<LibFdb5>() << "store endpoint: " << store << " default endpoint: " << store << std::endl;
+        } else {
+            for (size_t j=0; j<numAliases; j++) {
+                eckit::net::Endpoint endpoint(s);
+                aliases.push_back(endpoint);
+                stores.push_back(endpoint);
+                defaultEndpoints.push_back(store);
+                Log::debug<LibFdb5>() << "store endpoint: " << endpoint << " default endpoint: " << store << std::endl;
+            }
         }
-        if (!config_.has("stores")) { // set stores only if not configured localy
-            config_.set("stores", stores);
-        }
-    } else {
-        ASSERT(config_.has("stores"));
+        stores_.emplace(store, aliases);
     }
 
-    // local stores
-    s >> numStores;
-    if (numStores > 0) {
-        std::vector<std::string> localStores;
-        for (size_t i=0; i<numStores; i++) {
-            eckit::net::Endpoint e(s);
-            remote::FdbEndpoint endpoint{e, remoteDomain_};
-            
-            localStores_.push_back(endpoint);
-            localStores.push_back(endpoint);
-        }
-        if (!config_.has("localStores")) { // set localStores only if not configured localy
-            config_.set("localStores", localStores);
-        }
-    }
+    config_.set("stores", stores);
+    config_.set("storesDefaultEndpoints", defaultEndpoints);
 
     fdb5::Schema* schema = eckit::Reanimator<fdb5::Schema>::reanimate(s);
 

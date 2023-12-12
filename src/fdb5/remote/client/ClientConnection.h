@@ -21,7 +21,6 @@
 #include "eckit/runtime/SessionID.h"
 
 #include "fdb5/remote/Messages.h"
-#include "fdb5/remote/FdbEndpoint.h"
 
 namespace eckit {
 
@@ -41,7 +40,7 @@ public: // types
 
 public: // methods
 
-    ClientConnection(const FdbEndpoint& controlEndpoint);
+    ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint);
     virtual ~ClientConnection();
 
     void controlWrite(Client& client, remote::Message msg, uint32_t requestID, uint32_t archiverID=0, std::vector<std::pair<const void*, uint32_t>> data={});
@@ -51,7 +50,8 @@ public: // methods
     void disconnect();
 
     uint32_t generateRequestID();
-    const FdbEndpoint& controlEndpoint() const;
+    const eckit::net::Endpoint& controlEndpoint() const;
+    const std::string& defaultEndpoint() const { return defaultEndpoint_; }
 
 private: // methods
 
@@ -80,8 +80,10 @@ private: // members
 
     eckit::SessionID sessionID_; 
 
-    FdbEndpoint controlEndpoint_;
+    eckit::net::Endpoint controlEndpoint_;
     eckit::net::Endpoint dataEndpoint_;
+
+    std::string defaultEndpoint_;
 
     eckit::net::TCPClient controlClient_;
     eckit::net::TCPClient dataClient_;

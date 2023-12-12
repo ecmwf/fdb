@@ -41,12 +41,10 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 
-ClientConnection::ClientConnection(const FdbEndpoint& controlEndpoint):
-    controlEndpoint_(controlEndpoint),
-    id_(1), connected_(false) {
+ClientConnection::ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint):
+    controlEndpoint_(controlEndpoint), defaultEndpoint_(defaultEndpoint), id_(1), connected_(false) {
         eckit::Log::debug<LibFdb5>() << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
     }
-
 
 ClientConnection::~ClientConnection() {
     disconnect();
@@ -114,7 +112,7 @@ void ClientConnection::disconnect() {
     }
 }
 
-const FdbEndpoint& ClientConnection::controlEndpoint() const {
+const eckit::net::Endpoint& ClientConnection::controlEndpoint() const {
     return controlEndpoint_;
 }
 // const eckit::net::Endpoint& ClientConnection::fullyQualifiedControlEndpoint() const { 

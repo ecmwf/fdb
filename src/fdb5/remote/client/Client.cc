@@ -31,8 +31,8 @@ uint32_t Client::clientId_=0;
 //     id_ = ++clientId_;
 // }
 
-Client::Client(const FdbEndpoint& endpoint) :
-    connection_(*(ClientConnectionRouter::instance().connection(*this, endpoint))),
+Client::Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) :
+    connection_(*(ClientConnectionRouter::instance().connection(*this, endpoint, defaultEndpoint))),
     blockingRequestId_(0) {
 
     std::lock_guard<std::mutex> lock(idMutex_);
@@ -40,7 +40,7 @@ Client::Client(const FdbEndpoint& endpoint) :
 }
 
 
-Client::Client(const std::vector<FdbEndpoint>& endpoints) :
+Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) :
     connection_(*(ClientConnectionRouter::instance().connection(*this, endpoints))),
     blockingRequestId_(0) {
 
