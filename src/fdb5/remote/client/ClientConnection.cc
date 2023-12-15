@@ -100,11 +100,11 @@ void ClientConnection::disconnect() {
 
     if (connected_) {
 
+        // Send termination message
         for (auto c: clients_) {
-            // Send termination message
-            controlWrite(Message::Exit, 0);
-
+            controlWrite(Message::Exit, c.first);
         }
+        controlWrite(Message::Exit, 0);
 
         listeningThread_.join();
 
@@ -334,10 +334,6 @@ void ClientConnection::listeningThreadLoop() {
         eckit::FixedString<4> tail;
 
         while (true) {
-
-            if (clients_.empty()) {
-                return;
-            }
 
             dataRead(&hdr, sizeof(hdr));
 
