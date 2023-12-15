@@ -42,7 +42,7 @@ public:
 
 
 ClientConnection::ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint):
-    controlEndpoint_(controlEndpoint), defaultEndpoint_(defaultEndpoint), id_(1), connected_(false) {
+    controlEndpoint_(controlEndpoint), defaultEndpoint_(defaultEndpoint), id_(1), exit_(false), connected_(false) {
         eckit::Log::debug<LibFdb5>() << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
     }
 
@@ -100,6 +100,7 @@ void ClientConnection::disconnect() {
 
     if (connected_) {
 
+        exit_ = true;
         // Send termination message
         for (auto c: clients_) {
             controlWrite(Message::Exit, c.first);
@@ -230,7 +231,7 @@ void ClientConnection::dataWrite(const void* data, size_t length) {
 
 void ClientConnection::dataRead(void* data, size_t length) {
     size_t read = dataClient_.read(data, length);
-    if (length != read) {
+    if (!exit_ && length != read) {
         std::stringstream ss;
         ss << "Read error. Expected " << length << " bytes, read " << read;
         throw TCPException(ss.str(), Here());
