@@ -52,8 +52,8 @@ public:
     void dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
     
     // handlers for incoming messages - to be defined in the client class
-    virtual bool handle(Message message, uint32_t requestID) = 0;
-    virtual bool handle(Message message, uint32_t requestID, /*eckit::net::Endpoint endpoint,*/ eckit::Buffer&& payload) = 0;
+    virtual bool handle(Message message, uint32_t requestID) { return true; }
+    virtual bool handle(Message message, uint32_t requestID, /*eckit::net::Endpoint endpoint,*/ eckit::Buffer&& payload) { return true; }
     virtual void handleException(std::exception_ptr e) = 0;
 
     bool response(uint32_t requestID);

@@ -100,6 +100,7 @@ private: // members
     std::mutex idMutex_;
     uint32_t id_;
 
+    bool exit_;
     bool connected_; 
 };
 

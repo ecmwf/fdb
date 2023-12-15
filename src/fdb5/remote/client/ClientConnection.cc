@@ -334,7 +334,7 @@ void ClientConnection::listeningThreadLoop() {
         MessageHeader hdr;
         eckit::FixedString<4> tail;
 
-        while (true) {
+        while (!exit_) {
 
             dataRead(&hdr, sizeof(hdr));
 
@@ -351,6 +351,7 @@ void ClientConnection::listeningThreadLoop() {
                     }
                 }
                 if (clients_.empty()) {
+                    exit_ = true;
                     return;
                 }
             } else {
