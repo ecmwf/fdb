@@ -225,10 +225,11 @@ class FDBRemoteDataHandle : public DataHandle {
 
 public: // methods
 
-    FDBRemoteDataHandle(uint32_t requestID,
+    FDBRemoteDataHandle(uint32_t requestID, Length estimate,
                         RemoteStore::MessageQueue& queue,
                         const net::Endpoint& remoteEndpoint) :
         requestID_(requestID),
+        estimate_(estimate),
         queue_(queue),
         remoteEndpoint_(remoteEndpoint),
         pos_(0),
@@ -309,7 +310,7 @@ private: // methods
     }
 
     Length estimate() override {
-        return 0;
+        return estimate_;
     }
 
     Offset position() override {
@@ -319,6 +320,7 @@ private: // methods
 private: // members
 
     uint32_t requestID_;
+    Length estimate_;
     RemoteStore::MessageQueue& queue_;
     net::Endpoint remoteEndpoint_;
     size_t pos_;
@@ -604,7 +606,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
     uint32_t id = connection_.generateRequestID();
     controlWriteCheckResponse(fdb5::remote::Message::Read, id, encodeBuffer, s.position());
 
-    return new FDBRemoteDataHandle(id, retrieveMessageQueue_, controlEndpoint());
+    return new FDBRemoteDataHandle(id, fieldLocation.length(), retrieveMessageQueue_, controlEndpoint());
 }
 
 RemoteStore& RemoteStore::get(const eckit::URI& uri) {
