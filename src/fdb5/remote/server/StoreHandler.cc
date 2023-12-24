@@ -400,7 +400,6 @@ void StoreHandler::flush(const MessageHeader& hdr) {
     s >> numArchived;
 
     std::future<size_t>& archive = archiveFuture_[hdr.clientID];
-    // std::cout << "numArchived: " << numArchived << " | archiveFuture_.valid: " << archive.valid() << std::endl;
 
     ASSERT(numArchived == 0 || archive.valid());
 

@@ -38,10 +38,9 @@ public:
     Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
     ~Client();
 
-    uint32_t id() { return id_; }
+    uint32_t id() const { return id_; }
     const eckit::net::Endpoint& controlEndpoint() const { return connection_.controlEndpoint(); }
     const std::string& defaultEndpoint() const { return connection_.defaultEndpoint(); }
-    // const eckit::net::Endpoint& fullyQualifiedControlEndpoint() const { return connection_.controlEndpoint(); }
 
     uint32_t generateRequestID() { return connection_.generateRequestID(); }
 
@@ -52,8 +51,8 @@ public:
     void dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
     
     // handlers for incoming messages - to be defined in the client class
-    virtual bool handle(Message message, uint32_t requestID) { return true; }
-    virtual bool handle(Message message, uint32_t requestID, /*eckit::net::Endpoint endpoint,*/ eckit::Buffer&& payload) { return true; }
+    virtual bool handle(Message message, uint32_t requestID) = 0;
+    virtual bool handle(Message message, uint32_t requestID, /*eckit::net::Endpoint endpoint,*/ eckit::Buffer&& payload) = 0;
     virtual void handleException(std::exception_ptr e) = 0;
 
     bool response(uint32_t requestID);
@@ -62,24 +61,17 @@ public:
 
 protected:
     
-    // std::vector<std::string> endpoints_;
-    // std::string domain_;
-
-    // eckit::net::Endpoint endpoint_;
-    // eckit::net::Endpoint fullyQualifiedEndpoint_;
     ClientConnection& connection_;
 
 private:
+    inline static std::mutex idMutex_;
     static uint32_t clientId_;
-
-    std::mutex idMutex_;
     uint32_t id_;
 
     std::mutex blockingRequestMutex_;
     uint32_t blockingRequestId_;
     std::promise<bool> promise_;
     std::promise<eckit::Buffer> payloadPromise_;
-
 };
 
 }

@@ -46,6 +46,30 @@ ClientConnection::ClientConnection(const eckit::net::Endpoint& controlEndpoint, 
         eckit::Log::debug<LibFdb5>() << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
     }
 
+void ClientConnection::add(Client& client) {
+    std::lock_guard<std::mutex> lock(clientsMutex_);
+    auto it = clients_.find(client.id());
+    ASSERT(it == clients_.end());
+
+    clients_[client.id()] = &client;
+}
+
+
+bool ClientConnection::remove(uint32_t clientID) {
+    std::lock_guard<std::mutex> lock(clientsMutex_);
+    auto it = clients_.find(clientID);
+    bool exist = it != clients_.end();
+
+    if (exist) {
+        clients_.erase(it);
+        if (clients_.empty()) {
+            exit_ = true;
+            ClientConnectionRouter::instance().deregister(*this);
+        }
+    }
+    return exist;
+}
+
 ClientConnection::~ClientConnection() {
     disconnect();
 }
@@ -58,7 +82,7 @@ uint32_t ClientConnection::generateRequestID() {
 
 bool ClientConnection::connect(bool singleAttempt) {
 
-    std::lock_guard<std::mutex> lock(requestMutex_);
+//    std::lock_guard<std::mutex> lock(requestMutex_);
     if (connected_) {
         eckit::Log::warning() << "ClientConnection::connect() called when already connected" << std::endl;
         return connected_;
@@ -71,6 +95,7 @@ bool ClientConnection::connect(bool singleAttempt) {
         // Connect to server, and check that the server is happy on the response 
         eckit::Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
         controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
+
         writeControlStartupMessage();
         eckit::SessionID serverSession = verifyServerStartupResponse();
 
@@ -86,9 +111,6 @@ bool ClientConnection::connect(bool singleAttempt) {
     } catch(eckit::TooManyRetries& e) {
         if (controlClient_.isConnected()) {
             controlClient_.close();
-        //     throw ConnectionError(fdbMaxConnectRetries, dataEndpoint_);
-        // } else {
-        //     throw ConnectionError(fdbMaxConnectRetries, fullyQualifiedControlEndpoint_);
         }
     }
     return false;
@@ -96,10 +118,9 @@ bool ClientConnection::connect(bool singleAttempt) {
 
 void ClientConnection::disconnect() {
 
-    std::lock_guard<std::mutex> lock(requestMutex_);
+//    std::lock_guard<std::mutex> lock(requestMutex_);
 
     if (connected_) {
-
         exit_ = true;
         // Send termination message
         for (auto c: clients_) {
@@ -137,13 +158,8 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 
 void ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, uint32_t archiverID, std::vector<std::pair<const void*, uint32_t>> data) {
 
-    {
-        std::lock_guard<std::mutex> lock(requestMutex_);
-        auto it = clients_.find(client.id());
-        if (it == clients_.end()) {
-            clients_[client.id()] = &client;
-        }
-    }
+    auto it = clients_.find(client.id());
+    ASSERT(it != clients_.end());
 
     controlWrite(msg, archiverID ? archiverID : client.id(), requestID, data);
 }
@@ -189,13 +205,8 @@ void ClientConnection::controlRead(void* data, size_t length) {
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
 
-    {
-        std::lock_guard<std::mutex> lock(requestMutex_);
-        auto it = clients_.find(client.id());
-        if (it == clients_.end()) {
-            clients_[client.id()] = &client;
-        }
-    }
+    auto it = clients_.find(client.id());
+    ASSERT(it != clients_.end());
 
     dataWrite(msg, client.id(), requestID, data);
 }
@@ -272,7 +283,6 @@ void ClientConnection::writeControlStartupMessage() {
     //       essentially JSON) over the wire for flexibility.
     s << availableFunctionality().get();
 
-    //std::cout << "writeControlStartupMessage" << std::endl;
     controlWrite(Message::Startup, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{payload, s.position()}});
 }
 
@@ -345,14 +355,7 @@ void ClientConnection::listeningThreadLoop() {
 
             if (hdr.message == Message::Exit) {
                 if (hdr.clientID) {
-                    auto it = clients_.find(hdr.clientID);
-                    if (it == clients_.end()) {
-                        clients_.erase(it);
-                    }
-                }
-                if (clients_.empty()) {
-                    exit_ = true;
-                    return;
+                    remove(hdr.clientID);
                 }
             } else {
                 if (hdr.clientID) {

@@ -19,36 +19,23 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Connection {
-public:
-
-    Connection(std::unique_ptr<ClientConnection> connection, Client& clients)
-        : connection_(std::move(connection)), clients_(std::set<Client*>{&clients}) {}
-
-    std::unique_ptr<ClientConnection> connection_;
-    std::set<Client*> clients_;
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
 class ClientConnectionRouter : eckit::NonCopyable {
 public:
 
     static ClientConnectionRouter& instance();
 
-    ClientConnection* connection(Client& client, const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
-    ClientConnection* connection(Client& client, const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
+    ClientConnection& connection(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
+    ClientConnection& connection(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
 
-    void deregister(Client& client);
+    void deregister(ClientConnection& connection);
 
 private:
 
     ClientConnectionRouter() {} ///< private constructor only used by singleton
 
     std::mutex connectionMutex_;
-
     // endpoint -> connection
-    std::unordered_map<eckit::net::Endpoint, Connection> connections_;
+    std::unordered_map<eckit::net::Endpoint, std::unique_ptr<ClientConnection>> connections_;
 };
 
 }

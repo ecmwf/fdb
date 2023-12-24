@@ -31,6 +31,7 @@ class Buffer;
 namespace fdb5::remote {
 
 class Client;
+class ClientConnectionRouter;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -40,11 +41,13 @@ public: // types
 
 public: // methods
 
-    ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint);
     ~ClientConnection();
 
     void controlWrite(Client& client, remote::Message msg, uint32_t requestID, uint32_t archiverID=0, std::vector<std::pair<const void*, uint32_t>> data={});
     void dataWrite   (Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
+
+    void add(Client& client);
+    bool remove(uint32_t clientID);
 
     bool connect(bool singleAttempt = false);
     void disconnect();
@@ -54,6 +57,10 @@ public: // methods
     const std::string& defaultEndpoint() const { return defaultEndpoint_; }
 
 private: // methods
+
+    friend class ClientConnectionRouter;
+
+    ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint);
 
     const eckit::net::Endpoint& dataEndpoint() const;
     
@@ -88,6 +95,7 @@ private: // members
     eckit::net::TCPClient controlClient_;
     eckit::net::TCPClient dataClient_;
 
+    std::mutex clientsMutex_;
     std::map<uint32_t, Client*> clients_;
 
     std::thread listeningThread_;

@@ -28,25 +28,26 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ClientConnection* ClientConnectionRouter::connection(Client& client, const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) {
+ClientConnection& ClientConnectionRouter::connection(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) {
 
     std::lock_guard<std::mutex> lock(connectionMutex_);
+
     auto it = connections_.find(endpoint);
     if (it != connections_.end()) {
-        it->second.clients_.insert(&client);
-        return it->second.connection_.get();
+        return *(it->second);
     } else {
-        ClientConnection* clientConnection = new ClientConnection(endpoint, defaultEndpoint);
+        ClientConnection* clientConnection = new ClientConnection{endpoint, defaultEndpoint};
         if (clientConnection->connect()) {
-            auto it = (connections_.emplace(endpoint, Connection(std::unique_ptr<ClientConnection>(clientConnection), client))).first;
-            return it->second.connection_.get();
+            auto it = (connections_.emplace(endpoint, std::unique_ptr<ClientConnection>(clientConnection))).first;
+            return *(it->second);
         } else {
+            delete clientConnection;
             throw ConnectionError(endpoint);
         }
     }
 }
 
-ClientConnection* ClientConnectionRouter::connection(Client& client, const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) {
+ClientConnection& ClientConnectionRouter::connection(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) {
 
     std::vector<std::pair<eckit::net::Endpoint, std::string>> fullEndpoints{endpoints};
 
@@ -60,14 +61,13 @@ ClientConnection* ClientConnectionRouter::connection(Client& client, const std::
         // look for the selected endpoint
         auto it = connections_.find(endpoint);
         if (it != connections_.end()) {
-            it->second.clients_.insert(&client);
-            return it->second.connection_.get();
+            return *(it->second);
         }
         else { // not yet there, trying to connect
-            ClientConnection* clientConnection = new ClientConnection(fullEndpoints.at(idx).first, fullEndpoints.at(idx).second);
+             std::unique_ptr<ClientConnection> clientConnection =  std::unique_ptr<ClientConnection>(new ClientConnection{endpoint, fullEndpoints.at(idx).second});
             if (clientConnection->connect(true)) {
-                auto it = (connections_.emplace(endpoint, Connection(std::unique_ptr<ClientConnection>(clientConnection), client))).first;
-                return it->second.connection_.get();
+                auto it = (connections_.emplace(endpoint, std::move(clientConnection))).first;
+                return *(it->second);
             }
         }
 
@@ -82,18 +82,11 @@ ClientConnection* ClientConnectionRouter::connection(Client& client, const std::
     throw ConnectionError();
 }
 
+void ClientConnectionRouter::deregister(ClientConnection& connection) {
 
-void ClientConnectionRouter::deregister(Client& client) {
     std::lock_guard<std::mutex> lock(connectionMutex_);
-
-    auto it = connections_.find(client.controlEndpoint());
-    ASSERT(it != connections_.end());
-
-    auto clientIt = it->second.clients_.find(&client);
-    ASSERT(clientIt != it->second.clients_.end());
-
-    it->second.clients_.erase(clientIt);
-    if (it->second.clients_.empty()) {
+    auto it = connections_.find(connection.controlEndpoint());
+    if (it != connections_.end()) {
         connections_.erase(it);
     }
 }

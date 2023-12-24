@@ -32,24 +32,28 @@ uint32_t Client::clientId_=0;
 // }
 
 Client::Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) :
-    connection_(*(ClientConnectionRouter::instance().connection(*this, endpoint, defaultEndpoint))),
+    connection_(ClientConnectionRouter::instance().connection(endpoint, defaultEndpoint)),
     blockingRequestId_(0) {
-
+    
     std::lock_guard<std::mutex> lock(idMutex_);
     id_ = ++clientId_;
+
+    connection_.add(*this);
 }
 
 
 Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) :
-    connection_(*(ClientConnectionRouter::instance().connection(*this, endpoints))),
+    connection_(ClientConnectionRouter::instance().connection(endpoints)),
     blockingRequestId_(0) {
 
     std::lock_guard<std::mutex> lock(idMutex_);
     id_ = ++clientId_;
+
+    connection_.add(*this);
 }
 
 Client::~Client() {
-    ClientConnectionRouter::instance().deregister(*this);
+    ASSERT(connection_.remove(id_));
 }
 
 bool Client::response(uint32_t requestID) {
@@ -79,6 +83,7 @@ bool Client::response(uint32_t requestID, eckit::Buffer&& payload) {
 void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     ASSERT(requestID);
+    ASSERT(!(!payloadLength ^ !payload));
     std::lock_guard<std::mutex> lock(blockingRequestMutex_);
     
     promise_ = {};
@@ -98,6 +103,8 @@ void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, const vo
 
 eckit::Buffer Client::controlWriteReadResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
+    ASSERT(requestID);
+    ASSERT(!(!payloadLength ^ !payload));
     std::lock_guard<std::mutex> lock(blockingRequestMutex_);
 
     payloadPromise_ = {};

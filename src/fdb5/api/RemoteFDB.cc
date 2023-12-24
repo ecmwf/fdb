@@ -32,7 +32,27 @@ struct BaseAPIHelper {
     static ValueType valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) { return ValueType(s); }
 };
 
-using ListHelper = BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List>;
+// using ListHelper = BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List>;
+
+struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List> {
+
+    static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
+        fdb5::ListElement elem(s);
+
+        eckit::Log::debug<fdb5::LibFdb5>() << "ListHelper::valueFromStream - original location: ";
+        elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
+        eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
+
+        if (elem.location().uri().scheme() == "fdb") {
+            eckit::net::Endpoint endpoint{elem.location().uri().host(), elem.location().uri().port()};
+
+            std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(endpoint), static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
+            return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
+        }
+        std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(""), elem.location()).make_shared();
+        return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
+    }
+};
 
 struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::Inspect> {
 

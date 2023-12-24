@@ -99,8 +99,6 @@ void ServerConnection::initialiseConnections() {
     ASSERT(hdr.message == Message::Startup);
     ASSERT(hdr.requestID == 0);
 
-    // std::cout << "ServerConnection::initialiseConnections() - payload "<< hdr.payloadSize << std::endl;
-
     eckit::Buffer payload1 = receivePayload(hdr, controlSocket_);
     eckit::FixedString<4> tail;
     socketRead(&tail, sizeof(tail), controlSocket_);
@@ -267,7 +265,7 @@ void ServerConnection::controlWrite(const void* data, size_t length) {
 }
 
 void ServerConnection::socketRead(void* data, size_t length, eckit::net::TCPSocket& socket) {
-    // std::cout << "ServerConnection::socketRead " << socket.remoteHost() << ":" << socket.remotePort() << "  length: " << length << std::endl;
+
     size_t read = socket.read(data, length);
     if (length != read) {
         std::stringstream ss;
