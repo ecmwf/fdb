@@ -1,0 +1,9 @@
+{
+    "plugin": {
+      "name": "@plugin_name@",
+      "namespace": "int.ecmwf",
+      "url": "http://www.ecmwf.int",
+      "version": "@fdb5_VERSION@",
+      "library": "@plugin_name@-plugin"
+    }
+}
