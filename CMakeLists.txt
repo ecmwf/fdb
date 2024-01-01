@@ -78,6 +78,13 @@ ecbuild_add_option( FEATURE SANDBOX
                     DESCRIPTION "build the sandbox stuff"
                     DEFAULT OFF	 )
 
+find_package( dhskit QUIET )
+
+ecbuild_add_option( FEATURE HTTPSVR
+                    CONDITION dhskit_FOUND
+                    DEFAULT OFF
+                    DESCRIPTION "httpsvr functionality for fdb5" )
+
 ### build the tools
 
 ecbuild_add_option( FEATURE BUILD_TOOLS

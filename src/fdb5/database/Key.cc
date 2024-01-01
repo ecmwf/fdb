@@ -11,6 +11,7 @@
 #include <algorithm>
 
 #include "eckit/container/DenseSet.h"
+#include "eckit/log/JSON.h"
 #include "eckit/utils/Tokenizer.h"
 
 #include "metkit/mars/MarsRequest.h"
@@ -171,6 +172,8 @@ void Key::set(const std::string &k, const std::string &v) {
 
 void Key::unset(const std::string &k) {
     keys_.erase(k);
+    auto it = std::find(names_.begin(), names_.end(), k);
+    if (it != names_.end()) names_.erase(it);
 }
 
 void Key::push(const std::string &k, const std::string &v) {
@@ -442,6 +445,19 @@ void Key::print(std::ostream &out) const {
             out << " (" << *rule_ << ")";
         }
     }
+}
+
+void Key::json(eckit::JSON& json) const {
+    // n.b. preserve order of keys in JSON object
+    json.startObject();
+    ASSERT(names_.size() == keys_.size());
+    for (const auto& k : names_) {
+        eckit::StringDict::const_iterator v = keys_.find(k);
+        ASSERT(v != keys_.end());
+        json << k;
+        json << v->second;
+    }
+    json.endObject();
 }
 
 std::string Key::toString() const {

@@ -103,8 +103,12 @@ private: // methods
 
     void expandFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& done) const;
     void expandFirstLevel(const Key &dbKey,  Key &result, bool& done) const ;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& result, bool& done) const;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result, bool& done) const;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request,
+                          std::vector<Predicate *>::const_iterator cur,
+                          std::vector<Key>& result,
+                          Key& working,
+                          bool& found) const;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request,  std::vector<Key>& result, bool& found) const;
 
     void matchFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
     void matchFirstLevel(const Key &dbKey, std::set<Key>& result, const char* missing) const ;

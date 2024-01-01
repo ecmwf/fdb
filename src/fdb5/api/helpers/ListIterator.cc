@@ -30,12 +30,18 @@ ListElement::ListElement(eckit::Stream &s) {
     s >> timestamp_;
 }
 
-Key ListElement::combinedKey() const {
+Key ListElement::combinedKey(bool ordered) const {
     Key combined;
 
     for (const Key& partKey : keyParts_) {
-        for (const auto& kv : partKey) {
-            combined.set(kv.first, kv.second);
+        if (ordered) {
+            for (const auto& k : partKey.names()) {
+                combined.set(k, partKey.get(k));
+            }
+        } else {
+            for (const auto& kv: partKey) {
+                combined.set(kv.first, kv.second);
+            }
         }
     }
 

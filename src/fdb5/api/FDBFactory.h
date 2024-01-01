@@ -70,7 +70,7 @@ public: // methods
 
     virtual ListIterator inspect(const metkit::mars::MarsRequest& request) = 0;
 
-    virtual ListIterator list(const FDBToolRequest& request) = 0;
+    virtual ListIterator list(const FDBToolRequest& request, int level) = 0;
 
     virtual DumpIterator dump(const FDBToolRequest& request, bool simple) = 0;
 

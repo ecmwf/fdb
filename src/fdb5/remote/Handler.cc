@@ -88,9 +88,17 @@ struct BaseHelper {
 };
 
 struct ListHelper : public BaseHelper<ListElement> {
-    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        return fdb.list(request);
+    void extraDecode(eckit::Stream& s) {
+        s >> level_;
     }
+
+    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        bool deduplicate = false; // We never deduplicate on inner calls.
+        return fdb.list(request, deduplicate, level_);
+    }
+
+private:
+    int level_;
 };
 
 struct InspectHelper : public BaseHelper<ListElement> {

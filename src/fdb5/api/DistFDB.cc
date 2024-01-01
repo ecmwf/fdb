@@ -179,11 +179,12 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) ->
 }
 
 
-ListIterator DistFDB::list(const FDBToolRequest& request) {
+ListIterator DistFDB::list(const FDBToolRequest& request, int level) {
     Log::debug<LibFdb5>() << "DistFDB::list() : " << request << std::endl;
     return queryInternal(request,
-                         [](FDB& fdb, const FDBToolRequest& request) {
-                            return fdb.list(request);
+                         [level](FDB& fdb, const FDBToolRequest& request) {
+                            bool deduplicate = false; // never deduplicate on inner calls
+                            return fdb.list(request, deduplicate, level);
                          });
 }
 

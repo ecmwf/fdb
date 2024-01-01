@@ -35,7 +35,11 @@ namespace local {
 struct ListVisitor : public QueryVisitor<ListElement> {
 
 public:
-    using QueryVisitor<ListElement>::QueryVisitor;
+    ListVisitor(eckit::Queue<ListElement>& queue,
+                const metkit::mars::MarsRequest& request,
+                int level) :
+        QueryVisitor<ListElement>(queue, request),
+        level_(level) {}
 
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
@@ -53,6 +57,11 @@ public:
         indexRequest_ = request_;
         for (const auto& kv : catalogue.key()) {
             indexRequest_.unsetValues(kv.first);
+        }
+
+        if (level_ == 1) {
+            queue_.emplace(ListElement({currentCatalogue_->key(), {}, {}}, FieldLocation::nullLocation(), 0));
+            return false;
         }
 
         return ret;
@@ -73,6 +82,12 @@ public:
         }
 
         if (index.partialMatch(request_)) {
+
+            if (level_ == 2) {
+                queue_.emplace(ListElement({currentCatalogue_->key(), currentIndex_->key(), {}}, FieldLocation::nullLocation(), 0));
+                return false;
+            }
+
             return true; // Explore contained entries
         }
         return false; // Skip contained entries
@@ -96,6 +111,7 @@ private: // members
 
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;
+    int level_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

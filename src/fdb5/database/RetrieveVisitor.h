@@ -38,7 +38,7 @@ public: // methods
     ~RetrieveVisitor();
 
 
-private:  // methods
+protected:  // methods
 
     // From Visitor
 

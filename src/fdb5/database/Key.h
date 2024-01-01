@@ -104,6 +104,11 @@ public: // methods
         return s;
     }
 
+    friend eckit::JSON& operator<<(eckit::JSON& s, const Key& k) {
+        k.json(s);
+        return s;
+    }
+
     void rule(const Rule *rule);
     const Rule *rule() const;
     const TypesRegistry& registry() const;
@@ -147,6 +152,7 @@ private: // members
     std::string canonicalise(const std::string& keyword, const std::string& value) const;
 
     void print( std::ostream &out ) const;
+    void json(eckit::JSON& s) const;
     void decode(eckit::Stream& s);
     void encode(eckit::Stream &s) const;
 

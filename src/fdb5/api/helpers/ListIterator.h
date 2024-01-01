@@ -52,7 +52,8 @@ public: // methods
     const FieldLocation& location() const { return *location_; }
     const time_t& timestamp() const { return timestamp_; }
 
-    Key combinedKey() const;
+    // If the schema-ordering of the keys matters, preserve it from the source components
+    Key combinedKey(bool ordered=false) const;
 
     void print(std::ostream& out, bool withLocation=false, bool withLength=false) const;
     void json(eckit::JSON& json) const;

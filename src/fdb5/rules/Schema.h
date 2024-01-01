@@ -59,8 +59,16 @@ public: // methods
 
     bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
     bool expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result) const ;
+    bool expandFirstLevel(const metkit::mars::MarsRequest& request,  std::vector<Key>& result) const ;
     void matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const ;
     void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
+
+    // Which level are we currently expanding?
+    // 0 --> Currently expanding first level
+    // 1 --> Currently expanding second level (first level complete)
+    // 2 --> Currently expanding third level (second level complete)
+    // 3 --> Complete expansion of key
+    int fullyExpandedLevels(const metkit::mars::MarsRequest& request, std::vector<Key>& requestBits) const;
 
     const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
 

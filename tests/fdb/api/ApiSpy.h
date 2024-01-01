@@ -90,8 +90,9 @@ public: // methods
         return fdb5::ListIterator(0);
     }
 
-    fdb5::ListIterator list(const fdb5::FDBToolRequest& request) override {
+    fdb5::ListIterator list(const fdb5::FDBToolRequest& request, int level) override {
         counts_.list += 1;
+        ASSERT(level == 3);
         return fdb5::ListIterator(0);
     }
 

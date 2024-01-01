@@ -48,6 +48,8 @@ public: // methods
     FieldLocation(const FieldLocation&) = delete;
     FieldLocation& operator=(const FieldLocation&) = delete;
 
+    static std::shared_ptr<FieldLocation> nullLocation();
+
     virtual const eckit::URI& uri() const { return uri_; }
     eckit::URI fullUri() const;
     std::string host() const { return uri_.hostport(); }

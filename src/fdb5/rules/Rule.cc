@@ -252,15 +252,20 @@ void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_i
     }
 }
 
-void Rule::expandFirstLevel(const Key &dbKey,  Key &result, bool& found) const {
+void Rule::expandFirstLevel(const Key &dbKey,  Key& result, bool& found) const {
     expandFirstLevel(dbKey, predicates_.begin(), result, found);
 }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Predicate *>::const_iterator cur, Key& result, bool& found) const {
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq,
+                            std::vector<Predicate *>::const_iterator cur,
+                            std::vector<Key>& result,
+                            Key& working,
+                            bool& found) const {
 
     if (cur == predicates_.end()) {
         found = true;
-        result.rule(this);
+        working.rule(this);
+        result.push_back(working);
         return;
     }
 
@@ -270,27 +275,21 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Pre
     const std::string& keyword = (*cur)->keyword();
     const std::vector<std::string>& values = (*cur)->values(rq);
 
-    // Gives a unique expansion --> only considers the first of the values suggested.
-    // TODO: Consider the broader case.
-
     for (const std::string& value : values) {
 
-        result.push(keyword, value);
+        working.push(keyword, value);
 
-        if ((*cur)->match(result)) {
-            expandFirstLevel(rq, next, result, found);
+        if ((*cur)->match(working)) {
+            expandFirstLevel(rq, next, result, working, found);
         }
 
-        if (!found) {
-            result.pop(keyword);
-        } else {
-            return;
-        }
+        working.pop(keyword);
     }
 }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, Key& result, bool& done) const {
-    expandFirstLevel(request, predicates_.begin(), result, done);
+void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Key>& result, bool& done) const {
+    Key working;
+    expandFirstLevel(request, predicates_.begin(), result, working, done);
 }
 
 

@@ -473,3 +473,7 @@ if ( HAVE_FDB_BUILD_TOOLS )
     target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
     target_sources( fdb-unlock PRIVATE tools/FDBLock.cc tools/FDBLock.h )
 endif()
+
+if ( fdb5_HAVE_HTTPSVR )
+    add_subdirectory( httpsvr )
+endif()

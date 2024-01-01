@@ -54,6 +54,19 @@ void FieldLocationFactory::list(std::ostream& out) {
     }
 }
 
+std::shared_ptr<FieldLocation> FieldLocation::nullLocation() {
+
+    struct NullFieldLocation : public FieldLocation {
+        eckit::DataHandle* dataHandle() const override { NOTIMP; }
+        std::shared_ptr<FieldLocation> make_shared() const override { return nullLocation(); }
+        void visit(FieldLocationVisitor& visitor) const override { NOTIMP; }
+        void print(std::ostream& out) const override { out << "NullFieldLocation"; }
+    };
+
+    static std::shared_ptr<FieldLocation> instance(new NullFieldLocation());
+    return instance;
+}
+
 FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) {
 
     ASSERT (length != 0);

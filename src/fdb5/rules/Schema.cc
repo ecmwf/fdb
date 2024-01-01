@@ -11,11 +11,14 @@
 #include <fstream>
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Schema.h"
-#include "fdb5/rules/Rule.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/rules/SchemaParser.h"
+#include "fdb5/database/Notifier.h"
+#include "fdb5/database/RetrieveVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
+#include "fdb5/io/HandleGatherer.h"
+#include "fdb5/rules/Rule.h"
+#include "fdb5/rules/Schema.h"
+#include "fdb5/rules/SchemaParser.h"
 
 namespace fdb5 {
 
@@ -121,6 +124,16 @@ bool Schema::expandFirstLevel(const Key &dbKey,  Key &result) const {
 }
 
 bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key &result) const {
+    std::vector<Key> results;
+    bool found = expandFirstLevel(request, results);
+    if (found) {
+        ASSERT(found);
+        result = results.front();
+    }
+    return found;
+}
+
+bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Key>& result) const {
     bool found = false;
     for (const Rule* rule : rules_) {
         rule->expandFirstLevel(request, result, found);
@@ -139,6 +152,94 @@ void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->matchFirstLevel(request, result, missing);
     }
+}
+
+namespace {
+struct LevelVisitor : public RetrieveVisitor {
+
+    class NullNotifier : public Notifier {
+        void notifyWind() const override {}
+    };
+
+    // n.b. gatherer_ initialised after passed to RetrieveVisitor. OK as it isn't actually used
+    explicit LevelVisitor(std::vector<Key>& requestBits) :
+        RetrieveVisitor(notifier_, gatherer_),
+        gatherer_(false),
+        requestBits_(requestBits) {}
+
+    bool selectDatabase(const Key& key, const Key& full) override {
+        if (level_ == 3) return false; // Skip further exploration
+        if (RetrieveVisitor::selectDatabase(key, full)) {
+            level_ = std::max(level_, 1);
+            requestBits_[0] = key;
+            return true;
+        }
+        return false;
+    }
+
+    bool selectIndex(const Key& key, const Key& full) override {
+        if (level_ == 3) return false; // Skip further exploration
+        if (RetrieveVisitor::selectIndex(key, full)) {
+            level_ = std::max(level_, 2);
+            requestBits_[1] = key;
+            return true;
+        }
+        return false;
+    }
+
+    bool selectDatum(const Key& key, const Key& full) override {
+        level_ = 3;
+        requestBits_[2] = key;
+        return false;
+    }
+
+    void print(std::ostream& out) const override {
+        out << "LevelVisitor(level=" << level_ << ")";
+    }
+
+    int level() const { return level_; }
+
+private:
+    HandleGatherer gatherer_; // For form only. Unused.
+    NullNotifier notifier_;   // For form only. Unused.
+    int level_ = 0;
+    std::vector<Key>& requestBits_;
+};
+}
+
+int Schema::fullyExpandedLevels(const metkit::mars::MarsRequest& request, std::vector<Key>& requestBits) const {
+
+    ASSERT(requestBits.size() == 3);
+
+    LevelVisitor visitor(requestBits);
+    try {
+        expand(request, visitor);
+    } catch (const eckit::UserError&) {
+        // TODO: This is clearly not very happy. The schema should not be throwing an exception if
+        //       we don't match a level... we sholud just not match. This exception is being thrown
+        //       in the wrong place...
+        // FIXME: FIX ME
+    }
+
+    Key residual;
+    for (const auto& p : request.params()) {
+        const auto& vs = request.values(p);
+        ASSERT(!vs.empty());
+        residual.set(p, vs[0]);
+    }
+
+    for (const auto& bits : requestBits) {
+        for (const auto& k : bits.keys()) {
+            residual.unset(k);
+        }
+    }
+
+    if (!residual.empty()) {
+        ASSERT(requestBits[visitor.level()].empty());
+        requestBits[visitor.level()] = residual;
+    }
+
+    return visitor.level();
 }
 
 void Schema::load(const eckit::PathName &path, bool replace) {
