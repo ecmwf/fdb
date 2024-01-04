@@ -79,7 +79,18 @@ namespace fdb5 {
 
 const eckit::net::Endpoint& RemoteFDB::storeEndpoint(const std::string& endpoint) const {
     auto it = stores_.find(endpoint);
-    ASSERT(it != stores_.end());
+    if (it == stores_.end()) {
+        std::stringstream ss;
+        ss << "Unable to find a matching endpoint. Looking for " << endpoint << std::endl;
+        ss << "Available endpoints:";
+        for (auto s : stores_) {
+            ss << std::endl << s.first << " - ";
+            for (auto e: s.second) {
+                ss << e << ", ";
+            }
+        }
+        throw eckit::SeriousBug(ss.str());
+    }
     return it->second.at(std::rand() % it->second.size());
 }
 
