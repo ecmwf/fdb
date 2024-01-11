@@ -38,7 +38,7 @@ public: // methods
 
 private: // methods
 
-    void loadIndexesAndRemap();
+    void loadIndexesAndRemap() const;
     bool selectIndex(const Key &key) override;
     void deselectIndex() override;
 
@@ -47,11 +47,14 @@ private: // methods
     void clean() override {}
     void close() override;
     
-    bool axis(const std::string &keyword, eckit::StringSet &s) const override;
+    bool axis(const std::string &keyword, eckit::DenseSet<std::string>& s) const override;
 
     bool retrieve(const Key& key, Field& field) const override;
 
     void print( std::ostream &out ) const override;
+
+    const std::vector<std::pair<Index, Key>>& mappedIndexes() const;
+    std::vector<std::pair<Index, Key>>& mappedIndexes();
 
 private: // members
 
@@ -61,7 +64,7 @@ private: // members
 
     // All indexes
     // If there is a key remapping for a mounted SubToc, this is stored alongside
-    std::vector<std::pair<Index, Key>> indexes_;
+    mutable std::vector<std::pair<Index, Key>> indexes_;
 
 };
 

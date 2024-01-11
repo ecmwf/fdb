@@ -154,7 +154,7 @@ void PMemDB::close() {
     indexes_.clear();
 }
 
-void PMemDB::axis(const std::string &keyword, eckit::StringSet &s) const {
+void PMemDB::axis(const std::string &keyword, eckit::DenseSet<std::string>& s) const {
     Log::error() << "axis not implemented for " << *this << std::endl;
     NOTIMP;
 }

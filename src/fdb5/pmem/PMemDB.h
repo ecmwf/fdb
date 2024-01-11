@@ -79,7 +79,7 @@ protected: // methods
 
     virtual eckit::DataHandle *retrieve(const Key &key) const;
     virtual void archive(const Key &key, const void *data, eckit::Length length);
-    virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
+    virtual void axis(const std::string &keyword, eckit::DenseSet<std::string> &s) const;
 
     virtual StatsReportVisitor* statsReportVisitor() const override;
     virtual PurgeVisitor* purgeVisitor() const override;

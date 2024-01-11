@@ -72,7 +72,7 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request,
 
         // Get the axis
 
-        eckit::StringSet ax;
+        eckit::DenseSet<std::string> ax;
         db->axis("step", ax);
 
         std::vector<StepRange> axis;

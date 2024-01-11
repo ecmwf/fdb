@@ -57,7 +57,7 @@ protected:  // methods
 
     virtual const Schema& databaseSchema() const override;
 
-private:
+protected:
 
     const Notifier &wind_;
 

@@ -19,6 +19,8 @@
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/rules/SchemaParser.h"
+#include "fdb5/types/Type.h"
+#include "metkit/mars/MarsRequest.h"
 
 namespace fdb5 {
 
@@ -162,35 +164,71 @@ struct LevelVisitor : public RetrieveVisitor {
     };
 
     // n.b. gatherer_ initialised after passed to RetrieveVisitor. OK as it isn't actually used
-    explicit LevelVisitor(std::vector<Key>& requestBits) :
+    explicit LevelVisitor(const metkit::mars::MarsRequest& request, std::vector<Key>& requestBits) :
         RetrieveVisitor(notifier_, gatherer_),
+        done_(false),
         gatherer_(false),
-        requestBits_(requestBits) {}
+        requestBits_(requestBits) {
+        auto&& params(request.params());
+        keys_.insert(params.begin(), params.end());
+    }
 
     bool selectDatabase(const Key& key, const Key& full) override {
-        if (level_ == 3) return false; // Skip further exploration
+        if (done_) return false; // Skip further exploration
+
+        level_ = std::max(level_, 1);
+        requestBits_[0] = key;
+
+        if (full.keys() == keys_) {
+            done_ = true;
+            return false;
+        }
+
+        // We need to connect to the actual DB so that we can use any special case schemas
         if (RetrieveVisitor::selectDatabase(key, full)) {
-            level_ = std::max(level_, 1);
-            requestBits_[0] = key;
             return true;
         }
         return false;
     }
 
     bool selectIndex(const Key& key, const Key& full) override {
-        if (level_ == 3) return false; // Skip further exploration
-        if (RetrieveVisitor::selectIndex(key, full)) {
-            level_ = std::max(level_, 2);
-            requestBits_[1] = key;
-            return true;
+        if (done_) return false; // Skip further exploration
+
+        level_ = std::max(level_, 2);
+        requestBits_[1] = key;
+
+        if (full.keys() == keys_) {
+            done_ = true;
+            return false;
         }
-        return false;
+
+        return true;
+
+//        if (RetrieveVisitor::selectIndex(key, full)) {
+//            return true;
+//        }
+//        return false;
     }
 
     bool selectDatum(const Key& key, const Key& full) override {
+        ASSERT(full.keys() == keys_);
+        done_ = true;
         level_ = 3;
         requestBits_[2] = key;
         return false;
+    }
+
+    void values(const metkit::mars::MarsRequest &request,
+                const std::string &keyword,
+                const TypesRegistry &registry,
+                eckit::StringList &values) {
+
+        eckit::StringList list;
+        registry.lookupType(keyword).getValues(request, keyword, list, wind_, db_.get());
+
+        for(auto l: list) {
+            values.push_back(l);
+        }
     }
 
     void print(std::ostream& out) const override {
@@ -200,10 +238,12 @@ struct LevelVisitor : public RetrieveVisitor {
     int level() const { return level_; }
 
 private:
+    bool done_;
     HandleGatherer gatherer_; // For form only. Unused.
     NullNotifier notifier_;   // For form only. Unused.
     int level_ = 0;
     std::vector<Key>& requestBits_;
+    std::set<std::string> keys_;
 };
 }
 
@@ -211,7 +251,7 @@ int Schema::fullyExpandedLevels(const metkit::mars::MarsRequest& request, std::v
 
     ASSERT(requestBits.size() == 3);
 
-    LevelVisitor visitor(requestBits);
+    LevelVisitor visitor(request, requestBits);
     try {
         expand(request, visitor);
     } catch (const eckit::UserError&) {

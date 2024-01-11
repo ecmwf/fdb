@@ -294,6 +294,16 @@ void FDB::flush() {
     }
 }
 
+IndexAxis FDB::axes(const FDBToolRequest& request) {
+    IndexAxis axes;
+    AxesElement elem;
+    auto it = internal_->axes(request);
+    while (it.next(elem)) {
+        axes.merge(elem.axes());
+    }
+    return axes;
+}
+
 bool FDB::dirty() const {
     return dirty_;
 }

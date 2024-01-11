@@ -79,11 +79,11 @@ std::vector<PathName> TocCatalogue::metadataPaths() const {
 
 void TocCatalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {
 
-    std::vector<Index> all = indexes(sorted);
-
     // Allow the visitor to selectively reject this DB.
     if (visitor.visitDatabase(*this, store)) {
         if (visitor.visitIndexes()) {
+            std::vector<Index> all = indexes(sorted); // Defer reading indexes to here. We may not need access them
+                                                      // at all
             for (const Index& idx : all) {
                 if (visitor.visitEntries()) {
                     idx.entries(visitor); // contains visitIndex

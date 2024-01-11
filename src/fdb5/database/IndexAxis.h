@@ -45,17 +45,26 @@ public: // methods
 
     IndexAxis();
     IndexAxis(eckit::Stream &s, const int version);
+    IndexAxis(IndexAxis&& rhs) noexcept;
+
+    IndexAxis& operator=(IndexAxis&& rhs);
+
+    // Explicit copy. n.b. uses move constructor
+    IndexAxis copy() const;
 
     ~IndexAxis();
 
     void insert(const Key &key);
     void encode(eckit::Stream &s, const int version) const;
+    static int currentVersion() { return 3; }
+
+    void merge(const IndexAxis& other);
 
     // Decode can be used for two-stage initialisation (IndexAxis a; a.decode(s);)
     void decode(eckit::Stream& s, const int version);
 
     bool has(const std::string &keyword) const;
-    const eckit::DenseSet<std::string> &values(const std::string &keyword) const;
+    const eckit::DenseSet<std::string>& values(const std::string &keyword) const;
 
     void dump(std::ostream &out, const char* indent) const;
 

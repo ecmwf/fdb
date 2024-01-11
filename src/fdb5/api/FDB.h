@@ -109,6 +109,9 @@ public: // methods
     ControlIterator control(const FDBToolRequest& request,
                             ControlAction action,
                             ControlIdentifiers identifiers);
+
+    IndexAxis axes(const FDBToolRequest& request);
+
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
     bool dirty() const;

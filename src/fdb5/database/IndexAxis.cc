@@ -45,6 +45,35 @@ IndexAxis::IndexAxis(eckit::Stream &s, const int version) :
     decode(s, version);
 }
 
+IndexAxis::IndexAxis(IndexAxis&& rhs) noexcept :
+    axis_(std::move(rhs.axis_)),
+    readOnly_(rhs.readOnly_),
+    dirty_(rhs.dirty_) {}
+
+IndexAxis& IndexAxis::operator=(IndexAxis&& rhs) {
+    axis_ = std::move(rhs.axis_);
+    readOnly_ = rhs.readOnly_;
+    dirty_ = rhs.dirty_;
+    return *this;
+}
+
+IndexAxis IndexAxis::copy() const {
+    IndexAxis result;
+    result.dirty_ = dirty_;
+    result.readOnly_ = readOnly_;
+    if (readOnly_) {
+        result.axis_ = axis_;
+    } else {
+        for (const auto& kv : axis_) {
+            eckit::DenseSet<std::string>& s(*result.axis_[kv.first]);
+            eckit::Log::info() << "CReating copy: " << kv.second->size() << std::endl;
+            s.reserve(kv.second->size());
+            for (const auto& v : *kv.second) s.insert(v);
+        }
+    }
+    return result;
+}
+
 void IndexAxis::encode(eckit::Stream &s, const int version) const {
     if (version >= 3) {
         encodeCurrent(s, version);
@@ -295,8 +324,35 @@ const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword
 void IndexAxis::print(std::ostream &out) const {
     out << "IndexAxis["
         <<  "axis=";
-    eckit::__print_container(out, axis_);
+
+    const char* sep = "";
+    out << "{";
+    for (const auto& kv : axis_) {
+        out << sep << kv.first << "=(";
+        const char* sep2 = "";
+        for (const auto& v : *kv.second) {
+            out << sep2 << v;
+            sep2 = ",";
+        }
+        out << ")";
+        sep = ",";
+    }
+    out << "}";
     out  << "]";
+}
+
+void IndexAxis::merge(const fdb5::IndexAxis& other) {
+
+    ASSERT(!readOnly_);
+    for (const auto& kv : other.axis_) {
+
+        auto it = axis_.find(kv.first);
+        if (it == axis_.end()) {
+            axis_.emplace(kv.first, kv.second);
+        } else {
+            it->second->merge(*kv.second);
+        };
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

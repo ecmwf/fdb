@@ -224,6 +224,8 @@ private: // methods
     bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true,
                   bool hideClearEntries = true, bool readMasked = false) const;
 
+    void selectSubTocRead(const eckit::PathName& path) const;
+
     bool readNextInternal(TocRecord &r) const;
 
     std::string userName(long) const;
@@ -253,7 +255,8 @@ private: // members
     mutable std::unique_ptr<eckit::MemoryHandle> cachedToc_; ///< this is only for read path
 
     /// The sub toc is initialised in the read or write pathways for maintaining state.
-    mutable std::unique_ptr<TocHandler> subTocRead_;
+    mutable std::map<eckit::PathName, std::unique_ptr<TocHandler>> subTocReadCache_;
+    mutable TocHandler* subTocRead_; // n.b. non-owning
     mutable std::unique_ptr<TocHandler> subTocWrite_;
     mutable size_t count_;
 

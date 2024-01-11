@@ -22,20 +22,27 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocCatalogueReader::TocCatalogueReader(const Key& key, const fdb5::Config& config) :
-    TocCatalogue(key, config) {
-    loadIndexesAndRemap();
-}
+    TocCatalogue(key, config) {}
 
 TocCatalogueReader::TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
-    TocCatalogue(uri.path(), ControlIdentifiers{}, config) {
-    loadIndexesAndRemap();
-}
+    TocCatalogue(uri.path(), ControlIdentifiers{}, config) {}
 
 TocCatalogueReader::~TocCatalogueReader() {
     eckit::Log::debug<LibFdb5>() << "Closing DB " << *dynamic_cast<TocCatalogue*>(this) << std::endl;
 }
 
-void TocCatalogueReader::loadIndexesAndRemap() {
+std::vector<std::pair<Index, Key>>& TocCatalogueReader::mappedIndexes() {
+    if (indexes_.empty()) {
+        loadIndexesAndRemap();
+    }
+    return indexes_;
+}
+
+const std::vector<std::pair<Index, Key>>& TocCatalogueReader::mappedIndexes() const {
+    return const_cast<TocCatalogueReader*>(this)->mappedIndexes();
+}
+
+void TocCatalogueReader::loadIndexesAndRemap() const {
     std::vector<Key> remapKeys;
     std::vector<Index> indexes = loadIndexes(false, nullptr, nullptr, &remapKeys);
 
@@ -55,7 +62,7 @@ bool TocCatalogueReader::selectIndex(const Key &key) {
     currentIndexKey_ = key;
     matching_.clear();
 
-    for (auto idx = indexes_.begin(); idx != indexes_.end(); ++idx) {
+    for (auto idx = mappedIndexes().begin(); idx != mappedIndexes().end(); ++idx) {
         if (idx->first.key() == key) {
             matching_.push_back(&(*idx));
         }
@@ -85,13 +92,13 @@ bool TocCatalogueReader::open() {
     return true;
 }
 
-bool TocCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
+bool TocCatalogueReader::axis(const std::string &keyword, eckit::DenseSet<std::string>& s) const {
     bool found = false;
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         if ((*m)->first.axes().has(keyword)) {
             found = true;
             const eckit::DenseSet<std::string>& a = (*m)->first.axes().values(keyword);
-            s.insert(a.begin(), a.end());
+            s.merge(a);
         }
     }
     return found;
@@ -128,8 +135,8 @@ void TocCatalogueReader::print(std::ostream &out) const {
 std::vector<Index> TocCatalogueReader::indexes(bool sorted) const {
 
     std::vector<Index> returnedIndexes;
-    returnedIndexes.reserve(indexes_.size());
-    for (auto idx = indexes_.begin(); idx != indexes_.end(); ++idx) {
+    returnedIndexes.reserve(mappedIndexes().size());
+    for (auto idx = mappedIndexes().begin(); idx != mappedIndexes().end(); ++idx) {
         returnedIndexes.emplace_back(idx->first);
     }
 

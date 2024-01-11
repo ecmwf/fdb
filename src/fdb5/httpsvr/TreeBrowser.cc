@@ -117,6 +117,8 @@ void TreeBrowser::GET(std::ostream& out, Url& url) {
 
     FDBToolRequest tool_request(rq, all, {});
 
+    out << "TOOL request: " << rq << std::endl;
+
     // How many levels of the schema does this expand (note, it DOES need to use a modified version of full schema
     // expansion, as the exact schema to check against may depend on the DB in question)
 
@@ -127,14 +129,32 @@ void TreeBrowser::GET(std::ostream& out, Url& url) {
     const Schema& schema = Config().expandConfig().schema();
     int listLevel = schema.fullyExpandedLevels(tool_request.request(), requestBits);
 
+    out << "listLevel: " << listLevel << std::endl;
+    out << "requestBits: " << requestBits[0] << requestBits[1] << requestBits[2] << std::endl;
+
     // List to the requisite level, and then see what is left. n.b. there may (in principle) be multiple
     // keys to consider, as there may be multiple sub-rules per matched rule.
 
     std::map<std::string, std::set<std::string>> nextVals;
 
     FDB fdb;
+
+    if (listLevel == 2) { //listLevel < 3 && requestBits[listLevel].empty()) {
+
+        // We have exactly matched
+        out << "Exact match axes" << std::endl;
+        auto axes = fdb.axes(tool_request);
+        out << axes;
+    }
+
+//    exit(-1);
+
+    return;
+
     bool deduplicate = false;
+    eckit::Log::info() << "starting list" << std::endl;
     auto listObject = fdb.list(tool_request, deduplicate, listLevel+1);
+    eckit::Log::info() << "list returned" << std::endl;
     ListElement elem;
     while (listObject.next(elem)) {
 
@@ -142,6 +162,7 @@ void TreeBrowser::GET(std::ostream& out, Url& url) {
         // schema-related order. Then find the next element.
 
         int i = 0;
+        eckit::Log::info() << "next" << i << std::endl;
         Key combinedKey = elem.combinedKey(/* ordered */ true);
         for (const auto& k: combinedKey.names()) {
             if (i++ < keys.size()) {

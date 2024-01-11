@@ -68,7 +68,7 @@ bool PMemDBReader::selectIndex(const Key &key) {
 }
 
 
-void PMemDBReader::axis(const std::string& keyword, eckit::StringSet& s) const {
+void PMemDBReader::axis(const std::string& keyword, eckit::DenseSet<std::string>& s) const {
     s = currentIndex_.axes().values(keyword);
 }
 

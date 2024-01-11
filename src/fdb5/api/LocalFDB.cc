@@ -29,6 +29,7 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/LibFdb5.h"
 
+#include "fdb5/api/local/AxesVisitor.h"
 #include "fdb5/api/local/ControlVisitor.h"
 #include "fdb5/api/local/DumpVisitor.h"
 #include "fdb5/api/local/ListVisitor.h"
@@ -121,6 +122,11 @@ ControlIterator LocalFDB::control(const FDBToolRequest& request,
                                   ControlIdentifiers identifiers) {
     Log::debug<LibFdb5>() << "LocalFDB::control() : " << request << std::endl;
     return queryInternal<ControlVisitor>(request, action, identifiers);
+}
+
+AxesIterator LocalFDB::axes(const FDBToolRequest& request) {
+    Log::debug<LibFdb5>() << "LocalFDB::axes() : " << request << std::endl;
+    return queryInternal<AxesVisitor>(request);
 }
 
 void LocalFDB::flush() {

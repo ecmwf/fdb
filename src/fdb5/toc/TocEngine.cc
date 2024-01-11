@@ -149,6 +149,8 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
                                                const std::vector<eckit::PathName>& roots,
                                                const Config& config) const {
 
+    Log::debug<LibFdb5>() << "   ------- Scanning keys: " << keys << std::endl;
+
     std::set<eckit::PathName> result;
 
     for (std::vector<eckit::PathName>::const_iterator j = roots.begin(); j != roots.end(); ++j) {

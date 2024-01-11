@@ -8,11 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-/*
- * This software was developed as part of the EC H2020 funded project NextGenIO
- * (Project ID: 671951) www.nextgenio.eu
- */
-
 #include "fdb5/api/helpers/ListIterator.h"
 
 #include "eckit/log/JSON.h"
@@ -22,9 +17,10 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 ListElement::ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp) :
-    keyParts_(keyParts), location_(location), timestamp_(timestamp) {}
+        keyParts_(keyParts), location_(location), timestamp_(timestamp) {}
 
 ListElement::ListElement(eckit::Stream &s) {
+
     s >> keyParts_;
     location_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
     s >> timestamp_;

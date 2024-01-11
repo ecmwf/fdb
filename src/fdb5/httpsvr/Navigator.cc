@@ -35,7 +35,23 @@ namespace httpsvr {
 
 namespace {
 
+const std::string BASE_URL("/fdbnavigate");
+
 using lookup_t = std::unordered_map<Key, std::unordered_map<Key, std::set<Key>>>;
+
+template <typename... Keys,
+          std::enable_if_t<(std::is_convertible_v<const Key&, Keys>&& ...), int> = 0>
+std::string navigate_url(bool json, const Keys&... keys) {
+    std::string ret = BASE_URL + "?";
+    for (const auto& key : {keys...}) {
+        for (const auto& kv: key) {
+            ret += kv.first + "=" + kv.second + "&";
+        }
+    }
+    ret += "format=";
+    ret += (json ? "json" : "html");
+    return ret;
+}
 
 void outputJSON(JSON& json, const lookup_t& lookup, int listLevel) {
     json << "databases";
@@ -43,17 +59,137 @@ void outputJSON(JSON& json, const lookup_t& lookup, int listLevel) {
     for (const auto& db_kv : lookup) {
         json.startObject();
         json << "key" << db_kv.first;
+        json << "navigate" << navigate_url(true, db_kv.first);
+//        json << "tree" << tree_url(db_kv.first);
 
-        if (listLevel > 1) {
+        if (listLevel >= 1) {
             json << "indexes";
             json.startList();
             for (const auto& idx_kv : db_kv.second) {
+                json.startObject();
                 json << "key" << idx_kv.first;
+                json << "navigate" << navigate_url(true, db_kv.first, idx_kv.first);
+
+                if (listLevel >= 2) {
+                    json << "fields";
+                    json.startList();
+                    for (const auto& field : idx_kv.second) {
+                        json << "key" << field;
+                        json << "navigate" << navigate_url(true, db_kv.first, idx_kv.first, field);
+                    }
+                    json.endList();
+                }
+                json.endObject();
             }
             json.endList();
         }
     }
     json.endList();
+}
+
+
+template <typename Iterable,
+          typename... Keys,
+          std::enable_if_t<(std::is_convertible_v<const Key&, Keys>&& ...), int> = 0>
+void outputTableKeys(const std::string& title, std::ostream& out, const Iterable& iterable,
+                     const Keys&... parent_keys) {
+
+    out << Html::BeginH1() << title << Html::EndH1();
+    out << Html::BeginTable(true);
+
+    std::map<std::string, int> columnMap;
+    std::vector<std::string> columns;
+    for (const auto& key : iterable) {
+        for (const auto& k : key.names()) {
+            if (columnMap.find(k) == columnMap.end()) {
+                columnMap.emplace(k, columnMap.size());
+                columns.push_back(k);
+            }
+        }
+    }
+
+    // Header row
+    out << Html::BeginRow();
+    for (const auto& col : columns) {
+        out << Html::BeginHeader() << col << Html::EndHeader();
+    }
+    out << Html::BeginHeader() << "Navigate" << Html::EndHeader();
+    out << Html::BeginHeader() << "Tree" << Html::EndHeader();
+    out << Html::EndRow();
+
+    // n.b. although the keys in a Key have a well defined order, some may
+    //      be missing, due to optional values. Therefore work from the master list
+    for (const auto& key : iterable) {
+        out << Html::BeginRow();
+        for (const auto& col : columns) {
+            out << Html::BeginData();
+            auto it = key.find(col);
+            if (it != key.end()) {
+                out << it->second;
+            }
+            out << Html::EndData();
+        }
+        out << Html::BeginData()
+            << Html::Link(navigate_url(false, parent_keys...,  key))
+            << "navigate"
+            << Html::Link()
+            << Html::EndData();
+        out << Html::EndRow();
+    }
+
+    out << Html::EndTable();
+
+
+}
+
+void outputTable(std::ostream& out, const lookup_t& lookup, int listLevel) {
+
+
+    if (listLevel >= 1) {
+        ASSERT(lookup.size() <= 1);
+
+        if (listLevel >= 2) {
+            if (lookup.size() == 1) {
+                ASSERT(lookup.begin()->second.size() <= 1);
+                if (lookup.begin()->second.size() == 1) {
+                    outputTableKeys("Entries", out,
+                                    lookup.begin()->second.begin()->second,
+                                    lookup.begin()->first, lookup.begin()->second.begin()->first);
+                }
+            }
+        }
+    }
+//    json << "databases";
+//    json.startList();
+//    for (const auto& db_kv : lookup) {
+//        json.startObject();
+//        json << "key" << db_kv.first;
+//        json << "navigate" << navigate_url({db_kv.first});
+//        json << "tree" << tree_url(db_kv.first);
+//
+//        if (listLevel >= 1) {
+//            json << "indexes";
+//            json.startList();
+//            for (const auto& idx_kv : db_kv.second) {
+//                json.startObject();
+//                json << "key" << idx_kv.first;
+//                json << "navigate" << navigate_url({db_kv.first, idx_kv.first});
+//
+//                if (listLevel >= 2) {
+//                    json << "fields";
+//                    json.startList();
+//                    for (const auto& field : idx_kv.second) {
+//                        json << "key" << field;
+//                        json << "navigate" << navigate_url({db_kv.first, idx_kv.first, field});
+//                    }
+//                    json.endList();
+//                }
+//                json.endObject();
+//            }
+//            json.endList();
+//        }
+//    }
+//    json.endList();
 }
 
 } // namespace
@@ -62,22 +198,21 @@ void outputJSON(JSON& json, const lookup_t& lookup, int listLevel) {
 
 static Navigator navigatorInstance;
 
-Navigator::Navigator() : HttpResource("/fdbnavigator") {}
+Navigator::Navigator() : HttpResource(BASE_URL) {}
 
 Navigator::~Navigator() {}
 
 void Navigator::GET(std::ostream& out, Url& url) {
-    out << "Hello World!" << std::endl;
     out << url << std::endl;
     out << url.json() << std::endl;
 
     auto args = url.json();
 
-    bool raw = false;
-    if (args.contains("raw")) {
-        args.remove("raw");
-        raw = true;
-    }
+//    bool raw = false;
+//    if (args.contains("raw")) {
+//        args.remove("raw");
+//        raw = true;
+//    }
 
     bool doJSON = false;
     if (args.contains("format")) {
@@ -85,6 +220,8 @@ void Navigator::GET(std::ostream& out, Url& url) {
         doJSON = (fmt == "json");
         args.remove("format");
     }
+
+    // Construct the request
 
     auto keys = args.keys();
     ASSERT(keys.isList());
@@ -95,48 +232,36 @@ void Navigator::GET(std::ostream& out, Url& url) {
     for (int i = 0; i < keys.size(); ++i) {
         std::string k = keys[i];
         std::string v = args.element(k);
-        rq.setValuesTyped(new metkit::mars::TypeAny(k), StringTools::split("/", v));
+        auto vals = StringTools::split("/", v);
+        if (vals.size() != 1) throw UserError("Walking tree only supports single values in request");
+        rq.setValuesTyped(new metkit::mars::TypeAny(k), std::move(vals));
     }
 
     out << rq << std::endl;
     out << "json=" << (doJSON?"T":"F") << std::endl;
-    out << "raw=" << (raw?"T":"F") << std::endl;
 
     // See the same logic as for FDBToolRequest
-    if (!raw) {
-        bool inherit = false;
-        bool strict = true;
-        metkit::mars::MarsExpension expand(inherit, strict);
-
-        auto expandedRequest = expand.expand(rq);
-        out << expandedRequest << std::endl;
-    }
+//    if (!raw) {
+//        bool inherit = false;
+//        bool strict = true;
+//        metkit::mars::MarsExpension expand(inherit, strict);
+//
+//        auto expandedRequest = expand.expand(rq);
+//        out << expandedRequest << std::endl;
+//    }
 
     FDBToolRequest tool_request(rq, all, {});
     out << tool_request << std::endl;
 
-    // Test expanding the first level of the schema. Are we doing sub-DB listing?
+    // How many levels of the schema does this expand (note, it DOES need to use a modified version of full schema
+    // expansion, as the exact schema to check against may depend on the DB in question)
 
-    bool foundFirstLevel = false;
-    try {
-        const Schema& schema = Config().expandConfig().schema();
-        std::vector<Key> result;
-        foundFirstLevel = schema.expandFirstLevel(tool_request.request(), result);
-//        for (const auto& k : result) {
-//            out << " >> " << k << std::endl;
-//        }
-    } catch (const UserError&) {
-        // TODO: expandFirstLevel clearly not doing what we want. This is throwing an exception
-        //       rather than returning found=false if a key is completely missing. But we should
-        //       be continuing to explore the schema (there is no reason that a key should be
-        //       REQUIRED at any PARTICULAR point whilst exploring the schema).
-        // foundFirstLevel already is false. Ignore.
-    }
+    // TODO: If we exactly match the first or second level, use the Axis object rather than
+    //       a list retrieval, as an optimisation.
 
-    int listLevel = 1;
-    if (foundFirstLevel) {
-        listLevel = 2;
-    }
+    std::vector<Key> requestBits(3);
+    const Schema& schema = Config().expandConfig().schema();
+    int listLevel = schema.fullyExpandedLevels(tool_request.request(), requestBits);
 
     std::unique_ptr<JSON> json;
     if (doJSON) {
@@ -147,7 +272,6 @@ void Navigator::GET(std::ostream& out, Url& url) {
         (*json) << "query";
         tool_request.request().json(*json);
         (*json) << "level" << listLevel;
-        (*json) << "raw" << raw;
     }
 
     // Our lookup of stuff!
@@ -155,7 +279,7 @@ void Navigator::GET(std::ostream& out, Url& url) {
 
     FDB fdb;
     bool deduplicate = false;
-    auto listObject = fdb.list(tool_request, deduplicate, listLevel);
+    auto listObject = fdb.list(tool_request, deduplicate, listLevel+1);
     ListElement elem;
     while (listObject.next(elem)) {
 
@@ -166,7 +290,7 @@ void Navigator::GET(std::ostream& out, Url& url) {
             it = r.first;
         }
 
-        if (listLevel > 1) {
+        if (listLevel >= 1) {
             auto& lookup2 = it->second;
             auto it2 = lookup2.find(elem.key()[1]);
             if (it2 == lookup2.end()) {
@@ -174,30 +298,31 @@ void Navigator::GET(std::ostream& out, Url& url) {
                 ASSERT(r.second);
                 it2 = r.first;
             }
+
+            if (listLevel >= 2) {
+                auto& lookup3 = it2->second;
+                lookup3.insert(elem.key()[2]);
+            }
         }
     }
 
-//    out << Html::BeginTable(true);
-//    out << Html::BeginRow();
-//    out << Html::BeginHeader() << "boo" << Html::EndHeader();
-//    out << Html::BeginHeader() << "too" << Html::EndHeader();
-//    out << Html::EndRow();
-//    out << Html::EndTable();
-
-//    for (const auto& db_kv : lookup) {
-//        out << Html::BeginBold()
-//            << "Database: " << db_kv.first
-//            << Html::EndBold() << std::endl;
-//        for (const auto& idx_kv : db_kv.second) {
-//            out << idx_kv.first << std::endl;
-//        }
-//    }
     if (doJSON) {
         outputJSON(*json, lookup, listLevel);
         json->endObject();
         out << Html::EndFormatted();
     } else {
-        NOTIMP;
+        out << Html::BeginBold() << "Search Query: " << Html::EndBold() << tool_request.request() << std::endl;
+        out << Html::BeginBold();
+        if (listLevel == 0) out << "Partial ";
+        if (listLevel >= 0) out << "Database: " << Html::EndBold() << requestBits[0] << Html::BeginBold() << std::endl;
+        if (listLevel == 1) out << "Partial ";
+        if (listLevel >= 1) out << "Index: " << Html::EndBold() << requestBits[1] << Html::BeginBold() << std::endl;
+        if (listLevel == 2) out << "Partial ";
+        if (listLevel >= 2) out << "Datum: " << Html::EndBold() << requestBits[2] << Html::BeginBold() << std::endl;
+        out << "As JSON: " << Html::EndBold()
+            << Html::Link(url.str() + "&format=json") << "here" << Html::Link() << std::endl;
+
+        outputTable(out, lookup, listLevel);
     }
 
 

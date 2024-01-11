@@ -22,6 +22,7 @@
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/os/BackTrace.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Index.h"
@@ -128,6 +129,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     preloadBTree_(config.userConfig().getBool("preloadTocBTree", true)),
     fd_(-1),
     cachedToc_(nullptr),
+    subTocRead_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
     writeMode_(false)
@@ -151,10 +153,12 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     preloadBTree_(false),
     fd_(-1),
     cachedToc_(nullptr),
+    subTocRead_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
     writeMode_(false)
 {
+//    eckit::Log::info() << "------ TocHandler(" << path << std::endl;
 
     /// Are we remapping a mounted DB?
     if (exists()) {
@@ -373,24 +377,25 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
     int len;
 
-    // Ensure we are able to skip masked entries as appropriate
-
-    if (!enumeratedMaskedEntries_) {
-        populateMaskedEntriesList();
-    }
-
     // For some tools (mainly diagnostic) it makes sense to be able to switch the
     // walking behaviour here.
 
     if (!walkSubTocs)
         return readNextInternal(r);
 
+    // Ensure we are able to skip masked entries as appropriate
+
+    if (!enumeratedMaskedEntries_) {
+        populateMaskedEntriesList();
+    }
+
     while (true) {
 
         if (subTocRead_) {
+//            eckit::Log::info() << "SUBTOC: " << subTocRead_ << std::endl;
             len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked);
             if (len == 0) {
-                subTocRead_.reset();
+                subTocRead_ = nullptr;
             } else {
                 ASSERT(r.header_.tag_ != TocRecord::TOC_SUB_TOC);
                 return true;
@@ -443,8 +448,8 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 
                 eckit::Log::debug<LibFdb5>() << "Opening SUB_TOC: " << absPath << " " << parentKey_ << std::endl;
 
-                subTocRead_.reset(new TocHandler(absPath, parentKey_));
-                subTocRead_->openForRead();
+                continue;
+                selectSubTocRead(absPath);
 
                 if (hideSubTocEntries) {
                     // The first entry in a subtoc must be the init record. Check that
@@ -572,7 +577,7 @@ void TocHandler::close() const {
 
     if (subTocRead_) {
         subTocRead_->close();
-        subTocRead_.reset();
+        subTocRead_ = nullptr;
     }
 
     if (subTocWrite_) {
@@ -647,6 +652,9 @@ void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
 
 void TocHandler::populateMaskedEntriesList() const {
 
+//    eckit::Log::info() << "POPULATE MASKED" << std::endl;
+//    eckit::Log::info() << eckit::BackTrace::dump() << std::endl;
+
     ASSERT(fd_ != -1 || cachedToc_);
     CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
@@ -655,6 +663,9 @@ void TocHandler::populateMaskedEntriesList() const {
     maskedEntries_.clear();
 
     std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)
+
+    size_t countSubTocs = 0;
+    size_t countMasked = 0;
 
     while ( readNextInternal(*r) ) {
 
@@ -678,11 +689,13 @@ void TocHandler::populateMaskedEntriesList() const {
                     // eckit::PathName absPath = (path[0] == '/') ? findRealPath(path) : (directory_ / path);
                     eckit::PathName pathName = path;
                     maskedEntries_.emplace(std::pair<PathName, Offset>(pathName.baseName(), offset));
+                    countMasked++;
                 }
                 break;
             }
 
             case TocRecord::TOC_SUB_TOC:
+                countSubTocs++;
                 break;
             case TocRecord::TOC_INIT:
                 break;
@@ -696,6 +709,12 @@ void TocHandler::populateMaskedEntriesList() const {
                 break;
             }
         }
+    }
+
+    if (countSubTocs != 0) {
+        Log::info() << "PATH: " << tocPath_ << std::endl;
+        Log::info() << "COUNT SUBTOCS: " << countSubTocs << std::endl;
+        Log::info() << "COUNT MASKED: " << countMasked << std::endl;
     }
 
     // And reset back to where we were.
@@ -953,11 +972,15 @@ Key TocHandler::databaseKey() {
     // Allocate (large) TocRecord on heap not stack (MARS-779)
     std::unique_ptr<TocRecord> r(new TocRecord(serialisationVersion_.used()));
 
-    while ( readNext(*r) ) {
+    bool walkSubTocs = false;
+    while ( readNext(*r, walkSubTocs) ) {
         if (r->header_.tag_ == TocRecord::TOC_INIT) {
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
             dbUID_ = r->header_.uid_;
-            return Key(s);
+            auto k =  Key(s);
+//            eckit::Log::info() << "------ EXTRACT KEY: " << k << std::endl;
+//            eckit::Log::info() << eckit::BackTrace::dump() << std::endl;
+            return k;
         }
     }
 
@@ -1038,7 +1061,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             indexes.push_back( new TocIndex(s, r->header_.serialisationVersion_, currentDirectory(),
                                             currentDirectory() / path, offset, preloadBTree_));
 
-            if (subTocs != 0 && subTocRead_) {
+            if (subTocs && subTocRead_) {
                 subTocs->insert(subTocRead_->tocPath());
             }
             if (indexInSubtoc) {
@@ -1091,6 +1114,23 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
 
     return indexes;
 
+}
+
+void TocHandler::selectSubTocRead(const eckit::PathName& path) const {
+
+//    eckit::Log::info() << "Selecting SUBTOC: " << path << std::endl;
+
+    auto it = subTocReadCache_.find(path);
+    if (it == subTocReadCache_.end()) {
+//        eckit::Log::info() << "Inserting new SUBTOC: " << path << std::endl;
+        auto r = subTocReadCache_.insert(std::make_pair(path, new TocHandler(path, parentKey_)));
+        ASSERT(r.second);
+        it = r.first;
+    }
+
+    subTocRead_ = it->second.get();
+//    eckit::Log::info() << "Selected: " << subTocRead_ << std::endl;
+    subTocRead_->openForRead();
 }
 
 const eckit::PathName &TocHandler::tocPath() const {
