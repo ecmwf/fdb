@@ -53,70 +53,52 @@ void CatalogueHandler::initialiseConnections() {
     socketRead(&tail, sizeof(tail), controlSocket_);
     ASSERT(tail == EndMarker);
 
+    eckit::net::IPAddress clientIPaddress{controlSocket_.remoteAddr()};
 
-    eckit::net::IPAddress address{controlSocket_.remoteAddr()};
-
-    std::string network = "";
+    std::string clientNetwork = "";
     if (config_.has("networks")) {
         for (const auto& net: config_.getSubConfigurations("networks")) {
             if (net.has("name") && net.has("netmask")) {
                 eckit::net::NetMask netmask{net.getString("netmask")};
-                if (netmask.contains(address)) {
-                    network = net.getString("name");
+                if (netmask.contains(clientIPaddress)) {
+                    clientNetwork = net.getString("name");
                     break;
                 }
             }
         }
     }
 
-    Log::debug<LibFdb5>() << "Client " << address << " from network '" << network << "'" << std::endl;
+    Log::debug<LibFdb5>() << "Client " << clientIPaddress << " from network '" << clientNetwork << "'" << std::endl;
 
     ASSERT(config_.has("stores"));
     std::map<std::string, std::vector<eckit::net::Endpoint>> stores;
     // std::vector<std::pair<std::string, eckit::net::Endpoint>> stores;
-    for (const auto& store: config_.getSubConfigurations("stores")) {
-        ASSERT(store.has("default"));
-        std::string defaultEndpoint{store.getString("default")}; // can be an empty string, in case of local store
-        std::string networkEndpoint{defaultEndpoint};
-        if (!network.empty()) {
-            if (store.has(network)) {
-                networkEndpoint = store.getString(network);
+    for (const auto& configStore: config_.getSubConfigurations("stores")) {
+        ASSERT(configStore.has("default"));
+        eckit::net::Endpoint fieldLocationEndpoint{configStore.getString("default")};
+        eckit::net::Endpoint storeEndpoint{fieldLocationEndpoint};
+        if (!clientNetwork.empty()) {
+            if (configStore.has(clientNetwork)) {
+                storeEndpoint = eckit::net::Endpoint{configStore.getString(clientNetwork)};
             }
         }
-        auto it = stores.find(defaultEndpoint);
+
+        auto it = stores.find(fieldLocationEndpoint);
         if (it == stores.end()) {
-            stores.emplace(defaultEndpoint, std::vector<eckit::net::Endpoint>{networkEndpoint});
+            stores.emplace(fieldLocationEndpoint, std::vector<eckit::net::Endpoint>{storeEndpoint});
         } else {
-            it->second.push_back(eckit::net::Endpoint{networkEndpoint});
+            it->second.push_back(storeEndpoint);
+        }
+
+        if (configStore.getBool("serveLocalData", false)) {
+            it = stores.find("");
+            if (it == stores.end()) {
+                stores.emplace("", std::vector<eckit::net::Endpoint>{storeEndpoint});
+            } else {
+                it->second.push_back(storeEndpoint);
+            }
         }
     }
-    // std::string networkName{""};
-    // auto remoteAddress = eckit::net::IPAddress(controlSocket_.remoteAddr());
-    // for (const auto& net : networks_) {
-    //     if (net.second.contains(remoteAddress)) {
-    //         networkName = net.first;
-    //     }
-    // }
-
-    // std::vector<eckit::net::Endpoint> stores;
-    // std::vector<eckit::net::Endpoint> localStores;
-
-    // if (::getenv("FDB_STORE_HOST") && ::getenv("FDB_STORE_PORT")) {
-    //     // override the configuration
-    //     stores.push_back(net::Endpoint(::getenv("FDB_STORE_HOST"), std::stoi(::getenv("FDB_STORE_PORT"))));
-    // }
-    // else {
-    //     std::vector<std::string> endpoints = config_.getStringVector("stores");
-    //     for (const std::string& endpoint: endpoints) {
-    //         stores.push_back(eckit::net::Endpoint(endpoint));
-    //     }
-    //     if (config_.has("localStores")) {
-    //         std::vector<std::string> endpoints = config_.getStringVector("localStores");
-    //         for (const std::string& endpoint: endpoints) {
-    //             localStores.push_back(eckit::net::Endpoint(endpoint));
-    //         }
-    //     }
-    // }
 
     {
         Buffer startupBuffer(1024*1024);

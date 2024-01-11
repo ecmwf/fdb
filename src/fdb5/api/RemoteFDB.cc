@@ -38,18 +38,19 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
 
     static fdb5::ListElement valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
         fdb5::ListElement elem(s);
+        return elem;
 
         eckit::Log::debug<fdb5::LibFdb5>() << "ListHelper::valueFromStream - original location: ";
         elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
         eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
 
         if (elem.location().uri().scheme() == "fdb") {
-            eckit::net::Endpoint endpoint{elem.location().uri().host(), elem.location().uri().port()};
+            eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
 
-            std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(endpoint), static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
+            std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint), static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
             return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
         }
-        std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(""), elem.location()).make_shared();
+        std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
         return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
     }
 };
@@ -64,34 +65,48 @@ struct InspectHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::I
         eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
 
         if (elem.location().uri().scheme() == "fdb") {
-            eckit::net::Endpoint endpoint{elem.location().uri().host(), elem.location().uri().port()};
+            eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
 
-            std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(endpoint), static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
+            std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint), static_cast<const RemoteFieldLocation&>(elem.location())).make_shared();
             return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
         }
-        std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(""), elem.location()).make_shared();
+        std::shared_ptr<fdb5::FieldLocation> remoteLocation = fdb5::remote::RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
         return fdb5::ListElement(elem.key(), remoteLocation, elem.timestamp());
     }
 };
+
+class FDBEndpoint {
+public:
+    eckit::net::Endpoint fieldLocationEndpoint_;
+    bool localFieldLocation_;
+
+    FDBEndpoint(const eckit::net::Endpoint& fieldLocationEndpoint, bool localFieldLocation) :
+        fieldLocationEndpoint_(fieldLocationEndpoint), localFieldLocation_(localFieldLocation) {}
+};
+
 }
 
 namespace fdb5 {
 
-const eckit::net::Endpoint& RemoteFDB::storeEndpoint(const std::string& endpoint) const {
-    auto it = stores_.find(endpoint);
-    if (it == stores_.end()) {
+const eckit::net::Endpoint& RemoteFDB::storeEndpoint() const {
+    if (storesLocalFields_.empty()) {
+        throw eckit::SeriousBug("Unable to find a store to serve local data");
+    }
+    return storesLocalFields_.at(std::rand() % storesLocalFields_.size());
+}
+const eckit::net::Endpoint& RemoteFDB::storeEndpoint(const eckit::net::Endpoint& fieldLocationEndpoint) const {
+    // looking for an alias for the given endpoint
+    auto it = storesReadMapping_.find(fieldLocationEndpoint);
+    if (it == storesReadMapping_.end()) {
         std::stringstream ss;
-        ss << "Unable to find a matching endpoint. Looking for " << endpoint << std::endl;
-        ss << "Available endpoints:";
-        for (auto s : stores_) {
-            ss << std::endl << s.first << " - ";
-            for (auto e: s.second) {
-                ss << e << ", ";
-            }
+        ss << "Unable to find a matching endpoint. Looking for " << fieldLocationEndpoint << std::endl;
+        ss << "Available endpoints:" << std::endl;
+        for (auto s : storesReadMapping_) {
+            ss << s.first << " --> " << s.second << std::endl;
         }
         throw eckit::SeriousBug(ss.str());
     }
-    return it->second.at(std::rand() % it->second.size());
+    return it->second;
 }
 
 RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name):
@@ -105,9 +120,11 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     s >> numStores;
     ASSERT(numStores > 0);
 
-    std::vector<std::string> stores;
-    std::vector<std::string> defaultEndpoints;
+    std::unordered_set<eckit::net::Endpoint> localFields;
 
+    std::vector<std::string> stores;
+    std::vector<std::string> fieldLocationEndpoints;
+    
     for (size_t i=0; i<numStores; i++) {
         std::string store;
         s >> store;
@@ -115,29 +132,39 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
         s >> numAliases;
         std::vector<eckit::net::Endpoint> aliases;
         if (numAliases == 0) {
-            stores.push_back(store);
-            defaultEndpoints.push_back(store);
-            Log::debug<LibFdb5>() << "store endpoint: " << store << " default endpoint: " << store << std::endl;
+            eckit::net::Endpoint storeEndpoint{store};
+            storesReadMapping_[storeEndpoint] = storeEndpoint;
+            Log::debug<LibFdb5>() << "store endpoint: " << storeEndpoint << " default data location endpoint: " << storeEndpoint << std::endl;
         } else {
             for (size_t j=0; j<numAliases; j++) {
-                eckit::net::Endpoint endpoint(s);
-                aliases.push_back(endpoint);
-                stores.push_back(endpoint);
-                defaultEndpoints.push_back(store);
-                Log::debug<LibFdb5>() << "store endpoint: " << endpoint << " default endpoint: " << store << std::endl;
+                eckit::net::Endpoint alias(s);
+                if (store.empty()) {
+                    storesLocalFields_.push_back(alias);
+                    localFields.emplace(alias);
+                } else {
+                    eckit::net::Endpoint fieldLocationEndpoint{store};
+                    storesReadMapping_[fieldLocationEndpoint] = alias;
+                }
+                Log::debug<LibFdb5>() << "store endpoint: " << alias << " default data location endpoint: " << store << std::endl;
             }
         }
-        stores_.emplace(store, aliases);
     }
-
-    config_.set("stores", stores);
-    config_.set("storesDefaultEndpoints", defaultEndpoints);
+    for(const auto& s: storesReadMapping_) {
+        if (localFields.find(s.second) == localFields.end()) {
+            storesArchiveMapping_.push_back(std::make_pair(s.second, s.first));
+            stores.push_back(s.second);
+            fieldLocationEndpoints.push_back(s.first);
+        }
+    }
+    for (const auto& s: storesLocalFields_) {
+        stores.push_back(s);
+        fieldLocationEndpoints.push_back("");
+    }
 
     fdb5::Schema* schema = eckit::Reanimator<fdb5::Schema>::reanimate(s);
 
-    // eckit::Log::debug<LibFdb5>() << *this << " - Received Store endpoint: " << storeEndpoint_ << " and master schema: " << std::endl;
-    // schema->dump(eckit::Log::debug<LibFdb5>());
-    
+    config_.set("stores", stores);
+    config_.set("fieldLocationEndpoints", fieldLocationEndpoints);
     config_.overrideSchema(static_cast<std::string>(controlEndpoint())+"/schema", schema);
 }
 

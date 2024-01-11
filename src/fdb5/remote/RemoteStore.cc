@@ -329,44 +329,17 @@ private: // members
     bool complete_;
 };
 
-// std::vector<eckit::net::Endpoint> writeEndpoints(const Config& config) {
-//     if (config.has("storeHost") && config.has("storePort")) {
-//         return std::vector{eckit::net::Endpoint(config.getString("storeHost"), config.getInt("storePort"))};
-//     }
-//     ASSERT(config.has("stores"));
-//     std::vector<eckit::LocalConfiguration> stores = config.getSubConfigurations("stores");
-//     for (const auto& root : stores) {
-//         spaceRoots.emplace_back(
-//             Root(
-//                 root.getString("path"),
-//                 root.getString("name", ""),
-//                 root.getBool("list", visit),
-//                 root.getBool("retrieve", visit),
-//                 root.getBool("archive", writable),
-//                 root.getBool("wipe", writable)
-//             )
-//         );
-//     }
-
-//     .getStringVector("stores");
-
-//     std::srand(std::time(nullptr));
-//     return eckit::net::Endpoint(stores.at(std::rand() % stores.size()));
-// }
-
 std::vector<std::pair<eckit::net::Endpoint, std::string>> storeEndpoints(const Config& config) {
-    // if (config.has("storeHost") && config.has("storePort")) {
-    //     return std::vector<eckit::net::Endpoint>{eckit::net::Endpoint{config.getString("storeHost"), config.getInt("storePort"), config.getString("remoteDomain", "")}};
-    // }
-    ASSERT(config.has("stores"));
-    ASSERT(config.has("storesDefaultEndpoints"));
-    std::vector<std::string> stores = config.getStringVector("stores");
-    std::vector<std::string> defaultEndpoints = config.getStringVector("storesDefaultEndpoints");
 
-    ASSERT(stores.size() == defaultEndpoints.size());
+    ASSERT(config.has("stores"));
+    ASSERT(config.has("fieldLocationEndpoints"));
+    std::vector<std::string> stores = config.getStringVector("stores");
+    std::vector<std::string> fieldLocationEndpoints = config.getStringVector("fieldLocationEndpoints");
+
+    ASSERT(stores.size() == fieldLocationEndpoints.size());
     std::vector<std::pair<eckit::net::Endpoint, std::string>> out;
     for (size_t i=0; i<stores.size(); i++) {
-        out.push_back(std::make_pair(eckit::net::Endpoint{stores.at(i)}, defaultEndpoints.at(i)));
+        out.push_back(std::make_pair(eckit::net::Endpoint{stores.at(i)}, fieldLocationEndpoints.at(i)));
     }
     return out;
 }
@@ -380,6 +353,7 @@ RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
     archiver_(nullptr) {
 }
 
+// this is used only in retrieval, with an URI already referring to an accessible Store
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()),
     dbKey_(Key()), config_(config),

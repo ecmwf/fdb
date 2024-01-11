@@ -63,7 +63,8 @@ public: // method
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
-    const eckit::net::Endpoint& storeEndpoint(const std::string& endpoint) const;
+    const eckit::net::Endpoint& storeEndpoint() const;
+    const eckit::net::Endpoint& storeEndpoint(const eckit::net::Endpoint& fieldLocationEndpoint) const;
 
 private: // methods
 
@@ -82,8 +83,9 @@ private: // methods
 
 private: // members
 
-    std::unique_ptr<Archiver> archiver_;
-    std::map<std::string, std::vector<eckit::net::Endpoint>> stores_;
+    std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint> storesReadMapping_;
+    std::vector<std::pair<eckit::net::Endpoint, eckit::net::Endpoint>> storesArchiveMapping_;
+    std::vector<eckit::net::Endpoint> storesLocalFields_;
 
     // Where do we put received messages
     // @note This is a map of requestID:MessageQueue. At the point that a request is
