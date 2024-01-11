@@ -61,34 +61,29 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.canonicalValue("date") == "20210427");
     EXPECT(key.valuesToString() == "20210427:dacl");
 
-/* to be re-enabled with the eckit::Time update
-    // TODO - the following two test cases (12:aa and 12am) returns 1200 instead of failing
-    // fix requires eckit::Time changes
-    
-    // key.set("time", "12:aa");
-    // EXPECT_THROWS(key.canonicalValue("time"));
+    key.set("time", "12:aa");
+    EXPECT_THROWS(key.canonicalValue("time"));
 
-    // key.set("time", "12am");
-    // EXPECT_THROWS(key.canonicalValue("time"));
+    key.set("time", "12am");
+    EXPECT_THROWS(key.canonicalValue("time"));
 
     key.set("time", "123");
-    EXPECT_THROWS(key.canonicalValue("time"));
+    EXPECT(key.canonicalValue("time") == "0123");
 
     key.set("time", "1:23");
-    EXPECT_THROWS(key.canonicalValue("time"));
+    EXPECT(key.canonicalValue("time") == "0123");
 
     key.set("time", "01::23::45");
-    EXPECT(key.canonicalValue("time") == "0123");
+    EXPECT_THROWS(key.canonicalValue("time"));
 
     key.set("time", ":01:23:45:");
-    EXPECT(key.canonicalValue("time") == "0123");
+    EXPECT_THROWS(key.canonicalValue("time"));
 
     key.set("time", "12:99");
     EXPECT_THROWS(key.canonicalValue("time"));
 
     key.set("time", "7700");
     EXPECT_THROWS(key.canonicalValue("time"));
-*/
 
     key.set("time", "01:23:45:67");
     EXPECT_THROWS(key.canonicalValue("time"));
@@ -117,11 +112,8 @@ CASE( "Step & ClimateDaily - expansion" ) {
     key.set("time", "00:00:00");
     EXPECT(key.canonicalValue("time") == "0000");
 
-    key.set("time", "00");
-    EXPECT(key.canonicalValue("time") == "0000");
-
     EXPECT(key.valuesToString() == "20210427:dacl:0000");
-    
+
     key.set("class", "ei");
     key.set("expver", "7799");
     key.set("domain", "g");
@@ -140,7 +132,39 @@ CASE( "Step & ClimateDaily - expansion" ) {
 
     EXPECT(key.canonicalValue("date") == "0427");
     EXPECT(key.canonicalValue("time") == "0000");
+
+    std::cout << key.valuesToString() << std::endl;
+
     EXPECT(key.valuesToString() == "0427:dacl:0000:ei:7799:g:pb:pl:2-12:99:100:50:129.128");
+
+    key.set("step", "00");
+    EXPECT(key.canonicalValue("step") == "0");
+
+    key.set("step", "1");
+    EXPECT(key.canonicalValue("step") == "1");
+
+    key.set("step", "0-1");
+    EXPECT(key.canonicalValue("step") == "0-1");
+
+    key.set("step", "30m");
+    // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
+    EXPECT(key.canonicalValue("step") == "30m");
+
+    key.set("step", "60m");
+    // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
+    EXPECT(key.canonicalValue("step") == "1");
+
+    key.set("step", "30m-60m");
+    // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
+    EXPECT(key.canonicalValue("step") == "30m-60m");
+
+    key.set("step", "30m-1");
+    // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
+    EXPECT(key.canonicalValue("step") == "30m-60m");
+
+    key.set("step", "60m-120m");
+    // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
+    EXPECT(key.canonicalValue("step") == "1-2");
 }
 
 
