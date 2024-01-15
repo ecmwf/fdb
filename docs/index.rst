@@ -16,6 +16,6 @@ A set of fields can be retrieved specifying a request using a specific language 
    content/requirements
    content/reference
    content/tools
-   content/api
    content/config-schema
    content/license
+   genindex
