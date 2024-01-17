@@ -1,0 +1,8 @@
+dependencies: |
+  ecmwf/ecbuild
+  MathisRosenhauer/libaec@master
+  ecmwf/eccodes
+  ecmwf/eckit
+  ecmwf/metkit
+dependency_branch: develop
+parallelism_factor: 8
