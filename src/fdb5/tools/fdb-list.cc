@@ -17,6 +17,8 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/log/JSON.h"
 
+#include "metkit/hypercube/HyperCube.h"
+
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/DB.h"
@@ -47,6 +49,7 @@ class FDBList : public FDBVisitTool {
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
         options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined and stable output for input into other tools"));
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
+        options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
     }
 
   private: // methods
@@ -58,7 +61,20 @@ class FDBList : public FDBVisitTool {
     bool full_;
     bool porcelain_;
     bool json_;
+    bool compact_;
 };
+
+
+std::string keySignature(const fdb5::Key& key) {
+    std::string signature;
+    std::string separator="";
+    for (auto k : key.keys()) {
+        signature += separator+k;
+        separator=":";
+    }
+    return signature;
+}
+
 
 void FDBList::init(const CmdArgs& args) {
 
@@ -68,12 +84,25 @@ void FDBList::init(const CmdArgs& args) {
     full_ = args.getBool("full", false);
     porcelain_ = args.getBool("porcelain", false);
     json_ = args.getBool("json", false);
+    compact_ = args.getBool("compact", false);
 
     if (json_) {
         porcelain_ = true;
         if (location_) {
-            throw UserError("--json and --location not compatible", Here());
+            throw UserError("--json and --location are not compatible", Here());
         }
+    }
+
+    if (compact_) {
+        if (location_) {
+            throw UserError("--compact and --location are not compatible", Here());
+        } 
+        if (full_) {
+            throw UserError("--compact and --full are not compatible", Here());
+        } 
+        if (porcelain_) {
+            throw UserError("--compact and --porcelain are not compatible", Here());
+        } 
     }
 
     /// @todo option ignore-errors
@@ -98,21 +127,66 @@ void FDBList::execute(const CmdArgs& args) {
         }
 
         // If --full is supplied, then include all entries including duplicates.
-        auto listObject = fdb.list(request, !full_);
+        auto listObject = fdb.list(request, !full_ && !compact_);
+        std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>> requests;
 
-        size_t count = 0;
         ListElement elem;
         while (listObject.next(elem)) {
 
-            if (json_) {
-                (*json) << elem;
+            if (compact_) {
+                std::vector<Key> keys = elem.key();
+                ASSERT(keys.size() == 3);
+
+                std::string treeAxes = keys[0];
+                treeAxes += ",";
+                treeAxes += keys[1];
+
+                std::string signature=keySignature(keys[2]);
+
+                auto it = requests.find(treeAxes);
+                if (it == requests.end()) {
+                    std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>> leaves;
+                    leaves.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
+                    requests.emplace(treeAxes, leaves);
+                } else {
+                    auto h = it->second.find(signature);
+                    if (h != it->second.end()) { // the hypercube request is already there... adding the 3rd level key
+                        h->second.first.merge(keys[2].request());
+                        h->second.second.insert(keys[2]);
+                    } else {
+                        it->second.emplace(signature, std::make_pair(keys[2].request(), std::unordered_set<Key>{keys[2]}));
+                    }
+                }
             } else {
-                elem.print(Log::info(), location_, !porcelain_);
-                Log::info() << std::endl;
-                count++;
+                if (json_) {
+                    (*json) << elem;
+                } else {
+                    elem.print(Log::info(), location_, !porcelain_);
+                    Log::info() << std::endl;
+                }
             }
         }
-
+        if (compact_) {
+            for (const auto& tree: requests) {
+                for (const auto& leaf: tree.second) {
+                    metkit::hypercube::HyperCube h{leaf.second.first};
+                    if (h.size() == leaf.second.second.size()) {
+                        Log::info() << "retrieve," << tree.first << ",";
+                        leaf.second.first.dump(Log::info(), "", "", false);
+                        Log::info() << std::endl;
+                    } else {
+                        for (const auto& k: leaf.second.second) {
+                            h.clear(k.request());
+                        }
+                        for (const auto& r: h.requests()) {
+                            Log::info() << "retrieve," << tree.first << ",";
+                            r.dump(Log::info(), "", "", false);
+                            Log::info() << std::endl;
+                        }
+                    }
+                }
+            }
+        }
         // n.b. finding no data is not an error for fdb-list
     }
 
