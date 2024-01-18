@@ -41,8 +41,10 @@ class FDBList : public FDBVisitTool {
         location_(false),
         full_(false),
         porcelain_(false),
-        json_(false) {
+        json_(false),
+        level_(3) {
 
+        options_.push_back(new SimpleOption<long>("level", "Specify how many levels of the keys should be should be explored"));
         options_.push_back(new SimpleOption<bool>("location", "Also print the location of each field"));
         options_.push_back(new SimpleOption<bool>("full", "Include all entries (including masked duplicates)"));
         options_.push_back(new SimpleOption<bool>("porcelain", "Streamlined and stable output for input into other tools"));
@@ -58,6 +60,7 @@ class FDBList : public FDBVisitTool {
     bool full_;
     bool porcelain_;
     bool json_;
+    int level_;
 };
 
 void FDBList::init(const CmdArgs& args) {
@@ -68,6 +71,7 @@ void FDBList::init(const CmdArgs& args) {
     full_ = args.getBool("full", false);
     porcelain_ = args.getBool("porcelain", false);
     json_ = args.getBool("json", false);
+    level_ = args.getInt("level", 3);
 
     if (json_) {
         porcelain_ = true;
@@ -98,7 +102,7 @@ void FDBList::execute(const CmdArgs& args) {
         }
 
         // If --full is supplied, then include all entries including duplicates.
-        auto listObject = fdb.list(request, !full_);
+        auto listObject = fdb.list(request, !full_, level_);
 
         size_t count = 0;
         ListElement elem;

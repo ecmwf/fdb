@@ -10,6 +10,7 @@
 
 
 #include "eckit/log/Log.h"
+#include "eckit/log/JSON.h"
 #include "eckit/exception/Exceptions.h"
 
 #include "metkit/mars/MarsRequest.h"
@@ -344,6 +345,14 @@ void IndexAxis::print(std::ostream &out) const {
     }
     out << "}";
     out  << "]";
+}
+
+void IndexAxis::json(eckit::JSON& json) const {
+    json.startObject();
+    for (const auto& kv : axis_) {
+        json << kv.first << *kv.second;
+    }
+    json.endObject();
 }
 
 void IndexAxis::merge(const fdb5::IndexAxis& other) {

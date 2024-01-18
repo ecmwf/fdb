@@ -19,15 +19,35 @@ namespace local {
 //----------------------------------------------------------------------------------------------------------------------
 
 AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue,
-                               const metkit::mars::MarsRequest& request) :
-        QueryVisitor<AxesElement>(queue, request) {}
+                         const metkit::mars::MarsRequest& request,
+                         const Config& config,
+                         int level) :
+        QueryVisitor<AxesElement>(queue, request),
+        schema_(config.schema()),
+        level_(level) {}
+
+bool AxesVisitor::preVisitDatabase(const eckit::URI& uri) {
+    // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
+    if (level_ == 1 && uri.scheme() == "toc") {
+        // TODO: This is hacky, only works with the toc backend...
+        if (schema_.matchFirstLevel(uri.path().baseName(), dbKey_)) {
+            axes_.wipe();
+            axes_.insert(dbKey_);
+            axes_.sort();
+            queue_.emplace(AxesElement{std::move(dbKey_), std::move(axes_)});
+        }
+        return false;
+    }
+
+    return true;
+}
 
 bool AxesVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     dbKey_ = catalogue.key();
     axes_.wipe();
     axes_.insert(dbKey_);
     axes_.sort();
-    return true;
+    return (level_ > 1);
 }
 
 bool AxesVisitor::visitIndex(const Index& index) {
@@ -36,7 +56,10 @@ bool AxesVisitor::visitIndex(const Index& index) {
         tmpAxis.insert(index.key());
         tmpAxis.sort();
         axes_.merge(tmpAxis);   // avoid sorts on the (growing) main Axes object
-        axes_.merge(index.axes());
+
+        if (level_ > 2) {
+            axes_.merge(index.axes());
+        }
     }
     return false;
 }

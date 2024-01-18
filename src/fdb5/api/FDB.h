@@ -110,7 +110,7 @@ public: // methods
                             ControlAction action,
                             ControlIdentifiers identifiers);
 
-    IndexAxis axes(const FDBToolRequest& request);
+    IndexAxis axes(const FDBToolRequest& request, int level=3);
 
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 

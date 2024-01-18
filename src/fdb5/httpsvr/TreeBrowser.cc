@@ -156,7 +156,7 @@ void TreeBrowser::GET(std::ostream& out, Url& url) {
 
         // We have exactly matched
 //        eckit::Timer taxes("fdb.axes");
-        auto axes = fdb.axes(tool_request);
+        auto axes = fdb.axes(tool_request, listLevel + 1);
 //        taxes.stop();
 
         // This is a little bit of a hack, as number is better for subsetting the operational data

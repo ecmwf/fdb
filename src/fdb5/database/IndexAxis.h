@@ -27,6 +27,7 @@
 
 namespace eckit {
 class Stream;
+class JSON;
 }
 
 namespace metkit::mars {
@@ -87,6 +88,11 @@ public: // methods
         return s;
     }
 
+    friend eckit::JSON& operator<<(eckit::JSON& j, const IndexAxis& x) {
+        x.json(j);
+        return j;
+    }
+
 private: // methods
 
     void encodeCurrent(eckit::Stream &s, const int version) const;
@@ -96,7 +102,7 @@ private: // methods
     void decodeLegacy(eckit::Stream& s, const int version);
 
     void print(std::ostream &out) const;
-
+    void json(eckit::JSON& j) const;
 
 private: // members
 
