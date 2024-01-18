@@ -124,9 +124,9 @@ void MultiRetrieveVisitor::values(const metkit::mars::MarsRequest &request,
 
     eckit::DenseSet<std::string> filter;
     bool toFilter = false;
-    if (db_) {
-        toFilter = db_->axis(keyword, filter);
-    }
+//    if (db_) {
+//        toFilter = db_->axis(keyword, filter);
+//    }
 
     for(auto l: list) {
         std::string v = registry.lookupType(keyword).toKey(keyword, l);

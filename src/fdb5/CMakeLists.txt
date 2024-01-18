@@ -423,7 +423,8 @@ list( APPEND fdb5_tools
     fdb-status
     fdb-lock
     fdb-unlock
-    fdb-axis-test
+    fdb-axes
+    fdb-inspect-test
 )
 
 if ( HAVE_GRIB )
