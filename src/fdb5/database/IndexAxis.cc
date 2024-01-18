@@ -265,6 +265,21 @@ bool IndexAxis::contains(const Key &key) const {
     return true;
 }
 
+bool IndexAxis::containsPartial(const Key &key) const {
+
+    for (const auto& kv : key) {
+        auto it = axis_.find(kv.first);
+        if (it == axis_.end()) {
+            return false;
+        } else {
+            if (!it->second->contains(kv.second)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 void IndexAxis::insert(const Key &key) {
     ASSERT(!readOnly_);
 

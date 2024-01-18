@@ -114,14 +114,49 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
     eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
 
-    for (auto m = matching_.begin(); m != matching_.end(); ++m) {
-        const Index& idx((*m)->first);
-        Key remapKey = (*m)->second;
+    const index_list_t* matching = nullptr;
 
-        if (idx.mayContain(key)) {
+    const auto& names = key.names();
+    for (const auto& name : names) {
+        Key keyCopy = key;
+        keyCopy.unset(name);
+
+        if (refinedMatching_.find(keyCopy) != refinedMatching_.end()) {
+            matching = &refinedMatching_.at(keyCopy);
+            break;
+        } else {
+            // Generate refined list
+            index_list_t& newMatching = const_cast<std::map<Key, index_list_t>&>(refinedMatching_)[keyCopy];
+            for (auto m = matching_.begin(); m != matching_.end(); ++m) {
+                const Index& idx((*m)->first);
+                Key remapKey = (*m)->second;
+
+                if (idx.mayContainPartial(keyCopy)) {
+                    newMatching.emplace_back(*m);
+                }
+            }
+        }
+    }
+
+    if (matching) {
+        for (auto m = matching->begin(); m != matching->end(); ++m) {
+            const Index& idx((*m)->first);
+            Key remapKey = (*m)->second;
             const_cast<Index&>(idx).open();
             if (idx.get(key, remapKey, field)) {
                 return true;
+            }
+        }
+    } else {
+        for (auto m = matching_.begin(); m != matching_.end(); ++m) {
+            const Index& idx((*m)->first);
+            Key remapKey = (*m)->second;
+
+            if (idx.mayContain(key)) {
+                const_cast<Index&>(idx).open();
+                if (idx.get(key, remapKey, field)) {
+                    return true;
+                }
             }
         }
     }

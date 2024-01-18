@@ -36,7 +36,9 @@ TypeStep::~TypeStep() {
 
 std::string TypeStep::toKey(const std::string&,
                             const std::string& value) const {
-    return StepRange(value);
+//    eckit::Log::info() << "to canonicalise: " << value << std::endl;
+//    return StepRange(value);
+    return value;
 }
 
 bool TypeStep::match(const std::string&, const std::string& value1, const std::string& value2) const

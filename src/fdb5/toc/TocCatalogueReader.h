@@ -58,9 +58,14 @@ private: // methods
 
 private: // members
 
+    using index_list_t = std::vector<std::pair<Index, Key>*>;
+
     // Indexes matching current key. If there is a key remapping for a mounted
     // SubToc, then this is stored alongside
-    std::vector<std::pair<Index, Key>*> matching_;
+    index_list_t matching_;
+
+    // A lookup for further refined detalis, if we can go beyond the current set of matching indexes
+    std::map<Key, index_list_t> refinedMatching_;
 
     // All indexes
     // If there is a key remapping for a mounted SubToc, this is stored alongside

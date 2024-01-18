@@ -89,6 +89,7 @@ public: // methods
 
     virtual bool partialMatch(const metkit::mars::MarsRequest& request) const;
     virtual bool mayContain(const Key& key) const;
+    virtual bool mayContainPartial(const Key& key) const;
 
     virtual IndexStats statistics() const = 0;
 
@@ -176,6 +177,7 @@ public: // methods
 
     bool partialMatch(const metkit::mars::MarsRequest& request) const { return content_->partialMatch(request); }
     bool mayContain(const Key& key) const { return content_->mayContain(key); }
+    bool mayContainPartial(const Key& key) const { return content_->mayContainPartial(key); }
 
     bool null() const { return null_; }
 

@@ -42,14 +42,19 @@ void FDBInspectTest::execute(const CmdArgs& args) {
     FDB fdb(config(args));
 
     for (const FDBToolRequest& request : requests()) {
-        Timer taxes("inspect");
+        Timer tinspect("inspect");
+        Timer tfdb("fdb.inspect");
         auto r = fdb.inspect(request.request());
-        taxes.stop();
+        tfdb.stop();
 
+        size_t count = 0;
         ListElement elem;
         while (r.next(elem)) {
-            Log::info() << elem << std::endl;
+            ++count;
+//            Log::info() << elem << std::endl;
         }
+        Log::info() << "Count: " << count << std::endl;
+        tinspect.stop();
     }
 }
 
