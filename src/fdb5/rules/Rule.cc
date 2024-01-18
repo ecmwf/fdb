@@ -12,6 +12,7 @@
 
 #include <algorithm>
 
+#include "eckit/os/BackTrace.h"
 #include "eckit/config/Resource.h"
 
 #include "metkit/mars/MarsRequest.h"
@@ -40,6 +41,8 @@ Rule::Rule(const Schema &schema,
 }
 
 Rule::~Rule() {
+//    eckit::Log::info() << " === Deleting rule " << this << std::endl;
+//    eckit::Log::info() << eckit::BackTrace::dump() << std::endl;
     for (std::vector<Predicate *>::iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
         delete *i;
     }
@@ -58,10 +61,14 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
 
 	ASSERT(depth < 3);
 
+//    eckit::Log::info() << "depth: " << depth << " - predicates: " << predicates_.size() << " cur " << (cur - predicates_.begin()) << std::endl;
+
     if (cur == predicates_.end()) {
 
         // TODO: join these 2 methods
         keys[depth].rule(this);
+
+//        eckit::Log::info() << "RQ Setting rule, level: " << depth << " : " << this << std::endl;
 
         if (rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
@@ -396,7 +403,7 @@ const Rule* Rule::ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) cons
     return 0;
 }
 
-void Rule::fill(Key& key, const eckit::StringList& values) const {
+bool Rule::tryFill(Key& key, const eckit::StringList& values) const {
 
     // See FDB-103. This is a hack to work around the indexing abstraction
     // being leaky.
@@ -415,8 +422,6 @@ void Rule::fill(Key& key, const eckit::StringList& values) const {
     // --> HACK.
     // --> Stick a plaster over the symptom.
 
-    ASSERT(values.size() >= predicates_.size()); // Should be equal, except for quantile (FDB-103)
-    ASSERT(values.size() <= predicates_.size() + 1);
 
     auto it_value = values.begin();
     auto it_pred = predicates_.begin();
@@ -426,7 +431,7 @@ void Rule::fill(Key& key, const eckit::StringList& values) const {
         if (values.size() == (predicates_.size() + 1) && (*it_pred)->keyword() == "quantile") {
             std::string actualQuantile = *it_value;
             ++it_value;
-            ASSERT(it_value != values.end());
+            if (it_value == values.end()) return false;
             actualQuantile += std::string(":") + (*it_value);
             (*it_pred)->fill(key, actualQuantile);
         } else {
@@ -435,8 +440,18 @@ void Rule::fill(Key& key, const eckit::StringList& values) const {
     }
 
     // Check that everything is exactly consumed
-    ASSERT(it_value == values.end());
-    ASSERT(it_pred == predicates_.end());
+    if (it_value != values.end()) return false;
+    if (it_pred != predicates_.end()) return false;
+    return true;
+}
+
+void Rule::fill(Key& key, const eckit::StringList& values) const {
+
+    // FDB-103 - see comment in fill re quantile
+
+    ASSERT(values.size() >= predicates_.size()); // Should be equal, except for quantile (FDB-103)
+    ASSERT(values.size() <= predicates_.size() + 1);
+    ASSERT(tryFill(key, values));
 }
 
 void Rule::dump(std::ostream &s, size_t depth) const {
@@ -510,6 +525,14 @@ void Rule::check(const Key& key) const {
     if (parent_ != nullptr) {
         parent_->check(key);
     }
+}
+
+const std::vector<Predicate*>& Rule::predicates() const {
+    return predicates_;
+}
+
+const std::vector<Rule*>& Rule::subRules() const {
+    return rules_;
 }
 
 std::ostream &operator<<(std::ostream &s, const Rule &x) {

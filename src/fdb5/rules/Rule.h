@@ -72,8 +72,8 @@ public: // methods
                 Key &full) const;
 
     const Rule* ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const;
+    bool tryFill(Key& key, const eckit::StringList& values) const;
     void fill(Key& key, const eckit::StringList& values) const;
-
 
     size_t depth() const;
     void updateParent(const Rule *parent);
@@ -84,6 +84,9 @@ public: // methods
     const TypesRegistry &registry() const;
 
     void check(const Key& key) const;
+
+    const std::vector<Rule*>& subRules() const;
+    const std::vector<Predicate*>& predicates() const;
 
 private: // methods
 

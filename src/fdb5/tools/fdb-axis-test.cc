@@ -49,7 +49,9 @@ void FDBAxisTest::execute(const CmdArgs& args) {
     FDB fdb(config(args));
 
     for (const FDBToolRequest& request : requests()) {
+        eckit::Timer taxes("axes");
         auto r = fdb.axes(request);
+        taxes.stop();
 
         eckit::Log::info() << r << std::endl;
     }

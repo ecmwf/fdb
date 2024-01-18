@@ -32,7 +32,10 @@ bool AxesVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) 
 
 bool AxesVisitor::visitIndex(const Index& index) {
     if (index.partialMatch(request_)) {
-        auto&& ax = index.axes();
+        IndexAxis tmpAxis;
+        tmpAxis.insert(index.key());
+        tmpAxis.sort();
+        axes_.merge(tmpAxis);   // avoid sorts on the (growing) main Axes object
         axes_.merge(index.axes());
     }
     return false;

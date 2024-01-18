@@ -35,6 +35,10 @@ EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentIndex_(nullptr
 
 EntryVisitor::~EntryVisitor() {}
 
+bool EntryVisitor::preVisitDatabase(const eckit::URI& uri) {
+    return true;
+}
+
 bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
     currentCatalogue_ = &catalogue;
     currentStore_ = &store;
@@ -86,17 +90,18 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     // TODO: Put minimim keys check into FDBToolRequest.
 
-    Log::info() << "REQUEST ====> " << request.request() << std::endl;
+    Log::debug<LibFdb5>() << "REQUEST ====> " << request.request() << std::endl;
 
     try {
 
         std::vector<URI> uris(Manager(dbConfig_).visitableLocations(request.request(), request.all()));
 
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
-
         // And do the visitation
 
         for (URI uri : uris) {
+
+            if (!visitor.preVisitDatabase(uri)) continue;
 
             PathName path(uri.path());
             if (path.exists()) {

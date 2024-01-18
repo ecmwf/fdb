@@ -16,6 +16,7 @@
 
 #include <map>
 #include <memory>
+#include <unordered_set>
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/URI.h"
@@ -95,6 +96,20 @@ private:
 
 class TocHandler : public TocCommon, private eckit::NonCopyable {
 
+    struct HashMaskedSet
+    {
+        std::size_t operator()(std::pair<eckit::PathName, eckit::Offset> const& p) const noexcept
+        {
+            // this hash combine is inspired in the boost::hash_combine
+            // 0x9e3779b9 is the reciprocal of the golden ratio to ensure random bit distribution
+            std::size_t h = std::hash<unsigned long>{}(p.second);
+            h = std::hash<std::string>{}(p.first.localPath()) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            return h;
+        }
+    };
+
+    using masked_entries_t = std::unordered_set<std::pair<eckit::PathName, eckit::Offset>, HashMaskedSet>;
+
 public: // typedefs
 
     typedef std::vector<TocRecord> TocVec;
@@ -107,7 +122,7 @@ public: // methods
     TocHandler( const eckit::PathName &dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
-    TocHandler(const eckit::PathName& path, const Key& parentKey);
+    TocHandler(const eckit::PathName& path, const Key& parentKey, eckit::MemoryHandle* cachedToc=nullptr);
 
     ~TocHandler() override;
 
@@ -212,8 +227,10 @@ private: // methods
     /// file (opened for read). It resets back to the same place when done. This is
     /// to allow searching only from the first subtoc.
     void allMaskableEntries(eckit::Offset startOffset, eckit::Offset endOffset,
-                            std::set<std::pair<eckit::PathName, eckit::Offset>>& maskedEntries) const;
+                            masked_entries_t& maskedEntries) const;
+    eckit::PathName parseSubTocRecord(const TocRecord& r, bool readMasked) const;
     void populateMaskedEntriesList() const;
+    void preloadSubTocs(bool readMasked) const;
 
     void append(TocRecord &r, size_t payloadSize);
 
@@ -222,11 +239,12 @@ private: // methods
     // readMasked=true will walk subtocs and read indexes even if they are masked. This is
     // useful for dumping indexes which are cleared, or only referred to in cleared subtocs.
     bool readNext(TocRecord &r, bool walkSubTocs = true, bool hideSubTocEntries = true,
-                  bool hideClearEntries = true, bool readMasked = false) const;
+                  bool hideClearEntries = true, bool readMasked = false,
+                  const TocRecord** data=nullptr, size_t* length=nullptr) const;
 
     void selectSubTocRead(const eckit::PathName& path) const;
 
-    bool readNextInternal(TocRecord &r) const;
+    bool readNextInternal(TocRecord &r, const TocRecord** data=nullptr, size_t* length=nullptr) const;
 
     std::string userName(long) const;
 
@@ -260,9 +278,10 @@ private: // members
     mutable std::unique_ptr<TocHandler> subTocWrite_;
     mutable size_t count_;
 
-    mutable std::set<std::pair<eckit::PathName, eckit::Offset>> maskedEntries_;
+    mutable masked_entries_t maskedEntries_;
 
     mutable bool enumeratedMaskedEntries_;
+    mutable int numSubtocsRaw_;
     mutable bool writeMode_;
 };
 

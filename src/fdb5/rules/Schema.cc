@@ -10,17 +10,21 @@
 
 #include <fstream>
 
+#include "eckit/utils/Tokenizer.h"
+
+#include "metkit/mars/MarsRequest.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Notifier.h"
 #include "fdb5/database/RetrieveVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
 #include "fdb5/io/HandleGatherer.h"
+#include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/rules/SchemaParser.h"
 #include "fdb5/types/Type.h"
-#include "metkit/mars/MarsRequest.h"
 
 namespace fdb5 {
 
@@ -156,6 +160,27 @@ void Schema::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set
     }
 }
 
+bool Schema::matchFirstLevel(const std::string& fingerprint, Key& key) const {
+
+    eckit::Tokenizer parse(":", true);
+    eckit::StringList values;
+    parse(fingerprint, values);
+
+    bool found = false;
+    for (const Rule* rule : rules_) {
+        Key filledKey;
+        if (rule->tryFill(filledKey, values)) {
+            rule->expandFirstLevel(filledKey, key, found);
+            if (found) {
+                ASSERT(filledKey == key);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 namespace {
 struct LevelVisitor : public RetrieveVisitor {
 
@@ -173,11 +198,23 @@ struct LevelVisitor : public RetrieveVisitor {
         keys_.insert(params.begin(), params.end());
     }
 
+    void storeSubRules(const Rule& rule) {
+        keySeq_.clear();
+        for (const auto& r : rule.subRules()) {
+            keySeq_.emplace_back();
+            for (const auto& predicate : r->predicates()) {
+                keySeq_.back().push_back(predicate->keyword());
+            }
+        }
+    }
+
     bool selectDatabase(const Key& key, const Key& full) override {
         if (done_) return false; // Skip further exploration
 
         level_ = std::max(level_, 1);
         requestBits_[0] = key;
+
+        storeSubRules(*key.rule());
 
         if (full.keys() == keys_) {
             done_ = true;
@@ -187,6 +224,9 @@ struct LevelVisitor : public RetrieveVisitor {
         // We need to connect to the actual DB so that we can use any special case schemas
         if (RetrieveVisitor::selectDatabase(key, full)) {
             return true;
+        } else {
+            // FIXME: If DB not found, not invalid for testing this. We just need to
+            //        use the primary schema
         }
         return false;
     }
@@ -196,6 +236,8 @@ struct LevelVisitor : public RetrieveVisitor {
 
         level_ = std::max(level_, 2);
         requestBits_[1] = key;
+
+        storeSubRules(*key.rule());
 
         if (full.keys() == keys_) {
             done_ = true;
@@ -237,6 +279,8 @@ struct LevelVisitor : public RetrieveVisitor {
 
     int level() const { return level_; }
 
+    const std::vector<std::vector<std::string>>& keySeq() const { return keySeq_; }
+
 private:
     bool done_;
     HandleGatherer gatherer_; // For form only. Unused.
@@ -244,10 +288,13 @@ private:
     int level_ = 0;
     std::vector<Key>& requestBits_;
     std::set<std::string> keys_;
+    std::vector<std::vector<std::string>> keySeq_;
 };
 }
 
-int Schema::fullyExpandedLevels(const metkit::mars::MarsRequest& request, std::vector<Key>& requestBits) const {
+int Schema::fullyExpandedLevels(const metkit::mars::MarsRequest& request,
+                                std::vector<Key>& requestBits,
+                                std::vector<std::string>* nextKeys) const {
 
     ASSERT(requestBits.size() == 3);
 
@@ -277,6 +324,26 @@ int Schema::fullyExpandedLevels(const metkit::mars::MarsRequest& request, std::v
     if (!residual.empty()) {
         ASSERT(requestBits[visitor.level()].empty());
         requestBits[visitor.level()] = residual;
+    }
+
+    // Examine the key sequences for the next rules
+
+    if (nextKeys) {
+        for (const auto& seq : visitor.keySeq()) {
+            std::set<std::string> keys(requestBits[visitor.level()].keys());
+            for (const auto& k : seq) {
+                if (keys.empty()) {
+                    nextKeys->push_back(k);
+                    break;
+                }
+                auto it = keys.find(k);
+                if (it == keys.end()) {
+                    break;
+                } else {
+                    keys.erase(it);
+                }
+            }
+        }
     }
 
     return visitor.level();

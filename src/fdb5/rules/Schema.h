@@ -68,9 +68,11 @@ public: // methods
     // 1 --> Currently expanding second level (first level complete)
     // 2 --> Currently expanding third level (second level complete)
     // 3 --> Complete expansion of key
-    int fullyExpandedLevels(const metkit::mars::MarsRequest& request, std::vector<Key>& requestBits) const;
+    int fullyExpandedLevels(const metkit::mars::MarsRequest& request, std::vector<Key>& requestBits,
+                            std::vector<std::string>* nextKey=nullptr) const;
 
     const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
+    bool matchFirstLevel(const std::string& fingerprint, Key& key) const;
 
     void load(const eckit::PathName &path, bool replace = false);
     void load(std::istream& s, bool replace = false);

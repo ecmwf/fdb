@@ -558,10 +558,7 @@ FileSpaceTable RootManager::fileSpaces() {
 
 RootManager::RootManager(const Config& config) :
     dbPathNamers_(readDbNamers(config)),
-    config_(config) {
-
-//    eckit::Log::info() << "Root manager: " << spacesTable_ << std::endl;
-}
+    config_(config) {}
 
 
 std::string RootManager::dbPathName(const Key& key)
@@ -671,6 +668,7 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
 
         bool matched = false;
         for (const std::string& k : keystrings) {
+            // TODO: We can do something more clever here once we restructure the config...
             if (space.match(k) || k.empty()) {
                 Log::debug<LibFdb5>() << "MATCH space " << space << std::endl;
                 space.enabled(ControlIdentifier::List,roots);

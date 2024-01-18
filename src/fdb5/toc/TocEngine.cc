@@ -40,13 +40,14 @@ namespace fdb5 {
 
 void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) const {
 
-    if ((eckit::PathName(path) / "toc").exists()) {
-        dbs.push_back(path);
-        return;
-    }
+//    if ((eckit::PathName(path) / "toc").exists()) {
+//        dbs.push_back(path);
+//        return;
+//    }
+
 
     eckit::StdDir d(path.c_str());
-    if (d == nullptr) {
+    /*if (d == nullptr) {
         // If fdb-wipe is running in parallel, it is perfectly legit for a (non-matching)
         // path to have disappeared
         if (errno == ENOENT) {
@@ -61,7 +62,7 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
 
         Log::error() << "opendir(" << path << ")" << Log::syserr << std::endl;
         throw FailedSystemCall("opendir");
-    }
+    }*/
 
     // Once readdir_r finally gets deprecated and removed, we may need to 
     // protecting readdir() as not yet guarranteed thread-safe by POSIX
@@ -90,12 +91,14 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
 #if defined(eckit_HAVE_DIRENT_D_TYPE)
         do_stat = false;
         if (e->d_type == DT_DIR) {
-            scan_dbs(full.c_str(), dbs);
+            dbs.push_back(full);
+//            scan_dbs(full.c_str(), dbs);
         } else if (e->d_type == DT_UNKNOWN) {
             do_stat = true;
         }
 #endif
         if(do_stat) {
+            NOTIMP;
             eckit::Stat::Struct info;
             if(eckit::Stat::stat(full.c_str(), &info) == 0)
             {
@@ -150,6 +153,7 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
                                                const Config& config) const {
 
     Log::debug<LibFdb5>() << "   ------- Scanning keys: " << keys << std::endl;
+    Log::debug<LibFdb5>() << "   ------- Scanning roots: " << roots << std::endl;
 
     std::set<eckit::PathName> result;
 
@@ -181,7 +185,9 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
                     }
 
                     if (re.match(*k)) {
-                        result.insert(*k);
+                        if ((eckit::PathName(*k) / "toc").exists()) {
+                            result.insert(*k);
+                        }
                     }
                 }
             }
@@ -205,14 +211,23 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key,
 
     std::set<eckit::PathName> databasesMatchRegex(databases(keys, roots, config));
 
+    int i {0};
+
     std::vector<eckit::URI> result;
     for (const auto& path : databasesMatchRegex) {
         try {
-            TocHandler toc(path, config);
-            if (toc.databaseKey().match(key)) {
-                Log::debug<LibFdb5>() << " found match with " << path << std::endl;
-                result.push_back(eckit::URI("toc", path));
+            Key dbKey;
+            if (config.schema().matchFirstLevel(path.baseName(), dbKey)) {
+                if (dbKey.match(key)) {
+                    Log::debug<LibFdb5>() << " found match with " << path << std::endl;
+                    result.emplace_back("toc", path);
+                }
             }
+//            TocHandler toc(path, config);
+//            if (toc.databaseKey().match(key)) {
+//                Log::debug<LibFdb5>() << " found match with " << path << std::endl;
+//                result.emplace_back("toc", path);
+//            }
         } catch (eckit::Exception& e) {
             eckit::Log::error() <<  "Error loading FDB database from " << path << std::endl;
             eckit::Log::error() << e.what() << std::endl;
@@ -235,14 +250,22 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
 
     std::set<eckit::PathName> databasesMatchRegex(databases(keys, roots, config));
 
+    int i {0};
     std::vector<eckit::URI> result;
     for (const auto& path : databasesMatchRegex) {
         try {
-            TocHandler toc(path, config);
-            if (toc.databaseKey().partialMatch(request)) {
-                Log::debug<LibFdb5>() << " found match with " << path << std::endl;
-                result.push_back(eckit::URI("toc", path));
+            Key dbKey;
+            if (config.schema().matchFirstLevel(path.baseName(), dbKey)) {
+                if (dbKey.partialMatch(request)) {
+                    Log::debug<LibFdb5>() << " found match with " << path << std::endl;
+                    result.emplace_back("toc", path);
+                }
             }
+//            TocHandler toc(path, config);
+//            if (toc.databaseKey().partialMatch(request)) {
+//                Log::debug<LibFdb5>() << " found match with " << path << std::endl;
+//                result.push_back(eckit::URI("toc", path));
+//            }
         } catch (eckit::Exception& e) {
             eckit::Log::error() <<  "Error loading FDB database from " << path << std::endl;
             eckit::Log::error() << e.what() << std::endl;

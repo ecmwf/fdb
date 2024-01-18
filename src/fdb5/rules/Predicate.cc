@@ -12,6 +12,7 @@
 
 #include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Matcher.h"
+#include "eckit/os/BackTrace.h"
 
 namespace fdb5 {
 

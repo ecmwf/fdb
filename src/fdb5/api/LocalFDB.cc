@@ -84,7 +84,7 @@ APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBTo
 
 ListIterator LocalFDB::list(const FDBToolRequest& request, int level) {
     Log::debug<LibFdb5>() << "LocalFDB::list() : " << request << std::endl;
-    return queryInternal<ListVisitor>(request, level);
+    return queryInternal<ListVisitor>(request, config_, level);
 }
 
 DumpIterator LocalFDB::dump(const FDBToolRequest &request, bool simple) {

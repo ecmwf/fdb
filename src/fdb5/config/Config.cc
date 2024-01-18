@@ -51,6 +51,7 @@ public:
     }
 
 private:
+
     std::mutex m_;
     std::map<PathName, std::unique_ptr<Schema>> schemas_;
 };

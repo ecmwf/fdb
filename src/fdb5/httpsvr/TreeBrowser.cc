@@ -12,6 +12,8 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/rules/Predicate.h"
+#include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
 
 #include "metkit/mars/MarsExpension.h"
@@ -70,6 +72,9 @@ TreeBrowser::~TreeBrowser() {}
 
 void TreeBrowser::GET(std::ostream& out, Url& url) {
 
+    eckit::Timer trequets("tree.request");
+    eckit::Timer tprepare("tree.prepare");
+
     // TODO: Break this up into sub-functions, and add some tests.
 
     // Parse arguments
@@ -117,6 +122,11 @@ void TreeBrowser::GET(std::ostream& out, Url& url) {
 
     FDBToolRequest tool_request(rq, all, {});
 
+    tprepare.stop();
+
+    Config config = Config().expandConfig();
+    const Schema& schema = config.schema();
+
     out << "TOOL request: " << rq << std::endl;
 
     // How many levels of the schema does this expand (note, it DOES need to use a modified version of full schema
@@ -125,12 +135,15 @@ void TreeBrowser::GET(std::ostream& out, Url& url) {
     // TODO: If we exactly match the first or second level, use the Axis object rather than
     //       a list retrieval, as an optimisation.
 
+    eckit::Timer tlevels("tree.levels");
     std::vector<Key> requestBits(3);
-    const Schema& schema = Config().expandConfig().schema();
-    int listLevel = schema.fullyExpandedLevels(tool_request.request(), requestBits);
+    std::vector<std::string> nextKeys;
+    int listLevel = schema.fullyExpandedLevels(tool_request.request(), requestBits, &nextKeys);
+    tlevels.stop();
 
     out << "listLevel: " << listLevel << std::endl;
     out << "requestBits: " << requestBits[0] << requestBits[1] << requestBits[2] << std::endl;
+    out << "nextKeys: " << nextKeys << std::endl;
 
     // List to the requisite level, and then see what is left. n.b. there may (in principle) be multiple
     // keys to consider, as there may be multiple sub-rules per matched rule.
@@ -139,39 +152,58 @@ void TreeBrowser::GET(std::ostream& out, Url& url) {
 
     FDB fdb;
 
-    if (listLevel == 2) { //listLevel < 3 && requestBits[listLevel].empty()) {
+    if (listLevel > 0 && listLevel < 3 && requestBits[listLevel].empty()) {
 
         // We have exactly matched
-        out << "Exact match axes" << std::endl;
+//        eckit::Timer taxes("fdb.axes");
         auto axes = fdb.axes(tool_request);
-        out << axes;
-    }
+//        taxes.stop();
 
-//    exit(-1);
+        // This is a little bit of a hack, as number is better for subsetting the operational data
+        if (listLevel == 2 && nextKeys.size() == 1 && nextKeys[0] == "step") {
+            nextKeys = {"number"};
+        }
 
-    return;
+        for (const auto& key : nextKeys) {
+            if (nextVals.find(key) == nextVals.end()) {
+                auto r = nextVals.emplace(key, std::set<std::string>{});
+                for (const auto& v : axes.values(key)) {
+                    r.first->second.insert(v);
+                }
+            }
+        }
+    } else {
 
-    bool deduplicate = false;
-    eckit::Log::info() << "starting list" << std::endl;
-    auto listObject = fdb.list(tool_request, deduplicate, listLevel+1);
-    eckit::Log::info() << "list returned" << std::endl;
-    ListElement elem;
-    while (listObject.next(elem)) {
+//        eckit::Timer tlist("fdb.list");
 
-        // For each of the elements, consider the combinedKey, and walk it in the
-        // schema-related order. Then find the next element.
+        bool deduplicate = false;
+        auto listObject = fdb.list(tool_request, deduplicate, listLevel + 1);
+        ListElement elem;
+        while (listObject.next(elem)) {
 
-        int i = 0;
-        eckit::Log::info() << "next" << i << std::endl;
-        Key combinedKey = elem.combinedKey(/* ordered */ true);
-        for (const auto& k: combinedKey.names()) {
-            if (i++ < keys.size()) {
-                // Check that the keys are in order (given this is a tree browser)
-                ASSERT(tool_request.request().has(k));
-            } else {
-                auto r = nextVals.try_emplace(k, std::set<std::string>{});
-                r.first->second.insert(combinedKey.get(k));
-                break;
+            // For each of the elements, consider the combinedKey, and walk it in the
+            // schema-related order. Then find the next element.
+
+            int i = 0;
+            Key combinedKey = elem.combinedKey(/* ordered */ true);
+            for (const auto& k: combinedKey.names()) {
+                if (!tool_request.request().has(k)) {
+                    auto r = nextVals.try_emplace(k, std::set<std::string>{});
+                    r.first->second.insert(combinedKey.get(k));
+                    break;
+                }
+                /*
+                if (i++ < keys.size()) {
+                    // Check that the keys are in order (given this is a tree browser)
+                    if (k != "step") {
+                        ASSERT(tool_request.request().has(k));
+                    }
+                } else {
+                    auto r = nextVals.try_emplace(k, std::set<std::string>{});
+                    r.first->second.insert(combinedKey.get(k));
+                    break;
+                }
+                 */
             }
         }
     }

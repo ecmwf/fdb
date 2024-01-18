@@ -37,9 +37,25 @@ struct ListVisitor : public QueryVisitor<ListElement> {
 public:
     ListVisitor(eckit::Queue<ListElement>& queue,
                 const metkit::mars::MarsRequest& request,
+                const Config& config,
                 int level) :
         QueryVisitor<ListElement>(queue, request),
+        schema_(config.schema()),
         level_(level) {}
+
+    bool preVisitDatabase(const eckit::URI& uri) override {
+
+        // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs
+        if (level_ == 1 && uri.scheme() == "toc") {
+            // TODO: This is hacky, only works with the toc backend...
+            Key dbKey;
+            if (schema_.matchFirstLevel(uri.path().baseName(), dbKey)) {
+                queue_.emplace(ListElement({dbKey, {}, {}}, FieldLocation::nullLocation(), 0));
+            }
+            return false;
+        }
+        return true;
+    }
 
     /// Make a note of the current database. Subtract its key from the current
     /// request so we can test request is used in its entirety
@@ -111,6 +127,7 @@ private: // members
 
     metkit::mars::MarsRequest indexRequest_;
     metkit::mars::MarsRequest datumRequest_;
+    const Schema& schema_;
     int level_;
 };
 
