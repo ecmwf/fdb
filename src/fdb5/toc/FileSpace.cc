@@ -55,7 +55,7 @@ TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
 std::vector<eckit::PathName> FileSpace::enabled(const ControlIdentifier& controlIdentifier) const {
     std::vector<eckit::PathName> result;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() and i->enabled(controlIdentifier)) {
+        if (i->enabled(controlIdentifier) && i->exists()) {
             result.push_back(i->path());
         }
     }
@@ -72,7 +72,7 @@ void FileSpace::all(eckit::StringSet& roots) const {
 
 void FileSpace::enabled(const ControlIdentifier& controlIdentifier, eckit::StringSet& roots) const {
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() && i->enabled(controlIdentifier)) {
+        if (i->enabled(controlIdentifier) && i->exists()) {
             roots.insert(i->path());
         }
     }
@@ -89,7 +89,7 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& roo
 //    std::vector<const Root&> visitables = visitable();
     std::string matchList;
     for (RootVec::const_iterator i = roots_.begin(); i != roots_.end(); ++i) {
-        if (i->exists() && i->enabled(ControlIdentifier::List)) {
+        if (i->enabled(ControlIdentifier::List) && i->exists()) {
             eckit::PathName fullDB = i->path() / db;
             eckit::PathName dbToc = i->path() / db / "toc";
             if (fullDB.exists() && dbToc.exists()) {

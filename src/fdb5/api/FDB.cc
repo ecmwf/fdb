@@ -100,7 +100,24 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     eckit::Timer timer;
     timer.start();
 
-    internal_->archive(key, data, length);
+    auto stepunit = key.find("stepunits");
+    if (stepunit != key.end()) {
+        Key k;
+        for (auto it : key) {
+            if (it.first == "step" && stepunit->second.size()>0 && stepunit->second[0]!='h') {
+                // TODO - enable canonical representation of step (as soon as Metkit supports it)
+                std::string canonicalStep = it.second+stepunit->second; // k.registry().lookupType("step").toKey("step", it.second+stepunit->second);
+                k.set(it.first, canonicalStep);
+            } else {
+                if (it.first != "stepunits") {
+                    k.set(it.first, it.second);
+                }
+            }
+        }
+        internal_->archive(k, data, length);
+    } else {
+        internal_->archive(key, data, length);
+    }
     dirty_ = true;
 
     timer.stop();
