@@ -67,6 +67,7 @@ public:
         options_.push_back(new eckit::option::SimpleOption<long>("level", "The first level number to use"));
         options_.push_back(new eckit::option::SimpleOption<long>("nparams", "Number of parameters"));
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("disable-subtocs", "Disable use of subtocs"));
     }
     ~FDBWrite() override {}
 
@@ -217,6 +218,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
 
     request.setValue("expver", args.getString("expver"));
     request.setValue("class", args.getString("class"));
+    request.setValue("optimised", "on");
 
     eckit::Timer timer;
     timer.start();
