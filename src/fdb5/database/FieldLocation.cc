@@ -107,7 +107,7 @@ FieldLocationBuilderBase::~FieldLocationBuilderBase() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FieldLocation::FieldLocation(const eckit::URI& uri) : uri_(uri) {
+FieldLocation::FieldLocation(const eckit::URI& uri) : uri_(uri.scheme() + ":" + uri.name()) {
     try {
         offset_ = eckit::Offset(std::stoll(uri.fragment()));
     } catch (std::invalid_argument& e) {
