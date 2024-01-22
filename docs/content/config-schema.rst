@@ -9,13 +9,13 @@ The following is of the form local:
   engine: toc
   schema: ./schema
   spaces:
-  - hanlder: Default    
+  - handler: Default    
     roots:
     -path: /path/to/fdb/root
 
 There a number of different types such as local, remote, distributed, and select.
 
-Local implements the passage of dara from the frontend to storage backend, talk to the FDB Store and Catalogue. 
+Local implements the passage of data from the frontend to storage backend, talk to the FDB Store and Catalogue. 
 Depending on the backend, the data or metadata may not actually be local.
 
 Select dispatches requests to different FDB's based on the metadata associated with the Messages, and can be used to send split requests OD from RD.
@@ -64,7 +64,7 @@ These types can be composed together in the config file when using FDB.
 Schema
 ======
 
-The schema indexes structure and dala collocation policy. It is used to uniquely describe the data that is being stored and indexed. 
+The schema indexes structure and data collocation policy. It is used to uniquely describe the data that is being stored and indexed. 
 
 The schema uses global attributes that describe the underlying data with each attribute having a name and datatype, these are added at the beginning of the file.
 ::
@@ -76,7 +76,7 @@ The schema uses global attributes that describe the underlying data with each at
 
 The schema then describes rules for accessing all data stored by the fdb.
 
-Each rule is described using three levels. The first level defines the attributes of te top level directory, the second level defines the attributes used to name the data files, and the third level attributes are used as index keys.
+Each rule is described using three levels. The first level defines the attributes of the top level directory, the second level defines the attributes used to name the data files, and the third level attributes are used as index keys.
 Example of a rule:
 ::
   [ class=ti/s2, expver, stream, date, time, model
