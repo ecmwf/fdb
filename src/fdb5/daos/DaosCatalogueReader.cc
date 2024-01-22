@@ -137,8 +137,9 @@ bool DaosCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) 
     }
     return found;
 
-    // for (int i = 0; i <= 100; ++i)
-    //     s.insert(std::to_string(i));
+    // To avoid axis checks, comment the code above and uncomment below
+    //for (int i = 0; i <= 100; ++i)
+    //    s.insert(std::to_string(i));
 
 }
 
