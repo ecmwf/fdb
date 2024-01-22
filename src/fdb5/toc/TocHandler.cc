@@ -34,7 +34,6 @@
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/io/LustreSettings.h"
 
-#include <execution>
 #include <thread>
 #include <future>
 
