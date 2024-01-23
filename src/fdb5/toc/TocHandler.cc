@@ -34,7 +34,6 @@
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/io/LustreSettings.h"
 
-#include <execution>
 #include <thread>
 #include <future>
 
@@ -80,30 +79,52 @@ class TocHandlerCloser {
 class CachedFDProxy {
 public: // methods
 
-    CachedFDProxy(const eckit::PathName& path, std::unique_ptr<eckit::MemoryHandle>& cached) :
+    CachedFDProxy(const eckit::PathName& path, int fd, std::unique_ptr<eckit::MemoryHandle>& cached) :
         path_(path),
+        fd_(fd),
         cached_(cached.get()) {
-        ASSERT(cached);
+        ASSERT((fd_ != -1) != (!!cached));
     }
 
     long read(void* buf, long len, const char** pdata=nullptr) {
-        if (pdata) {
-            *pdata = reinterpret_cast<const char*>(cached_->data()) + cached_->position();
+        if (pdata && !cached_) throw SeriousBug("Can only return a pointer to data in memory if cached", Here());
+        if (cached_) {
+            if (pdata) {
+                *pdata = reinterpret_cast<const char*>(cached_->data()) + cached_->position();
+            }
+            return cached_->read(buf, len);
+        } else {
+            long ret;
+            SYSCALL2(ret = ::read(fd_, buf, len), path_);
+            return ret;
         }
-        return cached_->read(buf, len);
     }
 
     Offset position() {
-        return cached_->position();
+        if (cached_) {
+            return cached_->position();
+        } else {
+            off_t pos;
+            SYSCALL2(pos = ::lseek(fd_, 0, SEEK_CUR), path_);
+            return pos;
+        }
     }
 
     Offset seek(const Offset& pos) {
-        return cached_->seek(pos);
+        if (cached_) {
+            return cached_->seek(pos);
+        } else {
+            off_t ret;
+            SYSCALL2(ret = ::lseek(fd_, pos, SEEK_SET), path_);
+            ASSERT(ret == pos);
+            return ret;
+        }
     }
 
 private: // members
 
     const eckit::PathName& path_;
+    int fd_;
     MemoryHandle* cached_;
 };
 
@@ -462,7 +483,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
 // readNextInternal reads the next TOC entry from this toc.
 bool TocHandler::readNextInternal(TocRecord& r, const TocRecord** data, size_t* length) const {
 
-    CachedFDProxy proxy(tocPath_, cachedToc_);
+    CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
     try {
         long len = proxy.read(&r, sizeof(TocRecord::Header), reinterpret_cast<const char**>(data));
@@ -567,7 +588,7 @@ void TocHandler::close() const {
 void TocHandler::allMaskableEntries(Offset startOffset, Offset endOffset,
                                     masked_entries_t& maskedEntries) const {
 
-    CachedFDProxy proxy(tocPath_, cachedToc_);
+    CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
     // Start reading entries where we are told to
 
@@ -802,7 +823,7 @@ void TocHandler::preloadSubTocs(bool readMasked) const {
     ASSERT(enumeratedMaskedEntries_);
     if (numSubtocsRaw_ == 0) return;
 
-    CachedFDProxy proxy(tocPath_, cachedToc_);
+    CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
     Offset startPosition = proxy.position(); // remember the current position of the file descriptor
 
     subTocReadCache_.clear();
@@ -855,7 +876,7 @@ void TocHandler::populateMaskedEntriesList() const {
 //    eckit::Log::info() << eckit::BackTrace::dump() << std::endl;
 
     ASSERT(fd_ != -1 || cachedToc_);
-    CachedFDProxy proxy(tocPath_, cachedToc_);
+    CachedFDProxy proxy(tocPath_, fd_, cachedToc_);
 
     Offset startPosition = proxy.position(); // remember the current position of the file descriptor
 
@@ -1171,10 +1192,7 @@ Key TocHandler::databaseKey() {
         if (r->header_.tag_ == TocRecord::TOC_INIT) {
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
             dbUID_ = r->header_.uid_;
-            auto k =  Key(s);
-//            eckit::Log::info() << "------ EXTRACT KEY: " << k << std::endl;
-//            eckit::Log::info() << eckit::BackTrace::dump() << std::endl;
-            return k;
+            return Key(s);
         }
     }
 
@@ -1287,7 +1305,6 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
             break;
 
         }
-
     }
 
     // Now construct the index objects (we can parallelise this...)

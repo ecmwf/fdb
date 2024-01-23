@@ -32,7 +32,6 @@ class TypesRegistry : private eckit::NonCopyable {
 public: // methods
 
     TypesRegistry();
-
     ~TypesRegistry();
 
     const Type &lookupType(const std::string &keyword) const;
