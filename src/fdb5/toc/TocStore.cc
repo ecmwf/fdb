@@ -38,22 +38,23 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), TocCommon(StoreRootManager(config).directory(key).directory_) {}
+    Store(schema), TocCommon(StoreRootManager(config).directory(key).directory_),
+    db_str_(key.valuesToString()) {}
 
-// TODO: correct to initialise TocCommon with dirName? that would point to root without the DB name part
 TocStore::TocStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), TocCommon(uri.path().dirName()) {}
+    Store(schema), TocCommon(uri.path().dirName()), 
+    db_str_(uri.path().baseName()) {}
 
 eckit::URI TocStore::uri() const {
 
-    return URI("file", directory_);
+    return URI("file", directory_ / db_str_);
 
 }
 
 bool TocStore::uriBelongs(const eckit::URI& uri) const {
 
     // TODO: assert uri represents a (not necessarily existing) data file
-    return ((uri.scheme() == type()) && (uri.path().dirName().sameAs(directory_)));
+    return ((uri.scheme() == type()) && (uri.path().dirName().sameAs(directory_ / db_str_)));
 
 }
 
@@ -62,8 +63,8 @@ bool TocStore::uriExists(const eckit::URI& uri) const {
     ASSERT(uri.scheme() == type());
     eckit::PathName p(uri.path());
     // ensure provided URI is either DB URI or Store file URI
-    if (!p.sameAs(directory_)) {
-        ASSERT(p.dirName().sameAs(directory_));
+    if (!p.sameAs(directory_ /db_str_ )) {
+        ASSERT(p.dirName().sameAs(directory_ / db_str_));
         ASSERT(p.extension() == ".data");
     }
 
@@ -75,7 +76,7 @@ std::vector<eckit::URI> TocStore::storeUnitURIs() const {
 
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dirs;
-    directory_.children(files, dirs);
+    (directory_ / db_str_).children(files, dirs);
 
     std::vector<eckit::URI> res;
     for (const auto& f : files) {
