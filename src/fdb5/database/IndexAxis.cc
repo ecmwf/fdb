@@ -342,6 +342,16 @@ const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword
     return *(i->second);
 }
 
+const std::map<std::string, std::unordered_set<std::string>> IndexAxis::copyAxesMap() const {
+    // Copy the axes map in the way gribjump currently wants it...
+    // TODO: modify gribjump to use IndexAxis more directly...
+    std::map<std::string, std::unordered_set<std::string>> axes;
+    for (const auto& kv : axis_) {
+        axes[kv.first] = std::unordered_set<std::string>(kv.second->begin(), kv.second->end());
+    }
+    return axes;
+}
+
 void IndexAxis::print(std::ostream &out) const {
     out << "IndexAxis["
         <<  "axis=";

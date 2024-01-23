@@ -19,6 +19,7 @@
 #include <iosfwd>
 #include <map>
 #include <memory>
+#include <unordered_set>
 
 #include "eckit/container/DenseSet.h"
 #include "eckit/memory/NonCopyable.h"
@@ -66,6 +67,8 @@ public: // methods
 
     bool has(const std::string &keyword) const;
     const eckit::DenseSet<std::string>& values(const std::string &keyword) const;
+
+    const std::map<std::string, std::unordered_set<std::string>> copyAxesMap() const;
 
     void dump(std::ostream &out, const char* indent) const;
 
