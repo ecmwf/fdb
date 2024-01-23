@@ -166,6 +166,8 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
         if (include) {
             if (!store_.uriBelongs(uri)) {
                 Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store." << std::endl;
+                Log::error() << "Database URI: " << store_.uri().asString() << std::endl;
+                Log::error() << "Store unit URI: " << uri.asString() << std::endl;
                 Log::error() << "Impossible to delete such fields. Index deletion aborted to avoid leaking fields." << std::endl;
                 NOTIMP;
             }
