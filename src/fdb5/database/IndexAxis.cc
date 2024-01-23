@@ -347,6 +347,11 @@ const std::map<std::string, std::unordered_set<std::string>> IndexAxis::copyAxes
     // TODO: modify gribjump to use IndexAxis more directly...
     std::map<std::string, std::unordered_set<std::string>> axes;
     for (const auto& kv : axis_) {
+        // Special case, if only contains an empty string, skip it.
+        // e.g. levellist does this when levtype=sfc.
+        if (kv.second->size() == 1 && *kv.second->begin() == "") {
+            continue;
+        }
         axes[kv.first] = std::unordered_set<std::string>(kv.second->begin(), kv.second->end());
     }
     return axes;
