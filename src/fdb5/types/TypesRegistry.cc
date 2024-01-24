@@ -39,6 +39,7 @@ void TypesRegistry::addType(const std::string &keyword, const std::string &type)
 }
 
 const Type &TypesRegistry::lookupType(const std::string &keyword) const {
+    std::lock_guard<std::mutex> lock(cacheMutex_);
     std::map<std::string, Type *>::const_iterator j = cache_.find(keyword);
 
     if (j != cache_.end()) {

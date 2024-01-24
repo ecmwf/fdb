@@ -723,7 +723,7 @@ public:
         ::memset(aiocbs.data(), 0, sizeof(aiocb) * aiocbs.size());
 
         {
-            eckit::Timer sstime("subtocs.statsubmit");
+        eckit::Timer sstime("subtocs.statsubmit", Log::debug<LibFdb5>());
         for (int i = 0; i < aiocbs.size(); ++i) {
 
             const eckit::PathName& path = paths_[i];
@@ -757,7 +757,7 @@ public:
         int doneCount = 0;
 
         {
-            eckit::Timer sstime("subtocs.collect");
+            eckit::Timer sstime("subtocs.collect", Log::debug<LibFdb5>());
 
             while (doneCount < aiocbs.size()) {
 
@@ -828,9 +828,7 @@ void TocHandler::preloadSubTocs(bool readMasked) const {
 
     subTocReadCache_.clear();
 
-//    eckit::Log::info() << "========================================================+" << std::endl;
-//    eckit::Log::info() << eckit::BackTrace::dump() << std::endl;
-    eckit::Timer preloadTimer("subtocs.preload");
+    eckit::Timer preloadTimer("subtocs.preload", Log::debug<LibFdb5>());
     {
         std::unique_ptr<TocRecord> r(
                 new TocRecord(serialisationVersion_.used())); // allocate (large) TocRecord on heap not stack (MARS-779)

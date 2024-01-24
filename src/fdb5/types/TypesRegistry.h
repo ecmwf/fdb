@@ -18,6 +18,7 @@
 
 #include <string>
 #include <map>
+#include <mutex>
 
 #include "eckit/memory/NonCopyable.h"
 
@@ -46,6 +47,7 @@ private: // members
 
     typedef std::map<std::string, Type *> TypeMap;
 
+    mutable std::mutex cacheMutex_;
     mutable TypeMap cache_;
 
     std::map<std::string, std::string> types_;

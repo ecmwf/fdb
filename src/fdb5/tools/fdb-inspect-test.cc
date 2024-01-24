@@ -15,6 +15,10 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/tools/FDBVisitTool.h"
+#include "fdb5/LibFdb5.h"
+
+#include <thread>
+#include <future>
 
 using namespace eckit;
 using namespace option;
@@ -30,31 +34,54 @@ class FDBInspectTest : public FDBVisitTool {
 public: // methods
 
     FDBInspectTest(int argc, char **argv) :
-            FDBVisitTool(argc, argv, "class,expver") {}
+            FDBVisitTool(argc, argv, "class,expver") {
+        options_.push_back(new SimpleOption<long>("instances", "Number of copies to run in parallel in threads"));
+    }
 
 private: // methods
 
-    virtual void execute(const CmdArgs& args);
+    void execute(const CmdArgs& args) override;
+    void init(const CmdArgs &args) override;
+
+private: // members
+
+    long instances_ = 1;
 };
+
+void FDBInspectTest::init(const CmdArgs& args) {
+    FDBVisitTool::init(args);
+    instances_ = args.getLong("instances", instances_);
+}
 
 void FDBInspectTest::execute(const CmdArgs& args) {
 
-    FDB fdb(config(args));
+    auto workFn = [&, this] {
 
-    for (const FDBToolRequest& request : requests()) {
-        Timer tinspect("inspect");
-        Timer tfdb("fdb.inspect");
-        auto r = fdb.inspect(request.request());
-        tfdb.stop();
+        FDB fdb(config(args));
 
-        size_t count = 0;
-        ListElement elem;
-        while (r.next(elem)) {
-            ++count;
-//            Log::info() << elem << std::endl;
+        for (const FDBToolRequest& request : requests()) {
+            Timer tinspect("inspect", Log::debug<LibFdb5>());
+            Timer tfdb("fdb.inspect", Log::debug<LibFdb5>());
+            auto r = fdb.inspect(request.request());
+            tfdb.stop();
+
+            size_t count = 0;
+            ListElement elem;
+            while (r.next(elem)) ++count;
+            eckit::Log::info() << "Count: " << count << std::endl;
+            tinspect.stop();
         }
-        Log::info() << "Count: " << count << std::endl;
-        tinspect.stop();
+    };
+
+
+    if (instances_ == 1) {
+        workFn();
+    } else {
+        std::vector<std::future<void>> threads;
+        for (long i = 0; i < instances_; ++i) {
+            threads.emplace_back(std::async(std::launch::async, workFn));
+        }
+        for (auto& thread : threads) thread.get();
     }
 }
 
