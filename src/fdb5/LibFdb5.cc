@@ -42,8 +42,14 @@ LibFdb5& LibFdb5::instance() {
 
 const Config& LibFdb5::defaultConfig() { 
     if(!config_) {
-        Config cfg;
-        config_.reset( new Config( std::move(cfg.expandConfig()) ) );
+        static std::mutex m;
+        {
+            std::lock_guard<std::mutex> lock(m);
+            if (!config_) {
+                Config cfg;
+                config_.reset(new Config(std::move(cfg.expandConfig())));
+            }
+        }
     }
     return *config_;
 }
