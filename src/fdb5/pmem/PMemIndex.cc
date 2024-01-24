@@ -38,11 +38,11 @@ PMemIndex::PMemIndex(const Key &key, PBranchingNode& node, DataPoolManager& mgr,
 
     if (!location_.node().axis_.null()) {
 
-        Log::debug<LibFdb5>() << "PMemIndex Loading axes from buffer" << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "PMemIndex Loading axes from buffer" << std::endl;
         const ::pmem::PersistentBuffer& buf(*location_.node().axis_);
         MemoryStream s(buf.data(), buf.size());
         axes_.decode(s);
-        Log::debug<LibFdb5>() << "PMemIndex axes = " << axes_ << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "PMemIndex axes = " << axes_ << std::endl;
     }
 }
 

@@ -78,7 +78,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
             ss << "FDB archive - found unexpected message" << std::endl;
             ss << "  user request:"  << std::endl << "    " << request << std::endl;
             ss << "  unexpected message:" << std::endl << "    " << key << std::endl;
-            eckit::Log::debug<LibFdb5>() << ss.str();
+            LOG_DEBUG_LIB(LibFdb5) << ss.str();
             throw eckit::UserError(ss.str(), Here());
         }
         archive(key, msg.data(), msg.length());
@@ -91,7 +91,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
         for (auto vacantRequest : cube.vacantRequests()) {
             ss << "    " << vacantRequest << std::endl;
         }
-        eckit::Log::debug<LibFdb5>() << ss.str();
+        LOG_DEBUG_LIB(LibFdb5) << ss.str();
         throw eckit::UserError(ss.str(), Here());
     }
 }
@@ -135,7 +135,7 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
         eckit::Log::userInfo() << "Using optimise" << std::endl;
     }
 
-    eckit::Log::debug<LibFdb5>() << "fdb5::FDB::retrieve() Sorted? " << sorted << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "fdb5::FDB::retrieve() Sorted? " << sorted << std::endl;
 
     return sorted;
 }

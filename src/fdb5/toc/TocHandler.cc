@@ -182,7 +182,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
         Key key(databaseKey());
         if (!parentKey.empty() && parentKey != key) {
 
-            eckit::Log::debug<LibFdb5>() << "Opening (remapped) toc with differing parent key: "
+            LOG_DEBUG_LIB(LibFdb5) << "Opening (remapped) toc with differing parent key: "
                                          << key << " --> " << parentKey << std::endl;
 
             if (parentKey.size() != key.size()) {
@@ -202,7 +202,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
                 }
             }
 
-            eckit::Log::debug<LibFdb5>() << "Key remapping: " << remapKey_ << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Key remapping: " << remapKey_ << std::endl;
         }
     }
 }
@@ -255,7 +255,7 @@ void TocHandler::openForAppend() {
 
     ASSERT(fd_ == -1);
 
-    eckit::Log::debug<LibFdb5>() << "Opening for append TOC " << tocPath_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Opening for append TOC " << tocPath_ << std::endl;
 
     int iomode = O_WRONLY | O_APPEND;
 #ifdef O_NOATIME
@@ -280,7 +280,7 @@ void TocHandler::openForRead() const {
 
     writeMode_ = false;
 
-    eckit::Log::debug<LibFdb5>() << "Opening for read TOC " << tocPath_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Opening for read TOC " << tocPath_ << std::endl;
 
     int iomode = O_RDONLY;
 #ifdef O_NOATIME
@@ -341,7 +341,7 @@ void TocHandler::append(TocRecord &r, size_t payloadSize ) {
     ASSERT(fd_ != -1);
     ASSERT(not cachedToc_);
 
-    Log::debug<LibFdb5>() << "Writing toc entry: " << (int)r.header_.tag_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Writing toc entry: " << (int)r.header_.tag_ << std::endl;
 
     // Obtain the rounded size, and set it in the record header.
     size_t roundedSize = roundRecord(r, payloadSize);
@@ -457,12 +457,12 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
                 std::pair<eckit::PathName, size_t> key(absPath.baseName(), offset);
                 if (maskedEntries_.find(key) != maskedEntries_.end()) {
                     if(!readMasked){
-                        Log::debug<LibFdb5>() << "Index ignored by mask: " << path << ":" << offset << std::endl;
+                        LOG_DEBUG_LIB(LibFdb5) << "Index ignored by mask: " << path << ":" << offset << std::endl;
                         continue;
                     }
                     // This is a masked index, so it is valid for it to not exist.
                     if (!absPath.exists()) {
-                        Log::debug<LibFdb5>() << "Index does not exist: " << path << ":" << offset << std::endl;
+                        LOG_DEBUG_LIB(LibFdb5) << "Index does not exist: " << path << ":" << offset << std::endl;
                         continue;
                     }
                 }
@@ -574,7 +574,7 @@ void TocHandler::close() const {
     }
 
     if ( fd_ >= 0 ) {
-        eckit::Log::debug<LibFdb5>() << "Closing TOC " << tocPath_ << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Closing TOC " << tocPath_ << std::endl;
         if(dirty_) {
             SYSCALL2( eckit::fdatasync(fd_), tocPath_ );
             dirty_ = false;
@@ -661,17 +661,17 @@ eckit::PathName TocHandler::parseSubTocRecord(const TocRecord& r, bool readMaske
     std::pair<eckit::PathName, size_t> key(absPath.baseName(), 0);
     if (maskedEntries_.find(key) != maskedEntries_.end()) {
         if (!readMasked){
-            Log::debug<LibFdb5>() << "SubToc ignored by mask: " << path << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "SubToc ignored by mask: " << path << std::endl;
             return "";
         }
         // This is a masked subtoc, so it is valid for it to not exist.
         if (!absPath.exists()) {
-            Log::debug<LibFdb5>() << "SubToc does not exist: " << path << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "SubToc does not exist: " << path << std::endl;
             return "";
         }
     }
 
-    eckit::Log::debug<LibFdb5>() << "Opening SUB_TOC: " << absPath << " " << parentKey_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Opening SUB_TOC: " << absPath << " " << parentKey_ << std::endl;
 
     return absPath;
 }
@@ -965,13 +965,13 @@ void TocHandler::writeInitRecord(const Key &key) {
     size_t len = readNext(*r);
     if (len == 0) {
 
-        eckit::Log::debug<LibFdb5>() << "Initializing FDB TOC in " << tocPath_ << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Initializing FDB TOC in " << tocPath_ << std::endl;
 
         if (!isSubToc_) {
 
             /* Copy schema first */
 
-            eckit::Log::debug<LibFdb5>() << "Copy schema from "
+            LOG_DEBUG_LIB(LibFdb5) << "Copy schema from "
                                << dbConfig_.schemaPath()
                                << " to "
                                << schemaPath_
@@ -1050,7 +1050,7 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     s << off_t{0};
     append(*r, s.position());
 
-    eckit::Log::debug<LibFdb5>() << "Write TOC_SUB_TOC " << path << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Write TOC_SUB_TOC " << path << std::endl;
 }
 
 
@@ -1076,7 +1076,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
             index_.encode(s, r->header_.serialisationVersion_);
             handler_.append(*r, s.position());
 
-            eckit::Log::debug<LibFdb5>() << "Write TOC_INDEX " << location.uri().path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Write TOC_INDEX " << location.uri().path().baseName() << " - " << location.offset() << " " << index_.type() << std::endl;
         }
 
     private:
@@ -1709,7 +1709,7 @@ size_t TocHandler::buildClearRecord(TocRecord &r, const Index &index) {
             s << location.offset();
             ASSERT(sz_ == 0);
             sz_ = s.position();
-            eckit::Log::debug<LibFdb5>() << "Write TOC_CLEAR " << location.uri().path().baseName() << " - " << location.offset() << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Write TOC_CLEAR " << location.uri().path().baseName() << " - " << location.offset() << std::endl;
         }
 
         size_t size() const { return sz_; }

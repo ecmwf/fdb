@@ -276,7 +276,7 @@ void RemoteHandler::initialiseConnections() {
         // agree on a common functionality by intersecting server and client version numbers
          std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
          if (rflCommon.size() > 0) {
-             Log::debug() << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
+             LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
              agreedConf_.set("RemoteFieldLocation", rflCommon.back());
          }
          else {
@@ -311,7 +311,7 @@ void RemoteHandler::initialiseConnections() {
 
         s << agreedConf_.get();
 
-        Log::debug() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
 
         controlWrite(Message::Startup, 0, startupBuffer.data(), s.position());
     }
@@ -374,7 +374,7 @@ void RemoteHandler::handle() {
 
         ASSERT(hdr.marker == StartMarker);
         ASSERT(hdr.version == CurrentVersion);
-        Log::debug<LibFdb5>() << "Got message with request ID: " << hdr.requestID << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Got message with request ID: " << hdr.requestID << std::endl;
 
         try {
             switch (hdr.message) {
@@ -732,12 +732,12 @@ size_t RemoteHandler::archiveThreadLoop(uint32_t id) {
             // Queueing payload
 
             size_t sz = payload.size();
-            Log::debug<LibFdb5>() << "Queueing data: " << sz << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Queueing data: " << sz << std::endl;
             size_t queuelen = queue.emplace(
                 std::make_pair(std::move(payload), hdr.message == Message::MultiBlob));
             Log::status() << "Queued data (" << queuelen << ", size=" << sz << ")" << std::endl;
             ;
-            Log::debug<LibFdb5>() << "Queued data (" << queuelen << ", size=" << sz << ")"
+            LOG_DEBUG_LIB(LibFdb5) << "Queued data (" << queuelen << ", size=" << sz << ")"
                                   << std::endl;
             ;
         }
@@ -808,7 +808,7 @@ void RemoteHandler::read(const MessageHeader& hdr) {
 
     std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
 
-    Log::debug<LibFdb5>() << "Queuing for read: " << hdr.requestID << " " << *location << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Queuing for read: " << hdr.requestID << " " << *location << std::endl;
 
     std::unique_ptr<eckit::DataHandle> dh;
     dh.reset(location->dataHandle());
@@ -825,7 +825,7 @@ void RemoteHandler::writeToParent(const uint32_t requestID, std::unique_ptr<ecki
         long dataRead;
 
         dh->openForRead();
-        Log::debug<LibFdb5>() << "Reading: " << requestID << " dh size: " << dh->size()
+        LOG_DEBUG_LIB(LibFdb5) << "Reading: " << requestID << " dh size: " << dh->size()
                               << std::endl;
 
         while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
@@ -834,13 +834,13 @@ void RemoteHandler::writeToParent(const uint32_t requestID, std::unique_ptr<ecki
 
         // And when we are done, add a complete message.
 
-        Log::debug<LibFdb5>() << "Writing retrieve complete message: " << requestID
+        LOG_DEBUG_LIB(LibFdb5) << "Writing retrieve complete message: " << requestID
                               << std::endl;
 
         dataWrite(Message::Complete, requestID);
 
         Log::status() << "Done retrieve: " << requestID << std::endl;
-        Log::debug<LibFdb5>() << "Done retrieve: " << requestID << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Done retrieve: " << requestID << std::endl;
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception

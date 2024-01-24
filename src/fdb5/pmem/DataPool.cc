@@ -55,7 +55,7 @@ DataPool::DataPool(const PathName& poolDir, size_t index) :
 
     ASSERT(root().valid());
 
-    Log::debug<LibFdb5>() << "Opened persistent pool created at: " << TimeStamp(root().created()) << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Opened persistent pool created at: " << TimeStamp(root().created()) << std::endl;
 }
 
 

@@ -52,20 +52,20 @@ public:
     DbPathNamer(const std::string& keyregex, const std::string& format) :
         format_(format){
         crack(keyregex);
-        eckit::Log::debug<LibFdb5>() << "Building " << *this << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Building " << *this << std::endl;
     }
 
     /// Full match of the incomming key with the key regex
     /// but partial match for values
     bool match(const Key& k, const char* missing = 0) const {
 
-//        Log::debug<LibFDB>() << " Trying to key matching " << *this << " with key " << k << std::endl;
+//        LOG_DEBUG_LIB(LibFdb5) << " Trying to key matching " << *this << " with key " << k << std::endl;
 
         if(k.size() != keyregex_.size()) return false;
 
         for(Key::const_iterator i = k.begin(); i != k.end(); ++i) {
 
-//            Log::debug<LibFDB>() << "     Match " << i->first << " " << i->second << std::endl;
+//            LOG_DEBUG_LIB(LibFdb5) << "     Match " << i->first << " " << i->second << std::endl;
 
             std::map<std::string, Regex>::const_iterator j = keyregex_.find(i->first);
 
@@ -73,7 +73,7 @@ public:
                 return false;
             }
 
-//            Log::debug<LibFDB>() << "     Found " << j->first << " " << j->second << std::endl;
+//            LOG_DEBUG_LIB(LibFdb5) << "     Found " << j->first << " " << j->second << std::endl;
 
             if(!missing || i->second != missing) {
                 if(!j->second.match(i->second)) {
@@ -82,7 +82,7 @@ public:
             }
         }
 
-//        Log::debug<LibFDB>() << " Match successfull " << *this << " with key " << k << std::endl;
+//        LOG_DEBUG_LIB(LibFdb5) << " Match successfull " << *this << " with key " << k << std::endl;
 
         return true;
     }
@@ -236,7 +236,7 @@ static const DbPathNamerTable& readDbNamers(const Config& config) {
 
     if(filename.exists()) {
 
-        eckit::Log::debug<LibFdb5>() << "Loading FDB DBPathNames from " << fdbDbNamesFile << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Loading FDB DBPathNames from " << fdbDbNamesFile << std::endl;
 
         std::ifstream in(filename.localPath());
 
@@ -299,7 +299,7 @@ static std::vector<Root> readRoots(const eckit::PathName& fdbRootsFile) {
 
     std::ifstream in(fdbRootsFile.localPath());
 
-    eckit::Log::debug<LibFdb5>() << "Loading FDB roots from " << fdbRootsFile << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Loading FDB roots from " << fdbRootsFile << std::endl;
 
     if (!in) {
         eckit::Log::error() << fdbRootsFile << eckit::Log::syserr << std::endl;
@@ -417,7 +417,7 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
     eckit::PathName fdbSpacesFile = eckit::Resource<eckit::PathName>("fdbSpacesFile;$FDB_SPACES_FILE", fdbHome / "etc/fdb/spaces");
     std::ifstream in(fdbSpacesFile.localPath());
 
-    eckit::Log::debug<LibFdb5>() << "Loading FDB file spaces from " << fdbSpacesFile << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Loading FDB file spaces from " << fdbSpacesFile << std::endl;
 
     if (!in) {
         throw eckit::ReadError(fdbSpacesFile, Here());
@@ -567,14 +567,14 @@ std::string RootManager::dbPathName(const Key& key)
     for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end() ; ++i) {
         if(i->match(key)) {
             dbpath = i->name(key);
-            eckit::Log::debug<LibFdb5>() << "DbName is " << dbpath << " for key " << key <<  std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "DbName is " << dbpath << " for key " << key <<  std::endl;
             return dbpath;
         }
     }
 
     // default naming convention for DB's
     dbpath = key.valuesToString();
-    eckit::Log::debug<LibFdb5>() << "Using default naming convention for key " << key << " -> " << dbpath <<  std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Using default naming convention for key " << key << " -> " << dbpath <<  std::endl;
     return dbpath;
 }
 
@@ -584,7 +584,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
     for (DbPathNamerTable::const_iterator i = dbPathNamers_.begin(); i != dbPathNamers_.end() ; ++i) {
         if(i->match(key, missing)) {
             std::string dbpath = i->namePartial(key, missing);
-            eckit::Log::debug<LibFdb5>() << "Matched " << *i << " with key " << key << " resulting in dbpath " << dbpath << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Matched " << *i << " with key " << key << " resulting in dbpath " << dbpath << std::endl;
             result.push_back(dbpath);
         }
     }
@@ -602,7 +602,7 @@ std::vector<std::string> RootManager::possibleDbPathNames(const Key& key, const 
     }
     result.push_back(oss.str());
 
-    eckit::Log::debug<LibFdb5>() << "Using default naming convention for key " << key << " -> " << result.back() <<  std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Using default naming convention for key " << key << " -> " << result.back() <<  std::endl;
 
     return result;
 }
@@ -612,7 +612,7 @@ TocPath RootManager::directory(const Key& key) {
 
     PathName dbpath = dbPathName(key);
 
-    eckit::Log::debug<LibFdb5>() << "Choosing directory for key " << key << " dbpath " << dbpath << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Choosing directory for key " << key << " dbpath " << dbpath << std::endl;
 
     // override root location for testing purposes only
 
@@ -629,7 +629,7 @@ TocPath RootManager::directory(const Key& key) {
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end() ; ++i) {
         if(i->match(keystr)) {
             TocPath root = i->filesystem(key, dbpath);
-            eckit::Log::debug<LibFdb5>() << "Directory root " << root.directory_ << " dbpath " << dbpath <<  std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Directory root " << root.directory_ << " dbpath " << dbpath <<  std::endl;
             return TocPath{root.directory_ / dbpath, root.controlIdentifiers_};
         }
     }
@@ -662,7 +662,7 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
     std::transform(keys.begin(), keys.end(), std::back_inserter(keystrings),
                    [](const Key& k) { return k.valuesToString(); });
 
-    Log::debug<LibFdb5>() << "RootManager::visitableRoots() trying to match keys " << keystrings << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "RootManager::visitableRoots() trying to match keys " << keystrings << std::endl;
 
     for (const auto& space : spacesTable_) {
 
@@ -670,17 +670,17 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
         for (const std::string& k : keystrings) {
             // TODO: We can do something more clever here once we restructure the config...
             if (space.match(k) || k.empty()) {
-                Log::debug<LibFdb5>() << "MATCH space " << space << std::endl;
+                LOG_DEBUG_LIB(LibFdb5) << "MATCH space " << space << std::endl;
                 space.enabled(ControlIdentifier::List,roots);
                 matched = true;
                 break;
             }
         }
 
-        if (!matched) Log::debug<LibFdb5>() << "FAIL to match space " << space << std::endl;
+        if (!matched) LOG_DEBUG_LIB(LibFdb5) << "FAIL to match space " << space << std::endl;
     }
 
-    Log::debug<LibFdb5>() << "Visitable Roots " << roots << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Visitable Roots " << roots << std::endl;
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
@@ -713,7 +713,7 @@ std::vector<eckit::PathName> RootManager::canArchiveRoots(const Key& key) {
         }
     }
 
-    Log::debug<LibFdb5>() << "Roots supporting archival " << roots << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Roots supporting archival " << roots << std::endl;
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }
@@ -731,7 +731,7 @@ std::vector<eckit::PathName> RootManager::canMoveToRoots(const Key& key) {
         }
     }
 
-    Log::debug<LibFdb5>() << "Roots supporting wiping " << roots << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Roots supporting wiping " << roots << std::endl;
 
     return std::vector<eckit::PathName>(roots.begin(), roots.end());
 }

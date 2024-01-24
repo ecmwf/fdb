@@ -138,7 +138,7 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) 
 }
 
 ListIterator SelectFDB::list(const FDBToolRequest& request, int level) {
-    Log::debug<LibFdb5>() << "SelectFDB::list() >> " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::list() >> " << request << std::endl;
     return queryInternal(request,
                          [level](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.list(request, level);
@@ -146,7 +146,7 @@ ListIterator SelectFDB::list(const FDBToolRequest& request, int level) {
 }
 
 DumpIterator SelectFDB::dump(const FDBToolRequest& request, bool simple) {
-    Log::debug<LibFdb5>() << "SelectFDB::dump() >> " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::dump() >> " << request << std::endl;
     return queryInternal(request,
                          [simple](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.dump(request, simple);
@@ -154,7 +154,7 @@ DumpIterator SelectFDB::dump(const FDBToolRequest& request, bool simple) {
 }
 
 StatusIterator SelectFDB::status(const FDBToolRequest& request) {
-    Log::debug<LibFdb5>() << "SelectFDB::status() >> " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::status() >> " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.status(request);
@@ -162,7 +162,7 @@ StatusIterator SelectFDB::status(const FDBToolRequest& request) {
 }
 
 WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    Log::debug<LibFdb5>() << "SelectFDB::wipe() >> " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::wipe() >> " << request << std::endl;
     return queryInternal(request,
                          [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
@@ -170,7 +170,7 @@ WipeIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porc
 }
 
 PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
-    Log::debug<LibFdb5>() << "SelectFDB::purge() >> " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::purge() >> " << request << std::endl;
     return queryInternal(request,
                          [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.purge(request, doit, porcelain);
@@ -178,7 +178,7 @@ PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool po
 }
 
 StatsIterator SelectFDB::stats(const FDBToolRequest &request) {
-    Log::debug<LibFdb5>() << "SelectFDB::stats() >> " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::stats() >> " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.stats(request);
@@ -188,7 +188,7 @@ StatsIterator SelectFDB::stats(const FDBToolRequest &request) {
 ControlIterator SelectFDB::control(const FDBToolRequest& request,
                                    ControlAction action,
                                    ControlIdentifiers identifiers) {
-    Log::debug<LibFdb5>() << "SelectFDB::control >> " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::control >> " << request << std::endl;
     return queryInternal(request,
                          [action, identifiers](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.control(request, action, identifiers);

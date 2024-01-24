@@ -45,7 +45,7 @@ bool PMemDBWriter::selectIndex(const Key &key) {
 
     currentIndex_ = indexes_[key];
 
-    eckit::Log::debug<LibFdb5>() << "PMemDBWriter::selectIndex " << key << ", found match" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "PMemDBWriter::selectIndex " << key << ", found match" << std::endl;
 
     return true;
 }
