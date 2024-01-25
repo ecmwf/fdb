@@ -14,13 +14,14 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/serialisation/Stream.h"
 
+#include "fdb5/fdb5_config.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/UriStore.h"
 
-/// @todo: these headers and their implementation must be included in the
-///   cmake source files regardless of DENABLE_TOC_FDB and DENABLE_DAOS_FDB
 #include "fdb5/toc/TocFieldLocation.h"
+#ifdef fdb5_HAVE_DAOSFDB
 #include "fdb5/daos/DaosFieldLocation.h"
+#endif
 
 namespace fdb5 {
 
@@ -36,6 +37,7 @@ FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
 
     const FieldLocation& loc = field.location();
 
+#ifdef fdb5_HAVE_DAOSFDB
     const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
     const DaosFieldLocation* daosfloc = dynamic_cast<const DaosFieldLocation*>(&loc);
     if(!tocfloc && !daosfloc) {
@@ -44,6 +46,15 @@ FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
             "-- indexing other locations is not supported", 
             Here());
     }
+#else
+    const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
+    if(!tocfloc) {
+        throw eckit::NotImplemented(
+            "Field location is not of TocFieldLocation type "
+            "-- indexing other locations is not supported", 
+            Here());
+    }
+#endif
 
     uriId_ = store.insert(loc.uri());
     length_ = loc.length();

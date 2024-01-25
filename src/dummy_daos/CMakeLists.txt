@@ -1,6 +1,6 @@
 ecbuild_add_library(
 
-    TARGET daos
+    TARGET dummy_daos
 
     INSTALL_HEADERS_LIST
         daos.h
@@ -23,7 +23,7 @@ if(HAVE_DAOS_ADMIN)
 
     ecbuild_add_library(
 
-        TARGET daos_tests
+        TARGET dummy_daos_tests
 
         INSTALL_HEADERS LISTED
 
@@ -38,7 +38,7 @@ if(HAVE_DAOS_ADMIN)
             ${PROJECT_SOURCE_DIR}/../dummy_daos.h
 
         PRIVATE_LIBS
-            daos
+            dummy_daos
 
     )
     

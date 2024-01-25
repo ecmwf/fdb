@@ -78,6 +78,20 @@ private: // members
 
 };
 
+class AutoContainerDestroy {
+
+public: // methods
+
+    AutoContainerDestroy(fdb5::DaosContainer& cont) : cont_(cont) {}
+
+    ~AutoContainerDestroy() noexcept(false);
+
+private: // members
+
+    fdb5::DaosContainer& cont_;
+
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

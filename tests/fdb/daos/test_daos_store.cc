@@ -11,6 +11,7 @@
 #include <cstring>
 #include <memory>
 
+#include "eckit/config/Resource.h"
 #include "eckit/testing/Test.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/filesystem/PathName.h"
@@ -19,6 +20,8 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/config/YAMLConfiguration.h"
+
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/fdb5_config.h"
 #include "fdb5/config/Config.h"
@@ -38,6 +41,25 @@
 
 using namespace eckit::testing;
 using namespace eckit;
+
+static void deldir(eckit::PathName& p) {
+    if (!p.exists()) {
+        return;
+    }
+
+    std::vector<eckit::PathName> files;
+    std::vector<eckit::PathName> dirs;
+    p.children(files, dirs);
+
+    for (auto& f : files) {
+        f.unlink();
+    }
+    for (auto& d : dirs) {
+        deldir(d);
+    }
+
+    p.rmdir();
+};
 
 #ifdef fdb5_HAVE_DUMMY_DAOS
 eckit::TmpDir& tmp_dummy_daos_root() {
@@ -63,9 +85,9 @@ eckit::TmpFile& roots_file() {
     return f;
 }
 
-eckit::TmpDir& tmp_root() {
-    static eckit::TmpDir d{};
-    return d;
+eckit::PathName& store_tests_tmp_root() {
+    static eckit::PathName sd("./daos_store_tests_fdb_root");
+    return sd;
 }
 
 namespace fdb {
@@ -80,8 +102,9 @@ CASE( "Setup" ) {
 
     // ensure fdb root directory exists. If not, then that root is 
     // registered as non existing and Store tests fail.
-    tmp_root().mkdir();
-    ::setenv("FDB_ROOT_DIRECTORY", tmp_root().path().c_str(), 1);
+    if (store_tests_tmp_root().exists()) deldir(store_tests_tmp_root());
+    store_tests_tmp_root().mkdir();
+    ::setenv("FDB_ROOT_DIRECTORY", store_tests_tmp_root().path().c_str(), 1);
 
     // prepare schema for tests involving DaosStore
 
@@ -114,7 +137,7 @@ CASE( "Setup" ) {
 
     // prepare roots
 
-    std::string roots_str{tmp_root().asString() + " all yes yes"};
+    std::string roots_str{store_tests_tmp_root().asString() + " all yes yes"};
 
     std::unique_ptr<eckit::DataHandle> hr(roots_file().fileHandle());
     hr->openForWrite(roots_str.size());
@@ -131,8 +154,16 @@ CASE("DaosStore tests") {
 
     // test parameters
 
-    std::string pool_name{"fdb_pool"};
     int container_oids_per_alloc = 1000;
+#ifdef fdb5_HAVE_DAOS_ADMIN
+    std::string pool_name{"fdb_pool"};
+#else
+    std::string pool_name;
+    pool_name = eckit::Resource<std::string>(
+        "fdbDaosTestPool;$FDB_DAOS_TEST_POOL", pool_name
+    );
+    EXPECT(pool_name.length() > 0);
+#endif
 
     // bootstrap daos
 
@@ -144,7 +175,11 @@ CASE("DaosStore tests") {
             ))
         );
         fdb5::DaosSession s{};
+#ifdef fdb5_HAVE_DAOS_ADMIN
         fdb5::DaosPool& pool = s.createPool(pool_name);
+#else
+        fdb5::DaosPool& pool = s.getPool(pool_name);
+#endif
         pool.uuid(pool_uuid);
     }
 
@@ -302,12 +337,12 @@ CASE("DaosStore tests") {
         {
             fdb5::TocCatalogueWriter tcat{db_key, config};
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
-            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, db_key.request("retrieve"), out, true, false, false));
+            metkit::mars::MarsRequest r = db_key.request("retrieve");
+            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
             cat.visitEntries(*wv, store, false);
         }
 
         /// @todo: again, daos_fini happening before
-
     }
 
     SECTION("VIA FDB API") {
@@ -387,7 +422,8 @@ CASE("DaosStore tests") {
 
         // retrieve data
 
-        std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(request_key.request("retrieve")));
+        metkit::mars::MarsRequest r = request_key.request("retrieve");
+        std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
     
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
@@ -542,9 +578,15 @@ CASE("DaosStore tests") {
 
     // teardown daos
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
     /// AutoPoolDestroy is not possible here because the pool is 
     /// created above with an ephemeral session
     fdb5::DaosSession().destroyPool(pool_uuid);
+#else
+    for (auto& c : fdb5::DaosSession().getPool(pool_uuid).listContainers())
+        if (c == "1:2")
+            fdb5::DaosSession().getPool(pool_uuid).destroyContainer(c);
+#endif
 
 }
 
