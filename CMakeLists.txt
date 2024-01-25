@@ -78,17 +78,22 @@ find_package(UUID QUIET)
 #message(UUID_LIBRARIES)
 #message("${UUID_LIBRARIES}")
 
+find_package(DAOS QUIET)
+
+set(_default_dummy_daos ON)
+if(DAOS_FOUND)
+    set(_default_dummy_daos OFF)
+endif()
+
 ecbuild_add_option( FEATURE DUMMY_DAOS
-                    DEFAULT OFF
+                    DEFAULT ${_default_dummy_daos}
                     CONDITION UUID_FOUND
                     DESCRIPTION "Use dummy DAOS library emulating DAOS with a file system" )
 
 if(HAVE_DUMMY_DAOS)
-    set(DAOS_LIBRARIES daos)
+    set(DAOS_LIBRARIES dummy_daos)
     set(DAOS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
     set(DAOS_FOUND TRUE)
-else()
-    find_package(DAOS QUIET)
 endif()
 
 #message(DAOS_FOUND="${DAOS_FOUND}")
@@ -108,14 +113,20 @@ ecbuild_add_option( FEATURE DAOSFDB
                     DEFAULT ON
                     DESCRIPTION "DAOS support for FDB Store" )
 
-ecbuild_add_option( FEATURE DAOS_ADMIN
-                    DEFAULT OFF
-                    CONDITION HAVE_DAOSFDB AND (HAVE_DUMMY_DAOS OR DAOS_TESTS_FOUND)
-                    DESCRIPTION "Add features for DAOS pool management. Required for DAOS unit tests" )
+set(_default_daos_admin OFF)
+if(HAVE_DUMMY_DAOS)
+    set(_default_daos_admin ON)
+endif()
 
+ecbuild_add_option( FEATURE DAOS_ADMIN
+                    DEFAULT ${_default_daos_admin}
+                    CONDITION HAVE_DAOSFDB AND (HAVE_DUMMY_DAOS OR DAOS_TESTS_FOUND)
+                    DESCRIPTION "Add features for DAOS pool management. Removes need to manually create a pool for DAOS unit tests" )
+
+# DAOS_TESTS is a daos admin library, usually not present
 if(HAVE_DAOS_ADMIN)
     if(HAVE_DUMMY_DAOS)
-        set(DAOS_TESTS_LIBRARIES daos_tests)
+        set(DAOS_TESTS_LIBRARIES dummy_daos_tests)
         set(DAOS_TESTS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
         set(DAOS_TESTS_FOUND TRUE)
     endif()

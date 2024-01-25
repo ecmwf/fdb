@@ -302,6 +302,24 @@ fdb5::DaosPool& DaosContainer::getPool() const {
 
 }
 
+AutoContainerDestroy::~AutoContainerDestroy() noexcept(false) {
+
+    bool fail = !eckit::Exception::throwing();
+
+    try {
+        cont_.getPool().destroyContainer(cont_.label());
+    } catch (std::exception& e) {
+        eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;
+        if (fail) {
+            eckit::Log::error() << "** Exception is re-thrown" << std::endl;
+            throw;
+        }
+        eckit::Log::error() << "** An exception is already in progress" << std::endl;
+        eckit::Log::error() << "** Exception is ignored" << std::endl;
+    }
+    
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

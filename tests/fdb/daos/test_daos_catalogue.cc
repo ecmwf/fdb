@@ -11,6 +11,7 @@
 #include <cstring>
 #include <memory>
 
+#include "eckit/config/Resource.h"
 #include "eckit/testing/Test.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/filesystem/PathName.h"
@@ -19,6 +20,8 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/config/YAMLConfiguration.h"
+
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/fdb5_config.h"
 #include "fdb5/config/Config.h"
@@ -38,6 +41,26 @@
 
 using namespace eckit::testing;
 using namespace eckit;
+
+static void deldir(eckit::PathName& p) {
+    if (!p.exists()) {
+        return;
+    }
+
+    std::vector<eckit::PathName> files;
+    std::vector<eckit::PathName> dirs;
+    p.children(files, dirs);
+
+    for (auto& f : files) {
+        f.unlink();
+    }
+    for (auto& d : dirs) {
+        deldir(d);
+    }
+
+    p.rmdir();
+};
+
 
 #ifdef fdb5_HAVE_DUMMY_DAOS
 eckit::TmpDir& tmp_dummy_daos_root() {
@@ -63,9 +86,9 @@ eckit::TmpFile& roots_file() {
     return f;
 }
 
-eckit::TmpDir& tmp_root() {
-    static eckit::TmpDir d{};
-    return d;
+eckit::PathName& catalogue_tests_tmp_root() {
+    static eckit::PathName cd("./daos_catalogue_tests_fdb_root");
+    return cd;
 }
 
 namespace fdb {
@@ -80,8 +103,9 @@ CASE( "Setup" ) {
 
     // ensure fdb root directory exists. If not, then that root is 
     // registered as non existing and Catalogue/Store tests fail.
-    tmp_root().mkdir();
-    ::setenv("FDB_ROOT_DIRECTORY", tmp_root().path().c_str(), 1);
+    if (catalogue_tests_tmp_root().exists()) deldir(catalogue_tests_tmp_root());
+    catalogue_tests_tmp_root().mkdir();
+    ::setenv("FDB_ROOT_DIRECTORY", catalogue_tests_tmp_root().path().c_str(), 1);
 
     // prepare schema for tests involving DaosCatalogue
 
@@ -114,7 +138,7 @@ CASE( "Setup" ) {
 
     // prepare roots
 
-    std::string roots_str{tmp_root().asString() + " all yes yes"};
+    std::string roots_str{catalogue_tests_tmp_root().asString() + " all yes yes"};
 
     std::unique_ptr<eckit::DataHandle> hr(roots_file().fileHandle());
     hr->openForWrite(roots_str.size());
@@ -131,9 +155,17 @@ CASE("DaosCatalogue tests") {
 
     // test parameters
 
-    std::string pool_name{"fdb_pool_2"};
     std::string root_cont_name{"test_root"};
     int container_oids_per_alloc = 1000;
+#ifdef fdb5_HAVE_DAOS_ADMIN
+    std::string pool_name{"fdb_pool2"};
+#else
+    std::string pool_name;
+    pool_name = eckit::Resource<std::string>(
+        "fdbDaosTestPool;$FDB_DAOS_TEST_POOL", pool_name
+    );
+    EXPECT(pool_name.length() > 0);
+#endif
 
     // bootstrap daos
 
@@ -148,7 +180,11 @@ CASE("DaosCatalogue tests") {
             ))
         );
         fdb5::DaosSession s{};
+#ifdef fdb5_HAVE_DAOS_ADMIN
         fdb5::DaosPool& pool = s.createPool(pool_name);
+#else
+        fdb5::DaosPool& pool = s.getPool(pool_name);
+#endif
         pool.uuid(pool_uuid);
     }
 
@@ -166,8 +202,9 @@ CASE("DaosCatalogue tests") {
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key db_key{"a=1,b=2"};
+        /// @note: a=11,b=22 instead of a=1,b=2 to avoid collision with potential parallel runs of store tests using a=1,b=2
+        fdb5::Key request_key{"a=11,b=22,c=3,d=4,e=5,f=6"};
+        fdb5::Key db_key{"a=11,b=22"};
         fdb5::Key index_key{"c=3,d=4"};
         fdb5::Key field_key{"e=5,f=6"};
 
@@ -264,8 +301,8 @@ CASE("DaosCatalogue tests") {
 
         // request
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key request_key{"a=11,b=22,c=3,d=4,e=5,f=6"};
+        fdb5::Key db_key{"a=11,b=22"};
         fdb5::Key index_key{"c=3,d=4"};
         fdb5::Key field_key{"e=5,f=6"};
 
@@ -321,7 +358,8 @@ CASE("DaosCatalogue tests") {
             fdb5::DaosCatalogueWriter dcat{db_key, config};
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
             std::ostream out(std::cout.rdbuf());
-            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, db_key.request("retrieve"), out, true, false, false));
+            metkit::mars::MarsRequest r = db_key.request("retrieve");
+            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
             cat.visitEntries(*wv, store, false);
         }
 
@@ -351,8 +389,8 @@ CASE("DaosCatalogue tests") {
 
         // request
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key request_key{"a=11,b=22,c=3,d=4,e=5,f=6"};
+        fdb5::Key db_key{"a=11,b=22"};
         fdb5::Key index_key{"c=3,d=4"};
         fdb5::Key field_key{"e=5,f=6"};
 
@@ -423,7 +461,8 @@ CASE("DaosCatalogue tests") {
             fdb5::DaosCatalogueWriter dcat{db_key, config};
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
             std::ostream out(std::cout.rdbuf());
-            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, db_key.request("retrieve"), out, true, false, false));
+            metkit::mars::MarsRequest r = db_key.request("retrieve");
+            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
             cat.visitEntries(*wv, store, false);
         }
 
@@ -456,9 +495,9 @@ CASE("DaosCatalogue tests") {
 
         // request
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
-        fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key request_key{"a=11,b=22,c=3,d=4,e=5,f=6"};
+        fdb5::Key index_key{"a=11,b=22,c=3,d=4"};
+        fdb5::Key db_key{"a=11,b=22"};
 
         fdb5::FDBToolRequest full_req{
             request_key.request("retrieve"), 
@@ -516,7 +555,8 @@ CASE("DaosCatalogue tests") {
 
         // retrieve data
 
-        std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(request_key.request("retrieve")));
+        metkit::mars::MarsRequest r = request_key.request("retrieve");
+        std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
     
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
@@ -623,9 +663,9 @@ CASE("DaosCatalogue tests") {
 
         // request
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
-        fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key request_key{"a=11,b=22,c=3,d=4,e=5,f=6"};
+        fdb5::Key index_key{"a=11,b=22,c=3,d=4"};
+        fdb5::Key db_key{"a=11,b=22"};
 
         fdb5::FDBToolRequest full_req{
             request_key.request("retrieve"), 
@@ -685,9 +725,15 @@ CASE("DaosCatalogue tests") {
 
     // teardown daos
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
     /// AutoPoolDestroy is not possible here because the pool is 
     /// created above with an ephemeral session
     fdb5::DaosSession().destroyPool(pool_uuid);
+#else
+    for (auto& c : fdb5::DaosSession().getPool(pool_uuid).listContainers())
+        if (c == root_cont_name || c == "11:22")
+            fdb5::DaosSession().getPool(pool_uuid).destroyContainer(c);
+#endif
 
 }
 

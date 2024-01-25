@@ -11,6 +11,7 @@
 #include <cstring>
 #include <memory>
 
+#include "eckit/config/Resource.h"
 #include "eckit/testing/Test.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/filesystem/PathName.h"
@@ -56,6 +57,7 @@ CASE( "Setup" ) {
 }
 #endif
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
 CASE( "DaosPool" ) {
 
     /// @todo: currently, all pool and container connections are cached and kept open for the duration of the process. Would
@@ -158,19 +160,30 @@ CASE( "DaosPool" ) {
     /// @todo: there's an extra pair of daos_init and daos_fini happening here
 
 }
+#endif
 
 CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
 
-    std::string pool_name{"test_pool_2"};
     std::string cont_name{"test_cont_2"};
 
     /// again using hard-coded config defaults in DaosManager
     fdb5::DaosSession s{};
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
+    std::string pool_name{"test_pool_2"};
     fdb5::DaosPool& pool = s.createPool(pool_name);
     fdb5::AutoPoolDestroy destroyer(pool);
-
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
+#else
+    std::string pool_name;
+    pool_name = eckit::Resource<std::string>(
+        "fdbDaosTestPool;$FDB_DAOS_TEST_POOL", pool_name
+    );
+    EXPECT(pool_name.length() > 0);
+    fdb5::DaosPool& pool = s.getPool(pool_name); 
+    fdb5::DaosContainer& cont = pool.createContainer(cont_name);
+    fdb5::AutoContainerDestroy destroyer(cont);
+#endif
 
     SECTION("named container") {
 
@@ -185,8 +198,9 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         EXPECT_THROWS_AS(pool.getContainer("nonexisting_cont"), fdb5::DaosEntityNotFoundException);
 
         std::vector<std::string> cont_list(pool.listContainers());
-        EXPECT(cont_list.size() == 1);
-        EXPECT(cont_list.front() == cont_name);
+        /// @note: not compatible with parallel test runs on a same pool (if !have_FDB_DAOS_ADMIN)
+        /// EXPECT(cont_list.size() == 1);
+        /// EXPECT(cont_list.front() == cont_name);
 
         /// @todo: two attempts to close unopened containers here. This is due to mechanism triggered upon
         ///   pool destroy to ensure all matching container handles in the session cache are closed.
@@ -448,8 +462,9 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
 
     }
 
-    /// manually destroying container for testing purposes. There's no actual need for 
-    /// container destruction or auto destroyer as pool is autodestroyed
+    /// There's no actual need for container destruction as either pool or container are autodestroyed
+    /// depending on if_HAVE_DAOS_ADMIN.
+
     /// @todo: when enabling this, AutoPoolDestroy fails as a corresponding DaosContainer instance 
     ///   still exists in the DaosPool, but the corresponding container does not exist and 
     ///   dummy_daos destroy fails trying to rename an unexisting directory. The issue of pool
@@ -465,16 +480,26 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
 
 CASE( "DaosName and DaosHandle workflows" ) {
 
-    std::string pool_name{"test_pool_3"};
     std::string cont_name{"test_cont_3"};
 
     /// again using hard-coded config defaults in DaosManager
     fdb5::DaosSession s{};
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
+    std::string pool_name{"test_pool_3"};
     fdb5::DaosPool& pool = s.createPool(pool_name);
     fdb5::AutoPoolDestroy destroyer(pool);
-
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
+#else
+    std::string pool_name;
+    pool_name = eckit::Resource<std::string>(
+        "fdbDaosTestPool;$FDB_DAOS_TEST_POOL", pool_name
+    );
+    EXPECT(pool_name.length() > 0);
+    fdb5::DaosPool& pool = s.getPool(pool_name); 
+    fdb5::DaosContainer& cont = pool.createContainer(cont_name);
+    fdb5::AutoContainerDestroy destroyer(cont);
+#endif
 
     char data[] = "test_data_3";
     eckit::Length len{sizeof(data)};
@@ -557,6 +582,7 @@ CASE( "DaosName and DaosHandle workflows" ) {
         EXPECT_NOT(fdb5::DaosName(pool_name, "new_cont_1").exists());
         std::unique_ptr<eckit::DataHandle> h(na.dataHandle());  /// @todo: should dataHandle() assert pool exists?
         h->openForWrite(len);
+        fdb5::AutoContainerDestroy d(pool.getContainer("new_cont_1"));
         {
             eckit::AutoClose closer(*h);
             h->write(data, len);
@@ -577,6 +603,7 @@ CASE( "DaosName and DaosHandle workflows" ) {
         EXPECT_NOT(na.exists());
         std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
         h->openForWrite(len);
+        fdb5::AutoContainerDestroy d(pool.getContainer("new_cont_2"));
         {
             eckit::AutoClose closer(*h);
             h->write(data, len);
@@ -599,6 +626,7 @@ CASE( "DaosName and DaosHandle workflows" ) {
         EXPECT_NOT(nc.exists());
         std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
         h->openForWrite(len);
+        fdb5::AutoContainerDestroy d(pool.getContainer("new_cont_3"));
         {
             eckit::AutoClose closer(*h);
             h->write(data, len);
