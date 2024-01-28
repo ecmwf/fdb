@@ -21,15 +21,15 @@ CASE("Test output ordering") {
     cp.append(v3, output[1]);
 
     std::vector<std::vector<int>> expected_output {
-        {1, 7, 4}, {2, 7, 4}, {3, 7, 4},
-        {1, 7, 5}, {2, 7, 5}, {3, 7, 5},
-        {1, 7, 6}, {2, 7, 6}, {3, 7, 6},
-        {1, 8, 4}, {2, 8, 4}, {3, 8, 4},
-        {1, 8, 5}, {2, 8, 5}, {3, 8, 5},
-        {1, 8, 6}, {2, 8, 6}, {3, 8, 6},
-        {1, 9, 4}, {2, 9, 4}, {3, 9, 4},
-        {1, 9, 5}, {2, 9, 5}, {3, 9, 5},
-        {1, 9, 6}, {2, 9, 6}, {3, 9, 6},
+        {1, 7, 4}, {1, 8, 4}, {1, 9, 4},
+        {1, 7, 5}, {1, 8, 5}, {1, 9, 5},
+        {1, 7, 6}, {1, 8, 6}, {1, 9, 6},
+        {2, 7, 4}, {2, 8, 4}, {2, 9, 4},
+        {2, 7, 5}, {2, 8, 5}, {2, 9, 5},
+        {2, 7, 6}, {2, 8, 6}, {2, 9, 6},
+        {3, 7, 4}, {3, 8, 4}, {3, 9, 4},
+        {3, 7, 5}, {3, 8, 5}, {3, 9, 5},
+        {3, 7, 6}, {3, 8, 6}, {3, 9, 6}
     };
 
     int idx = 0;
@@ -56,9 +56,9 @@ CASE("Test unit-sized vectors") {
     cp.append(v3, output[1]);
 
     std::vector<std::vector<int>> expected_output {
-        {1, 7, 4}, {2, 7, 4}, {3, 7, 4},
-        {1, 8, 4}, {2, 8, 4}, {3, 8, 4},
-        {1, 9, 4}, {2, 9, 4}, {3, 9, 4},
+        {1, 7, 4}, {1, 8, 4}, {1, 9, 4},
+        {2, 7, 4}, {2, 8, 4}, {2, 9, 4},
+        {3, 7, 4}, {3, 8, 4}, {3, 9, 4},
     };
 
     int idx = 0;
@@ -84,9 +84,9 @@ CASE("Test scalar elements") {
     cp.append(v3, output[1]);
 
     std::vector<std::vector<int>> expected_output {
-        {1, 7, 4}, {2, 7, 4}, {3, 7, 4},
-        {1, 8, 4}, {2, 8, 4}, {3, 8, 4},
-        {1, 9, 4}, {2, 9, 4}, {3, 9, 4},
+        {1, 7, 4}, {1, 8, 4}, {1, 9, 4},
+        {2, 7, 4}, {2, 8, 4}, {2, 9, 4},
+        {3, 7, 4}, {3, 8, 4}, {3, 9, 4},
     };
 
     int idx = 0;
@@ -203,9 +203,9 @@ CASE("Works with strings") {
     cp.append(v3, output[1]);
 
     std::vector<std::vector<std::string>> expected_output {
-        {"aa", "dd", "gg"}, {"bb", "dd", "gg"}, {"cc", "dd", "gg"},
-        {"aa", "ee", "gg"}, {"bb", "ee", "gg"}, {"cc", "ee", "gg"},
-        {"aa", "ff", "gg"}, {"bb", "ff", "gg"}, {"cc", "ff", "gg"},
+        {"aa", "dd", "gg"}, {"aa", "ee", "gg"}, {"aa", "ff", "gg"},
+        {"bb", "dd", "gg"}, {"bb", "ee", "gg"}, {"bb", "ff", "gg"},
+        {"cc", "dd", "gg"}, {"cc", "ee", "gg"}, {"cc", "ff", "gg"},
     };
 
     int idx = 0;
@@ -232,9 +232,9 @@ CASE("Works with c-style strings") {
     cp.append(v3, output[1]);
 
     std::vector<std::vector<std::string>> expected_output {
-        {"aa", "dd", "gg"}, {"bb", "dd", "gg"}, {"cc", "dd", "gg"},
-        {"aa", "ee", "gg"}, {"bb", "ee", "gg"}, {"cc", "ee", "gg"},
-        {"aa", "ff", "gg"}, {"bb", "ff", "gg"}, {"cc", "ff", "gg"},
+        {"aa", "dd", "gg"}, {"aa", "ee", "gg"}, {"aa", "ff", "gg"},
+        {"bb", "dd", "gg"}, {"bb", "ee", "gg"}, {"bb", "ff", "gg"},
+        {"cc", "dd", "gg"}, {"cc", "ee", "gg"}, {"cc", "ff", "gg"},
     };
 
     int idx = 0;
@@ -264,9 +264,9 @@ CASE("Works with string_viewss") {
     cp.append(v3, output[1]);
 
     std::vector<std::vector<std::string_view>> expected_output {
-        {"aa", "dd", "gg"}, {"bb", "dd", "gg"}, {"cc", "dd", "gg"},
-        {"aa", "ee", "gg"}, {"bb", "ee", "gg"}, {"cc", "ee", "gg"},
-        {"aa", "ff", "gg"}, {"bb", "ff", "gg"}, {"cc", "ff", "gg"},
+        {"aa", "dd", "gg"}, {"aa", "ee", "gg"}, {"aa", "ff", "gg"},
+        {"bb", "dd", "gg"}, {"bb", "ee", "gg"}, {"bb", "ff", "gg"},
+        {"cc", "dd", "gg"}, {"cc", "ee", "gg"}, {"cc", "ff", "gg"},
     };
 
     int idx = 0;

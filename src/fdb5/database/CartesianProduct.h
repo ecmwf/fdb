@@ -137,7 +137,7 @@ bool CartesianProduct<TContainer, OutputT, std::void_t<std::enable_if_t<detail::
     }
 
     int depth;
-    for (depth = 0; depth < inputs_.size(); ++depth) {
+    for (depth = inputs_.size()-1; depth >= 0; --depth) {
         indices_[depth]++;
         if (indices_[depth] < inputs_[depth].get().size()) {
             output_[depth].get() = inputs_[depth].get()[indices_[depth]];
