@@ -22,6 +22,7 @@
 #include "fdb5/database/ReadVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
 #include "fdb5/types/Type.h"
+#include "fdb5/database/CartesianProduct.h"
 
 namespace fdb5 {
 
@@ -29,12 +30,16 @@ namespace fdb5 {
 
 Rule::Rule(const Schema &schema,
            size_t line,
-           std::vector<Predicate *> &predicates, std::vector<Rule *> &rules,
-           const std::map<std::string, std::string> &types):
+           std::vector<Predicate *>&& predicates,
+           std::vector<Rule *>&& rules,
+           const std::map<std::string, std::string>& types,
+           long level):
     schema_(schema),
+    parent_(nullptr),
+    level_(level),
+    predicates_(std::move(predicates)),
+    rules_(std::move(rules)),
     line_(line) {
-    std::swap(predicates, predicates_);
-    std::swap(rules, rules_);
     for (std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
         registry_.addType(i->first, i->second);
     }
@@ -52,6 +57,28 @@ Rule::~Rule() {
     }
 }
 
+Rule* Rule::makeRule(int level,
+                     const Schema& schema,
+                     size_t line,
+                     std::vector<Predicate *>&& predicates,
+                     std::vector<Rule *>&& rules,
+                     const std::map<std::string, std::string>& types) {
+
+    switch (level) {
+    case 0:
+        return new RuleFirst(schema, line, std::move(predicates), std::move(rules), types);
+    case 1:
+        return new RuleSecond(schema, line, std::move(predicates), std::move(rules), types);
+    case 2:
+        return new RuleThird(schema, line, std::move(predicates), std::move(rules), types);
+    default:
+        ASSERT(false);
+    }
+
+    return nullptr; // Avoid (unnecessary) compiler warning
+}
+
+#if 0
 void Rule::expand( const metkit::mars::MarsRequest &request,
                    std::vector<Predicate *>::const_iterator cur,
                    size_t depth,
@@ -141,7 +168,120 @@ void Rule::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor
     ASSERT(keys.size() == 3);
     expand(request, predicates_.begin(), depth, keys, full, visitor);
 }
+#endif
 
+void Rule::expand(const metkit::mars::MarsRequest& request,
+                  ReadVisitor& visitor,
+                  std::vector<Key>& keys,
+                  Key& full) const {
+
+    // TODO: Stop walking the schema once we have found the matching rule...
+
+    ASSERT(keys.size() == 3);
+
+    // Test if the predicate is present in the key (if not optional).
+    // If not supplied, skip all further processing and iteration
+    for (const Predicate* predicate : predicates_) {
+        const std::string& keyword(predicate->keyword());
+        if (!request.has(keyword) || request.countValues(keyword) == 0) {
+            if (!predicate->optional()) return;
+        }
+    }
+
+    Key& ruleKey(keys[level_]);
+    CartesianProduct<std::vector<std::string>> product;
+
+    // We know that this key matches the structure of the Rule. Now we
+    // parse relevant keys according to the Type system, and filter them
+    // according to any relevant axis information
+    //
+    // n.b. don't combine with the above, to avoid constructing Axes unnecessarily
+    std::map<std::string, eckit::StringList> ruleRequest;
+    for (const Predicate* predicate : predicates_) {
+        std::string keyword(predicate->keyword());
+
+        eckit::StringList values;
+        visitor.values(request, keyword, registry_, values);
+
+        if (values.empty()) {
+            ASSERT(predicate->optional());
+            values.push_back(predicate->defaultValue());
+        } else {
+            auto new_end = std::remove_if(values.begin(),
+                                          values.end(),
+                                          [&predicate](const std::string& v) { return !predicate->match(v); });
+            values.erase(new_end, values.end());
+            if (values.empty()) return;
+        }
+
+        auto its = ruleRequest.emplace(keyword, std::move(values));
+        ASSERT(its.second);
+
+        ruleKey.push(keyword, "");
+        product.append(its.first->second, ruleKey.mutableValue(keyword));
+    }
+
+    // Iterate through the permutations possible from the available keys
+
+    keys[level_].rule(this);
+    while(product.next()) {
+        eckit::Log::info() << "Expanded KEY: " << ruleKey << std::endl;
+
+        // TODO: Check the expansion ordering here...
+        for (const auto& kv : ruleKey) full.set(kv.first, kv.second);
+        walkNextLevel(request, visitor, keys, full);
+    }
+}
+
+// Expand the first level when writing (then delegate to next level)
+
+void Rule::expand(const Key &field,
+                  WriteVisitor& visitor,
+                  std::vector<Key>& keys,
+                  Key& full) const {
+
+    // This ensures we skip all rules after the first matching one.
+    // TODO: implement this by changing the return type of expand
+    if (visitor.rule()) return;
+
+    ASSERT(keys.size() == 3);
+
+    // Test if the predicate is present in the key (if not optional).
+    // If not supplied, skip all further processing and iteration
+    for (const Predicate* predicate : predicates_) {
+        const std::string& keyword(predicate->keyword());
+        if (!field.has(keyword)) {
+            if (!predicate->optional()) return;
+        }
+    }
+
+    // We know that this key matches the structure of the Rule. Now we
+    // parse relevant keys according to the Type system, and filter them
+    // according to any relevant axis information
+    //
+    // n.b. don't combine with the above, to avoid constructing Axes unnecessarily
+    Key ruleKey;
+    for (const Predicate* predicate : predicates_) {
+        const std::string& keyword(predicate->keyword());
+        const std::string& value(predicate->value(field));
+        if (!predicate->match(value)) return;
+        ruleKey.push(keyword, value);
+    }
+
+    // TODO: visitor.filter(ruleKey);. Do this according to the current DB
+
+    // Now we walk through the predicates recursively and construct the
+    // relevant keys
+    // n.b. nothing to do if archiving - as only one KEY
+
+    // Before calling the next level in the rules
+    for (const auto& kv : ruleKey) full.push(kv.first, kv.second);
+    keys[level_] = std::move(ruleKey);
+    keys[level_].rule(this);
+    walkNextLevel(field, visitor, keys, full);
+}
+
+#if 0
 void Rule::expand( const Key &field,
                    std::vector<Predicate *>::const_iterator cur,
                    size_t depth,
@@ -226,15 +366,11 @@ void Rule::expand( const Key &field,
 
     full.pop(keyword);
     k.pop(keyword);
-
-
 }
-void Rule::expand(const Key &field, WriteVisitor &visitor, size_t depth, std::vector<Key> &keys, Key &full) const {
-    ASSERT(keys.size() == 3);
-    expand(field, predicates_.begin(), depth, keys, full, visitor);
-}
+#endif
 
-void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& found) const {
+
+void RuleFirst::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& found) const {
 
     if (cur == predicates_.end()) {
         found = true;
@@ -259,11 +395,11 @@ void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_i
     }
 }
 
-void Rule::expandFirstLevel(const Key &dbKey,  Key& result, bool& found) const {
+void RuleFirst::expandFirstLevel(const Key &dbKey,  Key& result, bool& found) const {
     expandFirstLevel(dbKey, predicates_.begin(), result, found);
 }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq,
+void RuleFirst::expandFirstLevel(const metkit::mars::MarsRequest& rq,
                             std::vector<Predicate *>::const_iterator cur,
                             std::vector<Key>& result,
                             Key& working,
@@ -294,13 +430,13 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq,
     }
 }
 
-void Rule::expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Key>& result, bool& done) const {
+void RuleFirst::expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Key>& result, bool& done) const {
     Key working;
     expandFirstLevel(request, predicates_.begin(), result, working, done);
 }
 
 
-void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
+void RuleFirst::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
 
     if (cur == predicates_.end()) {
         if (tmp.match(dbKey)) {
@@ -331,13 +467,13 @@ void Rule::matchFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_it
 
 }
 
-void Rule::matchFirstLevel(const Key &dbKey,  std::set<Key>& result, const char* missing) const {
+void RuleFirst::matchFirstLevel(const Key &dbKey,  std::set<Key>& result, const char* missing) const {
     Key tmp;
     matchFirstLevel(dbKey, predicates_.begin(), tmp, result, missing);
 }
 
 
-void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
+void RuleFirst::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const {
 
     if (cur == predicates_.end()) {
 //        if (tmp.match(request)) {
@@ -369,7 +505,7 @@ void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector
     }
 }
 
-void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
+void RuleFirst::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
     Key tmp;
     matchFirstLevel(request, predicates_.begin(), tmp, result, missing);
 }
@@ -538,6 +674,116 @@ const std::vector<Rule*>& Rule::subRules() const {
 std::ostream &operator<<(std::ostream &s, const Rule &x) {
     x.print(s);
     return s;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+RuleThird::RuleThird(const Schema& schema,
+                     size_t line,
+                     std::vector<Predicate *>&& predicates,
+                     std::vector<Rule *>&& rules,
+                     const std::map<std::string, std::string>& types) :
+    Rule(schema, line, std::move(predicates), std::move(rules), types, 2) {}
+
+void RuleThird::walkNextLevel(const Key& field,
+                               WriteVisitor& visitor,
+                               std::vector<fdb5::Key>& keys,
+                               Key& full) const {
+    if (visitor.rule()) {
+        std::ostringstream oss;
+        oss << "More than one rule matching "
+            << keys[0] << ", "
+            << keys[1] << ", "
+            << keys[2] << " "
+            << topRule() << " and "
+            << visitor.rule()->topRule();
+        throw eckit::SeriousBug(oss.str());
+    }
+
+    visitor.rule(this);
+    eckit::Log::info() << "SELECT DATUM: " << keys[2] << " - " << full << std::endl;
+    visitor.selectDatum(keys[2], full);
+}
+
+void RuleThird::walkNextLevel(const metkit::mars::MarsRequest& request,
+                               ReadVisitor& visitor,
+                               std::vector<fdb5::Key>& keys,
+                               Key& full) const {
+    visitor.selectDatum(keys[2], full);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+RuleSecond::RuleSecond(const Schema& schema,
+           size_t line,
+           std::vector<Predicate *>&& predicates,
+           std::vector<Rule *>&& rules,
+           const std::map<std::string, std::string>& types) :
+    Rule(schema, line, std::move(predicates), std::move(rules), types, 1) {}
+
+void RuleSecond::walkNextLevel(const Key& field,
+                              WriteVisitor& visitor,
+                              std::vector<fdb5::Key>& keys,
+                              Key& full) const {
+
+    if (keys[1] != visitor.prev_[1]) {
+        eckit::Log::info() << "SELECT INDEX: " << keys[1] << " - " << full << std::endl;
+        visitor.selectIndex(keys[1], full);
+        visitor.prev_[1] = keys[1];
+    }
+
+    for (const Rule* rule : rules_) {
+        rule->expand(field, visitor, keys, full);
+    }
+}
+
+void RuleSecond::walkNextLevel(const metkit::mars::MarsRequest& request,
+                               ReadVisitor& visitor,
+                               std::vector<fdb5::Key>& keys,
+                               Key& full) const {
+
+    if (!visitor.selectIndex(keys[1], full)) return;
+
+    for (const Rule* rule : rules_) {
+        rule->expand(request, visitor, keys, full);
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+RuleFirst::RuleFirst(const Schema& schema,
+                     size_t line,
+                     std::vector<Predicate *>&& predicates,
+                     std::vector<Rule *>&& rules,
+                     const std::map<std::string, std::string>& types) :
+    Rule(schema, line, std::move(predicates), std::move(rules), types, 0) {}
+
+void RuleFirst::walkNextLevel(const Key& field,
+                              WriteVisitor& visitor,
+                              std::vector<fdb5::Key>& keys,
+                              Key& full) const {
+
+    if (keys[0] != visitor.prev_[0]) {
+        eckit::Log::info() << "SELECT DB: " << keys[0] << " - " << full << std::endl;
+        visitor.selectDatabase(keys[0], full);
+        visitor.prev_[0] = keys[0];
+        visitor.prev_.clear();
+    }
+
+    // Here we recurse on the database's schema (rather than the master schema)
+    visitor.databaseSchema().expandSecond(field, visitor, keys[0]);
+}
+
+void RuleFirst::walkNextLevel(const metkit::mars::MarsRequest& request,
+                              ReadVisitor& visitor,
+                              std::vector<fdb5::Key>& keys,
+                              Key& full) const {
+
+    ASSERT(keys[0] == full);
+    if (!visitor.selectDatabase(keys[0], full)) return;
+
+    // Here we recurse on the database's schema (rather than the master schema)
+    visitor.databaseSchema().expandSecond(request, visitor, keys[0]);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -46,12 +46,29 @@ public: // methods
     /// Takes ownership of vectors
     Rule(const Schema &schema,
          size_t line,
-         std::vector<Predicate *> &predicates,
-         std::vector<Rule *> &rules,
-         const std::map<std::string, std::string> &types
-        );
+         std::vector<Predicate *>&& predicates,
+         std::vector<Rule *>&& rules,
+         const std::map<std::string, std::string> &types,
+         long level);
 
-    ~Rule();
+    virtual ~Rule();
+
+    static Rule* makeRule(int level,
+                          const Schema& schema,
+                          size_t line,
+                          std::vector<Predicate *>&& predicates,
+                          std::vector<Rule *>&& rules,
+                          const std::map<std::string, std::string>& types);
+
+    void expand(const Key &field,
+                WriteVisitor& visitor,
+                std::vector<fdb5::Key> &keys,
+                Key &full) const;
+
+    void expand(const metkit::mars::MarsRequest& request,
+                ReadVisitor& visitor,
+                std::vector<Key>& keys,
+                Key& full) const;
 
     bool match(const Key &key) const;
 
@@ -59,21 +76,10 @@ public: // methods
 
     void dump(std::ostream &s, size_t depth = 0) const;
 
-    void expand(const metkit::mars::MarsRequest &request,
-                ReadVisitor &Visitor,
-                size_t depth,
-                std::vector<fdb5::Key> &keys,
-                Key &full) const;
-
-    void expand(const Key &field,
-                WriteVisitor &Visitor,
-                size_t depth,
-                std::vector<fdb5::Key> &keys,
-                Key &full) const;
-
     const Rule* ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const;
     bool tryFill(Key& key, const eckit::StringList& values) const;
     void fill(Key& key, const eckit::StringList& values) const;
+    const std::vector<Rule*>& subRules() const;
 
     size_t depth() const;
     void updateParent(const Rule *parent);
@@ -85,51 +91,30 @@ public: // methods
 
     void check(const Key& key) const;
 
-    const std::vector<Rule*>& subRules() const;
     const std::vector<Predicate*>& predicates() const;
 
-private: // methods
+protected: // methods
 
-    void expand(const metkit::mars::MarsRequest &request,
-                std::vector<Predicate *>::const_iterator cur,
-                size_t depth,
-                std::vector<Key> &keys,
-                Key &full,
-                ReadVisitor &Visitor) const;
+    virtual void walkNextLevel(const Key& field,
+                               WriteVisitor& visitor,
+                               std::vector<fdb5::Key>& keys,
+                               Key& full) const = 0;
 
-    void expand(const Key &field,
-                std::vector<Predicate *>::const_iterator cur,
-                size_t depth,
-                std::vector<Key> &keys,
-                Key &full,
-                WriteVisitor &Visitor) const;
-
-    void expandFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& done) const;
-    void expandFirstLevel(const Key &dbKey,  Key &result, bool& done) const ;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request,
-                          std::vector<Predicate *>::const_iterator cur,
-                          std::vector<Key>& result,
-                          Key& working,
-                          bool& found) const;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request,  std::vector<Key>& result, bool& found) const;
-
-    void matchFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
-    void matchFirstLevel(const Key &dbKey, std::set<Key>& result, const char* missing) const ;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const ;
-
-
-    void keys(size_t level, size_t depth, eckit::StringList &result, eckit::StringSet &seen) const;
+    virtual void walkNextLevel(const metkit::mars::MarsRequest& request,
+                               ReadVisitor& visitor,
+                               std::vector<fdb5::Key>& keys,
+                               Key& full) const = 0;
 
     friend std::ostream &operator<<(std::ostream &s, const Rule &x);
 
     void print( std::ostream &out ) const;
 
 
-private: // members
+protected: // members
 
     const Schema& schema_;
     const Rule* parent_;
+    long level_;
 
     std::vector<Predicate *> predicates_;
     std::vector<Rule *>      rules_;
@@ -138,6 +123,111 @@ private: // members
 
     friend class Schema;
     size_t line_;
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class RuleThird : public Rule {
+
+public: // methods
+
+    using TypeNext = RuleThird; // Avoid issue with infinite recursion in Schema parser...
+
+    RuleThird(const Schema& schema,
+              size_t line,
+              std::vector<Predicate *>&& predicates,
+              std::vector<Rule *>&& rules,
+              const std::map<std::string, std::string>& types);
+
+protected: // implementations for use by RuleCommon
+
+    void walkNextLevel(const Key& field,
+                       WriteVisitor& visitor,
+                       std::vector<fdb5::Key>& keys,
+                       Key& full) const override;
+
+    void walkNextLevel(const metkit::mars::MarsRequest& request,
+                       ReadVisitor& visitor,
+                       std::vector<fdb5::Key>& keys,
+                       Key& full) const override;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class RuleSecond : public Rule {
+
+public: // methods
+
+    using TypeNext = RuleThird;
+
+    RuleSecond(const Schema& schema,
+               size_t line,
+               std::vector<Predicate *>&& predicates,
+               std::vector<Rule *>&& rules,
+               const std::map<std::string, std::string>& types);
+
+protected: // implementations for use by RuleCommon
+
+    void walkNextLevel(const Key& field,
+                       WriteVisitor& visitor,
+                       std::vector<fdb5::Key>& keys,
+                       Key& full) const override;
+
+    void walkNextLevel(const metkit::mars::MarsRequest& request,
+                       ReadVisitor& visitor,
+                       std::vector<fdb5::Key>& keys,
+                       Key& full) const override;
+
+public: // methods
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class RuleFirst : public Rule {
+
+public: // methods
+
+    using TypeNext = RuleSecond;
+
+    RuleFirst(const Schema& schema,
+              size_t line,
+              std::vector<Predicate *>&& predicates,
+              std::vector<Rule *>&& rules,
+              const std::map<std::string, std::string>& types);
+
+protected: // implementations for use by RuleCommon
+
+    void walkNextLevel(const Key& field,
+                       WriteVisitor& visitor,
+                       std::vector<fdb5::Key>& keys,
+                       Key& full) const override;
+
+    void walkNextLevel(const metkit::mars::MarsRequest& request,
+                       ReadVisitor& visitor,
+                       std::vector<fdb5::Key>& keys,
+                       Key& full) const override;
+
+public: // methods
+
+    using Rule::expand;
+
+    // Level-specific functions
+
+    void expandFirstLevel(const Key& dbKey, std::vector<Predicate *>::const_iterator cur, Key& result, bool& done) const;
+    void expandFirstLevel(const Key& dbKey,  Key& result, bool& done) const ;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request,
+                          std::vector<Predicate *>::const_iterator cur,
+                          std::vector<Key>& result,
+                          Key& working,
+                          bool& found) const;
+
+    void expandFirstLevel(const metkit::mars::MarsRequest& request,  std::vector<Key>& result, bool& found) const;
+
+    void matchFirstLevel(const Key& dbKey, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const;
+    void matchFirstLevel(const Key& dbKey, std::set<Key>& result, const char* missing) const ;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& tmp, std::set<Key>& result, const char* missing) const;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const ;
 
 };
 

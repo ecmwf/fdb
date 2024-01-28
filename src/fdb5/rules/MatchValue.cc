@@ -30,8 +30,11 @@ bool MatchValue::match(const std::string &keyword, const Key &key) const {
     if (i == key.end()) {
         return false;
     }
+    return MatchValue::match(i->second);
+}
 
-    return ( i->second == value_ );
+bool MatchValue::match(const std::string& value) const {
+    return value == value_;
 }
 
 void MatchValue::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {

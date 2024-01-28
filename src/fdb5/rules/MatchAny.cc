@@ -32,7 +32,11 @@ bool MatchAny::match(const std::string &keyword, const Key &key) const {
         return false;
     }
 
-    return (values_.find(i->second) != values_.end());
+    return MatchAny::match(i->second);
+}
+
+bool MatchAny::match(const std::string& value) const {
+    return (values_.find(value) != values_.end());
 }
 
 void MatchAny::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {

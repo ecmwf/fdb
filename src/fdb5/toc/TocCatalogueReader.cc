@@ -82,7 +82,7 @@ bool TocCatalogueReader::open() {
 
     // This used to test if indexes_.empty(), but it is perfectly valid to have a DB with no indexes
     // if it has been created with fdb-root --create.
-    // See MARS-
+    // See MARS
 
     if (!TocCatalogue::exists()) {
         return false;
@@ -93,6 +93,7 @@ bool TocCatalogueReader::open() {
 }
 
 bool TocCatalogueReader::axis(const std::string &keyword, eckit::DenseSet<std::string>& s) const {
+
     bool found = false;
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         if ((*m)->first.axes().has(keyword)) {

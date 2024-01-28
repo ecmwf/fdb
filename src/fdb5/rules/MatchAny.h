@@ -33,13 +33,14 @@ public: // methods
 
     virtual ~MatchAny() override;
 
-    virtual bool match(const std::string &keyword, const Key &key) const override;
+    bool match(const std::string &keyword, const Key &key) const override;
+    bool match(const std::string& value) const override;
 
-    virtual void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
+    void dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const override;
 
 private: // methods
 
-    virtual void print( std::ostream &out ) const override;
+    void print( std::ostream &out ) const override;
 
 private: // members
 

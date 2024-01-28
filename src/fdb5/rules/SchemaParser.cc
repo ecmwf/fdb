@@ -130,10 +130,12 @@ void SchemaParser::parseTypes(std::map<std::string, std::string> &types) {
     }
 }
 
-Rule *SchemaParser::parseRule(const Schema &owner) {
+template <typename RuleType>
+RuleType *SchemaParser::parseRule(const Schema &owner, int depth) {
     std::vector<Predicate *> predicates;
     std::vector<Rule *> rules;
     std::map<std::string, std::string> types;
+    ASSERT(depth < 3);
 
     consume('[');
 
@@ -142,7 +144,7 @@ Rule *SchemaParser::parseRule(const Schema &owner) {
     char c = peek();
     if (c == ']') {
         consume(c);
-        return new Rule(owner, line, predicates, rules, types);
+        return new RuleType(owner, line, std::move(predicates), std::move(rules), types);
     }
 
 
@@ -152,7 +154,7 @@ Rule *SchemaParser::parseRule(const Schema &owner) {
 
         if ( c == '[') {
             while ( c == '[') {
-                rules.push_back(parseRule(owner));
+                rules.push_back(parseRule<typename RuleType::TypeNext>(owner, depth+1));
                 c = peek();
             }
         } else {
@@ -166,7 +168,7 @@ Rule *SchemaParser::parseRule(const Schema &owner) {
         c = peek();
         if (c == ']') {
             consume(c);
-            return new Rule(owner, line, predicates, rules, types);
+            return new RuleType(owner, line, std::move(predicates), std::move(rules), types);
         }
 
 
@@ -177,7 +179,7 @@ SchemaParser::SchemaParser(std::istream &in) : StreamParser(in, true) {
 }
 
 void SchemaParser::parse(const Schema &owner,
-                         std::vector<Rule *> &result, TypesRegistry &registry) {
+                         std::vector<RuleFirst*>& result, TypesRegistry& registry) {
     char c;
     std::map<std::string, std::string> types;
 
@@ -187,7 +189,8 @@ void SchemaParser::parse(const Schema &owner,
     }
 
     while ((c = peek()) == '[') {
-        result.push_back(parseRule(owner));
+        int depth = 0;
+        result.push_back(parseRule<RuleFirst>(owner, depth));
     }
     if (c) {
         throw StreamParser::Error(std::string("Error parsing rules: remaining char: ") + c);

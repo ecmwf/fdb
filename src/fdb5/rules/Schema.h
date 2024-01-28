@@ -31,7 +31,7 @@ namespace metkit { class MarsRequest; }
 namespace fdb5 {
 
 class Key;
-class Rule;
+class RuleFirst;
 class ReadVisitor;
 class WriteVisitor;
 class Schema;
@@ -100,7 +100,7 @@ private: // methods
 private: // members
 
     TypesRegistry registry_;
-    std::vector<Rule *>  rules_;
+    std::vector<RuleFirst*>  rules_;
     std::string path_;
 
 };

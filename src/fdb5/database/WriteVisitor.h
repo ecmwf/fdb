@@ -67,6 +67,9 @@ private: // members
     }
 
     friend class Rule;
+    friend class RuleFirst;
+    friend class RuleSecond;
+    friend class RuleThird;
 
     std::vector<Key> &prev_;
 

@@ -71,6 +71,8 @@ private: // members
     // If there is a key remapping for a mounted SubToc, this is stored alongside
     mutable std::vector<std::pair<Index, Key>> indexes_;
 
+    mutable IndexAxis memoisedAxes_;
+    mutable bool axesMemoised_ = false;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -62,6 +62,7 @@ public: // methods
     void pop(const std::string &k);
 
     const std::string& get( const std::string &k ) const;
+    bool has(const std::string& k) const;
 
     void clear();
 
@@ -117,7 +118,8 @@ public: // methods
 
     const eckit::StringList& names() const;
 
-    std::string value(const std::string& keyword) const;
+    const std::string& value(const std::string& keyword) const;
+    std::string& mutableValue(const std::string& keyword);
     std::string canonicalValue(const std::string& keyword) const;
 
     typedef eckit::StringDict::const_iterator const_iterator;

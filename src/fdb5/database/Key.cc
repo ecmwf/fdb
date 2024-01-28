@@ -198,6 +198,10 @@ const std::string &Key::get( const std::string &k ) const {
     return i->second;
 }
 
+bool Key::has(const std::string& k) const {
+    return keys_.find(k) != keys_.end();
+}
+
 bool Key::match(const Key& other) const {
 
     for (const_iterator i = other.begin(); i != other.end(); ++i) {
@@ -344,9 +348,16 @@ const eckit::StringList& Key::names() const {
     return names_;
 }
 
-std::string Key::value(const std::string& key) const {
+const std::string& Key::value(const std::string& key) const {
 
     eckit::StringDict::const_iterator it = keys_.find(key);
+    ASSERT(it != keys_.end());
+    return it->second;
+}
+
+std::string& Key::mutableValue(const std::string& key) {
+
+    eckit::StringDict::iterator it = keys_.find(key);
     ASSERT(it != keys_.end());
     return it->second;
 }

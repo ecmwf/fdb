@@ -28,6 +28,10 @@ bool MatchAlways::match(const std::string&, const Key&) const {
     return true;
 }
 
+bool MatchAlways::match(const std::string&) const {
+    return true;
+}
+
 void MatchAlways::dump(std::ostream &s, const std::string &keyword, const TypesRegistry &registry) const {
     registry.dump(s, keyword);
 }

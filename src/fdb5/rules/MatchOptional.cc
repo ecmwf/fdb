@@ -36,6 +36,10 @@ bool MatchOptional::match(const std::string&, const Key&) const {
     return true;
 }
 
+bool MatchOptional::match(const std::string&) const {
+    return true;
+}
+
 bool MatchOptional::optional() const {
     return true;
 }

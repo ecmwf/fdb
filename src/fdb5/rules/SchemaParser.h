@@ -21,6 +21,7 @@ namespace fdb5 {
 
 class Schema;
 class Rule;
+class RuleFirst;
 class Predicate;
 class TypesRegistry;
 
@@ -32,13 +33,14 @@ public: // methods
 
     SchemaParser(std::istream &in);
 
-    void parse(const Schema &owner, std::vector<Rule *> &, TypesRegistry &registry);
+    void parse(const Schema &owner, std::vector<RuleFirst *> &, TypesRegistry &registry);
 
 private: // methods
 
     std::string parseIdent(bool value, bool emptyOK);
 
-    Rule *parseRule(const Schema &owner);
+    template <typename RuleType>
+    RuleType* parseRule(const Schema &owner, int depth);
 
     Predicate *parsePredicate(std::map<std::string, std::string> &types);
     void parseTypes(std::map<std::string, std::string> &);

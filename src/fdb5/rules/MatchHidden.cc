@@ -33,6 +33,10 @@ bool MatchHidden::match(const std::string&, const Key&) const {
     return true;
 }
 
+bool MatchHidden::match(const std::string&) const {
+    return true;
+}
+
 bool MatchHidden::optional() const {
     return true;
 }
