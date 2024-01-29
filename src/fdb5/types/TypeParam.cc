@@ -36,50 +36,46 @@ void TypeParam::getValues(const metkit::mars::MarsRequest &request,
                           eckit::StringList &values,
                           const Notifier &wind,
                           const DB *db) const {
-    Type::getValues(request, keyword, values, wind, db);
-////    ASSERT(db);
-////
-////    eckit::DenseSet<std::string> ax;
-////
-////    db->axis(keyword, ax);
-////
-////    eckit::StringList us;
-////
-////    Type::getValues(request, keyword, us, wind, db);
-////
-////    eckit::Log::info() << "User: " << us << std::endl;
-////
-////    std::vector<Param> user;
-////    std::copy(us.begin(), us.end(), std::back_inserter(user));
-////
-////    std::vector<Param> axis;
-////    std::copy(ax.begin(), ax.end(), std::back_inserter(axis));
-////    std::sort(axis.begin(), axis.end());
-////
-////    bool windConversion = false;
-////    metkit::ParamID::normalise(request, user, axis, windConversion);
-////
-////    std::set<Param> axisSet;
-////    eckit::Log::info() << "AxisSet: " << axisSet << std::endl;
-////
-////    for (std::vector<Param>::const_iterator i = axis.begin(); i != axis.end(); ++i) {
-////        axisSet.insert(*i);
-////    }
-////
-////    for (std::vector<Param>::const_iterator i = user.begin(); i != user.end(); ++i) {
-////        if (axisSet.find(*i) != axisSet.end()) {
-////            values.push_back(*i);
-////        }
-////    }
-////
-////    // Log::info() << "TypeParam before: " << us << std::endl;
-////    // Log::info() << "              after: " << values << std::endl;
-////    // Log::info() << "               wind: " << (windConversion ? "true" : "false") << std::endl;
-////    // Log::info() << "               axis: " << ax << std::endl;
-////
-////    if (windConversion) {
-////        wind.notifyWind();
-////    }
+    ASSERT(db);
+
+    eckit::DenseSet<std::string> ax;
+
+    db->axis(keyword, ax);
+
+    eckit::StringList us;
+
+    Type::getValues(request, keyword, us, wind, db);
+
+    std::vector<Param> user;
+    std::copy(us.begin(), us.end(), std::back_inserter(user));
+
+    std::vector<Param> axis;
+    std::copy(ax.begin(), ax.end(), std::back_inserter(axis));
+    std::sort(axis.begin(), axis.end());
+
+    bool windConversion = false;
+    metkit::ParamID::normalise(request, user, axis, windConversion);
+
+    std::set<Param> axisSet;
+
+    for (std::vector<Param>::const_iterator i = axis.begin(); i != axis.end(); ++i) {
+        axisSet.insert(*i);
+    }
+
+    for (std::vector<Param>::const_iterator i = user.begin(); i != user.end(); ++i) {
+        if (axisSet.find(*i) != axisSet.end()) {
+            values.push_back(*i);
+        }
+    }
+
+//     eckit::Log::info() << "TypeParam before: " << us << std::endl;
+//     eckit::Log::info() << "              after: " << values << std::endl;
+//     eckit::Log::info() << "               wind: " << (windConversion ? "true" : "false") << std::endl;
+//     eckit::Log::info() << "               axis: " << ax << std::endl;
+
+    if (windConversion) {
+        wind.notifyWind();
+    }
 }
 
 bool TypeParam::match(const std::string&,

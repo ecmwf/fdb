@@ -179,6 +179,7 @@ void Key::unset(const std::string &k) {
 void Key::push(const std::string &k, const std::string &v) {
     keys_[k] = v;
     names_.push_back(k);
+    ASSERT(keys_.size() == names_.size());
 }
 
 void Key::pop(const std::string &k) {

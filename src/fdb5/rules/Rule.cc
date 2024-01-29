@@ -189,6 +189,7 @@ void Rule::expand(const metkit::mars::MarsRequest& request,
     }
 
     Key& ruleKey(keys[level_]);
+    ruleKey.clear();
     CartesianProduct<std::vector<std::string>> product;
 
     // We know that this key matches the structure of the Rule. Now we
@@ -196,11 +197,13 @@ void Rule::expand(const metkit::mars::MarsRequest& request,
     // according to any relevant axis information
     //
     // n.b. don't combine with the above, to avoid constructing Axes unnecessarily
-    std::map<std::string, eckit::StringList> ruleRequest;
+    std::vector<eckit::StringList> valueStore;
+    valueStore.reserve(predicates_.size());
     for (const Predicate* predicate : predicates_) {
         std::string keyword(predicate->keyword());
 
         eckit::StringList values;
+        // TODO: We can do this better than this... We don't need to do it for every rule. Again and again...
         visitor.values(request, keyword, registry_, values);
 
         if (values.empty()) {
@@ -214,20 +217,16 @@ void Rule::expand(const metkit::mars::MarsRequest& request,
             if (values.empty()) return;
         }
 
-        auto its = ruleRequest.emplace(keyword, std::move(values));
-        ASSERT(its.second);
-
+        valueStore.emplace_back(std::move(values));
         ruleKey.push(keyword, "");
-        product.append(its.first->second, ruleKey.mutableValue(keyword));
+        product.append(valueStore.back(), ruleKey.mutableValue(keyword));
     }
 
     // Iterate through the permutations possible from the available keys
 
+    // TODO: short circuit this stuff once everything has been matched...
     keys[level_].rule(this);
     while(product.next()) {
-        eckit::Log::info() << "Expanded KEY: " << ruleKey << std::endl;
-
-        // TODO: Check the expansion ordering here...
         for (const auto& kv : ruleKey) full.set(kv.first, kv.second);
         walkNextLevel(request, visitor, keys, full);
     }
@@ -701,7 +700,6 @@ void RuleThird::walkNextLevel(const Key& field,
     }
 
     visitor.rule(this);
-    eckit::Log::info() << "SELECT DATUM: " << keys[2] << " - " << full << std::endl;
     visitor.selectDatum(keys[2], full);
 }
 
@@ -727,7 +725,6 @@ void RuleSecond::walkNextLevel(const Key& field,
                               Key& full) const {
 
     if (keys[1] != visitor.prev_[1]) {
-        eckit::Log::info() << "SELECT INDEX: " << keys[1] << " - " << full << std::endl;
         visitor.selectIndex(keys[1], full);
         visitor.prev_[1] = keys[1];
     }
@@ -764,7 +761,6 @@ void RuleFirst::walkNextLevel(const Key& field,
                               Key& full) const {
 
     if (keys[0] != visitor.prev_[0]) {
-        eckit::Log::info() << "SELECT DB: " << keys[0] << " - " << full << std::endl;
         visitor.selectDatabase(keys[0], full);
         visitor.prev_[0] = keys[0];
         visitor.prev_.clear();
