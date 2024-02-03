@@ -50,13 +50,19 @@ std::unique_ptr<fdb5::FieldLocation>& DaosLazyFieldLocation::realise() const {
 
     if (fl_) return fl_;
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
     /// @note: performed RPCs:
     /// - close index kv (daos_obj_close)
+    fdb5::StatsTimer st{"list 011 index kv get field location", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosSession s{};
     fdb5::DaosKeyValue index_kv{s, index_};
     daos_size_t size{index_kv.size(key_)};
     std::vector<char> v((long) size);
     index_kv.get(key_, &v[0], size);
+    st.stop();
 
     eckit::MemoryStream ms{&v[0], size};
 
