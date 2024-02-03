@@ -40,12 +40,6 @@ DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
 DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config) :
     Catalogue(Key(), controlIdentifiers, config), DaosCommon(config, "catalogue", uri) {
 
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-
-    fdb5::StatsTimer st{"list/wipe 006 db kv open and get db key", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
-
     // Read the real DB key into the DB base object
     fdb5::DaosSession s{};
     fdb5::DaosKeyValueName n{pool_, db_cont_, catalogue_kv_};
@@ -54,8 +48,6 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
     int db_key_max_len = 512;  /// @todo: take from config
     std::vector<char> dbkey_data((long) db_key_max_len);
     long res = db_kv.get("key", &dbkey_data[0], db_key_max_len);
-
-    st.stop();
 
     eckit::MemoryStream ms{&dbkey_data[0], (size_t) res};
     dbKey_ = fdb5::Key(ms);
@@ -103,10 +95,6 @@ void DaosCatalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool
 
 void DaosCatalogue::loadSchema() {
 
-    using namespace std::placeholders;
-    eckit::Timer& t = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-
     eckit::Timer timer("DaosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
 
     /// @note: performed RPCs:
@@ -114,14 +102,12 @@ void DaosCatalogue::loadSchema() {
     /// - daos_kv_open
     /// - daos_kv_get without a buffer
     /// - daos_kv_get
-    fdb5::StatsTimer st{"archive/retrieve 002 catalogue kv get schema", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValueName nkv{pool_, db_cont_, catalogue_kv_};
     fdb5::DaosSession s{};
     fdb5::DaosKeyValue kv{s, nkv};
     daos_size_t size = kv.size("schema");
     std::vector<char> v(size);
     kv.get("schema", v.data(), size);
-    t.stop();
 
     std::istringstream stream{std::string(v.begin(), v.end())};
     schema_.load(stream);
@@ -134,10 +120,6 @@ WipeVisitor* DaosCatalogue::wipeVisitor(const Store& store, const metkit::mars::
 
 std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
 
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-
     /// @todo: implement sorted
 
     fdb5::DaosKeyValueName catalogue_kv_name{pool_, db_cont_, catalogue_kv_};
@@ -146,24 +128,20 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
     /// @note: performed RPCs:
     /// - db kv open (daos_kv_open)
     /// - db kv list keys (daos_kv_list)
-    fdb5::StatsTimer st{"list/wipe 007 db kv open and list keys", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue catalogue_kv{s, catalogue_kv_name};  /// @note: throws if not exists
 
     std::vector<fdb5::Index> res;
 
     for (const auto& key : catalogue_kv.keys()) {
-        st.stop();
 
         if (key == "schema" || key == "key") continue;
 
         /// @note: performed RPCs:
         /// - db kv get index location size (daos_kv_get without a buffer)
         /// - db kv get index location (daos_kv_get)
-        st.start("list/wipe 008 db kv get index location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         daos_size_t size{catalogue_kv.size(key)};
         std::vector<char> v(size);
         catalogue_kv.get(key, v.data(), size);
-        st.stop();
 
         fdb5::DaosKeyValueName index_kv_name{eckit::URI(std::string(v.begin(), v.end()))};
 
@@ -171,7 +149,6 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
         /// - index kv open (daos_kv_open)
         /// - index kv get size (daos_kv_get without a buffer)
         /// - index kv get key (daos_kv_get)
-        st.start("list/wipe 009 index kv get key", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         /// @note: the following two lines intend to check whether the index kv exists 
         ///   or not. Attempting kv open will always succeed so it is not an option to
         ///   check existence.
@@ -182,7 +159,6 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
 
         std::vector<char> indexkey_data((long) size);
         index_kv.get("key", &indexkey_data[0], size);
-        st.stop();
 
         eckit::MemoryStream ms{&indexkey_data[0], size};
         fdb5::Key index_key(ms);
@@ -190,7 +166,6 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
         res.push_back(Index(new fdb5::DaosIndex(index_key, index_kv_name)));
 
     }
-    st.stop();
 
     return res;
     

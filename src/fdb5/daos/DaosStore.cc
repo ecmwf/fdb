@@ -120,10 +120,6 @@ eckit::DataHandle* DaosStore::retrieve(Field& field) const {
 
 std::unique_ptr<FieldLocation> DaosStore::archive(const Key &key, const void *data, eckit::Length length) {
 
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-
     //fdb5::DaosArrayName n = fdb5::DaosName(pool_, "store_" + db_str_ + "_" + key.valuesToString()).createArrayName(); // TODO: pass oclass from config
     //fdb5::DaosArrayName n = fdb5::DaosName(pool_, "store_" + db_str_).createArrayName(); // TODO: pass oclass from config
     /// @note: performed RPCs:
@@ -132,15 +128,11 @@ std::unique_ptr<FieldLocation> DaosStore::archive(const Key &key, const void *da
     /// - check if container exists if not cached (daos_cont_open) -- always skipped as it is cached after selectDatabase.
     ///   If the cat backend is toc, then it is performed but only on first write.
     /// - allocate oid (daos_cont_alloc_oids) -- skipped most of the times as oids per alloc is set to 100
-    fdb5::StatsTimer st{"archive 08 array alloc oid", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosArrayName n = fdb5::DaosName(pool_, db_str_).createArrayName(OC_S1, false); // TODO: pass oclass from config
-    st.stop();
 
     /// @note: performed RPCs:
     /// - daos_obj_generate_oid -- always performed
-    st.start("archive 09 array generate oid", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     n.generateOID();
-    st.stop();
 
     std::unique_ptr<eckit::DataHandle> h(n.dataHandle());
 
