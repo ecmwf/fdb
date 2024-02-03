@@ -563,10 +563,6 @@ CASE("DaosCatalogue tests") {
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
 
-        // test io statistics
-
-        fdb5::DaosManager::instance().stats().report(std::cout);
-
         // list all
 
         listObject = fdb.list(all_req);

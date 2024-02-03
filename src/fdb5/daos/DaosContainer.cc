@@ -74,12 +74,7 @@ void DaosContainer::create() {
 
     try {
 
-        using namespace std::placeholders;
-        eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
-        fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-        fdb5::StatsTimer st{"daos_cont_create_with_label", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
         DAOS_CALL(daos_cont_create_with_label(poh, label_.c_str(), NULL, NULL, NULL));
-        st.stop();
 
     } catch (fdb5::DaosEntityAlreadyExistsException& e) {}
 
@@ -93,13 +88,8 @@ void DaosContainer::open() {
 
     const daos_handle_t& poh = pool_.getOpenHandle();
 
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-    fdb5::StatsTimer st{"daos_cont_open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     DAOS_CALL(daos_cont_open(poh, label_.c_str(), DAOS_COO_RW, &coh_, NULL, NULL));
-    st.stop();
-    
+
     open_ = true;
 
 }
@@ -113,14 +103,7 @@ void DaosContainer::close() {
     
     // std::cout << "DAOS_CALL => daos_cont_close()" << std::endl;
 
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-    fdb5::StatsTimer st{"daos_cont_close", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
-
     int code = daos_cont_close(coh_, NULL);
-    
-    st.stop();
 
     if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_cont_close(), file " 
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
@@ -136,15 +119,9 @@ uint64_t DaosContainer::allocateOIDLo() {
 
     open();
 
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-
     if (oid_alloc_.num_oids == 0) {
         oid_alloc_.num_oids = fdb5::DaosSession().containerOidsPerAlloc();
-        fdb5::StatsTimer st{"daos_cont_alloc_oids", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
         DAOS_CALL(daos_cont_alloc_oids(coh_, oid_alloc_.num_oids + 1, &(oid_alloc_.next_oid), NULL));
-        st.stop();
     } else {
         ++oid_alloc_.next_oid;
         --oid_alloc_.num_oids;
@@ -162,12 +139,7 @@ fdb5::DaosOID DaosContainer::generateOID(const fdb5::DaosOID& oid) {
 
     daos_obj_id_t id(oid.asDaosObjIdT());
     
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-    fdb5::StatsTimer st{"daos_obj_generate_oid", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     DAOS_CALL(daos_obj_generate_oid(coh_, &id, oid.otype(), oid.oclass(), 0, 0));
-    st.stop();
 
     return fdb5::DaosOID{id.hi, id.lo};
 

@@ -44,11 +44,6 @@ Length DaosArrayPartHandle::openForRead() {
 
     mode_ = "retrieve";
 
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-    fdb5::StatsTimer st{"retrieve 09 array part handle array open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
-
     session_.reset(new fdb5::DaosSession());
 
     name_.generateOID();
@@ -67,11 +62,6 @@ long DaosArrayPartHandle::read(void* buf, long len) {
 
     ASSERT(open_);
 
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-    fdb5::StatsTimer st{"retrieve 10 array part handle array read", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
-
     /// @note: if the buffer is oversized, daos does not return the actual smaller size read,
     ///   so it is calculated here and returned to the user as expected
     eckit::Length s = size();
@@ -88,11 +78,6 @@ long DaosArrayPartHandle::read(void* buf, long len) {
 void DaosArrayPartHandle::close() {
 
     if (!open_) return;
-
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-    fdb5::StatsTimer st{mode_ + " 12 array part handle array close", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
     arr_->close();
 

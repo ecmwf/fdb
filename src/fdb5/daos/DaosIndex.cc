@@ -59,27 +59,19 @@ bool DaosIndex::mayContain(const Key &key) const {
 
 const IndexAxis& DaosIndex::updatedAxes() {
 
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-
     fdb5::DaosSession s{};
     const fdb5::DaosKeyValueName& index_kv_name = location_.daosName();
 
     /// @note: performed RPCs:
     /// - ensure axis kv exists (daos_obj_open)
-    fdb5::StatsTimer st{"retrieve xx0 index kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue index_kv{s, index_kv_name};
-    st.stop();
 
     int axis_names_max_len = 512;  /// @todo: take from config
     std::vector<char> axes_data((long) axis_names_max_len);
 
     /// @note: performed RPCs:
     /// - get axes key size and content (daos_kv_get without buffer + daos_kv_get)
-    st.start("retrieve xx1 index kv get axes", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     long res = index_kv.get("axes", &axes_data[0], axis_names_max_len);
-    st.stop();
 
     std::vector<std::string> axis_names;
     eckit::Tokenizer parse(",");
@@ -93,15 +85,11 @@ const IndexAxis& DaosIndex::updatedAxes() {
         /// @note: performed RPCs:
         /// - generate axis kv oid (daos_obj_generate_oid)
         /// - ensure axis kv exists (daos_obj_open)
-        st.start("retrieve xx2 axis kv open", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         fdb5::DaosKeyValue axis_kv{s, nkv};
-        st.stop();
 
         /// @note: performed RPCs:
         /// - one or more kv list (daos_kv_list)
-        st.start("retrieve xx3 axis kv list(s)", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         axes_.insert(name, axis_kv.keys());
-        st.stop();
     }
 
     return IndexBase::axes();
@@ -110,19 +98,13 @@ const IndexAxis& DaosIndex::updatedAxes() {
 
 bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-
     const fdb5::DaosKeyValueName& n = location_.daosName();
 
     fdb5::DaosSession s{};
 
     /// @note: performed RPCs:
     /// - ensure index kv exists (daos_obj_open)
-    fdb5::StatsTimer st{"retrieve 05 index kv open", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue index{s, n};
-    st.stop();
 
     std::string query{key.valuesToString()};
 
@@ -134,17 +116,12 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
         /// @note: performed RPCs:
         /// - retrieve field array location from index kv (daos_kv_get)
-        st.start("retrieve 06 index kv get field location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
         res = index.get(query, &loc_data[0], field_loc_max_len);
-        st.stop();
 
     } catch (fdb5::DaosEntityNotFoundException& e) {
 
-        st.stop();
-
         /// @note: performed RPCs:
         /// - close index kv (daos_obj_close)
-        st.start("retrieve 07 index kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
 
         return false;
 
@@ -161,17 +138,12 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
     /// @note: performed RPCs:
     /// - close index kv (daos_obj_close)
-    st.start("retrieve 07 index kv close", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
 
     return true;
 
 }
 
 void DaosIndex::add(const Key &key, const Field &field) {
-
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
 
     eckit::MemoryHandle h{(size_t) PATH_MAX};
     eckit::HandleStream hs{h};
@@ -203,16 +175,11 @@ void DaosIndex::add(const Key &key, const Field &field) {
     /// - ensure index kv exists (daos_obj_open)
     /// - record field key and location into index kv (daos_kv_put)
     /// - close index kv when destroyed (daos_obj_close)
-    fdb5::StatsTimer st{"archive 12 index kv put field location", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue{s, location_.daosName()}.put(key.valuesToString(), h.data(), hs.bytesWritten());   
 
 }
 
 void DaosIndex::entries(EntryVisitor &visitor) const {
-
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
     
     Index instantIndex(const_cast<DaosIndex*>(this));
 
@@ -224,11 +191,9 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
         /// @note: performed RPCs:
         /// - index kv open (daos_obj_open)
         /// - index kv list keys (daos_kv_list)
-        fdb5::StatsTimer st{"list 010 index kv open and list keys", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
         fdb5::DaosKeyValue index_kv{s, location_.daosName()};
 
         for (const auto& key : index_kv.keys()) {
-            st.stop();
 
             if (key == "axes" || key == "key") continue;
 
@@ -237,7 +202,6 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
             visitor.visitDatum(field, key);
 
         }
-        st.stop();
 
     }
 }

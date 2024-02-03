@@ -29,20 +29,14 @@ namespace fdb5 {
 DaosManager::DaosManager() : 
     containerOidsPerAlloc_(100),
     objectCreateCellSize_(1),
-    objectCreateChunkSize_(1048576),
-    stats_(std::string("FDB DAOS profiling ") + eckit::Main::hostname() + ":" + eckit::Translator<int, std::string>()(::getpid())) {
+    objectCreateChunkSize_(1048576) {
 
     dmgConfigFile_ = eckit::Resource<std::string>(
         "fdbDaosDmgConfigFile;$FDB_DAOS_DMG_CONFIG_FILE", dmgConfigFile_
     );
 
-    using namespace std::placeholders;
-    fdb5::StatsTimer st{"daos_init", daos_call_timer_, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats_, _1, _2)};
-
     // daos_init can be called multiple times. An internal reference count is maintained by the library
     DAOS_CALL(daos_init());
-
-    st.stop();
 
 }
 
@@ -52,12 +46,7 @@ DaosManager::~DaosManager() {
 
     // std::cout << "DAOS_CALL => daos_fini()" << std::endl;
 
-    using namespace std::placeholders;
-    fdb5::StatsTimer st{"daos_fini", daos_call_timer_, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats_, _1, _2)};
-
     int code = daos_fini();
-
-    st.stop();
     
     if (code < 0) eckit::Log::warning() << "DAOS error in call to daos_fini(), file " 
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
