@@ -42,24 +42,26 @@
 using namespace eckit::testing;
 using namespace eckit;
 
-static void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
+namespace {
+    void deldir(eckit::PathName& p) {
+        if (!p.exists()) {
+            return;
+        }
 
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
+        std::vector<eckit::PathName> files;
+        std::vector<eckit::PathName> dirs;
+        p.children(files, dirs);
 
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
+        for (auto& f : files) {
+            f.unlink();
+        }
+        for (auto& d : dirs) {
+            deldir(d);
+        }
 
-    p.rmdir();
-};
+        p.rmdir();
+    };
+}
 
 #ifdef fdb5_HAVE_DUMMY_DAOS
 eckit::TmpDir& tmp_dummy_daos_root() {

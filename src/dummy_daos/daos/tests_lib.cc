@@ -26,24 +26,28 @@
 #include "tests_lib.h"
 #include "../dummy_daos.h"
 
-static void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
+namespace{
+    void deldir(eckit::PathName& p) {
+        if (!p.exists()) {
+            return;
+        }
 
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
+        std::vector<eckit::PathName> files;
+        std::vector<eckit::PathName> dirs;
+        p.children(files, dirs);
 
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
+        for (auto& f : files) {
+            f.unlink();
+        }
+        for (auto& d : dirs) {
+            deldir(d);
+        }
 
-    p.rmdir();
-};
+        p.rmdir();
+    };
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 extern "C" {
 
@@ -223,5 +227,7 @@ int dmg_pool_destroy(const char *dmg_config_file,
     return 0;
 
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // extern "C"

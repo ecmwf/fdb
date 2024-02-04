@@ -35,30 +35,36 @@
 
 using eckit::PathName;
 
-static void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
+namespace {
+    void deldir(eckit::PathName& p) {
+        if (!p.exists()) {
+            return;
+        }
 
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
+        std::vector<eckit::PathName> files;
+        std::vector<eckit::PathName> dirs;
+        p.children(files, dirs);
 
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
+        for (auto& f : files) {
+            f.unlink();
+        }
+        for (auto& d : dirs) {
+            deldir(d);
+        }
 
-    p.rmdir();
-};
+        p.rmdir();
+    };
+}
 
 extern "C" {
+
+//----------------------------------------------------------------------------------------------------------------------
 
 typedef struct daos_handle_internal_t {
     PathName path;
 } daos_handle_internal_t;
+
+//----------------------------------------------------------------------------------------------------------------------
 
 int daos_init() {
     const char* argv[2] = {"dummy-daos-api", 0};
@@ -118,6 +124,7 @@ int daos_pool_connect(const char *pool, const char *sys, unsigned int flags,
 
 int daos_pool_disconnect(daos_handle_t poh, daos_event_t *ev) {
 
+    ASSERT(poh.impl);
     delete poh.impl;
 
     if (ev != NULL) NOTIMP;
@@ -129,6 +136,7 @@ int daos_pool_disconnect(daos_handle_t poh, daos_event_t *ev) {
 int daos_pool_list_cont(daos_handle_t poh, daos_size_t *ncont,
                         struct daos_pool_cont_info *cbuf, daos_event_t *ev) {
 
+    ASSERT(poh.impl);
     if (ev != NULL) NOTIMP;
 
     daos_size_t n(*ncont);
@@ -187,6 +195,8 @@ int daos_pool_list_cont(daos_handle_t poh, daos_size_t *ncont,
 
 int daos_cont_create_internal(daos_handle_t poh, uuid_t *uuid) {
 
+    ASSERT(poh.impl);
+
     /// @note: name generation copied from LocalPathName::unique. Ditched StaticMutex 
     ///        as dummy DAOS is not thread safe.
 
@@ -237,6 +247,8 @@ int daos_cont_create_internal(daos_handle_t poh, uuid_t *uuid) {
 ///        potentially racing container operations.
 
 int daos_cont_create(daos_handle_t poh, uuid_t *uuid, daos_prop_t *cont_prop, daos_event_t *ev) {
+
+    ASSERT(poh.impl);
 
     if (cont_prop != NULL && cont_prop->dpp_entries) {
 
@@ -290,6 +302,7 @@ int daos_cont_create_with_label(daos_handle_t poh, const char *label,
                                 daos_prop_t *cont_prop, uuid_t *uuid,
                                 daos_event_t *ev) {
 
+    ASSERT(poh.impl);
     if (cont_prop != NULL) NOTIMP;
     if (ev != NULL) NOTIMP;
 
@@ -352,6 +365,7 @@ int daos_cont_create_with_label(daos_handle_t poh, const char *label,
 
 int daos_cont_destroy(daos_handle_t poh, const char *cont, int force, daos_event_t *ev) {
 
+    ASSERT(poh.impl);
     if (force != 1) NOTIMP;
     if (ev != NULL) NOTIMP;
 
@@ -397,6 +411,7 @@ int daos_cont_destroy(daos_handle_t poh, const char *cont, int force, daos_event
 int daos_cont_open(daos_handle_t poh, const char *cont, unsigned int flags, daos_handle_t *coh,
                     daos_cont_info_t *info, daos_event_t *ev) {
 
+    ASSERT(poh.impl);
     if (flags != DAOS_COO_RW) NOTIMP;
     if (info != NULL) NOTIMP;
     if (ev != NULL) NOTIMP;
@@ -438,6 +453,7 @@ int daos_cont_open(daos_handle_t poh, const char *cont, unsigned int flags, daos
 
 int daos_cont_close(daos_handle_t coh, daos_event_t *ev) {
 
+    ASSERT(coh.impl);
     delete coh.impl;
 
     if (ev != NULL) NOTIMP;
@@ -451,6 +467,7 @@ int daos_cont_alloc_oids(daos_handle_t coh, daos_size_t num_oids, uint64_t *oid,
 
     static uint64_t next_oid = 0;
 
+    ASSERT(coh.impl);
     if (ev != NULL) NOTIMP;
     ASSERT(num_oids > (uint64_t) 0);
 
@@ -492,6 +509,7 @@ int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t *oid,
                           enum daos_otype_t type, daos_oclass_id_t cid,
                           daos_oclass_hints_t hints, uint32_t args) {
 
+    ASSERT(coh.impl);
     if (type != DAOS_OT_KV_HASHED && type != DAOS_OT_ARRAY && type != DAOS_OT_ARRAY_BYTE) NOTIMP;
     if (cid != OC_S1) NOTIMP;
     if (hints != 0) NOTIMP;
@@ -508,6 +526,7 @@ int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t *oid,
 int daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode,
                  daos_handle_t *oh, daos_event_t *ev) {
 
+    ASSERT(coh.impl);
     if (mode != DAOS_OO_RW) NOTIMP;
     if (ev != NULL) NOTIMP;
 
@@ -531,6 +550,7 @@ int daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode,
 
 int daos_kv_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (ev != NULL) NOTIMP;
 
@@ -551,6 +571,7 @@ int daos_kv_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t *ev) {
 
 int daos_obj_close(daos_handle_t oh, daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     delete oh.impl;
 
     if (ev != NULL) NOTIMP;
@@ -571,6 +592,7 @@ int daos_obj_close(daos_handle_t oh, daos_event_t *ev) {
 int daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
                 daos_size_t size, const void *buf, daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (flags != 0) NOTIMP;
     if (ev != NULL) NOTIMP;
@@ -588,6 +610,7 @@ int daos_kv_put(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
 int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *key,
                 daos_size_t *size, void *buf, daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (flags != 0) NOTIMP;
     if (ev != NULL) NOTIMP;
@@ -620,6 +643,7 @@ int daos_kv_get(daos_handle_t oh, daos_handle_t th, uint64_t flags, const char *
 int daos_kv_remove(daos_handle_t oh, daos_handle_t th, uint64_t flags,
                    const char *key, daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (flags != 0) NOTIMP;
     if (ev != NULL) NOTIMP;
@@ -638,6 +662,7 @@ int daos_kv_list(daos_handle_t oh, daos_handle_t th, uint32_t *nr,
                  daos_key_desc_t *kds, d_sg_list_t *sgl, daos_anchor_t *anchor,
                  daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     static std::vector<std::string> ongoing_req;
     static std::string req_hash;
     static unsigned long long n = (((unsigned long long)::getpid()) << 32);
@@ -743,6 +768,7 @@ int daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
                       daos_size_t cell_size, daos_size_t chunk_size,
                       daos_handle_t *oh, daos_event_t *ev) {
 
+    ASSERT(coh.impl);
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (ev != NULL) NOTIMP;
 
@@ -763,6 +789,7 @@ int daos_array_create(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
 
 int daos_array_destroy(daos_handle_t oh, daos_handle_t th, daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (ev != NULL) NOTIMP;
 
@@ -785,6 +812,7 @@ int daos_array_open(daos_handle_t coh, daos_obj_id_t oid, daos_handle_t th,
                     unsigned int mode, daos_size_t *cell_size,
                     daos_size_t *chunk_size, daos_handle_t *oh, daos_event_t *ev) {
 
+    ASSERT(coh.impl);
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (mode != DAOS_OO_RW) NOTIMP;
     if (ev != NULL) NOTIMP;
@@ -813,6 +841,7 @@ int daos_array_open_with_attr(daos_handle_t coh, daos_obj_id_t oid, daos_handle_
                               unsigned int mode, daos_size_t cell_size, daos_size_t chunk_size,
                               daos_handle_t *oh, daos_event_t *ev) {
 
+    ASSERT(coh.impl);
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (mode != DAOS_OO_RW) NOTIMP;
     if (ev != NULL) NOTIMP;
@@ -826,6 +855,7 @@ int daos_array_open_with_attr(daos_handle_t coh, daos_obj_id_t oid, daos_handle_
 
 int daos_array_close(daos_handle_t oh, daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     delete oh.impl;
 
     if (ev != NULL) NOTIMP;
@@ -840,6 +870,7 @@ int daos_array_close(daos_handle_t oh, daos_event_t *ev) {
 int daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
                      d_sg_list_t *sgl, daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (ev != NULL) NOTIMP;
 
@@ -876,6 +907,7 @@ int daos_array_write(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
 int daos_array_get_size(daos_handle_t oh, daos_handle_t th, daos_size_t *size,
                         daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (ev != NULL) NOTIMP;
 
@@ -888,6 +920,7 @@ int daos_array_get_size(daos_handle_t oh, daos_handle_t th, daos_size_t *size,
 int daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
                     d_sg_list_t *sgl, daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     if (th.impl != DAOS_TX_NONE.impl) NOTIMP;
     if (ev != NULL) NOTIMP;
 
@@ -919,6 +952,7 @@ int daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
 int daos_cont_create_snap_opt(daos_handle_t coh, daos_epoch_t *epoch, char *name,
                               enum daos_snapshot_opts opts, daos_event_t *ev) {
 
+    ASSERT(coh.impl);
     if (name != NULL) NOTIMP;
     if (opts != (DAOS_SNAP_OPT_CR | DAOS_SNAP_OPT_OIT)) NOTIMP;
     if (ev != NULL) NOTIMP;
@@ -971,6 +1005,7 @@ int daos_cont_create_snap_opt(daos_handle_t coh, daos_epoch_t *epoch, char *name
 int daos_cont_destroy_snap(daos_handle_t coh, daos_epoch_range_t epr,
                            daos_event_t *ev) {
 
+    ASSERT(coh.impl);
     if (epr.epr_hi != epr.epr_lo) NOTIMP;
     if (ev != NULL) NOTIMP;
 
@@ -990,6 +1025,7 @@ int daos_cont_destroy_snap(daos_handle_t coh, daos_epoch_range_t epr,
 int daos_oit_open(daos_handle_t coh, daos_epoch_t epoch,
                   daos_handle_t *oh, daos_event_t *ev) {
 
+    ASSERT(coh.impl);
     if (ev != NULL) NOTIMP;
 
     std::stringstream os;
@@ -1011,6 +1047,7 @@ int daos_oit_open(daos_handle_t coh, daos_epoch_t epoch,
 
 int daos_oit_close(daos_handle_t oh, daos_event_t *ev) {
 
+    ASSERT(oh.impl);
     delete oh.impl;
 
     if (ev != NULL) NOTIMP;
@@ -1026,6 +1063,7 @@ int daos_oit_list(daos_handle_t oh, daos_obj_id_t *oids, uint32_t *oids_nr,
     static std::string req_hash;
     static unsigned long long n = (((unsigned long long)::getpid()) << 32);
 
+    ASSERT(oh.impl);
     if (ev != NULL) NOTIMP;
 
     if (oids_nr == NULL) return -1;
@@ -1108,5 +1146,7 @@ int daos_oit_list(daos_handle_t oh, daos_obj_id_t *oids, uint32_t *oids_nr,
     return 0;
 
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // extern "C"

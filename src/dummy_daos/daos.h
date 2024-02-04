@@ -23,6 +23,8 @@
 #include <stdbool.h>
 #include <string.h>
 
+//----------------------------------------------------------------------------------------------------------------------
+
 #define DAOS_API_VERSION_MAJOR 2
 #define DAOS_API_VERSION_MINOR 0
 #define DAOS_API_VERSION_FIX 3
@@ -68,6 +70,8 @@
 
 #define DER_EXIST 1004
 #define DER_NONEXIST 1005
+
+//----------------------------------------------------------------------------------------------------------------------
 
 enum daos_otype_t {
     DAOS_OT_KV_HASHED = 8,
@@ -205,6 +209,8 @@ typedef struct {
     daos_epoch_t    epr_hi;
 } daos_epoch_range_t;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 /* functions */
 
 int daos_init(void);
@@ -314,6 +320,8 @@ int daos_oit_close(daos_handle_t oh, daos_event_t *ev);
 
 int daos_oit_list(daos_handle_t oh, daos_obj_id_t *oids, uint32_t *oids_nr,
                   daos_anchor_t *anchor, daos_event_t *ev);
+
+//----------------------------------------------------------------------------------------------------------------------
 
 #ifdef __cplusplus
 }  // extern "C"
