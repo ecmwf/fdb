@@ -92,8 +92,6 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
     try {
 
         fdb5::Manager mg{dbConfig_};
-        /// @todo: in POSIX backend, the set of possible visitable locations is first constructed 
-        ///   from the schema, and the resulting locations are checked against that set. Here that's not done
         std::vector<URI> uris(mg.visitableLocations(request.request(), request.all()));
 
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
@@ -102,16 +100,15 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
         for (URI uri : uris) {
 
-            /// @note: the schema of a URI returned by visitableLocations matches the corresponding Engine type name
-            fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
+            /// @note: the schema of a URI returned by visitableLocations 
+            ///   matches the corresponding Engine type name
+            // fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
 
-            eckit::URI db_uri = uri;
-            /// @todo: improve these checks. E.g. DB existence is checked twice
-            if (!ng.toExistingDBURI(db_uri, dbConfig_)) continue;
-            if (!ng.canHandle(db_uri, dbConfig_)) continue;
-            /// @todo: should any of these checks be rather performed in the *Catalogue constructors?
-
-            std::unique_ptr<DB> db = ng.buildReader(db_uri, dbConfig_);
+            /// @todo: since sanity checks on visitable URIs have been removed, 
+            ///   building the reader should be try{}ed, and catch any
+            ///   fdb5::DaosEntityNotFoundException or FileNotFoundException, 
+            ///   and continue. May require an Engine instance on each iteration.
+            std::unique_ptr<DB> db = DB::buildReader(uri, dbConfig_);
             ASSERT(db->open());
             eckit::AutoCloser<DB> closer(*db);
 

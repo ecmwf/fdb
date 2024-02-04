@@ -131,29 +131,6 @@ bool TocEngine::canHandle(const eckit::URI& uri, const Config& config) const
     return path.isDir() && toc.exists();
 }
 
-std::unique_ptr<DB> TocEngine::buildReader(const eckit::URI& uri, const Config& config) const {
-
-    Log::debug<LibFdb5>() << "FDB processing TOC DB at  " << uri << std::endl;
-
-    return DB::buildReader(uri, config);
-
-}
-
-bool TocEngine::toExistingDBURI(eckit::URI& uri, const Config& config) const {
-
-    PathName path(uri.path());
-
-    if (!path.exists()) return false;
-
-    if (!path.isDir())
-        path = path.dirName();
-    path = path.realName();
-
-    uri = eckit::URI(uri.scheme(), path);
-    return true;
-
-}
-
 static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
