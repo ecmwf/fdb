@@ -31,10 +31,13 @@
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 /// @todo: Use std::map<std::string, fdb5::DaosPool>
 /// @todo: Offload caching to manager?
 using PoolCache = std::deque<fdb5::DaosPool>;
 
+/// @todo: move to a separate file
 class DaosManager : private eckit::NonCopyable {
 
 public: // methods
@@ -72,8 +75,27 @@ private: // members
     std::recursive_mutex mutex_;
     PoolCache pool_cache_;
 
-    int containerOidsPerAlloc_;
+    /// @note: sets number of OIDs allocated in a single daos_cont_alloc_oids call
+    int containerOidsPerAlloc_;  
+    /// @note: number of bytes per cell in a DAOS object
+    /// @note: cell size is the unit of atomicity / update. If the object
+    ///   will always be updated or read in elements of e.g. 64k, then 64k
+    ///   can be used as the cell size. Then, that 64k element cannot be
+    ///   partially updated anymore. 
     uint64_t objectCreateCellSize_;
+    /// @note: number of cells of per dkey in a DAOS object
+    /// @note: the chunk size maps to how many cells to put under 1 dkey. 
+    ///   So it also controls the RPC size. It should not really be something 
+    ///   very small otherwise it might create a lot of RPCs. If not 
+    ///   using redundancy (SX), setting it to something as equal or a multiple
+    ///   of the most common transfer size is OK. the default is 1 MiB which is 
+    ///   usually OK. If using EC, it gets more tricky as the EC cell size and 
+    ///   transfer size come into play and break that even more and can cause 
+    ///   overhead on the client side. Ideally, set both to the same as the IO 
+    ///   size, but that is not always possible because the EC cell size is 
+    ///   only changed per container, vs the chunk and transfer size that can 
+    ///   vary per object / file. That may be changed in DAOS to allow more 
+    ///   flexibility
     uint64_t objectCreateChunkSize_;
 
 #ifdef fdb5_HAVE_DAOS_ADMIN

@@ -114,6 +114,8 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
 
     for (const auto& key : catalogue_kv.keys()) {
 
+        /// @todo: document these well. Single source these reserved values.
+        ///    Ensure where appropriate that user-provided keys do not collide.
         if (key == "schema" || key == "key") continue;
 
         /// @note: performed RPCs:
@@ -129,9 +131,11 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
         /// - index kv open (daos_kv_open)
         /// - index kv get size (daos_kv_get without a buffer)
         /// - index kv get key (daos_kv_get)
-        /// @note: the following two lines intend to check whether the index kv exists 
-        ///   or not. Attempting kv open will always succeed so it is not an option to
-        ///   check existence.
+        /// @note: the following three lines intend to check whether the index kv exists 
+        ///   or not. The DaosKeyValue constructor calls kv open, which always succeeds,
+        ///   so it is not useful on its own to check whether the index KV existed or not.
+        ///   Instead, presence of a "key" key in the KV is used to determine if the index 
+        ///   KV existed.
         fdb5::DaosKeyValue index_kv{s, index_kv_name};
         size = index_kv.size("key");
         /// @todo: the index_kv may exist even if it does not have the "key" key
