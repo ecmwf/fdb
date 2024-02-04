@@ -49,7 +49,7 @@ public: // methods
 protected: // methods
 
     virtual const IndexLocation& location() const { return location_; }
-    virtual const std::vector<eckit::PathName> dataPaths() const override;
+    virtual const std::vector<eckit::URI> dataURIs() const override;
 
     virtual bool dirty() const;
 
