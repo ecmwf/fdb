@@ -72,12 +72,6 @@ ecbuild_add_option( FEATURE FDB_REMOTE
 
 find_package(UUID QUIET)
 
-#message(UUID_FOUND="${UUID_FOUND}")
-#message(UUID_INCLUDE_DIRS)
-#message("${UUID_INCLUDE_DIRS}")
-#message(UUID_LIBRARIES)
-#message("${UUID_LIBRARIES}")
-
 find_package(DAOS QUIET)
 
 set(_default_dummy_daos ON)
@@ -94,43 +88,23 @@ if(HAVE_DUMMY_DAOS)
     set(DAOS_LIBRARIES dummy_daos)
     set(DAOS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
     set(DAOS_FOUND TRUE)
+    set(DAOS_TESTS_LIBRARIES dummy_daos_tests)
+    set(DAOS_TESTS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
+    set(DAOS_TESTS_FOUND TRUE)
 endif()
-
-#message(DAOS_FOUND="${DAOS_FOUND}")
-#message(DAOS_INCLUDE_DIRS)
-#message("${DAOS_INCLUDE_DIRS}")
-#message(DAOS_LIBRARIES)
-#message("${DAOS_LIBRARIES}")
-#
-#message(DAOS_TESTS_FOUND="${DAOS_TESTS_FOUND}")
-#message(DAOS_TESTS_INCLUDE_DIRS)
-#message("${DAOS_TESTS_INCLUDE_DIRS}")
-#message(DAOS_TESTS_LIBRARIES)
-#message("${DAOS_TESTS_LIBRARIES}")
 
 ecbuild_add_option( FEATURE DAOSFDB
                     CONDITION DAOS_FOUND AND UUID_FOUND 
                     DEFAULT ON
                     DESCRIPTION "DAOS support for FDB Store" )
 
-set(_default_daos_admin OFF)
-if(HAVE_DUMMY_DAOS)
-    set(_default_daos_admin ON)
-endif()
-
 ecbuild_add_option( FEATURE DAOS_ADMIN
-                    DEFAULT ${_default_daos_admin}
-                    CONDITION HAVE_DAOSFDB AND (HAVE_DUMMY_DAOS OR DAOS_TESTS_FOUND)
+                    DEFAULT OFF
+                    CONDITION HAVE_DAOSFDB AND DAOS_TESTS_FOUND
                     DESCRIPTION "Add features for DAOS pool management. Removes need to manually create a pool for DAOS unit tests" )
 
 # DAOS_TESTS is a daos admin library, usually not present
-if(HAVE_DAOS_ADMIN)
-    if(HAVE_DUMMY_DAOS)
-        set(DAOS_TESTS_LIBRARIES dummy_daos_tests)
-        set(DAOS_TESTS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src/dummy_daos)
-        set(DAOS_TESTS_FOUND TRUE)
-    endif()
-else()
+if(NOT HAVE_DAOS_ADMIN)
     set( DAOS_TESTS_LIBRARIES "" )
     set( DAOS_TESTS_INCLUDE_DIRS "" )
 endif()

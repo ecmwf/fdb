@@ -916,58 +916,6 @@ int daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
 
 }
 
-daos_prop_t* daos_prop_alloc(uint32_t entries_nr) {
-
-    daos_prop_t *prop;
-
-    if (entries_nr > DAOS_PROP_ENTRIES_MAX_NR) {
-        eckit::Log::error() << "Too many property entries requested.";
-        return NULL;
-    }
-
-    D_ALLOC_PTR(prop);
-    if (prop == NULL)
-        return NULL;
-
-    if (entries_nr > 0) {
-        D_ALLOC_ARRAY(prop->dpp_entries, entries_nr);
-        if (prop->dpp_entries == NULL) {
-            D_FREE(prop);
-            return NULL;
-        }
-    }
-    prop->dpp_nr = entries_nr;
-    return prop;
-
-}
-
-void daos_prop_fini(daos_prop_t *prop) {
-    int i;
-
-    if (!prop->dpp_entries)
-        goto out;
-
-    for (i = 0; i < prop->dpp_nr; i++) {
-        struct daos_prop_entry *entry;
-
-        entry = &prop->dpp_entries[i];
-        if (entry->dpe_type != DAOS_PROP_PO_LABEL) NOTIMP;
-        D_FREE(entry->dpe_str);
-    }
-
-    D_FREE(prop->dpp_entries);
-out:
-    prop->dpp_nr = 0;
-}
-
-void daos_prop_free(daos_prop_t *prop) {
-    if (prop == NULL)
-        return;
-
-    daos_prop_fini(prop);
-    D_FREE(prop);
-}
-
 int daos_cont_create_snap_opt(daos_handle_t coh, daos_epoch_t *epoch, char *name,
                               enum daos_snapshot_opts opts, daos_event_t *ev) {
 

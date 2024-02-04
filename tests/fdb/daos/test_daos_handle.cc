@@ -175,11 +175,21 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
     fdb5::AutoPoolDestroy destroyer(pool);
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
 #else
+  #ifdef fdb5_HAVE_DUMMY_DAOS
+    std::string pool_uuid{"00000000-0000-0000-0000-000000000001"};
+    std::string pool_name{"test_pool_2"};
+    (tmp_dummy_daos_root() / pool_uuid).mkdir();
+    ::symlink(
+        (tmp_dummy_daos_root() / pool_uuid).path().c_str(), 
+        (tmp_dummy_daos_root() / pool_name).path().c_str()
+    );
+  #else
     std::string pool_name;
     pool_name = eckit::Resource<std::string>(
         "fdbDaosTestPool;$FDB_DAOS_TEST_POOL", pool_name
     );
     EXPECT(pool_name.length() > 0);
+  #endif
     fdb5::DaosPool& pool = s.getPool(pool_name); 
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
     fdb5::AutoContainerDestroy destroyer(cont);
@@ -491,11 +501,21 @@ CASE( "DaosName and DaosHandle workflows" ) {
     fdb5::AutoPoolDestroy destroyer(pool);
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
 #else
+  #ifdef fdb5_HAVE_DUMMY_DAOS
+    std::string pool_uuid{"00000000-0000-0000-0000-000000000002"};
+    std::string pool_name{"test_pool_3"};
+    (tmp_dummy_daos_root() / pool_uuid).mkdir();
+    ::symlink(
+        (tmp_dummy_daos_root() / pool_uuid).path().c_str(), 
+        (tmp_dummy_daos_root() / pool_name).path().c_str()
+    );
+  #else
     std::string pool_name;
     pool_name = eckit::Resource<std::string>(
         "fdbDaosTestPool;$FDB_DAOS_TEST_POOL", pool_name
     );
     EXPECT(pool_name.length() > 0);
+  #endif
     fdb5::DaosPool& pool = s.getPool(pool_name); 
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
     fdb5::AutoContainerDestroy destroyer(cont);

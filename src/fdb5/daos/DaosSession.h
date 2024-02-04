@@ -75,7 +75,10 @@ private: // members
     int containerOidsPerAlloc_;
     uint64_t objectCreateCellSize_;
     uint64_t objectCreateChunkSize_;
+
+#ifdef fdb5_HAVE_DAOS_ADMIN
     std::string dmgConfigFile_;
+#endif
 
 };
 
@@ -131,7 +134,10 @@ public: // methods
     int containerOidsPerAlloc() const { return DaosManager::instance().containerOidsPerAlloc_; };
     uint64_t objectCreateCellSize() const { return DaosManager::instance().objectCreateCellSize_; };
     uint64_t objectCreateChunkSize() const { return DaosManager::instance().objectCreateChunkSize_; };
+
+#ifdef fdb5_HAVE_DAOS_ADMIN
     std::string dmgConfigFile() const { return DaosManager::instance().dmgConfigFile_; };
+#endif
 
 private: // methods
 

@@ -14,8 +14,7 @@
  * @date   Jun 2022
  */
 
-#ifndef fdb5_dummy_daos_dummy_daos_H
-#define fdb5_dummy_daos_dummy_daos_H
+#pragma once
 
 #include "daos.h"
 
@@ -26,5 +25,3 @@ using eckit::PathName;
 const PathName& dummy_daos_root();
 
 const PathName& dummy_daos_get_handle_path(daos_handle_t handle);
-
-#endif /* fdb5_dummy_daos_dummy_daos_H */

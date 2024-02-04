@@ -14,8 +14,7 @@
  * @date   Jun 2022
  */
 
-#ifndef fdb5_dummy_daos_daos_H
-#define fdb5_dummy_daos_daos_H
+#pragma once
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -58,11 +57,6 @@
 #define DAOS_TX_NONE (daos_handle_t){NULL}
 #define DAOS_PROP_LABEL_MAX_LEN (127)
 #define DAOS_PROP_ENTRIES_MAX_NR (128)
-
-#define D_ALLOC_ARRAY(ptr, count) (ptr) = (__typeof__(ptr))calloc((count), (sizeof(*ptr)));
-#define D_ALLOC_PTR(ptr) D_ALLOC_ARRAY(ptr, 1)
-#define D_FREE(ptr) ({ free(ptr); (ptr) = NULL; })
-#define D_STRNDUP(ptr, s, n) (ptr) = strndup(s, n);
 
 #define DAOS_ANCHOR_BUF_MAX 104
 #define DAOS_ANCHOR_INIT {            \
@@ -307,10 +301,6 @@ int daos_array_get_size(daos_handle_t oh, daos_handle_t th, daos_size_t *size,
 int daos_array_read(daos_handle_t oh, daos_handle_t th, daos_array_iod_t *iod,
                     d_sg_list_t *sgl, daos_event_t *ev);
 
-daos_prop_t* daos_prop_alloc(uint32_t entries_nr);
-
-void daos_prop_free(daos_prop_t *prop);
-
 int daos_cont_create_snap_opt(daos_handle_t coh, daos_epoch_t *epoch, char *name,
                               enum daos_snapshot_opts opts, daos_event_t *ev);
 
@@ -328,6 +318,4 @@ int daos_oit_list(daos_handle_t oh, daos_obj_id_t *oids, uint32_t *oids_nr,
 #ifdef __cplusplus
 }  // extern "C"
 #endif
-
-#endif /* fdb5_dummy_daos_daos_H */
 

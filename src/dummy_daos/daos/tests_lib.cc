@@ -47,6 +47,58 @@ static void deldir(eckit::PathName& p) {
 
 extern "C" {
 
+daos_prop_t* daos_prop_alloc(uint32_t entries_nr) {
+
+    daos_prop_t *prop;
+
+    if (entries_nr > DAOS_PROP_ENTRIES_MAX_NR) {
+        eckit::Log::error() << "Too many property entries requested.";
+        return NULL;
+    }
+
+    D_ALLOC_PTR(prop);
+    if (prop == NULL)
+        return NULL;
+
+    if (entries_nr > 0) {
+        D_ALLOC_ARRAY(prop->dpp_entries, entries_nr);
+        if (prop->dpp_entries == NULL) {
+            D_FREE(prop);
+            return NULL;
+        }
+    }
+    prop->dpp_nr = entries_nr;
+    return prop;
+
+}
+
+void daos_prop_fini(daos_prop_t *prop) {
+    int i;
+
+    if (!prop->dpp_entries)
+        goto out;
+
+    for (i = 0; i < prop->dpp_nr; i++) {
+        struct daos_prop_entry *entry;
+
+        entry = &prop->dpp_entries[i];
+        if (entry->dpe_type != DAOS_PROP_PO_LABEL) NOTIMP;
+        D_FREE(entry->dpe_str);
+    }
+
+    D_FREE(prop->dpp_entries);
+out:
+    prop->dpp_nr = 0;
+}
+
+void daos_prop_free(daos_prop_t *prop) {
+    if (prop == NULL)
+        return;
+
+    daos_prop_fini(prop);
+    D_FREE(prop);
+}
+
 /// @note: pools are implemented as directories. Upon creation, a new random and unique string 
 ///        is generated, a pool UUID is generated from that string, and a directory is created
 ///        with the UUID as directory name. If a label is specified, a symlink is created with 

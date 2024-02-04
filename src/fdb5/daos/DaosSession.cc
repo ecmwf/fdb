@@ -31,9 +31,11 @@ DaosManager::DaosManager() :
     objectCreateCellSize_(1),
     objectCreateChunkSize_(1048576) {
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
     dmgConfigFile_ = eckit::Resource<std::string>(
         "fdbDaosDmgConfigFile;$FDB_DAOS_DMG_CONFIG_FILE", dmgConfigFile_
     );
+#endif
 
     // daos_init can be called multiple times. An internal reference count is maintained by the library
     DAOS_CALL(daos_init());
@@ -71,7 +73,10 @@ void DaosManager::configure(const eckit::LocalConfiguration& config) {
     containerOidsPerAlloc_ = config.getInt("container_oids_per_alloc", containerOidsPerAlloc_);
     objectCreateCellSize_ = config.getInt64("object_create_cell_size", objectCreateCellSize_);
     objectCreateChunkSize_ = config.getInt64("object_create_chunk_size", objectCreateChunkSize_);
+
+#ifdef fdb5_HAVE_DAOS_ADMIN
     dmgConfigFile_ = config.getString("dmg_config_file", dmgConfigFile_);
+#endif
 
 };
 

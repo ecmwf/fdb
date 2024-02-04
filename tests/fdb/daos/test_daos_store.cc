@@ -155,7 +155,7 @@ CASE("DaosStore tests") {
     // test parameters
 
     int container_oids_per_alloc = 1000;
-#ifdef fdb5_HAVE_DAOS_ADMIN
+#if defined(fdb5_HAVE_DAOS_ADMIN) || defined(fdb5_HAVE_DUMMY_DAOS)
     std::string pool_name{"fdb_pool"};
 #else
     std::string pool_name;
@@ -178,6 +178,14 @@ CASE("DaosStore tests") {
 #ifdef fdb5_HAVE_DAOS_ADMIN
         fdb5::DaosPool& pool = s.createPool(pool_name);
 #else
+  #ifdef fdb5_HAVE_DUMMY_DAOS
+        std::string pool_uuid_str{"00000000-0000-0000-0000-000000000003"};
+        (tmp_dummy_daos_root() / pool_uuid_str).mkdir();
+        ::symlink(
+            (tmp_dummy_daos_root() / pool_uuid_str).path().c_str(), 
+            (tmp_dummy_daos_root() / pool_name).path().c_str()
+        );
+  #endif
         fdb5::DaosPool& pool = s.getPool(pool_name);
 #endif
         pool.uuid(pool_uuid);
