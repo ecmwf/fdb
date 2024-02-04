@@ -73,26 +73,6 @@ const Schema& DaosCatalogue::schema() const {
 
 }
 
-void DaosCatalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {
-
-    std::vector<Index> all = indexes(sorted);
-    // Allow the visitor to selectively reject this DB.
-    if (visitor.visitDatabase(*this, store)) {
-        if (visitor.visitIndexes()) {
-            for (const Index& idx : all) {
-                if (visitor.visitEntries()) {
-                    idx.entries(visitor); // contains visitIndex
-                } else {
-                    visitor.visitIndex(idx);
-                }
-            }
-        }
-
-        visitor.catalogueComplete(*this);
-    }
-
-}
-
 void DaosCatalogue::loadSchema() {
 
     eckit::Timer timer("DaosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
