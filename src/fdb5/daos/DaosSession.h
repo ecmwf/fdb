@@ -42,8 +42,6 @@ class DaosManager : private eckit::NonCopyable {
 
 public: // methods
 
-    /// @todo: set configuration where relvant in unit tests
-    /// @todo: unit tests for config
     static DaosManager& instance() {
         static DaosManager instance;
         return instance;
@@ -53,18 +51,9 @@ public: // methods
 
     void configure(const eckit::LocalConfiguration&);
 
-    // int containerOidsPerAlloc() const { return containerOidsPerAlloc_; };
-    // uint64_t objectCreateCellSize() const { return objectCreateCellSize_; };
-    // uint64_t objectCreateChunkSize() const { return objectCreateChunkSize_; };
-    // std::string dmgConfigFile() const { return dmgConfigFile_; };
-
 private: // methods
 
     DaosManager();
-
-    /// @todo: should configure here with LibFdb5 default config, for cases where DaosManager is never configured?
-    //       I would say No. fdb5 classes should always configure Daos including configuration from LibFdb5 default config.
-    //       Daos* classes should not depend on fdb5 configuration if used independently.
 
     ~DaosManager();
 
@@ -165,11 +154,6 @@ private: // methods
 
     PoolCache::iterator getCachedPool(uuid_t);
     PoolCache::iterator getCachedPool(const std::string&);
-
-// #ifdef fdb5_HAVE_DAOS_ADMIN
-    // void closePool(uuid_t);
-    // void destroyPoolContainers(uuid_t);
-// #endif
 
 private: // members
 

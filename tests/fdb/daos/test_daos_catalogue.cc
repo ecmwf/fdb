@@ -640,11 +640,11 @@ CASE("DaosCatalogue tests") {
         while (listObject.next(info)) count++;
         EXPECT(count == 0);
 
-        // /// @todo: ensure index and corresponding container do not exist
-        // /// @todo: ensure DB still exists
-        // /// @todo: list db or index and expect count = 0?
+        /// @todo: ensure index and corresponding container do not exist
+        /// @todo: ensure DB still exists
+        /// @todo: list db or index and expect count = 0?
 
-        // /// @todo: ensure new DaosSession has updated daos client config
+        /// @todo: ensure new DaosSession has updated daos client config
 
     }
 

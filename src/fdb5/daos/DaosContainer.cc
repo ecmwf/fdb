@@ -44,21 +44,6 @@ DaosContainer::~DaosContainer() {
 
 }
 
-// DaosContainer& DaosContainer::operator=(DaosContainer&& other) noexcept {
-// 
-// this is destroying other.pool_!
-//     pool_ = other.pool_;
-//     label_ = std::move(other.label_);
-//     coh_ = std::move(other.coh_);
-//     open_ = other.open_;
-//     oid_alloc_ = std::move(other.oid_alloc_);
-// 
-//     other.open_ = false;
-// 
-//     return *this;
-// 
-// }
-
 void DaosContainer::create() {
 
     /// @todo: not sure what to do here. Should probably keep track of whether 
@@ -241,7 +226,6 @@ const daos_handle_t& DaosContainer::getOpenHandle() {
 
 bool DaosContainer::exists() {
 
-    /// @todo: implement this with more appropriate DAOS API functions
     try {
 
         open();

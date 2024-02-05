@@ -100,7 +100,7 @@ WipeVisitor* DaosCatalogue::wipeVisitor(const Store& store, const metkit::mars::
 
 std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
 
-    /// @todo: implement sorted
+    /// @note: sorted is not implemented as is not necessary in this backend.
 
     fdb5::DaosKeyValueName catalogue_kv_name{pool_, db_cont_, catalogue_kv_};
     fdb5::DaosSession s{};

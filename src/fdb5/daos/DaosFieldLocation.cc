@@ -83,7 +83,6 @@ class DaosURIManager : public eckit::URIManager {
         
     }
 
-    /// @todo: implement DaosName::partHandle
     virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
 
         if (fdb5::DaosName(f).OID().otype() != DAOS_OT_ARRAY) NOTIMP;

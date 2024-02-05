@@ -76,7 +76,7 @@ DaosPool& DaosPool::operator=(DaosPool&& other) noexcept {
 #ifdef fdb5_HAVE_DAOS_ADMIN
 void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
 
-    // "Cannot create a pool with a user-specified UUID."
+    /// @note: cannot create a pool with a user-specified UUID
     ASSERT(!known_uuid_);
 
     /// @todo: ensure deallocation. Either try catch or make a wrapper.
@@ -245,7 +245,7 @@ void DaosPool::destroyContainer(const std::string& label) {
 
 }
 
-// indended for DaosPool::close()
+/// @note: indended for DaosPool::close()
 void DaosPool::closeContainers() {
 
     std::map<std::string, fdb5::DaosContainer>::iterator it;
@@ -297,7 +297,8 @@ bool DaosPool::exists() {
 
 std::string DaosPool::name() const {
 
-    // "Cannot generate a name for an unidentified pool. Either create it or provide a label upon construction."
+    /// @note: cannot generate a name for an unidentified pool. 
+    ///   Either create it or provide a label upon construction.
     ASSERT(label_.size() > 0 || known_uuid_);
 
     if (label_.size() > 0) return label_;

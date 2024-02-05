@@ -158,7 +158,7 @@ public: // methods
 
     const IndexAxis& axes() const { return content_->axes(); }
     /// @note: intended for accessing axes from ListVisitor. Will retrieve axis info from 
-    ///   storage if necessary (e.g. in DAOS back-end).
+    ///   storage if applicable (e.g. in DAOS back-end). axes() only checks what's in memory.
     const IndexAxis& updatedAxes() { return content_->updatedAxes(); }
     const Key& key() const { return content_->key(); }
 

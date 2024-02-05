@@ -38,8 +38,6 @@ public: // methods
     DaosContainer(DaosContainer&&) noexcept;
     ~DaosContainer();
 
-    // DaosContainer& operator=(DaosContainer&&) noexcept;
-
     void open();
     void close();
 

@@ -25,16 +25,9 @@
 namespace fdb5 {
 
 std::unique_ptr<Store> Catalogue::buildStore() {
-    if (buildByKey_)
-        return StoreFactory::instance().build(schema(), key(), config_);
-    else {
-        std::string name = config_.getString("store", "file");
-        bool types_coincide = (name == "file" && type() == "toc") || (name == type());
-        // TODO: could be removed together with buildByKey_ and all Store constructors taking a URI (and StoreFactory::build(..., uri, ...))
-        //if (types_coincide)
-        //    return StoreFactory::instance().build(schema(), eckit::URI(name, uri()), config_);
-        return StoreFactory::instance().build(schema(), key(), config_);
-    }
+    /// @todo: buildByKey_ and all Store constructors taking a URI 
+    ///   (and StoreFactory::build(..., uri, ...)) can be removed
+    return StoreFactory::instance().build(schema(), key(), config_);
 }
 
 void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {

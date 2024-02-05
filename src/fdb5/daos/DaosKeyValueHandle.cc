@@ -42,12 +42,12 @@ void DaosKeyValueHandle::openForWrite(const Length& len) {
 
     session_.reset(new fdb5::DaosSession());
 
-    // TODO: alternatively call name_.create() and the like
+    /// @todo: alternatively call name_.create() and the like
     fdb5::DaosPool& p = session_->getPool(name_.poolName());
     fdb5::DaosContainer& c = p.ensureContainer(name_.contName());
 
-    // TODO: optionally remove this, as name_.OID() and OID generation are
-    //       triggered as part of DaosArray constructors.
+    /// @todo: optionally remove this, as name_.OID() and OID generation are
+    ///   triggered as part of DaosArray constructors.
     name_.generateOID();
     
     /// @note: only way to check kv existence without generating a snapshot is
@@ -122,15 +122,13 @@ void DaosKeyValueHandle::close() {
 
 void DaosKeyValueHandle::flush() {
 
-    // TODO: should flush require closing?
-    // empty implmenetation
+    /// @todo: should flush require closing?
+
+    /// empty implmenetation
 
 }
 
 Length DaosKeyValueHandle::size() {
-
-    // TODO: reset session and kv here
-    // TODO: here and in other methods, avoid resetting session and kv if already set
 
     name_.generateOID();
 

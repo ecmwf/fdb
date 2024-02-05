@@ -51,7 +51,7 @@ std::unique_ptr<fdb5::FieldLocation>& DaosLazyFieldLocation::realise() const {
     if (fl_) return fl_;
 
     /// @note: performed RPCs:
-    /// - close index kv (daos_obj_close)
+    /// - index kv get (daos_kv_get)
     fdb5::DaosSession s{};
     fdb5::DaosKeyValue index_kv{s, index_};
     daos_size_t size{index_kv.size(key_)};

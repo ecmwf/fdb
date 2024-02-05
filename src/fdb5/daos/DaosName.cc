@@ -33,9 +33,8 @@ DaosNameBase::DaosNameBase(const std::string& pool, const std::string& cont, con
 
 DaosNameBase::DaosNameBase(const eckit::URI& uri)  {
 
-    /// @todo: find format for documenting inputs
-    // Inputs:
-    //   uri: daos:pool[/cont[/oidhi.oidlo]]
+    /// @note: uri expects a string with the following format:
+    ///   daos:pool[/cont[/oidhi.oidlo]]
 
     ASSERT(uri.scheme() == "daos");
     ASSERT(uri.query() == std::string());
@@ -90,7 +89,7 @@ void DaosNameBase::generateOID() const {
 /// @todo: the otype parameter is unnecessary
 std::unique_ptr<fdb5::DaosObject> DaosNameBase::buildObject(const daos_otype_t& otype, fdb5::DaosSession& s) const {
 
-    // will throw DaosEntityNotFoundException if not exists
+    /// @note: will throw DaosEntityNotFoundException if not exists
     if (otype == DAOS_OT_ARRAY || otype == DAOS_OT_ARRAY_BYTE)
         return std::unique_ptr<fdb5::DaosObject>(new fdb5::DaosArray{s, *this});
     if (otype == DAOS_OT_KV_HASHED) return std::unique_ptr<fdb5::DaosObject>(new fdb5::DaosKeyValue{s, *this});
@@ -289,14 +288,12 @@ DaosArrayName::DaosArrayName(const fdb5::DaosArray& arr) : DaosNameBase(arr) {}
 
 eckit::DataHandle* DaosArrayName::dataHandle(bool overwrite) const {
 
-    /// @todo: OK to serialise pointers in DaosName?
     return new fdb5::DaosArrayHandle(*this);
 
 }
 
 eckit::DataHandle* DaosArrayName::dataHandle(const eckit::Offset& off, const eckit::Length& len) const {
 
-    /// @todo: OK to serialise pointers in DaosName?
     return new fdb5::DaosArrayPartHandle(*this, off, len);
 
 }

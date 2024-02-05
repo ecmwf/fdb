@@ -341,9 +341,6 @@ CASE("DaosStore tests") {
 
         // deindex data
 
-        /// @todo: the db_key.request passed to wipeVisitor is stored in the 
-        ///        request_ member of WipeVisitor. On ngio, when that member is
-        ///        accessed from TocWipeVisitor::visitDatabase a segfault occurs
         {
             fdb5::TocCatalogueWriter tcat{db_key, config};
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);

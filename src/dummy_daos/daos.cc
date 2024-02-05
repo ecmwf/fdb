@@ -523,6 +523,8 @@ int daos_obj_generate_oid(daos_handle_t coh, daos_obj_id_t *oid,
 
 }
 
+/// @note: real daos_kv_open does not involve RPC whereas dummy daos requires
+///   interaction with the file system
 int daos_kv_open(daos_handle_t coh, daos_obj_id_t oid, unsigned int mode,
                  daos_handle_t *oh, daos_event_t *ev) {
 

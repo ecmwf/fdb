@@ -53,16 +53,16 @@ public: // methods
     virtual bool canSeek() const override;
     // virtual void skip(const eckit::Length&) override;
 
-//     //virtual void rewind() override;
-//     //virtual void restartReadFrom(const Offset&) override;
-//     //virtual void restartWriteFrom(const Offset&) override;
+    // virtual void rewind() override;
+    // virtual void restartReadFrom(const Offset&) override;
+    // virtual void restartWriteFrom(const Offset&) override;
 
     virtual std::string title() const override;
 
-//     //virtual void encode(Stream&) const override;
-//     //virtual const ReanimatorBase& reanimator() const override { return reanimator_; }
+    // virtual void encode(Stream&) const override;
+    // virtual const ReanimatorBase& reanimator() const override { return reanimator_; }
 
-//     //static const ClassSpec& classSpec() { return classSpec_; }
+    // static const ClassSpec& classSpec() { return classSpec_; }
 
 private: // members
 
@@ -74,8 +74,8 @@ private: // members
     eckit::Offset offset_;
     std::string mode_;
 
-//     //static ClassSpec classSpec_;
-//     //static Reanimator<DataHandle> reanimator_;
+    // static ClassSpec classSpec_;
+    // static Reanimator<DataHandle> reanimator_;
 
 };
 

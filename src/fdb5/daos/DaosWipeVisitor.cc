@@ -43,7 +43,6 @@ bool DaosWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& sto
 
     ASSERT(&catalogue_ == &catalogue);
     ASSERT(catalogue.enabled(ControlIdentifier::Wipe));
-    /// @todo: this seems to be restarting the wipe visiting?
     WipeVisitor::visitDatabase(catalogue, store);
 
     // Check that we are in a clean state (i.e. we only visit one DB).
@@ -399,7 +398,6 @@ void DaosWipeVisitor::wipe(bool wipeAll) {
 
 void DaosWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
 
-    /// @todo: this is restarting catalogueComplete? or calling EntryVisitor's catalogueComplete?
     WipeVisitor::catalogueComplete(catalogue);
 
     // We wipe everything if there is nothingn within safe paths - i.e. there is

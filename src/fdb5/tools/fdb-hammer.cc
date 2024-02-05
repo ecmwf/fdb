@@ -147,7 +147,6 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
         for (size_t step = 0; step < nsteps; ++step) {
             CODES_CHECK(codes_set_long(handle, "step", step), 0);
             for (size_t lev = 1; lev <= nlevels; ++lev) {
-                //CODES_CHECK(codes_set_long(handle, "level", lev+level), 0);
                 CODES_CHECK(codes_set_long(handle, "level", lev+level-1), 0);
                 for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
                     // GRIB API only allows us to use certain parameters
@@ -227,7 +226,6 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     fdb5::FDB fdb(config(args));
     size_t fieldsRead = 0;
 
-    //for (size_t member = 1; member <= nensembles; ++member) {
     for (size_t member = 1; member <= nensembles; ++member) {
         if (args.has("nensembles")) {
             request.setValue("number", member+number-1);
@@ -235,7 +233,6 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
         for (size_t step = 0; step < nsteps; ++step) {
             request.setValue("step", step);
             for (size_t lev = 1; lev <= nlevels; ++lev) {
-                //request.setValue("level", lev+level);
                 request.setValue("levelist", lev+level-1);
                 for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
                     // GRIB API only allows us to use certain parameters
@@ -290,9 +287,6 @@ void FDBWrite::executeList(const eckit::option::CmdArgs &args) {
     size_t number = args.getLong("number", 1);
     size_t level = args.getLong("level", 1);
 
-    // size_t node_id  = args.getLong("node-id", 0);
-    // size_t proc_id  = args.getLong("proc-id", 0);
-    //
     request.setValue("expver", args.getString("expver"));
     request.setValue("class", args.getString("class"));
 
