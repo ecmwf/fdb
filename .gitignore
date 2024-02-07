@@ -2,3 +2,6 @@
 .vscode
 .clangd
 **/venv
+**/_build
+build
+install.sh
