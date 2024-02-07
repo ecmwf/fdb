@@ -38,8 +38,8 @@ Select Type:
       roots:
         - path: /path/to/fdb/rd
 
-The remote type handles access to the remote FDB vis TCP/IP. It talks to the FDB server using an asynchronous protocol.
-It only handles the transition. not the distribution of data.
+The remote type handles access to the remote FDB via TCP/IP. It talks to the FDB server using an asynchronous protocol.
+It only handles the transition. Not the distribution of data.
 
 Remote type:
 
@@ -84,7 +84,7 @@ The schema uses global attributes that describe the underlying data with each at
   latitude;  Double;
   longitude; Double;
 
-The schema then describes rules for accessing all data stored by the fdb.
+The schema then describes rules for accessing all data stored by the FDB.
 
 Each rule is described using three levels. The first level defines the attributes of the top level directory, the second level defines the attributes used to name the data files, and the third level attributes are used as index keys.
 Example of a rule:

@@ -7,5 +7,5 @@ Usage Examples
    :maxdepth: 1
 
    UsageExamples/check-installation
-   UsageExamples/mars-data-retrieval
+   UsageExamples/data-retrieval
 
