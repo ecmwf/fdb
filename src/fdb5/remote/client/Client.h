@@ -38,6 +38,7 @@ public:
     Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
     ~Client();
 
+    uint32_t clientId() const { return id_; }
     uint32_t id() const { return id_; }
     const eckit::net::Endpoint& controlEndpoint() const { return connection_.controlEndpoint(); }
     const std::string& defaultEndpoint() const { return connection_.defaultEndpoint(); }
@@ -45,7 +46,7 @@ public:
     uint32_t generateRequestID() { return connection_.generateRequestID(); }
 
     // blocking requests
-    void          controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload=nullptr, uint32_t payloadLength=0);
     eckit::Buffer controlWriteReadResponse (Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
 
     void dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});

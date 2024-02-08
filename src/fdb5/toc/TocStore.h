@@ -58,7 +58,7 @@ protected: // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<FieldLocation> archive(const uint32_t archiverId, const Key& key, const void *data, eckit::Length length) override;
+    std::unique_ptr<FieldLocation> archive(const Key& key, const void *data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 

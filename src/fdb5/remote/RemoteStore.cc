@@ -60,7 +60,7 @@ public: // types
 
 public: // methods
 
-    static RemoteStoreArchiver* get(uint64_t archiverID);
+    static RemoteStoreArchiver* get();
 
     bool valid() { return archiveFuture_.valid(); }
     bool dirty() { return dirty_; }
@@ -88,18 +88,15 @@ private: // members
     std::future<FDBStats> archiveFuture_;
 };
 
-RemoteStoreArchiver* RemoteStoreArchiver::get(uint64_t archiverID) {
+RemoteStoreArchiver* RemoteStoreArchiver::get() {
 
-    static std::unordered_map<uint64_t, std::unique_ptr<RemoteStoreArchiver>> archivers_;
+    static std::unique_ptr<RemoteStoreArchiver> archiver_;
     static std::mutex getArchiverMutex_;
 
-    std::lock_guard<std::mutex> lock(getArchiverMutex_);
-
-    auto it = archivers_.find(archiverID);
-    if (it == archivers_.end()) {
-        it = archivers_.emplace(archiverID, new RemoteStoreArchiver()).first;
+    if (!archiver_) {
+        archiver_.reset(new RemoteStoreArchiver());
     }
-    return it->second.get();
+    return archiver_.get();
 }
 
 void RemoteStoreArchiver::start() {
@@ -160,7 +157,7 @@ FDBStats RemoteStoreArchiver::flush(RemoteStore* store) {
     eckit::Log::debug<LibFdb5>() << " RemoteStoreArchiver::flush - flushing " << numArchive << " fields" << std::endl;
     // The flush call is blocking
     uint32_t id = store->generateRequestID();
-    store->controlWriteCheckResponse(Message::Flush, id, sendBuf, s.position());
+    store->controlWriteCheckResponse(Message::Flush, id, false, sendBuf, s.position());
 
     dirty_ = false;
 
@@ -389,22 +386,19 @@ eckit::DataHandle* RemoteStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-void RemoteStore::archive(const uint32_t archiverID, const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive) {
+void RemoteStore::archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive) {
 
     // if there is no archiving thread active, then start one.
     // n.b. reset the archiveQueue_ after a potential flush() cycle.
     if (!archiver_) {
-        uint64_t archiverName = std::hash<eckit::net::Endpoint>()(controlEndpoint());
-        archiverName = archiverName << 32;
-        archiverName += archiverID;
-        archiver_ = RemoteStoreArchiver::get(archiverName);
+        archiver_ = RemoteStoreArchiver::get();
     }
     uint32_t id = connection_.generateRequestID();
     if (!archiver_->valid()) {
         archiver_->start();
         ASSERT(archiver_->valid());
 
-        controlWriteCheckResponse(Message::Store, id);
+        controlWriteCheckResponse(Message::Store, id, true);
     }
     locations_[id] = catalogue_archive;
     archiver_->emplace(id, this, key, data, length);
@@ -578,7 +572,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
     s << remapKey;
 
     uint32_t id = connection_.generateRequestID();
-    controlWriteCheckResponse(fdb5::remote::Message::Read, id, encodeBuffer, s.position());
+    controlWriteCheckResponse(fdb5::remote::Message::Read, id, true, encodeBuffer, s.position());
 
     return new FDBRemoteDataHandle(id, fieldLocation.length(), retrieveMessageQueue_, controlEndpoint());
 }

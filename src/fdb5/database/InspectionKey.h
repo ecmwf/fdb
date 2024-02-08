@@ -33,7 +33,7 @@ public: // methods
     InspectionKey();
 
     explicit InspectionKey(const Key& other);
-    // explicit InspectionKey(eckit::Stream &);
+    explicit InspectionKey(eckit::Stream &);
     explicit InspectionKey(const std::string &request);
     explicit InspectionKey(const std::string &keys, const Rule* rule);
 

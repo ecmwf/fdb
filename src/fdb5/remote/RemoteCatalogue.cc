@@ -48,7 +48,7 @@ public: // types
 
 public: // methods
 
-    static RemoteCatalogueArchiver* get(uint64_t archiverID);
+    static RemoteCatalogueArchiver* get();
 
     bool valid() { return archiveFuture_.valid(); }
     bool dirty() { return dirty_; }
@@ -76,18 +76,14 @@ private: // members
 
 };
 
-RemoteCatalogueArchiver* RemoteCatalogueArchiver::get(uint64_t archiverID) {
+RemoteCatalogueArchiver* RemoteCatalogueArchiver::get() {
 
-    static std::unordered_map<uint64_t, std::unique_ptr<RemoteCatalogueArchiver>> archivers_;
-    static std::mutex getArchiverMutex_;
+    static std::unique_ptr<RemoteCatalogueArchiver> archiver_;
 
-    std::lock_guard<std::mutex> lock(getArchiverMutex_);
-
-    auto it = archivers_.find(archiverID);
-    if (it == archivers_.end()) {
-        it = archivers_.emplace(archiverID, new RemoteCatalogueArchiver()).first;
+    if (!archiver_) {
+        archiver_.reset(new RemoteCatalogueArchiver());
     }
-    return it->second.get();
+    return archiver_.get();
 }
 
 void RemoteCatalogueArchiver::start() {
@@ -148,7 +144,7 @@ FDBStats RemoteCatalogueArchiver::flush(RemoteCatalogue* catalogue) {
     eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::flush - flushing " << numArchive << " fields" << std::endl;
     uint32_t id = catalogue->generateRequestID();
     // The flush call is blocking
-    catalogue->controlWriteCheckResponse(Message::Flush, id, sendBuf, s.position());
+    catalogue->controlWriteCheckResponse(Message::Flush, id, false, sendBuf, s.position());
 
     dirty_ = false;
 
@@ -242,22 +238,19 @@ void RemoteCatalogue::sendArchiveData(uint32_t id, const Key& key, std::unique_p
     dataWrite(Message::Blob, id, payloads);
 }
 
-void RemoteCatalogue::archive(const uint32_t archiverID, const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void RemoteCatalogue::archive(const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
 
     // if there is no archiving thread active, then start one.
     // n.b. reset the archiveQueue_ after a potential flush() cycle.
     if (!archiver_) {
-        uint64_t archiverName = std::hash<eckit::net::Endpoint>()(controlEndpoint());
-        archiverName = archiverName << 32;
-        archiverName += archiverID;
-        archiver_ = RemoteCatalogueArchiver::get(archiverName);
+        archiver_ = RemoteCatalogueArchiver::get();
     }
     uint32_t id = connection_.generateRequestID();
     if (!archiver_->valid()) {
         archiver_->start();
         ASSERT(archiver_->valid());
 
-        controlWriteCheckResponse(Message::Archive, id);
+        controlWriteCheckResponse(Message::Archive, id, true);
     }
     // eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::archive - adding to queue [id=" << id << ",key=" << key << ",fieldLocation=" << fieldLocation->uri() << "]" << std::endl;
     archiver_->emplace(id, this, key, std::move(fieldLocation));

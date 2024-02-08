@@ -246,7 +246,7 @@ int ServerConnection::selectDataPort() {
 void ServerConnection::controlWrite(Message msg, uint32_t clientID, uint32_t requestID, const void* payload, uint32_t payloadLength) {
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
-    MessageHeader message(msg, clientID, requestID, payloadLength);
+    MessageHeader message(msg, true, clientID, requestID, payloadLength);
     std::lock_guard<std::mutex> lock(controlWriteMutex_);
     controlWrite(&message, sizeof(message));
     if (payload) {
@@ -278,13 +278,10 @@ void ServerConnection::archive(const MessageHeader& hdr) {
 
     ASSERT(hdr.payloadSize == 0);
 
-    auto archive = archiveFuture_.find(hdr.clientID);
-
     // Ensure that we aren't already running a catalogue/store
-    if(archive == archiveFuture_.end() || !archive->second.valid()) {
+    if (!archiveFuture_.valid()) {
         // Start archive worker thread
-        uint32_t archiverID = hdr.clientID;
-        archiveFuture_[hdr.clientID] = std::async(std::launch::async, [this, archiverID] { return archiveThreadLoop(archiverID); });
+        archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
     }
 }
 
@@ -294,7 +291,7 @@ void ServerConnection::dataWrite(Message msg, uint32_t clientID, uint32_t reques
 
     ASSERT((payload == nullptr) == (payloadLength == 0));
 
-    MessageHeader message(msg, clientID, requestID, payloadLength);
+    MessageHeader message(msg, false, clientID, requestID, payloadLength);
 
     std::lock_guard<std::mutex> lock(dataWriteMutex_);
     dataWriteUnsafe(&message, sizeof(message));

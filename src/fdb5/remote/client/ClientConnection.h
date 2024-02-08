@@ -21,6 +21,7 @@
 #include "eckit/runtime/SessionID.h"
 
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/Connection.h"
 
 namespace eckit {
 
@@ -35,7 +36,7 @@ class ClientConnectionRouter;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ClientConnection : eckit::NonCopyable {
+class ClientConnection : protected Connection {
 
 public: // types
 
@@ -43,8 +44,8 @@ public: // methods
 
     ~ClientConnection();
 
-    void controlWrite(Client& client, remote::Message msg, uint32_t requestID, uint32_t archiverID=0, std::vector<std::pair<const void*, uint32_t>> data={});
-    void dataWrite   (Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
+    void controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data={});
+    void dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
 
     void add(Client& client);
     bool remove(uint32_t clientID);
@@ -62,26 +63,29 @@ private: // methods
 
     ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint);
 
-    const eckit::net::Endpoint& dataEndpoint() const;
-    
+    // const eckit::net::Endpoint& dataEndpoint() const;
+
     // construct dictionary for protocol negotiation - to be defined in the client class
     eckit::LocalConfiguration availableFunctionality() const;
 
-    void controlWrite(Message msg, uint32_t clientID, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
-    void controlWrite(const void* data, size_t length);
-    void controlRead (      void* data, size_t length);
-    void dataWrite   (Message msg, uint32_t clientID, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
-    void dataWrite   (const void* data, size_t length);
-    void dataRead    (      void* data, size_t length);
+    // void controlWrite(Message msg, uint32_t clientID, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
+    // void controlWrite(const void* data, size_t length);
+    // void controlRead (      void* data, size_t length);
+    // void dataWrite   (Message msg, uint32_t clientID, uint32_t requestID = 0, std::vector<std::pair<const void*, uint32_t>> data = {});
+    // void dataWrite   (const void* data, size_t length);
+    // void dataRead    (      void* data, size_t length);
  
     void writeControlStartupMessage();
     void writeDataStartupMessage(const eckit::SessionID& serverSession);
 
     eckit::SessionID verifyServerStartupResponse();
 
-    void handleError(const MessageHeader& hdr);
+    void handleError(const MessageHeader& hdr, eckit::Buffer buffer);
 
     void listeningThreadLoop();
+
+    eckit::net::TCPSocket& controlSocket() override { return controlClient_; }
+    eckit::net::TCPSocket& dataSocket() override { return dataClient_; }
 
 private: // members
 
@@ -101,8 +105,8 @@ private: // members
     std::thread listeningThread_;
     
     std::mutex requestMutex_;
-    std::mutex controlMutex_;
-    std::mutex dataMutex_;
+    // std::mutex controlMutex_;
+    // std::mutex dataMutex_;
 
     // requestID
     std::mutex idMutex_;

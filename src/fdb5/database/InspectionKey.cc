@@ -88,10 +88,10 @@ InspectionKey::InspectionKey(const eckit::StringDict &keys) :
     }
 }
 
-// InspectionKey::InspectionKey(eckit::Stream& s) :
-//     rule_(nullptr) {
-//     decode(s);
-// }
+InspectionKey::InspectionKey(eckit::Stream& s) :
+    rule_(nullptr) {
+    decode(s);
+}
 
 Key InspectionKey::canonical() const {
     Key key;

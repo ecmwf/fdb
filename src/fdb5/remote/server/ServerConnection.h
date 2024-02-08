@@ -33,7 +33,7 @@
 
 namespace fdb5::remote {
 
-struct MessageHeader;
+class MessageHeader;
 
 //----------------------------------------------------------------------------------------------------------------------
 // Base class for CatalogueHandler and StoreHandler
@@ -84,7 +84,7 @@ protected:
     void waitForWorkers();
 
     void archive(const MessageHeader& hdr);
-    virtual size_t archiveThreadLoop(uint32_t archiverID) = 0;
+    virtual size_t archiveThreadLoop() = 0;
 
 private:
 
@@ -112,10 +112,8 @@ protected:
     std::mutex dataWriteMutex_;
     std::thread readLocationWorker_;
     
-    // archiverID --> future ??????
     std::map<uint32_t, std::future<void>> workerThreads_;
-    // archiverID --> archiveFuture
-    std::unordered_map<uint32_t, std::future<size_t>> archiveFuture_;
+    std::future<size_t> archiveFuture_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

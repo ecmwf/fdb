@@ -50,7 +50,7 @@ void StoreHandler::handle() {
 
         ASSERT(hdr.marker == StartMarker);
         ASSERT(hdr.version == CurrentVersion);
-        Log::debug<LibFdb5>() << "StoreHandler - got message " << ((int) hdr.message) << " with request ID: " << hdr.requestID << std::endl;
+        Log::debug<LibFdb5>() << "StoreHandler - got message " << hdr.message << " with request ID: " << hdr.requestID << std::endl;
 
         try {
             switch (hdr.message) {
@@ -118,16 +118,16 @@ void StoreHandler::handle() {
             ASSERT(tail == EndMarker);
 
             // Acknowledge receipt of command
-            dataWrite(Message::Received, hdr.clientID, hdr.requestID);
+            dataWrite(Message::Received, hdr.clientID(), hdr.requestID);
         }
         catch (std::exception& e) {
             // n.b. more general than eckit::Exception
             std::string what(e.what());
-            dataWrite(Message::Error, hdr.clientID, hdr.requestID, what.c_str(), what.length());
+            dataWrite(Message::Error, hdr.clientID(), hdr.requestID, what.c_str(), what.length());
         }
         catch (...) {
             std::string what("Caught unexpected and unknown error");
-            dataWrite(Message::Error, hdr.clientID, hdr.requestID, what.c_str(), what.length());
+            dataWrite(Message::Error, hdr.clientID(), hdr.requestID, what.c_str(), what.length());
         }
     }
 }
@@ -148,7 +148,7 @@ void StoreHandler::read(const MessageHeader& hdr) {
     std::unique_ptr<eckit::DataHandle> dh;
     dh.reset(location->dataHandle());
 
-    readLocationQueue_.emplace(readLocationElem(hdr.clientID, hdr.requestID, std::move(dh)));
+    readLocationQueue_.emplace(readLocationElem(hdr.clientID(), hdr.requestID, std::move(dh)));
 }
 
 void StoreHandler::readLocationThreadLoop() {
@@ -224,7 +224,7 @@ Store& StoreHandler::store(uint32_t id, Key dbKey) {
 }
 
 // A helper function to make archiveThreadLoop a bit cleaner
-void StoreHandler::archiveBlobPayload(const uint32_t archiverID, const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) {
+void StoreHandler::archiveBlobPayload(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) {
     MemoryStream s(data, length);
 
     fdb5::Key dbKey(s);
@@ -238,7 +238,7 @@ void StoreHandler::archiveBlobPayload(const uint32_t archiverID, const uint32_t 
     
     Store& ss = store(clientID, dbKey);
 
-    auto futureLocation = ss.archive(archiverID, idxKey, charData + s.position(), length - s.position());
+    auto futureLocation = ss.archive(idxKey, charData + s.position(), length - s.position());
     Log::status() << "Archiving done: " << ss_key.str() << std::endl;
     
     auto loc = futureLocation.get();
@@ -263,7 +263,7 @@ struct archiveElem {
         clientID(clientID), requestID(requestID), payload(std::move(payload)), multiblob(multiblob) {}
 };
 
-size_t StoreHandler::archiveThreadLoop(uint32_t archiverID) {
+size_t StoreHandler::archiveThreadLoop() {
     size_t totalArchived = 0;
 
     // Create a worker that will do the actual archiving
@@ -271,7 +271,7 @@ size_t StoreHandler::archiveThreadLoop(uint32_t archiverID) {
     static size_t queueSize(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32));
     eckit::Queue<archiveElem> queue(queueSize);
 
-    std::future<size_t> worker = std::async(std::launch::async, [this, &queue, archiverID] {
+    std::future<size_t> worker = std::async(std::launch::async, [this, &queue] {
         size_t totalArchived = 0;
 
         archiveElem elem;
@@ -289,7 +289,7 @@ size_t StoreHandler::archiveThreadLoop(uint32_t archiverID) {
                         ASSERT(hdr->marker == StartMarker);
                         ASSERT(hdr->version == CurrentVersion);
                         ASSERT(hdr->message == Message::Blob);
-                        ASSERT(hdr->clientID == elem.clientID);
+                        ASSERT(hdr->clientID() == elem.clientID);
                         ASSERT(hdr->requestID == elem.requestID);
                         charData += sizeof(MessageHeader);
 
@@ -300,13 +300,13 @@ size_t StoreHandler::archiveThreadLoop(uint32_t archiverID) {
                         ASSERT(*e == EndMarker);
                         charData += sizeof(EndMarker);
 
-                        archiveBlobPayload(archiverID, elem.clientID, elem.requestID, payloadData, hdr->payloadSize);
+                        archiveBlobPayload(elem.clientID, elem.requestID, payloadData, hdr->payloadSize);
                         totalArchived += 1;
                     }
                 }
                 else {
                     // Handle single blob
-                    archiveBlobPayload(archiverID, elem.clientID, elem.requestID, elem.payload.data(), elem.payload.size());
+                    archiveBlobPayload(elem.clientID, elem.requestID, elem.payload.data(), elem.payload.size());
                     totalArchived += 1;
                 }
             }
@@ -353,7 +353,7 @@ size_t StoreHandler::archiveThreadLoop(uint32_t archiverID) {
 
             size_t sz = payload.size();
             Log::debug<LibFdb5>() << "Queueing data: " << sz << std::endl;
-            size_t queuelen = queue.emplace(archiveElem(hdr.clientID, hdr.requestID, std::move(payload), hdr.message == Message::MultiBlob));
+            size_t queuelen = queue.emplace(archiveElem(hdr.clientID(), hdr.requestID, std::move(payload), hdr.message == Message::MultiBlob));
             Log::status() << "Queued data (" << queuelen << ", size=" << sz << ")" << std::endl;
             ;
             Log::debug<LibFdb5>() << "Queued data (" << queuelen << ", size=" << sz << ")"
@@ -399,7 +399,7 @@ void StoreHandler::flush(const MessageHeader& hdr) {
     size_t numArchived;
     s >> numArchived;
 
-    std::future<size_t>& archive = archiveFuture_[hdr.clientID];
+    std::future<size_t>& archive = archiveFuture_;
 
     ASSERT(numArchived == 0 || archive.valid());
 
@@ -412,7 +412,7 @@ void StoreHandler::flush(const MessageHeader& hdr) {
         // Do the actual flush!
         Log::info() << "Flushing" << std::endl;
         Log::status() << "Flushing" << std::endl;
-        stores_[hdr.clientID]->flush();
+        stores_[hdr.clientID()]->flush();
         // for (auto it = stores_.begin(); it != stores_.end(); it++) {
         //     it->second->flush();
         // }

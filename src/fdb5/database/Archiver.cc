@@ -24,16 +24,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-uint32_t Archiver::archiverId_=0;
-
 Archiver::Archiver(const Config& dbConfig) :
     dbConfig_(dbConfig),
     catalogue_(nullptr),
-    store_(nullptr) {
-
-    std::lock_guard<std::mutex> lock(idMutex_);
-    id_ = ++archiverId_;
-}
+    store_(nullptr) {}
 
 Archiver::~Archiver() {
 
@@ -41,8 +35,6 @@ Archiver::~Archiver() {
 
     databases_.clear(); //< explicitly delete the DBs before schemas are destroyed
 }
-
-uint32_t id();
 
 void Archiver::archive(const Key &key, const void* data, size_t len) {
     ArchiveVisitor visitor(*this, key, data, len);

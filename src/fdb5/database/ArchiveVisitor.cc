@@ -16,8 +16,8 @@
 #include "fdb5/database/Store.h"
 
 namespace {
-void CatalogueCallback(uint32_t archiverId, fdb5::CatalogueWriter* catalogue, const fdb5::InspectionKey &key, std::unique_ptr<fdb5::FieldLocation> fieldLocation) {
-    catalogue->archive(archiverId, key, std::move(fieldLocation));
+void CatalogueCallback(fdb5::CatalogueWriter* catalogue, const fdb5::InspectionKey &key, std::unique_ptr<fdb5::FieldLocation> fieldLocation) {
+    catalogue->archive(key, std::move(fieldLocation));
 }
 }
 namespace fdb5 {
@@ -35,7 +35,7 @@ bool ArchiveVisitor::selectDatum(const InspectionKey &key, const Key &full) {
     checkMissingKeys(full);
     const Key idxKey = current()->currentIndexKey();
 
-    store()->archive(owner_.id(), idxKey, data_, size_, std::bind(&CatalogueCallback, owner_.id(), current(), key, std::placeholders::_1));
+    store()->archive(idxKey, data_, size_, std::bind(&CatalogueCallback, current(), key, std::placeholders::_1));
     
     return true;
 }

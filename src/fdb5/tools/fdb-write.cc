@@ -77,10 +77,15 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
 
 void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args));
+    fdb5::MessageArchiver archiver1(fdb5::Key(), false, verbose_, config(args));
 
-    archiver.filters(filterInclude_, filterExclude_);
-    archiver.modifiers(modifiers_);
+    archiver1.filters(filterInclude_, filterExclude_);
+    archiver1.modifiers(modifiers_);
+
+    fdb5::MessageArchiver archiver2(fdb5::Key(), false, verbose_, config(args));
+
+    archiver2.filters(filterInclude_, filterExclude_);
+    archiver2.modifiers(modifiers_);
 
     for (size_t i = 0; i < args.count(); i++) {
 
@@ -90,8 +95,15 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
 
         std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
 
-        archiver.archive( *dh );
+        if (i%2==0) {
+            archiver1.archive( *dh );
+        } else {
+            archiver2.archive( *dh );
+        }
     }
+
+    // archiver1.flush();
+    // archiver2.flush();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

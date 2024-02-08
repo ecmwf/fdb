@@ -40,12 +40,13 @@ private:  // methods
     void list(const MessageHeader& hdr);
     void inspect(const MessageHeader& hdr);
     void schema(const MessageHeader& hdr);
+    void stores(const MessageHeader& hdr);
     
 
     CatalogueWriter& catalogue(uint32_t id);
     CatalogueWriter& catalogue(uint32_t id, const Key& dbKey);
 
-    size_t archiveThreadLoop(uint32_t archiverID) override;
+    size_t archiveThreadLoop() override;
 
     // API functionality
     template <typename HelperClass>
@@ -54,6 +55,8 @@ private:  // methods
 private:  // member
 
     // clientID --> Catalogue
+    std::mutex cataloguesMutex_;
+
     std::map<uint32_t, std::unique_ptr<CatalogueWriter>> catalogues_;
 
     FDB fdb_;

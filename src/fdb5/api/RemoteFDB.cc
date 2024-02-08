@@ -114,7 +114,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), "") {
 
     uint32_t id = generateRequestID();
-    eckit::Buffer buf = controlWriteReadResponse(remote::Message::Schema, id);
+    eckit::Buffer buf = controlWriteReadResponse(remote::Message::Stores, id);
     eckit::MemoryStream s(buf);
     size_t numStores;
     s >> numStores;
@@ -161,7 +161,11 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
         fieldLocationEndpoints.push_back("");
     }
 
-    fdb5::Schema* schema = eckit::Reanimator<fdb5::Schema>::reanimate(s);
+    id = generateRequestID();
+    buf = controlWriteReadResponse(remote::Message::Schema, id);
+    eckit::MemoryStream s2(buf);
+
+    fdb5::Schema* schema = eckit::Reanimator<fdb5::Schema>::reanimate(s2);
 
     config_.set("stores", stores);
     config_.set("fieldLocationEndpoints", fieldLocationEndpoints);
@@ -199,7 +203,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     s << request;
     helper.encodeExtra(s);
 
-    controlWriteCheckResponse(HelperClass::message(), id, encodeBuffer, s.position());
+    controlWriteCheckResponse(HelperClass::message(), id, true, encodeBuffer, s.position());
 
     // Return an AsyncIterator to allow the messages to be retrieved in the API
 
