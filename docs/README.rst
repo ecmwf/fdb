@@ -27,10 +27,15 @@ Build dependencies:
 :CMake: For use and installation see http://www.cmake.org/
 :ecbuild: ECMWF library of CMake macros ()
 
+Optional dependencies for building documentation:
+
+:sphinx-build: Create documentation from reStructuredText, see https://www.sphinx-doc.org/en/master/man/sphinx-build.html
+:breathe: Bridge between Sphinx and Doxygen, see https://breathe.readthedocs.io/en/latest/
+
 Installation
 ============
 
-fdb employs an out-of-source build/install based on CMake.
+FDB employs an out-of-source build/install based on CMake.
 
 Make sure ecbuild is installed and the ecbuild executable script is found ( ``which ecbuild`` ).
 
