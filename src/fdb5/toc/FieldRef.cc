@@ -14,11 +14,14 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/serialisation/Stream.h"
 
+#include "fdb5/fdb5_config.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/UriStore.h"
 
 #include "fdb5/toc/TocFieldLocation.h"
-
+// #ifdef fdb5_HAVE_DAOSFDB
+// #include "fdb5/daos/DaosFieldLocation.h"
+// #endif
 
 namespace fdb5 {
 
@@ -33,14 +36,30 @@ FieldRefLocation::FieldRefLocation() {
 FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
 
     const FieldLocation& loc = field.location();
+
+// #ifdef fdb5_HAVE_DAOSFDB
+//     const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
+//     const DaosFieldLocation* daosfloc = dynamic_cast<const DaosFieldLocation*>(&loc);
+//     if(!tocfloc && !daosfloc) {
+//         throw eckit::NotImplemented(
+//             "Field location is not of TocFieldLocation or DaosFieldLocation type "
+//             "-- indexing other locations is not supported", 
+//             Here());
+//     }
+// #else
     const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
     if(!tocfloc) {
-        throw eckit::NotImplemented("Field location is not of TocFieldLocation type -- indexing other locations is not supported", Here());
+        throw eckit::NotImplemented(
+            "Field location is not of TocFieldLocation type "
+            "-- indexing other locations is not supported", 
+            Here());
     }
+// #endif
 
-    uriId_ = store.insert(tocfloc->uri());
-    length_ = tocfloc->length();
-    offset_ = tocfloc->offset();
+    uriId_ = store.insert(loc.uri());
+    length_ = loc.length();
+    offset_ = loc.offset();
+
 }
 
 void FieldRefLocation::print(std::ostream &s) const {
