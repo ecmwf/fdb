@@ -479,6 +479,7 @@ void TocWipeVisitor::wipe(bool wipeAll) {
         }
     }
 
+    /// @todo: do not remove store uri if backend is S3 and uses a single bucket for all DBs
     if (wipeAll && store_.type() != "file")
         /// @todo: if the store is holding catalogue information (e.g. daos KVs) it 
         ///    should not be removed

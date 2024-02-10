@@ -55,6 +55,12 @@ ecbuild_add_option( FEATURE TOCFDB  # option defined in fdb5_config.h
                     DEFAULT ON
                     DESCRIPTION "Filesystem TOC support for FDB" )
 
+### FDB S3 Store backend
+ecbuild_add_option( FEATURE S3FDB
+                    CONDITION eckit_S3_FOUND 
+                    DEFAULT ON
+                    DESCRIPTION "S3 support for FDB Store" )
+
 ### support for Lustre API control of file stripping
 
 find_package( LUSTREAPI QUIET )
