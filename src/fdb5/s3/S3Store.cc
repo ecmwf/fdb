@@ -27,15 +27,11 @@ static StoreBuilder<S3Store> builder("s3");
 
 S3Store::S3Store(const Schema& schema, const Key& key, const Config& config) :
     Store(schema), S3Common(config, "store", key), config_(config) {
-    /// @note: code for single bucket
-    // Store(schema), S3Common(config, "store", key), config_(config) {
 
 }
 
 S3Store::S3Store(const Schema& schema, const eckit::URI& uri, const Config& config) :
     Store(schema), S3Common(config, "store", uri), config_(config) {
-    /// @note: code for single bucket
-    // Store(schema), S3Common(config, "store", uri), config_(config) {
 
 }
 
