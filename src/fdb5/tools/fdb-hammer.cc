@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <sys/time.h>
+#include <iomanip>
 #include <unordered_set>
 #include <memory>
 
@@ -132,6 +134,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     size = cls.length();
     CODES_CHECK(codes_set_string(handle, "class", cls.c_str(), &size), 0);
 
+    struct timeval tval_before_io, tval_after_io;
     eckit::Timer timer;
     eckit::Timer gribTimer;
     double elapsed_grib = 0;
@@ -167,6 +170,8 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
                     elapsed_grib += gribTimer.elapsed();
 
                     MemoryHandle dh(buffer, size);
+
+                    if (member == 1 && step == 0 && lev == 1 && param == 1) gettimeofday(&tval_before_io, NULL);
                     archiver.archive(dh);
                     writeCount++;
                     bytesWritten += size;
@@ -178,6 +183,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
             gribTimer.stop();
             elapsed_grib += gribTimer.elapsed();
             archiver.flush();
+            if (member == nensembles && step == (nsteps - 1)) gettimeofday(&tval_after_io, NULL);
             gribTimer.start();
         }
     }
@@ -196,6 +202,16 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     Log::info() << "Writing duration: " << timer.elapsed() - elapsed_grib << std::endl;
     Log::info() << "Total rate: " << double(bytesWritten) / timer.elapsed() << " bytes / s" << std::endl;
     Log::info() << "Total rate: " << double(bytesWritten) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
+
+    Log::info() << "Timestamp before first IO: " <<
+                    (long int)tval_before_io.tv_sec << "." <<
+                    std::setw(6) << std::setfill('0') <<
+                    (long int)tval_before_io.tv_usec << std::endl;
+    Log::info() << "Timestamp after last IO: " <<
+                    (long int)tval_after_io.tv_sec << "." <<
+                    std::setw(6) << std::setfill('0') <<
+                    (long int)tval_after_io.tv_usec << std::endl;
+
 }
 
 
@@ -219,6 +235,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     request.setValue("class", args.getString("class"));
     request.setValue("optimised", "on");
 
+    struct timeval tval_before_io, tval_after_io;
     eckit::Timer timer;
     timer.start();
 
@@ -246,6 +263,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
                                 << ", level: " << level
                                 << ", param: " << real_param << std::endl;
 
+                    if (member == 1 && step == 0 && lev == 1 && param == 1) gettimeofday(&tval_before_io, NULL);
                     handles.add(fdb.retrieve(request));
                     fieldsRead++;
                 }
@@ -257,6 +275,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
 
     EmptyHandle nullOutputHandle;
     size_t total = dh->copyTo(nullOutputHandle);
+    gettimeofday(&tval_after_io, NULL);
 
     timer.stop();
 
@@ -265,6 +284,15 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     Log::info() << "Total duration: " << timer.elapsed() << std::endl;
     Log::info() << "Total rate: " << double(total) / timer.elapsed() << " bytes / s" << std::endl;
     Log::info() << "Total rate: " << double(total) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
+
+    Log::info() << "Timestamp before first IO: " <<
+                    (long int)tval_before_io.tv_sec << "." <<
+                    std::setw(6) << std::setfill('0') <<
+                    (long int)tval_before_io.tv_usec << std::endl;
+    Log::info() << "Timestamp after last IO: " <<
+                    (long int)tval_after_io.tv_sec << "." <<
+                    std::setw(6) << std::setfill('0') <<
+                    (long int)tval_after_io.tv_usec << std::endl;
 
 }
 
