@@ -206,7 +206,6 @@ void S3Store::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostrea
 
     eckit::S3Name n{uri};
     
-    ASSERT(n.hasBucketName());
     ASSERT(n.bucketName() == db_bucket_);
 
     if (n.hasKeyName()) {
@@ -222,7 +221,6 @@ void S3Store::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostrea
     // /// @note: code for single bucket for all DBs
     // eckit::S3Name n{uri};
     
-    // ASSERT(n.hasBucketName());
     // ASSERT(n.bucketName() == bucket_);
     // /// @note: if !n.hasKeyName, maybe this method should return without destroying anything.
     // ///   this way when TocWipeVisitor has wipeAll == true, the (only) bucket will not be destroyed
