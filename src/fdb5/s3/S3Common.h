@@ -28,13 +28,22 @@ public: // methods
     S3Common(const fdb5::Config&, const std::string& component, const fdb5::Key&);
     S3Common(const fdb5::Config&, const std::string& component, const eckit::URI&);
 
+private: // methods
+
+    void parseConfig(const fdb5::Config& config);
+
 protected: // members
 
+    std::string endpoint_;
     std::string db_bucket_;
 
     /// @note: code for single bucket for all DBs
     // std::string bucket_;
     // std::string db_prefix_;
+
+private: // members
+
+    std::string prefix_;
 
 };
 

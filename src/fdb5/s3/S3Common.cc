@@ -11,6 +11,8 @@
 // #include <algorithm>
 
 #include "eckit/s3/S3Name.h"
+#include "eckit/s3/S3Credential.h"
+#include "eckit/s3/S3Session.h"
 
 #include "fdb5/s3/S3Common.h"
 
@@ -23,9 +25,15 @@ namespace fdb5 {
 
 S3Common::S3Common(const fdb5::Config& config, const std::string& component, const fdb5::Key& key) {
 
+    parseConfig(config);
+
+
+
     /// @note: code for bucket per DB
 
-    db_bucket_ = key.valuesToString();
+    db_bucket_ = prefix_ + key.valuesToString();
+
+
 
 
     /// @note: code for single bucket for all DBs
@@ -53,13 +61,21 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
     // if (c.has("client"))
     //     fdb5::DaosManager::instance().configure(c.getSubConfiguration("client"));
 
+
+
+
+    /// @todo: check that the bucket name complies with name restrictions
+
 }
 
 S3Common::S3Common(const fdb5::Config& config, const std::string& component, const eckit::URI& uri) {
 
     /// @note: validity of input URI is not checked here because this constructor is only triggered
     ///   by DB::buildReader in EntryVisitMechanism, where validity of URIs is ensured beforehand
-    
+
+    parseConfig(config);
+
+
 
     /// @note: code for bucket per DB
 
@@ -88,6 +104,32 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
 
     // // if (c.has("client"))
     // //     fdb5::DaosManager::instance().configure(c.getSubConfiguration("client"));
+
+}
+
+S3Common::parseConfig(const fdb5::Config& config) {
+
+    eckit::LocalConfiguration cr{}, s3{};
+
+    if (config.has("s3")) {
+        s3 = config.getSubConfiguration("s3");
+        if (s3.has("credential")) cr = s3.getSubConfiguration("credential");
+    }
+    
+    const eckit::S3Credential cred{
+        cr.getString("accessKeyID", "defaultKeyID"),
+        cr.getString("secretKey", "defaultSecretKey"),
+        cr.getString("host", "127.0.0.1")
+    };
+
+    eckit::S3Session::instance().addCredentials(cred);
+
+    endpoint_ = s3.getString("endpoint", "127.0.0.1:9000");
+
+
+
+    /// @note: code for bucket per DB only
+    prefix_ = s3.getString("bucketPrefix", prefix_);
 
 }
 

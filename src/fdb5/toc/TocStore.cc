@@ -239,6 +239,15 @@ eckit::PathName TocStore::generateDataPath(const Key &key) const {
 
     eckit::PathName dpath ( directory_ );
     dpath /=  key.valuesToString();
+    /// @todo: in cases where a catalogue other than POSIX is used and a
+    ///   POSIX store is used, the DB directory for the store is first 
+    ///   created within PathName::unique().
+    ///   DB directory creation should maybe be removed from there and 
+    ///   performed here, or as part of FDB/LustreFileHandle::openForAppend
+    ///   if not exists.
+    ///   If doing it in openForAppend, it should be ensured that the
+    ///   existence of the database directory is not checked an excessive
+    ///   amount of times.
     dpath = eckit::PathName::unique(dpath) + ".data";
     return dpath;
 }

@@ -37,14 +37,14 @@ S3Store::S3Store(const Schema& schema, const eckit::URI& uri, const Config& conf
 
 eckit::URI S3Store::uri() const {
 
-    return eckit::S3Name(db_bucket_).URI();
+    return eckit::S3Name(endpoint_, db_bucket_).URI();
 
 
 /// @note: code for single bucket for all DBs
 // TODO
 // // warning! here an incomplete uri is being returned. Where is this method 
 // // being called? Can that caller code accept incomplete uris?
-//     return eckit::S3Name(bucket_, db_prefix_).URI();
+//     return eckit::S3Name(endpoint_, bucket_, db_prefix_).URI();
     
 }
 
@@ -86,7 +86,7 @@ std::vector<eckit::URI> S3Store::storeUnitURIs() const {
 
     std::vector<eckit::URI> store_unit_uris;
 
-    eckit::S3Name bucket{db_bucket_};
+    eckit::S3Name bucket{endpoint_, db_bucket_};
     
     if (!bucket.exists()) return store_unit_uris;
     
@@ -94,7 +94,7 @@ std::vector<eckit::URI> S3Store::storeUnitURIs() const {
     ///   be done here to discriminate store keys from catalogue keys
     for (const auto& key : bucket.listKeys()) {
 
-        store_unit_uris.push_back(eckit::S3Name(db_bucket_, key).URI());
+        store_unit_uris.push_back(eckit::S3Name(endpoint_, db_bucket_, key).URI());
 
     }
 
@@ -104,7 +104,7 @@ std::vector<eckit::URI> S3Store::storeUnitURIs() const {
     /// @note: code for single bucket for all DBs
     // std::vector<eckit::URI> store_unit_uris;
 
-    // eckit::S3Name bucket{bucket_};
+    // eckit::S3Name bucket{endpoint_, bucket_};
     
     // if (!bucket.exists()) return store_unit_uris;
     
@@ -112,7 +112,7 @@ std::vector<eckit::URI> S3Store::storeUnitURIs() const {
     // ///   be done here to discriminate store keys from catalogue keys
     // for (const auto& key : bucket.listKeys(filter = "^" + db_prefix_ + "_.*")) {
 
-    //     store_unit_uris.push_back(eckit::S3Name(bucket_, key).URI());
+    //     store_unit_uris.push_back(eckit::S3Name(endpoint_, bucket_, key).URI());
 
     // }
 
@@ -135,7 +135,7 @@ std::set<eckit::URI> S3Store::asStoreUnitURIs(const std::vector<eckit::URI>& uri
 
 bool S3Store::exists() const {
 
-    return eckit::S3Name(db_bucket_).exists();
+    return eckit::S3Name(endpoint_, db_bucket_).exists();
 
 }
 
@@ -237,10 +237,10 @@ void S3Store::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostrea
 
 void S3Store::print(std::ostream& out) const {
 
-    out << "S3Store(" << db_bucket_ << ")";
+    out << "S3Store(" << endpoint_ << "/" << db_bucket_ << ")";
 
     /// @note: code for single bucket for all DBs
-    // out << "S3Store(" << bucket_ << ")";
+    // out << "S3Store(" << endpoint_ << "/" << bucket_ << ")";
 
 }
 
@@ -269,10 +269,10 @@ eckit::S3Name S3Store::generateDataKey(const Key& key) const {
 
     eckit::MD5 md5(name);
 
-    return eckit::S3Name{db_bucket_, key.valuesToString() + "_" + md5.digest() + ".data"};
+    return eckit::S3Name{endpoint_, db_bucket_, key.valuesToString() + "_" + md5.digest() + ".data"};
 
     /// @note: code for single bucket for all DBs
-    // return eckit::S3Name{bucket_, db_prefix_ + "_" + key.valuesToString() + "_" + md5.digest() + ".data"};
+    // return eckit::S3Name{endpoint_, bucket_, db_prefix_ + "_" + key.valuesToString() + "_" + md5.digest() + ".data"};
 
 }
 
