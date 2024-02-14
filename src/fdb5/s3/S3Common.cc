@@ -10,9 +10,10 @@
 
 // #include <algorithm>
 
-#include "eckit/s3/S3Name.h"
-#include "eckit/s3/S3Credential.h"
-#include "eckit/s3/S3Session.h"
+#include "eckit/io/s3/S3Name.h"
+#include "eckit/io/s3/S3Bucket.h"
+#include "eckit/io/s3/S3Credential.h"
+#include "eckit/io/s3/S3Session.h"
 
 #include "fdb5/s3/S3Common.h"
 
@@ -75,11 +76,16 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
 
     parseConfig(config);
 
+    endpoint_ = eckit::net::Endpoint{uri.host(), uri.port()};
+
 
 
     /// @note: code for bucket per DB
 
-    db_bucket_ = eckit::S3Name{uri}.bucketName();
+    const auto parts = Tokenizer("/").tokenize(uri.name());
+    const auto n = parts.size();
+    ASSERT(n == 1 | n == 2);
+    db_bucket_ = parts[0];
 
 
 
@@ -87,11 +93,11 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
 
     // eckit::S3Name n{uri};
 
-    // bucket_ = n.bucketName();
+    // bucket_ = n.bucket().name();
 
     // eckit::Tokenizer parse("_");
     // std::vector<std::string> bits;
-    // parse(n.keyName(), bits);
+    // parse(n.name(), bits);
 
     // ASSERT(bits.size() == 2);
 
@@ -124,7 +130,7 @@ S3Common::parseConfig(const fdb5::Config& config) {
 
     eckit::S3Session::instance().addCredentials(cred);
 
-    endpoint_ = s3.getString("endpoint", "127.0.0.1:9000");
+    endpoint_ = eckit::net::Endpoint{s3.getString("endpoint", "127.0.0.1:9000")};
 
 
 

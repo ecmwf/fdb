@@ -9,6 +9,8 @@
  */
 
 // #include "eckit/filesystem/URIManager.h"
+#include "eckit/io/s3/S3Name.h"
+
 #include "fdb5/daos/S3FieldLocation.h"
 // #include "fdb5/LibFdb5.h"
 

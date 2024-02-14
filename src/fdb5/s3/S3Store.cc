@@ -14,7 +14,6 @@
 #include "eckit/utils/MD5.h"
 
 // #include "eckit/config/Resource.h"
-#include "eckit/s3/S3Name.h"
 
 #include "fdb5/s3/S3FieldLocation.h"
 #include "fdb5/s3/S3Store.h"
@@ -37,7 +36,7 @@ S3Store::S3Store(const Schema& schema, const eckit::URI& uri, const Config& conf
 
 eckit::URI S3Store::uri() const {
 
-    return eckit::S3Name(endpoint_, db_bucket_).URI();
+    return eckit::S3Bucket(endpoint_, db_bucket_).URI();
 
 
 /// @note: code for single bucket for all DBs
@@ -50,16 +49,22 @@ eckit::URI S3Store::uri() const {
 
 bool S3Store::uriBelongs(const eckit::URI& uri) const {
 
-    /// @todo: avoid building a S3Name as it makes uriBelongs expensive
+    const auto parts = Tokenizer("/").tokenize(uri.name());
+    const auto n = parts.size();
+
+
+    /// @note: code for bucket per DB
+    ASSERT(n == 1 || n == 2);
     return (
         (uri.scheme() == type()) && 
-        (eckit::S3Name(uri).bucketName() == db_bucket_));
+        (parts[0] == db_bucket_));
 
 
     /// @note: code for single bucket for all DBs
+    // ASSERT(n == 2);
     // return (
     //     (uri.scheme() == type()) && 
-    //     (eckit::S3Name(uri).keyName().rfind(db_prefix_, 0) == 0));
+    //     (parts[1].rfind(db_prefix_, 0) == 0));
 
 }
 
@@ -67,17 +72,22 @@ bool S3Store::uriExists(const eckit::URI& uri) const {
 
     /// @todo: revisit the name of this method
 
+
+    /// @note: code for bucket per DB
+    const auto parts = Tokenizer("/").tokenize(uri.name());
+    const auto n = parts.size();
+    ASSERT(n == 1 | n == 2);
     ASSERT(uri.scheme() == type());
-    eckit::S3Name n(uri);
-    ASSERT(n.bucketName() == db_bucket_);
+    eckit::S3Bucket n{eckit::net::Endpoint{uri.host(), uri.port()}, parts[0]};
+    ASSERT(n.name() == db_bucket_);
     return n.exists();
 
 
     /// @note: code for single bucket for all DBs
     // ASSERT(uri.scheme() == type());
     // eckit::S3Name n(uri);
-    // ASSERT(n.bucketName() == bucket_);
-    // ASSERT(n.keyName().rfind(db_prefix_, 0) == 0);
+    // ASSERT(n.bucket().name() == bucket_);
+    // ASSERT(n.name().rfind(db_prefix_, 0) == 0);
     // return n.exists();
 
 }
@@ -86,7 +96,7 @@ std::vector<eckit::URI> S3Store::storeUnitURIs() const {
 
     std::vector<eckit::URI> store_unit_uris;
 
-    eckit::S3Name bucket{endpoint_, db_bucket_};
+    eckit::S3Bucket bucket{endpoint_, db_bucket_};
     
     if (!bucket.exists()) return store_unit_uris;
     
@@ -104,7 +114,7 @@ std::vector<eckit::URI> S3Store::storeUnitURIs() const {
     /// @note: code for single bucket for all DBs
     // std::vector<eckit::URI> store_unit_uris;
 
-    // eckit::S3Name bucket{endpoint_, bucket_};
+    // eckit::S3Bucket bucket{endpoint_, bucket_};
     
     // if (!bucket.exists()) return store_unit_uris;
     
@@ -135,7 +145,7 @@ std::set<eckit::URI> S3Store::asStoreUnitURIs(const std::vector<eckit::URI>& uri
 
 bool S3Store::exists() const {
 
-    return eckit::S3Name(endpoint_, db_bucket_).exists();
+    return eckit::S3Bucket(endpoint_, db_bucket_).exists();
 
 }
 
@@ -154,6 +164,13 @@ std::unique_ptr<FieldLocation> S3Store::archive(const Key& key, const void * dat
     ///  if single bucket, starting by dbkey_indexkey_
     ///  if bucket per db, starting by indexkey_
     eckit::S3Name n = generateDataKey(key);
+
+    /// @todo: ensure bucket if not yet seen by this process
+    static std::set<std::string> knownBuckets;
+    if (knownBuckets.find(n.bucket().name()) != knownBuckets.end()) {
+        n.bucket().ensureCreated();
+        knownBuckets.insert(n.bucket().name());
+    }
 
     std::unique_ptr<eckit::DataHandle> h(n.dataHandle())
     
@@ -204,28 +221,39 @@ void S3Store::close() {
 
 void S3Store::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
 
-    eckit::S3Name n{uri};
+    /// @note: code for bucket per DB
+
+    const auto parts = Tokenizer("/").tokenize(uri.name());
+    const auto n = parts.size();
+    ASSERT(n == 1 | n == 2);
     
-    ASSERT(n.bucketName() == db_bucket_);
+    ASSERT(parts[0] == db_bucket_);
 
-    if (n.hasKeyName()) {
-        logVerbose << "destroy S3 key: ";
-    } else {
-        logVerbose << "destroy S3 bucket: ";
+    if (n == 2) {  // object
+
+        eckit::S3Name key{uri};
+
+        logVerbose << "destroy S3 key: " << key.asString() << std::endl;
+
+        if (doit) key.delete();
+
+    } else {  // pool
+
+        eckit::S3Bucket bucket{uri};
+
+        logVerbose << "destroy S3 bucket: " << bucket.asString() << std::endl;
+
+        if (doit) bucket.ensureDestroyed();
     }
-
-    logAlways << n.asString() << std::endl;
-    if (doit) n.destroy();
 
 
     // /// @note: code for single bucket for all DBs
     // eckit::S3Name n{uri};
     
-    // ASSERT(n.bucketName() == bucket_);
-    // /// @note: if !n.hasKeyName, maybe this method should return without destroying anything.
+    // ASSERT(n.bucket().name() == bucket_);
+    // /// @note: if uri doesn't have key name, maybe this method should return without destroying anything.
     // ///   this way when TocWipeVisitor has wipeAll == true, the (only) bucket will not be destroyed
-    // ASSERT(n.hasKeyName());
-    // ASSERT(n.keyName().rfind(db_prefix_, 0) == 0);
+    // ASSERT(n.name().rfind(db_prefix_, 0) == 0);
 
     // logVerbose << "destroy S3 key: ";
     // logAlways << n.asString() << std::endl;
