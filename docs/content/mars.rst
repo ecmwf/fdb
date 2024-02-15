@@ -1,3 +1,5 @@
+.. _mars-request-label:
+
 MARS request
 ------------
 

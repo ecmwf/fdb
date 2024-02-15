@@ -1,5 +1,5 @@
 Configuration
--------------
+=============
 
 First thing you should do after the installation is the setting up of the home
 directory for FDB. Choose a directory. We will refer to it as ${FDB_HOME}.

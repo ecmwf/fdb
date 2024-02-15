@@ -1,6 +1,7 @@
-============
-Introduction
-============
+.. _technical-introduction-label:
+
+Technical Introduction
+######################
 
 |Licence|
 
@@ -12,13 +13,17 @@ FDB exposes a C++ API as well as CLI :doc:`tools`.
 .. toctree::
    :maxdepth: 1
 
-   requirements
-   installation
-   reference
-   tools
-   api
-   license
-
+   .. technical/introduction
+   technical/requirements
+   technical/build-and-installation
+   technical/configuration
+   technical/config
+   technical/schema
+   technical/implementation
+   technical/usage-examples
+   technical/api
+   technical/tools
+   technical/genindex
 
 .. |Licence| image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
    :target: https://github.com/ecmwf/fdb/blob/develop/LICENSE
@@ -26,3 +31,4 @@ FDB exposes a C++ API as well as CLI :doc:`tools`.
 
 .. _mars: mars.html
 .. _tools: tools.html
+

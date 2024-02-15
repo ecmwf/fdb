@@ -1,3 +1,5 @@
+.. _tools-label:
+
 FDB Tools
 =========
 
