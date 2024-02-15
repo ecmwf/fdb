@@ -18,7 +18,7 @@ Which will result in the following output (or similar depending on the GRIB file
 
 ::
 
-   Processing /path/to/mars/output
+   Processing /path/to/grib/file
    FDB archive 50 messages, size 156.422 Mbytes, in 0.350135 second (446.746 Mbytes per second)
    fdb::service::archive: 0.350308 second elapsed, 0.118118 second cpu
 

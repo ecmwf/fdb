@@ -3,7 +3,9 @@ Config
 
 Config files define a number of parameters for the FDB. There are several different
 types, which can be described by a FDB config file, such as 
-local, remote, distribute, and select.
+local, remote, distribute, and select. For an architectural overview, see
+:ref:`architecture_frontend`.
+
 
 Local
 ******

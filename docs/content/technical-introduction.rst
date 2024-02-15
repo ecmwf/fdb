@@ -13,7 +13,6 @@ FDB exposes a C++ API as well as CLI :doc:`tools`.
 .. toctree::
    :maxdepth: 1
 
-   .. technical/introduction
    technical/requirements
    technical/build-and-installation
    technical/configuration

@@ -10,6 +10,6 @@ Runtime dependencies:
 
 Build dependencies:
 
-:CMake: For use and installation see http://www.cmake.org/
-:ecbuild: ECMWF library of CMake macros ()
+:CMake: For use and installation, see http://www.cmake.org/
+:ecbuild: ECMWF library of CMake macros, see https://github.com/ecmwf/ecbuild
 :libaec: DKRZ Adaptive Entropy Coding Library, see https://gitlab.dkrz.de/k202009/libaec

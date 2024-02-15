@@ -6,3 +6,4 @@ cmake
 **/_build
 build
 install.sh
+.DS_Store

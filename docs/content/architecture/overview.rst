@@ -18,13 +18,15 @@ which needs to be considered for different underlying storage systems.
 
 .. _schema_fdb_frontend_backend:
 
-.. image:: img/FDB_Frontend_Backend.png
+.. image:: img/local_fdb.svg
    :width: 600
    :align: center
    :class: with-shadow
    :alt: Schematic of the FDB client/server architecture 
 
 This schematic shows the design of the FDB, especially the difference between the client and server side.
+
+.. _architecture_frontend:
 
 Frontend / Client
 -----------------
@@ -59,31 +61,68 @@ or not, so operations are **transactional**. Furthermore, the aforementioned fun
 There are several frontend implementations, each of which can be used to achieve 
 different use-cases:
 
-* **Local**-Frontend
+**Local**-Frontend
+******************
 
   Implements the passage from frontend to the storage backend. Originally
   intended to have a *local* FDB instance. With the newest changes in modularity
-  and the corresponding configuration options the backend could also be *non-locale*.
-* **Remote**-Frontend
+  and the corresponding configuration options the backend could also be *non-local*.
+
+  **Schematic of a local FDB instance**:
+
+.. image:: img/local_fdb.svg
+   :width: 600
+   :align: center
+   :alt: Schematic of a local FDB instance
+
+**Remote**-Frontend
+*******************
 
   Handles access to a remote FDB via TCP/IP. Talks to the FDB backend using
   asynchronous protocol (versioned). The schema, which is used for indexing of data,
   is taken from the server side.
-* **Distribute**-Frontend
+
+  **Schematic of a remote FDB instance**:
+
+.. image:: img/remote_fdb.svg
+   :width: 600
+   :align: center
+   :alt: Schematic of a remote FDB instance
+
+**Distribute**-Frontend
+***********************
   
   Implements multi-lane access to multiple FDB's which uses Rendez-vous Hashing to
-  avoid synchronizations.
-* **Select**-Frontend
+  avoid synchronizations. The schematic below shows two different FDB server, which are
+  used for data persistence. In general there could be several.
+
+  **Schematic of a distributed FDB instance**:
+
+.. image:: img/dist_fdb.svg
+   :width: 600
+   :align: center
+   :alt: Schematic of a remote FDB instance
+
+**Select**-Frontend
+*******************
 
   Dispatches requests to different FDB's based on the metadata of the associated data.
-  A typical use case is to split data depending on its metadata.
+  A typical use case is to split data depending on its metadata. In the schematic
+  below a splitting only occurs on the same machine. In general the data which should
+  be stored could also be sent to a remote FDB instance (or a mixture of multiple local/remote FDBs).
 
+  **Schematic of a selection FDB instance**:
+
+.. image:: img/select_fdb.svg
+   :width: 600
+   :align: center
+   :alt: Schematic of a remote FDB instance
 
 
 Backend / Server
 ----------------
 
-As seen in :ref:schema_fdb_operational_: the FDB needs to compensate with two
+As seen in :ref:`schema-fdb-operational`, the FDB needs to compensate with two
 kind of data flows:
 
 1. Data needs to be efficiently streamed out of the NWP model (or other data

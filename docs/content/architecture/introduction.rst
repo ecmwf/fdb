@@ -1,3 +1,5 @@
+.. _schema-fdb-operational:
+
 Introduction
 ============
 
@@ -16,8 +18,6 @@ cheaply for a general lifetime of the forecast data, which is typically 3 - 5 da
 The **Fields DataBase (FDB)** is a domain-specific object store developed at ECMWF for storing,
 indexing and retrieving GRIB data, therefore playing the essential role of a hot-cache in
 the context of NWP. 
-
-.. _schema_fdb_operational:
 
 .. image:: img/FDB_schema.png
    :width: 400
