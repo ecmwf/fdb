@@ -11,7 +11,7 @@
 // #include "eckit/filesystem/URIManager.h"
 #include "eckit/io/s3/S3Name.h"
 
-#include "fdb5/daos/S3FieldLocation.h"
+#include "fdb5/s3/S3FieldLocation.h"
 // #include "fdb5/LibFdb5.h"
 
 namespace fdb5 {
@@ -39,7 +39,7 @@ std::shared_ptr<FieldLocation> S3FieldLocation::make_shared() const {
 
 eckit::DataHandle* S3FieldLocation::dataHandle() const {
 
-    return eckit::S3Name(uri_).dataHandle(offset(), length());
+    return eckit::S3Name(uri_).dataHandle(offset());
     
 }
 

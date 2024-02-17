@@ -57,7 +57,7 @@ ecbuild_add_option( FEATURE TOCFDB  # option defined in fdb5_config.h
 
 ### FDB S3 Store backend
 ecbuild_add_option( FEATURE S3FDB
-                    CONDITION eckit_S3_FOUND 
+                    CONDITION eckit_HAVE_AWS_S3 
                     DEFAULT ON
                     DESCRIPTION "S3 support for FDB Store" )
 

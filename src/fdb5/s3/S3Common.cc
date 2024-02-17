@@ -32,7 +32,9 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
 
     /// @note: code for bucket per DB
 
-    db_bucket_ = prefix_ + key.valuesToString();
+    std::string keyStr = key.valuesToString();
+    std::replace(keyStr.begin(), keyStr.end(), ':', '-');
+    db_bucket_ = prefix_ + keyStr;
 
 
 
@@ -82,7 +84,7 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
 
     /// @note: code for bucket per DB
 
-    const auto parts = Tokenizer("/").tokenize(uri.name());
+    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
     const auto n = parts.size();
     ASSERT(n == 1 | n == 2);
     db_bucket_ = parts[0];
@@ -113,7 +115,7 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
 
 }
 
-S3Common::parseConfig(const fdb5::Config& config) {
+void S3Common::parseConfig(const fdb5::Config& config) {
 
     eckit::LocalConfiguration cr{}, s3{};
 

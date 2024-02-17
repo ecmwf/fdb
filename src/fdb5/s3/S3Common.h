@@ -34,7 +34,7 @@ private: // methods
 
 protected: // members
 
-    std::string endpoint_;
+    eckit::net::Endpoint endpoint_;
     std::string db_bucket_;
 
     /// @note: code for single bucket for all DBs

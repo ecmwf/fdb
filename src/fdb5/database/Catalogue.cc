@@ -25,13 +25,9 @@
 namespace fdb5 {
 
 std::unique_ptr<Store> Catalogue::buildStore() {
-    if (buildByKey_)
-        return StoreFactory::instance().build(schema(), key(), config_);
-    else {
-        std::string name = config_.getString("store", "file");
-
-        return StoreFactory::instance().build(schema(), eckit::URI(name, uri()), config_);
-    }
+    /// @todo: buildByKey_ and all Store constructors taking a URI 
+    ///   (and StoreFactory::build(..., uri, ...)) can be removed
+    return StoreFactory::instance().build(schema(), key(), config_);
 }
 
 bool Catalogue::enabled(const ControlIdentifier& controlIdentifier) const {

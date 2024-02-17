@@ -401,13 +401,11 @@ ecbuild_add_library(
     PRIVATE_INCLUDES
         "${PMEM_INCLUDE_DIRS}"
         "${LUSTREAPI_INCLUDE_DIRS}"
-        "${S3_INCLUDE_DIRS}"
 
     PRIVATE_LIBS
         ${grib_handling_pkg}
         ${PMEM_LIBRARIES}
         ${LUSTREAPI_LIBRARIES}
-        ${S3_LIBRARIES}
 )
 
 if(HAVE_FDB_BUILD_TOOLS)
@@ -454,7 +452,7 @@ foreach( _tool ${fdb5_tools} )
   ecbuild_add_executable( TARGET    ${_tool}
                           CONDITION HAVE_FDB_BUILD_TOOLS
                           SOURCES   tools/${_tool}.cc
-                          INCLUDES  ${ECCODES_INCLUDE_DIRS} ${S3_INCLUDE_DIRS}  # Please don't remove me, I am needed
+                          INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
                           LIBS      fdb5 )
 
 endforeach()

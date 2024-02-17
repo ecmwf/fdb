@@ -65,8 +65,6 @@ protected: // methods
     // eckit::DataHandle& getDataHandle(const Key& key, const eckit::S3Name& name);
     // void closeDataHandles();
 
-    void print( std::ostream &out ) const override;
-
 private: // types
 
     /// @note: code for S3 object (key) per index store:

@@ -19,9 +19,9 @@
 #include "fdb5/database/UriStore.h"
 
 #include "fdb5/toc/TocFieldLocation.h"
-// #ifdef fdb5_HAVE_DAOSFDB
-// #include "fdb5/daos/DaosFieldLocation.h"
-// #endif
+#ifdef fdb5_HAVE_S3FDB
+#include "fdb5/s3/S3FieldLocation.h"
+#endif
 
 namespace fdb5 {
 
@@ -37,16 +37,16 @@ FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
 
     const FieldLocation& loc = field.location();
 
-// #ifdef fdb5_HAVE_DAOSFDB
-//     const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
-//     const DaosFieldLocation* daosfloc = dynamic_cast<const DaosFieldLocation*>(&loc);
-//     if(!tocfloc && !daosfloc) {
-//         throw eckit::NotImplemented(
-//             "Field location is not of TocFieldLocation or DaosFieldLocation type "
-//             "-- indexing other locations is not supported", 
-//             Here());
-//     }
-// #else
+#ifdef fdb5_HAVE_S3FDB
+    const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
+    const S3FieldLocation* s3floc = dynamic_cast<const S3FieldLocation*>(&loc);
+    if(!tocfloc && !s3floc) {
+        throw eckit::NotImplemented(
+            "Field location is not of TocFieldLocation or S3FieldLocation type "
+            "-- indexing other locations is not supported", 
+            Here());
+    }
+#else
     const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
     if(!tocfloc) {
         throw eckit::NotImplemented(
@@ -54,7 +54,7 @@ FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
             "-- indexing other locations is not supported", 
             Here());
     }
-// #endif
+#endif
 
     uriId_ = store.insert(loc.uri());
     length_ = loc.length();
