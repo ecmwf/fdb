@@ -9,6 +9,8 @@
  */
 
 /// @author Nicolau Manubens
+/// @author Metin Cakircali
+/// @author Simon Smart
 /// @date   Feb 2024
 
 #pragma once
