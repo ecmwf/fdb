@@ -69,16 +69,47 @@ public: // methods
 
     // -------------- Primary API functions ----------------------------
 
+    /** @brief Archives binary data to a FDB instance.
+     *
+     * @param handle eckit::message::Message to data to archive
+     */
     void archive(eckit::message::Message msg);
+
+    /** @brief Archives binary data to a FDB instance.
+     *
+     * Reads messages from the eckit#DataHandle and calls archive() the the
+     * corresponding messages.
+     *
+     * @param handle eckit::DataHandle reference data to archive
+     */
     void archive(eckit::DataHandle& handle);
+
+    /** @brief Archives binary data to a FDB instance.
+     *
+     * Internally creates a DataHandle and calls archive().
+     *
+     * @param data Pointer to the binary data to archive
+     * @param length Size of the data to archive with the given 
+     */
     void archive(const void* data, size_t length);
-    // warning: not high-perf API - makes sure that all the requested fields are archived and there are no data exceeding the request
+    
+    // @warning not high-perf API - makes sure that all the requested fields are archived and there are no data exceeding the request
     void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
-    // disclaimer: this is a low-level API. The provided key and the corresponding data are not checked for consistency
+
+    /** @brief Archives binary data to a FDB instance.
+     *
+     * @warning this is a low-level API. The provided key and the corresponding data are not checked for consistency
+     *
+     * @param key Key used for indexing and archiving the data
+     * @param data Pointer to the binary data to archive
+     * @param length Size of the data to archive with the given @p key
+     */
     void archive(const Key& key, const void* data, size_t length);
 
-    /// Flushes all buffers and closes all data handles into a consistent DB state
-    /// @note always safe to call
+    /** @brief Flushes all buffers and closes all data handles into a consistent DB state
+     *
+     * @note always safe to call
+     */
     void flush();
 
     eckit::DataHandle* read(const eckit::URI& uri);
