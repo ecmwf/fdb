@@ -1,7 +1,7 @@
 .. _architectural-introduction-label:
 
 Architectural Introduction
-##########################
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 |Licence|
 

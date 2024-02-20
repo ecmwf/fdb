@@ -55,7 +55,7 @@ With the rule from above, a message with the given metadata, retrieves the follo
 As you can see, the three levels are represented in the final key, describing the data.
 The individual sub-keys are:
 
-::
+.. code-block:: bash
 
   {class=od,expver=0001,stream=oper,date=20240202,time=0000,domain=g} # Dataset Key
   {type=fc,levtype=pl}                                                # Colloctation Key

@@ -1,3 +1,4 @@
+===============================
 Welcome to FDB's documentation!
 ===============================
 
@@ -9,6 +10,7 @@ request using a specific language developed for accessing MARS Archive.
 
 The documentation is divided into three parts: 
 
+***************************************
 :ref:`architectural-introduction-label`
 ***************************************
 
@@ -16,14 +18,16 @@ The aim of this document to given an overview of the system landscape, showing
 how the FDB integrates into an existing setup, consisting of a data archive, using
 the example of `MARS <https://confluence.ecmwf.int/display/UDOC/MARS+user+documentation>`_.
 
+***********************************
 :ref:`technical-introduction-label`
-***************************************
+***********************************
 
 The aim of this part of the documentation is to give a broad and technical overview of the 
 API of the FDB. 
 
+*************************************
 :ref:`operational-introduction-label`
-***************************************
+*************************************
 
 This part of the documentations aims at operations and how to configure and deploy the FDB.
 
@@ -38,6 +42,7 @@ This part of the documentations aims at operations and how to configure and depl
    content/operational-introduction
 
 .. raw:: html
+
    <hr>
 
 .. toctree::

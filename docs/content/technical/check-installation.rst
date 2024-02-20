@@ -35,4 +35,3 @@ the FDB instance. We run
 
 This should print the set up schema.
 
-
