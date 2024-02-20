@@ -21,194 +21,16 @@
 using namespace eckit;
 namespace fdb5::remote {
 
-class CatalogueArchivalRequest {
-
-public:
-
-    CatalogueArchivalRequest() :
-        id_(0), catalogue_(nullptr), key_(Key()) {}
-
-    CatalogueArchivalRequest(uint32_t id, RemoteCatalogue* catalogue, const fdb5::Key& key, std::unique_ptr<FieldLocation> location) :
-        id_(id), catalogue_(catalogue), key_(key), location_(std::move(location)) {}
-
-    std::pair<uint32_t, std::pair<Key, std::unique_ptr<FieldLocation>>>  element;
-
-    uint32_t id_;
-    RemoteCatalogue* catalogue_;
-    fdb5::Key key_;
-    std::unique_ptr<FieldLocation> location_;
-};
-
-
-class RemoteCatalogueArchiver {
-
-public: // types
-
-    using CatalogueArchiveQueue = eckit::Queue<CatalogueArchivalRequest>;
-
-public: // methods
-
-    static RemoteCatalogueArchiver* get();
-
-    bool valid() { return archiveFuture_.valid(); }
-    bool dirty() { return dirty_; }
-
-    void start();
-    void error(eckit::Buffer payload, const eckit::net::Endpoint& endpoint);
-    
-    void emplace(uint32_t id, RemoteCatalogue* catalogue, const Key& key, std::unique_ptr<FieldLocation> location);
-    FDBStats flush(RemoteCatalogue* catalogue);
-
-private: // methods
-
-    RemoteCatalogueArchiver() : dirty_(false), maxArchiveQueueLength_(eckit::Resource<size_t>("fdbRemoteArchiveQueueLength;$FDB_REMOTE_ARCHIVE_QUEUE_LENGTH", 200)) {}
-
-    FDBStats archiveThreadLoop();
-
-private: // members
-
-    bool dirty_;
-
-    std::mutex archiveQueuePtrMutex_;
-    size_t maxArchiveQueueLength_;
-    std::unique_ptr<CatalogueArchiveQueue> archiveQueue_;
-    std::future<FDBStats> archiveFuture_;
-
-};
-
-RemoteCatalogueArchiver* RemoteCatalogueArchiver::get() {
-
-    static std::unique_ptr<RemoteCatalogueArchiver> archiver_;
-
-    if (!archiver_) {
-        archiver_.reset(new RemoteCatalogueArchiver());
-    }
-    return archiver_.get();
-}
-
-void RemoteCatalogueArchiver::start() {
-    // if there is no archiving thread active, then start one.
-    // n.b. reset the archiveQueue_ after a potential flush() cycle.
-    if (!archiveFuture_.valid()) {
-
-        {
-            // Reset the queue after previous done/errors
-            std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
-            ASSERT(!archiveQueue_);
-            archiveQueue_.reset(new CatalogueArchiveQueue(maxArchiveQueueLength_));
-        }
-
-        archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
-    }
-}
-
-void RemoteCatalogueArchiver::error(eckit::Buffer payload, const eckit::net::Endpoint& endpoint) {
-
-    std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
-
-    if (archiveQueue_) {
-        std::string msg;
-        if (payload.size() > 0) {
-            msg.resize(payload.size(), ' ');
-            payload.copy(&msg[0], payload.size());
-        }
-
-        archiveQueue_->interrupt(std::make_exception_ptr(RemoteFDBException(msg, endpoint)));
-    }
-}
-
-void RemoteCatalogueArchiver::emplace(uint32_t id, RemoteCatalogue* catalogue, const Key& key, std::unique_ptr<FieldLocation> location) {
-
-    dirty_ = true;
-
-    ASSERT(archiveQueue_);
-    archiveQueue_->emplace(id, catalogue, key, std::move(location));
-}
-
-FDBStats RemoteCatalogueArchiver::flush(RemoteCatalogue* catalogue) {
-
-    std::lock_guard<std::mutex> lock(archiveQueuePtrMutex_);
-    ASSERT(archiveQueue_);
-    archiveQueue_->close();
-
-    FDBStats stats = archiveFuture_.get();
-    ASSERT(!archiveQueue_);
-
-    ASSERT(stats.numFlush() == 0);
-    size_t numArchive = stats.numArchive();
-
-    Buffer sendBuf(4096);
-    MemoryStream s(sendBuf);
-    s << numArchive;
-
-    eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::flush - flushing " << numArchive << " fields" << std::endl;
-    uint32_t id = catalogue->generateRequestID();
-    // The flush call is blocking
-    catalogue->controlWriteCheckResponse(Message::Flush, id, false, sendBuf, s.position());
-
-    dirty_ = false;
-
-    return stats;
-}
-
-FDBStats RemoteCatalogueArchiver::archiveThreadLoop() {
-    FDBStats localStats;
-    eckit::Timer timer;
-
-    CatalogueArchivalRequest element;
-
-    try {
-
-        ASSERT(archiveQueue_);
-        long popped;
-        while ((popped = archiveQueue_->pop(element)) != -1) {
-
-            timer.start();
-            element.catalogue_->sendArchiveData(element.id_, element.key_, std::move(element.location_));
-            timer.stop();
-
-            localStats.addArchive(0, timer, 1);
-        }
-
-        // And note that we are done. (don't time this, as already being blocked
-        // on by the ::flush() routine)
-
-        element.catalogue_->dataWrite(Message::Flush, 0);
-
-        archiveQueue_.reset();
-
-    } catch (...) {
-        archiveQueue_->interrupt(std::current_exception());
-        throw;
-    }
-
-    return localStats;
-
-    // We are inside an async, so don't need to worry about exceptions escaping.
-    // They will be released when flush() is called.
-}
-
-
-// std::string host(const eckit::Configuration& config) {
-//     std::string host = config.getString("host");
-//     std::string remoteDomain = config.getString("remoteDomain", "");
-//     if (remoteDomain.empty()) {
-//         return host;
-//     }
-//     return host+remoteDomain;
-// }
-
-
 RemoteCatalogue::RemoteCatalogue(const Key& key, const Config& config):
     CatalogueImpl(key, ControlIdentifiers(), config), // xxx what are control identifiers? Setting empty here...
     Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""),
-    config_(config), schema_(nullptr), archiver_(nullptr) {
+    config_(config), schema_(nullptr), numLocations_(0) {
 
     loadSchema();
 }
 
 RemoteCatalogue::RemoteCatalogue(const eckit::URI& uri, const Config& config):
-    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""), config_(config), schema_(nullptr), archiver_(nullptr)
+    Client(eckit::net::Endpoint(config.getString("host"), config.getInt("port")), ""), config_(config), schema_(nullptr), numLocations_(0)
     {
         NOTIMP;
     }
@@ -240,20 +62,34 @@ void RemoteCatalogue::sendArchiveData(uint32_t id, const Key& key, std::unique_p
 
 void RemoteCatalogue::archive(const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
 
-    // if there is no archiving thread active, then start one.
-    // n.b. reset the archiveQueue_ after a potential flush() cycle.
-    if (!archiver_) {
-        archiver_ = RemoteCatalogueArchiver::get();
-    }
-    uint32_t id = connection_.generateRequestID();
-    if (!archiver_->valid()) {
-        archiver_->start();
-        ASSERT(archiver_->valid());
+    // eckit::Timer timer;
+    // timer.start();
 
-        controlWriteCheckResponse(Message::Archive, id, true);
+    ASSERT(!key.empty());
+    ASSERT(fieldLocation);
+
+    uint32_t id = connection_.generateRequestID();
+    {
+        std::lock_guard<std::mutex> lock(archiveMutex_);
+        if (numLocations_ == 0) { // if this is the first archival request, notify the server
+            controlWriteCheckResponse(Message::Archive, id, true);
+        }
+        numLocations_++;
     }
-    // eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::archive - adding to queue [id=" << id << ",key=" << key << ",fieldLocation=" << fieldLocation->uri() << "]" << std::endl;
-    archiver_->emplace(id, this, key, std::move(fieldLocation));
+
+    Buffer buffer(8192);
+    MemoryStream stream(buffer);
+    stream << currentIndexKey_;
+    stream << key;
+    stream << *fieldLocation;
+
+    std::vector<std::pair<const void*, uint32_t>> payloads;
+    payloads.push_back(std::pair<const void*, uint32_t>{buffer, stream.position()});
+
+    dataWrite(Message::Blob, id, payloads);
+    // timer.stop();
+
+    // archivalStats_.addArchive(0, timer, 0);
 }
 
 bool RemoteCatalogue::selectIndex(const Key& idxKey) {
@@ -278,18 +114,29 @@ const Schema& RemoteCatalogue::schema() const {
 
 void RemoteCatalogue::flush() {
 
-    Timer timer;
+    // Timer timer;
 
-    timer.start();
+    // timer.start();
 
+    std::lock_guard<std::mutex> lock(archiveMutex_);
     // Flush only does anything if there is an ongoing archive();
-    if (archiver_->valid()) {
-        archiver_->flush(this);
-//        internalStats_ += stats;
+    if (numLocations_ > 0) {
+
+        Buffer sendBuf(1024);
+        MemoryStream s(sendBuf);
+        s << numLocations_;
+
+        eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::flush - flushing " << numLocations_ << " fields" << std::endl;
+
+        // The flush call is blocking
+        uint32_t id = generateRequestID();
+        controlWriteCheckResponse(Message::Flush, id, false, sendBuf, s.position());
+
+        numLocations_ = 0;
     }
 
-    timer.stop();
-//    internalStats_.addFlush(timer);
+    // timer.stop();
+    // internalStats_.addFlush(timer);
 }
 
 void RemoteCatalogue::clean() {NOTIMP;}
@@ -325,12 +172,12 @@ void RemoteCatalogue::loadSchema() {
     }
 }
 
-bool RemoteCatalogue::handle(Message message, uint32_t requestID) {
+bool RemoteCatalogue::handle(Message message, bool control, uint32_t requestID) {
     eckit::Log::debug<LibFdb5>() << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
     NOTIMP;
     return false;
 }
-bool RemoteCatalogue::handle(Message message, uint32_t requestID, eckit::Buffer&& payload) {
+bool RemoteCatalogue::handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) {
     eckit::Log::debug<LibFdb5>() << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << ",payloadSize=" << payload.size() << "]" << std::endl;
     // if (message == Message::Schema) {
     //     eckit::Log::debug<LibFdb5>() << "RemoteCatalogue::handle received payload size: " << payload.size() << std::endl;

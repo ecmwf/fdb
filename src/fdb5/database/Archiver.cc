@@ -30,10 +30,15 @@ Archiver::Archiver(const Config& dbConfig) :
     store_(nullptr) {}
 
 Archiver::~Archiver() {
-
     flush(); // certify that all sessions are flushed before closing them
 
-    databases_.clear(); //< explicitly delete the DBs before schemas are destroyed
+    // for (auto it = databases_.begin(); it != databases_.end(); it++) {
+    //     databases_.erase(it);
+    // }
+
+//    std::cout << databases_.size();
+
+    // databases_.clear(); //< explicitly delete the DBs before schemas are destroyed
 }
 
 void Archiver::archive(const Key &key, const void* data, size_t len) {

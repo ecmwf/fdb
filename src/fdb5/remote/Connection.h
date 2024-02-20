@@ -27,20 +27,13 @@ namespace fdb5::remote {
 class Connection : eckit::NonCopyable {
 
 public: // methods
-    Connection() : single_(false), exit_(false) {}
+    Connection() : single_(false) {}
     virtual ~Connection() {}
 
     void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length);
     void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data = {});
-    // void write(Message msg, bool control, const Handler& clientID, uint32_t requestID, const void* data, uint32_t length);
-    // void write(Message msg, bool control, const Handler& clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data = {});
-    // void writeControl(Message msg, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length);
-    // void writeControl(Message msg, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data = {});
-    // void writeData(Message msg, uint32_t clientID, uint32_t requestID, const void* data, uint32_t length);
-    // void writeData(Message msg, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data = {});
 
     void error(const std::string& msg, uint32_t clientID, uint32_t requestID);
-    // void error(const std::string& msg, const Handler& clientID, uint32_t requestID);
 
     eckit::Buffer readControl(MessageHeader& hdr);
     eckit::Buffer readData(MessageHeader& hdr);
@@ -58,7 +51,7 @@ private: // methods
 protected: // members
 
     bool single_;
-    bool exit_;
+//    bool exit_;
 
 private: // members
 

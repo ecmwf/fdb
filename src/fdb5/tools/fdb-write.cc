@@ -98,12 +98,13 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
         if (i%2==0) {
             archiver1.archive( *dh );
         } else {
+            std::cout << "adding to archiver 2\n";
             archiver2.archive( *dh );
         }
     }
 
-    // archiver1.flush();
-    // archiver2.flush();
+    archiver1.flush();
+    archiver2.flush();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

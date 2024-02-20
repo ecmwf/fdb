@@ -53,7 +53,7 @@ Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& 
 }
 
 Client::~Client() {
-    ASSERT(connection_.remove(id_));
+    connection_.remove(id_);
 }
 
 bool Client::response(uint32_t requestID) {
@@ -73,12 +73,6 @@ bool Client::response(uint32_t requestID, eckit::Buffer&& payload) {
     payloadPromise_.set_value(std::move(payload));
     return true;
 }
-
-// uint32_t Client::controlWriteCheckResponse(Message msg, const void* payload, uint32_t payloadLength) {
-//     uint32_t id = connection_.generateRequestID();
-//     controlWriteCheckResponse(msg, id, payload, payloadLength);
-//     return id;
-// }
 
 void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload, uint32_t payloadLength) {
 

@@ -29,11 +29,33 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/remote/Messages.h"
-// #include "fdb5/remote/server/Handler.h"
+#include "fdb5/remote/Connection.h"
 
 namespace fdb5::remote {
 
-class MessageHeader;
+enum class Handled {
+    No = 0,
+    Yes,
+    YesAddArchiveListener,
+    YesRemoveArchiveListener,
+    YesAddReadListener,
+    YesRemoveReadListener,
+    Replied,
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class Handler {
+
+public:
+
+    virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) = 0;
+    virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
+    virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID) = 0;
+    virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
+
+    virtual void handleException(std::exception_ptr e) = 0;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 // Base class for CatalogueHandler and StoreHandler
@@ -49,16 +71,34 @@ struct readLocationElem {
         clientID(clientID), requestID(requestID), readLocation(std::move(readLocation)) {}
 };
 
-class ServerConnection : private eckit::NonCopyable {
+struct ArchiveElem {
+
+    uint32_t clientID_;
+    uint32_t requestID_;
+    eckit::Buffer payload_;
+    bool multiblob_;
+
+    ArchiveElem() : clientID_(0), requestID_(0), payload_(0), multiblob_(false) {}
+
+    ArchiveElem(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload, bool multiblob) :
+        clientID_(clientID), requestID_(requestID), payload_(std::move(payload)), multiblob_(multiblob) {}
+};
+
+class ServerConnection : public Connection, public Handler {
 public:  // methods
     ServerConnection(eckit::net::TCPSocket& socket, const Config& config);
     ~ServerConnection();
 
-    virtual void handle() { NOTIMP; }
+    void initialiseConnections();
+
+    void handle();
 
     std::string host() const { return controlSocket_.localHost(); }
     int port() const { return controlSocket_.localPort(); }
     const eckit::LocalConfiguration& agreedConf() const { return agreedConf_; }
+
+    Handled handleData(Message message, uint32_t clientID, uint32_t requestID) override;
+    Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
 protected:
 
@@ -67,53 +107,68 @@ protected:
 
     // socket methods
     int selectDataPort();
-    virtual void initialiseConnections();
+//    virtual void initialiseConnections();
     eckit::LocalConfiguration availableFunctionality() const;
     
-    void socketRead(void* data, size_t length, eckit::net::TCPSocket& socket);
-
-    // dataWrite is protected using a mutex, as we may have multiple workers.
-    void dataWrite(Message msg, uint32_t clientID, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
-    eckit::Buffer receivePayload(const MessageHeader& hdr, eckit::net::TCPSocket& socket);
-
-    // socket methods
-    void dataWriteUnsafe(const void* data, size_t length);
-
-    // Worker functionality
+        // Worker functionality
     void tidyWorkers();
     void waitForWorkers();
 
-    void archive(const MessageHeader& hdr);
-    virtual size_t archiveThreadLoop() = 0;
+    // archival thread
+    size_t archiveThreadLoop();
+    virtual void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) = 0;
+
+    // archival helper methods
+    void archiver();
+    // emplace new ArchiveElem to archival queue
+    void queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    // // retrieve archival queue
+    // eckit::Queue<ArchiveElem>& queue();
+
+    void handleException(std::exception_ptr e) override;
+
+    // void archive(const MessageHeader& hdr);
+    // virtual size_t archiveThreadLoop() = 0;
 
 private:
 
-    void controlWrite(Message msg, uint32_t clientID, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
-    void controlWrite(const void* data, size_t length);
+    // void controlWrite(Message msg, uint32_t clientID, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
+    // void controlWrite(const void* data, size_t length);
+    void listeningThreadLoopData();
 
-    // virtual void read(const MessageHeader& hdr);
-    // virtual void archive(const MessageHeader& hdr);
-    // // virtual void store(const MessageHeader& hdr);
-    // virtual void flush(const MessageHeader& hdr);
+    eckit::net::TCPSocket& controlSocket() override { return controlSocket_; }
+    eckit::net::TCPSocket& dataSocket() override { 
+        ASSERT(dataSocket_);
+        return *dataSocket_;
+    }
 
 protected:
 
+    virtual bool remove(uint32_t clientID) = 0;
+
     // std::map<uint32_t, Handler*> handlers_;
     Config config_;
-    eckit::net::TCPSocket controlSocket_;
-    eckit::net::EphemeralTCPServer dataSocket_;
     std::string dataListenHostname_;
 
     eckit::Queue<readLocationElem> readLocationQueue_;
 
     eckit::SessionID sessionID_;
     eckit::LocalConfiguration agreedConf_;
-    std::mutex controlWriteMutex_;
-    std::mutex dataWriteMutex_;
+    // std::mutex controlWriteMutex_;
+    // std::mutex dataWriteMutex_;
     std::thread readLocationWorker_;
     
     std::map<uint32_t, std::future<void>> workerThreads_;
+    eckit::Queue<ArchiveElem> archiveQueue_;
     std::future<size_t> archiveFuture_;
+
+    eckit::net::TCPSocket controlSocket_;
+
+private:
+
+    // data connection
+    std::unique_ptr<eckit::net::EphemeralTCPServer> dataSocket_;
+    size_t dataListener_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

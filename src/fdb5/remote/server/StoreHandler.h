@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "fdb5/database/Store.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
 namespace fdb5::remote {
@@ -17,29 +18,32 @@ namespace fdb5::remote {
 //----------------------------------------------------------------------------------------------------------------------
 class StoreHandler : public ServerConnection {
 public:  // methods
+
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);
     ~StoreHandler();
 
-    void handle() override;
-
 private:  // methods
 
-    void read(const MessageHeader& hdr);
+    Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) override;
+    Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
-    void initialiseConnections() override;
+    void flush(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload);
+    void read(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload);
+
+    void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) override;
+
     void readLocationThreadLoop();
     void writeToParent(const uint32_t clientID, const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
 
-    size_t archiveThreadLoop() override;
-    void archiveBlobPayload(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length);
+    bool remove(uint32_t clientID) override;
 
-    void flush(const MessageHeader& hdr);
-
-    // Store& store(uint32_t id);
-    Store& store(uint32_t id, Key dbKey);
-  //  Store& store(eckit::URI uri);
+    Store& store(uint32_t clientID);
+    Store& store(uint32_t clientID, const Key& dbKey);
 
 private:  // members
+
+    // clientID --> Store
+    std::mutex storesMutex_;
     std::map<uint32_t, std::unique_ptr<Store>> stores_;
 };
 

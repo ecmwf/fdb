@@ -22,7 +22,7 @@
 
 namespace fdb5::remote {
 
-class RemoteStoreArchiver;
+// class RemoteStoreArchiver;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -61,7 +61,6 @@ public: // methods
 
    const Config& config() { return config_; }
    
-    void sendArchiveData(uint32_t id, const Key& key, const void* data, size_t length);
 
 protected: // methods
 
@@ -78,11 +77,13 @@ protected: // methods
 
 private: // methods
 
+    FDBStats archivalCompleted();
+
     void flush(FDBStats& stats);
 
     // handlers for incoming messages - to be defined in the client class
-    bool handle(Message message, uint32_t requestID) override;
-    bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
+    bool handle(Message message, bool control, uint32_t requestID) override;
+    bool handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) override;
     void handleException(std::exception_ptr e) override;
 
 private: // members
@@ -91,7 +92,6 @@ private: // members
 
     const Config& config_;
 
-    std::map<uint32_t, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)>> locations_;
 
     // @note This is a map of requestID:MessageQueue. At the point that a request is
     // complete, errored or otherwise killed, it needs to be removed from the map.
@@ -100,8 +100,14 @@ private: // members
     std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
     MessageQueue retrieveMessageQueue_;
 
-    // not owning
-    RemoteStoreArchiver* archiver_;
+    std::map<uint32_t, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)>> locations_;
+    FDBStats internalStats_;
+    FDBStats archivalStats_;
+    std::promise<FDBStats> fieldLocationsReceived_;
+    std::future<FDBStats> archivalCompleted_;
+    std::mutex archiveMutex_;
+    bool dirty_;
+    bool flushRequested_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

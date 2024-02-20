@@ -11,6 +11,7 @@
 #pragma once
 
 #include <thread>
+#include <future>
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/container/Queue.h"
@@ -33,6 +34,7 @@ namespace fdb5::remote {
 
 class Client;
 class ClientConnectionRouter;
+class DataWriteRequest;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -42,7 +44,7 @@ public: // types
 
 public: // methods
 
-    ~ClientConnection();
+    virtual ~ClientConnection();
 
     void controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data={});
     void dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
@@ -58,6 +60,10 @@ public: // methods
     const std::string& defaultEndpoint() const { return defaultEndpoint_; }
 
 private: // methods
+
+//    bool remove(uint32_t clientID);
+
+    void dataWrite(DataWriteRequest& dataWriteRequest);
 
     friend class ClientConnectionRouter;
 
@@ -83,6 +89,7 @@ private: // methods
     void handleError(const MessageHeader& hdr, eckit::Buffer buffer);
 
     void listeningThreadLoop();
+    void dataWriteThreadLoop();
 
     eckit::net::TCPSocket& controlSocket() override { return controlClient_; }
     eckit::net::TCPSocket& dataSocket() override { return dataClient_; }
@@ -105,15 +112,16 @@ private: // members
     std::thread listeningThread_;
     
     std::mutex requestMutex_;
-    // std::mutex controlMutex_;
-    // std::mutex dataMutex_;
 
     // requestID
     std::mutex idMutex_;
     uint32_t id_;
 
-    bool exit_;
     bool connected_; 
+
+    std::mutex dataWriteQueueMutex_;
+    std::unique_ptr<eckit::Queue<DataWriteRequest>> dataWriteQueue_;
+    std::future<void> dataWriteFuture_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
