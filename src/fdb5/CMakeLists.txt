@@ -194,6 +194,8 @@ list( APPEND fdb5_srcs
     types/TypeIgnore.h
     types/TypeInteger.cc
     types/TypeInteger.h
+    types/TypeLowercase.cc
+    types/TypeLowercase.h
     types/TypeMonth.cc
     types/TypeMonth.h
     types/TypeParam.cc
