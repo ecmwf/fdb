@@ -9,7 +9,7 @@
  */
 
 // #include "eckit/filesystem/URIManager.h"
-#include "eckit/io/s3/S3Name.h"
+#include "eckit/io/s3/S3ObjectName.h"
 
 #include "fdb5/s3/S3FieldLocation.h"
 // #include "fdb5/LibFdb5.h"
@@ -39,7 +39,7 @@ std::shared_ptr<FieldLocation> S3FieldLocation::make_shared() const {
 
 eckit::DataHandle* S3FieldLocation::dataHandle() const {
 
-    return eckit::S3Name(uri_).dataHandle(offset());
+    return eckit::S3ObjectName(uri_).dataHandle(offset());
     
 }
 

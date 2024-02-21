@@ -31,6 +31,7 @@
 #include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocCatalogueReader.h"
 
+#include "eckit/io/s3/S3BucketName.h"
 #include "eckit/io/s3/S3Client.h"
 #include "eckit/io/s3/S3Session.h"
 #include "eckit/io/s3/S3Credential.h"
@@ -212,8 +213,9 @@ CASE("S3Store tests") {
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
 
         // remove
-        eckit::S3Name field_name{field.location().uri()};
-        eckit::S3Bucket store_name{field_name.bucket()};
+        const URI fieldURI = field.location().uri();
+        eckit::S3ObjectName field_name {fieldURI};
+        eckit::S3BucketName store_name {fieldURI, field_name.bucket()};
         eckit::URI store_uri(store_name.uri());
         std::ostream out(std::cout.rdbuf());
         store.remove(store_uri, out, out, false);
@@ -302,8 +304,9 @@ CASE("S3Store tests") {
 
         // remove data
 
-        eckit::S3Name field_name{field.location().uri()};
-        eckit::S3Bucket store_name{field_name.bucket()};
+        const URI fieldURI = field.location().uri();
+        eckit::S3ObjectName field_name {fieldURI};
+        eckit::S3BucketName store_name {fieldURI, field_name.bucket()};
         eckit::URI store_uri(store_name.uri());
         std::ostream out(std::cout.rdbuf());
         store.remove(store_uri, out, out, false);

@@ -11,7 +11,6 @@
 // #include <algorithm>
 
 #include "eckit/io/s3/S3Name.h"
-#include "eckit/io/s3/S3Bucket.h"
 #include "eckit/io/s3/S3Credential.h"
 #include "eckit/io/s3/S3Session.h"
 

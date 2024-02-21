@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include "eckit/io/s3/S3Name.h"
+#include "eckit/io/s3/S3ObjectName.h"
 
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
@@ -60,7 +60,7 @@ protected: // methods
 
     void print(std::ostream &out) const override;
 
-    eckit::S3Name generateDataKey(const Key& key) const;
+    eckit::S3ObjectName generateDataKey(const Key& key) const;
 
     /// @note: code for S3 object (key) per index store:
     // eckit::S3Name getDataKey(const Key& key) const;
