@@ -45,6 +45,8 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
         return;
     }
 
+    char linkname[PATH_MAX];
+
     eckit::StdDir d(path.c_str());
     if (d == nullptr) {
         // If fdb-wipe is running in parallel, it is perfectly legit for a (non-matching)
@@ -91,6 +93,13 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
         do_stat = false;
         if (e->d_type == DT_DIR) {
             scan_dbs(full.c_str(), dbs);
+        } else if (e->d_type == DT_LNK) {
+            ssize_t r = readlink(full.c_str(), linkname, PATH_MAX);
+            if (r < 0) {
+                do_stat = true;
+            } else {
+                scan_dbs(linkname, dbs);
+            }
         } else if (e->d_type == DT_UNKNOWN) {
             do_stat = true;
         }
@@ -101,6 +110,11 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
             {
                 if(S_ISDIR(info.st_mode)) {
                     scan_dbs(full.c_str(), dbs);
+                } else if (S_ISLNK(info.st_mode)) {
+                    ssize_t r = readlink(full.c_str(), linkname, PATH_MAX);
+                    if (r >= 0) {
+                       scan_dbs(linkname, dbs);
+                    }
                 }
             }
             else Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
