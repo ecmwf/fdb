@@ -13,6 +13,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/container/DenseSet.h"
 #include "eckit/utils/Tokenizer.h"
+#include "eckit/utils/StringTools.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -80,7 +81,7 @@ void Key::decode(eckit::Stream& s) {
     for (size_t i = 0; i < n; ++i) {
         s >> k;
         s >> v;
-        keys_[k] = lower(v);
+        keys_[k] = eckit::StringTools::lower(v);
     }
 
     s >> n;
@@ -127,9 +128,9 @@ void Key::set(const std::string &k, const std::string &v) {
     eckit::StringDict::iterator it = keys_.find(k);
     if (it == keys_.end()) {
         names_.push_back(k);
-        keys_[k] = lower(v);
+        keys_[k] = eckit::StringTools::lower(v);
     } else {
-        it->second = lower(v);
+        it->second = eckit::StringTools::lower(v);
     }
 
 }
@@ -139,7 +140,7 @@ void Key::unset(const std::string &k) {
 }
 
 void Key::push(const std::string &k, const std::string &v) {
-    keys_[k] = lower(v);
+    keys_[k] = eckit::StringTools::lower(v);
     names_.push_back(k);
 }
 
@@ -337,22 +338,6 @@ metkit::mars::MarsRequest Key::request(std::string verb) const {
 fdb5::Key::operator std::string() const {
     ASSERT(names_.size() == keys_.size());
     return toString();
-}
-
-std::string Key::lower(const std::string& value) const {
-
-    static bool toLower = eckit::Resource<bool>("fdbKeysLowercase;$FDB_KEYS_LOWERCASE", true);
-
-    if (!toLower) {
-        return value;
-    }
-
-    std::string lowerCase;
-    lowerCase.resize(value.size());
-
-    std::transform(value.begin(), value.end(), lowerCase.begin(), [](unsigned char c){ return std::tolower(c); });
-
-    return lowerCase;
 }
 
 std::string Key::canonicalise(const std::string&, const std::string& value) const {

@@ -17,6 +17,7 @@
 
 #include "eckit/eckit.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/filesystem/LocalFileManager.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/StdDir.h"
@@ -24,6 +25,7 @@
 #include "eckit/os/BackTrace.h"
 #include "eckit/os/Stat.h"
 #include "eckit/utils/Regex.h"
+#include "eckit/utils/StringTools.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
@@ -44,8 +46,6 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
         dbs.push_back(path);
         return;
     }
-
-    char linkname[PATH_MAX];
 
     eckit::StdDir d(path.c_str());
     if (d == nullptr) {
@@ -93,13 +93,6 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
         do_stat = false;
         if (e->d_type == DT_DIR) {
             scan_dbs(full.c_str(), dbs);
-        } else if (e->d_type == DT_LNK) {
-            ssize_t r = readlink(full.c_str(), linkname, PATH_MAX);
-            if (r < 0) {
-                do_stat = true;
-            } else {
-                scan_dbs(linkname, dbs);
-            }
         } else if (e->d_type == DT_UNKNOWN) {
             do_stat = true;
         }
@@ -110,11 +103,6 @@ void TocEngine::scan_dbs(const std::string& path, std::list<std::string>& dbs) c
             {
                 if(S_ISDIR(info.st_mode)) {
                     scan_dbs(full.c_str(), dbs);
-                } else if (S_ISLNK(info.st_mode)) {
-                    ssize_t r = readlink(full.c_str(), linkname, PATH_MAX);
-                    if (r >= 0) {
-                       scan_dbs(linkname, dbs);
-                    }
                 }
             }
             else Log::error() << "Cannot stat " << full << Log::syserr << std::endl;
@@ -154,9 +142,13 @@ static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Inspe
 
 static constexpr const char* regexForMissingValues = "[^:/]*";
 
+
+
 std::set<eckit::PathName> TocEngine::databases(const std::set<InspectionKey>& keys,
                                                const std::vector<eckit::PathName>& roots,
                                                const Config& config) const {
+
+    static bool searchCaseSensitiveDB = eckit::Resource<bool>("fdbSearchCaseSensitiveDB;$FDB_SEARCH_CASESENSITIVE_DB", true);
 
     std::set<eckit::PathName> result;
 
@@ -187,7 +179,7 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<InspectionKey>& ke
                         continue;
                     }
 
-                    if (re.match(*k)) {
+                    if (re.match(searchCaseSensitiveDB ? eckit::StringTools::lower(*k) : *k)) {
                         result.insert(*k);
                     }
                 }

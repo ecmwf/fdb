@@ -138,8 +138,6 @@ public: // methods
 
 protected: // methods 
 
-    std::string lower(const std::string& value) const;
-
     //TODO add unit test for each type
     virtual std::string canonicalise(const std::string& keyword, const std::string& value) const;
 
