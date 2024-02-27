@@ -61,7 +61,7 @@ bool PMemDBReader::selectIndex(const Key &key) {
 
     currentIndex_ = indexes_[key];
 
-    eckit::Log::debug<LibFdb5>() << "PMemDBReader::selectIndex " << key
+    LOG_DEBUG_LIB(LibFdb5) << "PMemDBReader::selectIndex " << key
                                 << ", found match" << std::endl;
 
     return true;
@@ -75,8 +75,8 @@ void PMemDBReader::axis(const std::string& keyword, eckit::StringSet& s) const {
 
 eckit::DataHandle* PMemDBReader::retrieve(const Key &key) const {
 
-    eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
-    eckit::Log::debug<LibFdb5>() << "From index " << currentIndex_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "From index " << currentIndex_ << std::endl;
 
     Field field;
     if (currentIndex_.get(key, field))

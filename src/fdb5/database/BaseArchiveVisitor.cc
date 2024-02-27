@@ -25,7 +25,7 @@ BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key &field) :
 }
 
 bool BaseArchiveVisitor::selectDatabase(const Key &key, const Key&) {
-    eckit::Log::debug<LibFdb5>() << "selectDatabase " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectDatabase " << key << std::endl;
     owner_.current_ = &owner_.database(key);
     owner_.current_->deselectIndex();
 

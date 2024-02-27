@@ -62,7 +62,7 @@ FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit:
 
     auto j = builders_.find(name);
 
-    eckit::Log::debug() << "Looking for FieldLocationBuilder [" << name << "]" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Looking for FieldLocationBuilder [" << name << "]" << std::endl;
 
     if (j == builders_.end()) {
         eckit::Log::error() << "No FieldLocationBuilder for [" << name << "]" << std::endl;
@@ -81,7 +81,7 @@ FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit:
 
     auto j = builders_.find(name);
 
-    eckit::Log::debug() << "Looking for FieldLocationBuilder [" << name << "]" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Looking for FieldLocationBuilder [" << name << "]" << std::endl;
 
     if (j == builders_.end()) {
         eckit::Log::error() << "No FieldLocationBuilder for [" << name << "]" << std::endl;

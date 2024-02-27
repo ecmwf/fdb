@@ -155,7 +155,7 @@ void Schema::load(const eckit::PathName &path, bool replace) {
 
     path_ = path;
 
-    eckit::Log::debug<LibFdb5>() << "Loading FDB rules from " << path << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Loading FDB rules from " << path << std::endl;
 
     std::ifstream in(path.localPath());
     if (!in)

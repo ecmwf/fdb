@@ -85,7 +85,7 @@ bool DB::axis(const std::string &keyword, eckit::StringSet &s) const {
 
 bool DB::inspect(const Key& key, Field& field) {
 
-    eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
 
     CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
     ASSERT(cat);

@@ -86,7 +86,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     // TODO: Put minimim keys check into FDBToolRequest.
 
-    Log::debug<LibFdb5>() << "REQUEST ====> " << request.request() << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "REQUEST ====> " << request.request() << std::endl;
 
     try {
 
@@ -104,7 +104,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
                     path = path.dirName();
                 path = path.realName();
 
-                Log::debug<LibFdb5>() << "FDB processing Path " << path << std::endl;
+                LOG_DEBUG_LIB(LibFdb5) << "FDB processing Path " << path << std::endl;
 
                 std::unique_ptr<DB> db = DB::buildReader(eckit::URI(uri.scheme(), path), dbConfig_);
                 ASSERT(db->open());

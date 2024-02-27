@@ -121,7 +121,7 @@ void PMemDB::visitEntries(EntryVisitor& visitor, bool sorted) {
     // There is no meaningfully more-efficient way or sorting the indexes!
     (void) sorted;
 
-    Log::debug<LibFdb5>() << "Visiting entries in DB with key " << dbKey_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Visiting entries in DB with key " << dbKey_ << std::endl;
 
     visitor.visitDatabase(*this);
 
