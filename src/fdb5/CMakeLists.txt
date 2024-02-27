@@ -32,6 +32,8 @@ list( APPEND fdb5_srcs
     api/SelectFDB.h
 
     api/helpers/APIIterator.h
+    api/helpers/Axesiterator.cc
+    api/helpers/AxesIterator.h
     api/helpers/ControlIterator.cc
     api/helpers/ControlIterator.h
     api/helpers/FDBToolRequest.cc
@@ -50,6 +52,8 @@ list( APPEND fdb5_srcs
     api/local/QueryVisitor.h
     api/local/QueueStringLogTarget.h
     api/local/ListVisitor.h
+    api/local/AxesVisitor.cc
+    api/local/AxesVisitor.h
     api/local/ControlVisitor.cc
     api/local/ControlVisitor.h
     api/local/DumpVisitor.h
@@ -428,6 +432,7 @@ if(HAVE_FDB_BUILD_TOOLS)
 endif()
 
 list( APPEND fdb5_tools
+    fdb-axes
     fdb-write
     fdb-copy
     fdb-dump

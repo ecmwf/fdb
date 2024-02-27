@@ -1,5 +1,6 @@
 list( APPEND fdb_tools_tests
-    fdb_info )
+    fdb_info
+    fdb_axes )
 
 foreach( _t ${fdb_tools_tests} )
     

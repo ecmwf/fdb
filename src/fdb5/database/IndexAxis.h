@@ -45,11 +45,20 @@ public: // methods
 
     IndexAxis();
     IndexAxis(eckit::Stream &s, const int version);
+    IndexAxis(IndexAxis&& rhs) noexcept;
+
+    IndexAxis& operator=(IndexAxis&& rhs) noexcept;
 
     ~IndexAxis();
 
+    bool operator==(const IndexAxis& rhs) const;
+    bool operator!=(const IndexAxis& rhs) const;
+
     void insert(const InspectionKey &key);
     void encode(eckit::Stream &s, const int version) const;
+    static int currentVersion() { return 3; }
+
+    void merge(const IndexAxis& other);
 
     // Decode can be used for two-stage initialisation (IndexAxis a; a.decode(s);)
     void decode(eckit::Stream& s, const int version);
@@ -78,6 +87,11 @@ public: // methods
         return s;
     }
 
+    friend eckit::JSON& operator<<(eckit::JSON& j, const IndexAxis& x) {
+        x.json(j);
+        return j;
+    }
+
 private: // methods
 
     void encodeCurrent(eckit::Stream &s, const int version) const;
@@ -87,7 +101,7 @@ private: // methods
     void decodeLegacy(eckit::Stream& s, const int version);
 
     void print(std::ostream &out) const;
-
+    void json(eckit::JSON& j) const;
 
 private: // members
 
