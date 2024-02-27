@@ -46,7 +46,7 @@ eckit::PathName EnvVarFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     AutoLock<Mutex> lock(mutex_);
 
-    Log::debug<LibFdb5>() << "Selecting a file system based on environment variable " << fdbFileSpaceSHandlerEnvVarName_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Selecting a file system based on environment variable " << fdbFileSpaceSHandlerEnvVarName_ << std::endl;
 
     const char* value  = ::getenv(fdbFileSpaceSHandlerEnvVarName_.c_str());
     if(value) {

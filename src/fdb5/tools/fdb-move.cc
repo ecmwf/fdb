@@ -120,8 +120,8 @@ public: // methods
             throw FDBToolException(ss.str());
         }
 
-        Log::debug() << "Request:     " << request << std::endl;
-        Log::debug() << "Destination: " << destination << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Request:     " << request << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Destination: " << destination << std::endl;
 
         moveIterator_ = new fdb_moveiterator_t(fdb_.move(request, destination));
     }
@@ -134,7 +134,7 @@ private: // methods
 
         fdb5::MoveElement elem;
         if (moveIterator_->next(elem)) {
-            Log::debug() << "MoveProducer " << elem << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "MoveProducer " << elem << std::endl;
             if (!elem.sync()) {
                 list_.push_back(elem);
                 elem.encode(message);
@@ -191,7 +191,7 @@ protected: // members
 
     void consume(eckit::distributed::Message& message) override {
         fdb5::FileCopy fileCopy(message);
-        Log::debug() << "MoveWorker " << fileCopy << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "MoveWorker " << fileCopy << std::endl;
 
         count_++;
         fileCopy.execute();
@@ -203,7 +203,7 @@ protected: // members
     // virtual void getNextMessage(eckit::Message& message) const;
     // virtual void failure(eckit::Message &message);
     void shutdown(eckit::distributed::Message & message) override {
-        eckit::Log::debug() << "Shuting down MoveWorker..." << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Shuting down MoveWorker..." << std::endl;
         message << count_;
     }
 

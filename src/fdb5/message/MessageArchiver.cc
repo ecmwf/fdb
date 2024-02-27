@@ -54,14 +54,14 @@ static std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string&
 
     std::string rs = std::string("retrieve,")  + str;
 
-    Log::debug<LibFdb5>() << "Parsing request string : " << rs << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Parsing request string : " << rs << std::endl;
 
     std::istringstream in(rs);
     metkit::mars::MarsParser parser(in);
 
     std::vector<metkit::mars::MarsParsedRequest> p = parser.parse();
 
-    Log::debug<LibFdb5>() << "Parsed requests:" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Parsed requests:" << std::endl;
     for (auto j = p.begin(); j != p.end(); ++j) {
         j->dump(Log::debug<LibFdb5>());
     }
@@ -73,7 +73,7 @@ static std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string&
 
     std::vector<metkit::mars::MarsRequest> v = expand.expand(p);
 
-    Log::debug<LibFdb5>() << "Expanded requests:" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Expanded requests:" << std::endl;
     for (auto j = v.begin(); j != v.end(); ++j) {
         j->dump(Log::debug<LibFdb5>());
     }
@@ -157,10 +157,6 @@ bool MessageArchiver::filterOut(const Key& k) const {
     return !out;
 }
 
-eckit::Channel& MessageArchiver::logVerbose() const {
-    return verbose_ ? Log::info() : Log::debug<LibFdb5>();
-}
-
 eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
     eckit::Timer timer("fdb::service::archive");
@@ -205,7 +201,11 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
                 messageToKey(msg, key);  // re-build the key, as it may have changed
             }
 
-            logVerbose() << "Archiving " << key << std::endl;
+            if (verbose_) {
+                Log::info() << "Archiving " << key << std::endl;
+            } else {
+                LOG_DEBUG_LIB(LibFdb5) << "Archiving " << key << std::endl;
+            }
 
             fdb_.archive(key, msg.data(), msg.length());
 

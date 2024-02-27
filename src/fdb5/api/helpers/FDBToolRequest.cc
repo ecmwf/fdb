@@ -44,7 +44,7 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
     ASSERT(parsedRequests.size() == 1);
 
     for (const auto& r : parsedRequests) {
-        eckit::Log::debug<LibFdb5>() << "Parsed request: " << static_cast<const metkit::mars::MarsRequest&>(r) << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Parsed request: " << static_cast<const metkit::mars::MarsRequest&>(r) << std::endl;
         checkMinimumKeys(r, minimumKeys);
     }
 
@@ -75,7 +75,7 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
                     request.unsetValues(param);
                 }
             }*/
-            eckit::Log::debug<LibFdb5>() << "Expanded request: " << request << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Expanded request: " << request << std::endl;
             requests.emplace_back(FDBToolRequest(request, false, minimumKeys));
         }
     }
