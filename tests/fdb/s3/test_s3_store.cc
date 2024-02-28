@@ -68,6 +68,8 @@ namespace {
     S3Config cfg("eu-central-1", "127.0.0.1", 9000);
 
     void ensureClean(const std::string& prefix) {
+        const eckit::S3Credential cred {"127.0.0.1:9000", "minio", "minio1234"};
+        eckit::S3Session::instance().addCredentials(cred);
         auto client = S3Client::makeUnique(cfg);
         auto&& tmp = client->listBuckets();
         std::set<std::string> buckets(tmp.begin(), tmp.end());
@@ -78,6 +80,7 @@ namespace {
                 client->deleteBucket(name);
             }
         }
+        eckit::S3Session::instance().clear();
     }
 }
 
@@ -175,10 +178,7 @@ CASE("S3Store tests") {
 
         std::string config_str{
             "s3:\n"
-            "  credential:\n"
-            "    accessKeyID: minio\n"
-            "    secretKey: minio1234\n"
-            "    host: 127.0.0.1\n"
+            "  credential: ~/.config/eckit/s3credentials.yaml\n"
             "  endpoint: 127.0.0.1:9000\n"
             "  bucketPrefix: " + prefix + "\n"
         };
@@ -237,10 +237,7 @@ CASE("S3Store tests") {
         std::string config_str{
             "schema : " + schema_file().path() + "\n"
             "s3:\n"
-            "  credential:\n"
-            "    accessKeyID: minio\n"
-            "    secretKey: minio1234\n"
-            "    host: 127.0.0.1\n"
+            "  credential: ~/.config/eckit/s3credentials.yaml\n"
             "  endpoint: 127.0.0.1:9000\n"
             "  bucketPrefix: " + prefix + "\n"
         };
@@ -341,10 +338,7 @@ CASE("S3Store tests") {
             "engine: toc\n"
             "store: s3\n"
             "s3:\n"
-            "  credential:\n"
-            "    accessKeyID: minio\n"
-            "    secretKey: minio1234\n"
-            "    host: 127.0.0.1\n"
+            "  credential: ~/.config/eckit/s3credentials.yaml\n"
             "  endpoint: 127.0.0.1:9000\n"
             "  bucketPrefix: " + prefix + "\n"
         };
@@ -481,10 +475,7 @@ CASE("S3Store tests") {
             "engine: toc\n"
             "store: s3\n"
             "s3:\n"
-            "  credential:\n"
-            "    accessKeyID: minio\n"
-            "    secretKey: minio1234\n"
-            "    host: 127.0.0.1\n"
+            "  credential: ~/.config/eckit/s3credentials.yaml\n"
             "  endpoint: 127.0.0.1:9000\n"
             "  bucketPrefix: " + prefix + "\n"
         };
@@ -558,9 +549,6 @@ CASE("S3Store tests") {
 
 int main(int argc, char **argv)
 {
-    const eckit::S3Credential cred {"minio", "minio1234", "127.0.0.1"};
-    eckit::S3Session::instance().addCredentials(cred);
-
     return run_tests ( argc, argv );
 
     ensureClean("");

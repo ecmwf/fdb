@@ -116,20 +116,16 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
 
 void S3Common::parseConfig(const fdb5::Config& config) {
 
-    eckit::LocalConfiguration cr{}, s3{};
+    eckit::LocalConfiguration s3{};
 
     if (config.has("s3")) {
         s3 = config.getSubConfiguration("s3");
-        if (s3.has("credential")) cr = s3.getSubConfiguration("credential");
+        
+        std::string credentialsPath;
+        if (s3.has("credential")) { credentialsPath = s3.getString("credential"); }
+        eckit::S3Session::instance().readCredentials(credentialsPath);
     }
     
-    const eckit::S3Credential cred{
-        cr.getString("accessKeyID", "defaultKeyID"),
-        cr.getString("secretKey", "defaultSecretKey"),
-        cr.getString("host", "127.0.0.1")
-    };
-
-    eckit::S3Session::instance().addCredentials(cred);
 
     endpoint_ = eckit::net::Endpoint{s3.getString("endpoint", "127.0.0.1:9000")};
 
