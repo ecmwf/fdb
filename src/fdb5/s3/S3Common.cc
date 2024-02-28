@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <algorithm>
+#include <algorithm>
 
 #include "eckit/io/s3/S3Name.h"
 #include "eckit/io/s3/S3Credential.h"
