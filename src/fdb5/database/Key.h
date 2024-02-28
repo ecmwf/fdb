@@ -48,6 +48,8 @@ public: // methods
     explicit Key(const TypesRegistry* reg=nullptr);
     explicit Key(const TypesRegistry& reg);
 
+    explicit Key(const std::string& s, const TypesRegistry& reg);
+
     explicit Key(eckit::Stream &, const TypesRegistry* reg=nullptr);
     explicit Key(eckit::Stream &, const TypesRegistry& reg);
     /// @todo remove ?? explicit Key(const std::string &request, const TypesRegistry* reg=nullptr);

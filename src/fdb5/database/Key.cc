@@ -32,6 +32,8 @@ Key::Key(const TypesRegistry* reg) :
 
 Key::Key(const TypesRegistry& reg) : Key(&reg) {}
 
+Key::Key(const std::string& s, const TypesRegistry& reg) : Key(parseString(s,reg)) {}
+
 Key::Key(const std::string &s, const Rule *rule) :
     keys_(),
     registry_(rule ? &rule->registry() : nullptr) {

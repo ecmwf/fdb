@@ -14,6 +14,10 @@
 #include "eckit/io/s3/S3Credential.h"
 #include "eckit/io/s3/S3Session.h"
 
+#include "metkit/mars/MarsRequest.h"
+
+#include "fdb5/config/Config.h"
+#include "fdb5/rules/Schema.h"
 #include "fdb5/s3/S3Common.h"
 
 // #include "eckit/exception/Exceptions.h"
@@ -30,8 +34,9 @@ S3Common::S3Common(const fdb5::Config& config, const std::string& component, con
 
 
     /// @note: code for bucket per DB
-
-    std::string keyStr = key.valuesToString();
+    Key keyInternal(key);
+    keyInternal.registry(config.schema().registry());
+    std::string keyStr = keyInternal.valuesToString();
     std::replace(keyStr.begin(), keyStr.end(), ':', '-');
     db_bucket_ = prefix_ + keyStr;
 
