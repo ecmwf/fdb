@@ -24,25 +24,22 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-uint32_t Archiver::archiverId_=0;
-
 Archiver::Archiver(const Config& dbConfig) :
     dbConfig_(dbConfig),
     catalogue_(nullptr),
-    store_(nullptr) {
-
-    std::lock_guard<std::mutex> lock(idMutex_);
-    id_ = ++archiverId_;
-}
+    store_(nullptr) {}
 
 Archiver::~Archiver() {
-
     flush(); // certify that all sessions are flushed before closing them
 
-    databases_.clear(); //< explicitly delete the DBs before schemas are destroyed
-}
+    // for (auto it = databases_.begin(); it != databases_.end(); it++) {
+    //     databases_.erase(it);
+    // }
 
-uint32_t id();
+//    std::cout << databases_.size();
+
+    // databases_.clear(); //< explicitly delete the DBs before schemas are destroyed
+}
 
 void Archiver::archive(const Key &key, const void* data, size_t len) {
     ArchiveVisitor visitor(*this, key, data, len);

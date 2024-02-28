@@ -53,7 +53,7 @@ Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& 
 }
 
 Client::~Client() {
-    ASSERT(connection_.remove(id_));
+    connection_.remove(id_);
 }
 
 bool Client::response(uint32_t requestID) {
@@ -74,13 +74,7 @@ bool Client::response(uint32_t requestID, eckit::Buffer&& payload) {
     return true;
 }
 
-// uint32_t Client::controlWriteCheckResponse(Message msg, const void* payload, uint32_t payloadLength) {
-//     uint32_t id = connection_.generateRequestID();
-//     controlWriteCheckResponse(msg, id, payload, payloadLength);
-//     return id;
-// }
-
-void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload, uint32_t payloadLength) {
 
     ASSERT(requestID);
     ASSERT(!(!payloadLength ^ !payload));
@@ -92,9 +86,9 @@ void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, const vo
     blockingRequestId_=requestID;
 
     if (payloadLength) {
-        connection_.controlWrite(*this, msg, blockingRequestId_, 0, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});
+        connection_.controlWrite(*this, msg, blockingRequestId_, dataListener, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});
     } else {
-        connection_.controlWrite(*this, msg, blockingRequestId_);
+        connection_.controlWrite(*this, msg, blockingRequestId_, dataListener);
     }
 
     f.get();
@@ -113,9 +107,9 @@ eckit::Buffer Client::controlWriteReadResponse(Message msg, uint32_t requestID, 
     blockingRequestId_=requestID;
 
     if (payloadLength) {
-        connection_.controlWrite(*this, msg, blockingRequestId_, 0, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});
+        connection_.controlWrite(*this, msg, blockingRequestId_, false, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});
     } else {
-        connection_.controlWrite(*this, msg, blockingRequestId_);
+        connection_.controlWrite(*this, msg, blockingRequestId_, false);
     }
 
     eckit::Buffer buf = f.get();

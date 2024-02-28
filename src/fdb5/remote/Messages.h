@@ -18,10 +18,11 @@
 
 #pragma once
 
-#include "eckit/types/FixedString.h"
-#include "eckit/serialisation/Streamable.h"
-
 #include <cstdint>
+#include <cmath>
+
+#include "eckit/types/FixedString.h"
+// #include "fdb5/remote/Handler.h"
 
 namespace eckit {
     class Stream;
@@ -34,8 +35,7 @@ namespace fdb5::remote {
 const static eckit::FixedString<4> StartMarker {"SFDB"};
 const static eckit::FixedString<4> EndMarker {"EFDB"};
 
-constexpr uint16_t CurrentVersion = 11;
-
+constexpr uint16_t CurrentVersion = 12;
 
 enum class Message : uint16_t {
 
@@ -44,6 +44,8 @@ enum class Message : uint16_t {
     Exit,
     Startup,
     Error,
+    Stores,
+    Schema,
 
     // API calls to forward
     Flush = 100,
@@ -60,7 +62,6 @@ enum class Message : uint16_t {
     Read,
     Move,
     Store,
-    Schema,
 
     // Responses
     Received = 200,
@@ -68,46 +69,52 @@ enum class Message : uint16_t {
 
     // Data communication
     Blob = 300,
-    MultiBlob,
+    MultiBlob
+
 };
 
+std::ostream& operator<<(std::ostream& s, const Message& m);
 
 // Header used for all messages
-
-struct MessageHeader {
+class MessageHeader {
 
 public: // methods
 
     MessageHeader() :
         version(CurrentVersion),
         message(Message::None),
-        clientID(0),
+        clientID_(0),
         requestID(0),
         payloadSize(0) {}
 
-    MessageHeader(Message message, uint32_t clientID, uint32_t requestID, uint32_t payloadSize=0) :
-        marker(StartMarker),
-        version(CurrentVersion),
-        message(message),
-        clientID(clientID),
-        requestID(requestID),
-        payloadSize(payloadSize) {}
+    // MessageHeader(Message message, bool control, const Handler& clientID, uint32_t requestID, uint32_t payloadSize=0);
+
+    MessageHeader(Message message, bool control, uint32_t clientID, uint32_t requestID, uint32_t payloadSize);
+    
+    bool control() const {
+        return ((clientID_ & 0x00000001) == 1);
+    }
+    uint32_t clientID() const {
+        return (clientID_>>1);
+    }
+
+public:
 
     eckit::FixedString<4> marker;   // 4 bytes  --> 4
 
     uint16_t version;               // 2 bytes  --> 6
 
     Message message;                // 2 bytes  --> 8
-
-    uint32_t clientID;              // 4 bytes  --> 12
+ 
+    uint32_t clientID_;             // 4 bytes  --> 12
 
     uint32_t requestID;             // 4 bytes  --> 16
 
     uint32_t payloadSize;           // 4 bytes  --> 20
 
     eckit::FixedString<16> hash;    // 16 bytes --> 36
-};
 
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

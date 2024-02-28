@@ -88,10 +88,10 @@ InspectionKey::InspectionKey(const eckit::StringDict &keys) :
     }
 }
 
-// InspectionKey::InspectionKey(eckit::Stream& s) :
-//     rule_(nullptr) {
-//     decode(s);
-// }
+InspectionKey::InspectionKey(eckit::Stream& s) :
+    rule_(nullptr) {
+    decode(s);
+}
 
 Key InspectionKey::canonical() const {
     Key key;
@@ -105,53 +105,6 @@ Key InspectionKey::canonical() const {
 
     return key;
 }
-
-// void InspectionKey::decode(eckit::Stream& s) {
-
-//     ASSERT(rule_ == nullptr);
-
-//     keys_.clear();
-//     names_.clear();
-
-
-//     size_t n;
-
-//     s >> n;
-//     std::string k;
-//     std::string v;
-//     for (size_t i = 0; i < n; ++i) {
-//         s >> k;
-//         s >> v;
-//         keys_[k] = v;
-//     }
-
-//     s >> n;
-//     for (size_t i = 0; i < n; ++i) {
-//         s >> k;
-//         s >> v; // this is the type (ignoring FTM)
-//         names_.push_back(k);
-//     }
-//     s >> canonical_;
-// }
-
-// void InspectionKey::encode(eckit::Stream& s) const {
-//     const TypesRegistry& registry = this->registry();
-
-//     s << keys_.size();
-//     for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
-//         const Type &t = registry.lookupType(i->first);
-//         s << i->first << canonicalise(i->first, i->second);
-//     }
-
-//     s << names_.size();
-//     for (eckit::StringList::const_iterator i = names_.begin(); i != names_.end(); ++i) {
-//         const Type &t = registry.lookupType(*i);
-//         s << (*i);
-//         s << t.type();
-//     }
-
-//     s << true;
-// }
 
 void InspectionKey::rule(const Rule *rule) {
     rule_ = rule;

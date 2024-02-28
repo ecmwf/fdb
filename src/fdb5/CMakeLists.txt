@@ -220,6 +220,8 @@ if(HAVE_FDB_REMOTE)
         remote/RemoteCatalogue.cc
         # remote/RemoteEngine.h
         # remote/RemoteEngine.cc
+        remote/Connection.h
+        remote/Connection.cc
 
         remote/client/Client.h
         remote/client/Client.cc

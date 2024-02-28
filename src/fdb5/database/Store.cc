@@ -24,11 +24,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void Store::archive(const uint32_t archiverId, const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive) {
-    catalogue_archive(archive(archiverId, key, data, length));
+void Store::archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive) {
+    catalogue_archive(archive(key, data, length));
 }
 
-std::unique_ptr<FieldLocation> Store::archive(const uint32_t archiverId, const Key& key, const void *data, eckit::Length length) {
+std::unique_ptr<FieldLocation> Store::archive(const Key& key, const void *data, eckit::Length length) {
     NOTIMP;
 }
 

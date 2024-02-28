@@ -17,6 +17,7 @@
 
 #include "eckit/eckit.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/filesystem/LocalFileManager.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/StdDir.h"
@@ -24,6 +25,7 @@
 #include "eckit/os/BackTrace.h"
 #include "eckit/os/Stat.h"
 #include "eckit/utils/Regex.h"
+#include "eckit/utils/StringTools.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
@@ -140,9 +142,13 @@ static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Inspe
 
 static constexpr const char* regexForMissingValues = "[^:/]*";
 
+
+
 std::set<eckit::PathName> TocEngine::databases(const std::set<InspectionKey>& keys,
                                                const std::vector<eckit::PathName>& roots,
                                                const Config& config) const {
+
+    static bool searchCaseSensitiveDB = eckit::Resource<bool>("fdbSearchCaseSensitiveDB;$FDB_SEARCH_CASESENSITIVE_DB", true);
 
     std::set<eckit::PathName> result;
 
@@ -173,7 +179,7 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<InspectionKey>& ke
                         continue;
                     }
 
-                    if (re.match(*k)) {
+                    if (re.match(searchCaseSensitiveDB ? eckit::StringTools::lower(*k) : *k)) {
                         result.insert(*k);
                     }
                 }

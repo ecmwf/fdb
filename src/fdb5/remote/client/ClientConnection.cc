@@ -40,11 +40,28 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class DataWriteRequest {
+
+public:
+
+    DataWriteRequest() :
+        client_(nullptr), msg_(Message::None), id_(0), data_(eckit::Buffer(0)) {}
+
+    DataWriteRequest(Client* client, Message msg, uint32_t id, eckit::Buffer&& data) :
+        client_(client), msg_(msg), id_(id), data_(std::move(data)) {}
+
+    Client* client_;
+    Message msg_;
+    uint32_t id_;
+    eckit::Buffer data_;
+};
+
 
 ClientConnection::ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint):
-    controlEndpoint_(controlEndpoint), defaultEndpoint_(defaultEndpoint), id_(1), exit_(false), connected_(false) {
-        eckit::Log::debug<LibFdb5>() << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
-    }
+    controlEndpoint_(controlEndpoint), defaultEndpoint_(defaultEndpoint), id_(1), connected_(false), dataWriteQueue_(nullptr) {
+
+    eckit::Log::debug<LibFdb5>() << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
+}
 
 void ClientConnection::add(Client& client) {
     std::lock_guard<std::mutex> lock(clientsMutex_);
@@ -54,23 +71,33 @@ void ClientConnection::add(Client& client) {
     clients_[client.id()] = &client;
 }
 
-
 bool ClientConnection::remove(uint32_t clientID) {
-    std::lock_guard<std::mutex> lock(clientsMutex_);
-    auto it = clients_.find(clientID);
-    bool exist = it != clients_.end();
+    if (clientID > 0) {
 
-    if (exist) {
-        clients_.erase(it);
-        if (clients_.empty()) {
-            exit_ = true;
-            ClientConnectionRouter::instance().deregister(*this);
+        //std::lock_guard<std::mutex> lock(clientsMutex_);
+        auto it = clients_.find(clientID);
+
+        if (it != clients_.end()) {
+            Connection::write(Message::Exit, true, clientID, 0);
+            // TODO make the data connection dying automatically, when there are no more async writes
+            Connection::write(Message::Exit, false, clientID, 0);
+
+            clients_.erase(it);
         }
     }
-    return exist;
+
+    if (clients_.empty()) {
+        ClientConnectionRouter::instance().deregister(*this);
+    }
+
+    return clients_.empty();
 }
 
 ClientConnection::~ClientConnection() {
+    if (dataWriteQueue_) {
+        dataWriteQueue_->close();
+    }
+
     disconnect();
 }
 
@@ -106,6 +133,7 @@ bool ClientConnection::connect(bool singleAttempt) {
 
         // And the connections are set up. Let everything start up!
         listeningThread_ = std::thread([this] { listeningThreadLoop(); });
+        //listeningThread_.detach();
         connected_ = true;
         return true;
     } catch(eckit::TooManyRetries& e) {
@@ -118,15 +146,8 @@ bool ClientConnection::connect(bool singleAttempt) {
 
 void ClientConnection::disconnect() {
 
-//    std::lock_guard<std::mutex> lock(requestMutex_);
-
+    ASSERT(clients_.empty());
     if (connected_) {
-        exit_ = true;
-        // Send termination message
-        for (auto c: clients_) {
-            controlWrite(Message::Exit, c.first);
-        }
-        controlWrite(Message::Exit, 0);
 
         listeningThread_.join();
 
@@ -140,12 +161,6 @@ void ClientConnection::disconnect() {
 const eckit::net::Endpoint& ClientConnection::controlEndpoint() const {
     return controlEndpoint_;
 }
-// const eckit::net::Endpoint& ClientConnection::fullyQualifiedControlEndpoint() const { 
-//     return fullyQualifiedControlEndpoint_;
-// } 
-const eckit::net::Endpoint& ClientConnection::dataEndpoint() const { 
-    return dataEndpoint_;
-} 
 
 eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
     eckit::LocalConfiguration conf;
@@ -156,119 +171,92 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 
 // -----------------------------------------------------------------------------------------------------
 
-void ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, uint32_t archiverID, std::vector<std::pair<const void*, uint32_t>> data) {
-
-    auto it = clients_.find(client.id());
+void ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
+    auto it = clients_.find(client.clientId());
     ASSERT(it != clients_.end());
 
-    controlWrite(msg, archiverID ? archiverID : client.id(), requestID, data);
+    Connection::write(msg, true, client.clientId(), requestID, data);
 }
 
-void ClientConnection::controlWrite(Message msg, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
-
-    uint32_t payloadLength = 0;
-    for (auto d: data) {
-        ASSERT(d.first);
-        payloadLength += d.second;
-    }
-    eckit::Log::debug<LibFdb5>() << "ClientConnection::controlWrite [endpoint=" << controlEndpoint_ <<
-        ",message=" << ((int) msg) << ",clientID=" << clientID << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
-
-    MessageHeader message(msg, clientID, requestID, payloadLength);
-
-    std::lock_guard<std::mutex> lock(controlMutex_);
-    controlWrite(&message, sizeof(message));
-    for (auto d: data) {
-        controlWrite(d.first, d.second);
-    }
-    controlWrite(&EndMarker, sizeof(EndMarker));
+void ClientConnection::dataWrite(DataWriteRequest& r) {
+    Connection::write(r.msg_, false, r.client_->clientId(), r.id_, r.data_.data(), r.data_.size());
 }
-
-void ClientConnection::controlWrite(const void* data, size_t length) {
-    size_t written = controlClient_.write(data, length);
-    if (length != written) {
-        std::stringstream ss;
-        ss << "Write error. Expected " << length << " bytes, wrote " << written;
-        throw TCPException(ss.str(), Here());
-    }
-}
-
-void ClientConnection::controlRead(void* data, size_t length) {
-    size_t read = controlClient_.read(data, length);
-    if (length != read) {
-        std::stringstream ss;
-        ss << "Read error. Expected " << length << " bytes, read " << read;
-        throw TCPException(ss.str(), Here());
-    }
-}
-
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
 
-    auto it = clients_.find(client.id());
+    static size_t maxQueueLength = eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 200);
+    auto it = clients_.find(client.clientId());
     ASSERT(it != clients_.end());
 
-    dataWrite(msg, client.id(), requestID, data);
-}
+    if (!dataWriteFuture_.valid()) {
 
-void ClientConnection::dataWrite(remote::Message msg, uint32_t clientID, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
+        {
+            // Reset the queue after previous done/errors
+            std::lock_guard<std::mutex> lock(dataWriteQueueMutex_);
+            ASSERT(!dataWriteQueue_);
+
+            dataWriteQueue_.reset(new eckit::Queue<DataWriteRequest>{maxQueueLength});
+        }
+
+        dataWriteFuture_ = std::async(std::launch::async, [this] { return dataWriteThreadLoop(); });
+    }
 
     uint32_t payloadLength = 0;
     for (auto d: data) {
         ASSERT(d.first);
         payloadLength += d.second;
     }
-    MessageHeader message(msg, clientID, requestID, payloadLength);
 
-    eckit::Log::debug<LibFdb5>() << "ClientConnection::dataWrite [endpoint=" << dataEndpoint_ <<
-        ",message=" << ((int) msg) << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
-
-    std::lock_guard<std::mutex> lock(dataMutex_);
-    dataWrite(&message, sizeof(message));
+    eckit::Buffer buffer{payloadLength};
+    uint32_t offset = 0;
     for (auto d: data) {
-        dataWrite(d.first, d.second);
+        buffer.copy(d.first, d.second, offset);
+        offset += d.second;
     }
-    dataWrite(&EndMarker, sizeof(EndMarker));
+
+    dataWriteQueue_->emplace(&client, msg, requestID, std::move(buffer));
+//    Connection::write(msg, false, client.clientId(), requestID, data);
 }
 
-void ClientConnection::dataWrite(const void* data, size_t length) {
-    size_t written = dataClient_.write(data, length);
-    if (length != written) {
-        std::stringstream ss;
-        ss << "Write error. Expected " << length << " bytes, wrote " << written;
-        throw TCPException(ss.str(), Here());
+
+void ClientConnection::dataWriteThreadLoop() {
+
+    eckit::Timer timer;
+    DataWriteRequest element;
+
+    try {
+
+        ASSERT(dataWriteQueue_);
+        while (dataWriteQueue_->pop(element) != -1) {
+
+            dataWrite(element);
+        }
+
+        dataWriteQueue_.reset();
+
+    } catch (...) {
+        dataWriteQueue_->interrupt(std::current_exception());
+        throw;
     }
+
+    // We are inside an async, so don't need to worry about exceptions escaping.
+    // They will be released when flush() is called.
 }
 
-void ClientConnection::dataRead(void* data, size_t length) {
-    size_t read = dataClient_.read(data, length);
-    if (!exit_ && length != read) {
-        std::stringstream ss;
-        ss << "Read error. Expected " << length << " bytes, read " << read;
-        throw TCPException(ss.str(), Here());
-    }
-}
-
-void ClientConnection::handleError(const MessageHeader& hdr) {
-
+void ClientConnection::handleError(const MessageHeader& hdr, eckit::Buffer buffer) {
     ASSERT(hdr.marker == StartMarker);
     ASSERT(hdr.version == CurrentVersion);
 
     if (hdr.message == Message::Error) {
         ASSERT(hdr.payloadSize > 9);
-
-        std::string what(hdr.payloadSize, ' ');
-        dataRead(&what[0], hdr.payloadSize);
-        what[hdr.payloadSize] = 0; // Just in case
-
-        try {
-            eckit::FixedString<4> tail;
-            dataRead(&tail, sizeof(tail));
-        } catch (...) {}
+        std::string what(buffer.size()+1, ' ');
+        buffer.copy(what.c_str(), buffer.size());
+        what[buffer.size()] = 0; // Just in case
 
         throw RemoteFDBException(what, controlEndpoint_);
     }
 }
+
 
 void ClientConnection::writeControlStartupMessage() {
 
@@ -283,7 +271,8 @@ void ClientConnection::writeControlStartupMessage() {
     //       essentially JSON) over the wire for flexibility.
     s << availableFunctionality().get();
 
-    controlWrite(Message::Startup, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{payload, s.position()}});
+    // controlWrite(Message::Startup, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{payload, s.position()}});
+    Connection::write(Message::Startup, true, 0, 0, payload, s.position());
 }
 
 void ClientConnection::writeDataStartupMessage(const eckit::SessionID& serverSession) {
@@ -294,24 +283,16 @@ void ClientConnection::writeDataStartupMessage(const eckit::SessionID& serverSes
     s << sessionID_;
     s << serverSession;
 
-    dataWrite(Message::Startup, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{payload, s.position()}});
+    // dataWrite(Message::Startup, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{payload, s.position()}});
+    Connection::write(Message::Startup, false, 0, 0, payload, s.position());
 }
 
 eckit::SessionID ClientConnection::verifyServerStartupResponse() {
 
     MessageHeader hdr;
-    controlRead(&hdr, sizeof(hdr));
+    eckit::Buffer payload = Connection::readControl(hdr);
 
-    ASSERT(hdr.marker == StartMarker);
-    ASSERT(hdr.version == CurrentVersion);
-    ASSERT(hdr.message == Message::Startup);
     ASSERT(hdr.requestID == 0);
-
-    eckit::Buffer payload(hdr.payloadSize);
-    eckit::FixedString<4> tail;
-    controlRead(payload, hdr.payloadSize);
-    controlRead(&tail, sizeof(tail));
-    ASSERT(tail == EndMarker);
 
     eckit::MemoryStream s(payload);
     eckit::SessionID clientSession(s);
@@ -333,6 +314,15 @@ eckit::SessionID ClientConnection::verifyServerStartupResponse() {
            << sessionID_ << " != " << clientSession;
         throw eckit::BadValue(ss.str(), Here());
     }
+    if (serverFunctionality.has("NumberOfConnections") && serverFunctionality.getInt("NumberOfConnections")==1) {
+        single_ = true;
+    }
+
+    if (single_ && !(dataEndpoint_ == controlEndpoint_)) {
+        eckit::Log::warning() << "Returned control interface does not match. "
+                       << dataEndpoint_ << " /= "
+                       << controlEndpoint_ << std::endl;
+    }
 
     return serverSession;
 }
@@ -344,27 +334,25 @@ void ClientConnection::listeningThreadLoop() {
         MessageHeader hdr;
         eckit::FixedString<4> tail;
 
-        while (!exit_) {
+        while (true) {
 
-            dataRead(&hdr, sizeof(hdr));
+            eckit::Buffer payload = Connection::readData(hdr);
 
-            eckit::Log::debug<LibFdb5>() << "ClientConnection::listeningThreadLoop - got [message=" << ((int) hdr.message) << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
-
-            ASSERT(hdr.marker == StartMarker);
-            ASSERT(hdr.version == CurrentVersion);
+            eckit::Log::debug<LibFdb5>() << "ClientConnection::listeningThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
             if (hdr.message == Message::Exit) {
-                if (hdr.clientID) {
-                    remove(hdr.clientID);
+
+                if (clients_.empty()) {
+                    return;
                 }
             } else {
-                if (hdr.clientID) {
+                if (hdr.clientID()) {
                     bool handled = false;
-                    auto it = clients_.find(hdr.clientID);
+                    auto it = clients_.find(hdr.clientID());
                     if (it == clients_.end()) {
                         std::stringstream ss;
-                        ss << "ERROR: Received [clientID="<< hdr.clientID << ",requestID="<< hdr.requestID << ",message=" << ((int) hdr.message) << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                        ss << "Unexpected answer for clientID recieved (" << hdr.clientID << "). ABORTING";
+                        ss << "ERROR: Received [clientID="<< hdr.clientID() << ",requestID="<< hdr.requestID << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
+                        ss << "Unexpected answer for clientID recieved (" << hdr.clientID() << "). ABORTING";
                         eckit::Log::status() << ss.str() << std::endl;
                         eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
                         throw eckit::SeriousBug(ss.str(), Here());
@@ -377,37 +365,26 @@ void ClientConnection::listeningThreadLoop() {
                             ASSERT(hdr.message == Message::Received);
                             handled = it->second->response(hdr.requestID);
                         } else {
-                            handled = it->second->handle(hdr.message, hdr.requestID);
+                            handled = it->second->handle(hdr.message, hdr.control(), hdr.requestID);
                         }
                     }
                     else {
-                        eckit::Buffer payload{hdr.payloadSize};
-                        dataRead(payload, hdr.payloadSize);
-
                         if (it->second->blockingRequestId() == hdr.requestID) {
                             handled = it->second->response(hdr.requestID, std::move(payload));
                         } else {
-                            handled = it->second->handle(hdr.message, hdr.requestID, std::move(payload));
+                            handled = it->second->handle(hdr.message, hdr.control(), hdr.requestID, std::move(payload));
                         }
                     }
 
                     if (!handled) {
                         std::stringstream ss;
-                        ss << "ERROR: Unexpected message recieved (" << static_cast<int>(hdr.message) << "). ABORTING";
+                        ss << "ERROR: Unexpected message recieved (" << hdr.message << "). ABORTING";
                         eckit::Log::status() << ss.str() << std::endl;
                         eckit::Log::error() << "Client Retrieving... " << ss.str() << std::endl;
                         throw eckit::SeriousBug(ss.str(), Here());
                     }
-                } else {
-                    if (hdr.payloadSize) {
-                        eckit::Buffer payload{hdr.payloadSize};
-                        dataRead(payload, hdr.payloadSize);
-                    }
                 }
             }
-            // Ensure we have consumed exactly the correct amount from the socket.
-            dataRead(&tail, sizeof(tail));
-            ASSERT(tail == EndMarker);
         }
 
     // We don't want to let exceptions escape inside a worker thread.
@@ -416,6 +393,7 @@ void ClientConnection::listeningThreadLoop() {
     } catch (...) {
 //        ClientConnectionRouter::instance().handleException(std::current_exception());
     }
+    // ClientConnectionRouter::instance().deregister(*this);
 }
 
 }  // namespace fdb5::remote

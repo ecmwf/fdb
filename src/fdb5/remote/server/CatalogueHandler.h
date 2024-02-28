@@ -15,11 +15,21 @@
 
 namespace fdb5::remote {
 
-// class StoreEndpoint : public eckit::net::Endpoint {
-// public:
-//     StoreEndpoint(const std::string& endpoint) : eckit::net::Endpoint(endpoint) {}
-//     std::map<std::string, eckit::net::Endpoint> aliases_;
-// };
+//----------------------------------------------------------------------------------------------------------------------
+
+struct CatalogueArchiver {
+    CatalogueArchiver(const Key& dbKey, const Config& config) :
+        catalogue(CatalogueWriterFactory::instance().build(dbKey, config)), locationsExpected(-1), locationsArchived(0) {
+        archivalCompleted = fieldLocationsReceived.get_future();
+    }
+
+    std::unique_ptr<CatalogueWriter> catalogue;
+    int32_t locationsExpected;
+    int32_t locationsArchived;
+
+    std::promise<int32_t> fieldLocationsReceived;
+    std::future<int32_t> archivalCompleted;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 class CatalogueHandler : public ServerConnection {
@@ -28,33 +38,35 @@ public:  // methods
     CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config);
     ~CatalogueHandler();
 
-    void handle() override;
-
 private:  // methods
 
-    void initialiseConnections() override;
-    void index(const MessageHeader& hdr);
-
-    void read(const MessageHeader& hdr);
-    void flush(const MessageHeader& hdr);
-    void list(const MessageHeader& hdr);
-    void inspect(const MessageHeader& hdr);
-    void schema(const MessageHeader& hdr);
-    
-
-    CatalogueWriter& catalogue(uint32_t id);
-    CatalogueWriter& catalogue(uint32_t id, const Key& dbKey);
-
-    size_t archiveThreadLoop(uint32_t archiverID) override;
+    Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) override;
+    Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
+    // Handled handleData(Message message, uint32_t clientID, uint32_t requestID) override;
+    // Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
     // API functionality
     template <typename HelperClass>
-    void forwardApiCall(const MessageHeader& hdr);
+    void forwardApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+
+    void flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void inspect(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void stores(uint32_t clientID, uint32_t requestID);
+
+    void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) override;
+
+    bool remove(uint32_t clientID) override;
+
+    // CatalogueWriter& catalogue(uint32_t catalogueID);
+    CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
 
 private:  // member
 
-    // clientID --> Catalogue
-    std::map<uint32_t, std::unique_ptr<CatalogueWriter>> catalogues_;
+    std::mutex cataloguesMutex_;
+    // clientID --> <catalogue, locationsExpected, locationsArchived>
+    std::map<uint32_t, CatalogueArchiver> catalogues_;
 
     FDB fdb_;
 };

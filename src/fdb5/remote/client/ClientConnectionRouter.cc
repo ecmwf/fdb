@@ -84,7 +84,7 @@ ClientConnection& ClientConnectionRouter::connection(const std::vector<std::pair
 
 void ClientConnectionRouter::deregister(ClientConnection& connection) {
 
-    std::lock_guard<std::mutex> lock(connectionMutex_);
+    // std::lock_guard<std::mutex> lock(connectionMutex_);
     auto it = connections_.find(connection.controlEndpoint());
     if (it != connections_.end()) {
         connections_.erase(it);

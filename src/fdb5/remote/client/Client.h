@@ -38,6 +38,7 @@ public:
     Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints);
     ~Client();
 
+    uint32_t clientId() const { return id_; }
     uint32_t id() const { return id_; }
     const eckit::net::Endpoint& controlEndpoint() const { return connection_.controlEndpoint(); }
     const std::string& defaultEndpoint() const { return connection_.defaultEndpoint(); }
@@ -45,14 +46,14 @@ public:
     uint32_t generateRequestID() { return connection_.generateRequestID(); }
 
     // blocking requests
-    void          controlWriteCheckResponse(Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
+    void controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload=nullptr, uint32_t payloadLength=0);
     eckit::Buffer controlWriteReadResponse (Message msg, uint32_t requestID, const void* payload=nullptr, uint32_t payloadLength=0);
 
     void dataWrite(remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
     
     // handlers for incoming messages - to be defined in the client class
-    virtual bool handle(Message message, uint32_t requestID) = 0;
-    virtual bool handle(Message message, uint32_t requestID, /*eckit::net::Endpoint endpoint,*/ eckit::Buffer&& payload) = 0;
+    virtual bool handle(Message message, bool control, uint32_t requestID) = 0;
+    virtual bool handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) = 0;
     virtual void handleException(std::exception_ptr e) = 0;
 
     bool response(uint32_t requestID);
