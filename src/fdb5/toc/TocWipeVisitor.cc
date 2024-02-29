@@ -12,7 +12,6 @@
 #include <algorithm>
 
 #include "eckit/os/Stat.h"
-#include "eckit/io/s3/S3Bucket.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/DB.h"
