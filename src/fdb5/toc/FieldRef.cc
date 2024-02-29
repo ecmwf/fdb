@@ -19,8 +19,8 @@
 #include "fdb5/database/UriStore.h"
 
 #include "fdb5/toc/TocFieldLocation.h"
-#ifdef fdb5_HAVE_S3FDB
-#include "fdb5/s3/S3FieldLocation.h"
+#ifdef fdb5_HAVE_RADOSFDB
+#include "fdb5/rados/RadosFieldLocation.h"
 #endif
 
 namespace fdb5 {
@@ -37,12 +37,12 @@ FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
 
     const FieldLocation& loc = field.location();
 
-#ifdef fdb5_HAVE_S3FDB
+#ifdef fdb5_HAVE_RADOSFDB
     const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
-    const S3FieldLocation* s3floc = dynamic_cast<const S3FieldLocation*>(&loc);
-    if(!tocfloc && !s3floc) {
+    const RadosFieldLocation* radosfloc = dynamic_cast<const RadosFieldLocation*>(&loc);
+    if(!tocfloc && !radosfloc) {
         throw eckit::NotImplemented(
-            "Field location is not of TocFieldLocation or S3FieldLocation type "
+            "Field location is not of TocFieldLocation or RadosFieldLocation type "
             "-- indexing other locations is not supported", 
             Here());
     }
