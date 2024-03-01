@@ -102,8 +102,9 @@ ClientConnection::~ClientConnection() {
 }
 
 uint32_t ClientConnection::generateRequestID() {
-
     std::lock_guard<std::mutex> lock(idMutex_);
+    // we do not want to re-use previous request IDs
+    ASSERT(id_ < UINT32_MAX-2);
     return ++id_;
 }
 
@@ -133,7 +134,7 @@ bool ClientConnection::connect(bool singleAttempt) {
 
         // And the connections are set up. Let everything start up!
         listeningThread_ = std::thread([this] { listeningThreadLoop(); });
-        //listeningThread_.detach();
+
         connected_ = true;
         return true;
     } catch(eckit::TooManyRetries& e) {

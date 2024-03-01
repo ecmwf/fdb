@@ -165,7 +165,8 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<InspectionKey>& ke
 
             for(std::vector<std::string>::const_iterator dbpath = dbpaths.begin(); dbpath != dbpaths.end(); ++dbpath) {
 
-                Regex re("^" + *j + "/" + *dbpath + "$");
+                std::string regex = "^" + *j + "/" + *dbpath + "$";
+                Regex re(searchCaseSensitiveDB ? eckit::StringTools::lower(regex) : regex);
 
                 Log::debug<LibFdb5>() << " -> key i " << *i
                                      << " dbpath " << *dbpath

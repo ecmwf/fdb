@@ -44,6 +44,7 @@ struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List
         elem.location().dump(eckit::Log::debug<fdb5::LibFdb5>());
         eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
 
+        // TODO move the endpoint replacement to the server side ()
         if (elem.location().uri().scheme() == "fdb") {
             eckit::net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
 

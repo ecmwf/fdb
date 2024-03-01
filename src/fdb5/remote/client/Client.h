@@ -65,8 +65,9 @@ protected:
     ClientConnection& connection_;
 
 private:
-    inline static std::mutex idMutex_;
-    static uint32_t clientId_;
+    void setClientID();
+
+private:
     uint32_t id_;
 
     std::mutex blockingRequestMutex_;

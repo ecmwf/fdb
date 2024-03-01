@@ -70,7 +70,8 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
         dataListenHostname_(config.getString("dataListenHostname", "")),
         readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)), 
         archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", 32)),
-        controlSocket_(socket), dataSocket_(nullptr), dataListener_(0) {
+        controlSocket_(socket), numControlConnection_(0), numDataConnection_(0),
+        dataSocket_(nullptr), dataListener_(0) {
 
     eckit::Log::debug<LibFdb5>() << "ServerConnection::ServerConnection initialized" << std::endl;
 }
@@ -78,6 +79,8 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
 ServerConnection::~ServerConnection() {
     // We don't want to die before the worker threads are cleaned up
     waitForWorkers();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // And notify the client that we are done.
 //     eckit::Log::info() << "Sending exit message to client" << std::endl;
@@ -139,25 +142,6 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
     return Handled::No;
 }
 
-// ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& config) :
-//         config_(config),
-//         controlSocket_(socket),
-//         dataSocket_(selectDataPort()),
-//         dataListenHostname_(config.getString("dataListenHostname", "")),
-//         readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", 10000)) {
-//             eckit::Log::debug<LibFdb5>() << "ServerConnection::ServerConnection initialized" << std::endl;
-//     }
-
-// ServerConnection::~ServerConnection() {
-//     // We don't want to die before the worker threads are cleaned up
-//     waitForWorkers();
-
-//     // And notify the client that we are done.
-//     eckit::Log::info() << "Sending exit message to client" << std::endl;
-//     dataWrite(Message::Exit, 0, 0);
-//     eckit::Log::info() << "Done" << std::endl;
-// }
-
 eckit::LocalConfiguration ServerConnection::availableFunctionality() const {
     eckit::LocalConfiguration conf;
 //    Add to the configuration all the components that require to be versioned, as in the following example, with a vector of supported version numbers
@@ -167,7 +151,6 @@ eckit::LocalConfiguration ServerConnection::availableFunctionality() const {
     conf.set("NumberOfConnections", numberOfConnections);
     return conf;
 }
-
 
 void ServerConnection::initialiseConnections() {
     // Read the startup message from the client. Check that it all checks out.
@@ -392,77 +375,55 @@ void ServerConnection::listeningThreadLoopData() {
 
         // The archive loop is the only thing that can listen on the data socket,
         // so we don't need to to anything clever here.
-
         // n.b. we also don't need to lock on read. We are the only thing that reads.
         while (true) {
             eckit::Buffer payload = readData(hdr); // READ DATA
-            // eckit::Log::debug<LibFdb5>() << "ServerConnection::listeningThreadLoopData - got [message=" << hdr.message << ",clientID="<< hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
-        if (hdr.message == Message::Exit) {
-            if (remove(hdr.clientID())) {
-                eckit::Log::status() << "Exiting" << std::endl;
-                eckit::Log::info() << "Exiting" << std::endl;
+            if (hdr.message == Message::Exit) {
+                if (remove(false, hdr.clientID())) {
 
-                return;
-            }
-        } else {
-            
-            Handled handled;
-            if (payload.size() == 0) {
-                handled = handleData(hdr.message, hdr.clientID(), hdr.requestID);
+                    eckit::Log::status() << "Terminating DATA listener" << std::endl;
+                    eckit::Log::info() << "Terminating DATA listener" << std::endl;
+
+                    break;
+                }
             } else {
-                handled = handleData(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
+                
+                Handled handled;
+                if (payload.size() == 0) {
+                    handled = handleData(hdr.message, hdr.clientID(), hdr.requestID);
+                } else {
+                    handled = handleData(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
+                }
+
+
+                switch (handled)
+                {
+                    case Handled::Replied: // nothing to do
+                        break;
+                    case Handled::YesRemoveArchiveListener:
+                        dataListener_--;
+                        if (dataListener_ == 0) {
+                            // return;
+                            // listeningThreadData.join();
+                        }
+                        break;
+                    case Handled::YesRemoveReadListener:
+                        dataListener_--;
+                        if (dataListener_ == 0) {
+                            // return;
+                        }
+                        break;
+                    case Handled::Yes:
+        //                write(Message::Received, false, hdr.clientID(), hdr.requestID);
+                        break;
+                    case Handled::No:
+                    default:
+                        std::stringstream ss;
+                        ss << "Unable to handle message " << hdr.message << " received on the data connection";
+                        error(ss.str(), hdr.clientID(), hdr.requestID);
+                }
             }
-
-
-        switch (handled)
-        {
-            case Handled::Replied: // nothing to do
-                break;
-            case Handled::YesRemoveArchiveListener:
-                dataListener_--;
-                if (dataListener_ == 0) {
-                    return;
-                    // listeningThreadData.join();
-                }
-                break;
-            case Handled::YesRemoveReadListener:
-                dataListener_--;
-                if (dataListener_ == 0) {
-                    return;
-                    // listeningThreadData.join();
-                }
-                break;
-            case Handled::Yes:
-//                write(Message::Received, false, hdr.clientID(), hdr.requestID);
-                break;
-            case Handled::No:
-            default:
-                std::stringstream ss;
-                ss << "Unable to handle message " << hdr.message << " received on the data connection";
-                error(ss.str(), hdr.clientID(), hdr.requestID);
-        }
-        }
-
-            // std::cout << "listeningThreadLoopData " << hdr.message << " " << hdr.clientID() << " " << hdr.requestID << " " << ((int) handled) << std::endl;
-            // switch (handled)
-            // {
-            //     case Handled::YesRemoveArchiveListener:
-            //         dataListener_--;
-            //         if (dataListener_ == 0) {
-            //             // queue.close();
-            //             return;
-            //         }
-            //         break;
-            //     case Handled::Yes:
-            //         break;
-            //     case Handled::Replied:
-            //     case Handled::No:
-            //     default:
-            //         std::stringstream ss;
-            //         ss << "Unable to handle message " << hdr.message << " from data connection";
-            //         error(ss.str(), hdr.clientID(), hdr.requestID);
-            // }
         }
 
         // // Trigger cleanup of the workers
@@ -513,15 +474,14 @@ void ServerConnection::handle() {
         eckit::Log::debug<LibFdb5>() << "ServerConnection::handle - got [message=" << hdr.message << ",clientID="<< hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
         if (hdr.message == Message::Exit) {
-            // write(Message::Exit, true, hdr.clientID(), 0);
-            eckit::Log::info() << "Exit " << controlSocket().localPort() << "  client " <<  hdr.clientID() << std::endl;
-            write(Message::Exit, false, hdr.clientID(), 0);
+            if (remove(true, hdr.clientID())) {
 
-            if (remove(hdr.clientID())) {
-                eckit::Log::status() << "Exiting" << std::endl;
-                eckit::Log::info() << "Exiting" << std::endl;
+                write(Message::Exit, false, hdr.clientID(), 0);
 
-                return;
+                eckit::Log::status() << "Terminating CONTROL listener" << std::endl;
+                eckit::Log::info() << "Terminating CONTROL listener" << std::endl;
+
+                break;
             }
         } else {
 
@@ -555,9 +515,12 @@ void ServerConnection::handle() {
                 //     }
                 //     break;
                 case Handled::YesAddArchiveListener:
-                    dataListener_++;
-                    if (dataListener_ == 1) {
-                        listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
+                    {
+                        std::lock_guard<std::mutex> lock(handlerMutex_);
+                        dataListener_++;
+                        if (dataListener_ == 1) {
+                            listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
+                        }
                     }
                     write(Message::Received, false, hdr.clientID(), hdr.requestID);
                     break;
@@ -569,9 +532,12 @@ void ServerConnection::handle() {
                 //     }
                 //     break;
                 case Handled::YesAddReadListener:
-                    dataListener_++;
-                    if (dataListener_ == 1) {
-                        listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
+                    {
+                        std::lock_guard<std::mutex> lock(handlerMutex_);
+                        dataListener_++;
+                        if (dataListener_ == 1) {
+                            listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
+                        }
                     }
                     write(Message::Received, false, hdr.clientID(), hdr.requestID);
                     break;
@@ -585,6 +551,10 @@ void ServerConnection::handle() {
                     error(ss.str(), hdr.clientID(), hdr.requestID);
             }
         }
+    }
+
+    if (listeningThreadData.joinable()) {
+        listeningThreadData.join();
     }
 }
 

@@ -18,11 +18,15 @@ namespace fdb5::remote {
 //----------------------------------------------------------------------------------------------------------------------
 
 struct CatalogueArchiver {
-    CatalogueArchiver(const Key& dbKey, const Config& config) :
+    CatalogueArchiver(bool dataConnection, const Key& dbKey, const Config& config) :
+        controlConnection(true), dataConnection(dataConnection),
         catalogue(CatalogueWriterFactory::instance().build(dbKey, config)), locationsExpected(-1), locationsArchived(0) {
         archivalCompleted = fieldLocationsReceived.get_future();
     }
 
+    bool controlConnection;
+    bool dataConnection;
+    
     std::unique_ptr<CatalogueWriter> catalogue;
     int32_t locationsExpected;
     int32_t locationsArchived;
@@ -57,18 +61,21 @@ private:  // methods
 
     void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) override;
 
-    bool remove(uint32_t clientID) override;
+    bool remove(bool control, uint32_t clientID) override;
+    // bool handlers() override;
 
     // CatalogueWriter& catalogue(uint32_t catalogueID);
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
 
 private:  // member
 
-    std::mutex cataloguesMutex_;
     // clientID --> <catalogue, locationsExpected, locationsArchived>
     std::map<uint32_t, CatalogueArchiver> catalogues_;
 
     FDB fdb_;
+    uint32_t fdbId_;
+    bool fdbControlConnection_;
+    bool fdbDataConnection_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

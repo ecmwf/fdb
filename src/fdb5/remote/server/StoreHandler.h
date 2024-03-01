@@ -16,6 +16,19 @@
 namespace fdb5::remote {
     
 //----------------------------------------------------------------------------------------------------------------------
+
+struct StoreHelper {
+    StoreHelper(bool dataConnection, const Key& dbKey, const Config& config) :
+        controlConnection(true), dataConnection(dataConnection),
+        store(StoreFactory::instance().build(dbKey, config)) {}
+
+    bool controlConnection;
+    bool dataConnection;
+    
+    std::unique_ptr<Store> store;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
 class StoreHandler : public ServerConnection {
 public:  // methods
 
@@ -35,7 +48,8 @@ private:  // methods
     void readLocationThreadLoop();
     void writeToParent(const uint32_t clientID, const uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
 
-    bool remove(uint32_t clientID) override;
+    bool remove(bool control, uint32_t clientID) override;
+    // bool handlers() override;
 
     Store& store(uint32_t clientID);
     Store& store(uint32_t clientID, const Key& dbKey);
@@ -43,8 +57,7 @@ private:  // methods
 private:  // members
 
     // clientID --> Store
-    std::mutex storesMutex_;
-    std::map<uint32_t, std::unique_ptr<Store>> stores_;
+    std::map<uint32_t, StoreHelper> stores_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

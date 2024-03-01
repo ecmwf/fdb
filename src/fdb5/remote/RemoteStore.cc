@@ -195,14 +195,10 @@ RemoteStore::~RemoteStore() {
     // If we have launched a thread with an async and we manage to get here, this is
     // an error. n.b. if we don't do something, we will block in the destructor
     // of std::future.
-    // if (archiver_ && archiver_->valid()) {
-    //     Log::error() << "Attempting to destruct DecoupledFDB with active archive thread" << std::endl;
-    //     eckit::Main::instance().terminate();
-    // }
-
-    ASSERT(!archivalCompleted_.valid());
-    // ASSERT(!archiver_ || !archiver_->dirty());
-//    disconnect();
+    if (archivalCompleted_.valid() || !locations_.empty()) {
+        Log::error() << "Attempting to destruct RemoteStore with active archival" << std::endl;
+        eckit::Main::instance().terminate();
+    }
 }
 
 eckit::URI RemoteStore::uri() const {

@@ -15,11 +15,11 @@
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Store.h"
 
-namespace {
-void CatalogueCallback(fdb5::CatalogueWriter* catalogue, const fdb5::InspectionKey &key, std::unique_ptr<fdb5::FieldLocation> fieldLocation) {
-    catalogue->archive(key, std::move(fieldLocation));
-}
-}
+// namespace {
+// void CatalogueCallback(fdb5::CatalogueWriter* catalogue, const fdb5::InspectionKey &key, std::unique_ptr<fdb5::FieldLocation> fieldLocation) {
+//     catalogue->archive(key, std::move(fieldLocation));
+// }
+// }
 namespace fdb5 {
 
 ArchiveVisitor::ArchiveVisitor(Archiver &owner, const Key &dataKey, const void *data, size_t size) :
@@ -35,8 +35,9 @@ bool ArchiveVisitor::selectDatum(const InspectionKey &key, const Key &full) {
     checkMissingKeys(full);
     const Key idxKey = current()->currentIndexKey();
 
-    store()->archive(idxKey, data_, size_, std::bind(&CatalogueCallback, current(), key, std::placeholders::_1));
-    
+    // store()->archive(idxKey, data_, size_, std::bind(&CatalogueCallback, current(), key, std::placeholders::_1));
+    store()->archive(idxKey, data_, size_, std::bind(&CatalogueWriter::archive, current(), key, std::placeholders::_1));
+
     return true;
 }
 

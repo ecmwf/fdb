@@ -87,7 +87,6 @@ eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
     const std::string scheme = uri_.query("internalScheme");
     const std::string hostport = uri_.query("internalHost");
     eckit::URI remote;
-    remote.query("internalScheme", "");
     if (hostport.empty()) {
         remote = eckit::URI(scheme, uri_, "",  -1);
     }
@@ -96,6 +95,7 @@ eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
         remote = eckit::URI(scheme, uri_, endpoint.host(),  endpoint.port());
         remote.query("internalHost", "");
     }
+    remote.query("internalScheme", "");
     FieldLocation* loc = FieldLocationFactory::instance().build(scheme, remote, offset_, length_, remapKey_);
 
     return store.dataHandle(*loc);

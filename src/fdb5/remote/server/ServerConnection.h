@@ -144,7 +144,8 @@ private:
 
 protected:
 
-    virtual bool remove(uint32_t clientID) = 0;
+    virtual bool remove(bool control, uint32_t clientID) = 0;
+    // virtual bool handlers() = 0;
 
     // std::map<uint32_t, Handler*> handlers_;
     Config config_;
@@ -163,6 +164,10 @@ protected:
     std::future<size_t> archiveFuture_;
 
     eckit::net::TCPSocket controlSocket_;
+
+    std::mutex handlerMutex_;
+    size_t numControlConnection_;
+    size_t numDataConnection_;
 
 private:
 

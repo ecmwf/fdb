@@ -30,7 +30,7 @@ namespace fdb5::remote {
 // ***************************************************************************************
 
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config):
-    ServerConnection(socket, config) {}
+    ServerConnection(socket, config), fdbId_(0), fdbControlConnection_(false), fdbDataConnection_(false) {}
 
 CatalogueHandler::~CatalogueHandler() {}
 
@@ -39,6 +39,17 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
     try {
         switch (message) {
             case Message::Schema: // request top-level schema
+                {
+                    std::lock_guard<std::mutex> lock(handlerMutex_);
+                    if (fdbId_ == 0) {
+                        fdbId_ = clientID;
+                        fdbControlConnection_ = true;
+                        fdbDataConnection_ = !single_;
+                        numControlConnection_++;
+                        if (fdbDataConnection_)
+                            numDataConnection_++;
+                    }
+                }
                 schema(clientID, requestID, eckit::Buffer(0));
                 return Handled::Replied;
 
@@ -380,7 +391,7 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
 
     std::map<uint32_t, CatalogueArchiver>::iterator it;
     {
-        std::lock_guard<std::mutex> lock(cataloguesMutex_);
+        std::lock_guard<std::mutex> lock(handlerMutex_);
         it = catalogues_.find(clientID);
         if (it == catalogues_.end()) {
             std::string what("Requested unknown catalogue id: " + std::to_string(clientID));
@@ -397,29 +408,44 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
     }
 }
 
-bool CatalogueHandler::remove(uint32_t clientID) {
+bool CatalogueHandler::remove(bool control, uint32_t clientID) {
     
-    std::stringstream ss;
-    ss << "remove " << clientID << " from " << catalogues_.size() << " clients - ids:";
-    for (auto it = catalogues_.begin(); it != catalogues_.end(); it++)
-        ss << "  " << it->first;
-    ss << std::endl;
-    eckit::Log::info() << ss.str();
+    std::lock_guard<std::mutex> lock(handlerMutex_);
+    if (clientID == fdbId_) {
+        if (control) {
+            fdbControlConnection_ = false;
+            numControlConnection_--;
+        } else {
+            fdbDataConnection_ = false;
+            numDataConnection_--;
+        }
+    } else {
 
-    std::lock_guard<std::mutex> lock(cataloguesMutex_);
-
-    auto it = catalogues_.find(clientID);
-    if (it != catalogues_.end()) {
-        catalogues_.erase(it);
+        auto it = catalogues_.find(clientID);
+        if (it != catalogues_.end()) {
+            if (control) {
+                it->second.controlConnection = false;
+                numControlConnection_--;
+            } else {
+                it->second.dataConnection = false;
+                numDataConnection_--;
+            }
+            if (!it->second.controlConnection && !it->second.dataConnection) {
+                catalogues_.erase(it);
+            }
+        }
     }
-
-    return catalogues_.empty();
+    return ((control ? numControlConnection_ : numDataConnection_) == 0);
 }
 
-
 CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
-    std::lock_guard<std::mutex> lock(cataloguesMutex_);
-    return *((catalogues_.emplace(id, CatalogueArchiver(dbKey, config_)).first)->second.catalogue);
+    std::lock_guard<std::mutex> lock(handlerMutex_);
+    numControlConnection_++;
+    if (!single_) {
+        numDataConnection_++;
+    }
+    return *((catalogues_.emplace(id, CatalogueArchiver(!single_, dbKey, config_)).first)->second.catalogue);
+    // return *((catalogues_[id] = std::make_pair(single_ ? 1 : 2, CatalogueArchiver(dbKey, config_))).second.catalogue);
 }
 
 }  // namespace fdb5::remote
