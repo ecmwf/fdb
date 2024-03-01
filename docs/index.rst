@@ -29,6 +29,9 @@ API of the FDB.
 :ref:`operational-introduction-label`
 *************************************
 
+The aim of this part of the documentation is to give a broad ...
+API of the FDB. 
+
 This part of the documentations aims at operations and how to configure and deploy the FDB.
 
 .. index:: Structure
@@ -37,9 +40,14 @@ This part of the documentations aims at operations and how to configure and depl
    :maxdepth: 2
    :caption: Structure
 
-   content/architectural-introduction
-   content/technical-introduction
-   content/operational-introduction
+   content/concept/introduction
+   content/concept/installation
+   content/concept/architecture
+   content/concept/client-reference
+   content/concept/administrative-docs
+   content/concept/fdb-tools
+   content/concept/data-governance
+   content/concept/reference-docs
 
 .. raw:: html
 
