@@ -8,3 +8,6 @@ build
 install.sh
 **/.DS_Store
 **/Doxyfile.in.bak
+
+# LLVM debug
+launch.json
