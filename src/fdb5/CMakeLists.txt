@@ -361,6 +361,8 @@ if( HAVE_RADOSFDB )
         rados/RadosFieldLocation.h
         rados/RadosStore.cc
         rados/RadosStore.h
+        rados/RadosCommon.cc
+        rados/RadosCommon.h
     )
 endif()
 

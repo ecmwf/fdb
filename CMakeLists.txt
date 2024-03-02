@@ -43,10 +43,33 @@ ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
 ### FDB backend in CEPH object store (using Rados)
 
 find_package( RADOS QUIET )
+
 ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
                     CONDITION eckit_HAVE_RADOS AND RADOS_FOUND
                     DEFAULT OFF
                     DESCRIPTION "Ceph/Rados support for FDB Store" )
+
+ecbuild_add_option( FEATURE RADOS_STORE_SINGLE_POOL
+                    DEFAULT ON
+                    DESCRIPTION "Use a single Rados pool with a namespace per database (ON) or a pool per database (OFF)" )
+
+ecbuild_add_option( FEATURE RADOS_STORE_OBJ_PER_FIELD
+                    DEFAULT OFF
+                    DESCRIPTION "Use a Rados object per archived field (ON) or per collocation key (OFF)" )
+
+ecbuild_add_option( FEATURE RADOS_STORE_MULTIPART
+                    DEFAULT ON
+                    DESCRIPTION "If RADOS_STORE_OBJ_PER_FIELD=OFF and the maximum object size is exceeded, use multiple Rados objects per collocation key (ON) or throw an exception (OFF)" )
+
+ecbuild_add_option( FEATURE RADOS_STORE_PERSIST_ON_FLUSH
+                    DEFAULT OFF
+                    DESCRIPTION "Ensure writes are persisted in Rados storage on flush." )
+
+ecbuild_add_option( FEATURE RADOS_STORE_PERSIST_ON_WRITE
+                    CONDITION fdb5_HAVE_STORE_OBJ_PER_FIELD AND NOT fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
+                    DEFAULT OFF
+                    DESCRIPTION "If RADOS_STORE_OBJ_PER_FIELD=ON, ensure every object write is persisted immediately." )
+
 
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
 ### Supports Lustre parallel filesystem stripping control

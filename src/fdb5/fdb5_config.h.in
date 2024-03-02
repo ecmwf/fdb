@@ -10,6 +10,11 @@
 #cmakedefine fdb5_HAVE_LUSTRE
 #cmakedefine fdb5_HAVE_PMEMFDB
 #cmakedefine fdb5_HAVE_RADOSFDB
+#cmakedefine fdb5_HAVE_RADOS_STORE_SINGLE_POOL
+#cmakedefine fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
+#cmakedefine fdb5_HAVE_RADOS_STORE_MULTIPART
+#cmakedefine fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
+#cmakedefine fdb5_HAVE_RADOS_STORE_PERSIST_ON_WRITE
 #cmakedefine fdb5_HAVE_TOCFDB
 #cmakedefine01 fdb5_HAVE_GRIB
 

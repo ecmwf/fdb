@@ -1,0 +1,110 @@
+Running RadosStore unit tests against Ceph on Docker on mac:
+============================================================
+
+git clone https://github.com/datenkollektiv/ceph-playground.git
+cd ceph-playground
+sed -i '' 's#volumes:#volumes:\n            - < PATH TO YOUR LOCAL FDB BUNDLE SOURCE >:/root/git/fdb-bundle#g' docker-compose.yaml
+
+docker-compose down
+rm -rf docker/ceph/etc/*
+rm -rf docker/ceph/var/*
+docker-compose up -d
+
+docker exec -it ceph-playground_ceph_1 /bin/bash
+
+# ---
+
+sed -i -e "s|mirrorlist=|#mirrorlist=|g" -e "s|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g" /etc/yum.repos.d/CentOS-Linux-*
+
+yum install -y gcc gcc-c++ gcc-gfortran make cmake openssl openssl-devel git vim
+yum update -y libarchive
+
+ln -s /usr/lib64/librados.so.2 /usr/lib64/librados.so
+
+cd
+
+mkdir .ceph
+cat /etc/ceph/ceph.conf | grep -e "global" -e "mon host" > .ceph/ceph.conf
+ceph config set mon mon_allow_pool_delete true
+
+git clone https://github.com/ecmwf/ecbuild.git
+export PATH=$HOME/ecbuild/bin:$PATH
+
+mkdir build
+cd build
+src_dir=$HOME/git/fdb-bundle
+build_dir=$HOME/build/fdb-bundle
+mkdir -p $build_dir
+cd $build_dir
+cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON -DENABLE_RADOSFDB=ON
+cmake --build .
+
+ctest -R rados_store
+
+
+
+cmake options:
+==============
+
+# single pool, multiple fields per obj
+cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON \
+    -DENABLE_RADOSFDB=ON -DENABLE_RADOS_STORE_SINGLE_POOL=ON \
+    -DENABLE_RADOS_STORE_OBJ_PER_FIELD=OFF -DENABLE_RADOS_STORE_MULTIPART=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_FLUSH=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_WRITE=OFF
+
+# pool per db, multiple fields per obj
+cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON \
+    -DENABLE_RADOSFDB=ON -DENABLE_RADOS_STORE_SINGLE_POOL=OFF \
+    -DENABLE_RADOS_STORE_OBJ_PER_FIELD=OFF -DENABLE_RADOS_STORE_MULTIPART=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_FLUSH=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_WRITE=OFF
+
+# single pool, field per obj
+cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON \
+    -DENABLE_RADOSFDB=ON -DENABLE_RADOS_STORE_SINGLE_POOL=ON \
+    -DENABLE_RADOS_STORE_OBJ_PER_FIELD=ON -DENABLE_RADOS_STORE_MULTIPART=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_FLUSH=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_WRITE=OFF
+
+# pool per db, field per obj
+cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON \
+    -DENABLE_RADOSFDB=ON -DENABLE_RADOS_STORE_SINGLE_POOL=OFF \
+    -DENABLE_RADOS_STORE_OBJ_PER_FIELD=ON -DENABLE_RADOS_STORE_MULTIPART=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_FLUSH=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_WRITE=OFF
+
+# single pool, multiple fields per obj, multipart
+cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON \
+    -DENABLE_RADOSFDB=ON -DENABLE_RADOS_STORE_SINGLE_POOL=ON \
+    -DENABLE_RADOS_STORE_OBJ_PER_FIELD=OFF -DENABLE_RADOS_STORE_MULTIPART=ON \
+    -DENABLE_RADOS_STORE_PERSIST_ON_FLUSH=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_WRITE=OFF
+
+# single pool, multiple fields per obj, persist on flush
+cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON \
+    -DENABLE_RADOSFDB=ON -DENABLE_RADOS_STORE_SINGLE_POOL=ON \
+    -DENABLE_RADOS_STORE_OBJ_PER_FIELD=OFF -DENABLE_RADOS_STORE_MULTIPART=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_FLUSH=ON \
+    -DENABLE_RADOS_STORE_PERSIST_ON_WRITE=OFF
+
+# single pool, field per obj, persist on flush
+cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON \
+    -DENABLE_RADOSFDB=ON -DENABLE_RADOS_STORE_SINGLE_POOL=ON \
+    -DENABLE_RADOS_STORE_OBJ_PER_FIELD=ON -DENABLE_RADOS_STORE_MULTIPART=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_FLUSH=ON \
+    -DENABLE_RADOS_STORE_PERSIST_ON_WRITE=OFF
+
+# single pool, field per obj, persist on write
+cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON \
+    -DENABLE_RADOSFDB=ON -DENABLE_RADOS_STORE_SINGLE_POOL=ON \
+    -DENABLE_RADOS_STORE_OBJ_PER_FIELD=ON -DENABLE_RADOS_STORE_MULTIPART=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_FLUSH=OFF \
+    -DENABLE_RADOS_STORE_PERSIST_ON_WRITE=ON
+
+# single pool, multiple fields per obj, multipart, persist on flush
+cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON \
+    -DENABLE_RADOSFDB=ON -DENABLE_RADOS_STORE_SINGLE_POOL=ON \
+    -DENABLE_RADOS_STORE_OBJ_PER_FIELD=OFF -DENABLE_RADOS_STORE_MULTIPART=ON \
+    -DENABLE_RADOS_STORE_PERSIST_ON_FLUSH=ON \
+    -DENABLE_RADOS_STORE_PERSIST_ON_WRITE=OFF
