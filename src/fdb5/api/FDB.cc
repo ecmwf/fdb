@@ -28,6 +28,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
+#include "fdb5/io/FieldHandle.h"
 #include "fdb5/message/MessageDecoder.h"
 
 namespace fdb5 {
@@ -140,13 +141,6 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
     return sorted;
 }
 
-class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
-public:
-    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
-        return existing.timestamp() < replacement.timestamp();
-    }
-};
-
 eckit::DataHandle* FDB::read(const eckit::URI& uri) {
     FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
     return loc->dataHandle();
@@ -165,54 +159,8 @@ eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
     
 
 eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
-    eckit::Timer timer;
-    timer.start();
 
-    HandleGatherer result(sorted);
-    ListElement el;
-
-    static bool dedup = eckit::Resource<bool>("fdbDeduplicate;$FDB_DEDUPLICATE_FIELDS", false);
-    if (dedup) {
-        if (it.next(el)) {
-            // build the request representing the tensor-product of all retrieved fields
-            metkit::mars::MarsRequest cubeRequest = el.combinedKey().request();
-            std::vector<ListElement> elements{el};
-
-            while (it.next(el)) {
-                cubeRequest.merge(el.combinedKey().request());
-                elements.push_back(el);
-            }
-
-            // checking all retrieved fields against the hypercube, to remove duplicates
-            ListElementDeduplicator dedup;
-            metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, dedup);
-            for(auto el: elements) {
-                cube.add(el.combinedKey().request(), el);
-            }
-
-            if (cube.countVacant() > 0) {
-                std::stringstream ss;
-                ss << "No matching data for requests:" << std::endl;
-                for (auto req: cube.vacantRequests()) {
-                    ss << "    " << req << std::endl;
-                }
-                eckit::Log::warning() << ss.str() << std::endl;
-            }
-
-            for (size_t i=0; i< cube.size(); i++) {
-                ListElement element;
-                if (cube.find(i, element)) {
-                    result.add(element.location().dataHandle());
-                }
-            }
-        }
-    }
-    else {
-        while (it.next(el)) {
-            result.add(el.location().dataHandle());
-        }
-    }
-    return result.dataHandle();
+    return new FieldHandle(it);
 }
 
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
