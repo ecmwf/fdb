@@ -35,7 +35,7 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 FieldHandle::FieldHandle(ListIterator& it) :
-    fields_({}), totalSize_(0), currentIdx_(0), current_(nullptr), currentMemoryHandle_(false), sorted_(false), seekable_(true) {
+    datahandles_({}), totalSize_(0), currentIdx_(0), current_(nullptr), currentMemoryHandle_(false), buffer_(nullptr), sorted_(false), seekable_(true) {
     ListElement el;
     eckit::Length largest = 0;
 
@@ -70,7 +70,7 @@ FieldHandle::FieldHandle(ListIterator& it) :
             for (size_t i=0; i< cube.size(); i++) {
                 ListElement element;
                 if (cube.find(i, element)) {
-                    fields_.push_back(std::make_pair(el.location().length(), el.location().dataHandle()));
+                    datahandles_.push_back(std::make_pair(el.location().length(), el.location().dataHandle()));
                     eckit::Length len = el.location().length();
                     totalSize_ += len;
                     bool canSeek = el.location().dataHandle()->canSeek();
@@ -84,7 +84,7 @@ FieldHandle::FieldHandle(ListIterator& it) :
     }
     else {
         while (it.next(el)) {
-            fields_.push_back(std::make_pair(el.location().length(), el.location().dataHandle()));
+            datahandles_.push_back(std::make_pair(el.location().length(), el.location().dataHandle()));
 
             eckit::Length len = el.location().length();
             totalSize_ += len;
@@ -98,11 +98,21 @@ FieldHandle::FieldHandle(ListIterator& it) :
 
     if (!seekable_) {
         // allocate a buffer that can fit the largest not seekable field (to avoid re-allocations)
-        buffer_ = eckit::Buffer(largest);
+        buffer_ = new char[largest];
     }
 }
 
-FieldHandle::~FieldHandle() {}
+FieldHandle::~FieldHandle() {
+    for (size_t i = 0; i < datahandles_.size(); i++) {
+        delete datahandles_[i].second;
+    }
+    if (current_ && currentMemoryHandle_) {
+        delete current_;
+    }
+    if (buffer_) {
+        delete[] buffer_;
+    }
+}
 
 void FieldHandle::openCurrent() {
 
@@ -111,15 +121,15 @@ void FieldHandle::openCurrent() {
         currentMemoryHandle_ = false;
     }
 
-    if (currentIdx_ < fields_.size()) {
+    if (currentIdx_ < datahandles_.size()) {
 
-        eckit::Length currentSize = fields_[currentIdx_].first;
-        current_ = fields_[currentIdx_].second;
+        eckit::Length currentSize = datahandles_[currentIdx_].first;
+        current_ = datahandles_[currentIdx_].second;
         current_->openForRead();
 
         if (!current_->canSeek()) {
-            current_->read(buffer_.data(), currentSize);
-            current_ = new eckit::MemoryHandle(buffer_.data(), currentSize);
+            current_->read(buffer_, currentSize);
+            current_ = new eckit::MemoryHandle(buffer_, currentSize);
             current_->openForRead();
             currentMemoryHandle_ = true;
         }
@@ -127,15 +137,16 @@ void FieldHandle::openCurrent() {
 }
 
 eckit::Length FieldHandle::openForRead() {
+    ASSERT(!current_);
 
-    current_=0;
+    currentIdx_=0;
     openCurrent();
 
     return totalSize_;
 }
 
 long FieldHandle::read1(char* buffer, long length) {
-    if (currentIdx_ >= fields_.size()) {
+    if (currentIdx_ >= datahandles_.size()) {
         return 0;
     }
 
@@ -166,18 +177,19 @@ long FieldHandle::read(void* buffer, long length) {
 }
 
 void FieldHandle::close() {
-    if (currentIdx_ != fields_.size()) {
+    if (currentIdx_ < datahandles_.size()) {
         current_->close();
         if (currentMemoryHandle_) {
             delete current_;
         }
+        current_=nullptr;
     }
-    currentIdx_ = fields_.size();
+    currentIdx_ = datahandles_.size();
 }
 
 void FieldHandle::rewind() {
     if (currentIdx_ == 0 || seekable_) {
-        if (current_ && currentIdx_ < fields_.size()) {
+        if (current_ && currentIdx_ < datahandles_.size()) {
             current_->close();
         }
         currentIdx_ = 0;
@@ -193,11 +205,11 @@ void FieldHandle::print(std::ostream& s) const {
     }
     else {
         s << "FieldHandle[";
-        for (size_t i = 0; i < fields_.size(); i++) {
+        for (size_t i = 0; i < datahandles_.size(); i++) {
             if (i != 0) {
                 s << ",(";
             }
-            fields_[i].second->print(s);
+            datahandles_[i].second->print(s);
             s << ")";
         }
         s << ']';
@@ -220,13 +232,13 @@ bool FieldHandle::canSeek() const {
 eckit::Offset FieldHandle::position() {
     long long accumulated = 0;
     for (size_t idx = 0; idx < currentIdx_; idx++) {
-        accumulated += fields_[idx].first;
+        accumulated += datahandles_[idx].first;
     }
-    return accumulated + (currentIdx_ >= fields_.size() ? eckit::Offset(0) : current_->position());
+    return accumulated + (currentIdx_ >= datahandles_.size() ? eckit::Offset(0) : current_->position());
 }
 
 eckit::Offset FieldHandle::seek(const eckit::Offset& offset) {
-    if (current_ && currentIdx_ < fields_.size()) {
+    if (current_ && currentIdx_ < datahandles_.size()) {
         current_->close();
     }
 
@@ -235,7 +247,7 @@ eckit::Offset FieldHandle::seek(const eckit::Offset& offset) {
 
     if (!seekable_) { // check that the offset is within the current message of later
         for (size_t idx = 0; idx < currentIdx_; idx++) {
-            accumulated += fields_[idx].first;
+            accumulated += datahandles_[idx].first;
         }
 
         if (seekto < accumulated) {
@@ -244,8 +256,8 @@ eckit::Offset FieldHandle::seek(const eckit::Offset& offset) {
     }
 
     accumulated  = 0;
-    for (currentIdx_ = 0; currentIdx_ < fields_.size(); ++currentIdx_) {
-        long long size = fields_[currentIdx_].first;
+    for (currentIdx_ = 0; currentIdx_ < datahandles_.size(); ++currentIdx_) {
+        long long size = datahandles_[currentIdx_].first;
         if (accumulated <= seekto && seekto < accumulated + size) {
             openCurrent();
             current_->seek(seekto - accumulated);

@@ -76,14 +76,14 @@ private:
 private:
     // -- Members
 
-    std::vector<std::pair<eckit::Length, DataHandle*>> fields_;
+    std::vector<std::pair<eckit::Length, DataHandle*>> datahandles_;
     eckit::Length totalSize_;
     
     size_t currentIdx_;
     DataHandle* current_;
     bool currentMemoryHandle_;
 
-    eckit::Buffer buffer_;
+    char* buffer_{nullptr};
     
     bool sorted_;
     bool seekable_;
