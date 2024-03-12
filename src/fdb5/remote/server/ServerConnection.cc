@@ -80,12 +80,6 @@ ServerConnection::~ServerConnection() {
     // We don't want to die before the worker threads are cleaned up
     waitForWorkers();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    // And notify the client that we are done.
-//     eckit::Log::info() << "Sending exit message to client" << std::endl;
-// //    write(Message::Exit, true, 0, 0);
-//     write(Message::Exit, false, 0, 0);
     eckit::Log::info() << "Done" << std::endl;
 }
 
@@ -426,32 +420,14 @@ void ServerConnection::listeningThreadLoopData() {
             }
         }
 
-        // // Trigger cleanup of the workers
-        // auto q = archiveQueues_.find(archiverID);
-        // ASSERT(q != archiveQueues_.end());
-        // q->second.close();
-
-        // auto w = archiveFuture_.find(archiverID);
-        // ASSERT(w != archiveFuture_.end());
-        // // Ensure worker is done
-        // ASSERT(w->second.valid());
-        // totalArchived = worker.get();  // n.b. use of async, get() propagates any exceptions.
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
         error(e.what(), hdr.clientID(), hdr.requestID);
-        // auto q = archiveQueues_.find(archiverID);
-        // if(q != archiveQueues_.end()) {
-        //     q->second.interrupt(std::current_exception());
-        // }
         throw;
     }
     catch (...) {
         error("Caught unexpected, unknown exception in retrieve worker", hdr.clientID(), hdr.requestID);
-        // auto q = archiveQueues_.find(archiverID);
-        // if(q != archiveQueues_.end()) {
-        //     q->second.interrupt(std::current_exception());
-        // }
         throw;
     }
 }
@@ -460,9 +436,6 @@ void ServerConnection::handle() {
     initialiseConnections();
  
     std::thread listeningThreadData;
-    // if (!single_) {
-    //     listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
-    // }
 
     MessageHeader hdr;
 
@@ -556,6 +529,8 @@ void ServerConnection::handle() {
     if (listeningThreadData.joinable()) {
         listeningThreadData.join();
     }
+    ASSERT(archiveQueue_.empty());
+    archiveQueue_.close();
 }
 
 void ServerConnection::handleException(std::exception_ptr e) {
@@ -600,11 +575,6 @@ void ServerConnection::archiver() {
         // Start archive worker thread
         archiveFuture_ = std::async(std::launch::async, [this] { return archiveThreadLoop(); });
     }
-
-    // // Start data reader thread if double connection and we aren't already running it
-    // if (!single_ &&  !dataReader_.valid()) {
-    //     dataReader_ = std::async(std::launch::async, [this] { return listeningThreadLoopData(); });
-    // }
 }
 
 void ServerConnection::waitForWorkers() {

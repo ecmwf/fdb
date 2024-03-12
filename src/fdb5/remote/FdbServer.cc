@@ -63,11 +63,6 @@ void FDBForker::run() {
         StoreHandler handler(socket_, config_);
         handler.handle();
     }
-    // else {
-    //     eckit::Log::info() << "FDB using Remote Handler" << std::endl;
-    //     RemoteHandler handler(socket_, config_);
-    //     handler.handle();
-    // }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -96,11 +91,7 @@ FDBServerThread::FDBServerThread(net::TCPSocket& socket, const Config& config) :
     config_(config) {}
 
 void FDBServerThread::run() {
-    std::cout << "FDBServerThread::run()" << std::endl;
     eckit::Log::info() << "FDB started handler thread" << std::endl;
-
-    // ServerConnection handler(socket_, config_);
-    // handler.handle();
 
     if (config_.getString("type", "local") == "catalogue" || (::getenv("FDB_IS_CAT") && ::getenv("FDB_IS_CAT")[0] == '1')) {
         eckit::Log::info() << "FDB using Catalogue Handler" << std::endl;
@@ -112,14 +103,6 @@ void FDBServerThread::run() {
         StoreHandler handler(socket_, config_);
         handler.handle();
     }
-    // else {
-    //     eckit::Log::info() << "FDB using Remote Handler" << std::endl;
-    //     RemoteHandler handler(socket_, config_);
-    //     handler.handle();
-    // }
-
-    // // RemoteHandler handler(socket_, config_);
-    // // handler.handle();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
