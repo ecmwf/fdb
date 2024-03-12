@@ -720,7 +720,7 @@ ListIterator RemoteFDB::list(const FDBToolRequest& request) {
 }
 
 ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
-    return forwardApiCall(InspectHelper(), request);
+    return forwardApiCall(InspectHelper(), FDBToolRequest(request));
 }
 
 

@@ -68,7 +68,7 @@ public: // methods
             destination = eckit::URI(dest);
         }
 
-        fdb5::FDBToolRequest request = metkit::mars::MarsRequest();
+        fdb5::FDBToolRequest request = FDBToolRequest(metkit::mars::MarsRequest());
         size_t count = 0;
         for (const FDBToolRequest& toolReq : requests) {
             if (count) {

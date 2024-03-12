@@ -44,32 +44,32 @@ public: // methods
                                                           bool raw=false,
                                                           const std::string& verb="retrieve");
 
-    FDBToolRequest(const metkit::mars::MarsRequest& r,
+    explicit FDBToolRequest(const metkit::mars::MarsRequest& marsRequest,
                    bool all=false,
                    const std::vector<std::string>& minimumKeySet = std::vector<std::string>());
 
-    FDBToolRequest(eckit::Stream&);
+    explicit FDBToolRequest(eckit::Stream&);
 
     const metkit::mars::MarsRequest& request() const;
 
     bool all() const;
 
-    void print(std::ostream& s, const char* cr="\n", const char* tab="\t") const;
+    void print(std::ostream& ostream, const char* carrierReturn="\n", const char* tab="\t") const;
 
 protected: // methods
 
-    void encode(eckit::Stream& s) const;
+    void encode(eckit::Stream& stream) const;
 
-    friend std::ostream& operator<<(std::ostream& os, const FDBToolRequest& r) {
-        os << "FDBToolRequest(";
-        r.print(os, "", "");
-        os << ")";
-        return os;
+    friend std::ostream& operator<<(std::ostream& ostream, const FDBToolRequest& fdbToolRequest) {
+        ostream << "FDBToolRequest(";
+        fdbToolRequest.print(ostream, "", "");
+        ostream << ")";
+        return ostream;
     }
 
-    friend eckit::Stream& operator<<(eckit::Stream& s, const FDBToolRequest& r) {
-        r.encode(s);
-        return s;
+    friend eckit::Stream& operator<<(eckit::Stream& stream, const FDBToolRequest& fdbToolRequest) {
+        fdbToolRequest.encode(stream);
+        return stream;
     }
 
 private: // methods

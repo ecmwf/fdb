@@ -37,8 +37,8 @@ enum class ControlAction : uint16_t {
     Enable
 };
 
-eckit::Stream& operator<<(eckit::Stream& s, const ControlAction& a);
-eckit::Stream& operator>>(eckit::Stream& s, ControlAction& a);
+eckit::Stream& operator<<(eckit::Stream& stream, const ControlAction& controlAction);
+eckit::Stream& operator>>(eckit::Stream& stream, ControlAction& controlAction);
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -72,12 +72,12 @@ class ControlIdentifierIterator {
 
 public: // methods
 
-    ControlIdentifierIterator(const ControlIdentifiers& identifiers);
+    explicit ControlIdentifierIterator(const ControlIdentifiers& identifiers);
 
     ControlIdentifier operator*() const;
 
-    bool operator==(const ControlIdentifierIterator& other);
-    bool operator!=(const ControlIdentifierIterator& other);
+    bool operator==(const ControlIdentifierIterator& other) const;
+    bool operator!=(const ControlIdentifierIterator& other) const;
 
     ControlIdentifierIterator& operator++();
 
@@ -96,8 +96,8 @@ class ControlIdentifiers {
 
 public:
     ControlIdentifiers();
-    ControlIdentifiers(const ControlIdentifier& val);
-    ControlIdentifiers(eckit::Stream& s);
+    explicit ControlIdentifiers(const ControlIdentifier& val);
+    explicit ControlIdentifiers(eckit::Stream& stream);
 
     ControlIdentifiers& operator|=(const ControlIdentifier& val);
     ControlIdentifiers operator|(const ControlIdentifier& val);
@@ -109,15 +109,15 @@ public:
 
 protected: // methods
 
-    friend std::ostream &operator<<(std::ostream &s, const ControlIdentifiers &x);
+    friend std::ostream &operator<<(std::ostream &ostream, const ControlIdentifiers &controlIdentifiers);
     void print( std::ostream &out ) const;
 
 private:
-    void encode(eckit::Stream& s) const;
+    void encode(eckit::Stream& stream) const;
 
-    friend eckit::Stream& operator<<(eckit::Stream& s, const ControlIdentifiers& i) {
-        i.encode(s);
-        return s;
+    friend eckit::Stream& operator<<(eckit::Stream& stream, const ControlIdentifiers& controlIdentifiers) {
+        controlIdentifiers.encode(stream);
+        return stream;
     }
 
     friend class ControlIdentifierIterator;
@@ -132,9 +132,9 @@ ControlIdentifiers operator|(const ControlIdentifier& lhs, const ControlIdentifi
 
 struct ControlElement {
 
-    ControlElement();
-    ControlElement(const Catalogue& catalogue);
-    ControlElement(eckit::Stream& s);
+    ControlElement() = default;
+    explicit ControlElement(const Catalogue& catalogue);
+    explicit ControlElement(eckit::Stream& stream);
 
     // Database key
     Key key;
@@ -146,11 +146,11 @@ struct ControlElement {
 
 protected: // methods
 
-    void encode(eckit::Stream& s) const;
+    void encode(eckit::Stream& stream) const;
 
-    friend eckit::Stream& operator<<(eckit::Stream& s, const ControlElement& e) {
-        e.encode(s);
-        return s;
+    friend eckit::Stream& operator<<(eckit::Stream& stream, const ControlElement& controlElement) {
+        controlElement.encode(stream);
+        return stream;
     }
 };
 

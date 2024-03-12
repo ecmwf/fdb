@@ -113,7 +113,7 @@ ListIterator SelectFDB::inspect(const metkit::mars::MarsRequest& request) {
         }
     }
 
-    return ListIterator(new ListAggregateIterator(std::move(lists)));
+    return ListIterator(new ListAggregateIterator(std::move(lists))); 
 }
 
 template <typename QueryFN>

@@ -15,6 +15,8 @@
 
 #include "fdb5/api/helpers/ListIterator.h"
 
+#include <utility>
+
 #include "eckit/log/JSON.h"
 
 namespace fdb5 {
@@ -22,20 +24,20 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 ListElement::ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp) :
-    keyParts_(keyParts), location_(location), timestamp_(timestamp) {}
+    keyParts_(keyParts), location_(std::move(location)), timestamp_(timestamp) {}
 
-ListElement::ListElement(eckit::Stream &s) {
-    s >> keyParts_;
-    location_.reset(eckit::Reanimator<FieldLocation>::reanimate(s));
-    s >> timestamp_;
+ListElement::ListElement(eckit::Stream &stream) {
+    stream >> keyParts_;
+    location_.reset(eckit::Reanimator<FieldLocation>::reanimate(stream));
+    stream >> timestamp_;
 }
 
 Key ListElement::combinedKey() const {
     Key combined;
 
     for (const Key& partKey : keyParts_) {
-        for (const auto& kv : partKey) {
-            combined.set(kv.first, kv.second);
+        for (const auto& keyValue : partKey) {
+            combined.set(keyValue.first, keyValue.second);
         }
     }
 
@@ -63,10 +65,10 @@ void ListElement::json(eckit::JSON& json) const {
     json << "length" << location_->length();
 }
 
-void ListElement::encode(eckit::Stream &s) const {
-    s << keyParts_;
-    s << *location_;
-    s << timestamp_;
+void ListElement::encode(eckit::Stream &stream) const {
+    stream << keyParts_;
+    stream << *location_;
+    stream << timestamp_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

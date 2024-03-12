@@ -46,7 +46,7 @@ public: // methods
 
     ListElement() = default;
     ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp);
-    ListElement(eckit::Stream& s);
+    explicit ListElement(eckit::Stream& stream);
 
     const std::vector<Key>& key() const { return keyParts_; }
     const FieldLocation& location() const { return *location_; }
@@ -59,21 +59,21 @@ public: // methods
 
 private: // methods
 
-    void encode(eckit::Stream& s) const;
+    void encode(eckit::Stream& stream) const;
 
-    friend std::ostream& operator<<(std::ostream& os, const ListElement& e) {
-        e.print(os);
-        return os;
+    friend std::ostream& operator<<(std::ostream& ostream, const ListElement& listElement) {
+        listElement.print(ostream);
+        return ostream;
     }
 
-    friend eckit::Stream& operator<<(eckit::Stream& s, const ListElement& r) {
-        r.encode(s);
-        return s;
+    friend eckit::Stream& operator<<(eckit::Stream& stream, const ListElement& listElement) {
+        listElement.encode(stream);
+        return stream;
     }
 
-    friend eckit::JSON& operator<<(eckit::JSON& j, const ListElement& e) {
-        e.json(j);
-        return j;
+    friend eckit::JSON& operator<<(eckit::JSON& json, const ListElement& listElement) {
+        listElement.json(json);
+        return json;
     }
 
 public: // members
@@ -99,7 +99,7 @@ public:
     ListIterator(APIIterator<ListElement>&& iter, bool deduplicate=false) :
         APIIterator<ListElement>(std::move(iter)), seenKeys_({}), deduplicate_(deduplicate) {}
 
-    ListIterator(ListIterator&& iter) :
+    ListIterator(ListIterator&& iter) noexcept :
         APIIterator<ListElement>(std::move(iter)), seenKeys_(std::move(iter.seenKeys_)), deduplicate_(iter.deduplicate_) {}
 
     bool next(ListElement& elem) {

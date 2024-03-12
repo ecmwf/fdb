@@ -37,21 +37,21 @@ public:
     FileCopy(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName, bool sync=false) :
         src_(srcPath / fileName), dest_(destPath / fileName), sync_(sync) {}
 
-    FileCopy(eckit::Stream& s) {
-        s >> src_;
-        s >> dest_;
-        s >> sync_;
+    explicit FileCopy(eckit::Stream& stream) {
+        stream >> src_;
+        stream >> dest_;
+        stream >> sync_;
     }
 
-    void encode(eckit::Stream& s) const {
-        s << src_;
-        s << dest_;
-        s << sync_;
+    void encode(eckit::Stream& stream) const {
+        stream << src_;
+        stream << dest_;
+        stream << sync_;
     } 
 
-    bool sync() { return sync_; }
+    bool sync() const { return sync_; }
 
-    void execute() {
+    void execute() override {
         eckit::FileHandle src(src_);
         eckit::FileHandle dest(dest_);
         src.copyTo(dest);
@@ -67,18 +67,18 @@ public:
 
 private: // methods
 
-    void print(std::ostream& s) const {
-        s << "FileCopy(src=" << src_ << ",dest=" << dest_ << ",sync=" << sync_ << ")";
+    void print(std::ostream& ostream) const {
+        ostream << "FileCopy(src=" << src_ << ",dest=" << dest_ << ",sync=" << sync_ << ")";
     }
 
-    friend std::ostream& operator<<(std::ostream& s, const FileCopy& f) {
-        f.print(s);
-        return s;
+    friend std::ostream& operator<<(std::ostream& ostream, const FileCopy& fileCopy) {
+        fileCopy.print(ostream);
+        return ostream;
     }
 
-    friend eckit::Stream& operator<<(eckit::Stream& s, const FileCopy& f) {
-        f.encode(s);
-        return s;
+    friend eckit::Stream& operator<<(eckit::Stream& stream, const FileCopy& fileCopy) {
+        fileCopy.encode(stream);
+        return stream;
     }
 
 private:

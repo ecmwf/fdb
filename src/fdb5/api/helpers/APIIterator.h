@@ -40,8 +40,8 @@ class APIIteratorBase {
 
 public: // methods
 
-    APIIteratorBase() {}
-    virtual ~APIIteratorBase() {}
+    APIIteratorBase() = default;
+    virtual ~APIIteratorBase() = default;
 
     virtual bool next(ValueType& elem) = 0;
 };
@@ -83,9 +83,9 @@ public: // methods
     APIAggregateIterator(std::queue<APIIterator<ValueType>>&& iterators) :
         iterators_(std::move(iterators)) {}
 
-    virtual ~APIAggregateIterator() override {}
+    ~APIAggregateIterator() override = default;
 
-    virtual bool next(ValueType& elem) override {
+    bool next(ValueType& elem) override {
 
         while (!iterators_.empty()) {
             if (iterators_.front().next(elem)) {
@@ -118,7 +118,7 @@ class APIAsyncIterator : public APIIteratorBase<ValueType> {
 
 public: // methods
 
-    APIAsyncIterator(std::function<void(eckit::Queue<ValueType>&)> workerFn,
+    explicit APIAsyncIterator(std::function<void(eckit::Queue<ValueType>&)> workerFn,
                      size_t queueSize=100) :
         queue_(queueSize) {
 
@@ -136,7 +136,7 @@ public: // methods
         workerThread_ = std::thread(fullWorker);
     }
 
-    virtual ~APIAsyncIterator() override {
+    ~APIAsyncIterator() override {
         if (!queue_.closed()) {
             queue_.interrupt(std::make_exception_ptr(eckit::SeriousBug("Destructing incomplete async queue", Here())));
         }
@@ -144,7 +144,7 @@ public: // methods
         workerThread_.join();
     }
 
-    virtual bool next(ValueType& elem) override {
+    bool next(ValueType& elem) override {
         return !(queue_.pop(elem) == -1);
     }
 

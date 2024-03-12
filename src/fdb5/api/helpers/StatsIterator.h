@@ -35,18 +35,18 @@ struct StatsElement {
 
     StatsElement() = default;
     StatsElement(const IndexStats& iStats, const DbStats& dbStats);
-    StatsElement(eckit::Stream& s);
+    explicit StatsElement(eckit::Stream& stream);
 
     IndexStats indexStatistics;
     DbStats dbStatistics;
 
 private: // methods
 
-    void encode(eckit::Stream& s) const;
+    void encode(eckit::Stream& stream) const;
 
-    friend eckit::Stream& operator<<(eckit::Stream& s, const StatsElement& r) {
-        r.encode(s);
-        return s;
+    friend eckit::Stream& operator<<(eckit::Stream& stream, const StatsElement& statsElement) {
+        statsElement.encode(stream);
+        return stream;
     }
 };
 
