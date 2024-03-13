@@ -70,10 +70,12 @@ FieldHandle::FieldHandle(ListIterator& it) :
             for (size_t i=0; i< cube.size(); i++) {
                 ListElement element;
                 if (cube.find(i, element)) {
-                    datahandles_.push_back(std::make_pair(el.location().length(), el.location().dataHandle()));
-                    eckit::Length len = el.location().length();
+                    eckit::Length len = element.location().length();
+                    eckit::DataHandle* dh = element.location().dataHandle();
+                    datahandles_.push_back(std::make_pair(len, dh));
+
                     totalSize_ += len;
-                    bool canSeek = el.location().dataHandle()->canSeek();
+                    bool canSeek = dh->canSeek();
                     if (!canSeek) {
                         largest = std::max(largest, len);
                         seekable_ = false;
@@ -84,11 +86,12 @@ FieldHandle::FieldHandle(ListIterator& it) :
     }
     else {
         while (it.next(el)) {
-            datahandles_.push_back(std::make_pair(el.location().length(), el.location().dataHandle()));
-
             eckit::Length len = el.location().length();
+            eckit::DataHandle* dh = el.location().dataHandle();
+            datahandles_.push_back(std::make_pair(len, dh));
+
             totalSize_ += len;
-            bool canSeek = el.location().dataHandle()->canSeek();
+            bool canSeek = dh->canSeek();
             if (!canSeek) {
                 largest = std::max(largest, len);
                 seekable_ = false;
@@ -128,7 +131,8 @@ void FieldHandle::openCurrent() {
         current_->openForRead();
 
         if (!current_->canSeek()) {
-            current_->read(buffer_, currentSize);
+            auto len = current_->read(buffer_, currentSize);
+            ASSERT(len == currentSize);
             current_ = new eckit::MemoryHandle(buffer_, currentSize);
             current_->openForRead();
             currentMemoryHandle_ = true;

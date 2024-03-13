@@ -99,8 +99,12 @@ private: // methods
 
         // Are we now complete?
         if (msg.first == Message::Complete) {
-            complete_ = 0;
-            return 0;
+            if (overallPosition_ == eckit::Offset(0)) {
+                ASSERT(queue_.pop(msg) != -1);
+            } else {
+                complete_ = true;
+                return 0;
+            }
         }
 
         ASSERT(msg.first == Message::Blob);
@@ -115,6 +119,7 @@ private: // methods
     // already been retrieved.
 
     long bufferRead(void* pos, long sz) {
+
 
         ASSERT(currentBuffer_.size() != 0);
         ASSERT(pos_ < currentBuffer_.size());
