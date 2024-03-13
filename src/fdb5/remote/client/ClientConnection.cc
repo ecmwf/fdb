@@ -78,15 +78,19 @@ bool ClientConnection::remove(uint32_t clientID) {
         auto it = clients_.find(clientID);
 
         if (it != clients_.end()) {
-            Connection::write(Message::Exit, true, clientID, 0);
-            // TODO make the data connection dying automatically, when there are no more async writes
-            Connection::write(Message::Exit, false, clientID, 0);
+            Connection::write(Message::Stop, true, clientID, 0);
 
             clients_.erase(it);
         }
     }
 
     if (clients_.empty()) {
+        Connection::write(Message::Exit, true, 0, 0);
+        if (!single_) {
+            // TODO make the data connection dying automatically, when there are no more async writes
+            Connection::write(Message::Exit, false, 0, 0);
+        }
+
         ClientConnectionRouter::instance().deregister(*this);
     }
 
@@ -133,7 +137,8 @@ bool ClientConnection::connect(bool singleAttempt) {
         writeDataStartupMessage(serverSession);
 
         // And the connections are set up. Let everything start up!
-        listeningThread_ = std::thread([this] { listeningThreadLoop(); });
+        listeningControlThread_ = std::thread([this] { listeningControlThreadLoop(); });
+        listeningDataThread_ = std::thread([this] { listeningDataThreadLoop(); });
 
         connected_ = true;
         return true;
@@ -150,7 +155,12 @@ void ClientConnection::disconnect() {
     ASSERT(clients_.empty());
     if (connected_) {
 
-        listeningThread_.join();
+        if (listeningControlThread_.joinable()) {
+            listeningControlThread_.join();
+        }
+        if (listeningDataThread_.joinable()) {
+            listeningDataThread_.join();
+        }
 
         // Close both the control and data connections
         controlClient_.close();
@@ -328,7 +338,7 @@ eckit::SessionID ClientConnection::verifyServerStartupResponse() {
     return serverSession;
 }
 
-void ClientConnection::listeningThreadLoop() {
+void ClientConnection::listeningControlThreadLoop() {
 
     try {
 
@@ -337,15 +347,12 @@ void ClientConnection::listeningThreadLoop() {
 
         while (true) {
 
-            eckit::Buffer payload = Connection::readData(hdr);
+            eckit::Buffer payload = Connection::readControl(hdr);
 
-            eckit::Log::debug<LibFdb5>() << "ClientConnection::listeningThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
+            eckit::Log::debug<LibFdb5>() << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
             if (hdr.message == Message::Exit) {
-
-                if (clients_.empty()) {
-                    return;
-                }
+                return;
             } else {
                 if (hdr.clientID()) {
                     bool handled = false;
@@ -357,9 +364,9 @@ void ClientConnection::listeningThreadLoop() {
                         eckit::Log::status() << ss.str() << std::endl;
                         eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
                         throw eckit::SeriousBug(ss.str(), Here());
-
-                        ASSERT(false); // todo report the error
                     }
+
+                    ASSERT(hdr.control() || single_);
 
                     if (hdr.payloadSize == 0) {
                         if (it->second->blockingRequestId() == hdr.requestID) {
@@ -375,6 +382,64 @@ void ClientConnection::listeningThreadLoop() {
                         } else {
                             handled = it->second->handle(hdr.message, hdr.control(), hdr.requestID, std::move(payload));
                         }
+                    }
+
+                    if (!handled) {
+                        std::stringstream ss;
+                        ss << "ERROR: Unexpected message recieved (" << hdr.message << "). ABORTING";
+                        eckit::Log::status() << ss.str() << std::endl;
+                        eckit::Log::error() << "Client Retrieving... " << ss.str() << std::endl;
+                        throw eckit::SeriousBug(ss.str(), Here());
+                    }
+                }
+            }
+        }
+
+    // We don't want to let exceptions escape inside a worker thread.
+    } catch (const std::exception& e) {
+//        ClientConnectionRouter::instance().handleException(std::make_exception_ptr(e));
+    } catch (...) {
+//        ClientConnectionRouter::instance().handleException(std::current_exception());
+    }
+    // ClientConnectionRouter::instance().deregister(*this);
+}
+
+void ClientConnection::listeningDataThreadLoop() {
+
+    try {
+
+        MessageHeader hdr;
+        eckit::FixedString<4> tail;
+
+        while (true) {
+
+            eckit::Buffer payload = Connection::readData(hdr);
+
+            eckit::Log::debug<LibFdb5>() << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
+
+            if (hdr.message == Message::Exit) {
+                return;
+            } else {
+                if (hdr.clientID()) {
+                    bool handled = false;
+                    auto it = clients_.find(hdr.clientID());
+                    if (it == clients_.end()) {
+                        std::stringstream ss;
+                        ss << "ERROR: Received [clientID="<< hdr.clientID() << ",requestID="<< hdr.requestID << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
+                        ss << "Unexpected answer for clientID recieved (" << hdr.clientID() << "). ABORTING";
+                        eckit::Log::status() << ss.str() << std::endl;
+                        eckit::Log::error() << "Retrieving... " << ss.str() << std::endl;
+                        throw eckit::SeriousBug(ss.str(), Here());
+
+                        ASSERT(false); // todo report the error
+                    }
+
+                    ASSERT(!hdr.control());
+                    if (hdr.payloadSize == 0) {
+                        handled = it->second->handle(hdr.message, hdr.control(), hdr.requestID);
+                    }
+                    else {
+                        handled = it->second->handle(hdr.message, hdr.control(), hdr.requestID, std::move(payload));
                     }
 
                     if (!handled) {

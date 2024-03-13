@@ -43,9 +43,6 @@ Key ListElement::combinedKey() const {
 }
 
 void ListElement::print(std::ostream &out, bool withLocation, bool withLength) const {
-    if (!withLocation && location_ && !location_->host().empty()) {
-        out << "host=" << location_->host() << ",";
-    }
     for (const auto& bit : keyParts_) {
         out << bit;
     }

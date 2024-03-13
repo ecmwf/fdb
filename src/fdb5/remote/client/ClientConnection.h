@@ -75,7 +75,8 @@ private: // methods
 
     void handleError(const MessageHeader& hdr, eckit::Buffer buffer);
 
-    void listeningThreadLoop();
+    void listeningControlThreadLoop();
+    void listeningDataThreadLoop();
     void dataWriteThreadLoop();
 
     eckit::net::TCPSocket& controlSocket() override { return controlClient_; }
@@ -96,7 +97,8 @@ private: // members
     std::mutex clientsMutex_;
     std::map<uint32_t, Client*> clients_;
 
-    std::thread listeningThread_;
+    std::thread listeningControlThread_;
+    std::thread listeningDataThread_;
     
     std::mutex requestMutex_;
 

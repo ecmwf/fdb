@@ -179,7 +179,7 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
     MemoryStream stream(buffer);
 //    stream << archiverID;
     stream << (*loc);
-    Connection::write(Message::Store, false, clientID, requestID, buffer, stream.position());
+    Connection::write(Message::Store, true, clientID, requestID, buffer, stream.position());
 }
 
 void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload) {
@@ -248,7 +248,7 @@ Store& StoreHandler::store(uint32_t clientID) {
     auto it = stores_.find(clientID);
     if (it == stores_.end()) {
         std::string what("Requested Store has not been loaded id: " + std::to_string(clientID));
-        write(Message::Error, false, 0, 0, what.c_str(), what.length());
+        write(Message::Error, true, 0, 0, what.c_str(), what.length());
         throw;
     }
 

@@ -374,13 +374,12 @@ void ServerConnection::listeningThreadLoopData() {
             eckit::Buffer payload = readData(hdr); // READ DATA
 
             if (hdr.message == Message::Exit) {
-                if (remove(false, hdr.clientID())) {
+                ASSERT(hdr.clientID() == 0);
 
-                    eckit::Log::status() << "Terminating DATA listener" << std::endl;
-                    eckit::Log::info() << "Terminating DATA listener" << std::endl;
+                eckit::Log::status() << "Terminating DATA listener" << std::endl;
+                eckit::Log::info() << "Terminating DATA listener" << std::endl;
 
-                    break;
-                }
+                break;
             } else {
                 
                 Handled handled;
@@ -446,82 +445,91 @@ void ServerConnection::handle() {
         eckit::Buffer payload = readControl(hdr); // READ CONTROL
         eckit::Log::debug<LibFdb5>() << "ServerConnection::handle - got [message=" << hdr.message << ",clientID="<< hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
-        if (hdr.message == Message::Exit) {
-            if (remove(true, hdr.clientID())) {
+        if (hdr.message == Message::Stop) {
+            ASSERT(hdr.clientID());
+            remove(true, hdr.clientID());
 
-                write(Message::Exit, false, hdr.clientID(), 0);
+        } else {
+            if (hdr.message == Message::Exit) {
+                ASSERT(hdr.clientID() == 0);
+
+                write(Message::Exit, true, 0, 0);
+                if (!single_) {
+                    write(Message::Exit, false, 0, 0);
+                }
 
                 eckit::Log::status() << "Terminating CONTROL listener" << std::endl;
                 eckit::Log::info() << "Terminating CONTROL listener" << std::endl;
 
                 break;
             }
-        } else {
+            else {
 
-            Handled handled = Handled::No;
-            ASSERT(single_ || hdr.control());
+                Handled handled = Handled::No;
+                ASSERT(single_ || hdr.control());
 
-            if (payload.size()) {
-                if (hdr.control()) {
-                    handled = handleControl(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
-                } else {
-                    handled = handleData(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
-                }
-            } else {
-                if (hdr.control()) {
-                    handled = handleControl(hdr.message, hdr.clientID(), hdr.requestID);
-                } else {
-                    handled = handleData(hdr.message, hdr.clientID(), hdr.requestID);
-                }
-            }
-            
-
-            switch (handled)
-            {
-                case Handled::Replied: // nothing to do
-                    break;
-                // case Handled::YesRemoveArchiveListener:
-                //     dataListener_--;
-                //     if (dataListener_ == 0) {
-                //         //return;
-                //         // listeningThreadData.join();
-                //     }
-                //     break;
-                case Handled::YesAddArchiveListener:
-                    {
-                        std::lock_guard<std::mutex> lock(handlerMutex_);
-                        dataListener_++;
-                        if (dataListener_ == 1) {
-                            listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
-                        }
+                if (payload.size()) {
+                    if (hdr.control()) {
+                        handled = handleControl(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
+                    } else {
+                        handled = handleData(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
                     }
-                    write(Message::Received, false, hdr.clientID(), hdr.requestID);
-                    break;
-                // case Handled::YesRemoveReadListener:
-                //     dataListener_--;
-                //     if (dataListener_ == 0) {
-                //         //return;
-                //         // listeningThreadData.join();
-                //     }
-                //     break;
-                case Handled::YesAddReadListener:
-                    {
-                        std::lock_guard<std::mutex> lock(handlerMutex_);
-                        dataListener_++;
-                        if (dataListener_ == 1) {
-                            listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
-                        }
+                } else {
+                    if (hdr.control()) {
+                        handled = handleControl(hdr.message, hdr.clientID(), hdr.requestID);
+                    } else {
+                        handled = handleData(hdr.message, hdr.clientID(), hdr.requestID);
                     }
-                    write(Message::Received, false, hdr.clientID(), hdr.requestID);
-                    break;
-                case Handled::Yes:
-                    write(Message::Received, false, hdr.clientID(), hdr.requestID);
-                    break;
-                case Handled::No:
-                default:
-                    std::stringstream ss;
-                    ss << "Unable to handle message " << hdr.message;
-                    error(ss.str(), hdr.clientID(), hdr.requestID);
+                }
+                
+
+                switch (handled)
+                {
+                    case Handled::Replied: // nothing to do
+                        break;
+                    // case Handled::YesRemoveArchiveListener:
+                    //     dataListener_--;
+                    //     if (dataListener_ == 0) {
+                    //         //return;
+                    //         // listeningThreadData.join();
+                    //     }
+                    //     break;
+                    case Handled::YesAddArchiveListener:
+                        {
+                            std::lock_guard<std::mutex> lock(handlerMutex_);
+                            dataListener_++;
+                            if (dataListener_ == 1) {
+                                listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
+                            }
+                        }
+                        write(Message::Received, true, hdr.clientID(), hdr.requestID);
+                        break;
+                    // case Handled::YesRemoveReadListener:
+                    //     dataListener_--;
+                    //     if (dataListener_ == 0) {
+                    //         //return;
+                    //         // listeningThreadData.join();
+                    //     }
+                    //     break;
+                    case Handled::YesAddReadListener:
+                        {
+                            std::lock_guard<std::mutex> lock(handlerMutex_);
+                            dataListener_++;
+                            if (dataListener_ == 1) {
+                                listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
+                            }
+                        }
+                        write(Message::Received, true, hdr.clientID(), hdr.requestID);
+                        break;
+                    case Handled::Yes:
+                        write(Message::Received, true, hdr.clientID(), hdr.requestID);
+                        break;
+                    case Handled::No:
+                    default:
+                        std::stringstream ss;
+                        ss << "Unable to handle message " << hdr.message;
+                        error(ss.str(), hdr.clientID(), hdr.requestID);
+                }
             }
         }
     }

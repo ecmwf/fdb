@@ -279,7 +279,7 @@ void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buff
         stream << schema;
     }
 
-    write(Message::Received, false, clientID, requestID, schemaBuffer.data(), stream.position());
+    write(Message::Received, true, clientID, requestID, schemaBuffer.data(), stream.position());
 }
 
 void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
@@ -342,7 +342,7 @@ void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
                 s << ee;
             }
         }
-        write(Message::Received, false, clientID, requestID, startupBuffer.data(), s.position());
+        write(Message::Received, true, clientID, requestID, startupBuffer.data(), s.position());
     }
 }
 

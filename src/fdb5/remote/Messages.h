@@ -46,6 +46,7 @@ enum class Message : uint16_t {
     Error,
     Stores,
     Schema,
+    Stop,
 
     // API calls to forward
     Flush = 100,
