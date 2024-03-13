@@ -155,6 +155,10 @@ void ClientConnection::disconnect() {
     ASSERT(clients_.empty());
     if (connected_) {
 
+        if (dataWriteFuture_.valid()) {
+            dataWriteFuture_.wait();
+        }
+
         if (listeningControlThread_.joinable()) {
             listeningControlThread_.join();
         }

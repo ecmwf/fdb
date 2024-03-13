@@ -80,6 +80,10 @@ ServerConnection::~ServerConnection() {
     // We don't want to die before the worker threads are cleaned up
     waitForWorkers();
 
+    if (archiveFuture_.valid()) {
+        archiveFuture_.wait();
+    }
+    
     eckit::Log::info() << "Done" << std::endl;
 }
 
@@ -363,7 +367,6 @@ size_t ServerConnection::archiveThreadLoop() {
 void ServerConnection::listeningThreadLoopData() {
 
     MessageHeader hdr;
-    uint32_t archiverID;
 
     try {
 

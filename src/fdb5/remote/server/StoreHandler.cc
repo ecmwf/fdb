@@ -170,15 +170,12 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
     
     Store& ss = store(clientID, dbKey);
 
-    auto futureLocation = ss.archive(idxKey, charData + s.position(), length - s.position());
+    std::unique_ptr<FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
     Log::status() << "Archiving done: " << ss_key.str() << std::endl;
     
-    auto loc = futureLocation.get();
-
     eckit::Buffer buffer(16 * 1024);
     MemoryStream stream(buffer);
-//    stream << archiverID;
-    stream << (*loc);
+    stream << (*location);
     Connection::write(Message::Store, true, clientID, requestID, buffer, stream.position());
 }
 
