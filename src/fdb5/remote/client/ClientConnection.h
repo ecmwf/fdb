@@ -24,12 +24,6 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/Connection.h"
 
-namespace eckit {
-
-class Buffer;
-
-}
-
 namespace fdb5::remote {
 
 class Client;
@@ -44,7 +38,7 @@ public: // methods
 
     virtual ~ClientConnection();
 
-    void controlWrite(Client& client, Message msg, uint32_t requestID, bool startDataListener, std::vector<std::pair<const void*, uint32_t>> data={});
+    std::future<eckit::Buffer> controlWrite(Client& client, Message msg, uint32_t requestID, bool startDataListener, std::vector<std::pair<const void*, uint32_t>> data={});
     void dataWrite(Client& client, Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
 
     void add(Client& client);
@@ -107,6 +101,8 @@ private: // members
     uint32_t id_;
 
     bool connected_; 
+
+    std::map<uint32_t, std::promise<eckit::Buffer>> promises_;
 
     std::mutex dataWriteQueueMutex_;
     std::unique_ptr<eckit::Queue<DataWriteRequest>> dataWriteQueue_;

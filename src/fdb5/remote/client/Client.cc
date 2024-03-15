@@ -19,18 +19,6 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// uint32_t Client::clientId_=0;
-
-// Client::Client(const eckit::net::Endpoint& endpoint, std::string domain) :
-//     endpoint_(endpoint),
-//     fullyQualifiedEndpoint_(endpoint.host()+domain, endpoint.port()),
-//     connection_(*(ClientConnectionRouter::instance().connection(*this))),
-//     blockingRequestId_(0) {
-
-//     std::lock_guard<std::mutex> lock(idMutex_);
-//     id_ = ++clientId_;
-// }
-
 void Client::setClientID() {
     static std::mutex idMutex_;
     static uint32_t clientId_ = 0;
@@ -39,24 +27,17 @@ void Client::setClientID() {
     id_ = ++clientId_;
 }
 
-
-
 Client::Client(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint) :
-    connection_(ClientConnectionRouter::instance().connection(endpoint, defaultEndpoint)),
-    blockingRequestId_(0) {
-    
-    setClientID();
+    connection_(ClientConnectionRouter::instance().connection(endpoint, defaultEndpoint)) {
 
+    setClientID();
     connection_.add(*this);
 }
 
-
 Client::Client(const std::vector<std::pair<eckit::net::Endpoint, std::string>>& endpoints) :
-    connection_(ClientConnectionRouter::instance().connection(endpoints)),
-    blockingRequestId_(0) {
+    connection_(ClientConnectionRouter::instance().connection(endpoints)) {
 
     setClientID();
-
     connection_.add(*this);
 }
 
@@ -64,43 +45,20 @@ Client::~Client() {
     connection_.remove(id_);
 }
 
-bool Client::response(uint32_t requestID) {
-    ASSERT(requestID == blockingRequestId_);
-
-    eckit::Log::debug<LibFdb5>() << " response to blocking request " << requestID << std::endl;
-
-    promise_.set_value(true);
-    return true;
-}
-
-bool Client::response(uint32_t requestID, eckit::Buffer&& payload) {
-    ASSERT(requestID == blockingRequestId_);
-
-    eckit::Log::debug<LibFdb5>() << " response to blocking request " << requestID << " - payload size: " << payload.size() << std::endl;
-
-    payloadPromise_.set_value(std::move(payload));
-    return true;
-}
-
 void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, bool dataListener, const void* payload, uint32_t payloadLength) {
 
     ASSERT(requestID);
     ASSERT(!(!payloadLength ^ !payload));
     std::lock_guard<std::mutex> lock(blockingRequestMutex_);
-    
-    promise_ = {};
-    std::future<bool> f = promise_.get_future();
 
-    blockingRequestId_=requestID;
-
+    std::vector<std::pair<const void*, uint32_t>> data;
     if (payloadLength) {
-        connection_.controlWrite(*this, msg, blockingRequestId_, dataListener, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});
-    } else {
-        connection_.controlWrite(*this, msg, blockingRequestId_, dataListener);
+        data.push_back(std::make_pair(payload, payloadLength));
     }
+    std::future<eckit::Buffer> f = connection_.controlWrite(*this, msg, requestID, dataListener, data);
 
-    f.get();
-    blockingRequestId_=0;
+    eckit::Buffer buf = f.get();
+    ASSERT(buf.size() == 0);
 }
 
 eckit::Buffer Client::controlWriteReadResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
@@ -108,21 +66,14 @@ eckit::Buffer Client::controlWriteReadResponse(Message msg, uint32_t requestID, 
     ASSERT(requestID);
     ASSERT(!(!payloadLength ^ !payload));
     std::lock_guard<std::mutex> lock(blockingRequestMutex_);
-
-    payloadPromise_ = {};
-    std::future<eckit::Buffer> f = payloadPromise_.get_future();
-
-    blockingRequestId_=requestID;
-
+    
+    std::vector<std::pair<const void*, uint32_t>> data{};
     if (payloadLength) {
-        connection_.controlWrite(*this, msg, blockingRequestId_, false, std::vector<std::pair<const void*, uint32_t>>{{payload, payloadLength}});
-    } else {
-        connection_.controlWrite(*this, msg, blockingRequestId_, false);
+        data.push_back(std::make_pair(payload, payloadLength));
     }
+    std::future<eckit::Buffer> f = connection_.controlWrite(*this, msg, requestID, false, data);
 
     eckit::Buffer buf = f.get();
-    blockingRequestId_=0;
-
     return buf;
 }
 

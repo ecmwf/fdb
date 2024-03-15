@@ -62,9 +62,6 @@ std::vector<int> intersection(const eckit::LocalConfiguration& c1, const eckit::
 
 } // namespace
 
-
-//size_t ServerConnection::queueSize_ = eckit::Resource<size_t>("fdbServerMaxQueueSize", 32);
-
 ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& config) :
         Connection(), config_(config),
         dataListenHostname_(config.getString("dataListenHostname", "")),
@@ -250,7 +247,6 @@ void ServerConnection::initialiseConnections() {
         s << sessionID_;
         s << dataEndpoint;
         s << agreedConf_.get();
-        // s << storeEndpoint; // xxx single-store case only: we cant do this with multiple stores // For now, dont send the store endpoint to the client 
 
         eckit::Log::debug<LibFdb5>() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
 
@@ -346,12 +342,6 @@ size_t ServerConnection::archiveThreadLoop() {
                 totalArchived += 1;
             }
         }
-
-        // eckit::Buffer buffer(1024);
-        // eckit::MemoryStream stream(buffer);
-        // stream << totalArchived;
-        
-        // write(Message::Complete, false, 0, 0, buffer, stream.position());
     }
     catch (...) {
         // Ensure exception propagates across the queue back to the parent thread.
@@ -392,24 +382,19 @@ void ServerConnection::listeningThreadLoopData() {
                     handled = handleData(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
                 }
 
-
                 switch (handled)
                 {
-                    case Handled::Replied: // nothing to do
-                        break;
                     case Handled::YesRemoveArchiveListener:
-                        dataListener_--;
-                        if (dataListener_ == 0) {
-                            // return;
-                            // listeningThreadData.join();
-                        }
-                        break;
                     case Handled::YesRemoveReadListener:
-                        dataListener_--;
-                        if (dataListener_ == 0) {
-                            // return;
+                        {
+                            std::lock_guard<std::mutex> lock(handlerMutex_);
+                            dataListener_--;
+                            if (dataListener_ == 0) {
+                                return;
+                            }
+                            break;
                         }
-                        break;
+                    case Handled::Replied: // nothing to do
                     case Handled::Yes:
         //                write(Message::Received, false, hdr.clientID(), hdr.requestID);
                         break;
@@ -490,30 +475,7 @@ void ServerConnection::handle() {
                 {
                     case Handled::Replied: // nothing to do
                         break;
-                    // case Handled::YesRemoveArchiveListener:
-                    //     dataListener_--;
-                    //     if (dataListener_ == 0) {
-                    //         //return;
-                    //         // listeningThreadData.join();
-                    //     }
-                    //     break;
                     case Handled::YesAddArchiveListener:
-                        {
-                            std::lock_guard<std::mutex> lock(handlerMutex_);
-                            dataListener_++;
-                            if (dataListener_ == 1) {
-                                listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
-                            }
-                        }
-                        write(Message::Received, true, hdr.clientID(), hdr.requestID);
-                        break;
-                    // case Handled::YesRemoveReadListener:
-                    //     dataListener_--;
-                    //     if (dataListener_ == 0) {
-                    //         //return;
-                    //         // listeningThreadData.join();
-                    //     }
-                    //     break;
                     case Handled::YesAddReadListener:
                         {
                             std::lock_guard<std::mutex> lock(handlerMutex_);
@@ -522,8 +484,6 @@ void ServerConnection::handle() {
                                 listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
                             }
                         }
-                        write(Message::Received, true, hdr.clientID(), hdr.requestID);
-                        break;
                     case Handled::Yes:
                         write(Message::Received, true, hdr.clientID(), hdr.requestID);
                         break;

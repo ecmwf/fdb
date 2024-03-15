@@ -102,15 +102,11 @@ public:  // methods
 
 protected:
 
-    // Handler& handler(uint32_t id);
-    // virtual Handler& handler(uint32_t id, Buffer& payload) = 0;
-
     // socket methods
     int selectDataPort();
-//    virtual void initialiseConnections();
     eckit::LocalConfiguration availableFunctionality() const;
     
-        // Worker functionality
+    // Worker functionality
     void tidyWorkers();
     void waitForWorkers();
 
@@ -120,20 +116,12 @@ protected:
 
     // archival helper methods
     void archiver();
-    // emplace new ArchiveElem to archival queue
     void queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
-    // // retrieve archival queue
-    // eckit::Queue<ArchiveElem>& queue();
 
     void handleException(std::exception_ptr e) override;
 
-    // void archive(const MessageHeader& hdr);
-    // virtual size_t archiveThreadLoop() = 0;
-
 private:
 
-    // void controlWrite(Message msg, uint32_t clientID, uint32_t requestID, const void* payload = nullptr, uint32_t payloadLength = 0);
-    // void controlWrite(const void* data, size_t length);
     void listeningThreadLoopData();
 
     eckit::net::TCPSocket& controlSocket() override { return controlSocket_; }
@@ -145,9 +133,7 @@ private:
 protected:
 
     virtual bool remove(bool control, uint32_t clientID) = 0;
-    // virtual bool handlers() = 0;
 
-    // std::map<uint32_t, Handler*> handlers_;
     Config config_;
     std::string dataListenHostname_;
 
@@ -155,8 +141,6 @@ protected:
 
     eckit::SessionID sessionID_;
     eckit::LocalConfiguration agreedConf_;
-    // std::mutex controlWriteMutex_;
-    // std::mutex dataWriteMutex_;
     std::thread readLocationWorker_;
     
     std::map<uint32_t, std::future<void>> workerThreads_;

@@ -56,10 +56,6 @@ public:
     virtual bool handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) = 0;
     virtual void handleException(std::exception_ptr e) = 0;
 
-    bool response(uint32_t requestID);
-    bool response(uint32_t requestID, eckit::Buffer&& payload);
-    uint32_t blockingRequestId() { return blockingRequestId_; }
-
 protected:
     
     ClientConnection& connection_;
@@ -71,9 +67,6 @@ private:
     uint32_t id_;
 
     std::mutex blockingRequestMutex_;
-    uint32_t blockingRequestId_;
-    std::promise<bool> promise_;
-    std::promise<eckit::Buffer> payloadPromise_;
 };
 
 }

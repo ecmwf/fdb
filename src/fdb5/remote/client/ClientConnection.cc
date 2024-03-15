@@ -186,11 +186,14 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 
 // -----------------------------------------------------------------------------------------------------
 
-void ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
+std::future<eckit::Buffer> ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
     auto it = clients_.find(client.clientId());
     ASSERT(it != clients_.end());
 
+    auto pp = promises_.emplace(requestID, std::promise<eckit::Buffer>{});
     Connection::write(msg, true, client.clientId(), requestID, data);
+
+    return pp.first->second.get_future();
 }
 
 void ClientConnection::dataWrite(DataWriteRequest& r) {
@@ -199,7 +202,7 @@ void ClientConnection::dataWrite(DataWriteRequest& r) {
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
 
-    static size_t maxQueueLength = eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 200);
+    static size_t maxQueueLength = eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 2);
     auto it = clients_.find(client.clientId());
     ASSERT(it != clients_.end());
 
@@ -230,7 +233,6 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
     }
 
     dataWriteQueue_->emplace(&client, msg, requestID, std::move(buffer));
-//    Connection::write(msg, false, client.clientId(), requestID, data);
 }
 
 
@@ -286,7 +288,6 @@ void ClientConnection::writeControlStartupMessage() {
     //       essentially JSON) over the wire for flexibility.
     s << availableFunctionality().get();
 
-    // controlWrite(Message::Startup, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{payload, s.position()}});
     Connection::write(Message::Startup, true, 0, 0, payload, s.position());
 }
 
@@ -298,7 +299,6 @@ void ClientConnection::writeDataStartupMessage(const eckit::SessionID& serverSes
     s << sessionID_;
     s << serverSession;
 
-    // dataWrite(Message::Startup, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{payload, s.position()}});
     Connection::write(Message::Startup, false, 0, 0, payload, s.position());
 }
 
@@ -372,18 +372,21 @@ void ClientConnection::listeningControlThreadLoop() {
 
                     ASSERT(hdr.control() || single_);
 
-                    if (hdr.payloadSize == 0) {
-                        if (it->second->blockingRequestId() == hdr.requestID) {
+                    auto pp = promises_.find(hdr.requestID);
+                    if (pp != promises_.end()) {
+                        if (hdr.payloadSize == 0) {
                             ASSERT(hdr.message == Message::Received);
-                            handled = it->second->response(hdr.requestID);
+                            pp->second.set_value(eckit::Buffer(0));
                         } else {
+                            pp->second.set_value(std::move(payload));
+                        }
+                        promises_.erase(pp);
+                        handled = true;
+                    } else {
+                        if (hdr.payloadSize == 0) {
                             handled = it->second->handle(hdr.message, hdr.control(), hdr.requestID);
                         }
-                    }
-                    else {
-                        if (it->second->blockingRequestId() == hdr.requestID) {
-                            handled = it->second->response(hdr.requestID, std::move(payload));
-                        } else {
+                        else {
                             handled = it->second->handle(hdr.message, hdr.control(), hdr.requestID, std::move(payload));
                         }
                     }

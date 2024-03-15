@@ -33,10 +33,6 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 archiver();
                 return Handled::YesAddArchiveListener;
             
-            // case Message::Flush: // notification that the client has sent all data for archival
-            //     flush(clientID, requestID, eckit::Buffer{0});
-            //     return Handled::YesRemoveArchiveListener; // ????
-
             default: {
                 std::stringstream ss;
                 ss << "ERROR: Unexpected message recieved (" << message << "). ABORTING";
@@ -196,20 +192,6 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
     ASSERT(it != stores_.end());
     it->second.store->flush();
 
-    // if (archiveFuture_.valid()) {
-    //     // Ensure that the expected number of fields have been written, and that the
-    //     // archive worker processes have been cleanly wound up.
-    //     size_t n = archiveFuture_.get();
-    //     ASSERT(numArchived == n);
-
-    //     // Do the actual flush!
-    //     Log::info() << "Flushing" << std::endl;
-    //     Log::status() << "Flushing" << std::endl;
-    //     // for (auto it = stores_.begin(); it != stores_.end(); it++) {
-    //     //     it->second->flush();
-    //     // }
-    // }
-
     Log::info() << "Flush complete" << std::endl;
     Log::status() << "Flush complete" << std::endl;
 }
@@ -233,11 +215,6 @@ bool StoreHandler::remove(bool control, uint32_t clientID) {
     }
     return ((control ? numControlConnection_ : numDataConnection_) == 0);
 }
-
-// bool StoreHandler::handlers() {
-//     std::lock_guard<std::mutex> lock(handlerMutex_);
-//     return stores_.empty();
-// }
 
 Store& StoreHandler::store(uint32_t clientID) {
 
