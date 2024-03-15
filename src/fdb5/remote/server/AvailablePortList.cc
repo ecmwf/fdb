@@ -13,7 +13,7 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include "fdb5/remote/AvailablePortList.h"
+#include "fdb5/remote/server/AvailablePortList.h"
 
 #include <fstream>
 #include <mutex>

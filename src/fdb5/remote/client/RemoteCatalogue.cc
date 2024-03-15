@@ -13,8 +13,7 @@
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/remote/RemoteCatalogue.h"
-#include "fdb5/remote/RemoteEngine.h"
+#include "fdb5/remote/client/RemoteCatalogue.h"
 
 #include <unordered_map>
 
@@ -148,8 +147,7 @@ bool RemoteCatalogue::exists() const {NOTIMP;}
 void RemoteCatalogue::checkUID() const {}
 
 eckit::URI RemoteCatalogue::uri() const {
-    return eckit::URI(/*RemoteEngine::typeName()*/ "fdb", controlEndpoint().host(), controlEndpoint().port());
-    // return eckit::URI(TocEngine::typeName(), basePath());
+    return eckit::URI("fdb", controlEndpoint().host(), controlEndpoint().port());
 }
 
 void RemoteCatalogue::loadSchema() {
@@ -220,7 +218,7 @@ void RemoteCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& 
 void RemoteCatalogue::print( std::ostream &out ) const {NOTIMP;}
 
 std::string RemoteCatalogue::type() const {
-    return "remote"; // RemoteEngine::typeName();
+    return "remote";
 }
 bool RemoteCatalogue::open() {
     return true;

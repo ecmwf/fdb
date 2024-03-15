@@ -27,7 +27,7 @@
 #include "fdb5/fdb5_version.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/remote/AvailablePortList.h"
+#include "fdb5/remote/server/AvailablePortList.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/api/FDB.h"

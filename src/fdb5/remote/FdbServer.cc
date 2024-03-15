@@ -18,12 +18,9 @@
 
 #include "fdb5/remote/FdbServer.h"
 
-#include "fdb5/remote/AvailablePortList.h"
-// #include "fdb5/remote/Handler.h"
-//#include "fdb5/remote/CatalogueHandler.h"
-#include "fdb5/remote/server/StoreHandler.h"
+#include "fdb5/remote/server/AvailablePortList.h"
 #include "fdb5/remote/server/CatalogueHandler.h"
-#include "fdb5/remote/server/ServerConnection.h"
+#include "fdb5/remote/server/StoreHandler.h"
 #include "eckit/config/Resource.h"
 
 using namespace eckit;

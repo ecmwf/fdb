@@ -119,7 +119,6 @@ list( APPEND fdb5_srcs
     database/Key.h
     database/InspectionKey.cc
     database/InspectionKey.h
-    # database/ReadVisitor.cc
     database/ReadVisitor.h
     database/Report.cc
     database/Report.h
@@ -212,18 +211,17 @@ list( APPEND fdb5_srcs
 
 if(HAVE_FDB_REMOTE)
     list( APPEND fdb5_srcs 
-        # api/ClientFDB.cc
-        # api/ClientFDB.h
         api/RemoteFDB.cc
         api/RemoteFDB.h
-        remote/RemoteStore.cc
-        remote/RemoteStore.h
-        remote/RemoteCatalogue.h
-        remote/RemoteCatalogue.cc
-        # remote/RemoteEngine.h
-        # remote/RemoteEngine.cc
+
         remote/Connection.h
         remote/Connection.cc
+        remote/RemoteFieldLocation.h
+        remote/RemoteFieldLocation.cc
+        remote/Messages.h
+        remote/Messages.cc
+        remote/FdbServer.h
+        remote/FdbServer.cc
 
         remote/client/Client.h
         remote/client/Client.cc
@@ -231,22 +229,22 @@ if(HAVE_FDB_REMOTE)
         remote/client/ClientConnection.cc
         remote/client/ClientConnectionRouter.h
         remote/client/ClientConnectionRouter.cc
+        remote/client/RemoteStore.cc
+        remote/client/RemoteStore.h
+        remote/client/RemoteCatalogue.h
+        remote/client/RemoteCatalogue.cc
+
+        remote/server/AvailablePortList.cc
+        remote/server/AvailablePortList.h
         remote/server/CatalogueHandler.h
         remote/server/CatalogueHandler.cc
         remote/server/StoreHandler.h
         remote/server/StoreHandler.cc
         remote/server/ServerConnection.h
         remote/server/ServerConnection.cc
-        remote/RemoteConfiguration.h
-        remote/RemoteConfiguration.cc
-        remote/RemoteFieldLocation.h
-        remote/RemoteFieldLocation.cc
-        remote/Messages.h
-        remote/Messages.cc
-        remote/AvailablePortList.cc
-        remote/AvailablePortList.h
-        remote/FdbServer.h
-        remote/FdbServer.cc
+
+        # remote/RemoteConfiguration.h
+        # remote/RemoteConfiguration.cc
     )
 endif()
 

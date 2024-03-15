@@ -14,7 +14,7 @@
  */
 
 #include "fdb5/remote/RemoteFieldLocation.h"
-#include "fdb5/remote/RemoteStore.h"
+#include "fdb5/remote/client/RemoteStore.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 #include "fdb5/LibFdb5.h"
 
