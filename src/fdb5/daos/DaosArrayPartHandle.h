@@ -27,6 +27,11 @@ class DaosArray;
 
 class DaosArrayName;
 
+/// @note: because daos_array_read does not report actual amount of bytes read, 
+///   DaosArrayHandle::read must check the actual size and returns it if smaller 
+///   than the provided buffer, which reduces performance. DaosArrayPartHandle 
+///   circumvents that check for cases where the object size is known.
+/// @note: see DaosArray::read 
 class DaosArrayPartHandle : public eckit::DataHandle {
 
 public: // methods
@@ -53,16 +58,16 @@ public: // methods
     virtual bool canSeek() const override;
     // virtual void skip(const eckit::Length&) override;
 
-//     //virtual void rewind() override;
-//     //virtual void restartReadFrom(const Offset&) override;
-//     //virtual void restartWriteFrom(const Offset&) override;
+    // virtual void rewind() override;
+    // virtual void restartReadFrom(const Offset&) override;
+    // virtual void restartWriteFrom(const Offset&) override;
 
     virtual std::string title() const override;
 
-//     //virtual void encode(Stream&) const override;
-//     //virtual const ReanimatorBase& reanimator() const override { return reanimator_; }
+    // virtual void encode(Stream&) const override;
+    // virtual const ReanimatorBase& reanimator() const override { return reanimator_; }
 
-//     //static const ClassSpec& classSpec() { return classSpec_; }
+    // static const ClassSpec& classSpec() { return classSpec_; }
 
 private: // members
 
@@ -75,8 +80,8 @@ private: // members
     std::string mode_;
     eckit::Length len_;
 
-//     //static ClassSpec classSpec_;
-//     //static Reanimator<DataHandle> reanimator_;
+    // static ClassSpec classSpec_;
+    // static Reanimator<DataHandle> reanimator_;
 
 };
 

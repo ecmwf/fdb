@@ -32,14 +32,17 @@ DaosManager::DaosManager() :
     objectCreateChunkSize_(1048576),
     stats_(std::string("FDB DAOS profiling ") + eckit::Main::hostname() + ":" + eckit::Translator<int, std::string>()(::getpid())) {
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
     dmgConfigFile_ = eckit::Resource<std::string>(
         "fdbDaosDmgConfigFile;$FDB_DAOS_DMG_CONFIG_FILE", dmgConfigFile_
     );
+#endif
 
     using namespace std::placeholders;
     fdb5::StatsTimer st{"daos_init", daos_call_timer_, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats_, _1, _2)};
 
-    // daos_init can be called multiple times. An internal reference count is maintained by the library
+    /// @note: daos_init can be called multiple times. An internal reference 
+    ///   count is maintained by the library
     DAOS_CALL(daos_init());
 
     st.stop();
@@ -82,7 +85,10 @@ void DaosManager::configure(const eckit::LocalConfiguration& config) {
     containerOidsPerAlloc_ = config.getInt("container_oids_per_alloc", containerOidsPerAlloc_);
     objectCreateCellSize_ = config.getInt64("object_create_cell_size", objectCreateCellSize_);
     objectCreateChunkSize_ = config.getInt64("object_create_chunk_size", objectCreateChunkSize_);
+
+#ifdef fdb5_HAVE_DAOS_ADMIN
     dmgConfigFile_ = config.getString("dmg_config_file", dmgConfigFile_);
+#endif
 
 };
 
@@ -92,10 +98,8 @@ DaosSession::DaosSession() :
     // mutex_(DaosManager::instance().mutex_),
     pool_cache_(DaosManager::instance().pool_cache_) {}
 
-// DaosSession::~DaosSession() {}
-
 /// @todo: make getCachedPool return a *DaosPool rather than an iterator?
-// and check it == nullptr rather than it == pool_cache_.end().
+///   and check it == nullptr rather than it == pool_cache_.end().
 std::deque<fdb5::DaosPool>::iterator DaosSession::getCachedPool(uuid_t uuid) {
 
     uuid_t other = {0};
@@ -196,16 +200,16 @@ fdb5::DaosPool& DaosSession::getPool(const std::string& label) {
 
 DaosPool& DaosSession::getPool(uuid_t uuid, const std::string& label) {
 
-    // When both pool uuid and label are known, using this method to declare
-    // a pool is preferred to avoid the following inconsistencies and/or 
-    // inefficiencies:
-    // - when a user declares a pool by label in a process where that pool 
-    //   has not been created, that pool will live in the cache with only a 
-    //   label and no uuid. If the user later declares the same pool from its 
-    //   uuid, two DaosPool instances will exist in the cache for the same 
-    //   DAOS pool, each with their connection handle.
-    // - these two instances will be incomplete and the user may not be able 
-    //   to retrieve the label/uuid information.
+    /// @note: When both pool uuid and label are known, using this method 
+    /// to declare a pool is preferred to avoid the following 
+    /// inconsistencies and/or inefficiencies:
+    /// - when a user declares a pool by label in a process where that pool 
+    ///   has not been created, that pool will live in the cache with only a 
+    ///   label and no uuid. If the user later declares the same pool from its 
+    ///   uuid, two DaosPool instances will exist in the cache for the same 
+    ///   DAOS pool, each with their connection handle.
+    /// - these two instances will be incomplete and the user may not be able 
+    ///   to retrieve the label/uuid information.
 
     std::deque<fdb5::DaosPool>::iterator it = getCachedPool(uuid);
     if (it != pool_cache_.end()) {
@@ -238,35 +242,6 @@ DaosPool& DaosSession::getPool(uuid_t uuid, const std::string& label) {
 }
 
 #ifdef fdb5_HAVE_DAOS_ADMIN
-// intended for destroyPool(), where all potentially cached pools with 
-// a given uuid need to be closed
-// void DaosSession::closePool(uuid_t uuid) {
-// 
-//     uuid_t other = {0};
-// 
-//     std::deque<fdb5::DaosPool>::iterator it;
-//     for (it = pool_cache_.begin(); it != pool_cache_.end(); ++it) {
-// 
-//         it->uuid(other);
-//         if (uuid_compare(uuid, other) == 0) it->close();
-// 
-//     }
-// 
-// }
-// 
-// void DaosSession::destroyPoolContainers(uuid_t uuid) {
-// 
-//     uuid_t other = {0};
-// 
-//     std::deque<fdb5::DaosPool>::iterator it;
-//     for (it = pool_cache_.begin(); it != pool_cache_.end(); ++it) {
-// 
-//         it->uuid(other);
-//         if (uuid_compare(uuid, other) == 0) it->destroyContainers();
-// 
-//     }
-// 
-// }
 
 void DaosSession::destroyPool(uuid_t uuid, const int& force) {
 
@@ -304,10 +279,6 @@ void DaosSession::destroyPool(uuid_t uuid, const int& force) {
 
     /// @todo: cached DaosPools declared with a label only, pointing to the pool
     // being destroyed may still exist and should be closed and removed
-
-    /// @note: creating a pool with the same label immediately after destroy
-    ///        sometimes fails.
-    // sleep(1);
 
 }
 #endif

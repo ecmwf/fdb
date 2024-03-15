@@ -55,8 +55,8 @@ std::unique_ptr<fdb5::FieldLocation>& DaosLazyFieldLocation::realise() const {
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
 
     /// @note: performed RPCs:
-    /// - close index kv (daos_obj_close)
     fdb5::StatsTimer st{"list 011 index kv get field location", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    /// - index kv get (daos_kv_get)
     fdb5::DaosSession s{};
     fdb5::DaosKeyValue index_kv{s, index_};
     daos_size_t size{index_kv.size(key_)};

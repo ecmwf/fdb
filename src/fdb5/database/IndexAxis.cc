@@ -246,7 +246,8 @@ void IndexAxis::insert(const Key &key) {
     }
 }
 
-/// @note: intended for importing axis information from storage
+/// @note: this method inserts key-value pairs into an axis in memory. 
+///   Intended for importing axis information from storage in the DAOS backend.
 ///   Input values are expected to be cannoicalised.
 void IndexAxis::insert(const std::string& axis, const std::vector<std::string>& values) {
     ASSERT(!readOnly_);

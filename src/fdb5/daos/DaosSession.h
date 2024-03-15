@@ -32,16 +32,17 @@
 
 namespace fdb5 {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 /// @todo: Use std::map<std::string, fdb5::DaosPool>
 /// @todo: Offload caching to manager?
 using PoolCache = std::deque<fdb5::DaosPool>;
 
+/// @todo: move to a separate file
 class DaosManager : private eckit::NonCopyable {
 
 public: // methods
 
-    /// @todo: set configuration where relvant in unit tests
-    /// @todo: unit tests for config
     static DaosManager& instance() {
         static DaosManager instance;
         return instance;
@@ -56,18 +57,9 @@ public: // methods
 
     void configure(const eckit::LocalConfiguration&);
 
-    // int containerOidsPerAlloc() const { return containerOidsPerAlloc_; };
-    // uint64_t objectCreateCellSize() const { return objectCreateCellSize_; };
-    // uint64_t objectCreateChunkSize() const { return objectCreateChunkSize_; };
-    // std::string dmgConfigFile() const { return dmgConfigFile_; };
-
 private: // methods
 
     DaosManager();
-
-    /// @todo: should configure here with LibFdb5 default config, for cases where DaosManager is never configured?
-    //       I would say No. fdb5 classes should always configure Daos including configuration from LibFdb5 default config.
-    //       Daos* classes should not depend on fdb5 configuration if used independently.
 
     ~DaosManager();
 
@@ -78,10 +70,32 @@ private: // members
     std::recursive_mutex mutex_;
     PoolCache pool_cache_;
 
-    int containerOidsPerAlloc_;
+    /// @note: sets number of OIDs allocated in a single daos_cont_alloc_oids call
+    int containerOidsPerAlloc_;  
+    /// @note: number of bytes per cell in a DAOS object
+    /// @note: cell size is the unit of atomicity / update. If the object
+    ///   will always be updated or read in elements of e.g. 64k, then 64k
+    ///   can be used as the cell size. Then, that 64k element cannot be
+    ///   partially updated anymore. 
     uint64_t objectCreateCellSize_;
+    /// @note: number of cells of per dkey in a DAOS object
+    /// @note: the chunk size maps to how many cells to put under 1 dkey. 
+    ///   So it also controls the RPC size. It should not really be something 
+    ///   very small otherwise it might create a lot of RPCs. If not 
+    ///   using redundancy (SX), setting it to something as equal or a multiple
+    ///   of the most common transfer size is OK. the default is 1 MiB which is 
+    ///   usually OK. If using EC, it gets more tricky as the EC cell size and 
+    ///   transfer size come into play and break that even more and can cause 
+    ///   overhead on the client side. Ideally, set both to the same as the IO 
+    ///   size, but that is not always possible because the EC cell size is 
+    ///   only changed per container, vs the chunk and transfer size that can 
+    ///   vary per object / file. That may be changed in DAOS to allow more 
+    ///   flexibility
     uint64_t objectCreateChunkSize_;
+
+#ifdef fdb5_HAVE_DAOS_ADMIN
     std::string dmgConfigFile_;
+#endif
 
     /// @todo: it is the FDB class who should own the DaosIOStats and pass on to the Catalogue and Store
     fdb5::DaosIOStats stats_;
@@ -143,17 +157,15 @@ public: // methods
     int containerOidsPerAlloc() const { return DaosManager::instance().containerOidsPerAlloc_; };
     uint64_t objectCreateCellSize() const { return DaosManager::instance().objectCreateCellSize_; };
     uint64_t objectCreateChunkSize() const { return DaosManager::instance().objectCreateChunkSize_; };
+
+#ifdef fdb5_HAVE_DAOS_ADMIN
     std::string dmgConfigFile() const { return DaosManager::instance().dmgConfigFile_; };
+#endif
 
 private: // methods
 
     PoolCache::iterator getCachedPool(uuid_t);
     PoolCache::iterator getCachedPool(const std::string&);
-
-// #ifdef fdb5_HAVE_DAOS_ADMIN
-    // void closePool(uuid_t);
-    // void destroyPoolContainers(uuid_t);
-// #endif
 
 private: // members
 

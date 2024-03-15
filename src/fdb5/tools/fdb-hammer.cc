@@ -10,6 +10,7 @@
 
 #include <sys/time.h>
 
+#include <iomanip>
 #include <unordered_set>
 #include <memory>
 #include <iomanip>
@@ -137,10 +138,6 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     const char* buffer = nullptr;
     size_t size = 0;
 
-    std::vector<struct timeval> tval_before_io(nensembles * nsteps * nlevels * nparams);
-    std::vector<struct timeval> tval_after_io(nensembles * nsteps * nlevels * nparams);
-    struct timeval tval_result_io;
-
     fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args));
 
     std::string expver = args.getString("expver");
@@ -150,6 +147,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     size = cls.length();
     CODES_CHECK(codes_set_string(handle, "class", cls.c_str(), &size), 0);
 
+    struct timeval tval_before_io, tval_after_io;
     eckit::Timer timer;
     eckit::Timer gribTimer;
     double elapsed_grib = 0;
@@ -165,7 +163,6 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
         for (size_t step = 0; step < nsteps; ++step) {
             CODES_CHECK(codes_set_long(handle, "step", step), 0);
             for (size_t lev = 1; lev <= nlevels; ++lev) {
-                //CODES_CHECK(codes_set_long(handle, "level", lev+level), 0);
                 CODES_CHECK(codes_set_long(handle, "level", lev+level-1), 0);
                 for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
                     // GRIB API only allows us to use certain parameters
@@ -186,7 +183,8 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
                     elapsed_grib += gribTimer.elapsed();
 
                     MemoryHandle dh(buffer, size);
-                    gettimeofday(&(tval_before_io.at(writeCount)), NULL);
+
+                    if (member == 1 && step == 0 && lev == 1 && param == 1) gettimeofday(&tval_before_io, NULL);
                     archiver.archive(dh);
                     //gettimeofday(&(tval_after_io.at(writeCount)), NULL);
                     writeCount++;
@@ -199,8 +197,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
             gribTimer.stop();
             elapsed_grib += gribTimer.elapsed();
             archiver.flush();
-            // a timestamp is kept for only the last field written in every step
-            gettimeofday(&(tval_after_io.at(writeCount - 1)), NULL);
+            if (member == nensembles && step == (nsteps - 1)) gettimeofday(&tval_after_io, NULL);
             gribTimer.start();
         }
     }
@@ -212,87 +209,28 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
 
     codes_handle_delete(handle);
 
-    for (int i = 0; i < writeCount; i++) {
-
-        // Log::info() << "THE ITERATION IS: " << i << std::endl;
-
-        if (i == 0) {
-
-            std::ios oldState(nullptr);
-            oldState.copyfmt(Log::info());
-
-            Log::info() << "Timestamp before first IO: " <<
-                (long int)tval_before_io[i].tv_sec << "." <<
-                std::setw(6) << std::setfill('0') <<
-                (long int)tval_before_io[i].tv_usec << std::endl;
-
-            Log::info().copyfmt(oldState);
-
-        }
-
-        // std::string message = "";
-        // message += "node " + node_id + " client " + proc_id + " rep " + i;
-
-        // timersub(&tval_after_aclose[i], &tval_before_aopen[i], &tval_result_aopenclose);
-        // printf("Profiling %sdaos_field_io daos_write - %s: %s%ld.%06ld\n",
-        //       message, "daos_array_open_write_close", "\t",
-        //       (long int)tval_result_aopenclose.tv_sec,
-        //       (long int)tval_result_aopenclose.tv_usec);
-        // printf("Profiling %sdaos_field_io daos_write - %s: %s%ld.%06ld\n",
-        //       message, "daos_array_open timestamp before", "\t",
-        //       (long int)tval_before_aopen[i].tv_sec,
-        //       (long int)tval_before_aopen[i].tv_usec);
-        // printf("Profiling %sdaos_field_io daos_write - %s: %s%ld.%06ld\n",
-        //       message, "daos_array_close timestamp after", "\t",
-        //       (long int)tval_after_aclose[i].tv_sec,
-        //       (long int)tval_after_aclose[i].tv_usec);
-
-        // timersub(&tval_after_io[i], &tval_before_io[i], &tval_result_io);
-
-        // std::ios oldState(nullptr);
-        // oldState.copyfmt(Log::info());
-
-        // Log::info() << "Profiling node " << node_id << " client " << proc_id << " - fdb_hammer_write - IO wc time: " <<
-        //         (long int)tval_result_io.tv_sec << "." <<
-        //         std::setw(6) << std::setfill('0') <<
-        //         (long int)tval_result_io.tv_usec << std::endl;
-
-        // Log::info().copyfmt(oldState);
-
-        if (i == (writeCount - 1)) {
-
-            std::ios oldState(nullptr);
-            oldState.copyfmt(Log::info());
-
-            Log::info() << "Timestamp after last IO: " <<
-                (long int)tval_after_io[i].tv_sec << "." <<
-                std::setw(6) << std::setfill('0') <<
-                (long int)tval_after_io[i].tv_usec << std::endl;
-
-            Log::info().copyfmt(oldState);
-
-        }
-
-        // timersub(&tval_after_rep[i], &tval_before_rep[i], &tval_result_rep);
-        // printf("Profiling node %d client %d - daos_field_write - %s: %s%ld.%06ld\n",
-        //        node_id, client_id, "rep total wc time", "\t\t",
-        //        (long int)tval_result_rep.tv_sec, (long int)tval_result_rep.tv_usec);
-
-        // Log::info() << "DATA WRITTEN SUCCESSFULLY" << std::endl;
-    }
-
     // comment out for lustre runs
     //fdb5::DaosManager::instance().stats().report(std::cout);
     // comment out for daos runs
     fdb5::TocManager::instance().stats().report(std::cout);
 
-    Log::info() << "fdb-hammer - Fields written: " << writeCount << std::endl;
-    Log::info() << "fdb-hammer - Bytes written: " << bytesWritten << std::endl;
-    Log::info() << "fdb-hammer - Total duration: " << timer.elapsed() << std::endl;
-    Log::info() << "fdb-hammer - GRIB duration: " << elapsed_grib << std::endl;
-    Log::info() << "fdb-hammer - Writing duration: " << timer.elapsed() - elapsed_grib << std::endl;
-    // Log::info() << "fdb-hammer - Total rate: " << double(bytesWritten) / timer.elapsed() << " bytes / s" << std::endl;
-    // Log::info() << "fdb-hammer - Total rate: " << double(bytesWritten) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
+    Log::info() << "Fields written: " << writeCount << std::endl;
+    Log::info() << "Bytes written: " << bytesWritten << std::endl;
+    Log::info() << "Total duration: " << timer.elapsed() << std::endl;
+    Log::info() << "GRIB duration: " << elapsed_grib << std::endl;
+    Log::info() << "Writing duration: " << timer.elapsed() - elapsed_grib << std::endl;
+    Log::info() << "Total rate: " << double(bytesWritten) / timer.elapsed() << " bytes / s" << std::endl;
+    Log::info() << "Total rate: " << double(bytesWritten) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
+
+    Log::info() << "Timestamp before first IO: " <<
+                    (long int)tval_before_io.tv_sec << "." <<
+                    std::setw(6) << std::setfill('0') <<
+                    (long int)tval_before_io.tv_usec << std::endl;
+    Log::info() << "Timestamp after last IO: " <<
+                    (long int)tval_after_io.tv_sec << "." <<
+                    std::setw(6) << std::setfill('0') <<
+                    (long int)tval_after_io.tv_usec << std::endl;
+
 }
 
 
@@ -319,10 +257,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     request.setValue("class", args.getString("class"));
     request.setValue("optimised", "on");
 
-    std::vector<struct timeval> tval_before_io(nensembles * nsteps * nlevels * nparams);
-    std::vector<struct timeval> tval_after_io(nensembles * nsteps * nlevels * nparams);
-    struct timeval tval_result_io;
-
+    struct timeval tval_before_io, tval_after_io;
     eckit::Timer timer;
     timer.start();
 
@@ -330,7 +265,6 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     fdb5::FDB fdb(config(args));
     size_t fieldsRead = 0;
 
-    //for (size_t member = 1; member <= nensembles; ++member) {
     for (size_t member = 1; member <= nensembles; ++member) {
         if (args.has("nensembles")) {
             request.setValue("number", member+number-1);
@@ -338,7 +272,6 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
         for (size_t step = 0; step < nsteps; ++step) {
             request.setValue("step", step);
             for (size_t lev = 1; lev <= nlevels; ++lev) {
-                //request.setValue("level", lev+level);
                 request.setValue("levelist", lev+level-1);
                 for (size_t param = 1, real_param = 1; param <= nparams; ++param, ++real_param) {
                     // GRIB API only allows us to use certain parameters
@@ -352,7 +285,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
                     //             << ", level: " << lev
                     //             << ", param: " << real_param << std::endl;
 
-                    gettimeofday(&(tval_before_io.at(fieldsRead)), NULL);
+                    if (member == 1 && step == 0 && lev == 1 && param == 1) gettimeofday(&tval_before_io, NULL);
                     handles.add(fdb.retrieve(request));
                     fieldsRead++;
                 }
@@ -370,81 +303,12 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
 
     EmptyHandle nullOutputHandle;
     size_t total = dh->copyTo(nullOutputHandle);
-    gettimeofday(&(tval_after_io.at(0)), NULL);
+    gettimeofday(&tval_after_io, NULL);
 
     // comment out for DAOS runs
     st.stop();
 
     timer.stop();
-
-    for (int i = 0; i < fieldsRead; i++) {
-
-        // Log::info() << "THE ITERATION IS: " << i << std::endl;
-
-        if (i == 0) {
-
-            std::ios oldState(nullptr);
-            oldState.copyfmt(Log::info());
-
-            Log::info() << "Timestamp before first IO: " <<
-                (long int)tval_before_io[i].tv_sec << "." <<
-                std::setw(6) << std::setfill('0') <<
-                (long int)tval_before_io[i].tv_usec << std::endl;
-
-            Log::info().copyfmt(oldState);
-
-        }
-
-        // std::string message = "";
-        // message += "node " + node_id + " client " + proc_id + " rep " + i;
-
-        // timersub(&tval_after_aclose[i], &tval_before_aopen[i], &tval_result_aopenclose);
-        // printf("Profiling %sdaos_field_io daos_write - %s: %s%ld.%06ld\n",
-        //       message, "daos_array_open_write_close", "\t",
-        //       (long int)tval_result_aopenclose.tv_sec,
-        //       (long int)tval_result_aopenclose.tv_usec);
-        // printf("Profiling %sdaos_field_io daos_write - %s: %s%ld.%06ld\n",
-        //       message, "daos_array_open timestamp before", "\t",
-        //       (long int)tval_before_aopen[i].tv_sec,
-        //       (long int)tval_before_aopen[i].tv_usec);
-        // printf("Profiling %sdaos_field_io daos_write - %s: %s%ld.%06ld\n",
-        //       message, "daos_array_close timestamp after", "\t",
-        //       (long int)tval_after_aclose[i].tv_sec,
-        //       (long int)tval_after_aclose[i].tv_usec);
-
-        // timersub(&tval_after_io[i], &tval_before_io[i], &tval_result_io);
-
-        // std::ios oldState(nullptr);
-        // oldState.copyfmt(Log::info());
-
-        // Log::info() << "Profiling node " << node_id << " client " << proc_id << " - fdb_hammer_write - IO wc time: " <<
-        //         (long int)tval_result_io.tv_sec << "." <<
-        //         std::setw(6) << std::setfill('0') <<
-        //         (long int)tval_result_io.tv_usec << std::endl;
-
-        // Log::info().copyfmt(oldState);
-
-        if (i == (fieldsRead - 1)) {
-
-            std::ios oldState(nullptr);
-            oldState.copyfmt(Log::info());
-
-            Log::info() << "Timestamp after last IO: " <<
-                (long int)tval_after_io[0].tv_sec << "." <<
-                std::setw(6) << std::setfill('0') <<
-                (long int)tval_after_io[0].tv_usec << std::endl;
-
-            Log::info().copyfmt(oldState);
-
-        }
-
-        // timersub(&tval_after_rep[i], &tval_before_rep[i], &tval_result_rep);
-        // printf("Profiling node %d client %d - daos_field_write - %s: %s%ld.%06ld\n",
-        //        node_id, client_id, "rep total wc time", "\t\t",
-        //        (long int)tval_result_rep.tv_sec, (long int)tval_result_rep.tv_usec);
-
-        // Log::info() << "DATA READ SUCCESSFULLY" << std::endl;
-    }
 
     // comment out for lustre runs
     //fdb5::DaosManager::instance().stats().report(std::cout);
@@ -456,6 +320,15 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     Log::info() << "fdb-hammer - Total duration: " << timer.elapsed() << std::endl;
     // Log::info() << "fdb-hammer - Total rate: " << double(total) / timer.elapsed() << " bytes / s" << std::endl;
     // Log::info() << "fdb-hammer - Total rate: " << double(total) / (timer.elapsed() * 1024 * 1024) << " MB / s" << std::endl;
+
+    Log::info() << "Timestamp before first IO: " <<
+                    (long int)tval_before_io.tv_sec << "." <<
+                    std::setw(6) << std::setfill('0') <<
+                    (long int)tval_before_io.tv_usec << std::endl;
+    Log::info() << "Timestamp after last IO: " <<
+                    (long int)tval_after_io.tv_sec << "." <<
+                    std::setw(6) << std::setfill('0') <<
+                    (long int)tval_after_io.tv_usec << std::endl;
 
 }
 
@@ -477,9 +350,6 @@ void FDBWrite::executeList(const eckit::option::CmdArgs &args) {
     size_t number = args.getLong("number", 1);
     size_t level = args.getLong("level", 1);
 
-    // size_t node_id  = args.getLong("node-id", 0);
-    // size_t proc_id  = args.getLong("proc-id", 0);
-    //
     request.setValue("expver", args.getString("expver"));
     request.setValue("class", args.getString("class"));
 

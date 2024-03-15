@@ -45,6 +45,7 @@ CASE( "dummy_daos_write_then_read" ) {
 
     int rc;
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
     d_rank_list_t svcl;
     svcl.rl_nr = 3;
     D_ALLOC_ARRAY(svcl.rl_ranks, svcl.rl_nr);
@@ -78,6 +79,11 @@ CASE( "dummy_daos_write_then_read" ) {
     std::string pool(uuid_str);
     eckit::PathName pool_path = dummy_daos_root() / pool;
     EXPECT(pool_path.exists());
+#else
+    std::string pool{"00000000-0000-0000-0000-000000000000"};
+    eckit::PathName pool_path = dummy_daos_root() / pool;
+    pool_path.mkdir();
+#endif
 
     daos_init();
 
@@ -376,6 +382,7 @@ CASE( "dummy_daos_write_then_read" ) {
 
     daos_fini();
 
+#ifdef fdb5_HAVE_DAOS_ADMIN
     // destroy the pools
 
     rc = dmg_pool_destroy(NULL, pool_uuid, NULL, 1);
@@ -388,7 +395,8 @@ CASE( "dummy_daos_write_then_read" ) {
     EXPECT(!(dummy_daos_root() / label).exists());
 
     D_FREE(svcl.rl_ranks);
-    
+#endif
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------

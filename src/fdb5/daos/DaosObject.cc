@@ -98,11 +98,11 @@ DaosArray::~DaosArray() {
 
 }
 
-/// @note: non-existing byte-arrays are reported as existing with the current approach
-/// @todo: implement proper exist check for the case where otype is DAOS_OT_ARRAY_BYTE
+/// @note: non-existing arrays (DAOS_OT_ARRAY) and byte-arrays 
+///   (DAOS_OT_ARRAY_BYTE) are reported as existing with the current approach.
+/// @todo: implement proper exist check for DAOS_OT_ARRAY_BYTE.
 bool DaosArray::exists() {
 
-    /// @todo: implement this with more appropriate DAOS API functions
     try {
 
         open();
@@ -165,8 +165,14 @@ void DaosArray::open() {
 
     if (oid_.otype() == DAOS_OT_ARRAY_BYTE) {
 
-        /// @todo: on write, cell size and chunk size should be recorded some where in the database
-        /// @todo: on read, cell size and chunk size should be retrieved from the database and passed here
+        /// @note: when using daos_array_open_with_attr to "create" an array,
+        ///   cell and chunk size must be specified. When opening it for 
+        ///   subsequent reads, the same values have to be provided for consistent
+        ///   access to the written data.
+        ///   In principle these values should be constant, so 
+        ///   inconsistencies should never happen. However if these values are
+        ///   going to be reconfigured, they should be recorded in the database
+        ///   on creation, and read back on database access.
         fdb5::StatsTimer st{"daos_array_open_with_attr", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
         DAOS_CALL(
             daos_array_open_with_attr(
@@ -218,7 +224,7 @@ void DaosArray::close() {
 
 }
 
-// TODO: why are len parameters in eckit::DataHandle not const references?
+/// @todo: why are len parameters in eckit::DataHandle not const references?
 /// @note: a buffer (buf) and its length (len) must be provided. A full write of 
 ///        the buffer into the DAOS array will be attempted.
 /// @note: daos_array_write fails if len to write is too large.
@@ -306,7 +312,7 @@ long DaosArray::read(void* buf, long len, const eckit::Offset& off) {
 
 }
 
-// TODO: should return a long for consistency with the rest of DaosArray API
+/// @todo: should return a long for consistency with the rest of DaosArray API
 daos_size_t DaosArray::size() {
 
     open();
@@ -362,7 +368,6 @@ bool DaosKeyValue::exists() {
 
 }
 
-// TODO: semantics in DAOS API seem different from dummy DAOS. Real daos_kv_open does not involve RPC
 void DaosKeyValue::create() {
 
     if (open_) throw eckit::SeriousBug("Attempted create() on an open DaosKeyValue");

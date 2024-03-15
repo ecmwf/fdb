@@ -61,42 +61,19 @@ CASE( "Setup" ) {
 CASE( "DaosPool" ) {
 
     /// @todo: currently, all pool and container connections are cached and kept open for the duration of the process. Would
-    // be nice to close container connections as they become unused. However the DaosContainer instances are managed by the 
-    // DaosPools/DaosSession, so we never know when the user has finished using a certain container. My current thought is
-    // we don't need to fix this, as each process will only use a single pool and 2 * (indices involved) containers.
-    // However in a large parallel application, while all client processes are running, there may be a large number of
-    // open containers in the DAOS system. One idea would be to use shared pointers to count number of uses.
-
-    /// @todo: given that pool_cache_ are owned by session, should more caches be implemented in FDB as in RadosStore?
+    ///   be nice to close container connections as they become unused. However the DaosContainer instances are managed by the 
+    ///   DaosPools/DaosSession, so we never know when the user has finished using a certain container. My current thought is
+    ///   we don't need to fix this, as each process will only use a single pool and 2 * (indices involved) containers.
+    ///   However in a large parallel application, while all client processes are running, there may be a large number of
+    ///   open containers in the DAOS system. One idea would be to use shared pointers to count number of uses.
 
     /// @todo: A declarative approach would be better in my opinion.
-    // The current approach is an imperative one, where DaosObject and DaosContainer instances always represent existing entities in DAOS from the instant they are created.
-    // In highly parallel workflows, validity of such instances will be ephemeral, and by the time we perform an action on them, the DAOS entity they represent may
-    // no longer exist. In the declarative approach, the containers and objects would be opened right before the action and fail if they don't exist. In the imperative
-    // approach they would fail as well, but the initial checks performed to ensure existence of the DAOS entities would be useless and degrade performance.
-
-    /// @todo: see notes in DaosContainer::create and destroy
-    
-    /// @todo: see notes in DaosPool::create and destroy
-
-
-
-    /// @todo: small TODOs in DaosHandle
-
-    /// @todo: solve question on default constructor of DaosOID
-
-    /// @todo: think about DaosName::dataHandle overwrite parameter
-
-    /// @todo: rule of three for classes with destructor?
-
-    /// @todo: change all pre-condition checks to ASSERTs
-    ///   question: in the future ASSERTs will default to EcKit abortion. Not what we want in many pre-condition checks
-
-
-
-    /// @todo: properly implement DaosPool::exists(), DaosContainer::exists(), DaosObject::exists()
-
-    /// @todo: DaosHandle serialisation
+    ///   The current approach is an imperative one, where DaosObject and DaosContainer instances always represent existing 
+    ///   entities in DAOS from the instant they are created. In highly parallel workflows, validity of such instances will be 
+    ///   ephemeral, and by the time we perform an action on them, the DAOS entity they represent may no longer exist. In the 
+    ///   declarative approach, the containers and objects would be opened right before the action and fail if they don't exist. 
+    ///   In the imperative approach they would fail as well, but the initial checks performed to ensure existence of the DAOS 
+    ///   entities would be useless and degrade performance.
 
     /// @todo: cpp uuid wrapper, to avoid weird headers
 
@@ -104,11 +81,7 @@ CASE( "DaosPool" ) {
 
     /// @todo: replace deque by map
 
-    /// @todo: have DaosOID constructor with uint32_t rsv, uint32_t hi, uint32_t lo?
-
-
-
-    /// using hard-coded config defaults in DaosManager
+    /// @note: using hard-coded config defaults in DaosManager
     fdb5::DaosSession s{};
 
     SECTION("unnamed pool") {
@@ -175,11 +148,21 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
     fdb5::AutoPoolDestroy destroyer(pool);
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
 #else
+  #ifdef fdb5_HAVE_DUMMY_DAOS
+    std::string pool_uuid{"00000000-0000-0000-0000-000000000001"};
+    std::string pool_name{"test_pool_2"};
+    (tmp_dummy_daos_root() / pool_uuid).mkdir();
+    ::symlink(
+        (tmp_dummy_daos_root() / pool_uuid).path().c_str(), 
+        (tmp_dummy_daos_root() / pool_name).path().c_str()
+    );
+  #else
     std::string pool_name;
     pool_name = eckit::Resource<std::string>(
         "fdbDaosTestPool;$FDB_DAOS_TEST_POOL", pool_name
     );
     EXPECT(pool_name.length() > 0);
+  #endif
     fdb5::DaosPool& pool = s.getPool(pool_name); 
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
     fdb5::AutoContainerDestroy destroyer(cont);
@@ -456,14 +439,16 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         );
         EXPECT_THROWS_AS(dh_fail.openForRead(), fdb5::DaosEntityNotFoundException);
 
-        /// @todo: POOL, CONTAINER AND OBJECT OPENING ARE OPTIONAL FOR DaosHandle::openForRead. Test it
-        /// @todo: CONTAINER AND OBJECT CREATION ARE OPTIONAL FOR DaosHandle::openForWrite. Test it
+        /// @todo: pool, container and object opening are optional before calling 
+        ///   DaosHandle::openForRead. Test it.
+        /// @todo: container and object creation are optional before calling
+        ///   DaosHandle::openForWrite. Test it.
         /// @todo: test unopen/uncreated DaosObject::size()
 
     }
 
-    /// There's no actual need for container destruction as either pool or container are autodestroyed
-    /// depending on if_HAVE_DAOS_ADMIN.
+    /// @note: There's no actual need for container destruction as either pool or 
+    ///   container are autodestroyed depending on if_HAVE_DAOS_ADMIN.
 
     /// @todo: when enabling this, AutoPoolDestroy fails as a corresponding DaosContainer instance 
     ///   still exists in the DaosPool, but the corresponding container does not exist and 
@@ -482,7 +467,7 @@ CASE( "DaosName and DaosHandle workflows" ) {
 
     std::string cont_name{"test_cont_3"};
 
-    /// again using hard-coded config defaults in DaosManager
+    /// @note: again using hard-coded config defaults in DaosManager
     fdb5::DaosSession s{};
 
 #ifdef fdb5_HAVE_DAOS_ADMIN
@@ -491,11 +476,21 @@ CASE( "DaosName and DaosHandle workflows" ) {
     fdb5::AutoPoolDestroy destroyer(pool);
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
 #else
+  #ifdef fdb5_HAVE_DUMMY_DAOS
+    std::string pool_uuid{"00000000-0000-0000-0000-000000000002"};
+    std::string pool_name{"test_pool_3"};
+    (tmp_dummy_daos_root() / pool_uuid).mkdir();
+    ::symlink(
+        (tmp_dummy_daos_root() / pool_uuid).path().c_str(), 
+        (tmp_dummy_daos_root() / pool_name).path().c_str()
+    );
+  #else
     std::string pool_name;
     pool_name = eckit::Resource<std::string>(
         "fdbDaosTestPool;$FDB_DAOS_TEST_POOL", pool_name
     );
     EXPECT(pool_name.length() > 0);
+  #endif
     fdb5::DaosPool& pool = s.getPool(pool_name); 
     fdb5::DaosContainer& cont = pool.createContainer(cont_name);
     fdb5::AutoContainerDestroy destroyer(cont);

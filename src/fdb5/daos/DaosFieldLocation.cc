@@ -101,7 +101,6 @@ class DaosURIManager : public eckit::URIManager {
         
     }
 
-    /// @todo: implement DaosName::partHandle
     virtual eckit::DataHandle* newReadHandle(const eckit::URI& f, const eckit::OffsetList& ol, const eckit::LengthList& ll) override {
          
         using namespace std::placeholders;

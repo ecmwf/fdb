@@ -42,25 +42,26 @@
 using namespace eckit::testing;
 using namespace eckit;
 
-static void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
+namespace {
+    void deldir(eckit::PathName& p) {
+        if (!p.exists()) {
+            return;
+        }
 
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
+        std::vector<eckit::PathName> files;
+        std::vector<eckit::PathName> dirs;
+        p.children(files, dirs);
 
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
+        for (auto& f : files) {
+            f.unlink();
+        }
+        for (auto& d : dirs) {
+            deldir(d);
+        }
 
-    p.rmdir();
-};
-
+        p.rmdir();
+    };
+}
 
 #ifdef fdb5_HAVE_DUMMY_DAOS
 eckit::TmpDir& tmp_dummy_daos_root() {
@@ -157,7 +158,7 @@ CASE("DaosCatalogue tests") {
 
     std::string root_cont_name{"test_root"};
     int container_oids_per_alloc = 1000;
-#ifdef fdb5_HAVE_DAOS_ADMIN
+#if defined(fdb5_HAVE_DAOS_ADMIN) || defined(fdb5_HAVE_DUMMY_DAOS)
     std::string pool_name{"fdb_pool2"};
 #else
     std::string pool_name;
@@ -180,11 +181,21 @@ CASE("DaosCatalogue tests") {
             ))
         );
         fdb5::DaosSession s{};
+
 #ifdef fdb5_HAVE_DAOS_ADMIN
         fdb5::DaosPool& pool = s.createPool(pool_name);
 #else
+  #ifdef fdb5_HAVE_DUMMY_DAOS
+        std::string pool_uuid_str{"00000000-0000-0000-0000-000000000004"};
+        (tmp_dummy_daos_root() / pool_uuid_str).mkdir();
+        ::symlink(
+            (tmp_dummy_daos_root() / pool_uuid_str).path().c_str(), 
+            (tmp_dummy_daos_root() / pool_name).path().c_str()
+        );
+  #endif
         fdb5::DaosPool& pool = s.getPool(pool_name);
 #endif
+
         pool.uuid(pool_uuid);
     }
 
@@ -633,11 +644,11 @@ CASE("DaosCatalogue tests") {
         while (listObject.next(info)) count++;
         EXPECT(count == 0);
 
-        // /// @todo: ensure index and corresponding container do not exist
-        // /// @todo: ensure DB still exists
-        // /// @todo: list db or index and expect count = 0?
+        /// @todo: ensure index and corresponding container do not exist
+        /// @todo: ensure DB still exists
+        /// @todo: list db or index and expect count = 0?
 
-        // /// @todo: ensure new DaosSession has updated daos client config
+        /// @todo: ensure new DaosSession has updated daos client config
 
     }
 

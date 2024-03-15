@@ -1,4 +1,4 @@
-if (HAVE_DUMMY_DAOS AND HAVE_DAOS_ADMIN)
+if (HAVE_DUMMY_DAOS)
 
   list( APPEND dummy_daos_tests
     write_read

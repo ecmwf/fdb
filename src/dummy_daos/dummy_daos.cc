@@ -21,9 +21,13 @@
 
 using eckit::PathName;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 typedef struct daos_handle_internal_t {
     PathName path;
 } daos_handle_internal_t;
+
+//----------------------------------------------------------------------------------------------------------------------
 
 const PathName& dummy_daos_root() {
 
@@ -35,6 +39,9 @@ const PathName& dummy_daos_root() {
 
 const PathName& dummy_daos_get_handle_path(daos_handle_t handle) {
 
+    ASSERT(handle.impl);
     return handle.impl->path;
 
 }
+
+//----------------------------------------------------------------------------------------------------------------------

@@ -61,7 +61,7 @@ void DaosArrayHandle::openForWrite(const Length& len) {
     ///    triggered as part of DaosArray constructors.
     name_.generateOID();
 
-    /// @note: only ways to check if array exists without generating a snapshot are:
+    /// @note: to open/create an array without generating a snapshot, we must:
     ///   - attempt array open and check if rc is 0 or DER_NONEXIST (DaosArray(session, name))
     ///   - attempt array create and check if rc is 0 or DER_EXIST (c.createArray(oid))
     ///   we do the latter first because it is the most likely to succeed.
@@ -69,7 +69,9 @@ void DaosArrayHandle::openForWrite(const Length& len) {
     ///   it to a log file (potential performance impact). So we want to have as few of these 
     ///   failures as possible.
     /// @todo: implement DaosContainer::ensureArray, which attempts createArray with a catch+dismiss?
-    /// @todo: have dummy daos_create_array return DER_EXIST where relevant
+    /// @todo: have dummy daos_create_array return DER_EXIST where relevant. 
+    ///   This would probably require breaking transactionality of dummy 
+    ///   daos_create_array, and/or hit its performance.
     try {
         arr_.reset(new fdb5::DaosArray( c.createArray(name_.OID()) ));
     } catch (fdb5::DaosEntityAlreadyExistsException& e) {
@@ -100,7 +102,7 @@ void DaosArrayHandle::openForAppend(const Length& len) {
 }
 
 /// @note: the array size is retrieved here and ::read. For a more optimised reading 
-// if the size is known in advance, see DaosArrayPartHandle.
+///   if the size is known in advance, see DaosArrayPartHandle.
 Length DaosArrayHandle::openForRead() {
 
     if (open_) NOTIMP;
@@ -222,12 +224,6 @@ bool DaosArrayHandle::canSeek() const {
     return true;
 
 }
-
-// void DaosArrayHandle::skip(const Length& len) {
-
-//     offset_ += Offset(len);
-
-// }
 
 std::string DaosArrayHandle::title() const {
     

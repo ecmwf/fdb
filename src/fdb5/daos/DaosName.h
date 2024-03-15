@@ -37,7 +37,8 @@ class DaosNameBase {
 
 public: // methods
 
-    // TODO: implement DaosName::contName to return a container DaosName, and rename poolName and contName to something else
+    /// @todo: implement DaosName::contName to return a container DaosName,
+    ///   and rename poolName and contName to something else
     // DaosName poolName() const;
     // DaosName contName() const;
 
@@ -50,7 +51,7 @@ public: // methods
     // owner
     // empty
 
-    // TODO: asString should only be used for debugging. private print?
+    /// @todo: asString should only be used for debugging. private print?
     std::string asString() const;
     eckit::URI URI() const;
     std::string poolName() const;

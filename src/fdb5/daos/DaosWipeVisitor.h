@@ -39,8 +39,8 @@ private: // methods
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
 
-    void ensureSafePaths();
-    void calculateResidualPaths();
+    void ensureSafeURIs();
+    void calculateResidualURIs();
 
     bool anythingToWipe() const;
 
@@ -55,17 +55,17 @@ private: // members
 
     metkit::mars::MarsRequest indexRequest_;
 
-    fdb5::DaosName dbKvPath_;
+    fdb5::DaosName dbKvName_;
 
-    std::set<fdb5::DaosKeyValueName> indexPaths_;
-    std::set<fdb5::DaosKeyValueName> axisPaths_;
-    std::set<fdb5::DaosKeyValueName> safeKvPaths_;
+    std::set<fdb5::DaosKeyValueName> indexNames_;
+    std::set<fdb5::DaosKeyValueName> axisNames_;
+    std::set<fdb5::DaosKeyValueName> safeKvNames_;
 
-    std::set<eckit::URI> storePaths_;
-    std::set<eckit::URI> safeStorePaths_;
+    std::set<eckit::URI> storeURIs_;
+    std::set<eckit::URI> safeStoreURIs_;
     
-    std::set<fdb5::DaosKeyValueName> residualKvPaths_;
-    std::set<eckit::URI> residualStorePaths_;
+    std::set<fdb5::DaosKeyValueName> residualKvNames_;
+    std::set<eckit::URI> residualStoreURIs_;
 
 };
 

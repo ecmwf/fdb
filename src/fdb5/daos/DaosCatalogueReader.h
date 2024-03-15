@@ -30,9 +30,6 @@ public: // methods
 
     DbStats stats() const override { NOTIMP; }
 
-// private: // methods
-
-//     void loadIndexesAndRemap();
     bool selectIndex(const Key &key) override;
     void deselectIndex() override;
 

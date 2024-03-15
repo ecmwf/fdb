@@ -8,9 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-// #include "eckit/log/Timer.h"
-// #include "eckit/log/Bytes.h"
-
 #include "eckit/config/Resource.h"
 
 #include "fdb5/daos/DaosFieldLocation.h"
@@ -51,8 +48,6 @@ bool DaosStore::uriBelongs(const eckit::URI& uri) const {
     return (
         (uri.scheme() == type()) && 
         (fdb5::DaosName(uri).contName().rfind(db_str_, 0) == 0));
-        //(fdb5::DaosName(uri).contName().rfind("store_" + db_str_, 0) == 0));
-        //(fdb5::DaosName(uri).contName().rfind("store_" + db_str_ + "_", 0) == 0));
 
 }
 
@@ -126,6 +121,7 @@ std::unique_ptr<FieldLocation> DaosStore::archive(const Key &key, const void *da
 
     //fdb5::DaosArrayName n = fdb5::DaosName(pool_, "store_" + db_str_ + "_" + key.valuesToString()).createArrayName(); // TODO: pass oclass from config
     //fdb5::DaosArrayName n = fdb5::DaosName(pool_, "store_" + db_str_).createArrayName(); // TODO: pass oclass from config
+
     /// @note: performed RPCs:
     /// - open pool if not cached (daos_pool_connect) -- always skipped as it is cached after selectDatabase.
     ///   If the cat backend is toc, then it is performed but only on first write.

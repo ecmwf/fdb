@@ -52,12 +52,6 @@ public: // methods
     /// @returns if an Engine is capable of opening this path
     virtual bool canHandle(const eckit::URI& ur, const Config&) const = 0;
 
-    /// Sanitizes provided URI to point to catalogue location, and builds a DB reader from it
-    /// Throws if URI is invalid or does not exist
-    virtual std::unique_ptr<fdb5::DB> buildReader(const eckit::URI&, const Config&) const = 0;
-
-    virtual bool toExistingDBURI(eckit::URI&, const Config&) const = 0;
-
     /// Uniquely selects a location where the Key will be put or already exists
     virtual eckit::URI location(const Key &key, const Config& config) const = 0;
 

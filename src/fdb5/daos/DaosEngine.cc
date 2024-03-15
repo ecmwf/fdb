@@ -70,38 +70,6 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
 
 }
 
-std::unique_ptr<DB> DaosEngine::buildReader(const eckit::URI& uri, const Config& config) const {
-
-    Log::debug<LibFdb5>() << "FDB processing DAOS DB at KV " << uri << std::endl;
-
-    return DB::buildReader(uri, config);
-
-}
-
-bool DaosEngine::toExistingDBURI(eckit::URI& uri, const Config& config) const {
-
-    using namespace std::placeholders;
-    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
-    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-
-    configureDaos(config);
-
-    fdb5::DaosName n{uri};
-    if (!n.hasContName()) return false;
-
-    fdb5::DaosName n2{n.poolName(), n.contName(), catalogue_kv_};
-
-    /// @note: performed RPCs:
-    /// - db kv open (daos_kv_open)
-    fdb5::StatsTimer st{"list/wipe 004 db kv check exists", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
-    if (!n2.exists()) return false;
-    st.stop();
-
-    uri = n2.URI();
-    return true;
-
-}
-
 std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Config& config) const
 {
 
@@ -211,6 +179,10 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
 
 std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest& request, const Config& config) const
 {
+
+    /// @todo: in the POSIX backend, a set of possible visitable locations is first constructed 
+    ///   from the schema, and the set of visitable locations found in the root directories are 
+    ///   checked against that set. In the DAOS backend the first step is skipped.
 
     /// @note: code mostly copied from DaosCommon
     /// @note: should rather use DaosCommon, but can't inherit from it here as DaosEngine is 

@@ -81,26 +81,6 @@ const Schema& DaosCatalogue::schema() const {
 
 }
 
-void DaosCatalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) {
-
-    std::vector<Index> all = indexes(sorted);
-    // Allow the visitor to selectively reject this DB.
-    if (visitor.visitDatabase(*this, store)) {
-        if (visitor.visitIndexes()) {
-            for (const Index& idx : all) {
-                if (visitor.visitEntries()) {
-                    idx.entries(visitor); // contains visitIndex
-                } else {
-                    visitor.visitIndex(idx);
-                }
-            }
-        }
-
-        visitor.catalogueComplete(*this);
-    }
-
-}
-
 void DaosCatalogue::loadSchema() {
 
     using namespace std::placeholders;
@@ -138,7 +118,7 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
     eckit::Timer& timer = fdb5::DaosManager::instance().timer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
 
-    /// @todo: implement sorted
+    /// @note: sorted is not implemented as is not necessary in this backend.
 
     fdb5::DaosKeyValueName catalogue_kv_name{pool_, db_cont_, catalogue_kv_};
     fdb5::DaosSession s{};
@@ -154,6 +134,8 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
     for (const auto& key : catalogue_kv.keys()) {
         st.stop();
 
+        /// @todo: document these well. Single source these reserved values.
+        ///    Ensure where appropriate that user-provided keys do not collide.
         if (key == "schema" || key == "key") continue;
 
         /// @note: performed RPCs:
@@ -172,9 +154,11 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
         /// - index kv get size (daos_kv_get without a buffer)
         /// - index kv get key (daos_kv_get)
         st.start("list/wipe 009 index kv get key", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-        /// @note: the following two lines intend to check whether the index kv exists 
-        ///   or not. Attempting kv open will always succeed so it is not an option to
-        ///   check existence.
+        /// @note: the following three lines intend to check whether the index kv exists 
+        ///   or not. The DaosKeyValue constructor calls kv open, which always succeeds,
+        ///   so it is not useful on its own to check whether the index KV existed or not.
+        ///   Instead, presence of a "key" key in the KV is used to determine if the index 
+        ///   KV existed.
         fdb5::DaosKeyValue index_kv{s, index_kv_name};
         size = index_kv.size("key");
         /// @todo: the index_kv may exist even if it does not have the "key" key

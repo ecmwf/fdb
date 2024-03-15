@@ -43,7 +43,6 @@ public: // methods
 
     void checkUID() const override { NOTIMP; };
     bool exists() const override;
-    void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override { NOTIMP; };
     std::vector<eckit::PathName> metadataPaths() const override { NOTIMP; };
     const Schema& schema() const override;

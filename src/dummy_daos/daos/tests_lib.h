@@ -14,12 +14,20 @@
  * @date   Jun 2022
  */
 
-#ifndef fdb5_dummy_daos_daos_tests_lib_H
-#define fdb5_dummy_daos_daos_tests_lib_H
+#pragma once
 
 #include <uuid/uuid.h>
 
 #include "../daos.h"
+
+//----------------------------------------------------------------------------------------------------------------------
+
+#define D_ALLOC_ARRAY(ptr, count) (ptr) = (__typeof__(ptr))calloc((count), (sizeof(*ptr)));
+#define D_ALLOC_PTR(ptr) D_ALLOC_ARRAY(ptr, 1)
+#define D_FREE(ptr) ({ free(ptr); (ptr) = NULL; })
+#define D_STRNDUP(ptr, s, n) (ptr) = strndup(s, n);
+
+//----------------------------------------------------------------------------------------------------------------------
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +40,12 @@ typedef struct {
     uint32_t rl_nr;
 } d_rank_list_t;
 
+//----------------------------------------------------------------------------------------------------------------------
+
+daos_prop_t* daos_prop_alloc(uint32_t entries_nr);
+
+void daos_prop_free(daos_prop_t *prop);
+
 int dmg_pool_create(const char *dmg_config_file,
                     uid_t uid, gid_t gid, const char *grp,
                     const d_rank_list_t *tgts,
@@ -42,8 +56,8 @@ int dmg_pool_create(const char *dmg_config_file,
 int dmg_pool_destroy(const char *dmg_config_file,
                      const uuid_t uuid, const char *grp, int force);
 
+//----------------------------------------------------------------------------------------------------------------------
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif /* end ifdef __cplusplus */
-
-#endif /* fdb5_dummy_daos_daos_tests_lib_H */

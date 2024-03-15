@@ -49,10 +49,6 @@ protected: // methods
 
     virtual bool canHandle(const eckit::URI&, const Config& config) const override;
 
-    virtual std::unique_ptr<DB> buildReader(const eckit::URI& uri, const Config& config) const override;
-
-    virtual bool toExistingDBURI(eckit::URI& uri, const Config& config) const override;
-
     virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const override;
 
     virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;

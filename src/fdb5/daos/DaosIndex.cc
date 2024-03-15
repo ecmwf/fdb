@@ -242,12 +242,12 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
     }
 }
 
-const std::vector<eckit::URI> DaosIndex::dataPaths() const {
+const std::vector<eckit::URI> DaosIndex::dataURIs() const {
 
     /// @note: if daos index + daos store, this will return a uri to a DAOS array for each indexed field
     /// @note: if daos index + posix store, this will return a vector of unique uris to all referenced posix files
     ///   in this index (one for each writer process that has written to the index)
-    /// @note: in the case where we have a daos store, the current implementation of dataPaths is unnecessarily inefficient.
+    /// @note: in the case where we have a daos store, the current implementation of dataURIs is unnecessarily inefficient.
     ///   This method is only called in DaosWipeVisitor, where the uris obtained from this method are processed to obtain
     ///   unique store container paths - will always result in just one container uri! Having a URI store for each index in
     ///   DAOS could make this process more efficient, but it would imply more KV operations and slow down field writes.

@@ -60,7 +60,7 @@ public:
 
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
 
-    virtual void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted = false) = 0;
+    virtual void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted = false);
 
     virtual void hideContents() { NOTIMP; }
 

@@ -42,7 +42,6 @@ public: // methods
     DaosObject(DaosObject&&) noexcept;
     DaosObject(const DaosObject&) = default;
 
-    // TODO: is that OK? Having a virtual destructor for base class and separate non-virutal destructor for derived classes. Should they override?
     virtual ~DaosObject() = default;
 
     virtual daos_otype_t type() const = 0;
@@ -83,7 +82,6 @@ public: // methods
 
     DaosArray(DaosArray&&) noexcept;
 
-    // TODO: test that DaosArray cannot be built via private constructor outside of DaosContainer
     DaosArray(fdb5::DaosContainer&, const fdb5::DaosOID&);
     DaosArray(fdb5::DaosSession&, const fdb5::DaosNameBase&);
     DaosArray(fdb5::DaosSession&, const eckit::URI&);
@@ -128,8 +126,6 @@ public: // methods
     void open() override;
     void close() override;
     daos_size_t size() override { NOTIMP; };
-    // doas_size_t length();
-    // std::vector<std::string> keys();
 
     daos_size_t size(const std::string& key);
     bool has(const std::string& key);
