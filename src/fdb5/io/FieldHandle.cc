@@ -131,8 +131,17 @@ void FieldHandle::openCurrent() {
         current_->openForRead();
 
         if (!current_->canSeek()) {
-            auto len = current_->read(buffer_, currentSize);
-            ASSERT(len == currentSize);
+            long len = 0;
+            long toRead = currentSize;
+            long read = 0;
+            char *buf = buffer_;
+            while (toRead>0 && (len = current_->read(buf, toRead))>0) {
+                toRead -= len;
+                buf += len;
+                read += len;
+            }
+
+            ASSERT(read == currentSize);
             current_ = new eckit::MemoryHandle(buffer_, currentSize);
             current_->openForRead();
             currentMemoryHandle_ = true;
