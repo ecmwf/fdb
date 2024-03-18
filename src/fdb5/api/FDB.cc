@@ -35,6 +35,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -42,6 +43,7 @@
 #include "fdb5/types/Type.h"
 
 #include <memory>
+
 
 namespace fdb5 {
 

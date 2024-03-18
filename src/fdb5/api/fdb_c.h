@@ -305,7 +305,7 @@ int fdb_delete_datareader(fdb_datareader_t* dr);
 
 
 /** \defgroup FDB API */
-/** @{ */
+/** @{*/
 
 struct fdb_handle_t;
 /** Opaque type for the FDB object. */
@@ -316,6 +316,13 @@ typedef struct fdb_handle_t fdb_handle_t;
  * \returns Return code (#FdbErrorValues)
  */
 int fdb_new_handle(fdb_handle_t** fdb);
+      
+/** Creates a FDB instance from a given path to an FDB (alternative to read FDB5_CONFIG_FILE).
+ * \param fdb FDB instance. Returned instance must be deleted using #fdb_delete_handle.
+ * \param path Path to an fdb config file
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_new_handle_from_config_path(fdb_handle_t** fdb, const char* path);
 
 /** Creates a FDB instance from a YAML configuration.
  * \param fdb FDB instance. Returned instance must be deleted using #fdb_delete_handle.
