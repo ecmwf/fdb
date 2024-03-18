@@ -24,9 +24,7 @@
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/helpers/ListIterator.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -46,13 +44,13 @@ public:
             return false;
         }
 
-        bool ret = QueryVisitor::visitDatabase(catalogue, store);
+        const bool ret = QueryVisitor::visitDatabase(catalogue, store);
         ASSERT(catalogue.key().partialMatch(request_));
 
         // Subselect the parts of the request
         indexRequest_ = request_;
-        for (const auto& kv : catalogue.key()) {
-            indexRequest_.unsetValues(kv.first);
+        for (const auto& catalogueKey : catalogue.key()) {
+            indexRequest_.unsetValues(catalogueKey.first);
         }
 
         return ret;
@@ -68,14 +66,12 @@ public:
 
         // Subselect the parts of the request
         datumRequest_ = indexRequest_;
-        for (const auto& kv : index.key()) {
-            datumRequest_.unsetValues(kv.first);
+        for (const auto& catalogueKey : index.key()) {
+            datumRequest_.unsetValues(catalogueKey.first);
         }
 
-        if (index.partialMatch(request_)) {
-            return true; // Explore contained entries
-        }
-        return false; // Skip contained entries
+        // Explore contained entries if true, else skip
+        return index.partialMatch(request_);
     }
 
     /// Test if entry matches the current request. If so, add to the output queue.
@@ -100,8 +96,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
 } // namespace fdb5
 
 #endif

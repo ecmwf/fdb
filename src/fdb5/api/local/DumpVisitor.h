@@ -24,9 +24,7 @@
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/database/DB.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -62,8 +60,6 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
 } // namespace fdb5
 
 #endif

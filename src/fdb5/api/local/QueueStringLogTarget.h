@@ -25,9 +25,7 @@
 
 #include <string>
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -36,7 +34,7 @@ namespace local {
 class QueueStringLogTarget : public eckit::LineBasedTarget {
 public:
 
-    QueueStringLogTarget(eckit::Queue<std::string>& queue) : queue_(queue) {}
+    explicit QueueStringLogTarget(eckit::Queue<std::string>& queue) : queue_(queue) {}
 
     void line(const char* line) override {
         queue_.emplace(std::string(line));
@@ -48,8 +46,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
 } // namespace fdb5
 
 #endif

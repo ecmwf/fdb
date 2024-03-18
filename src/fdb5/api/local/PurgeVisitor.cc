@@ -23,9 +23,7 @@
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/LibFdb5.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -38,11 +36,6 @@ PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue,
     out_(new QueueStringLogTarget(queue)),
     doit_(doit),
     porcelain_(porcelain) {}
-
-/*
-bool PurgeVisitor::visitCatalogue(const Catalogue& catalogue) {
-    return false;
-}*/
 
 bool PurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
 
@@ -57,11 +50,11 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue, const Store& store)
     // bail out here.
 
     if (!catalogue.key().match(request_)) {
-        std::stringstream ss;
-        ss << "Purging not supported for over-specified requests. "
+        std::stringstream stringStream;
+        stringStream << "Purging not supported for over-specified requests. "
            << "db=" << catalogue.key()
            << ", request=" << request_;
-        throw eckit::UserError(ss.str(), Here());
+        throw eckit::UserError(stringStream.str(), Here());
     }
 
     ASSERT(!internalVisitor_);
@@ -102,6 +95,4 @@ void PurgeVisitor::catalogueComplete(const Catalogue& catalogue) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
 } // namespace fdb5

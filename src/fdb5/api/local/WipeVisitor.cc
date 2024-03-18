@@ -26,12 +26,8 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
-using namespace eckit;
 
-
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -85,6 +81,4 @@ bool WipeVisitor::visitIndexes() {
 }
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
 } // namespace fdb5

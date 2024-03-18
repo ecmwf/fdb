@@ -23,9 +23,7 @@
 #include "fdb5/api/helpers/StatusIterator.h"
 
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -36,7 +34,7 @@ public:
     using QueryVisitor<StatusElement>::QueryVisitor;
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
-    bool visitDatabase(const Catalogue& catalogue, const Store& store) override { queue_.emplace(catalogue); return true; }
+    bool visitDatabase(const Catalogue& catalogue, const Store&  /*store*/) override { queue_.emplace(catalogue); return true; }
     bool visitIndex(const Index&) override { NOTIMP; }
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
 
@@ -47,8 +45,6 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
 } // namespace fdb5
 
 #endif

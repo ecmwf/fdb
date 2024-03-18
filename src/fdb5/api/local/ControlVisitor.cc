@@ -12,9 +12,7 @@
 
 #include "fdb5/database/Catalogue.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -43,6 +41,4 @@ bool ControlVisitor::visitDatabase(const Catalogue& catalogue, const Store& stor
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
 } // namespace fdb5

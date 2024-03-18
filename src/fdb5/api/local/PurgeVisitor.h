@@ -27,9 +27,7 @@
 #include "eckit/filesystem/PathName.h"
 
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -43,7 +41,6 @@ public:
                  bool doit,
                  bool porcelain);
 
-    //bool visitCatalogue(const Catalogue& catalogue) override;
     bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     bool visitIndex(const Index& index) override;
     void catalogueComplete(const Catalogue& catalogue) override;
@@ -61,8 +58,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
 } // namespace fdb5
 
 #endif

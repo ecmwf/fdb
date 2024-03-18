@@ -19,9 +19,7 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/database/StatsReportVisitor.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -53,16 +51,12 @@ void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
     internalVisitor_->catalogueComplete(catalogue);
 
     // Construct the object to push onto the queue
-
     queue_.emplace(StatsElement { internalVisitor_->indexStatistics(), internalVisitor_->dbStatistics() });
 
     // Cleanup
-
     internalVisitor_.reset();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
 } // namespace fdb5
