@@ -307,6 +307,12 @@ int fdb_new_handle(fdb_handle_t** fdb) {
     });
 }
 
+int fdb_new_handle_from_config_path(fdb_handle_t** fdb, const char* path) {
+    return wrapApiFunction([fdb, path] {
+        *fdb = new fdb_handle_t(Config::make(path));
+    });
+}
+
 int fdb_archive(fdb_handle_t* fdb, fdb_key_t* key, const char* data, size_t length) {
     return wrapApiFunction([fdb, key, data, length] {
         ASSERT(fdb);
