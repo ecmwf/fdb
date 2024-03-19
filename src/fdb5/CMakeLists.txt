@@ -295,13 +295,12 @@ if( HAVE_TOCFDB )
 
     list( APPEND fdb5_tools
         fdb-wipe
-        fdb-move
         fdb-stats
         fdb-purge
         fdb-dump-toc
         fdb-dump-index
+        fdb-move
         fdb-reconsolidate-toc )
-
 endif()
 
 if( HAVE_PMEMFDB )
@@ -368,6 +367,8 @@ endif()
 ecbuild_add_library(
 
     TARGET  fdb5
+    
+    TYPE SHARED # Library needs to be shared for dynamic factory self registration
 
     SOURCES
         ${fdb5_srcs}
@@ -445,6 +446,9 @@ foreach( _tool ${fdb5_tools} )
 
 endforeach()
 
+if (HAVE_FDB_BUILD_TOOLS)
+    target_link_libraries( fdb-move eckit_distributed )
+endif()
 
 ecbuild_add_executable( TARGET    grib2fdb5
                         CONDITION HAVE_FDB_BUILD_TOOLS

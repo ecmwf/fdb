@@ -29,6 +29,7 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
+#include "fdb5/types/Type.h"
 
 namespace fdb5 {
 
@@ -105,6 +106,18 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     Key keyInternal(key);
     keyInternal.registry(config().schema().registry());
 
+    // step in archival requests from the model is just an integer. We need to include the stepunit
+    auto stepunit = keyInternal.find("stepunits");
+    if (stepunit != keyInternal.end()) {
+        if (stepunit->second.size()>0 && stepunit->second[0]!='h') {
+            auto step = keyInternal.find("step");
+            if (step != keyInternal.end()) {
+                std::string canonicalStep = keyInternal.registry().lookupType("step").toKey("step", step->second+stepunit->second);
+            }
+        }
+        keyInternal.unset("stepunits");
+    }
+
     internal_->archive(keyInternal, data, length);
     dirty_ = true;
 
@@ -135,12 +148,28 @@ public:
     }
 };
 
-eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+eckit::DataHandle* FDB::read(const eckit::URI& uri) {
+    FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
+    return loc->dataHandle();
+}
+
+eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
+    HandleGatherer result(sorted);
+
+    for (const eckit::URI& uri : uris) {
+        FieldLocation* loc = FieldLocationFactory::instance().build(uri.scheme(), uri);
+        result.add(loc->dataHandle());
+        delete loc;
+    }
+    return result.dataHandle();
+}
+    
+
+eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     eckit::Timer timer;
     timer.start();
 
-    HandleGatherer result(sorted(request));
-    ListIterator it = inspect(request);
+    HandleGatherer result(sorted);
     ListElement el;
 
     static bool dedup = eckit::Resource<bool>("fdbDeduplicate;$FDB_DEDUPLICATE_FIELDS", false);
@@ -187,6 +216,11 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
     return result.dataHandle();
 }
 
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+    ListIterator it = inspect(request);
+    return read(it, sorted(request));
+}
+
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
     return internal_->inspect(request);
 }
@@ -223,8 +257,8 @@ const std::string FDB::id() const {
     return internal_->id();
 }
 
-MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) {
-    return internal_->move(request, dest, removeSrc, removeDelay, threads);
+MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
+    return internal_->move(request, dest);
 }
 
 FDBStats FDB::stats() const {

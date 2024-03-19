@@ -20,7 +20,7 @@
 #include "fdb5/rules/Schema.h"
 #include "fdb5/database/ReadVisitor.h"
 #include "fdb5/database/WriteVisitor.h"
-
+#include "fdb5/types/Type.h"
 
 namespace fdb5 {
 
@@ -490,6 +490,25 @@ const Rule &Rule::topRule() const {
 
 const Schema &Rule::schema() const {
     return schema_;
+}
+
+void Rule::check(const Key& key) const {
+    for (const auto& pred : predicates_ ) {
+        auto k = key.find(pred->keyword());
+        if (k != key.end()) {
+            const std::string& value = (*k).second;
+            const Type& type = registry_.lookupType(pred->keyword());
+            if (value != type.tidy(pred->keyword(), value)) {
+                std::stringstream ss;
+                ss << "Rule check - metadata not valid (not in canonical form) - found: ";
+                ss << pred->keyword() << "=" << value << " - expecting " << type.tidy(pred->keyword(), value) << std::endl;
+                throw eckit::UserError(ss.str(), Here());
+            }
+        }
+    }
+    if (parent_ != nullptr) {
+        parent_->check(key);
+    }
 }
 
 std::ostream &operator<<(std::ostream &s, const Rule &x) {

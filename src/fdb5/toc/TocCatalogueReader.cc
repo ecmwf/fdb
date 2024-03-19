@@ -53,17 +53,11 @@ bool TocCatalogueReader::selectIndex(const Key &key) {
     }
 
     currentIndexKey_ = key;
-
-    for (auto idx = matching_.begin(); idx != matching_.end(); ++idx) {
-        idx->first.close();
-    }
-
     matching_.clear();
-
 
     for (auto idx = indexes_.begin(); idx != indexes_.end(); ++idx) {
         if (idx->first.key() == key) {
-            matching_.push_back(*idx);
+            matching_.push_back(&(*idx));
         }
     }
 
@@ -91,15 +85,20 @@ bool TocCatalogueReader::open() {
     return true;
 }
 
-void TocCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
+bool TocCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
+    bool found = false;
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
-        const eckit::DenseSet<std::string>& a = m->first.axes().values(keyword);
-        s.insert(a.begin(), a.end());
+        if ((*m)->first.axes().has(keyword)) {
+            found = true;
+            const eckit::DenseSet<std::string>& a = (*m)->first.axes().values(keyword);
+            s.insert(a.begin(), a.end());
+        }
     }
+    return found;
 }
 
 void TocCatalogueReader::close() {
-    for (auto m = matching_.begin(); m != matching_.end(); ++m) {
+    for (auto m = indexes_.begin(); m != indexes_.end(); ++m) {
         m->first.close();
     }
 }
@@ -109,8 +108,8 @@ bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
     eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
 
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
-        const Index& idx(m->first);
-        Key remapKey = m->second;
+        const Index& idx((*m)->first);
+        Key remapKey = (*m)->second;
 
         if (idx.mayContain(key)) {
             const_cast<Index&>(idx).open();

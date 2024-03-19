@@ -45,6 +45,7 @@ private: // methods
     virtual void flock();
     virtual void funlock();
     virtual void visit(BTreeIndexVisitor& visitor) const;
+    virtual void preload();
 
 private: // members
 
@@ -124,6 +125,12 @@ void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::visit(BTreeIndexVisitor &visitor) c
     TBTreeIndexVisitor<KEYSIZE, RECSIZE, PAYLOAD> v(visitor);
     btree_.range("", "\255", v);
 }
+
+template<int KEYSIZE, int RECSIZE, typename PAYLOAD>
+void TBTreeIndex<KEYSIZE, RECSIZE, PAYLOAD>::preload() {
+    btree_.preload();
+}
+
 
 
 //----------------------------------------------------------------------------------------------------------------------

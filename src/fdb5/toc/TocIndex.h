@@ -67,7 +67,12 @@ public: // methods
              Mode mode,
              const std::string& type = defaulType());
 
-    TocIndex(eckit::Stream &, const int version, const eckit::PathName &directory, const eckit::PathName &path, off_t offset);
+    TocIndex(eckit::Stream &,
+             const int version,
+             const eckit::PathName &directory,
+             const eckit::PathName &path,
+             off_t offset,
+             bool preloadBTree=false);
 
     ~TocIndex() override;
 
@@ -114,6 +119,9 @@ private: // members
     const TocIndex::Mode mode_;
 
     TocIndexLocation location_;
+
+    // In read-only mode, optimise (e.g. for pgen) by greedily reading entire btree
+    bool preloadBTree_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

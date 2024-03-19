@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-url>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdboverlay="$<TARGET_FILE:fdb-overlay>"
+fdbpurge="$<TARGET_FILE:fdb-purge>"
+fdbwipe="$<TARGET_FILE:fdb-wipe>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+function post_process {
+  num=0
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export FDB5_HOME=$bindir
+
+export FDB_DEBUG=0
+export ECKIT_DEBUG=0
+
+### cleanup and prepare test
+
+rm -f out.*
+rm -rf ${bindir}/root*
+mkdir -p ${bindir}/root
+mkdir -p ${bindir}/root2
+
+for f in config.yaml schema x.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+$gribset -s expver=xxxy x.grib y.grib
+
+cat > x.req <<EOF
+retrieve,class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=12,param=166
+EOF
+
+cat > content.x <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxx"
+  }
+]}
+EOF
+
+cat > y.req <<EOF
+retrieve,class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=12,param=166
+EOF
+
+cat > content.y <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxy"
+  }
+]}
+EOF
+
+cat > z.req <<EOF
+retrieve,class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=12,param=166
+EOF
+
+cat > content.z <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": 20201102,
+    "time": "0000",
+    "step": 12,
+    "param": 166.128,
+    "class": "rd",
+    "type": "fc",
+    "stream": "oper",
+    "expver": "xxxz"
+  }
+]}
+EOF
+
+cat > list <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+{class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > listX <<EOF
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > listY <<EOF
+{class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > listZ <<EOF
+{class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+EOF
+
+cat > none <<EOF
+EOF
+
+$fdbwrite x.grib
+$fdbwrite y.grib
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+$fdbwrite x.grib
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+$fdblist class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listX
+
+$fdbread x.req out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat content.x                  | post_process | tee checkx
+diff out checkx
+
+$fdbread --uri x.req out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat content.x                  | post_process | tee checkx
+diff out checkx
+
+$fdblist class=rd,expver=xxxy,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listY
+
+$fdbread y.req out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat content.y                  | post_process | tee checky
+diff out checky
+
+$fdbread --uri y.req out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat content.y                  | post_process | tee checky
+diff out checky
+
+$fdboverlay --variable-keys=expver class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g
+
+$fdblist class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listX
+
+$fdblist class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
+cmp out listZ
+
+$fdbread z.req out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat content.z                  | post_process | tee checkz
+diff out checkz
+
+$fdbread --uri z.req out.grib
+$gribls -jm out.grib           | post_process | tee out
+cat content.z                  | post_process | tee checkz
+diff out checkz
+

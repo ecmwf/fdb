@@ -52,7 +52,7 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
 
-FieldLocation* TocStore::archive(const Key &key, const void *data, eckit::Length length) {
+std::unique_ptr<FieldLocation> TocStore::archive(const Key &key, const void *data, eckit::Length length) {
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);
@@ -65,7 +65,7 @@ FieldLocation* TocStore::archive(const Key &key, const void *data, eckit::Length
 
     ASSERT(len == length);
 
-    return new TocFieldLocation(dataPath, position, length, Key());
+    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
 }
 
 void TocStore::flush() {
@@ -220,7 +220,17 @@ bool TocStore::canMoveTo(const Key& key, const Config& config, const eckit::URI&
     throw eckit::UserError(ss.str(), Here());
 }
 
-void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest, int threads) const {
+// void mpiCopyTask(const eckit::PathName& srcPath, const eckit::PathName& destPath, const std::string& fileName) {
+
+//     eckit::PathName src_ = srcPath / fileName;
+//     eckit::PathName dest_ = destPath / fileName;
+
+//     eckit::FileHandle src(src_);
+//     eckit::FileHandle dest(dest_);
+//     src.copyTo(dest);
+// }
+
+void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
     eckit::PathName destPath = dest.path();
     for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {      
@@ -241,11 +251,9 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
             }
             closedir(dirp);
 
-            eckit::ThreadPool pool("store"+dest_db.asString(), threads);
             for (auto it = files.begin(); it != files.end(); it++) {
-                    pool.push(it->second);
+                queue.emplace(*(it->second));
             }
-            pool.wait();
         }
     }
 }

@@ -77,10 +77,10 @@ void DB::visitEntries(EntryVisitor& visitor, bool sorted) {
 }
 
 
-void DB::axis(const std::string &keyword, eckit::StringSet &s) const {
+bool DB::axis(const std::string &keyword, eckit::StringSet &s) const {
     CatalogueReader* cat = dynamic_cast<CatalogueReader*>(catalogue_.get());
     ASSERT(cat);
-    cat->axis(keyword, s);
+    return cat->axis(keyword, s);
 }
 
 bool DB::inspect(const Key& key, Field& field) {

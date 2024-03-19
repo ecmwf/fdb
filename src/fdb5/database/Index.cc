@@ -133,6 +133,15 @@ void IndexBase::put(const Key &key, const Field &field) {
     add(key, field);
 }
 
+bool IndexBase::partialMatch(const metkit::mars::MarsRequest& request) const {
+
+    if (!key_.partialMatch(request)) return false;
+
+    if (!axes_.partialMatch(request)) return false;
+
+    return true;
+}
+
 bool IndexBase::mayContain(const Key &key) const {
     return axes_.contains(key);
 }

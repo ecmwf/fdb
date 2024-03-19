@@ -20,6 +20,7 @@
 #include "eckit/types/Types.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Field.h"
@@ -68,7 +69,7 @@ public:
     virtual StatsReportVisitor* statsReportVisitor() const = 0;
     virtual PurgeVisitor* purgeVisitor(const Store& store) const = 0;
     virtual WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const = 0;
-    virtual MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, bool removeSrc, int removeDelay, int threads) const = 0;
+    virtual MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const = 0;
 
     virtual void control(const ControlAction& action, const ControlIdentifiers& identifiers) const = 0;
 
@@ -116,7 +117,7 @@ private: // members
 class CatalogueReader {
 public:
     virtual DbStats stats() const = 0;
-    virtual void axis(const std::string& keyword, eckit::StringSet& s) const = 0;
+    virtual bool axis(const std::string& keyword, eckit::StringSet& s) const = 0;
     virtual bool retrieve(const Key& key, Field& field) const = 0;
 };
 
@@ -124,7 +125,7 @@ public:
 class CatalogueWriter {
 public:
     virtual const Index& currentIndex() = 0;
-    virtual void archive(const Key& key, const FieldLocation* fieldLocation) = 0;
+    virtual void archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
     virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate() = 0;

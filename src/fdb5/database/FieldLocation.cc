@@ -75,6 +75,25 @@ FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit:
     return (*j).second->make(uri, offset, length, remapKey);
 }
 
+FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI &uri) {
+
+    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+
+    auto j = builders_.find(name);
+
+    eckit::Log::debug() << "Looking for FieldLocationBuilder [" << name << "]" << std::endl;
+
+    if (j == builders_.end()) {
+        eckit::Log::error() << "No FieldLocationBuilder for [" << name << "]" << std::endl;
+        eckit::Log::error() << "FieldLocationBuilders are:" << std::endl;
+        for (j = builders_.begin(); j != builders_.end(); ++j)
+            eckit::Log::error() << "   " << (*j).first << std::endl;
+        throw eckit::SeriousBug(std::string("No FieldLocationBuilder called ") + name);
+    }
+
+    return (*j).second->make(uri);
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 FieldLocationBuilderBase::FieldLocationBuilderBase(const std::string& name) : name_(name) {
@@ -113,6 +132,17 @@ FieldLocation::FieldLocation(const eckit::URI& uri) : uri_(uri) {
         remapKey_ = Key();
     }
 }
+
+eckit::URI FieldLocation::fullUri() const {
+    eckit::URI full = uri_;
+    full.fragment(std::to_string(offset_));
+    full.query("length", std::to_string(length_));
+    if (!remapKey_.empty()) {
+        full.query("remapKey", remapKey_);
+    }
+    return full;
+}
+
 
 FieldLocation::FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey)
     : uri_(uri), offset_(offset), length_(length), remapKey_(remapKey) {}
