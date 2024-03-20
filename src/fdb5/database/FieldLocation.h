@@ -40,7 +40,7 @@ class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
 
 public: // methods
 
-    FieldLocation() : offset_(eckit::Offset(0)), length_(eckit::Length(0)), remapKey_(Key{}) {}
+    FieldLocation() : offset_(eckit::Offset(0)), length_(eckit::Length(0)), remapKey_(Key()) {}
     FieldLocation(const eckit::URI& uri);
     FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     FieldLocation(eckit::Stream&);

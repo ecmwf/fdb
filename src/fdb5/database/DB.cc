@@ -121,9 +121,8 @@ bool DB::open() {
 }
 
 void DB::flush() {
-    if (store_ != nullptr) {
+    if (store_ != nullptr)
         store_->flush();
-    }
     catalogue_->flush();
 }
 
