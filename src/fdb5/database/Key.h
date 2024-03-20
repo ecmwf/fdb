@@ -168,6 +168,7 @@ private: // members
     eckit::StringList names_;
 
     const TypesRegistry* registry_;
+    bool canonical_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

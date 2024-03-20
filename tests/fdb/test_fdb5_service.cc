@@ -313,6 +313,9 @@ CASE ( "test_fdb_service" ) {
             	while ((dp = ::readdir(dirp)) != nullptr) {
                 	EXPECT_NOT(strstr( dp->d_name, "toc."));
 				}
+
+				// consuming the rest of the queue
+				while (iter.next(el));
 			}
         }
 
@@ -497,6 +500,9 @@ CASE ( "test_fdb_service_subtoc" ) {
 					}
 				}
 				EXPECT(subtoc);
+
+				// consuming the rest of the queue
+				while (iter.next(el));
 			}
         }
 
