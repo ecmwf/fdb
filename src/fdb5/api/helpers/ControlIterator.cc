@@ -141,7 +141,7 @@ std::ostream &operator<<(std::ostream &s, const ControlIdentifiers &x) {
 using value_type = typename std::underlying_type<ControlIdentifier>::type;
 
 ControlElement::ControlElement() : 
-    key(), location() {}
+    location() {}
 
 ControlElement::ControlElement(const Catalogue& catalogue) :
     key(catalogue.key()), location(catalogue.uri()) {

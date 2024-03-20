@@ -38,10 +38,7 @@ Key ListElement::combinedKey() const {
             combined.set(kv.first, kv.second);
         }
     }
-    // if (combined.reg() != nullptr) {
-    //     combined.registry(keyParts_[2].registry());
-    // }
-    
+
     return combined;
 }
 
