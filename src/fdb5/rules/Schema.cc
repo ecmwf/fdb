@@ -130,7 +130,10 @@ bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key &res
     bool found = false;
     for (const Rule* rule : rules_) {
         rule->expandFirstLevel(request, result, found);
-        if (found) break;
+        if (found) {
+            result.registry(rule->registry());
+            break;
+        }
     }
     return found;
 }

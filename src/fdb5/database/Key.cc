@@ -28,13 +28,13 @@ namespace fdb5 {
 
 Key::Key(const TypesRegistry* reg) :
     keys_(),
-    registry_(reg) {}
+    registry_(reg), canonical_(false) {}
 
 Key::Key(const TypesRegistry& reg) : Key(&reg) {}
 
 Key::Key(const std::string &s, const Rule *rule) :
     keys_(),
-    registry_(rule ? &rule->registry() : nullptr) {
+    registry_(rule ? &rule->registry() : nullptr), canonical_(false) {
     eckit::Tokenizer parse(":", true);
     eckit::StringList values;
     parse(s, values);
@@ -43,12 +43,9 @@ Key::Key(const std::string &s, const Rule *rule) :
     rule->fill(*this, values);
 }
 
-
-//Key::Key(const std::string &s, const TypesRegistry& reg) : Key(s, &reg) {}
-//
 Key::Key(const eckit::StringDict &keys, const TypesRegistry* reg) :
     keys_(keys),
-    registry_(reg) {
+    registry_(reg), canonical_(false) {
 
     eckit::StringDict::const_iterator it = keys.begin();
     eckit::StringDict::const_iterator end = keys.end();
@@ -60,13 +57,13 @@ Key::Key(const eckit::StringDict &keys, const TypesRegistry* reg) :
 Key::Key(const eckit::StringDict &keys, const TypesRegistry& reg) : Key(keys, &reg) {}
 
 Key::Key(eckit::Stream& s, const TypesRegistry* reg) :
-    registry_(reg) {
+    registry_(reg), canonical_(reg==nullptr) {
     decode(s);
 }
 
 Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l, const TypesRegistry* reg) :
     keys_(l),
-    registry_(reg) {
+    registry_(reg), canonical_(false) {
 
     for (const auto& kv : keys_) {
         names_.emplace_back(kv.first);
@@ -125,6 +122,7 @@ Key Key::parseString(const std::string &s, const TypesRegistry& registry) {
 void Key::decode(eckit::Stream& s) {
 
     registry_ = nullptr;
+    canonical_ = true;
     keys_.clear();
     names_.clear();
 
@@ -148,7 +146,7 @@ void Key::decode(eckit::Stream& s) {
 }
 
 void Key::encode(eckit::Stream& s) const {
-    const TypesRegistry& registry = this->registry();
+    const TypesRegistry* registry = canonical_ ? nullptr : &this->registry();
 
     s << keys_.size();
     for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
@@ -157,9 +155,8 @@ void Key::encode(eckit::Stream& s) const {
 
     s << names_.size();
     for (eckit::StringList::const_iterator i = names_.begin(); i != names_.end(); ++i) {
-        const Type &t = registry.lookupType(*i);
         s << (*i);
-        s << t.type();
+        s << (canonical_ ? "" : registry->lookupType(*i).type());
     }
 }
 
@@ -319,7 +316,9 @@ void Key::registry(const TypesRegistry& reg) {
 
 const TypesRegistry& Key::registry() const {
     if (!registry_) {
-        throw eckit::SeriousBug("TypesRegistry has not been set for Key prior to use", Here());
+        std::stringstream ss;
+        ss << "TypesRegistry has not been set for Key " << (*this) << " prior to use";
+        throw eckit::SeriousBug(ss.str(), Here());
     }
 
     return *registry_;
@@ -330,7 +329,7 @@ const void* Key::reg() const {
 }
 
 std::string Key::canonicalise(const std::string& keyword, const std::string& value) const {
-    if (value.empty()) {
+    if (canonical_ || value.empty()) {
         return value;
     } else {
         return this->registry().lookupType(keyword).toKey(keyword, value);
@@ -382,7 +381,7 @@ void Key::validateKeysOf(const Key& other, bool checkAlsoValues) const
     eckit::StringSet missing;
     eckit::StringSet mismatch;
 
-    const TypesRegistry& registry = this->registry();
+    const TypesRegistry* registry = canonical_ ? nullptr : &this->registry();
 
     for (Key::const_iterator j = begin(); j != end(); ++j) {
         const std::string& keyword = (*j).first;
@@ -391,7 +390,7 @@ void Key::validateKeysOf(const Key& other, bool checkAlsoValues) const
             missing.insert(keyword);
         }
         else {
-            if(checkAlsoValues && !registry.lookupType(keyword).match(keyword, k->second, j->second) ) {
+            if(checkAlsoValues && !canonical_ && !registry->lookupType(keyword).match(keyword, k->second, j->second) ) {
                 mismatch.insert((*j).first + "=" + j->second + " and " + k->second);
             }
         }
@@ -440,7 +439,7 @@ fdb5::Key::operator eckit::StringDict() const
 
     ASSERT(names_.size() == keys_.size());
 
-    const TypesRegistry &registry = this->registry();
+    const TypesRegistry* registry = canonical_ ? nullptr : &this->registry();
 
     for (eckit::StringList::const_iterator j = names_.begin(); j != names_.end(); ++j) {
 
@@ -449,7 +448,7 @@ fdb5::Key::operator eckit::StringDict() const
         ASSERT(i != keys_.end());
         ASSERT(!(*i).second.empty());
 
-        res[*j] = registry.lookupType(*j).tidy(*j, (*i).second);
+        res[*j] = canonical_ ? (*i).second : registry->lookupType(*j).tidy(*j, (*i).second);
     }
 
     return res;
