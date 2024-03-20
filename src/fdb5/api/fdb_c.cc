@@ -371,7 +371,7 @@ int fdb_delete_handle(fdb_handle_t* fdb) {
 
 int fdb_new_key(fdb_key_t** key) {
     return wrapApiFunction([key] {
-        *key = new fdb_key_t(nullptr);
+        *key = new fdb_key_t();
     });
 }
 int fdb_key_add(fdb_key_t* key, const char* param, const char* value) {
