@@ -97,6 +97,20 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// Schemas are persisted in this registry
+///
+class SchemaRegistry {
+public:
+    static SchemaRegistry& instance();
+    const Schema& get(const eckit::PathName& path);
+
+private:
+    std::mutex m_;
+    std::map<eckit::PathName, std::unique_ptr<Schema>> schemas_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 } // namespace fdb5
 
 #endif

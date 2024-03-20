@@ -60,9 +60,9 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
 
     if (cur == predicates_.end()) {
 
-        // TODO: join these 2 methods
-        keys[depth].rule(this);
+        keys[depth].registry(registry());
 
+        // TODO: join these 2 methods
         if (rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
             if (!visitor.selectDatum( keys[2], full)) {
@@ -153,7 +153,7 @@ void Rule::expand( const Key &field,
 
     if (cur == predicates_.end()) {
 
-        keys[depth].rule(this);
+        keys[depth].registry(registry());
 
         if (rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
@@ -231,7 +231,6 @@ void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_i
 
     if (cur == predicates_.end()) {
         found = true;
-        result.rule(this);
         return;
     }
 
@@ -260,7 +259,6 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Pre
 
     if (cur == predicates_.end()) {
         found = true;
-        result.rule(this);
         return;
     }
 
@@ -364,7 +362,7 @@ void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector
 }
 
 void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
-    Key tmp;
+    Key tmp(registry());
     matchFirstLevel(request, predicates_.begin(), tmp, result, missing);
 }
 

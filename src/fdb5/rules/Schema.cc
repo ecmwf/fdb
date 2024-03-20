@@ -51,8 +51,9 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
 }
 
 void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const {
-    Key full;
+    Key full(registry());
     std::vector<Key> keys(3);
+    for (auto& k : keys) k.registry(registry());
 
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
 		// eckit::Log::info() << "Rule " << **i <<  std::endl;
@@ -62,8 +63,9 @@ void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visit
 }
 
 void Schema::expand(const Key &field, WriteVisitor &visitor) const {
-    Key full;
+    Key full(registry());
     std::vector<Key> keys(3);
+    for (auto& k : keys) k.registry(registry());
 
     visitor.rule(0); // reset to no rule so we verify that we pick at least one
 
@@ -86,6 +88,8 @@ void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor&
     Key full = dbKey;
     std::vector<Key> keys(3);
     keys[0] = dbKey;
+    keys[1].registry(registry());
+    keys[2].registry(registry());
 
     for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
         (*i)->expand(request, visitor, 1, keys, full);
@@ -106,6 +110,8 @@ void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& db
     Key full = dbKey;
     std::vector<Key> keys(3);
     keys[0] = dbKey;
+    keys[1].registry(registry());
+    keys[2].registry(registry());
 
     for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
         (*i)->expand(field, visitor, 1, keys, full);
@@ -124,7 +130,10 @@ bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key &res
     bool found = false;
     for (const Rule* rule : rules_) {
         rule->expandFirstLevel(request, result, found);
-        if (found) break;
+        if (found) {
+            result.registry(rule->registry());
+            break;
+        }
     }
     return found;
 }
@@ -215,6 +224,26 @@ const TypesRegistry& Schema::registry() const {
 std::ostream &operator<<(std::ostream &s, const Schema &x) {
     x.print(s);
     return s;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+SchemaRegistry& SchemaRegistry::instance() {
+    static SchemaRegistry me;
+    return me;
+}
+
+const Schema& SchemaRegistry::get(const eckit::PathName& path) {
+    std::lock_guard<std::mutex> lock(m_);
+    auto it = schemas_.find(path);
+    if (it != schemas_.end()) {
+        return *it->second;
+    }
+
+    Schema* p = new Schema(path);
+    ASSERT(p);
+    schemas_[path] = std::unique_ptr<Schema>(p);
+    return *schemas_[path];
 }
 
 //----------------------------------------------------------------------------------------------------------------------
