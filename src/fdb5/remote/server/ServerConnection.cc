@@ -137,7 +137,7 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
     return Handled::No;
 }
 
-eckit::LocalConfiguration ServerConnection::availableFunctionality() const {
+constexpr eckit::LocalConfiguration ServerConnection::availableFunctionality() {
     eckit::LocalConfiguration conf;
 //    Add to the configuration all the components that require to be versioned, as in the following example, with a vector of supported version numbers
     std::vector<int> remoteFieldLocationVersions = {1};

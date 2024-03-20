@@ -59,7 +59,7 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
         ASSERT(currentCatalogue_ == &catalogue);
     }
     currentCatalogue_ = nullptr;
-    // currentStore_ = nullptr;
+    currentStore_.reset();
     currentIndex_ = nullptr;
 }
 

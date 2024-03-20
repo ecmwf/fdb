@@ -104,7 +104,7 @@ protected:
 
     // socket methods
     int selectDataPort();
-    eckit::LocalConfiguration availableFunctionality() const;
+    constexpr eckit::LocalConfiguration availableFunctionality();
     
     // Worker functionality
     void tidyWorkers();

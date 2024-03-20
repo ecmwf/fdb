@@ -119,7 +119,7 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
         Log::status() << "Reading: " << requestID << std::endl;
         // Write the data to the parent, in chunks if necessary.
 
-        Buffer writeBuffer(10 * 1024 * 1024);
+        Buffer writeBuffer(4 * 1024 * 1024 - 2048); // slightly smaller than 4MiB to nicely fit in a TCP window with scale factor 6
         long dataRead;
 
         dh->openForRead();
