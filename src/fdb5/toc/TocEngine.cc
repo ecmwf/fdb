@@ -164,7 +164,7 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
 
             for(std::vector<std::string>::const_iterator dbpath = dbpaths.begin(); dbpath != dbpaths.end(); ++dbpath) {
 
-                Regex re("^" + *j + "/" + *dbpath + "$");
+                Regex re("^" + Regex::escape(j->asString()) + "/" + *dbpath + "$");
 
                 LOG_DEBUG_LIB(LibFdb5) << " -> key i " << *i
                                      << " dbpath " << *dbpath
