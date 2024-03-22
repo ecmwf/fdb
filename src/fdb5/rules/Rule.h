@@ -18,6 +18,7 @@
 
 #include <iosfwd>
 #include <vector>
+#include <memory>
 
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/types/Types.h"
