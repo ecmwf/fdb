@@ -75,7 +75,7 @@ public: // methods
 
     const std::string &path() const;
 
-    const TypesRegistry& registry() const;
+    const std::shared_ptr<TypesRegistry> registry() const;
 
 
 private: // methods
@@ -89,7 +89,7 @@ private: // methods
 
 private: // members
 
-    TypesRegistry registry_;
+    std::shared_ptr<TypesRegistry> registry_;
     std::vector<Rule *>  rules_;
     std::string path_;
 
