@@ -45,23 +45,15 @@ class Key {
 
 public: // methods
 
-    explicit Key(const TypesRegistry* reg=nullptr);
-    explicit Key(const TypesRegistry& reg);
-
-    explicit Key(eckit::Stream &, const TypesRegistry* reg=nullptr);
-    explicit Key(eckit::Stream &, const TypesRegistry& reg);
-    /// @todo remove ?? explicit Key(const std::string &request, const TypesRegistry* reg=nullptr);
-    /// @todo remove ?? explicit Key(const std::string &request, const TypesRegistry& reg);
+    explicit Key(const std::shared_ptr<TypesRegistry> reg = nullptr);
+    explicit Key(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
     explicit Key(const std::string &keys, const Rule* rule);
-
-    explicit Key(const eckit::StringDict &keys, const TypesRegistry* reg=nullptr);
-    explicit Key(const eckit::StringDict &keys, const TypesRegistry& reg);
-    Key(std::initializer_list<std::pair<const std::string, std::string>>, const TypesRegistry* reg=nullptr);
-    Key(std::initializer_list<std::pair<const std::string, std::string>>, const TypesRegistry& reg);
+    explicit Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
+    Key(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
 
     static Key parseStringUntyped(const std::string& s);
     /// @todo - this functionality should not be supported any more.
-    static Key parseString(const std::string&, const TypesRegistry& reg);
+    static Key parseString(const std::string&, const std::shared_ptr<TypesRegistry> reg);
 
     std::set<std::string> keys() const;
 
@@ -115,7 +107,7 @@ public: // methods
     }
 
     // Registry is needed before we can stringise/canonicalise.
-    void registry(const TypesRegistry& reg);
+    void registry(const std::shared_ptr<TypesRegistry> reg);
     [[ nodiscard ]]
     const TypesRegistry& registry() const;
     const void* reg() const;
@@ -167,7 +159,7 @@ private: // members
     eckit::StringDict keys_;
     eckit::StringList names_;
 
-    const TypesRegistry* registry_;
+    std::shared_ptr<TypesRegistry> registry_;
     bool canonical_;
 };
 

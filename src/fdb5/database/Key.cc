@@ -26,15 +26,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Key::Key(const TypesRegistry* reg) :
+Key::Key(const std::shared_ptr<TypesRegistry> reg) :
     keys_(),
     registry_(reg), canonical_(false) {}
 
-Key::Key(const TypesRegistry& reg) : Key(&reg) {}
-
 Key::Key(const std::string &s, const Rule *rule) :
     keys_(),
-    registry_(rule ? &rule->registry() : nullptr), canonical_(false) {
+    registry_(rule ? rule->registry() : nullptr), canonical_(false) {
     eckit::Tokenizer parse(":", true);
     eckit::StringList values;
     parse(s, values);
@@ -43,7 +41,7 @@ Key::Key(const std::string &s, const Rule *rule) :
     rule->fill(*this, values);
 }
 
-Key::Key(const eckit::StringDict &keys, const TypesRegistry* reg) :
+Key::Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg) :
     keys_(keys),
     registry_(reg), canonical_(false) {
 
@@ -54,14 +52,12 @@ Key::Key(const eckit::StringDict &keys, const TypesRegistry* reg) :
     }
 }
 
-Key::Key(const eckit::StringDict &keys, const TypesRegistry& reg) : Key(keys, &reg) {}
-
-Key::Key(eckit::Stream& s, const TypesRegistry* reg) :
+Key::Key(eckit::Stream& s, const std::shared_ptr<TypesRegistry> reg) :
     registry_(reg), canonical_(reg==nullptr) {
     decode(s);
 }
 
-Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l, const TypesRegistry* reg) :
+Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l, const std::shared_ptr<TypesRegistry> reg) :
     keys_(l),
     registry_(reg), canonical_(false) {
 
@@ -69,10 +65,6 @@ Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l, con
         names_.emplace_back(kv.first);
     }
 }
-
-Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l, const TypesRegistry& reg) : Key(l, &reg) {}
-
-Key::Key(eckit::Stream& s, const TypesRegistry& reg) : Key(s, &reg) {}
 
 Key Key::parseStringUntyped(const std::string& s) {
 
@@ -92,7 +84,7 @@ Key Key::parseStringUntyped(const std::string& s) {
     return Key{keys};
 }
 
-Key Key::parseString(const std::string &s, const TypesRegistry& registry) {
+Key Key::parseString(const std::string &s, const std::shared_ptr<TypesRegistry> registry) {
 
     eckit::Tokenizer parse1(",");
     eckit::Tokenizer parse2("=");
@@ -106,7 +98,7 @@ Key Key::parseString(const std::string &s, const TypesRegistry& registry) {
         parse2(bit, kv);
         ASSERT(kv.size() == 2);
 
-        const Type &t = registry.lookupType(kv[0]);
+        const Type &t = registry->lookupType(kv[0]);
         std::string v = t.tidy(kv[0], kv[1]);
 
         if (ret.find(kv[0]) == ret.end()) {
@@ -150,13 +142,13 @@ void Key::encode(eckit::Stream& s) const {
 
     s << keys_.size();
     for (eckit::StringDict::const_iterator i = keys_.begin(); i != keys_.end(); ++i) {
-        s << i->first << canonicalise(i->first, i->second);
+        s << i->first << (registry ? canonicalise(i->first, i->second) : i->second);
     }
 
     s << names_.size();
     for (eckit::StringList::const_iterator i = names_.begin(); i != names_.end(); ++i) {
         s << (*i);
-        s << (canonical_ ? "" : registry->lookupType(*i).type());
+        s << (registry ? registry->lookupType(*i).type() : "");
     }
 }
 
@@ -310,8 +302,8 @@ bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {
     return true;
 }
 
-void Key::registry(const TypesRegistry& reg) {
-    registry_ = &reg;
+void Key::registry(const std::shared_ptr<TypesRegistry> reg) {
+    registry_ = reg;
 }
 
 const TypesRegistry& Key::registry() const {
@@ -325,11 +317,11 @@ const TypesRegistry& Key::registry() const {
 }
 
 const void* Key::reg() const {
-    return registry_;
+    return registry_.get();
 }
 
 std::string Key::canonicalise(const std::string& keyword, const std::string& value) const {
-    if (canonical_ || value.empty()) {
+    if (value.empty() || canonical_) {
         return value;
     } else {
         return this->registry().lookupType(keyword).toKey(keyword, value);

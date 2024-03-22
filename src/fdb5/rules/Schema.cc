@@ -21,14 +21,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Schema::Schema() {
+Schema::Schema() : registry_(new TypesRegistry()) {
+
 }
 
-Schema::Schema(const eckit::PathName &path) {
+Schema::Schema(const eckit::PathName &path) : registry_(new TypesRegistry()) {
     load(path);
 }
 
-Schema::Schema(std::istream& s) {
+Schema::Schema(std::istream& s) : registry_(new TypesRegistry()) {
     load(s);
 }
 
@@ -171,7 +172,7 @@ void Schema::load(std::istream& s, bool replace) {
 
     SchemaParser parser(s);
 
-    parser.parse(*this, rules_, registry_);
+    parser.parse(*this, rules_, *registry_);
 
     check();
 }
@@ -183,7 +184,7 @@ void Schema::clear() {
 }
 
 void Schema::dump(std::ostream &s) const {
-    registry_.dump(s);
+    registry_->dump(s);
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->dump(s);
         s << std::endl;
@@ -194,7 +195,7 @@ void Schema::check() {
     for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         /// @todo print offending rule in meaningful message
         ASSERT((*i)->depth() == 3);
-        (*i)->registry_.updateParent(&registry_);
+        (*i)->registry_->updateParent(registry_);
         (*i)->updateParent(0);
     }
 }
@@ -204,7 +205,7 @@ void Schema::print(std::ostream &out) const {
 }
 
 const Type &Schema::lookupType(const std::string &keyword) const {
-    return registry_.lookupType(keyword);
+    return registry_->lookupType(keyword);
 }
 
 
@@ -216,7 +217,7 @@ const std::string &Schema::path() const {
     return path_;
 }
 
-const TypesRegistry& Schema::registry() const {
+const std::shared_ptr<TypesRegistry> Schema::registry() const {
     return registry_;
 }
 
