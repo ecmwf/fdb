@@ -18,6 +18,7 @@
 
 #include <string>
 #include <map>
+#include <memory>
 
 #include "eckit/memory/NonCopyable.h"
 
