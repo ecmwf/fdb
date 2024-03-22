@@ -88,7 +88,8 @@ private: // members
     friend class TocWipeVisitor;
     friend class TocMoveVisitor;
 
-    Schema schema_;
+    // non-owning
+    const Schema* schema_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -27,34 +27,6 @@ using namespace eckit;
 
 namespace fdb5 {
 
-
-/// Schemas are persisted in this registry
-///
-class SchemaRegistry {
-public:
-    static SchemaRegistry& instance() {
-        static SchemaRegistry me;
-        return me;
-    }
-
-    const Schema& get(const PathName& path) {
-        std::lock_guard<std::mutex> lock(m_);
-        auto it = schemas_.find(path);
-        if (it != schemas_.end()) {
-            return *it->second;
-        }
-
-        Schema* p = new Schema(path);
-        ASSERT(p);
-        schemas_[path] = std::unique_ptr<Schema>(p);
-        return *schemas_[path];
-    }
-
-private:
-    std::mutex m_;
-    std::map<PathName, std::unique_ptr<Schema>> schemas_;
-};
-
 //----------------------------------------------------------------------------------------------------------------------
 
 Config::Config() : schemaPath_("") {
