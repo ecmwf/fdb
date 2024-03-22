@@ -21,14 +21,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Schema::Schema() {
+Schema::Schema() : registry_(new TypesRegistry()) {
+
 }
 
-Schema::Schema(const eckit::PathName &path) {
+Schema::Schema(const eckit::PathName &path) : registry_(new TypesRegistry()) {
     load(path);
 }
 
-Schema::Schema(std::istream& s) {
+Schema::Schema(std::istream& s) : registry_(new TypesRegistry()) {
     load(s);
 }
 
@@ -51,8 +52,9 @@ const Rule*  Schema::ruleFor(const Key& dbKey, const Key& idxKey) const {
 }
 
 void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const {
-    Key full;
+    Key full(registry());
     std::vector<Key> keys(3);
+    for (auto& k : keys) k.registry(registry());
 
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
 		// eckit::Log::info() << "Rule " << **i <<  std::endl;
@@ -62,8 +64,9 @@ void Schema::expand(const metkit::mars::MarsRequest &request, ReadVisitor &visit
 }
 
 void Schema::expand(const Key &field, WriteVisitor &visitor) const {
-    Key full;
+    Key full(registry());
     std::vector<Key> keys(3);
+    for (auto& k : keys) k.registry(registry());
 
     visitor.rule(0); // reset to no rule so we verify that we pick at least one
 
@@ -86,6 +89,8 @@ void Schema::expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor&
     Key full = dbKey;
     std::vector<Key> keys(3);
     keys[0] = dbKey;
+    keys[1].registry(registry());
+    keys[2].registry(registry());
 
     for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
         (*i)->expand(request, visitor, 1, keys, full);
@@ -106,6 +111,8 @@ void Schema::expandSecond(const Key& field, WriteVisitor& visitor, const Key& db
     Key full = dbKey;
     std::vector<Key> keys(3);
     keys[0] = dbKey;
+    keys[1].registry(registry());
+    keys[2].registry(registry());
 
     for (std::vector<Rule*>:: const_iterator i = dbRule->rules_.begin(); i != dbRule->rules_.end(); ++i) {
         (*i)->expand(field, visitor, 1, keys, full);
@@ -124,7 +131,10 @@ bool Schema::expandFirstLevel(const metkit::mars::MarsRequest& request, Key &res
     bool found = false;
     for (const Rule* rule : rules_) {
         rule->expandFirstLevel(request, result, found);
-        if (found) break;
+        if (found) {
+            result.registry(rule->registry());
+            break;
+        }
     }
     return found;
 }
@@ -162,7 +172,7 @@ void Schema::load(std::istream& s, bool replace) {
 
     SchemaParser parser(s);
 
-    parser.parse(*this, rules_, registry_);
+    parser.parse(*this, rules_, *registry_);
 
     check();
 }
@@ -174,7 +184,7 @@ void Schema::clear() {
 }
 
 void Schema::dump(std::ostream &s) const {
-    registry_.dump(s);
+    registry_->dump(s);
     for (std::vector<Rule *>::const_iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->dump(s);
         s << std::endl;
@@ -185,7 +195,7 @@ void Schema::check() {
     for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         /// @todo print offending rule in meaningful message
         ASSERT((*i)->depth() == 3);
-        (*i)->registry_.updateParent(&registry_);
+        (*i)->registry_->updateParent(registry_);
         (*i)->updateParent(0);
     }
 }
@@ -195,7 +205,7 @@ void Schema::print(std::ostream &out) const {
 }
 
 const Type &Schema::lookupType(const std::string &keyword) const {
-    return registry_.lookupType(keyword);
+    return registry_->lookupType(keyword);
 }
 
 
@@ -207,7 +217,7 @@ const std::string &Schema::path() const {
     return path_;
 }
 
-const TypesRegistry& Schema::registry() const {
+const std::shared_ptr<TypesRegistry> Schema::registry() const {
     return registry_;
 }
 
@@ -215,6 +225,26 @@ const TypesRegistry& Schema::registry() const {
 std::ostream &operator<<(std::ostream &s, const Schema &x) {
     x.print(s);
     return s;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+SchemaRegistry& SchemaRegistry::instance() {
+    static SchemaRegistry me;
+    return me;
+}
+
+const Schema& SchemaRegistry::get(const eckit::PathName& path) {
+    std::lock_guard<std::mutex> lock(m_);
+    auto it = schemas_.find(path);
+    if (it != schemas_.end()) {
+        return *it->second;
+    }
+
+    Schema* p = new Schema(path);
+    ASSERT(p);
+    schemas_[path] = std::unique_ptr<Schema>(p);
+    return *schemas_[path];
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -75,7 +75,7 @@ public: // methods
 
     const std::string &path() const;
 
-    const TypesRegistry& registry() const;
+    const std::shared_ptr<TypesRegistry> registry() const;
 
 
 private: // methods
@@ -89,10 +89,24 @@ private: // methods
 
 private: // members
 
-    TypesRegistry registry_;
+    std::shared_ptr<TypesRegistry> registry_;
     std::vector<Rule *>  rules_;
     std::string path_;
 
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+/// Schemas are persisted in this registry
+///
+class SchemaRegistry {
+public:
+    static SchemaRegistry& instance();
+    const Schema& get(const eckit::PathName& path);
+
+private:
+    std::mutex m_;
+    std::map<eckit::PathName, std::unique_ptr<Schema>> schemas_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

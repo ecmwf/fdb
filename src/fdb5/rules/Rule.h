@@ -81,7 +81,7 @@ public: // methods
     const Rule &topRule() const;
 
     const Schema &schema() const;
-    const TypesRegistry &registry() const;
+    const std::shared_ptr<TypesRegistry> registry() const;
 
     void check(const Key& key) const;
 
@@ -127,7 +127,7 @@ private: // members
     std::vector<Predicate *> predicates_;
     std::vector<Rule *>      rules_;
 
-    TypesRegistry registry_;
+    std::shared_ptr<TypesRegistry> registry_;
 
     friend class Schema;
     size_t line_;

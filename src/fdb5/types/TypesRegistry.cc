@@ -19,7 +19,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TypesRegistry::TypesRegistry():
-    parent_(0) {
+    parent_(nullptr) {
 }
 
 TypesRegistry::~TypesRegistry() {
@@ -28,7 +28,7 @@ TypesRegistry::~TypesRegistry() {
     }
 }
 
-void TypesRegistry::updateParent(const TypesRegistry *parent) {
+void TypesRegistry::updateParent(std::shared_ptr<TypesRegistry> parent) {
     parent_ = parent;
 }
 
@@ -56,7 +56,7 @@ const Type &TypesRegistry::lookupType(const std::string &keyword) const {
         }
 
         // eckit::Log::info() << "Type of " << keyword << " is " << type << std::endl;
-        Type *newKH = TypesFactory::build(type, keyword);
+        Type* newKH = TypesFactory::build(type, keyword);
         cache_[keyword] = newKH;
         return *newKH;
     }
