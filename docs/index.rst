@@ -44,10 +44,9 @@ This part of the documentations aims at operations and how to configure and depl
    content/concept/installation
    content/concept/architecture
    content/concept/client-reference
-   content/concept/administrative-docs
-   content/concept/fdb-tools
+   content/concept/administration
+   content/concept/tools
    content/concept/data-governance
-   content/concept/reference-docs
 
 .. raw:: html
 

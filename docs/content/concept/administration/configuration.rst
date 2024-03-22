@@ -1,5 +1,5 @@
 Configuration
-=============
+*************
 
 First thing you should do after the installation is the setting up of the home
 Export the environment variable as follows:
@@ -33,7 +33,7 @@ over the course of several storage procedures even if the global schema is subje
 to changes.
 
 Checking Installation
----------------------------------
+*********************
 
 To check whether the installation of the **FDB** was successful we can execute
 the following command

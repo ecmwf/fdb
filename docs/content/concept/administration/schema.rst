@@ -1,7 +1,3 @@
-
-Schema
-======
-
 The schema indexes structure and data collocation policy. It is used to uniquely 
 describe the data that is being stored and indexed. 
 
@@ -9,11 +5,11 @@ The schema uses global attributes that describe the underlying data with each at
 
 ::
 
-  param:     Param;
-  step:      Step;
-  date;      Date;
-  latitude;  Double;
-  longitude; Double;
+  param:        Param;
+  step:         Step;
+  date:         Date;
+  latitude:     Double;
+  longitude:    Double;
 
 The schema then describes rules for accessing all data stored by the FDB.
 
@@ -34,17 +30,17 @@ Take for example the following metadata:
 
 ::
 
-  class     = od,
-   expver   = 0001,
-   stream   = oper,
-   date     = 20240202,
-   time     = 0000,
-   domain   = g,
-   type     = fc,
-   levtype  = pl,
-   step     = 1,
-   levelist = 150,
-   param    = 130
+  class         = od,
+   expver       = 0001,
+   stream       = oper,
+   date         = 20240202,
+   time         = 0000,
+   domain       = g,
+   type         = fc,
+   levtype      = pl,
+   step         = 1,
+   levelist     = 150,
+   param        = 130
 
 With the rule from above, a message with the given metadata, retrieves the following key:
 
@@ -94,8 +90,9 @@ Rules are then matched if:
   * a list is provided, one of them matched
 
 Example schema
---------------
-.. literalinclude:: example-schema
+**************
+
+.. literalinclude:: administration/example-schema
 
 .. 
    _## TODO: add more info on the schema

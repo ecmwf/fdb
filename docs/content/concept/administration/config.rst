@@ -1,14 +1,8 @@
-Config
-======
-
-Config files define a number of parameters for the FDB. There are several different
-types, which can be described by a FDB config file, such as 
-local, remote, distribute, and select. For an architectural overview, see
-:ref:`architecture_frontend`.
-
+Types
+*****
 
 Local
-******
+~~~~~
 
 ::
 
@@ -26,7 +20,7 @@ Depending on the backend, the data or metadata may not actually be local.
 
 
 Select
-*******
+~~~~~~
 
 ::
 
@@ -47,7 +41,7 @@ Select dispatches requests to different FDB's based on the metadata associated w
 and can be used to send split requests operational data (OD) from research data (RD).
 
 Remote
-*******
+~~~~~~
 
 ::
 
@@ -62,7 +56,7 @@ The distributed type implements the multi-lane access to multiple FDB's.
 It uses rendezvous hashing to avoid synchronisations.
 
 Dist
-*****
+~~~~
 
 ::
 

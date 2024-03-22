@@ -61,6 +61,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_tabs.tabs",
     "sphinxfortran.fortran_domain",
+    "sphinx_toolbox.collapse",
     "breathe"
 ]
 

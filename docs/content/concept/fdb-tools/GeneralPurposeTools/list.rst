@@ -4,6 +4,7 @@ fdb list
 Lists the contents of the FDB databases.  
 In the body of the output, one line is given per field that has been archived. These (by default) present the fields that are available and will be retrievable - i.e. masked duplicates are skipped.  
 The lines are broken into three segments, which represent the hierarchical nature of the schema:
+
 * The first component identifies the FDB database containing the data
 * The second component identifies the (set of) indexes
 * The third component identifies entries collocated within an index

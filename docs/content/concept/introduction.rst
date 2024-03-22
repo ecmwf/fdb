@@ -1,6 +1,7 @@
 Introduction
 ============
 
+
 Numerical weather prediction (NWP) and climate simulations are data heavy applications. 
 Over the course of the last 40 years data output has increased by several orders 
 of magnitude and are projected to continue. In 1995 ECMWF generated a total of
@@ -41,5 +42,29 @@ a stream of valid **GRIB** messages is a **GRIB**-message itself.
    :alt: Schematic of a stream of GRIB messages
 
 
-Dealing with this amount of data in parallel poses a lot of questions, e.g. developing a description
-which is small, as well as uniquely describing each data field in the entire ecosystem.
+Dealing with this amount of data in parallel poses a lot of problems, e.g. developing a description
+which is minimal, as well as uniquely describing each data field in the entire ecosystem.
+The MARS request language is a semantic description which is also used in the context of the FDB.
+It describes data by specifying meteorological properties. It has two main characteristics:
+
+- **Globally unique**: A request return exactly one set of data deterministically. This doesn't necessarily 
+  have to be a single dataset, due to the possibility of partial description.
+- **Minimal**: Nothing from the request can be spared without changing the returned dataset.
+
+What is the FDB
+---------------
+
+MARS Ecosystem
+--------------
+
+Semantic Methodic
+-----------------
+
+- Globally unique
+- Minimal
+
+Messages
+--------
+
+Usage Semantics
+---------------
