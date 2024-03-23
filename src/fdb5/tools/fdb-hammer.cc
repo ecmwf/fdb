@@ -33,11 +33,11 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
 // comment out for lustre runs
-//#include "fdb5/daos/DaosSession.h"
+#include "fdb5/daos/DaosSession.h"
 
 // comment out for daos runs
-#include "fdb5/toc/TocSession.h"
-#include "fdb5/toc/TocIOStats.h"
+//#include "fdb5/toc/TocSession.h"
+//#include "fdb5/toc/TocIOStats.h"
 
 // This list is currently sufficient to get to nparams=200 of levtype=ml,type=fc
 const std::unordered_set<size_t> AWKWARD_PARAMS {11, 12, 13, 14, 15, 16, 49, 51, 52, 61, 121, 122, 146, 147, 169, 175, 176, 177, 179, 189, 201, 202};
@@ -210,9 +210,9 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     codes_handle_delete(handle);
 
     // comment out for lustre runs
-    //fdb5::DaosManager::instance().stats().report(std::cout);
+    fdb5::DaosManager::instance().stats().report(std::cout);
     // comment out for daos runs
-    fdb5::TocManager::instance().stats().report(std::cout);
+    //fdb5::TocManager::instance().stats().report(std::cout);
 
     Log::info() << "Fields written: " << writeCount << std::endl;
     Log::info() << "Bytes written: " << bytesWritten << std::endl;
@@ -294,10 +294,10 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     }
 
     // comment out for DAOS runs
-    using namespace std::placeholders;
-    eckit::Timer& t = fdb5::TocManager::instance().timer();
-    fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
-    fdb5::TocStatsTimer st{"retrieve 006 fdb-hammer dh::copyTo", t, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
+    //using namespace std::placeholders;
+    //eckit::Timer& t = fdb5::TocManager::instance().timer();
+    //fdb5::TocIOStats& stats = fdb5::TocManager::instance().stats();
+    //fdb5::TocStatsTimer st{"retrieve 006 fdb-hammer dh::copyTo", t, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
@@ -306,14 +306,14 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     gettimeofday(&tval_after_io, NULL);
 
     // comment out for DAOS runs
-    st.stop();
+    //st.stop();
 
     timer.stop();
 
     // comment out for lustre runs
-    //fdb5::DaosManager::instance().stats().report(std::cout);
+    fdb5::DaosManager::instance().stats().report(std::cout);
     // comment out for daos runs
-    fdb5::TocManager::instance().stats().report(std::cout);
+    //fdb5::TocManager::instance().stats().report(std::cout);
 
     Log::info() << "fdb-hammer - Fields read: " << fieldsRead << std::endl;
     Log::info() << "fdb-hammer - Bytes read: " << total << std::endl;
@@ -396,9 +396,9 @@ void FDBWrite::executeList(const eckit::option::CmdArgs &args) {
     timer.stop();
 
     // comment out for lustre runs
-    //fdb5::DaosManager::instance().stats().report(std::cout);
+    fdb5::DaosManager::instance().stats().report(std::cout);
     // comment out for daos runs
-    fdb5::TocManager::instance().stats().report(std::cout);
+    //fdb5::TocManager::instance().stats().report(std::cout);
 
     Log::info() << "fdb-hammer - Fields listed: " << count << std::endl;
     Log::info() << "fdb-hammer - List duration: " << timer.elapsed() << std::endl;
