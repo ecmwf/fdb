@@ -70,7 +70,7 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
         controlSocket_(socket), numControlConnection_(0), numDataConnection_(0),
         dataSocket_(nullptr), dataListener_(0) {
 
-    eckit::Log::debug<LibFdb5>() << "ServerConnection::ServerConnection initialized" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::ServerConnection initialized" << std::endl;
 }
 
 ServerConnection::~ServerConnection() {
@@ -137,7 +137,7 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
     return Handled::No;
 }
 
-constexpr eckit::LocalConfiguration ServerConnection::availableFunctionality() {
+eckit::LocalConfiguration ServerConnection::availableFunctionality() const {
     eckit::LocalConfiguration conf;
 //    Add to the configuration all the components that require to be versioned, as in the following example, with a vector of supported version numbers
     std::vector<int> remoteFieldLocationVersions = {1};
@@ -185,7 +185,7 @@ void ServerConnection::initialiseConnections() {
         
         std::vector<int> rflCommon = intersection(clientAvailableFunctionality, serverConf, "RemoteFieldLocation");
         if (rflCommon.size() > 0) {
-            eckit::Log::debug<LibFdb5>() << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - RemoteFieldLocation version " << rflCommon.back() << std::endl;
             agreedConf_.set("RemoteFieldLocation", rflCommon.back());
         } else {
             compatibleProtocol = false;
@@ -211,7 +211,7 @@ void ServerConnection::initialiseConnections() {
                 }
             }
 
-            eckit::Log::debug<LibFdb5>() << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
             agreedConf_.set("NumberOfConnections", ncSelected);
             single_ = (ncSelected == 1);
         }
@@ -248,7 +248,7 @@ void ServerConnection::initialiseConnections() {
         s << dataEndpoint;
         s << agreedConf_.get();
 
-        eckit::Log::debug<LibFdb5>() << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - configuration: " << agreedConf_ <<std::endl;
 
         write(Message::Startup, true, 0, 0, std::vector<std::pair<const void*, uint32_t>>{{startupBuffer.data(), s.position()}});
     }
@@ -431,7 +431,7 @@ void ServerConnection::handle() {
         //tidyWorkers();
 
         eckit::Buffer payload = readControl(hdr); // READ CONTROL
-        eckit::Log::debug<LibFdb5>() << "ServerConnection::handle - got [message=" << hdr.message << ",clientID="<< hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::handle - got [message=" << hdr.message << ",clientID="<< hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
         if (hdr.message == Message::Stop) {
             ASSERT(hdr.clientID());

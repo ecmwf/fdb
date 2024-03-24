@@ -54,14 +54,14 @@ static std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string&
 
     std::string rs = std::string("retrieve,")  + str;
 
-    Log::debug<LibFdb5>() << "Parsing request string : " << rs << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Parsing request string : " << rs << std::endl;
 
     std::istringstream in(rs);
     metkit::mars::MarsParser parser(in);
 
     std::vector<metkit::mars::MarsParsedRequest> p = parser.parse();
 
-    Log::debug<LibFdb5>() << "Parsed requests:" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Parsed requests:" << std::endl;
     for (auto j = p.begin(); j != p.end(); ++j) {
         j->dump(Log::debug<LibFdb5>());
     }
@@ -73,7 +73,7 @@ static std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string&
 
     std::vector<metkit::mars::MarsRequest> v = expand.expand(p);
 
-    Log::debug<LibFdb5>() << "Expanded requests:" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Expanded requests:" << std::endl;
     for (auto j = v.begin(); j != v.end(); ++j) {
         j->dump(Log::debug<LibFdb5>());
     }

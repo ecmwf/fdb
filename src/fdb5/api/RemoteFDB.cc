@@ -135,7 +135,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
         if (numAliases == 0) {
             eckit::net::Endpoint storeEndpoint{store};
             storesReadMapping_[storeEndpoint] = storeEndpoint;
-            Log::debug<LibFdb5>() << "store endpoint: " << storeEndpoint << " default data location endpoint: " << storeEndpoint << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "store endpoint: " << storeEndpoint << " default data location endpoint: " << storeEndpoint << std::endl;
         } else {
             for (size_t j=0; j<numAliases; j++) {
                 eckit::net::Endpoint alias(s);
@@ -146,7 +146,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
                     eckit::net::Endpoint fieldLocationEndpoint{store};
                     storesReadMapping_[fieldLocationEndpoint] = alias;
                 }
-                Log::debug<LibFdb5>() << "store endpoint: " << alias << " default data location endpoint: " << store << std::endl;
+                LOG_DEBUG_LIB(LibFdb5) << "store endpoint: " << alias << " default data location endpoint: " << store << std::endl;
             }
         }
     }

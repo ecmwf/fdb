@@ -108,7 +108,7 @@ bool TocCatalogueWriter::open() {
 
 void TocCatalogueWriter::clean() {
 
-    eckit::Log::debug<LibFdb5>() << "Closing path " << directory_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Closing path " << directory_ << std::endl;
 
     flush(); // closes the TOC entries & indexes but not data files
 
@@ -380,7 +380,7 @@ void TocCatalogueWriter::compactSubTocIndexes() {
 
     if (useSubToc() && anythingWrittenToSubToc()) {
 
-        eckit::Log::debug<LibFdb5>() << "compacting sub tocs" << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "compacting sub tocs" << std::endl;
 
         for (IndexStore::iterator j = fullIndexes_.begin(); j != fullIndexes_.end(); ++j) {
             Index& idx = j->second;

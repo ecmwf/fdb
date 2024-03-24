@@ -128,7 +128,7 @@ void IndexBase::encodeLegacy(eckit::Stream& s, const int version) const {
 
 void IndexBase::put(const InspectionKey &key, const Field &field) {
 
-    eckit::Log::debug<LibFdb5>() << "FDB Index " << indexer_ << " " << key << " -> " << field << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "FDB Index " << indexer_ << " " << key << " -> " << field << std::endl;
 
     axes_.insert(key);
     add(key, field);

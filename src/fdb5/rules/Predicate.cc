@@ -24,8 +24,8 @@ eckit::Reanimator<Predicate> Predicate::reanimator_;
 Predicate::Predicate(const std::string &keyword, Matcher *matcher) :
     matcher_(matcher),
     keyword_(keyword) {
-    //    dump(eckit::Log::debug());
-    //    eckit::Log::debug() << std::endl;
+    //    dump(Log::debug<LibFdb5>());
+    //    LOG_DEBUG_LIB(LibFdb5) << std::endl;
 }
 
 Predicate::Predicate(eckit::Stream& s) {

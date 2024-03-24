@@ -60,7 +60,7 @@ public:
 ClientConnection::ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint):
     controlEndpoint_(controlEndpoint), defaultEndpoint_(defaultEndpoint), id_(1), connected_(false), dataWriteQueue_(nullptr) {
 
-    eckit::Log::debug<LibFdb5>() << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
 }
 
 void ClientConnection::add(Client& client) {
@@ -125,14 +125,14 @@ bool ClientConnection::connect(bool singleAttempt) {
 
     try {
         // Connect to server, and check that the server is happy on the response 
-        eckit::Log::debug<LibFdb5>() << "Connecting to host: " << controlEndpoint_ << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Connecting to host: " << controlEndpoint_ << std::endl;
         controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
 
         writeControlStartupMessage();
         eckit::SessionID serverSession = verifyServerStartupResponse();
 
         // Connect to the specified data port
-        eckit::Log::debug<LibFdb5>() << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
         dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
         writeDataStartupMessage(serverSession);
 
@@ -353,7 +353,7 @@ void ClientConnection::listeningControlThreadLoop() {
 
             eckit::Buffer payload = Connection::readControl(hdr);
 
-            eckit::Log::debug<LibFdb5>() << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
             if (hdr.message == Message::Exit) {
                 return;
@@ -422,7 +422,7 @@ void ClientConnection::listeningDataThreadLoop() {
 
             eckit::Buffer payload = Connection::readData(hdr);
 
-            eckit::Log::debug<LibFdb5>() << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
             if (hdr.message == Message::Exit) {
                 return;

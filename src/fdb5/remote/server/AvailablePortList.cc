@@ -46,7 +46,7 @@ std::set<int> readServices() {
 
     std::ifstream in(servicesFile.localPath());
 
-    Log::debug<LibFdb5>() << "Scanning for ports to avoid in services file " << servicesFile << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Scanning for ports to avoid in services file " << servicesFile << std::endl;
 
     if (!in) {
         Log::error() << servicesFile << Log::syserr << std::endl;
@@ -84,7 +84,7 @@ std::set<int> readServices() {
                 const std::string& port     = s[1];
                 const std::string& protocol = s[2];
 
-                Log::debug<LibFdb5>() << "Skipping port " << port << " service " << sname << " protocol " << protocol << std::endl;
+                LOG_DEBUG_LIB(LibFdb5) << "Skipping port " << port << " service " << sname << " protocol " << protocol << std::endl;
 
                 int p = toInt(port);
                 portsToSkip.insert(p);

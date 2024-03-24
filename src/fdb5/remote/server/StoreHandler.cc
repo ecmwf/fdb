@@ -94,7 +94,7 @@ void StoreHandler::read(uint32_t clientID, uint32_t requestID, const eckit::Buff
 
     std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
 
-    Log::debug<LibFdb5>() << "Queuing for read: " << requestID << " " << *location << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Queuing for read: " << requestID << " " << *location << std::endl;
 
     std::unique_ptr<eckit::DataHandle> dh;
     dh.reset(location->dataHandle());
@@ -123,7 +123,7 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
         long dataRead;
 
         dh->openForRead();
-        Log::debug<LibFdb5>() << "Reading: " << requestID << " dh size: " << dh->size()
+        LOG_DEBUG_LIB(LibFdb5) << "Reading: " << requestID << " dh size: " << dh->size()
                               << std::endl;
 
         while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
@@ -132,13 +132,13 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
 
         // And when we are done, add a complete message.
 
-        Log::debug<LibFdb5>() << "Writing retrieve complete message: " << requestID
+        LOG_DEBUG_LIB(LibFdb5) << "Writing retrieve complete message: " << requestID
                               << std::endl;
 
         write(Message::Complete, false, clientID, requestID);
 
         Log::status() << "Done retrieve: " << requestID << std::endl;
-        Log::debug<LibFdb5>() << "Done retrieve: " << requestID << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Done retrieve: " << requestID << std::endl;
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception

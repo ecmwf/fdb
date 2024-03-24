@@ -296,7 +296,7 @@ void RemoteStore::flush() {
             MemoryStream s(sendBuf);
             s << stats.numArchive();
 
-            eckit::Log::debug<LibFdb5>() << " RemoteStore::flush - flushing " << stats.numArchive() << " fields" << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << " RemoteStore::flush - flushing " << stats.numArchive() << " fields" << std::endl;
             // The flush call is blocking
             uint32_t id = generateRequestID();
             controlWriteCheckResponse(Message::Flush, id, false, sendBuf, s.position());

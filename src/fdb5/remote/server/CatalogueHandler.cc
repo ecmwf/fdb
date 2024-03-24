@@ -299,7 +299,7 @@ void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
         }
     }
 
-    Log::debug<LibFdb5>() << "Client " << clientIPaddress << " from network '" << clientNetwork << "'" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Client " << clientIPaddress << " from network '" << clientNetwork << "'" << std::endl;
 
     ASSERT(config_.has("stores"));
     std::map<std::string, std::vector<eckit::net::Endpoint>> stores;
@@ -387,7 +387,7 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
 
     std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
 
-    Log::debug<LibFdb5>() << "CatalogueHandler::archiveBlob key: " << idxKey << key << "  location: " << location->uri() << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "CatalogueHandler::archiveBlob key: " << idxKey << key << "  location: " << location->uri() << std::endl;
 
     std::map<uint32_t, CatalogueArchiver>::iterator it;
     {

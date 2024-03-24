@@ -15,17 +15,11 @@
 
 #include "fdb5/remote/Messages.h"
 
-
-//#include "eckit/serialisation/Stream.h"
-
 using namespace eckit;
 
-
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
-
 
 std::ostream& operator<<(std::ostream& s, const Message& m) {
     switch (m) {
@@ -33,6 +27,7 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
         case Message::Exit: s << "Exit"; break;
         case Message::Startup: s << "Startup"; break;
         case Message::Error: s << "Error"; break;
+        case Message::Stop: s << "Stop"; break;
         case Message::Stores: s << "Stores"; break;
         case Message::Schema: s << "Schema"; break;
 
@@ -64,15 +59,6 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
     return s;
 }
 
-// MessageHeader::MessageHeader(Message message, bool control, const Handler& clientID, uint32_t requestID, uint32_t payloadSize) :
-//     marker(StartMarker),
-//     version(CurrentVersion),
-//     message(message),
-//     clientID_((clientID.clientId()<<1) + (control ? 1 : 0)),
-//     requestID(requestID),
-//     payloadSize(payloadSize) {}
-
-
 MessageHeader::MessageHeader(Message message, bool control, uint32_t clientID, uint32_t requestID, uint32_t payloadSize) :
     marker(StartMarker),
     version(CurrentVersion),
@@ -81,33 +67,6 @@ MessageHeader::MessageHeader(Message message, bool control, uint32_t clientID, u
     requestID(requestID),
     payloadSize(payloadSize) {}
 
-//ClassSpec MessageHeader::classSpec_ = {&MessageHeader::classSpec(), "MessageHeader",};
-//Reanimator<MessageHeader> MessageHeader::reanimator_;
-//
-//
-//MessageHeader::MessageHeader(Message message, uint16_t payloadSize=0) :
-//    marker(StartMarker),
-//    version(CurrentVersion),
-//    message(message),
-//    payloadSize(payloadSize) {}
-//
-//MessageHeader::MessageHeader(Stream &s) :
-//    marker(s) {
-//    s >> version;
-//    uint16_t tmp;
-//    s >> tmp;
-//    message = static_cast<Message>(tmp);
-//    s >> payloadSize;
-//}
-//
-//void MessageHeader::encode(Stream &s) const {
-//    s << marker;
-//    s << version;
-//    s << static_cast<uint16_t>(message);
-//    s << payloadSize;
-//}
-
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
+} // namespace fdb5::remote

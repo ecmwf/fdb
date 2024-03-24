@@ -68,7 +68,7 @@ Config::Config() : schemaPath_(""), schemaPathInitialised_(false) {
 }
 
 Config Config::make(const eckit::PathName& path, const eckit::Configuration& userConfig) {
-    eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << path << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Using FDB configuration file: " << path << std::endl;
     Config cfg{YAMLConfiguration(path)};
     cfg.set("configSource", path);
     cfg.userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
@@ -213,7 +213,7 @@ void Config::initializeSchemaPath() const {
     }
 
     schemaPathInitialised_ = true;
-    eckit::Log::debug<LibFdb5>() << "Using FDB schema: " << schemaPath_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Using FDB schema: " << schemaPath_ << std::endl;
 }
 
 PathName Config::configPath() const {

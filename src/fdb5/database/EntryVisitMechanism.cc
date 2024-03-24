@@ -99,7 +99,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     // TODO: Put minimim keys check into FDBToolRequest.
 
-    Log::debug<LibFdb5>() << "REQUEST ====> " << request.request() << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "REQUEST ====> " << request.request() << std::endl;
 
     try {
 
@@ -110,7 +110,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
         // And do the visitation
         for (const URI& uri : uris) {
 
-            Log::debug<LibFdb5>() << "FDB processing URI " << uri << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "FDB processing URI " << uri << std::endl;
 
             std::unique_ptr<CatalogueReader> catalogue = CatalogueReaderFactory::instance().build(uri, dbConfig_);
             ASSERT(catalogue->open());

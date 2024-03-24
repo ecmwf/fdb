@@ -108,7 +108,7 @@ void Connection::write(remote::Message msg, bool control, uint32_t clientID, uin
 
     // std::cout << "WRITE [" << "endpoint=" << ((control || single_) ? controlSocket() : dataSocket()).remotePort() << ",message=" << message.message << ",clientID=" << message.clientID() << ",requestID=" << message.requestID << ",payload=" << message.payloadSize << "]" << std::endl;
 
-    eckit::Log::debug<LibFdb5>() << "Connection::write [message=" << msg << ",clientID=" << message.clientID() << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Connection::write [message=" << msg << ",clientID=" << message.clientID() << ",requestID=" << requestID << ",data=" << data.size() << ",payload=" << payloadLength << "]" << std::endl;
 
     std::lock_guard<std::mutex> lock((control || single_) ? controlMutex_ : dataMutex_);
     writeUnsafe(control, &message, sizeof(message));

@@ -18,6 +18,7 @@
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/io/HandleGatherer.h"
@@ -99,10 +100,10 @@ void FDBUrl::execute(const eckit::option::CmdArgs &args) {
             fdb5::ListIterator it = fdb.inspect(request);
             while (it.next(el)) {
                 eckit::URI uri = el.location().fullUri();
-                eckit::Log::debug() << uri << std::endl;
+                LOG_DEBUG_LIB(fdb5::LibFdb5) << uri << std::endl;
 
                 std::string uriStr = uri.asRawString();
-                eckit::Log::debug() << uriStr << std::endl;
+                LOG_DEBUG_LIB(fdb5::LibFdb5) << uriStr << std::endl;
 
                 eckit::URI newUri(uriStr);
                 handles.add(fdb.read(newUri));

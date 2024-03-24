@@ -42,7 +42,7 @@ bool RetrieveVisitor::selectDatabase(const Key& key, const Key&) {
         }
     }
 
-    eckit::Log::debug<LibFdb5>() << "selectDatabase " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectDatabase " << key << std::endl;
     catalogue_ = CatalogueReaderFactory::instance().build(key, fdb5::Config()).get();
 
     // If this database is locked for retrieval then it "does not exist"

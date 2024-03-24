@@ -124,7 +124,7 @@ void RemoteCatalogue::flush() {
         MemoryStream s(sendBuf);
         s << numLocations_;
 
-        eckit::Log::debug<LibFdb5>() << " RemoteCatalogue::flush - flushing " << numLocations_ << " fields" << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << " RemoteCatalogue::flush - flushing " << numLocations_ << " fields" << std::endl;
 
         // The flush call is blocking
         uint32_t id = generateRequestID();
@@ -154,7 +154,7 @@ void RemoteCatalogue::loadSchema() {
     // (outside of the catalogue) 
 
     if (!schema_) {
-        eckit::Log::debug<LibFdb5>() << "RemoteCatalogue::loadSchema()" << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "RemoteCatalogue::loadSchema()" << std::endl;
 
         // send dbkey to remote.
         eckit::Buffer keyBuffer(4096);
@@ -170,14 +170,14 @@ void RemoteCatalogue::loadSchema() {
 }
 
 bool RemoteCatalogue::handle(Message message, bool control, uint32_t requestID) {
-    eckit::Log::debug<LibFdb5>() << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << "]" << std::endl;
     NOTIMP;
     return false;
 }
 bool RemoteCatalogue::handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) {
-    eckit::Log::debug<LibFdb5>() << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << ",payloadSize=" << payload.size() << "]" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << *this << " - Received [message=" << ((uint) message) << ",requestID=" << requestID << ",payloadSize=" << payload.size() << "]" << std::endl;
     // if (message == Message::Schema) {
-    //     eckit::Log::debug<LibFdb5>() << "RemoteCatalogue::handle received payload size: " << payload.size() << std::endl;
+    //     LOG_DEBUG_LIB(LibFdb5) << "RemoteCatalogue::handle received payload size: " << payload.size() << std::endl;
     //     MemoryStream s(payload);
     //     schema_ = std::unique_ptr<Schema>(eckit::Reanimator<Schema>::reanimate(s));
     //     return true;

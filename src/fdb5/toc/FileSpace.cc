@@ -45,12 +45,12 @@ TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
 
     TocPath existingDB;
     if (existsDB(key, db, existingDB)) {
-        Log::debug<LibFdb5>() << "Found existing DB for key " << key << " -> " << existingDB.directory_ << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Found existing DB for key " << key << " -> " << existingDB.directory_ << std::endl;
         return existingDB;
     }
 
-    Log::debug<LibFdb5>() << "FDB for key " << key << " not found, selecting a root" << std::endl;
-    // Log::debug<LibFdb5>() << eckit::BackTrace::dump() << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "FDB for key " << key << " not found, selecting a root" << std::endl;
+    // LOG_DEBUG_LIB(LibFdb5) << eckit::BackTrace::dump() << std::endl;
 
     return TocPath{FileSpaceHandler::lookup(handler_).selectFileSystem(key, *this) / db, ControlIdentifiers{}};
 }

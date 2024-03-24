@@ -62,7 +62,7 @@ public: // methods
 
         /* From the docs: llapi_file_create closes the file descriptor. You must re-open the file afterwards */
 
-        eckit::Log::debug<LibFdb5>() << "Creating Lustre file " << path
+        LOG_DEBUG_LIB(LibFdb5) << "Creating Lustre file " << path
                                     << " with " << stripe_.count_ << " stripes "
                                     << "of " << eckit::Bytes(stripe_.size_)
                                     << std::endl;

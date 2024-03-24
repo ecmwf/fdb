@@ -19,6 +19,7 @@
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/hypercube/HyperCubePayloaded.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/io/FieldHandle.h"
 
 namespace fdb5 {
@@ -184,7 +185,7 @@ long FieldHandle::read(void* buffer, long length) {
         p += n;
     }
 
-    eckit::Log::debug() << "FieldHandle::read " << (total > 0 ? total : n) << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "FieldHandle::read " << (total > 0 ? total : n) << std::endl;
 
     return total > 0 ? total : n;
 }

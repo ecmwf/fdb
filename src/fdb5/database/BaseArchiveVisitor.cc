@@ -26,7 +26,7 @@ BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key &dataKey) :
 }
 
 bool BaseArchiveVisitor::selectDatabase(const Key &dbKey, const Key&) {
-    eckit::Log::debug<LibFdb5>() << "selectDatabase " << dbKey << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectDatabase " << dbKey << std::endl;
     owner_.selectDatabase(dbKey);
     ASSERT(owner_.catalogue_);
     owner_.catalogue_->deselectIndex();

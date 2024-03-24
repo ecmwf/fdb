@@ -44,7 +44,7 @@ MultiRetrieveVisitor::~MultiRetrieveVisitor() {
 
 bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
-	eckit::Log::debug<LibFdb5>() << "FDB5 selectDatabase " << key  << std::endl;
+	LOG_DEBUG_LIB(LibFdb5) << "FDB5 selectDatabase " << key  << std::endl;
 
     /* is it the current DB ? */
 
@@ -58,7 +58,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     /* is the DB already open ? */
 
     if(databases_.exists(key)) {
-        eckit::Log::debug<LibFdb5>() << "FDB5 Reusing database " << key << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "FDB5 Reusing database " << key << std::endl;
         catalogue_ = databases_.access(key);
         return true;
     }
@@ -75,10 +75,10 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
         return false;
     }
 
-    eckit::Log::debug<LibFdb5>() << "selectDatabase opening database " << key << " (type=" << newCatalogue->type() << ")" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectDatabase opening database " << key << " (type=" << newCatalogue->type() << ")" << std::endl;
 
     if (!newCatalogue->open()) {
-        eckit::Log::debug() << "Database does not exist " << key << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Database does not exist " << key << std::endl;
         return false;
     } else {
         catalogue_ = newCatalogue.release();
@@ -89,13 +89,13 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
 bool MultiRetrieveVisitor::selectIndex(const Key& key, const Key&) {
     ASSERT(catalogue_);
-    eckit::Log::debug() << "selectIndex " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectIndex " << key << std::endl;
     return catalogue_->selectIndex(key);
 }
 
 bool MultiRetrieveVisitor::selectDatum(const InspectionKey& key, const Key& full) {
     ASSERT(catalogue_);
-    eckit::Log::debug() << "selectDatum " << key << ", " << full << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectDatum " << key << ", " << full << std::endl;
 
     Field field;
     if (catalogue_->retrieve(key, field)) {
