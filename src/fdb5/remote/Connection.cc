@@ -63,7 +63,7 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) {
 
     ASSERT(hdr.marker == StartMarker);
     ASSERT(hdr.version == CurrentVersion);
-    ASSERT(hdr.control() == control);
+    ASSERT(single_ || hdr.control() == control);
 
     eckit::Buffer payload{hdr.payloadSize};
     if (hdr.payloadSize > 0) {

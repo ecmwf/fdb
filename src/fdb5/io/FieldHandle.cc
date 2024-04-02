@@ -142,7 +142,11 @@ void FieldHandle::openCurrent() {
                 read += len;
             }
 
-            ASSERT(read == currentSize);
+            if (read != currentSize) {
+                std::stringstream ss;
+                ss << "Error reading from " << *current_ << " - read " << read << ", expected " << currentSize;
+                throw eckit::ReadError(ss.str());
+            }
             current_ = new eckit::MemoryHandle(buffer_, currentSize);
             current_->openForRead();
             currentMemoryHandle_ = true;

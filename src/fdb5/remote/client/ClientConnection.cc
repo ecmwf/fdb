@@ -131,14 +131,16 @@ bool ClientConnection::connect(bool singleAttempt) {
         writeControlStartupMessage();
         eckit::SessionID serverSession = verifyServerStartupResponse();
 
-        // Connect to the specified data port
-        LOG_DEBUG_LIB(LibFdb5) << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
-        dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
-        writeDataStartupMessage(serverSession);
+        if (!single_) {
+            // Connect to the specified data port
+            LOG_DEBUG_LIB(LibFdb5) << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
+            dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
+            writeDataStartupMessage(serverSession);
 
-        // And the connections are set up. Let everything start up!
+            listeningDataThread_ = std::thread([this] { listeningDataThreadLoop(); });
+        }
+
         listeningControlThread_ = std::thread([this] { listeningControlThreadLoop(); });
-        listeningDataThread_ = std::thread([this] { listeningDataThreadLoop(); });
 
         connected_ = true;
         return true;
@@ -181,6 +183,9 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
     eckit::LocalConfiguration conf;
     std::vector<int> remoteFieldLocationVersions = {1};
     conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
+    std::vector<int> numberOfConnections = {1,2};
+    conf.set("NumberOfConnections", numberOfConnections);
+    conf.set("PreferSingleConnection", false);
     return conf;
 }
 
@@ -202,7 +207,7 @@ void ClientConnection::dataWrite(DataWriteRequest& r) {
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data) {
 
-    static size_t maxQueueLength = eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 2);
+    static size_t maxQueueLength = eckit::Resource<size_t>("fdbDataWriteQueueLength;$FDB_DATA_WRITE_QUEUE_LENGTH", 32);
     auto it = clients_.find(client.clientId());
     ASSERT(it != clients_.end());
 
@@ -347,13 +352,12 @@ void ClientConnection::listeningControlThreadLoop() {
     try {
 
         MessageHeader hdr;
-        eckit::FixedString<4> tail;
 
         while (true) {
 
             eckit::Buffer payload = Connection::readControl(hdr);
 
-            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message << ",clientID=" << hdr.clientID() << ",control=" << hdr.control() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
             if (hdr.message == Message::Exit) {
                 return;
@@ -416,7 +420,6 @@ void ClientConnection::listeningDataThreadLoop() {
     try {
 
         MessageHeader hdr;
-        eckit::FixedString<4> tail;
 
         while (true) {
 

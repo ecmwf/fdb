@@ -241,7 +241,10 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
         }
     }
 
-    locations_[id] = catalogue_archive;
+    {
+        std::lock_guard<std::mutex> lock(locationMutex_);
+        locations_[id] = catalogue_archive;
+    }
 
     Buffer keyBuffer(4096);
     MemoryStream keyStream(keyBuffer);
@@ -365,8 +368,9 @@ bool RemoteStore::handle(Message message, bool control, uint32_t requestID, ecki
     switch (message) {
     
         case Message::Store: { // received a Field location from the remote store, can forward to the archiver for the indexing
+            std::lock_guard<std::mutex> lock(locationMutex_);
+
             auto it = locations_.find(requestID);
-            ASSERT(it != locations_.end());
             if (it != locations_.end()) {
                 MemoryStream s(payload);
                 std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));

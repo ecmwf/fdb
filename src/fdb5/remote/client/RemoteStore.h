@@ -100,6 +100,7 @@ private: // members
     std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
     MessageQueue retrieveMessageQueue_;
 
+    std::mutex locationMutex_;
     std::map<uint32_t, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)>> locations_;
     FDBStats internalStats_;
     FDBStats archivalStats_;

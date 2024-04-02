@@ -116,7 +116,7 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
             case Message::Blob:
             case Message::MultiBlob:
                 queue(message, clientID, requestID, std::move(payload));
-                return Handled::Yes;
+                return Handled::Replied;
 
             default: {
                 std::stringstream ss;
@@ -142,7 +142,7 @@ eckit::LocalConfiguration ServerConnection::availableFunctionality() const {
 //    Add to the configuration all the components that require to be versioned, as in the following example, with a vector of supported version numbers
     std::vector<int> remoteFieldLocationVersions = {1};
     conf.set("RemoteFieldLocation", remoteFieldLocationVersions);
-    std::vector<int> numberOfConnections = {2};
+    std::vector<int> numberOfConnections = {1,2};
     conf.set("NumberOfConnections", numberOfConnections);
     return conf;
 }
@@ -480,7 +480,7 @@ void ServerConnection::handle() {
                         {
                             std::lock_guard<std::mutex> lock(handlerMutex_);
                             dataListener_++;
-                            if (dataListener_ == 1) {
+                            if (dataListener_ == 1 && !single_) {
                                 listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
                             }
                         }
