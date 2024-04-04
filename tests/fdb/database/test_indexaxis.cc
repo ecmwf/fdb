@@ -145,6 +145,33 @@ CASE("Check that merging works correctly") {
     EXPECT(iatest != ia2);
 }
 
+CASE("Copy internal map") {
+
+    fdb5::IndexAxis ia;
+    ia.insert(EXAMPLE_K1);
+    ia.insert(EXAMPLE_K2);
+    ia.insert(EXAMPLE_K3);
+    ia.sort();
+
+    std::map<std::string, eckit::DenseSet<std::string>> map = ia.map();
+
+    EXPECT(map.size() == 4);
+    for (const auto& [k, v] : map) {
+        EXPECT(v == ia.values(k));
+    }
+
+    // Make sure it's not a shallow copy
+    map["class"].insert("new1");
+    map["class"].sort();
+    EXPECT(map["class"].contains("new1"));
+    EXPECT(!ia.values("class").contains("new1"));
+
+    ia.insert(fdb5::Key{{{"class", "new2"}}});
+    ia.sort();
+    EXPECT(ia.values("class").contains("new2"));
+    EXPECT(!map["class"].contains("new2"));
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 } // anonymous namespace
