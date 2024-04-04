@@ -66,6 +66,8 @@ public: // methods
     bool has(const std::string &keyword) const;
     const eckit::DenseSet<std::string> &values(const std::string &keyword) const;
 
+    std::map<std::string, eckit::DenseSet<std::string>> map() const;
+
     void dump(std::ostream &out, const char* indent) const;
 
     bool partialMatch(const metkit::mars::MarsRequest& request) const;

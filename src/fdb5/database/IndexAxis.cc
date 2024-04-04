@@ -321,6 +321,17 @@ const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword
     return *(i->second);
 }
 
+std::map<std::string, eckit::DenseSet<std::string>> IndexAxis::map() const {
+
+    // Make a copy of the axis map
+    std::map<std::string, eckit::DenseSet<std::string>> result;
+
+    for (const auto& kv : axis_) {
+        result[kv.first] = eckit::DenseSet<std::string>(*kv.second);
+    }
+    return result;
+}
+
 void IndexAxis::print(std::ostream &out) const {
     out << "IndexAxis["
         <<  "axis=";
