@@ -327,7 +327,7 @@ std::map<std::string, eckit::DenseSet<std::string>> IndexAxis::map() const {
     std::map<std::string, eckit::DenseSet<std::string>> result;
 
     for (const auto& kv : axis_) {
-        result[kv.first] = eckit::DenseSet<std::string>(*kv.second);
+        result.emplace(kv.first, *kv.second);
     }
     return result;
 }
