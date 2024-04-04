@@ -67,7 +67,7 @@ protected: // methods
     virtual void deselectIndex() override;
 
     bool open() override;
-    void flush() override;
+    void flush(size_t archivedFields) override;
     void clean() override;
     void close() override;
 
@@ -106,6 +106,7 @@ private: // members
     Index currentFull_;
 
     eckit::AutoUmask umask_;
+    size_t archivedLocations_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

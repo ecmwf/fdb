@@ -131,7 +131,8 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     cachedToc_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
-    writeMode_(false)
+    writeMode_(false),
+    dirty_(false)
 {
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
@@ -154,7 +155,8 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
     cachedToc_(nullptr),
     count_(0),
     enumeratedMaskedEntries_(false),
-    writeMode_(false)
+    writeMode_(false),
+    dirty_(false)
 {
     /// Are we remapping a mounted DB?
     if (exists()) {

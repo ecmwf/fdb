@@ -26,8 +26,7 @@ namespace fdb5 {
 
 Archiver::Archiver(const Config& dbConfig) :
     dbConfig_(dbConfig),
-    catalogue_(nullptr),
-    store_(nullptr) {}
+    db_(nullptr) {}
 
 Archiver::~Archiver() {
     flush(); // certify that all sessions are flushed before closing them
@@ -56,8 +55,8 @@ void Archiver::archive(const Key &key, BaseArchiveVisitor& visitor) {
 
 void Archiver::flush() {
     for (auto i = databases_.begin(); i != databases_.end(); ++i) {
-        i->second.store_->flush();      // flush the store
-        i->second.catalogue_->flush();  // flush the catalogue
+        // flush the store, pass the number of flushed fields to the catalogue
+        i->second.catalogue_->flush(i->second.store_->flush());
     }
 }
 
@@ -66,8 +65,7 @@ void Archiver::selectDatabase(const Key &dbKey) {
     auto i = databases_.find(dbKey);
 
     if (i != databases_.end() ) {
-        catalogue_ = i->second.catalogue_.get();
-        store_ = i->second.store_.get();
+        db_ = &(i->second);
         i->second.time_ = ::time(0);
         return;
     }
@@ -86,8 +84,7 @@ void Archiver::selectDatabase(const Key &dbKey) {
             }
         }
         if (found) {
-            databases_[oldK].store_->flush();
-            databases_[oldK].catalogue_->flush();
+            databases_[oldK].catalogue_->flush(databases_[oldK].store_->flush());
             
             eckit::Log::info() << "Closing database " << *databases_[oldK].catalogue_ << std::endl;
             databases_.erase(oldK);
@@ -105,10 +102,7 @@ void Archiver::selectDatabase(const Key &dbKey) {
     }
 
     std::unique_ptr<Store> str = cat->buildStore();
-    catalogue_ = cat.get();
-    store_ = str.get();
-
-    databases_[dbKey] = Database{::time(0), std::move(cat), std::move(str)};
+    db_ = &(databases_[dbKey] = Database{::time(0), std::move(cat), std::move(str)});
 }
 
 void Archiver::print(std::ostream &out) const {

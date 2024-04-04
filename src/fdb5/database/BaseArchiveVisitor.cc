@@ -28,16 +28,14 @@ BaseArchiveVisitor::BaseArchiveVisitor(Archiver &owner, const Key &dataKey) :
 bool BaseArchiveVisitor::selectDatabase(const Key &dbKey, const Key&) {
     LOG_DEBUG_LIB(LibFdb5) << "selectDatabase " << dbKey << std::endl;
     owner_.selectDatabase(dbKey);
-    ASSERT(owner_.catalogue_);
-    owner_.catalogue_->deselectIndex();
+    catalogue()->deselectIndex();
 
     return true;
 }
 
 bool BaseArchiveVisitor::selectIndex(const Key &idxKey, const Key&) {
     // eckit::Log::info() << "selectIndex " << key << std::endl;
-    ASSERT(owner_.catalogue_);
-    return owner_.catalogue_->selectIndex(idxKey);
+    return catalogue()->selectIndex(idxKey);
 }
 
 void BaseArchiveVisitor::checkMissingKeys(const Key &full) {
@@ -47,16 +45,19 @@ void BaseArchiveVisitor::checkMissingKeys(const Key &full) {
 }
 
 const Schema& BaseArchiveVisitor::databaseSchema() const {
-    ASSERT(current());
-    return current()->schema();
+    return catalogue()->schema();
 }
 
-CatalogueWriter* BaseArchiveVisitor::current() const {
-    return owner_.catalogue_;
+CatalogueWriter* BaseArchiveVisitor::catalogue() const {
+    ASSERT(owner_.db_);
+    ASSERT(owner_.db_->catalogue_);
+    return owner_.db_->catalogue_.get();
 }
 
 Store* BaseArchiveVisitor::store() const {
-    return owner_.store_;
+    ASSERT(owner_.db_);
+    ASSERT(owner_.db_->store_);
+    return owner_.db_->store_.get();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

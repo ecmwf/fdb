@@ -47,7 +47,7 @@ public: // methods
     eckit::URI uri() const override;
 
     bool open() override;
-    void flush() override;
+    size_t flush() override;
     void close() override;
 
     void checkUID() const override { }
@@ -77,10 +77,6 @@ protected: // methods
 
 private: // methods
 
-    FDBStats archivalCompleted();
-
-    void flush(FDBStats& stats);
-
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, bool control, uint32_t requestID) override;
     bool handle(Message message, bool control, uint32_t requestID, eckit::Buffer&& payload) override;
@@ -102,13 +98,11 @@ private: // members
 
     std::mutex locationMutex_;
     std::map<uint32_t, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)>> locations_;
-    FDBStats internalStats_;
-    FDBStats archivalStats_;
-    std::promise<FDBStats> fieldLocationsReceived_;
-    std::future<FDBStats> archivalCompleted_;
+    size_t fieldsArchived_;
+    size_t locationsReceived_;
+    std::promise<size_t> promiseArchivalCompleted_;
+    std::future<size_t> archivalCompleted_;
     std::mutex archiveMutex_;
-    bool dirty_;
-    bool flushRequested_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

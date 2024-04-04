@@ -262,6 +262,8 @@ private: // members
 
     mutable bool enumeratedMaskedEntries_;
     mutable bool writeMode_;
+
+    mutable bool dirty_;
 };
 
 

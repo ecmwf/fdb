@@ -33,7 +33,8 @@ namespace fdb5 {
 
 TocCatalogueWriter::TocCatalogueWriter(const Key &dbKey, const fdb5::Config& config) :
     TocCatalogue(dbKey, config),
-    umask_(config.umask()) {
+    umask_(config.umask()),
+    archivedLocations_(0) {
     writeInitRecord(dbKey);
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
@@ -41,7 +42,8 @@ TocCatalogueWriter::TocCatalogueWriter(const Key &dbKey, const fdb5::Config& con
 
 TocCatalogueWriter::TocCatalogueWriter(const eckit::URI &uri, const fdb5::Config& config) :
     TocCatalogue(uri.path(), ControlIdentifiers{}, config),
-    umask_(config.umask()) {
+    umask_(config.umask()),
+    archivedLocations_(0) {
     writeInitRecord(TocCatalogue::key());
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
@@ -110,7 +112,7 @@ void TocCatalogueWriter::clean() {
 
     LOG_DEBUG_LIB(LibFdb5) << "Closing path " << directory_ << std::endl;
 
-    flush(); // closes the TOC entries & indexes but not data files
+    flush(archivedLocations_); // closes the TOC entries & indexes but not data files
 
     compactSubTocIndexes();
 
@@ -123,7 +125,7 @@ void TocCatalogueWriter::close() {
 }
 
 void TocCatalogueWriter::index(const InspectionKey &key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
-    dirty_ = true;
+    archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
@@ -301,7 +303,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
 }
 
 void TocCatalogueWriter::archive(const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
-    dirty_ = true;
+    archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
@@ -316,14 +318,16 @@ void TocCatalogueWriter::archive(const InspectionKey& key, std::unique_ptr<Field
         currentFull_.put(key, field);
 }
 
-void TocCatalogueWriter::flush() {
-    if (!dirty_) {
+void TocCatalogueWriter::flush(size_t archivedFields) {
+    ASSERT(archivedFields == archivedLocations_);
+
+    if (archivedLocations_ == 0) {
         return;
     }
 
     flushIndexes();
 
-    dirty_ = false;
+    archivedLocations_ = 0;
     current_ = Index();
     currentFull_ = Index();
 }

@@ -26,15 +26,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
-public:
-    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
-        return existing.timestamp() < replacement.timestamp();
-    }
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
 FieldHandle::FieldHandle(ListIterator& it) :
     datahandles_({}), totalSize_(0), currentIdx_(0), current_(nullptr), currentMemoryHandle_(false), buffer_(nullptr), sorted_(false), seekable_(true) {
     ListElement el;
@@ -179,6 +170,8 @@ long FieldHandle::read1(char* buffer, long length) {
 }
 
 long FieldHandle::read(void* buffer, long length) {
+    long requested = length;
+
     char* p    = static_cast<char*>(buffer);
     long n     = 0;
     long total = 0;
@@ -189,7 +182,7 @@ long FieldHandle::read(void* buffer, long length) {
         p += n;
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "FieldHandle::read " << (total > 0 ? total : n) << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "FieldHandle::read - requested: " << requested << "  read: " << (total > 0 ? total : n) << std::endl;
 
     return total > 0 ? total : n;
 }

@@ -22,6 +22,15 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class ListElementDeduplicator : public metkit::hypercube::Deduplicator<ListElement> {
+public:
+    bool toReplace(const ListElement& existing, const ListElement& replacement) const override {
+        return existing.timestamp() < replacement.timestamp();
+    }
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class FieldHandle : public eckit::DataHandle {
 public:
 

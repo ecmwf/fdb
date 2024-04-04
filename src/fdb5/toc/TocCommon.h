@@ -50,8 +50,6 @@ protected: // members
 
     mutable uid_t dbUID_;
     uid_t userUID_;
-
-    mutable bool dirty_;
 };
 
 }

@@ -35,8 +35,7 @@ eckit::PathName TocCommon::findRealPath(const eckit::PathName& path) {
 TocCommon::TocCommon(const eckit::PathName& directory) :
     directory_(findRealPath(directory)),
     dbUID_(static_cast<uid_t>(-1)),
-    userUID_(::getuid()),
-    dirty_(false) {}
+    userUID_(::getuid()) {}
 
 void TocCommon::checkUID() const {
     static bool fdbOnlyCreatorCanWrite = eckit::Resource<bool>("fdbOnlyCreatorCanWrite", true);

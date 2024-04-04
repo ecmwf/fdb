@@ -46,7 +46,7 @@ public:
 
     virtual std::string type() const = 0;
     virtual bool open() = 0;
-    virtual void flush() = 0;
+    virtual size_t flush() = 0;
     virtual void close() = 0;
 
 //    virtual std::string owner() const = 0;
@@ -58,7 +58,7 @@ public:
     virtual void remove(const Key& key) const { NOTIMP; }
 
     virtual eckit::URI uri() const = 0;
-    
+
 };
 
 

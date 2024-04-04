@@ -42,7 +42,7 @@ public: // methods
     eckit::URI uri() const override;
 
     bool open() override { return true; }
-    void flush() override;
+    size_t flush() override;
     void close() override;
 
     void checkUID() const override { TocCommon::checkUID(); }
@@ -84,7 +84,7 @@ private: // members
     HandleStore handles_;    ///< stores the DataHandles being used by the Session
 
     mutable PathStore   dataPaths_;
-
+    size_t archivedFields_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

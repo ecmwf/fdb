@@ -53,7 +53,7 @@ public:
     void print( std::ostream &out ) const override;
     std::string type() const override;
     bool open() override;
-    void flush() override;
+    void flush(size_t archivedFields) override;
     void clean() override;
     void close() override;
     bool exists() const override;
@@ -87,9 +87,6 @@ private:
 
     std::mutex archiveMutex_;
     size_t numLocations_;
-
-    // // not owning
-    // RemoteCatalogueArchiver* archiver_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

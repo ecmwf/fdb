@@ -20,19 +20,17 @@ namespace fdb5::remote {
 struct CatalogueArchiver {
     CatalogueArchiver(bool dataConnection, const Key& dbKey, const Config& config) :
         controlConnection(true), dataConnection(dataConnection),
-        catalogue(CatalogueWriterFactory::instance().build(dbKey, config)), locationsExpected(-1), locationsArchived(0) {
-        archivalCompleted = fieldLocationsReceived.get_future();
-    }
+        catalogue(CatalogueWriterFactory::instance().build(dbKey, config)), locationsExpected(0), locationsArchived(0) {}
 
     bool controlConnection;
     bool dataConnection;
     
     std::unique_ptr<CatalogueWriter> catalogue;
-    int32_t locationsExpected;
-    int32_t locationsArchived;
+    size_t locationsExpected;
+    size_t locationsArchived;
 
-    std::promise<int32_t> fieldLocationsReceived;
-    std::future<int32_t> archivalCompleted;
+    std::promise<size_t> fieldLocationsReceived;
+    std::future<size_t> archivalCompleted;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

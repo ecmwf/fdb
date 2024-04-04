@@ -39,7 +39,7 @@ public: // methods
     eckit::URI uri() const override;
 
     bool open() override { return true; }
-    void flush() override;
+    size_t flush() override;
     void close() override;
 
     void checkUID() const override { /* nothing to do */ }
@@ -78,8 +78,8 @@ private: // members
 
     PathStore   dataPaths_;
     eckit::PathName directory_;
-
-    mutable bool dirty_;
+    
+    size_t archivedFields_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

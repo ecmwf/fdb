@@ -156,16 +156,66 @@ eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
     }
     return result.dataHandle();
 }
-    
 
-eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
+eckit::DataHandle* FDB::read(bool seekable, ListIterator& it, bool sorted) {
 
-    return new FieldHandle(it);
+    if (seekable) {
+        return new FieldHandle(it);
+    }
+
+    eckit::Timer timer;
+    timer.start();
+
+    HandleGatherer result(sorted);
+    ListElement el;
+
+    static bool dedup = eckit::Resource<bool>("fdbDeduplicate;$FDB_DEDUPLICATE_FIELDS", false);
+    if (dedup) {
+        if (it.next(el)) {
+            // build the request representing the tensor-product of all retrieved fields
+            metkit::mars::MarsRequest cubeRequest = el.combinedKey().request();
+            std::vector<ListElement> elements{el};
+
+            while (it.next(el)) {
+                cubeRequest.merge(el.combinedKey().request());
+                elements.push_back(el);
+            }
+
+            // checking all retrieved fields against the hypercube, to remove duplicates
+            ListElementDeduplicator dedup;
+            metkit::hypercube::HyperCubePayloaded<ListElement> cube(cubeRequest, dedup);
+            for(auto el: elements) {
+                cube.add(el.combinedKey().request(), el);
+            }
+
+            if (cube.countVacant() > 0) {
+                std::stringstream ss;
+                ss << "No matching data for requests:" << std::endl;
+                for (auto req: cube.vacantRequests()) {
+                    ss << "    " << req << std::endl;
+                }
+                eckit::Log::warning() << ss.str() << std::endl;
+            }
+
+            for (size_t i=0; i< cube.size(); i++) {
+                ListElement element;
+                if (cube.find(i, element)) {
+                    result.add(element.location().dataHandle());
+                }
+            }
+        }
+    }
+    else {
+        while (it.next(el)) {
+            result.add(el.location().dataHandle());
+        }
+    }
+    return result.dataHandle();
 }
 
-eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request, bool seekable) {
     ListIterator it = inspect(request);
-    return read(it, sorted(request));
+    return read(seekable, it, sorted(request));
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {

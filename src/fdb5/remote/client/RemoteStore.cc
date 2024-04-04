@@ -87,7 +87,6 @@ private: // methods
         if (currentBuffer_.size() != 0) return bufferRead(pos, sz);
 
         // If we are in the DataHandle, then there MUST be data to read
-
         RemoteStore::StoredMessage msg = std::make_pair(remote::Message{}, eckit::Buffer{0});
         ASSERT(queue_.pop(msg) != -1);
 
@@ -183,14 +182,14 @@ RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
     Client(storeEndpoints(config)),
     dbKey_(dbKey), config_(config),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
-    dirty_(false), flushRequested_(false) {}
+    fieldsArchived_(0), locationsReceived_(0) {}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     Client(eckit::net::Endpoint(uri.hostport()), uri.hostport()),
     dbKey_(Key()), config_(config),
     retrieveMessageQueue_(eckit::Resource<size_t>("fdbRemoteRetrieveQueueLength;$FDB_REMOTE_RETRIEVE_QUEUE_LENGTH", 200)),
-    dirty_(false), flushRequested_(false) { 
+    fieldsArchived_(0), locationsReceived_(0) { 
 
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
@@ -201,7 +200,7 @@ RemoteStore::~RemoteStore() {
     // an error. n.b. if we don't do something, we will block in the destructor
     // of std::future.
     if (archivalCompleted_.valid() || !locations_.empty()) {
-        Log::error() << "Attempting to destruct RemoteStore with active archival" << std::endl;
+        Log::error() << "Attempting to destruct RemoteStore with active archival - location to receive: " << locations_.size() << " archivalCompleted_.valid() " << archivalCompleted_.valid() << std::endl;
         eckit::Main::instance().terminate();
     }
 }
@@ -220,9 +219,6 @@ eckit::DataHandle* RemoteStore::retrieve(Field& field) const {
 
 void RemoteStore::archive(const Key& key, const void *data, eckit::Length length, std::function<void(const std::unique_ptr<FieldLocation> fieldLocation)> catalogue_archive) {
 
-    eckit::Timer timer;
-    timer.start();
-
     ASSERT(!key.empty());
     ASSERT(data);
     ASSERT(length != 0);
@@ -230,16 +226,13 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     uint32_t id = connection_.generateRequestID();
     {
         std::lock_guard<std::mutex> lock(archiveMutex_);
-        if (!dirty_) { // if this is the first archival request, notify the server
-            ASSERT(archivalStats_.numArchive() == 0);
-            ASSERT(!archivalCompleted_.valid());
+        if (fieldsArchived_ == 0) { // if this is the first archival request, notify the server
             ASSERT(locations_.size() == 0);
-            archivalCompleted_ = fieldLocationsReceived_.get_future();
 
             controlWriteCheckResponse(Message::Store, id, true);
-            dirty_=true;
         }
     }
+    fieldsArchived_++;
 
     {
         std::lock_guard<std::mutex> lock(locationMutex_);
@@ -256,60 +249,57 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     payloads.push_back(std::pair<const void*, uint32_t>{data, length});
 
     dataWrite(Message::Blob, id, payloads);
-
-    timer.stop();
-
-    archivalStats_.addArchive(length, timer, 1);
 }
 
 bool RemoteStore::open() {
     return true;
 }
 
-FDBStats RemoteStore::archivalCompleted() {
-
-    if (flushRequested_ && (archivalStats_.numArchive() == archivalStats_.numLocation()) && locations_.empty()) {
-        fieldLocationsReceived_.set_value(archivalStats_);
-    }
-
-    FDBStats stats = archivalCompleted_.get();
-
-    ASSERT(locations_.empty());
-    archivalStats_ = FDBStats{};
-    return stats;
-}
-
-void RemoteStore::flush() {
-
-    Timer timer;
-
-    timer.start();
-
-    flushRequested_ = true;
+size_t RemoteStore::flush() {
 
     // Flush only does anything if there is an ongoing archive();
-    std::lock_guard<std::mutex> lock(archiveMutex_);
-    if (archivalCompleted_.valid()) {
-
-        // wait for archival completion (received all fieldLocations)
-        FDBStats stats = archivalCompleted();
-
-        if (stats.numArchive() > 0) {
-            Buffer sendBuf(1024);
-            MemoryStream s(sendBuf);
-            s << stats.numArchive();
-
-            LOG_DEBUG_LIB(LibFdb5) << " RemoteStore::flush - flushing " << stats.numArchive() << " fields" << std::endl;
-            // The flush call is blocking
-            uint32_t id = generateRequestID();
-            controlWriteCheckResponse(Message::Flush, id, false, sendBuf, s.position());
-        }
-        dirty_ = false;
+    if (fieldsArchived_ == 0) {
+        return 0;
     }
 
-    timer.stop();
-    flushRequested_ = false;
-    internalStats_.addFlush(timer);
+    LOG_DEBUG_LIB(LibFdb5) << " RemoteStore::flush - fieldsArchived_ " << fieldsArchived_ << " locationsReceived_ " << locationsReceived_ << std::endl;
+
+    size_t locations;
+    bool wait = true;
+    {
+        std::lock_guard<std::mutex> lock(locationMutex_);
+        if ((fieldsArchived_ > locationsReceived_) || !locations_.empty()) {
+            promiseArchivalCompleted_ = std::promise<size_t>{};
+            archivalCompleted_ = promiseArchivalCompleted_.get_future();
+        } else {
+            wait = false;
+        }
+    }
+
+    if (wait) {
+        // wait for archival completion (received all fieldLocations)
+        archivalCompleted_.wait();
+        locations = archivalCompleted_.get();
+    } else {
+        locations = locationsReceived_;
+    }
+
+    ASSERT(locations_.empty());
+    if (locations > 0) {
+        Buffer sendBuf(1024);
+        MemoryStream s(sendBuf);
+        s << locations;
+
+        LOG_DEBUG_LIB(LibFdb5) << " RemoteStore::flush - flushing " << locations << " fields" << std::endl;
+        // The flush call is blocking
+        uint32_t id = generateRequestID();
+        controlWriteCheckResponse(Message::Flush, id, false, sendBuf, s.position());
+    }
+
+    fieldsArchived_ = 0;
+    locationsReceived_ = 0;
+
+    return locations;
 }
 
 void RemoteStore::close() {
@@ -382,10 +372,10 @@ bool RemoteStore::handle(Message message, bool control, uint32_t requestID, ecki
                 }
 
                 locations_.erase(it);
-                archivalStats_.addLocation();
+                locationsReceived_++;
 
-                if (flushRequested_ && (archivalStats_.numArchive() == archivalStats_.numLocation()) && locations_.empty()) {
-                    fieldLocationsReceived_.set_value(archivalStats_);
+                if (archivalCompleted_.valid() && (fieldsArchived_ == locationsReceived_) && locations_.empty()) {
+                    promiseArchivalCompleted_.set_value(locationsReceived_);
                 }
                 return true;
             }

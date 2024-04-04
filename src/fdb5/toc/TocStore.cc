@@ -35,10 +35,10 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 TocStore::TocStore(const Key& key, const Config& config) :
-    Store(), TocCommon(StoreRootManager(config).directory(key).directory_) {}
+    Store(), TocCommon(StoreRootManager(config).directory(key).directory_), archivedFields_(0) {}
 
 TocStore::TocStore(const eckit::URI& uri, const Config& config) :
-    Store(), TocCommon(uri.path().dirName()) {}
+    Store(), TocCommon(uri.path().dirName()), archivedFields_(0) {}
 
 eckit::URI TocStore::uri() const {
     return URI("file", directory_);
@@ -53,8 +53,7 @@ eckit::DataHandle* TocStore::retrieve(Field& field) const {
 }
 
 std::unique_ptr<FieldLocation> TocStore::archive(const Key& key, const void *data, eckit::Length length) {
-    
-    dirty_ = true;
+    archivedFields_++;
 
     eckit::PathName dataPath = getDataPath(key);
 
@@ -69,16 +68,18 @@ std::unique_ptr<FieldLocation> TocStore::archive(const Key& key, const void *dat
     return std::unique_ptr<FieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
 }
 
-void TocStore::flush() {
-    if (!dirty_) {
-        return;
+size_t TocStore::flush() {
+    if (archivedFields_ == 0) {
+        return 0;
     }
 
     // ensure consistent state before writing Toc entry
-
     flushDataHandles();
 
-    dirty_ = false;
+    size_t out = archivedFields_;
+    archivedFields_ = 0;
+
+    return out;
 }
 
 void TocStore::close() {

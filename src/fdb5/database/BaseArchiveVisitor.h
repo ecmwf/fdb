@@ -45,7 +45,7 @@ protected: // methods
 
     virtual const Schema& databaseSchema() const;
 
-    fdb5::CatalogueWriter* current() const;
+    fdb5::CatalogueWriter* catalogue() const;
     fdb5::Store* store() const;
 
 protected: // members

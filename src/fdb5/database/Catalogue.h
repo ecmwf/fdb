@@ -88,7 +88,7 @@ public:
 
     virtual std::string type() const = 0;
     virtual bool open() = 0;
-    virtual void flush() = 0;
+    virtual void flush(size_t archivedFields) = 0;
     virtual void clean() = 0;
     virtual void close() = 0;
 

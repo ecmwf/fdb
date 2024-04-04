@@ -47,9 +47,6 @@ void FDBForker::run() {
 
     eckit::Log::info() << "FDB forked pid " << ::getpid() << std::endl;
 
-    // ServerConnection handler(socket_, config_);
-    // handler.handle();
-    
     if (config_.getString("type", "local") == "catalogue" || (::getenv("FDB_IS_CAT") && ::getenv("FDB_IS_CAT")[0] == '1')) {
         eckit::Log::info() << "FDB using Catalogue Handler" << std::endl;
         CatalogueHandler handler(socket_, config_);

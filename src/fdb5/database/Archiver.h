@@ -80,8 +80,7 @@ private: // members
 
     std::vector<Key> prev_;
 
-    CatalogueWriter* catalogue_;
-    Store* store_;
+    Database* db_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

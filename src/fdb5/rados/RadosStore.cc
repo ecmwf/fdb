@@ -29,15 +29,15 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 RadosStore::RadosStore(const Key& key, const Config& config) :
-    Store(), directory_("mars:"+key.valuesToString()) {}
+    Store(), directory_("mars:"+key.valuesToString()), archivedFields_(0) {}
 
 RadosStore(const Key& key, const Config& config, const eckit::net::Endpoint& controlEndpoint) :
-    Store(), directory_("mars:"+key.valuesToString()) {
+    Store(), directory_("mars:"+key.valuesToString()), archivedFields_(0) {
     NOTIMP;
 }
 
 RadosStore::RadosStore(const eckit::URI& uri, const Config& config) :
-    Store(), directory_("mars:"+uri.path().dirName()) {}
+    Store(), directory_("mars:"+uri.path().dirName()), archivedFields_(0) {}
 
 eckit::URI RadosStore::uri() const {
     return URI("rados", directory_);
@@ -54,7 +54,7 @@ eckit::DataHandle* RadosStore::retrieve(Field& field, Key& remapKey) const {
 }
 
 std::unique_ptr<FieldLocation> RadosStore::archive(const uint32_t, const Key& key, const void *data, eckit::Length length) {
-    dirty_ = true;
+    archivedFields_++;
 
     eckit::PathName dataPath = getDataPath(key);
     eckit::URI dataUri("rados", dataPath);
@@ -70,16 +70,18 @@ std::unique_ptr<FieldLocation> RadosStore::archive(const uint32_t, const Key& ke
     return std::unique_ptr<TocFieldLocation>(new RadosFieldLocation(dataUri, position, length));
 }
 
-void RadosStore::flush() {
-    if (!dirty_) {
-        return;
+size_t RadosStore::flush() {
+    if (archivedFields_ == 0) {
+        return 0;
     }
 
     // ensure consistent state before writing Toc entry
 
     flushDataHandles();
 
-    dirty_ = false;
+    size_t out = archivedFields_;
+    archivedFields_ = 0;
+    return out;
 }
 
 void RadosStore::close() {

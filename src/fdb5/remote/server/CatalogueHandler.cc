@@ -365,11 +365,14 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
     ASSERT(it != catalogues_.end());
 
     it->second.locationsExpected = numArchived;
+    it->second.archivalCompleted = it->second.fieldLocationsReceived.get_future();
+
     if (it->second.locationsArchived < numArchived) {
-        it->second.archivalCompleted.get();
+        it->second.archivalCompleted.wait();
+        it->second.fieldLocationsReceived = std::promise<size_t>{};
     }
 
-    it->second.catalogue->flush();
+    it->second.catalogue->flush(numArchived);
 
     Log::info() << "Flush complete" << std::endl;
     Log::status() << "Flush complete" << std::endl;
@@ -403,7 +406,7 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
     it->second.catalogue->selectIndex(idxKey);
     it->second.catalogue->archive(key, std::move(location));
     it->second.locationsArchived++;
-    if (it->second.locationsExpected > 0 && it->second.locationsExpected == it->second.locationsArchived) {
+    if (it->second.archivalCompleted.valid() && it->second.locationsExpected == it->second.locationsArchived) {
         it->second.fieldLocationsReceived.set_value(it->second.locationsExpected);
     }
 }

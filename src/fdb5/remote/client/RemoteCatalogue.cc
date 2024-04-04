@@ -60,9 +60,6 @@ void RemoteCatalogue::sendArchiveData(uint32_t id, const Key& key, std::unique_p
 
 void RemoteCatalogue::archive(const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
 
-    // eckit::Timer timer;
-    // timer.start();
-
     ASSERT(!key.empty());
     ASSERT(fieldLocation);
 
@@ -85,9 +82,6 @@ void RemoteCatalogue::archive(const InspectionKey& key, std::unique_ptr<FieldLoc
     payloads.push_back(std::pair<const void*, uint32_t>{buffer, stream.position()});
 
     dataWrite(Message::Blob, id, payloads);
-    // timer.stop();
-
-    // archivalStats_.addArchive(0, timer, 0);
 }
 
 bool RemoteCatalogue::selectIndex(const Key& idxKey) {
@@ -110,13 +104,12 @@ const Schema& RemoteCatalogue::schema() const {
     return *schema_;
 }
 
-void RemoteCatalogue::flush() {
-
-    // Timer timer;
-
-    // timer.start();
+void RemoteCatalogue::flush(size_t archivedFields) {
 
     std::lock_guard<std::mutex> lock(archiveMutex_);
+
+    ASSERT(archivedFields == numLocations_);
+
     // Flush only does anything if there is an ongoing archive();
     if (numLocations_ > 0) {
 
@@ -132,9 +125,6 @@ void RemoteCatalogue::flush() {
 
         numLocations_ = 0;
     }
-
-    // timer.stop();
-    // internalStats_.addFlush(timer);
 }
 
 void RemoteCatalogue::clean() {NOTIMP;}
@@ -189,17 +179,6 @@ void RemoteCatalogue::handleException(std::exception_ptr e) {
     NOTIMP;
 }
 
-// Catalogue Reader
-// DbStats RemoteCatalogue::stats() const {
-//     NOTIMP;
-// }
-// bool RemoteCatalogue::axis(const std::string& keyword, eckit::StringSet& s) const {
-//     NOTIMP;
-// }
-// bool RemoteCatalogue::retrieve(const InspectionKey& key, Field& field) const{
-//     NOTIMP;
-// }
-
 void RemoteCatalogue::overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) {NOTIMP;}
 void RemoteCatalogue::index(const InspectionKey& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {NOTIMP;}
 void RemoteCatalogue::reconsolidate(){NOTIMP;}
@@ -214,7 +193,10 @@ void RemoteCatalogue::control(const ControlAction& action, const ControlIdentifi
 std::vector<fdb5::Index> RemoteCatalogue::indexes(bool sorted) const {NOTIMP;}
 void RemoteCatalogue::maskIndexEntry(const Index& index) const {NOTIMP;}
 void RemoteCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const {NOTIMP;}
-void RemoteCatalogue::print( std::ostream &out ) const {NOTIMP;}
+void RemoteCatalogue::print( std::ostream &out ) const {
+    out << "RemoteCatalogue(endpoint=" << controlEndpoint() << ",clientID=" << clientId() << ")";
+}
+
 
 std::string RemoteCatalogue::type() const {
     return "remote";
