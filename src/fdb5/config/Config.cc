@@ -27,34 +27,6 @@ using namespace eckit;
 
 namespace fdb5 {
 
-
-/// Schemas are persisted in this registry
-///
-class SchemaRegistry {
-public:
-    static SchemaRegistry& instance() {
-        static SchemaRegistry me;
-        return me;
-    }
-
-    const Schema& get(const PathName& path) {
-        std::lock_guard<std::mutex> lock(m_);
-        auto it = schemas_.find(path);
-        if (it != schemas_.end()) {
-            return *it->second;
-        }
-
-        Schema* p = new Schema(path);
-        ASSERT(p);
-        schemas_[path] = std::unique_ptr<Schema>(p);
-        return *schemas_[path];
-    }
-
-private:
-    std::mutex m_;
-    std::map<PathName, std::unique_ptr<Schema>> schemas_;
-};
-
 //----------------------------------------------------------------------------------------------------------------------
 
 Config::Config() : schemaPath_("") {
@@ -62,7 +34,7 @@ Config::Config() : schemaPath_("") {
 }
 
 Config Config::make(const eckit::PathName& path, const eckit::Configuration& userConfig) {
-    eckit::Log::debug<LibFdb5>() << "Using FDB configuration file: " << path << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Using FDB configuration file: " << path << std::endl;
     Config cfg{YAMLConfiguration(path)};
     cfg.set("configSource", path);
     cfg.userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
@@ -193,7 +165,7 @@ void Config::initializeSchemaPath() const {
         schemaPath_ = expandPath(fdbSchemaFile);
     }
 
-    eckit::Log::debug<LibFdb5>() << "Using FDB schema: " << schemaPath_ << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Using FDB schema: " << schemaPath_ << std::endl;
 }
 
 PathName Config::configPath() const {

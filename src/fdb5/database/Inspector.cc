@@ -49,7 +49,7 @@ bool InspectIterator::next(ListElement& elem) {
 //----------------------------------------------------------------------------------------------------------------------
 
 static void purgeDB(Key& key, DB*& db) {
-    Log::debug() << "Purging DB with key " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Purging DB with key " << key << std::endl;
     delete db;
 }
 
@@ -67,7 +67,7 @@ ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request,
     InspectIterator* iterator = new InspectIterator();
     MultiRetrieveVisitor visitor(notifyee, *iterator, databases_, dbConfig_);
 
-    Log::debug<LibFdb5>() << "Using schema: " << schema << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Using schema: " << schema << std::endl;
 
     schema.expand(request, visitor);
 

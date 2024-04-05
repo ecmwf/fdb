@@ -67,7 +67,7 @@ class FDBList : public FDBVisitTool {
 
 std::string keySignature(const fdb5::Key& key) {
     std::string signature;
-    std::string separator="";
+    std::string separator;
     for (auto k : key.keys()) {
         signature += separator+k;
         separator=":";
@@ -141,7 +141,7 @@ void FDBList::execute(const CmdArgs& args) {
                 treeAxes += ",";
                 treeAxes += keys[1];
 
-                std::string signature=keySignature(keys[2]);
+                std::string signature=keySignature(keys[2]);  // i.e. step:levelist:param
 
                 auto it = requests.find(treeAxes);
                 if (it == requests.end()) {

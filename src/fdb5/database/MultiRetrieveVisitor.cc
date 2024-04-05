@@ -45,7 +45,7 @@ MultiRetrieveVisitor::~MultiRetrieveVisitor() {
 
 bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
-	eckit::Log::debug() << "FDB5 selectDatabase " << key  << std::endl;
+	LOG_DEBUG_LIB(LibFdb5) << "FDB5 selectDatabase " << key  << std::endl;
 
     /* is it the current DB ? */
 
@@ -59,7 +59,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
     /* is the DB already open ? */
 
     if(databases_.exists(key)) {
-        eckit::Log::debug<LibFdb5>() << "FDB5 Reusing database " << key << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "FDB5 Reusing database " << key << std::endl;
         db_ = databases_.access(key);
         return true;
     }
@@ -77,10 +77,10 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
         return false;
     }
 
-    eckit::Log::debug<LibFdb5>() << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectDatabase opening database " << key << " (type=" << newDB->dbType() << ")" << std::endl;
 
     if (!newDB->open()) {
-        eckit::Log::debug() << "Database does not exist " << key << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Database does not exist " << key << std::endl;
         return false;
     } else {
         db_ = newDB.release();
@@ -91,13 +91,13 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& key, const Key&) {
 
 bool MultiRetrieveVisitor::selectIndex(const Key& key, const Key&) {
     ASSERT(db_);
-    eckit::Log::debug() << "selectIndex " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectIndex " << key << std::endl;
     return db_->selectIndex(key);
 }
 
 bool MultiRetrieveVisitor::selectDatum(const Key& key, const Key& full) {
     ASSERT(db_);
-    eckit::Log::debug() << "selectDatum " << key << ", " << full << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "selectDatum " << key << ", " << full << std::endl;
 
     Field field;
     if (db_->inspect(key, field)) {
