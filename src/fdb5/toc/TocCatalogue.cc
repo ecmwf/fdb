@@ -93,10 +93,8 @@ void TocCatalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool 
                 }
             }
         }
-
-        visitor.catalogueComplete(*this);
     }
-
+    visitor.catalogueComplete(*this);
 }
 
 void TocCatalogue::loadSchema() {
