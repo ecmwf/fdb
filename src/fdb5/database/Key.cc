@@ -32,7 +32,9 @@ Key::Key(const std::shared_ptr<TypesRegistry> reg) :
 
 Key::Key(const std::string &s, const Rule *rule) :
     keys_(),
-    registry_(rule ? rule->registry() : nullptr), canonical_(false) {
+    registry_(rule ? rule->registry() : nullptr),
+    canonical_(false) {
+
     eckit::Tokenizer parse(":", true);
     eckit::StringList values;
     parse(s, values);
@@ -43,7 +45,8 @@ Key::Key(const std::string &s, const Rule *rule) :
 
 Key::Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg) :
     keys_(keys),
-    registry_(reg), canonical_(false) {
+    registry_(reg),
+    canonical_(false) {
 
     eckit::StringDict::const_iterator it = keys.begin();
     eckit::StringDict::const_iterator end = keys.end();
@@ -53,13 +56,15 @@ Key::Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg
 }
 
 Key::Key(eckit::Stream& s, const std::shared_ptr<TypesRegistry> reg) :
-    registry_(reg), canonical_(reg==nullptr) {
+    registry_(reg),
+    canonical_(reg == nullptr) {
     decode(s);
 }
 
 Key::Key(std::initializer_list<std::pair<const std::string, std::string>> l, const std::shared_ptr<TypesRegistry> reg) :
     keys_(l),
-    registry_(reg), canonical_(false) {
+    registry_(reg),
+    canonical_(reg == nullptr) {
 
     for (const auto& kv : keys_) {
         names_.emplace_back(kv.first);
