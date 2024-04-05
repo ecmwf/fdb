@@ -32,7 +32,7 @@ list( APPEND fdb5_srcs
     api/SelectFDB.h
 
     api/helpers/APIIterator.h
-    api/helpers/Axesiterator.cc
+    api/helpers/AxesIterator.cc
     api/helpers/AxesIterator.h
     api/helpers/ControlIterator.cc
     api/helpers/ControlIterator.h
