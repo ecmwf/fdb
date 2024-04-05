@@ -18,8 +18,8 @@ fdb5::Key EXAMPLE_K1{{
 
 fdb5::Key EXAMPLE_K2{{
     {"class", "rd"},
-     {"expver", "0001"},
-     {"time", "1200"}
+    {"expver", "0001"},
+    {"time", "1200"}
 }};
 
 fdb5::Key EXAMPLE_K3{{
@@ -50,9 +50,9 @@ CASE("Insertion and comparison") {
     EXPECT(ia1 != ia2);
 
     ia2.insert(EXAMPLE_K1);
-
     EXPECT(!(ia1 == ia2));
     EXPECT(ia1 != ia2);
+    
     ia1.sort();
     ia2.sort();
     EXPECT(ia1 == ia2);
