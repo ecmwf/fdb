@@ -14,6 +14,8 @@
 #include "eckit/runtime/Main.h"
 
 #include "metkit/mars/MarsRequest.h"
+#include "metkit/mars/MarsExpension.h"
+#include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/fdb5_version.h"
 #include "fdb5/api/FDB.h"
@@ -45,11 +47,27 @@ public:
     fdb_request_t(std::string str) {
         request_ = metkit::mars::MarsRequest(str);
     }
+    size_t values(const char* name, char** values[]) {
+        std::string n(name);
+        std::vector<std::string> vv = request_.values(name);
+
+        *values = new char*[vv.size()];
+        for (size_t i = 0; i < vv.size(); i++) {
+            (*values)[i] = new char[vv[i].size()+1];
+            strncpy((*values)[i], vv[i].c_str(), vv[i].size());
+            (*values)[i][vv[i].size()] = '\0';
+        }
+        return vv.size();
+    }
     void values(const char* name, const char* values[], int numValues) {
         std::string n(name);
         std::vector<std::string> vv;
+        Tokenizer parse("/");
+
         for (int i=0; i<numValues; i++) {
-            vv.push_back(std::string(values[i]));
+        	std::vector<std::string> result;
+        	parse(values[i], result);
+            vv.insert(std::end(vv), std::begin(result), std::end(result));
         }
         request_.values(n, vv);
     }
@@ -57,6 +75,12 @@ public:
         fdb_request_t* req = new fdb_request_t();
         req->request_ = metkit::mars::MarsRequest::parse(str);
         return req;
+    }
+    void expand() {
+        bool inherit = false;
+        bool strict = true;
+        metkit::mars::MarsExpension expand(inherit, strict);
+        request_ = expand.expand(request_);
     }
     const metkit::mars::MarsRequest request() const { return request_; }
 private:
@@ -401,6 +425,18 @@ int fdb_request_add(fdb_request_t* req, const char* param, const char* values[],
         ASSERT(param);
         ASSERT(values);
         req->values(param, values, numValues);
+    });
+}
+int fdb_request_get(fdb_request_t* req, const char* param, char** values[], size_t* numValues) {
+    return wrapApiFunction([req, param, values, numValues] {
+        ASSERT(req);
+        ASSERT(param);
+        *numValues = req->values(param, values);
+    });
+}
+int fdb_expand_request(fdb_request_t* req) {
+    return wrapApiFunction([req]{
+        req->expand();
     });
 }
 int fdb_delete_request(fdb_request_t* req) {
