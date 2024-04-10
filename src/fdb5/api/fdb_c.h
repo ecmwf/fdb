@@ -139,6 +139,15 @@ int fdb_new_request(fdb_request_t** req);
  */
 int fdb_request_add(fdb_request_t* req, const char* param, const char* values[], int numValues);
 
+/** Get the Metadata values associated to a Request metadata
+ * \param req Request instance
+ * \param param Metadata name
+ * \param values Metadata values
+ * \param numValues number of metadata values
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_request_get(fdb_request_t* req, const char* param, char** values[], size_t* numValues);
+
 /** Expand a Request
  * \param req Request instance
  * \returns Return code (#FdbErrorValues)
