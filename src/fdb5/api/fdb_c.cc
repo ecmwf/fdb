@@ -80,9 +80,7 @@ public:
         bool inherit = false;
         bool strict = true;
         metkit::mars::MarsExpension expand(inherit, strict);
-        std::cout << "expand()  PRE   " << request_ << std::endl;
         request_ = expand.expand(request_);
-        std::cout << "expand()  POST  " << request_ << std::endl;
     }
     const metkit::mars::MarsRequest request() const { return request_; }
 private:
