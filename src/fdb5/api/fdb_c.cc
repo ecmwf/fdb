@@ -14,6 +14,7 @@
 #include "eckit/runtime/Main.h"
 
 #include "metkit/mars/MarsRequest.h"
+#include "metkit/mars/MarsExpension.h"
 
 #include "fdb5/fdb5_version.h"
 #include "fdb5/api/FDB.h"
@@ -57,6 +58,12 @@ public:
         fdb_request_t* req = new fdb_request_t();
         req->request_ = metkit::mars::MarsRequest::parse(str);
         return req;
+    }
+    void expand() {
+        bool inherit = false;
+        bool strict = true;
+        metkit::mars::MarsExpension expand(inherit, strict);
+        request_ = expand.expand(request_);
     }
     const metkit::mars::MarsRequest request() const { return request_; }
 private:
@@ -401,6 +408,11 @@ int fdb_request_add(fdb_request_t* req, const char* param, const char* values[],
         ASSERT(param);
         ASSERT(values);
         req->values(param, values, numValues);
+    });
+}
+int fdb_expand_request(fdb_request_t* req) {
+    return wrapApiFunction([req]{
+        req->expand();
     });
 }
 int fdb_delete_request(fdb_request_t* req) {

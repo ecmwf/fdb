@@ -429,6 +429,57 @@ CASE( "fdb_c - retrieve" ) {
 }
 
 
+CASE( "fdb_c - expand" ) {
+
+    fdb_handle_t* fdb;
+    fdb_new_handle(&fdb);
+    fdb_request_t* request;
+    fdb_new_request(&request);
+    fdb_request_add1(request, "domain", "g");
+    fdb_request_add1(request, "stream", "oper");
+    fdb_request_add1(request, "levtype", "pl");
+    fdb_request_add1(request, "levelist", "300");
+    const char* dates[] = {"20191110", "to", "20191111"};
+    fdb_request_add(request, "date", dates, 3);
+    fdb_request_add1(request, "time", "0000");
+    fdb_request_add1(request, "step", "0");
+    fdb_request_add1(request, "param", "138");
+    fdb_request_add1(request, "class", "rd");
+    fdb_request_add1(request, "type", "an");
+    fdb_request_add1(request, "expver", "xxxx");
+
+    char buf[1000];
+    char grib[4];
+    long read = 0;
+    long size;
+    fdb_datareader_t* dr;
+    fdb_new_datareader(&dr);
+    EXPECT(fdb_retrieve(fdb, request, dr) == FDB_ERROR_GENERAL_EXCEPTION);
+
+    EXPECT(fdb_expand_request(request) == FDB_SUCCESS);
+
+    EXPECT(fdb_retrieve(fdb, request, dr) == FDB_SUCCESS);
+    fdb_datareader_open(dr, &size);
+    EXPECT_NOT_EQUAL(0, size);
+    fdb_datareader_read(dr, grib, 4, &read);
+    EXPECT_EQUAL(4, read);
+    EXPECT_EQUAL(0, strncmp(grib, "GRIB", 4));
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(4, read);
+    fdb_datareader_seek(dr, 3);
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(3, read);
+    fdb_datareader_skip(dr, 3);
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(6, read);
+    fdb_datareader_read(dr, buf, 1000, &read);
+    EXPECT_EQUAL(1000, read);
+    fdb_datareader_tell(dr, &read);
+    EXPECT_EQUAL(1006, read);
+    fdb_delete_datareader(dr);
+}
+
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace test

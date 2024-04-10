@@ -139,6 +139,12 @@ int fdb_new_request(fdb_request_t** req);
  */
 int fdb_request_add(fdb_request_t* req, const char* param, const char* values[], int numValues);
 
+/** Expand a Request
+ * \param req Request instance
+ * \returns Return code (#FdbErrorValues)
+ */
+int fdb_expand_request(fdb_request_t* req);
+
 /** Deallocates Request object and associated resources.
  * \param req Request instance
  * \returns Return code (#FdbErrorValues)
