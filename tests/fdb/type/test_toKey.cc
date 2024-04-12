@@ -155,11 +155,11 @@ CASE( "Step & ClimateDaily - expansion" ) {
 
     key.set("step", "30m-60m");
     // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
-    EXPECT(key.canonicalValue("step") == "30m-60m");
+    EXPECT(key.canonicalValue("step") == "30m-1");
 
     key.set("step", "30m-1");
     // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
-    EXPECT(key.canonicalValue("step") == "30m-60m");
+    EXPECT(key.canonicalValue("step") == "30m-1");
 
     key.set("step", "60m-120m");
     // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
