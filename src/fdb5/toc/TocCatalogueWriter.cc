@@ -302,12 +302,16 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void TocCatalogueWriter::archive(const Key& idxKey, const InspectionKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
     archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
         selectIndex(currentIndexKey_);
+    } else {
+        if(currentIndexKey_ != idxKey) {
+            selectIndex(idxKey);
+        }
     }
 
     Field field(std::move(fieldLocation), currentIndex().timestamp());
