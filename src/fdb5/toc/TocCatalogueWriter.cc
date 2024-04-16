@@ -54,6 +54,7 @@ TocCatalogueWriter::~TocCatalogueWriter() {
     close();
 }
 
+// selectIndex is called during schema traversal and in case of out-of-order fieldLocation archival
 bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
     currentIndexKey_ = idxKey;
 
@@ -309,6 +310,7 @@ void TocCatalogueWriter::archive(const Key& idxKey, const InspectionKey& key, st
         ASSERT(!currentIndexKey_.empty());
         selectIndex(currentIndexKey_);
     } else {
+        // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the indexKey used for store archival. Reset it
         if(currentIndexKey_ != idxKey) {
             selectIndex(idxKey);
         }
