@@ -29,7 +29,7 @@ bool ArchiveVisitor::selectDatum(const InspectionKey &key, const Key &full) {
     checkMissingKeys(full);
     const Key idxKey = catalogue()->currentIndexKey();
 
-    store()->archive(idxKey, data_, size_, std::bind(&CatalogueWriter::archive, catalogue(), key, std::placeholders::_1));
+    store()->archive(idxKey, data_, size_, std::bind(&CatalogueWriter::archive, catalogue(), idxKey, key, std::placeholders::_1));
 
     return true;
 }

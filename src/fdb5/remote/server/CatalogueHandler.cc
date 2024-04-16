@@ -404,7 +404,7 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
     }
 
     it->second.catalogue->selectIndex(idxKey);
-    it->second.catalogue->archive(key, std::move(location));
+    it->second.catalogue->archive(idxKey, key, std::move(location));
     it->second.locationsArchived++;
     if (it->second.archivalCompleted.valid() && it->second.locationsExpected == it->second.locationsArchived) {
         it->second.fieldLocationsReceived.set_value(it->second.locationsExpected);
