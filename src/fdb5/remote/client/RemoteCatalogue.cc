@@ -82,6 +82,8 @@ void RemoteCatalogue::archive(const Key& idxKey, const InspectionKey& key, std::
     payloads.push_back(std::pair<const void*, uint32_t>{buffer, stream.position()});
 
     dataWrite(Message::Blob, id, payloads);
+
+    eckit::Log::status() << "FieldLocation " << numLocations_ << "enqueued for catalogue archival" << std::endl;
 }
 
 bool RemoteCatalogue::selectIndex(const Key& idxKey) {

@@ -249,6 +249,8 @@ void RemoteStore::archive(const Key& key, const void *data, eckit::Length length
     payloads.push_back(std::pair<const void*, uint32_t>{data, length});
 
     dataWrite(Message::Blob, id, payloads);
+
+    eckit::Log::status() << "Field " << fieldsArchived_ << " enqueued for store archival" << std::endl;
 }
 
 bool RemoteStore::open() {
