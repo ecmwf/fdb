@@ -42,8 +42,8 @@ public: // methods
     // DaosName poolName() const;
     // DaosName contName() const;
 
-    void generateOID() const;
-
+    void ensureGeneratedOID() const;
+    
     void create() const;
     void destroy() const;
     eckit::Length size() const;
@@ -54,10 +54,10 @@ public: // methods
     /// @todo: asString should only be used for debugging. private print?
     std::string asString() const;
     eckit::URI URI() const;
-    std::string poolName() const;
-    std::string contName() const;
+    const std::string& poolName() const;
+    const std::string& contName() const;
     bool hasContName() const { return cont_.has_value(); };
-    fdb5::DaosOID OID() const;
+    const fdb5::DaosOID& OID() const;
     bool hasOID() const { return oid_.has_value(); };
 
     bool operator<(const DaosNameBase& other) const;
@@ -75,7 +75,7 @@ protected: // methods
     DaosNameBase(const eckit::URI&);
     DaosNameBase(const fdb5::DaosObject&);
 
-    fdb5::DaosOID createOID(const daos_otype_t&, const daos_oclass_id_t&) const;
+    fdb5::DaosOID allocOID(const daos_otype_t&, const daos_oclass_id_t&) const;
 
 private: // methods
 
@@ -86,6 +86,7 @@ protected: // members
     std::string pool_;
     eckit::Optional<std::string> cont_;
     mutable eckit::Optional<fdb5::DaosOID> oid_;
+    mutable eckit::Optional<std::string> as_string_;
 
 };
 

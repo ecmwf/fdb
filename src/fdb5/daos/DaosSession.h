@@ -24,6 +24,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/log/Timer.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosException.h"
 
@@ -97,16 +98,16 @@ private: // members
 
 static inline int daos_call(int code, const char* msg, const char* file, int line, const char* func) {
 
-    std::cout << "DAOS_CALL => " << msg << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL => " << msg << std::endl;
 
     if (code < 0) {
-        std::cout << "DAOS_FAIL !! " << msg << std::endl;
+        eckit::Log::error() << "DAOS_FAIL !! " << msg << std::endl;
         if (code == -DER_NONEXIST) throw fdb5::DaosEntityNotFoundException(msg);
         if (code == -DER_EXIST) throw fdb5::DaosEntityAlreadyExistsException(msg);
         DaosManager::error(code, msg, file, line, func);
     }
 
-    std::cout << "DAOS_CALL <= " << msg << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL <= " << msg << std::endl;
 
     return code;
 }
@@ -114,7 +115,7 @@ static inline int daos_call(int code, const char* msg, const char* file, int lin
 //----------------------------------------------------------------------------------------------------------------------
 
 /// @note: DaosSession acts as a mere wrapper for DaosManager such that DaosManager::instance does not need
-///   to be called in many places
+///   to be called in so many places
 /// @note: DaosSession no longer performs daos_init on creation and daos_fini on destroy. This is because 
 ///   any pool handles obtained within a session are cached in DaosManager beyond DaosSession lifetime, 
 ///   and the pool handles may become invalid if daos_fini is called for all sessions

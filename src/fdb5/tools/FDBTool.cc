@@ -45,7 +45,7 @@ void FDBTool::run() {
     finish(args);
 }
 
-Config FDBTool::config(const eckit::option::CmdArgs& args) const {
+Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configuration& userConfig) const {
 
     if (args.has("config")) {
         std::string config = args.getString("config", "");
@@ -63,14 +63,10 @@ Config FDBTool::config(const eckit::option::CmdArgs& args) const {
             ss << "Path " << config << " is a directory. Expecting a file";
             throw eckit::UserError(ss.str(), Here());
         }
-        eckit::LocalConfiguration userConf;
-        if (!args.has("disable-subtocs")) {
-            userConf.set("useSubToc", true);
-        }
-        return Config::make(configPath, userConf);
+        return Config::make(configPath, userConfig);
     }
 
-    return LibFdb5::instance().defaultConfig();
+    return LibFdb5::instance().defaultConfig(userConfig);
 }
 
 void FDBTool::usage(const std::string&) const {}

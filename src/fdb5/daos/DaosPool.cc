@@ -10,6 +10,7 @@
 
 #include "eckit/exception/Exceptions.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosException.h"
@@ -144,7 +145,7 @@ void DaosPool::close() {
 
     closeContainers();
 
-    std::cout << "DAOS_CALL => daos_pool_disconnect()" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL => daos_pool_disconnect()" << std::endl;
 
     int code = daos_pool_disconnect(poh_, NULL);
 
@@ -152,7 +153,7 @@ void DaosPool::close() {
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
         << code << ")" << std::endl;
         
-    std::cout << "DAOS_CALL <= daos_pool_disconnect()" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL <= daos_pool_disconnect()" << std::endl;
 
     open_ = false;
 

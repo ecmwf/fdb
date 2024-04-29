@@ -49,6 +49,7 @@ public: // methods
     ~IndexAxis();
 
     void insert(const Key &key);
+    /// @note: the values are required to be cannonicalised
     void insert(const std::string& axis, const std::vector<std::string>& values);
     void encode(eckit::Stream &s, const int version) const;
 

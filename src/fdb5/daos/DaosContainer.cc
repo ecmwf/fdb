@@ -12,6 +12,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/TmpDir.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosContainer.h"
@@ -25,7 +26,7 @@ namespace fdb5 {
 DaosContainer::DaosContainer(DaosContainer&& other) noexcept : 
     pool_(other.pool_), 
     label_(std::move(other.label_)), coh_(std::move(other.coh_)), open_(other.open_),
-    oid_alloc_(std::move(other.oid_alloc_)) {
+    oidAlloc_(std::move(other.oidAlloc_)) {
 
     other.open_ = false;
 
@@ -86,7 +87,7 @@ void DaosContainer::close() {
         return;
     }
     
-    std::cout << "DAOS_CALL => daos_cont_close()" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL => daos_cont_close()" << std::endl;
 
     int code = daos_cont_close(coh_, NULL);
 
@@ -94,7 +95,7 @@ void DaosContainer::close() {
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
         << code << ")" << std::endl;
         
-    std::cout << "DAOS_CALL <= daos_cont_close()" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL <= daos_cont_close()" << std::endl;
 
     open_ = false;
 
@@ -104,19 +105,19 @@ uint64_t DaosContainer::allocateOIDLo() {
 
     open();
 
-    if (oid_alloc_.num_oids == 0) {
-        oid_alloc_.num_oids = fdb5::DaosSession().containerOidsPerAlloc();
-        DAOS_CALL(daos_cont_alloc_oids(coh_, oid_alloc_.num_oids + 1, &(oid_alloc_.next_oid), NULL));
+    if (oidAlloc_.num_oids == 0) {
+        oidAlloc_.num_oids = fdb5::DaosSession().containerOidsPerAlloc();
+        DAOS_CALL(daos_cont_alloc_oids(coh_, oidAlloc_.num_oids + 1, &(oidAlloc_.next_oid), NULL));
     } else {
-        ++oid_alloc_.next_oid;
-        --oid_alloc_.num_oids;
+        ++oidAlloc_.next_oid;
+        --oidAlloc_.num_oids;
     }
 
-    return oid_alloc_.next_oid;
+    return oidAlloc_.next_oid;
 
 }
 
-fdb5::DaosOID DaosContainer::generateOID(const fdb5::DaosOID& oid) {
+fdb5::DaosOID DaosContainer::ensureGeneratedOID(const fdb5::DaosOID& oid) {
 
     if (oid.wasGenerated()) return oid;
 
@@ -136,7 +137,7 @@ fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass, bool 
 
     if (!with_attr) otype = DAOS_OT_ARRAY_BYTE;
 
-    fdb5::DaosOID new_oid = generateOID(fdb5::DaosOID{0, allocateOIDLo(), otype, oclass});
+    fdb5::DaosOID new_oid = ensureGeneratedOID(fdb5::DaosOID{0, allocateOIDLo(), otype, oclass});
 
     open();
 
@@ -152,7 +153,7 @@ fdb5::DaosArray DaosContainer::createArray(const fdb5::DaosOID& oid) {
 
     open();
 
-    fdb5::DaosArray obj(*this, generateOID(oid), false);
+    fdb5::DaosArray obj(*this, ensureGeneratedOID(oid), false);
     obj.create();
     return obj;
 
@@ -160,7 +161,7 @@ fdb5::DaosArray DaosContainer::createArray(const fdb5::DaosOID& oid) {
 
 fdb5::DaosKeyValue DaosContainer::createKeyValue(const daos_oclass_id_t& oclass) {
 
-    fdb5::DaosOID new_oid = generateOID(fdb5::DaosOID{0, allocateOIDLo(), DAOS_OT_KV_HASHED, oclass});
+    fdb5::DaosOID new_oid = ensureGeneratedOID(fdb5::DaosOID{0, allocateOIDLo(), DAOS_OT_KV_HASHED, oclass});
 
     open();
 
@@ -176,7 +177,7 @@ fdb5::DaosKeyValue DaosContainer::createKeyValue(const fdb5::DaosOID& oid) {
 
     open();
 
-    fdb5::DaosKeyValue obj(*this, generateOID(oid), false);
+    fdb5::DaosKeyValue obj(*this, ensureGeneratedOID(oid), false);
     obj.create();
     return obj;
 

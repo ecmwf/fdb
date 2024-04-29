@@ -198,7 +198,7 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
 
         }
 
-        indexes_[key] = Index(new fdb5::DaosIndex(key, *index_kv));
+        indexes_[key] = Index(new fdb5::DaosIndex(key, *index_kv, false));
 
         /// @note: performed RPCs:
         /// - close catalogue kv (daos_obj_close)

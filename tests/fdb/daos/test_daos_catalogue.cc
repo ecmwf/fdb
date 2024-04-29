@@ -77,16 +77,6 @@ eckit::TmpFile& schema_file() {
     return f;
 }
 
-eckit::TmpFile& spaces_file() {
-    static eckit::TmpFile f{};
-    return f;
-}
-
-eckit::TmpFile& roots_file() {
-    static eckit::TmpFile f{};
-    return f;
-}
-
 eckit::PathName& catalogue_tests_tmp_root() {
     static eckit::PathName cd("./daos_catalogue_tests_fdb_root");
     return cd;
@@ -123,32 +113,6 @@ CASE( "Setup" ) {
     // LibFdb5::instance().defaultConfig().schema() is called
     // due to no specified schema file (e.g. in Key::registry())
     ::setenv("FDB_SCHEMA_FILE", schema_file().path().c_str(), 1);
-
-    // prepare scpaces
-
-    std::string spaces_str{".* all Default"};
-
-    std::unique_ptr<eckit::DataHandle> hsp(spaces_file().fileHandle());
-    hsp->openForWrite(spaces_str.size());
-    {
-        eckit::AutoClose closer(*hsp);
-        hsp->write(spaces_str.data(), spaces_str.size());
-    }
-
-    ::setenv("FDB_SPACES_FILE", spaces_file().path().c_str(), 1);
-
-    // prepare roots
-
-    std::string roots_str{catalogue_tests_tmp_root().asString() + " all yes yes"};
-
-    std::unique_ptr<eckit::DataHandle> hr(roots_file().fileHandle());
-    hr->openForWrite(roots_str.size());
-    {
-        eckit::AutoClose closer(*hr);
-        hr->write(roots_str.data(), roots_str.size());
-    }
-
-    ::setenv("FDB_ROOTS_FILE", roots_file().path().c_str(), 1);
 
 }
 
@@ -202,6 +166,9 @@ CASE("DaosCatalogue tests") {
     SECTION("DaosCatalogue archive (index) and retrieve without a Store") {
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + catalogue_tests_tmp_root().asString() + "\n"
             "schema : " + schema_file().path() + "\n"
             "daos:\n"
             "  catalogue:\n"
@@ -293,6 +260,9 @@ CASE("DaosCatalogue tests") {
         // FDB configuration
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + catalogue_tests_tmp_root().asString() + "\n"
             "schema : " + schema_file().path() + "\n"
             "daos:\n"
             "  store:\n"
@@ -383,6 +353,9 @@ CASE("DaosCatalogue tests") {
         // FDB configuration
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + catalogue_tests_tmp_root().asString() + "\n"
             "schema : " + schema_file().path() + "\n"
             "daos:\n"
             "  catalogue:\n"
@@ -488,6 +461,9 @@ CASE("DaosCatalogue tests") {
         int container_oids_per_alloc_small = 100;
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + catalogue_tests_tmp_root().asString() + "\n"
             "type: local\n"
             "schema : " + schema_file().path() + "\n"
             "engine: daos\n"
@@ -655,6 +631,9 @@ CASE("DaosCatalogue tests") {
         // FDB configuration
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + catalogue_tests_tmp_root().asString() + "\n"
             "type: local\n"
             "schema : " + schema_file().path() + "\n"
             "engine: toc\n"

@@ -20,6 +20,7 @@
 #include "eckit/utils/Optional.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/daos/DaosOID.h"
 
@@ -53,7 +54,7 @@ public: // methods
     virtual daos_size_t size() = 0;
 
     std::string name() const;
-    fdb5::DaosOID OID() const;
+    const fdb5::DaosOID& OID() const;
     eckit::URI URI() const;
     fdb5::DaosContainer& getContainer() const;
 
@@ -133,6 +134,9 @@ public: // methods
     long get(const std::string& key, void*, const long&);
     void remove(const std::string& key);
     std::vector<std::string> keys();
+
+    /// @note: expects empty vector
+    eckit::MemoryStream getMemoryStream(std::vector<char>& v, const std::string& key, const std::string& kvTitle = "kv");
 
 private: // methods
 

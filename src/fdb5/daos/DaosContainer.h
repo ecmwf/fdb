@@ -42,7 +42,7 @@ public: // methods
     void close();
 
     uint64_t allocateOIDLo();
-    fdb5::DaosOID generateOID(const fdb5::DaosOID&);
+    fdb5::DaosOID ensureGeneratedOID(const fdb5::DaosOID&);
     fdb5::DaosArray createArray(const daos_oclass_id_t& oclass = OC_S1, bool with_attr = true);
     fdb5::DaosArray createArray(const fdb5::DaosOID&);
     fdb5::DaosKeyValue createKeyValue(const daos_oclass_id_t& oclass = OC_S1);
@@ -72,7 +72,7 @@ private: // members
     daos_handle_t coh_;
     bool open_;
 
-    OidAlloc oid_alloc_{};
+    OidAlloc oidAlloc_{};
 
 };
 

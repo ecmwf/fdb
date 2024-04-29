@@ -20,6 +20,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// @note: as opposed to the TOC catalogue, the DAOS catalogue does not pre-load all indexes from storage.
+///   Instead, it selects and loads only those indexes that are required to fulfil the request.
+
 DaosCatalogueReader::DaosCatalogueReader(const Key& key, const fdb5::Config& config) :
     DaosCatalogue(key, config) {
 
@@ -72,9 +75,7 @@ bool DaosCatalogueReader::selectIndex(const Key &key) {
 
         fdb5::DaosKeyValueName index_kv{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}};
 
-        indexes_[key] = Index(new fdb5::DaosIndex(key, index_kv));
-
-        indexes_[key].updatedAxes();
+        indexes_[key] = Index(new fdb5::DaosIndex(key, index_kv, true));
 
         /// @note: performed RPCs:
         /// - close catalogue kv (daos_obj_close)

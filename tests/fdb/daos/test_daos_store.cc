@@ -77,16 +77,6 @@ eckit::TmpFile& schema_file() {
     return f;
 }
 
-eckit::TmpFile& spaces_file() {
-    static eckit::TmpFile f{};
-    return f;
-}
-
-eckit::TmpFile& roots_file() {
-    static eckit::TmpFile f{};
-    return f;
-}
-
 eckit::PathName& store_tests_tmp_root() {
     static eckit::PathName sd("./daos_store_tests_fdb_root");
     return sd;
@@ -123,32 +113,6 @@ CASE( "Setup" ) {
     // LibFdb5::instance().defaultConfig().schema() is called
     // due to no specified schema file (e.g. in Key::registry())
     ::setenv("FDB_SCHEMA_FILE", schema_file().path().c_str(), 1);
-
-    // prepare scpaces
-
-    std::string spaces_str{".* all Default"};
-
-    std::unique_ptr<eckit::DataHandle> hsp(spaces_file().fileHandle());
-    hsp->openForWrite(spaces_str.size());
-    {
-        eckit::AutoClose closer(*hsp);
-        hsp->write(spaces_str.data(), spaces_str.size());
-    }
-
-    ::setenv("FDB_SPACES_FILE", spaces_file().path().c_str(), 1);
-
-    // prepare roots
-
-    std::string roots_str{store_tests_tmp_root().asString() + " all yes yes"};
-
-    std::unique_ptr<eckit::DataHandle> hr(roots_file().fileHandle());
-    hr->openForWrite(roots_str.size());
-    {
-        eckit::AutoClose closer(*hr);
-        hr->write(roots_str.data(), roots_str.size());
-    }
-
-    ::setenv("FDB_ROOTS_FILE", roots_file().path().c_str(), 1);
 
 }
 
@@ -196,6 +160,9 @@ CASE("DaosStore tests") {
     SECTION("archive and retrieve") {
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + store_tests_tmp_root().asString() + "\n"
             "daos:\n"
             "  store:\n"
             "    pool: " + pool_name + "\n"
@@ -260,6 +227,9 @@ CASE("DaosStore tests") {
         // FDB configuration
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + store_tests_tmp_root().asString() + "\n"
             "schema : " + schema_file().path() + "\n"
             "daos:\n"
             "  store:\n"
@@ -359,6 +329,9 @@ CASE("DaosStore tests") {
         int container_oids_per_alloc_small = 100;
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + store_tests_tmp_root().asString() + "\n"
             "type: local\n"
             "schema : " + schema_file().path() + "\n"
             "engine: toc\n"
@@ -508,6 +481,9 @@ CASE("DaosStore tests") {
         // FDB configuration
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + store_tests_tmp_root().asString() + "\n"
             "type: local\n"
             "schema : " + schema_file().path() + "\n"
             "engine: toc\n"

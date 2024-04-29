@@ -169,7 +169,7 @@ void FDBList::execute(const CmdArgs& args) {
                 if (json_) {
                     (*json) << elem;
                 } else {
-                    elem.print(Log::info(), location_, timestamp_ && !porcelain_, length_ && !porcelain_);
+                    elem.print(Log::info(), location_, length_ && !porcelain_, timestamp_ && !porcelain_);
                     Log::info() << std::endl;
                 }
             }

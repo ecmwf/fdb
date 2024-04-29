@@ -42,7 +42,7 @@ Key ListElement::combinedKey() const {
     return combined;
 }
 
-void ListElement::print(std::ostream &out, bool withLocation, bool withTimestamp, bool withLength) const {
+void ListElement::print(std::ostream &out, bool withLocation, bool withLength, bool withTimestamp) const {
     if (!withLocation && location_ && !location_->host().empty()) {
         out << "host=" << location_->host() << ",";
     }

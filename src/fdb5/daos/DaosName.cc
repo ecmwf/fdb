@@ -58,7 +58,7 @@ DaosNameBase::DaosNameBase(const fdb5::DaosObject& obj) :
     cont_(obj.getContainer().name()), 
     oid_(obj.OID()) {}
 
-fdb5::DaosOID DaosNameBase::createOID(const daos_otype_t& otype, const daos_oclass_id_t& oclass) const {
+fdb5::DaosOID DaosNameBase::allocOID(const daos_otype_t& otype, const daos_oclass_id_t& oclass) const {
 
     ASSERT(cont_.has_value());
     ASSERT(!oid_.has_value());
@@ -71,7 +71,7 @@ fdb5::DaosOID DaosNameBase::createOID(const daos_otype_t& otype, const daos_ocla
 
 }
 
-void DaosNameBase::generateOID() const {
+void DaosNameBase::ensureGeneratedOID() const {
 
     ASSERT(cont_.has_value());
     ASSERT(oid_.has_value());
@@ -82,7 +82,7 @@ void DaosNameBase::generateOID() const {
     fdb5::DaosPool& p = s.getPool(pool_);
     fdb5::DaosContainer& c = p.getContainer(cont_.value());
 
-    oid_.value().generate(c);
+    oid_.value().generateReservedBits(c);
 
 }
 
@@ -91,8 +91,8 @@ std::unique_ptr<fdb5::DaosObject> DaosNameBase::buildObject(const daos_otype_t& 
 
     /// @note: will throw DaosEntityNotFoundException if not exists
     if (otype == DAOS_OT_ARRAY || otype == DAOS_OT_ARRAY_BYTE)
-        return std::unique_ptr<fdb5::DaosObject>(new fdb5::DaosArray{s, *this});
-    if (otype == DAOS_OT_KV_HASHED) return std::unique_ptr<fdb5::DaosObject>(new fdb5::DaosKeyValue{s, *this});
+        return std::make_unique<fdb5::DaosArray>(s, *this);
+    if (otype == DAOS_OT_KV_HASHED) return std::make_unique<fdb5::DaosKeyValue>(s, *this);
     throw eckit::Exception("Provided otype not recognised.");
 
 }
@@ -108,7 +108,7 @@ void DaosNameBase::create() const {
     
     if (!oid_.has_value()) return;
 
-    generateOID();
+    ensureGeneratedOID();
 
     switch (oid_.value().otype()) {
         case DAOS_OT_ARRAY: case DAOS_OT_ARRAY_BYTE:
@@ -168,7 +168,8 @@ void DaosNameBase::destroy() const {
 eckit::Length DaosNameBase::size() const {
 
     if (!oid_.has_value()) NOTIMP;
-    generateOID();
+
+    ensureGeneratedOID();
 
     fdb5::DaosSession s{};
     return eckit::Length(buildObject(oid_.value().otype(), s)->size());
@@ -187,7 +188,7 @@ bool DaosNameBase::exists() const {
             fdb5::DaosContainer& c = p.getContainer(cont_.value());
 
         if (oid_.has_value()) {
-            generateOID();
+            ensureGeneratedOID();
             buildObject(oid_.value().otype(), s);
         }
 
@@ -200,7 +201,9 @@ bool DaosNameBase::exists() const {
 
 std::string DaosNameBase::asString() const {
 
-    if (oid_.has_value()) generateOID();
+    if (as_string_.has_value()) return as_string_.value();
+
+    if (oid_.has_value()) ensureGeneratedOID();
 
     eckit::StringList v{pool_};
     if (cont_.has_value()) v.push_back(cont_.value());
@@ -214,7 +217,9 @@ std::string DaosNameBase::asString() const {
         sep = "/";
     }
 
-    return oss.str();
+    as_string_.emplace(oss.str());
+
+    return as_string_.value();
 
 }
 
@@ -224,7 +229,7 @@ eckit::URI DaosNameBase::URI() const {
 
 }
 
-std::string DaosNameBase::poolName() const {
+const std::string& DaosNameBase::poolName() const {
 
     return pool_;
     
@@ -232,17 +237,17 @@ std::string DaosNameBase::poolName() const {
 
 // TODO: containerName, make it longer
 // actually DaosContainerName::name()
-std::string DaosNameBase::contName() const {
+const std::string& DaosNameBase::contName() const {
 
     ASSERT(cont_.has_value());
     return cont_.value();
     
 }
 
-fdb5::DaosOID DaosNameBase::OID() const {
+const fdb5::DaosOID& DaosNameBase::OID() const {
 
     ASSERT(oid_.has_value());
-    generateOID();
+    ensureGeneratedOID();
     return oid_.value();
     
 }
@@ -346,9 +351,9 @@ DaosArrayName DaosName::createArrayName(const daos_oclass_id_t& oclass, bool wit
     ASSERT(hasContName() && !hasOID());
     create();
     if (with_attr) {
-        return DaosArrayName{pool_, cont_.value(), createOID(DAOS_OT_ARRAY, oclass)};
+        return DaosArrayName{pool_, cont_.value(), allocOID(DAOS_OT_ARRAY, oclass)};
     } else {
-        return DaosArrayName{pool_, cont_.value(), createOID(DAOS_OT_ARRAY_BYTE, oclass)};
+        return DaosArrayName{pool_, cont_.value(), allocOID(DAOS_OT_ARRAY_BYTE, oclass)};
     }
 
 }
@@ -357,7 +362,7 @@ DaosKeyValueName DaosName::createKeyValueName(const daos_oclass_id_t& oclass) co
 
     ASSERT(hasContName() && !hasOID());
     create();
-    return DaosKeyValueName{pool_, cont_.value(), createOID(DAOS_OT_KV_HASHED, oclass)};
+    return DaosKeyValueName{pool_, cont_.value(), allocOID(DAOS_OT_KV_HASHED, oclass)};
 
 }
 

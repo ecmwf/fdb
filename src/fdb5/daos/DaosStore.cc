@@ -125,7 +125,7 @@ std::unique_ptr<FieldLocation> DaosStore::archive(const Key &key, const void *da
 
     /// @note: performed RPCs:
     /// - daos_obj_generate_oid -- always performed
-    n.generateOID();
+    n.ensureGeneratedOID();
 
     std::unique_ptr<eckit::DataHandle> h(n.dataHandle());
 
@@ -144,7 +144,7 @@ std::unique_ptr<FieldLocation> DaosStore::archive(const Key &key, const void *da
     /// - write (daos_array_write) -- always performed
     h->write(data, length);
 
-    return std::unique_ptr<DaosFieldLocation>(new DaosFieldLocation(n.URI(), 0, length, fdb5::Key()));
+    return std::make_unique<DaosFieldLocation>(n.URI(), 0, length, fdb5::Key());
 
     /// @note: performed RPCs:
     /// - close (daos_array_close here) -- always performed

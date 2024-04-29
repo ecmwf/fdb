@@ -40,15 +40,13 @@ void DaosArrayPartHandle::print(std::ostream& s) const {
 
 Length DaosArrayPartHandle::openForRead() {
 
-    if (open_) NOTIMP;
+    if (open_) throw eckit::SeriousBug{"Handle already opened."};
 
-    mode_ = "retrieve";
+    session();
 
-    session_.reset(new fdb5::DaosSession());
+    name_.ensureGeneratedOID();
 
-    name_.generateOID();
-
-    arr_.reset(new fdb5::DaosArray(*(session_.get()), name_));
+    arr_.emplace(session_.value(), name_);
 
     arr_->open();
 
@@ -83,13 +81,9 @@ void DaosArrayPartHandle::close() {
 
     open_ = false;
 
-    /// @todo: should offset be set to 0?
-
 }
 
 void DaosArrayPartHandle::flush() {
-
-    /// @todo: should flush require closing?
 
     /// empty implmenetation
 
@@ -137,6 +131,13 @@ bool DaosArrayPartHandle::canSeek() const {
 std::string DaosArrayPartHandle::title() const {
     
     return name_.asString();
+
+}
+
+fdb5::DaosSession& DaosArrayPartHandle::session() {
+
+    if (!session_.has_value()) session_.emplace();
+    return session_.value();
 
 }
 

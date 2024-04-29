@@ -248,7 +248,7 @@ void IndexAxis::insert(const Key &key) {
 
 /// @note: this method inserts key-value pairs into an axis in memory. 
 ///   Intended for importing axis information from storage in the DAOS backend.
-///   Input values are expected to be cannoicalised.
+///   Input values are required to be cannoicalised.
 void IndexAxis::insert(const std::string& axis, const std::vector<std::string>& values) {
     ASSERT(!readOnly_);
 
@@ -311,6 +311,10 @@ const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword
 /// @note: exceptions cannot be easily caught if using values() because the result needs to be
 ///   assigned to a reference which needs to live beyond a try {} scope. valuesNothrow instead does
 ///   not throw but the user code needs to check validity of result.
+/// @todo: consider the case of optional keys in the schema. There may well be an Axis existing for the 
+///   key, but with no values associated. That is not an error.
+///   To support this case, valuesNothrow should return something like a 
+///   std::optional<std::reference_wrapper<const eckit::DenseSetstd::string>>.
 const eckit::DenseSet<std::string>& IndexAxis::valuesNothrow(const std::string &keyword) const {
 
     const static eckit::DenseSet<std::string> nullStringSet;

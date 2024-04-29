@@ -18,7 +18,9 @@ endif()
 if (HAVE_DAOSFDB)
 
   list( APPEND daos_tests
-    daos_handle daos_store daos_catalogue
+    daos_handle
+    daos_store
+    daos_catalogue
   )
 
   list( APPEND unit_test_libraries "${DAOS_LIBRARIES}" )

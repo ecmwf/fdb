@@ -21,9 +21,13 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name) :
+DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name, bool readAxes) :
     IndexBase(key, "daosKeyValue"),
-    location_(name, 0) {}
+    location_(name, 0) {
+
+    if (readAxes) updateAxes();
+
+}
 
 bool DaosIndex::mayContain(const Key &key) const {
 
@@ -57,7 +61,7 @@ bool DaosIndex::mayContain(const Key &key) const {
 
 }
 
-const IndexAxis& DaosIndex::updatedAxes() {
+void DaosIndex::updateAxes() {
 
     fdb5::DaosSession s{};
     const fdb5::DaosKeyValueName& index_kv_name = location_.daosName();
@@ -91,8 +95,6 @@ const IndexAxis& DaosIndex::updatedAxes() {
         /// - one or more kv list (daos_kv_list)
         axes_.insert(name, axis_kv.keys());
     }
-
-    return IndexBase::axes();
 
 }
 
@@ -227,10 +229,8 @@ const std::vector<eckit::URI> DaosIndex::dataURIs() const {
 
         if (key == "axes" || key == "key") continue;
 
-        daos_size_t size{index_kv.size(key)};
-        std::vector<char> v((long) size);
-        index_kv.get(key, &v[0], size);
-        eckit::MemoryStream ms{&v[0], size};
+        std::vector<char> data;
+        eckit::MemoryStream ms = index_kv.getMemoryStream(data, key, "index kv");
         
         time_t ts;
         ms >> ts;

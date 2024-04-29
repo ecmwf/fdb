@@ -228,7 +228,7 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
 
         // attempt access non-existing object
         fdb5::DaosArrayOID oid_ne{0, 0, OC_S1};
-        oid_ne.generate(cont);
+        oid_ne.generateReservedBits(cont);
         EXPECT_THROWS_AS(fdb5::DaosArray obj(cont, oid_ne), fdb5::DaosEntityNotFoundException);
 
         // attempt access object via (user-defined) non-generated OID
@@ -388,12 +388,7 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
             res = h.write(data, (long) sizeof(data));
             EXPECT(res == (long) sizeof(data));
             EXPECT(h.position() == Offset(sizeof(data)));
-        }
 
-        /// @todo: this triggers array create again...
-        h.openForAppend(Length(sizeof(data)));
-        {
-            eckit::AutoClose closer(h);
             res = h.write(data, (long) sizeof(data));
             EXPECT(res == (long) sizeof(data));
             EXPECT(h.position() == Offset(2 * sizeof(data)));
@@ -555,7 +550,7 @@ CASE( "DaosName and DaosHandle workflows" ) {
 
         /// write
         fdb5::DaosArrayOID oid{3, 2, OC_S1};
-        oid.generate(cont);
+        oid.generateReservedBits(cont);
         fdb5::DaosArrayName na{pool_name, cont_name, oid};
         // fdb5::DaosArrayName n{pool_name, cont_name, {"00110000000000000000000000000001"}};
         std::unique_ptr<eckit::DataHandle> h(na.dataHandle());
@@ -658,7 +653,7 @@ CASE( "DaosName and DaosHandle workflows" ) {
 
         /// non-existing generated OID
         fdb5::DaosArrayOID oid_ne{3, 5, OC_S1};
-        oid_ne.generate(cont);
+        oid_ne.generateReservedBits(cont);
         fdb5::DaosArrayName na_read_ne{pool_name, cont_name, oid_ne};
         std::unique_ptr<eckit::DataHandle> h3(na_read_ne.dataHandle());
         EXPECT_THROWS_AS(h3->openForRead(), fdb5::DaosEntityNotFoundException);

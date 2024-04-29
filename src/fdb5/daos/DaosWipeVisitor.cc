@@ -69,8 +69,6 @@ bool DaosWipeVisitor::visitDatabase(const Catalogue& catalogue, const Store& sto
 
 bool DaosWipeVisitor::visitIndex(const Index& index) {
 
-    /// @todo: why isn't WipeVisitor::visitIndex being called here?
-
     fdb5::DaosKeyValueName location{index.location().uri()};
     const fdb5::DaosKeyValueName& db_kv = catalogue_.dbKeyValue();
 
@@ -103,7 +101,7 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
             /// @todo: take oclass from config
             fdb5::DaosKeyValueOID oid(idx + std::string{"."} + name, OC_S1);
             fdb5::DaosKeyValueName nkv(location.poolName(), location.contName(), oid);
-            nkv.generateOID();
+            nkv.ensureGeneratedOID();
             axes.insert(nkv);
         }
     }
@@ -128,7 +126,7 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
                 Log::error() << "Configured Store URI: " << store_.uri().asString() << std::endl;
                 Log::error() << "Pointed Store unit URI: " << uri.asString() << std::endl;
                 Log::error() << "Impossible to delete such fields. Index deletion aborted to avoid leaking fields." << std::endl;
-                NOTIMP;
+                throw eckit::SeriousBug{"Index deletion aborted to avoid leaking fields."};
             }
             storeURIs_.insert(uri);
         } else {
@@ -351,17 +349,15 @@ void DaosWipeVisitor::wipe(bool wipeAll) {
 
                 fdb5::DaosSession s{};
                 fdb5::DaosKeyValue index_kv{s, name};
-                daos_size_t size = index_kv.size("key");
-                std::vector<char> idxkey_data((long) size);
-                index_kv.get("key", &idxkey_data[0], size);
-                eckit::MemoryStream ms{&idxkey_data[0], size};
+                std::vector<char> data;
+                eckit::MemoryStream ms = index_kv.getMemoryStream(data, "key", "index kv");
                 fdb5::Key key(ms);
                 std::string idx{key.valuesToString()};
 
                 catalogue_.remove(name, logAlways, logVerbose, doit_);
 
                 fdb5::DaosKeyValue db_kv{s, catalogue_.dbKeyValue()};
-                db_kv.remove(idx);
+                if (doit_) db_kv.remove(idx);
 
             } else {
                 NOTIMP;
@@ -383,10 +379,10 @@ void DaosWipeVisitor::wipe(bool wipeAll) {
 
         fdb5::DaosName db_cont{db_kv.poolName(), db_kv.contName()};
 
-        if (db_cont.exists()) db_cont.destroy();
+        if (db_cont.exists() && doit_) db_cont.destroy();
         
         std::string db_key = db_kv.contName();
-        if (root_kv.has(db_key)) {
+        if (root_kv.has(db_key) && doit_) {
             fdb5::DaosSession s{};
             fdb5::DaosKeyValue root{s, root_kv};
             root.remove(db_key);

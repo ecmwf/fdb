@@ -26,15 +26,12 @@ class DaosIndex : public IndexBase {
 
 public: // methods
 
-    DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name);
+    DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name, bool readAxes = true);
 
     void flock() const override { NOTIMP; }
     void funlock() const override { NOTIMP; }
 
     virtual bool mayContain(const Key& key) const override;
-
-    /// @note: reads complete axis info from DAOS.
-    const IndexAxis& updatedAxes() override;
 
 private: // methods
 
@@ -59,6 +56,9 @@ private: // methods
     void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const override { NOTIMP; }
 
     IndexStats statistics() const override { NOTIMP; }
+
+    /// @note: reads complete axis info from DAOS.
+    void updateAxes();
 
 private: // members
 

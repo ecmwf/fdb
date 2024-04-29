@@ -58,7 +58,7 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
     /// - db kv open (daos_kv_open)
 
     fdb5::DaosName n2{n.poolName(), n.contName(), catalogue_kv_};
-    n2.generateOID();
+    n2.ensureGeneratedOID();
     bool is_catalogue_kv = (!is_root_name && !is_store_name && (n.OID() == n2.OID()));
 
     return is_catalogue_kv && n.exists();
@@ -132,12 +132,8 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
             /// - db key get size (daos_kv_get without a buffer)
             /// - db key get (daos_kv_get)
             fdb5::DaosKeyValue db_kv{s, db_kv_name};  /// @note: includes exist check
-            size = db_kv.size("key");
-            if (size == 0) throw eckit::Exception("Key 'key' not found in DB kv");
-            std::vector<char> dbkey_data((long) size);
-            db_kv.get("key", &dbkey_data[0], size);
-
-            eckit::MemoryStream ms{&dbkey_data[0], size};
+            std::vector<char> data;
+            eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
             fdb5::Key db_key(ms);
 
             if (db_key.match(key)) {
@@ -229,12 +225,8 @@ std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest&
             /// - db key get size (daos_kv_get without a buffer)
             /// - db key get (daos_kv_get)
             fdb5::DaosKeyValue db_kv{s, db_kv_name};
-            size = db_kv.size("key");
-            if (size == 0) throw eckit::Exception("Key 'key' not found in DB kv");
-            std::vector<char> dbkey_data((long) size);
-            db_kv.get("key", &dbkey_data[0], size);
-
-            eckit::MemoryStream ms{&dbkey_data[0], size};
+            std::vector<char> data;
+            eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
             fdb5::Key db_key(ms);
 
             if (db_key.partialMatch(request)) {

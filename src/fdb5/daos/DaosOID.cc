@@ -69,22 +69,25 @@ bool DaosOID::operator==(const DaosOID& rhs) const {
 
 }
 
-void DaosOID::generate(fdb5::DaosContainer& cont) {
+void DaosOID::generateReservedBits(fdb5::DaosContainer& cont) {
 
     if (wasGenerated_) return;
-    hi_ = cont.generateOID(*this).asDaosObjIdT().hi;
+    hi_ = cont.ensureGeneratedOID(*this).asDaosObjIdT().hi;
     wasGenerated_ = true;
 
 }
 
 std::string DaosOID::asString() const {
 
+    if (as_string_.has_value()) return as_string_.value();
+
     ASSERT(wasGenerated_);
 
     std::stringstream os;
     os << std::setw(16) << std::setfill('0') << std::hex << hi_;
     os << std::setw(16) << std::setfill('0') << std::hex << lo_;
-    return os.str();
+    as_string_.emplace(os.str());
+    return as_string_.value();
 
 }
 

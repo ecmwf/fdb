@@ -47,7 +47,7 @@ DaosManager::~DaosManager() {
 
     pool_cache_.clear();
 
-    std::cout << "DAOS_CALL => daos_fini()" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL => daos_fini()" << std::endl;
 
     int code = daos_fini();
     
@@ -55,7 +55,7 @@ DaosManager::~DaosManager() {
         << __FILE__ << ", line " << __LINE__ << ", function " << __func__ << " [" << code << "] (" 
         << code << ")" << std::endl;
 
-    std::cout << "DAOS_CALL <= daos_fini()" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL <= daos_fini()" << std::endl;
 
 }
 
