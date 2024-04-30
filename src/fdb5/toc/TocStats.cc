@@ -258,19 +258,19 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     const eckit::PathName& indexPath = currentIndex_->location().uri().path();
 
     if (dataPath != lastDataPath_) {
+        if (dataPath.exists()) {
+            if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
 
-        if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
-
-            if (dataPath.dirName().sameAs(directory_)) {
-                dbStats->ownedFilesSize_ += dataPath.size();
-                dbStats->ownedFilesCount_++;
-            } else {
-                dbStats->adoptedFilesSize_ += dataPath.size();
-                dbStats->adoptedFilesCount_++;
+                if (dataPath.dirName().sameAs(directory_)) {
+                    dbStats->ownedFilesSize_ += dataPath.size();
+                    dbStats->ownedFilesCount_++;
+                } else {
+                    dbStats->adoptedFilesSize_ += dataPath.size();
+                    dbStats->adoptedFilesCount_++;
+                }
+                allDataFiles_.insert(dataPath);
             }
-            allDataFiles_.insert(dataPath);
         }
-
         lastDataPath_ = dataPath;
     }
 
