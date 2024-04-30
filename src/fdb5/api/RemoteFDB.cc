@@ -33,6 +33,7 @@ struct BaseAPIHelper {
 };
 
 // using ListHelper = BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List>;
+using StatsHelper = BaseAPIHelper<fdb5::StatsElement, fdb5::remote::Message::Stats>;
 
 struct ListHelper : BaseAPIHelper<fdb5::ListElement, fdb5::remote::Message::List> {
 
@@ -234,6 +235,10 @@ ListIterator RemoteFDB::list(const FDBToolRequest& request) {
 
 ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
     return forwardApiCall(InspectHelper(), request);
+}
+
+StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
+    return forwardApiCall(StatsHelper(), request);
 }
 
 void RemoteFDB::print(std::ostream& s) const {

@@ -143,6 +143,10 @@ class FdbURIManager : public eckit::URIManager {
         return f.path().partHandle(ol, ll);
     }
 
+    eckit::PathName path(const eckit::URI& u) const override {
+        return eckit::PathName{u.name()};
+    }
+
     virtual std::string asString(const eckit::URI& uri) const override {
         std::string q = uri.query();
         if (!q.empty())

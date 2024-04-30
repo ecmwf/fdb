@@ -133,7 +133,7 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.canonicalValue("date") == "0427");
     EXPECT(key.canonicalValue("time") == "0000");
 
-    std::cout << key.valuesToString() << std::endl;
+    // std::cout << key.valuesToString() << std::endl;
 
     EXPECT(key.valuesToString() == "0427:dacl:0000:ei:7799:g:pb:pl:2-12:99:100:50:129.128");
 

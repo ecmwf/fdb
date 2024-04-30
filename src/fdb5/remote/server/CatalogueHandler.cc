@@ -102,6 +102,10 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 inspect(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
+            case Message::Stats: // inspect request. Location are sent aynchronously over the data connection
+                stats(clientID, requestID, std::move(payload));
+                return Handled::Yes;
+
             case Message::Flush: // flush catalogue
                 flush(clientID, requestID, std::move(payload));
                 return Handled::Yes;
@@ -217,6 +221,12 @@ struct InspectHelper : public BaseHelper<ListElement> {
     }
 };
 
+struct StatsHelper : public BaseHelper<StatsElement> {
+    StatsIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.stats(request);
+    }
+};
+
 template <typename HelperClass>
 void CatalogueHandler::forwardApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     HelperClass helper;
@@ -259,6 +269,10 @@ void CatalogueHandler::list(uint32_t clientID, uint32_t requestID, eckit::Buffer
 
 void CatalogueHandler::inspect(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     forwardApiCall<InspectHelper>(clientID, requestID, std::move(payload));
+}
+
+void CatalogueHandler::stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    forwardApiCall<StatsHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {

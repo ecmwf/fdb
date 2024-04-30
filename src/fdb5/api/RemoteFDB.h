@@ -56,7 +56,7 @@ public: // method
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override { NOTIMP; }
 
-    StatsIterator stats(const FDBToolRequest& request) override { NOTIMP; }
+    StatsIterator stats(const FDBToolRequest& request) override;
 
     ControlIterator control(const FDBToolRequest& request,
                             ControlAction action,
