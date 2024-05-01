@@ -14,6 +14,7 @@
 #include <cstring>
 #include <list>
 #include <ostream>
+#include <regex>
 
 #include "eckit/eckit.h"
 
@@ -24,7 +25,6 @@
 #include "eckit/log/Log.h"
 #include "eckit/os/BackTrace.h"
 #include "eckit/os/Stat.h"
-#include "eckit/utils/Regex.h"
 #include "eckit/utils/StringTools.h"
 
 #include "fdb5/LibFdb5.h"
@@ -148,8 +148,6 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<InspectionKey>& ke
                                                const std::vector<eckit::PathName>& roots,
                                                const Config& config) const {
 
-    static bool searchCaseSensitiveDB = eckit::Resource<bool>("fdbSearchCaseSensitiveDB;$FDB_SEARCH_CASESENSITIVE_DB", true);
-
     std::set<eckit::PathName> result;
 
     for (std::vector<eckit::PathName>::const_iterator j = roots.begin(); j != roots.end(); ++j) {
@@ -166,12 +164,13 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<InspectionKey>& ke
             for(std::vector<std::string>::const_iterator dbpath = dbpaths.begin(); dbpath != dbpaths.end(); ++dbpath) {
 
                 std::string regex = "^" + *j + "/" + *dbpath + "$";
-                Regex re(searchCaseSensitiveDB ? eckit::StringTools::lower(regex) : regex);
+                std::regex reg(regex, std::regex_constants::syntax_option_type::icase | std::regex_constants::syntax_option_type::optimize);
 
                 LOG_DEBUG_LIB(LibFdb5) << " -> key i " << *i
                                      << " dbpath " << *dbpath
-                                     << " pathregex " << re << std::endl;
+                                     << " pathregex " << regex << std::endl;
 
+                std::smatch m;
                 for (std::list<std::string>::const_iterator k = dbs.begin(); k != dbs.end(); ++k) {
 
                     LOG_DEBUG_LIB(LibFdb5) << "    -> db " << *k << std::endl;
@@ -180,7 +179,7 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<InspectionKey>& ke
                         continue;
                     }
 
-                    if (re.match(searchCaseSensitiveDB ? eckit::StringTools::lower(*k) : *k)) {
+                    if (std::regex_match(*k, m, reg)) {
                         result.insert(*k);
                     }
                 }

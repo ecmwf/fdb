@@ -191,14 +191,16 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 
 // -----------------------------------------------------------------------------------------------------
 
-std::future<eckit::Buffer> ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
+eckit::Buffer ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
     auto it = clients_.find(client.clientId());
     ASSERT(it != clients_.end());
 
     auto pp = promises_.emplace(requestID, std::promise<eckit::Buffer>{});
+    std::future<eckit::Buffer> f = pp.first->second.get_future();
+
     Connection::write(msg, true, client.clientId(), requestID, data);
 
-    return pp.first->second.get_future();
+    return f.get();
 }
 
 void ClientConnection::dataWrite(DataWriteRequest& r) {
@@ -418,6 +420,8 @@ void ClientConnection::listeningControlThreadLoop() {
 void ClientConnection::listeningDataThreadLoop() {
 
     try {
+
+        LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop started" << std::endl;
 
         MessageHeader hdr;
 
