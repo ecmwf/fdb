@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include <future>
-
 #include "eckit/config/Configuration.h"
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/net/Endpoint.h"

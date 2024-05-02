@@ -58,7 +58,7 @@ public:
 
 
 ClientConnection::ClientConnection(const eckit::net::Endpoint& controlEndpoint, const std::string& defaultEndpoint):
-    controlEndpoint_(controlEndpoint), defaultEndpoint_(defaultEndpoint), id_(1), connected_(false), dataWriteQueue_(nullptr) {
+    controlEndpoint_(controlEndpoint), defaultEndpoint_(defaultEndpoint), id_(1), connected_(false), controlStopping_(false), dataStopping_(false), dataWriteQueue_(nullptr) {
 
     LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
 }
@@ -85,8 +85,9 @@ bool ClientConnection::remove(uint32_t clientID) {
     }
 
     if (clients_.empty()) {
-        Connection::write(Message::Exit, true, 0, 0);
-        if (!single_) {
+        if (!controlStopping_)
+            Connection::write(Message::Exit, true, 0, 0);
+        if (!single_ && !dataStopping_) {
             // TODO make the data connection dying automatically, when there are no more async writes
             Connection::write(Message::Exit, false, 0, 0);
         }
@@ -143,13 +144,12 @@ bool ClientConnection::connect(bool singleAttempt) {
         listeningControlThread_ = std::thread([this] { listeningControlThreadLoop(); });
 
         connected_ = true;
-        return true;
     } catch(eckit::TooManyRetries& e) {
         if (controlClient_.isConnected()) {
             controlClient_.close();
         }
     }
-    return false;
+    return connected_;
 }
 
 void ClientConnection::disconnect() {
@@ -191,7 +191,7 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 
 // -----------------------------------------------------------------------------------------------------
 
-eckit::Buffer ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
+eckit::Buffer&& ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
     auto it = clients_.find(client.clientId());
     ASSERT(it != clients_.end());
 
@@ -200,7 +200,7 @@ eckit::Buffer ClientConnection::controlWrite(Client& client, Message msg, uint32
 
     Connection::write(msg, true, client.clientId(), requestID, data);
 
-    return f.get();
+    return std::move(f.get());
 }
 
 void ClientConnection::dataWrite(DataWriteRequest& r) {
@@ -362,6 +362,7 @@ void ClientConnection::listeningControlThreadLoop() {
             LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message << ",clientID=" << hdr.clientID() << ",control=" << hdr.control() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
             if (hdr.message == Message::Exit) {
+                controlStopping_ = true;
                 return;
             } else {
                 if (hdr.clientID()) {
@@ -432,6 +433,7 @@ void ClientConnection::listeningDataThreadLoop() {
             LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
             if (hdr.message == Message::Exit) {
+                dataStopping_ = true;
                 return;
             } else {
                 if (hdr.clientID()) {

@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include <future>
 
 #include "fdb5/LibFdb5.h"
 

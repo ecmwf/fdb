@@ -38,7 +38,7 @@ public: // methods
 
     virtual ~ClientConnection();
 
-    eckit::Buffer controlWrite(Client& client, Message msg, uint32_t requestID, bool startDataListener, std::vector<std::pair<const void*, uint32_t>> data={});
+    eckit::Buffer&& controlWrite(Client& client, Message msg, uint32_t requestID, bool startDataListener, std::vector<std::pair<const void*, uint32_t>> data={});
     void dataWrite(Client& client, Message msg, uint32_t requestID, std::vector<std::pair<const void*, uint32_t>> data={});
 
     void add(Client& client);
@@ -101,6 +101,8 @@ private: // members
     uint32_t id_;
 
     bool connected_; 
+    bool controlStopping_; 
+    bool dataStopping_; 
 
     std::map<uint32_t, std::promise<eckit::Buffer>> promises_;
 
