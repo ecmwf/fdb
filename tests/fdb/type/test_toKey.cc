@@ -146,23 +146,18 @@ CASE( "Step & ClimateDaily - expansion" ) {
     EXPECT(key.canonicalValue("step") == "0-1");
 
     key.set("step", "30m");
-    // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
     EXPECT(key.canonicalValue("step") == "30m");
 
     key.set("step", "60m");
-    // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
     EXPECT(key.canonicalValue("step") == "1");
 
     key.set("step", "30m-60m");
-    // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
-    EXPECT(key.canonicalValue("step") == "30m-60m");
+    EXPECT(key.canonicalValue("step") == "30m-1");
 
     key.set("step", "30m-1");
-    // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
-    EXPECT(key.canonicalValue("step") == "30m-60m");
+    EXPECT(key.canonicalValue("step") == "30m-1");
 
     key.set("step", "60m-120m");
-    // std::cout << key.get("step") << " " << key.canonicalValue("step") << std::endl;
     EXPECT(key.canonicalValue("step") == "1-2");
 }
 
@@ -288,7 +283,6 @@ CASE( "Date - string ctor - expansion" ) {
     config.schema().expand(key, visitor);
     key.registry(visitor.rule()->registry());
 
-//    std::cout << key.valuesToString() << std::endl;
     EXPECT(key.canonicalValue("date") == t(now.yyyymmdd()));
     EXPECT(key.valuesToString() == "od:0001:oper:ofb:"+t(now.yyyymmdd())+":0000:MHS:3001");
 

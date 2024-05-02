@@ -38,7 +38,6 @@ Key ListElement::combinedKey() const {
             combined.set(kv.first, kv.second);
         }
     }
-
     return combined;
 }
 

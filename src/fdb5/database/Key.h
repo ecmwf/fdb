@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <memory>
 
 #include "eckit/types/Types.h"
 

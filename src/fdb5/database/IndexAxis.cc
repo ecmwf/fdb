@@ -45,6 +45,35 @@ IndexAxis::IndexAxis(eckit::Stream &s, const int version) :
     decode(s, version);
 }
 
+IndexAxis::IndexAxis(IndexAxis&& rhs) noexcept :
+        axis_(std::move(rhs.axis_)),
+        readOnly_(rhs.readOnly_),
+        dirty_(rhs.dirty_) {}
+
+IndexAxis& IndexAxis::operator=(IndexAxis&& rhs) noexcept {
+    axis_ = std::move(rhs.axis_);
+    readOnly_ = rhs.readOnly_;
+    dirty_ = rhs.dirty_;
+    return *this;
+}
+
+bool IndexAxis::operator==(const IndexAxis& rhs) const {
+
+    if (axis_.size() != rhs.axis_.size()) return false;
+
+    for (const auto& kv : axis_) {
+        auto it = rhs.axis_.find(kv.first);
+        if (it == rhs.axis_.end()) return false;
+        if (*kv.second != *it->second) return false;
+    }
+
+    return true;
+}
+
+bool IndexAxis::operator!=(const IndexAxis& rhs) const {
+    return !(*this == rhs);
+}
+
 void IndexAxis::encode(eckit::Stream &s, const int version) const {
     if (version >= 3) {
         encodeCurrent(s, version);
@@ -292,11 +321,57 @@ const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword
     return *(i->second);
 }
 
+std::map<std::string, eckit::DenseSet<std::string>> IndexAxis::map() const {
+
+    // Make a copy of the axis map
+    std::map<std::string, eckit::DenseSet<std::string>> result;
+
+    for (const auto& kv : axis_) {
+        result.emplace(kv.first, *kv.second);
+    }
+    return result;
+}
+
 void IndexAxis::print(std::ostream &out) const {
     out << "IndexAxis["
         <<  "axis=";
-    eckit::__print_container(out, axis_);
+
+    const char* sep = "";
+    out << "{";
+    for (const auto& kv : axis_) {
+        out << sep << kv.first << "=(";
+        const char* sep2 = "";
+        for (const auto& v : *kv.second) {
+            out << sep2 << v;
+            sep2 = ",";
+        }
+        out << ")";
+        sep = ",";
+    }
+    out << "}";
     out  << "]";
+}
+
+void IndexAxis::json(eckit::JSON& json) const {
+    json.startObject();
+    for (const auto& kv : axis_) {
+        json << kv.first << *kv.second;
+    }
+    json.endObject();
+}
+
+void IndexAxis::merge(const fdb5::IndexAxis& other) {
+
+    ASSERT(!readOnly_);
+    for (const auto& kv : other.axis_) {
+
+        auto it = axis_.find(kv.first);
+        if (it == axis_.end()) {
+            axis_.emplace(kv.first, kv.second);
+        } else {
+            it->second->merge(*kv.second);
+        };
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

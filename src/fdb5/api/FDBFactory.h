@@ -28,7 +28,7 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/api/FDBStats.h"
-#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
@@ -87,6 +87,8 @@ public: // methods
                                     ControlIdentifiers identifier) = 0;
 
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
+
+    virtual AxesIterator axes(const FDBToolRequest& request, int axes) { NOTIMP; }
 
     // -------------- API management ----------------------------
 
