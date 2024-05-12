@@ -47,17 +47,17 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
 
     if (!n.hasOID()) return false;
 
-    /// @todo: check contName is not root_cont_. root_cont_ should be populated in
+    /// @todo: check containerName is not root_cont_. root_cont_ should be populated in
     ///   configureDaos as done in DaosCommon
-    // bool is_root_name = (n.contName().find(root_cont_) != std::string::npos);
+    // bool is_root_name = (n.containerName().find(root_cont_) != std::string::npos);
     bool is_root_name = false;
-    bool is_store_name = (n.contName().find("_") != std::string::npos);
+    bool is_store_name = (n.containerName().find("_") != std::string::npos);
 
     /// @note: performed RPCs:
     /// - generate oids (daos_obj_generate_oid)
     /// - db kv open (daos_kv_open)
 
-    fdb5::DaosName n2{n.poolName(), n.contName(), catalogue_kv_};
+    fdb5::DaosName n2{n.poolName(), n.containerName(), catalogue_kv_};
     n2.ensureGeneratedOID();
     bool is_catalogue_kv = (!is_root_name && !is_store_name && (n.OID() == n2.OID()));
 
@@ -116,7 +116,7 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
             /// @note: performed RPCs:
             /// - main kv get db location size (daos_kv_get without a buffer)
             /// - main kv get db location (daos_kv_get)
-            daos_size_t size = main_kv->size(k);
+            uint64_t size = main_kv->size(k);
             std::vector<char> v(size);
             main_kv->get(k, v.data(), size);
 
@@ -209,7 +209,7 @@ std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest&
             /// @note: performed RPCs:
             /// - main kv get db location size (daos_kv_get without a buffer)
             /// - main kv get db location (daos_kv_get)
-            daos_size_t size = main_kv->size(k);
+            uint64_t size = main_kv->size(k);
             std::vector<char> v(size);
             main_kv->get(k, v.data(), size);
 

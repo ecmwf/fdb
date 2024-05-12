@@ -51,7 +51,7 @@ public: // methods
     virtual void destroy() = 0;
     virtual void open() = 0;
     virtual void close() = 0;
-    virtual daos_size_t size() = 0;
+    virtual uint64_t size() = 0;
 
     std::string name() const;
     const fdb5::DaosOID& OID() const;
@@ -94,10 +94,10 @@ public: // methods
     void destroy() override;
     void open() override;
     void close() override;
-    daos_size_t size() override;
+    uint64_t size() override;
 
-    long write(const void*, const long&, const eckit::Offset&);
-    long read(void*, long, const eckit::Offset&);
+    uint64_t write(const void*, const uint64_t&, const eckit::Offset&);
+    uint64_t read(void*, uint64_t, const eckit::Offset&);
 
 private: // methods
 
@@ -126,12 +126,12 @@ public: // methods
     void destroy() override;
     void open() override;
     void close() override;
-    daos_size_t size() override { NOTIMP; };
+    uint64_t size() override { NOTIMP; };
 
-    daos_size_t size(const std::string& key);
+    uint64_t size(const std::string& key);
     bool has(const std::string& key);
-    long put(const std::string& key, const void*, const long&);
-    long get(const std::string& key, void*, const long&);
+    uint64_t put(const std::string& key, const void*, const uint64_t&);
+    uint64_t get(const std::string& key, void*, const uint64_t&);
     void remove(const std::string& key);
     std::vector<std::string> keys();
 

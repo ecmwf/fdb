@@ -40,7 +40,7 @@ DaosCommon::DaosCommon(const fdb5::Config& config, const std::string& component,
 
     fdb5::DaosName db_name{uri};
     pool_ = db_name.poolName();
-    db_cont_ = db_name.contName();
+    db_cont_ = db_name.containerName();
 
     readConfig(config, component, false);
 

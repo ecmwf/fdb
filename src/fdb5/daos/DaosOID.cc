@@ -18,6 +18,7 @@
 
 #include "fdb5/daos/DaosOID.h"
 #include "fdb5/daos/DaosContainer.h"
+#include "fdb5/daos/DaosSession.h"
 
 namespace fdb5 {
 
@@ -25,12 +26,12 @@ namespace fdb5 {
 
 void DaosOID::parseReservedBits() {
 
-    otype_ = static_cast<enum daos_otype_t>((hi_ & OID_FMT_TYPE_MASK) >> OID_FMT_TYPE_SHIFT);
-    oclass_ = OBJ_CLASS_DEF(OR_RP_1, (hi_ & OID_FMT_CLASS_MASK) >> OID_FMT_CLASS_SHIFT);
+    otype_ = static_cast<enum daos_otype_t>((oid_.hi & OID_FMT_TYPE_MASK) >> OID_FMT_TYPE_SHIFT);
+    oclass_ = OBJ_CLASS_DEF(OR_RP_1, (oid_.hi & OID_FMT_CLASS_MASK) >> OID_FMT_CLASS_SHIFT);
 
 }
 
-DaosOID::DaosOID(const uint64_t& hi, const uint64_t& lo) : hi_(hi), lo_(lo), wasGenerated_(true) {
+DaosOID::DaosOID(const uint64_t& hi, const uint64_t& lo) : oid_({lo, hi}), wasGenerated_(true) {
 
     parseReservedBits();
 
@@ -41,15 +42,15 @@ DaosOID::DaosOID(const std::string& s) : wasGenerated_(true) {
     ASSERT(s.length() == 32);
     ASSERT(std::all_of(s.begin(), s.end(), ::isxdigit));
 
-    hi_ = std::stoull(s.substr(0, 16), nullptr, 16);
-    lo_ = std::stoull(s.substr(16, 16), nullptr, 16);
+    oid_.hi = std::stoull(s.substr(0, 16), nullptr, 16);
+    oid_.lo = std::stoull(s.substr(16, 16), nullptr, 16);
 
     parseReservedBits();
 
 }
 
 DaosOID::DaosOID(const uint32_t& hi, const uint64_t& lo, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass) :
-    otype_(otype), hi_(hi), lo_(lo), oclass_(oclass), wasGenerated_(false) {}
+    otype_(otype), oid_({lo, hi}), oclass_(oclass), wasGenerated_(false) {}
 
 DaosOID::DaosOID(const std::string& name, const enum daos_otype_t& otype, const daos_oclass_id_t& oclass) :
     otype_(otype), oclass_(oclass), wasGenerated_(false) {
@@ -57,14 +58,14 @@ DaosOID::DaosOID(const std::string& name, const enum daos_otype_t& otype, const 
     eckit::MD5 md5(name);
     /// @todo: calculate digests of 12 bytes (24 hex characters) rather than 16 bytes (32 hex characters)
     ///        I have tried redefining MD5_DIGEST_LENGTH but it had no effect
-    hi_ = std::stoull(md5.digest().substr(0, 8), nullptr, 16);
-    lo_ = std::stoull(md5.digest().substr(8, 16), nullptr, 16);
+    oid_.hi = std::stoull(md5.digest().substr(0, 8), nullptr, 16);
+    oid_.lo = std::stoull(md5.digest().substr(8, 16), nullptr, 16);
 
 }
 
 bool DaosOID::operator==(const DaosOID& rhs) const {
 
-    return hi_ == rhs.hi_ && lo_ == rhs.lo_ && 
+    return oid_.hi == rhs.oid_.hi && oid_.lo == rhs.oid_.lo && 
            oclass_ == rhs.oclass_ && wasGenerated_ == rhs.wasGenerated_;
 
 }
@@ -72,8 +73,12 @@ bool DaosOID::operator==(const DaosOID& rhs) const {
 void DaosOID::generateReservedBits(fdb5::DaosContainer& cont) {
 
     if (wasGenerated_) return;
-    hi_ = cont.ensureGeneratedOID(*this).asDaosObjIdT().hi;
+    
+    DAOS_CALL(daos_obj_generate_oid(cont.getOpenHandle(), &oid_, otype(), oclass(), 0, 0));
+
     wasGenerated_ = true;
+
+    return;
 
 }
 
@@ -84,16 +89,16 @@ std::string DaosOID::asString() const {
     ASSERT(wasGenerated_);
 
     std::stringstream os;
-    os << std::setw(16) << std::setfill('0') << std::hex << hi_;
-    os << std::setw(16) << std::setfill('0') << std::hex << lo_;
+    os << std::setw(16) << std::setfill('0') << std::hex << oid_.hi;
+    os << std::setw(16) << std::setfill('0') << std::hex << oid_.lo;
     as_string_.emplace(os.str());
     return as_string_.value();
 
 }
 
-daos_obj_id_t DaosOID::asDaosObjIdT() const {
+daos_obj_id_t& DaosOID::asDaosObjIdT() {
 
-    return daos_obj_id_t{lo_, hi_};
+    return oid_;
 
 }
 

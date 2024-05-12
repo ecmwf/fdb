@@ -25,8 +25,6 @@
 namespace fdb5 {
 
 std::unique_ptr<Store> Catalogue::buildStore() {
-    /// @todo: buildByKey_ and all Store constructors taking a URI 
-    ///   (and StoreFactory::build(..., uri, ...)) can be removed
     return StoreFactory::instance().build(schema(), key(), config_);
 }
 

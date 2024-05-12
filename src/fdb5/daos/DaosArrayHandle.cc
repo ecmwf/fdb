@@ -43,7 +43,7 @@ void DaosArrayHandle::openForWrite(const Length& len) {
     session();
 
     fdb5::DaosPool& p = session_->getPool(name_.poolName());
-    fdb5::DaosContainer& c = p.ensureContainer(name_.contName());
+    fdb5::DaosContainer& c = p.ensureContainer(name_.containerName());
 
     name_.ensureGeneratedOID();
 

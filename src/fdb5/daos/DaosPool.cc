@@ -25,31 +25,24 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosPool::DaosPool(DaosPool&& other) noexcept : known_uuid_(other.known_uuid_), 
-    label_(std::move(other.label_)), poh_(std::move(other.poh_)), open_(other.open_),
+DaosPool::DaosPool(DaosPool&& other) noexcept : uuid_(std::move(other.uuid_)),
+    known_uuid_(other.known_uuid_), label_(std::move(other.label_)), 
+    poh_(std::move(other.poh_)), open_(other.open_),
     cont_cache_(std::move(other.cont_cache_)) {
 
-    uuid_copy(uuid_, other.uuid_);
     other.open_ = false;
 
 }
 
 DaosPool::DaosPool() : known_uuid_(false), open_(false) {}
 
-DaosPool::DaosPool(uuid_t uuid) : known_uuid_(true), open_(false) {
-
-    uuid_copy(uuid_, uuid);
-
-}
+DaosPool::DaosPool(const fdb5::UUID& uuid) : uuid_(uuid), known_uuid_(true), open_(false) {}
 
 DaosPool::DaosPool(const std::string& label) : known_uuid_(false), label_(label), open_(false) {}
 
 
-DaosPool::DaosPool(uuid_t uuid, const std::string& label) : known_uuid_(true), label_(label), open_(false) {
-
-    uuid_copy(uuid_, uuid);
-
-}
+DaosPool::DaosPool(const fdb5::UUID& uuid, const std::string& label) : 
+    uuid_(uuid), known_uuid_(true), label_(label), open_(false) {}
 
 DaosPool::~DaosPool() {
 
@@ -61,13 +54,13 @@ DaosPool::~DaosPool() {
 
 DaosPool& DaosPool::operator=(DaosPool&& other) noexcept {
 
+    uuid_ = std::move(other.uuid_);
     known_uuid_ = other.known_uuid_;
     label_ = std::move(other.label_);
     poh_ = std::move(other.poh_);
     open_ = other.open_;
     cont_cache_ = std::move(other.cont_cache_);
 
-    uuid_copy(uuid_, other.uuid_);
     other.open_ = false;
 
     return *this;
@@ -103,7 +96,7 @@ void DaosPool::create(const uint64_t& scmSize, const uint64_t& nvmeSize) {
         dmg_pool_create(
             fdb5::DaosSession().dmgConfigFile().c_str(), geteuid(), getegid(), NULL, NULL, 
             scmSize, nvmeSize, 
-            prop, &svcl, uuid_
+            prop, &svcl, uuid_.internal
         )
     );
 
@@ -128,7 +121,7 @@ void DaosPool::open() {
         DAOS_CALL(daos_pool_connect(label_.c_str(), NULL, DAOS_PC_RW, &poh_, NULL, NULL));
     } else {
         char uuid_cstr[37] = "";
-        uuid_unparse(uuid_, uuid_cstr);
+        uuid_unparse(uuid_.internal, uuid_cstr);
         DAOS_CALL(daos_pool_connect(uuid_cstr, NULL, DAOS_PC_RW, &poh_, NULL, NULL));
     }
     
@@ -305,14 +298,14 @@ std::string DaosPool::name() const {
     if (label_.size() > 0) return label_;
 
     char name_cstr[37];
-    uuid_unparse(uuid_, name_cstr);
+    uuid_unparse(uuid_.internal, name_cstr);
     return std::string(name_cstr);
 
 }
 
-void DaosPool::uuid(uuid_t uuid) const {
+const fdb5::UUID& DaosPool::uuid() const {
 
-    uuid_copy(uuid, uuid_);
+    return uuid_;
 
 }
 
@@ -330,9 +323,7 @@ AutoPoolDestroy::~AutoPoolDestroy() noexcept(false) {
     bool fail = !eckit::Exception::throwing();
 
     try {
-        uuid_t u{0};
-        pool_.uuid(u);
-        fdb5::DaosSession().destroyPool(u);
+        fdb5::DaosSession().destroyPool(pool_.uuid());
     } catch (std::exception& e) {
         eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;
         if (fail) {

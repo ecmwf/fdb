@@ -77,6 +77,11 @@ eckit::TmpFile& schema_file() {
     return f;
 }
 
+eckit::TmpFile& opt_schema_file() {
+    static eckit::TmpFile f{};
+    return f;
+}
+
 eckit::PathName& catalogue_tests_tmp_root() {
     static eckit::PathName cd("./daos_catalogue_tests_fdb_root");
     return cd;
@@ -109,6 +114,15 @@ CASE( "Setup" ) {
         hs->write(schema_str.data(), schema_str.size());
     }
 
+    std::string opt_schema_str{"[ a, b [ c?, d [ e?, f ]]]"};
+
+    std::unique_ptr<eckit::DataHandle> hs_opt(opt_schema_file().fileHandle());
+    hs_opt->openForWrite(opt_schema_str.size());
+    {
+        eckit::AutoClose closer(*hs_opt);
+        hs_opt->write(opt_schema_str.data(), opt_schema_str.size());
+    }
+
     // this is necessary to avoid ~fdb/etc/fdb/schema being used where
     // LibFdb5::instance().defaultConfig().schema() is called
     // due to no specified schema file (e.g. in Key::registry())
@@ -134,7 +148,7 @@ CASE("DaosCatalogue tests") {
 
     // bootstrap daos
 
-    uuid_t pool_uuid = {0};
+    fdb5::UUID pool_uuid;
     {
         /// @btodo: should DaosManager really be configured here? May be better not to configure it
         ///         here, only specify client config in FDB config file, and let the constructor of 
@@ -160,7 +174,7 @@ CASE("DaosCatalogue tests") {
         fdb5::DaosPool& pool = s.getPool(pool_name);
 #endif
 
-        pool.uuid(pool_uuid);
+        pool_uuid = pool.uuid();
     }
 
     SECTION("DaosCatalogue archive (index) and retrieve without a Store") {
@@ -507,11 +521,11 @@ CASE("DaosCatalogue tests") {
             std::vector<std::string>{}
         };
 
-        // initialise store
+        // initialise FDB
 
         fdb5::FDB fdb(config);
 
-        // check store is empty
+        // check FDB is empty
 
         size_t count;
         fdb5::ListElement info;
@@ -530,7 +544,7 @@ CASE("DaosCatalogue tests") {
         }
         EXPECT(count == 0);
 
-        // store data
+        // archive data
 
         char data[] = "test";
 
@@ -620,25 +634,73 @@ CASE("DaosCatalogue tests") {
         /// @todo: ensure DB still exists
         /// @todo: list db or index and expect count = 0?
 
+        // re-archive data
+
+        /// @note: FDB holds a LocalFDB which holds an Archiver which holds open DBs (DaosCatalogueWriters).
+        ///   If a whole DB is wiped, the top-level structures for that DB (main and catalogue KVs in this case)
+        ///   are deleted. If willing to archive again into that DB, the DB needs to be constructed again as the 
+        ///   top-level structures are only generated as part of the DaosCatalogueWriter constructor. There is
+        ///   no way currently to destroy the open DBs held by FDB other than entirely destroying FDB.
+        ///   Alternatively, a separate FDB instance can be created.
+        fdb5::FDB fdb2(config);
+
+        fdb2.archive(request_key, data, sizeof(data));
+
+        fdb2.flush();
+
+        listObject = fdb2.list(full_req);
+        count = 0;
+        while (listObject.next(info)) {
+            // info.print(std::cout, true, true);
+            // std::cout << std::endl;
+            count++;
+        }
+        EXPECT(count == 1);
+        
+        // wipe full database
+
+        wipeObject = fdb2.wipe(db_req, true);
+        count = 0;
+        while (wipeObject.next(elem)) count++;
+        EXPECT(count > 0);
+        /// @todo: really needed?
+        fdb2.flush();
+
+        // ensure field does not exist
+
+        listObject = fdb2.list(full_req);
+        count = 0;
+        while (listObject.next(info)) {
+            // info.print(std::cout, true, true);
+            // std::cout << std::endl;
+            count++;
+        }
+        EXPECT(count == 0);
+
+        /// @todo: ensure DB and corresponding pool do not exist
+
         /// @todo: ensure new DaosSession has updated daos client config
 
     }
 
-    /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
-    // archive() fails as it expects a toc file to exist, but it has been removed by previous wipe
-    SECTION("FDB API RE-STORE AND WIPE DB") {
+    SECTION("OPTIONAL SCHEMA KEYS") {
 
         // FDB configuration
+
+        ::setenv("FDB_SCHEMA_FILE", opt_schema_file().path().c_str(), 1);
 
         std::string config_str{
             "spaces:\n"
             "- roots:\n"
             "  - path: " + catalogue_tests_tmp_root().asString() + "\n"
             "type: local\n"
-            "schema : " + schema_file().path() + "\n"
-            "engine: toc\n"
+            "schema : " + opt_schema_file().path() + "\n"
+            "engine: daos\n"
             "store: daos\n"
             "daos:\n"
+            "  catalogue:\n"
+            "    pool: " + pool_name + "\n"
+            "    root_cont: " + root_cont_name + "\n"
             "  store:\n"
             "    pool: " + pool_name + "\n"
             "  client:\n"
@@ -649,12 +711,18 @@ CASE("DaosCatalogue tests") {
 
         // request
 
-        fdb5::Key request_key{"a=11,b=22,c=3,d=4,e=5,f=6"};
-        fdb5::Key index_key{"a=11,b=22,c=3,d=4"};
+        fdb5::Key request_key{"a=11,b=22,d=4,f=6"};
+        fdb5::Key request_key2{"a=11,b=22,d=4,e=5,f=6"};
+        fdb5::Key index_key{"a=11,b=22,d=4"};
         fdb5::Key db_key{"a=11,b=22"};
 
         fdb5::FDBToolRequest full_req{
             request_key.request("retrieve"), 
+            false, 
+            std::vector<std::string>{"a", "b"}
+        };
+        fdb5::FDBToolRequest full_req2{
+            request_key2.request("retrieve"), 
             false, 
             std::vector<std::string>{"a", "b"}
         };
@@ -668,12 +736,32 @@ CASE("DaosCatalogue tests") {
             false, 
             std::vector<std::string>{"a", "b"}
         };
+        fdb5::FDBToolRequest all_req{
+            metkit::mars::MarsRequest{}, 
+            true, 
+            std::vector<std::string>{}
+        };
 
-        // initialise store
+        // initialise FDB
 
         fdb5::FDB fdb(config);
 
-        // store again
+        // check FDB is empty
+
+        size_t count;
+        fdb5::ListElement info;
+
+        auto listObject = fdb.list(db_req);
+
+        count = 0;
+        while (listObject.next(info)) {
+            info.print(std::cout, true, true);
+            std::cout << std::endl;
+            ++count;
+        }
+        EXPECT(count == 0);
+
+        // archive data with incomplete key
 
         char data[] = "test";
 
@@ -681,31 +769,71 @@ CASE("DaosCatalogue tests") {
 
         fdb.flush();
 
-        size_t count;
-        
-        // wipe all database
+        // list data
 
-        fdb5::WipeElement elem;
-        auto wipeObject = fdb.wipe(db_req, true);
-        count = 0;
-        while (wipeObject.next(elem)) count++;
-        EXPECT(count > 0);
-        /// @todo: really needed?
-        fdb.flush();
+        listObject = fdb.list(db_req);
 
-        // ensure field does not exist
-
-        fdb5::ListElement info;
-        auto listObject = fdb.list(full_req);
         count = 0;
         while (listObject.next(info)) {
-            // info.print(std::cout, true, true);
-            // std::cout << std::endl;
-            count++;
+            info.print(std::cout, true, true);
+            std::cout << std::endl;
+            ++count;
         }
-        EXPECT(count == 0);
+        EXPECT(count == 1);
 
-        /// @todo: ensure DB and corresponding pool do not exist
+        // retrieve data
+
+        {
+            metkit::mars::MarsRequest r = request_key.request("retrieve");
+            std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
+
+            eckit::MemoryHandle mh;
+            dh->copyTo(mh);
+            EXPECT(mh.size() == eckit::Length(sizeof(data)));
+            EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+        }
+
+        // archive data with complete key
+
+        char data2[] = "abcd";
+
+        fdb.archive(request_key2, data2, sizeof(data));
+
+        fdb.flush();
+
+        // list data
+
+        listObject = fdb.list(db_req);
+
+        count = 0;
+        while (listObject.next(info)) {
+            info.print(std::cout, true, true);
+            std::cout << std::endl;
+            ++count;
+        }
+        EXPECT(count == 2);
+
+        // retrieve data
+
+        {
+            metkit::mars::MarsRequest r = request_key.request("retrieve");
+            std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
+
+            eckit::MemoryHandle mh;
+            dh->copyTo(mh);
+            EXPECT(mh.size() == eckit::Length(sizeof(data)));
+            EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+        }
+
+        {
+            metkit::mars::MarsRequest r = request_key2.request("retrieve");
+            std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
+
+            eckit::MemoryHandle mh;
+            dh->copyTo(mh);
+            EXPECT(mh.size() == eckit::Length(sizeof(data2)));
+            EXPECT(::memcmp(mh.data(), data2, sizeof(data2)) == 0);
+        }
 
     }
 

@@ -58,7 +58,6 @@ public: // methods
 
     bool has(const std::string &keyword) const;
     const eckit::DenseSet<std::string> &values(const std::string &keyword) const;
-    const eckit::DenseSet<std::string>& valuesNothrow(const std::string &keyword) const;
 
     void dump(std::ostream &out, const char* indent) const;
 

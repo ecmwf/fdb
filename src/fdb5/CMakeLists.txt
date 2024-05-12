@@ -77,6 +77,8 @@ list( APPEND fdb5_srcs
     database/Catalogue.h
     database/DB.cc
     database/DB.h
+    database/DatabaseNotFoundException.cc
+    database/DatabaseNotFoundException.h
     database/DataStats.cc
     database/DataStats.h
     database/DbStats.cc
@@ -408,6 +410,8 @@ if( HAVE_DAOSFDB )
         daos/DaosArrayPartHandle.cc
         daos/DaosLazyFieldLocation.h 
         daos/DaosLazyFieldLocation.cc
+        daos/UUID.h
+        daos/UUID.cc
     )
 else()
     set( DAOS_LIBRARIES "" )

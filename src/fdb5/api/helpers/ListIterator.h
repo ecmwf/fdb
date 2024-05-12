@@ -54,7 +54,7 @@ public: // methods
 
     Key combinedKey() const;
 
-    void print(std::ostream& out, bool withLocation=false, bool withLength=false, bool withTimestamp=false) const;
+    void print(std::ostream& out, bool withLocation=false, bool withLength=false, bool withTimestamp=false, const char* sep = " ") const;
     void json(eckit::JSON& json) const;
 
 private: // methods

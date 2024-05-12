@@ -63,16 +63,16 @@ fdb5::DaosContainer& DaosObject::getContainer() const {
 
 fdb5::DaosContainer& name_to_cont_ref(fdb5::DaosSession& session, const fdb5::DaosNameBase& name) {
 
-    uuid_t uuid = {0};
+    fdb5::UUID uuid;
 
     fdb5::DaosPool* pool;
-    if (uuid_parse(name.poolName().c_str(), uuid) == 0) {
+    if (uuid_parse(name.poolName().c_str(), uuid.internal) == 0) {
         pool = &(session.getPool(uuid, name.poolName()));
     } else {
         pool = &(session.getPool(name.poolName()));
     }
 
-    return pool->getContainer(name.contName());
+    return pool->getContainer(name.containerName());
     
 }
 
@@ -216,7 +216,7 @@ void DaosArray::close() {
 /// @note: daos_array_write fails if len to write is too large.
 ///        DaosArray::write therefore always returns a value equal to the provided
 ///        len if it succeeds (i.e. if no exception is thrown).
-long DaosArray::write(const void* buf, const long& len, const eckit::Offset& off) {
+uint64_t DaosArray::write(const void* buf, const uint64_t& len, const eckit::Offset& off) {
 
     open();
 
@@ -257,7 +257,7 @@ long DaosArray::write(const void* buf, const long& len, const eckit::Offset& off
 /// @todo: fix this issue by using the "short_read" feature in daos_array_read
 ///        and returning actual read size.
 /// @note: see DaosArrayPartHandle for cases where the object size is known.
-long DaosArray::read(void* buf, long len, const eckit::Offset& off) {
+uint64_t DaosArray::read(void* buf, uint64_t len, const eckit::Offset& off) {
 
     open();
 
@@ -285,11 +285,11 @@ long DaosArray::read(void* buf, long len, const eckit::Offset& off) {
 }
 
 /// @todo: should return a long for consistency with the rest of DaosArray API
-daos_size_t DaosArray::size() {
+uint64_t DaosArray::size() {
 
     open();
 
-    daos_size_t array_size;
+    uint64_t array_size;
 
     DAOS_CALL(daos_array_get_size(oh_, DAOS_TX_NONE, &array_size, NULL));
 
@@ -383,13 +383,13 @@ void DaosKeyValue::close() {
 
 }
 
-daos_size_t DaosKeyValue::size(const std::string& key) {
+uint64_t DaosKeyValue::size(const std::string& key) {
 
     open();
 
-    long res{0};
+    uint64_t res{0};
 
-    DAOS_CALL(daos_kv_get(oh_, DAOS_TX_NONE, 0, key.c_str(), (daos_size_t*) &res, nullptr, NULL));
+    DAOS_CALL(daos_kv_get(oh_, DAOS_TX_NONE, 0, key.c_str(), &res, nullptr, NULL));
 
     return res;
 
@@ -402,24 +402,24 @@ bool DaosKeyValue::has(const std::string& key) {
 }
 
 /// @note: daos_kv_put fails if written len is smaller than requested len
-long DaosKeyValue::put(const std::string& key, const void* buf, const long& len) {
+uint64_t DaosKeyValue::put(const std::string& key, const void* buf, const uint64_t& len) {
 
     open();
 
-    DAOS_CALL(daos_kv_put(oh_, DAOS_TX_NONE, 0, key.c_str(), (daos_size_t) len, buf, NULL));
+    DAOS_CALL(daos_kv_put(oh_, DAOS_TX_NONE, 0, key.c_str(), len, buf, NULL));
 
     return len;
 
 }
 
 /// @note: daos_kv_get fails if requested value does not fit in buffer
-long DaosKeyValue::get(const std::string& key, void* buf, const long& len) {
+uint64_t DaosKeyValue::get(const std::string& key, void* buf, const uint64_t& len) {
 
     open();
 
-    long res{len};
+    uint64_t res{len};
 
-    DAOS_CALL(daos_kv_get(oh_, DAOS_TX_NONE, 0, key.c_str(), (daos_size_t*) &res, buf, NULL));
+    DAOS_CALL(daos_kv_get(oh_, DAOS_TX_NONE, 0, key.c_str(), &res, buf, NULL));
 
     if (res == 0) throw fdb5::DaosEntityNotFoundException("Key '" + key + "' not found in KeyValue with OID " + oid_.asString());
 
@@ -470,9 +470,9 @@ std::vector<std::string> DaosKeyValue::keys() {
 
 eckit::MemoryStream DaosKeyValue::getMemoryStream(std::vector<char>& v, const std::string& key, const std::string& kvTitle) {
 
-    daos_size_t sz = size(key);
+    uint64_t sz = size(key);
     if (sz == 0) throw fdb5::DaosEntityNotFoundException(std::string("Key '") + key + "' not found in " + kvTitle);
-    v.resize((long) sz);
+    v.resize(sz);
     get(key, &v[0], sz);
 
     return eckit::MemoryStream(&v[0], sz);

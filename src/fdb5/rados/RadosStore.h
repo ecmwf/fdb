@@ -31,7 +31,6 @@ class RadosStore : public Store {
 public: // methods
 
     RadosStore(const Schema& schema, const Key& key, const Config& config);
-    RadosStore(const Schema& schema, const eckit::URI& uri, const Config& config);
 
     ~RadosStore() override {}
 

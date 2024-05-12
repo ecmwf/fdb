@@ -78,7 +78,7 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
     bool include = index.key().match(indexRequest_);
 
     // If we have cross fdb-mounted another DB, ensure we can't delete another DBs data.
-    if (!(location.contName() == db_kv.contName() && 
+    if (!(location.containerName() == db_kv.containerName() && 
           location.poolName() == db_kv.poolName())) {
         include = false;
     }
@@ -89,9 +89,9 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
     std::set<fdb5::DaosKeyValueName> axes;
     fdb5::DaosSession s{};
     fdb5::DaosKeyValue index_kv{s, location};  /// @todo: asserts that kv exists
-    daos_size_t size = index_kv.size("axes");
+    uint64_t size = index_kv.size("axes");
     if (size > 0) {
-        std::vector<char> axes_data((long) size);
+        std::vector<char> axes_data(size);
         index_kv.get("axes", &axes_data[0], size);
         std::vector<std::string> axis_names;
         eckit::Tokenizer parse(",");
@@ -100,7 +100,7 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
         for (const auto& name : axis_names) {
             /// @todo: take oclass from config
             fdb5::DaosKeyValueOID oid(idx + std::string{"."} + name, OC_S1);
-            fdb5::DaosKeyValueName nkv(location.poolName(), location.contName(), oid);
+            fdb5::DaosKeyValueName nkv(location.poolName(), location.containerName(), oid);
             nkv.ensureGeneratedOID();
             axes.insert(nkv);
         }
@@ -119,7 +119,7 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
     /// @note: although a daos index will point to only one daos store container if using a daos store, 
     ///   a daos index can point to multiple posix store files (one per IO server process) if using a posix store.
     std::vector<eckit::URI> indexDataURIs(index.dataURIs());
-    for (const eckit::URI& uri : store_.asStoreUnitURIs(indexDataURIs)) {
+    for (const eckit::URI& uri : store_.asCollocatedDataURIs(indexDataURIs)) {
         if (include) {
             if (!store_.uriBelongs(uri)) {
                 Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store." << std::endl;
@@ -165,10 +165,10 @@ void DaosWipeVisitor::calculateResidualURIs() {
     std::set<fdb5::DaosKeyValueName> allKvNames;
     /// @note: given a database container, list DB kv, index kvs and axis kvs
     const fdb5::DaosKeyValueName& db_kv = catalogue_.dbKeyValue();
-    fdb5::DaosName db_cont{db_kv.poolName(), db_kv.contName()};
+    fdb5::DaosName db_cont{db_kv.poolName(), db_kv.containerName()};
     for (const auto& oid : db_cont.listOIDs()) {
         if (oid.otype() == DAOS_OT_KV_HASHED) {
-            allKvNames.insert(fdb5::DaosKeyValueName{db_cont.poolName(), db_cont.contName(), oid});
+            allKvNames.insert(fdb5::DaosKeyValueName{db_cont.poolName(), db_cont.containerName(), oid});
         } else if (oid.otype() != DAOS_OT_ARRAY_BYTE) {
             throw SeriousBug("Found non-KV non-ByteArray objects in DB container " + db_cont.URI().asString());
         }
@@ -260,7 +260,7 @@ void DaosWipeVisitor::report(bool wipeAll) {
 
         out_ << "DB container to delete:" << std::endl;
         const fdb5::DaosKeyValueName& db_kv = catalogue_.dbKeyValue(); 
-        out_ << "    " << fdb5::DaosName{db_kv.poolName(), db_kv.contName()}.URI() << std::endl;
+        out_ << "    " << fdb5::DaosName{db_kv.poolName(), db_kv.containerName()}.URI() << std::endl;
         out_ << std::endl;
 
         out_ << "DB KV to delete:" << std::endl;
@@ -377,14 +377,14 @@ void DaosWipeVisitor::wipe(bool wipeAll) {
         const fdb5::DaosKeyValueName& db_kv = catalogue_.dbKeyValue();
         const fdb5::DaosKeyValueName& root_kv = catalogue_.rootKeyValue();
 
-        fdb5::DaosName db_cont{db_kv.poolName(), db_kv.contName()};
+        fdb5::DaosName db_cont{db_kv.poolName(), db_kv.containerName()};
 
         if (db_cont.exists() && doit_) db_cont.destroy();
         
-        std::string db_key = db_kv.contName();
-        if (root_kv.has(db_key) && doit_) {
-            fdb5::DaosSession s{};
-            fdb5::DaosKeyValue root{s, root_kv};
+        std::string db_key = db_kv.containerName();
+        fdb5::DaosSession s{};
+        fdb5::DaosKeyValue root{s, root_kv};
+        if (root.has(db_key) && doit_) {
             root.remove(db_key);
         }
     }
@@ -405,7 +405,7 @@ void DaosWipeVisitor::catalogueComplete(const Catalogue& catalogue) {
     dbKvName_ = fdb5::DaosName("");
     if (wipeAll) {
         const fdb5::DaosKeyValueName& n = catalogue_.dbKeyValue();
-        dbKvName_ = fdb5::DaosName(n.poolName(), n.contName(), n.OID());
+        dbKvName_ = fdb5::DaosName(n.poolName(), n.containerName(), n.OID());
     }
 
     ensureSafeURIs();

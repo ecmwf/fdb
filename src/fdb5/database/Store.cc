@@ -92,26 +92,6 @@ std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key,
     return (*j).second->make(schema, key, config);
 }
 
-std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const eckit::URI& uri, const Config& config) {
-    std::string name = uri.scheme();
-    std::string nameLowercase = eckit::StringTools::lower(name);
-
-    eckit::AutoLock<eckit::Mutex> lock(mutex_);
-    auto j = builders_.find(nameLowercase);
-
-    eckit::Log::debug() << "Looking for StoreBuilder [" << nameLowercase << "]" << std::endl;
-
-    if (j == builders_.end()) {
-        eckit::Log::error() << "No StoreBuilder for [" << nameLowercase << "]" << std::endl;
-        eckit::Log::error() << "StoreBuilders are:" << std::endl;
-        for (j = builders_.begin(); j != builders_.end(); ++j)
-            eckit::Log::error() << "   " << (*j).first << std::endl;
-        throw eckit::SeriousBug(std::string("No StoreBuilder called ") + nameLowercase);
-    }
-
-    return (*j).second->make(schema, uri, config);
-}
-
 //----------------------------------------------------------------------------------------------------------------------
 
 StoreBuilderBase::StoreBuilderBase(const std::string& name) : name_(name) {

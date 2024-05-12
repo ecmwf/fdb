@@ -117,27 +117,14 @@ uint64_t DaosContainer::allocateOIDLo() {
 
 }
 
-fdb5::DaosOID DaosContainer::ensureGeneratedOID(const fdb5::DaosOID& oid) {
-
-    if (oid.wasGenerated()) return oid;
-
-    open();
-
-    daos_obj_id_t id(oid.asDaosObjIdT());
-    
-    DAOS_CALL(daos_obj_generate_oid(coh_, &id, oid.otype(), oid.oclass(), 0, 0));
-
-    return fdb5::DaosOID{id.hi, id.lo};
-
-}
-
 fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass, bool with_attr) {
 
     daos_otype_t otype = DAOS_OT_ARRAY;
 
     if (!with_attr) otype = DAOS_OT_ARRAY_BYTE;
 
-    fdb5::DaosOID new_oid = ensureGeneratedOID(fdb5::DaosOID{0, allocateOIDLo(), otype, oclass});
+    fdb5::DaosOID new_oid{0, allocateOIDLo(), otype, oclass};
+    new_oid.generateReservedBits(*this);
 
     open();
 
@@ -147,13 +134,14 @@ fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass, bool 
 
 }
 
-fdb5::DaosArray DaosContainer::createArray(const fdb5::DaosOID& oid) {
+fdb5::DaosArray DaosContainer::createArray(fdb5::DaosOID oid) {
 
     ASSERT(oid.otype() == DAOS_OT_ARRAY || oid.otype() == DAOS_OT_ARRAY_BYTE);
 
     open();
 
-    fdb5::DaosArray obj(*this, ensureGeneratedOID(oid), false);
+    oid.generateReservedBits(*this);
+    fdb5::DaosArray obj(*this, oid, false);
     obj.create();
     return obj;
 
@@ -161,7 +149,8 @@ fdb5::DaosArray DaosContainer::createArray(const fdb5::DaosOID& oid) {
 
 fdb5::DaosKeyValue DaosContainer::createKeyValue(const daos_oclass_id_t& oclass) {
 
-    fdb5::DaosOID new_oid = ensureGeneratedOID(fdb5::DaosOID{0, allocateOIDLo(), DAOS_OT_KV_HASHED, oclass});
+    fdb5::DaosOID new_oid{0, allocateOIDLo(), DAOS_OT_KV_HASHED, oclass};
+    new_oid.generateReservedBits(*this);
 
     open();
 
@@ -171,13 +160,14 @@ fdb5::DaosKeyValue DaosContainer::createKeyValue(const daos_oclass_id_t& oclass)
 
 }
 
-fdb5::DaosKeyValue DaosContainer::createKeyValue(const fdb5::DaosOID& oid) {
+fdb5::DaosKeyValue DaosContainer::createKeyValue(fdb5::DaosOID oid) {
 
     ASSERT(oid.otype() == DAOS_OT_KV_HASHED);
 
     open();
 
-    fdb5::DaosKeyValue obj(*this, ensureGeneratedOID(oid), false);
+    oid.generateReservedBits(*this);
+    fdb5::DaosKeyValue obj(*this, oid, false);
     obj.create();
     return obj;
 

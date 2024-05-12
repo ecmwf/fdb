@@ -37,6 +37,7 @@ TocCatalogueReader::~TocCatalogueReader() {
 
 void TocCatalogueReader::loadIndexesAndRemap() {
     std::vector<Key> remapKeys;
+    /// @todo: this should throw DatabaseNotFoundException if the toc file is not found
     std::vector<Index> indexes = loadIndexes(false, nullptr, nullptr, &remapKeys);
 
     ASSERT(remapKeys.size() == indexes.size());

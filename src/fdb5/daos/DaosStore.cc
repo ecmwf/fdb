@@ -24,14 +24,9 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosStore::DaosStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), DaosCommon(config, "store", key), config_(config), db_str_(db_cont_) {
+    Store(schema), DaosCommon(config, "store", key), db_str_(db_cont_) {
 
     /// @todo: should assert the store actually exists, as in the constructors of DaosPool etc.
-
-}
-
-DaosStore::DaosStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), DaosCommon(config, "store", uri), config_(config), db_str_(db_cont_) {
 
 }
 
@@ -47,7 +42,7 @@ bool DaosStore::uriBelongs(const eckit::URI& uri) const {
     /// @todo: assert uri points to a (not necessarily existing) array object
     return (
         (uri.scheme() == type()) && 
-        (fdb5::DaosName(uri).contName().rfind(db_str_, 0) == 0));
+        (fdb5::DaosName(uri).containerName().rfind(db_str_, 0) == 0));
 
 }
 
@@ -57,9 +52,9 @@ bool DaosStore::uriExists(const eckit::URI& uri) const {
 
     ASSERT(uri.scheme() == type());
     fdb5::DaosName n(uri);
-    ASSERT(n.hasContName());
+    ASSERT(n.hasContainerName());
     ASSERT(n.poolName() == pool_);
-    ASSERT(n.contName() == db_str_);
+    ASSERT(n.containerName() == db_str_);
     ASSERT(n.hasOID());
 
     return n.exists();
@@ -89,7 +84,7 @@ std::vector<eckit::URI> DaosStore::storeUnitURIs() const {
 
 }
 
-std::set<eckit::URI> DaosStore::asStoreUnitURIs(const std::vector<eckit::URI>& uris) const {
+std::set<eckit::URI> DaosStore::asCollocatedDataURIs(const std::vector<eckit::URI>& uris) const {
 
     std::set<eckit::URI> res;
 
@@ -157,9 +152,9 @@ void DaosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostr
 
     fdb5::DaosName n{uri};
     
-    ASSERT(n.hasContName());
+    ASSERT(n.hasContainerName());
     ASSERT(n.poolName() == pool_);
-    ASSERT(n.contName() == db_str_);
+    ASSERT(n.containerName() == db_str_);
 
     if (n.hasOID()) {
         ASSERT(n.OID().otype() == DAOS_OT_ARRAY_BYTE);

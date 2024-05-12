@@ -37,7 +37,7 @@ public: // methods
     void generateReservedBits(fdb5::DaosContainer&);
 
     std::string asString() const;
-    daos_obj_id_t asDaosObjIdT() const;
+    daos_obj_id_t& asDaosObjIdT();
     enum daos_otype_t otype() const;
     daos_oclass_id_t oclass() const;
     bool wasGenerated() const { return wasGenerated_; };
@@ -52,8 +52,7 @@ protected: // members
 
 private: // members
 
-    uint64_t hi_;
-    uint64_t lo_;
+    daos_obj_id_t oid_;
     daos_oclass_id_t oclass_;
     bool wasGenerated_;
     mutable eckit::Optional<std::string> as_string_;

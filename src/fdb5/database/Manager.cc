@@ -310,6 +310,7 @@ std::vector<eckit::URI> Manager::visitableLocations(const metkit::mars::MarsRequ
         } else {
             p = Engine::backend(*i).visitableLocations(rq, config_);
         }
+
         r.insert(r.end(), p.begin(), p.end());
     }
 

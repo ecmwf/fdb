@@ -31,9 +31,6 @@ namespace fdb5 {
 RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) :
     Store(schema), directory_("mars:"+key.valuesToString()) {}
 
-RadosStore::RadosStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), directory_("mars:"+uri.path().dirName()) {}
-
 eckit::URI RadosStore::uri() const {
     return URI("rados", directory_);
 }

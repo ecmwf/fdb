@@ -34,8 +34,6 @@ class TocStore : public Store, public TocCommon {
 public: // methods
 
     TocStore(const Schema& schema, const Key& key, const Config& config);
-    TocStore(const Schema& schema, const eckit::URI& uri, const Config& config);
-    TocStore(const Schema& schema, const std::string& db_name, const Config& config);
 
     ~TocStore() override {}
 
@@ -43,7 +41,7 @@ public: // methods
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
     std::vector<eckit::URI> storeUnitURIs() const override;
-    std::set<eckit::URI> asStoreUnitURIs(const std::vector<eckit::URI>&) const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }
     void flush() override;

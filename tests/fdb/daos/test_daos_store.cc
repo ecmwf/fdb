@@ -133,7 +133,7 @@ CASE("DaosStore tests") {
 
     // bootstrap daos
 
-    uuid_t pool_uuid = {0};
+    fdb5::UUID pool_uuid;
     {
         fdb5::DaosManager::instance().configure(
             eckit::LocalConfiguration(YAMLConfiguration(
@@ -154,7 +154,7 @@ CASE("DaosStore tests") {
   #endif
         fdb5::DaosPool& pool = s.getPool(pool_name);
 #endif
-        pool.uuid(pool_uuid);
+        pool_uuid = pool.uuid();
     }
 
     SECTION("archive and retrieve") {
@@ -205,7 +205,7 @@ CASE("DaosStore tests") {
 
         // remove
         fdb5::DaosName field_name{field.location().uri()};
-        fdb5::DaosName store_name{field_name.poolName(), field_name.contName()};
+        fdb5::DaosName store_name{field_name.poolName(), field_name.containerName()};
         eckit::URI store_uri(store_name.URI());
         std::ostream out(std::cout.rdbuf());
         store.remove(store_uri, out, out, false);
@@ -300,7 +300,7 @@ CASE("DaosStore tests") {
         // remove data
 
         fdb5::DaosName field_name{field.location().uri()};
-        fdb5::DaosName store_name{field_name.poolName(), field_name.contName()};
+        fdb5::DaosName store_name{field_name.poolName(), field_name.containerName()};
         eckit::URI store_uri(store_name.URI());
         std::ostream out(std::cout.rdbuf());
         store.remove(store_uri, out, out, false);

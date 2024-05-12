@@ -60,7 +60,7 @@ public:
     virtual bool uriBelongs(const eckit::URI&) const = 0;
     virtual bool uriExists(const eckit::URI& uri) const = 0;
     virtual std::vector<eckit::URI> storeUnitURIs() const = 0;
-    virtual std::set<eckit::URI> asStoreUnitURIs(const std::vector<eckit::URI>&) const = 0;
+    virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
 
 protected: // members
     const Schema& schema_;  //<< schema is owned by catalogue which always outlives the store
@@ -76,13 +76,11 @@ public:
     StoreBuilderBase(const std::string&);
     virtual ~StoreBuilderBase();
     virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) = 0;
-    virtual std::unique_ptr<Store> make(const Schema& schema, const eckit::URI& uri, const Config& config) = 0;
 };
 
 template <class T>
 class StoreBuilder : public StoreBuilderBase {
     virtual std::unique_ptr<Store> make(const Schema& schema, const Key& key, const Config& config) override { return std::unique_ptr<T>(new T(schema, key, config)); }
-    virtual std::unique_ptr<Store> make(const Schema& schema, const eckit::URI& uri, const Config& config) override { return std::unique_ptr<T>(new T(schema, uri, config)); }
 
 public:
     StoreBuilder(const std::string& name) : StoreBuilderBase(name) {}
@@ -104,12 +102,6 @@ public:
     /// @param config    the fdb config
     /// @returns         store built by specified builder
     std::unique_ptr<Store> build(const Schema& schema, const Key& key, const Config& config);
-
-    /// @param schema    the schema read by the catalog
-    /// @param uri       search uri
-    /// @param config    the fdb config
-    /// @returns         store built by specified builder
-    std::unique_ptr<Store> build(const Schema& schema, const eckit::URI& uri, const Config& config);
 
 private:
     StoreFactory();

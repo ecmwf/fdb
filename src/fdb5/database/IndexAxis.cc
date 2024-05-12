@@ -308,26 +308,6 @@ const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword
     return *(i->second);
 }
 
-/// @note: exceptions cannot be easily caught if using values() because the result needs to be
-///   assigned to a reference which needs to live beyond a try {} scope. valuesNothrow instead does
-///   not throw but the user code needs to check validity of result.
-/// @todo: consider the case of optional keys in the schema. There may well be an Axis existing for the 
-///   key, but with no values associated. That is not an error.
-///   To support this case, valuesNothrow should return something like a 
-///   std::optional<std::reference_wrapper<const eckit::DenseSetstd::string>>.
-const eckit::DenseSet<std::string>& IndexAxis::valuesNothrow(const std::string &keyword) const {
-
-    const static eckit::DenseSet<std::string> nullStringSet;
-
-    if (axis_.empty()) return nullStringSet;
-
-    AxisMap::const_iterator i = axis_.find(keyword);
-    if (i == axis_.end()) return nullStringSet;
-
-    return *(i->second);
-
-}
-
 void IndexAxis::print(std::ostream &out) const {
     out << "IndexAxis["
         <<  "axis=";

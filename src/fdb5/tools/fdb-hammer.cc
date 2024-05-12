@@ -240,7 +240,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
 
     eckit::LocalConfiguration userConfig{};
     if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
-    
+
     struct timeval tval_before_io, tval_after_io;
     eckit::Timer timer;
     timer.start();
@@ -280,7 +280,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
     EmptyHandle nullOutputHandle;
-    size_t total = dh->copyTo(nullOutputHandle);
+    size_t total = dh->saveInto(nullOutputHandle);
     gettimeofday(&tval_after_io, NULL);
 
     timer.stop();

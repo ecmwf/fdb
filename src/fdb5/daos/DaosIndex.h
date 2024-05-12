@@ -26,12 +26,13 @@ class DaosIndex : public IndexBase {
 
 public: // methods
 
+    /// @note: creates a new index in DAOS, in the container pointed to by 'name'
+    DaosIndex(const Key& key, const fdb5::DaosName& name);
+    /// @note: used to represent and operate with an index which already exists in DAOS
     DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name, bool readAxes = true);
 
     void flock() const override { NOTIMP; }
     void funlock() const override { NOTIMP; }
-
-    virtual bool mayContain(const Key& key) const override;
 
 private: // methods
 

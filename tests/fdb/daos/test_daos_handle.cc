@@ -119,8 +119,7 @@ CASE( "DaosPool" ) {
         fdb5::DaosPool& pool = s.createPool();
         fdb5::AutoPoolDestroy destroyer(pool);
 
-        uuid_t pool_uuid = {0};
-        pool.uuid(pool_uuid);
+        const fdb5::UUID& pool_uuid = pool.uuid();
 
         char uuid_cstr[37];
         uuid_unparse(pool_uuid, uuid_cstr);
@@ -248,12 +247,12 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         std::string test_key{"test_key_1"};
 
         char data[] = "test_data_1";
-        kv.put(test_key, data, (long) sizeof(data));
+        kv.put(test_key, data, (uint64_t) sizeof(data));
 
-        long size = kv.size(test_key);
-        EXPECT(size == (long) sizeof(data));
+        uint64_t size = kv.size(test_key);
+        EXPECT(size == (uint64_t) sizeof(data));
 
-        long res;
+        uint64_t res;
         char read_data[20] = "";
         res = kv.get(test_key, read_data, sizeof(read_data));
         EXPECT(res == size);
@@ -289,8 +288,8 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         fdb5::DaosOID test_oid{1, 2, DAOS_OT_ARRAY, OC_S1};
         fdb5::DaosName n1{pool_name, cont_name, test_oid};
         EXPECT(n1.poolName() == pool_name);
-        EXPECT(n1.hasContName());
-        EXPECT(n1.contName() == cont_name);
+        EXPECT(n1.hasContainerName());
+        EXPECT(n1.containerName() == cont_name);
         EXPECT(n1.hasOID());
         EXPECT_NOT(test_oid.wasGenerated());
         fdb5::DaosOID test_oid_gen = n1.OID();
@@ -350,7 +349,7 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         EXPECT(nkv.exists());
         fdb5::DaosKeyValue kv{s, nkv};
         char data[] = "test_value_3";
-        kv.put("test_key_3", data, sizeof(data));
+        kv.put("test_key_3", data, (uint64_t) sizeof(data));
         EXPECT(nkv.has("test_key_3"));
         /// @todo:
         // nkv.destroy();
@@ -385,12 +384,12 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         h.openForWrite(Length(sizeof(data)));
         {
             eckit::AutoClose closer(h);
-            res = h.write(data, (long) sizeof(data));
-            EXPECT(res == (long) sizeof(data));
+            res = h.write(data, (uint64_t) sizeof(data));
+            EXPECT(res == (uint64_t) sizeof(data));
             EXPECT(h.position() == Offset(sizeof(data)));
 
-            res = h.write(data, (long) sizeof(data));
-            EXPECT(res == (long) sizeof(data));
+            res = h.write(data, (uint64_t) sizeof(data));
+            EXPECT(res == (uint64_t) sizeof(data));
             EXPECT(h.position() == Offset(2 * sizeof(data)));
         }
 
@@ -407,8 +406,8 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         {
             eckit::AutoClose closer(h2);
             for (int i = 0; i < 2; ++i) {
-                res = h2.read(&read_data[0] + i * sizeof(data), (long) sizeof(data));
-                EXPECT(res == (long) sizeof(data));
+                res = h2.read(&read_data[0] + i * sizeof(data), (uint64_t) sizeof(data));
+                EXPECT(res == (uint64_t) sizeof(data));
             }
             EXPECT(h2.position() == Offset(2 * sizeof(data)));
         }
@@ -421,7 +420,7 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         {
             eckit::AutoClose closer(*h3);
             for (int i = 0; i < 2; ++i) {
-                h3->read(&read_data2[0] + i * sizeof(data), (long) sizeof(data));
+                h3->read(&read_data2[0] + i * sizeof(data), (uint64_t) sizeof(data));
             }
         }
         EXPECT(std::memcmp(data, &read_data2[0], sizeof(data)) == 0);

@@ -13,6 +13,7 @@
 
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/database/DatabaseNotFoundException.h"
 
 #include "fdb5/daos/DaosCatalogue.h"
 #include "fdb5/daos/DaosName.h"
@@ -40,13 +41,24 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
     Catalogue(Key(), controlIdentifiers, config), DaosCommon(config, "catalogue", uri) {
 
     // Read the real DB key into the DB base object
-    fdb5::DaosSession s{};
-    fdb5::DaosKeyValueName n{pool_, db_cont_, catalogue_kv_};
-    fdb5::DaosKeyValue db_kv{s, n};
+    try {
 
-    std::vector<char> data;
-    eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
-    dbKey_ = fdb5::Key(ms);
+        fdb5::DaosSession s{};
+        fdb5::DaosKeyValueName n{pool_, db_cont_, catalogue_kv_};
+        fdb5::DaosKeyValue db_kv{s, n};
+
+        std::vector<char> data;
+        eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
+        dbKey_ = fdb5::Key(ms);
+
+    } catch (fdb5::DaosEntityNotFoundException& e) {
+
+        throw fdb5::DatabaseNotFoundException(
+            std::string("DaosCatalogue database not found ") +
+            "(pool: '" + pool_ + "', container: '" + db_cont_ + "')"
+        );
+
+    }
 
 }
 
@@ -59,7 +71,7 @@ bool DaosCatalogue::exists() const {
 
 eckit::URI DaosCatalogue::uri() const {
 
-    return fdb5::DaosName{db_kv_->poolName(), db_kv_->contName()}.URI();
+    return fdb5::DaosName{db_kv_->poolName(), db_kv_->containerName()}.URI();
 
 }
 
@@ -81,7 +93,7 @@ void DaosCatalogue::loadSchema() {
     fdb5::DaosKeyValueName nkv{pool_, db_cont_, catalogue_kv_};
     fdb5::DaosSession s{};
     fdb5::DaosKeyValue kv{s, nkv};
-    daos_size_t size = kv.size("schema");
+    uint64_t size = kv.size("schema");
     std::vector<char> v(size);
     kv.get("schema", v.data(), size);
 
@@ -117,7 +129,7 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
         /// @note: performed RPCs:
         /// - db kv get index location size (daos_kv_get without a buffer)
         /// - db kv get index location (daos_kv_get)
-        daos_size_t size{catalogue_kv.size(key)};
+        uint64_t size{catalogue_kv.size(key)};
         std::vector<char> v(size);
         catalogue_kv.get(key, v.data(), size);
 
@@ -159,7 +171,7 @@ std::string DaosCatalogue::type() const {
 
 void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways, std::ostream& logVerbose, bool doit) {
 
-    ASSERT(n.hasContName());
+    ASSERT(n.hasContainerName());
 
     logVerbose << "Removing " << (n.hasOID() ? "KV" : "container") << ": ";
     logAlways << n.URI() << std::endl;

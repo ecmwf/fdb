@@ -37,9 +37,6 @@ namespace fdb5 {
 TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
     Store(schema), TocCommon(StoreRootManager(config).directory(key).directory_) {}
 
-TocStore::TocStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), TocCommon(uri.path().dirName()) {} 
-
 eckit::URI TocStore::uri() const {
 
     return URI("file", directory_);
@@ -84,7 +81,7 @@ std::vector<eckit::URI> TocStore::storeUnitURIs() const {
 
 }
 
-std::set<eckit::URI> TocStore::asStoreUnitURIs(const std::vector<eckit::URI>& uris) const {
+std::set<eckit::URI> TocStore::asCollocatedDataURIs(const std::vector<eckit::URI>& uris) const {
 
     std::set<eckit::URI> res;
 
@@ -292,7 +289,7 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
     for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {      
             eckit::PathName src_db = directory_;
-            eckit::PathName dest_db = destPath / key.valuesToString();
+            eckit::PathName dest_db = destPath;
 
             dest_db.mkdir();
             DIR* dirp = ::opendir(src_db.asString().c_str());

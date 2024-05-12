@@ -135,9 +135,6 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
         /// - generate catalogue kv oid (daos_obj_generate_oid)
         /// - ensure catalogue kv exists (daos_kv_open)
         fdb5::DaosKeyValue catalogue_kv_obj{s, catalogue_kv};
- 
-        /// @todo: use an optional, or follow a functional approach (lambda function)
-        std::unique_ptr<fdb5::DaosKeyValueName> index_kv;
 
         int idx_loc_max_len = 512;  /// @todo: take from config
 
@@ -150,43 +147,27 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
             /// - get index location from catalogue kv (daos_kv_get)
             res = catalogue_kv_obj.get(key.valuesToString(), &n[0], idx_loc_max_len);
 
-            index_kv.reset(new fdb5::DaosKeyValueName{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}});
+            indexes_[key] = Index(
+                new fdb5::DaosIndex(
+                    key, 
+                    fdb5::DaosKeyValueName{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}},
+                    false
+                )
+            );
 
         } catch (fdb5::DaosEntityNotFoundException& e) {
 
             firstIndexWrite_ = true;
-
-            /// create index kv
-            /// @todo: pass oclass from config
-            /// @todo: hash string into lower oid bits
-            fdb5::DaosKeyValueOID index_kv_oid{key.valuesToString(), OC_S1};
-            index_kv.reset(new fdb5::DaosKeyValueName{pool_, db_cont_, index_kv_oid});
-
-            /// @note: performed RPCs:
-            /// - generate index kv oid (daos_obj_generate_oid)
-            /// - create/open index kv (daos_kv_open)
-            fdb5::DaosKeyValue index_kv_obj{s, *index_kv};
-
-            /// write indexKey under "key"
-            eckit::MemoryHandle h{(size_t) PATH_MAX};
-            eckit::HandleStream hs{h};
-            h.openForWrite(eckit::Length(0));
-            {
-                eckit::AutoClose closer(h);
-                hs << currentIndexKey_;
-            }
-
-            int idx_key_max_len = 512;
-
-            if (hs.bytesWritten() > idx_key_max_len)
-                throw eckit::Exception("Serialised index key exceeded configured maximum index key length.");
-
-            /// @note: performed RPCs:
-            /// - record index key into index kv (daos_kv_put)
-            index_kv_obj.put("key", h.data(), hs.bytesWritten());
  
+            indexes_[key] = Index(
+                new fdb5::DaosIndex(
+                    key, 
+                    fdb5::DaosName{pool_, db_cont_}
+                )
+            );
+
             /// index index kv in catalogue kv
-            std::string nstr{index_kv->URI().asString()};
+            std::string nstr{indexes_[key].location().uri().asString()};
             if (nstr.length() > idx_loc_max_len)
                 throw eckit::Exception("Serialised index location exceeded configured maximum index location length.");
             /// @note: performed RPCs (only if the index wasn't visited yet and index kv doesn't exist yet, i.e. only on first write to an index key):
@@ -197,8 +178,6 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
             /// - close index kv when destroyed (daos_obj_close)
 
         }
-
-        indexes_[key] = Index(new fdb5::DaosIndex(key, *index_kv, false));
 
         /// @note: performed RPCs:
         /// - close catalogue kv (daos_obj_close)
@@ -272,14 +251,19 @@ void DaosCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation>
 
         const std::string &keyword = i->first;
 
+        std::string value = key.canonicalValue(keyword);
+
+        if (value.length() == 0) continue;
+
         axisNames += sep + keyword;
         sep = ",";
 
-        std::string value = key.canonicalValue(keyword);
-
         /// @note: obtain in-memory axis values. Not triggering retrieval from DAOS axes.
-        const eckit::DenseSet<std::string>& axis_set = current_.axes().valuesNothrow(keyword);
+        /// @note: on first archive the in-memory axes will be empty and values() will return
+        ///   empty sets. This is fine.
+        const auto& axis_set = current_.axes().values(keyword);
 
+        //if (!axis_set.has_value() || !axis_set->get().contains(value)) {
         if (!axis_set.contains(value)) {
 
             axesToExpand.push_back(keyword);

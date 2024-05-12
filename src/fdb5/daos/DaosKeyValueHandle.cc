@@ -44,7 +44,7 @@ void DaosKeyValueHandle::openForWrite(const Length& len) {
 
     /// @todo: alternatively call name_.create() and the like
     fdb5::DaosPool& p = session_->getPool(name_.poolName());
-    fdb5::DaosContainer& c = p.ensureContainer(name_.contName());
+    fdb5::DaosContainer& c = p.ensureContainer(name_.containerName());
 
     name_.ensureGeneratedOID();
     

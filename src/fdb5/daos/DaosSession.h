@@ -136,12 +136,12 @@ public: // methods
         const std::string& label, 
         const uint64_t& scmSize = 10ULL << 30, 
         const uint64_t& nvmeSize = 40ULL << 30);
-    void destroyPool(uuid_t, const int& force = 1);
+    void destroyPool(const fdb5::UUID&, const int& force = 1);
 #endif
 
-    fdb5::DaosPool& getPool(uuid_t);
+    fdb5::DaosPool& getPool(const fdb5::UUID&);
     fdb5::DaosPool& getPool(const std::string&);
-    fdb5::DaosPool& getPool(uuid_t, const std::string&);
+    fdb5::DaosPool& getPool(const fdb5::UUID&, const std::string&);
 
     int containerOidsPerAlloc() const { return DaosManager::instance().containerOidsPerAlloc_; };
     uint64_t objectCreateCellSize() const { return DaosManager::instance().objectCreateCellSize_; };
@@ -153,7 +153,7 @@ public: // methods
 
 private: // methods
 
-    PoolCache::iterator getCachedPool(uuid_t);
+    PoolCache::iterator getCachedPool(const fdb5::UUID&);
     PoolCache::iterator getCachedPool(const std::string&);
 
 private: // members
