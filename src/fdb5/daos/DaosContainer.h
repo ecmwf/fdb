@@ -39,9 +39,9 @@ public: // methods
 
     uint64_t allocateOIDLo();
     fdb5::DaosArray createArray(const daos_oclass_id_t& oclass = OC_S1, bool with_attr = true);
-    fdb5::DaosArray createArray(fdb5::DaosOID);
+    fdb5::DaosArray createArray(const fdb5::DaosOID&);
     fdb5::DaosKeyValue createKeyValue(const daos_oclass_id_t& oclass = OC_S1);
-    fdb5::DaosKeyValue createKeyValue(fdb5::DaosOID);
+    fdb5::DaosKeyValue createKeyValue(const fdb5::DaosOID&);
     std::vector<fdb5::DaosOID> listOIDs();
 
     const daos_handle_t& getOpenHandle();

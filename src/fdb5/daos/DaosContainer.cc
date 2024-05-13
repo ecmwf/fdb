@@ -134,13 +134,12 @@ fdb5::DaosArray DaosContainer::createArray(const daos_oclass_id_t& oclass, bool 
 
 }
 
-fdb5::DaosArray DaosContainer::createArray(fdb5::DaosOID oid) {
+fdb5::DaosArray DaosContainer::createArray(const fdb5::DaosOID& oid) {
 
     ASSERT(oid.otype() == DAOS_OT_ARRAY || oid.otype() == DAOS_OT_ARRAY_BYTE);
 
     open();
 
-    oid.generateReservedBits(*this);
     fdb5::DaosArray obj(*this, oid, false);
     obj.create();
     return obj;
@@ -160,13 +159,12 @@ fdb5::DaosKeyValue DaosContainer::createKeyValue(const daos_oclass_id_t& oclass)
 
 }
 
-fdb5::DaosKeyValue DaosContainer::createKeyValue(fdb5::DaosOID oid) {
+fdb5::DaosKeyValue DaosContainer::createKeyValue(const fdb5::DaosOID& oid) {
 
     ASSERT(oid.otype() == DAOS_OT_KV_HASHED);
 
     open();
 
-    oid.generateReservedBits(*this);
     fdb5::DaosKeyValue obj(*this, oid, false);
     obj.create();
     return obj;

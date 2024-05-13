@@ -230,9 +230,6 @@ CASE( "DaosContainer, DaosArray and DaosKeyValue" ) {
         oid_ne.generateReservedBits(cont);
         EXPECT_THROWS_AS(fdb5::DaosArray obj(cont, oid_ne), fdb5::DaosEntityNotFoundException);
 
-        // attempt access object via (user-defined) non-generated OID
-        EXPECT_THROWS_AS(fdb5::DaosArray obj(cont, oid), eckit::AssertionFailed);
-
         /// @todo:
         //write_obj.destroy();
 

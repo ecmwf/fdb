@@ -45,8 +45,6 @@ void DaosKeyValueHandle::openForWrite(const Length& len) {
     /// @todo: alternatively call name_.create() and the like
     fdb5::DaosPool& p = session_->getPool(name_.poolName());
     fdb5::DaosContainer& c = p.ensureContainer(name_.containerName());
-
-    name_.ensureGeneratedOID();
     
     /// @note: only way to check kv existence without generating a snapshot is
     ///   to attempt open, which results in creation without an error rc if n.e.
@@ -67,8 +65,6 @@ Length DaosKeyValueHandle::openForRead() {
     if (open_) throw eckit::SeriousBug{"Handle already opened."};
 
     session();
-
-    name_.ensureGeneratedOID();
 
     kv_.emplace(session_.value(), name_);
 
@@ -123,8 +119,6 @@ void DaosKeyValueHandle::flush() {
 }
 
 Length DaosKeyValueHandle::size() {
-
-    name_.ensureGeneratedOID();
 
     fdb5::DaosKeyValue kv{session(), name_};
 

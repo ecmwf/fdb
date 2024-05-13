@@ -58,7 +58,6 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
     /// - db kv open (daos_kv_open)
 
     fdb5::DaosName n2{n.poolName(), n.containerName(), catalogue_kv_};
-    n2.ensureGeneratedOID();
     bool is_catalogue_kv = (!is_root_name && !is_store_name && (n.OID() == n2.OID()));
 
     return is_catalogue_kv && n.exists();

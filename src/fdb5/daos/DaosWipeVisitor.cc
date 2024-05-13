@@ -101,7 +101,6 @@ bool DaosWipeVisitor::visitIndex(const Index& index) {
             /// @todo: take oclass from config
             fdb5::DaosKeyValueOID oid(idx + std::string{"."} + name, OC_S1);
             fdb5::DaosKeyValueName nkv(location.poolName(), location.containerName(), oid);
-            nkv.ensureGeneratedOID();
             axes.insert(nkv);
         }
     }

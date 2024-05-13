@@ -44,8 +44,6 @@ Length DaosArrayPartHandle::openForRead() {
 
     session();
 
-    name_.ensureGeneratedOID();
-
     arr_.emplace(session_.value(), name_);
 
     arr_->open();

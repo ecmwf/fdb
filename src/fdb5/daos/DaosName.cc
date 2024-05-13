@@ -71,6 +71,9 @@ fdb5::DaosOID DaosNameBase::allocOID(const daos_otype_t& otype, const daos_oclas
 
 }
 
+/// @note: to be called in all DaosName* methods and DaosName* user code that intend 
+///   having this Name instance's OID generated (having its reserved bits populated) 
+///   as a post-condition.
 void DaosNameBase::ensureGeneratedOID() const {
 
     ASSERT(cont_.has_value());
@@ -141,6 +144,8 @@ void DaosNameBase::destroy() const {
 
     fdb5::DaosContainer& c = p.getContainer(cont_.value());
 
+    ensureGeneratedOID();
+    
     /// @todo: improve this code
 
     if (oid_->otype() == DAOS_OT_KV_HASHED) {

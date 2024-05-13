@@ -118,10 +118,6 @@ std::unique_ptr<FieldLocation> DaosStore::archive(const Key &key, const void *da
     /// - allocate oid (daos_cont_alloc_oids) -- skipped most of the times as oids per alloc is set to 100
     fdb5::DaosArrayName n = fdb5::DaosName(pool_, db_str_).createArrayName(OC_S1, false); // TODO: pass oclass from config
 
-    /// @note: performed RPCs:
-    /// - daos_obj_generate_oid -- always performed
-    n.ensureGeneratedOID();
-
     std::unique_ptr<eckit::DataHandle> h(n.dataHandle());
 
     /// @note: performed RPCs:

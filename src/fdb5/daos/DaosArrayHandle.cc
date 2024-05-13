@@ -45,8 +45,6 @@ void DaosArrayHandle::openForWrite(const Length& len) {
     fdb5::DaosPool& p = session_->getPool(name_.poolName());
     fdb5::DaosContainer& c = p.ensureContainer(name_.containerName());
 
-    name_.ensureGeneratedOID();
-
     /// @note: to open/create an array without generating a snapshot, we must:
     ///   - attempt array open and check if rc is 0 or DER_NONEXIST (DaosArray(session, name))
     ///   - attempt array create and check if rc is 0 or DER_EXIST (c.createArray(oid))
@@ -81,8 +79,6 @@ Length DaosArrayHandle::openForRead() {
     if (open_) throw eckit::SeriousBug{"Handle already opened."};
 
     session();
-
-    name_.ensureGeneratedOID();
 
     arr_.emplace(session_.value(), name_);
 

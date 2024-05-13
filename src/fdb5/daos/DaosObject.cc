@@ -26,7 +26,7 @@ namespace fdb5 {
 
 DaosObject::DaosObject(fdb5::DaosContainer& cont, const fdb5::DaosOID& oid) : cont_(cont), oid_(oid), open_(false) {
 
-    ASSERT(oid_.wasGenerated());
+    oid_.generateReservedBits(cont);
 
 }
 
