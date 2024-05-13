@@ -31,14 +31,13 @@ ListElement::ListElement(eckit::Stream &s) {
 }
 
 Key ListElement::combinedKey() const {
-    Key combined;
+    Key combined = keyParts_[2];
 
     for (const Key& partKey : keyParts_) {
         for (const auto& kv : partKey) {
             combined.set(kv.first, kv.second);
         }
     }
-
     return combined;
 }
 

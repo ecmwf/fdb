@@ -114,7 +114,7 @@ eckit::DataHandle *RadosStore::createFileHandle(const eckit::PathName &path) {
 
 //    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
 
-    eckit::Log::debug<LibFdb5>() << "Creating RadosWriteHandle to " << path
+    LOG_DEBUG_LIB(LibFdb5) << "Creating RadosWriteHandle to " << path
 //                                 << " with buffer of " << eckit::Bytes(sizeBuffer)
                                  << std::endl;
 

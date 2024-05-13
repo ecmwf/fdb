@@ -81,7 +81,7 @@ static unsigned getUserEnvRemoteProtocol() {
     static unsigned fdbRemoteProtocolVersion =
         eckit::Resource<unsigned>("fdbRemoteProtocolVersion;$FDB5_REMOTE_PROTOCOL_VERSION", 0);
     if (fdbRemoteProtocolVersion) {
-        eckit::Log::debug() << "fdbRemoteProtocolVersion overidde to version: " << fdbRemoteProtocolVersion
+        LOG_DEBUG_LIB(LibFdb5) << "fdbRemoteProtocolVersion overidde to version: " << fdbRemoteProtocolVersion
                             << std::endl;
     }
     return 0;  // no version override

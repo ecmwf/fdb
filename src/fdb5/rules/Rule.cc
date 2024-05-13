@@ -30,12 +30,11 @@ Rule::Rule(const Schema &schema,
            size_t line,
            std::vector<Predicate *> &predicates, std::vector<Rule *> &rules,
            const std::map<std::string, std::string> &types):
-    schema_(schema),
-    line_(line) {
+    schema_(schema), registry_(new TypesRegistry()), line_(line) {
     std::swap(predicates, predicates_);
     std::swap(rules, rules_);
     for (std::map<std::string, std::string>::const_iterator i = types.begin(); i != types.end(); ++i) {
-        registry_.addType(i->first, i->second);
+        registry_->addType(i->first, i->second);
     }
 }
 
@@ -60,9 +59,9 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
 
     if (cur == predicates_.end()) {
 
-        // TODO: join these 2 methods
-        keys[depth].rule(this);
+        keys[depth].registry(registry());
 
+        // TODO: join these 2 methods
         if (rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
             if (!visitor.selectDatum( keys[2], full)) {
@@ -105,7 +104,7 @@ void Rule::expand( const metkit::mars::MarsRequest &request,
     const std::string &keyword = (*cur)->keyword();
 
     eckit::StringList values;
-    visitor.values(request, keyword, registry_, values);
+    visitor.values(request, keyword, *registry_, values);
 
     // eckit::Log::info() << "keyword " << keyword << " values " << values << std::endl;
 
@@ -153,7 +152,7 @@ void Rule::expand( const Key &field,
 
     if (cur == predicates_.end()) {
 
-        keys[depth].rule(this);
+        keys[depth].registry(registry());
 
         if (rules_.empty()) {
             ASSERT(depth == 2); /// we have 3 levels ATM
@@ -231,7 +230,6 @@ void Rule::expandFirstLevel( const Key &dbKey, std::vector<Predicate *>::const_i
 
     if (cur == predicates_.end()) {
         found = true;
-        result.rule(this);
         return;
     }
 
@@ -260,7 +258,6 @@ void Rule::expandFirstLevel(const metkit::mars::MarsRequest& rq, std::vector<Pre
 
     if (cur == predicates_.end()) {
         found = true;
-        result.rule(this);
         return;
     }
 
@@ -364,7 +361,7 @@ void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector
 }
 
 void Rule::matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const {
-    Key tmp;
+    Key tmp(registry());
     matchFirstLevel(request, predicates_.begin(), tmp, result, missing);
 }
 
@@ -445,7 +442,7 @@ void Rule::dump(std::ostream &s, size_t depth) const {
     const char *sep = "";
     for (std::vector<Predicate *>::const_iterator i = predicates_.begin(); i != predicates_.end(); ++i ) {
         s << sep;
-        (*i)->dump(s, registry_);
+        (*i)->dump(s, *registry_);
         sep = ",";
     }
 
@@ -466,14 +463,14 @@ size_t Rule::depth() const {
 void Rule::updateParent(const Rule *parent) {
     parent_ = parent;
     if (parent) {
-        registry_.updateParent(&parent_->registry_);
+        registry_->updateParent(parent_->registry_);
     }
     for (std::vector<Rule *>::iterator i = rules_.begin(); i != rules_.end(); ++i ) {
         (*i)->updateParent(this);
     }
 }
 
-const TypesRegistry &Rule::registry() const {
+const std::shared_ptr<TypesRegistry> Rule::registry() const {
     return registry_;
 }
 
@@ -499,7 +496,7 @@ void Rule::check(const Key& key) const {
         auto k = key.find(pred->keyword());
         if (k != key.end()) {
             const std::string& value = (*k).second;
-            const Type& type = registry_.lookupType(pred->keyword());
+            const Type& type = registry_->lookupType(pred->keyword());
             if (value != type.tidy(pred->keyword(), value)) {
                 std::stringstream ss;
                 ss << "Rule check - metadata not valid (not in canonical form) - found: ";

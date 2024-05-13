@@ -50,7 +50,7 @@ FDBBase::FDBBase(const Config& config, const std::string& name) :
         controlIdentifiers_ |= ControlIdentifier::Wipe;
     }
 
-    eckit::Log::debug<LibFdb5>() << "FDBBase: " << config << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "FDBBase: " << config << std::endl;
 }
 
 
@@ -114,7 +114,7 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
 
     std::string key = actualConfig.getString("type", "local");
 
-    eckit::Log::debug<LibFdb5>() << "Selecting FDB implementation: " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Selecting FDB implementation: " << key << std::endl;
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
@@ -127,7 +127,7 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
     }
 
     std::unique_ptr<FDBBase> ret = it->second->make(actualConfig);
-    eckit::Log::debug<LibFdb5>() << "Constructed FDB implementation: " << *ret << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Constructed FDB implementation: " << *ret << std::endl;
     return ret;
 }
 
