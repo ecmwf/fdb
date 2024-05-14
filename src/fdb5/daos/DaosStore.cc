@@ -24,11 +24,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosStore::DaosStore(const Schema& schema, const Key& key, const Config& config) :
-    Store(schema), DaosCommon(config, "store", key), db_str_(db_cont_) {
-
-    /// @todo: should assert the store actually exists, as in the constructors of DaosPool etc.
-
-}
+    Store(schema), DaosCommon(config, "store", key), db_str_(db_cont_) {}
 
 eckit::URI DaosStore::uri() const {
 
@@ -89,6 +85,7 @@ std::set<eckit::URI> DaosStore::asCollocatedDataURIs(const std::vector<eckit::UR
     std::set<eckit::URI> res;
 
     for (auto& uri : uris) 
+        /// @note: seems redundant, but intends to check validity of input URIs
         res.insert(fdb5::DaosName(uri).URI());
 
     return res;

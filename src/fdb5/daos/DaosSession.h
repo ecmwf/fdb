@@ -62,7 +62,7 @@ private: // members
 
     friend class DaosSession;
 
-    std::recursive_mutex mutex_;
+    std::mutex mutex_;
     PoolCache pool_cache_;
 
     /// @note: sets number of OIDs allocated in a single daos_cont_alloc_oids call
@@ -159,7 +159,7 @@ private: // methods
 private: // members
 
     /// @todo: add lock_guards in all DaosSession methods using pool_cache_. Same for cont_cache_ in DaosPool.
-    // std::recursive_mutex& mutex_;
+    // std::mutex& mutex_;
     PoolCache& pool_cache_;
 
 };

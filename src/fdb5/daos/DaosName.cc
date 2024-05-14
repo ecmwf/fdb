@@ -240,8 +240,6 @@ const std::string& DaosNameBase::poolName() const {
     
 }
 
-// TODO: containerName, make it longer
-// actually DaosContainerName::name()
 const std::string& DaosNameBase::containerName() const {
 
     ASSERT(cont_.has_value());

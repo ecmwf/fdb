@@ -70,7 +70,7 @@ void DaosManager::error(int code, const char* msg, const char* file, int line, c
 
 void DaosManager::configure(const eckit::LocalConfiguration& config) {
 
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     containerOidsPerAlloc_ = config.getInt("container_oids_per_alloc", containerOidsPerAlloc_);
     objectCreateCellSize_ = config.getInt64("object_create_cell_size", objectCreateCellSize_);
     objectCreateChunkSize_ = config.getInt64("object_create_chunk_size", objectCreateChunkSize_);

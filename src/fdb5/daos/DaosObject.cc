@@ -255,7 +255,8 @@ uint64_t DaosArray::write(const void* buf, const uint64_t& len, const eckit::Off
 ///        RPC and reduce performance. If the read interface is not properly 
 ///        implemented, at least DataHandle::copyTo breaks.
 /// @todo: fix this issue by using the "short_read" feature in daos_array_read
-///        and returning actual read size.
+///        and returning actual read size, rather han having DataHandle::read
+///        check the size.
 /// @note: see DaosArrayPartHandle for cases where the object size is known.
 uint64_t DaosArray::read(void* buf, uint64_t len, const eckit::Offset& off) {
 
@@ -284,7 +285,6 @@ uint64_t DaosArray::read(void* buf, uint64_t len, const eckit::Offset& off) {
 
 }
 
-/// @todo: should return a long for consistency with the rest of DaosArray API
 uint64_t DaosArray::size() {
 
     open();
