@@ -40,7 +40,7 @@ public: // methods
     eckit::URI uri() const override;
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
-    std::vector<eckit::URI> storeUnitURIs() const override;
+    std::vector<eckit::URI> collocatedDataURIs() const override;
     std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }

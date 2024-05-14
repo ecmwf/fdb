@@ -312,9 +312,9 @@ void TocWipeVisitor::calculateResidualPaths() {
 
     if (store_.type() == "file") return;
 
-    std::vector<eckit::URI> allStoreUnitURIs(store_.storeUnitURIs());
+    std::vector<eckit::URI> allCollocatedDataURIs(store_.collocatedDataURIs());
     std::vector<eckit::PathName> allDataPathsVector;
-    for (const auto& u : allStoreUnitURIs) {
+    for (const auto& u : allCollocatedDataURIs) {
         allDataPathsVector.push_back(eckit::PathName(u.path()));
     }
     

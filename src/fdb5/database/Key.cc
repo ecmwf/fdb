@@ -26,9 +26,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Key::Key(const std::shared_ptr<TypesRegistry> reg) :
+Key::Key(const std::shared_ptr<TypesRegistry> reg, bool canonical) :
     keys_(),
-    registry_(reg), canonical_(false) {}
+    registry_(reg), canonical_(canonical) {}
 
 Key::Key(const std::string &s, const Rule *rule) :
     keys_(),

@@ -61,13 +61,13 @@ bool DaosStore::uriExists(const eckit::URI& uri) const {
 
 }
 
-std::vector<eckit::URI> DaosStore::storeUnitURIs() const {
+std::vector<eckit::URI> DaosStore::collocatedDataURIs() const {
 
-    std::vector<eckit::URI> store_unit_uris;
+    std::vector<eckit::URI> collocated_data_uris;
 
     fdb5::DaosName db_cont{pool_, db_str_};
     
-    if (!db_cont.exists()) return store_unit_uris;
+    if (!db_cont.exists()) return collocated_data_uris;
     
     for (const auto& oid : db_cont.listOIDs()) {
         
@@ -76,11 +76,11 @@ std::vector<eckit::URI> DaosStore::storeUnitURIs() const {
         
         if (oid.otype() == DAOS_OT_KV_HASHED) continue;
 
-        store_unit_uris.push_back(fdb5::DaosArrayName(pool_, db_str_, oid).URI());
+        collocated_data_uris.push_back(fdb5::DaosArrayName(pool_, db_str_, oid).URI());
 
     }
 
-    return store_unit_uris;
+    return collocated_data_uris;
 
 }
 
@@ -135,7 +135,7 @@ std::unique_ptr<FieldLocation> DaosStore::archive(const Key &key, const void *da
     /// - write (daos_array_write) -- always performed
     h->write(data, length);
 
-    return std::make_unique<DaosFieldLocation>(n.URI(), 0, length, fdb5::Key());
+    return std::make_unique<DaosFieldLocation>(n.URI(), 0, length, fdb5::Key(nullptr, true));
 
     /// @note: performed RPCs:
     /// - close (daos_array_close here) -- always performed

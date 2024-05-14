@@ -64,7 +64,7 @@ bool TocStore::uriExists(const eckit::URI& uri) const {
 
 }
 
-std::vector<eckit::URI> TocStore::storeUnitURIs() const {
+std::vector<eckit::URI> TocStore::collocatedDataURIs() const {
 
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dirs;
@@ -119,7 +119,7 @@ std::unique_ptr<FieldLocation> TocStore::archive(const Key &key, const void *dat
 
     ASSERT(len == length);
 
-    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
+    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key(nullptr, true)));
 }
 
 void TocStore::flush() {
@@ -289,7 +289,7 @@ void TocStore::moveTo(const Key& key, const Config& config, const eckit::URI& de
     for (const eckit::PathName& root: StoreRootManager(config).canMoveToRoots(key)) {
         if (root.sameAs(destPath)) {      
             eckit::PathName src_db = directory_;
-            eckit::PathName dest_db = destPath;
+            eckit::PathName dest_db = destPath / key.valuesToString();
 
             dest_db.mkdir();
             DIR* dirp = ::opendir(src_db.asString().c_str());

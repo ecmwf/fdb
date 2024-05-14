@@ -215,7 +215,7 @@ void DaosWipeVisitor::calculateResidualURIs() {
     deleteStoreURIs.insert(storeURIs_.begin(), storeURIs_.end());
 
     std::vector<eckit::URI> allStoreURIsVector;
-    for (const auto& u : store_.storeUnitURIs()) {
+    for (const auto& u : store_.collocatedDataURIs()) {
         allStoreURIsVector.push_back(u);
     }
     std::set<eckit::URI> allStoreURIs(allStoreURIsVector.begin(), allStoreURIsVector.end());

@@ -59,7 +59,7 @@ public:
     virtual eckit::URI uri() const = 0;
     virtual bool uriBelongs(const eckit::URI&) const = 0;
     virtual bool uriExists(const eckit::URI& uri) const = 0;
-    virtual std::vector<eckit::URI> storeUnitURIs() const = 0;
+    virtual std::vector<eckit::URI> collocatedDataURIs() const = 0;
     virtual std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const = 0;
 
 protected: // members

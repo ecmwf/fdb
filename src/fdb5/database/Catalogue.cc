@@ -44,8 +44,9 @@ void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sor
             }
         }
 
-        visitor.catalogueComplete(*this);
     }
+
+    visitor.catalogueComplete(*this);
 
 }
 
