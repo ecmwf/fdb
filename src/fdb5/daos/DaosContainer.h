@@ -13,7 +13,6 @@
 
 #pragma once
 
-#include <uuid/uuid.h>
 #include <daos.h>
 
 #include <string>
@@ -38,11 +37,7 @@ public: // methods
     DaosContainer(DaosContainer&&) noexcept;
     ~DaosContainer();
 
-    void open();
-    void close();
-
     uint64_t allocateOIDLo();
-    fdb5::DaosOID generateOID(const fdb5::DaosOID&);
     fdb5::DaosArray createArray(const daos_oclass_id_t& oclass = OC_S1, bool with_attr = true);
     fdb5::DaosArray createArray(const fdb5::DaosOID&);
     fdb5::DaosKeyValue createKeyValue(const daos_oclass_id_t& oclass = OC_S1);
@@ -61,8 +56,9 @@ private: // methods
 
     DaosContainer(fdb5::DaosPool&, const std::string&);
 
+    void open();
+    void close();
     void create();
-
     bool exists();
 
 private: // members
@@ -72,7 +68,7 @@ private: // members
     daos_handle_t coh_;
     bool open_;
 
-    OidAlloc oid_alloc_{};
+    OidAlloc oidAlloc_{};
 
 };
 

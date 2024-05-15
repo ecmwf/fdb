@@ -40,9 +40,6 @@ namespace fdb5 {
 TocStore::TocStore(const Schema& schema, const Key& key, const Config& config) :
     Store(schema), TocCommon(StoreRootManager(config).directory(key).directory_) {}
 
-TocStore::TocStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), TocCommon(uri.path().dirName()) {} 
-
 eckit::URI TocStore::uri() const {
 
     return URI("file", directory_);
@@ -70,7 +67,7 @@ bool TocStore::uriExists(const eckit::URI& uri) const {
 
 }
 
-std::vector<eckit::URI> TocStore::storeUnitURIs() const {
+std::vector<eckit::URI> TocStore::collocatedDataURIs() const {
 
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dirs;
@@ -87,7 +84,7 @@ std::vector<eckit::URI> TocStore::storeUnitURIs() const {
 
 }
 
-std::set<eckit::URI> TocStore::asStoreUnitURIs(const std::vector<eckit::URI>& uris) const {
+std::set<eckit::URI> TocStore::asCollocatedDataURIs(const std::vector<eckit::URI>& uris) const {
 
     std::set<eckit::URI> res;
 
@@ -132,7 +129,7 @@ std::unique_ptr<FieldLocation> TocStore::archive(const Key &key, const void *dat
 
     ASSERT(len == length);
 
-    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key()));
+    return std::unique_ptr<TocFieldLocation>(new TocFieldLocation(dataPath, position, length, Key(nullptr, true)));
 }
 
 void TocStore::flush() {
@@ -209,14 +206,14 @@ eckit::DataHandle *TocStore::createFileHandle(const eckit::PathName &path) {
 
     if(stripeLustre()) {
 
-        eckit::Log::debug<LibFdb5>() << "Creating LustreFileHandle<FDBFileHandle> to " << path
+        LOG_DEBUG_LIB(LibFdb5) << "Creating LustreFileHandle<FDBFileHandle> to " << path
                                      << " buffer size " << sizeBuffer
                                      << std::endl;
 
         return new LustreFileHandle<FDBFileHandle>(path, sizeBuffer, stripeDataLustreSettings());
     }
 
-    eckit::Log::debug<LibFdb5>() << "Creating FDBFileHandle to " << path
+    LOG_DEBUG_LIB(LibFdb5) << "Creating FDBFileHandle to " << path
                                  << " with buffer of " << eckit::Bytes(sizeBuffer)
                                  << std::endl;
 
@@ -230,7 +227,7 @@ eckit::DataHandle *TocStore::createAsyncHandle(const eckit::PathName &path) {
 
     if(stripeLustre()) {
 
-        eckit::Log::debug<LibFdb5>() << "Creating LustreFileHandle<AIOHandle> to " << path
+        LOG_DEBUG_LIB(LibFdb5) << "Creating LustreFileHandle<AIOHandle> to " << path
                                      << " with " << nbBuffers
                                      << " buffer each with " << eckit::Bytes(sizeBuffer)
                                      << std::endl;
@@ -354,7 +351,7 @@ void TocStore::remove(const Key& key) const {
     while ((dp = ::readdir(dirp)) != NULL) {
         if (strstr( dp->d_name, ".data")) {
             eckit::PathName dataFile = src_db / dp->d_name;
-            eckit::Log::debug<LibFdb5>() << "Removing " << dataFile << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "Removing " << dataFile << std::endl;
             dataFile.unlink(false);
         }
     }

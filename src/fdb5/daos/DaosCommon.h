@@ -34,6 +34,10 @@ public: // methods
     const fdb5::DaosKeyValueName& rootKeyValue() const { return root_kv_.value(); }
     const fdb5::DaosKeyValueName& dbKeyValue() const { return db_kv_.value(); }
 
+private: // methods
+
+    void readConfig(const fdb5::Config&, const std::string& component, bool readPool);
+
 protected: // members
 
     std::string component_;

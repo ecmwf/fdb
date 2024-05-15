@@ -24,6 +24,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/log/Timer.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/daos/DaosPool.h"
 #include "fdb5/daos/DaosException.h"
 #include "fdb5/daos/DaosIOStats.h"
@@ -67,7 +68,7 @@ private: // members
 
     friend class DaosSession;
 
-    std::recursive_mutex mutex_;
+    std::mutex mutex_;
     PoolCache pool_cache_;
 
     /// @note: sets number of OIDs allocated in a single daos_cont_alloc_oids call
@@ -109,16 +110,16 @@ private: // members
 
 static inline int daos_call(int code, const char* msg, const char* file, int line, const char* func) {
 
-    // std::cout << "DAOS_CALL => " << msg << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL => " << msg << std::endl;
 
     if (code < 0) {
-        // std::cout << "DAOS_FAIL !! " << msg << std::endl;
+        // eckit::Log::error() << "DAOS_FAIL !! " << msg << std::endl;
         if (code == -DER_NONEXIST) throw fdb5::DaosEntityNotFoundException(msg);
         if (code == -DER_EXIST) throw fdb5::DaosEntityAlreadyExistsException(msg);
         DaosManager::error(code, msg, file, line, func);
     }
 
-    // std::cout << "DAOS_CALL <= " << msg << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DAOS_CALL <= " << msg << std::endl;
 
     return code;
 }
@@ -126,7 +127,7 @@ static inline int daos_call(int code, const char* msg, const char* file, int lin
 //----------------------------------------------------------------------------------------------------------------------
 
 /// @note: DaosSession acts as a mere wrapper for DaosManager such that DaosManager::instance does not need
-///   to be called in many places
+///   to be called in so many places
 /// @note: DaosSession no longer performs daos_init on creation and daos_fini on destroy. This is because 
 ///   any pool handles obtained within a session are cached in DaosManager beyond DaosSession lifetime, 
 ///   and the pool handles may become invalid if daos_fini is called for all sessions
@@ -147,12 +148,12 @@ public: // methods
         const std::string& label, 
         const uint64_t& scmSize = 10ULL << 30, 
         const uint64_t& nvmeSize = 40ULL << 30);
-    void destroyPool(uuid_t, const int& force = 1);
+    void destroyPool(const fdb5::UUID&, const int& force = 1);
 #endif
 
-    fdb5::DaosPool& getPool(uuid_t);
+    fdb5::DaosPool& getPool(const fdb5::UUID&);
     fdb5::DaosPool& getPool(const std::string&);
-    fdb5::DaosPool& getPool(uuid_t, const std::string&);
+    fdb5::DaosPool& getPool(const fdb5::UUID&, const std::string&);
 
     int containerOidsPerAlloc() const { return DaosManager::instance().containerOidsPerAlloc_; };
     uint64_t objectCreateCellSize() const { return DaosManager::instance().objectCreateCellSize_; };
@@ -164,13 +165,13 @@ public: // methods
 
 private: // methods
 
-    PoolCache::iterator getCachedPool(uuid_t);
+    PoolCache::iterator getCachedPool(const fdb5::UUID&);
     PoolCache::iterator getCachedPool(const std::string&);
 
 private: // members
 
     /// @todo: add lock_guards in all DaosSession methods using pool_cache_. Same for cont_cache_ in DaosPool.
-    // std::recursive_mutex& mutex_;
+    // std::mutex& mutex_;
     PoolCache& pool_cache_;
 
 };

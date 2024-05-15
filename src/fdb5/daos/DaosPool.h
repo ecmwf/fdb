@@ -13,12 +13,12 @@
 
 #pragma once
 
-#include <uuid/uuid.h>
 #include <daos.h>
 
 #include <string>
 #include <deque>
 
+#include "fdb5/daos/UUID.h"
 #include "fdb5/daos/DaosContainer.h"
 
 #include "fdb5/fdb5_config.h"
@@ -56,7 +56,7 @@ public: // methods
     const daos_handle_t& getOpenHandle();
     
     std::string name() const;
-    void uuid(uuid_t) const;
+    const fdb5::UUID& uuid() const;
     std::string label() const;
 
 private: // methods
@@ -64,9 +64,9 @@ private: // methods
     friend class DaosSession;
 
     DaosPool();
-    DaosPool(uuid_t);
+    DaosPool(const fdb5::UUID&);
     DaosPool(const std::string&);
-    DaosPool(uuid_t, const std::string&);
+    DaosPool(const fdb5::UUID&, const std::string&);
 
 #ifdef fdb5_HAVE_DAOS_ADMIN
     void create(const uint64_t& scmSize, const uint64_t& nvmeSize);
@@ -82,7 +82,7 @@ private: // methods
 
 private: // members
 
-    uuid_t uuid_;
+    fdb5::UUID uuid_;
     bool known_uuid_;
     std::string label_ = std::string();
     daos_handle_t poh_;

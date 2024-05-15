@@ -15,6 +15,8 @@
 
 #include <daos.h>
 
+#include "eckit/utils/Optional.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -32,23 +34,15 @@ public: // methods
 
     bool operator==(const DaosOID&) const;
 
-    void generate(fdb5::DaosContainer&);
+    void generateReservedBits(fdb5::DaosContainer&);
 
     std::string asString() const;
-    daos_obj_id_t asDaosObjIdT() const;
+    daos_obj_id_t& asDaosObjIdT();
     enum daos_otype_t otype() const;
     daos_oclass_id_t oclass() const;
     bool wasGenerated() const { return wasGenerated_; };
 
 private: // methods
-
-    DaosOID() = default;
-
-    /// @todo: is this the right approach? having a private default constructor for DaosOID and friending it here
-    // so that oid_ in DaosName/DaosObject can be default initialised for constructors which do not initialise it explicitly
-    friend class DaosNameBase;
-    friend class DaosObject;
-    /// @todo: this seems dangerous, as DaosOID can now be default initialised (i.e. invalid OID instances) from both of these classes
 
     void parseReservedBits();
 
@@ -58,10 +52,10 @@ protected: // members
 
 private: // members
 
-    uint64_t hi_;
-    uint64_t lo_;
+    daos_obj_id_t oid_;
     daos_oclass_id_t oclass_;
     bool wasGenerated_;
+    mutable eckit::Optional<std::string> as_string_;
 
 };
 

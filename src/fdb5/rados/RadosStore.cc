@@ -31,9 +31,6 @@ namespace fdb5 {
 RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) :
     Store(schema), directory_("mars:"+key.valuesToString()) {}
 
-RadosStore::RadosStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), directory_("mars:"+uri.path().dirName()) {}
-
 eckit::URI RadosStore::uri() const {
     return URI("rados", directory_);
 }
@@ -117,7 +114,7 @@ eckit::DataHandle *RadosStore::createFileHandle(const eckit::PathName &path) {
 
 //    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
 
-    eckit::Log::debug<LibFdb5>() << "Creating RadosWriteHandle to " << path
+    LOG_DEBUG_LIB(LibFdb5) << "Creating RadosWriteHandle to " << path
 //                                 << " with buffer of " << eckit::Bytes(sizeBuffer)
                                  << std::endl;
 

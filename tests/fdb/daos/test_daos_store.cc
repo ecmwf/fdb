@@ -77,16 +77,6 @@ eckit::TmpFile& schema_file() {
     return f;
 }
 
-eckit::TmpFile& spaces_file() {
-    static eckit::TmpFile f{};
-    return f;
-}
-
-eckit::TmpFile& roots_file() {
-    static eckit::TmpFile f{};
-    return f;
-}
-
 eckit::PathName& store_tests_tmp_root() {
     static eckit::PathName sd("./daos_store_tests_fdb_root");
     return sd;
@@ -124,32 +114,6 @@ CASE( "Setup" ) {
     // due to no specified schema file (e.g. in Key::registry())
     ::setenv("FDB_SCHEMA_FILE", schema_file().path().c_str(), 1);
 
-    // prepare scpaces
-
-    std::string spaces_str{".* all Default"};
-
-    std::unique_ptr<eckit::DataHandle> hsp(spaces_file().fileHandle());
-    hsp->openForWrite(spaces_str.size());
-    {
-        eckit::AutoClose closer(*hsp);
-        hsp->write(spaces_str.data(), spaces_str.size());
-    }
-
-    ::setenv("FDB_SPACES_FILE", spaces_file().path().c_str(), 1);
-
-    // prepare roots
-
-    std::string roots_str{store_tests_tmp_root().asString() + " all yes yes"};
-
-    std::unique_ptr<eckit::DataHandle> hr(roots_file().fileHandle());
-    hr->openForWrite(roots_str.size());
-    {
-        eckit::AutoClose closer(*hr);
-        hr->write(roots_str.data(), roots_str.size());
-    }
-
-    ::setenv("FDB_ROOTS_FILE", roots_file().path().c_str(), 1);
-
 }
 
 CASE("DaosStore tests") {
@@ -169,7 +133,7 @@ CASE("DaosStore tests") {
 
     // bootstrap daos
 
-    uuid_t pool_uuid = {0};
+    fdb5::UUID pool_uuid;
     {
         fdb5::DaosManager::instance().configure(
             eckit::LocalConfiguration(YAMLConfiguration(
@@ -190,12 +154,15 @@ CASE("DaosStore tests") {
   #endif
         fdb5::DaosPool& pool = s.getPool(pool_name);
 #endif
-        pool.uuid(pool_uuid);
+        pool_uuid = pool.uuid();
     }
 
     SECTION("archive and retrieve") {
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + store_tests_tmp_root().asString() + "\n"
             "daos:\n"
             "  store:\n"
             "    pool: " + pool_name + "\n"
@@ -207,9 +174,9 @@ CASE("DaosStore tests") {
 
         fdb5::Schema schema{schema_file()};
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key db_key{"a=1,b=2"};
-        fdb5::Key index_key{"c=3,d=4"};
+        fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
 
         char data[] = "test";
 
@@ -238,7 +205,7 @@ CASE("DaosStore tests") {
 
         // remove
         fdb5::DaosName field_name{field.location().uri()};
-        fdb5::DaosName store_name{field_name.poolName(), field_name.contName()};
+        fdb5::DaosName store_name{field_name.poolName(), field_name.containerName()};
         eckit::URI store_uri(store_name.URI());
         std::ostream out(std::cout.rdbuf());
         store.remove(store_uri, out, out, false);
@@ -260,6 +227,9 @@ CASE("DaosStore tests") {
         // FDB configuration
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + store_tests_tmp_root().asString() + "\n"
             "schema : " + schema_file().path() + "\n"
             "daos:\n"
             "  store:\n"
@@ -276,10 +246,10 @@ CASE("DaosStore tests") {
 
         // request
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key db_key{"a=1,b=2"};
-        fdb5::Key index_key{"c=3,d=4"};
-        fdb5::Key field_key{"e=5,f=6"};
+        fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}}, schema.registry());
+        fdb5::Key field_key({{"e", "5"}, {"f", "6"}}, schema.registry());
 
         // store data
 
@@ -330,7 +300,7 @@ CASE("DaosStore tests") {
         // remove data
 
         fdb5::DaosName field_name{field.location().uri()};
-        fdb5::DaosName store_name{field_name.poolName(), field_name.contName()};
+        fdb5::DaosName store_name{field_name.poolName(), field_name.containerName()};
         eckit::URI store_uri(store_name.URI());
         std::ostream out(std::cout.rdbuf());
         store.remove(store_uri, out, out, false);
@@ -359,6 +329,9 @@ CASE("DaosStore tests") {
         int container_oids_per_alloc_small = 100;
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + store_tests_tmp_root().asString() + "\n"
             "type: local\n"
             "schema : " + schema_file().path() + "\n"
             "engine: toc\n"
@@ -374,9 +347,9 @@ CASE("DaosStore tests") {
 
         // request
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
-        fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
+        fdb5::Key index_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}});
 
         fdb5::FDBToolRequest full_req{
             request_key.request("retrieve"), 
@@ -508,6 +481,9 @@ CASE("DaosStore tests") {
         // FDB configuration
 
         std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " + store_tests_tmp_root().asString() + "\n"
             "type: local\n"
             "schema : " + schema_file().path() + "\n"
             "engine: toc\n"
@@ -523,9 +499,9 @@ CASE("DaosStore tests") {
 
         // request
 
-        fdb5::Key request_key{"a=1,b=2,c=3,d=4,e=5,f=6"};
-        fdb5::Key index_key{"a=1,b=2,c=3,d=4"};
-        fdb5::Key db_key{"a=1,b=2"};
+        fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
+        fdb5::Key index_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}});
 
         fdb5::FDBToolRequest full_req{
             request_key.request("retrieve"), 

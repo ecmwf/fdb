@@ -43,10 +43,10 @@ cat > list <<EOF
 EOF
 
 cat > listLength <<EOF
-{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=11,param=166} length=1476
-{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=13,param=166} length=1476
-{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166} length=1476
-{class=rd,expver=yyyy,stream=oper,date=20201102,time=1200,domain=g}{type=fc,levtype=sfc}{step=12,param=166} length=1476
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=11,param=166}, length=1476
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=13,param=166}, length=1476
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}, length=1476
+{class=rd,expver=yyyy,stream=oper,date=20201102,time=1200,domain=g}{type=fc,levtype=sfc}{step=12,param=166}, length=1476
 EOF
 
 # should return 4 fields - no length

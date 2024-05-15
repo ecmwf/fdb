@@ -38,7 +38,7 @@ void DaosArrayHandle::print(std::ostream& s) const {
 
 void DaosArrayHandle::openForWrite(const Length& len) {
 
-    if (open_) NOTIMP;
+    if (open_) throw eckit::SeriousBug{"Handle already opened."};
 
     mode_ = "archive";
 
@@ -48,18 +48,14 @@ void DaosArrayHandle::openForWrite(const Length& len) {
 
     fdb5::StatsTimer st{"archive 100 array handle ensure container", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
-    session_.reset(new fdb5::DaosSession());
+    session();
 
     fdb5::DaosPool& p = session_->getPool(name_.poolName());
-    fdb5::DaosContainer& c = p.ensureContainer(name_.contName());
+    fdb5::DaosContainer& c = p.ensureContainer(name_.containerName());
 
     st.stop();
 
     st.start("archive 101 array handle array create", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-
-    /// @todo: optionally remove this, as name_.OID() and OID generation are
-    ///    triggered as part of DaosArray constructors.
-    name_.generateOID();
 
     /// @note: to open/create an array without generating a snapshot, we must:
     ///   - attempt array open and check if rc is 0 or DER_NONEXIST (DaosArray(session, name))
@@ -73,9 +69,9 @@ void DaosArrayHandle::openForWrite(const Length& len) {
     ///   This would probably require breaking transactionality of dummy 
     ///   daos_create_array, and/or hit its performance.
     try {
-        arr_.reset(new fdb5::DaosArray( c.createArray(name_.OID()) ));
+        arr_.emplace( c.createArray(name_.OID()) );
     } catch (fdb5::DaosEntityAlreadyExistsException& e) {
-        arr_.reset(new fdb5::DaosArray(*(session_.get()), name_));
+        arr_.emplace( session_.value(), name_ );
     }
 
     arr_->open();
@@ -90,35 +86,20 @@ void DaosArrayHandle::openForWrite(const Length& len) {
 
 }
 
-void DaosArrayHandle::openForAppend(const Length& len) {
-
-    /// @todo: implement openForAppend with its own code, with a slight variation
-    ///   with respect to openForWrite: try open first, if failure then create
-    openForWrite(len);
-
-    /// @todo: should offset be set to size() or be left to its current value?
-    offset_ = eckit::Offset(arr_->size());
-
-}
-
 /// @note: the array size is retrieved here and ::read. For a more optimised reading 
 ///   if the size is known in advance, see DaosArrayPartHandle.
 Length DaosArrayHandle::openForRead() {
 
-    if (open_) NOTIMP;
-
-    mode_ = "retrieve";
+    if (open_) throw eckit::SeriousBug{"Handle already opened."};
 
     using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().timer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
     fdb5::StatsTimer st{"retrieve 09 array handle array open and get size", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
-    session_.reset(new fdb5::DaosSession());
+    session();
 
-    name_.generateOID();
-
-    arr_.reset(new fdb5::DaosArray(*(session_.get()), name_));
+    arr_.emplace(session_.value(), name_);
 
     arr_->open();
 
@@ -180,13 +161,9 @@ void DaosArrayHandle::close() {
 
     open_ = false;
 
-    /// @todo: should offset be set to 0?
-
 }
 
 void DaosArrayHandle::flush() {
-
-    /// @todo: should flush require closing?
 
     /// empty implmenetation
 
@@ -228,6 +205,13 @@ bool DaosArrayHandle::canSeek() const {
 std::string DaosArrayHandle::title() const {
     
     return name_.asString();
+
+}
+
+fdb5::DaosSession& DaosArrayHandle::session() {
+
+    if (!session_.has_value()) session_.emplace();
+    return session_.value();
 
 }
 

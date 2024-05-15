@@ -62,9 +62,11 @@ std::unique_ptr<fdb5::FieldLocation>& DaosLazyFieldLocation::realise() const {
     daos_size_t size{index_kv.size(key_)};
     std::vector<char> v((long) size);
     index_kv.get(key_, &v[0], size);
-    st.stop();
 
     eckit::MemoryStream ms{&v[0], size};
+    std::vector<char> data;
+    eckit::MemoryStream ms = index_kv.getMemoryStream(data, key_, "index kv");
+    st.stop();
 
     /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
     time_t ts;

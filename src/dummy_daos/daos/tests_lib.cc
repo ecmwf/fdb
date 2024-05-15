@@ -209,16 +209,14 @@ int dmg_pool_destroy(const char *dmg_config_file,
     ///        specified pool UUID. None will match if the pool was not labelled.
 
     for (auto& f : files) {
-        if (f.exists()) {
-            try {
+        try {
 
-                if (f.isLink() && f.realName().baseName() == pool_path.baseName()) f.unlink();
+            if (f.isLink() && f.realName().baseName() == pool_path.baseName()) f.unlink();
 
-            } catch (eckit::FailedSystemCall& e) {
+        } catch (eckit::FailedSystemCall& e) {
 
-                if (f.exists()) throw;
+            if (f.exists()) throw;
 
-            }
         }
     }
 

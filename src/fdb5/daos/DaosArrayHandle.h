@@ -15,13 +15,12 @@
 
 #include "eckit/io/DataHandle.h"
 
+#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosName.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-
-class DaosSession;
 
 class DaosArray;
 
@@ -38,7 +37,7 @@ public: // methods
     virtual void print(std::ostream&) const override;
 
     virtual void openForWrite(const eckit::Length&) override;
-    virtual void openForAppend(const eckit::Length&) override;
+    virtual void openForAppend(const eckit::Length&) override { NOTIMP; };
     virtual eckit::Length openForRead() override;
 
     virtual long write(const void*, long) override;
@@ -64,15 +63,18 @@ public: // methods
 
     // static const ClassSpec& classSpec() { return classSpec_; }
 
+private: // methods
+
+    fdb5::DaosSession& session();
+
 private: // members
 
     // mutable because title() calls DaosArrayName::asString which may update (generate) OID
     mutable fdb5::DaosArrayName name_;
-    std::unique_ptr<fdb5::DaosSession> session_;
-    std::unique_ptr<fdb5::DaosArray> arr_;
+    std::optional<fdb5::DaosSession> session_;
+    std::optional<fdb5::DaosArray> arr_;
     bool open_;
     eckit::Offset offset_;
-    std::string mode_;
 
     // static ClassSpec classSpec_;
     // static Reanimator<DataHandle> reanimator_;

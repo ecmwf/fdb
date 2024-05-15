@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <memory>
 
 #include "eckit/types/Types.h"
 
@@ -45,13 +46,15 @@ class Key {
 
 public: // methods
 
-    Key();
-
-    explicit Key(eckit::Stream &);
-    explicit Key(const std::string &request);
+    explicit Key(const std::shared_ptr<TypesRegistry> reg = nullptr, bool canonical = false);
+    explicit Key(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
     explicit Key(const std::string &keys, const Rule* rule);
+    explicit Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
+    Key(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
 
-    explicit Key(const eckit::StringDict &keys);
+    static Key parseStringUntyped(const std::string& s);
+    /// @todo - this functionality should not be supported any more.
+    static Key parseString(const std::string&, const std::shared_ptr<TypesRegistry> reg);
 
     std::set<std::string> keys() const;
 
@@ -104,9 +107,11 @@ public: // methods
         return s;
     }
 
-    void rule(const Rule *rule);
-    const Rule *rule() const;
+    // Registry is needed before we can stringise/canonicalise.
+    void registry(const std::shared_ptr<TypesRegistry> reg);
+    [[ nodiscard ]]
     const TypesRegistry& registry() const;
+    const void* reg() const;
 
     std::string valuesToString() const;
 
@@ -155,8 +160,8 @@ private: // members
     eckit::StringDict keys_;
     eckit::StringList names_;
 
-    const Rule *rule_;
-
+    std::shared_ptr<TypesRegistry> registry_;
+    bool canonical_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

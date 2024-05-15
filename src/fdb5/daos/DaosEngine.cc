@@ -51,19 +51,19 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
 
     if (!n.hasOID()) return false;
 
-    /// @todo: check contName is not root_cont_. root_cont_ should be populated in
+    /// @todo: check containerName is not root_cont_. root_cont_ should be populated in
     ///   configureDaos as done in DaosCommon
-    // bool is_root_name = (n.contName().find(root_cont_) != std::string::npos);
+    // bool is_root_name = (n.containerName().find(root_cont_) != std::string::npos);
     bool is_root_name = false;
-    bool is_store_name = (n.contName().find("_") != std::string::npos);
+    bool is_store_name = (n.containerName().find("_") != std::string::npos);
 
     /// @note: performed RPCs:
     /// - generate oids (daos_obj_generate_oid)
     /// - db kv open (daos_kv_open)
     fdb5::StatsTimer st{"list/wipe 005 db kv checks", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     
-    fdb5::DaosName n2{n.poolName(), n.contName(), catalogue_kv_};
-    n2.generateOID();
+    fdb5::DaosName n2{n.poolName(), n.containerName(), catalogue_kv_};
+
     bool is_catalogue_kv = (!is_root_name && !is_store_name && (n.OID() == n2.OID()));
 
     return is_catalogue_kv && n.exists();
@@ -131,7 +131,7 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
             /// - main kv get db location size (daos_kv_get without a buffer)
             /// - main kv get db location (daos_kv_get)
             st.start("list/wipe 002 main kv get db location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-            daos_size_t size = main_kv->size(k);
+            uint64_t size = main_kv->size(k);
             std::vector<char> v(size);
             main_kv->get(k, v.data(), size);
             st.stop();
@@ -149,13 +149,9 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
             /// - db key get (daos_kv_get)
             st.start("list/wipe 003 db kv open and get key", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
             fdb5::DaosKeyValue db_kv{s, db_kv_name};  /// @note: includes exist check
-            size = db_kv.size("key");
-            if (size == 0) throw eckit::Exception("Key 'key' not found in DB kv");
-            std::vector<char> dbkey_data((long) size);
-            db_kv.get("key", &dbkey_data[0], size);
+            std::vector<char> data;
+            eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
             st.stop();
-
-            eckit::MemoryStream ms{&dbkey_data[0], size};
             fdb5::Key db_key(ms);
 
             if (db_key.match(key)) {
@@ -242,7 +238,7 @@ std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest&
             /// - main kv get db location size (daos_kv_get without a buffer)
             /// - main kv get db location (daos_kv_get)
             st.start("list/wipe 002 main kv get db location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-            daos_size_t size = main_kv->size(k);
+            uint64_t size = main_kv->size(k);
             std::vector<char> v(size);
             main_kv->get(k, v.data(), size);
             st.stop();
@@ -260,13 +256,9 @@ std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest&
             /// - db key get (daos_kv_get)
             st.start("list/wipe 003 db kv open and get key", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
             fdb5::DaosKeyValue db_kv{s, db_kv_name};
-            size = db_kv.size("key");
-            if (size == 0) throw eckit::Exception("Key 'key' not found in DB kv");
-            std::vector<char> dbkey_data((long) size);
-            db_kv.get("key", &dbkey_data[0], size);
+            std::vector<char> data;
+            eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
             st.stop();
-
-            eckit::MemoryStream ms{&dbkey_data[0], size};
             fdb5::Key db_key(ms);
 
             if (db_key.partialMatch(request)) {

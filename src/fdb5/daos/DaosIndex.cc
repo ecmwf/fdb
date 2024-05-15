@@ -17,47 +17,63 @@
 #include "fdb5/daos/DaosIndex.h"
 #include "fdb5/daos/DaosLazyFieldLocation.h"
 
+fdb5::DaosKeyValueName buildIndexKvName(const fdb5::Key& key, const fdb5::DaosName& name) {
+
+    ASSERT(!name.hasOID());
+
+    /// create index kv
+    /// @todo: pass oclass from config
+    /// @todo: hash string into lower oid bits
+    fdb5::DaosKeyValueOID index_kv_oid{key.valuesToString(), OC_S1};
+
+    return fdb5::DaosKeyValueName{name.poolName(), name.containerName(), index_kv_oid};
+
+}
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name) :
-    IndexBase(key, "daosKeyValue"),
-    location_(name, 0) {}
+DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) : 
+    IndexBase(key, "daosKeyValue"), 
+    location_(buildIndexKvName(key, name), 0) {
 
-bool DaosIndex::mayContain(const Key &key) const {
+    fdb5::DaosSession s{};
 
-    /// @todo: in-memory axes_ are left empty in the read pathway. Alternatively, could
-    ///        consider reading axes content from DAOS in one go upon DaosIndex creation,
-    ///        and have mayContain check these in-memory axes. However some mechanism
-    ///        would have to be implemented for readers to lock DAOS KVs storing axis 
-    ///        information so that in-memory axes are consistent with DAOS axes.
+    /// @note: performed RPCs:
+    /// - generate index kv oid (daos_obj_generate_oid)
+    /// - create/open index kv (daos_kv_open)
+    fdb5::DaosKeyValue index_kv_obj{s, location_.daosName()};
 
-    /// @todo: visit in-memory axes anyway in case a writer process is later reading data, or 
-    ///   in case in-memory axes are updated by a reader process (see todo below)?
-
-    std::string indexKey{key_.valuesToString()};
-
-    for (Key::const_iterator i = key.begin(); i != key.end(); ++i) {
-
-        const std::string &keyword = i->first;
-        std::string value = key.canonicalValue(keyword);
-
-        /// @todo: take oclass from config
-        fdb5::DaosKeyValueOID oid{indexKey + std::string{"."} + keyword, OC_S1};
-        fdb5::DaosKeyValueName axis{location_.daosName().poolName(), location_.daosName().contName(), oid};
-
-        /// @todo: update in-memory axes here to speed up future reads in the same process
-        if (!axis.exists()) return false;  /// @todo: should throw an exception if the axis is not present in the "axes" list in the index kv?
-        if (!axis.has(value)) return false;
-
+    /// write indexKey under "key"
+    eckit::MemoryHandle h{(size_t) PATH_MAX};
+    eckit::HandleStream hs{h};
+    h.openForWrite(eckit::Length(0));
+    {
+        eckit::AutoClose closer(h);
+        hs << key;
     }
 
-    return true;
+    int idx_key_max_len = 512;
+
+    if (hs.bytesWritten() > idx_key_max_len)
+        throw eckit::Exception("Serialised index key exceeded configured maximum index key length.");
+
+    /// @note: performed RPCs:
+    /// - record index key into index kv (daos_kv_put)
+    index_kv_obj.put("key", h.data(), hs.bytesWritten());
+    
+}
+
+DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name, bool readAxes) :
+    IndexBase(key, "daosKeyValue"),
+    location_(name, 0) {
+
+    if (readAxes) updateAxes();
 
 }
 
-const IndexAxis& DaosIndex::updatedAxes() {
+void DaosIndex::updateAxes() {
 
     using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().timer();
@@ -88,7 +104,7 @@ const IndexAxis& DaosIndex::updatedAxes() {
     for (const auto& name : axis_names) {
         /// @todo: take oclass from config
         fdb5::DaosKeyValueOID oid(indexKey + std::string{"."} + name, OC_S1);
-        fdb5::DaosKeyValueName nkv(index_kv_name.poolName(), index_kv_name.contName(), oid);
+        fdb5::DaosKeyValueName nkv(index_kv_name.poolName(), index_kv_name.containerName(), oid);
 
         /// @note: performed RPCs:
         /// - generate axis kv oid (daos_obj_generate_oid)
@@ -104,7 +120,7 @@ const IndexAxis& DaosIndex::updatedAxes() {
         st.stop();
     }
 
-    return IndexBase::axes();
+    axes_.sort();
 
 }
 
@@ -232,6 +248,14 @@ void DaosIndex::entries(EntryVisitor &visitor) const {
 
             if (key == "axes" || key == "key") continue;
 
+            /// @note: the DaosCatalogue is currently indexing a serialised DaosFieldLocation for each 
+            ///   archived field key. In the list pathway, DaosLazyFieldLocations are built for all field 
+            ///   keys present in an index -- without retrieving the actual location --, and 
+            ///   ListVisitor::visitDatum is called for each (see note at the top of DaosLazyFieldLocation.h).
+            ///   When a field key is matched in visitDatum, DaosLazyFieldLocation::stableLocation is called, 
+            ///   which in turn calls this method here and triggers retrieval and deserialisation of the 
+            ///   indexed DaosFieldLocation, and returns it. Since the deserialised instance is of a 
+            ///   polymorphic class, it needs to be reanimated.
             fdb5::FieldLocation* loc = new fdb5::DaosLazyFieldLocation(location_.daosName(), key);
             fdb5::Field field(std::move(*loc), time_t(), fdb5::FieldDetails());
             visitor.visitDatum(field, key);
@@ -263,10 +287,8 @@ const std::vector<eckit::URI> DaosIndex::dataURIs() const {
 
         if (key == "axes" || key == "key") continue;
 
-        daos_size_t size{index_kv.size(key)};
-        std::vector<char> v((long) size);
-        index_kv.get(key, &v[0], size);
-        eckit::MemoryStream ms{&v[0], size};
+        std::vector<char> data;
+        eckit::MemoryStream ms = index_kv.getMemoryStream(data, key, "index kv");
         
         time_t ts;
         ms >> ts;

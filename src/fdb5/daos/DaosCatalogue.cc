@@ -8,12 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/io/Buffer.h"
 #include "eckit/config/Resource.h"
 #include "eckit/serialisation/MemoryStream.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/database/DatabaseNotFoundException.h"
 
 #include "fdb5/daos/DaosCatalogue.h"
 #include "fdb5/daos/DaosName.h"
@@ -47,18 +47,24 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
     fdb5::StatsTimer st{"list/wipe 006 db kv open and get db key", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
     // Read the real DB key into the DB base object
-    fdb5::DaosSession s{};
-    fdb5::DaosKeyValueName n{pool_, db_cont_, catalogue_kv_};
-    fdb5::DaosKeyValue db_kv{s, n};
+    try {
 
-    int db_key_max_len = 512;  /// @todo: take from config
-    std::vector<char> dbkey_data((long) db_key_max_len);
-    long res = db_kv.get("key", &dbkey_data[0], db_key_max_len);
+        fdb5::DaosSession s{};
+        fdb5::DaosKeyValueName n{pool_, db_cont_, catalogue_kv_};
+        fdb5::DaosKeyValue db_kv{s, n};
 
-    st.stop();
+        std::vector<char> data;
+        eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
+        dbKey_ = fdb5::Key(ms);
 
-    eckit::MemoryStream ms{&dbkey_data[0], (size_t) res};
-    dbKey_ = fdb5::Key(ms);
+    } catch (fdb5::DaosEntityNotFoundException& e) {
+
+        throw fdb5::DatabaseNotFoundException(
+            std::string("DaosCatalogue database not found ") +
+            "(pool: '" + pool_ + "', container: '" + db_cont_ + "')"
+        );
+
+    }
 
 }
 
@@ -71,7 +77,7 @@ bool DaosCatalogue::exists() const {
 
 eckit::URI DaosCatalogue::uri() const {
 
-    return fdb5::DaosName{db_kv_->poolName(), db_kv_->contName()}.URI();
+    return fdb5::DaosName{db_kv_->poolName(), db_kv_->containerName()}.URI();
 
 }
 
@@ -98,7 +104,7 @@ void DaosCatalogue::loadSchema() {
     fdb5::DaosKeyValueName nkv{pool_, db_cont_, catalogue_kv_};
     fdb5::DaosSession s{};
     fdb5::DaosKeyValue kv{s, nkv};
-    daos_size_t size = kv.size("schema");
+    uint64_t size = kv.size("schema");
     std::vector<char> v(size);
     kv.get("schema", v.data(), size);
     t.stop();
@@ -112,7 +118,7 @@ WipeVisitor* DaosCatalogue::wipeVisitor(const Store& store, const metkit::mars::
     return new DaosWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
 }
 
-std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
+std::vector<Index> DaosCatalogue::indexes(bool) const {
 
     using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().timer();
@@ -142,7 +148,7 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
         /// - db kv get index location size (daos_kv_get without a buffer)
         /// - db kv get index location (daos_kv_get)
         st.start("list/wipe 008 db kv get index location", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-        daos_size_t size{catalogue_kv.size(key)};
+        uint64_t size{catalogue_kv.size(key)};
         std::vector<char> v(size);
         catalogue_kv.get(key, v.data(), size);
         st.stop();
@@ -160,18 +166,18 @@ std::vector<Index> DaosCatalogue::indexes(bool sorted) const {
         ///   Instead, presence of a "key" key in the KV is used to determine if the index 
         ///   KV existed.
         fdb5::DaosKeyValue index_kv{s, index_kv_name};
-        size = index_kv.size("key");
-        /// @todo: the index_kv may exist even if it does not have the "key" key
-        if (size == 0) continue;  /// @note: the index_kv may not exist after a failed wipe
+        std::optional<fdb5::Key> index_key;
+        try {
+            std::vector<char> data;
+            eckit::MemoryStream ms = index_kv.getMemoryStream(data, "key", "index KV");
+            st.stop();
+            index_key.emplace(ms);
+        } catch (fdb5::DaosEntityNotFoundException& e) {
+            continue; /// @note: the index_kv may not exist after a failed wipe
+            /// @todo: the index_kv may exist even if it does not have the "key" key
+        }
 
-        std::vector<char> indexkey_data((long) size);
-        index_kv.get("key", &indexkey_data[0], size);
-        st.stop();
-
-        eckit::MemoryStream ms{&indexkey_data[0], size};
-        fdb5::Key index_key(ms);
-
-        res.push_back(Index(new fdb5::DaosIndex(index_key, index_kv_name)));
+        res.push_back(Index(new fdb5::DaosIndex(index_key.value(), index_kv_name, false)));
 
     }
     st.stop();
@@ -188,7 +194,7 @@ std::string DaosCatalogue::type() const {
 
 void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways, std::ostream& logVerbose, bool doit) {
 
-    ASSERT(n.hasContName());
+    ASSERT(n.hasContainerName());
 
     logVerbose << "Removing " << (n.hasOID() ? "KV" : "container") << ": ";
     logAlways << n.URI() << std::endl;

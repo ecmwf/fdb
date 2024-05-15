@@ -32,6 +32,8 @@ list( APPEND fdb5_srcs
     api/SelectFDB.h
 
     api/helpers/APIIterator.h
+    api/helpers/AxesIterator.cc
+    api/helpers/AxesIterator.h
     api/helpers/ControlIterator.cc
     api/helpers/ControlIterator.h
     api/helpers/FDBToolRequest.cc
@@ -50,6 +52,8 @@ list( APPEND fdb5_srcs
     api/local/QueryVisitor.h
     api/local/QueueStringLogTarget.h
     api/local/ListVisitor.h
+    api/local/AxesVisitor.cc
+    api/local/AxesVisitor.h
     api/local/ControlVisitor.cc
     api/local/ControlVisitor.h
     api/local/DumpVisitor.h
@@ -77,6 +81,8 @@ list( APPEND fdb5_srcs
     database/Catalogue.h
     database/DB.cc
     database/DB.h
+    database/DatabaseNotFoundException.cc
+    database/DatabaseNotFoundException.h
     database/DataStats.cc
     database/DataStats.h
     database/DbStats.cc
@@ -413,6 +419,8 @@ if( HAVE_DAOSFDB )
         daos/DaosArrayPartHandle.cc
         daos/DaosLazyFieldLocation.h 
         daos/DaosLazyFieldLocation.cc
+        daos/UUID.h
+        daos/UUID.cc
     )
 else()
     set( DAOS_LIBRARIES "" )
@@ -470,6 +478,7 @@ if(HAVE_FDB_BUILD_TOOLS)
 endif()
 
 list( APPEND fdb5_tools
+    fdb-axes
     fdb-write
     fdb-copy
     fdb-dump
@@ -503,7 +512,7 @@ foreach( _tool ${fdb5_tools} )
   ecbuild_add_executable( TARGET    ${_tool}
                           CONDITION HAVE_FDB_BUILD_TOOLS
                           SOURCES   tools/${_tool}.cc
-                          INCLUDES  ${ECCODES_INCLUDE_DIRS} ${DAOS_INCLUDE_DIRS}  # Please don't remove me, I am needed
+                          INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
                           LIBS      fdb5 )
 
 endforeach()

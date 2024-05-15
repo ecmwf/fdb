@@ -38,23 +38,19 @@ void DaosKeyValueHandle::print(std::ostream& s) const {
 
 void DaosKeyValueHandle::openForWrite(const Length& len) {
 
-    if (open_) NOTIMP;
+    if (open_) throw eckit::SeriousBug{"Handle already opened."};
 
-    session_.reset(new fdb5::DaosSession());
+    session();
 
     /// @todo: alternatively call name_.create() and the like
     fdb5::DaosPool& p = session_->getPool(name_.poolName());
-    fdb5::DaosContainer& c = p.ensureContainer(name_.contName());
-
-    /// @todo: optionally remove this, as name_.OID() and OID generation are
-    ///   triggered as part of DaosArray constructors.
-    name_.generateOID();
+    fdb5::DaosContainer& c = p.ensureContainer(name_.containerName());
     
     /// @note: only way to check kv existence without generating a snapshot is
     ///   to attempt open, which results in creation without an error rc if n.e.
     ///   A kv open is performed in both c.createKeyValue and DaosKeyValue(session, name).
     ///   The former is used here.
-    kv_.reset(new fdb5::DaosKeyValue( c.createKeyValue(name_.OID()) ));
+    kv_.emplace( c.createKeyValue(name_.OID()) );
 
     kv_->open();
 
@@ -66,13 +62,11 @@ void DaosKeyValueHandle::openForWrite(const Length& len) {
 
 Length DaosKeyValueHandle::openForRead() {
 
-    if (open_) NOTIMP;
+    if (open_) throw eckit::SeriousBug{"Handle already opened."};
 
-    session_.reset(new fdb5::DaosSession());
+    session();
 
-    name_.generateOID();
-
-    kv_.reset(new fdb5::DaosKeyValue(*(session_.get()), name_));
+    kv_.emplace(session_.value(), name_);
 
     kv_->open();
 
@@ -116,13 +110,9 @@ void DaosKeyValueHandle::close() {
 
     open_ = false;
 
-    /// @todo: should offset be set to 0?
-
 }
 
 void DaosKeyValueHandle::flush() {
-
-    /// @todo: should flush require closing?
 
     /// empty implmenetation
 
@@ -130,10 +120,7 @@ void DaosKeyValueHandle::flush() {
 
 Length DaosKeyValueHandle::size() {
 
-    name_.generateOID();
-
-    fdb5::DaosSession s{};
-    fdb5::DaosKeyValue kv{s, name_};
+    fdb5::DaosKeyValue kv{session(), name_};
 
     return Length(kv.size(key_));
 
@@ -161,6 +148,13 @@ bool DaosKeyValueHandle::canSeek() const {
 std::string DaosKeyValueHandle::title() const {
     
     return name_.asString();
+
+}
+
+fdb5::DaosSession& DaosKeyValueHandle::session() {
+
+    if (!session_.has_value()) session_.emplace();
+    return session_.value();
 
 }
 

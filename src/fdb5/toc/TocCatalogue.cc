@@ -60,7 +60,8 @@ eckit::URI TocCatalogue::uri() const {
 }
 
 const Schema& TocCatalogue::schema() const {
-    return schema_;
+    ASSERT(schema_);
+    return *schema_;
 }
 
 const eckit::PathName& TocCatalogue::basePath() const {
@@ -89,7 +90,7 @@ void TocCatalogue::loadSchema() {
 
     fdb5::TocStatsTimer st{"archive/retrieve 001 TocCatalogue::loadSchema", t, std::bind(&fdb5::TocIOStats::logMdOperation, &stats, _1, _2)};
 
-    schema_.load( schemaPath() );
+    schema_ = &SchemaRegistry::instance().get(schemaPath());
 }
 
 StatsReportVisitor* TocCatalogue::statsReportVisitor() const {

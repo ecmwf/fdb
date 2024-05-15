@@ -87,7 +87,7 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     // TODO: Put minimim keys check into FDBToolRequest.
 
-    Log::debug<LibFdb5>() << "REQUEST ====> " << request.request() << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "REQUEST ====> " << request.request() << std::endl;
 
     try {
 
@@ -99,16 +99,22 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
         // And do the visitation
 
         for (URI uri : uris) {
-
             /// @note: the schema of a URI returned by visitableLocations 
             ///   matches the corresponding Engine type name
             // fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
 
-            /// @todo: since sanity checks on visitable URIs have been removed, 
-            ///   building the reader should be try{}ed, and catch any
-            ///   fdb5::DaosEntityNotFoundException or FileNotFoundException, 
-            ///   and continue. May require an Engine instance on each iteration.
-            std::unique_ptr<DB> db = DB::buildReader(uri, dbConfig_);
+            std::unique_ptr<DB> db;
+
+            try {
+                
+                db = DB::buildReader(uri, dbConfig_);
+
+            } catch (fdb5::DatabaseNotFoundException& e) {
+
+                visitor.onDatabaseNotFound(e);
+
+            }
+
             ASSERT(db->open());
             eckit::AutoCloser<DB> closer(*db);
 

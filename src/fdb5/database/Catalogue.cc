@@ -25,8 +25,6 @@
 namespace fdb5 {
 
 std::unique_ptr<Store> Catalogue::buildStore() {
-    /// @todo: buildByKey_ and all Store constructors taking a URI 
-    ///   (and StoreFactory::build(..., uri, ...)) can be removed
     return StoreFactory::instance().build(schema(), key(), config_);
 }
 
@@ -46,8 +44,9 @@ void Catalogue::visitEntries(EntryVisitor& visitor, const Store& store, bool sor
             }
         }
 
-        visitor.catalogueComplete(*this);
     }
+
+    visitor.catalogueComplete(*this);
 
 }
 
@@ -111,7 +110,7 @@ std::unique_ptr<Catalogue> CatalogueFactory::build(const Key& key, const Config&
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     auto j = builders_.find(nameLowercase);
 
-    eckit::Log::debug() << "Looking for CatalogueBuilder [" << nameLowercase << "]" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Looking for CatalogueBuilder [" << nameLowercase << "]" << std::endl;
 
     if (j == builders_.end()) {
         eckit::Log::error() << "No CatalogueBuilder for [" << nameLowercase << "]" << std::endl;
@@ -133,7 +132,7 @@ std::unique_ptr<Catalogue> CatalogueFactory::build(const eckit::URI& uri, const 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
     auto j = builders_.find(nameLowercase);
 
-    eckit::Log::debug() << "Looking for CatalogueBuilder [" << nameLowercase << "]" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Looking for CatalogueBuilder [" << nameLowercase << "]" << std::endl;
 
     if (j == builders_.end()) {
         eckit::Log::error() << "No CatalogueBuilder for [" << nameLowercase << "]" << std::endl;

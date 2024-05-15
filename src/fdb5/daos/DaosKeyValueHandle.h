@@ -16,12 +16,11 @@
 #include "eckit/io/DataHandle.h"
 
 #include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosSession.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-
-class DaosSession;
 
 class DaosKeyValue;
 
@@ -52,12 +51,16 @@ public: // methods
 
     virtual std::string title() const override;
 
+private: // methods
+
+    fdb5::DaosSession& session();
+
 private: // members
 
     mutable fdb5::DaosKeyValueName name_;
     std::string key_;
-    std::unique_ptr<fdb5::DaosSession> session_;
-    std::unique_ptr<fdb5::DaosKeyValue> kv_;
+    std::optional<fdb5::DaosSession> session_;
+    std::optional<fdb5::DaosKeyValue> kv_;
     bool open_;
     eckit::Offset offset_;
 

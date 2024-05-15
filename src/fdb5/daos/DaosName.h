@@ -37,12 +37,12 @@ class DaosNameBase {
 
 public: // methods
 
-    /// @todo: implement DaosName::contName to return a container DaosName,
-    ///   and rename poolName and contName to something else
+    /// @todo: implement DaosName::containerName to return a container DaosName,
+    ///   and rename poolName and containerName to something else
     // DaosName poolName() const;
-    // DaosName contName() const;
+    // DaosName containerName() const;
 
-    void generateOID() const;
+    void ensureGeneratedOID() const;
 
     void create() const;
     void destroy() const;
@@ -52,12 +52,16 @@ public: // methods
     // empty
 
     /// @todo: asString should only be used for debugging. private print?
+    /// @todo: asString currently ensures the OID, if present, has been generated, but
+    ///   OID generation fails if the pool or container do not exist, and asString does
+    ///   not succeed. A method should be implemented which supports stringifying 
+    ///   non-existing objects.
     std::string asString() const;
     eckit::URI URI() const;
-    std::string poolName() const;
-    std::string contName() const;
-    bool hasContName() const { return cont_.has_value(); };
-    fdb5::DaosOID OID() const;
+    const std::string& poolName() const;
+    const std::string& containerName() const;
+    bool hasContainerName() const { return cont_.has_value(); };
+    const fdb5::DaosOID& OID() const;
     bool hasOID() const { return oid_.has_value(); };
 
     bool operator<(const DaosNameBase& other) const;
@@ -75,17 +79,18 @@ protected: // methods
     DaosNameBase(const eckit::URI&);
     DaosNameBase(const fdb5::DaosObject&);
 
-    fdb5::DaosOID createOID(const daos_otype_t&, const daos_oclass_id_t&) const;
+    fdb5::DaosOID allocOID(const daos_otype_t&, const daos_oclass_id_t&) const;
 
 private: // methods
 
-    std::unique_ptr<fdb5::DaosObject> buildObject(const daos_otype_t& otype, fdb5::DaosSession&) const;
+    std::unique_ptr<fdb5::DaosObject> buildObject(fdb5::DaosSession&) const;
 
 protected: // members
 
     std::string pool_;
     eckit::Optional<std::string> cont_;
     mutable eckit::Optional<fdb5::DaosOID> oid_;
+    mutable eckit::Optional<std::string> as_string_;
 
 };
 

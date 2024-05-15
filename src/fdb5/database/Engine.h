@@ -50,7 +50,7 @@ public: // methods
     virtual std::string dbType() const = 0;
 
     /// @returns if an Engine is capable of opening this path
-    virtual bool canHandle(const eckit::URI& ur, const Config&) const = 0;
+    virtual bool canHandle(const eckit::URI& uri, const Config&) const = 0;
 
     /// Uniquely selects a location where the Key will be put or already exists
     virtual eckit::URI location(const Key &key, const Config& config) const = 0;

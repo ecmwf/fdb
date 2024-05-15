@@ -29,6 +29,7 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
+#include "fdb5/types/Type.h"
 
 // comment out for DAOS runs
 //#include "fdb5/toc/TocSession.h"
@@ -82,7 +83,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
             ss << "FDB archive - found unexpected message" << std::endl;
             ss << "  user request:"  << std::endl << "    " << request << std::endl;
             ss << "  unexpected message:" << std::endl << "    " << key << std::endl;
-            eckit::Log::debug<LibFdb5>() << ss.str();
+            LOG_DEBUG_LIB(LibFdb5) << ss.str();
             throw eckit::UserError(ss.str(), Here());
         }
         archive(key, msg.data(), msg.length());
@@ -95,7 +96,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
         for (auto vacantRequest : cube.vacantRequests()) {
             ss << "    " << vacantRequest << std::endl;
         }
-        eckit::Log::debug<LibFdb5>() << ss.str();
+        LOG_DEBUG_LIB(LibFdb5) << ss.str();
         throw eckit::UserError(ss.str(), Here());
     }
 }
@@ -104,24 +105,24 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     eckit::Timer timer;
     timer.start();
 
-    auto stepunit = key.find("stepunits");
-    if (stepunit != key.end()) {
-        Key k;
-        for (auto it : key) {
-            if (it.first == "step" && stepunit->second.size()>0 && stepunit->second[0]!='h') {
-                // TODO - enable canonical representation of step (as soon as Metkit supports it)
-                std::string canonicalStep = it.second+stepunit->second; // k.registry().lookupType("step").toKey("step", it.second+stepunit->second);
-                k.set(it.first, canonicalStep);
-            } else {
-                if (it.first != "stepunits") {
-                    k.set(it.first, it.second);
-                }
+    // This is the API entrypoint. Keys supplied by the user may not have type registry info attached (so
+    // serialisation won't work properly...)
+    Key keyInternal(key);
+    keyInternal.registry(config().schema().registry());
+
+    // step in archival requests from the model is just an integer. We need to include the stepunit
+    auto stepunit = keyInternal.find("stepunits");
+    if (stepunit != keyInternal.end()) {
+        if (stepunit->second.size()>0 && stepunit->second[0]!='h') {
+            auto step = keyInternal.find("step");
+            if (step != keyInternal.end()) {
+                std::string canonicalStep = keyInternal.registry().lookupType("step").toKey("step", step->second+stepunit->second);
             }
         }
-        internal_->archive(k, data, length);
-    } else {
-        internal_->archive(key, data, length);
+        keyInternal.unset("stepunits");
     }
+
+    internal_->archive(keyInternal, data, length);
     dirty_ = true;
 
     timer.stop();
@@ -139,7 +140,7 @@ bool FDB::sorted(const metkit::mars::MarsRequest &request) {
         eckit::Log::userInfo() << "Using optimise" << std::endl;
     }
 
-    eckit::Log::debug<LibFdb5>() << "fdb5::FDB::retrieve() Sorted? " << sorted << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "fdb5::FDB::retrieve() Sorted? " << sorted << std::endl;
 
     return sorted;
 }
@@ -305,6 +306,16 @@ void FDB::flush() {
         timer.stop();
         stats_.addFlush(timer);
     }
+}
+
+IndexAxis FDB::axes(const FDBToolRequest& request, int level) {
+    IndexAxis axes;
+    AxesElement elem;
+    auto it = internal_->axes(request, level);
+    while (it.next(elem)) {
+        axes.merge(elem.axes());
+    }
+    return axes;
 }
 
 bool FDB::dirty() const {

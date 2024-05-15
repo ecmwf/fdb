@@ -46,7 +46,7 @@ const std::unordered_set<size_t> AWKWARD_PARAMS {11, 12, 13, 14, 15, 16, 49, 51,
 using namespace eckit;
 
 
-class FDBWrite : public fdb5::FDBTool {
+class FDBHammer : public fdb5::FDBTool {
 
     virtual void usage(const std::string &tool) const override;
 
@@ -62,7 +62,7 @@ class FDBWrite : public fdb5::FDBTool {
 
 public:
 
-    FDBWrite(int argc, char **argv) :
+    FDBHammer(int argc, char **argv) :
         fdb5::FDBTool(argc, argv),
         verbose_(false) {
 
@@ -82,18 +82,18 @@ public:
         options_.push_back(new eckit::option::SimpleOption<bool>("verbose", "Print verbose output"));
         options_.push_back(new eckit::option::SimpleOption<bool>("disable-subtocs", "Disable use of subtocs"));
     }
-    ~FDBWrite() override {}
+    ~FDBHammer() override {}
 
 private:
     bool verbose_;
 };
 
-void FDBWrite::usage(const std::string &tool) const {
+void FDBHammer::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl << "Usage: " << tool << " [--statistics] [--read] [--list] --nsteps=<nsteps> --nensembles=<nensembles> --nlevels=<nlevels> --nparams=<nparams> --expver=<expver> <grib_path>" << std::endl;
     fdb5::FDBTool::usage(tool);
 }
 
-void FDBWrite::init(const eckit::option::CmdArgs& args)
+void FDBHammer::init(const eckit::option::CmdArgs& args)
 {
     FDBTool::init(args);
 
@@ -106,7 +106,7 @@ void FDBWrite::init(const eckit::option::CmdArgs& args)
     verbose_ = args.getBool("verbose", false);
 }
 
-void FDBWrite::execute(const eckit::option::CmdArgs &args) {
+void FDBHammer::execute(const eckit::option::CmdArgs &args) {
 
     if (args.getBool("read", false)) {
         executeRead(args);
@@ -117,7 +117,7 @@ void FDBWrite::execute(const eckit::option::CmdArgs &args) {
     }
 }
 
-void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
+void FDBHammer::executeWrite(const eckit::option::CmdArgs &args) {
 
     eckit::AutoStdFile fin(args(0));
 
@@ -138,7 +138,10 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
     const char* buffer = nullptr;
     size_t size = 0;
 
-    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args));
+    eckit::LocalConfiguration userConfig{};
+    if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
+
+    fdb5::MessageArchiver archiver(fdb5::Key(), false, verbose_, config(args, userConfig));
 
     std::string expver = args.getString("expver");
     size = expver.length();
@@ -234,7 +237,7 @@ void FDBWrite::executeWrite(const eckit::option::CmdArgs &args) {
 }
 
 
-void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
+void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
 
 
     fdb5::MessageDecoder decoder;
@@ -257,12 +260,15 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     request.setValue("class", args.getString("class"));
     request.setValue("optimised", "on");
 
+    eckit::LocalConfiguration userConfig{};
+    if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
+
     struct timeval tval_before_io, tval_after_io;
     eckit::Timer timer;
     timer.start();
 
     fdb5::HandleGatherer handles(false);
-    fdb5::FDB fdb(config(args));
+    fdb5::FDB fdb(config(args, userConfig));
     size_t fieldsRead = 0;
 
     for (size_t member = 1; member <= nensembles; ++member) {
@@ -302,7 +308,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
     EmptyHandle nullOutputHandle;
-    size_t total = dh->copyTo(nullOutputHandle);
+    size_t total = dh->saveInto(nullOutputHandle);
     gettimeofday(&tval_after_io, NULL);
 
     // comment out for DAOS runs
@@ -333,7 +339,7 @@ void FDBWrite::executeRead(const eckit::option::CmdArgs &args) {
 }
 
 
-void FDBWrite::executeList(const eckit::option::CmdArgs &args) {
+void FDBHammer::executeList(const eckit::option::CmdArgs &args) {
 
     std::vector<std::string> minimumKeys = eckit::Resource<std::vector<std::string>>("FDBInspectMinimumKeys", "class,expver", true);
 
@@ -353,10 +359,13 @@ void FDBWrite::executeList(const eckit::option::CmdArgs &args) {
     request.setValue("expver", args.getString("expver"));
     request.setValue("class", args.getString("class"));
 
+    eckit::LocalConfiguration userConfig{};
+    if (!args.has("disable-subtocs")) userConfig.set("useSubToc", true);
+
     eckit::Timer timer;
     timer.start();
 
-    fdb5::FDB fdb(config(args));
+    fdb5::FDB fdb(config(args, userConfig));
     fdb5::ListElement info;
 
     std::vector<std::string> number_values;
@@ -408,7 +417,7 @@ void FDBWrite::executeList(const eckit::option::CmdArgs &args) {
 //----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char **argv) {
-    FDBWrite app(argc, argv);
+    FDBHammer app(argc, argv);
     return app.start();
 }
 
