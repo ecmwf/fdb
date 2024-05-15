@@ -88,7 +88,7 @@ void DaosArrayPartHandle::close() {
     using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().timer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
-    fdb5::StatsTimer st{mode_ + " 12 array part handle array close", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
+    fdb5::StatsTimer st{"retrieve 12 array part handle array close", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
 
     arr_->close();
 

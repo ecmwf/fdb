@@ -38,12 +38,18 @@ DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) :
     IndexBase(key, "daosKeyValue"), 
     location_(buildIndexKvName(key, name), 0) {
 
+    using namespace std::placeholders;
+    eckit::Timer& timer = fdb5::DaosManager::instance().timer();
+    fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
+
     fdb5::DaosSession s{};
 
     /// @note: performed RPCs:
     /// - generate index kv oid (daos_obj_generate_oid)
     /// - create/open index kv (daos_kv_open)
+    fdb5::StatsTimer st{"archive 03 index kv open/create", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};
     fdb5::DaosKeyValue index_kv_obj{s, location_.daosName()};
+    st.stop();
 
     /// write indexKey under "key"
     eckit::MemoryHandle h{(size_t) PATH_MAX};
@@ -61,7 +67,9 @@ DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) :
 
     /// @note: performed RPCs:
     /// - record index key into index kv (daos_kv_put)
+    st.start("archive 04 index kv put key", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
     index_kv_obj.put("key", h.data(), hs.bytesWritten());
+    st.stop();
     
 }
 

@@ -74,6 +74,7 @@ void DaosOID::generateReservedBits(fdb5::DaosContainer& cont) {
 
     if (wasGenerated_) return;
     
+    using namespace std::placeholders;
     eckit::Timer& timer = fdb5::DaosManager::instance().daosCallTimer();
     fdb5::DaosIOStats& stats = fdb5::DaosManager::instance().stats();
     fdb5::StatsTimer st{"daos_obj_generate_oid", timer, std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2)};

@@ -308,7 +308,7 @@ void FDBHammer::executeRead(const eckit::option::CmdArgs &args) {
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
     EmptyHandle nullOutputHandle;
-    size_t total = dh->saveInto(nullOutputHandle);
+    size_t total = dh->copyTo(nullOutputHandle);
     gettimeofday(&tval_after_io, NULL);
 
     // comment out for DAOS runs

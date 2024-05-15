@@ -178,41 +178,6 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
             st.stop();
 
             firstIndexWrite_ = true;
-<<<<<<< HEAD
-
-            /// create index kv
-            /// @todo: pass oclass from config
-            /// @todo: hash string into lower oid bits
-            fdb5::DaosKeyValueOID index_kv_oid{key.valuesToString(), OC_S1};
-            index_kv.reset(new fdb5::DaosKeyValueName{pool_, db_cont_, index_kv_oid});
-
-            /// @note: performed RPCs:
-            /// - generate index kv oid (daos_obj_generate_oid)
-            /// - create/open index kv (daos_kv_open)
-            st.start("archive 03 index kv open/create", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-            fdb5::DaosKeyValue index_kv_obj{s, *index_kv};
-            st.stop();
-
-            /// write indexKey under "key"
-            eckit::MemoryHandle h{(size_t) PATH_MAX};
-            eckit::HandleStream hs{h};
-            h.openForWrite(eckit::Length(0));
-            {
-                eckit::AutoClose closer(h);
-                hs << currentIndexKey_;
-            }
-
-            int idx_key_max_len = 512;
-
-            if (hs.bytesWritten() > idx_key_max_len)
-                throw eckit::Exception("Serialised index key exceeded configured maximum index key length.");
-
-            /// @note: performed RPCs:
-            /// - record index key into index kv (daos_kv_put)
-            st.start("archive 04 index kv put key", std::bind(&fdb5::DaosIOStats::logMdOperation, &stats, _1, _2));
-            index_kv_obj.put("key", h.data(), hs.bytesWritten());
-            st.stop();
-=======
  
             indexes_[key] = Index(
                 new fdb5::DaosIndex(
@@ -220,7 +185,6 @@ bool DaosCatalogueWriter::selectIndex(const Key& key) {
                     fdb5::DaosName{pool_, db_cont_}
                 )
             );
->>>>>>> feature/daos_handle
 
             /// index index kv in catalogue kv
             std::string nstr{indexes_[key].location().uri().asString()};

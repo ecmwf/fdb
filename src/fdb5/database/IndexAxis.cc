@@ -325,7 +325,7 @@ const eckit::DenseSet<std::string> &IndexAxis::values(const std::string &keyword
     // be found...
 
     if (axis_.empty()) {
-        eckit::Log::warning() << "Querying axis of empty Index: " << keyword << std::endl;
+        //eckit::Log::warning() << "Querying axis of empty Index: " << keyword << std::endl;
         const static eckit::DenseSet<std::string> nullStringSet;
         return nullStringSet;
     }
