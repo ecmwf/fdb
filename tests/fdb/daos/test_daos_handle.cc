@@ -122,7 +122,7 @@ CASE( "DaosPool" ) {
         const fdb5::UUID& pool_uuid = pool.uuid();
 
         char uuid_cstr[37];
-        uuid_unparse(pool_uuid, uuid_cstr);
+        uuid_unparse(pool_uuid.internal, uuid_cstr);
         std::cout << uuid_cstr << std::endl;
 
     }
