@@ -275,6 +275,22 @@ void IndexAxis::insert(const Key &key) {
     }
 }
 
+/// @note: this method inserts key-value pairs into an axis in memory. 
+///   Intended for importing axis information from storage in the DAOS backend.
+///   Input values are required to be cannoicalised.
+void IndexAxis::insert(const std::string& axis, const std::vector<std::string>& values) {
+    ASSERT(!readOnly_);
+
+    std::shared_ptr<eckit::DenseSet<std::string> >& axis_set = axis_[axis];
+
+    if (!axis_set)
+        axis_set.reset(new eckit::DenseSet<std::string>());
+
+    for (const auto& value : values) axis_set->insert(value);
+
+    dirty_ = true;
+
+}
 
 bool IndexAxis::dirty() const {
     return dirty_;

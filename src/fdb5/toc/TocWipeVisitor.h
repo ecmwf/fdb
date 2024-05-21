@@ -48,7 +48,7 @@ private: // methods
 
     bool anythingToWipe() const;
 
-    void report();
+    void report(bool wipeAll);
     void wipe(bool wipeAll);
 
 private: // members
@@ -71,6 +71,7 @@ private: // members
 
     std::set<eckit::PathName> safePaths_;
     std::set<eckit::PathName> residualPaths_;
+    std::set<eckit::PathName> residualDataPaths_;
 
     std::vector<Index> indexesToMask_;
 };

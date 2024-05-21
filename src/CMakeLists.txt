@@ -5,6 +5,10 @@ ecbuild_find_project_files()
 
 add_subdirectory( fdb5 )
 
+if (HAVE_DUMMY_DAOS)
+	add_subdirectory(dummy_daos)
+endif()
+
 ############################################################################################
 # following directories are not packaged
 # currently this is developer only, hence not distributed

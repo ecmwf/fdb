@@ -58,7 +58,6 @@ protected: // methods
 
     void checkUID() const override;
     bool exists() const override;
-    void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
     std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;
