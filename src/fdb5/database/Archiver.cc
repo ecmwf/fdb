@@ -36,8 +36,8 @@ Archiver::~Archiver() {
     databases_.clear(); //< explicitly delete the DBs before schemas are destroyed
 }
 
-void Archiver::archive(const Key &key, const void* data, size_t len) {
-    ArchiveVisitor visitor(*this, key, data, len);
+void Archiver::archive(const Key &key, const void* data, size_t len, ArchiveCallback callback) {
+    ArchiveVisitor visitor(*this, key, data, len, callback);
     archive(key, visitor);
 }
 

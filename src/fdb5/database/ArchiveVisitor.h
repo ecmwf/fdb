@@ -30,7 +30,7 @@ class ArchiveVisitor : public BaseArchiveVisitor {
 
 public: // methods
 
-    ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size);
+    ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size, ArchiveCallback callback = nullptr);
 
 protected: // methods
 
@@ -42,6 +42,8 @@ private: // members
 
     const void *data_;
     size_t size_;
+
+    ArchiveCallback callback_;
 
 };
 

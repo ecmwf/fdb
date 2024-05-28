@@ -37,6 +37,7 @@
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
+#include "fdb5/api/helpers/ArchiveCallback.h"
 
 namespace eckit {
 namespace message {
@@ -65,6 +66,9 @@ public: // methods
     // -------------- Primary API functions ----------------------------
 
     virtual void archive(const Key& key, const void* data, size_t length) = 0;
+    
+    /* TODO Using a seperate ArchiveCallback method for developing/experimentation convenience */
+    virtual void archive(const Key& key, const void* data, size_t length, ArchiveCallback callback) {NOTIMP;};
 
     virtual void flush() = 0;
 

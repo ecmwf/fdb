@@ -14,6 +14,7 @@
 #include "fdb5/database/DB.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/toc/TocEngine.h"
+#include "fdb5/api/helpers/ArchiveCallback.h"
 
 using eckit::Log;
 
@@ -103,13 +104,19 @@ eckit::DataHandle *DB::retrieve(const Key& key) {
     return nullptr;
 }
 
-void DB::archive(const Key& key, const void* data, eckit::Length length) {
+void DB::archive(const Key& key, const void* data, eckit::Length length, const Key& fullKey, ArchiveCallback callback) {
 
     CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
     ASSERT(cat);
 
     const Index& idx = cat->currentIndex();
-    cat->archive(key, store().archive(idx.key(), data, length));
+    std::unique_ptr<FieldLocation> location(store().archive(idx.key(), data, length));
+
+    if (callback) {
+        callback(fullKey, *location);
+    }
+
+    cat->archive(key, std::move(location));
 }
 
 bool DB::open() {

@@ -46,14 +46,19 @@ using namespace eckit;
 
 
 namespace fdb5 {
+
 void LocalFDB::archive(const Key& key, const void* data, size_t length) {
+    archive(key, data, length, nullptr);
+}
+
+void LocalFDB::archive(const Key& key, const void* data, size_t length, ArchiveCallback callback) {
 
     if (!archiver_) {
         LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new archiver" << std::endl;
         archiver_.reset(new Archiver(config_));
     }
 
-    archiver_->archive(key, data, length);
+    archiver_->archive(key, data, length, callback);
 }
 
 ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest &request) {

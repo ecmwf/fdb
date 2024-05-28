@@ -47,7 +47,7 @@ public: // methods
     virtual ~Archiver();
 
     void archive(const Key &key, BaseArchiveVisitor& visitor);
-    void archive(const Key &key, const void* data, size_t len);
+    void archive(const Key &key, const void* data, size_t len, ArchiveCallback callback = nullptr);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
