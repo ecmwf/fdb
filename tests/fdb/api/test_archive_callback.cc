@@ -1,36 +1,10 @@
-
-
 #include "eckit/testing/Test.h"
 #include "fdb5/api/FDB.h"
-
-namespace {
-bool testEqual(const fdb5::Key& key1, const fdb5::Key& key2) {
-    if (key1.size() != key2.size()) {
-        std::cout << "key1.size() != key2.size()" << std::endl;
-        return false;
-    }
-
-    // Then check that all items in key1 are in key2
-    for (const auto& item : key1) {
-        if (key2.find(item.first) == key2.end()) {
-            return false;
-        }
-
-        if (key2.value(item.first) != item.second) {
-            return false;
-        }
-    }
-
-    return true;
-}
-    
-} // namespace anonymous
-
 
 namespace fdb5::test {
 
 //----------------------------------------------------------------------------------------------------------------------
-CASE("Archive callback 2") {
+CASE("Archive callback") {
     FDB fdb;
 
 	std::string data_str = "Raining cats and dogs";
@@ -51,20 +25,18 @@ CASE("Archive callback 2") {
     std::map<fdb5::Key, eckit::URI> map;
     std::vector<Key> internalKeys;
 
+    fdb.registerCallback([&map] (const fdb5::Key& internalKey, const fdb5::FieldLocation& location) {
+        map[internalKey] = location.fullUri();
+    });
+
 	key.set("step","1");
-    internalKeys.push_back(fdb.archive(key, data, length, [&map, key] (const fdb5::Key& fullKey, const fdb5::FieldLocation& location) {
-        map[key] = location.fullUri();
-    }));
+    internalKeys.push_back(fdb.archive(key, data, length));
 
 	key.set("step","2");
-    internalKeys.push_back(fdb.archive(key, data, length, [&map, key] (const fdb5::Key& fullKey, const fdb5::FieldLocation& location) {
-        map[key] = location.fullUri();
-    }));
+    internalKeys.push_back(fdb.archive(key, data, length));
 
 	key.set("step","3");
-    internalKeys.push_back(fdb.archive(key, data, length, [&map, key] (const fdb5::Key& fullKey, const fdb5::FieldLocation& location) {
-        map[key] = location.fullUri();
-    }));
+    internalKeys.push_back(fdb.archive(key, data, length));
     
 	fdb.flush();
 
@@ -80,7 +52,7 @@ CASE("Archive callback 2") {
     for (const auto& [key, uri] : map) {
         bool found = false;
         for (const auto& internalKey : internalKeys) {
-            if (testEqual(key, internalKey)) {
+            if (key == internalKey){
                 found = true;
                 break;
             }

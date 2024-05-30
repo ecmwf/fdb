@@ -104,7 +104,7 @@ eckit::DataHandle *DB::retrieve(const Key& key) {
     return nullptr;
 }
 
-void DB::archive(const Key& key, const void* data, eckit::Length length, const Key& fullKey, ArchiveCallback callback) {
+void DB::archive(const Key& key, const void* data, eckit::Length length, const Key& internalKey, ArchiveCallback callback) {
 
     CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
     ASSERT(cat);
@@ -113,7 +113,7 @@ void DB::archive(const Key& key, const void* data, eckit::Length length, const K
     std::unique_ptr<FieldLocation> location(store().archive(idx.key(), data, length));
 
     if (callback) {
-        callback(fullKey, *location);
+        callback(internalKey, *location);
     }
 
     cat->archive(key, std::move(location));

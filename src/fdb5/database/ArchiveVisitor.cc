@@ -30,7 +30,7 @@ bool ArchiveVisitor::selectDatum(const Key &key, const Key &full) {
 
     ASSERT(current());
 
-    current()->archive(key, data_, size_, full, callback_);
+    current()->archive(key, data_, size_, field_, callback_); //field_ is the user key! (or rather, "internal key")
 
     return true;
 }

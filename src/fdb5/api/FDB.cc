@@ -49,9 +49,9 @@ FDB::~FDB() {
     }
 }
 
-Key FDB::archive(eckit::message::Message msg, ArchiveCallback callback) {
+Key FDB::archive(eckit::message::Message msg) {
     fdb5::Key key = MessageDecoder::messageToKey(msg);
-    return archive(key, msg.data(), msg.length(), callback);
+    return archive(key, msg.data(), msg.length());
 }
 void FDB::archive(eckit::DataHandle& handle) {
     eckit::message::Message msg;
@@ -97,7 +97,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
     }
 }
 
-Key FDB::archive(const Key& key, const void* data, size_t length, ArchiveCallback callback) {
+Key FDB::archive(const Key& key, const void* data, size_t length) {
     eckit::Timer timer;
     timer.start();
 
@@ -118,12 +118,12 @@ Key FDB::archive(const Key& key, const void* data, size_t length, ArchiveCallbac
         keyInternal.unset("stepunits");
     }
 
-    internal_->archive(keyInternal, data, length, callback);
+    internal_->archive(keyInternal, data, length);
     dirty_ = true;
 
     timer.stop();
     stats_.addArchive(length, timer);
-    return keyInternal; /* TODO: Not convinced this key is useful to return.*/
+    return keyInternal;
 }
 
 bool FDB::sorted(const metkit::mars::MarsRequest &request) {
@@ -320,6 +320,10 @@ bool FDB::disabled() const {
 
 bool FDB::enabled(const ControlIdentifier& controlIdentifier) const {
     return internal_->enabled(controlIdentifier);
+}
+
+void FDB::registerCallback(ArchiveCallback callback) {
+    internal_->registerCallback(callback);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

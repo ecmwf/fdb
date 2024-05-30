@@ -67,9 +67,6 @@ public: // methods
 
     virtual void archive(const Key& key, const void* data, size_t length) = 0;
     
-    /* TODO Using a seperate ArchiveCallback method for developing/experimentation convenience */
-    virtual void archive(const Key& key, const void* data, size_t length, ArchiveCallback callback) {NOTIMP;};
-
     virtual void flush() = 0;
 
     virtual ListIterator inspect(const metkit::mars::MarsRequest& request) = 0;
@@ -93,6 +90,8 @@ public: // methods
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
 
     virtual AxesIterator axes(const FDBToolRequest& request, int axes) { NOTIMP; }
+
+    void registerCallback(ArchiveCallback callback) {callback_ = callback;}
 
     // -------------- API management ----------------------------
 
@@ -129,6 +128,8 @@ protected: // members
     ControlIdentifiers controlIdentifiers_;
 
     bool disabled_;
+
+    ArchiveCallback callback_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
