@@ -55,11 +55,11 @@ void Client::controlWriteCheckResponse(Message msg, uint32_t requestID, bool dat
         data.push_back(std::make_pair(payload, payloadLength));
     }
 
-    eckit::Buffer buf = connection_.controlWrite(*this, msg, requestID, dataListener, data);
+    eckit::Buffer buf = connection_.controlWrite(*this, msg, requestID, dataListener, data).get();
     ASSERT(buf.size() == 0);
 }
 
-eckit::Buffer Client::controlWriteReadResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
+std::future<eckit::Buffer> Client::controlWriteReadResponse(Message msg, uint32_t requestID, const void* payload, uint32_t payloadLength) {
 
     ASSERT(requestID);
     ASSERT(!(!payloadLength ^ !payload));

@@ -154,7 +154,7 @@ void RemoteCatalogue::loadSchema() {
         keyStream << dbKey_;
         
         uint32_t id = generateRequestID();
-        eckit::Buffer buf = controlWriteReadResponse(Message::Schema, id, keyBuffer, keyStream.position());
+        eckit::Buffer buf = controlWriteReadResponse(Message::Schema, id, keyBuffer, keyStream.position()).get();
 
         eckit::MemoryStream s(buf);
         schema_.reset(eckit::Reanimator<fdb5::Schema>::reanimate(s));

@@ -85,9 +85,11 @@ bool ClientConnection::remove(uint32_t clientID) {
     }
 
     if (clients_.empty()) {
-        if (!controlStopping_)
-            Connection::write(Message::Exit, true, 0, 0);
-        if (!single_ && !dataStopping_) {
+        Connection::write(Message::Exit, true, 0, 0);
+        if (!single_) {
+        // if (!controlStopping_)
+        //     Connection::write(Message::Exit, true, 0, 0);
+        // if (!single_ && !dataStopping_) {
             // TODO make the data connection dying automatically, when there are no more async writes
             Connection::write(Message::Exit, false, 0, 0);
         }
@@ -191,7 +193,7 @@ eckit::LocalConfiguration ClientConnection::availableFunctionality() const {
 
 // -----------------------------------------------------------------------------------------------------
 
-eckit::Buffer&& ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
+std::future<eckit::Buffer> ClientConnection::controlWrite(Client& client, Message msg, uint32_t requestID, bool dataListener, std::vector<std::pair<const void*, uint32_t>> data) {
     auto it = clients_.find(client.clientId());
     ASSERT(it != clients_.end());
 
@@ -200,7 +202,7 @@ eckit::Buffer&& ClientConnection::controlWrite(Client& client, Message msg, uint
 
     Connection::write(msg, true, client.clientId(), requestID, data);
 
-    return std::move(f.get());
+    return f;
 }
 
 void ClientConnection::dataWrite(DataWriteRequest& r) {

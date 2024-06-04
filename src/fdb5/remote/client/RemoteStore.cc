@@ -84,34 +84,50 @@ private: // methods
 
         if (complete_) return 0;
 
-        if (currentBuffer_.size() != 0) return bufferRead(pos, sz);
-
-        // If we are in the DataHandle, then there MUST be data to read
-        RemoteStore::StoredMessage msg = std::make_pair(remote::Message{}, eckit::Buffer{0});
-        ASSERT(queue_.pop(msg) != -1);
-
-        // Handle any remote errors communicated from the server
-        if (msg.first == Message::Error) {
-            std::string errmsg(static_cast<const char*>(msg.second.data()), msg.second.size());
-            throw RemoteFDBException(errmsg, remoteEndpoint_);
+        long total = 0;
+        long n;
+        char* p    = static_cast<char*>(pos);
+        if (currentBuffer_.size() != 0) {
+            n = bufferRead(pos, sz);
+            sz -= n;
+            total += n;
+            p+=n;
         }
 
-        // Are we now complete?
-        if (msg.first == Message::Complete) {
-            if (overallPosition_ == eckit::Offset(0)) {
-                ASSERT(queue_.pop(msg) != -1);
-            } else {
-                complete_ = true;
-                return 0;
+        while (sz > 0 && !complete_) {
+
+            // If we are in the DataHandle, then there MUST be data to read
+            RemoteStore::StoredMessage msg = std::make_pair(remote::Message{}, eckit::Buffer{0});
+            ASSERT(queue_.pop(msg) != -1);
+
+            // Handle any remote errors communicated from the server
+            if (msg.first == Message::Error) {
+                std::string errmsg(static_cast<const char*>(msg.second.data()), msg.second.size());
+                throw RemoteFDBException(errmsg, remoteEndpoint_);
             }
+
+            // Are we now complete?
+            if (msg.first == Message::Complete) {
+                if (overallPosition_ == eckit::Offset(0)) {
+                    ASSERT(queue_.pop(msg) != -1);
+                } else {
+                    complete_ = true;
+                    return total;
+                }
+            }
+
+            ASSERT(msg.first == Message::Blob);
+
+            // Otherwise return the data!
+            std::swap(currentBuffer_, msg.second);
+            
+            n = bufferRead(p, sz);
+            sz -= n;
+            total += n;
+            p+=n;
+
         }
-
-        ASSERT(msg.first == Message::Blob);
-
-        // Otherwise return the data!
-        std::swap(currentBuffer_, msg.second);
-
-        return bufferRead(pos, sz);
+        return total;
     }
 
     // A helper function that returns some, or all, of a buffer that has
