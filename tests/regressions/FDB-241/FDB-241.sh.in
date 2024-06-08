@@ -45,7 +45,7 @@ cat > list_fsoifb <<EOF
 {class=od,expver=0001,stream=lwda,date=20210217,time=1200}{type=fsoifb}{obsgroup=resat,reportype=5005}, length=8556
 EOF
 
-$fdblist class=od,expver=0001,stream=oper,date=20201125,time=0000,type=ofb,obsgroup=mhs,reportype=3001/3002 | tee out
+$fdblist --length class=od,expver=0001,stream=oper,date=20201125,time=0000,type=ofb,obsgroup=mhs,reportype=3001/3002 | tee out
 
 tail -2 out > shortOut
 cmp shortOut list
@@ -108,7 +108,7 @@ EOF
 
 $odc compare out.odb 6.odb
 
-$fdblist class=od,expver=0001,stream=lwda,date=20210217,time=1200,type=fsoifb,obsgroup=resat,reportype=5005 | tee out
+$fdblist --length class=od,expver=0001,stream=lwda,date=20210217,time=1200,type=fsoifb,obsgroup=resat,reportype=5005 | tee out
 
 tail -1 out > shortOut
 cmp shortOut list_fsoifb
