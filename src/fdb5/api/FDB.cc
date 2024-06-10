@@ -26,10 +26,12 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/types/Type.h"
+
 
 namespace fdb5 {
 
