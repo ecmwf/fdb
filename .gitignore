@@ -1,1 +1,4 @@
-.vscode
+build/
+.vscode/
+!.vscode/launch.json
+compile_commands.json
