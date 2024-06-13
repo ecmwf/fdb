@@ -117,6 +117,12 @@ ecbuild_add_option( FEATURE SANDBOX
                     DESCRIPTION "build the sandbox stuff"
                     DEFAULT OFF	 )
 
+### Enables the FAM support for FDB. (https://openfam.github.io/)
+ecbuild_add_option( FEATURE FAMFDB
+                    CONDITION eckit_HAVE_OPENFAM
+                    DEFAULT OFF
+                    DESCRIPTION "Enables the FAM support for FDB via OpenFAM" )
+
 ### build the tools
 
 ecbuild_add_option( FEATURE BUILD_TOOLS
