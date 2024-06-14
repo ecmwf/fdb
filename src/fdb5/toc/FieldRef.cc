@@ -18,11 +18,6 @@
 #include "fdb5/database/Field.h"
 #include "fdb5/database/UriStore.h"
 
-#include "fdb5/toc/TocFieldLocation.h"
-#ifdef fdb5_HAVE_RADOSFDB
-#include "fdb5/rados/RadosFieldLocation.h"
-#endif
-
 namespace fdb5 {
 
 
@@ -36,25 +31,6 @@ FieldRefLocation::FieldRefLocation() {
 FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
 
     const FieldLocation& loc = field.location();
-
-#ifdef fdb5_HAVE_RADOSFDB
-    const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
-    const RadosFieldLocation* radosfloc = dynamic_cast<const RadosFieldLocation*>(&loc);
-    if(!tocfloc && !radosfloc) {
-        throw eckit::NotImplemented(
-            "Field location is not of TocFieldLocation or RadosFieldLocation type "
-            "-- indexing other locations is not supported", 
-            Here());
-    }
-#else
-    const TocFieldLocation* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
-    if(!tocfloc) {
-        throw eckit::NotImplemented(
-            "Field location is not of TocFieldLocation type "
-            "-- indexing other locations is not supported", 
-            Here());
-    }
-#endif
 
     uriId_ = store.insert(loc.uri());
     length_ = loc.length();

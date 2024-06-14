@@ -47,7 +47,7 @@ protected: // methods
 
     virtual eckit::URI location(const Key &key, const Config& config) const override;
 
-    virtual bool canHandle(const eckit::URI& path) const override;
+    virtual bool canHandle(const eckit::URI&, const Config& config) const override;
 
     virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const override;
 

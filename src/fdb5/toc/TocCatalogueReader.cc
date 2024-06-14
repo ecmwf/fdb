@@ -32,11 +32,12 @@ TocCatalogueReader::TocCatalogueReader(const eckit::URI& uri, const fdb5::Config
 }
 
 TocCatalogueReader::~TocCatalogueReader() {
-    eckit::Log::debug<LibFdb5>() << "Closing DB " << *dynamic_cast<TocCatalogue*>(this) << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Closing DB " << *dynamic_cast<TocCatalogue*>(this) << std::endl;
 }
 
 void TocCatalogueReader::loadIndexesAndRemap() {
     std::vector<Key> remapKeys;
+    /// @todo: this should throw DatabaseNotFoundException if the toc file is not found
     std::vector<Index> indexes = loadIndexes(false, nullptr, nullptr, &remapKeys);
 
     ASSERT(remapKeys.size() == indexes.size());
@@ -61,7 +62,7 @@ bool TocCatalogueReader::selectIndex(const Key &key) {
         }
     }
 
-    eckit::Log::debug<LibFdb5>() << "TocCatalogueReader::selectIndex " << key << ", found "
+    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << key << ", found "
                                 << matching_.size() << " matche(s)" << std::endl;
 
     return (matching_.size() != 0);
@@ -104,8 +105,8 @@ void TocCatalogueReader::close() {
 }
 
 bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
-    eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
-    eckit::Log::debug<LibFdb5>() << "Scanning indexes " << matching_.size() << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Scanning indexes " << matching_.size() << std::endl;
 
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         const Index& idx((*m)->first);

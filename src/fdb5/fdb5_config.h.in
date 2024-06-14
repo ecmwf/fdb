@@ -16,6 +16,9 @@
 #cmakedefine fdb5_HAVE_RADOS_STORE_PERSIST_ON_FLUSH
 #cmakedefine fdb5_HAVE_RADOS_STORE_PERSIST_ON_WRITE
 #cmakedefine fdb5_HAVE_TOCFDB
+#cmakedefine fdb5_HAVE_DUMMY_DAOS
+#cmakedefine fdb5_HAVE_DAOSFDB
+#cmakedefine fdb5_HAVE_DAOS_ADMIN
 #cmakedefine01 fdb5_HAVE_GRIB
 
 #endif // fdb5_fdb5_config_h

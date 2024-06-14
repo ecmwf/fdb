@@ -58,7 +58,6 @@ protected: // methods
 
     void checkUID() const override;
     bool exists() const override;
-    void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted) override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override;
     std::vector<eckit::PathName> metadataPaths() const override;
     const Schema& schema() const override;
@@ -88,7 +87,8 @@ private: // members
     friend class TocWipeVisitor;
     friend class TocMoveVisitor;
 
-    Schema schema_;
+    // non-owning
+    const Schema* schema_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

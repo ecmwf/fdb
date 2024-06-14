@@ -44,7 +44,7 @@ class Catalogue {
 public:
 
     Catalogue(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
-        : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers), buildByKey_(!key.empty()) {}
+        : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers) {}
 
     virtual ~Catalogue() {}
 
@@ -60,7 +60,7 @@ public:
 
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
 
-    virtual void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted = false) = 0;
+    virtual void visitEntries(EntryVisitor& visitor, const Store& store, bool sorted = false);
 
     virtual void hideContents() { NOTIMP; }
 
@@ -108,10 +108,6 @@ protected: // members
     Config config_;
     ControlIdentifiers controlIdentifiers_;
 
-
-private: // members
-
-    bool buildByKey_ = false;
 };
 
 class CatalogueReader {

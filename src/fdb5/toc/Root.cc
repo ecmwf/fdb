@@ -47,7 +47,7 @@ bool Root::exists() const {
             Log::warning() << "FDB root " << path_ << " " << Log::syserr << std::endl;
             exists_ = false;
         }
-        Log::debug<LibFdb5>() << "Root " << *this << (exists_ ? " exists" : " does NOT exists") << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Root " << *this << (exists_ ? " exists" : " does NOT exists") << std::endl;
         checked_ = true;
     }
     

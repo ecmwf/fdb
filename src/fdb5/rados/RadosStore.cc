@@ -49,13 +49,6 @@ RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& confi
 
 }
 
-RadosStore::RadosStore(const Schema& schema, const eckit::URI& uri, const Config& config) :
-    Store(schema), RadosCommon(config, "store", uri), config_(config) {
-
-    parseConfig(config_);
-
-}
-
 eckit::URI RadosStore::uri() const {
 
 #ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
@@ -386,7 +379,6 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
 }
 
 void RadosStore::print(std::ostream& out) const {
-
 
 #ifdef fdb5_HAVE_RADOS_STORE_SINGLE_POOL
 

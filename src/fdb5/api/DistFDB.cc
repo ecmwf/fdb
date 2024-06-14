@@ -74,21 +74,21 @@ void DistFDB::archive(const Key& key, const void* data, size_t length) {
 
     std::vector<size_t> laneIndices;
 
-    //Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
-    //Log::debug<LibFdb5>() << "Lane indices: ";
-    //for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
-    //Log::debug<LibFdb5>() << std::endl;
+    //LOG_DEBUG_LIB(LibFdb5) << "Number of lanes: " << lanes_.size() << std::endl;
+    //LOG_DEBUG_LIB(LibFdb5) << "Lane indices: ";
+    //for (const auto& i : laneIndices) LOG_DEBUG_LIB(LibFdb5) << i << ", ";
+    //LOG_DEBUG_LIB(LibFdb5) << std::endl;
 
     hash_.hashOrder(key.keyDict(), laneIndices);
 
-    //Log::debug<LibFdb5>() << "Number of lanes: " << lanes_.size() << std::endl;
-    //Log::debug<LibFdb5>() << "Lane indices: ";
-    //for (const auto& i : laneIndices) Log::debug<LibFdb5>() << i << ", ";
-    //Log::debug<LibFdb5>() << std::endl;
+    //LOG_DEBUG_LIB(LibFdb5) << "Number of lanes: " << lanes_.size() << std::endl;
+    //LOG_DEBUG_LIB(LibFdb5) << "Lane indices: ";
+    //for (const auto& i : laneIndices) LOG_DEBUG_LIB(LibFdb5) << i << ", ";
+    //LOG_DEBUG_LIB(LibFdb5) << std::endl;
 
     // Given an order supplied by the Rendezvous hash, try the FDB in order until
     // one works. n.b. Errors are unacceptable once the FDB is dirty.
-    Log::debug<LibFdb5>() << "Attempting dist FDB archive" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "Attempting dist FDB archive" << std::endl;
 
     decltype(laneIndices)::const_iterator it = laneIndices.begin();
     decltype(laneIndices)::const_iterator end = laneIndices.end();
@@ -180,7 +180,7 @@ auto DistFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn) ->
 
 
 ListIterator DistFDB::list(const FDBToolRequest& request) {
-    Log::debug<LibFdb5>() << "DistFDB::list() : " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::list() : " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.list(request);
@@ -188,7 +188,7 @@ ListIterator DistFDB::list(const FDBToolRequest& request) {
 }
 
 ListIterator DistFDB::inspect(const metkit::mars::MarsRequest& request) {
-    Log::debug<LibFdb5>() << "DistFDB::inspect() : " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::inspect() : " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.inspect(request.request());
@@ -196,7 +196,7 @@ ListIterator DistFDB::inspect(const metkit::mars::MarsRequest& request) {
 }
 
 DumpIterator DistFDB::dump(const FDBToolRequest& request, bool simple) {
-    Log::debug<LibFdb5>() << "DistFDB::dump() : " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::dump() : " << request << std::endl;
     return queryInternal(request,
                          [simple](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.dump(request, simple);
@@ -204,7 +204,7 @@ DumpIterator DistFDB::dump(const FDBToolRequest& request, bool simple) {
 }
 
 StatusIterator DistFDB::status(const FDBToolRequest& request) {
-    Log::debug<LibFdb5>() << "DistFDB::status() : " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::status() : " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.status(request);
@@ -212,7 +212,7 @@ StatusIterator DistFDB::status(const FDBToolRequest& request) {
 }
 
 WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    Log::debug<LibFdb5>() << "DistFDB::wipe() : " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::wipe() : " << request << std::endl;
     return queryInternal(request,
                          [doit, porcelain, unsafeWipeAll](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
@@ -220,7 +220,7 @@ WipeIterator DistFDB::wipe(const FDBToolRequest& request, bool doit, bool porcel
 }
 
 PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
-    Log::debug<LibFdb5>() << "DistFDB::purge() : " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::purge() : " << request << std::endl;
     return queryInternal(request,
                          [doit, porcelain](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.purge(request, doit, porcelain);
@@ -228,7 +228,7 @@ PurgeIterator DistFDB::purge(const FDBToolRequest& request, bool doit, bool porc
 }
 
 StatsIterator DistFDB::stats(const FDBToolRequest &request) {
-    Log::debug<LibFdb5>() << "DistFDB::stats() : " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::stats() : " << request << std::endl;
     return queryInternal(request,
                          [](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.stats(request);
@@ -238,7 +238,7 @@ StatsIterator DistFDB::stats(const FDBToolRequest &request) {
 ControlIterator DistFDB::control(const FDBToolRequest& request,
                                  ControlAction action,
                                  ControlIdentifiers identifiers) {
-    Log::debug<LibFdb5>() << "DistFDB::control() : " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::control() : " << request << std::endl;
     return queryInternal(request,
                          [action, identifiers](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.control(request, action, identifiers);
@@ -247,7 +247,7 @@ ControlIterator DistFDB::control(const FDBToolRequest& request,
 
 
 MoveIterator DistFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
-    Log::debug<LibFdb5>() << "DistFDB::move() : " << request << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "DistFDB::move() : " << request << std::endl;
     return queryInternal(request,
                          [dest](FDB& fdb, const FDBToolRequest& request) {
                             return fdb.move(request, dest);

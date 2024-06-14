@@ -53,6 +53,8 @@ public: // methods
     void visitDatum(const Field&, const Key&) override { NOTIMP; }
     void visitDatum(const Field& field, const std::string& keyFingerprint) override { NOTIMP; }
 
+    virtual void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
+
 private: // members
 
     eckit::Channel out_;

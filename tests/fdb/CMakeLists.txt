@@ -72,6 +72,8 @@ endforeach()
 
 add_subdirectory( pmem )
 add_subdirectory( api )
+add_subdirectory( database )
 add_subdirectory( tools )
 add_subdirectory( type )
 add_subdirectory( rados )
+add_subdirectory( daos )

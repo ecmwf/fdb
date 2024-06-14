@@ -56,7 +56,7 @@ void AxisRegistry::deduplicate(const keyword_t& keyword, std::shared_ptr<axis_t>
     }
     else {
 //        dedups++;
-//        eckit::Log::debug<LibFdb5>() << dedups << " deduped axis [" << *ptr << "]" << std::endl;
+//        LOG_DEBUG_LIB(LibFdb5) << dedups << " deduped axis [" << *ptr << "]" << std::endl;
         ptr = *it;
     }
 }

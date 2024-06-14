@@ -162,7 +162,7 @@ bool TocWipeVisitor::visitIndex(const Index& index) {
     // Enumerate data files.
 
     std::vector<eckit::URI> indexDataURIs(index.dataPaths());
-    for (const eckit::URI& uri : store_.asStoreUnitURIs(indexDataURIs)) {
+    for (const eckit::URI& uri : store_.asCollocatedDataURIs(indexDataURIs)) {
         if (include) {
             if (!store_.uriBelongs(uri)) {
                 Log::error() << "Index to be deleted has pointers to fields that don't belong to the configured store." << std::endl;
@@ -320,9 +320,9 @@ void TocWipeVisitor::calculateResidualPaths() {
 
     if (store_.type() == "file") return;
 
-    std::vector<eckit::URI> allStoreUnitURIs(store_.storeUnitURIs());
+    std::vector<eckit::URI> allCollocatedDataURIs(store_.collocatedDataURIs());
     
-    std::set<eckit::URI> allDataURIs(allStoreUnitURIs.begin(), allStoreUnitURIs.end());
+    std::set<eckit::URI> allDataURIs(allCollocatedDataURIs.begin(), allCollocatedDataURIs.end());
 
     ASSERT(residualDataURIs_.empty());
 
