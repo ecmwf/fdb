@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+
+set -eux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbcompare="$<TARGET_FILE:fdb-compare>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/mismatch_grib
+
+### cleanup and prepare test
+
+rm -rf $bindir/grib
+mkdir -p $bindir/grib
+
+rm -rf $bindir/ref-root
+mkdir ref-root
+
+rm -rf $bindir/test-root
+mkdir test-root
+
+for f in ref.yaml test.yaml schema ../data.grib scaled.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+$gribset -s edition=2 data.grib data2.grib
+$gribset -s step=6 data2.grib grib/6.grib
+$gribset -s step=9 data2.grib grib/9.grib
+$gribset -s type=an grib/6.grib grib/an6.grib
+$gribset -s type=an grib/9.grib grib/an9.grib
+
+$fdbwrite --config=ref.yaml grib/6.grib
+$fdbwrite --config=ref.yaml grib/9.grib
+$fdbwrite --config=ref.yaml grib/an6.grib
+$fdbwrite --config=ref.yaml grib/an9.grib
+
+# ########################################################################################################################
+# Modify one grib file to contain different metadata
+
+$gribset -s localTablesVersion=1 grib/an6.grib grib/wronggrib.grib
+
+$fdbwrite --config=test.yaml grib/6.grib
+$fdbwrite --config=test.yaml grib/9.grib
+$fdbwrite --config=test.yaml grib/wronggrib.grib
+$fdbwrite --config=test.yaml grib/an9.grib
+
+set +e
+
+$fdbcompare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --grib-comparison-type="grib-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "[MARS KEYS COMPARE] SUCCESS" out 
+grep_rc=$?
+
+if [ $tool_rc -ne 0 ] || [ $grep_rc -ne 0 ]; then
+    die "Mars Key mismatch and this should have been detected (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+################
+
+# Expect succes with same keys
+$fdbcompare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=header-only --grib-comparison-type="grib-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "GRIB COMPARISON MISMATCH" out 
+grep_rc=$?
+
+if [ $tool_rc -ne 1 ] || [ $grep_rc -ne 0 ]; then
+    die "Grib Comparison check failed although grib messages should be identical (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+################
+
+set -e
+$fdbwrite --config=test.yaml scaled.grib
+sync
+
+set +e
+
+################
+
+### Test with diverging MARS entries.
+$fdbcompare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=all --grib-comparison-type="grib-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+! grep -Fq "Average Error: 0" out 
+grep_rc=$?
+
+if [ $tool_rc -ne 1 ] || [ $grep_rc -ne 0 ]; then
+    die "Data should not match (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+
+################
+
+### Test with diverging MARS entries.
+$fdbcompare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=header-only --grib-comparison-type="grib-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+! grep -Fq "GRIB COMPARISON MISMATCH" out 
+grep_rc=$?
+
+if [ $tool_rc -ne 0 ] || [ $grep_rc -ne 0 ]; then
+    die "data headers should match (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+
+
+
+# Ignore header difference to force checking data
+$fdbcompare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=all --grib-keys-ignore=referenceValue,binaryScaleFactor --grib-comparison-type="grib-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "GRIB COMPARISON FAILED FP-DATA CHECK" out 
+grep_rc=$?
+
+if [ $tool_rc -ne 1 ] || [ $grep_rc -ne 0 ]; then
+    die "FP data check should have failed (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+
+
+# Increase tolerance for checks to make comparison pass again
+$fdbcompare --reference-config=ref.yaml --test-config=test.yaml --minimum-keys="" --all --scope=all --grib-keys-ignore=referenceValue,binaryScaleFactor --fp-tolerance=6 --grib-comparison-type="grib-keys" | tee out
+tool_rc=${PIPESTATUS[0]}
+
+! grep -Fq "GRIB COMPARISON MISMATCH" out 
+grep_rc=$?
+
+if [ $tool_rc -ne 0 ] || [ $grep_rc -ne 0 ]; then
+    die "Comparison should be valid (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
