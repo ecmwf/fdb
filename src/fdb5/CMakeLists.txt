@@ -424,6 +424,10 @@ else()
     set( UUID_INCLUDE_DIRS "" )
 endif()
 
+if( HAVE_FAMFDB )
+    add_subdirectory( fam )
+endif()
+
 ecbuild_add_library(
 
     TARGET  fdb5
