@@ -116,7 +116,7 @@ void FDBCopy::execute(const CmdArgs& args) {
 
     std::unique_ptr<eckit::DataHandle> dh(handles.dataHandle());
 
-    fdb5::MessageArchiver fdbWriter(fdb5::Key(), false, verbose, writeConfig);
+    fdb5::MessageArchiver fdbWriter(fdb5::CanonicalKey(), false, verbose, writeConfig);
     fdbWriter.archive(*dh);
 }
              

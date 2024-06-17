@@ -17,7 +17,7 @@
 #include "fdb5/daos/DaosIndex.h"
 #include "fdb5/daos/DaosLazyFieldLocation.h"
 
-fdb5::DaosKeyValueName buildIndexKvName(const fdb5::Key& key, const fdb5::DaosName& name) {
+fdb5::DaosKeyValueName buildIndexKvName(const fdb5::CanonicalKey& key, const fdb5::DaosName& name) {
 
     ASSERT(!name.hasOID());
 
@@ -34,7 +34,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) : 
+DaosIndex::DaosIndex(const CanonicalKey& key, const fdb5::DaosName& name) : 
     IndexBase(key, "daosKeyValue"), 
     location_(buildIndexKvName(key, name), 0) {
 
@@ -65,7 +65,7 @@ DaosIndex::DaosIndex(const Key& key, const fdb5::DaosName& name) :
     
 }
 
-DaosIndex::DaosIndex(const Key& key, const fdb5::DaosKeyValueName& name, bool readAxes) :
+DaosIndex::DaosIndex(const CanonicalKey& key, const fdb5::DaosKeyValueName& name, bool readAxes) :
     IndexBase(key, "daosKeyValue"),
     location_(name, 0) {
 
@@ -112,7 +112,7 @@ void DaosIndex::updateAxes() {
 
 }
 
-bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
+bool DaosIndex::get(const CanonicalKey& key, const CanonicalKey& remapKey, Field &field) const {
 
     const fdb5::DaosKeyValueName& n = location_.daosName();
 
@@ -159,7 +159,7 @@ bool DaosIndex::get(const Key &key, const Key &remapKey, Field &field) const {
 
 }
 
-void DaosIndex::add(const Key &key, const Field &field) {
+void DaosIndex::add(const ApiKey& key, const Field &field) {
 
     eckit::MemoryHandle h{(size_t) PATH_MAX};
     eckit::HandleStream hs{h};

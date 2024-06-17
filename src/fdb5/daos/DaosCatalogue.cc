@@ -27,7 +27,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
+DaosCatalogue::DaosCatalogue(const CanonicalKey& key, const fdb5::Config& config) :
     Catalogue(key, ControlIdentifiers{}, config), DaosCommon(config, "catalogue", key) {
 
     // TODO: apply the mechanism in RootManager::directory, using
@@ -38,7 +38,7 @@ DaosCatalogue::DaosCatalogue(const Key& key, const fdb5::Config& config) :
 }
 
 DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config) :
-    Catalogue(Key(), controlIdentifiers, config), DaosCommon(config, "catalogue", uri) {
+    Catalogue(CanonicalKey(), controlIdentifiers, config), DaosCommon(config, "catalogue", uri) {
 
     // Read the real DB key into the DB base object
     try {
@@ -49,7 +49,7 @@ DaosCatalogue::DaosCatalogue(const eckit::URI& uri, const ControlIdentifiers& co
 
         std::vector<char> data;
         eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
-        dbKey_ = fdb5::Key(ms);
+        dbKey_ = fdb5::CanonicalKey(ms);
 
     } catch (fdb5::DaosEntityNotFoundException& e) {
 
@@ -145,7 +145,7 @@ std::vector<Index> DaosCatalogue::indexes(bool) const {
         ///   Instead, presence of a "key" key in the KV is used to determine if the index 
         ///   KV existed.
         fdb5::DaosKeyValue index_kv{s, index_kv_name};
-        std::optional<fdb5::Key> index_key;
+        std::optional<fdb5::CanonicalKey> index_key;
         try {
             std::vector<char> data;
             eckit::MemoryStream ms = index_kv.getMemoryStream(data, "key", "index KV");

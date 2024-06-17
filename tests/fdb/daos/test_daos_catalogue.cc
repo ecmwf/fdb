@@ -125,7 +125,7 @@ CASE( "Setup" ) {
 
     // this is necessary to avoid ~fdb/etc/fdb/schema being used where
     // LibFdb5::instance().defaultConfig().schema() is called
-    // due to no specified schema file (e.g. in Key::registry())
+    // due to no specified schema file (e.g. in CanonicalKey::registry())
     ::setenv("FDB_SCHEMA_FILE", schema_file().path().c_str(), 1);
 
 }
@@ -196,16 +196,16 @@ CASE("DaosCatalogue tests") {
         fdb5::Schema schema{schema_file()};
 
         /// @note: a=11,b=22 instead of a=1,b=2 to avoid collision with potential parallel runs of store tests using a=1,b=2
-        fdb5::Key request_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "11"}, {"b", "22"}}, schema.registry());
-        fdb5::Key index_key({{"c", "3"}, {"d", "4"}}, schema.registry());
-        fdb5::Key field_key({{"e", "5"}, {"f", "6"}}, schema.registry());
+        fdb5::CanonicalKey request_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::CanonicalKey db_key({{"a", "11"}, {"b", "22"}}, schema.registry());
+        fdb5::CanonicalKey index_key({{"c", "3"}, {"d", "4"}}, schema.registry());
+        fdb5::CanonicalKey field_key({{"e", "5"}, {"f", "6"}}, schema.registry());
 
         // archive
 
         /// DaosManager is configured with client config from the file
         std::unique_ptr<fdb5::FieldLocation> loc(new fdb5::DaosFieldLocation(
-            eckit::URI{"daos", "test_uri"}, eckit::Offset(0), eckit::Length(1), fdb5::Key(nullptr, true)
+            eckit::URI{"daos", "test_uri"}, eckit::Offset(0), eckit::Length(1), fdb5::CanonicalKey(nullptr, true)
         ));
 
         {
@@ -297,10 +297,10 @@ CASE("DaosCatalogue tests") {
 
         // request
 
-        fdb5::Key request_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "11"}, {"b", "22"}});
-        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
-        fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
+        fdb5::CanonicalKey request_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::CanonicalKey db_key({{"a", "11"}, {"b", "22"}});
+        fdb5::CanonicalKey index_key({{"c", "3"}, {"d", "4"}});
+        fdb5::CanonicalKey field_key({{"e", "5"}, {"f", "6"}});
 
         // store data
 
@@ -388,10 +388,10 @@ CASE("DaosCatalogue tests") {
 
         // request
 
-        fdb5::Key request_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "11"}, {"b", "22"}});
-        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
-        fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
+        fdb5::CanonicalKey request_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::CanonicalKey db_key({{"a", "11"}, {"b", "22"}});
+        fdb5::CanonicalKey index_key({{"c", "3"}, {"d", "4"}});
+        fdb5::CanonicalKey field_key({{"e", "5"}, {"f", "6"}});
 
         // store data
 
@@ -497,9 +497,9 @@ CASE("DaosCatalogue tests") {
 
         // request
 
-        fdb5::Key request_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "11"}, {"b", "22"}});
-        fdb5::Key index_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}});
+        fdb5::CanonicalKey request_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::CanonicalKey db_key({{"a", "11"}, {"b", "22"}});
+        fdb5::CanonicalKey index_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}});
 
         fdb5::FDBToolRequest full_req{
             request_key.request("retrieve"), 
@@ -712,10 +712,10 @@ CASE("DaosCatalogue tests") {
 
         // request
 
-        fdb5::Key request_key({{"a", "11"}, {"b", "22"}, {"d", "4"}, {"f", "6"}});
-        fdb5::Key request_key2({{"a", "11"}, {"b", "22"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "11"}, {"b", "22"}});
-        fdb5::Key index_key({{"a", "11"}, {"b", "22"}, {"d", "4"}});
+        fdb5::CanonicalKey request_key({{"a", "11"}, {"b", "22"}, {"d", "4"}, {"f", "6"}});
+        fdb5::CanonicalKey request_key2({{"a", "11"}, {"b", "22"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::CanonicalKey db_key({{"a", "11"}, {"b", "22"}});
+        fdb5::CanonicalKey index_key({{"a", "11"}, {"b", "22"}, {"d", "4"}});
 
         fdb5::FDBToolRequest full_req{
             request_key.request("retrieve"), 

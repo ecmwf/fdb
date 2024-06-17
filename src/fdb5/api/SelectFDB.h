@@ -46,7 +46,7 @@ public: // methods
 
     ~SelectFDB() override;
 
-    void archive(const Key& key, const void* data, size_t length) override;
+    void archive(const CanonicalKey& key, const void* data, size_t length) override;
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
@@ -74,7 +74,7 @@ private: // methods
 
     void print(std::ostream& s) const override;
 
-    bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
+    bool matches(const CanonicalKey& key, const SelectMap& select, bool requireMissing) const;
     bool matches(const metkit::mars::MarsRequest& request, const SelectMap& select, bool requireMissing) const;
 
     template <typename QueryFN>

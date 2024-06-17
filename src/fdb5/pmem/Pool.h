@@ -65,11 +65,11 @@ public: // methods
     /// that with a root object, as it is allocated at pool creation time.
     ///
     /// --> buildRoot() should be called immediately after pool creation to initialise the root.
-    void buildRoot(const Key& dbKey, const eckit::PathName& schemaPath);
+    void buildRoot(const CanonicalKey& dbKey, const eckit::PathName& schemaPath);
 
     static bool exists(const eckit::PathName& poolDir);
 
-    static Pool* obtain(const eckit::PathName& poolDir, const size_t size, const Key& dbKey, const eckit::PathName& schemaPath);
+    static Pool* obtain(const eckit::PathName& poolDir, const size_t size, const CanonicalKey& dbKey, const eckit::PathName& schemaPath);
 
     ::pmem::PersistentPtr<PRoot> baseRoot() const;
     PIndexRoot& root() const;

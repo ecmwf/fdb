@@ -37,8 +37,8 @@ struct fdb_handle_t : public FDB {
     using FDB::FDB;
 };
 
-struct fdb_key_t : public Key {
-    using Key::Key;
+struct fdb_key_t : public CanonicalKey {
+    using CanonicalKey::CanonicalKey;
 };
 
 struct fdb_request_t {
@@ -91,7 +91,7 @@ struct fdb_split_key_t {
 public:
     fdb_split_key_t() : key_(nullptr), level_(-1) {}
 
-    void set(const std::vector<Key>& key) {
+    void set(const std::vector<CanonicalKey>& key) {
         key_ = &key;
         level_ = -1;
     }
@@ -99,7 +99,7 @@ public:
     int next_metadata(const char** k, const char** v, size_t* level) {
         if (key_ == nullptr) {
             std::stringstream ss;
-            ss << "fdb_split_key_t not valid. Key not configured";
+            ss << "fdb_split_key_t not valid. CanonicalKey not configured";
             throw eckit::UserError(ss.str(), Here());
         }
         if (level_ == -1) {
@@ -129,9 +129,9 @@ public:
     }
 
 private:
-    const std::vector<Key>* key_;
+    const std::vector<CanonicalKey>* key_;
     int level_;
-    Key::const_iterator it_;
+    CanonicalKey::const_iterator it_;
 };
 
 struct fdb_listiterator_t {

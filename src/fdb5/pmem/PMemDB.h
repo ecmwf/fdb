@@ -44,7 +44,7 @@ class PMemDB : public DB {
 
 public: // methods
 
-    PMemDB(const Key& key, const Config& config);
+    PMemDB(const CanonicalKey& key, const Config& config);
     PMemDB(const eckit::PathName& directory, const Config& config);
 
     virtual ~PMemDB() override;
@@ -77,8 +77,8 @@ protected: // methods
     std::vector<eckit::PathName> metadataPaths() const;
     const Schema& schema() const override;
 
-    virtual eckit::DataHandle *retrieve(const Key &key) const;
-    virtual void archive(const Key &key, const void *data, eckit::Length length);
+    virtual eckit::DataHandle *retrieve(const ApiKey& key) const;
+    virtual void archive(const CanonicalKey& key, const void *data, eckit::Length length);
     virtual void axis(const std::string &keyword, eckit::StringSet &s) const;
 
     virtual StatsReportVisitor* statsReportVisitor() const override;
@@ -87,7 +87,7 @@ protected: // methods
 
     // void loadSchema();
 
-    virtual bool selectIndex(const Key &key);
+    virtual bool selectIndex(const CanonicalKey& idxKey);
     virtual void deselectIndex();
 
     virtual DbStats statistics() const;
@@ -110,7 +110,7 @@ private: // methods
 
 protected: // types
 
-    typedef std::map<Key, Index> IndexStore;
+    typedef std::map<CanonicalKey, Index> IndexStore;
 
 protected: // members
 

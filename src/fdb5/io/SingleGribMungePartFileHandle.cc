@@ -43,7 +43,7 @@ void SingleGribMungePartFileHandle::print(std::ostream& s) const
 SingleGribMungePartFileHandle::SingleGribMungePartFileHandle(const PathName& name,
                                                              const Offset& offset,
                                                              const Length& length,
-                                                             const Key& substitute):
+                                                             const CanonicalKey& substitute):
     name_(name),
     file_(nullptr),
     pos_(0),

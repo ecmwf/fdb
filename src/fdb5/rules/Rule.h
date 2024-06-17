@@ -37,6 +37,8 @@ class Predicate;
 class ReadVisitor;
 class WriteVisitor;
 class Key;
+class CanonicalKey;
+class ApiKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -54,7 +56,7 @@ public: // methods
 
     ~Rule();
 
-    bool match(const Key &key) const;
+    bool match(const CanonicalKey& key) const;
 
     eckit::StringList keys(size_t level) const;
 
@@ -63,16 +65,16 @@ public: // methods
     void expand(const metkit::mars::MarsRequest &request,
                 ReadVisitor &Visitor,
                 size_t depth,
-                std::vector<fdb5::Key> &keys,
-                Key &full) const;
+                std::vector<fdb5::ApiKey> &keys,
+                CanonicalKey& full) const;
 
-    void expand(const Key &field,
+    void expand(const CanonicalKey& field,
                 WriteVisitor &Visitor,
                 size_t depth,
-                std::vector<fdb5::Key> &keys,
-                Key &full) const;
+                std::vector<fdb5::ApiKey> &keys,
+                CanonicalKey& full) const;
 
-    const Rule* ruleFor(const std::vector<fdb5::Key> &keys, size_t depth) const;
+    const Rule* ruleFor(const std::vector<fdb5::CanonicalKey> &keys, size_t depth) const;
     void fill(Key& key, const eckit::StringList& values) const;
 
 
@@ -84,33 +86,33 @@ public: // methods
     const Schema &schema() const;
     const std::shared_ptr<TypesRegistry> registry() const;
 
-    void check(const Key& key) const;
+    void check(const CanonicalKey& key) const;
 
 private: // methods
 
     void expand(const metkit::mars::MarsRequest &request,
                 std::vector<Predicate *>::const_iterator cur,
                 size_t depth,
-                std::vector<Key> &keys,
-                Key &full,
+                std::vector<ApiKey> &keys,
+                CanonicalKey& full,
                 ReadVisitor &Visitor) const;
 
-    void expand(const Key &field,
+    void expand(const CanonicalKey& field,
                 std::vector<Predicate *>::const_iterator cur,
                 size_t depth,
-                std::vector<Key> &keys,
-                Key &full,
+                std::vector<ApiKey> &keys,
+                CanonicalKey& full,
                 WriteVisitor &Visitor) const;
 
-    void expandFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &result, bool& done) const;
-    void expandFirstLevel(const Key &dbKey,  Key &result, bool& done) const ;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key& result, bool& done) const;
-    void expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result, bool& done) const;
+    void expandFirstLevel(const CanonicalKey& dbKey, std::vector<Predicate *>::const_iterator cur, CanonicalKey& result, bool& done) const;
+    void expandFirstLevel(const CanonicalKey& dbKey,  CanonicalKey& result, bool& done) const ;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, CanonicalKey& result, bool& done) const;
+    void expandFirstLevel(const metkit::mars::MarsRequest& request,  CanonicalKey& result, bool& done) const;
 
-    void matchFirstLevel(const Key &dbKey, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
-    void matchFirstLevel(const Key &dbKey, std::set<Key>& result, const char* missing) const ;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, Key &tmp, std::set<Key>& result, const char* missing) const;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<Key>& result, const char* missing) const ;
+    void matchFirstLevel(const CanonicalKey& dbKey, std::vector<Predicate *>::const_iterator cur, CanonicalKey& tmp, std::set<CanonicalKey>& result, const char* missing) const;
+    void matchFirstLevel(const CanonicalKey& dbKey, std::set<CanonicalKey>& result, const char* missing) const ;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::vector<Predicate *>::const_iterator cur, CanonicalKey& tmp, std::set<CanonicalKey>& result, const char* missing) const;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request, std::set<CanonicalKey>& result, const char* missing) const ;
 
 
     void keys(size_t level, size_t depth, eckit::StringList &result, eckit::StringSet &seen) const;

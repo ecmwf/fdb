@@ -26,8 +26,8 @@ DaosFieldLocation::DaosFieldLocation(const DaosFieldLocation& rhs) :
 
 DaosFieldLocation::DaosFieldLocation(const eckit::URI &uri) : FieldLocation(uri) {}
 
-/// @todo: remove remapKey from signature and always pass empty Key to FieldLocation
-DaosFieldLocation::DaosFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
+/// @todo: remove remapKey from signature and always pass empty CanonicalKey to FieldLocation
+DaosFieldLocation::DaosFieldLocation(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const CanonicalKey& remapKey) :
     FieldLocation(uri, offset, length, remapKey) {}
 
 DaosFieldLocation::DaosFieldLocation(eckit::Stream& s) :

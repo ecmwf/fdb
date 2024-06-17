@@ -37,13 +37,13 @@ class WriteVisitor : public eckit::NonCopyable {
 
 public: // methods
 
-    WriteVisitor(std::vector<Key> &);
+    WriteVisitor(std::vector<CanonicalKey> &);
 
     virtual ~WriteVisitor();
 
-    virtual bool selectDatabase(const Key &key, const Key &full) = 0;
-    virtual bool selectIndex(const Key &key, const Key &full) = 0;
-    virtual bool selectDatum(const Key &key, const Key &full) = 0;
+    virtual bool selectDatabase(const CanonicalKey& dbKey, const CanonicalKey& full) = 0;
+    virtual bool selectIndex(const CanonicalKey& idxKey, const CanonicalKey& full) = 0;
+    virtual bool selectDatum(const ApiKey& key, const CanonicalKey& full) = 0;
 
     // Once we have selected a database, return its schema. Used for further iteration.
     virtual const Schema& databaseSchema() const = 0;
@@ -68,7 +68,7 @@ private: // members
 
     friend class Rule;
 
-    std::vector<Key> &prev_;
+    std::vector<CanonicalKey> &prev_;
 
     const Rule *rule_; // Last rule used
 

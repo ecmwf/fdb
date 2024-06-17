@@ -25,12 +25,12 @@ class DaosCatalogueReader : public DaosCatalogue, public CatalogueReader {
 
 public: // methods
 
-    DaosCatalogueReader(const Key& key, const fdb5::Config& config);
+    DaosCatalogueReader(const CanonicalKey& key, const fdb5::Config& config);
     DaosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
 
     DbStats stats() const override { NOTIMP; }
 
-    bool selectIndex(const Key &key) override;
+    bool selectIndex(const CanonicalKey& idxKey) override;
     void deselectIndex() override;
 
     bool open() override;
@@ -40,13 +40,13 @@ public: // methods
     
     bool axis(const std::string &keyword, eckit::StringSet &s) const override;
 
-    bool retrieve(const Key& key, Field& field) const override;
+    bool retrieve(const ApiKey& key, Field& field) const override;
 
     void print( std::ostream &out ) const override { NOTIMP; }
 
 private: // types
 
-    typedef std::map< Key, Index> IndexStore;
+    typedef std::map< CanonicalKey, Index> IndexStore;
 
 private: // members
 

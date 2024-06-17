@@ -26,7 +26,7 @@
 
 namespace fdb5 {
 
-class Key;
+class CanonicalKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -37,27 +37,27 @@ public: // methods
     Manager(const Config& config);
     ~Manager();
 
-    /// Uniquely selects the engine that will handle this Key on insertion or if already exists
-    std::string engine(const Key &key);
+    /// Uniquely selects the engine that will handle this CanonicalKey on insertion or if already exists
+    std::string engine(const CanonicalKey& key);
 
     /// set union of all the engines that can possibly handle this key
-    std::set<std::string> engines(const Key &key);
+    std::set<std::string> engines(const CanonicalKey& key);
     std::set<std::string> engines(const metkit::mars::MarsRequest& rq, bool all);
 
     /// Uniquely selects the engine that will handle this URI by checking possible handlers
     std::string engine(const eckit::URI& uri);
 
-    /// Uniquely selects a location where the Key will be put or already exists
-    eckit::URI location(const Key &key);
+    /// Uniquely selects a location where the CanonicalKey will be put or already exists
+    eckit::URI location(const CanonicalKey& key);
 
     /// Lists the roots that can be visited given a DB key
-    std::vector<eckit::URI> allLocations(const Key& key);
+    std::vector<eckit::URI> allLocations(const CanonicalKey& key);
 
     /// Lists the roots that can be visited given a DB key
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& request, bool all);
 
     /// Lists the roots where a DB key would be able to be written
-    std::vector<eckit::URI> writableLocations(const Key& key);
+    std::vector<eckit::URI> writableLocations(const CanonicalKey& key);
 
 private: // members
 

@@ -231,7 +231,7 @@ PoolManager::PoolManager(const Config& config) :
     config_(config) {}
 
 
-eckit::PathName PoolManager::pool(const Key& key) {
+eckit::PathName PoolManager::pool(const CanonicalKey& key) {
 
     std::string name(key.valuesToString());
 
@@ -249,7 +249,7 @@ eckit::PathName PoolManager::pool(const Key& key) {
     throw eckit::SeriousBug(oss.str());
 }
 
-std::vector<PathName> PoolManager::allPools(const Key& key)
+std::vector<PathName> PoolManager::allPools(const CanonicalKey& key)
 {
     eckit::StringSet pools;
 
@@ -265,13 +265,13 @@ std::vector<PathName> PoolManager::allPools(const Key& key)
 }
 
 
-std::vector<eckit::PathName> PoolManager::visitablePools(const std::set<Key>& keys) {
+std::vector<eckit::PathName> PoolManager::visitablePools(const std::set<CanonicalKey>& keys) {
 
     eckit::StringSet pools;
 
     std::vector<std::string> keystrings;
     keystrings.reserve(keys.size());
-    for (const Key& k : keys) keystrings.emplace_back(k.valuesToString());
+    for (const CanonicalKey& k : keys) keystrings.emplace_back(k.valuesToString());
 
     for (const PoolGroup& group : poolGroupTable_) {
         for (const std::string& k : keystrings) {
@@ -287,17 +287,17 @@ std::vector<eckit::PathName> PoolManager::visitablePools(const std::set<Key>& ke
     return std::vector<eckit::PathName>(pools.begin(), pools.end());
 }
 
-std::vector<PathName> PoolManager::visitablePools(const Key& key) {
-    return visitablePools(std::set<Key> { key });
+std::vector<PathName> PoolManager::visitablePools(const CanonicalKey& key) {
+    return visitablePools(std::set<CanonicalKey> { key });
 }
 
 std::vector<PathName> PoolManager::visitablePools(const metkit::mars::MarsRequest& request) {
-    std::set<Key> keys;
+    std::set<CanonicalKey> keys;
     config_.schema().matchFirstLevel(request, keys, "");
     return visitablePools(keys);
 }
 
-std::vector<eckit::PathName> PoolManager::writablePools(const Key& key) {
+std::vector<eckit::PathName> PoolManager::writablePools(const CanonicalKey& key) {
 
     eckit::StringSet pools;
 

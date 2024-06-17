@@ -32,7 +32,7 @@ class MarsTask;
 
 namespace fdb5 {
 
-class Key;
+class CanonicalKey;
 class BaseArchiveVisitor;
 class Schema;
 
@@ -46,8 +46,8 @@ public: // methods
 
     virtual ~Archiver();
 
-    void archive(const Key &key, BaseArchiveVisitor& visitor);
-    void archive(const Key &key, const void* data, size_t len);
+    void archive(const CanonicalKey& key, BaseArchiveVisitor& visitor);
+    void archive(const CanonicalKey& key, const void* data, size_t len);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
@@ -62,19 +62,19 @@ private: // methods
 
     void print(std::ostream &out) const;
 
-    DB& database(const Key &key);
+    DB& database(const CanonicalKey& key);
 
 private: // members
 
     friend class BaseArchiveVisitor;
 
-    typedef std::map< Key, std::pair<time_t, std::unique_ptr<DB> > > store_t;
+    typedef std::map< CanonicalKey, std::pair<time_t, std::unique_ptr<DB> > > store_t;
 
     Config dbConfig_;
 
     store_t databases_;
 
-    std::vector<Key> prev_;
+    std::vector<CanonicalKey> prev_;
 
     DB* current_;
 };

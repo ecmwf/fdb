@@ -78,7 +78,7 @@ CASE( "archives_distributed_according_to_select" ) {
 
     // Do some archiving
 
-    fdb5::Key k;
+    fdb5::CanonicalKey k;
     k.set("class", "od");
     k.set("expver", "xxxx");
 
@@ -114,7 +114,7 @@ CASE( "archives_distributed_according_to_select" ) {
 
     // Check that the API calls were forwarded correctly
 
-    fdb5::Key key;
+    fdb5::CanonicalKey key;
     const void* ptr;
     size_t len;
 

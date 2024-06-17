@@ -40,9 +40,9 @@ class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
 
 public: // methods
 
-    FieldLocation() : offset_(eckit::Offset(0)), length_(eckit::Length(0)), remapKey_(Key()) {}
+    FieldLocation() : offset_(eckit::Offset(0)), length_(eckit::Length(0)), remapKey_(CanonicalKey()) {}
     FieldLocation(const eckit::URI& uri);
-    FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
+    FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const CanonicalKey& remapKey);
     FieldLocation(eckit::Stream&);
 
     FieldLocation(const FieldLocation&) = delete;
@@ -53,7 +53,7 @@ public: // methods
     std::string host() const { return uri_.hostport(); }
     virtual eckit::Offset offset() const { return offset_; }
     virtual eckit::Length length() const { return length_; }
-    const Key& remapKey() const { return remapKey_; }
+    const CanonicalKey& remapKey() const { return remapKey_; }
 
     virtual eckit::DataHandle *dataHandle() const = 0;
 
@@ -81,7 +81,7 @@ protected: // members
     eckit::URI uri_;
     eckit::Offset offset_;
     eckit::Length length_;
-    Key remapKey_;
+    CanonicalKey remapKey_;
 
 private: // friends
 
@@ -103,7 +103,7 @@ private: // friends
         FieldLocationBuilderBase(const std::string &);
         virtual ~FieldLocationBuilderBase();
         virtual FieldLocation* make(const eckit::URI &uri) = 0;
-        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) = 0;
+        virtual FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const CanonicalKey& remapKey) = 0;
     };
 
     template< class T>
@@ -111,7 +111,7 @@ private: // friends
         FieldLocation* make(const eckit::URI &uri) override {
             return new T(uri);
         }
-        FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) override {
+        FieldLocation* make(const eckit::URI &uri, eckit::Offset offset, eckit::Length length, const CanonicalKey& remapKey) override {
             return new T(uri, offset, length, remapKey);
         }
     public:
@@ -132,7 +132,7 @@ private: // friends
 
         /// @returns a specialized FieldLocation built by specified builder
         FieldLocation* build(const std::string &, const eckit::URI &);
-        FieldLocation* build(const std::string &, const eckit::URI &, eckit::Offset offset, eckit::Length length, const Key& remapKey);
+        FieldLocation* build(const std::string &, const eckit::URI &, eckit::Offset offset, eckit::Length length, const CanonicalKey& remapKey);
 
     private:
 

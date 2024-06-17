@@ -33,7 +33,7 @@ class TocStore : public Store, public TocCommon {
 
 public: // methods
 
-    TocStore(const Schema& schema, const Key& key, const Config& config);
+    TocStore(const Schema& schema, const CanonicalKey& key, const Config& config);
 
     ~TocStore() override {}
 
@@ -49,9 +49,9 @@ public: // methods
 
     void checkUID() const override { TocCommon::checkUID(); }
 
-    bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override;
-    void moveTo(const Key& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override;
-    void remove(const Key& key) const override;
+    bool canMoveTo(const CanonicalKey& key, const Config& config, const eckit::URI& dest) const override;
+    void moveTo(const CanonicalKey& key, const Config& config, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override;
+    void remove(const CanonicalKey& key) const override;
 
 protected: // methods
 
@@ -60,7 +60,7 @@ protected: // methods
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<FieldLocation> archive(const Key &key, const void *data, eckit::Length length) override;
+    std::unique_ptr<FieldLocation> archive(const CanonicalKey& key, const void *data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
@@ -70,8 +70,8 @@ protected: // methods
     eckit::DataHandle *createAsyncHandle(const eckit::PathName &path);
     eckit::DataHandle *createDataHandle(const eckit::PathName &path);
     eckit::DataHandle& getDataHandle( const eckit::PathName &path );
-    eckit::PathName generateDataPath(const Key &key) const;
-    eckit::PathName getDataPath(const Key &key) const;
+    eckit::PathName generateDataPath(const CanonicalKey& key) const;
+    eckit::PathName getDataPath(const CanonicalKey& key) const;
     void flushDataHandles();
 
     void print( std::ostream &out ) const override;
@@ -79,7 +79,7 @@ protected: // methods
 private: // types
 
     typedef std::map< std::string, eckit::DataHandle * >  HandleStore;
-    typedef std::map< Key, std::string > PathStore;
+    typedef std::map< CanonicalKey, std::string > PathStore;
 
 private: // members
 

@@ -46,7 +46,7 @@ PRoot::PRoot(RootClass cls) :
     dataRoot_() {}
 
 
-void PRoot::buildRoot(const Key& dbKey, const eckit::PathName& schemaPath) {
+void PRoot::buildRoot(const CanonicalKey& dbKey, const eckit::PathName& schemaPath) {
 
     AutoLock<PersistentMutex> lock(rootMutex_);
 

@@ -80,7 +80,7 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) :
 
 SelectFDB::~SelectFDB() {}
 
-void SelectFDB::archive(const Key& key, const void* data, size_t length) {
+void SelectFDB::archive(const CanonicalKey& key, const void* data, size_t length) {
 
     for (auto& iter : subFdbs_) {
 
@@ -208,7 +208,7 @@ void SelectFDB::print(std::ostream &s) const {
     s << "SelectFDB()";
 }
 
-bool SelectFDB::matches(const Key &key, const SelectMap &select, bool requireMissing) const {
+bool SelectFDB::matches(const CanonicalKey& key, const SelectMap &select, bool requireMissing) const {
 
     for (const auto& kv : select) {
 

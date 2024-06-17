@@ -40,11 +40,11 @@ public:
 //    bool preVisitDatabase(const eckit::URI& uri) override;
     bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     bool visitIndex(const Index&) override;
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
+    void visitDatum(const Field&, const ApiKey&) override { NOTIMP; }
 
 private: // members
 
-    Key dbKey_;
+    CanonicalKey dbKey_;
     IndexAxis axes_;
     const Schema& schema_;
     int level_;

@@ -50,7 +50,7 @@ FDB::~FDB() {
 }
 
 void FDB::archive(eckit::message::Message msg) {
-    fdb5::Key key = MessageDecoder::messageToKey(msg);
+    fdb5::CanonicalKey key = MessageDecoder::messageToKey(msg);
     archive(key, msg.data(), msg.length());
 }
 void FDB::archive(eckit::DataHandle& handle) {
@@ -73,7 +73,7 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
     metkit::hypercube::HyperCube cube(request);
 
     while ( (msg = reader.next()) ) {
-        fdb5::Key key = MessageDecoder::messageToKey(msg);
+        fdb5::CanonicalKey key = MessageDecoder::messageToKey(msg);
         if (!cube.clear(key.request())) {
             std::stringstream ss;
             ss << "FDB archive - found unexpected message" << std::endl;
@@ -97,13 +97,13 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
     }
 }
 
-void FDB::archive(const Key& key, const void* data, size_t length) {
+void FDB::archive(const CanonicalKey& key, const void* data, size_t length) {
     eckit::Timer timer;
     timer.start();
 
     // This is the API entrypoint. Keys supplied by the user may not have type registry info attached (so
     // serialisation won't work properly...)
-    Key keyInternal(key);
+    CanonicalKey keyInternal(key);
     keyInternal.registry(config().schema().registry());
 
     // step in archival requests from the model is just an integer. We need to include the stepunit

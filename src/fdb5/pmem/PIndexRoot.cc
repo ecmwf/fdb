@@ -52,7 +52,7 @@ PIndexRoot::PIndexRoot(const PersistentPtr<PersistentBuffer>& key,
 }
 
 
-void PIndexRoot::build(PersistentPtr<PIndexRoot>& ptr, const Key& dbKey, const eckit::PathName& schema) {
+void PIndexRoot::build(PersistentPtr<PIndexRoot>& ptr, const CanonicalKey& dbKey, const eckit::PathName& schema) {
 
     PersistentPool& pool(PoolRegistry::instance().poolFromPointer(&ptr));
 
@@ -134,14 +134,14 @@ long PIndexRoot::uid() const {
     return createdBy_;
 }
 
-::pmem::PersistentPtr<PBranchingNode> PIndexRoot::getBranchingNode(const Key& key) const {
+::pmem::PersistentPtr<PBranchingNode> PIndexRoot::getBranchingNode(const CanonicalKey& key) const {
 
     // Get the relevant index.
 
     return rootNode_->getBranchingNode(key);
 }
 
-PBranchingNode& PIndexRoot::getCreateBranchingNode(const Key& key) {
+PBranchingNode& PIndexRoot::getCreateBranchingNode(const CanonicalKey& key) {
 
     // Get the relevant index. If the system is open for writing then we should create
     // a new index if it doesn't exist.
@@ -151,9 +151,9 @@ PBranchingNode& PIndexRoot::getCreateBranchingNode(const Key& key) {
 
 void PIndexRoot::visitLeaves(EntryVisitor& visitor, DataPoolManager& mgr, const Schema& schema) const {
 
-    std::vector<Key> keys;
+    std::vector<CanonicalKey> keys;
     keys.push_back(databaseKey());
-    keys.push_back(Key());
+    keys.push_back(CanonicalKey());
     return rootNode_->visitLeaves(visitor, mgr, keys, 1);
 }
 
@@ -165,13 +165,13 @@ const ::pmem::PersistentPODVector<uint64_t>& PIndexRoot::dataPoolUUIDs() const {
     return dataPoolUUIDs_;
 }
 
-Key PIndexRoot::databaseKey() const {
+CanonicalKey PIndexRoot::databaseKey() const {
 
     ASSERT(!dbKey_.null());
     const PersistentBuffer& buf(*dbKey_);
     MemoryStream s(buf.data(), buf.size());
 
-    Key k(s);
+    CanonicalKey k(s);
     return k;
 }
 

@@ -42,11 +42,11 @@ private:  // methods
 
     // From Visitor
 
-    virtual bool selectDatabase(const Key &key, const Key &full) override;
+    virtual bool selectDatabase(const CanonicalKey& dbKey, const CanonicalKey& full) override;
 
-    virtual bool selectIndex(const Key &key, const Key &full) override;
+    virtual bool selectIndex(const CanonicalKey& idxKey, const CanonicalKey& full) override;
 
-    virtual bool selectDatum(const Key &key, const Key &full) override;
+    virtual bool selectDatum(const ApiKey& key, const CanonicalKey& full) override;
 
     virtual void values(const metkit::mars::MarsRequest& request,
                         const std::string& keyword,

@@ -21,10 +21,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::unique_ptr<DB> DB::buildReader(const Key &key, const fdb5::Config& config) {
+std::unique_ptr<DB> DB::buildReader(const CanonicalKey& key, const fdb5::Config& config) {
     return std::unique_ptr<DB>(new DB(key, config, true));
 }
-std::unique_ptr<DB> DB::buildWriter(const Key &key, const fdb5::Config& config) {
+std::unique_ptr<DB> DB::buildWriter(const CanonicalKey& key, const fdb5::Config& config) {
     return std::unique_ptr<DB>(new DB(key, config, false));
 }
 std::unique_ptr<DB> DB::buildReader(const eckit::URI& uri, const fdb5::Config& config) {
@@ -34,7 +34,7 @@ std::unique_ptr<DB> DB::buildWriter(const eckit::URI& uri, const fdb5::Config& c
     return std::unique_ptr<DB>(new DB(uri, config, false));
 }
 
-DB::DB(const Key& key, const fdb5::Config& config, bool read) {
+DB::DB(const CanonicalKey& key, const fdb5::Config& config, bool read) {
     catalogue_ = CatalogueFactory::instance().build(key, config.expandConfig(), read);
 }
 
@@ -54,18 +54,18 @@ std::string DB::dbType() const {
     return catalogue_->type();// + ":" + store_->type();
 }
 
-const Key& DB::key() const {
+const CanonicalKey& DB::key() const {
     return catalogue_->key();
 }
-const Key& DB::indexKey() const {
+const CanonicalKey& DB::indexKey() const {
     return catalogue_->indexKey();
 }
 const Schema& DB::schema() const {
     return catalogue_->schema();
 }
 
-bool DB::selectIndex(const Key &key) {
-    return catalogue_->selectIndex(key);
+bool DB::selectIndex(const CanonicalKey& idxKey) {
+    return catalogue_->selectIndex(idxKey);
 }
 
 void DB::deselectIndex() {
@@ -83,7 +83,7 @@ bool DB::axis(const std::string &keyword, eckit::StringSet &s) const {
     return cat->axis(keyword, s);
 }
 
-bool DB::inspect(const Key& key, Field& field) {
+bool DB::inspect(const ApiKey& key, Field& field) {
 
     LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
 
@@ -93,7 +93,7 @@ bool DB::inspect(const Key& key, Field& field) {
     return cat->retrieve(key, field);
 }
 
-eckit::DataHandle *DB::retrieve(const Key& key) {
+eckit::DataHandle *DB::retrieve(const ApiKey& key) {
 
     Field field;
     if (inspect(key, field)) {
@@ -103,7 +103,7 @@ eckit::DataHandle *DB::retrieve(const Key& key) {
     return nullptr;
 }
 
-void DB::archive(const Key& key, const void* data, eckit::Length length) {
+void DB::archive(const ApiKey& key, const void* data, eckit::Length length) {
 
     CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
     ASSERT(cat);
@@ -164,7 +164,7 @@ void DB::reconsolidate() {
     cat->reconsolidate();
 }
 
-void DB::index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
+void DB::index(const ApiKey& key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length) {
     if (catalogue_->type() == TocEngine::typeName()) {
         CatalogueWriter* cat = dynamic_cast<CatalogueWriter*>(catalogue_.get());
         ASSERT(cat);

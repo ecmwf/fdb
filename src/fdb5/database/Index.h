@@ -38,7 +38,8 @@ class Stream;
 
 namespace fdb5 {
 
-class Key;
+class CanonicalKey;
+class ApiKey;
 class Index;
 class IndexLocationVisitor;
 class Schema;
@@ -53,7 +54,7 @@ class IndexBase : public eckit::Counted {
 
 public: // methods
 
-    IndexBase(const Key& key, const std::string& type);
+    IndexBase(const CanonicalKey& key, const std::string& type);
     IndexBase(eckit::Stream& s, const int version);
 
     virtual ~IndexBase() override;
@@ -76,19 +77,19 @@ public: // methods
     const std::string& type() const;
 
     const IndexAxis& axes() const;
-    const Key& key() const;
+    const CanonicalKey& key() const;
 
     time_t timestamp() const { return timestamp_; }
 
-    virtual bool get(const Key &key, const Key &remapKey, Field &field) const = 0;
-    virtual void put(const Key &key, const Field &field);
+    virtual bool get(const ApiKey& key, const CanonicalKey& remapKey, Field &field) const = 0;
+    virtual void put(const ApiKey& key, const Field &field);
 
     virtual void encode(eckit::Stream& s, const int version) const;
     virtual void entries(EntryVisitor& visitor) const = 0;
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
 
     virtual bool partialMatch(const metkit::mars::MarsRequest& request) const;
-    virtual bool mayContain(const Key& key) const;
+    virtual bool mayContain(const ApiKey& key) const;
 
     virtual IndexStats statistics() const = 0;
 
@@ -108,18 +109,18 @@ private: // methods
     void decodeCurrent(eckit::Stream& s, const int version);
     void decodeLegacy(eckit::Stream& s, const int version);
 
-    virtual void add(const Key &key, const Field &field) = 0;
+    virtual void add(const ApiKey& key, const Field &field) = 0;
 
 protected: // members
 
     std::string type_;
 
     /// @note Order of members is important here ...
-    IndexAxis axes_;      ///< This Index spans along these axis
-    Key       key_;       ///< key that selected this index
-    time_t    timestamp_; ///< timestamp when this Index was flushed
+    IndexAxis      axes_;      ///< This Index spans along these axis
+    CanonicalKey   key_;       ///< key that selected this index
+    time_t         timestamp_; ///< timestamp when this Index was flushed
 
-    Indexer   indexer_;
+    Indexer        indexer_;
 
     friend std::ostream& operator<<(std::ostream& s, const IndexBase& o) {
         o.print(s); return s;
@@ -156,12 +157,12 @@ public: // methods
     const std::string& type() const { return content_->type(); }
 
     const IndexAxis& axes() const { return content_->axes(); }
-    const Key& key() const { return content_->key(); }
+    const CanonicalKey& key() const { return content_->key(); }
 
     time_t timestamp() const { return content_->timestamp(); }
 
-    bool get(const Key& key, const Key& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
-    void put(const Key& key, const Field& field) { content_->put(key, field); }
+    bool get(const ApiKey& key, const CanonicalKey& remapKey, Field& field) const { return content_->get(key, remapKey, field); }
+    void put(const ApiKey& key, const Field& field) { content_->put(key, field); }
 
     void encode(eckit::Stream& s, const int version) const { content_->encode(s, version); }
     void entries(EntryVisitor& v) const { content_->entries(v); }
@@ -175,7 +176,7 @@ public: // methods
     const IndexBase* content() const { return content_; }
 
     bool partialMatch(const metkit::mars::MarsRequest& request) const { return content_->partialMatch(request); }
-    bool mayContain(const Key& key) const { return content_->mayContain(key); }
+    bool mayContain(const ApiKey& key) const { return content_->mayContain(key); }
 
     bool null() const { return null_; }
 

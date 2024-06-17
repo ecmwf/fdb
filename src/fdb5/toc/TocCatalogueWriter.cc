@@ -30,7 +30,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-TocCatalogueWriter::TocCatalogueWriter(const Key &key, const fdb5::Config& config) :
+TocCatalogueWriter::TocCatalogueWriter(const CanonicalKey& key, const fdb5::Config& config) :
     TocCatalogue(key, config),
     umask_(config.umask()) {
     writeInitRecord(key);
@@ -51,21 +51,21 @@ TocCatalogueWriter::~TocCatalogueWriter() {
     close();
 }
 
-bool TocCatalogueWriter::selectIndex(const Key& key) {
-    currentIndexKey_ = key;
+bool TocCatalogueWriter::selectIndex(const CanonicalKey& idxKey) {
+    currentIndexKey_ = idxKey;
 
-    if (indexes_.find(key) == indexes_.end()) {
-        PathName indexPath(generateIndexPath(key));
+    if (indexes_.find(idxKey) == indexes_.end()) {
+        PathName indexPath(generateIndexPath(idxKey));
 
         // Enforce lustre striping if requested
         if (stripeLustre()) {
             fdb5LustreapiFileCreate(indexPath.localPath(), stripeIndexLustreSettings());
         }
 
-        indexes_[key] = Index(new TocIndex(key, indexPath, 0, TocIndex::WRITE));
+        indexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
     }
 
-    current_ = indexes_[key];
+    current_ = indexes_[idxKey];
     current_.open();
     current_.flock();
 
@@ -74,20 +74,20 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 
     if (useSubToc()) {
 
-        if (fullIndexes_.find(key) == fullIndexes_.end()) {
+        if (fullIndexes_.find(idxKey) == fullIndexes_.end()) {
 
             // TODO TODO TODO .master.index
-            PathName indexPath(generateIndexPath(key));
+            PathName indexPath(generateIndexPath(idxKey));
 
             // Enforce lustre striping if requested
             if (stripeLustre()) {
                 fdb5LustreapiFileCreate(indexPath.localPath(), stripeIndexLustreSettings());
             }
 
-            fullIndexes_[key] = Index(new TocIndex(key, indexPath, 0, TocIndex::WRITE));
+            fullIndexes_[idxKey] = Index(new TocIndex(idxKey, indexPath, 0, TocIndex::WRITE));
         }
 
-        currentFull_ = fullIndexes_[key];
+        currentFull_ = fullIndexes_[idxKey];
         currentFull_.open();
         currentFull_.flock();
     }
@@ -98,7 +98,7 @@ bool TocCatalogueWriter::selectIndex(const Key& key) {
 void TocCatalogueWriter::deselectIndex() {
     current_ = Index();
     currentFull_ = Index();
-    currentIndexKey_ = Key();
+    currentIndexKey_ = CanonicalKey();
 }
 
 bool TocCatalogueWriter::open() {
@@ -121,7 +121,7 @@ void TocCatalogueWriter::close() {
     closeIndexes();
 }
 
-void TocCatalogueWriter::index(const Key &key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
+void TocCatalogueWriter::index(const ApiKey& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) {
     dirty_ = true;
 
     if (current_.null()) {
@@ -129,7 +129,7 @@ void TocCatalogueWriter::index(const Key &key, const eckit::URI &uri, eckit::Off
         selectIndex(currentIndexKey_);
     }
 
-    Field field(TocFieldLocation(uri, offset, length, Key()), currentIndex().timestamp());
+    Field field(TocFieldLocation(uri, offset, length, CanonicalKey()), currentIndex().timestamp());
 
     current_.put(key, field);
 
@@ -151,11 +151,11 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
             writer_(writer) {}
         ~ConsolidateIndexVisitor() override {}
     private:
-        void visitDatum(const Field& field, const Key& key) override {
+        void visitDatum(const Field& field, const ApiKey& datumKey) override {
             // TODO: Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
-            writer_.index(key, location.uri(), location.offset(), location.length());
+            writer_.index(datumKey, location.uri(), location.offset(), location.length());
 
         }
         void visitDatum(const Field& field, const std::string& keyFingerprint) override {
@@ -234,7 +234,7 @@ const TocSerialisationVersion& TocCatalogueWriter::serialisationVersion() const 
 void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std::string>& variableKeys, bool unmount) {
 
     const TocCatalogue& otherCatalogue = dynamic_cast<const TocCatalogue&>(otherCat);
-    const Key& otherKey(otherCatalogue.key());
+    const CanonicalKey& otherKey(otherCatalogue.key());
 
     if (otherKey.size() != TocCatalogue::dbKey_.size()) {
         std::stringstream ss;
@@ -256,7 +256,7 @@ void TocCatalogueWriter::overlayDB(const Catalogue& otherCat, const std::set<std
         if (kv.second != it->second) {
             if (variableKeys.find(kv.first) == variableKeys.end()) {
                 std::stringstream ss;
-                ss << "Key " << kv.first << " not allowed to differ between DBs: " << TocCatalogue::dbKey_ << " : " << otherKey;
+                ss << "CanonicalKey " << kv.first << " not allowed to differ between DBs: " << TocCatalogue::dbKey_ << " : " << otherKey;
                 throw UserError(ss.str(), Here());
             }
         }
@@ -294,7 +294,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void TocCatalogueWriter::archive(const ApiKey& key, std::unique_ptr<FieldLocation> fieldLocation) {
     dirty_ = true;
 
     if (current_.null()) {
@@ -322,7 +322,7 @@ void TocCatalogueWriter::flush() {
     currentFull_ = Index();
 }
 
-eckit::PathName TocCatalogueWriter::generateIndexPath(const Key &key) const {
+eckit::PathName TocCatalogueWriter::generateIndexPath(const CanonicalKey& key) const {
     eckit::PathName tocPath ( directory_ );
     tocPath /= key.valuesToString();
     tocPath = eckit::PathName::unique(tocPath) + ".index";

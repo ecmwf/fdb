@@ -22,7 +22,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DaosCommon::DaosCommon(const fdb5::Config& config, const std::string& component, const fdb5::Key& key) {
+DaosCommon::DaosCommon(const fdb5::Config& config, const std::string& component, const fdb5::CanonicalKey& key) {
 
     std::vector<std::string> valid{"catalogue", "store"};
     ASSERT(std::find(valid.begin(), valid.end(), component) != valid.end());

@@ -116,7 +116,7 @@ std::string TocEngine::dbType() const {
     return TocEngine::typeName();
 }
 
-eckit::URI TocEngine::location(const Key& key, const Config& config) const
+eckit::URI TocEngine::location(const CanonicalKey& key, const Config& config) const
 {
     return URI("toc", CatalogueRootManager(config).directory(key).directory_);
 }
@@ -131,13 +131,13 @@ bool TocEngine::canHandle(const eckit::URI& uri, const Config& config) const
     return path.isDir() && toc.exists();
 }
 
-static void matchKeyToDB(const Key& key, std::set<Key>& keys, const char* missing, const Config& config)
+static void matchKeyToDB(const CanonicalKey& key, std::set<CanonicalKey>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
     schema.matchFirstLevel(key, keys, missing);
 }
 
-static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Key>& keys, const char* missing, const Config& config)
+static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<CanonicalKey>& keys, const char* missing, const Config& config)
 {
     const Schema& schema = config.schema();
     schema.matchFirstLevel(rq, keys, missing);
@@ -145,7 +145,7 @@ static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::set<Key>&
 
 static constexpr const char* regexForMissingValues = "[^:/]*";
 
-std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
+std::set<eckit::PathName> TocEngine::databases(const std::set<CanonicalKey>& keys,
                                                const std::vector<eckit::PathName>& roots,
                                                const Config& config) const {
 
@@ -158,7 +158,7 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
         std::list<std::string> dbs;
         scan_dbs(*j, dbs);
 
-        for (std::set<Key>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
+        for (std::set<CanonicalKey>::const_iterator i = keys.begin(); i != keys.end(); ++i) {
 
             std::vector<std::string> dbpaths = CatalogueRootManager(config).possibleDbPathNames(*i, regexForMissingValues);
 
@@ -191,11 +191,11 @@ std::set<eckit::PathName> TocEngine::databases(const std::set<Key>& keys,
     return result;
 }
 
-std::vector<eckit::URI> TocEngine::databases(const Key& key,
+std::vector<eckit::URI> TocEngine::databases(const CanonicalKey& key,
                                                   const std::vector<eckit::PathName>& roots,
                                                   const Config& config) const {
 
-    std::set<Key> keys;
+    std::set<CanonicalKey> keys;
 
     matchKeyToDB(key, keys, regexForMissingValues, config);
 
@@ -224,7 +224,7 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
                                                   const std::vector<eckit::PathName>& roots,
                                                   const Config& config) const {
 
-    std::set<Key> keys;
+    std::set<CanonicalKey> keys;
 
 //    matchRequestToDB(request, keys, regexForMissingValues, config);
     matchRequestToDB(request, keys, "", config);
@@ -250,12 +250,12 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
     return result;
 }
 
-std::vector<eckit::URI> TocEngine::allLocations(const Key& key, const Config& config) const
+std::vector<eckit::URI> TocEngine::allLocations(const CanonicalKey& key, const Config& config) const
 {
     return databases(key, CatalogueRootManager(config).allRoots(key), config);
 }
 
-std::vector<eckit::URI> TocEngine::visitableLocations(const Key& key, const Config& config) const
+std::vector<eckit::URI> TocEngine::visitableLocations(const CanonicalKey& key, const Config& config) const
 {
     return databases(key, CatalogueRootManager(config).visitableRoots(key), config);
 }
@@ -265,7 +265,7 @@ std::vector<URI> TocEngine::visitableLocations(const metkit::mars::MarsRequest& 
     return databases(request, CatalogueRootManager(config).visitableRoots(request), config);
 }
 
-std::vector<eckit::URI> TocEngine::writableLocations(const Key& key, const Config& config) const
+std::vector<eckit::URI> TocEngine::writableLocations(const CanonicalKey& key, const Config& config) const
 {
     return databases(key, CatalogueRootManager(config).canArchiveRoots(key), config);
 }

@@ -38,7 +38,7 @@ class PatchArchiver : public MessageArchiver {
 
 public: // methods
 
-    explicit PatchArchiver(const Key& key) : key_(key) {}
+    explicit PatchArchiver(const CanonicalKey& key) : key_(key) {}
 
 private: // methods
 
@@ -46,7 +46,7 @@ private: // methods
 
 private: // members
 
-    const Key& key_;
+    const CanonicalKey& key_;
 };
 
 eckit::message::Message PatchArchiver::patch(const eckit::message::Message& msg) {
@@ -55,7 +55,7 @@ eckit::message::Message PatchArchiver::patch(const eckit::message::Message& msg)
     ASSERT(h);
 
     try {
-        for (Key::const_iterator j = key_.begin(); j != key_.end(); ++j) {
+        for (CanonicalKey::const_iterator j = key_.begin(); j != key_.end(); ++j) {
             size_t len = j->second.size();
             ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
         }
@@ -90,7 +90,7 @@ private: // methods
 
 private: // members
 
-    fdb5::Key key_;
+    fdb5::CanonicalKey key_;
 };
 
 
@@ -128,7 +128,7 @@ void FDBPatch::execute(const CmdArgs& args) {
 
     Timer timer(args.tool());
 
-    std::set<Key> uniqueKeys;
+    std::set<CanonicalKey> uniqueKeys;
 
     for (const FDBToolRequest& request : requests()) {
 
@@ -143,8 +143,8 @@ void FDBPatch::execute(const CmdArgs& args) {
             // 2. Get DataHandle to data to retrieve
             //    (n.b. listed key is broken down as-per the schema)
 
-            Key key;
-            for (const Key& k : elem.keyParts_) {
+            CanonicalKey key;
+            for (const CanonicalKey& k : elem.keyParts_) {
                 for (const auto& kv : k) {
                     key.set(kv.first, kv.second);
                 }
@@ -164,7 +164,7 @@ void FDBPatch::execute(const CmdArgs& args) {
     // Construct a retrieve data handle
 
     HandleGatherer handles(false);
-    for (const Key& key : uniqueKeys) {
+    for (const CanonicalKey& key : uniqueKeys) {
         metkit::mars::MarsRequest rq("retrieve", key.keyDict());
         handles.add(fdb.retrieve(rq));
     }

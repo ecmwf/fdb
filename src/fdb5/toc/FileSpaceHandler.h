@@ -25,7 +25,7 @@
 namespace fdb5 {
 
 class FileSpace;
-class Key;
+class CanonicalKey;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -41,7 +41,7 @@ public: // methods
 
     virtual ~FileSpaceHandler();
 
-    virtual eckit::PathName selectFileSystem(const Key& key, const FileSpace& fs) const = 0;
+    virtual eckit::PathName selectFileSystem(const CanonicalKey& key, const FileSpace& fs) const = 0;
 
 protected: // methods
 

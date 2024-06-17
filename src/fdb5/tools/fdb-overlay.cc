@@ -95,8 +95,8 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
     Config conf = config(args);
     const Schema& schema = conf.schema();
 
-    Key source;
-    Key target;
+    CanonicalKey source;
+    CanonicalKey target;
     ASSERT(schema.expandFirstLevel(sourceRequest.request(), source));
     ASSERT(schema.expandFirstLevel(targetRequest.request(), target));
 
@@ -118,7 +118,7 @@ void FdbOverlay::execute(const option::CmdArgs& args) {
         ASSERT(it != source.end());
         if (kv.second != it->second && vkeys.find(kv.first) == vkeys.end()) {
             std::stringstream ss;
-            ss << "Key " << kv.first << " not allowed to differ between DBs: " << source << " : " << target;
+            ss << "CanonicalKey " << kv.first << " not allowed to differ between DBs: " << source << " : " << target;
             throw UserError(ss.str(), Here());
         }
     }

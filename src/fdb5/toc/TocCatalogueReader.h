@@ -28,7 +28,7 @@ class TocCatalogueReader : public TocCatalogue, public CatalogueReader {
 
 public: // methods
 
-    TocCatalogueReader(const Key& key, const fdb5::Config& config);
+    TocCatalogueReader(const CanonicalKey& key, const fdb5::Config& config);
     TocCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
 
     ~TocCatalogueReader() override;
@@ -39,7 +39,7 @@ public: // methods
 private: // methods
 
     void loadIndexesAndRemap();
-    bool selectIndex(const Key &key) override;
+    bool selectIndex(const CanonicalKey& idxKey) override;
     void deselectIndex() override;
 
     bool open() override;
@@ -49,7 +49,7 @@ private: // methods
     
     bool axis(const std::string &keyword, eckit::StringSet &s) const override;
 
-    bool retrieve(const Key& key, Field& field) const override;
+    bool retrieve(const ApiKey& key, Field& field) const override;
 
     void print( std::ostream &out ) const override;
 
@@ -57,11 +57,11 @@ private: // members
 
     // Indexes matching current key. If there is a key remapping for a mounted
     // SubToc, then this is stored alongside
-    std::vector<std::pair<Index, Key>*> matching_;
+    std::vector<std::pair<Index, CanonicalKey>*> matching_;
 
     // All indexes
     // If there is a key remapping for a mounted SubToc, this is stored alongside
-    std::vector<std::pair<Index, Key>> indexes_;
+    std::vector<std::pair<Index, CanonicalKey>> indexes_;
 
 };
 

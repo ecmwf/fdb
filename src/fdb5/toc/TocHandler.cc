@@ -141,7 +141,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     }    
 }
 
-TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
+TocHandler::TocHandler(const eckit::PathName& path, const CanonicalKey& parentKey) :
     TocCommon(path.dirName()),
     parentKey_(parentKey),
     tocPath_(TocCommon::findRealPath(path)),
@@ -158,7 +158,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
 
     /// Are we remapping a mounted DB?
     if (exists()) {
-        Key key(databaseKey());
+        CanonicalKey key(databaseKey());
         if (!parentKey.empty() && parentKey != key) {
 
             LOG_DEBUG_LIB(LibFdb5) << "Opening (remapped) toc with differing parent key: "
@@ -181,7 +181,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey) :
                 }
             }
 
-            LOG_DEBUG_LIB(LibFdb5) << "Key remapping: " << remapKey_ << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "CanonicalKey remapping: " << remapKey_ << std::endl;
         }
     }
 }
@@ -404,7 +404,7 @@ bool TocHandler::readNext( TocRecord &r, bool walkSubTocs, bool hideSubTocEntrie
             } else if (r.header_.tag_ == TocRecord::TOC_INIT) {
 
                 eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
-                if (parentKey_.empty()) parentKey_ = Key(s);
+                if (parentKey_.empty()) parentKey_ = CanonicalKey(s);
                 return true;
 
             } else if (r.header_.tag_ == TocRecord::TOC_SUB_TOC) {
@@ -708,7 +708,7 @@ void TocHandler::populateMaskedEntriesList() const {
 
 static eckit::StaticMutex local_mutex;
 
-void TocHandler::writeInitRecord(const Key &key) {
+void TocHandler::writeInitRecord(const CanonicalKey& key) {
 
     eckit::AutoLock<eckit::StaticMutex> lock(local_mutex);
 
@@ -774,7 +774,7 @@ void TocHandler::writeInitRecord(const Key &key) {
     } else {
         ASSERT(r->header_.tag_ == TocRecord::TOC_INIT);
         eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
-        ASSERT(key == Key(s));
+        ASSERT(key == CanonicalKey(s));
         dbUID_ = r->header_.uid_;
     }
 }
@@ -862,7 +862,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             eckit::PathName subtoc = eckit::PathName::unique("toc");
 
-            subTocWrite_.reset(new TocHandler(currentDirectory() / subtoc, Key{}));
+            subTocWrite_.reset(new TocHandler(currentDirectory() / subtoc, CanonicalKey{}));
 
             subTocWrite_->writeInitRecord(databaseKey());
 
@@ -946,7 +946,7 @@ uid_t TocHandler::dbUID() const {
     throw eckit::SeriousBug("Cannot find a TOC_INIT record");
 }
 
-Key TocHandler::databaseKey() {
+CanonicalKey TocHandler::databaseKey() {
     openForRead();
     TocHandlerCloser close(*this);
 
@@ -957,7 +957,7 @@ Key TocHandler::databaseKey() {
         if (r->header_.tag_ == TocRecord::TOC_INIT) {
             eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
             dbUID_ = r->header_.uid_;
-            return Key(s);
+            return CanonicalKey(s);
         }
     }
 
@@ -992,7 +992,7 @@ const eckit::PathName& TocHandler::directory() const
 std::vector<Index> TocHandler::loadIndexes(bool sorted,
                                            std::set<std::string>* subTocs,
                                            std::vector<bool>* indexInSubtoc,
-                                           std::vector<Key>* remapKeys) const {
+                                           std::vector<CanonicalKey>* remapKeys) const {
 
     std::vector<Index> indexes;
 
@@ -1027,7 +1027,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted,
 
         case TocRecord::TOC_INIT:
             dbUID_ = r->header_.uid_;
-            LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INIT key is " << Key(s) << std::endl;
+            LOG_DEBUG(debug, LibFdb5) << "TocRecord TOC_INIT key is " << CanonicalKey(s) << std::endl;
             break;
 
         case TocRecord::TOC_INDEX:
@@ -1128,11 +1128,11 @@ void TocHandler::dump(std::ostream& out, bool simple, bool walkSubTocs) const {
 
             case TocRecord::TOC_INIT: {
                 isSubToc = false;
-                fdb5::Key key(s);
+                fdb5::CanonicalKey key(s);
                 if (r->header_.serialisationVersion_ > 1) {
                     s >> isSubToc;
                 }
-                out << "  Key: " << key << ", sub-toc: " << (isSubToc ? "yes" : "no");
+                out << "  CanonicalKey: " << key << ", sub-toc: " << (isSubToc ? "yes" : "no");
                 if(!simple) { out << std::endl; }
                 break;
             }
@@ -1345,7 +1345,7 @@ std::string TocHandler::userName(long id) const {
   }
 }
 
-const Key &TocHandler::currentRemapKey() const {
+const CanonicalKey& TocHandler::currentRemapKey() const {
     if (subTocRead_) {
         return subTocRead_->currentRemapKey();
     } else {

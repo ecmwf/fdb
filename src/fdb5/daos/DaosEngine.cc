@@ -64,7 +64,7 @@ bool DaosEngine::canHandle(const eckit::URI& uri, const Config& config) const {
 
 }
 
-std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Config& config) const
+std::vector<eckit::URI> DaosEngine::visitableLocations(const CanonicalKey& key, const Config& config) const
 {
 
     /// @note: code mostly copied from DaosCommon
@@ -133,7 +133,7 @@ std::vector<eckit::URI> DaosEngine::visitableLocations(const Key& key, const Con
             fdb5::DaosKeyValue db_kv{s, db_kv_name};  /// @note: includes exist check
             std::vector<char> data;
             eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
-            fdb5::Key db_key(ms);
+            fdb5::CanonicalKey db_key(ms);
 
             if (db_key.match(key)) {
 
@@ -226,7 +226,7 @@ std::vector<URI> DaosEngine::visitableLocations(const metkit::mars::MarsRequest&
             fdb5::DaosKeyValue db_kv{s, db_kv_name};
             std::vector<char> data;
             eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
-            fdb5::Key db_key(ms);
+            fdb5::CanonicalKey db_key(ms);
 
             if (db_key.partialMatch(request)) {
 

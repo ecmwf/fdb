@@ -48,7 +48,7 @@ bool InspectIterator::next(ListElement& elem) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static void purgeDB(Key& key, DB*& db) {
+static void purgeDB(CanonicalKey& key, DB*& db) {
     LOG_DEBUG_LIB(LibFdb5) << "Purging DB with key " << key << std::endl;
     delete db;
 }

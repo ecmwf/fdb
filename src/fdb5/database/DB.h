@@ -42,21 +42,21 @@ class DB final : public eckit::OwnedLock {
 
 public: // methods
 
-    static std::unique_ptr<DB> buildReader(const Key &key, const fdb5::Config& config = fdb5::Config());
-    static std::unique_ptr<DB> buildWriter(const Key &key, const fdb5::Config& config = fdb5::Config());
+    static std::unique_ptr<DB> buildReader(const CanonicalKey& key, const fdb5::Config& config = fdb5::Config());
+    static std::unique_ptr<DB> buildWriter(const CanonicalKey& key, const fdb5::Config& config = fdb5::Config());
     static std::unique_ptr<DB> buildReader(const eckit::URI& uri, const fdb5::Config& config = fdb5::Config());
     static std::unique_ptr<DB> buildWriter(const eckit::URI& uri, const fdb5::Config& config = fdb5::Config());
 
     std::string dbType() const;
 
-    const Key& key() const;
-    const Key& indexKey() const;
+    const CanonicalKey& key() const;
+    const CanonicalKey& indexKey() const;
     const Schema& schema() const;
 
     bool axis(const std::string &keyword, eckit::StringSet &s) const;
-    bool inspect(const Key& key, Field& field);
-    eckit::DataHandle *retrieve(const Key &key);
-    void archive(const Key &key, const void *data, eckit::Length length);
+    bool inspect(const ApiKey& key, Field& field);
+    eckit::DataHandle *retrieve(const ApiKey& key);
+    void archive(const ApiKey& key, const void *data, eckit::Length length);
 
     bool open();
     void flush();
@@ -66,7 +66,7 @@ public: // methods
 
     void dump(std::ostream& out, bool simple=false, const eckit::Configuration& conf = eckit::LocalConfiguration()) const;
 
-    bool selectIndex(const Key &key);
+    bool selectIndex(const CanonicalKey& idxKey);
     void deselectIndex();
 
     DbStats stats() const;
@@ -79,7 +79,7 @@ public: // methods
 
     void visitEntries(EntryVisitor& visitor, bool sorted = false);
     /// Used for adopting & indexing external data to the TOC dir
-    void index(const Key &key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
+    void index(const ApiKey& key, const eckit::PathName &path, eckit::Offset offset, eckit::Length length);
 
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const;
@@ -92,7 +92,7 @@ protected: // methods
 
 private: // members
 
-    DB(const Key &key, const fdb5::Config& config, bool read);
+    DB(const CanonicalKey& key, const fdb5::Config& config, bool read);
     DB(const eckit::URI &uri, const fdb5::Config& config, bool read);
 
     Store& store() const;

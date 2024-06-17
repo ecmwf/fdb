@@ -25,12 +25,12 @@ class DaosCatalogueWriter : public DaosCatalogue, public CatalogueWriter {
 
 public: // methods
 
-    DaosCatalogueWriter(const Key &key, const fdb5::Config& config);
+    DaosCatalogueWriter(const CanonicalKey& key, const fdb5::Config& config);
     DaosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
 
     virtual ~DaosCatalogueWriter() override;
 
-    void index(const Key &key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) override { NOTIMP; };
+    void index(const CanonicalKey& key, const eckit::URI &uri, eckit::Offset offset, eckit::Length length) override { NOTIMP; };
 
     void reconsolidate() override { NOTIMP; }
 
@@ -48,7 +48,7 @@ public: // methods
 
 protected: // methods
 
-    virtual bool selectIndex(const Key &key) override;
+    virtual bool selectIndex(const CanonicalKey& idxKey) override;
     virtual void deselectIndex() override;
 
     bool open() override { NOTIMP; }
@@ -56,7 +56,7 @@ protected: // methods
     void clean() override;
     void close() override;
 
-    void archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) override;
+    void archive(const CanonicalKey& key, std::unique_ptr<FieldLocation> fieldLocation) override;
 
     virtual void print( std::ostream &out ) const override { NOTIMP; }
 
@@ -66,7 +66,7 @@ private: // methods
 
 private: // types
 
-    typedef std::map< Key, Index> IndexStore;
+    typedef std::map< CanonicalKey, Index> IndexStore;
 
 private: // members
 

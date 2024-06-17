@@ -21,7 +21,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TocCatalogueReader::TocCatalogueReader(const Key& key, const fdb5::Config& config) :
+TocCatalogueReader::TocCatalogueReader(const CanonicalKey& key, const fdb5::Config& config) :
     TocCatalogue(key, config) {
     loadIndexesAndRemap();
 }
@@ -36,7 +36,7 @@ TocCatalogueReader::~TocCatalogueReader() {
 }
 
 void TocCatalogueReader::loadIndexesAndRemap() {
-    std::vector<Key> remapKeys;
+    std::vector<CanonicalKey> remapKeys;
     /// @todo: this should throw DatabaseNotFoundException if the toc file is not found
     std::vector<Index> indexes = loadIndexes(false, nullptr, nullptr, &remapKeys);
 
@@ -47,22 +47,22 @@ void TocCatalogueReader::loadIndexesAndRemap() {
     }
 }
 
-bool TocCatalogueReader::selectIndex(const Key &key) {
+bool TocCatalogueReader::selectIndex(const CanonicalKey& idxKey) {
 
-    if(currentIndexKey_ == key) {
+    if(currentIndexKey_ == idxKey) {
         return true;
     }
 
-    currentIndexKey_ = key;
+    currentIndexKey_ = idxKey;
     matching_.clear();
 
     for (auto idx = indexes_.begin(); idx != indexes_.end(); ++idx) {
-        if (idx->first.key() == key) {
+        if (idx->first.key() == idxKey) {
             matching_.push_back(&(*idx));
         }
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << key << ", found "
+    LOG_DEBUG_LIB(LibFdb5) << "TocCatalogueReader::selectIndex " << idxKey << ", found "
                                 << matching_.size() << " matche(s)" << std::endl;
 
     return (matching_.size() != 0);
@@ -104,13 +104,13 @@ void TocCatalogueReader::close() {
     }
 }
 
-bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
+bool TocCatalogueReader::retrieve(const ApiKey& key, Field& field) const {
     LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
     LOG_DEBUG_LIB(LibFdb5) << "Scanning indexes " << matching_.size() << std::endl;
 
     for (auto m = matching_.begin(); m != matching_.end(); ++m) {
         const Index& idx((*m)->first);
-        Key remapKey = (*m)->second;
+        CanonicalKey remapKey = (*m)->second;
 
         if (idx.mayContain(key)) {
             const_cast<Index&>(idx).open();

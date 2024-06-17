@@ -45,14 +45,14 @@ class ListElement {
 public: // methods
 
     ListElement() = default;
-    ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp);
+    ListElement(const std::vector<CanonicalKey>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp);
     ListElement(eckit::Stream& s);
 
-    const std::vector<Key>& key() const { return keyParts_; }
+    const std::vector<CanonicalKey>& key() const { return keyParts_; }
     const FieldLocation& location() const { return *location_; }
     const time_t& timestamp() const { return timestamp_; }
 
-    Key combinedKey() const;
+    CanonicalKey combinedKey() const;
 
     void print(std::ostream& out, bool withLocation=false, bool withLength=false, bool withTimestamp=false, const char* sep = " ") const;
     void json(eckit::JSON& json) const;
@@ -78,7 +78,7 @@ private: // methods
 
 public: // members
 
-    std::vector<Key> keyParts_;
+    std::vector<CanonicalKey> keyParts_;
 
 private: // members
 
@@ -113,7 +113,7 @@ public:
         ListElement tmp;
         while (APIIterator<ListElement>::next(tmp)) {
             if(deduplicate_) {
-                Key combinedKey = tmp.combinedKey();
+                CanonicalKey combinedKey = tmp.combinedKey();
                 if (seenKeys_.find(combinedKey) == seenKeys_.end()) {
                     seenKeys_.emplace(std::move(combinedKey));
                     std::swap(elem, tmp);
@@ -128,7 +128,7 @@ public:
     }
 
 private:
-    std::unordered_set<Key> seenKeys_;
+    std::unordered_set<CanonicalKey> seenKeys_;
     bool deduplicate_;
 };
 

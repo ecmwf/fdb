@@ -37,12 +37,12 @@ EnvVarFileSpaceHandler::~EnvVarFileSpaceHandler() {
 }
 
 
-PathName EnvVarFileSpaceHandler::select(const Key& key, const FileSpace& fs) const
+PathName EnvVarFileSpaceHandler::select(const CanonicalKey& key, const FileSpace& fs) const
 {
     return FileSpaceHandler::lookup("WeightedRandom").selectFileSystem(key, fs);
 }
 
-eckit::PathName EnvVarFileSpaceHandler::selectFileSystem(const Key& key, const FileSpace& fs) const {
+eckit::PathName EnvVarFileSpaceHandler::selectFileSystem(const CanonicalKey& key, const FileSpace& fs) const {
 
     AutoLock<Mutex> lock(mutex_);
 

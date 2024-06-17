@@ -38,7 +38,7 @@ void Grib2Fdb5::usage(const std::string &tool) const {
 
 void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
 
-    fdb5::Key check;
+    fdb5::CanonicalKey check;
 
     std::vector<eckit::PathName> paths;
 
@@ -99,7 +99,7 @@ void Grib2Fdb5::execute(const eckit::option::CmdArgs &args) {
 
     for (const auto& path : paths) {
         Log::info() << "Processing " << path << std::endl;
-        Log::info() << "Key " << check << std::endl;
+        Log::info() << "CanonicalKey " << check << std::endl;
         std::unique_ptr<eckit::DataHandle> dh ( path.fileHandle() );
         archiver.archive( *dh );
     }

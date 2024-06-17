@@ -165,7 +165,7 @@ eckit::PathName ExpverFileSpaceHandler::append(const std::string& expver, const 
     return path;
 }
 
-PathName ExpverFileSpaceHandler::select(const Key& key, const FileSpace& fs) const
+PathName ExpverFileSpaceHandler::select(const CanonicalKey& key, const FileSpace& fs) const
 {
     return FileSpaceHandler::lookup("WeightedRandom").selectFileSystem(key, fs);
 }
@@ -175,7 +175,7 @@ static bool expver_is_valid(const std::string& str) {
     return (str.size() == 4) and std::find_if_not(str.begin(), str.end(), isalnum) == str.end();
 }
 
-eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const FileSpace& fs) const {
+eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const CanonicalKey& key, const FileSpace& fs) const {
 
     AutoLock<Mutex> lock(mutex_);
 

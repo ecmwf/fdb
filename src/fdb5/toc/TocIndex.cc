@@ -47,7 +47,7 @@ public:
 ///       before the type_ members of Index, but Indexs WILL be constructed before
 ///       the members of TocIndex
 
-TocIndex::TocIndex(const Key &key, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
+TocIndex::TocIndex(const CanonicalKey& key, const eckit::PathName &path, off_t offset, Mode mode, const std::string& type ) :
     UriStoreWrapper(path.dirName()),
     IndexBase(key, type),
     btree_(nullptr),
@@ -78,7 +78,7 @@ void TocIndex::encode(eckit::Stream& s, const int version) const {
 }
 
 
-bool TocIndex::get(const Key &key, const Key &remapKey, Field &field) const {
+bool TocIndex::get(const ApiKey& key, const CanonicalKey& remapKey, Field &field) const {
     ASSERT(btree_);
     FieldRef ref;
 
@@ -124,7 +124,7 @@ void TocIndex::close() {
     }
 }
 
-void TocIndex::add(const Key &key, const Field &field) {
+void TocIndex::add(const ApiKey& key, const Field &field) {
     ASSERT(btree_);
     ASSERT( mode_ == TocIndex::WRITE );
 
@@ -224,7 +224,7 @@ public:
 
 
 void TocIndex::dump(std::ostream &out, const char* indent, bool simple, bool dumpFields) const {
-    out << indent << "Key: " << key_;
+    out << indent << "CanonicalKey: " << key_;
 
     if(!simple) {
         out << std::endl;

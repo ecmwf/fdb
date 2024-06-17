@@ -14,6 +14,7 @@
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/database/Manager.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/database/Engine.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
@@ -60,7 +61,7 @@ void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerpr
     ASSERT(currentCatalogue_);
     ASSERT(currentIndex_);
 
-    Key key(keyFingerprint, currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key()));
+    ApiKey key(keyFingerprint, currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key()));
     visitDatum(field, key);
 }
 

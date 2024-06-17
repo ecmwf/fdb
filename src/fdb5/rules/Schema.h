@@ -31,7 +31,7 @@ namespace metkit { class MarsRequest; }
 
 namespace fdb5 {
 
-class Key;
+class CanonicalKey;
 class Rule;
 class ReadVisitor;
 class WriteVisitor;
@@ -49,21 +49,21 @@ public: // methods
 
     ~Schema();
 
-    void expand(const Key &field, WriteVisitor &visitor) const;
+    void expand(const CanonicalKey& field, WriteVisitor &visitor) const;
     void expand(const metkit::mars::MarsRequest &request, ReadVisitor &visitor) const;
 
     // Each database has its own internal schema. So expand() above results in
     // expandFurther being called on the relevant schema from the DB, to start
     // iterating on that schemas rules.
-    void expandSecond(const Key& field, WriteVisitor &visitor, const Key& dbKey) const;
-    void expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor &visitor, const Key& dbKey) const;
+    void expandSecond(const CanonicalKey& field, WriteVisitor &visitor, const CanonicalKey& dbKey) const;
+    void expandSecond(const metkit::mars::MarsRequest& request, ReadVisitor &visitor, const CanonicalKey& dbKey) const;
 
-    bool expandFirstLevel(const Key &dbKey,  Key &result) const ;
-    bool expandFirstLevel(const metkit::mars::MarsRequest& request,  Key& result) const ;
-    void matchFirstLevel(const Key &dbKey,  std::set<Key> &result, const char* missing) const ;
-    void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<Key>& result, const char* missing) const ;
+    bool expandFirstLevel(const CanonicalKey& dbKey,  CanonicalKey& result) const ;
+    bool expandFirstLevel(const metkit::mars::MarsRequest& request,  CanonicalKey& result) const ;
+    void matchFirstLevel(const CanonicalKey& dbKey,  std::set<CanonicalKey> &result, const char* missing) const ;
+    void matchFirstLevel(const metkit::mars::MarsRequest& request,  std::set<CanonicalKey>& result, const char* missing) const ;
 
-    const Rule* ruleFor(const Key &dbKey, const Key& idxKey) const;
+    const Rule* ruleFor(const CanonicalKey& dbKey, const CanonicalKey& idxKey) const;
 
     void load(const eckit::PathName &path, bool replace = false);
     void load(std::istream& s, bool replace = false);

@@ -46,15 +46,25 @@ class Key {
 
 public: // methods
 
-    explicit Key(const std::shared_ptr<TypesRegistry> reg = nullptr, bool canonical = false);
-    explicit Key(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
-    explicit Key(const std::string &keys, const Rule* rule);
-    explicit Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
-    Key(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
+    // explicit Key(const std::shared_ptr<TypesRegistry> reg = nullptr, bool canonical = false);
+    // explicit Key(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
+    // explicit Key(const std::string &keys, const Rule* rule);
+    // explicit Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
+    // Key(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
 
-    static Key parseStringUntyped(const std::string& s);
-    /// @todo - this functionality should not be supported any more.
-    static Key parseString(const std::string&, const std::shared_ptr<TypesRegistry> reg);
+    Key(const Key &key) : keys_(key.keys_), names_(key.names_), registry_(key.registry_) {}
+    explicit Key(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr) : keys_(keys), registry_(reg) {
+        for (const auto& k : keys) {
+            names_.emplace_back(k.first);
+        }
+    }
+    Key(std::initializer_list<std::pair<const std::string, std::string>> l, const std::shared_ptr<TypesRegistry> reg=nullptr) : keys_(l), registry_(reg) {
+        for (const auto& k : l) {
+            names_.emplace_back(k.first);
+        }
+    }
+
+    virtual ~Key();
 
     std::set<std::string> keys() const;
 
@@ -80,30 +90,25 @@ public: // methods
     /// keys present in the key. Essentially implements a reject-filter
     bool partialMatch(const metkit::mars::MarsRequest& request) const;
 
-    bool operator< (const Key &other) const {
+    bool operator< (const Key& other) const {
         return keys_ < other.keys_;
     }
 
-    bool operator!= (const Key &other) const {
+    bool operator!= (const Key& other) const {
         return keys_ != other.keys_;
     }
 
-    bool operator== (const Key &other) const {
+    bool operator== (const Key& other) const {
         return keys_ == other.keys_;
     }
 
-    friend std::ostream& operator<<(std::ostream &s, const Key &x) {
+    friend std::ostream& operator<<(std::ostream &s, const Key& x) {
         x.print(s);
         return s;
     }
 
-    friend eckit::Stream& operator<<(eckit::Stream &s, const Key &x) {
+    friend eckit::Stream& operator<<(eckit::Stream &s, const Key& x) {
         x.encode(s);
-        return s;
-    }
-
-    friend eckit::Stream& operator>>(eckit::Stream& s, Key& x) {
-        x = Key(s);
         return s;
     }
 
@@ -135,9 +140,6 @@ public: // methods
 
     bool empty() const { return keys_.empty(); }
 
-    /// @throws When "other" doesn't contain all the keys of "this"
-    void validateKeysOf(const Key& other, bool checkAlsoValues = false) const;
-
     const eckit::StringDict& keyDict() const;
 
     metkit::mars::MarsRequest request(std::string verb = "retrieve") const;
@@ -146,10 +148,10 @@ public: // methods
 
     operator eckit::StringDict() const;
 
-private: // members
+protected: // members
 
     //TODO add unit test for each type
-    std::string canonicalise(const std::string& keyword, const std::string& value) const;
+    virtual std::string canonicalise(const std::string& keyword, const std::string& value) const = 0;
 
     void print( std::ostream &out ) const;
     void decode(eckit::Stream& s);
@@ -161,7 +163,66 @@ private: // members
     eckit::StringList names_;
 
     std::shared_ptr<TypesRegistry> registry_;
-    bool canonical_;
+};
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class CanonicalKey : public Key {
+
+public: // methods
+
+    explicit CanonicalKey(const std::shared_ptr<TypesRegistry> reg = nullptr);
+    explicit CanonicalKey(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
+    explicit CanonicalKey(const std::string &keys, const Rule* rule);
+    explicit CanonicalKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
+    CanonicalKey(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
+
+    static CanonicalKey parseString(const std::string& s);
+
+    /// @throws When "other" doesn't contain all the keys of "this"
+    void validateKeysOf(const Key& other, bool checkAlsoValues = false) const;
+
+    friend eckit::Stream& operator>>(eckit::Stream& s, CanonicalKey& x) {
+        x = CanonicalKey(s);
+        return s;
+    }
+
+private: // members
+
+    //TODO add unit test for each type
+    std::string canonicalise(const std::string& keyword, const std::string& value) const override;
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ApiKey : public Key {
+
+public: // methods
+
+    ApiKey(const Key& key);
+    explicit ApiKey(const std::shared_ptr<TypesRegistry> reg = nullptr);
+    explicit ApiKey(eckit::Stream &, const std::shared_ptr<TypesRegistry> reg = nullptr);
+    explicit ApiKey(const std::string &keys, const Rule* rule);
+    explicit ApiKey(const eckit::StringDict &keys, const std::shared_ptr<TypesRegistry> reg=nullptr);
+    ApiKey(std::initializer_list<std::pair<const std::string, std::string>>, const std::shared_ptr<TypesRegistry> reg=nullptr);
+
+    /// @todo - this functionality should not be supported any more.
+    static ApiKey parseString(const std::string&, const std::shared_ptr<TypesRegistry> reg);
+
+    CanonicalKey canonical() const;
+
+    friend eckit::Stream& operator>>(eckit::Stream& s, ApiKey& x) {
+        x = ApiKey(s);
+        return s;
+    }
+
+private: // members
+
+    //TODO add unit test for each type
+    std::string canonicalise(const std::string& keyword, const std::string& value) const override;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -170,8 +231,8 @@ private: // members
 
 namespace std {
     template <>
-    struct hash<fdb5::Key> {
-        size_t operator() (const fdb5::Key& key) const {
+    struct hash<fdb5::CanonicalKey> {
+        size_t operator() (const fdb5::CanonicalKey& key) const {
             return std::hash<std::string>()(key.valuesToString());
         }
     };

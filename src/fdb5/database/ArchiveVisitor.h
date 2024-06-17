@@ -30,11 +30,11 @@ class ArchiveVisitor : public BaseArchiveVisitor {
 
 public: // methods
 
-    ArchiveVisitor(Archiver &owner, const Key &field, const void *data, size_t size);
+    ArchiveVisitor(Archiver &owner, const CanonicalKey& field, const void *data, size_t size);
 
 protected: // methods
 
-    virtual bool selectDatum(const Key &key, const Key &full) override;
+    virtual bool selectDatum(const ApiKey& key, const CanonicalKey& full) override;
 
     virtual void print( std::ostream &out ) const override;
 

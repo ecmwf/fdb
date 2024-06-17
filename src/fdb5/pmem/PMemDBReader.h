@@ -33,7 +33,7 @@ class PMemDBReader : public PMemDB {
 
 public: // methods
 
-    PMemDBReader(const Key &key, const eckit::Configuration& config);
+    PMemDBReader(const CanonicalKey& key, const eckit::Configuration& config);
     PMemDBReader(const eckit::PathName& directory, const eckit::Configuration& config);
 
     virtual bool open();
@@ -41,8 +41,8 @@ public: // methods
 
     virtual ~PMemDBReader() override;
 
-    virtual bool selectIndex(const Key &key);
-    virtual eckit::DataHandle* retrieve(const Key &key) const;
+    virtual bool selectIndex(const CanonicalKey& idxKey);
+    virtual eckit::DataHandle* retrieve(const ApiKey& key) const;
 
     virtual std::vector<Index> indexes(bool sorted) const;
 

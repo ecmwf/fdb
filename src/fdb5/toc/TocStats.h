@@ -161,7 +161,7 @@ private: // methods
 
     bool visitDatabase(const Catalogue& catalogue, const Store& store) override;
     void visitDatum(const Field& field, const std::string& keyFingerprint) override;
-    void visitDatum(const Field& field, const Key& key) override { NOTIMP; }
+    void visitDatum(const Field& field, const ApiKey& datumKey) override { NOTIMP; }
 
     // This visitor is only legit for one DB - so don't reset database
     void catalogueComplete(const Catalogue& catalogue) override;

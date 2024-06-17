@@ -24,7 +24,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-bool Store::canMoveTo(const Key&, const Config&, const eckit::URI& dest) const {
+bool Store::canMoveTo(const CanonicalKey&, const Config&, const eckit::URI& dest) const {
     std::stringstream ss;
     ss << "Store type " << type() << " does not support move" << std::endl;
     throw eckit::UserError(ss.str(), Here());
@@ -72,7 +72,7 @@ void StoreFactory::list(std::ostream& out) {
     }
 }
 
-std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const Key& key, const Config& config) {
+std::unique_ptr<Store> StoreFactory::build(const Schema& schema, const CanonicalKey& key, const Config& config) {
     std::string name = config.getString("store", "file");
     std::string nameLowercase = eckit::StringTools::lower(name);
 

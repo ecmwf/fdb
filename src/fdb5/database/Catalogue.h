@@ -26,6 +26,7 @@
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/PurgeVisitor.h"
@@ -38,24 +39,24 @@ namespace fdb5 {
 
 class Store;
 
-typedef std::map<Key, Index> IndexStore;
+typedef std::map<CanonicalKey, Index> IndexStore;
 
 class Catalogue {
 public:
 
-    Catalogue(const Key& key, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
-        : dbKey_(key), config_(config), controlIdentifiers_(controlIdentifiers) {}
+    Catalogue(const CanonicalKey& dbKey, ControlIdentifiers controlIdentifiers, const fdb5::Config& config)
+        : dbKey_(dbKey), config_(config), controlIdentifiers_(controlIdentifiers) {}
 
     virtual ~Catalogue() {}
 
-    const Key& key() const { return dbKey_; }
-    virtual const Key& indexKey() const { NOTIMP; }
+    const CanonicalKey& key() const { return dbKey_; }
+    virtual const CanonicalKey& indexKey() const { NOTIMP; }
     const Config& config() const { return config_; }
 
     std::unique_ptr<Store> buildStore();
     virtual const Schema& schema() const = 0;
 
-    virtual bool selectIndex(const Key& key) = 0;
+    virtual bool selectIndex(const CanonicalKey& idxKey) = 0;
     virtual void deselectIndex() = 0;
 
     virtual std::vector<eckit::PathName> metadataPaths() const = 0;
@@ -104,7 +105,7 @@ protected: // methods
 
 protected: // members
 
-    Key dbKey_;
+    CanonicalKey dbKey_;
     Config config_;
     ControlIdentifiers controlIdentifiers_;
 
@@ -114,16 +115,16 @@ class CatalogueReader {
 public:
     virtual DbStats stats() const = 0;
     virtual bool axis(const std::string& keyword, eckit::StringSet& s) const = 0;
-    virtual bool retrieve(const Key& key, Field& field) const = 0;
+    virtual bool retrieve(const ApiKey& key, Field& field) const = 0;
 };
 
 
 class CatalogueWriter {
 public:
     virtual const Index& currentIndex() = 0;
-    virtual void archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) = 0;
+    virtual void archive(const ApiKey& key, std::unique_ptr<FieldLocation> fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) = 0;
-    virtual void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
+    virtual void index(const ApiKey& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) = 0;
     virtual void reconsolidate() = 0;
 };
 
@@ -135,13 +136,13 @@ class CatalogueBuilderBase {
 public:
     CatalogueBuilderBase(const std::string&);
     virtual ~CatalogueBuilderBase();
-    virtual std::unique_ptr<Catalogue> make(const fdb5::Key& key, const fdb5::Config& config) = 0;
+    virtual std::unique_ptr<Catalogue> make(const fdb5::CanonicalKey& key, const fdb5::Config& config) = 0;
     virtual std::unique_ptr<Catalogue> make(const eckit::URI& uri, const fdb5::Config& config) = 0;
 };
 
 template <class T>
 class CatalogueBuilder : public CatalogueBuilderBase {
-    virtual std::unique_ptr<Catalogue> make(const fdb5::Key& key, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(key, config)); }
+    virtual std::unique_ptr<Catalogue> make(const fdb5::CanonicalKey& key, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(key, config)); }
     virtual std::unique_ptr<Catalogue> make(const eckit::URI& uri, const fdb5::Config& config) override { return std::unique_ptr<T>(new T(uri, config)); }
 
 public:
@@ -161,7 +162,7 @@ public:
 
     /// @param db        the db using the required catalogue
     /// @returns         catalogue built by specified builder
-    std::unique_ptr<Catalogue> build(const Key& key, const Config& config, bool read);
+    std::unique_ptr<Catalogue> build(const CanonicalKey& key, const Config& config, bool read);
     std::unique_ptr<Catalogue> build(const eckit::URI& uri, const Config& config, bool read);
 
 private:

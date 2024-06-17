@@ -64,7 +64,7 @@ eckit::DataHandle *PMemFieldLocation::dataHandle() const {
     return new eckit::MemoryHandle(node.data(), node.length());
 }
 
-eckit::DataHandle *PMemFieldLocation::dataHandle(const Key& remapKey) const {
+eckit::DataHandle *PMemFieldLocation::dataHandle(const CanonicalKey& remapKey) const {
     throw eckit::NotImplemented("fdb-mount functionality not implemented in pmem backend (yet)", Here());
 }
 

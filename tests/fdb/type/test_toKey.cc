@@ -31,7 +31,7 @@ char data[4];
 
 CASE( "ClimateDaily - no expansion" ) {
 
-    fdb5::Key key(config.schema().registry());
+    fdb5::CanonicalKey key(config.schema().registry());
     EXPECT(key.valuesToString() == "");
     EXPECT_THROWS(key.canonicalValue("date"));
 
@@ -48,7 +48,7 @@ CASE( "ClimateDaily - no expansion" ) {
 
 CASE( "Step & ClimateDaily - expansion" ) {
 
-    fdb5::Key key(config.schema().registry());
+    fdb5::ApiKey key(config.schema().registry());
     EXPECT(key.valuesToString() == "");
     EXPECT_THROWS(key.canonicalValue("date"));
 
@@ -125,8 +125,8 @@ CASE( "Step & ClimateDaily - expansion" ) {
     key.set("param", "129.128");
 
     fdb5::Archiver archiver;
-    fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
-    config.schema().expand(key, visitor);
+    fdb5::ArchiveVisitor visitor(archiver, key.canonical(), data, 4);
+    config.schema().expand(key.canonical(), visitor);
     key.registry(visitor.rule()->registry());
 
     EXPECT(key.canonicalValue("date") == "0427");
@@ -172,7 +172,7 @@ CASE( "Levelist" ) {
     values.insert("0.333333");
     values.sort();
 
-    fdb5::Key key(config.schema().registry());
+    fdb5::ApiKey key(config.schema().registry());
     EXPECT(key.valuesToString() == "");
     EXPECT_THROWS(key.canonicalValue("levelist"));
 
@@ -227,7 +227,7 @@ CASE( "Levelist" ) {
 
 CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
 
-    fdb5::Key key = fdb5::Key::parseString(
+    fdb5::ApiKey key = fdb5::ApiKey::parseString(
         "class=ei,expver=1,stream=dacl,domain=g,type=pb,levtype=pl,date=20210427,time=6,step=0,quantile=99:100,levelist=50,param=129.128",
         config.schema().registry());
 
@@ -236,8 +236,8 @@ CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
     EXPECT(key.valuesToString() == "ei:0001:dacl:g:pb:pl:20210427:0600:0:99:100:50:129.128");
 
     fdb5::Archiver archiver;
-    fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
-    config.schema().expand(key, visitor);
+    fdb5::ArchiveVisitor visitor(archiver, key.canonical(), data, 4);
+    config.schema().expand(key.canonical(), visitor);
     key.registry(visitor.rule()->registry());
 
     EXPECT(key.canonicalValue("date") == "0427");
@@ -246,7 +246,7 @@ CASE( "Expver, Time & ClimateDaily - string ctor - expansion" ) {
 
 CASE( "ClimateMonthly - string ctor - expansion" ) {
 
-    fdb5::Key key = fdb5::Key::parseString(
+    fdb5::ApiKey key = fdb5::ApiKey::parseString(
         "class=op,expver=1,stream=mnth,domain=g,type=cl,levtype=pl,date=20210427,time=0000,levelist=50,param=129.128",
         config.schema().registry());
 
@@ -254,8 +254,8 @@ CASE( "ClimateMonthly - string ctor - expansion" ) {
     EXPECT(key.valuesToString() == "op:0001:mnth:g:cl:pl:20210427:0000:50:129.128");
 
     fdb5::Archiver archiver;
-    fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
-    config.schema().expand(key, visitor);
+    fdb5::ArchiveVisitor visitor(archiver, key.canonical(), data, 4);
+    config.schema().expand(key.canonical(), visitor);
     key.registry(visitor.rule()->registry());
 
     std::cout << key.valuesToString() << std::endl;
@@ -265,10 +265,10 @@ CASE( "ClimateMonthly - string ctor - expansion" ) {
 
 }
 
-// do we need to keep this behaviour? should we rely on metkit for date expansion and remove it from Key?
+// do we need to keep this behaviour? should we rely on metkit for date expansion and remove it from CanonicalKey?
 CASE( "Date - string ctor - expansion" ) {
 
-    fdb5::Key key = fdb5::Key::parseString(
+    fdb5::ApiKey key = fdb5::ApiKey::parseString(
             "class=od,expver=1,stream=oper,type=ofb,date=-2,time=0000,obsgroup=MHS,reportype=3001",
             config.schema().registry());
 
@@ -279,8 +279,8 @@ CASE( "Date - string ctor - expansion" ) {
     EXPECT(key.valuesToString() == "od:0001:oper:ofb:"+t(now.yyyymmdd())+":0000:MHS:3001");
 
     fdb5::Archiver archiver;
-    fdb5::ArchiveVisitor visitor(archiver, key, data, 4);
-    config.schema().expand(key, visitor);
+    fdb5::ArchiveVisitor visitor(archiver, key.canonical(), data, 4);
+    config.schema().expand(key.canonical(), visitor);
     key.registry(visitor.rule()->registry());
 
     EXPECT(key.canonicalValue("date") == t(now.yyyymmdd()));

@@ -38,7 +38,7 @@ using eckit::Log;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MessageArchiver::MessageArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
+MessageArchiver::MessageArchiver(const fdb5::CanonicalKey& key, bool completeTransfers, bool verbose, const Config& config) :
     MessageDecoder(),
     fdb_(config),
     key_(key),
@@ -85,7 +85,7 @@ static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::st
 
     if(str.empty()) return std::vector<metkit::mars::MarsRequest>();
 
-    std::set<std::string> keys = fdb5::Key::parseStringUntyped(str).keys(); //< keys to filter from that request
+    std::set<std::string> keys = fdb5::CanonicalKey::parseString(str).keys(); //< keys to filter from that request
 
     std::vector<metkit::mars::MarsRequest> v = str_to_requests(str);
 
@@ -133,12 +133,12 @@ static bool matchAny(const metkit::mars::MarsRequest& f, const std::vector<metki
     return false;
 }
 
-bool MessageArchiver::filterOut(const Key& k) const {
+bool MessageArchiver::filterOut(const CanonicalKey& k) const {
 
     const bool out = true;
 
     metkit::mars::MarsRequest field;
-    for (Key::const_iterator j = k.begin(); j != k.end(); ++j) {
+    for (CanonicalKey::const_iterator j = k.begin(); j != k.end(); ++j) {
         eckit::StringList s;
         s.push_back(j->second);
         field.values(j->first, s);
@@ -182,7 +182,7 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
 #endif
 
-            Key key;
+            CanonicalKey key;
 
             messageToKey(msg, key);
 

@@ -76,21 +76,21 @@ public: // methods
     /// @arg key - The key of the node to create or get _relative_to_the_current_node_
     /// @return A reference to the newly created, or found, node
     /// @note This is primarily in place to support the getIndex functionality.
-    PBranchingNode& getCreateBranchingNode(const Key& key);
+    PBranchingNode& getCreateBranchingNode(const CanonicalKey& key);
 
-    void insertDataNode(const Key& key, const ::pmem::PersistentPtr<PDataNode>& dataNode, DataPoolManager& mgr);
+    void insertDataNode(const CanonicalKey& key, const ::pmem::PersistentPtr<PDataNode>& dataNode, DataPoolManager& mgr);
 
-    ::pmem::PersistentPtr<PDataNode> getDataNode(const Key& key, DataPoolManager& mgr) const;
+    ::pmem::PersistentPtr<PDataNode> getDataNode(const CanonicalKey& key, DataPoolManager& mgr) const;
 
     /// Obtain a branching (intermediate) node in the tree. If it doesn't exist, then
     /// a null pointer is returned.
     /// @arg key - The key of the node to create or get _relative_to_the_current_node_
     /// @return A PersistentPtr to the node, or a null() pointer.
-    ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const Key& key) const;
+    ::pmem::PersistentPtr<PBranchingNode> getBranchingNode(const CanonicalKey& key) const;
 
     void visitLeaves(EntryVisitor &visitor,
                      DataPoolManager& mgr,
-                     std::vector<Key>& keys,
+                     std::vector<CanonicalKey>& keys,
                      size_t depth,
                      Index index = Index());
 

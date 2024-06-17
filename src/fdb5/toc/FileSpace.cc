@@ -36,7 +36,7 @@ FileSpace::FileSpace(const std::string& name, const std::string& re, const std::
                      const std::vector<Root>& roots) :
     name_(name), handler_(handler), re_(re), roots_(roots) {}
 
-TocPath FileSpace::filesystem(const Key& key, const eckit::PathName& db) const {
+TocPath FileSpace::filesystem(const CanonicalKey& key, const eckit::PathName& db) const {
     // check that the database isn't present already
     // if it is, then return that path
 
@@ -82,7 +82,7 @@ bool FileSpace::match(const std::string& s) const {
     return re_.match(s);
 }
 
-bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& root) const {
+bool FileSpace::existsDB(const CanonicalKey& key, const eckit::PathName& db, TocPath& root) const {
     unsigned count = 0;
     bool found = false;
 

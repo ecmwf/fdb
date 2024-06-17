@@ -70,7 +70,7 @@ DistFDB::DistFDB(const Config& config, const std::string& name) :
 
 DistFDB::~DistFDB() {}
 
-void DistFDB::archive(const Key& key, const void* data, size_t length) {
+void DistFDB::archive(const CanonicalKey& key, const void* data, size_t length) {
 
     std::vector<size_t> laneIndices;
 

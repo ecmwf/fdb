@@ -52,7 +52,7 @@ eckit::DataHandle* RadosFieldLocation::dataHandle() const {
     return g;
 }
 
-eckit::DataHandle *RadosFieldLocation::dataHandle(const Key& remapKey) const {
+eckit::DataHandle *RadosFieldLocation::dataHandle(const CanonicalKey& remapKey) const {
     return new SingleGribMungePartFileHandle(path(), offset(), length(), remapKey);
 }
 

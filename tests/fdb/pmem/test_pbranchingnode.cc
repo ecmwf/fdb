@@ -135,7 +135,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_mismatched_key" )
 
     // Allocate a data node, and then insert it into the tree
 
-    fdb5::Key key;
+    fdb5::CanonicalKey key;
     key.push("key1", "value1");
     key.push("key2", "value2");
 
@@ -159,7 +159,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_retrieve" )
 
     // --
 
-    fdb5::Key key1;
+    fdb5::CanonicalKey key1;
     key1.push("key1", "value1");
     key1.push("key2", "value2");
 
@@ -171,7 +171,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_retrieve" )
 
     // --
 
-    fdb5::Key key2;
+    fdb5::CanonicalKey key2;
     key2.push("key1", "value1");
     key2.push("key2a", "value2a");
 
@@ -184,7 +184,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_retrieve" )
 
     // --
 
-    fdb5::Key key3;
+    fdb5::CanonicalKey key3;
     key3.push("key1a", "value1a");
     key3.push("key2", "value2");
 
@@ -221,7 +221,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_masking" )
 
     // Allocate a data node, and then insert it into the tree
 
-    fdb5::Key key;
+    fdb5::CanonicalKey key;
     key.push("key1", "value1");
     key.push("key2", "value2");
 
@@ -275,7 +275,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_collision" )
 
     // --
 
-    fdb5::Key key1;
+    fdb5::CanonicalKey key1;
     key1.push("key1", "value1");
     key1.push("key2", "value2");
     key1.push("key3", "value3");
@@ -288,7 +288,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_insert_collision" )
 
     // --
 
-    fdb5::Key key2;
+    fdb5::CanonicalKey key2;
     key2.push("key1", "value1");
     key2.push("key2", "value2");
 
@@ -313,7 +313,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_find_fail" )
 
     // --
 
-    fdb5::Key key1;
+    fdb5::CanonicalKey key1;
     key1.push("key1", "value1");
     key1.push("key2", "value2");
     key1.push("key3", "value3");
@@ -326,7 +326,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_find_fail" )
 
     // -- Finding a non-existent node
 
-    fdb5::Key keyA;
+    fdb5::CanonicalKey keyA;
     keyA.push("a_key", "a_value");
     keyA.push("anotherK", "anotherV");
 
@@ -336,7 +336,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_find_fail" )
     // -- What if the searched for value isn't a DataNode. This is breaking the (implicit) schema
     //    so it throws.
 
-    fdb5::Key keyB;
+    fdb5::CanonicalKey keyB;
     keyB.push("key1", "value1");
     keyB.push("key2", "value2");
 
@@ -357,7 +357,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
 
     class WriterThread : public eckit::Thread {
     public:
-        WriterThread(const std::vector<std::pair<fdb5::Key, std::string> >& keys, PBranchingNode& root) :
+        WriterThread(const std::vector<std::pair<fdb5::CanonicalKey, std::string> >& keys, PBranchingNode& root) :
             keys_(keys), root_(root),
             mgrMock_("", *reinterpret_cast<PIndexRoot*>(0), global_root.uuid()) {}
         virtual ~WriterThread() {}
@@ -366,7 +366,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
 
             // Iterate over the unique key descriptors passed in
 
-            for (std::vector<std::pair<fdb5::Key, std::string> >::const_iterator it = keys_.begin();
+            for (std::vector<std::pair<fdb5::CanonicalKey, std::string> >::const_iterator it = keys_.begin();
                  it != keys_.end(); it++) {
 
                 std::string datakey = it->first.names()[it->first.names().size()-1];
@@ -383,7 +383,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
         }
 
     private:
-        const std::vector<std::pair<fdb5::Key, std::string> >& keys_;
+        const std::vector<std::pair<fdb5::CanonicalKey, std::string> >& keys_;
         PBranchingNode& root_;
         DataPoolManager mgrMock_;
     };
@@ -421,8 +421,8 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
 
     const size_t keys_per_thread = 10;
     size_t thread_key_count = 0;
-    std::vector<std::vector<std::pair<fdb5::Key, std::string> > > keys;
-    std::vector<std::pair<fdb5::Key, std::string> > part_key;
+    std::vector<std::vector<std::pair<fdb5::CanonicalKey, std::string> > > keys;
+    std::vector<std::pair<fdb5::CanonicalKey, std::string> > part_key;
 
     std::vector<int> ks(4, 0);
     std::vector<int> k_max(4);
@@ -442,7 +442,7 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
 
                 // Generate a unique key and data pair
 
-                fdb5::Key insert_key;
+                fdb5::CanonicalKey insert_key;
                 std::stringstream data_ss;
                 for (size_t i = 0; i < ks.size(); i++) {
                     std::stringstream keybit, valuebit;
@@ -483,10 +483,10 @@ CASE( "test_fdb5_pmem_pbranchingnode_thread_testing" )
 
     // And check that everything has been created correctly.
 
-    for (std::vector<std::vector<std::pair<fdb5::Key, std::string> > >::const_iterator it = keys.begin();
+    for (std::vector<std::vector<std::pair<fdb5::CanonicalKey, std::string> > >::const_iterator it = keys.begin();
          it != keys.end(); ++it) {
 
-        for (std::vector<std::pair<fdb5::Key, std::string> >::const_iterator it2 = it->begin();
+        for (std::vector<std::pair<fdb5::CanonicalKey, std::string> >::const_iterator it2 = it->begin();
              it2 != it->end(); ++it2) {
 
             pmem::PersistentPtr<PDataNode> pdata = root.getDataNode(it2->first, mgrMock);

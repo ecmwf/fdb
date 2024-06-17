@@ -21,7 +21,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ListElement::ListElement(const std::vector<Key>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp) :
+ListElement::ListElement(const std::vector<CanonicalKey>& keyParts, std::shared_ptr<const FieldLocation> location, time_t timestamp) :
     keyParts_(keyParts), location_(location), timestamp_(timestamp) {}
 
 ListElement::ListElement(eckit::Stream &s) {
@@ -30,10 +30,10 @@ ListElement::ListElement(eckit::Stream &s) {
     s >> timestamp_;
 }
 
-Key ListElement::combinedKey() const {
-    Key combined = keyParts_[2];
+CanonicalKey ListElement::combinedKey() const {
+    CanonicalKey combined = keyParts_[2];
 
-    for (const Key& partKey : keyParts_) {
+    for (const CanonicalKey& partKey : keyParts_) {
         for (const auto& kv : partKey) {
             combined.set(kv.first, kv.second);
         }

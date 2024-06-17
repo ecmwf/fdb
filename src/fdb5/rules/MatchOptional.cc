@@ -32,7 +32,7 @@ MatchOptional::MatchOptional(const std::string &def) :
 MatchOptional::~MatchOptional() {
 }
 
-bool MatchOptional::match(const std::string&, const Key&) const {
+bool MatchOptional::match(const std::string&, const CanonicalKey&) const {
     return true;
 }
 
@@ -40,14 +40,14 @@ bool MatchOptional::optional() const {
     return true;
 }
 
-void MatchOptional::fill(Key &key, const std::string &keyword, const std::string& value) const {
+void MatchOptional::fill(Key& key, const std::string &keyword, const std::string& value) const {
     if (!value.empty()) {
         key.push(keyword, value);
     }
 }
 
-const std::string &MatchOptional::value(const Key &key, const std::string &keyword) const {
-    Key::const_iterator i = key.find(keyword);
+const std::string &MatchOptional::value(const CanonicalKey& key, const std::string &keyword) const {
+    CanonicalKey::const_iterator i = key.find(keyword);
 
     if (i == key.end()) {
         return default_[0];

@@ -38,7 +38,7 @@ namespace mars {
 
 namespace fdb5 {
 
-class Key;
+class CanonicalKey;
 class Op;
 class DB;
 class Schema;
@@ -98,7 +98,7 @@ private: // methods
 
 private: // data
 
-    mutable eckit::CacheLRU<Key,DB*> databases_;
+    mutable eckit::CacheLRU<CanonicalKey,DB*> databases_;
 
     Config dbConfig_;
 };

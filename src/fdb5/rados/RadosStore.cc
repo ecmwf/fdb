@@ -28,7 +28,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) :
+RadosStore::RadosStore(const Schema& schema, const CanonicalKey& key, const Config& config) :
     Store(schema), directory_("mars:"+key.valuesToString()) {}
 
 eckit::URI RadosStore::uri() const {
@@ -39,13 +39,13 @@ bool RadosStore::exists() const {
     return true;
 }
 
-eckit::DataHandle* RadosStore::retrieve(Field& field, Key& remapKey) const {
+eckit::DataHandle* RadosStore::retrieve(Field& field, CanonicalKey& remapKey) const {
     return remapKey.empty() ?
         field.dataHandle() :
         field.dataHandle(remapKey);
 }
 
-FieldLocation* RadosStore::archive(const Key &key, const void *data, eckit::Length length) {
+FieldLocation* RadosStore::archive(const CanonicalKey& key, const void *data, eckit::Length length) {
     dirty_ = true;
 
     eckit::PathName dataPath = getDataPath(key);
@@ -154,7 +154,7 @@ eckit::DataHandle& RadosStore::getDataHandle( const eckit::PathName &path ) {
     return *dh;
 }
 
-eckit::PathName RadosStore::generateDataPath(const Key &key) const {
+eckit::PathName RadosStore::generateDataPath(const CanonicalKey& key) const {
 
     eckit::PathName dpath ( directory_ );
     dpath /=  key.valuesToString();
@@ -162,7 +162,7 @@ eckit::PathName RadosStore::generateDataPath(const Key &key) const {
     return dpath;
 }
 
-eckit::PathName RadosStore::getDataPath(const Key &key) {
+eckit::PathName RadosStore::getDataPath(const CanonicalKey& key) {
     PathStore::const_iterator j = dataPaths_.find(key);
     if ( j != dataPaths_.end() )
         return j->second;

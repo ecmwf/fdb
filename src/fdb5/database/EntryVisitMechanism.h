@@ -52,7 +52,7 @@ public:  // methods
 
 private: // methods
 
-    virtual void visitDatum(const Field& field, const Key& key) = 0;
+    virtual void visitDatum(const Field& field, const ApiKey& datumKey) = 0;
 
 protected:  // members
 
