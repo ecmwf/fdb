@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+set -eux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdbcompare="$<TARGET_FILE:fdb-compare>"
+
+gribset="$<TARGET_FILE:grib_set>"
+
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+### cleanup and prepare test
+
+rm -rf $bindir/grib
+mkdir -p $bindir/grib
+
+rm -rf $bindir/ref-root
+mkdir ref-root
+
+rm -rf $bindir/test-root
+mkdir test-root
+
+for f in ref.yaml test.yaml schema ../data.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+$gribset -s edition=2 data.grib data2.grib
+$gribset -s step=6 data2.grib grib/6.grib
+
+$fdbwrite --config=ref.yaml grib/6.grib
+$fdbwrite --config=test.yaml grib/6.grib
+
+
+set +e
+
+# Test 1: --grib-keys-ignore with hash-keys method should emit a warning about no effect
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=header-only --grib-comparison-type="hash-keys" --grib-keys-ignore="localTablesVersion" 2>&1 | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "will have no effect" out
+grep_rc=$?
+
+if [ $grep_rc -ne 0 ]; then
+    die "Expected warning about grib-keys-ignore having no effect with hash-keys method (grep_rc=$grep_rc)"
+fi
+
+
+# Test 2: --grib-keys-select with bit-identical method should emit a warning about no effect
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=header-only --grib-comparison-type="bit-identical" --grib-keys-select="editionNumber" 2>&1 | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "will have no effect" out
+grep_rc=$?
+
+if [ $grep_rc -ne 0 ]; then
+    die "Expected warning about grib-keys-select having no effect with bit-identical method (grep_rc=$grep_rc)"
+fi
