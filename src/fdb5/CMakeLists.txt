@@ -459,6 +459,7 @@ list( APPEND fdb5_tools
     fdb-copy
     fdb-dump
     fdb-list
+    fdb-compare
     fdb-read
     fdb-schema
     fdb-where
