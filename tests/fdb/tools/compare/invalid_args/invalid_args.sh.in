@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+
+
+set -eux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdbcompare="$<TARGET_FILE:fdb-compare>"
+
+gribset="$<TARGET_FILE:grib_set>"
+
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+### cleanup and prepare test
+
+rm -rf $bindir/grib
+mkdir -p $bindir/grib
+
+rm -rf $bindir/ref-root
+mkdir ref-root
+
+rm -rf $bindir/test-root
+mkdir test-root
+
+for f in ref.yaml test.yaml schema ../data.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+$gribset -s edition=2 data.grib data2.grib
+$gribset -s step=6 data2.grib grib/6.grib
+
+$fdbwrite --config=ref.yaml grib/6.grib
+$fdbwrite --config=test.yaml grib/6.grib
+
+
+set +e
+
+# Test 1: Only --request1 without --request2 should succeed
+$fdbcompare --config1=ref.yaml --config2=test.yaml --request1="class=od,expver=abcd" 2>&1 | tee out
+tool_rc=${PIPESTATUS[0]}
+
+if [ $tool_rc -ne 0 ]; then
+    die "Running fdb-compare should be successful when only passing --request1"
+fi
+
+
+# Test 2: Only --request2 without --request1 should fail
+$fdbcompare --config1=ref.yaml --config2=test.yaml --request2="class=rd,expver=1234" 2>&1 | tee out
+tool_rc=${PIPESTATUS[0]}
+
+if [ $tool_rc -eq 0 ]; then
+    die "Should fail when only --request2 is provided without --request1"
+fi
+
+
+# Test 3: Invalid --scope value should fail
+$fdbcompare --config1=ref.yaml --config2=test.yaml --scope=invalid 2>&1 | tee out
+tool_rc=${PIPESTATUS[0]}
+
+if [ $tool_rc -eq 0 ]; then
+    die "Should fail with invalid --scope value"
+fi
+
+
+# Test 4: Invalid --grib-comparison-type value should fail
+$fdbcompare --config1=ref.yaml --config2=test.yaml --grib-comparison-type=invalid 2>&1 | tee out
+tool_rc=${PIPESTATUS[0]}
+
+if [ $tool_rc -eq 0 ]; then
+    die "Should fail with invalid --grib-comparison-type value"
+fi
+
+
+# Test 5: Single-FDB mode (--config) without --request1/--request2 and with --all
+# should compare the FDB against itself and succeed
+$fdbcompare --config1=ref.yaml 2>&1 | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "[MARS KEYS COMPARE] SUCCESS" out
+grep_rc=$?
+
+if [ $tool_rc -ne 0 ] || [ $grep_rc -ne 0 ]; then
+    die "Single-FDB self-comparison should succeed (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
+
+
+# Test 6: Single-FDB mode with default FDB (without --config) without --request1/--request2 and with --all
+# should compare the FDB against itself and succeed
+$fdbcompare 2>&1 | tee out
+tool_rc=${PIPESTATUS[0]}
+
+grep -Fq "Either --config1 or --request1 (or both) need to be passed " out
+grep_rc=$?
+
+if [ $tool_rc -eq 0 ] || [ $grep_rc -ne 0 ]; then
+die "Single-FDB self-comparison with defalut FDB should be prohibited (tool_rc=$tool_rc, grep_rc=$grep_rc)"
+fi
