@@ -92,44 +92,27 @@ void FDBCompare::init(const CmdArgs& args) {
     ASSERT(tolerance_>=0);
 
 
-    /// @todo option ignore-errors
 }
 
 void FDBCompare::execute(const CmdArgs& args) {
 
-// from FDBTool.cc
-        //     std::string config = args.getString("config", "");
-        // if (config.empty()) {
-        //     throw eckit::UserError("Missing config file name", Here());
-        // }
-    PathName configPathtest(testConfig_);
-    if (!configPathtest.exists()) {
-        std::ostringstream ss;
-        ss << "Path " << testConfig_ << " does not exist";
-        throw UserError(ss.str(), Here());
-    }
-    if (configPathtest.isDir()) {
-        std::ostringstream ss;
-        ss << "Path " << testConfig_ << " is a directory. Expecting a file";
-        throw UserError(ss.str(), Here());
-    }
+
+    // PathName configPathtest(testConfig_);
+    // if (!configPathtest.exists()) {
+    //     std::ostringstream ss;
+    //     ss << "Path " << testConfig_ << " does not exist";
+    //     throw UserError(ss.str(), Here());
+    // }
+    // if (configPathtest.isDir()) {
+    //     std::ostringstream ss;
+    //     ss << "Path " << testConfig_ << " is a directory. Expecting a file";
+    //     throw UserError(ss.str(), Here());
+    // }
    
-    FDB fdbtest( Config::make(configPathtest));
+    // FDB fdbtest( Config::make(configPathtest));
 
-
-// from fdb5/config/Config.h
-// class Config : public eckit::LocalConfiguration {
-// public:  // static methods
-//     static Config make(const eckit::PathName& path, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
-
-// public:  // methods
-//     Config();
-//     Config(const eckit::Configuration& config, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
-
-
-
-// from FDB.h    FDB(const Config& config = Config().expandConfig());
-    PathName configPathref(testConfig_);
+    // std::cout<<"FDB test object"<<std::endl;
+    PathName configPathref(referenceConfig_);
     if (!configPathref.exists()) {
         std::ostringstream ss;
         ss << "Path " << referenceConfig_ << " does not exist";
@@ -143,7 +126,23 @@ void FDBCompare::execute(const CmdArgs& args) {
     
     FDB fdbref( Config::make(configPathref));
 
+    std::cout<<"before for loop"<<std::endl;
+    for (const FDBToolRequest& request : requests()) {
+        auto listObject = fdbref.list(request);
+        std::map<std::string, std::map<std::string, std::pair<metkit::mars::MarsRequest, std::unordered_set<Key>>>> requests;
+         
+        ListElement elem;
+        std::cout<<"before while loop"<<std::endl;
+    
+        while (listObject.next(elem)) {
 
+            std::cout<<"in while loop"<<std::endl;
+            elem.print(Log::info(),true,true,true,",");
+            Log::info()<<std::endl;
+        }
+
+        std::cout<<"after while loop"<<std::endl;
+    }
     // std::unique_ptr<JSON> json;
     // if (json_) {
     //     json.reset(new JSON(Log::info()));
@@ -151,7 +150,7 @@ void FDBCompare::execute(const CmdArgs& args) {
     // }
 
     // for (const FDBToolRequest& request : requests()) {
-
+ 
     //     if (!porcelain_) {
     //         Log::info() << "Listing for request" << std::endl;
     //         request.print(Log::info());
